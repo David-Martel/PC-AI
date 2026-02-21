@@ -1,0 +1,24 @@
+[package]
+name = "rust-functiongemma-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.100"
+thiserror = "2"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.149"
+minijinja = "2"
+candle-core = { version = "0.9.2", features = ["cuda"] }
+candle-nn = { version = "0.9.2", features = ["cuda"] }
+candle-transformers = { version = "0.9.2", features = ["cuda"] }
+qlora-rs = { version = "1.0.5", features = ["cuda"] }
+cudarc = { version = "0.19.0", default-features = false, features = ["std", "runtime", "driver", "dynamic-linking", "cuda-version-from-build-system"] }
+candle-flash-attn = { version = "0.9.2", optional = true }
+
+[features]
+default = []
+flash-attn = ["candle-flash-attn"]
+
+[dev-dependencies]
+rand = "0.8.5"

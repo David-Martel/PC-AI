@@ -1,4 +1,4 @@
-pub mod model;
+pub use rust_functiongemma_core::model;
 pub mod schema_utils;
 pub mod data_gen;
 pub mod dataset;
@@ -10,7 +10,7 @@ pub mod scheduler;
 pub mod checkpoint;
 pub mod early_stopping;
 
-pub use model::{Config, Model};
+pub use rust_functiongemma_core::model::{Config, Model, LoraSettings};
 
 #[cfg(test)]
 mod tests {

@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'Deploy/pcai-inference/**'
+      - 'Native/pcai_core/pcai_inference/**'
       - 'Modules/PcaiInference.psm1'
       - 'Tests/Unit/PC-AI.Inference.Tests.ps1'
       - 'Tests/Integration/FFI.Inference.Tests.ps1'
@@ -12,7 +12,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'Deploy/pcai-inference/**'
+      - 'Native/pcai_core/pcai_inference/**'
       - 'Modules/PcaiInference.psm1'
 
 env:
@@ -32,15 +32,15 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: Deploy/pcai-inference
+          workspaces: Native/pcai_core/pcai_inference
           shared-key: pcai-inference
 
       - name: Check (no features)
-        working-directory: Deploy/pcai-inference
+        working-directory: Native/pcai_core/pcai_inference
         run: cargo check --lib --no-default-features
 
       - name: Check (with server)
-        working-directory: Deploy/pcai-inference
+        working-directory: Native/pcai_core/pcai_inference
         run: cargo check --lib --features server
 
   test:
@@ -61,16 +61,12 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: Deploy/pcai-inference
+          workspaces: Native/pcai_core/pcai_inference
           shared-key: pcai-inference-${{ matrix.rust }}
 
-      - name: Run Tests (no default features)
-        working-directory: Deploy/pcai-inference
-        run: cargo test --no-default-features
-
-      - name: Run Tests (with server)
-        working-directory: Deploy/pcai-inference
-        run: cargo test --features server
+      - name: Run Unit Tests
+        working-directory: Native/pcai_core/pcai_inference
+        run: cargo test --no-default-features --features server,ffi --lib
 
       - name: Install cargo-llvm-cov
         if: matrix.rust == 'stable'
@@ -78,14 +74,14 @@ jobs:
 
       - name: Generate Coverage Report
         if: matrix.rust == 'stable'
-        working-directory: Deploy/pcai-inference
-        run: cargo llvm-cov --no-default-features --lcov --output-path coverage.lcov
+        working-directory: Native/pcai_core/pcai_inference
+        run: cargo llvm-cov --no-default-features --features server,ffi --lib --lcov --output-path coverage.lcov
 
       - name: Upload Coverage to Codecov
         if: matrix.rust == 'stable'
         uses: codecov/codecov-action@v4
         with:
-          files: Deploy/pcai-inference/coverage.lcov
+          files: Native/pcai_core/pcai_inference/coverage.lcov
           flags: rust-inference
           fail_ci_if_error: false
 
@@ -104,12 +100,12 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: Deploy/pcai-inference
+          workspaces: Native/pcai_core/pcai_inference
           shared-key: pcai-inference
 
       - name: Run Clippy
-        working-directory: Deploy/pcai-inference
-        run: cargo clippy --no-default-features -- -D warnings
+        working-directory: Native/pcai_core/pcai_inference
+        run: cargo clippy --no-default-features --features server,ffi -- -D warnings
 
   fmt:
     name: Format Check
@@ -123,7 +119,7 @@ jobs:
           components: rustfmt
 
       - name: Check Format
-        working-directory: Deploy/pcai-inference
+        working-directory: Native/pcai_core/pcai_inference
         run: cargo fmt --check
 
   powershell-tests:
@@ -167,7 +163,7 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: Deploy/pcai-inference
+          workspaces: Native/pcai_core/pcai_inference
           shared-key: pcai-inference-msvc
 
       - name: Set MSVC Environment
@@ -179,18 +175,18 @@ jobs:
           echo "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
 
       - name: Build llamacpp Backend
-        working-directory: Deploy/pcai-inference
+        working-directory: Native/pcai_core/pcai_inference
         run: cargo build --release --features llamacpp,ffi,server
 
       - name: Run FFI Tests
-        working-directory: Deploy/pcai-inference
+        working-directory: Native/pcai_core/pcai_inference
         run: cargo test --release --features llamacpp,ffi
 
       - name: Copy Artifacts
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path bin -Force
-          Copy-Item Deploy/pcai-inference/target/release/pcai_inference.dll -Destination bin/ -ErrorAction SilentlyContinue
+          Copy-Item Native/pcai_core/pcai_inference/target/release/pcai_inference.dll -Destination bin/ -ErrorAction SilentlyContinue
 
       - name: Upload DLL Artifact
         uses: actions/upload-artifact@v4
@@ -228,7 +224,7 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: Deploy/pcai-inference
+          workspaces: Native/pcai_core/pcai_inference
           shared-key: pcai-inference-cuda
 
       - name: Set CUDA Environment
@@ -241,18 +237,18 @@ jobs:
           echo "CUDA_PATH=$env:CUDA_PATH" >> $env:GITHUB_ENV
 
       - name: Build CUDA Backend
-        working-directory: Deploy/pcai-inference
+        working-directory: Native/pcai_core/pcai_inference
         run: cargo build --release --features llamacpp,ffi,server,cuda
 
       - name: Run CUDA Tests
-        working-directory: Deploy/pcai-inference
+        working-directory: Native/pcai_core/pcai_inference
         run: cargo test --release --features llamacpp,ffi,cuda
 
       - name: Copy CUDA Artifacts
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path bin-cuda -Force
-          Copy-Item Deploy/pcai-inference/target/release/pcai_inference.dll -Destination bin-cuda/ -ErrorAction SilentlyContinue
+          Copy-Item Native/pcai_core/pcai_inference/target/release/pcai_inference.dll -Destination bin-cuda/ -ErrorAction SilentlyContinue
 
       - name: Upload CUDA DLL Artifact
         uses: actions/upload-artifact@v4

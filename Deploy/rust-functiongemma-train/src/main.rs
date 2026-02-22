@@ -564,7 +564,10 @@ fn main() -> Result<()> {
             let tie_embeddings = detect_tie_embeddings(&st);
 
             let varmap = VarMap::new();
-            let vb_dtype = default_dtype(&device);
+            // QLoRA requires F32 VarBuilder: LoRA adapter weights must match
+            // the F32 dequantized NF4 base weights inside QuantizedLinear.
+            // Using BF16 here causes dtype mismatch in matmul (F32 vs BF16).
+            let vb_dtype = if use_4bit { DType::F32 } else { default_dtype(&device) };
             let vb = VarBuilder::from_varmap(&varmap, vb_dtype, &device);
             let lora_settings =
                 build_lora_settings(lora_r, lora_alpha, lora_dropout, use_4bit, false, true);

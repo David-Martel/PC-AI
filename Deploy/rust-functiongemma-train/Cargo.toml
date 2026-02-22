@@ -5,10 +5,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.100"
-candle-core = { version = "0.9.2", features = ["cuda"] }
-candle-nn = { version = "0.9.2", features = ["cuda"] }
-candle-transformers = { version = "0.9.2", features = ["cuda"] }
-rust-functiongemma-core = { path = "../rust-functiongemma-core", features = ["flash-attn"] }
+candle-core = "0.9.2"
+candle-nn = "0.9.2"
+candle-transformers = "0.9.2"
+rust-functiongemma-core = { path = "../rust-functiongemma-core", features = ["cuda", "flash-attn"] }
 clap = { version = "4.5.23", features = ["derive"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.149"

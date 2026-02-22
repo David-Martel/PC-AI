@@ -10,15 +10,23 @@ serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.149"
 safetensors = "0.4"
 minijinja = "2"
-candle-core = { version = "0.9.2", features = ["cuda"] }
-candle-nn = { version = "0.9.2", features = ["cuda"] }
-candle-transformers = { version = "0.9.2", features = ["cuda"] }
-qlora-rs = { version = "1.0.5", features = ["cuda"] }
-cudarc = { version = "0.19.0", default-features = false, features = ["std", "runtime", "driver", "dynamic-linking", "cuda-version-from-build-system"] }
+candle-core = { version = "0.9.2" }
+candle-nn = { version = "0.9.2" }
+candle-transformers = { version = "0.9.2" }
+qlora-rs = { version = "1.0.5", optional = true }
+cudarc = { version = "0.19.0", default-features = false, features = ["std", "runtime", "driver", "dynamic-linking", "cuda-version-from-build-system"], optional = true }
 candle-flash-attn = { version = "0.9.2", optional = true }
+tracing = "0.1"
 
 [features]
-default = []
+default = ["cuda"]
+cuda = [
+  "candle-core/cuda",
+  "candle-nn/cuda",
+  "candle-transformers/cuda",
+  "qlora-rs",
+  "cudarc",
+]
 flash-attn = ["candle-flash-attn"]
 
 [dev-dependencies]

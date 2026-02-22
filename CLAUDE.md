@@ -25,6 +25,9 @@ PC_AI/
 │   └── pcai_core_lib/                 # Shared Rust library (telemetry, fs, search)
 ├── Native/PcaiNative/                 # C# P/Invoke wrapper for PowerShell
 ├── Native/PcaiChatTui/                # C# interactive chat TUI (async backends)
+├── Native/PcaiServiceHost/            # C# Windows service host for inference
+├── Native/NukeNul/                    # C# utility for null-file removal
+├── Deploy/rust-functiongemma/         # Rust workspace root (includes core/runtime/train)
 ├── Deploy/rust-functiongemma-core/    # Shared Rust library (model, GPU, prompt, config)
 ├── Deploy/rust-functiongemma-runtime/ # Rust router runtime (axum HTTP server)
 ├── Deploy/rust-functiongemma-train/   # Rust router dataset + training pipeline
@@ -32,6 +35,7 @@ PC_AI/
 │   ├── PC-AI.Acceleration/            # Native FFI wrappers (P/Invoke bridge)
 │   ├── PC-AI.Cleanup/                 # Duplicate detection, PATH cleanup
 │   ├── PC-AI.CLI/                     # Command map, help extraction, argument parsing
+│   ├── PC-AI.Common/                  # Shared utilities (error formatting, path resolution)
 │   ├── PC-AI.Evaluation/              # LLM evaluation framework (metrics, A/B testing)
 │   ├── PC-AI.Hardware/                # Device, disk, USB, network diagnostics
 │   ├── PC-AI.LLM/                     # Local LLM integration (Ollama, native, TUI)
@@ -40,10 +44,17 @@ PC_AI/
 │   ├── PC-AI.USB/                     # USB device management
 │   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
 │   └── PcaiInference.psm1             # Inference module (load/generate/stream/async)
+├── Tools/
+│   ├── Invoke-DocPipeline.ps1         # Master doc generation orchestrator
+│   ├── generate-auto-docs.ps1         # Unified auto-doc (ast-grep, PS, C#, Rust)
+│   ├── validate-doc-accuracy.ps1      # Doc accuracy validation
+│   ├── Build.ps1 / Invoke-RustBuild   # Build system scripts
+│   └── ...                            # 30+ utility scripts
 ├── Config/
 │   ├── llm-config.json                # Backend + model configuration
 │   ├── pcai-tools.json                # FunctionGemma tool schema
 │   └── pcai-functiongemma.json        # Router GPU + runtime config
+├── .litho/litho.toml                  # Litho (deepwiki-rs) documentation config
 └── CLAUDE.md                          # This file
 ```
 
@@ -54,6 +65,46 @@ PC_AI/
 3. **Modules/PC-AI.Hardware/** - PowerShell module that collects system data via structured functions
 
 The agent follows a **collect → parse → route → reason → recommend** workflow where diagnostics output is structured into categories, optional tool routing is executed via the FunctionGemma runtime, and the main LLM produces recommendations.
+
+## Documentation Generation
+
+### Automated Documentation Pipeline
+
+```powershell
+# Full documentation pipeline (docs + training data)
+.\Tools\Invoke-DocPipeline.ps1 -Mode Full
+
+# Documentation only (no training data)
+.\Tools\Invoke-DocPipeline.ps1 -Mode DocsOnly
+
+# Auto-docs with all generators (ast-grep, PS, C#, Rust)
+.\Tools\generate-auto-docs.ps1
+
+# Validate documentation accuracy
+.\Tools\validate-doc-accuracy.ps1
+```
+
+### Litho (deepwiki-rs) Architecture Documentation
+
+```powershell
+# Generate comprehensive architecture docs via LLM analysis
+# Requires Ollama running with qwen2.5-coder:7b
+deepwiki-rs.exe -c .litho/litho.toml -p . -v
+
+# Output: docs/auto/deepwiki_litho_docs/
+```
+
+Config: `.litho/litho.toml` — knowledge categories cover architecture, modules, native code, deployment, tests, reports, and build tools.
+
+### Reports Directory
+
+The doc pipeline generates structured reports under `Reports/`:
+- `DOC_STATUS.md` — TODO/FIXME/DEPRECATED markers across codebase
+- `PS_MODULE_INDEX.md` — PowerShell function index by module
+- `API_SIGNATURE_REPORT.md` — Cross-layer API alignment
+- `TOOLS_CATALOG.md` — All Tools/ scripts with descriptions
+- `POWERSHELL_EXPORTS.json` — Machine-readable module exports
+- `DOC_PIPELINE_REPORT.json` — Pipeline run summary
 
 ## Commands
 

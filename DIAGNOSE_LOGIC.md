@@ -190,8 +190,8 @@ If a particular device repeatedly shows issues:
 Suggest testing that device on another machine.
 Conclude whether device or host is at fault.
 
-6.5 Branch 4: Network Adapter Status (Section 5)
-Condition: Network adapters show problems in Section 5.
+6.5 Branch 4: Network Adapter Status (Get-NetworkAdapters)
+Condition: Network adapters show problems from Get-NetworkAdapters output.
 
 Examples:
 
@@ -220,11 +220,11 @@ Disabling unused adapters to reduce noise/confusion.
 6.6 Branch 5: No Apparent Issues Found
 Condition:
 
-Section 1: No devices with non-zero ConfigManagerErrorCode.
-Section 2: All disks show OK.
-Section 3: No critical/warning disk/USB events in last few days.
-Section 4: USB devices mostly Status = OK.
-Section 5: Network adapters appear normal or as expected.
+Get-DeviceErrors: No devices with non-zero ConfigManagerErrorCode.
+Get-DiskHealth: All disks show OK.
+Get-SystemEvents: No critical/warning disk/USB events in last few days.
+Get-UsbStatus: USB devices mostly Status = OK.
+Get-NetworkAdapters: Network adapters appear normal or as expected.
 
 Response:
 

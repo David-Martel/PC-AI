@@ -88,6 +88,18 @@ pcai-inference LLM Analysis (local GGUF)
 # Build only the Native/NukeNul hybrid utility
 .\Build.ps1 -Component nukenul
 
+# Run full multi-language lint checks only (Rust/C#/PowerShell/docs/ast-grep/TOML)
+.\Build.ps1 -Component lint -LintProfile all
+
+# Run formatting checks only
+.\Build.ps1 -Component format -LintProfile all
+
+# Auto-fix supported issues (formatters + ast-grep rewrite), then re-validate
+.\Build.ps1 -Component fix -LintProfile all -AutoFix
+
+# Refresh Rust dependency graph and warm crate cache state
+.\Build.ps1 -Component deps -DependencyStrategy locked
+
 # Build with explicit CargoTools preflight and persisted defaults
 .\Build.ps1 -Component all -CargoTools enabled -CargoPreflight -CargoPreflightMode check -SyncCargoDefaults
 

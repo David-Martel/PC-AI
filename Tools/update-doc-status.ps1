@@ -19,6 +19,37 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Convert-ToRepoRelativePath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+        [Parameter(Mandatory)]
+        [string]$RepoRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $Path
+    }
+
+    $repoFull = [System.IO.Path]::GetFullPath($RepoRoot).TrimEnd('\', '/')
+    $candidate = $Path
+    if (-not [System.IO.Path]::IsPathRooted($candidate)) {
+        $candidate = Join-Path $RepoRoot $candidate
+    }
+
+    try {
+        $full = [System.IO.Path]::GetFullPath($candidate)
+        if ($full.StartsWith($repoFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $full.Substring($repoFull.Length).TrimStart('\', '/')
+        }
+    }
+    catch {
+        # Fall back to original path if normalization fails.
+    }
+
+    return $Path.TrimStart('.', '\', '/')
+}
+
 $scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 if (-not $RepoRoot) {
     $RepoRoot = Split-Path -Parent $scriptRoot
@@ -42,13 +73,17 @@ $rgArgs = @(
     '-g', '!**/bin/**',
     '-g', '!**/obj/**',
     '-g', '!**/target/**',
+    '-g', '!**/target-ffi/**',
+    '-g', '!**/target-ffi-nosccache/**',
     '-g', '!**/dist/**',
+    '-g', '!**/output/**',
+    '-g', '!**/checkpoints/**',
     # CRITICAL: Prevent self-referential scanning
     '-g', '!**/Reports/**',
     '-g', '!**/*.jsonl',
     '-g', '!**/Models/**/tokenizer*.json',
     '-g', '!**/.claude/context/**',
-    $RepoRoot
+    '.'
 )
 
 $entries = @()
@@ -75,7 +110,7 @@ if ($sgExe) {
                     if (-not $entryIndex.ContainsKey($key)) {
                         $entryIndex[$key] = $true
                         $entries += [PSCustomObject]@{
-                            Path = $m.file
+                            Path = Convert-ToRepoRelativePath -Path $m.file -RepoRoot $RepoRoot
                             Line = $m.line
                             Match = $m.text
                         }
@@ -93,7 +128,13 @@ if ($sgExe) {
 # Temporarily allow errors since rg may emit errors for inaccessible paths
 $prevEAP = $ErrorActionPreference
 $ErrorActionPreference = 'SilentlyContinue'
-$rgOut = & rg @rgArgs 2>$null
+Push-Location $RepoRoot
+try {
+    $rgOut = & rg @rgArgs 2>$null
+}
+finally {
+    Pop-Location
+}
 $ErrorActionPreference = $prevEAP
 # Process any output regardless of exit code (rg may have partial results)
 if ($rgOut) {
@@ -104,7 +145,7 @@ if ($rgOut) {
             if (-not $entryIndex.ContainsKey($key)) {
                 $entryIndex[$key] = $true
                 $entries += [PSCustomObject]@{
-                    Path = $parts[0]
+                    Path = Convert-ToRepoRelativePath -Path $parts[0] -RepoRoot $RepoRoot
                     Line = $parts[1]
                     Match = $parts[2].Trim()
                 }

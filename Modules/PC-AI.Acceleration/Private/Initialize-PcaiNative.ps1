@@ -357,6 +357,47 @@ function Test-PcaiResourceSafety {
     return [PcaiNative.PcaiCore]::CheckResourceSafety($GpuLimit)
 }
 
+function Invoke-PcaiNativeUnifiedHardwareReport {
+    <#
+    .SYNOPSIS
+        Invokes unified hardware report generation through the native bridge.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter()]
+        [ValidateSet("Basic", "Normal", "Full")]
+        [string]$Verbosity = "Normal"
+    )
+
+    if (-not (Test-PcaiNativeAvailable)) {
+        throw 'PCAI Native tools not available.'
+    }
+
+    $verbosityEnum = [PcaiNative.DiagnosticVerbosity]::$Verbosity
+    return [PcaiNative.PcaiDiagnostics]::GetUnifiedHardwareReportJson($verbosityEnum)
+}
+
+function Invoke-PcaiNativeEstimateTokens {
+    <#
+    .SYNOPSIS
+        Estimates tokens using the native core implementation.
+    #>
+    [CmdletBinding()]
+    [OutputType([uint64])]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [AllowEmptyString()]
+        [string]$Text
+    )
+
+    if (-not (Test-PcaiNativeAvailable)) {
+        return [uint64](($Text.Split(' ') | Where-Object { $_ }).Count * 1.2 + 1)
+    }
+
+    return [PcaiNative.PcaiCore]::EstimateTokens($Text)
+}
+
 function Get-PcaiTokenEstimate {
     <#
     .SYNOPSIS
@@ -370,9 +411,5 @@ function Get-PcaiTokenEstimate {
         [string]$Text
     )
 
-    if (-not (Test-PcaiNativeAvailable)) {
-        # Fallback to simple words + 20% if native is unavailable
-        return [uint64](($Text.Split(' ') | Where-Object { $_ }).Count * 1.2 + 1)
-    }
-    return [PcaiNative.PcaiCore]::EstimateTokens($Text)
+    return Invoke-PcaiNativeEstimateTokens -Text $Text
 }

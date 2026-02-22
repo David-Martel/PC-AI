@@ -83,7 +83,7 @@ public static class Program
 
         if (useNative)
         {
-            nativeBackend = BackendFactory.Create(backend, baseUrl);
+            nativeBackend = await BackendFactory.CreateAsync(backend, baseUrl);
 
             if (nativeBackend is HttpBackend)
             {
@@ -92,7 +92,7 @@ public static class Program
                 useNative = false;
                 backend = BackendType.Http;
             }
-            else if (!nativeBackend.IsAvailable)
+            else if (!await nativeBackend.CheckAvailabilityAsync())
             {
                 var message = "pcai_inference.dll not available or backend failed to initialize";
                 if (backendExplicit || preferNative)
@@ -131,7 +131,7 @@ public static class Program
         if (options.HealthOnly)
         {
             var health = useNative
-                ? GetNativeHealth(nativeBackend, provider)
+                ? await GetNativeHealthAsync(nativeBackend, provider)
                 : await GetHealthAsync(http, baseUrl, provider);
             PrintHealth(health, options.JsonOutput);
             return health.Ok ? 0 : 1;
@@ -204,7 +204,7 @@ public static class Program
 
         var stream = string.Equals(mode, "stream", StringComparison.OrdinalIgnoreCase);
         var react = string.Equals(mode, "react", StringComparison.OrdinalIgnoreCase) || mode == "diagnose";
-        var toolsPath = options.ToolsPath ?? config.ToolsPath ?? "C:\\Users\\david\\PC_AI\\Config\\pcai-tools.json";
+        var toolsPath = options.ToolsPath ?? config.ToolsPath ?? PathResolver.ResolvePath("Config/pcai-tools.json");
 
         await RunInteractiveAsync(
             http,
@@ -252,15 +252,15 @@ public static class Program
     private static string? LoadModePrompt(string mode)
     {
         var path = mode == "diagnose"
-            ? "C:\\Users\\david\\PC_AI\\DIAGNOSE.md"
-            : "C:\\Users\\david\\PC_AI\\CHAT.md";
+            ? PathResolver.ResolvePath("DIAGNOSE.md")
+            : PathResolver.ResolvePath("CHAT.md");
 
         if (File.Exists(path))
         {
             var content = File.ReadAllText(path);
             if (mode == "diagnose")
             {
-                var logicPath = "C:\\Users\\david\\PC_AI\\DIAGNOSE_LOGIC.md";
+                var logicPath = PathResolver.ResolvePath("DIAGNOSE_LOGIC.md");
                 if (File.Exists(logicPath))
                 {
                     content += "\n\n" + File.ReadAllText(logicPath);
@@ -407,7 +407,7 @@ public static class Program
                         continue;
                     case "/health":
                         var health = useNative
-                            ? GetNativeHealth(nativeBackend, provider)
+                            ? await GetNativeHealthAsync(nativeBackend, provider)
                             : await GetHealthAsync(http, baseUrl, provider);
                         PrintHealth(health, jsonOutput: false);
                         continue;
@@ -559,7 +559,7 @@ public static class Program
         return result;
     }
 
-    private static HealthResult GetNativeHealth(IInferenceBackend? nativeBackend, string provider)
+    private static async Task<HealthResult> GetNativeHealthAsync(IInferenceBackend? nativeBackend, string provider)
     {
         var result = new HealthResult
         {
@@ -574,7 +574,7 @@ public static class Program
             return result;
         }
 
-        result.Ok = nativeBackend.IsAvailable;
+        result.Ok = await nativeBackend.CheckAvailabilityAsync();
         if (!result.Ok)
         {
             result.Error = InferenceModule.GetLastError() ?? "Native backend unavailable";
@@ -993,7 +993,7 @@ public static class Program
             return url;
         }
 
-        var path = configPath ?? "C:\\Users\\david\\PC_AI\\Config\\hvsock-proxy.conf";
+        var path = configPath ?? PathResolver.ResolvePath("Config/hvsock-proxy.conf");
         if (!File.Exists(path))
         {
             return url;
@@ -1266,7 +1266,7 @@ public sealed class LlmConfig
 
     public static LlmConfig Load(string? configPath)
     {
-        var path = configPath ?? "C:\\Users\\david\\PC_AI\\Config\\llm-config.json";
+        var path = configPath ?? PathResolver.ResolvePath("Config/llm-config.json");
         if (!File.Exists(path))
         {
             return new LlmConfig();
@@ -1280,7 +1280,7 @@ public sealed class LlmConfig
             var providersMap = new Dictionary<string, ProviderConfig>(StringComparer.OrdinalIgnoreCase);
             string? defaultProvider = null;
             string? toolsPath = null;
-            var hvsockConfigPath = "C:\\Users\\david\\PC_AI\\Config\\hvsock-proxy.conf";
+            var hvsockConfigPath = PathResolver.ResolvePath("Config/hvsock-proxy.conf");
             NativeProviderConfig? nativeProvider = null;
 
             if (doc.RootElement.TryGetProperty("providers", out var providers))
@@ -1494,4 +1494,34 @@ public sealed class ChatMessage
     [JsonPropertyName("tool_calls")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public JsonElement? ToolCalls { get; set; }
+}
+
+internal static class PathResolver
+{
+    private static readonly Lazy<string> ProjectRoot = new(() =>
+    {
+        var envRoot = Environment.GetEnvironmentVariable("PCAI_ROOT");
+        if (!string.IsNullOrWhiteSpace(envRoot) && Directory.Exists(envRoot))
+        {
+            return envRoot;
+        }
+
+        var current = AppContext.BaseDirectory;
+        while (!string.IsNullOrWhiteSpace(current))
+        {
+            if (File.Exists(Path.Combine(current, "PC-AI.ps1")) || Directory.Exists(Path.Combine(current, "Config")))
+            {
+                return current;
+            }
+
+            current = Directory.GetParent(current)?.FullName;
+        }
+
+        return AppContext.BaseDirectory;
+    });
+
+    public static string ResolvePath(string relativePath)
+    {
+        return Path.Combine(ProjectRoot.Value, relativePath);
+    }
 }

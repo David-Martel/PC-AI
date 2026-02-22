@@ -8,7 +8,7 @@ function Start-HVSockProxy {
     [OutputType([PSCustomObject])]
     param(
         [Parameter()]
-        [string]$ConfigPath = 'C:\Users\david\PC_AI\Config\hvsock-proxy.conf',
+        [string]$ConfigPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path 'Config\hvsock-proxy.conf'),
 
         [Parameter()]
         [string]$StatePath = "$env:ProgramData\PC_AI\hvsock-proxy\state.json",
@@ -42,7 +42,7 @@ function Start-HVSockProxy {
         New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
     }
 
-    $entries = @()
+    $entries = [System.Collections.Generic.List[PSObject]]::new()
     $lines = Get-Content $ConfigPath | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }
 
     foreach ($line in $lines) {
@@ -57,14 +57,14 @@ function Start-HVSockProxy {
         $args = "HVSock-LISTEN:$serviceId TCP:${tcpHost}:$tcpPort"
         $proc = Start-Process -FilePath $winsocat.Path -ArgumentList $args -PassThru -WindowStyle Hidden
 
-        $entries += [PSCustomObject]@{
+        $entries.Add([PSCustomObject]@{
             Name = $name
             ServiceId = $serviceId
             TcpTarget = "${tcpHost}:$tcpPort"
             Pid = $proc.Id
             Command = "$($winsocat.Path) $args"
             Started = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-        }
+        })
     }
 
     $entries | ConvertTo-Json -Depth 4 | Set-Content -Path $StatePath -Encoding UTF8

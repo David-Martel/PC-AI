@@ -18,7 +18,7 @@ public enum BackendType
 public interface IInferenceBackend : IAsyncDisposable
 {
     string Name { get; }
-    bool IsAvailable { get; }
+    Task<bool> CheckAvailabilityAsync();
     Task<bool> LoadModelAsync(string modelPath, int gpuLayers = -1);
     Task<string> GenerateAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f);
     IAsyncEnumerable<string> GenerateStreamingAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f);
@@ -26,27 +26,27 @@ public interface IInferenceBackend : IAsyncDisposable
 
 public static class BackendFactory
 {
-    public static IInferenceBackend Create(BackendType type, string? httpEndpoint = null)
+    public static async Task<IInferenceBackend> CreateAsync(BackendType type, string? httpEndpoint = null)
     {
         return type switch
         {
             BackendType.Http => new HttpBackend(httpEndpoint ?? "http://127.0.0.1:8080"),
             BackendType.LlamaCpp => new NativeBackend("llamacpp"),
             BackendType.MistralRs => new NativeBackend("mistralrs"),
-            BackendType.Auto => ResolveAuto(httpEndpoint),
+            BackendType.Auto => await ResolveAutoAsync(httpEndpoint),
             _ => throw new ArgumentException($"Unknown backend type: {type}")
         };
     }
 
-    private static IInferenceBackend ResolveAuto(string? httpEndpoint)
+    private static async Task<IInferenceBackend> ResolveAutoAsync(string? httpEndpoint)
     {
         // Try native first, fall back to HTTP
         var native = new NativeBackend("mistralrs");
-        if (native.IsAvailable)
+        if (await native.CheckAvailabilityAsync())
             return native;
 
         native = new NativeBackend("llamacpp");
-        if (native.IsAvailable)
+        if (await native.CheckAvailabilityAsync())
             return native;
 
         return new HttpBackend(httpEndpoint ?? "http://127.0.0.1:8080");
@@ -67,29 +67,26 @@ public class NativeBackend : IInferenceBackend
 
     public string Name => $"Native ({_backendName})";
 
-    public bool IsAvailable
+    public Task<bool> CheckAvailabilityAsync()
     {
-        get
+        try
         {
-            try
+            // Check if DLL exists and can initialize
+            var result = InferenceModule.pcai_init(_backendName);
+            if (result == 0)
             {
-                // Check if DLL exists and can initialize
-                var result = InferenceModule.pcai_init(_backendName);
-                if (result == 0)
-                {
-                    _initialized = true;
-                    return true;
-                }
-                return false;
+                _initialized = true;
+                return Task.FromResult(true);
             }
-            catch (DllNotFoundException)
-            {
-                return false;
-            }
-            catch (EntryPointNotFoundException)
-            {
-                return false;
-            }
+            return Task.FromResult(false);
+        }
+        catch (DllNotFoundException)
+        {
+            return Task.FromResult(false);
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return Task.FromResult(false);
         }
     }
 
@@ -176,19 +173,16 @@ public class HttpBackend : IInferenceBackend
 
     public string Name => $"HTTP ({_endpoint})";
 
-    public bool IsAvailable
+    public async Task<bool> CheckAvailabilityAsync()
     {
-        get
+        try
         {
-            try
-            {
-                var response = _client.GetAsync($"{_endpoint}/v1/models").Result;
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
+            var response = await _client.GetAsync($"{_endpoint}/v1/models");
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
         }
     }
 

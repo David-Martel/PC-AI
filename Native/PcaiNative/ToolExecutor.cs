@@ -133,10 +133,15 @@ public sealed class ToolExecutor
 
     private async Task<ToolExecutionResult> RunHostCommandAsync(string cmdlet, string? module, JsonNode? paramMappings, JsonElement arguments, ToolExecutionLimits limits)
     {
+        if (!IsSafeCommandToken(cmdlet))
+        {
+            return ToolExecutionResult.Fail($"Unsafe cmdlet token: {cmdlet}");
+        }
+
         var sb = new StringBuilder();
         if (!string.IsNullOrEmpty(module))
         {
-            sb.Append($"Import-Module '{module}' -ErrorAction SilentlyContinue; ");
+            sb.Append($"Import-Module '{EscapeSingleQuotedLiteral(module)}' -ErrorAction SilentlyContinue; ");
         }
 
         sb.Append(cmdlet);
@@ -162,6 +167,11 @@ public sealed class ToolExecutor
             foreach (var kvp in pm)
             {
                 var pName = kvp.Key;
+                if (!IsSafeParameterName(pName))
+                {
+                    continue;
+                }
+
                 var pValue = kvp.Value?.ToString();
 
                 if (pValue != null && pValue.StartsWith("$"))
@@ -173,12 +183,12 @@ public sealed class ToolExecutor
                             ? argValue.GetString()
                             : argValue.GetRawText();
 
-                        sb.Append($" -{pName} '{valStr}'");
+                        sb.Append($" -{pName} '{EscapeSingleQuotedLiteral(valStr ?? string.Empty)}'");
                     }
                 }
                 else if (pValue != null)
                 {
-                    sb.Append($" -{pName} '{pValue}'");
+                    sb.Append($" -{pName} '{EscapeSingleQuotedLiteral(pValue)}'");
                 }
             }
         }
@@ -186,10 +196,15 @@ public sealed class ToolExecutor
 
     private async Task<ToolExecutionResult> RunPowerShellCommandAsync(string cmdlet, string? module, JsonNode? paramMappings, JsonElement arguments, ToolExecutionLimits limits)
     {
+        if (!IsSafeCommandToken(cmdlet))
+        {
+            return ToolExecutionResult.Fail($"Unsafe cmdlet token: {cmdlet}");
+        }
+
         var sb = new StringBuilder();
         if (!string.IsNullOrEmpty(module))
         {
-            sb.Append($"Import-Module '{module}' -ErrorAction SilentlyContinue; ");
+            sb.Append($"Import-Module '{EscapeSingleQuotedLiteral(module)}' -ErrorAction SilentlyContinue; ");
         }
 
         sb.Append(cmdlet);
@@ -201,10 +216,11 @@ public sealed class ToolExecutor
         var sw = Stopwatch.StartNew();
         try
         {
+            var encodedCommand = Convert.ToBase64String(Encoding.Unicode.GetBytes(sb.ToString()));
             var startInfo = new ProcessStartInfo
             {
                 FileName = "pwsh",
-                Arguments = $"-NoProfile -NonInteractive -Command \"{sb}\"",
+                Arguments = $"-NoProfile -NonInteractive -EncodedCommand {encodedCommand}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -321,6 +337,47 @@ public sealed class ToolExecutor
         }
 
         return envelope.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+    }
+
+    private static string EscapeSingleQuotedLiteral(string value)
+    {
+        return value.Replace("'", "''");
+    }
+
+    private static bool IsSafeCommandToken(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        foreach (var ch in value)
+        {
+            if (!(char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' || ch == '.'))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsSafeParameterName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        foreach (var ch in value)
+        {
+            if (!(char.IsLetterOrDigit(ch) || ch == '_'))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private readonly record struct ToolExecutionLimits(int TimeoutMs, int MaxOutputChars, int RetryCount, int RetryDelayMs);

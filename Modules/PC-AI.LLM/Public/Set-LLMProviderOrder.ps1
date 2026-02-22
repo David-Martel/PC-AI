@@ -12,7 +12,7 @@ function Set-LLMProviderOrder {
     )
 
     $orderValue = $Order -join ','
-    $result = Invoke-PcaiServiceHost -Args @('provider','set-order', $orderValue)
+    $result = Invoke-PcaiServiceHost -ServerArgs @('provider','set-order', $orderValue)
     if (-not $result.Success) {
         throw "Failed to update provider order: $($result.Output)"
     }

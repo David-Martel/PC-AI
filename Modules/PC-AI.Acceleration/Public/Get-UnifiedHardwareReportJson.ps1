@@ -34,16 +34,12 @@ function Get-UnifiedHardwareReportJson {
     }
 
     try {
-        # Map string verbosity to enum
-        $verbosityEnum = [PcaiNative.DiagnosticVerbosity]::$Verbosity
-
-        # Call the unified bridge logic
-        $json = [PcaiNative.PcaiDiagnostics]::GetUnifiedHardwareReportJson($verbosityEnum)
+        $json = Invoke-PcaiNativeUnifiedHardwareReport -Verbosity $Verbosity
         if ($json) {
             $report = ($json | ConvertFrom-Json)
 
             # Add native-calculated token estimate for chunking control
-            $tokenCount = [PcaiNative.PcaiCore]::EstimateTokens($json)
+            $tokenCount = Invoke-PcaiNativeEstimateTokens -Text $json
             Add-Member -InputObject $report -MemberType NoteProperty -Name "TokenEstimate" -Value $tokenCount
 
             return $report

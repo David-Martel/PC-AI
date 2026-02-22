@@ -1,0 +1,191 @@
+# Litho (deepwiki-rs) configuration for PC_AI documentation generation.
+# Adapted from david-t-martel project template.
+
+project_name = "PC-AI"
+project_path = "."
+output_path = "docs/auto/deepwiki_litho_docs"
+internal_path = ".litho"
+target_language = "en"
+analyze_dependencies = true
+identify_components = true
+max_depth = 10
+core_component_percentage = 40.0
+max_file_size = 131072
+include_tests = true
+include_hidden = false
+
+excluded_dirs = [
+    ".git",
+    ".litho",
+    ".pcai",
+    ".venv",
+    ".cache",
+    "__pycache__",
+    "node_modules",
+    "target",
+    "build",
+    "dist",
+    "Models",
+    "bin",
+    "obj",
+    "packages",
+    "docs/auto",
+]
+
+excluded_files = [
+    "Cargo.lock",
+    "package-lock.json",
+    "*.tmp",
+    "*.cache",
+    "*.log",
+    "scan_results.json",
+]
+
+excluded_extensions = [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "bmp",
+    "ico",
+    "mp3",
+    "mp4",
+    "avi",
+    "pdf",
+    "zip",
+    "tar",
+    "exe",
+    "dll",
+    "gguf",
+    "safetensors",
+    "bin",
+    "pdb",
+]
+included_extensions = []
+
+[llm]
+provider = "openai"
+api_key = "${LITHO_LLM_API_KEY}"
+api_base_url = "http://localhost:11434/v1"
+internal_path = ".litho"
+model_efficient = "qwen2.5-coder:7b"
+model_powerful = "qwen2.5-coder:7b"
+max_tokens = 8192
+temperature = 0.1
+retry_attempts = 3
+retry_delay_ms = 3000
+timeout_seconds = 900
+max_parallels = 1
+disable_preset_tools = false
+
+[cache]
+enabled = true
+cache_dir = ".litho/cache"
+expire_hours = 720
+
+[knowledge.local_docs]
+enabled = true
+cache_dir = ".litho/cache/knowledge/local_docs"
+watch_for_changes = true
+
+[knowledge.local_docs.default_chunking]
+enabled = true
+max_chunk_size = 12000
+chunk_overlap = 400
+strategy = "semantic"
+min_size_for_chunking = 10000
+
+[[knowledge.local_docs.categories]]
+name = "architecture"
+description = "System architecture and design documentation"
+paths = [
+    "CLAUDE.md",
+    "DIAGNOSE.md",
+    "DIAGNOSE_LOGIC.md",
+    "CHAT.md",
+    "Config/*.json",
+]
+target_agents = [
+    "SystemContextResearcher",
+    "ArchitectureResearcher",
+    "OverviewEditor",
+    "ArchitectureEditor",
+]
+
+[[knowledge.local_docs.categories]]
+name = "modules"
+description = "PowerShell module implementations"
+paths = [
+    "Modules/**/*.psm1",
+    "Modules/**/*.psd1",
+    "Modules/**/*.ps1",
+]
+target_agents = [
+    "DomainModulesDetector",
+    "BoundaryAnalyzer",
+    "WorkflowResearcher",
+    "WorkflowEditor",
+]
+
+[[knowledge.local_docs.categories]]
+name = "native"
+description = "Rust and C# native code"
+paths = [
+    "Native/**/*.rs",
+    "Native/**/*.cs",
+    "Native/**/Cargo.toml",
+    "Native/**/*.csproj",
+]
+target_agents = [
+    "ArchitectureResearcher",
+    "DomainModulesDetector",
+]
+
+[[knowledge.local_docs.categories]]
+name = "deploy"
+description = "FunctionGemma deployment and training"
+paths = [
+    "Deploy/**/*.rs",
+    "Deploy/**/Cargo.toml",
+]
+target_agents = [
+    "ArchitectureResearcher",
+    "WorkflowResearcher",
+]
+
+[[knowledge.local_docs.categories]]
+name = "tests"
+description = "Test suites and evaluation harness"
+paths = [
+    "Tests/**/*.ps1",
+    "Tests/**/*.rs",
+]
+target_agents = [
+    "ArchitectureResearcher",
+    "WorkflowResearcher",
+]
+
+[[knowledge.local_docs.categories]]
+name = "reports"
+description = "Auto-generated documentation reports from Invoke-DocPipeline"
+paths = [
+    "Reports/*.md",
+    "Reports/*.json",
+]
+target_agents = [
+    "SystemContextResearcher",
+    "OverviewEditor",
+]
+
+[[knowledge.local_docs.categories]]
+name = "build"
+description = "Build system, CI/CD, and tooling"
+paths = [
+    "Build.ps1",
+    "Tools/*.ps1",
+    ".github/workflows/*.yml",
+]
+target_agents = [
+    "WorkflowResearcher",
+    "WorkflowEditor",
+]

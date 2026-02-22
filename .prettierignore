@@ -1,0 +1,13 @@
+.git/
+.pcai/
+node_modules/
+output/
+reports/
+target/
+**/target/
+bin/
+obj/
+artifacts/
+dist/
+tmp/
+scan_results.json

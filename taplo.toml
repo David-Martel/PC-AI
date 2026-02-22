@@ -1,0 +1,17 @@
+include = ["**/*.toml"]
+exclude = [
+  ".git/**",
+  ".pcai/**",
+  "target/**",
+  "**/target/**",
+  "node_modules/**",
+  "output/**",
+  "bin/**",
+  "obj/**",
+]
+
+[formatting]
+column_width = 120
+indent_string = "  "
+trailing_newline = true
+reorder_keys = false

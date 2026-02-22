@@ -1,8 +1,8 @@
 {
-  "Generated": "2026-01-31 03:27:23",
+  "Generated": "2026-02-22 13:43:04",
   "PowerShell": {
-    "FunctionCount": 118,
-    "MissingHelpCount": 60,
+    "FunctionCount": 171,
+    "MissingHelpCount": 113,
     "MissingHelpParameters": [
       {
         "Name": "Compare-ToolPerformance",
@@ -141,7 +141,9 @@
           "MaxDepth",
           "Hidden",
           "Exclude",
-          "FullPath"
+          "FullPath",
+          "NoIgnore",
+          "PreferNative"
         ],
         "HelpPresent": true,
         "HelpParameters": [
@@ -154,7 +156,9 @@
           "Exclude"
         ],
         "MissingHelpParameters": [
-          "FullPath"
+          "FullPath",
+          "NoIgnore",
+          "PreferNative"
         ],
         "ExtraHelpParameters": [],
         "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Acceleration\\Public\\Find-FilesFast.ps1"
@@ -170,6 +174,7 @@
           "Hidden",
           "Exclude",
           "FullPath",
+          "NoIgnore",
           "FdPath"
         ],
         "HelpPresent": false,
@@ -183,7 +188,39 @@
           "Hidden",
           "Exclude",
           "FullPath",
+          "NoIgnore",
           "FdPath"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Acceleration\\Public\\Find-FilesFast.ps1"
+      },
+      {
+        "Name": "Find-WithPcaiNative",
+        "Parameters": [
+          "Path",
+          "Pattern",
+          "Extension",
+          "Type",
+          "MaxDepth",
+          "Hidden",
+          "Exclude",
+          "FullPath",
+          "NoIgnore",
+          "PreferNative"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Path",
+          "Pattern",
+          "Extension",
+          "Type",
+          "MaxDepth",
+          "Hidden",
+          "Exclude",
+          "FullPath",
+          "NoIgnore",
+          "PreferNative"
         ],
         "ExtraHelpParameters": [],
         "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Acceleration\\Public\\Find-FilesFast.ps1"
@@ -198,7 +235,8 @@
           "MaxDepth",
           "Hidden",
           "Exclude",
-          "FullPath"
+          "FullPath",
+          "NoIgnore"
         ],
         "HelpPresent": false,
         "HelpParameters": [],
@@ -210,7 +248,8 @@
           "MaxDepth",
           "Hidden",
           "Exclude",
-          "FullPath"
+          "FullPath",
+          "NoIgnore"
         ],
         "ExtraHelpParameters": [],
         "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Acceleration\\Public\\Find-FilesFast.ps1"
@@ -521,7 +560,8 @@
           "Invert",
           "MaxResults",
           "FilesOnly",
-          "ThrottleLimit"
+          "ThrottleLimit",
+          "NoIgnore"
         ],
         "HelpPresent": true,
         "HelpParameters": [
@@ -538,7 +578,8 @@
           "CaseSensitive",
           "MaxResults",
           "FilesOnly",
-          "ThrottleLimit"
+          "ThrottleLimit",
+          "NoIgnore"
         ],
         "ExtraHelpParameters": [
           "IgnoreCase"
@@ -560,7 +601,8 @@
           "FilesOnly",
           "ThrottleLimit",
           "SearchPattern",
-          "RgPath"
+          "RgPath",
+          "NoIgnore"
         ],
         "HelpPresent": false,
         "HelpParameters": [],
@@ -577,7 +619,8 @@
           "FilesOnly",
           "ThrottleLimit",
           "SearchPattern",
-          "RgPath"
+          "RgPath",
+          "NoIgnore"
         ],
         "ExtraHelpParameters": [],
         "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Acceleration\\Public\\Search-ContentFast.ps1"
@@ -797,6 +840,644 @@
         "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Cleanup\\Public\\Repair-MachinePath.ps1"
       },
       {
+        "Name": "Get-PCCommandList",
+        "Parameters": [
+          "ProjectRoot"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "ProjectRoot"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.CLI\\Public\\Get-PCCommandList.ps1"
+      },
+      {
+        "Name": "Get-PCCommandMap",
+        "Parameters": [
+          "ProjectRoot"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "ProjectRoot"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.CLI\\Public\\Get-PCCommandMap.ps1"
+      },
+      {
+        "Name": "Get-PCCommandModules",
+        "Parameters": [
+          "CommandName",
+          "ProjectRoot"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "CommandName",
+          "ProjectRoot"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.CLI\\Public\\Get-PCCommandModules.ps1"
+      },
+      {
+        "Name": "Get-PCCommandSummary",
+        "Parameters": [
+          "ProjectRoot"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "ProjectRoot"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.CLI\\Public\\Get-PCCommandSummary.ps1"
+      },
+      {
+        "Name": "Get-PCModuleHelpEntry",
+        "Parameters": [
+          "Name",
+          "Modules",
+          "ProjectRoot"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Name",
+          "Modules",
+          "ProjectRoot"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.CLI\\Public\\Get-PCModuleHelpEntry.ps1"
+      },
+      {
+        "Name": "Get-PCModuleHelpIndex",
+        "Parameters": [
+          "Modules",
+          "ProjectRoot"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Modules",
+          "ProjectRoot"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.CLI\\Public\\Get-PCModuleHelpIndex.ps1"
+      },
+      {
+        "Name": "Parse-PCArguments",
+        "Parameters": [
+          "InputArgs",
+          "Defaults"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "InputArgs",
+          "Defaults"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.CLI\\Public\\Parse-PCArguments.ps1"
+      },
+      {
+        "Name": "Resolve-PCArguments",
+        "Parameters": [
+          "InputArgs",
+          "Defaults"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "InputArgs",
+          "Defaults"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.CLI\\Public\\Resolve-PCArguments.ps1"
+      },
+      {
+        "Name": "Add-ABTestResult",
+        "Parameters": [
+          "TestName",
+          "Variant",
+          "Score"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "TestName",
+          "Variant",
+          "Score"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Add-ABTestResult.ps1"
+      },
+      {
+        "Name": "Compare-ResponsePair",
+        "Parameters": [
+          "Question",
+          "ResponseA",
+          "ResponseB",
+          "Context"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Question",
+          "ResponseA",
+          "ResponseB",
+          "Context"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Compare-ResponsePair.ps1"
+      },
+      {
+        "Name": "Compare-ResponseSimilarity",
+        "Parameters": [
+          "Response",
+          "Expected"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Response",
+          "Expected"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Compare-ResponseSimilarity.ps1"
+      },
+      {
+        "Name": "Evaluate-DiagnosticQuality",
+        "Parameters": [
+          "DiagnosticOutput",
+          "DiagnosticInput",
+          "Strict"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "DiagnosticOutput",
+          "DiagnosticInput",
+          "Strict"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Evaluate-DiagnosticQuality.ps1"
+      },
+      {
+        "Name": "Export-EvaluationDataset",
+        "Parameters": [
+          "TestCases",
+          "Path"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "TestCases",
+          "Path"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Export-EvaluationDataset.ps1"
+      },
+      {
+        "Name": "Get-ABTestAnalysis",
+        "Parameters": [
+          "TestName",
+          "Alpha"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "TestName",
+          "Alpha"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Get-ABTestAnalysis.ps1"
+      },
+      {
+        "Name": "Get-EvaluationDataset",
+        "Parameters": [
+          "Name"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Name"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Get-EvaluationDataset.ps1"
+      },
+      {
+        "Name": "Get-EvaluationResults",
+        "Parameters": [
+          "Suite",
+          "Format"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Suite",
+          "Format"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Get-EvaluationResults.ps1"
+      },
+      {
+        "Name": "Get-PcaiCompiledBinaryPath",
+        "Parameters": [
+          "Backend"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Backend"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Get-PcaiCompiledBinaryPath.ps1"
+      },
+      {
+        "Name": "Get-RegressionReport",
+        "Parameters": [
+          "Suite",
+          "BaselineNames"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Suite",
+          "BaselineNames"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Get-RegressionReport.ps1"
+      },
+      {
+        "Name": "Import-EvaluationDataset",
+        "Parameters": [
+          "Path"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Path"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Import-EvaluationDataset.ps1"
+      },
+      {
+        "Name": "Invoke-EvaluationSuite",
+        "Parameters": [
+          "Suite",
+          "Backend",
+          "ModelPath",
+          "BaseUrl",
+          "GpuLayers",
+          "Parallel",
+          "MaxTokens",
+          "Temperature",
+          "RunLabel",
+          "OutputRoot",
+          "ProgressMode",
+          "EmitStructuredMessages",
+          "HeartbeatSeconds",
+          "RequestTimeoutSec",
+          "StopSignalPath",
+          "RunContext"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Suite",
+          "Backend",
+          "ModelPath",
+          "BaseUrl",
+          "GpuLayers",
+          "Parallel",
+          "MaxTokens",
+          "Temperature",
+          "RunLabel",
+          "OutputRoot",
+          "ProgressMode",
+          "EmitStructuredMessages",
+          "HeartbeatSeconds",
+          "RequestTimeoutSec",
+          "StopSignalPath",
+          "RunContext"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Invoke-EvaluationSuite.ps1"
+      },
+      {
+        "Name": "Invoke-LLMJudge",
+        "Parameters": [
+          "Response",
+          "Question",
+          "Context",
+          "ReferenceAnswer",
+          "Criteria"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Response",
+          "Question",
+          "Context",
+          "ReferenceAnswer",
+          "Criteria"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Invoke-LLMJudge.ps1"
+      },
+      {
+        "Name": "Measure-Coherence",
+        "Parameters": [
+          "Response"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Response"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Measure-Coherence.ps1"
+      },
+      {
+        "Name": "Measure-Groundedness",
+        "Parameters": [
+          "Response",
+          "Context"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Response",
+          "Context"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Measure-Groundedness.ps1"
+      },
+      {
+        "Name": "Measure-InferenceLatency",
+        "Parameters": [
+          "Prompt",
+          "Iterations",
+          "WarmupRuns",
+          "MaxTokens"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Prompt",
+          "Iterations",
+          "WarmupRuns",
+          "MaxTokens"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Measure-InferenceLatency.ps1"
+      },
+      {
+        "Name": "Measure-MemoryUsage",
+        "Parameters": [
+          "Prompt",
+          "MaxTokens"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Prompt",
+          "MaxTokens"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Measure-MemoryUsage.ps1"
+      },
+      {
+        "Name": "Measure-TokenThroughput",
+        "Parameters": [
+          "Prompt",
+          "TargetTokens",
+          "Iterations"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Prompt",
+          "TargetTokens",
+          "Iterations"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Measure-TokenThroughput.ps1"
+      },
+      {
+        "Name": "Measure-Toxicity",
+        "Parameters": [
+          "Response"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Response"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Measure-Toxicity.ps1"
+      },
+      {
+        "Name": "New-ABTest",
+        "Parameters": [
+          "Name",
+          "VariantAName",
+          "VariantBName"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Name",
+          "VariantAName",
+          "VariantBName"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\New-ABTest.ps1"
+      },
+      {
+        "Name": "New-BaselineSnapshot",
+        "Parameters": [
+          "Name",
+          "Suite",
+          "Backend",
+          "ModelPath"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Name",
+          "Suite",
+          "Backend",
+          "ModelPath"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\New-BaselineSnapshot.ps1"
+      },
+      {
+        "Name": "New-EvaluationSuite",
+        "Parameters": [
+          "Name",
+          "Description",
+          "Metrics",
+          "IncludeDefaultMetrics"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Name",
+          "Description",
+          "Metrics",
+          "IncludeDefaultMetrics"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\New-EvaluationSuite.ps1"
+      },
+      {
+        "Name": "New-EvaluationTestCase",
+        "Parameters": [
+          "Id",
+          "Prompt",
+          "Category",
+          "ExpectedOutput",
+          "Context",
+          "Tags"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Id",
+          "Prompt",
+          "Category",
+          "ExpectedOutput",
+          "Context",
+          "Tags"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\New-EvaluationTestCase.ps1"
+      },
+      {
+        "Name": "New-PcaiEvaluationRunContext",
+        "Parameters": [
+          "RunLabel",
+          "OutputRoot",
+          "SuiteName",
+          "Backend"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "RunLabel",
+          "OutputRoot",
+          "SuiteName",
+          "Backend"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\New-PcaiEvaluationRunContext.ps1"
+      },
+      {
+        "Name": "New-PcaiServerConfigFile",
+        "Parameters": [
+          "Backend",
+          "ModelPath",
+          "BaseUrl",
+          "GpuLayers",
+          "Device"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Backend",
+          "ModelPath",
+          "BaseUrl",
+          "GpuLayers",
+          "Device"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\New-PcaiServerConfigFile.ps1"
+      },
+      {
+        "Name": "Start-PcaiCompiledServer",
+        "Parameters": [
+          "Backend",
+          "ModelPath",
+          "BaseUrl",
+          "GpuLayers",
+          "Device",
+          "TimeoutSeconds"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Backend",
+          "ModelPath",
+          "BaseUrl",
+          "GpuLayers",
+          "Device",
+          "TimeoutSeconds"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Start-PcaiCompiledServer.ps1"
+      },
+      {
+        "Name": "Stop-EvaluationRun",
+        "Parameters": [
+          "StopSignalPath"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "StopSignalPath"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Stop-EvaluationRun.ps1"
+      },
+      {
+        "Name": "Test-ForRegression",
+        "Parameters": [
+          "BaselineName",
+          "Suite",
+          "Threshold"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "BaselineName",
+          "Suite",
+          "Threshold"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Evaluation\\Public\\Test-ForRegression.ps1"
+      },
+      {
+        "Name": "Get-HardwarePnpDevicesNative",
+        "Parameters": [
+          "Class"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Class"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Hardware\\Public\\Get-DeviceErrors.ps1"
+      },
+      {
+        "Name": "Get-HardwareSystemEventsNative",
+        "Parameters": [
+          "Days",
+          "MaxEvents"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Days",
+          "MaxEvents"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Hardware\\Public\\Get-SystemEvents.ps1"
+      },
+      {
         "Name": "Get-LLMStatus",
         "Parameters": [
           "IncludeLMStudio",
@@ -842,6 +1523,82 @@
         ],
         "ExtraHelpParameters": [],
         "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-DocSearch.ps1"
+      },
+      {
+        "Name": "Invoke-FunctionGemmaDataset",
+        "Parameters": [
+          "ToolsPath",
+          "DiagnosePrompt",
+          "ChatPrompt",
+          "ScenariosPath",
+          "Output",
+          "TestVectors",
+          "MaxCases",
+          "NoToolCoverage",
+          "Stream",
+          "UseLld",
+          "LlmDebug",
+          "UseNative",
+          "NativeOnly"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "ToolsPath",
+          "DiagnosePrompt",
+          "ChatPrompt",
+          "ScenariosPath",
+          "Output",
+          "TestVectors",
+          "MaxCases",
+          "NoToolCoverage",
+          "Stream",
+          "UseLld",
+          "LlmDebug",
+          "UseNative",
+          "NativeOnly"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-FunctionGemmaDataset.ps1"
+      },
+      {
+        "Name": "Invoke-FunctionGemmaEval",
+        "Parameters": [
+          "ModelPath",
+          "TestData",
+          "Adapters",
+          "Output",
+          "ConfigPath",
+          "MaxNewTokens",
+          "LoraR",
+          "MaxSamples",
+          "Quiet",
+          "VerboseOutput",
+          "FastEval",
+          "NoSchemaValidate",
+          "UseLld",
+          "LlmDebug"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "ModelPath",
+          "TestData",
+          "Adapters",
+          "Output",
+          "ConfigPath",
+          "MaxNewTokens",
+          "LoraR",
+          "MaxSamples",
+          "Quiet",
+          "VerboseOutput",
+          "FastEval",
+          "NoSchemaValidate",
+          "UseLld",
+          "LlmDebug"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-FunctionGemmaEval.ps1"
       },
       {
         "Name": "Invoke-FunctionGemmaChat",
@@ -900,6 +1657,117 @@
         ],
         "ExtraHelpParameters": [],
         "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-FunctionGemmaReAct.ps1"
+      },
+      {
+        "Name": "Invoke-FunctionGemmaTests",
+        "Parameters": [
+          "UseLld",
+          "LlmDebug"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "UseLld",
+          "LlmDebug"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-FunctionGemmaTests.ps1"
+      },
+      {
+        "Name": "Invoke-FunctionGemmaTokenCache",
+        "Parameters": [
+          "Input",
+          "TokenizerPath",
+          "OutputDir",
+          "UseLld",
+          "LlmDebug"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Input",
+          "TokenizerPath",
+          "OutputDir",
+          "UseLld",
+          "LlmDebug"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-FunctionGemmaTokenCache.ps1"
+      },
+      {
+        "Name": "Invoke-FunctionGemmaTrain",
+        "Parameters": [
+          "ModelPath",
+          "TrainData",
+          "EvalData",
+          "EvalSplit",
+          "TokenCache",
+          "Output",
+          "Epochs",
+          "Lr",
+          "LoraR",
+          "LoraAlpha",
+          "LoraDropout",
+          "BatchSize",
+          "GradAccum",
+          "PackSequences",
+          "MaxSeqLen",
+          "EosTokenId",
+          "DisableLora",
+          "WarmupSteps",
+          "SchedulerType",
+          "EarlyStoppingPatience",
+          "EarlyStoppingMinDelta",
+          "Use4Bit",
+          "EvalMaxBatches",
+          "MaxGradNorm",
+          "Seed",
+          "NoShuffle",
+          "ProgressInterval",
+          "ProgressJson",
+          "ConfigPath",
+          "TargetDir",
+          "UseLld",
+          "LlmDebug"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "ModelPath",
+          "TrainData",
+          "EvalData",
+          "EvalSplit",
+          "TokenCache",
+          "Output",
+          "Epochs",
+          "Lr",
+          "LoraR",
+          "LoraAlpha",
+          "LoraDropout",
+          "BatchSize",
+          "GradAccum",
+          "PackSequences",
+          "MaxSeqLen",
+          "EosTokenId",
+          "DisableLora",
+          "WarmupSteps",
+          "SchedulerType",
+          "EarlyStoppingPatience",
+          "EarlyStoppingMinDelta",
+          "Use4Bit",
+          "EvalMaxBatches",
+          "MaxGradNorm",
+          "Seed",
+          "NoShuffle",
+          "ProgressInterval",
+          "ProgressJson",
+          "ConfigPath",
+          "TargetDir",
+          "UseLld",
+          "LlmDebug"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-FunctionGemmaTrain.ps1"
       },
       {
         "Name": "Invoke-LLMChat",
@@ -987,12 +1855,16 @@
       {
         "Name": "Invoke-LLMChatTui",
         "Parameters": [
-          "Arguments"
+          "Arguments",
+          "BuildIfMissing",
+          "ProjectRoot"
         ],
         "HelpPresent": false,
         "HelpParameters": [],
         "MissingHelpParameters": [
-          "Arguments"
+          "Arguments",
+          "BuildIfMissing",
+          "ProjectRoot"
         ],
         "ExtraHelpParameters": [],
         "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-LLMChatTui.ps1"
@@ -1312,6 +2184,36 @@
         "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Performance\\Public\\Get-DiskSpace.ps1"
       },
       {
+        "Name": "Get-PcaiDiskUsage",
+        "Parameters": [
+          "Path",
+          "Top"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Path",
+          "Top"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Performance\\Public\\Get-PcaiDiskUsage.ps1"
+      },
+      {
+        "Name": "Get-PcaiTopProcess",
+        "Parameters": [
+          "SortBy",
+          "Top"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "SortBy",
+          "Top"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.Performance\\Public\\Get-PcaiTopProcess.ps1"
+      },
+      {
         "Name": "Get-ProcessPerformance",
         "Parameters": [
           "Top",
@@ -1571,6 +2473,7 @@
         "Name": "Invoke-PcaiServiceHost",
         "Parameters": [
           "Backend",
+          "NativeBackend",
           "Port",
           "ModelPath",
           "GpuLayers",
@@ -1581,6 +2484,7 @@
         "HelpPresent": true,
         "HelpParameters": [
           "Backend",
+          "NativeBackend",
           "Port",
           "ModelPath",
           "GpuLayers",
@@ -1599,6 +2503,7 @@
           "Port",
           "ModelPath",
           "GpuLayers",
+          "NativeBackend",
           "ServerArgs",
           "NoWait"
         ],
@@ -1608,6 +2513,7 @@
           "Port",
           "ModelPath",
           "GpuLayers",
+          "NativeBackend",
           "ServerArgs",
           "NoWait"
         ],
@@ -1775,7 +2681,8 @@
           "Invert",
           "MaxResults",
           "FilesOnly",
-          "ThrottleLimit"
+          "ThrottleLimit",
+          "NoIgnore"
         ],
         "HelpPresent": true,
         "HelpParameters": [
@@ -1792,7 +2699,8 @@
           "CaseSensitive",
           "MaxResults",
           "FilesOnly",
-          "ThrottleLimit"
+          "ThrottleLimit",
+          "NoIgnore"
         ],
         "ExtraHelpParameters": [
           "IgnoreCase"
@@ -1802,27 +2710,23 @@
     ]
   },
   "CSharp": {
-    "DllImportCount": 42,
+    "DllImportCount": 46,
     "MissingRustExports": []
   },
   "PowerShellToCSharp": {
     "PcaiCalls": [
+      "AnalyzePathJson",
       "CheckResourceSafety",
       "CpuCount",
       "DeleteFsItem",
       "EstimateTokens",
       "ExtractJson",
-      "FindDuplicates",
-      "FindFiles",
       "GetDashboardSnapshotJson",
-      "GetSystemTelemetryJson",
       "GetUsbDeepDiagnostics",
       "GetUsbProblemInfo",
       "IsAvailable",
       "IsValidJson",
       "QueryFullContextJson",
-      "QueryHardwareMetrics",
-      "QuerySystemInfo",
       "SearchContent",
       "Version"
     ],

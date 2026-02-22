@@ -12,7 +12,7 @@ pub struct JanusConfig {
     pub vision_dim: usize,
     pub z_channels: usize,
     // Dynamic channel multipliers for VQ-VAE (e.g., [1, 1, 2, 2, 4])
-    pub ch_mult: Vec<usize>, 
+    pub ch_mult: Vec<usize>,
     pub num_res_blocks: usize,
 }
 
@@ -23,7 +23,7 @@ impl Default for JanusConfig {
             embed_dim: 2048, // 1B model default, 7B is 4096
             vision_dim: 1024,
             z_channels: 256,
-            ch_mult: vec![1, 1, 2, 2, 4], 
+            ch_mult: vec![1, 1, 2, 2, 4],
             num_res_blocks: 2,
         }
     }
@@ -68,19 +68,19 @@ impl Module for AttnBlock {
             // Flash Attention 2 Integration
             // Input must be [Batch, SeqLen, Heads, HeadDim]
             // We reshape Conv2D [B, C, H, W] -> [B, H*W, 1, C] (Simplification for single head)
-            // Note: VQ-VAE attention is usually single-headed or low-head count. 
-            // If strictly 1 head, standard attention is often fast enough, 
+            // Note: VQ-VAE attention is usually single-headed or low-head count.
+            // If strictly 1 head, standard attention is often fast enough,
             // but for 7B models, we might have multi-head.
-            
+
             // Fallback to optimized standard attention if flash-attn is tricky with Conv2D shapes
             // Reshape: [B, C, H, W] -> [B, H*W, C]
             let q = q.flatten_from(2)?.transpose(1, 2)?.contiguous()?;
             let k = k.flatten_from(2)?.transpose(1, 2)?.contiguous()?;
             let v = v.flatten_from(2)?.transpose(1, 2)?.contiguous()?;
-            
+
             // Use Candle's scale_dot_product_attention which dispatches to FlashAttn if available
             let attn_out = candle_nn::ops::scaled_dot_product_attention(&q, &k, &v, None, None, None, None)?;
-            
+
             let attn_out = attn_out.transpose(1, 2)?.reshape((b, c, h, w))?;
             return Ok((xs + attn_out.apply(&self.proj_out)?)?);
         }
@@ -95,7 +95,7 @@ impl Module for AttnBlock {
         let attn_weights = (q.matmul(&k.t()?)? * scale)?;
         let attn_weights = candle_nn::ops::softmax(&attn_weights, D::Minus1)?;
         let out = attn_weights.matmul(&v)?; // [B, HW, C]
-        
+
         let out = out.transpose(1, 2)?.reshape((b, c, h, w))?;
         Ok((xs + out.apply(&self.proj_out)?)?)
     }
@@ -123,7 +123,7 @@ impl JanusVisionDecoder {
         let mut curr_ch = block_in * cfg.ch_mult.last().unwrap_or(&4);
 
         let conv_in = candle_nn::conv2d(cfg.z_channels, curr_ch, 3, Default::default(), vb.pp("conv_in"))?;
-        
+
         // Mid Blocks
         let mid_vb = vb.pp("mid");
         // Using generic Module trait objects for flexibility in the list
@@ -134,7 +134,7 @@ impl JanusVisionDecoder {
         // Up Blocks (Dynamic Loop)
         let mut up_blocks: Vec<Box<dyn Module>> = Vec::new();
         let up_vb = vb.pp("up");
-        
+
         // Reverse iterate multipliers
         // Note: Real Janus impl logic matches indices i_level, i_block
         // This loop structure mimics the Python loop:
@@ -161,11 +161,11 @@ impl JanusVisionDecoder {
         h = self.mid_block_1.forward(&h)?;
         h = self.mid_attn.forward(&h)?;
         h = self.mid_block_2.forward(&h)?;
-        
+
         for layer in &self.up_blocks {
             h = layer.forward(&h)?;
         }
-        
+
         h = h.apply(&self.norm_out)?;
         h = candle_nn::ops::silu(&h)?;
         h = h.apply(&self.conv_out)?;

@@ -71,6 +71,11 @@
   },
   {
     "Module": "PC-AI.Acceleration",
+    "Function": "Get-PcaiCapabilities",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Acceleration",
     "Function": "Invoke-PcaiNativeDuplicates",
     "Type": "Exported"
   },
@@ -145,28 +150,193 @@
     "Type": "Exported"
   },
   {
-    "Module": "PC-AI.Hardware",
-    "Function": "Get-PcDeviceError",
+    "Module": "PC-AI.Evaluation",
+    "Function": "New-EvaluationSuite",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Invoke-EvaluationSuite",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Get-EvaluationResults",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Measure-InferenceLatency",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Measure-TokenThroughput",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Measure-MemoryUsage",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Compare-ResponseSimilarity",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Invoke-LLMJudge",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Compare-ResponsePair",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Evaluate-DiagnosticQuality",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "New-BaselineSnapshot",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Test-ForRegression",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Get-RegressionReport",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "New-ABTest",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Add-ABTestResult",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Get-ABTestAnalysis",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Get-EvaluationDataset",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "New-EvaluationTestCase",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Import-EvaluationDataset",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Export-EvaluationDataset",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Get-PcaiProjectRoot",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Get-PcaiArtifactsRoot",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Initialize-EvaluationPaths",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "New-PcaiEvaluationRunContext",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Get-EvaluationRunState",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Stop-EvaluationRun",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Get-PcaiCompiledBinaryPath",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "New-PcaiServerConfigFile",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Start-PcaiCompiledServer",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Measure-Coherence",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Measure-Toxicity",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Evaluation",
+    "Function": "Measure-Groundedness",
     "Type": "Exported"
   },
   {
     "Module": "PC-AI.Hardware",
-    "Function": "Get-PcDiskStatus",
+    "Function": "Get-DeviceErrors",
     "Type": "Exported"
   },
   {
     "Module": "PC-AI.Hardware",
-    "Function": "Get-PcUsbStatus",
+    "Function": "Get-DiskHealth",
     "Type": "Exported"
   },
   {
     "Module": "PC-AI.Hardware",
-    "Function": "Get-PcNetworkStatus",
+    "Function": "Get-UsbStatus",
     "Type": "Exported"
   },
   {
     "Module": "PC-AI.Hardware",
-    "Function": "Get-PcSystemEvent",
+    "Function": "Get-NetworkAdapters",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Hardware",
+    "Function": "Get-SystemEvents",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Hardware",
+    "Function": "New-DiagnosticReport",
     "Type": "Exported"
   },
   {
@@ -197,6 +367,31 @@
   {
     "Module": "PC-AI.LLM",
     "Function": "Invoke-FunctionGemmaReAct",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.LLM",
+    "Function": "Invoke-FunctionGemmaDataset",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.LLM",
+    "Function": "Invoke-FunctionGemmaTokenCache",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.LLM",
+    "Function": "Invoke-FunctionGemmaTrain",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.LLM",
+    "Function": "Invoke-FunctionGemmaEval",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.LLM",
+    "Function": "Invoke-FunctionGemmaTests",
     "Type": "Exported"
   },
   {
@@ -257,6 +452,26 @@
   {
     "Module": "PC-AI.Network",
     "Function": "Test-WSLConnectivity",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Performance",
+    "Function": "Get-DiskSpace",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Performance",
+    "Function": "Get-ProcessPerformance",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Performance",
+    "Function": "Watch-SystemResources",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Performance",
+    "Function": "Optimize-Disks",
     "Type": "Exported"
   },
   {
@@ -401,7 +616,17 @@
   },
   {
     "Module": "PC-AI.Virtualization",
+    "Function": "Get-PcaiServiceHealth",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Virtualization",
     "Function": "Invoke-PcaiServiceHost",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Virtualization",
+    "Function": "Invoke-PcaiDoctor",
     "Type": "Exported"
   },
   {

@@ -177,3 +177,10 @@ releases/
 **/*.cubin
 **/*.fatbin
 **/*.ptx
+
+# Litho (deepwiki-rs) caches
+.litho/cache/
+docs/auto/deepwiki_litho_docs/
+
+# ast-grep scan output
+scan_results.json

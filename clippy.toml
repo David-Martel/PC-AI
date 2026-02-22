@@ -1,0 +1,17 @@
+msrv = "1.75.0"
+cognitive-complexity-threshold = 30
+too-many-arguments-threshold = 12
+too-many-lines-threshold = 300
+doc-valid-idents = [
+  "PowerShell",
+  "CUDA",
+  "FFI",
+  "LLM",
+  "JSON",
+  "YAML",
+  "TOML",
+  "sccache",
+  "FunctionGemma",
+  "llama.cpp",
+  "mistral.rs",
+]

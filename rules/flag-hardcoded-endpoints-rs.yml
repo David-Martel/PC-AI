@@ -1,0 +1,7 @@
+id: flag-hardcoded-endpoints-rs
+language: rust
+message: "Hardcoded IP addresses and loopback hosts are not permitted. Use llm-config.json for dynamic lookup."
+severity: error
+rule:
+  kind: string_literal
+  regex: '(127\.0\.0\.1|localhost|0\.0\.0\.0)'

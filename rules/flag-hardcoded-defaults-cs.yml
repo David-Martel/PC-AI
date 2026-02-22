@@ -1,0 +1,7 @@
+id: flag-hardcoded-defaults-cs
+language: csharp
+message: "Hardcoded network ports are not permitted. Define port configurations in llm-config.json."
+severity: error
+rule:
+  kind: string_literal
+  regex: "(8080|8000|11434|1234|8001)"

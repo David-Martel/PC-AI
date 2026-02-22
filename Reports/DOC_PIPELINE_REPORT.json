@@ -1,106 +1,73 @@
 {
-  "generated": "2026-01-30 21:08:39",
-  "mode": "Full",
-  "duration": "04:45",
+  "generated": "2026-02-22 13:39:18",
+  "mode": "DocsOnly",
+  "duration": "00:03",
   "steps": [
     {
       "Name": "CmakeEnv",
       "Status": "Success",
       "Output": "CMAKE_ROOT=C:/Program Files/CMake/share/cmake-4.2",
       "Error": "",
-      "Timestamp": "21:03:54"
+      "Timestamp": "13:39:14"
     },
     {
       "Name": "CudaEnv",
       "Status": "Success",
-      "Output": "CUDA_PATH=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.9",
+      "Output": "CUDA_PATH=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1",
       "Error": "",
-      "Timestamp": "21:03:54"
+      "Timestamp": "13:39:15"
     },
     {
       "Name": "DOC_STATUS",
       "Status": "Success",
       "Output": "C:\\Users\\david\\PC_AI\\Reports\\DOC_STATUS.md",
       "Error": "",
-      "Timestamp": "21:03:54"
+      "Timestamp": "13:39:15"
     },
     {
       "Name": "ToolSchema",
       "Status": "Success",
       "Output": "C:\\Users\\david\\PC_AI\\Deploy\\rust-functiongemma\\TOOLS.md",
       "Error": "",
-      "Timestamp": "21:03:54"
+      "Timestamp": "13:39:15"
     },
     {
       "Name": "RustDocs",
-      "Status": "Success",
-      "Output": "C:\\Users\\david\\PC_AI\\Native\\pcai_core -> T:\\RustCache\\cargo-target\\doc",
+      "Status": "Skipped",
+      "Output": "",
       "Error": "",
-      "Timestamp": "21:05:10"
-    },
-    {
-      "Name": "RustDocs",
-      "Status": "Success",
-      "Output": "C:\\Users\\david\\PC_AI\\Deploy\\pcai-inference -> T:\\RustCache\\cargo-target\\doc",
-      "Error": "",
-      "Timestamp": "21:05:12"
-    },
-    {
-      "Name": "RustDocs",
-      "Status": "Success",
-      "Output": "C:\\Users\\david\\PC_AI\\Deploy\\rust-functiongemma-runtime -> T:\\RustCache\\cargo-target\\doc",
-      "Error": "",
-      "Timestamp": "21:05:39"
-    },
-    {
-      "Name": "RustDocs",
-      "Status": "Success",
-      "Output": "C:\\Users\\david\\PC_AI\\Deploy\\rust-functiongemma-train -> T:\\RustCache\\cargo-target\\doc",
-      "Error": "",
-      "Timestamp": "21:06:25"
+      "Timestamp": "13:39:15"
     },
     {
       "Name": "PowerShellDocs",
       "Status": "Success",
       "Output": "C:\\Users\\david\\PC_AI\\Reports\\POWERSHELL_EXPORTS.json",
       "Error": "",
-      "Timestamp": "21:06:25"
+      "Timestamp": "13:39:16"
     },
     {
       "Name": "ApiSignatures",
       "Status": "Success",
       "Output": "C:\\Users\\david\\PC_AI\\Reports\\API_SIGNATURE_REPORT.md",
       "Error": "",
-      "Timestamp": "21:06:26"
+      "Timestamp": "13:39:17"
     },
     {
-      "Name": "TrainingData",
+      "Name": "ToolsCatalog",
       "Status": "Success",
-      "Output": "dataset: C:\\Users\\david\\PC_AI\\Deploy\\functiongemma-finetune\\data\\rust_router_train.jsonl | vectors: C:\\Users\\david\\PC_AI\\Deploy\\functiongemma-finetune\\test_vectors.json",
+      "Output": "C:\\Users\\david\\PC_AI\\Reports\\TOOLS_CATALOG.md",
       "Error": "",
-      "Timestamp": "21:08:39"
-    },
-    {
-      "Name": "Validation",
-      "Status": "Success",
-      "Output": "Router dataset + vectors validated",
-      "Error": "",
-      "Timestamp": "21:08:39"
+      "Timestamp": "13:39:18"
     }
   ],
   "outputs": [
     "CMAKE_ROOT=C:/Program Files/CMake/share/cmake-4.2",
-    "CUDA_PATH=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.9",
+    "CUDA_PATH=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1",
     "C:\\Users\\david\\PC_AI\\Reports\\DOC_STATUS.md",
     "C:\\Users\\david\\PC_AI\\Deploy\\rust-functiongemma\\TOOLS.md",
-    "C:\\Users\\david\\PC_AI\\Native\\pcai_core -> T:\\RustCache\\cargo-target\\doc",
-    "C:\\Users\\david\\PC_AI\\Deploy\\pcai-inference -> T:\\RustCache\\cargo-target\\doc",
-    "C:\\Users\\david\\PC_AI\\Deploy\\rust-functiongemma-runtime -> T:\\RustCache\\cargo-target\\doc",
-    "C:\\Users\\david\\PC_AI\\Deploy\\rust-functiongemma-train -> T:\\RustCache\\cargo-target\\doc",
     "C:\\Users\\david\\PC_AI\\Reports\\POWERSHELL_EXPORTS.json",
     "C:\\Users\\david\\PC_AI\\Reports\\API_SIGNATURE_REPORT.md",
-    "dataset: C:\\Users\\david\\PC_AI\\Deploy\\functiongemma-finetune\\data\\rust_router_train.jsonl | vectors: C:\\Users\\david\\PC_AI\\Deploy\\functiongemma-finetune\\test_vectors.json",
-    "Router dataset + vectors validated"
+    "C:\\Users\\david\\PC_AI\\Reports\\TOOLS_CATALOG.md"
   ],
   "errors": [],
   "success": true

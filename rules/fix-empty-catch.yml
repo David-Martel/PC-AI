@@ -1,0 +1,8 @@
+id: fix-empty-catch
+language: csharp
+message: "Empty catch blocks without exception types are difficult to reflect on. Use explicit catch (Exception) or catch (Exception ex)."
+severity: warning
+rule:
+  kind: catch_clause
+  pattern: "catch { $$$BODY }"
+fix: "catch (Exception) { $$$BODY }"

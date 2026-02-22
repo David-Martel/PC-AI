@@ -1,7 +1,17 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-20260221-consolidation",
+  "latest": "ctx-pcai-20260222-ffi-torture",
   "contexts": [
+    {
+      "id": "ctx-pcai-20260222-ffi-torture",
+      "file": "pcai-context-20260222-ffi-torture-test.md",
+      "created": "2026-02-22T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "csharp-pro", "test-automator", "Claude-opus"],
+      "summary": "4-phase completion: CUDA 12.6 fix, FunctionGemma build+train+eval, C# TUI ReAct mode, FFI torture tests (49 tests, 43 pass, 0 fail, 6 skip)",
+      "supersedes": ["ctx-pcai-20260221-consolidation"],
+      "commit": "pending"
+    },
     {
       "id": "ctx-pcai-20260221-consolidation",
       "file": "pcai-context-20260221-functiongemma-consolidation.md",
@@ -116,6 +126,24 @@
     }
   ],
   "completed_goals": [
+    {
+      "goal": "Fix CUDA 13.1 nvcc compatibility using CUDA 12.6 env overrides",
+      "completed": "2026-02-22",
+      "context": "ctx-pcai-20260222-ffi-torture",
+      "commit": "pending"
+    },
+    {
+      "goal": "Build FunctionGemma crates, train LoRA adapter, run eval on GPU",
+      "completed": "2026-02-22",
+      "context": "ctx-pcai-20260222-ffi-torture",
+      "commit": "pending"
+    },
+    {
+      "goal": "Rebuild pcai_inference.dll with 15 FFI exports, pass 49 torture tests",
+      "completed": "2026-02-22",
+      "context": "ctx-pcai-20260222-ffi-torture",
+      "commit": "pending"
+    },
     {
       "goal": "Integrate native FFI inference with command routing pipeline",
       "completed": "2026-01-31",
@@ -272,19 +300,22 @@
     "pcai-inference": {
       "status": "clean",
       "warnings": 0,
-      "tests": 5,
-      "features": ["ffi", "mistralrs-backend"],
+      "tests": 13,
+      "features": ["ffi", "llamacpp", "mistralrs-backend", "server"],
       "backends": {
         "llamacpp": "available (requires CUDA+MSVC toolchain)",
         "mistralrs": "working (deployed)"
       },
       "build_outputs": {
-        "pcai_inference.dll": "22MB (mistralrs)",
+        "pcai_inference.dll (ffi-only)": "289KB",
+        "pcai_inference.dll (mistralrs)": "22MB",
         "ggml-cuda.dll": "46MB (optional)",
         "llama.dll": "2MB (optional)"
       },
-      "deployed_to": ["bin/", "Native/PcaiInference/runtimes/win-x64/native/"],
-      "last_verified": "2026-01-31T12:00:00Z"
+      "ffi_exports": 15,
+      "deployed_to": ["bin/", ".pcai/build/artifacts/pcai-inference-ffi/"],
+      "torture_tests": {"total": 49, "pass": 43, "fail": 0, "skip": 6},
+      "last_verified": "2026-02-22T12:00:00Z"
     },
     "rust-functiongemma-train": {
       "status": "clean",
@@ -314,10 +345,11 @@
     }
   },
   "cuda_status": {
-    "toolkit_version": "v12.9",
+    "toolkit_version": "v13.1 (using 12.6 via .cargo/config.toml override)",
+    "build_cuda": "12.6",
     "gpus": [
-      {"name": "RTX 2000 Ada", "vram": "8GB", "compute": "8.9"},
-      {"name": "RTX 5060 Ti", "vram": "16GB", "compute": "12.0"}
+      {"name": "RTX 2000 Ada", "vram": "8GB", "compute": "8.9", "role": "inference/runtime"},
+      {"name": "RTX 5060 Ti", "vram": "16GB", "compute": "12.0", "role": "training"}
     ],
     "device_detected": true,
     "tensor_ops_verified": true,

@@ -35,17 +35,35 @@ function Resolve-PcaiInferenceDll {
     }
 
     $projectRoot = Split-Path $script:ModulePath -Parent
+    $configPath = Join-Path $projectRoot 'Config\llm-config.json'
+    $config = $null
+    if (Test-Path $configPath) {
+        try {
+            $config = Get-Content $configPath -Raw | ConvertFrom-Json
+        } catch {
+            Write-Verbose "Failed to parse $configPath: $_"
+        }
+    }
 
-    $candidates = @(
-        $env:PCAI_INFERENCE_DLL,
+    $candidates = @()
+    if ($config -and $config.nativeInference -and $config.nativeInference.dllSearchPaths) {
+        foreach ($path in $config.nativeInference.dllSearchPaths) {
+            if (-not $path) { continue }
+            if ([System.IO.Path]::IsPathRooted($path)) {
+                $candidates += $path
+            } else {
+                $candidates += (Join-Path $projectRoot $path)
+            }
+        }
+    }
+
+    $candidates += @(
         (Join-Path $projectRoot 'bin\pcai_inference.dll'),
         (Join-Path $projectRoot 'bin\Release\pcai_inference.dll'),
         (Join-Path $projectRoot 'bin\Debug\pcai_inference.dll'),
-        (Join-Path $env:CARGO_TARGET_DIR 'release\pcai_inference.dll' -ErrorAction SilentlyContinue),
-        (Join-Path $env:USERPROFILE '.local\bin\pcai_inference.dll'),
-        'T:\RustCache\cargo-target\release\pcai_inference.dll',
         (Join-Path $projectRoot 'Native\pcai_core\pcai_inference\target\release\pcai_inference.dll'),
-        (Join-Path $projectRoot 'Deploy\pcai-inference\target\release\pcai_inference.dll')
+        (Join-Path $projectRoot 'Deploy\pcai-inference\target\release\pcai_inference.dll'),
+        'T:\RustCache\cargo-target\release\pcai_inference.dll'
     ) | Where-Object { $_ }
 
     foreach ($candidate in $candidates) {
@@ -109,7 +127,7 @@ function Initialize-PcaiInference {
     }
 
     if (-not $script:DllExists) {
-        throw "DLL not found: pcai_inference.dll. Set PCAI_INFERENCE_DLL or build the native backend."
+        throw "DLL not found: pcai_inference.dll. Update Config/llm-config.json nativeInference.dllSearchPaths or build the native backend."
     }
 
     Write-Verbose "Initializing backend: $backendName"

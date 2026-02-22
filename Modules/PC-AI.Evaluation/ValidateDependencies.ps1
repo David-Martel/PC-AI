@@ -15,14 +15,34 @@ $ErrorActionPreference = 'Stop'
 # Find project root
 $moduleRoot = Split-Path -Parent $PSScriptRoot
 $projectRoot = Split-Path -Parent $moduleRoot
+$configPath = Join-Path $projectRoot 'Config\llm-config.json'
+$config = $null
+if (Test-Path $configPath) {
+    try {
+        $config = Get-Content $configPath -Raw | ConvertFrom-Json
+    } catch {
+        Write-Verbose "Failed to parse $configPath: $_"
+    }
+}
 
 # DLL search paths
-$dllSearchPaths = @(
+$dllSearchPaths = @()
+if ($config -and $config.nativeInference -and $config.nativeInference.dllSearchPaths) {
+    foreach ($path in $config.nativeInference.dllSearchPaths) {
+        if (-not $path) { continue }
+        if ([System.IO.Path]::IsPathRooted($path)) {
+            $dllSearchPaths += $path
+        } else {
+            $dllSearchPaths += (Join-Path $projectRoot $path)
+        }
+    }
+}
+
+$userProfile = [Environment]::GetFolderPath('UserProfile')
+$dllSearchPaths += @(
     (Join-Path $projectRoot 'bin\Release\pcai_inference.dll'),
     (Join-Path $projectRoot 'bin\Debug\pcai_inference.dll'),
-    (Join-Path $env:USERPROFILE '.local\bin\pcai_inference.dll'),
-    (Join-Path $env:CARGO_TARGET_DIR 'release\pcai_inference.dll' -ErrorAction SilentlyContinue),
-    (Join-Path $env:CARGO_TARGET_DIR 'debug\pcai_inference.dll' -ErrorAction SilentlyContinue)
+    (Join-Path $userProfile '.local\bin\pcai_inference.dll')
 ) | Where-Object { $_ }
 
 # Check for DLL
@@ -60,11 +80,20 @@ if (-not $dllFound) {
 }
 
 # Check for compiled server binaries
-$exeSearchDirs = @(
-    $env:PCAI_BIN_DIR,
-    $env:PCAI_LOCAL_BIN,
-    (Join-Path $env:USERPROFILE '.local\bin'),
-    (Join-Path $env:CARGO_TARGET_DIR 'release' -ErrorAction SilentlyContinue),
+$exeSearchDirs = @()
+if ($config -and $config.evaluation -and $config.evaluation.binSearchPaths) {
+    foreach ($path in $config.evaluation.binSearchPaths) {
+        if (-not $path) { continue }
+        if ([System.IO.Path]::IsPathRooted($path)) {
+            $exeSearchDirs += $path
+        } else {
+            $exeSearchDirs += (Join-Path $projectRoot $path)
+        }
+    }
+}
+
+$exeSearchDirs += @(
+    (Join-Path $userProfile '.local\bin'),
     'T:\RustCache\cargo-target\release'
 ) | Where-Object { $_ }
 

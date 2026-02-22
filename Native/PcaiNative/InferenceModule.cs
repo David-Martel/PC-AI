@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.IO;
 
@@ -37,6 +38,12 @@ namespace PcaiNative
             // Search paths in priority order
             var searchPaths = new List<string>();
 
+            // 0. Configured search paths from Config/llm-config.json
+            foreach (var path in LoadConfigSearchPaths(assembly))
+            {
+                searchPaths.Add(path);
+            }
+
             // 1. Runtime native folder (deployed by build script)
             var assemblyDir = Path.GetDirectoryName(assembly.Location);
             if (!string.IsNullOrEmpty(assemblyDir))
@@ -45,24 +52,12 @@ namespace PcaiNative
                 searchPaths.Add(Path.Combine(assemblyDir, "pcai_inference.dll"));
             }
 
-            // 2. PC_AI bin directory
-            var moduleDir = Environment.GetEnvironmentVariable("PSScriptRoot");
-            if (!string.IsNullOrEmpty(moduleDir))
-            {
-                var projectBin = Path.GetFullPath(Path.Combine(moduleDir, "..", "..", "bin", "pcai_inference.dll"));
-                searchPaths.Add(projectBin);
-            }
-
-            // 3. Common project locations
+            // 2. Common project locations
             var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             searchPaths.Add(Path.Combine(userProfile, "PC_AI", "bin", "pcai_inference.dll"));
-
-            // 4. CARGO_TARGET_DIR if set
-            var cargoTarget = Environment.GetEnvironmentVariable("CARGO_TARGET_DIR");
-            if (!string.IsNullOrEmpty(cargoTarget))
-            {
-                searchPaths.Add(Path.Combine(cargoTarget, "release", "pcai_inference.dll"));
-            }
+            searchPaths.Add(Path.Combine(userProfile, ".local", "bin", "pcai_inference.dll"));
+            searchPaths.Add(Path.Combine(userProfile, "PC_AI", "Native", "pcai_core", "pcai_inference", "target", "release", "pcai_inference.dll"));
+            searchPaths.Add(Path.Combine(userProfile, "PC_AI", "Deploy", "pcai-inference", "target", "release", "pcai_inference.dll"));
 
             foreach (var path in searchPaths)
             {
@@ -71,6 +66,75 @@ namespace PcaiNative
             }
 
             return IntPtr.Zero;
+        }
+
+        private static IEnumerable<string> LoadConfigSearchPaths(Assembly assembly)
+        {
+            var configPath = FindConfigPath(assembly);
+            if (string.IsNullOrEmpty(configPath))
+            {
+                yield break;
+            }
+
+            var projectRoot = Directory.GetParent(Path.GetDirectoryName(configPath) ?? string.Empty)?.FullName;
+            if (string.IsNullOrEmpty(projectRoot))
+            {
+                yield break;
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(configPath));
+                if (!doc.RootElement.TryGetProperty("nativeInference", out var nativeInference))
+                {
+                    yield break;
+                }
+                if (!nativeInference.TryGetProperty("dllSearchPaths", out var paths) || paths.ValueKind != JsonValueKind.Array)
+                {
+                    yield break;
+                }
+
+                foreach (var element in paths.EnumerateArray())
+                {
+                    if (element.ValueKind != JsonValueKind.String)
+                    {
+                        continue;
+                    }
+                    var path = element.GetString();
+                    if (string.IsNullOrWhiteSpace(path))
+                    {
+                        continue;
+                    }
+                    if (Path.IsPathRooted(path))
+                    {
+                        yield return path;
+                    }
+                    else
+                    {
+                        yield return Path.Combine(projectRoot, path);
+                    }
+                }
+            }
+            catch
+            {
+                yield break;
+            }
+        }
+
+        private static string? FindConfigPath(Assembly assembly)
+        {
+            var start = Path.GetDirectoryName(assembly.Location);
+            var current = start;
+            for (var i = 0; i < 6 && !string.IsNullOrEmpty(current); i++)
+            {
+                var candidate = Path.Combine(current, "Config", "llm-config.json");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+                current = Directory.GetParent(current)?.FullName;
+            }
+            return null;
         }
 
         #region Native Imports
@@ -115,7 +179,24 @@ namespace PcaiNative
 
         #region High-level Wrappers
 
-        public static bool IsAvailable => pcai_is_initialized() != 0 || IsDllAvailable();
+        public static bool IsAvailable
+        {
+            get
+            {
+                try
+                {
+                    return pcai_is_initialized() != 0 || IsDllAvailable();
+                }
+                catch (EntryPointNotFoundException)
+                {
+                    return IsDllAvailable();
+                }
+                catch (DllNotFoundException)
+                {
+                    return false;
+                }
+            }
+        }
 
         private static bool IsDllAvailable()
         {

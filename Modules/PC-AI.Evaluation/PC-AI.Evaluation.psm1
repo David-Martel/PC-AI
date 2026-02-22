@@ -201,7 +201,10 @@ function Get-MetricDefinition {
                 param($result)
                 $tokens = ($result.Response -split '\s+').Count
                 $seconds = $result.Duration.TotalSeconds
-                return if ($seconds -gt 0) { [math]::Round($tokens / $seconds, 2) } else { 0 }
+                if ($seconds -gt 0) {
+                    return [math]::Round($tokens / $seconds, 2)
+                }
+                return 0
             })
         }
         'memory' {
@@ -383,7 +386,7 @@ function Invoke-EvaluationSuite {
             return $null
         }
 
-        $startTime = [datetime]::UtcNow
+        $startTime = Get-Date
         $lastHeartbeat = Get-Date
 
         # Run test cases
@@ -456,7 +459,7 @@ function Invoke-EvaluationSuite {
             Write-Progress -Activity "Running Evaluation" -Completed
         }
 
-        $endTime = [datetime]::UtcNow
+        $endTime = Get-Date
         $totalDuration = $endTime - $startTime
 
         # Generate summary
@@ -703,12 +706,29 @@ function Get-PcaiCompiledBinaryPath {
     $binaryName = if ($Backend -eq 'llamacpp') { 'pcai-llamacpp.exe' } else { 'pcai-mistralrs.exe' }
     $projectRoot = Get-PcaiProjectRoot
 
-    $candidates = @(
-        $env:PCAI_BIN_DIR,
-        $env:PCAI_LOCAL_BIN,
-        (Join-Path $env:USERPROFILE '.local\bin'),
+    $candidates = @()
+    $configPath = Join-Path $projectRoot 'Config\llm-config.json'
+    if (Test-Path $configPath) {
+        try {
+            $config = Get-Content $configPath -Raw | ConvertFrom-Json
+            $paths = $config.evaluation.binSearchPaths
+            foreach ($path in $paths) {
+                if (-not $path) { continue }
+                if ([System.IO.Path]::IsPathRooted($path)) {
+                    $candidates += $path
+                } else {
+                    $candidates += (Join-Path $projectRoot $path)
+                }
+            }
+        } catch {
+            Write-Verbose "Failed to parse $configPath: $_"
+        }
+    }
+
+    $userProfile = [Environment]::GetFolderPath('UserProfile')
+    $candidates += @(
+        (Join-Path $userProfile '.local\bin'),
         (Join-Path $projectRoot 'bin'),
-        (Join-Path $env:CARGO_TARGET_DIR 'release'),
         'T:\RustCache\cargo-target\release',
         (Join-Path $projectRoot 'Native\pcai_core\pcai_inference\target\release'),
         (Join-Path $projectRoot 'Deploy\pcai-inference\target\release')
@@ -805,19 +825,15 @@ function Start-PcaiCompiledServer {
 
     $binaryPath = Get-PcaiCompiledBinaryPath -Backend $Backend
     if (-not $binaryPath) {
-        throw "Compiled backend binary not found for $Backend. Build and copy to .local\\bin or set PCAI_BIN_DIR."
+        throw "Compiled backend binary not found for $Backend. Build and copy to .local\\bin or update Config/llm-config.json evaluation.binSearchPaths."
     }
 
     $configPath = New-PcaiServerConfigFile -Backend $Backend -ModelPath $ModelPath -BaseUrl $BaseUrl -GpuLayers $GpuLayers -Device $Device
 
-    $previousConfig = $env:PCAI_CONFIG
-    $env:PCAI_CONFIG = $configPath
-    $process = Start-Process -FilePath $binaryPath -WorkingDirectory (Split-Path $binaryPath -Parent) -NoNewWindow -PassThru
-    if ($previousConfig) {
-        $env:PCAI_CONFIG = $previousConfig
-    } else {
-        Remove-Item Env:PCAI_CONFIG -ErrorAction SilentlyContinue
-    }
+    $process = Start-Process -FilePath $binaryPath `
+        -ArgumentList @('--config', $configPath) `
+        -WorkingDirectory (Split-Path $binaryPath -Parent) `
+        -NoNewWindow -PassThru
 
     $script:CompiledServerProcess = $process
     $script:CompiledServerConfigPath = $configPath
@@ -1027,7 +1043,29 @@ function Invoke-SingleTestCase {
 
                 $response = Invoke-RestMethod -Uri "$script:EvaluationConfig.HttpBaseUrl/v1/completions" `
                     -Method Post -Body $body -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
-                $result.Response = $response.choices[0].text
+                $text = $response.choices[0].text
+                if (-not $text -and $response.choices[0].message) {
+                    $text = $response.choices[0].message.content
+                }
+
+                if (-not $text) {
+                    $chatBody = @{
+                        messages = @(
+                            @{
+                                role = 'user'
+                                content = $TestCase.Prompt
+                            }
+                        )
+                        max_tokens = $MaxTokens
+                        temperature = $Temperature
+                    } | ConvertTo-Json -Depth 6
+
+                    $chatResponse = Invoke-RestMethod -Uri "$script:EvaluationConfig.HttpBaseUrl/v1/chat/completions" `
+                        -Method Post -Body $chatBody -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
+                    $text = $chatResponse.choices[0].message.content
+                }
+
+                $result.Response = $text
             }
             'ollama' {
                 $body = @{
@@ -1104,9 +1142,10 @@ function Calculate-OverallScore {
         $totalWeight += $metric.Weight
     }
 
-    return if ($totalWeight -gt 0) {
-        [math]::Round($weightedSum / $totalWeight, 4)
-    } else { 0 }
+    if ($totalWeight -gt 0) {
+        return [math]::Round($weightedSum / $totalWeight, 4)
+    }
+    return 0
 }
 
 function Get-EvaluationResults {
@@ -1427,9 +1466,14 @@ function Measure-Coherence {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
+        [Parameter()]
+        [AllowEmptyString()]
         [string]$Response
     )
+
+    if (-not $Response) {
+        return 0
+    }
 
     $score = 1.0
 

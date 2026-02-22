@@ -79,6 +79,9 @@ function Search-ContentFast {
 
         [Parameter()]
         [int]$ThrottleLimit = [Environment]::ProcessorCount
+        ,
+        [Parameter()]
+        [switch]$NoIgnore
     )
 
     $searchPattern = if ($LiteralPattern) {
@@ -241,7 +244,8 @@ function Search-WithRipgrepAdvanced {
         [switch]$FilesOnly,
         [int]$ThrottleLimit,
         [string]$SearchPattern,
-        [string]$RgPath
+        [string]$RgPath,
+        [switch]$NoIgnore
     )
 
     $args = @()
@@ -285,6 +289,13 @@ function Search-WithRipgrepAdvanced {
     }
     else {
         $args += '--json'
+    }
+
+    if ($NoIgnore) {
+        $args += '--no-ignore'
+        $args += '--no-ignore-vcs'
+        $args += '--no-ignore-parent'
+        $args += '--no-ignore-global'
     }
 
     # Fixed string for literal

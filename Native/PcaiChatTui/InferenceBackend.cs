@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Channels;
+using PcaiNative;
 
 namespace PcaiChatTui;
 
@@ -59,36 +60,6 @@ public class NativeBackend : IInferenceBackend
     private bool _initialized;
     private bool _disposed;
 
-    // P/Invoke declarations
-    [DllImport("pcai_inference.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern int pcai_init([MarshalAs(UnmanagedType.LPUTF8Str)] string? backendName);
-
-    [DllImport("pcai_inference.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern int pcai_load_model([MarshalAs(UnmanagedType.LPUTF8Str)] string modelPath, int gpuLayers);
-
-    [DllImport("pcai_inference.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr pcai_generate([MarshalAs(UnmanagedType.LPUTF8Str)] string prompt, uint maxTokens, float temperature);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void TokenCallback(IntPtr token, IntPtr userData);
-
-    [DllImport("pcai_inference.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern int pcai_generate_streaming(
-        [MarshalAs(UnmanagedType.LPUTF8Str)] string prompt,
-        uint maxTokens,
-        float temperature,
-        TokenCallback callback,
-        IntPtr userData);
-
-    [DllImport("pcai_inference.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void pcai_free_string(IntPtr str);
-
-    [DllImport("pcai_inference.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void pcai_shutdown();
-
-    [DllImport("pcai_inference.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr pcai_last_error();
-
     public NativeBackend(string backendName)
     {
         _backendName = backendName;
@@ -103,7 +74,7 @@ public class NativeBackend : IInferenceBackend
             try
             {
                 // Check if DLL exists and can initialize
-                var result = pcai_init(_backendName);
+                var result = InferenceModule.pcai_init(_backendName);
                 if (result == 0)
                 {
                     _initialized = true;
@@ -115,6 +86,10 @@ public class NativeBackend : IInferenceBackend
             {
                 return false;
             }
+            catch (EntryPointNotFoundException)
+            {
+                return false;
+            }
         }
     }
 
@@ -122,40 +97,32 @@ public class NativeBackend : IInferenceBackend
     {
         if (!_initialized)
         {
-            var initResult = pcai_init(_backendName);
+            var initResult = InferenceModule.pcai_init(_backendName);
             if (initResult != 0)
                 return Task.FromResult(false);
             _initialized = true;
         }
 
-        var result = pcai_load_model(modelPath, gpuLayers);
+        var result = InferenceModule.pcai_load_model(modelPath, gpuLayers);
         return Task.FromResult(result == 0);
     }
 
     public Task<string> GenerateAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f)
     {
-        var resultPtr = pcai_generate(prompt, (uint)maxTokens, temperature);
-        if (resultPtr == IntPtr.Zero)
+        var result = InferenceModule.Generate(prompt, (uint)maxTokens, temperature);
+        if (result == null)
         {
-            var errorPtr = pcai_last_error();
-            var error = errorPtr != IntPtr.Zero ? Marshal.PtrToStringUTF8(errorPtr) : "Unknown error";
+            var error = InferenceModule.GetLastError() ?? "Unknown error";
             throw new InvalidOperationException($"Generation failed: {error}");
         }
 
-        try
-        {
-            return Task.FromResult(Marshal.PtrToStringUTF8(resultPtr) ?? "");
-        }
-        finally
-        {
-            pcai_free_string(resultPtr);
-        }
+        return Task.FromResult(result);
     }
 
     public async IAsyncEnumerable<string> GenerateStreamingAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f)
     {
         var channel = Channel.CreateUnbounded<string>();
-        TokenCallback? callback = null;
+        InferenceModule.TokenCallback? callback = null;
         callback = (tokenPtr, _) =>
         {
             if (tokenPtr == IntPtr.Zero) return;
@@ -168,11 +135,10 @@ public class NativeBackend : IInferenceBackend
 
         _ = Task.Run(() =>
         {
-            var result = pcai_generate_streaming(prompt, (uint)maxTokens, temperature, callback, IntPtr.Zero);
+            var result = InferenceModule.pcai_generate_streaming(prompt, (uint)maxTokens, temperature, callback, IntPtr.Zero);
             if (result != 0)
             {
-                var errorPtr = pcai_last_error();
-                var error = errorPtr != IntPtr.Zero ? Marshal.PtrToStringUTF8(errorPtr) : "Unknown error";
+                var error = InferenceModule.GetLastError() ?? "Unknown error";
                 channel.Writer.TryComplete(new InvalidOperationException($"Streaming failed: {error}"));
                 return;
             }
@@ -189,7 +155,7 @@ public class NativeBackend : IInferenceBackend
     {
         if (!_disposed && _initialized)
         {
-            pcai_shutdown();
+            InferenceModule.pcai_shutdown();
             _disposed = true;
         }
         return ValueTask.CompletedTask;

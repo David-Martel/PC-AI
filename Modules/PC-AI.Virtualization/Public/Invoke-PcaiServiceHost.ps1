@@ -12,6 +12,9 @@
 .PARAMETER Backend
     Backend to use: 'rust' (default), 'csharp' (legacy)
 
+.PARAMETER NativeBackend
+    Native Rust backend for HTTP server: 'llamacpp', 'mistralrs', or 'auto'
+
 .PARAMETER Port
     HTTP server port. Default: 8080
 
@@ -46,6 +49,10 @@ function Invoke-PcaiServiceHost {
         [Parameter()]
         [ValidateSet('rust', 'csharp', 'auto')]
         [string]$Backend = 'auto',
+
+        [Parameter()]
+        [ValidateSet('auto', 'llamacpp', 'mistralrs')]
+        [string]$NativeBackend = 'auto',
 
         [Parameter()]
         [int]$Port = 8080,
@@ -85,7 +92,7 @@ function Invoke-PcaiServiceHost {
     }
 
     if ($Backend -eq 'rust') {
-        return Start-RustInferenceServer -Port $Port -ModelPath $ModelPath -GpuLayers $GpuLayers -ServerArgs $ServerArgs -NoWait:$NoWait
+        return Start-RustInferenceServer -Port $Port -ModelPath $ModelPath -GpuLayers $GpuLayers -NativeBackend $NativeBackend -ServerArgs $ServerArgs -NoWait:$NoWait
     } else {
         return Start-CSharpServiceHost -HostPath $HostPath -ServerArgs $ServerArgs -NoWait:$NoWait
     }
@@ -97,54 +104,102 @@ function Start-RustInferenceServer {
         [int]$Port = 8080,
         [string]$ModelPath,
         [int]$GpuLayers = -1,
+        [ValidateSet('auto', 'llamacpp', 'mistralrs')]
+        [string]$NativeBackend = 'auto',
         [string[]]$ServerArgs,
         [switch]$NoWait
     )
 
     # Find Rust executable
-    $rustExePaths = @(
-        'T:\RustCache\cargo-target\release\pcai-inference.exe',
-        "$PSScriptRoot\..\..\..\Deploy\pcai-inference\target\release\pcai-inference.exe",
-        "$env:USERPROFILE\PC_AI\Deploy\pcai-inference\target\release\pcai-inference.exe"
+    $rootDir = (Join-Path $PSScriptRoot '..\..\..' | Resolve-Path).Path
+    $candidateRoots = @(
+        'T:\RustCache\cargo-target\release',
+        (Join-Path $rootDir 'Native\pcai_core\pcai_inference\target\release'),
+        (Join-Path $env:USERPROFILE 'PC_AI\Native\pcai_core\pcai_inference\target\release')
     )
 
-    $rustExe = $rustExePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $binaryNames = switch ($NativeBackend) {
+        'llamacpp' { @('pcai-llamacpp.exe') }
+        'mistralrs' { @('pcai-mistralrs.exe') }
+        default { @('pcai-llamacpp.exe', 'pcai-mistralrs.exe') }
+    }
+
+    $rustExe = $null
+    foreach ($root in $candidateRoots) {
+        foreach ($name in $binaryNames) {
+            $candidate = Join-Path $root $name
+            if (Test-Path $candidate) {
+                $rustExe = $candidate
+                break
+            }
+        }
+        if ($rustExe) { break }
+    }
 
     if (-not $rustExe) {
         throw @"
-pcai-inference.exe not found. Build it with:
+pcai-llamacpp.exe or pcai-mistralrs.exe not found. Build with:
 
-    cd Deploy\pcai-inference
-    cargo build --release --features server,llamacpp
+    cd Native\pcai_core\pcai_inference
+    cargo build --release --features "llamacpp,server"
 
 Or with mistralrs backend:
-    cargo build --release --features server,mistralrs-backend
+    cargo build --release --features "mistralrs-backend,server"
 "@
     }
 
-    # Build arguments
-    $args = @('--port', $Port.ToString())
-
-    if ($ModelPath) {
-        $args += @('--model-path', $ModelPath)
+    if (-not $ModelPath) {
+        throw "ModelPath is required for Rust inference server. Pass -ModelPath."
     }
 
-    if ($GpuLayers -ge 0) {
-        $args += @('--gpu-layers', $GpuLayers.ToString())
+    $selectedBackend = if ($NativeBackend -eq 'auto') {
+        if ($rustExe -like '*pcai-mistralrs*') { 'mistralrs' } else { 'llamacpp' }
+    } else {
+        $NativeBackend
     }
 
+    $runtimeDir = Join-Path $rootDir '.pcai\runtime\pcai-inference'
+    if (-not (Test-Path $runtimeDir)) {
+        New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
+    }
+
+    $configPath = Join-Path $runtimeDir ("config-{0}.json" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
+    $backendConfig = if ($selectedBackend -eq 'mistralrs') {
+        @{ type = 'mistral_rs' }
+    } else {
+        @{ type = 'llama_cpp'; n_gpu_layers = if ($GpuLayers -ge 0) { $GpuLayers } else { $null }; n_ctx = 4096 }
+    }
+
+    $config = @{
+        backend = $backendConfig
+        model   = @{
+            path       = $ModelPath
+            generation = @{
+                max_tokens = 512
+                temperature = 0.7
+                top_p = 0.95
+            }
+        }
+        server  = @{
+            host = '127.0.0.1'
+            port = $Port
+            cors = $true
+        }
+    }
+
+    $config | ConvertTo-Json -Depth 6 | Set-Content -Path $configPath -Encoding UTF8
+
+    Write-Verbose "Using config file: $configPath"
     if ($ServerArgs) {
-        $args += $ServerArgs
+        Write-Verbose "Ignoring ServerArgs for Rust inference server (config-driven)."
     }
-
-    Write-Verbose "Starting: $rustExe $($args -join ' ')"
 
     if ($NoWait) {
-        $process = Start-Process -FilePath $rustExe -ArgumentList $args -PassThru -WindowStyle Hidden
+        $process = Start-Process -FilePath $rustExe -ArgumentList @('--config', $configPath) -PassThru -WindowStyle Hidden
         return [PSCustomObject]@{
             Backend   = 'rust'
             ExePath   = $rustExe
-            Args      = $args
+            Args      = @('--config', $configPath)
             ProcessId = $process.Id
             Port      = $Port
             Success   = $true
@@ -152,13 +207,13 @@ Or with mistralrs backend:
         }
     } else {
         # Run and capture output
-        $output = & $rustExe @args 2>&1
+        $output = & $rustExe --config $configPath 2>&1
         $exitCode = $LASTEXITCODE
 
         return [PSCustomObject]@{
             Backend  = 'rust'
             ExePath  = $rustExe
-            Args     = $args
+            Args     = @('--config', $configPath)
             ExitCode = $exitCode
             Output   = ($output | Out-String).Trim()
             Success  = ($exitCode -eq 0)

@@ -67,18 +67,48 @@ function Find-FilesFast {
         [string[]]$Exclude,
 
         [Parameter()]
-        [switch]$FullPath
+        [switch]$FullPath,
+
+        [Parameter()]
+        [switch]$NoIgnore,
+
+        [Parameter()]
+        [switch]$PreferNative
     )
+
+    $nativeAvailable = $false
+    if ($PreferNative -and $Pattern) {
+        $nativeProbe = Get-Command -Name 'Test-PcaiNativeAvailable' -ErrorAction SilentlyContinue
+        if ($nativeProbe) {
+            try {
+                $nativeAvailable = Test-PcaiNativeAvailable
+            }
+            catch {
+                $nativeAvailable = $false
+            }
+        }
+    }
+
+    if ($nativeAvailable -and $MaxDepth -le 0) {
+        return Find-WithPcaiNative @PSBoundParameters
+    }
 
     $fdPath = Get-RustToolPath -ToolName 'fd'
     $useFd = $null -ne $fdPath -and (Test-Path $fdPath)
 
+    $forwardParams = @{}
+    foreach ($key in $PSBoundParameters.Keys) {
+        if ($key -ne 'PreferNative') {
+            $forwardParams[$key] = $PSBoundParameters[$key]
+        }
+    }
+
     if ($useFd) {
-        return Find-WithFd @PSBoundParameters -FdPath $fdPath
+        return Find-WithFd @forwardParams -FdPath $fdPath
     }
     else {
         Write-Verbose "fd not available, using Get-ChildItem fallback"
-        return Find-WithGetChildItem @PSBoundParameters
+        return Find-WithGetChildItem @forwardParams
     }
 }
 
@@ -93,6 +123,7 @@ function Find-WithFd {
         [switch]$Hidden,
         [string[]]$Exclude,
         [switch]$FullPath,
+        [switch]$NoIgnore,
         [string]$FdPath
     )
 
@@ -143,6 +174,12 @@ function Find-WithFd {
         $args += '-H'
     }
 
+    if ($NoIgnore) {
+        $args += '--no-ignore'
+        $args += '--no-ignore-vcs'
+        $args += '--no-ignore-parent'
+    }
+
     # Exclusions
     foreach ($exc in $Exclude) {
         $args += '-E'
@@ -172,6 +209,86 @@ function Find-WithFd {
     }
 }
 
+function Find-WithPcaiNative {
+    [CmdletBinding()]
+    param(
+        [string]$Path,
+        [string]$Pattern,
+        [string[]]$Extension,
+        [string]$Type,
+        [int]$MaxDepth,
+        [switch]$Hidden,
+        [string[]]$Exclude,
+        [switch]$FullPath,
+        [switch]$NoIgnore,
+        [switch]$PreferNative
+    )
+
+    $resolvedPath = if ($Path) {
+        Resolve-Path $Path -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Path
+    } else {
+        Get-Location | Select-Object -ExpandProperty Path
+    }
+
+    if (-not $resolvedPath) {
+        return @()
+    }
+
+    $patterns = @()
+    if ($Extension) {
+        $exts = $Extension | ForEach-Object { $_.TrimStart('*').TrimStart('.') } | Where-Object { $_ }
+        foreach ($ext in $exts) {
+            $patterns += "*.$ext"
+        }
+    }
+    elseif ($Pattern) {
+        $patterns += $Pattern
+    }
+
+    if ($patterns.Count -eq 0) {
+        return @()
+    }
+
+    try {
+        $paths = @()
+        foreach ($pat in $patterns) {
+            $nativeResult = Invoke-PcaiNativeFileSearch -Pattern $pat -Path $resolvedPath -MaxResults 0
+            if ($nativeResult -and $nativeResult.Files) {
+                $paths += $nativeResult.Files | ForEach-Object { $_.Path }
+            }
+        }
+        if ($paths.Count -eq 0) {
+            return @()
+        }
+
+        if ($Type -and $Type -notin @('file', 'f')) {
+            return @()
+        }
+
+        if ($Exclude) {
+            foreach ($exc in $Exclude) {
+                $paths = $paths | Where-Object { $_ -notmatch [regex]::Escape($exc) }
+            }
+        }
+
+        $results = @()
+        foreach ($path in ($paths | Select-Object -Unique)) {
+            if (Test-Path $path -ErrorAction SilentlyContinue) {
+                $item = Get-Item $path -ErrorAction SilentlyContinue
+                if ($item) {
+                    $results += $item
+                }
+            }
+        }
+
+        return $results
+    }
+    catch {
+        Write-Warning "PCAI native file search failed: $_"
+        return @()
+    }
+}
+
 function Find-WithGetChildItem {
     [CmdletBinding()]
     param(
@@ -182,7 +299,8 @@ function Find-WithGetChildItem {
         [int]$MaxDepth,
         [switch]$Hidden,
         [string[]]$Exclude,
-        [switch]$FullPath
+        [switch]$FullPath,
+        [switch]$NoIgnore
     )
 
     $params = @{

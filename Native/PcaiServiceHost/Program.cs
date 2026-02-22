@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using PcaiNative;
 
 namespace PcaiServiceHost;
 
@@ -37,6 +39,8 @@ public static class Program
                 return await HandleHvsockAsync(remaining);
             case "provider":
                 return HandleProvider(remaining);
+            case "inference":
+                return HandleInference(remaining);
             default:
                 PrintUsage();
                 return 1;
@@ -50,6 +54,7 @@ public static class Program
         Console.WriteLine("  pcai-servicehost vllm start|stop|restart|status|ensure [--compose <path>] [--interval <sec>]");
         Console.WriteLine("  pcai-servicehost hvsock start|stop|status|run [--config <path>] [--state <path>]");
         Console.WriteLine("  pcai-servicehost provider show|set-order <comma-separated>");
+        Console.WriteLine("  pcai-servicehost inference status|init|load|generate|shutdown [options]");
     }
 
     private static async Task<int> HandleVllmAsync(string[] args)
@@ -328,6 +333,134 @@ public static class Program
         return 1;
     }
 
+    private static int HandleInference(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            PrintUsage();
+            return 1;
+        }
+
+        var action = args[0].ToLowerInvariant();
+        switch (action)
+        {
+            case "status":
+                return PrintInferenceStatus();
+            case "init":
+                return InitInference(args.Skip(1).ToArray());
+            case "load":
+                return LoadInferenceModel(args.Skip(1).ToArray());
+            case "generate":
+                return GenerateInference(args.Skip(1).ToArray());
+            case "shutdown":
+                InferenceModule.pcai_shutdown();
+                Console.WriteLine("Inference backend shutdown.");
+                return 0;
+            default:
+                PrintUsage();
+                return 1;
+        }
+    }
+
+    private static int PrintInferenceStatus()
+    {
+        var status = new InferenceStatus
+        {
+            DllAvailable = InferenceModule.IsAvailable,
+            Initialized = SafeBoolCall(() => InferenceModule.pcai_is_initialized() != 0),
+            ModelLoaded = SafeBoolCall(() => InferenceModule.pcai_is_model_loaded() != 0),
+            Backend = GetBackendName(),
+            LastError = InferenceModule.GetLastError()
+        };
+
+        Console.WriteLine(JsonSerializer.Serialize(status, JsonOptions));
+        return status.DllAvailable ? 0 : 1;
+    }
+
+    private static int InitInference(string[] args)
+    {
+        var backend = GetArg(args, "--backend") ?? "auto";
+        if (string.Equals(backend, "auto", StringComparison.OrdinalIgnoreCase))
+        {
+            if (TryInitBackend("mistralrs") || TryInitBackend("llamacpp"))
+            {
+                return 0;
+            }
+
+            Console.Error.WriteLine("Failed to initialize any backend.");
+            return 1;
+        }
+
+        if (!TryInitBackend(backend))
+        {
+            Console.Error.WriteLine($"Failed to initialize backend: {backend}");
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private static bool TryInitBackend(string backend)
+    {
+        var result = InferenceModule.pcai_init(backend);
+        if (result == 0)
+        {
+            Console.WriteLine($"Initialized backend: {backend}");
+            return true;
+        }
+
+        var error = InferenceModule.GetLastError() ?? "Unknown error";
+        Console.Error.WriteLine($"Init failed for {backend}: {error}");
+        return false;
+    }
+
+    private static int LoadInferenceModel(string[] args)
+    {
+        var modelPath = GetArg(args, "--model-path");
+        if (string.IsNullOrWhiteSpace(modelPath))
+        {
+            Console.Error.WriteLine("Missing --model-path for inference load.");
+            return 1;
+        }
+
+        var gpuLayers = int.TryParse(GetArg(args, "--gpu-layers"), out var parsed) ? parsed : -1;
+
+        var result = InferenceModule.pcai_load_model(modelPath, gpuLayers);
+        if (result == 0)
+        {
+            Console.WriteLine($"Model loaded: {modelPath}");
+            return 0;
+        }
+
+        var error = InferenceModule.GetLastError() ?? "Unknown error";
+        Console.Error.WriteLine($"Model load failed: {error}");
+        return 1;
+    }
+
+    private static int GenerateInference(string[] args)
+    {
+        var prompt = GetArg(args, "--prompt") ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            Console.Error.WriteLine("Missing --prompt for inference generate.");
+            return 1;
+        }
+
+        var maxTokens = uint.TryParse(GetArg(args, "--max-tokens"), out var parsedTokens) ? parsedTokens : 512u;
+        var temperature = float.TryParse(GetArg(args, "--temperature"), out var parsedTemp) ? parsedTemp : 0.7f;
+
+        var result = InferenceModule.Generate(prompt, maxTokens, temperature);
+        if (result == null)
+        {
+            var error = InferenceModule.GetLastError() ?? "Unknown error";
+            Console.Error.WriteLine($"Generate failed: {error}");
+            return 1;
+        }
+
+        Console.WriteLine(result);
+        return 0;
+    }
+
     private static string? GetArg(string[] args, string name)
     {
         for (var i = 0; i < args.Length - 1; i++)
@@ -338,6 +471,25 @@ public static class Program
             }
         }
         return null;
+    }
+
+    private static bool SafeBoolCall(Func<bool> fn)
+    {
+        try { return fn(); }
+        catch { return false; }
+    }
+
+    private static string? GetBackendName()
+    {
+        try
+        {
+            var ptr = InferenceModule.pcai_get_backend_name();
+            return ptr == IntPtr.Zero ? null : Marshal.PtrToStringUTF8(ptr);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string? FindExecutable(string exe)
@@ -435,4 +587,13 @@ public sealed class HvsockProxyStateEntry
     public string TcpTarget { get; set; } = string.Empty;
     public int Pid { get; set; }
     public string Started { get; set; } = string.Empty;
+}
+
+public sealed class InferenceStatus
+{
+    public bool DllAvailable { get; set; }
+    public bool Initialized { get; set; }
+    public bool ModelLoaded { get; set; }
+    public string? Backend { get; set; }
+    public string? LastError { get; set; }
 }

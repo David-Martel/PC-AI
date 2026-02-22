@@ -24,12 +24,42 @@ public static class Program
 
         var provider = options.Provider ?? config.DefaultProvider ?? "pcai-inference";
         var providerConfig = config.GetProvider(provider);
+        var nativeConfig = config.NativeProvider;
+
+        var preferNative = string.Equals(provider, "pcai-native", StringComparison.OrdinalIgnoreCase) ||
+                           string.Equals(providerConfig?.Type, "ffi", StringComparison.OrdinalIgnoreCase);
+
+        var backend = options.Backend;
+        var backendExplicit = backend != BackendType.Auto && backend != BackendType.Http;
+        if (backend == BackendType.Auto && preferNative && !string.IsNullOrWhiteSpace(nativeConfig?.Backend))
+        {
+            backend = nativeConfig.Backend!.ToLowerInvariant() switch
+            {
+                "llamacpp" => BackendType.LlamaCpp,
+                "mistralrs" => BackendType.MistralRs,
+                "http" => BackendType.Http,
+                _ => BackendType.Auto
+            };
+        }
+        if (backend == BackendType.Auto && !preferNative)
+        {
+            backend = BackendType.Http;
+        }
 
         var baseUrl = NormalizeBaseUrl(options.BaseUrl ?? providerConfig?.BaseUrl ?? DefaultBaseUrl);
         baseUrl = ResolveHvsockEndpoint(baseUrl, options.HvsockConfigPath ?? config.HvsockConfigPath);
         var model = options.Model ?? providerConfig?.DefaultModel ?? DefaultModel;
         var timeoutSec = options.TimeoutSec ?? providerConfig?.TimeoutSec ?? DefaultTimeoutSec;
         var mode = options.Mode ?? "chat"; // Default to chat mode
+
+        var modelPath = options.ModelPath ?? nativeConfig?.ModelPath;
+        var gpuLayers = options.GpuLayers;
+        if (options.GpuLayers == -1 && nativeConfig?.GpuLayers != null)
+        {
+            gpuLayers = nativeConfig.GpuLayers.Value;
+        }
+        var defaultMaxTokens = nativeConfig?.DefaultMaxTokens ?? 2048;
+        var defaultTemperature = nativeConfig?.DefaultTemperature ?? 0.7f;
 
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(timeoutSec) };
 
@@ -48,16 +78,70 @@ public static class Program
             systemPrompt = LoadModePrompt(mode);
         }
 
+        IInferenceBackend? nativeBackend = null;
+        var useNative = backend != BackendType.Http;
+
+        if (useNative)
+        {
+            nativeBackend = BackendFactory.Create(backend, baseUrl);
+
+            if (nativeBackend is HttpBackend)
+            {
+                await nativeBackend.DisposeAsync();
+                nativeBackend = null;
+                useNative = false;
+                backend = BackendType.Http;
+            }
+            else if (!nativeBackend.IsAvailable)
+            {
+                var message = "pcai_inference.dll not available or backend failed to initialize";
+                if (backendExplicit || preferNative)
+                {
+                    Console.WriteLine($"error> {message}");
+                    return 1;
+                }
+
+                Console.WriteLine($"warning> {message}. Falling back to HTTP.");
+                await nativeBackend.DisposeAsync();
+                nativeBackend = null;
+                useNative = false;
+                backend = BackendType.Http;
+            }
+        }
+
+        if (useNative && string.IsNullOrWhiteSpace(modelPath))
+        {
+            var message = "Native backend selected but no model path provided. Use --model-path or set providers.pcai-native.modelPath.";
+            if (backendExplicit || preferNative)
+            {
+                Console.WriteLine($"error> {message}");
+                return 1;
+            }
+
+            Console.WriteLine($"warning> {message} Falling back to HTTP.");
+            if (nativeBackend != null)
+            {
+                await nativeBackend.DisposeAsync();
+                nativeBackend = null;
+            }
+            useNative = false;
+            backend = BackendType.Http;
+        }
+
         if (options.HealthOnly)
         {
-            var health = await GetHealthAsync(http, baseUrl, provider);
+            var health = useNative
+                ? GetNativeHealth(nativeBackend, provider)
+                : await GetHealthAsync(http, baseUrl, provider);
             PrintHealth(health, options.JsonOutput);
             return health.Ok ? 0 : 1;
         }
 
         if (options.ModelsOnly)
         {
-            var models = await GetModelsAsync(http, baseUrl, provider);
+            var models = useNative
+                ? GetNativeModels(modelPath)
+                : await GetModelsAsync(http, baseUrl, provider);
             if (options.JsonOutput)
             {
                 Console.WriteLine(JsonSerializer.Serialize(models, JsonOptions));
@@ -73,7 +157,27 @@ public static class Program
             return 0;
         }
 
-        PrintBanner(baseUrl, model, provider, mode, options.Backend);
+        if (useNative && nativeBackend != null && !string.IsNullOrWhiteSpace(modelPath))
+        {
+            var loaded = await nativeBackend.LoadModelAsync(modelPath, gpuLayers);
+            if (!loaded)
+            {
+                var error = InferenceModule.GetLastError() ?? "Unknown error";
+                if (backendExplicit || preferNative)
+                {
+                    Console.WriteLine($"error> Failed to load model: {error}");
+                    return 1;
+                }
+
+                Console.WriteLine($"warning> Failed to load model: {error}. Falling back to HTTP.");
+                await nativeBackend.DisposeAsync();
+                nativeBackend = null;
+                useNative = false;
+                backend = BackendType.Http;
+            }
+        }
+
+        PrintBanner(baseUrl, model, provider, mode, backend, useNative, modelPath);
 
         if (string.Equals(mode, "single", StringComparison.OrdinalIgnoreCase))
         {
@@ -86,7 +190,14 @@ public static class Program
 
             if (!string.IsNullOrWhiteSpace(prompt))
             {
-                await RunSingleAsync(http, baseUrl, model, provider, systemPrompt, prompt);
+                if (useNative && nativeBackend != null)
+                {
+                    await RunSingleNativeAsync(nativeBackend, systemPrompt, prompt, defaultMaxTokens, defaultTemperature);
+                }
+                else
+                {
+                    await RunSingleAsync(http, baseUrl, model, provider, systemPrompt, prompt);
+                }
             }
             return 0;
         }
@@ -95,17 +206,44 @@ public static class Program
         var react = string.Equals(mode, "react", StringComparison.OrdinalIgnoreCase) || mode == "diagnose";
         var toolsPath = options.ToolsPath ?? config.ToolsPath ?? "C:\\Users\\david\\PC_AI\\Config\\pcai-tools.json";
 
-        await RunInteractiveAsync(http, baseUrl, model, provider, systemPrompt, stream, react, toolsPath, mode, options.JsonOutput);
+        await RunInteractiveAsync(
+            http,
+            baseUrl,
+            model,
+            provider,
+            systemPrompt,
+            stream,
+            react,
+            toolsPath,
+            mode,
+            options.JsonOutput,
+            nativeBackend,
+            useNative,
+            defaultMaxTokens,
+            defaultTemperature,
+            modelPath);
+
+        if (nativeBackend != null)
+        {
+            await nativeBackend.DisposeAsync();
+        }
         return 0;
     }
 
-    private static void PrintBanner(string baseUrl, string model, string provider, string mode, BackendType backend = BackendType.Http)
+    private static void PrintBanner(string baseUrl, string model, string provider, string mode, BackendType backend, bool useNative, string? modelPath)
     {
         Console.WriteLine("PC_AI Chat TUI");
         Console.WriteLine($"Provider: {provider}");
         Console.WriteLine($"Backend: {backend}");
-        Console.WriteLine($"Endpoint: {baseUrl}");
-        Console.WriteLine($"Model: {model}");
+        if (useNative)
+        {
+            Console.WriteLine($"ModelPath: {modelPath ?? "not set"}");
+        }
+        else
+        {
+            Console.WriteLine($"Endpoint: {baseUrl}");
+            Console.WriteLine($"Model: {model}");
+        }
         Console.WriteLine($"Mode: {mode}");
         Console.WriteLine("Commands: /mode [chat|diagnose], /health, /models, /reset, /exit");
         Console.WriteLine();
@@ -144,7 +282,12 @@ public static class Program
         bool react,
         string toolsPath,
         string initialMode,
-        bool jsonOutput)
+        bool jsonOutput,
+        IInferenceBackend? nativeBackend,
+        bool useNative,
+        int defaultMaxTokens,
+        float defaultTemperature,
+        string? modelPath)
     {
         var mode = initialMode;
         var history = new List<ChatMessage>();
@@ -154,49 +297,58 @@ public static class Program
             Console.WriteLine("System prompt loaded. Use /reset to clear context.");
         }
 
-        // Initialize persistent PowerShell host for low-latency tool execution
-        using var psHost = new PowerShellHost();
-        var interlock = new SafetyInterlock(SafetyInterlock.ConsoleConfirmationHandler);
-        var toolExecutor = new ToolExecutor(toolsPath, psHost, interlock);
-        var openAiClient = new PcaiOpenAiClient(baseUrl);
-        var orchestrator = new ReActOrchestrator(openAiClient, toolExecutor, model);
-
-        // Bind orchestration events for TUI feedback
-        orchestrator.OnThought += (thought) => Console.WriteLine($"thought> {thought}");
-        orchestrator.OnToolCall += (name, args) => Console.WriteLine($"executing> {name}({args})");
-        orchestrator.OnToolResult += (name, result) => Console.WriteLine($"result> {name} completed.");
-        orchestrator.OnFinalAnswer += (answer) =>
+        if (useNative && react)
         {
-            if (string.Equals(mode, "diagnose", StringComparison.OrdinalIgnoreCase))
+            Console.WriteLine("warning> ReAct/tool routing requires HTTP providers. Running native chat without tools.");
+            react = false;
+        }
+
+        // Initialize PowerShell host + orchestrator for tool routing (HTTP only)
+        using var psHost = react ? new PowerShellHost() : null;
+        var interlock = react ? new SafetyInterlock(SafetyInterlock.ConsoleConfirmationHandler) : null;
+        var toolExecutor = react ? new ToolExecutor(toolsPath, psHost, interlock) : null;
+        using var openAiClient = react ? new PcaiOpenAiClient(baseUrl) : null;
+        var orchestrator = react ? new ReActOrchestrator(openAiClient!, toolExecutor!, model) : null;
+
+        if (orchestrator != null)
+        {
+            // Bind orchestration events for TUI feedback
+            orchestrator.OnThought += (thought) => Console.WriteLine($"thought> {thought}");
+            orchestrator.OnToolCall += (name, args) => Console.WriteLine($"executing> {name}({args})");
+            orchestrator.OnToolResult += (name, result) => Console.WriteLine($"result> {name} completed.");
+            orchestrator.OnFinalAnswer += (answer) =>
             {
-                if (!TryValidateDiagnoseJson(answer, out var error))
+                if (string.Equals(mode, "diagnose", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine($"error> Diagnose mode requires valid JSON output. {error}");
-                    Console.WriteLine($"raw> {answer}");
-                    return;
+                    if (!TryValidateDiagnoseJson(answer, out var error))
+                    {
+                        Console.WriteLine($"error> Diagnose mode requires valid JSON output. {error}");
+                        Console.WriteLine($"raw> {answer}");
+                        return;
+                    }
+
+                    if (jsonOutput)
+                    {
+                        using var doc = JsonDocument.Parse(answer);
+                        Console.WriteLine(JsonSerializer.Serialize(doc.RootElement, JsonOptions));
+                        Console.WriteLine();
+                        return;
+                    }
+
+                    var summary = BuildDiagnoseSummary(answer);
+                    if (!string.IsNullOrWhiteSpace(summary))
+                    {
+                        Console.WriteLine("assistant>");
+                        Console.WriteLine(summary);
+                        Console.WriteLine();
+                        return;
+                    }
                 }
 
-                if (jsonOutput)
-                {
-                    using var doc = JsonDocument.Parse(answer);
-                    Console.WriteLine(JsonSerializer.Serialize(doc.RootElement, JsonOptions));
-                    Console.WriteLine();
-                    return;
-                }
-
-                var summary = BuildDiagnoseSummary(answer);
-                if (!string.IsNullOrWhiteSpace(summary))
-                {
-                    Console.WriteLine("assistant>");
-                    Console.WriteLine(summary);
-                    Console.WriteLine();
-                    return;
-                }
-            }
-
-            Console.WriteLine($"assistant> {answer}\n");
-        };
-        orchestrator.OnError += (error) => Console.WriteLine($"error> {error}");
+                Console.WriteLine($"assistant> {answer}\n");
+            };
+            orchestrator.OnError += (error) => Console.WriteLine($"error> {error}");
+        }
 
         while (true)
         {
@@ -254,11 +406,15 @@ public static class Program
                         Console.WriteLine("Context cleared.");
                         continue;
                     case "/health":
-                        var health = await GetHealthAsync(http, baseUrl, provider);
+                        var health = useNative
+                            ? GetNativeHealth(nativeBackend, provider)
+                            : await GetHealthAsync(http, baseUrl, provider);
                         PrintHealth(health, jsonOutput: false);
                         continue;
                     case "/models":
-                        var models = await GetModelsAsync(http, baseUrl, provider);
+                        var models = useNative
+                            ? GetNativeModels(modelPath)
+                            : await GetModelsAsync(http, baseUrl, provider);
                         Console.WriteLine("Available models:");
                         foreach (var name in models)
                         {
@@ -275,7 +431,7 @@ public static class Program
 
             try
             {
-                if (react)
+                if (react && orchestrator != null)
                 {
                     // Use the unified ReAct orchestrator
                     // We need to inject native context if in diagnose mode
@@ -297,7 +453,32 @@ public static class Program
                     continue;
                 }
 
-                if (stream)
+                if (useNative && nativeBackend != null)
+                {
+                    var nativePrompt = BuildPrompt(history);
+                    if (stream)
+                    {
+                        Console.Write("assistant> ");
+                        var sb = new StringBuilder();
+                        await foreach (var token in nativeBackend.GenerateStreamingAsync(nativePrompt, defaultMaxTokens, defaultTemperature))
+                        {
+                            if (!string.IsNullOrEmpty(token))
+                            {
+                                Console.Write(token);
+                                sb.Append(token);
+                            }
+                        }
+                        Console.WriteLine();
+                        history.Add(new ChatMessage("assistant", sb.ToString()));
+                    }
+                    else
+                    {
+                        var content = await nativeBackend.GenerateAsync(nativePrompt, defaultMaxTokens, defaultTemperature);
+                        history.Add(new ChatMessage("assistant", content));
+                        Console.WriteLine($"assistant> {content}\n");
+                    }
+                }
+                else if (stream)
                 {
                     Console.Write("assistant> ");
                     var content = await StreamOpenAiChatAsync(http, baseUrl, model, history);
@@ -336,6 +517,25 @@ public static class Program
         Console.WriteLine(openAiContent);
     }
 
+    private static async Task RunSingleNativeAsync(
+        IInferenceBackend nativeBackend,
+        string? systemPrompt,
+        string prompt,
+        int maxTokens,
+        float temperature)
+    {
+        var messages = new List<ChatMessage>();
+        if (!string.IsNullOrWhiteSpace(systemPrompt))
+        {
+            messages.Add(new ChatMessage("system", systemPrompt));
+        }
+        messages.Add(new ChatMessage("user", prompt));
+
+        var nativePrompt = BuildPrompt(messages);
+        var content = await nativeBackend.GenerateAsync(nativePrompt, maxTokens, temperature);
+        Console.WriteLine(content);
+    }
+
     private static async Task<HealthResult> GetHealthAsync(HttpClient http, string baseUrl, string provider)
     {
         var result = new HealthResult
@@ -359,6 +559,30 @@ public static class Program
         return result;
     }
 
+    private static HealthResult GetNativeHealth(IInferenceBackend? nativeBackend, string provider)
+    {
+        var result = new HealthResult
+        {
+            Endpoint = "pcai-native",
+            Native = PcaiCore.GetDiagnostics()
+        };
+
+        if (nativeBackend == null)
+        {
+            result.Ok = false;
+            result.Error = "Native backend not initialized";
+            return result;
+        }
+
+        result.Ok = nativeBackend.IsAvailable;
+        if (!result.Ok)
+        {
+            result.Error = InferenceModule.GetLastError() ?? "Native backend unavailable";
+        }
+
+        return result;
+    }
+
     private static async Task<IReadOnlyList<string>> GetModelsAsync(HttpClient http, string baseUrl, string provider)
     {
         var openAi = await http.GetFromJsonAsync<OpenAiModels>($"{baseUrl}/v1/models", JsonOptions);
@@ -368,6 +592,16 @@ public static class Program
         }
 
         return openAi.Data.Select(m => m.Id).ToArray();
+    }
+
+    private static IReadOnlyList<string> GetNativeModels(string? modelPath)
+    {
+        if (!string.IsNullOrWhiteSpace(modelPath))
+        {
+            return new[] { modelPath };
+        }
+
+        return new[] { "pcai-native" };
     }
 
     private static async Task<string> SendOllamaChatAsync(HttpClient http, string baseUrl, string model, List<ChatMessage> messages)
@@ -425,6 +659,24 @@ public static class Program
         AppendStringArray(root, "what_is_missing", "Missing Data", sb, maxItems);
 
         return sb.ToString().TrimEnd();
+    }
+
+    private static string BuildPrompt(List<ChatMessage> history)
+    {
+        var sb = new StringBuilder();
+        foreach (var message in history)
+        {
+            var label = message.Role switch
+            {
+                "system" => "System",
+                "user" => "User",
+                "assistant" => "Assistant",
+                _ => message.Role
+            };
+            sb.AppendLine($"{label}: {message.Content}");
+        }
+        sb.Append("Assistant: ");
+        return sb.ToString();
     }
 
     private static void AppendStringArray(JsonElement root, string propName, string title, StringBuilder sb, int maxItems)
@@ -963,7 +1215,7 @@ Usage: PcaiChatTui [options]
 Options:
   --base-url, -u <url>      LLM endpoint URL (default: http://127.0.0.1:8080)
   --model, -m <name>        Model name for HTTP providers
-  --provider <name>         Provider: pcai-inference, vllm, lmstudio (default: pcai-inference)
+  --provider <name>         Provider: pcai-inference, pcai-native, vllm, lmstudio (default: pcai-inference)
   --mode <mode>             Mode: chat, diagnose, stream, single, react
   --config, -c <path>       Config file path
   --timeout <seconds>       Request timeout
@@ -999,6 +1251,7 @@ public sealed class LlmConfig
 {
     public string? DefaultProvider { get; init; }
     public Dictionary<string, ProviderConfig> Providers { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    public NativeProviderConfig? NativeProvider { get; init; }
     public string? ToolsPath { get; init; }
     public string? HvsockConfigPath { get; init; }
 
@@ -1028,12 +1281,16 @@ public sealed class LlmConfig
             string? defaultProvider = null;
             string? toolsPath = null;
             var hvsockConfigPath = "C:\\Users\\david\\PC_AI\\Config\\hvsock-proxy.conf";
+            NativeProviderConfig? nativeProvider = null;
 
             if (doc.RootElement.TryGetProperty("providers", out var providers))
             {
                 foreach (var provider in providers.EnumerateObject())
                 {
                     var providerElement = provider.Value;
+                    var type = providerElement.TryGetProperty("type", out var typeElement)
+                        ? typeElement.GetString()
+                        : null;
                     var baseUrl = providerElement.TryGetProperty("baseUrl", out var baseUrlElement)
                         ? baseUrlElement.GetString()
                         : null;
@@ -1046,10 +1303,40 @@ public sealed class LlmConfig
 
                     providersMap[provider.Name] = new ProviderConfig
                     {
+                        Type = type,
                         BaseUrl = baseUrl,
                         DefaultModel = model,
                         TimeoutSec = timeout
                     };
+
+                    if (string.Equals(type, "ffi", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(provider.Name, "pcai-native", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var backend = providerElement.TryGetProperty("backend", out var backendElement)
+                            ? backendElement.GetString()
+                            : null;
+                        var modelPath = providerElement.TryGetProperty("modelPath", out var modelPathElement)
+                            ? modelPathElement.GetString()
+                            : null;
+                        var gpuLayers = providerElement.TryGetProperty("gpuLayers", out var gpuElement)
+                            ? gpuElement.GetInt32()
+                            : (int?)null;
+                        var defaultTemp = providerElement.TryGetProperty("defaultTemperature", out var tempElement)
+                            ? tempElement.GetSingle()
+                            : (float?)null;
+                        var defaultMaxTokens = providerElement.TryGetProperty("defaultMaxTokens", out var maxTokensElement)
+                            ? maxTokensElement.GetInt32()
+                            : (int?)null;
+
+                        nativeProvider = new NativeProviderConfig
+                        {
+                            Backend = backend,
+                            ModelPath = modelPath,
+                            GpuLayers = gpuLayers,
+                            DefaultTemperature = defaultTemp,
+                            DefaultMaxTokens = defaultMaxTokens
+                        };
+                    }
                 }
             }
 
@@ -1069,6 +1356,7 @@ public sealed class LlmConfig
                 DefaultProvider = defaultProvider,
                 ToolsPath = toolsPath,
                 HvsockConfigPath = hvsockConfigPath,
+                NativeProvider = nativeProvider,
                 Providers = providersMap
             };
         }
@@ -1081,9 +1369,19 @@ public sealed class LlmConfig
 
 public sealed class ProviderConfig
 {
+    public string? Type { get; init; }
     public string? BaseUrl { get; init; }
     public string? DefaultModel { get; init; }
     public int? TimeoutSec { get; init; }
+}
+
+public sealed class NativeProviderConfig
+{
+    public string? Backend { get; init; }
+    public string? ModelPath { get; init; }
+    public int? GpuLayers { get; init; }
+    public float? DefaultTemperature { get; init; }
+    public int? DefaultMaxTokens { get; init; }
 }
 
 public sealed class HealthResult

@@ -45,9 +45,19 @@ cargo_output*.json
 **/target/release/incremental/
 **/target/release/.fingerprint/
 **/target/debug/
+# Alternate target dirs (e.g., target-ffi-nosccache)
+**/target-*/release/build/
+**/target-*/release/deps/
+**/target-*/release/incremental/
+**/target-*/release/.fingerprint/
+**/target-*/debug/
+**/target-*/.rustc_info.json
+**/target-*/release/.cargo-lock
 # Keep final binaries paths searchable for path references
 !**/target/release/*.exe
 !**/target/release/*.dll
+!**/target-*/release/*.exe
+!**/target-*/release/*.dll
 
 # Keep documentation searchable
 !**/*.md

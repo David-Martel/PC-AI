@@ -19,6 +19,10 @@ Reports/*.xml
 *-Diagnostics-Report.txt
 Hardware-Diagnostics-Report.txt
 
+# Runtime state files
+Reports/*.addr
+Reports/*.port
+
 # IDE
 .vscode/
 !.vscode/settings.json
@@ -70,6 +74,7 @@ Modules/Archive/
 
 # Rust
 target/
+**/target-*/
 **/*.rs.bk
 Cargo.lock
 
@@ -139,6 +144,13 @@ Deploy/functiongemma-finetune/unsloth_compiled_cache/
 Deploy/functiongemma-finetune/*_data.jsonl
 Deploy/functiongemma-finetune/test_vectors.json
 Deploy/functiongemma-finetune/dummy_tools.json
+
+# FunctionGemma / Rust training checkpoints and outputs
+Deploy/rust-functiongemma-train/checkpoints/
+Deploy/rust-functiongemma-train/output/
+checkpoints/
+output/
+!output/.gitkeep
 
 # TensorBoard events
 **/*.tfevents.*

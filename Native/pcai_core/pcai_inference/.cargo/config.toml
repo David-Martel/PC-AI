@@ -22,5 +22,10 @@ CARGO_INCREMENTAL = "0"
 SCCACHE_SERVER_PORT = "4226"
 SCCACHE_CACHE_COMPRESSION = "zstd"
 SCCACHE_DIRECT = "true"
-# Ensure consistent CUDA paths if not set in environment
-# CUDA_PATH = "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.9"
+# NVCC host compiler: required for CUDA 13.x + MSVC 19.44 compatibility.
+# bindgen_cuda checks this var and adds --allow-unsupported-compiler + -ccbin flags.
+NVCC_CCBIN = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64"
+# Target primary GPU (RTX 2000 Ada, sm_89)
+CUDA_COMPUTE_CAP = "89"
+# Explicit CUDA path. IMPORTANT: Ensure CUDA_PATH\bin is first in PATH.
+CUDA_PATH = "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1"

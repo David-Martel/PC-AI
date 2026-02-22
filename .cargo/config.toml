@@ -25,5 +25,17 @@ SCCACHE_DIRECT = "true"
 # CMake compiler launchers for C/C++/CUDA (llama.cpp, candle, etc.)
 CMAKE_C_COMPILER_LAUNCHER = "sccache"
 CMAKE_CXX_COMPILER_LAUNCHER = "sccache"
-# Ensure consistent CUDA paths if not set in environment
-# CUDA_PATH = "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.9"
+# NVCC host compiler: required for CUDA 13.x + MSVC 19.44 compatibility.
+# bindgen_cuda checks this var and adds --allow-unsupported-compiler + -ccbin flags.
+# Without this, nvcc 13.1 fails: "Failed to preprocess host compiler properties".
+NVCC_CCBIN = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64"
+# Explicit CUDA path. IMPORTANT: Ensure CUDA_PATH\bin is first in PATH before
+# running cargo. The nvcc binary must resolve to CUDA 13.1, not an older version.
+# Build.ps1 / Initialize-CudaEnvironment.ps1 handle this automatically.
+CUDA_PATH = "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1"
+# Target primary GPU (RTX 2000 Ada, sm_89). Prevents bindgen_cuda from
+# picking up the RTX 5060 Ti (sm_120) which requires more compilation time.
+CUDA_COMPUTE_CAP = "89"
+# Cache flash-attn CUDA kernels across builds (~70 min compilation).
+# Must be absolute path - build.rs canonicalizes relative to its source dir.
+CANDLE_FLASH_ATTN_BUILD_DIR = "C:\\Users\\david\\PC_AI\\.pcai\\build\\artifacts\\cuda-flash-attn"

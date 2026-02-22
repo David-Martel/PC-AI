@@ -19,11 +19,8 @@ From repo root:
 
 ## Run
 
-  setx PCAI_ROUTER_ADDR 127.0.0.1:8000
-  setx PCAI_ROUTER_MODEL functiongemma-270m-it
-  setx PCAI_ROUTER_ENGINE heuristic
-
-  .\Deploy\rust-functiongemma-runtime\target\debug\rust-functiongemma-runtime.exe
+  # Edit Config/pcai-functiongemma.json (runtime section) as needed
+  .\Deploy\rust-functiongemma-runtime\target\debug\rust-functiongemma-runtime.exe --config Config\pcai-functiongemma.json
 
 Notes:
 - Default address is 127.0.0.1:8000 to match Invoke-FunctionGemmaReAct defaults.
@@ -34,16 +31,16 @@ Notes:
 Build with model features, then enable model engine:
 
   .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime -CargoArgs @('build','--features','model')
-  setx PCAI_ROUTER_ENGINE model
-  setx PCAI_ROUTER_MODEL_PATH C:\Users\david\PC_AI\Models\functiongemma-270m-it
+  # Update Config/pcai-functiongemma.json:
+  #   runtime.router_engine = "model"
+  #   runtime.router_model_path = "C:\\Users\\david\\PC_AI\\Models\\functiongemma-270m-it"
 
 This path loads the base model and attempts to parse FunctionGemma-style
 tool calls from the generated output. It is functional but not optimized.
 
 ## KV cache
-KV cache is enabled by default for model inference. Toggle with:
-
-  setx PCAI_ROUTER_KV_CACHE 0
+KV cache is enabled by default for model inference. Toggle in
+Config/pcai-functiongemma.json (runtime.router_kv_cache).
 
 ## Optional model features
 Enable extra dependencies only when needed:

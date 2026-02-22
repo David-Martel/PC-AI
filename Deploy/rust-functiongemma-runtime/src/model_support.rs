@@ -1,51 +1,62 @@
 #[cfg(feature = "model")]
-use anyhow::{Context, Result};
+use anyhow::Result;
 #[cfg(feature = "model")]
 use hf_hub::{api::sync::Api, Repo, RepoType};
 #[cfg(feature = "model")]
-use minijinja::Environment;
-#[cfg(feature = "model")]
-use std::{fs, path::{Path, PathBuf}};
-#[cfg(feature = "model")]
-use tokenizers::Tokenizer;
-
-#[cfg(feature = "model")]
-#[allow(dead_code)]
-pub struct ModelAssets {
-    pub tokenizer: Tokenizer,
-    pub chat_template: String,
-}
-
-#[cfg(feature = "model")]
-#[allow(dead_code)]
-impl ModelAssets {
-    pub fn load(model_dir: &Path) -> Result<Self> {
-        let tokenizer_path = model_dir.join("tokenizer.json");
-        let template_path = model_dir.join("chat_template.jinja");
-        let tokenizer = Tokenizer::from_file(&tokenizer_path)
-            .map_err(anyhow::Error::msg)
-            .with_context(|| format!("failed to load tokenizer: {}", tokenizer_path.display()))?;
-        let chat_template = fs::read_to_string(&template_path)
-            .with_context(|| format!("failed to read chat template: {}", template_path.display()))?;
-        Ok(Self { tokenizer, chat_template })
-    }
-
-    pub fn render_chat(&self, context: &serde_json::Value) -> Result<String> {
-        let mut env = Environment::new();
-        env.add_template("chat", &self.chat_template)?;
-        let tmpl = env.get_template("chat")?;
-        Ok(tmpl.render(context)?)
-    }
-}
+use std::path::{Path, PathBuf};
 
 #[cfg(feature = "model")]
 #[allow(dead_code)]
 pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
-    let local = PathBuf::from(model_id);
-    if local.exists() {
-        return Ok(local);
+    let p = PathBuf::from(model_id);
+
+    // 1. Absolute or existing relative path
+    if p.is_absolute() && p.exists() {
+        tracing::info!("Model path (absolute): {}", p.display());
+        return Ok(p);
+    }
+    if p.exists() {
+        tracing::info!("Model path (relative): {}", p.display());
+        return Ok(p);
     }
 
+    // 2. PCAI_MODELS_DIR environment variable
+    if let Ok(dir) = std::env::var("PCAI_MODELS_DIR") {
+        let candidate = PathBuf::from(&dir).join(model_id);
+        if candidate.exists() {
+            tracing::info!("Model path ($PCAI_MODELS_DIR): {}", candidate.display());
+            return Ok(candidate);
+        }
+    }
+
+    // 3. Relative to CWD/Models/
+    let models_dir = PathBuf::from("Models").join(model_id);
+    if models_dir.exists() {
+        tracing::info!("Model path (Models/): {}", models_dir.display());
+        return Ok(models_dir);
+    }
+
+    // 4. Common Windows model locations
+    if let Ok(home) = std::env::var("USERPROFILE") {
+        let candidate = PathBuf::from(&home)
+            .join(".cache")
+            .join("pcai")
+            .join("models")
+            .join(model_id);
+        if candidate.exists() {
+            tracing::info!(
+                "Model path (~/.cache/pcai/models/): {}",
+                candidate.display()
+            );
+            return Ok(candidate);
+        }
+    }
+
+    // 5. Fallback to HuggingFace hub download
+    tracing::info!(
+        "Model not found locally, trying HuggingFace hub: {}",
+        model_id
+    );
     let api = Api::new()?;
     let repo = Repo::with_revision(model_id.to_string(), RepoType::Model, "main".to_string());
     let api = api.repo(repo);
@@ -55,16 +66,52 @@ pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
 
     let root = tokenizer_path.parent().unwrap_or(Path::new("."));
     if !template_path.exists() {
-        return Err(anyhow::anyhow!("chat_template.jinja not found after download"));
+        return Err(anyhow::anyhow!(
+            "chat_template.jinja not found after download"
+        ));
     }
 
     Ok(root.to_path_buf())
 }
 
-#[cfg(feature = "model")]
-#[allow(dead_code)]
-pub fn load_safetensors_summary(path: &Path) -> Result<usize> {
-    let data = fs::read(path)?;
-    let tensors = safetensors::SafeTensors::deserialize(&data)?;
-    Ok(tensors.len())
+#[cfg(all(test, feature = "model"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_resolve_existing_relative_path() {
+        let dir = std::env::temp_dir().join("pcai_test_model_resolve");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("config.json"), "{}").unwrap();
+
+        let result = resolve_model_path(dir.to_str().unwrap());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), dir);
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_resolve_with_env_var() {
+        let base = std::env::temp_dir().join("pcai_test_models_env");
+        let model_dir = base.join("test-model");
+        std::fs::create_dir_all(&model_dir).unwrap();
+
+        std::env::set_var("PCAI_MODELS_DIR", base.to_str().unwrap());
+        let result = resolve_model_path("test-model");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), model_dir);
+
+        std::env::remove_var("PCAI_MODELS_DIR");
+        std::fs::remove_dir_all(&base).ok();
+    }
+
+    #[test]
+    fn test_resolve_nonexistent_returns_error_or_fallback() {
+        // With no HF token, this should either find nothing locally
+        // or fail on HF download - just verify it doesn't panic
+        std::env::remove_var("PCAI_MODELS_DIR");
+        let _result = resolve_model_path("definitely-not-a-real-model-12345");
+        // We don't assert Ok/Err because HF might or might not be available
+    }
 }

@@ -27,11 +27,8 @@ Dual-backend LLM inference engine for PC diagnostics with native Rust performanc
 # Build with llama.cpp backend and server
 cargo build --release --features "llamacpp,server"
 
-# Set configuration
-export PCAI_CONFIG=config.json
-
-# Run server
-./target/release/pcai-inference
+# Run server with config
+./target/release/pcai-inference --config config.json
 ```
 
 ### Configuration

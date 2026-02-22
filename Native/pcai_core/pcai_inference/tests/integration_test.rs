@@ -25,12 +25,7 @@
 //! ## Testing with Real Models
 //!
 //! Some tests are skipped by default unless a real model is available.
-//! Set the `PCAI_TEST_MODEL` environment variable to enable them:
-//!
-//! ```bash
-//! export PCAI_TEST_MODEL=/path/to/model.gguf
-//! cargo test --features llamacpp
-//! ```
+//! Set `providers.pcai-native.modelPath` in Config/llm-config.json to enable them.
 //!
 //! Alternatively, install a model via Ollama or LM Studio, and the tests
 //! will automatically discover it.
@@ -59,8 +54,8 @@ mod common;
 #[macro_export]
 macro_rules! require_model {
     () => {
-        if std::env::var("PCAI_TEST_MODEL").is_err() {
-            eprintln!("Skipping test: Set PCAI_TEST_MODEL=path/to/model.gguf to run");
+        if !has_test_model() {
+            eprintln!("Skipping test: configure providers.pcai-native.modelPath in Config/llm-config.json");
             return;
         }
     };
@@ -348,7 +343,7 @@ async fn test_llamacpp_generate_with_model() {
 
     require_model!();
 
-    let model_path = std::env::var("PCAI_TEST_MODEL").unwrap();
+    let model_path = common::require_test_model();
     let mut backend = LlamaCppBackend::new();
 
     backend.load_model(&model_path).await.unwrap();
@@ -375,7 +370,7 @@ async fn test_mistralrs_generate_with_model() {
 
     require_model!();
 
-    let model_path = std::env::var("PCAI_TEST_MODEL").unwrap();
+    let model_path = common::require_test_model();
     let mut backend = MistralRsBackend::new();
 
     backend.load_model(&model_path).await.unwrap();
@@ -573,7 +568,7 @@ mod ffi_tests {
         assert_eq!(pcai_init(backend.as_ptr()), 0);
 
         // Load model
-        let model_path = std::env::var("PCAI_TEST_MODEL").unwrap();
+        let model_path = common::require_test_model();
         let path = CString::new(model_path).unwrap();
         let load_result = pcai_load_model(path.as_ptr(), 0);
 
@@ -615,7 +610,7 @@ async fn stress_test_sequential_generations() {
 
     require_model!();
 
-    let model_path = std::env::var("PCAI_TEST_MODEL").unwrap();
+    let model_path = common::require_test_model();
     let mut backend = LlamaCppBackend::new();
     backend.load_model(&model_path).await.unwrap();
 
@@ -639,7 +634,7 @@ async fn stress_test_sequential_generations() {
 async fn stress_test_backend_switching() {
     require_model!();
 
-    let model_path = std::env::var("PCAI_TEST_MODEL").unwrap();
+    let model_path = common::require_test_model();
 
     // Test llamacpp
     {

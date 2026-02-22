@@ -37,15 +37,17 @@
 //! ```
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
+use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
 use std::sync::{Mutex, OnceLock};
 
 use tokio::runtime::Runtime;
 
-use crate::backends::{GenerateRequest, InferenceBackend};
 #[cfg(any(feature = "llamacpp", feature = "mistralrs-backend"))]
 use crate::backends::BackendType;
+use crate::backends::{GenerateRequest, InferenceBackend};
 use crate::Error;
 
 // ============================================================================
@@ -88,13 +90,48 @@ impl PcaiErrorCode {
 }
 
 // ============================================================================
+// Async Request Tracking
+// ============================================================================
+
+/// Monotonically increasing request ID counter
+static NEXT_REQUEST_ID: AtomicI64 = AtomicI64::new(1);
+
+/// Status of an async inference request
+enum RequestStatus {
+    /// Request accepted, not yet picked up by worker thread
+    Pending,
+    /// Worker thread is actively running inference
+    Running,
+    /// Inference finished successfully; text is the result
+    Complete(String),
+    /// Inference failed; text is the error message
+    Failed(String),
+    /// Request was cancelled before or during inference
+    Cancelled,
+}
+
+/// Result of polling an async request
+///
+/// Returned by `pcai_poll_result`. When `status` is 2 (complete) or 3 (failed)
+/// the `text` pointer is non-null and **must** be freed by the caller with
+/// `pcai_free_string`. For all other statuses `text` is null.
+#[repr(C)]
+pub struct PcaiAsyncResult {
+    /// 0 = pending, 1 = running, 2 = complete, 3 = failed, 4 = cancelled, -1 = unknown id
+    pub status: i32,
+    /// Result text. Only valid when `status` is 2 or 3. Caller must free with `pcai_free_string`.
+    pub text: *mut c_char,
+}
+
+// ============================================================================
 // Global State
 // ============================================================================
 
-/// Global state holding the runtime and backend
+/// Global state holding the runtime, backend, and async request map
 struct GlobalState {
     runtime: Runtime,
     backend: Option<Box<dyn InferenceBackend>>,
+    requests: HashMap<i64, RequestStatus>,
 }
 
 /// Global state instance (initialized once)
@@ -104,6 +141,8 @@ static GLOBAL_STATE: OnceLock<Mutex<GlobalState>> = OnceLock::new();
 thread_local! {
     static LAST_ERROR: RefCell<Option<String>> = const { RefCell::new(None) };
     static LAST_ERROR_CODE: RefCell<PcaiErrorCode> = const { RefCell::new(PcaiErrorCode::Success) };
+    /// Reusable CString buffer for pcai_last_error. Avoids leaking memory on every call.
+    static LAST_ERROR_CSTRING: RefCell<Option<CString>> = const { RefCell::new(None) };
 }
 
 /// Initialize global state on first access
@@ -113,6 +152,7 @@ fn init_global_state() -> &'static Mutex<GlobalState> {
         Mutex::new(GlobalState {
             runtime,
             backend: None,
+            requests: HashMap::new(),
         })
     })
 }
@@ -125,6 +165,11 @@ fn set_last_error_with_code(err: impl Into<String>, code: PcaiErrorCode) {
     LAST_ERROR_CODE.with(|c| {
         *c.borrow_mut() = code;
     });
+}
+
+/// Set the last error message with the `Unknown` error code
+fn set_last_error(err: impl Into<String>) {
+    set_last_error_with_code(err, PcaiErrorCode::Unknown);
 }
 
 /// Clear the last error for the current thread
@@ -320,9 +365,7 @@ pub extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) ->
     let GlobalState { runtime, backend } = &mut *guard;
 
     if let Some(backend) = backend {
-        let result = runtime.block_on(async {
-            backend.load_model(&path_str).await
-        });
+        let result = runtime.block_on(async { backend.load_model(&path_str).await });
 
         match result {
             Ok(_) => {
@@ -379,7 +422,10 @@ pub extern "C" fn pcai_generate(
     let prompt_str = match unsafe { c_str_from_ptr(prompt) } {
         Ok(s) => s,
         Err(e) => {
-            set_last_error_with_code(format!("Invalid prompt: {}", e), PcaiErrorCode::InvalidInput);
+            set_last_error_with_code(
+                format!("Invalid prompt: {}", e),
+                PcaiErrorCode::InvalidInput,
+            );
             return std::ptr::null_mut();
         }
     };
@@ -450,9 +496,9 @@ pub extern "C" fn pcai_generate(
     };
 
     // Generate (async operation, block on runtime)
-    let result = guard.runtime.block_on(async {
-        backend.generate(request).await
-    });
+    let result = guard
+        .runtime
+        .block_on(async { backend.generate(request).await });
 
     match result {
         Ok(response) => {
@@ -673,11 +719,82 @@ pub extern "C" fn pcai_shutdown() {
 
     if let Some(mut backend) = guard.backend.take() {
         // Unload model
-        let _ = guard.runtime.block_on(async {
-            backend.unload_model().await
-        });
+        let _ = guard
+            .runtime
+            .block_on(async { backend.unload_model().await });
 
         tracing::info!("Backend shutdown");
+    }
+}
+
+/// Check if a backend has been initialized.
+///
+/// # Returns
+/// * 1 if initialized
+/// * 0 if not initialized or on error
+#[no_mangle]
+pub extern "C" fn pcai_is_initialized() -> i32 {
+    let state = init_global_state();
+    let guard = match state.lock() {
+        Ok(g) => g,
+        Err(_) => return 0,
+    };
+
+    if guard.backend.is_some() {
+        1
+    } else {
+        0
+    }
+}
+
+/// Check if a model is loaded in the active backend.
+///
+/// # Returns
+/// * 1 if a model is loaded
+/// * 0 if not loaded or on error
+#[no_mangle]
+pub extern "C" fn pcai_is_model_loaded() -> i32 {
+    let state = init_global_state();
+    let guard = match state.lock() {
+        Ok(g) => g,
+        Err(_) => return 0,
+    };
+
+    match guard.backend.as_ref() {
+        Some(backend) if backend.is_loaded() => 1,
+        _ => 0,
+    }
+}
+
+/// Get the name of the active backend.
+///
+/// # Returns
+/// * Pointer to a static string ("llama.cpp" or "mistral.rs")
+/// * null if no backend is initialized
+///
+/// # Safety
+/// * Returned pointer is valid for the lifetime of the program
+/// * Do NOT call pcai_free_string on this pointer
+#[no_mangle]
+pub extern "C" fn pcai_get_backend_name() -> *const c_char {
+    static LLAMA_CPP: &str = "llama.cpp\0";
+    static MISTRAL_RS: &str = "mistral.rs\0";
+
+    let state = init_global_state();
+    let guard = match state.lock() {
+        Ok(g) => g,
+        Err(_) => return std::ptr::null(),
+    };
+
+    let backend = match guard.backend.as_ref() {
+        Some(b) => b,
+        None => return std::ptr::null(),
+    };
+
+    match backend.backend_name() {
+        "llama.cpp" => LLAMA_CPP.as_ptr() as *const c_char,
+        "mistral.rs" => MISTRAL_RS.as_ptr() as *const c_char,
+        _ => std::ptr::null(),
     }
 }
 
@@ -689,6 +806,7 @@ pub extern "C" fn pcai_shutdown() {
 ///
 /// # Safety
 /// * Returned pointer is valid until the next call to any pcai function
+///   on the same thread
 /// * Do NOT call pcai_free_string on this pointer
 #[no_mangle]
 pub extern "C" fn pcai_last_error() -> *const c_char {
@@ -696,13 +814,15 @@ pub extern "C" fn pcai_last_error() -> *const c_char {
         let err_ref = e.borrow();
         match err_ref.as_ref() {
             Some(err) => {
-                // SAFETY: We need to return a stable pointer that lives beyond this function.
-                // We leak a CString to ensure it stays alive. This is acceptable for error
-                // messages as they are infrequent and small.
+                // Store the CString in a thread-local buffer so the pointer
+                // remains valid until the next call. This avoids the memory
+                // leak that std::mem::forget would cause.
                 match CString::new(err.as_str()) {
                     Ok(c_str) => {
                         let ptr = c_str.as_ptr();
-                        std::mem::forget(c_str); // Leak to keep alive
+                        LAST_ERROR_CSTRING.with(|buf| {
+                            *buf.borrow_mut() = Some(c_str);
+                        });
                         ptr
                     }
                     Err(_) => std::ptr::null(),
@@ -735,6 +855,296 @@ pub extern "C" fn pcai_last_error_code() -> i32 {
 pub extern "C" fn pcai_version() -> *const c_char {
     static VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "\0");
     VERSION.as_ptr() as *const c_char
+}
+
+/// Submit an asynchronous generation request
+///
+/// Spawns a background OS thread that calls the active backend and stores the
+/// result in the global request map. The caller must poll with
+/// `pcai_poll_result` and eventually receive a terminal status (complete,
+/// failed, or cancelled) which removes the entry from the map.
+///
+/// # Arguments
+/// * `prompt` - Input text prompt (null-terminated C string, max 100 KB)
+/// * `max_tokens` - Maximum tokens to generate (0 = backend default)
+/// * `temperature` - Sampling temperature (0.0 = greedy, 1.0 = creative)
+///
+/// # Returns
+/// * Request ID > 0 on success
+/// * -1 on error (check `pcai_last_error`)
+///
+/// # Safety
+/// * `prompt` must be a valid null-terminated C string
+/// * Must call `pcai_load_model` before submitting requests
+#[no_mangle]
+pub extern "C" fn pcai_generate_async(
+    prompt: *const c_char,
+    max_tokens: u32,
+    temperature: f32,
+) -> i64 {
+    clear_last_error();
+
+    let prompt_str = match unsafe { c_str_from_ptr(prompt) } {
+        Ok(s) => s.to_string(),
+        Err(_) => {
+            set_last_error_with_code("Invalid prompt string", PcaiErrorCode::InvalidInput);
+            return -1;
+        }
+    };
+
+    // Validate prompt length (100 KB max)
+    const MAX_PROMPT_SIZE: usize = 100 * 1024;
+    if prompt_str.len() > MAX_PROMPT_SIZE {
+        set_last_error_with_code(
+            format!(
+                "Prompt too large: {} bytes (max {})",
+                prompt_str.len(),
+                MAX_PROMPT_SIZE
+            ),
+            PcaiErrorCode::InvalidInput,
+        );
+        return -1;
+    }
+
+    // Validate backend is ready before allocating an ID
+    {
+        let state = init_global_state();
+        let guard = match state.lock() {
+            Ok(g) => g,
+            Err(e) => {
+                set_last_error_with_code(
+                    format!("Failed to lock state: {}", e),
+                    PcaiErrorCode::BackendError,
+                );
+                return -1;
+            }
+        };
+
+        if guard.backend.is_none() {
+            set_last_error_with_code(
+                "Backend not initialized. Call pcai_init first.",
+                PcaiErrorCode::NotInitialized,
+            );
+            return -1;
+        }
+
+        let backend = guard.backend.as_ref().unwrap();
+        if !backend.is_loaded() {
+            set_last_error_with_code(
+                "Model not loaded. Call pcai_load_model first.",
+                PcaiErrorCode::ModelNotLoaded,
+            );
+            return -1;
+        }
+    }
+
+    // Allocate a unique request ID and register it as Pending
+    let id = NEXT_REQUEST_ID.fetch_add(1, AtomicOrdering::SeqCst);
+    {
+        let state = init_global_state();
+        if let Ok(mut g) = state.lock() {
+            g.requests.insert(id, RequestStatus::Pending);
+        }
+    }
+
+    // Spawn a plain OS thread so we can call `runtime.block_on` without risk
+    // of nesting a blocking call inside the Tokio thread pool.
+    std::thread::spawn(move || {
+        // Transition: Pending -> Running (unless already cancelled)
+        {
+            let state = init_global_state();
+            if let Ok(mut g) = state.lock() {
+                match g.requests.get(&id) {
+                    Some(RequestStatus::Cancelled) => return,
+                    _ => {
+                        g.requests.insert(id, RequestStatus::Running);
+                    }
+                }
+            }
+        }
+
+        // Build the request and run inference while holding the lock so that
+        // the borrow checker can split `runtime` and `backend` simultaneously.
+        let result = {
+            let state = init_global_state();
+            let mut guard = match state.lock() {
+                Ok(g) => g,
+                Err(e) => {
+                    if let Ok(mut g2) = init_global_state().lock() {
+                        g2.requests
+                            .insert(id, RequestStatus::Failed(format!("Lock failed: {}", e)));
+                    }
+                    return;
+                }
+            };
+
+            // Check for cancellation again before starting expensive work
+            if matches!(guard.requests.get(&id), Some(RequestStatus::Cancelled)) {
+                return;
+            }
+
+            let req = GenerateRequest {
+                prompt: prompt_str,
+                max_tokens: if max_tokens > 0 {
+                    Some(max_tokens as usize)
+                } else {
+                    None
+                },
+                temperature: if temperature > 0.0 {
+                    Some(temperature)
+                } else {
+                    None
+                },
+                top_p: None,
+                stop: vec![],
+            };
+
+            // Split borrow: `runtime` and `backend` are separate fields.
+            let GlobalState {
+                runtime, backend, ..
+            } = &mut *guard;
+            match backend.as_ref() {
+                Some(b) => runtime.block_on(b.generate(req)),
+                None => Err(crate::Error::InvalidInput(
+                    "Backend not initialized".to_string(),
+                )),
+            }
+        };
+
+        // Store the terminal status
+        if let Ok(mut g) = init_global_state().lock() {
+            // Respect a late cancellation
+            if matches!(g.requests.get(&id), Some(RequestStatus::Cancelled)) {
+                return;
+            }
+            match result {
+                Ok(response) => {
+                    g.requests
+                        .insert(id, RequestStatus::Complete(response.text));
+                }
+                Err(e) => {
+                    g.requests
+                        .insert(id, RequestStatus::Failed(format!("{}", e)));
+                }
+            }
+        }
+    });
+
+    id
+}
+
+/// Poll the status of an async request
+///
+/// When the returned `status` is 2 (complete) or 3 (failed) the request is
+/// removed from the internal map and the `text` pointer is non-null. The
+/// caller **must** free it with `pcai_free_string`.
+///
+/// Status codes:
+/// * 0 = pending
+/// * 1 = running
+/// * 2 = complete (`text` contains the generated output)
+/// * 3 = failed (`text` contains the error message)
+/// * 4 = cancelled
+/// * -1 = unknown request ID
+///
+/// # Arguments
+/// * `request_id` - ID returned by `pcai_generate_async`
+///
+/// # Safety
+/// * Caller must free the returned `text` with `pcai_free_string` when
+///   `status` is 2 or 3.
+#[no_mangle]
+pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
+    let state = init_global_state();
+    let mut guard = match state.lock() {
+        Ok(g) => g,
+        Err(_) => {
+            return PcaiAsyncResult {
+                status: -1,
+                text: std::ptr::null_mut(),
+            };
+        }
+    };
+
+    match guard.requests.get(&request_id) {
+        Some(RequestStatus::Pending) => PcaiAsyncResult {
+            status: 0,
+            text: std::ptr::null_mut(),
+        },
+        Some(RequestStatus::Running) => PcaiAsyncResult {
+            status: 1,
+            text: std::ptr::null_mut(),
+        },
+        Some(RequestStatus::Complete(_)) => {
+            if let Some(RequestStatus::Complete(text)) = guard.requests.remove(&request_id) {
+                let c_str = CString::new(text).unwrap_or_default();
+                PcaiAsyncResult {
+                    status: 2,
+                    text: c_str.into_raw(),
+                }
+            } else {
+                PcaiAsyncResult {
+                    status: -1,
+                    text: std::ptr::null_mut(),
+                }
+            }
+        }
+        Some(RequestStatus::Failed(_)) => {
+            if let Some(RequestStatus::Failed(text)) = guard.requests.remove(&request_id) {
+                let c_str = CString::new(text).unwrap_or_default();
+                PcaiAsyncResult {
+                    status: 3,
+                    text: c_str.into_raw(),
+                }
+            } else {
+                PcaiAsyncResult {
+                    status: -1,
+                    text: std::ptr::null_mut(),
+                }
+            }
+        }
+        Some(RequestStatus::Cancelled) => {
+            guard.requests.remove(&request_id);
+            PcaiAsyncResult {
+                status: 4,
+                text: std::ptr::null_mut(),
+            }
+        }
+        None => PcaiAsyncResult {
+            status: -1,
+            text: std::ptr::null_mut(),
+        },
+    }
+}
+
+/// Cancel a pending or running async request
+///
+/// Marks the request as cancelled. If inference is already in progress the
+/// worker thread will observe the flag before storing a result and will exit
+/// without writing to the map. The cancelled entry is cleaned up by the next
+/// call to `pcai_poll_result` for that ID.
+///
+/// # Arguments
+/// * `request_id` - ID returned by `pcai_generate_async`
+///
+/// # Returns
+/// * 0 if the request was successfully marked as cancelled
+/// * -1 if the request ID was not found or the request had already finished
+#[no_mangle]
+pub extern "C" fn pcai_cancel(request_id: i64) -> i32 {
+    let state = init_global_state();
+    let mut guard = match state.lock() {
+        Ok(g) => g,
+        Err(_) => return -1,
+    };
+
+    match guard.requests.get_mut(&request_id) {
+        Some(status @ RequestStatus::Pending) | Some(status @ RequestStatus::Running) => {
+            *status = RequestStatus::Cancelled;
+            0
+        }
+        _ => -1,
+    }
 }
 
 // ============================================================================
@@ -857,5 +1267,60 @@ mod tests {
             err_text
         );
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
+    }
+
+    // -------------------------------------------------------------------------
+    // Async FFI tests (no backend required – these test the bookkeeping layer)
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_async_generate_before_init() {
+        // Reset state
+        pcai_shutdown();
+
+        let prompt = CString::new("hello").unwrap();
+        let id = pcai_generate_async(prompt.as_ptr(), 10, 0.7);
+        assert_eq!(id, -1, "Should fail when no backend is initialised");
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
+    }
+
+    #[test]
+    fn test_async_generate_null_prompt() {
+        let id = pcai_generate_async(std::ptr::null(), 10, 0.7);
+        assert_eq!(id, -1, "Should fail on null prompt");
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
+    }
+
+    #[test]
+    fn test_async_generate_prompt_too_large() {
+        let large = "x".repeat(101 * 1024);
+        let cstr = CString::new(large).unwrap();
+        let id = pcai_generate_async(cstr.as_ptr(), 10, 0.7);
+        assert_eq!(id, -1, "Should fail on oversized prompt");
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
+    }
+
+    #[test]
+    fn test_poll_result_unknown_id() {
+        let result = pcai_poll_result(999_999);
+        assert_eq!(result.status, -1, "Unknown ID should return status -1");
+        assert!(result.text.is_null());
+    }
+
+    #[test]
+    fn test_cancel_unknown_id() {
+        let rc = pcai_cancel(999_999);
+        assert_eq!(rc, -1, "Cancelling an unknown ID should return -1");
+    }
+
+    #[test]
+    fn test_async_result_repr_c() {
+        // Ensure PcaiAsyncResult has the expected field layout for FFI callers.
+        // status is i32 (4 bytes) and text is a pointer.
+        assert_eq!(
+            std::mem::size_of::<PcaiAsyncResult>(),
+            std::mem::size_of::<i32>() + std::mem::size_of::<*mut c_char>(),
+            "PcaiAsyncResult layout must match expected C ABI size"
+        );
     }
 }

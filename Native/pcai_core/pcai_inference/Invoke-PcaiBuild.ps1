@@ -381,9 +381,12 @@ function Initialize-BuildEnvironment {
         }
     }
 
-    if ($EnableCuda -and $env:PCAI_DISABLE_CUDA_LAUNCHER -ne '1' -and $env:PCAI_ENABLE_CUDA_LAUNCHER -ne '1') {
-        $env:PCAI_DISABLE_CUDA_LAUNCHER = '1'
-        Write-Host '  CUDA cache launcher disabled by default (set PCAI_ENABLE_CUDA_LAUNCHER=1 to override)' -ForegroundColor Yellow
+    if ($EnableCuda) {
+        if ($env:PCAI_DISABLE_CUDA_LAUNCHER -eq '1') {
+            Write-Host '  CUDA cache launcher disabled via PCAI_DISABLE_CUDA_LAUNCHER=1' -ForegroundColor Yellow
+        } else {
+            Write-Host '  CUDA cache launcher enabled for NVCC (set PCAI_DISABLE_CUDA_LAUNCHER=1 to override)' -ForegroundColor Green
+        }
     }
 
     $cacheHelper = Join-Path $ToolsDir 'Initialize-CacheEnvironment.ps1'

@@ -9,7 +9,7 @@ use axum::{
 };
 use futures::stream;
 use serde::{Deserialize, Serialize};
-use std::{convert::Infallible, sync::Arc};
+use std::{convert::Infallible, fs, path::PathBuf, sync::Arc, sync::OnceLock};
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
@@ -21,6 +21,82 @@ use crate::{
     config::ServerConfig,
     Error, Result,
 };
+
+#[derive(Debug, Deserialize, Default)]
+struct LlmConfigFile {
+    #[serde(default)]
+    router: RouterConfigFile,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct RouterConfigFile {
+    enabled: Option<bool>,
+    provider: Option<String>,
+    #[serde(rename = "baseUrl")]
+    base_url: Option<String>,
+    model: Option<String>,
+    #[serde(rename = "toolsPath")]
+    tools_path: Option<String>,
+    strict: Option<bool>,
+    force: Option<bool>,
+    disable: Option<bool>,
+    #[serde(rename = "defaultTemperature")]
+    default_temperature: Option<f64>,
+}
+
+#[derive(Debug, Clone)]
+struct RouterSettings {
+    base_url: String,
+    model: String,
+    tools_path: String,
+    strict: bool,
+    force: bool,
+    disable: bool,
+    default_temperature: f64,
+}
+
+static ROUTER_SETTINGS: OnceLock<RouterSettings> = OnceLock::new();
+
+fn config_path() -> PathBuf {
+    PathBuf::from("Config/llm-config.json")
+}
+
+fn load_router_settings() -> RouterSettings {
+    let raw = fs::read_to_string(config_path()).ok();
+    let config = raw
+        .and_then(|text| serde_json::from_str::<LlmConfigFile>(&text).ok())
+        .unwrap_or_default();
+
+    let router = config.router;
+    let enabled = router.enabled.unwrap_or(true);
+    let disable = router.disable.unwrap_or(!enabled);
+    let base_url = router
+        .base_url
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| "http://127.0.0.1:8000".to_string());
+    let model = router
+        .model
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| "functiongemma-270m-it".to_string());
+    let tools_path = router
+        .tools_path
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| "Config/pcai-tools.json".to_string());
+
+    RouterSettings {
+        base_url,
+        model,
+        tools_path,
+        strict: router.strict.unwrap_or(false),
+        force: router.force.unwrap_or(false),
+        disable,
+        default_temperature: router.default_temperature.unwrap_or(0.2),
+    }
+}
+
+fn router_settings() -> &'static RouterSettings {
+    ROUTER_SETTINGS.get_or_init(load_router_settings)
+}
 
 /// Shared application state
 pub struct AppState {
@@ -182,7 +258,7 @@ async fn chat_completions(
                 return Ok(Json(router_response).into_response());
             }
             Err(err) => {
-                if std::env::var("PCAI_ROUTER_STRICT").ok().as_deref() == Some("1") {
+                if router_settings().strict {
                     return Err(err);
                 }
                 tracing::warn!("Router failed, falling back to local inference: {}", err.0);
@@ -817,11 +893,11 @@ fn stream_functiongemma_response(
 }
 
 fn should_route_to_functiongemma(req: &ChatCompletionRequest) -> bool {
-    if std::env::var("PCAI_ROUTER_DISABLE").ok().as_deref() == Some("1") {
+    if router_settings().disable {
         return false;
     }
 
-    if std::env::var("PCAI_ROUTER_FORCE").ok().as_deref() == Some("1") {
+    if router_settings().force {
         return true;
     }
 
@@ -863,10 +939,9 @@ fn should_route_to_functiongemma(req: &ChatCompletionRequest) -> bool {
 async fn call_functiongemma(
     req: &ChatCompletionRequest,
 ) -> std::result::Result<serde_json::Value, AppError> {
-    let base_url = std::env::var("PCAI_ROUTER_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:8000".to_string());
-    let model = std::env::var("PCAI_ROUTER_MODEL")
-        .unwrap_or_else(|_| "functiongemma-270m-it".to_string());
+    let settings = router_settings();
+    let base_url = settings.base_url.clone();
+    let model = settings.model.clone();
 
     let tools = match &req.tools {
         Some(tools) => Some(tools.clone()),
@@ -881,7 +956,7 @@ async fn call_functiongemma(
         })).collect::<Vec<_>>(),
         "tools": tools,
         "tool_choice": req.tool_choice.clone().unwrap_or(serde_json::Value::String("auto".to_string())),
-        "temperature": req.temperature.unwrap_or(0.2),
+        "temperature": req.temperature.unwrap_or(settings.default_temperature),
     });
 
     let client = reqwest::Client::new();
@@ -910,9 +985,7 @@ async fn call_functiongemma(
 }
 
 fn load_default_tools() -> Option<Vec<serde_json::Value>> {
-    let path = std::env::var("PCAI_TOOLS_PATH")
-        .ok()
-        .unwrap_or_else(|| "Config/pcai-tools.json".to_string());
+    let path = router_settings().tools_path.clone();
     let content = std::fs::read_to_string(&path).ok()?;
     let doc: serde_json::Value = serde_json::from_str(&content).ok()?;
     doc.get("tools")

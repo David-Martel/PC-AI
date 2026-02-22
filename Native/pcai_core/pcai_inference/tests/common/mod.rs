@@ -4,42 +4,51 @@
 
 use std::path::PathBuf;
 
+fn load_config_model_path() -> Option<PathBuf> {
+    let path = PathBuf::from("Config/llm-config.json");
+    let raw = std::fs::read_to_string(path).ok()?;
+    let doc: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    let model_path = doc
+        .get("providers")
+        .and_then(|p| p.get("pcai-native"))
+        .and_then(|p| p.get("modelPath"))
+        .and_then(|p| p.as_str())?;
+    let path_buf = PathBuf::from(model_path);
+    if path_buf.exists() { Some(path_buf) } else { None }
+}
+
 /// Find a test GGUF model in common locations
 ///
 /// Searches in order:
-/// 1. PCAI_TEST_MODEL environment variable
+/// 1. Config/llm-config.json providers.pcai-native.modelPath
 /// 2. Ollama cache (~/.ollama/models/blobs)
 /// 3. LM Studio cache (~/.cache/lm-studio/models)
 /// 4. Windows LOCALAPPDATA\lm-studio\models
 ///
 /// Returns the first GGUF file found, or None if no model is available.
 pub fn find_test_model() -> Option<PathBuf> {
-    // Check environment variable first
-    if let Ok(path) = std::env::var("PCAI_TEST_MODEL") {
-        let path_buf = PathBuf::from(&path);
-        if path_buf.exists() {
-            return Some(path_buf);
-        }
+    // Check llm-config.json first
+    if let Some(path) = load_config_model_path() {
+        return Some(path);
     }
 
     // Check Ollama cache (Linux/Mac)
-    if let Ok(home) = std::env::var("HOME") {
-        let ollama_path = PathBuf::from(home).join(".ollama/models/blobs");
+    if let Some(home) = dirs::home_dir() {
+        let ollama_path = home.join(".ollama/models/blobs");
         if let Some(model) = find_gguf_in_dir(&ollama_path) {
             return Some(model);
         }
 
         // Check LM Studio cache (Linux/Mac)
-        let lm_studio_path = PathBuf::from(std::env::var("HOME").unwrap())
-            .join(".cache/lm-studio/models");
+        let lm_studio_path = home.join(".cache/lm-studio/models");
         if let Some(model) = find_gguf_in_dir(&lm_studio_path) {
             return Some(model);
         }
     }
 
     // Check LM Studio cache (Windows)
-    if let Ok(localappdata) = std::env::var("LOCALAPPDATA") {
-        let lm_studio_path = PathBuf::from(localappdata).join("lm-studio\\models");
+    if let Some(localappdata) = dirs::data_local_dir() {
+        let lm_studio_path = localappdata.join("lm-studio\\models");
         if let Some(model) = find_gguf_in_dir(&lm_studio_path) {
             return Some(model);
         }
@@ -82,7 +91,7 @@ fn find_gguf_in_dir(dir: &PathBuf) -> Option<PathBuf> {
 pub fn require_test_model() -> PathBuf {
     find_test_model().unwrap_or_else(|| {
         panic!(
-            "No test model found. Set PCAI_TEST_MODEL environment variable to a .gguf file path, \
+            "No test model found. Set providers.pcai-native.modelPath in Config/llm-config.json, \
              or install a model via Ollama/LM Studio."
         )
     })
@@ -99,14 +108,11 @@ mod tests {
 
     #[test]
     fn test_find_test_model_respects_env() {
-        // If PCAI_TEST_MODEL is set and valid, it should be found
-        if let Ok(path) = std::env::var("PCAI_TEST_MODEL") {
-            let path_buf = PathBuf::from(&path);
-            if path_buf.exists() {
-                let found = find_test_model();
-                assert!(found.is_some());
-                assert_eq!(found.unwrap(), path_buf);
-            }
+        let found = find_test_model();
+        let config_path = load_config_model_path();
+        if let Some(expected) = config_path {
+            assert!(found.is_some());
+            assert_eq!(found.unwrap(), expected);
         }
     }
 

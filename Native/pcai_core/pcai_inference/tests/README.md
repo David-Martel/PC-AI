@@ -74,7 +74,8 @@ Some tests are skipped by default unless a real model file is available.
 ### Option 1: Set Environment Variable
 
 ```bash
-export PCAI_TEST_MODEL=/path/to/model.gguf
+Update Config/llm-config.json:
+  providers.pcai-native.modelPath = "C:\\path\\to\\model.gguf"
 cargo test --features llamacpp
 ```
 
@@ -124,7 +125,7 @@ Tests for model loading/unloading:
 
 ### Generation Tests (Require Real Models)
 
-Tests that need a real model file (skipped without `PCAI_TEST_MODEL`):
+Tests that need a real model file (skipped without a configured modelPath):
 - `test_llamacpp_generate_with_model` (llamacpp)
 - `test_mistralrs_generate_with_model` (mistralrs-backend)
 - `test_ffi_full_lifecycle_with_model` (ffi + llamacpp)
@@ -159,7 +160,7 @@ cargo test --features llamacpp -- --ignored
 
 ### `require_model!` Macro
 
-Skips tests that require a real model if `PCAI_TEST_MODEL` is not set:
+Skips tests that require a real model if providers.pcai-native.modelPath is not set:
 
 ```rust
 #[test]
@@ -297,7 +298,7 @@ cargo test --features "ffi,llamacpp"
 
 **Cause:** No model file found.
 
-**Solution:** Set `PCAI_TEST_MODEL` environment variable or install via Ollama/LM Studio.
+**Solution:** Set providers.pcai-native.modelPath in Config/llm-config.json or install via Ollama/LM Studio.
 
 ### Stress tests not running
 

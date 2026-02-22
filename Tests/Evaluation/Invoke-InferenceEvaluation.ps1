@@ -129,20 +129,20 @@ if ($env:PSModulePath -notlike "*$moduleRoot*") {
     $env:PSModulePath = "$moduleRoot;$env:PSModulePath"
 }
 
-if (Test-Path (Join-Path $projectRoot "Modules\PcaiInference.psd1")) {
-    Import-Module (Join-Path $projectRoot "Modules\PcaiInference.psd1") -Force -ErrorAction SilentlyContinue
+if (Test-Path (Join-Path $projectRoot 'Modules\PcaiInference.psd1')) {
+    Import-Module (Join-Path $projectRoot 'Modules\PcaiInference.psd1') -Force -ErrorAction SilentlyContinue
 } else {
-    Import-Module (Join-Path $projectRoot "Modules\PcaiInference.psm1") -Force -ErrorAction SilentlyContinue
+    Import-Module (Join-Path $projectRoot 'Modules\PcaiInference.psm1') -Force -ErrorAction SilentlyContinue
 }
-Import-Module (Join-Path $projectRoot "Modules\PC-AI.Evaluation\PC-AI.Evaluation.psd1") -Force
+Import-Module (Join-Path $projectRoot 'Modules\PC-AI.Evaluation\PC-AI.Evaluation.psd1') -Force
 
-Write-Host @"
+Write-Host @'
 
 ╔══════════════════════════════════════════════════════════════╗
 ║            PC-AI Inference Evaluation Framework              ║
 ╚══════════════════════════════════════════════════════════════╝
 
-"@ -ForegroundColor Cyan
+'@ -ForegroundColor Cyan
 
 if (-not $OutputRoot) {
     $OutputRoot = Join-Path (Get-PcaiArtifactsRoot) 'evaluation\runs'
@@ -168,11 +168,11 @@ function Write-Section {
 function Format-Duration {
     param([timespan]$Duration)
     if ($Duration.TotalHours -ge 1) {
-        return "{0:N0}h {1:N0}m {2:N0}s" -f $Duration.Hours, $Duration.Minutes, $Duration.Seconds
+        return '{0:N0}h {1:N0}m {2:N0}s' -f $Duration.Hours, $Duration.Minutes, $Duration.Seconds
     } elseif ($Duration.TotalMinutes -ge 1) {
-        return "{0:N0}m {1:N1}s" -f $Duration.Minutes, $Duration.Seconds
+        return '{0:N0}m {1:N1}s' -f $Duration.Minutes, $Duration.Seconds
     } else {
-        return "{0:N2}s" -f $Duration.TotalSeconds
+        return '{0:N2}s' -f $Duration.TotalSeconds
     }
 }
 
@@ -197,8 +197,8 @@ function Test-BackendAvailable {
                 }
             }
             $dllCandidates += @(
-                (Join-Path $projectRoot "bin\Release\pcai_inference.dll"),
-                (Join-Path $projectRoot "bin\Debug\pcai_inference.dll")
+                (Join-Path $projectRoot 'bin\Release\pcai_inference.dll'),
+                (Join-Path $projectRoot 'bin\Debug\pcai_inference.dll')
             )
             return ($dllCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1) -ne $null
         }
@@ -230,14 +230,14 @@ function Test-BackendAvailable {
         }
         'http' {
             try {
-                $target = if ($BaseUrl) { $BaseUrl } else { "http://127.0.0.1:8080" }
+                $target = if ($BaseUrl) { $BaseUrl } elseif ($script:LlmConfig.providers.'pcai-inference'.baseUrl) { $script:LlmConfig.providers.'pcai-inference'.baseUrl } else { throw 'No BaseUrl' }
                 $null = Invoke-RestMethod -Uri "$target/health" -TimeoutSec 2
                 return $true
             } catch { return $false }
         }
         'ollama' {
             try {
-                $target = if ($BaseUrl) { $BaseUrl } else { "http://127.0.0.1:11434" }
+                $target = if ($BaseUrl) { $BaseUrl } elseif ($script:LlmConfig.providers.ollama.baseUrl) { $script:LlmConfig.providers.ollama.baseUrl } else { throw 'No BaseUrl' }
                 $null = Invoke-RestMethod -Uri "$target/api/tags" -TimeoutSec 2
                 return $true
             } catch { return $false }
@@ -264,28 +264,28 @@ function Invoke-CSharpInferenceSmoke {
 
     $hostPath = Get-ServiceHostPath
     if (-not $hostPath) {
-        Write-Warning "PcaiServiceHost.dll not found. Skipping C# inference smoke."
+        Write-Warning 'PcaiServiceHost.dll not found. Skipping C# inference smoke.'
         return
     }
 
     $dotnet = (Get-Command dotnet -ErrorAction SilentlyContinue)?.Source
     if (-not $dotnet) {
-        Write-Warning "dotnet not found. Skipping C# inference smoke."
+        Write-Warning 'dotnet not found. Skipping C# inference smoke.'
         return
     }
 
-    Write-Host "  C# FFI smoke: status" -ForegroundColor DarkGray
+    Write-Host '  C# FFI smoke: status' -ForegroundColor DarkGray
     & $dotnet $hostPath inference status | Out-Host
 
     Write-Host "  C# FFI smoke: init $Backend" -ForegroundColor DarkGray
     & $dotnet $hostPath inference init --backend $Backend | Out-Host
 
     if ($ModelPath) {
-        Write-Host "  C# FFI smoke: load model" -ForegroundColor DarkGray
+        Write-Host '  C# FFI smoke: load model' -ForegroundColor DarkGray
         & $dotnet $hostPath inference load --model-path $ModelPath --gpu-layers $GpuLayers | Out-Host
 
-        Write-Host "  C# FFI smoke: generate" -ForegroundColor DarkGray
-        & $dotnet $hostPath inference generate --prompt "Health check: summarize system readiness." | Out-Host
+        Write-Host '  C# FFI smoke: generate' -ForegroundColor DarkGray
+        & $dotnet $hostPath inference generate --prompt 'Health check: summarize system readiness.' | Out-Host
     }
 }
 
@@ -352,8 +352,8 @@ function Invoke-BackendEvaluation {
 
     # Run evaluation
     $effectiveBaseUrl = $BaseUrl
-    if (-not $effectiveBaseUrl) {
-        $effectiveBaseUrl = if ($Backend -eq 'ollama') { 'http://127.0.0.1:11434' } else { 'http://127.0.0.1:8080' }
+    if (-not $effectiveBaseUrl -and $script:LlmConfig) {
+        $effectiveBaseUrl = if ($Backend -eq 'ollama') { $script:LlmConfig.providers.ollama.baseUrl } else { $script:LlmConfig.providers.'pcai-inference'.baseUrl }
     }
 
     $runLabelEffective = if ($RunLabel) { "$RunLabel-$Backend-$Dataset" } else { "$Backend-$Dataset" }
@@ -379,7 +379,7 @@ function Invoke-BackendEvaluation {
 
     return @{
         Backend = $Backend
-        Suite = $suite
+        Suite   = $suite
         Results = $results
     }
 }
@@ -404,7 +404,7 @@ function Invoke-ABTestEvaluation {
     Write-Section "A/B Test: $variantA vs $variantB"
 
     if ($variantA -match '-bin' -or $variantB -match '-bin') {
-        Write-Error "A/B testing currently supports only FFI backends (llamacpp, mistralrs)."
+        Write-Error 'A/B testing currently supports only FFI backends (llamacpp, mistralrs).'
         return
     }
 
@@ -444,7 +444,7 @@ function Invoke-ABTestEvaluation {
                 Measure-Coherence -Response $responseA
             }
 
-            Add-ABTestResult -TestName $abTest.Name -Variant "A" -Score $scoreA
+            Add-ABTestResult -TestName $abTest.Name -Variant 'A' -Score $scoreA
             Close-PcaiInference
         } catch {
             Write-Warning "Variant A failed on $($tc.Id): $_"
@@ -465,7 +465,7 @@ function Invoke-ABTestEvaluation {
                 Measure-Coherence -Response $responseB
             }
 
-            Add-ABTestResult -TestName $abTest.Name -Variant "B" -Score $scoreB
+            Add-ABTestResult -TestName $abTest.Name -Variant 'B' -Score $scoreB
             Close-PcaiInference
         } catch {
             Write-Warning "Variant B failed on $($tc.Id): $_"
@@ -549,7 +549,7 @@ try {
     $endTime = [datetime]::UtcNow
     $totalDuration = $endTime - $startTime
 
-    Write-Section "Evaluation Summary"
+    Write-Section 'Evaluation Summary'
 
     foreach ($key in $allResults.Keys) {
         $result = $allResults[$key]
@@ -577,18 +577,18 @@ try {
         }
 
         $exportData = @{
-            Timestamp = $startTime.ToString('o')
-            Duration = $totalDuration.ToString()
+            Timestamp  = $startTime.ToString('o')
+            Duration   = $totalDuration.ToString()
             Parameters = @{
-                Backend = $Backend
-                ModelPath = $ModelPath
-                Dataset = $Dataset
-                MaxTokens = $MaxTokens
+                Backend     = $Backend
+                ModelPath   = $ModelPath
+                Dataset     = $Dataset
+                MaxTokens   = $MaxTokens
                 Temperature = $Temperature
             }
-            Results = $allResults.GetEnumerator() | ForEach-Object {
+            Results    = $allResults.GetEnumerator() | ForEach-Object {
                 @{
-                    Key = $_.Key
+                    Key   = $_.Key
                     Value = if ($_.Value.Results) { $_.Value.Results } else { $_.Value }
                 }
             }
@@ -606,5 +606,5 @@ try {
 #endregion
 
 Write-Host "`n╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║                    Evaluation Complete                       ║" -ForegroundColor Cyan
+Write-Host '║                    Evaluation Complete                       ║' -ForegroundColor Cyan
 Write-Host "╚══════════════════════════════════════════════════════════════╝`n" -ForegroundColor Cyan

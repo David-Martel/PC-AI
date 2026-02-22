@@ -10,9 +10,8 @@
 
 .NOTES
     Prerequisites:
-    1. Build the DLL:
-       cd Deploy\pcai-inference
-       cargo build --features ffi,mistralrs-backend --release
+    1. Build the inference DLL via unified orchestrator:
+       .\Build.ps1 -Component inference
 
     2. Have a GGUF model file available (e.g., from Ollama's model directory)
 #>
@@ -36,18 +35,22 @@ Write-Host ""
 
 #region DLL Check
 Write-Host "Step 1: Checking for DLL..." -ForegroundColor Yellow
-$dllPath = Join-Path $PSScriptRoot 'Deploy\pcai-inference\target\release\pcai_inference.dll'
+$dllCandidates = @(
+    (Join-Path $PSScriptRoot '.pcai\build\artifacts\pcai-mistralrs\pcai_inference.dll'),
+    (Join-Path $PSScriptRoot '.pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll'),
+    (Join-Path $PSScriptRoot 'Native\pcai_core\pcai_inference\target\release\pcai_inference.dll')
+)
+$dllPath = $dllCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-if (Test-Path $dllPath) {
+if ($dllPath) {
     Write-Host "  DLL found: $dllPath" -ForegroundColor Green
     $dllExists = $true
-}
-else {
-    Write-Host "  DLL not found: $dllPath" -ForegroundColor Red
+} else {
+    Write-Host "  DLL not found in expected locations:" -ForegroundColor Red
+    $dllCandidates | ForEach-Object { Write-Host "    - $_" -ForegroundColor DarkGray }
     Write-Host ""
     Write-Host "Build instructions:" -ForegroundColor Yellow
-    Write-Host "  cd Deploy\pcai-inference" -ForegroundColor Gray
-    Write-Host "  cargo build --features ffi,mistralrs-backend --release" -ForegroundColor Gray
+    Write-Host "  .\Build.ps1 -Component inference" -ForegroundColor Gray
     Write-Host ""
     $dllExists = $false
 }

@@ -37,9 +37,8 @@ Traditional PowerShell scripts hit performance ceilings when dealing with reserv
 See [BUILD.md](BUILD.md) for detailed build instructions.
 
 ```bash
-# Quick build
-cargo build --release --manifest-path nuker_core/Cargo.toml
-dotnet publish -c Release -r win-x64 --self-contained
+# Quick build (repo root, recommended)
+pwsh -File .\Build.ps1 -Component nukenul
 ```
 
 ## Usage

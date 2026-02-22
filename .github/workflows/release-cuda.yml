@@ -36,9 +36,8 @@ jobs:
       - name: Run Unit Tests
         shell: pwsh
         run: |
-          cd Native\pcai_core\pcai_inference
-          cargo test --no-default-features --features server,ffi --lib
-          if ($LASTEXITCODE -ne 0) { throw "Unit tests failed" }
+          .\Build.ps1 -Component inference -Configuration Release -RunTests
+          if ($LASTEXITCODE -ne 0) { throw "Build.ps1 test phase failed with exit code $LASTEXITCODE" }
 
   build:
     name: Build ${{ matrix.backend }} (${{ matrix.cuda && 'CUDA' || 'CPU' }})

@@ -46,8 +46,28 @@ The router prompt format in PC_AI is:
 Your Rust runtime must accept that input (or equivalent) and return tool_calls
 (or NO_TOOL) in a way that matches the OpenAI-compatible schema.
 
-## Build environment (CargoTools)
-Use the standardized CargoTools wrapper (preferred) instead of raw cargo:
+## Build environment (Primary Build.ps1)
+Use the repository build orchestrator for normal build/test flows:
+
+- Build FunctionGemma crates:
+  .\Build.ps1 -Component functiongemma
+
+- Build + test FunctionGemma crates:
+  .\Build.ps1 -Component functiongemma -RunTests
+
+- Generate router dataset + tool-call vectors:
+  .\Build.ps1 -Component functiongemma-router-data
+
+- Generate token cache:
+  .\Build.ps1 -Component functiongemma-token-cache
+
+- Run training:
+  .\Build.ps1 -Component functiongemma-train
+
+- Run evaluation harness:
+  .\Build.ps1 -Component functiongemma-eval
+
+For advanced crate-level workflows, wrappers are still available:
 
 - Build/test via wrapper:
   .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-train test
@@ -61,8 +81,8 @@ Notes:
 - Use `-NoLld` to force link.exe if lld-link fails on Windows.
 - Tokenizers is configured with `fancy-regex` to avoid onig_sys when lld-link is enabled.
 
-## Current CLI (train crate)
-From Deploy/rust-functiongemma-train (direct cargo):
+## Advanced train crate CLI (direct cargo)
+For low-level debugging from `Deploy/rust-functiongemma-train`:
 
 - Prepare dataset:
   cargo run --release -- prepare \
@@ -85,8 +105,8 @@ From Deploy/rust-functiongemma-train (direct cargo):
     --tokenizer C:\Users\david\PC_AI\Models\functiongemma-270m-it\tokenizer.json \
     --output-dir C:\Users\david\PC_AI\output\functiongemma-token-cache
 
-## PowerShell wrapper (preferred)
-Use the standardized script for repeatable, LLM-friendly runs:
+## Wrapper scripts (Build.ps1-backed)
+Use these for repeatable runs with Build.ps1 orchestration:
 
   .\Tools\prepare-functiongemma-router-data.ps1
 
@@ -99,6 +119,11 @@ Build a token cache for faster training:
 Generate a metrics report from the eval harness:
 
   .\Tools\run-functiongemma-eval.ps1 -FastEval
+
+## Training (PowerShell)
+Run LoRA training via Build.ps1-backed wrapper:
+
+  .\Tools\Invoke-FunctionGemmaTrain.ps1 -Epochs 1 -LoraR 16 -LoraAlpha 32
 
 ## C# / Rust DLL (CSharp_RustDLL format)
 

@@ -1,5 +1,15 @@
 # NukeNul Build Instructions
 
+## Primary Build Path (Recommended)
+
+From repository root, use the unified orchestrator:
+
+```powershell
+.\Build.ps1 -Component nukenul
+```
+
+Use this document's remaining sections only for advanced/manual crate-level debugging.
+
 ## Prerequisites
 
 1. **.NET 8 SDK** - Download from https://dotnet.microsoft.com/download/dotnet/8.0

@@ -8,10 +8,10 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [ValidateSet('unit','integration','e2e','functional','rust','all')]
+    [ValidateSet('unit', 'integration', 'e2e', 'functional', 'rust', 'all')]
     [string]$Category = 'unit',
     [Parameter()]
-    [ValidateSet('rust','python','both')]
+    [ValidateSet('rust', 'python', 'both')]
     [string]$Runtime = 'rust',
     [Parameter()]
     [switch]$Fast,
@@ -46,14 +46,14 @@ if (-not $Fast) {
     & (Join-Path $repoRoot 'Tools\update-doc-status.ps1') -RepoRoot $repoRoot | Out-Null
     & (Join-Path $repoRoot 'Tools\update-tool-coverage.ps1') -RepoRoot $repoRoot | Out-Null
 } else {
-    Write-Host "Fast mode: skipping doc status/tool coverage updates." -ForegroundColor Yellow
+    Write-Host 'Fast mode: skipping doc status/tool coverage updates.' -ForegroundColor Yellow
 }
 
 $pytestArgs = @('-m', $Category)
 if ($Category -eq 'all' -or $Category -eq 'rust') { $pytestArgs = @() }
 
-$runRust = $Runtime -in @('rust','both')
-$runPython = $Runtime -in @('python','both')
+$runRust = $Runtime -in @('rust', 'both')
+$runPython = $Runtime -in @('python', 'both')
 if ($Category -eq 'rust') { $runPython = $false }
 
 function Assert-FileNotEmpty {
@@ -71,16 +71,16 @@ function Assert-FileNotEmpty {
 }
 
 if ($runRust) {
-    Write-Host "Running Rust FunctionGemma tests..." -ForegroundColor Cyan
-    & (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') -Path $rustTrainRoot test
+    Write-Host 'Running Rust FunctionGemma tests...' -ForegroundColor Cyan
+    & (Join-Path $repoRoot 'Build.ps1') -Component functiongemma -RunTests
     if ($LASTEXITCODE -ne 0) { throw "Rust tests failed (exit $LASTEXITCODE)" }
 
     if (-not $Fast) {
-        Write-Host "Generating Rust router dataset + test vectors..." -ForegroundColor Cyan
+        Write-Host 'Generating Rust router dataset + test vectors...' -ForegroundColor Cyan
         & (Join-Path $repoRoot 'Tools\prepare-functiongemma-router-data.ps1')
         if ($LASTEXITCODE -ne 0) { throw "Rust dataset generation failed (exit $LASTEXITCODE)" }
 
-        Write-Host "Generating FunctionGemma tool documentation..." -ForegroundColor Cyan
+        Write-Host 'Generating FunctionGemma tool documentation...' -ForegroundColor Cyan
         & (Join-Path $repoRoot 'Tools\generate-functiongemma-tool-docs.ps1')
         if ($LASTEXITCODE -ne 0) { throw "Tool documentation generation failed (exit $LASTEXITCODE)" }
 
@@ -95,15 +95,15 @@ if ($runRust) {
         $firstLine = Get-Content $datasetPath -TotalCount 1
         if (-not $firstLine) { throw "Router dataset has no lines: $datasetPath" }
         $firstObj = $firstLine | ConvertFrom-Json
-        if (-not ($firstObj.PSObject.Properties.Name -contains 'messages')) { throw "Router dataset missing messages key" }
-        if (-not ($firstObj.PSObject.Properties.Name -contains 'tools')) { throw "Router dataset missing tools key" }
+        if (-not ($firstObj.PSObject.Properties.Name -contains 'messages')) { throw 'Router dataset missing messages key' }
+        if (-not ($firstObj.PSObject.Properties.Name -contains 'tools')) { throw 'Router dataset missing tools key' }
 
         $vectors = Get-Content $vectorsPath | ConvertFrom-Json
-        if (-not $vectors -or $vectors.Count -lt 1) { throw "Tool test vectors empty" }
-        if (-not ($vectors[0].PSObject.Properties.Name -contains 'tool')) { throw "Tool test vector missing tool key" }
-        if (-not ($vectors[0].PSObject.Properties.Name -contains 'arguments')) { throw "Tool test vector missing arguments key" }
+        if (-not $vectors -or $vectors.Count -lt 1) { throw 'Tool test vectors empty' }
+        if (-not ($vectors[0].PSObject.Properties.Name -contains 'tool')) { throw 'Tool test vector missing tool key' }
+        if (-not ($vectors[0].PSObject.Properties.Name -contains 'arguments')) { throw 'Tool test vector missing arguments key' }
     } else {
-        Write-Host "Fast mode: skipping dataset + tool docs generation." -ForegroundColor Yellow
+        Write-Host 'Fast mode: skipping dataset + tool docs generation.' -ForegroundColor Yellow
     }
 
     if ($EvalReport) {
@@ -120,7 +120,7 @@ if ($runRust) {
         if ($LASTEXITCODE -ne 0) { throw "Eval report generation failed (exit $LASTEXITCODE)" }
     }
 
-    Write-Host "Rust FunctionGemma tests: PASS" -ForegroundColor Green
+    Write-Host 'Rust FunctionGemma tests: PASS' -ForegroundColor Green
 }
 
 if ($runPython) {
@@ -130,7 +130,15 @@ if ($runPython) {
         Push-Location $fgRoot
         try {
             $env:PYTHONUTF8 = '1'
-            if (-not $env:VLLM_BASE_URL) { $env:VLLM_BASE_URL = 'http://127.0.0.1:8000' }
+            if (-not $env:VLLM_BASE_URL) {
+                $cfgPath = Join-Path $repoRoot 'Config\llm-config.json'
+                if (Test-Path $cfgPath) {
+                    $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
+                    if ($cfg.providers.vllm.baseUrl) {
+                        $env:VLLM_BASE_URL = $cfg.providers.vllm.baseUrl
+                    }
+                }
+            }
 
             # Use uv if available, fallback to python.
             $uv = Get-Command uv -ErrorAction SilentlyContinue
@@ -140,8 +148,7 @@ if ($runPython) {
                 & python -m pytest @pytestArgs .\
             }
             if ($LASTEXITCODE -ne 0) { throw "Python tests failed (exit $LASTEXITCODE)" }
-        }
-        finally {
+        } finally {
             Pop-Location
         }
     }

@@ -4,7 +4,8 @@
   Build token cache for FunctionGemma training (Rust).
 
 .DESCRIPTION
-  Uses rust-functiongemma-train prepare-cache to pre-tokenize JSONL datasets.
+  Routes rust-functiongemma-train prepare-cache through Build.ps1 to pre-tokenize
+  JSONL datasets under the unified build workflow.
 #>
 
 [CmdletBinding(PositionalBinding = $false)]
@@ -21,7 +22,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$trainRoot = Join-Path $repoRoot 'Deploy\rust-functiongemma-train'
 
 if (-not $Input) { $Input = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\data\rust_router_train.jsonl' }
 if (-not $TokenizerPath) { $TokenizerPath = Join-Path $repoRoot 'Models\functiongemma-270m-it\tokenizer.json' }
@@ -32,20 +32,32 @@ if (-not $ChatTemplate) {
     if (Test-Path $candidate) { $ChatTemplate = $candidate }
 }
 
-$cargoArgs = @(
-    'run','--','prepare-cache',
+$functionGemmaArgs = @(
     '--input', $Input,
     '--tokenizer', $TokenizerPath,
     '--output-dir', $OutputDir
 )
-if ($ChatTemplate) { $cargoArgs += @('--chat-template', $ChatTemplate) }
+if ($ChatTemplate) { $functionGemmaArgs += @('--chat-template', $ChatTemplate) }
 
-& (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') `
-    -Path $trainRoot `
-    -CargoArgs $cargoArgs `
-    -UseLld:$UseLld `
-    -LlmDebug:$LlmDebug
+if ($LlmDebug) {
+    Write-Warning '-LlmDebug is not currently consumed by Build.ps1; continuing without extra debug toggles.'
+}
 
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$buildScript = Join-Path $repoRoot 'Build.ps1'
+$prevUseLld = $env:CARGO_USE_LLD
+if ($UseLld) { $env:CARGO_USE_LLD = '1' }
+
+try {
+    & $buildScript -Component functiongemma-token-cache -Configuration Release -FunctionGemmaArgs $functionGemmaArgs
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+} finally {
+    if ($UseLld) {
+        if ([string]::IsNullOrEmpty($prevUseLld)) {
+            Remove-Item Env:CARGO_USE_LLD -ErrorAction SilentlyContinue
+        } else {
+            $env:CARGO_USE_LLD = $prevUseLld
+        }
+    }
+}
 
 Write-Host "Token cache built at $OutputDir" -ForegroundColor Green

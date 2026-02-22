@@ -53,14 +53,14 @@ Write-Host ""
 if (-not $PesterOnly) {
     Write-Host "[1/2] Running Rust Tests..." -ForegroundColor Magenta
 
-    if (-not (Test-Path $RustWorkspace)) {
-        Write-Host "  [SKIP] Rust workspace not found" -ForegroundColor Yellow
+    $buildScript = Join-Path (Split-Path $RootDir) 'Build.ps1'
+    if (-not (Test-Path $buildScript)) {
+        Write-Host "  [SKIP] Build.ps1 not found at expected path: $buildScript" -ForegroundColor Yellow
         $Results.RustSkipped = $true
     }
     else {
-        Push-Location $RustWorkspace
         try {
-            $output = & cargo test --workspace 2>&1
+            $output = & $buildScript -Component inference -RunTests 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "  [PASS] Rust tests passed" -ForegroundColor Green
                 $Results.RustPassed = $true
@@ -72,9 +72,6 @@ if (-not $PesterOnly) {
         }
         catch {
             Write-Host "  [FAIL] Error running Rust tests: $_" -ForegroundColor Red
-        }
-        finally {
-            Pop-Location
         }
     }
 }

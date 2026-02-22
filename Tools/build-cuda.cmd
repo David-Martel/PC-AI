@@ -1,16 +1,16 @@
 @echo off
 setlocal
 
-set CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0
-set PATH=%PATH%;%CUDA_PATH%\bin;%CUDA_PATH%\nvvm\bin
+set "REPO_ROOT=%~dp0.."
+pushd "%REPO_ROOT%" >nul
 
-echo CUDA_PATH: %CUDA_PATH%
-echo Checking nvcc...
-where nvcc
-echo Checking cicc...
-where cicc
+where pwsh >nul 2>nul
+if %ERRORLEVEL%==0 (
+  pwsh -NoProfile -ExecutionPolicy Bypass -File ".\Build.ps1" -Component inference -EnableCuda -RunTests
+) else (
+  powershell -NoProfile -ExecutionPolicy Bypass -File ".\Build.ps1" -Component inference -EnableCuda -RunTests
+)
 
-echo.
-echo Building rust-functiongemma-train with CUDA...
-cd /d C:\Users\david\PC_AI
-cargo build --manifest-path Deploy\rust-functiongemma-train\Cargo.toml
+set "EXIT_CODE=%ERRORLEVEL%"
+popd >nul
+exit /b %EXIT_CODE%

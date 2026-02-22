@@ -21,7 +21,7 @@ if (Test-Path $configPath) {
     try {
         $config = Get-Content $configPath -Raw | ConvertFrom-Json
     } catch {
-        Write-Verbose "Failed to parse $configPath: $_"
+        Write-Verbose "Failed to parse ${configPath}: $_"
     }
 }
 
@@ -66,10 +66,9 @@ if (-not $dllFound) {
 ║                                                                   ║
 ║    .\Build.ps1 -Component inference                               ║
 ║                                                                   ║
-║  Or build a specific backend directly:                            ║
+║  Or build a specific backend via Build.ps1:                       ║
 ║                                                                   ║
-║    cd Native\pcai_core\pcai_inference                             ║
-║    .\Invoke-PcaiBuild.ps1 -Backend mistralrs -Configuration Release║
+║    .\Build.ps1 -Component mistralrs                               ║
 ║                                                                   ║
 ╚══════════════════════════════════════════════════════════════════╝
 "@

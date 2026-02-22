@@ -8,14 +8,14 @@ router in PC_AI. It exposes OpenAI-compatible endpoints and returns tool_calls.
 - GET /v1/models
 - POST /v1/chat/completions
 
-## Build (CargoTools)
+## Build (Primary: Build.ps1)
 From repo root:
 
-  .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime build
+  .\Build.ps1 -Component functiongemma
 
-## Tests (CargoTools)
+## Tests (Primary: Build.ps1)
 
-  .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime test
+  .\Build.ps1 -Component functiongemma -RunTests
 
 ## Run
 
@@ -30,6 +30,10 @@ Notes:
 ## Model inference (experimental)
 Build with model features, then enable model engine:
 
+  # Preferred repo-wide build path
+  .\Build.ps1 -Component functiongemma
+
+  # Advanced crate-level override (optional)
   .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime -CargoArgs @('build','--features','model')
   # Update Config/pcai-functiongemma.json:
   #   runtime.router_engine = "model"
@@ -45,7 +49,7 @@ Config/pcai-functiongemma.json (runtime.router_kv_cache).
 ## Optional model features
 Enable extra dependencies only when needed:
 
-  cargo build --features model
+  .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime -CargoArgs @('build','--features','model')
 
 This enables minijinja, tokenizers, hf-hub, and safetensors for future
 model loading + chat template rendering.

@@ -2,7 +2,7 @@
 
 <#+
 .SYNOPSIS
-  Runs a Rust FunctionGemma evaluation pass and writes a metrics report.
+  Runs a FunctionGemma evaluation pass via Build.ps1 and writes a metrics report.
 #>
 
 [CmdletBinding(PositionalBinding = $false)]
@@ -35,7 +35,6 @@ $ErrorActionPreference = 'Stop'
 $VerboseOutput = $VerboseOutput -or ($VerbosePreference -ne 'SilentlyContinue')
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$trainRoot = Join-Path $repoRoot 'Deploy\rust-functiongemma-train'
 
 if (-not $ModelPath) { $ModelPath = Join-Path $repoRoot 'Models\functiongemma-270m-it' }
 if (-not $TestData) { $TestData = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\data\rust_router_train.jsonl' }
@@ -83,8 +82,8 @@ if ($parentDir -and -not (Test-Path $parentDir)) {
     New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
 }
 
-$cargoArgs = @(
-    'run','--','--config', $ConfigPath, 'eval',
+$functionGemmaArgs = @(
+    '--config', $ConfigPath, 'eval',
     '--model-path', $ModelPath,
     '--test-data', $TestData,
     '--lora-r', $LoraR,
@@ -92,20 +91,20 @@ $cargoArgs = @(
     '--metrics-output', $Output
 )
 
-if ($Adapters) { $cargoArgs += @('--adapters', $Adapters) }
-if ($FastEval) { $cargoArgs += '--fast-eval' }
-if ($NoSchemaValidate) { $cargoArgs += '--schema-validate=false' }
-if ($MaxSamples -gt 0) { $cargoArgs += @('--max-samples', $MaxSamples) }
-if ($SamplesOutput) { $cargoArgs += @('--samples-output', $SamplesOutput) }
-if ($KvCacheQuant) { $cargoArgs += @('--kv-cache-quant', $KvCacheQuant) }
-if ($KvCacheMaxLen -gt 0) { $cargoArgs += @('--kv-cache-max-len', $KvCacheMaxLen) }
-if ($KvCacheStore) { $cargoArgs += @('--kv-cache-store', $KvCacheStore) }
-if ($KvCacheStreaming) { $cargoArgs += '--kv-cache-streaming' }
-if ($KvCacheBlockLen -gt 0) { $cargoArgs += @('--kv-cache-block-len', $KvCacheBlockLen) }
+if ($Adapters) { $functionGemmaArgs += @('--adapters', $Adapters) }
+if ($FastEval) { $functionGemmaArgs += '--fast-eval' }
+if ($NoSchemaValidate) { $functionGemmaArgs += '--schema-validate=false' }
+if ($MaxSamples -gt 0) { $functionGemmaArgs += @('--max-samples', $MaxSamples) }
+if ($SamplesOutput) { $functionGemmaArgs += @('--samples-output', $SamplesOutput) }
+if ($KvCacheQuant) { $functionGemmaArgs += @('--kv-cache-quant', $KvCacheQuant) }
+if ($KvCacheMaxLen -gt 0) { $functionGemmaArgs += @('--kv-cache-max-len', $KvCacheMaxLen) }
+if ($KvCacheStore) { $functionGemmaArgs += @('--kv-cache-store', $KvCacheStore) }
+if ($KvCacheStreaming) { $functionGemmaArgs += '--kv-cache-streaming' }
+if ($KvCacheBlockLen -gt 0) { $functionGemmaArgs += @('--kv-cache-block-len', $KvCacheBlockLen) }
 if ($VerboseOutput -or $VerbosePreference -ne 'SilentlyContinue' -or $SamplesOutput) {
-    $cargoArgs += '--verbose'
+    $functionGemmaArgs += '--verbose'
 } elseif ($Quiet -or $FastEval -or $MaxSamples -gt 0 -or -not $PSBoundParameters.ContainsKey('Quiet')) {
-    $cargoArgs += '--quiet'
+    $functionGemmaArgs += '--quiet'
 }
 
 Write-Host "Running FunctionGemma eval..." -ForegroundColor Cyan
@@ -113,11 +112,25 @@ Write-Host "Model: $ModelPath"
 Write-Host "Test Data: $TestData"
 Write-Host "Metrics Output: $Output"
 
-& (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') `
-    -Path $trainRoot `
-    -CargoArgs $cargoArgs `
-    -UseLld:$UseLld `
-    -LlmDebug:$LlmDebug
+if ($LlmDebug) {
+    Write-Warning '-LlmDebug is not currently consumed by Build.ps1; continuing without extra debug toggles.'
+}
+
+$buildScript = Join-Path $repoRoot 'Build.ps1'
+$prevUseLld = $env:CARGO_USE_LLD
+if ($UseLld) { $env:CARGO_USE_LLD = '1' }
+
+try {
+    & $buildScript -Component functiongemma-eval -Configuration Release -FunctionGemmaArgs $functionGemmaArgs
+} finally {
+    if ($UseLld) {
+        if ([string]::IsNullOrEmpty($prevUseLld)) {
+            Remove-Item Env:CARGO_USE_LLD -ErrorAction SilentlyContinue
+        } else {
+            $env:CARGO_USE_LLD = $prevUseLld
+        }
+    }
+}
 
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

@@ -1,36 +1,41 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Build Rust FunctionGemma runtime + training crates.
+  Compatibility wrapper for FunctionGemma builds.
 
 .DESCRIPTION
-  Uses CargoTools via Tools/Invoke-RustBuild.ps1 to build both crates.
-  Pass/Fail: exits non-zero if any build fails.
+  Forwards build requests to the root Build.ps1 orchestrator so FunctionGemma
+  builds remain compliant with the unified build framework.
 #>
 
 [CmdletBinding(PositionalBinding = $false)]
 param(
     [switch]$Release,
-    [switch]$UseLld,
-    [switch]$LlmDebug
+    [switch]$EnableCuda,
+    [switch]$Clean,
+    [switch]$Test,
+    [switch]$Package,
+    [switch]$Deploy
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$runtimePath = Join-Path $repoRoot 'Deploy\rust-functiongemma-runtime'
-$trainPath = Join-Path $repoRoot 'Deploy\rust-functiongemma-train'
+$buildScript = Join-Path $repoRoot 'Build.ps1'
+if (-not (Test-Path $buildScript)) {
+    throw "Build.ps1 not found at expected path: $buildScript"
+}
 
-$buildArgs = @('build')
-if ($Release) { $buildArgs += '--release' }
+$args = @{
+    Component     = 'functiongemma'
+    Configuration = if ($Release) { 'Release' } else { 'Debug' }
+}
+if ($EnableCuda) { $args.EnableCuda = $true }
+if ($Clean) { $args.Clean = $true }
+if ($Test) { $args.RunTests = $true }
+if ($Package) { $args.Package = $true }
+if ($Deploy) { $args.Deploy = $true }
 
-Write-Host "Building rust-functiongemma-runtime..." -ForegroundColor Cyan
-& (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') -Path $runtimePath -CargoArgs $buildArgs -UseLld:$UseLld -LlmDebug:$LlmDebug
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-Write-Host "Building rust-functiongemma-train..." -ForegroundColor Cyan
-& (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') -Path $trainPath -CargoArgs $buildArgs -UseLld:$UseLld -LlmDebug:$LlmDebug
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-Write-Host "Build complete." -ForegroundColor Green
+& $buildScript @args
+exit $LASTEXITCODE

@@ -145,9 +145,9 @@ Get-ChildItem -Recurse -Filter *.psd1 | ForEach-Object {
 - PRs to `main`
 
 **Jobs:**
-- Cargo checks/tests/clippy/fmt for `Native/pcai_core/pcai_inference`
-- Windows MSVC build
-- Optional CUDA build (push only)
+- Cargo checks/clippy/fmt for `Native/pcai_core/pcai_inference`
+- Windows MSVC build + test via `Build.ps1`
+- Optional CUDA build (push only) via `Build.ps1 -EnableCuda`
 - Integration tests for the inference DLL
 
 ### 4. CUDA/CPU Native Releases (`.github/workflows/release-cuda.yml`)
@@ -156,6 +156,7 @@ Get-ChildItem -Recurse -Filter *.psd1 | ForEach-Object {
 - Version tags (`v*`) and manual dispatch
 
 **What it does:**
+- Runs unified build/test phases via `Build.ps1`
 - Builds CPU + CUDA binaries for `llamacpp` and `mistralrs`
 - Packages artifacts from `.pcai/build/artifacts`
 - Uploads release assets

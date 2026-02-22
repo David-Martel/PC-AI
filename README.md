@@ -82,6 +82,18 @@ pcai-inference LLM Analysis (local GGUF)
 # Build components with the unified build orchestrator (recommended)
 .\Build.ps1
 
+# Build + run component-aligned tests
+.\Build.ps1 -Component all -RunTests
+
+# Build only the Native/NukeNul hybrid utility
+.\Build.ps1 -Component nukenul
+
+# Build with explicit CargoTools preflight and persisted defaults
+.\Build.ps1 -Component all -CargoTools enabled -CargoPreflight -CargoPreflightMode check -SyncCargoDefaults
+
+# Produce deployable bundles and per-component packages
+.\Build.ps1 -Component all -EnableCuda -Package -Deploy
+
 # Run all tests (requires PowerShell 7 + Pester 5)
 pwsh .\Tests\Invoke-AllTests.ps1 -Suite All
 
@@ -177,9 +189,9 @@ PC-AI integrates with local LLM providers for intelligent diagnostic analysis an
 # Build inference backends with the unified build flow (recommended)
 .\Build.ps1 -Component inference -EnableCuda
 
-# Direct backend build flow (advanced)
-cd .\Native\pcai_core\pcai_inference
-.\Invoke-PcaiBuild.ps1 -Backend llamacpp -Configuration Release -EnableCuda
+# Backend-specific build flow
+.\Build.ps1 -Component llamacpp -EnableCuda
+.\Build.ps1 -Component mistralrs -EnableCuda
 
 # Start the local service (creates config + launches)
 Invoke-PcaiServiceHost -Backend rust -NativeBackend llamacpp -ModelPath "C:\Models\model.gguf" -GpuLayers 35
@@ -190,16 +202,28 @@ Invoke-PCDiagnosis -ReportPath ".\report.txt"
 
 ### FunctionGemma Router Training (Local)
 
-Use the unified CLI to regenerate datasets, build token caches, train adapters, and evaluate routing quality:
+Use `Build.ps1` for Rust-side build/data/eval operations, and use the unified CLI
+for end-user routing/training flows:
 
 ```powershell
-# Rebuild router dataset + test vectors
+# Rust-side dataset generation (Build.ps1 primary path)
+.\Build.ps1 -Component functiongemma-router-data
+
+# Rust-side token cache generation
+.\Build.ps1 -Component functiongemma-token-cache
+
+# Rust-side training run
+.\Build.ps1 -Component functiongemma-train
+
+# Rust-side evaluation run
+.\Build.ps1 -Component functiongemma-eval
+
+# Unified CLI wrappers (equivalent high-level operations)
 .\PC-AI.ps1 llm router-prepare --stream
 
-# Build token cache for faster training
 .\PC-AI.ps1 llm router-cache
 
-# Fine-tune (LoRA) with default settings
+# Fine-tune (LoRA) with default settings via unified CLI
 .\PC-AI.ps1 llm router-train --epochs 1 --lora-r 16 --lora-alpha 32
 
 # Evaluate routing accuracy (CPU-safe config)
@@ -239,7 +263,7 @@ then pcai-inference produces the final narrative response.
 
 ```powershell
 # Run rust-functiongemma runtime (router)
-.\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime build
+.\Build.ps1 -Component functiongemma -RunTests
 .\Deploy\rust-functiongemma-runtime\target\debug\rust-functiongemma-runtime.exe
 
 # Route a request through FunctionGemma, then answer with the main LLM

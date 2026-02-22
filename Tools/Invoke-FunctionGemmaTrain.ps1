@@ -4,7 +4,7 @@
   Run Rust FunctionGemma LoRA fine-tuning with sensible defaults.
 
 .DESCRIPTION
-  Uses rust-functiongemma-train via Invoke-RustBuild.ps1 and prefers token caches
+  Routes rust-functiongemma-train via Build.ps1 and prefers token caches
   and packed sequences for faster training.
 #>
 
@@ -48,8 +48,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$trainRoot = Join-Path $repoRoot 'Deploy\rust-functiongemma-train'
-
 if (-not $ModelPath) { $ModelPath = Join-Path $repoRoot 'Models\functiongemma-270m-it' }
 if (-not $TrainData) { $TrainData = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\data\rust_router_train.jsonl' }
 if (-not $Output) { $Output = Join-Path $repoRoot 'output\functiongemma-lora' }
@@ -110,8 +108,7 @@ if (-not $TokenCache) {
 
 $pack = if ($PSBoundParameters.ContainsKey('PackSequences')) { $PackSequences.IsPresent } else { $true }
 
-$cargoArgs = @(
-    'run','--',
+$functionGemmaArgs = @(
     '--config', $ConfigPath,
     'train',
     '--model-path', $ModelPath,
@@ -131,19 +128,19 @@ $cargoArgs = @(
     '--scheduler-type', $SchedulerType
 )
 
-if ($EvalData) { $cargoArgs += @('--eval-data', $EvalData) }
-if ($EvalSplit) { $cargoArgs += @('--eval-split', $EvalSplit) }
-if ($TokenCache) { $cargoArgs += @('--token-cache', $TokenCache) }
-if ($pack) { $cargoArgs += '--pack-sequences' }
-if ($null -ne $MaxSeqLen -and $MaxSeqLen -gt 0) { $cargoArgs += @('--max-seq-len', $MaxSeqLen) }
-if (-not $DisableLora) { $cargoArgs += '--use-lora' }
-if ($EarlyStoppingPatience -gt 0) { $cargoArgs += @('--early-stopping-patience', $EarlyStoppingPatience) }
-if ($EarlyStoppingMinDelta -gt 0) { $cargoArgs += @('--early-stopping-min-delta', $EarlyStoppingMinDelta) }
-if ($Use4Bit) { $cargoArgs += '--use-4bit' }
-if ($PSBoundParameters.ContainsKey('EvalMaxBatches')) { $cargoArgs += @('--eval-max-batches', $EvalMaxBatches) }
-if ($Seed) { $cargoArgs += @('--seed', $Seed) }
-if ($NoShuffle) { $cargoArgs += '--no-shuffle' }
-if ($ProgressJson) { $cargoArgs += '--progress-json' }
+if ($EvalData) { $functionGemmaArgs += @('--eval-data', $EvalData) }
+if ($EvalSplit) { $functionGemmaArgs += @('--eval-split', $EvalSplit) }
+if ($TokenCache) { $functionGemmaArgs += @('--token-cache', $TokenCache) }
+if ($pack) { $functionGemmaArgs += '--pack-sequences' }
+if ($null -ne $MaxSeqLen -and $MaxSeqLen -gt 0) { $functionGemmaArgs += @('--max-seq-len', $MaxSeqLen) }
+if (-not $DisableLora) { $functionGemmaArgs += '--use-lora' }
+if ($EarlyStoppingPatience -gt 0) { $functionGemmaArgs += @('--early-stopping-patience', $EarlyStoppingPatience) }
+if ($EarlyStoppingMinDelta -gt 0) { $functionGemmaArgs += @('--early-stopping-min-delta', $EarlyStoppingMinDelta) }
+if ($Use4Bit) { $functionGemmaArgs += '--use-4bit' }
+if ($PSBoundParameters.ContainsKey('EvalMaxBatches')) { $functionGemmaArgs += @('--eval-max-batches', $EvalMaxBatches) }
+if ($Seed) { $functionGemmaArgs += @('--seed', $Seed) }
+if ($NoShuffle) { $functionGemmaArgs += '--no-shuffle' }
+if ($ProgressJson) { $functionGemmaArgs += '--progress-json' }
 
 Write-Host "Running FunctionGemma training..." -ForegroundColor Cyan
 Write-Host "Model: $ModelPath"
@@ -151,11 +148,25 @@ Write-Host "Train Data: $TrainData"
 Write-Host "Output: $Output"
 if ($TokenCache) { Write-Host "Token Cache: $TokenCache" }
 
-& (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') `
-    -Path $trainRoot `
-    -CargoArgs $cargoArgs `
-    -UseLld:$UseLld `
-    -LlmDebug:$LlmDebug
+if ($LlmDebug) {
+    Write-Warning '-LlmDebug is not currently consumed by Build.ps1; continuing without extra debug toggles.'
+}
+
+$buildScript = Join-Path $repoRoot 'Build.ps1'
+$prevUseLld = $env:CARGO_USE_LLD
+if ($UseLld) { $env:CARGO_USE_LLD = '1' }
+
+try {
+    & $buildScript -Component functiongemma-train -Configuration Release -FunctionGemmaArgs $functionGemmaArgs
+} finally {
+    if ($UseLld) {
+        if ([string]::IsNullOrEmpty($prevUseLld)) {
+            Remove-Item Env:CARGO_USE_LLD -ErrorAction SilentlyContinue
+        } else {
+            $env:CARGO_USE_LLD = $prevUseLld
+        }
+    }
+}
 
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

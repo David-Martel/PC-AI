@@ -4,8 +4,8 @@
   Build FunctionGemma router datasets using the Rust pipeline.
 
 .DESCRIPTION
-  Uses CargoTools via Invoke-RustBuild.ps1 to run the rust-functiongemma-train
-  prepare-router command. This keeps dataset generation in Rust while matching
+  Routes rust-functiongemma-train prepare-router through Build.ps1 so this
+  workflow remains inside the unified build orchestration layer while matching
   the Python I/O contract (tool_calls or NO_TOOL).
 
   Optional: Use PcaiNative.dll to run the same dataset generation via native FFI.
@@ -32,7 +32,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$trainRoot = Join-Path $repoRoot 'Deploy\rust-functiongemma-train'
 
 if (-not $ToolsPath) { $ToolsPath = Join-Path $repoRoot 'Config\pcai-tools.json' }
 if (-not $DiagnosePrompt) { $DiagnosePrompt = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\examples\router_diagnose_prompt.md' }
@@ -130,31 +129,43 @@ if ($UseNative) {
     Write-Warning "Falling back to Rust CLI router dataset generation."
 }
 
-Write-Host "Preparing FunctionGemma router dataset (Rust)..." -ForegroundColor Cyan
+Write-Host "Preparing FunctionGemma router dataset (Build.ps1 orchestration)..." -ForegroundColor Cyan
 Write-Host "Tools: $ToolsPath"
 Write-Host "Output: $Output"
 Write-Host "TestVectors: $TestVectors"
 
-$cargoArgs = @(
-    'run','--','prepare-router',
+$functionGemmaArgs = @(
     '--tools', $ToolsPath,
     '--output', $Output,
     '--diagnose-prompt', $DiagnosePrompt,
     '--chat-prompt', $ChatPrompt,
-    '--max-cases', $MaxCases
+    '--max-cases', "$MaxCases"
 )
 
-if ($ScenariosPath) { $cargoArgs += @('--scenarios', $ScenariosPath) }
-if ($NoToolCoverage) { $cargoArgs += '--no-tool-coverage' }
-if ($TestVectors) { $cargoArgs += @('--test-vectors', $TestVectors) }
-if ($Stream) { $cargoArgs += '--stream' }
+if ($ScenariosPath) { $functionGemmaArgs += @('--scenarios', $ScenariosPath) }
+if ($NoToolCoverage) { $functionGemmaArgs += '--no-tool-coverage' }
+if ($TestVectors) { $functionGemmaArgs += @('--test-vectors', $TestVectors) }
+if ($Stream) { $functionGemmaArgs += '--stream' }
 
-& (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') `
-    -Path $trainRoot `
-    -CargoArgs $cargoArgs `
-    -UseLld:$UseLld `
-    -LlmDebug:$LlmDebug
+if ($LlmDebug) {
+    Write-Warning '-LlmDebug is not currently consumed by Build.ps1; continuing without extra debug toggles.'
+}
 
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$buildScript = Join-Path $repoRoot 'Build.ps1'
+$prevUseLld = $env:CARGO_USE_LLD
+if ($UseLld) { $env:CARGO_USE_LLD = '1' }
+
+try {
+    & $buildScript -Component functiongemma-router-data -Configuration Release -FunctionGemmaArgs $functionGemmaArgs
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+} finally {
+    if ($UseLld) {
+        if ([string]::IsNullOrEmpty($prevUseLld)) {
+            Remove-Item Env:CARGO_USE_LLD -ErrorAction SilentlyContinue
+        } else {
+            $env:CARGO_USE_LLD = $prevUseLld
+        }
+    }
+}
 
 Write-Host "Router dataset generation complete." -ForegroundColor Green

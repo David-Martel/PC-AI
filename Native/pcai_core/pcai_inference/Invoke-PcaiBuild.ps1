@@ -21,6 +21,18 @@
 
 .PARAMETER Clean
     Clean build directories before building
+
+.PARAMETER UseLld
+    Force lld-link usage when available.
+
+.PARAMETER Preflight
+    Run cargo preflight checks before building.
+
+.PARAMETER PreflightMode
+    Preflight mode: check, clippy, fmt, or all.
+
+.PARAMETER PreflightBlocking
+    Fail build immediately if preflight checks fail.
 #>
 
 [CmdletBinding()]
@@ -33,7 +45,12 @@ param(
 
     [switch]$EnableCuda,
     [switch]$DisableCache,
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$UseLld,
+    [switch]$Preflight,
+    [ValidateSet('check', 'clippy', 'fmt', 'all')]
+    [string]$PreflightMode = 'check',
+    [switch]$PreflightBlocking
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,6 +76,20 @@ $script:BuildRoot = Join-Path $script:ArtifactsRoot 'build'
 $script:BuildLogsDir = Join-Path $script:BuildRoot 'logs'
 $script:BuildArtifactsDir = Join-Path $script:BuildRoot 'artifacts'
 $script:BuildStartTime = Get-Date
+
+if (-not $Preflight -and $env:CARGO_PREFLIGHT -eq '1') {
+    $Preflight = $true
+}
+if ($env:CARGO_PREFLIGHT_MODE) {
+    $PreflightMode = $env:CARGO_PREFLIGHT_MODE
+}
+if (-not $PreflightBlocking -and $env:CARGO_PREFLIGHT_BLOCKING -eq '1') {
+    $PreflightBlocking = $true
+}
+if ($UseLld) {
+    $env:CARGO_USE_LLD = '1'
+    $env:PCAI_USE_LLD = '1'
+}
 
 #region Output Formatting
 
@@ -623,6 +654,58 @@ function Clear-IncompleteCmakeConfig {
 
 #region Build Logic
 
+function Invoke-RustPreflightChecks {
+    param(
+        [string]$BackendName,
+        [string]$FeatureString,
+        [string]$LogFile
+    )
+
+    if (-not $Preflight) {
+        return $true
+    }
+
+    $featureArgs = @('--no-default-features', '--features', $FeatureString)
+    $commandSets = switch ($PreflightMode) {
+        'check' {
+            @(@('check') + $featureArgs)
+        }
+        'clippy' {
+            @(@('clippy') + $featureArgs + @('--all-targets', '--', '-D', 'warnings'))
+        }
+        'fmt' {
+            @(@('fmt', '--', '--check'))
+        }
+        'all' {
+            @(
+                @('check') + $featureArgs,
+                @('clippy') + $featureArgs + @('--all-targets', '--', '-D', 'warnings'),
+                @('fmt', '--', '--check')
+            )
+        }
+    }
+
+    $allPassed = $true
+    foreach ($preflightArgs in $commandSets) {
+        Write-BuildStatus "Preflight ($BackendName): cargo $($preflightArgs -join ' ')" 'Info'
+        & $script:cargoExe @preflightArgs 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            $allPassed = $false
+            $message = "Preflight failed for $BackendName ($PreflightMode)"
+            if ($PreflightBlocking) {
+                throw $message
+            }
+            Write-BuildStatus "$message; continuing because preflight is non-blocking" 'Warning'
+            break
+        }
+    }
+
+    if ($allPassed) {
+        Write-BuildStatus "Preflight passed for $BackendName ($PreflightMode)" 'Success'
+    }
+    return $allPassed
+}
+
 function Invoke-Build {
     param([string]$BackendName)
 
@@ -741,6 +824,10 @@ function Invoke-Build {
         }
         Write-Host '  CUDA low-mem mode: CARGO_BUILD_JOBS=1, RAYON_NUM_THREADS=1, opt-level=2' -ForegroundColor Yellow
     }
+
+    $preflightLogFile = Join-Path $logDir "cargo_preflight_${BackendName}_$stamp.log"
+    '' | Out-File $preflightLogFile -Force
+    Invoke-RustPreflightChecks -BackendName $BackendName -FeatureString $featureString -LogFile $preflightLogFile | Out-Null
 
     $prevErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
@@ -879,6 +966,8 @@ Write-BuildInfo 'Backend' $Backend
 Write-BuildInfo 'Configuration' $Configuration
 Write-BuildInfo 'CUDA' $(if ($EnableCuda) { 'Enabled' } else { 'Disabled' }) $(if ($EnableCuda) { 'Green' } else { 'DarkGray' })
 Write-BuildInfo 'Cache' $(if ($DisableCache) { 'Disabled' } else { 'Enabled' })
+Write-BuildInfo 'lld-link' $(if ($env:CARGO_USE_LLD -eq '1') { 'Enabled' } else { 'Disabled' })
+Write-BuildInfo 'Preflight' $(if ($Preflight) { $PreflightMode } else { 'Disabled' })
 
 if ($Clean) {
     Write-BuildSection 'Cleaning'

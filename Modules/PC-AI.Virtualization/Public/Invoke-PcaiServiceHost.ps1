@@ -147,9 +147,8 @@ pcai-llamacpp.exe or pcai-mistralrs.exe not found. Build with:
 
     .\Build.ps1 -Component inference
 
-Or with mistralrs backend:
-    cd Native\pcai_core\pcai_inference
-    .\Invoke-PcaiBuild.ps1 -Backend mistralrs -Configuration Release
+Or backend-specific:
+    .\Build.ps1 -Component mistralrs
 "@
     }
 
@@ -248,11 +247,11 @@ function Start-CSharpServiceHost {
     }
 
     if (-not $HostPath) {
-        throw "PcaiServiceHost DLL not found. Build with: dotnet build Native\\PcaiServiceHost\\PcaiServiceHost.csproj -c Release"
+        throw "PcaiServiceHost DLL not found. Build with: .\\Build.ps1 -Component servicehost"
     }
 
     if (-not (Test-Path $HostPath)) {
-        throw "PcaiServiceHost not found at $HostPath. Build with: dotnet build -c Release"
+        throw "PcaiServiceHost not found at $HostPath. Build with: .\\Build.ps1 -Component servicehost"
     }
 
     $dotnet = (Get-Command dotnet -ErrorAction SilentlyContinue)?.Source

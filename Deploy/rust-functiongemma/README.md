@@ -8,17 +8,24 @@ multiple tool sets or future router tasks.
 - rust-functiongemma-runtime (Deploy/rust-functiongemma-runtime)
 - rust-functiongemma-train (Deploy/rust-functiongemma-train)
 
-## Build (CargoTools)
+## Build (Primary: Build.ps1)
 From repo root:
 
-  .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime build
-  .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-train test
+  .\Build.ps1 -Component functiongemma
+  .\Build.ps1 -Component functiongemma -RunTests
+  .\Build.ps1 -Component functiongemma-router-data
+  .\Build.ps1 -Component functiongemma-token-cache
+  .\Build.ps1 -Component functiongemma-train
+  .\Build.ps1 -Component functiongemma-eval
 
 ## Build/Test scripts
 From Deploy/rust-functiongemma:
 
   .\build.ps1
   .\test.ps1
+
+Legacy CargoTools wrappers still exist for advanced crate-level control, but
+`Build.ps1` is the canonical build/test entrypoint for this repository.
 
 ## Fast CI mode
 Skip dataset/doc generation for quicker CI runs:
@@ -28,7 +35,7 @@ Skip dataset/doc generation for quicker CI runs:
 ## Eval report
 Generate a metrics report (skips if the model is missing):
 
-  .\Tools\run-functiongemma-eval.ps1 -FastEval
+  .\Build.ps1 -Component functiongemma-eval -FunctionGemmaArgs @('--fast-eval')
 
 Or integrate it into the test runner:
 

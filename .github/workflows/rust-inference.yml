@@ -188,19 +188,21 @@ jobs:
           echo "CXX=$clPath" >> $env:GITHUB_ENV
           echo "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
 
-      - name: Build llamacpp Backend
-        working-directory: Native/pcai_core/pcai_inference
-        run: cargo build --release --features llamacpp,ffi,server
-
-      - name: Run FFI Tests
-        working-directory: Native/pcai_core/pcai_inference
-        run: cargo test --release --features llamacpp,ffi
+      - name: Build + Test via Build.ps1 (llamacpp)
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component llamacpp -Configuration Release -RunTests
+          if ($LASTEXITCODE -ne 0) { throw "Build.ps1 failed with exit code $LASTEXITCODE" }
 
       - name: Copy Artifacts
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path bin -Force
-          Copy-Item Native/pcai_core/pcai_inference/target/release/pcai_inference.dll -Destination bin/ -ErrorAction SilentlyContinue
+          $artifactPath = ".pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll"
+          if (-not (Test-Path $artifactPath)) {
+            $artifactPath = "Native\pcai_core\pcai_inference\target\release\pcai_inference.dll"
+          }
+          Copy-Item $artifactPath -Destination bin/ -ErrorAction SilentlyContinue
 
       - name: Upload DLL Artifact
         uses: actions/upload-artifact@v4
@@ -250,19 +252,21 @@ jobs:
           echo "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
           echo "CUDA_PATH=$env:CUDA_PATH" >> $env:GITHUB_ENV
 
-      - name: Build CUDA Backend
-        working-directory: Native/pcai_core/pcai_inference
-        run: cargo build --release --features llamacpp,ffi,server,cuda-llamacpp
-
-      - name: Run CUDA Tests
-        working-directory: Native/pcai_core/pcai_inference
-        run: cargo test --release --features llamacpp,ffi,cuda-llamacpp
+      - name: Build + Test via Build.ps1 (CUDA llamacpp)
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component llamacpp -Configuration Release -EnableCuda -RunTests
+          if ($LASTEXITCODE -ne 0) { throw "Build.ps1 failed with exit code $LASTEXITCODE" }
 
       - name: Copy CUDA Artifacts
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path bin-cuda -Force
-          Copy-Item Native/pcai_core/pcai_inference/target/release/pcai_inference.dll -Destination bin-cuda/ -ErrorAction SilentlyContinue
+          $artifactPath = ".pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll"
+          if (-not (Test-Path $artifactPath)) {
+            $artifactPath = "Native\pcai_core\pcai_inference\target\release\pcai_inference.dll"
+          }
+          Copy-Item $artifactPath -Destination bin-cuda/ -ErrorAction SilentlyContinue
 
       - name: Upload CUDA DLL Artifact
         uses: actions/upload-artifact@v4

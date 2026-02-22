@@ -206,8 +206,8 @@ function Initialize-InferenceBackend {
         $status = Get-PcaiInferenceStatus
         if (-not $status.DllExists) {
             Write-Warning 'pcai_inference.dll not found. Build instructions:'
-            Write-Warning '  cd Native\pcai_core\pcai_inference'
-            Write-Warning '  cargo build --features ffi,mistralrs-backend --release'
+            Write-Warning '  .\Build.ps1 -Component inference'
+            Write-Warning '  .\Build.ps1 -Component mistralrs   # backend-specific'
             Write-Warning 'Falling back to HTTP inference.'
             $script:InferenceMode = 'http'
             return $false
@@ -1054,7 +1054,7 @@ function Invoke-AnalyzeCommand {
     $llmStatus = Get-LLMStatus
     if (-not $llmStatus.Available) {
         Write-Error 'No LLM provider available'
-        Write-Info 'Ensure pcai-inference is running (default: http://127.0.0.1:8080)'
+        Write-Info 'Ensure pcai-inference is running'
         return
     }
 
@@ -1173,7 +1173,7 @@ function Invoke-ChatCommand {
     $llmStatus = Get-LLMStatus
     if (-not $llmStatus.Available) {
         Write-Error 'No LLM provider available'
-        Write-Info 'Ensure pcai-inference is running (default: http://127.0.0.1:8080)'
+        Write-Info 'Ensure pcai-inference is running'
         return
     }
 
@@ -1776,8 +1776,8 @@ function Invoke-DoctorCommand {
     if (-not (Ensure-Module 'PC-AI.Virtualization')) { return }
 
     $llmConfig = Load-LLMConfig
-    $pcaiUrl = 'http://127.0.0.1:8080'
-    $functionGemmaUrl = 'http://127.0.0.1:8000'
+    $pcaiUrl = $null
+    $functionGemmaUrl = $null
 
     if ($llmConfig -and $llmConfig.providers -and $llmConfig.providers.'pcai-inference' -and $llmConfig.providers.'pcai-inference'.baseUrl) {
         $pcaiUrl = $llmConfig.providers.'pcai-inference'.baseUrl
@@ -1954,7 +1954,14 @@ function Invoke-StatusCommand {
     # LLM status (quick check for HTTP mode)
     Write-SubHeader 'LLM Provider (HTTP)'
     try {
-        $null = Invoke-RestMethod -Uri 'http://127.0.0.1:8080/v1/models' -Method Get -TimeoutSec 2 -ErrorAction SilentlyContinue
+        $pcaiUrl = $null
+        $cfgPath = Join-Path $script:ConfigPath 'llm-config.json'
+        if (Test-Path $cfgPath) {
+            $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
+            $pcaiUrl = $cfg.providers.'pcai-inference'.baseUrl
+        }
+        if (-not $pcaiUrl) { throw 'No BaseUrl' }
+        $null = Invoke-RestMethod -Uri "$pcaiUrl/v1/models" -Method Get -TimeoutSec 2 -ErrorAction SilentlyContinue
         Write-Bullet 'pcai-inference: Running' -Color Green
     } catch {
         Write-Bullet 'pcai-inference: Not Running' -Color Yellow

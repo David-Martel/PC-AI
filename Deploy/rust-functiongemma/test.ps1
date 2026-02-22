@@ -1,18 +1,15 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Test Rust FunctionGemma runtime + training pipeline.
+  Compatibility wrapper for FunctionGemma tests.
 
 .DESCRIPTION
-  Pass/Fail criteria:
-  1) rust-functiongemma-runtime tests pass.
-  2) rust-functiongemma-train tests pass.
-  3) Router dataset JSONL + tool test vectors exist and are non-empty.
+  Uses the root Build.ps1 orchestrator with -RunTests to execute the
+  FunctionGemma runtime/train Rust test suites.
 #>
 
 [CmdletBinding(PositionalBinding = $false)]
 param(
-    [switch]$IncludeRuntime = $true,
     [switch]$Fast,
     [switch]$EvalReport
 )
@@ -21,16 +18,26 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$runtimePath = Join-Path $repoRoot 'Deploy\rust-functiongemma-runtime'
-
-if ($IncludeRuntime) {
-    Write-Host "Running runtime tests..." -ForegroundColor Cyan
-    & (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') -Path $runtimePath test
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$buildScript = Join-Path $repoRoot 'Build.ps1'
+if (-not (Test-Path $buildScript)) {
+    throw "Build.ps1 not found at expected path: $buildScript"
 }
 
-Write-Host "Running training + dataset tests..." -ForegroundColor Cyan
-& (Join-Path $repoRoot 'Tools\run-functiongemma-tests.ps1') -Category rust -Runtime rust -Fast:$Fast -EvalReport:$EvalReport -EvalFast:$Fast
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if ($Fast) {
+    Write-Host 'Fast mode requested: running Build.ps1 functiongemma test path only (no extra eval).' -ForegroundColor Yellow
+}
 
-Write-Host "All Rust FunctionGemma tests passed." -ForegroundColor Green
+& $buildScript -Component functiongemma -RunTests
+$exitCode = $LASTEXITCODE
+if ($exitCode -ne 0) {
+    exit $exitCode
+}
+
+if ($EvalReport) {
+    & (Join-Path $repoRoot 'Tools\run-functiongemma-eval.ps1') -FastEval:$Fast
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
+
+exit 0

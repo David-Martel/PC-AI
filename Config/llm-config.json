@@ -11,8 +11,8 @@
     "pcai-native": {
       "enabled": true,
       "type": "ffi",
-      "backend": "auto",
-      "modelPath": null,
+      "backend": "llamacpp",
+      "modelPath": "C:\\Users\\david\\PC_AI\\Models\\ollama\\registry.ollama.ai_library_deepseek-r1_7b__96c41565.gguf",
       "gpuLayers": -1,
       "defaultTemperature": 0.7,
       "defaultMaxTokens": 2048
@@ -36,7 +36,11 @@
     "provider": "functiongemma",
     "baseUrl": "http://127.0.0.1:8000",
     "model": "functiongemma-270m-it",
-    "toolsPath": "Config/pcai-tools.json"
+    "toolsPath": "Config/pcai-tools.json",
+    "disable": false,
+    "force": false,
+    "strict": false,
+    "defaultTemperature": 0.2
   },
   "prompts": {
     "diagnosticAnalysis": {
@@ -75,5 +79,14 @@
         "description": "llama.cpp backend (GGUF models, CUDA support)"
       }
     }
+  },
+  "evaluation": {
+    "binSearchPaths": [
+      "bin",
+      "C:\\Users\\david\\.local\\bin",
+      "T:\\RustCache\\cargo-target\\release",
+      "Native/pcai_core/pcai_inference/target/release",
+      "Deploy/pcai-inference/target/release"
+    ]
   }
 }

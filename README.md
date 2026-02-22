@@ -172,15 +172,70 @@ PC-AI integrates with local LLM providers for intelligent diagnostic analysis an
 
 ### pcai-inference (Default)
 ```powershell
-# Run pcai-inference HTTP server (OpenAI-compatible)
-cd .\Deploy\pcai-inference
-cargo run --release --features "llamacpp,server"
+# Build HTTP server (OpenAI-compatible)
+cd .\Native\pcai_core\pcai_inference
+cargo build --release --features "llamacpp,server"
+
+# Create a config (required) and start the server
+$configPath = "C:\Users\david\PC_AI\.pcai\runtime\pcai-inference\config.json"
+@"
+{
+  "backend": { "type": "llama_cpp", "n_gpu_layers": 35, "n_ctx": 4096 },
+  "model": { "path": "C:\\Models\\model.gguf" },
+  "server": { "host": "127.0.0.1", "port": 8080, "cors": true }
+}
+"@ | Set-Content $configPath
+.\target\release\pcai-llamacpp.exe --config $configPath
+
+# Or use the helper (creates config + launches)
+Invoke-PcaiServiceHost -Backend rust -NativeBackend llamacpp -ModelPath "C:\Models\model.gguf" -GpuLayers 35
 
 # Enable CUDA (llama.cpp backend)
-cargo run --release --features "llamacpp,server,cuda"
+cargo build --release --features "llamacpp,server,cuda-llamacpp"
 
 # Run analysis with default model (pcai-inference)
 Invoke-PCDiagnosis -ReportPath ".\report.txt"
+```
+
+### FunctionGemma Router Training (Local)
+
+Use the unified CLI to regenerate datasets, build token caches, train adapters, and evaluate routing quality:
+
+```powershell
+# Rebuild router dataset + test vectors
+.\PC-AI.ps1 llm router-prepare --stream
+
+# Build token cache for faster training
+.\PC-AI.ps1 llm router-cache
+
+# Fine-tune (LoRA) with default settings
+.\PC-AI.ps1 llm router-train --epochs 1 --lora-r 16 --lora-alpha 32
+
+# Evaluate routing accuracy (CPU-safe config)
+.\PC-AI.ps1 llm router-eval --config .\Config\pcai-functiongemma-eval.json --max-samples 25 --fast-eval
+```
+
+Key files:
+- `Config/pcai-functiongemma.json` (runtime + training defaults)
+- `Config/pcai-functiongemma-eval.json` (CPU-safe training/eval defaults)
+- `Deploy/rust-functiongemma-train/examples/scenarios.json` (routing scenarios)
+
+### pcai-native (FFI)
+```powershell
+# Native FFI (no HTTP server)
+Import-Module .\Modules\PcaiInference.psm1
+Initialize-PcaiInference -Backend llamacpp
+Import-PcaiModel -ModelPath "C:\Models\model.gguf" -GpuLayers 35
+Invoke-PcaiInference -Prompt "Summarize this report..."
+```
+
+### PcaiServiceHost (FFI utilities)
+```powershell
+pcai-servicehost inference status
+pcai-servicehost inference init --backend llamacpp
+pcai-servicehost inference load --model-path C:\Models\model.gguf --gpu-layers 35
+pcai-servicehost inference generate --prompt "Quick summary"
+pcai-servicehost inference shutdown
 ```
 
 ### FunctionGemma (Tool Router)
@@ -247,6 +302,7 @@ Primary aliases:
 ```
 PcaiChatTui.exe --provider pcai-inference --mode stream
 PcaiChatTui.exe --provider pcai-inference --mode react --tools C:\Users\david\PC_AI\Config\pcai-tools.json
+PcaiChatTui.exe --provider pcai-native --backend llamacpp --model-path C:\Models\model.gguf
 ```
 
 ### Recommended Models

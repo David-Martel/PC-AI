@@ -22,6 +22,9 @@ PC-AI.ps1 (CLI)
      ├─ PC-AI.Evaluation (LLM evaluation + benchmarking)
      └─ PC-AI.Acceleration (Rust CLI + native DLLs)
           └─ Native/ (Rust + C# P/Invoke)
+                ├─ PcaiNative (.NET interop)
+                ├─ PcaiChatTui (C# TUI)
+                └─ PcaiServiceHost (C# service orchestration)
 ```
 
 ## LLM + Router Pipeline
@@ -38,6 +41,24 @@ User Request
           ├─ System prompt: DIAGNOSE.md + DIAGNOSE_LOGIC.md (diagnose)
           └─ System prompt: CHAT.md (chat)
 ```
+
+## Native LLM Pipeline (FFI)
+
+```
+pcai_inference.dll (Rust FFI)
+   ├─ llama.cpp backend (GGUF, CUDA)
+   └─ mistral.rs backend (Candle, CUDA)
+        │
+        ├─ PowerShell (PcaiInference module)
+        ├─ PcaiChatTui (C# native chat)
+        └─ PcaiServiceHost (inference status/init/load)
+```
+
+Native inference is exposed through `pcai_inference.dll` and shared across:
+
+- **PC-AI.ps1 / Modules** via `Modules/PcaiInference.psm1`
+- **PcaiChatTui** via `PcaiNative.InferenceModule`
+- **PcaiServiceHost** for status/init/load/generate tooling
 
 ## Diagnostic Flow (Diagnose Mode)
 
@@ -56,6 +77,8 @@ User Request
 ## Configuration
 
 - `Config/llm-config.json`: pcai-inference + router endpoints, defaults, tool schema.
+- `Config/pcai-functiongemma.json`: FunctionGemma runtime + training defaults.
+- `Config/pcai-functiongemma-eval.json`: CPU-safe FunctionGemma training/eval defaults.
 - `Config/pcai-tools.json`: tool schema for FunctionGemma.
 - `DIAGNOSE.md`, `DIAGNOSE_LOGIC.md`: diagnostic system prompts.
 - `CHAT.md`: general chat system prompt.
@@ -69,6 +92,23 @@ User Request
 3. Add scenario examples in `Deploy/rust-functiongemma-train/examples/scenarios.json`.
 4. Rebuild training data and fine-tune FunctionGemma.
 
+FunctionGemma uses the native function-call tag format:
+
+```
+<start_function_call>call:tool_name{arg:<escape>value<escape>}<end_function_call>
+```
+
+Training/evaluation data is generated to match this format.
+
+## FunctionGemma Training Memory
+
+- Base model weights load via safetensors mmap (CPU RAM efficient).
+- Token caches are memmap-backed to minimize RAM pressure during training.
+- `Config/pcai-functiongemma.json` supports `train.max_seq_len` to cap context
+  length and reduce VRAM use.
+- `train.cuda_visible_devices` + `train.min_vram_mb` steer GPU selection toward
+  higher-memory devices.
+
 ## Deprecations
 
 - `Deploy/functiongemma-finetune/tool_router.py` is deprecated in favor of native
@@ -77,6 +117,7 @@ User Request
 ## Documentation Automation
 
 - `Tools/Invoke-DocPipeline.ps1`: full documentation + training pipeline (Rust, PowerShell, C#).
+- `Tools/generate-tools-catalog.ps1`: catalogs `Tools/*.ps1` scripts + help metadata.
 - `Tools/generate-auto-docs.ps1`: lightweight auto-docs summary.
 - Reports written to `Reports/` (e.g. `DOC_PIPELINE_REPORT.md`, `AUTO_DOCS_SUMMARY.md`).
 

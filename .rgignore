@@ -1,6 +1,8 @@
 # Keep Models visible for searching
 !Models/
 !Models/*
+!@Models/
+!@Models/*
 
 # Keep PC-AI local artifacts searchable
 !.pcai/

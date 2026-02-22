@@ -118,6 +118,23 @@ cd Native\pcai_core\pcai_inference
 | `ffi` | C FFI exports for PowerShell |
 | `server` | HTTP server with OpenAI-compatible API |
 
+### Evaluation Harness
+
+Use the LLM evaluation runner to benchmark backends and capture structured run outputs:
+
+```powershell
+pwsh .\Tests\Evaluation\Invoke-InferenceEvaluation.ps1 `
+  -Backend llamacpp-bin `
+  -ModelPath "C:\Models\tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf" `
+  -Dataset diagnostic `
+  -MaxTestCases 5 `
+  -ProgressMode stream `
+  -RunLabel local-smoke
+```
+
+Outputs are written under `.pcai\evaluation\runs\<timestamp-label>\` with:
+`events.jsonl`, `progress.log`, `summary.json`, and `stop.signal`.
+
 **Performance Tips:**
 - Enable sccache: `Tools\Initialize-CacheEnvironment.ps1`
 - Use Ninja generator (auto-detected)

@@ -1,7 +1,17 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-20260131-ffi",
+  "latest": "ctx-pcai-20260221-consolidation",
   "contexts": [
+    {
+      "id": "ctx-pcai-20260221-consolidation",
+      "file": "pcai-context-20260221-functiongemma-consolidation.md",
+      "created": "2026-02-21T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "Explore", "Claude-opus"],
+      "summary": "FunctionGemma cross-crate consolidation complete - 42 tasks, 700+ lines eliminated, unified RuntimeConfig, shared GPU/safetensors/LoRA/prompt utilities in core",
+      "supersedes": ["ctx-pcai-20260131-ffi"],
+      "commit": "pending"
+    },
     {
       "id": "ctx-pcai-20260131-ffi",
       "file": "pcai-context-2026-01-31.md",

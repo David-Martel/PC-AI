@@ -210,3 +210,4 @@ git push origin v1.0.0
 - Full pipeline: `Tools/Invoke-DocPipeline.ps1 -Mode Full`
 - Docs-only: `Tools/Invoke-DocPipeline.ps1 -Mode DocsOnly`
 - Lightweight summaries: `Tools/generate-auto-docs.ps1 -BuildDocs`
+- Tools catalog: `Tools/generate-tools-catalog.ps1`

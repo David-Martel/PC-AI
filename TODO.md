@@ -9,6 +9,7 @@
 - [x] Rust FunctionGemma runtime: add /health + /v1/models metadata (version/model/tools)
 - [x] Rust FunctionGemma runtime: deterministic tool routing defaults for tool_choice=required
 - [x] Rust FunctionGemma runtime: optional GPU selection + LoRA adapter load when available
+- [ ] oLLM parity: explore large-context offload ideas for pcai_inference (llama.cpp/mistralrs) including KV cache offload and streaming prefill
 
 ## Architecture alignments (C#/Rust backend as primary engine)
 - [ ] Replace PowerShell-only diagnostics with Rust/C# native backends where feasible (logs, inventory, health checks)
@@ -29,6 +30,11 @@
 - [x] Add health gates for LLM providers (ollama/vllm/lmstudio) before tool routing
 - [x] Normalize tool result envelopes (Success/ExitCode/Warnings/Evidence)
 - [x] Expand diagnostic coverage to match DIAGNOSE_LOGIC.md expectations
+
+## Memory + RAG integrations
+- [ ] Integrate rag-redis (W:\dropbox-local\rag-redis) with Redis endpoints 6379/6380 for tool memory + retrieval.
+- [ ] Evaluate simsimd (or similar SIMD distance kernels) for faster vector similarity in local RAG flows.
+- [ ] Add optional Postgres 18/MS SQL backed memory store for long-term tool history.
 
 ## UI/TUI usability
 - [x] Add a unified status command (LLM/Native DLL status)

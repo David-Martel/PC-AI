@@ -61,6 +61,23 @@ cd Native\pcai_core\pcai_inference
 
 GPU layer offload: 4GB→10-15 layers, 8GB→25-30, 12GB→35-40, 24GB→50+
 
+## Evaluation Harness
+
+Runner: `Tests/Evaluation/Invoke-InferenceEvaluation.ps1`
+
+Outputs go to `.pcai/evaluation/runs/<timestamp-label>/`:
+`events.jsonl`, `progress.log`, `summary.json`, `stop.signal`.
+
+```powershell
+pwsh .\Tests\Evaluation\Invoke-InferenceEvaluation.ps1 `
+  -Backend llamacpp-bin `
+  -ModelPath "C:\Models\tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf" `
+  -Dataset diagnostic `
+  -MaxTestCases 5 `
+  -ProgressMode stream `
+  -RunLabel local-smoke
+```
+
 ## CI/CD Releases
 
 Pre-compiled CUDA binaries: `.github/workflows/release-cuda.yml`

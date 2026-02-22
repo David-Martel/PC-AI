@@ -41,7 +41,7 @@ function Resolve-PcaiInferenceDll {
         try {
             $config = Get-Content $configPath -Raw | ConvertFrom-Json
         } catch {
-            Write-Verbose "Failed to parse $configPath: $_"
+            Write-Verbose "Failed to parse ${configPath}: $_"
         }
     }
 

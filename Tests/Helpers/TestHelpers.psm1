@@ -297,7 +297,7 @@ function Get-TestPaths {
     }
 
     $binDir = Join-Path $projectRoot "bin"
-    $deployDir = Join-Path $projectRoot "Deploy\pcai-inference"
+    $deployDir = Join-Path $projectRoot "Native\pcai_core\pcai_inference"
     $modulePath = Join-Path $projectRoot "Modules\PcaiInference.psm1"
     $dllPath = Resolve-InferenceDllPath -ProjectRoot $projectRoot
 

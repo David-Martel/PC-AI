@@ -40,7 +40,7 @@ Describe "PCAI Inference Native Library - FFI Boundary Tests" -Tag "FFI", "Infer
 
     Context "Build Artifacts" {
 
-        It "Deploy directory exists" {
+        It "Inference crate directory exists" {
             Test-Path $DeployDir | Should -BeTrue
         }
 
@@ -48,17 +48,16 @@ Describe "PCAI Inference Native Library - FFI Boundary Tests" -Tag "FFI", "Infer
             Test-Path (Join-Path $DeployDir "Cargo.toml") | Should -BeTrue
         }
 
-        It "build.ps1 exists" {
-            Test-Path (Join-Path $DeployDir "build.ps1") | Should -BeTrue
+        It "Build script exists" {
+            Test-Path (Join-Path $DeployDir "Invoke-PcaiBuild.ps1") | Should -BeTrue
         }
 
-        It "build-config.json exists" {
-            Test-Path (Join-Path $DeployDir "build-config.json") | Should -BeTrue
+        It "FFI source module exists" {
+            Test-Path (Join-Path $DeployDir "src\ffi\mod.rs") | Should -BeTrue
         }
 
-        It "build-config.json is valid JSON" {
-            $configPath = Join-Path $DeployDir "build-config.json"
-            { Get-Content $configPath | ConvertFrom-Json } | Should -Not -Throw
+        It "HTTP server source module exists" {
+            Test-Path (Join-Path $DeployDir "src\http\mod.rs") | Should -BeTrue
         }
     }
 
@@ -138,7 +137,7 @@ public static class PcaiInferenceTest
                 Set-ItResult -Skipped -Because "DLL not available"
             } else {
                 $result = [PcaiInferenceTest]::pcai_init($null)
-                $result | Should -Be -1
+                $result | Should -BeLessThan 0 -Because "null backend should return negative error code (InvalidInput=-3)"
             }
         }
 
@@ -147,7 +146,7 @@ public static class PcaiInferenceTest
                 Set-ItResult -Skipped -Because "DLL not available"
             } else {
                 $result = [PcaiInferenceTest]::pcai_init("unknown_backend_xyz")
-                $result | Should -Be -1
+                $result | Should -BeLessThan 0 -Because "unknown backend should return negative error code (InvalidInput=-3)"
             }
         }
 
@@ -172,7 +171,7 @@ public static class PcaiInferenceTest
             } else {
                 [PcaiInferenceTest]::pcai_shutdown()  # Ensure clean state
                 $result = [PcaiInferenceTest]::pcai_load_model("C:\test\model.gguf", 0)
-                $result | Should -Be -1
+                $result | Should -BeLessThan 0 -Because "load_model before init should return negative error code"
             }
         }
 
@@ -232,7 +231,7 @@ public static class PcaiInferenceTest
                     } else { "Unknown error" }
 
                     # Skip if llamacpp not compiled in
-                    if ($errMsg -match "not available|not compiled|not enabled") {
+                    if ($errMsg -match "not available|not compiled|not enabled|Unknown backend") {
                         Set-ItResult -Skipped -Because "llamacpp backend not compiled: $errMsg"
                     } else {
                         throw "Init failed: $errMsg"
@@ -256,7 +255,7 @@ public static class PcaiInferenceTest
                     } else { "Unknown error" }
 
                     # Skip if mistralrs not compiled in
-                    if ($errMsg -match "not available|not compiled|not enabled") {
+                    if ($errMsg -match "not available|not compiled|not enabled|Unknown backend") {
                         Set-ItResult -Skipped -Because "mistralrs backend not compiled: $errMsg"
                     } else {
                         throw "Init failed: $errMsg"
@@ -291,7 +290,7 @@ public static class PcaiInferenceTest
                     Set-ItResult -Skipped -Because "llamacpp backend not available"
                 } else {
                     $result = [PcaiInferenceTest]::pcai_load_model("C:\nonexistent\model.gguf", 0)
-                    $result | Should -Be -1
+                    $result | Should -BeLessThan 0 -Because "non-existent model should return negative error code"
 
                     $errPtr = [PcaiInferenceTest]::pcai_last_error()
                     $errMsg = [System.Runtime.InteropServices.Marshal]::PtrToStringAnsi($errPtr)

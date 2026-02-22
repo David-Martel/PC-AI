@@ -1328,4 +1328,40 @@ mod tests {
             "PcaiAsyncResult layout must match expected C ABI size"
         );
     }
+
+    #[test]
+    fn test_version_returns_valid_string() {
+        let ptr = pcai_version();
+        assert!(!ptr.is_null());
+        let cstr = unsafe { CStr::from_ptr(ptr) };
+        let version = cstr.to_str().expect("version should be valid UTF-8");
+        assert!(!version.is_empty());
+        // Version should look like a semver string (contains at least one dot)
+        assert!(version.contains('.'), "version should contain a dot: {}", version);
+    }
+
+    #[test]
+    fn test_free_string_null_safe() {
+        // Calling pcai_free_string with null should not crash
+        pcai_free_string(std::ptr::null_mut());
+    }
+
+    #[test]
+    fn test_clear_error_resets_state() {
+        set_last_error_with_code("some error", PcaiErrorCode::BackendError);
+        assert!(!pcai_last_error().is_null());
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::BackendError as i32);
+
+        clear_last_error();
+        assert!(pcai_last_error().is_null());
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::Success as i32);
+    }
+
+    #[test]
+    fn test_error_code_invalid_input() {
+        clear_last_error();
+        set_last_error_with_code("bad input", PcaiErrorCode::InvalidInput);
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
+        assert_eq!(pcai_last_error_code(), -3);
+    }
 }

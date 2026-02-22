@@ -55,3 +55,42 @@ pub enum Error {
 // Candle error conversion for mistral.rs backend
 // Note: candle_core::Error is not directly accessible, but we can convert via anyhow
 // which is already implemented in the Other variant
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_display_backend() {
+        let err = Error::Backend("gpu out of memory".to_string());
+        assert_eq!(err.to_string(), "Backend error: gpu out of memory");
+    }
+
+    #[test]
+    fn test_error_display_model_not_loaded() {
+        let err = Error::ModelNotLoaded;
+        assert_eq!(err.to_string(), "Model not loaded");
+    }
+
+    #[test]
+    fn test_error_display_invalid_input() {
+        let err = Error::InvalidInput("empty prompt".to_string());
+        assert_eq!(err.to_string(), "Invalid input: empty prompt");
+    }
+
+    #[test]
+    fn test_error_from_io() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file missing");
+        let err: Error = io_err.into();
+        assert!(matches!(err, Error::Io(_)));
+        assert!(err.to_string().contains("file missing"));
+    }
+
+    #[test]
+    fn test_error_from_serde_json() {
+        let bad_json = serde_json::from_str::<serde_json::Value>("not json");
+        let serde_err = bad_json.unwrap_err();
+        let err: Error = serde_err.into();
+        assert!(matches!(err, Error::Serialization(_)));
+    }
+}

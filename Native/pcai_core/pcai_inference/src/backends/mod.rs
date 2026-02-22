@@ -98,3 +98,83 @@ impl BackendType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_request_serde_minimal() {
+        let json = r#"{"prompt": "Hello"}"#;
+        let req: GenerateRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.prompt, "Hello");
+        assert!(req.max_tokens.is_none());
+        assert!(req.temperature.is_none());
+        assert!(req.top_p.is_none());
+        assert!(req.stop.is_empty());
+    }
+
+    #[test]
+    fn test_generate_request_serde_full() {
+        let req = GenerateRequest {
+            prompt: "Test prompt".to_string(),
+            max_tokens: Some(256),
+            temperature: Some(0.8),
+            top_p: Some(0.9),
+            stop: vec!["END".to_string(), "\n".to_string()],
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        let deserialized: GenerateRequest = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.prompt, "Test prompt");
+        assert_eq!(deserialized.max_tokens, Some(256));
+        assert!((deserialized.temperature.unwrap() - 0.8).abs() < f32::EPSILON);
+        assert!((deserialized.top_p.unwrap() - 0.9).abs() < f32::EPSILON);
+        assert_eq!(deserialized.stop, vec!["END", "\n"]);
+    }
+
+    #[test]
+    fn test_generate_response_serde() {
+        let resp = GenerateResponse {
+            text: "Generated output".to_string(),
+            tokens_generated: 42,
+            finish_reason: FinishReason::Stop,
+        };
+        let json = serde_json::to_string(&resp).unwrap();
+        let deserialized: GenerateResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.text, "Generated output");
+        assert_eq!(deserialized.tokens_generated, 42);
+        assert!(matches!(deserialized.finish_reason, FinishReason::Stop));
+    }
+
+    #[test]
+    fn test_finish_reason_serialization() {
+        assert_eq!(serde_json::to_string(&FinishReason::Stop).unwrap(), "\"stop\"");
+        assert_eq!(serde_json::to_string(&FinishReason::Length).unwrap(), "\"length\"");
+        assert_eq!(serde_json::to_string(&FinishReason::Error).unwrap(), "\"error\"");
+    }
+
+    #[test]
+    fn test_finish_reason_deserialization() {
+        let stop: FinishReason = serde_json::from_str("\"stop\"").unwrap();
+        assert!(matches!(stop, FinishReason::Stop));
+        let length: FinishReason = serde_json::from_str("\"length\"").unwrap();
+        assert!(matches!(length, FinishReason::Length));
+        let error: FinishReason = serde_json::from_str("\"error\"").unwrap();
+        assert!(matches!(error, FinishReason::Error));
+    }
+
+    #[test]
+    fn test_generate_request_default_stop_empty() {
+        let req: GenerateRequest = serde_json::from_str(r#"{"prompt": "x"}"#).unwrap();
+        assert!(req.stop.is_empty());
+    }
+
+    #[test]
+    #[cfg(not(any(feature = "llamacpp", feature = "mistralrs-backend")))]
+    fn test_backend_type_no_features() {
+        // With no backend features enabled, BackendType has no variants,
+        // so we can't construct one. The enum is effectively empty.
+        // This test verifies the module compiles correctly without backends.
+        assert!(true, "BackendType correctly has no constructible variants without features");
+    }
+}

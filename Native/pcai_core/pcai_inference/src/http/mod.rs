@@ -956,7 +956,7 @@ async fn call_functiongemma(
         })).collect::<Vec<_>>(),
         "tools": tools,
         "tool_choice": req.tool_choice.clone().unwrap_or(serde_json::Value::String("auto".to_string())),
-        "temperature": req.temperature.unwrap_or(settings.default_temperature),
+        "temperature": req.temperature.unwrap_or(settings.default_temperature as f32),
     });
 
     let client = reqwest::Client::new();
@@ -1131,5 +1131,174 @@ mod tests {
         let (text, reason) = apply_stop_sequences(input, &stops, FinishReason::Length);
         assert_eq!(text.trim_end(), "Hello world");
         assert!(matches!(reason, FinishReason::Stop));
+    }
+
+    // === build_chat_prompt edge cases ===
+
+    #[test]
+    fn test_build_chat_prompt_empty_messages() {
+        let messages: Vec<ChatMessage> = vec![];
+        let result = build_chat_prompt(&messages);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_build_chat_prompt_unknown_role() {
+        let messages = vec![ChatMessage {
+            role: "custom_role".to_string(),
+            content: "Hi".to_string(),
+        }];
+        let prompt = build_chat_prompt(&messages).unwrap();
+        // Unknown role should map to "User"
+        assert!(prompt.contains("User: Hi"));
+        assert!(prompt.ends_with("Assistant: "));
+    }
+
+    #[test]
+    fn test_build_chat_prompt_tool_role() {
+        let messages = vec![ChatMessage {
+            role: "tool".to_string(),
+            content: "result data".to_string(),
+        }];
+        let prompt = build_chat_prompt(&messages).unwrap();
+        assert!(prompt.contains("Tool: result data"));
+    }
+
+    #[test]
+    fn test_build_chat_prompt_single_user() {
+        let messages = vec![ChatMessage {
+            role: "user".to_string(),
+            content: "What is 2+2?".to_string(),
+        }];
+        let prompt = build_chat_prompt(&messages).unwrap();
+        assert_eq!(prompt, "User: What is 2+2?\nAssistant: ");
+    }
+
+    // === estimate_tokens edge cases ===
+
+    #[test]
+    fn test_estimate_tokens_long_text() {
+        let short_tokens = estimate_tokens("hello");
+        let long_tokens = estimate_tokens("hello world this is a much longer sentence with many words");
+        assert!(long_tokens > short_tokens);
+    }
+
+    #[test]
+    fn test_estimate_tokens_single_char() {
+        let tokens = estimate_tokens("x");
+        assert!(tokens >= 1);
+    }
+
+    // === apply_stop_sequences edge cases ===
+
+    #[test]
+    fn test_apply_stop_no_stops() {
+        let (text, reason) = apply_stop_sequences("hello world", &None, FinishReason::Length);
+        assert_eq!(text, "hello world");
+        assert!(matches!(reason, FinishReason::Length));
+    }
+
+    #[test]
+    fn test_apply_stop_empty_stop_list() {
+        let stops = Some(vec![]);
+        let (text, reason) = apply_stop_sequences("hello world", &stops, FinishReason::Length);
+        assert_eq!(text, "hello world");
+        assert!(matches!(reason, FinishReason::Length));
+    }
+
+    #[test]
+    fn test_apply_stop_multiple_picks_earliest() {
+        let stops = Some(vec!["LATE".to_string(), "EARLY".to_string()]);
+        let input = "text EARLY then LATE end";
+        let (text, reason) = apply_stop_sequences(input, &stops, FinishReason::Length);
+        assert_eq!(text, "text ");
+        assert!(matches!(reason, FinishReason::Stop));
+    }
+
+    #[test]
+    fn test_apply_stop_at_beginning() {
+        let stops = Some(vec!["STOP".to_string()]);
+        let (text, reason) = apply_stop_sequences("STOP rest of text", &stops, FinishReason::Length);
+        assert_eq!(text, "");
+        assert!(matches!(reason, FinishReason::Stop));
+    }
+
+    // === chunk_text tests ===
+
+    #[test]
+    fn test_chunk_text_empty() {
+        let chunks = chunk_text("", 10);
+        assert!(chunks.is_empty());
+    }
+
+    #[test]
+    fn test_chunk_text_exact_fit() {
+        let chunks = chunk_text("abcde", 5);
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0], "abcde");
+    }
+
+    #[test]
+    fn test_chunk_text_splits() {
+        let chunks = chunk_text("abcdefghij", 3);
+        assert_eq!(chunks.len(), 4); // "abc", "def", "ghi", "j"
+        assert_eq!(chunks[0], "abc");
+        assert_eq!(chunks[1], "def");
+        assert_eq!(chunks[2], "ghi");
+        assert_eq!(chunks[3], "j");
+    }
+
+    #[test]
+    fn test_chunk_text_remainder() {
+        let chunks = chunk_text("abcdefg", 4);
+        assert_eq!(chunks.len(), 2); // "abcd", "efg"
+        assert_eq!(chunks[0], "abcd");
+        assert_eq!(chunks[1], "efg");
+    }
+
+    // === StopTracker tests ===
+
+    #[test]
+    fn test_stop_tracker_no_stops() {
+        let mut tracker = StopTracker::new(None, 64);
+        let result = tracker.push("hello ");
+        assert_eq!(result, vec!["hello "]);
+        let result2 = tracker.push("world");
+        assert_eq!(result2, vec!["world"]);
+        assert!(!tracker.stop_hit());
+    }
+
+    #[test]
+    fn test_stop_tracker_detects_stop() {
+        let mut tracker = StopTracker::new(Some(vec!["STOP".to_string()]), 64);
+        let result = tracker.push("hello STOP world");
+        assert_eq!(result, vec!["hello "]);
+        assert!(tracker.stop_hit());
+    }
+
+    #[test]
+    fn test_stop_tracker_stop_across_tokens() {
+        // StopTracker emits text eagerly - when "hello ST" arrives, the tracker
+        // doesn't know "STOP" is coming, so it emits "hello ST". When "OP world"
+        // arrives, the buffer becomes "hello STOP world" and the stop is found at
+        // index 6. Since 8 chars were already emitted (past the stop point),
+        // no new text is emitted on the second push.
+        let mut tracker = StopTracker::new(Some(vec!["STOP".to_string()]), 64);
+        let r1 = tracker.push("hello ST");
+        assert!(!tracker.stop_hit());
+        assert_eq!(r1, vec!["hello ST"]);
+        let r2 = tracker.push("OP world");
+        assert!(tracker.stop_hit());
+        // No new text emitted after stop detected
+        assert!(r2.is_empty());
+    }
+
+    #[test]
+    fn test_stop_tracker_already_stopped() {
+        let mut tracker = StopTracker::new(Some(vec!["X".to_string()]), 64);
+        let _ = tracker.push("aXb");
+        assert!(tracker.stop_hit());
+        let result = tracker.push("more text");
+        assert!(result.is_empty());
     }
 }

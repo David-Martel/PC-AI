@@ -20,11 +20,13 @@ PC-AI.ps1 (CLI)
      ├─ PC-AI.Hardware / Network / USB / Virtualization / Performance / Cleanup
      ├─ PC-AI.LLM (LLM orchestration + routing)
      ├─ PC-AI.Evaluation (LLM evaluation + benchmarking)
-     └─ PC-AI.Acceleration (Rust CLI + native DLLs)
-          └─ Native/ (Rust + C# P/Invoke)
-                ├─ PcaiNative (.NET interop)
-                ├─ PcaiChatTui (C# TUI)
-                └─ PcaiServiceHost (C# service orchestration)
+     ├─ PC-AI.Acceleration (Rust CLI + native DLLs)
+     ├─ PC-AI.CLI / PC-AI.Common
+     └─ Native/ (Rust + C# P/Invoke + HTTP APIs)
+          ├─ pcai_core (Rust workspace: inference + libs)
+          ├─ PcaiNative (.NET interop)
+          ├─ PcaiChatTui (C# TUI)
+          └─ PcaiServiceHost (C# service orchestration)
 ```
 
 ## LLM + Router Pipeline
@@ -32,7 +34,7 @@ PC-AI.ps1 (CLI)
 ```
 User Request
    │
-   ├─ (Optional) FunctionGemma Router
+   ├─ (Optional) FunctionGemma Router (via Invoke-LLMChatRouted)
    │      ├─ Uses pcai-tools.json tool schema
    │      ├─ Selects/executes PowerShell tools
    │      └─ Returns tool outputs
@@ -82,7 +84,7 @@ Native inference is exposed through `pcai_inference.dll` and shared across:
 - `Config/pcai-tools.json`: tool schema for FunctionGemma.
 - `DIAGNOSE.md`, `DIAGNOSE_LOGIC.md`: diagnostic system prompts.
 - `CHAT.md`: general chat system prompt.
-- `Config/hvsock-proxy.conf`: optional HVSocket aliases for local routing.
+- `Config/hvsock-proxy.conf`: optional HVSocket aliases for local routing (`hvsock://pcai-inference`, `hvsock://functiongemma`).
 - `.pcai/`: local build + evaluation artifacts (gitignored, rg-accessible).
 
 ## Extending Tool Coverage
@@ -108,11 +110,6 @@ Training/evaluation data is generated to match this format.
   length and reduce VRAM use.
 - `train.cuda_visible_devices` + `train.min_vram_mb` steer GPU selection toward
   higher-memory devices.
-
-## Deprecations
-
-- `Deploy/functiongemma-finetune/tool_router.py` is deprecated in favor of native
-  routing via `Invoke-FunctionGemmaReAct` + `PcaiOpenAiClient`.
 
 ## Documentation Automation
 

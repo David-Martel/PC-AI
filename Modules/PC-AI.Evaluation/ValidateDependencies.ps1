@@ -64,12 +64,12 @@ if (-not $dllFound) {
 ║                                                                   ║
 ║  Build the native library first:                                  ║
 ║                                                                   ║
-║    cd Deploy\pcai-inference                                       ║
-║    .\build.ps1 -Backend mistralrs                                 ║
+║    .\Build.ps1 -Component inference                               ║
 ║                                                                   ║
-║  Or for CUDA-enabled llama.cpp:                                   ║
+║  Or build a specific backend directly:                            ║
 ║                                                                   ║
-║    .\build-llamacpp-fixed.ps1                                     ║
+║    cd Native\pcai_core\pcai_inference                             ║
+║    .\Invoke-PcaiBuild.ps1 -Backend mistralrs -Configuration Release║
 ║                                                                   ║
 ╚══════════════════════════════════════════════════════════════════╝
 "@

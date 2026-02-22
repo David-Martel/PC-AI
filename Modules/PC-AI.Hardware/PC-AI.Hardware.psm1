@@ -3,7 +3,36 @@
 <#
 .SYNOPSIS
     PC-AI Hardware Diagnostics Module
-    Provides granular cmdlets for querying system hardware health via CIM/WMI.
+
+.DESCRIPTION
+    Provides read-only cmdlets for querying Windows hardware health via CIM/WMI.
+    Replaces the legacy Get-PcDiagnostics.ps1 monolithic script with individual,
+    composable functions that can be called independently or orchestrated via
+    New-DiagnosticReport.
+
+    Exported functions:
+      Get-DeviceErrors      - Query Device Manager for PnP devices with non-zero
+                              ConfigManagerErrorCode (equivalent to hardware errors
+                              shown in Device Manager with yellow/red icons).
+      Get-DiskHealth        - Query physical disk SMART status via CIM/wmic.
+      Get-UsbStatus         - Enumerate USB controllers and connected USB devices,
+                              including error codes for each device.
+      Get-NetworkAdapters   - List physical network adapters with connection status,
+                              speed, and enabled state.
+      Get-SystemEvents      - Query the System event log for disk/USB/storage-related
+                              warnings and errors over a configurable look-back window.
+      New-DiagnosticReport  - Orchestrate all of the above into a structured report
+                              object (or file) covering all hardware categories.
+
+    Native acceleration:
+      This module uses only built-in CIM/WMI cmdlets and wmic. It does NOT require
+      PcaiNative.dll. High-performance native acceleration for file/process metrics
+      is handled by the PC-AI.Performance module instead.
+
+    Dependencies:
+      - PowerShell 5.1 or later
+      - Windows 10/11 (CIM provider)
+      - Administrator rights recommended for full event log and device access
 #>
 
 $script:ModuleRoot = $PSScriptRoot
@@ -22,114 +51,7 @@ if (Test-Path $publicPath) {
     }
 }
 
-function Get-PcDeviceError {
-    <#
-    .SYNOPSIS
-        Gets devices reporting errors in Device Manager.
-    #>
-    [CmdletBinding()]
-    param()
-
-    try {
-        $devices = Get-CimInstance Win32_PnPEntity -ErrorAction Stop |
-            Where-Object { $_.ConfigManagerErrorCode -ne 0 }
-
-        if ($devices) {
-            $devices | Select-Object Name, PNPClass, Manufacturer, ConfigManagerErrorCode, Status
-        }
-    } catch {
-        Write-Error "Failed to query PnP devices: $_"
-    }
-}
-
-function Get-PcDiskStatus {
-    <#
-    .SYNOPSIS
-        Gets SMART status of physical disks.
-    #>
-    [CmdletBinding()]
-    param()
-
-    try {
-        Get-CimInstance Win32_DiskDrive | Select-Object Model, Status, Size, MediaType
-    } catch {
-        Write-Error "Failed to query disk status: $_"
-    }
-}
-
-function Get-PcUsbStatus {
-    <#
-    .SYNOPSIS
-        Gets status of USB controllers and devices.
-    #>
-    [CmdletBinding()]
-    param(
-        [switch]$ErrorsOnly
-    )
-
-    try {
-        $usb = Get-CimInstance Win32_PnPEntity |
-            Where-Object { $_.PNPClass -eq 'USB' -or $_.Name -like '*USB*' }
-
-        if ($ErrorsOnly) {
-            $usb = $usb | Where-Object { $_.ConfigManagerErrorCode -ne 0 -or $_.Status -ne 'OK' }
-        }
-
-        $usb | Select-Object Name, PNPClass, Status, ConfigManagerErrorCode
-    } catch {
-        Write-Error "Failed to query USB devices: $_"
-    }
-}
-
-function Get-PcNetworkStatus {
-    <#
-    .SYNOPSIS
-        Gets status of physical network adapters.
-    #>
-    [CmdletBinding()]
-    param()
-
-    try {
-        Get-CimInstance Win32_NetworkAdapter |
-            Where-Object { $_.PhysicalAdapter -eq $true } |
-            Select-Object Name, NetEnabled, Status, MACAddress, Speed
-    } catch {
-        Write-Error "Failed to query network adapters: $_"
-    }
-}
-
-function Get-PcSystemEvent {
-    <#
-    .SYNOPSIS
-        Gets recent critical system events related to hardware.
-    .PARAMETER Days
-        Number of past days to query. Default is 3.
-    #>
-    [CmdletBinding()]
-    param(
-        [int]$Days = 3
-    )
-
-    try {
-        $startTime = (Get-Date).AddDays(-$Days)
-        Get-WinEvent -FilterHashtable @{
-            LogName   = 'System'
-            Level     = 1, 2, 3
-            StartTime = $startTime
-        } -ErrorAction SilentlyContinue | Where-Object {
-            $_.ProviderName -match 'disk|storahci|nvme|usbhub|USB|nvstor|iaStor|stornvme|partmgr'
-        } | Select-Object -First 50 TimeCreated, ProviderName, Id, LevelDisplayName, Message
-    } catch {
-        Write-Warning "Failed to query System events (Admin rights required?): $_"
-    }
-}
-
 Export-ModuleMember -Function @(
-    'Get-PcDeviceError',
-    'Get-PcDiskStatus',
-    'Get-PcUsbStatus',
-    'Get-PcNetworkStatus',
-    'Get-PcSystemEvent',
     'Get-DeviceErrors',
     'Get-DiskHealth',
     'Get-UsbStatus',

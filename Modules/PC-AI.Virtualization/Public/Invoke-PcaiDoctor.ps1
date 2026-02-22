@@ -72,7 +72,7 @@ function Invoke-PcaiDoctor {
     }
 
     if (-not $health.NativeFFI.DllExists) {
-        $recommendations += 'pcai_inference.dll not found. Build with: cd Deploy\pcai-inference; cargo build --features ffi,mistralrs-backend --release.'
+        $recommendations += 'pcai_inference.dll not found. Build with: .\Build.ps1 -Component inference (or Native\pcai_core\pcai_inference\Invoke-PcaiBuild.ps1).'
     }
 
     if ($health.Gpu.Status -ne 'OK') {

@@ -12,14 +12,14 @@ Test-NetConnection 127.0.0.1 -Port 8080 | Select-Object TcpTestSucceeded
 
 If pcai-inference is not running, start it:
 ```powershell
-cd C:\Users\david\PC_AI\Deploy\pcai-inference
+cd .\Native\pcai_core\pcai_inference
 cargo run --release --features "llamacpp,server"
 ```
 
 ## Step 1: Import Module
 
 ```powershell
-Import-Module "C:\Users\david\PC_AI\Modules\PC-AI.LLM\PC-AI.LLM.psd1"
+Import-Module .\Modules\PC-AI.LLM\PC-AI.LLM.psd1
 ```
 
 ## Step 2: Verify Installation
@@ -47,11 +47,8 @@ Write-Host $response.Response
 ### 4a. Run Hardware Diagnostics (Administrator Required)
 
 ```powershell
-# Navigate to PC_AI directory
-cd C:\Users\david\PC_AI
-
 # Run diagnostics script
-.\Get-PcDiagnostics.ps1
+.\PC-AI.ps1 diagnose all
 
 # This creates: Desktop\Hardware-Diagnostics-Report.txt
 ```
@@ -114,13 +111,13 @@ Get-Help Set-LLMConfig -Examples
 ### Problem: Module not found
 ```powershell
 # Use full path
-Import-Module "C:\Users\david\PC_AI\Modules\PC-AI.LLM\PC-AI.LLM.psd1" -Force
+Import-Module .\Modules\PC-AI.LLM\PC-AI.LLM.psd1 -Force
 ```
 
 ### Problem: pcai-inference connection failed
 ```powershell
 # Start pcai-inference
-cd C:\Users\david\PC_AI\Deploy\pcai-inference
+cd .\Native\pcai_core\pcai_inference
 cargo run --release --features "llamacpp,server"
 
 # Wait 5 seconds, then test again
@@ -158,7 +155,7 @@ Set-LLMConfig -DefaultTimeout 300
 
 1. **Read full documentation**: See `README.md` for comprehensive guide
 2. **Run examples**: Execute `.\USAGE_EXAMPLES.ps1` for working examples
-3. **Analyze diagnostics**: Run `Get-PcDiagnostics.ps1` and analyze with LLM
+3. **Analyze diagnostics**: Run `PC-AI.ps1 diagnose all` and analyze with LLM
 4. **Explore models**: Try different models for different tasks
 5. **Customize config**: Adjust settings with `Set-LLMConfig`
 
@@ -174,4 +171,3 @@ Set-LLMConfig -DefaultTimeout 300
 **You're now ready to use PC-AI.LLM!** 🚀
 
 Start with `Get-LLMStatus -TestConnection` to verify everything is working.
-

@@ -9,10 +9,8 @@
   "VLLMModel": "functiongemma-270m-it",
   "OllamaPath": "",
   "DefaultModel": "pcai-inference",
-  "ProjectConfigPath": "C:\\Users\\david\\PC_AI\\Config\\llm-config.json",
   "OllamaApiUrl": "http://127.0.0.1:8080",
   "LMStudioApiUrl": "http://localhost:1234",
-  "ConfigPath": "C:\\Users\\david\\PC_AI\\Modules\\PC-AI.LLM\\llm-config.json",
   "PcaiInferenceApiUrl": "http://127.0.0.1:8080",
   "VLLMApiUrl": "http://127.0.0.1:8000"
 }

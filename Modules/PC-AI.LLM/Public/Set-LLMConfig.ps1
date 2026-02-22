@@ -90,6 +90,7 @@ function Set-LLMConfig {
 
         $configPath = $script:ModuleConfig.ConfigPath
         $projectConfigPath = $script:ModuleConfig.ProjectConfigPath
+        $configPersistExclusions = @('ConfigPath', 'ProjectConfigPath')
 
         # Default configuration
         $defaultConfig = @{
@@ -112,7 +113,12 @@ function Set-LLMConfig {
 
             # Save to file
             try {
-                $jsonContent = $script:ModuleConfig | ConvertTo-Json -Depth 10
+                $persistConfig = @{}
+                foreach ($key in $script:ModuleConfig.Keys) {
+                    if ($key -in $configPersistExclusions) { continue }
+                    $persistConfig[$key] = $script:ModuleConfig[$key]
+                }
+                $jsonContent = $persistConfig | ConvertTo-Json -Depth 10
                 [System.IO.File]::WriteAllText($configPath, $jsonContent, [System.Text.Encoding]::UTF8)
                 Write-Host "Configuration reset successfully" -ForegroundColor Green
             }
@@ -188,7 +194,12 @@ function Set-LLMConfig {
             # Save configuration if anything was updated
             if ($updated) {
                 try {
-                    $jsonContent = $script:ModuleConfig | ConvertTo-Json -Depth 10
+                    $persistConfig = @{}
+                    foreach ($key in $script:ModuleConfig.Keys) {
+                        if ($key -in $configPersistExclusions) { continue }
+                        $persistConfig[$key] = $script:ModuleConfig[$key]
+                    }
+                    $jsonContent = $persistConfig | ConvertTo-Json -Depth 10
                     [System.IO.File]::WriteAllText($configPath, $jsonContent, [System.Text.Encoding]::UTF8)
                     Write-Verbose "Configuration saved to: $configPath"
                 }

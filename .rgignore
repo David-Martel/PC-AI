@@ -9,10 +9,7 @@
 !.pcai/**
 
 # Exclude from code search (but keep locally for dev)
-.deprecated/
-**/unsloth_compiled_cache/
 **/.venv*/
-**/out_model/
 **/*.tfevents.*
 **/runs/
 

@@ -19,21 +19,61 @@ function Resolve-PcaiPath {
         [string]$PathType
     )
 
-    # Determine root path
-    $root = $null
+    function Find-PcaiRoot {
+        [CmdletBinding()]
+        [OutputType([string])]
+        param([string]$StartPath)
 
-    # 1. Check environment variable
-    if ($env:PCAI_ROOT) {
+        if (-not $StartPath -or -not (Test-Path $StartPath)) {
+            return $null
+        }
+
+        try {
+            $cursor = (Resolve-Path -Path $StartPath -ErrorAction Stop).Path
+        } catch {
+            return $null
+        }
+
+        while ($cursor) {
+            $hasRepoMarkers =
+                (Test-Path (Join-Path $cursor 'PC-AI.ps1')) -or
+                (Test-Path (Join-Path $cursor 'AGENTS.md')) -or
+                (Test-Path (Join-Path $cursor '.git'))
+            if ($hasRepoMarkers) {
+                return $cursor
+            }
+
+            $parent = Split-Path -Parent $cursor
+            if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $cursor) {
+                break
+            }
+            $cursor = $parent
+        }
+
+        return $null
+    }
+
+    # Determine root path (env override -> module location -> working directory)
+    $root = $null
+    if ($env:PCAI_ROOT -and (Test-Path $env:PCAI_ROOT)) {
         $root = $env:PCAI_ROOT
     }
-    # 2. Derive from module location
-    elseif ($PSScriptRoot) {
-        # Private -> PC-AI.LLM -> Modules -> PC_AI
-        $root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+
+    if (-not $root -and $PSScriptRoot) {
+        # Private -> PC-AI.LLM -> Modules -> repo root
+        $moduleDerivedRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+        $root = Find-PcaiRoot -StartPath $moduleDerivedRoot
+        if (-not $root) {
+            $root = $moduleDerivedRoot
+        }
     }
-    # 3. Fallback to known location
-    else {
-        $root = 'C:\Users\david\PC_AI'
+
+    if (-not $root) {
+        $root = Find-PcaiRoot -StartPath (Get-Location).ProviderPath
+    }
+
+    if (-not $root) {
+        $root = (Get-Location).ProviderPath
     }
 
     switch ($PathType) {

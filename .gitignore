@@ -136,14 +136,6 @@ Models/
 **/*.tflite
 **/*.litertlm
 
-# FunctionGemma finetune outputs
-Deploy/functiongemma-finetune/data/
-Deploy/functiongemma-finetune/output/
-Deploy/functiongemma-finetune/out_model/
-Deploy/functiongemma-finetune/unsloth_compiled_cache/
-Deploy/functiongemma-finetune/*_data.jsonl
-Deploy/functiongemma-finetune/test_vectors.json
-Deploy/functiongemma-finetune/dummy_tools.json
 
 # FunctionGemma / Rust training checkpoints and outputs
 Deploy/rust-functiongemma-train/checkpoints/
@@ -155,9 +147,6 @@ output/
 # TensorBoard events
 **/*.tfevents.*
 **/runs/
-
-# Deprecated code archives
-.deprecated/
 
 # Build error logs
 build_errors*.txt

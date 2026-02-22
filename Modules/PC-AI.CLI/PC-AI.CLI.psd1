@@ -20,7 +20,8 @@
     PrivateData = @{
         PSData = @{
             Tags = @('PC-AI','CLI','Help')
-            ProjectUri = 'https://example.invalid'
+            LicenseUri = 'https://github.com/David-Martel/PC-AI/blob/main/LICENSE'
+            ProjectUri = 'https://github.com/David-Martel/PC-AI'
         }
     }
 }

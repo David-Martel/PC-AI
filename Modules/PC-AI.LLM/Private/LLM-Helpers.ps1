@@ -15,8 +15,16 @@ function Resolve-PcaiEndpoint {
         [string]$ProviderName,
 
         [Parameter()]
-        [string]$ConfigPath = 'C:\Users\david\PC_AI\Config\hvsock-proxy.conf'
+        [string]$ConfigPath
     )
+
+    if (-not $ConfigPath) {
+        if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
+            $ConfigPath = Resolve-PcaiPath -PathType 'HVSockConfig'
+        } elseif ($env:PCAI_ROOT) {
+            $ConfigPath = Join-Path $env:PCAI_ROOT 'Config\hvsock-proxy.conf'
+        }
+    }
 
     $resolveHvsockName = {
         param([string]$LookupName)
@@ -88,8 +96,20 @@ function Get-EnrichedSystemPrompt {
         [string]$Mode,
 
         [Parameter()]
-        [string]$ProjectRoot = 'C:\Users\david\PC_AI'
+        [string]$ProjectRoot
     )
+
+    if (-not $ProjectRoot) {
+        if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
+            $ProjectRoot = Resolve-PcaiPath -PathType 'Root'
+        } elseif ($env:PCAI_ROOT) {
+            $ProjectRoot = $env:PCAI_ROOT
+        } elseif ($PSScriptRoot) {
+            $ProjectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+        } else {
+            $ProjectRoot = (Get-Location).ProviderPath
+        }
+    }
 
     $promptPath = if ($Mode -eq 'chat') { Join-Path $ProjectRoot 'CHAT.md' } else { Join-Path $ProjectRoot 'DIAGNOSE.md' }
     if (-not (Test-Path $promptPath)) {

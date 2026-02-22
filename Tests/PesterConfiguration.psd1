@@ -9,17 +9,12 @@
     }
 
     CodeCoverage = @{
-        Enabled = $false  # Enable via .pester.ps1 -Coverage flag
-        OutputFormat = 'JaCoCoXml'
-        OutputPath = 'coverage.xml'
+        Enabled = $true
+        OutputFormat = 'JaCoCo'
+        OutputPath = 'TestResults/coverage.xml'
         Path = @(
-            '..\Modules\PC-AI.Hardware\**\*.ps1'
-            '..\Modules\PC-AI.Virtualization\**\*.ps1'
-            '..\Modules\PC-AI.USB\**\*.ps1'
-            '..\Modules\PC-AI.Cleanup\**\*.ps1'
-            '..\Modules\PC-AI.Performance\**\*.ps1'
-            '..\Modules\PC-AI.LLM\**\*.ps1'
-            '..\Modules\PC-AI.Network\**\*.ps1'
+            './Modules/**/*.ps1'
+            './Modules/**/*.psm1'
         )
         ExcludeTests = $true
         RecursePaths = $true

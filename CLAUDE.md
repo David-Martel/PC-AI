@@ -20,7 +20,6 @@ PC_AI/
 ├── DIAGNOSE.md                        # LLM system prompt defining assistant behavior
 ├── DIAGNOSE_LOGIC.md                  # Branched reasoning decision tree for analysis
 ├── CHAT.md                            # General chat system prompt
-├── Get-PcDiagnostics.ps1              # Core hardware/device diagnostics script
 ├── Native/pcai_core/                  # Rust workspace (monorepo)
 │   ├── pcai_inference/                # Rust LLM inference engine (HTTP + FFI)
 │   └── pcai_core_lib/                 # Shared Rust library (telemetry, fs, search)
@@ -31,10 +30,16 @@ PC_AI/
 ├── Deploy/rust-functiongemma-train/   # Rust router dataset + training pipeline
 ├── Modules/
 │   ├── PC-AI.Acceleration/            # Native FFI wrappers (P/Invoke bridge)
+│   ├── PC-AI.Cleanup/                 # Duplicate detection, PATH cleanup
+│   ├── PC-AI.CLI/                     # Command map, help extraction, argument parsing
+│   ├── PC-AI.Evaluation/              # LLM evaluation framework (metrics, A/B testing)
 │   ├── PC-AI.Hardware/                # Device, disk, USB, network diagnostics
-│   ├── PC-AI.LLM/                     # Local LLM integration (Ollama, native)
+│   ├── PC-AI.LLM/                     # Local LLM integration (Ollama, native, TUI)
+│   ├── PC-AI.Network/                 # Network diagnostics and monitoring
+│   ├── PC-AI.Performance/             # Native perf metrics (Rust FFI)
+│   ├── PC-AI.USB/                     # USB device management
 │   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
-│   └── PcaiInference.psm1            # Inference module (load/generate/stream)
+│   └── PcaiInference.psm1             # Inference module (load/generate/stream/async)
 ├── Config/
 │   ├── llm-config.json                # Backend + model configuration
 │   ├── pcai-tools.json                # FunctionGemma tool schema
@@ -46,7 +51,7 @@ PC_AI/
 
 1. **DIAGNOSE.md** - Defines the LLM assistant's role, safety constraints, and workflow
 2. **DIAGNOSE_LOGIC.md** - Branched reasoning logic for analyzing diagnostic output
-3. **Get-PcDiagnostics.ps1** - Read-only PowerShell script that collects system data
+3. **Modules/PC-AI.Hardware/** - PowerShell module that collects system data via structured functions
 
 The agent follows a **collect → parse → route → reason → recommend** workflow where diagnostics output is structured into categories, optional tool routing is executed via the FunctionGemma runtime, and the main LLM produces recommendations.
 
@@ -63,6 +68,9 @@ The agent follows a **collect → parse → route → reason → recommend** wor
 
 # Build both inference backends
 .\Build.ps1 -Component inference -EnableCuda
+
+# Build C# Chat TUI
+.\Build.ps1 -Component tui
 
 # Clean build and create release packages
 .\Build.ps1 -Clean -Package -EnableCuda
@@ -164,7 +172,17 @@ Outputs are written under `.pcai\evaluation\runs\<timestamp-label>\` with:
 ### Run Hardware Diagnostics
 ```powershell
 # Requires Administrator
-.\Get-PcDiagnostics.ps1
+Import-Module PC-AI.Hardware
+
+# Individual diagnostics
+Get-DeviceErrors          # Device Manager errors
+Get-DiskHealth            # SMART disk status
+Get-UsbStatus             # USB controller/device status
+Get-NetworkAdapters       # Physical network adapters
+Get-SystemEvents -Days 3  # Recent critical system events
+
+# Full combined report
+New-DiagnosticReport      # Generates complete diagnostic report
 # Creates: Desktop\Hardware-Diagnostics-Report.txt
 ```
 
@@ -206,19 +224,19 @@ git push origin v1.0.0
 
 **Workflow file:** `.github/workflows/release-cuda.yml`
 
-## Scripts to Migrate from `~\*`
+## Potential Enhancements from Home Directory Scripts
 
-The following scripts from the home directory are candidates for consolidation into this project:
+The following scripts from the home directory could potentially enhance PC-AI capabilities:
 
 ### Disk Optimization
-- `Optimize-Disks.ps1` - Smart TRIM/defrag for SSD/HDD with scheduled task support
+- `Optimize-Disks.ps1` - Smart TRIM/defrag for SSD/HDD with scheduled task support (consider integrating into PC-AI.Performance)
 
 ### Cleanup
-- `clean_machine_path.ps1` - Remove duplicate/stale PATH entries
-- `cleanup-duplicates.ps1` - Duplicate file detection and removal
+- `clean_machine_path.ps1` - Remove duplicate/stale PATH entries (extends PC-AI.Cleanup functionality)
+- `cleanup-duplicates.ps1` - Duplicate file detection and removal (complements PC-AI.Cleanup module)
 
 ### Performance
-- `wezterm-performance-profiler.ps1` - Terminal startup/memory/render benchmarking
+- `wezterm-performance-profiler.ps1` - Terminal startup/memory/render benchmarking (candidate for PC-AI.Performance)
 
 ## Diagnostic Categories
 
@@ -281,6 +299,16 @@ wmic diskdrive get model, status
 - Models list: `GET http://127.0.0.1:8080/v1/models`
 - Completion: `POST http://127.0.0.1:8080/v1/completions`
 
+### Async Inference (FFI)
+- `pcai_generate_async(prompt, max_tokens, temperature)` - Initiate async generation, returns request ID
+- `pcai_poll_result(request_id)` - Poll result status without blocking, returns status + partial text
+- `pcai_cancel(request_id)` - Cancel async request, returns success/failure
+
+PowerShell wrappers:
+- `Invoke-PcaiGenerateAsync` - Async generation with `-NoWait` for manual polling
+- `Get-PcaiAsyncResult` - Poll or wait for async result completion
+- `Stop-PcaiGeneration` - Cancel ongoing async request
+
 ## Expected Output Format
 
 When reporting findings, use this structure:
@@ -308,13 +336,14 @@ When reporting findings, use this structure:
 ## Development Notes
 
 ### Adding New Diagnostics
-1. Add data collection to `Get-PcDiagnostics.ps1`
+1. Add data collection function to `Modules/PC-AI.Hardware/Public/` or relevant module
 2. Add parsing logic to `DIAGNOSE_LOGIC.md`
 3. Update category handling in `DIAGNOSE.md`
+4. Export function in module manifest (`.psd1` file)
 
 ### Testing
 
-**Rust Unit Tests (58 tests):**
+**Rust Unit Tests (61+ tests):**
 ```powershell
 cd Native\pcai_core\pcai_inference
 cargo test --no-default-features --features server,ffi --lib
@@ -327,6 +356,7 @@ cargo test --no-default-features --features server,ffi --lib
 | `backends/mod.rs` | 7 | Request/Response serde, FinishReason |
 | `http/mod.rs` | 21 | Chat prompt, tokens, stop sequences, chunks, StopTracker |
 | `ffi/mod.rs` | 17 | FFI edge cases, init/shutdown, error codes |
+| Version | 3 | Build version detection and formatting |
 
 **FFI Integration Tests (49 tests):**
 ```powershell
@@ -339,10 +369,11 @@ pwsh -Command "Invoke-Pester Tests/Integration/FFI.Stress.Tests.ps1"
 
 **PowerShell Diagnostics:**
 ```powershell
-# Test diagnostics script runs without errors
-.\Get-PcDiagnostics.ps1
+# Import and test diagnostics module
+Import-Module PC-AI.Hardware
+Get-DeviceErrors
 
-# Verify report created
+# Verify report creation
 Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 ```
 

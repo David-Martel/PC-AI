@@ -43,6 +43,84 @@ if ($psVersion.Major -lt 5 -or ($psVersion.Major -eq 5 -and $psVersion.Minor -lt
 }
 Write-Host "  ✓ PowerShell version is compatible" -ForegroundColor Green
 
+# Check build/deploy toolchain prerequisites
+Write-Host "`nChecking build toolchain..." -ForegroundColor Cyan
+$toolchainWarnings = @()
+
+$requiredTools = @(
+    @{ Name = 'dotnet'; Hint = 'Install .NET SDK 8.0+ from https://dotnet.microsoft.com/download'; VersionCommand = { dotnet --version } },
+    @{ Name = 'rustup'; Hint = 'Install rustup from https://rustup.rs/'; VersionCommand = { rustup --version } },
+    @{ Name = 'cargo'; Hint = 'Install Rust toolchain via rustup'; VersionCommand = { cargo --version } },
+    @{ Name = 'rustc'; Hint = 'Install Rust toolchain via rustup'; VersionCommand = { rustc --version } },
+    @{ Name = 'cmake'; Hint = 'Install CMake 3.x (Visual Studio bundle or https://cmake.org/download/)'; VersionCommand = { cmake --version | Select-Object -First 1 } },
+    @{ Name = 'ninja'; Hint = 'Install Ninja (e.g., choco install ninja -y)'; VersionCommand = { ninja --version } }
+)
+
+foreach ($tool in $requiredTools) {
+    $cmd = Get-Command $tool.Name -ErrorAction SilentlyContinue
+    if ($cmd) {
+        $version = ''
+        try {
+            $version = (& $tool.VersionCommand 2>&1 | Select-Object -First 1).ToString()
+        } catch {
+            $version = '(version unavailable)'
+        }
+        Write-Host "  ✓ $($tool.Name): $version" -ForegroundColor Green
+    } else {
+        $msg = "$($tool.Name) not found. $($tool.Hint)"
+        $toolchainWarnings += $msg
+        Write-Warning "  $msg"
+    }
+}
+
+# MSVC/C++ Build Tools check
+$clCmd = Get-Command cl.exe -ErrorAction SilentlyContinue
+if ($clCmd) {
+    Write-Host "  ✓ MSVC compiler detected: $($clCmd.Source)" -ForegroundColor Green
+} else {
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswhere) {
+        try {
+            $vsPath = & $vswhere -latest -property installationPath 2>$null
+            if ($vsPath) {
+                Write-Host "  [WARN] Visual Studio found at $vsPath, but cl.exe is not in PATH for this shell" -ForegroundColor Yellow
+                Write-Host "    Use a Developer PowerShell, or run the build scripts that initialize VsDevShell." -ForegroundColor Yellow
+            } else {
+                $msg = 'MSVC Build Tools not detected by vswhere. Install Visual Studio 2022 C++ Build Tools + Windows SDK.'
+                $toolchainWarnings += $msg
+                Write-Warning "  $msg"
+            }
+        } catch {
+            $msg = 'Failed to query Visual Studio Build Tools with vswhere.'
+            $toolchainWarnings += $msg
+            Write-Warning "  $msg"
+        }
+    } else {
+        $msg = 'vswhere.exe not found. Install Visual Studio 2022 Build Tools (C++ workload + Windows SDK).'
+        $toolchainWarnings += $msg
+        Write-Warning "  $msg"
+    }
+}
+
+# Optional CUDA check
+$nvcc = Get-Command nvcc -ErrorAction SilentlyContinue
+if ($nvcc) {
+    try {
+        $nvccVersion = (& nvcc --version 2>&1 | Select-Object -Last 1).ToString()
+        Write-Host "  ✓ CUDA nvcc detected: $nvccVersion" -ForegroundColor Green
+    } catch {
+        Write-Host "  ✓ CUDA nvcc detected" -ForegroundColor Green
+    }
+} else {
+    Write-Host "  [WARN] CUDA toolkit not detected (optional unless using -EnableCuda builds)." -ForegroundColor Yellow
+}
+
+if ($toolchainWarnings.Count -gt 0) {
+    Write-Warning "Toolchain checks completed with $($toolchainWarnings.Count) issue(s). See warnings above before running Build.ps1."
+} else {
+    Write-Host "  ✓ Build toolchain checks passed" -ForegroundColor Green
+}
+
 # Install PowerShell modules
 if (-not $SkipModules) {
     Write-Host "`nInstalling required PowerShell modules..." -ForegroundColor Cyan
@@ -234,7 +312,7 @@ Write-Host @"
 Next steps:
 1. Import a module: Import-Module .\Modules\PC-AI.Hardware\PC-AI.Hardware.psd1
 2. Run tests: .\Tests\.pester.ps1
-3. Run diagnostics: .\Get-PcDiagnostics.ps1
+3. Run diagnostics: .\PC-AI.ps1 diagnose hardware
 4. Check code quality: Invoke-ScriptAnalyzer -Path . -Recurse -Settings PSScriptAnalyzerSettings.psd1
 
 For more information, see CI-CD-GUIDE.md

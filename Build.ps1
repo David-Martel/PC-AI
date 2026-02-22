@@ -58,7 +58,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('inference', 'llamacpp', 'mistralrs', 'functiongemma', 'all')]
+    [ValidateSet('inference', 'llamacpp', 'mistralrs', 'functiongemma', 'tui', 'all')]
     [string]$Component = 'all',
 
     [ValidateSet('Debug', 'Release')]
@@ -83,11 +83,13 @@ $script:BuildRoot = Join-Path $script:ArtifactsRoot 'build'
 $script:BuildArtifactsDir = Join-Path $script:BuildRoot 'artifacts'
 $script:BuildLogsDir = Join-Path $script:BuildRoot 'logs'
 $script:BuildPackagesDir = Join-Path $script:BuildRoot 'packages'
+$script:QuietMode = $Quiet.IsPresent
 
 #region Output Formatting
 
 function Write-BuildHeader {
     param([string]$Message)
+    if ($script:QuietMode) { return }
     $line = '=' * 70
     Write-Host "`n$line" -ForegroundColor Cyan
     Write-Host " $Message" -ForegroundColor Cyan
@@ -96,6 +98,7 @@ function Write-BuildHeader {
 
 function Write-BuildPhase {
     param([string]$Phase, [string]$Description)
+    if ($script:QuietMode) { return }
     $elapsed = (Get-Date) - $script:StartTime
     Write-Host "`n[$($elapsed.ToString('mm\:ss'))] " -ForegroundColor DarkGray -NoNewline
     Write-Host "PHASE: $Phase" -ForegroundColor Yellow
@@ -106,21 +109,22 @@ function Write-BuildPhase {
 
 function Write-BuildStep {
     param([string]$Step, [string]$Status = 'running')
+    if ($script:QuietMode -and $Status -notin @('warning', 'error')) { return }
     $symbol = switch ($Status) {
         'running' { '[..]' }
         'success' { '[OK]' }
         'warning' { '[!!]' }
-        'error'   { '[XX]' }
-        'skip'    { '[--]' }
-        default   { '[..]' }
+        'error' { '[XX]' }
+        'skip' { '[--]' }
+        default { '[..]' }
     }
     $color = switch ($Status) {
         'running' { 'White' }
         'success' { 'Green' }
         'warning' { 'Yellow' }
-        'error'   { 'Red' }
-        'skip'    { 'DarkGray' }
-        default   { 'White' }
+        'error' { 'Red' }
+        'skip' { 'DarkGray' }
+        default { 'White' }
     }
     Write-Host "  $symbol " -ForegroundColor $color -NoNewline
     Write-Host $Step
@@ -136,12 +140,14 @@ function Write-BuildResult {
     $status = if ($Success) { 'SUCCESS' } else { 'FAILED' }
     $color = if ($Success) { 'Green' } else { 'Red' }
 
+    if ($script:QuietMode) { return }
+
     Write-Host "`n  $Component build: " -NoNewline
     Write-Host $status -ForegroundColor $color -NoNewline
     Write-Host " ($($Duration.ToString('mm\:ss')))"
 
     if ($Artifacts -and $Artifacts.Count -gt 0) {
-        Write-Host "  Artifacts:" -ForegroundColor DarkGray
+        Write-Host '  Artifacts:' -ForegroundColor DarkGray
         foreach ($artifact in $Artifacts) {
             Write-Host "    - $artifact" -ForegroundColor DarkGray
         }
@@ -157,7 +163,7 @@ function Write-BuildSummary {
     $successCount = ($Results.Values | Where-Object { $_.Success }).Count
     $totalCount = $Results.Count
 
-    Write-BuildHeader "BUILD SUMMARY"
+    Write-BuildHeader 'BUILD SUMMARY'
 
     Write-Host "`n  Total Time: $($elapsed.ToString('hh\:mm\:ss'))" -ForegroundColor Cyan
     Write-Host "  Components: $successCount / $totalCount succeeded" -ForegroundColor $(if ($successCount -eq $totalCount) { 'Green' } else { 'Yellow' })
@@ -185,7 +191,7 @@ function Write-BuildSummary {
         Write-Host "  Packages: $script:BuildPackagesDir" -ForegroundColor DarkGray
     }
 
-    Write-Host ""
+    Write-Host ''
 }
 
 #endregion
@@ -193,7 +199,7 @@ function Write-BuildSummary {
 #region Version Information
 
 function Initialize-BuildVersion {
-    Write-BuildPhase "Version" "Extracting git metadata"
+    Write-BuildPhase 'Version' 'Extracting git metadata'
 
     $versionScript = Join-Path $script:ProjectRoot 'Tools\Get-BuildVersion.ps1'
     if (Test-Path $versionScript) {
@@ -202,9 +208,8 @@ function Initialize-BuildVersion {
         Write-BuildStep "Git: $($script:VersionInfo.GitHashShort) ($($script:VersionInfo.GitBranch))" 'success'
         Write-BuildStep "Type: $($script:VersionInfo.BuildType)" 'success'
         return $script:VersionInfo
-    }
-    else {
-        Write-BuildStep "Version script not found, using defaults" 'warning'
+    } else {
+        Write-BuildStep 'Version script not found, using defaults' 'warning'
         $env:PCAI_VERSION = '0.1.0+unknown'
         $env:PCAI_BUILD_VERSION = '0.1.0+unknown'
         return $null
@@ -216,7 +221,7 @@ function Initialize-BuildVersion {
 #region Directory Setup
 
 function Initialize-BuildDirectories {
-    Write-BuildPhase "Initialize" "Setting up build directory structure"
+    Write-BuildPhase 'Initialize' 'Setting up build directory structure'
 
     $dirs = @(
         $script:BuildRoot,
@@ -224,6 +229,7 @@ function Initialize-BuildDirectories {
         (Join-Path $script:BuildArtifactsDir 'pcai-llamacpp'),
         (Join-Path $script:BuildArtifactsDir 'pcai-mistralrs'),
         (Join-Path $script:BuildArtifactsDir 'functiongemma'),
+        (Join-Path $script:BuildArtifactsDir 'pcai-chattui'),
         $script:BuildLogsDir,
         $script:BuildPackagesDir
     )
@@ -239,7 +245,7 @@ function Initialize-BuildDirectories {
 }
 
 function Clear-BuildArtifacts {
-    Write-BuildPhase "Clean" "Removing previous build artifacts"
+    Write-BuildPhase 'Clean' 'Removing previous build artifacts'
 
     $dirsToClean = @(
         $script:BuildArtifactsDir,
@@ -304,7 +310,7 @@ function Invoke-InferenceBuild {
 
     # Build arguments
     $buildArgs = @{
-        Backend = $Backend
+        Backend       = $Backend
         Configuration = $Configuration
     }
     if ($EnableCuda) { $buildArgs['EnableCuda'] = $true }
@@ -346,19 +352,18 @@ function Invoke-InferenceBuild {
         Write-BuildStep "pcai-inference ($Backend) build complete" $status
 
         return @{
-            Success = $success
-            Duration = (Get-Date) - $componentStart
+            Success   = $success
+            Duration  = (Get-Date) - $componentStart
             Artifacts = $artifacts
-            LogFile = $logFile
+            LogFile   = $logFile
         }
-    }
-    catch {
+    } catch {
         Write-BuildStep "pcai-inference ($Backend) build failed: $($_.Exception.Message)" 'error'
         return @{
-            Success = $false
-            Duration = (Get-Date) - $componentStart
+            Success   = $false
+            Duration  = (Get-Date) - $componentStart
             Artifacts = @()
-            Error = $_.Exception.Message
+            Error     = $_.Exception.Message
         }
     }
 }
@@ -370,11 +375,11 @@ function Invoke-FunctionGemmaBuild {
     $projectDir = Join-Path $script:ProjectRoot 'Deploy\rust-functiongemma-runtime'
 
     if (-not (Test-Path $projectDir)) {
-        Write-BuildStep "FunctionGemma project not found" 'warning'
+        Write-BuildStep 'FunctionGemma project not found' 'warning'
         return @{ Success = $false; Duration = (Get-Date) - $componentStart; Artifacts = @() }
     }
 
-    Write-BuildStep "Building FunctionGemma runtime..." 'running'
+    Write-BuildStep 'Building FunctionGemma runtime...' 'running'
 
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
     $logDir = $script:BuildLogsDir
@@ -415,23 +420,95 @@ function Invoke-FunctionGemmaBuild {
         }
 
         $status = if ($success) { 'success' } else { 'error' }
-        Write-BuildStep "FunctionGemma build complete" $status
+        Write-BuildStep 'FunctionGemma build complete' $status
 
         return @{
-            Success = $success
-            Duration = (Get-Date) - $componentStart
+            Success   = $success
+            Duration  = (Get-Date) - $componentStart
             Artifacts = $artifacts
-            LogFile = $logFile
+            LogFile   = $logFile
         }
-    }
-    catch {
+    } catch {
         Pop-Location -ErrorAction SilentlyContinue
         Write-BuildStep "FunctionGemma build failed: $($_.Exception.Message)" 'error'
         return @{
-            Success = $false
-            Duration = (Get-Date) - $componentStart
+            Success   = $false
+            Duration  = (Get-Date) - $componentStart
             Artifacts = @()
-            Error = $_.Exception.Message
+            Error     = $_.Exception.Message
+        }
+    }
+}
+
+function Invoke-TuiBuild {
+    param([string]$Configuration)
+
+    $componentStart = Get-Date
+    $projectPath = Join-Path $script:ProjectRoot 'Native\PcaiChatTui\PcaiChatTui.csproj'
+
+    if (-not (Test-Path $projectPath)) {
+        Write-BuildStep "PcaiChatTui project not found: $projectPath" 'warning'
+        return @{ Success = $false; Duration = (Get-Date) - $componentStart; Artifacts = @() }
+    }
+
+    Write-BuildStep 'Building PcaiChatTui...' 'running'
+
+    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $logDir = $script:BuildLogsDir
+    if (-not (Test-Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+    $logFile = Join-Path $logDir "build_pcai_chattui_$timestamp.log"
+
+    $publishRoot = Join-Path $script:ProjectRoot ".pcai\build\tmp\pcai-chattui-$($Configuration.ToLower())"
+
+    try {
+        $dotnetArgs = @(
+            'publish',
+            $projectPath,
+            '-c', $Configuration,
+            '-r', 'win-x64',
+            '--self-contained', 'false',
+            '-p:PublishSingleFile=false',
+            '-o', $publishRoot
+        )
+
+        $output = & dotnet @dotnetArgs 2>&1 | Tee-Object -FilePath $logFile
+        $success = $LASTEXITCODE -eq 0
+
+        $artifacts = @()
+        $artifactDir = Join-Path $script:BuildArtifactsDir 'pcai-chattui'
+        if (-not (Test-Path $artifactDir)) {
+            New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
+        }
+
+        if ($success -and (Test-Path $publishRoot)) {
+            $filesToStage = Get-ChildItem $publishRoot -File -ErrorAction SilentlyContinue | Where-Object {
+                $_.Extension -in @('.exe', '.dll', '.json', '.deps.json', '.runtimeconfig.json')
+            }
+
+            foreach ($file in $filesToStage) {
+                Copy-Item $file.FullName -Destination $artifactDir -Force
+                $artifacts += $file.Name
+            }
+        }
+
+        $status = if ($success) { 'success' } else { 'error' }
+        Write-BuildStep 'PcaiChatTui build complete' $status
+
+        return @{
+            Success   = $success
+            Duration  = (Get-Date) - $componentStart
+            Artifacts = $artifacts
+            LogFile   = $logFile
+        }
+    } catch {
+        Write-BuildStep "PcaiChatTui build failed: $($_.Exception.Message)" 'error'
+        return @{
+            Success   = $false
+            Duration  = (Get-Date) - $componentStart
+            Artifacts = @()
+            Error     = $_.Exception.Message
         }
     }
 }
@@ -447,7 +524,7 @@ function New-BuildManifest {
         [bool]$EnableCuda
     )
 
-    Write-BuildPhase "Manifest" "Generating build manifest"
+    Write-BuildPhase 'Manifest' 'Generating build manifest'
 
     $artifactsDir = $script:BuildArtifactsDir
     $manifestPath = Join-Path $artifactsDir 'manifest.json'
@@ -459,9 +536,9 @@ function New-BuildManifest {
         $relativePath = $_.FullName.Substring($artifactsDir.Length + 1)
         $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
         $artifacts += @{
-            path = $relativePath
-            size = $_.Length
-            sha256 = $hash
+            path     = $relativePath
+            size     = $_.Length
+            sha256   = $hash
             modified = $_.LastWriteTimeUtc.ToString('o')
         }
     }
@@ -470,35 +547,43 @@ function New-BuildManifest {
     $version = if ($env:PCAI_VERSION) { $env:PCAI_VERSION } else { '0.1.0+unknown' }
     $semver = if ($env:PCAI_SEMVER) { $env:PCAI_SEMVER } else { '0.1.0' }
 
+    $fallbackGitCommit = ((git rev-parse HEAD 2>$null) -replace '\s', '')
+    if (-not $fallbackGitCommit) { $fallbackGitCommit = 'unknown' }
+    $fallbackGitCommitShort = if ($fallbackGitCommit.Length -ge 7) {
+        $fallbackGitCommit.Substring(0, 7)
+    } else {
+        $fallbackGitCommit
+    }
+
     $manifest = @{
-        manifestVersion = '2.0'
-        pcaiVersion = $version
-        semver = $semver
-        buildTime = (Get-Date).ToUniversalTime().ToString('o')
+        manifestVersion    = '2.0'
+        pcaiVersion        = $version
+        semver             = $semver
+        buildTime          = (Get-Date).ToUniversalTime().ToString('o')
         buildTimestampUnix = [int][double]::Parse((Get-Date -UFormat %s))
-        configuration = $Configuration
-        cuda = $EnableCuda
-        platform = 'win-x64'
-        gitCommit = if ($env:PCAI_GIT_HASH) { $env:PCAI_GIT_HASH } else { (git rev-parse HEAD 2>$null) -replace '\s', '' }
-        gitCommitShort = if ($env:PCAI_GIT_HASH_SHORT) { $env:PCAI_GIT_HASH_SHORT } else { ((git rev-parse HEAD 2>$null) -replace '\s', '').Substring(0, 7) }
-        gitBranch = if ($env:PCAI_GIT_BRANCH) { $env:PCAI_GIT_BRANCH } else { (git rev-parse --abbrev-ref HEAD 2>$null) -replace '\s', '' }
-        gitTag = $env:PCAI_GIT_TAG
-        buildType = if ($env:PCAI_BUILD_TYPE) { $env:PCAI_BUILD_TYPE } else { 'dev' }
-        components = @{}
-        artifacts = $artifacts
+        configuration      = $Configuration
+        cuda               = $EnableCuda
+        platform           = 'win-x64'
+        gitCommit          = if ($env:PCAI_GIT_HASH) { $env:PCAI_GIT_HASH } else { $fallbackGitCommit }
+        gitCommitShort     = if ($env:PCAI_GIT_HASH_SHORT) { $env:PCAI_GIT_HASH_SHORT } else { $fallbackGitCommitShort }
+        gitBranch          = if ($env:PCAI_GIT_BRANCH) { $env:PCAI_GIT_BRANCH } else { (git rev-parse --abbrev-ref HEAD 2>$null) -replace '\s', '' }
+        gitTag             = $env:PCAI_GIT_TAG
+        buildType          = if ($env:PCAI_BUILD_TYPE) { $env:PCAI_BUILD_TYPE } else { 'dev' }
+        components         = @{}
+        artifacts          = $artifacts
     }
 
     foreach ($name in $Results.Keys) {
         $result = $Results[$name]
         $manifest.components[$name] = @{
-            success = $result.Success
-            duration = $result.Duration.TotalSeconds
+            success   = $result.Success
+            duration  = $result.Duration.TotalSeconds
             artifacts = $result.Artifacts
         }
     }
 
     $manifest | ConvertTo-Json -Depth 10 | Out-File $manifestPath -Encoding UTF8
-    Write-BuildStep "Created manifest.json" 'success'
+    Write-BuildStep 'Created manifest.json' 'success'
 
     return $manifestPath
 }
@@ -510,7 +595,7 @@ function New-BuildManifest {
 function New-ReleasePackages {
     param([string]$Configuration, [bool]$EnableCuda)
 
-    Write-BuildPhase "Package" "Creating release packages"
+    Write-BuildPhase 'Package' 'Creating release packages'
 
     $artifactsDir = $script:BuildArtifactsDir
     $packagesDir = $script:BuildPackagesDir
@@ -519,7 +604,7 @@ function New-ReleasePackages {
     $packages = @()
 
     # Package each component
-    $components = @('pcai-llamacpp', 'pcai-mistralrs', 'functiongemma')
+    $components = @('pcai-llamacpp', 'pcai-mistralrs', 'functiongemma', 'pcai-chattui')
 
     foreach ($component in $components) {
         $componentDir = Join-Path $artifactsDir $component
@@ -545,7 +630,7 @@ function New-ReleasePackages {
 
 #region Main Execution
 
-Write-BuildHeader "PC_AI Build System"
+Write-BuildHeader 'PC_AI Build System'
 Write-Host "  Component:     $Component" -ForegroundColor White
 Write-Host "  Configuration: $Configuration" -ForegroundColor White
 Write-Host "  CUDA:          $(if ($EnableCuda) { 'Enabled' } else { 'Disabled' })" -ForegroundColor White
@@ -566,29 +651,39 @@ $versionInfo = Initialize-BuildVersion
 
 # Determine what to build
 $buildTargets = switch ($Component) {
-    'inference'    { @('llamacpp', 'mistralrs') }
-    'llamacpp'     { @('llamacpp') }
-    'mistralrs'    { @('mistralrs') }
+    'inference' { @('llamacpp', 'mistralrs') }
+    'llamacpp' { @('llamacpp') }
+    'mistralrs' { @('mistralrs') }
     'functiongemma' { @('functiongemma') }
-    'all'          { @('llamacpp', 'mistralrs', 'functiongemma') }
+    'tui' { @('tui') }
+    'all' { @('llamacpp', 'mistralrs', 'functiongemma', 'tui') }
 }
 
 $results = @{}
 
 # Build inference backends
-Write-BuildPhase "Build" "Compiling native components"
+Write-BuildPhase 'Build' 'Compiling native components'
 
 foreach ($target in $buildTargets) {
     if ($target -eq 'functiongemma') {
         $result = Invoke-FunctionGemmaBuild -Configuration $Configuration
         $results['functiongemma'] = $result
         Write-BuildResult 'FunctionGemma' $result.Success $result.Duration $result.Artifacts
-    }
-    else {
+    } elseif ($target -eq 'tui') {
+        $result = Invoke-TuiBuild -Configuration $Configuration
+        $results['pcai-chattui'] = $result
+        Write-BuildResult 'pcai-chattui' $result.Success $result.Duration $result.Artifacts
+    } else {
         $result = Invoke-InferenceBuild -Backend $target -Configuration $Configuration -EnableCuda $EnableCuda
         $results["pcai-$target"] = $result
         Write-BuildResult "pcai-$target" $result.Success $result.Duration $result.Artifacts
     }
+}
+
+if ($SkipTests) {
+    Write-BuildStep 'Post-build tests skipped by request' 'skip'
+} else {
+    Write-BuildStep 'No post-build test phase configured in Build.ps1 (use Tests/.pester.ps1 or Native/build.ps1 -Test)' 'warning'
 }
 
 # Generate manifest

@@ -66,14 +66,14 @@ Write-Host ""
 # Example 6: Analyze Diagnostic Report
 Write-Host "Example 6: Analyze PC Diagnostic Report" -ForegroundColor Yellow
 Write-Host "Command: Invoke-PCDiagnosis -DiagnosticReportPath 'path\to\report.txt'" -ForegroundColor Gray
-Write-Host "(Requires existing diagnostic report from Get-PcDiagnostics.ps1)" -ForegroundColor Gray
+Write-Host "(Requires existing diagnostic report from PC-AI.ps1 diagnose all)" -ForegroundColor Gray
 $reportPath = Join-Path -Path ([Environment]::GetFolderPath('Desktop')) -ChildPath 'Hardware-Diagnostics-Report.txt'
 if (Test-Path $reportPath) {
     Write-Host "Found diagnostic report at: $reportPath" -ForegroundColor Green
     Write-Host "Run: Invoke-PCDiagnosis -DiagnosticReportPath '$reportPath' -SaveReport" -ForegroundColor Cyan
 }
 else {
-    Write-Host "No diagnostic report found. Run Get-PcDiagnostics.ps1 first." -ForegroundColor Yellow
+    Write-Host "No diagnostic report found. Run PC-AI.ps1 diagnose all first." -ForegroundColor Yellow
 }
 Write-Host ""
 

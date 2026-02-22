@@ -39,7 +39,8 @@
     PrivateData = @{
         PSData = @{
             Tags = @('Performance', 'Rust', 'Acceleration', 'Parallel', 'dotnet')
-            ProjectUri = 'https://github.com/PC-AI'
+            LicenseUri = 'https://github.com/David-Martel/PC-AI/blob/main/LICENSE'
+            ProjectUri = 'https://github.com/David-Martel/PC-AI'
         }
     }
 }

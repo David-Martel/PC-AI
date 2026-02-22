@@ -327,7 +327,7 @@ Invoke-LLMChat -Interactive -System "You are a Windows expert"
 ### Full Diagnostic Analysis
 ```powershell
 # 1. Run diagnostics
-.\Get-PcDiagnostics.ps1
+.\PC-AI.ps1 diagnose all
 
 # 2. Analyze with LLM
 Invoke-PCDiagnosis -DiagnosticReportPath "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt" -SaveReport
@@ -407,7 +407,7 @@ All functions implement:
 - Categorizes issues by severity
 - Guides root cause analysis
 
-### Get-PcDiagnostics.ps1
+### PC-AI.ps1 diagnose all
 - Generates input for `Invoke-PCDiagnosis`
 - Provides structured diagnostic data
 - Creates report at `Desktop\Hardware-Diagnostics-Report.txt`
@@ -487,4 +487,3 @@ The module is ready for immediate use in PC diagnostics workflows. Import the mo
 **Module Status:** ✅ **COMPLETE AND OPERATIONAL**
 **Last Updated:** 2026-01-23
 **Version:** 1.0.0
-

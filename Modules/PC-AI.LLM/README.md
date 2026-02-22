@@ -19,14 +19,14 @@ PC-AI.LLM provides a complete PowerShell interface to pcai-inference, enabling i
 
 ### Prerequisites
 
-1. **pcai-inference** HTTP server or DLL built (see `Deploy\pcai-inference`)
+1. **pcai-inference** HTTP server or DLL built (run `.\Build.ps1 -Component inference` or see `Native\pcai_core\pcai_inference`)
 2. **GGUF model available** for local inference
 
 ### Module Installation
 
 ```powershell
 # Import module
-Import-Module "C:\Users\david\PC_AI\Modules\PC-AI.LLM\PC-AI.LLM.psd1"
+Import-Module .\Modules\PC-AI.LLM\PC-AI.LLM.psd1
 
 # Verify installation
 Get-Command -Module PC-AI.LLM
@@ -57,7 +57,7 @@ Write-Host $response.Response
 
 ```powershell
 # First, run hardware diagnostics
-.\Get-PcDiagnostics.ps1
+.\PC-AI.ps1 diagnose all
 
 # Then analyze with LLM
 Invoke-PCDiagnosis -DiagnosticReportPath "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt" -SaveReport
@@ -250,10 +250,10 @@ Module uses `llm-config.json` for persistence:
 
 ```powershell
 # Step 1: Run hardware diagnostics (as Administrator)
-.\Get-PcDiagnostics.ps1
+.\PC-AI.ps1 diagnose all
 
 # Step 2: Load module
-Import-Module "C:\Users\david\PC_AI\Modules\PC-AI.LLM\PC-AI.LLM.psd1"
+Import-Module .\Modules\PC-AI.LLM\PC-AI.LLM.psd1
 
 # Step 3: Check LLM status
 Get-LLMStatus -TestConnection
@@ -314,7 +314,7 @@ Model: pcai-inference
 Get-LLMStatus
 
 # Start pcai-inference HTTP server
-cd .\Deploy\pcai-inference
+cd .\Native\pcai_core\pcai_inference
 cargo run --release --features "llamacpp,server"
 ```
 
@@ -440,7 +440,7 @@ System prompt defining LLM assistant behavior, safety constraints, and workflow 
 ### DIAGNOSE_LOGIC.md
 Branched reasoning decision tree for analyzing diagnostic output with structured severity classification.
 
-### Get-PcDiagnostics.ps1
+### PC-AI.ps1 diagnose all
 Hardware diagnostics script that generates reports analyzed by `Invoke-PCDiagnosis`.
 
 ## Version History
@@ -463,4 +463,3 @@ For issues or questions:
 1. Check `Get-Help <FunctionName> -Full`
 2. Run `USAGE_EXAMPLES.ps1` for working examples
 3. Verify pcai-inference status with `Get-LLMStatus -TestConnection`
-

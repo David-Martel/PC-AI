@@ -128,10 +128,10 @@ function Write-LLMLog {
         $logDir = $null
         if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
             $logDir = Resolve-PcaiPath -PathType 'Logs'
+        } elseif ($env:PCAI_ROOT) {
+            $logDir = Join-Path $env:PCAI_ROOT 'Reports\Logs'
         } else {
-            # Fallback if Resolve-PcaiPath is not available
-            $root = if ($env:PCAI_ROOT) { $env:PCAI_ROOT } else { 'C:\Users\david\PC_AI' }
-            $logDir = Join-Path $root 'Reports\Logs'
+            $logDir = Join-Path (Get-Location).ProviderPath 'Reports\Logs'
         }
 
         # Ensure log directory exists

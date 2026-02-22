@@ -41,6 +41,9 @@ if (Test-Path -Path $script:ModuleConfig.ConfigPath) {
     try {
         $savedConfig = Get-Content -Path $script:ModuleConfig.ConfigPath -Raw | ConvertFrom-Json
         foreach ($key in $savedConfig.PSObject.Properties.Name) {
+            if ($key -in @('ConfigPath', 'ProjectConfigPath')) {
+                continue
+            }
             if ($script:ModuleConfig.ContainsKey($key)) {
                 $script:ModuleConfig[$key] = $savedConfig.$key
             }

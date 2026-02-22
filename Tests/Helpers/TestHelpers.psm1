@@ -231,7 +231,7 @@ function Assert-TestPrerequisites {
     if ($RequireDll) {
         $dllPath = Get-InferenceDllPath -ProjectRoot $ProjectRoot
         if (-not (Test-Path $dllPath)) {
-            Set-ItResult -Skipped -Because "DLL not available (build with Deploy\pcai-inference\build.ps1)"
+            Set-ItResult -Skipped -Because "DLL not available (build with Native\pcai_core\pcai_inference\Invoke-PcaiBuild.ps1)"
             return $false
         }
     }

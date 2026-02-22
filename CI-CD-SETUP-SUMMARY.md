@@ -21,7 +21,7 @@ The complete CI/CD pipeline for PC_AI has been successfully created. Here's what
    - Generates security reports
 
 3. **rust-inference.yml** - Rust inference build/test workflow
-   - Cargo check/test/clippy/fmt for `Deploy/pcai-inference`
+   - Cargo check/test/clippy/fmt for `Native/pcai_core/pcai_inference`
    - MSVC build, optional CUDA build
    - Inference DLL integration tests
 

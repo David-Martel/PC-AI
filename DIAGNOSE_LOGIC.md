@@ -2,7 +2,17 @@ Branched Reasoning Logic
 When you have the report contents, follow this decision tree to analyze and respond.
 6.1 Parse the Report
 
-Identify sections in the report by headings:
+Data is collected via PC-AI.Hardware module functions (or the structured object
+returned by New-DiagnosticReport). The five diagnostic categories map as follows:
+
+  Category 1 — Device Manager errors    → Get-DeviceErrors
+  Category 2 — Disk SMART status        → Get-DiskHealth
+  Category 3 — Recent system events     → Get-SystemEvents
+  Category 4 — USB controllers/devices  → Get-UsbStatus
+  Category 5 — Physical network adapters → Get-NetworkAdapters
+
+If working from a text report (New-DiagnosticReport -AsText), identify sections
+by these headings:
 
 "== 1. Devices with Errors in Device Manager =="
 "== 2. Disk SMART Overall Status =="
@@ -12,21 +22,21 @@ Identify sections in the report by headings:
 
 Extract data:
 
-From Section 1: list each device with:
+From Category 1 (Get-DeviceErrors): list each device with:
 
 Name, PNPClass, Manufacturer, ConfigManagerErrorCode, Status
 
-From Section 2: disk models and their Status values.
-From Section 3: list of events with:
+From Category 2 (Get-DiskHealth): disk models and their Status values.
+From Category 3 (Get-SystemEvents): list of events with:
 
 TimeCreated, ProviderName, Id, LevelDisplayName, key phrases in Message.
 
-From Section 4: USB devices, especially non-zero ConfigManagerErrorCode.
-From Section 5: network adapters with:
+From Category 4 (Get-UsbStatus): USB devices, especially non-zero ConfigManagerErrorCode.
+From Category 5 (Get-NetworkAdapters): network adapters with:
 
 Name, NetEnabled, Status, Speed.
 
-6.2 Branch 1: Devices with ConfigManager Errors (Section 1 and 4)
+6.2 Branch 1: Devices with ConfigManager Errors (Get-DeviceErrors and Get-UsbStatus)
 Condition: One or more devices with ConfigManagerErrorCode != 0 or Status not "OK".
 Steps:
 
@@ -87,7 +97,7 @@ Disabling USB power-saving features for affected devices:
 
 Device Manager → device properties → Power Management.
 
-If events in Section 3 show repeated USB plug/unplug errors, note likely hardware / cable instability.
+If events from Get-SystemEvents show repeated USB plug/unplug errors, note likely hardware / cable instability.
 
 6.2.3 Network Adapter Errors
 
@@ -113,8 +123,8 @@ OEM drivers (from Dell/HP/Lenovo/etc.) or driver packs appropriate for their mod
 
 If device has no functional impact the user cares about, mark as low priority.
 
-6.3 Branch 2: Disk Health Issues (Section 2 + Section 3)
-Condition: Any disk status not OK in Section 2, or storage-related errors in Section 3.
+6.3 Branch 2: Disk Health Issues (Get-DiskHealth + Get-SystemEvents)
+Condition: Any disk status not OK from Get-DiskHealth, or storage-related errors from Get-SystemEvents.
 6.3.1 SMART Status Not OK
 
 Critical condition.
@@ -160,7 +170,7 @@ Checking physical connections (if internal desktop).
 Updating storage controller drivers.
 If external: trying another port, cable, or PC to isolate the problem.
 
-6.4 Branch 3: USB Instability (Section 3 + Section 4)
+6.4 Branch 3: USB Instability (Get-SystemEvents + Get-UsbStatus)
 Condition: Multiple USB-related warnings/errors, or many USB devices with non-zero error codes.
 Response:
 
@@ -261,13 +271,14 @@ Run more targeted diagnostics in that area (e.g., performance, memory, CPU therm
 
 ## 6. Advanced Native Diagnostics (Optional)
 
-If the `Measure-PcaiPerformance.ps1` script is available and loaded, you can request high-performance metrics to debug resource exhaustion or storage hotspots.
+If the PC-AI.Performance module is imported and PcaiNative.dll is available, you can
+request high-performance metrics to debug resource exhaustion or storage hotspots.
 
-### when to Use
+### When to Use
 
-- **Slow Performance**: User complains of lag; check `Get-PcaiTopProcesses`.
+- **Slow Performance**: User complains of lag; check `Get-PcaiTopProcess`.
 - **Disk Full**: User says "disk full"; check `Get-PcaiDiskUsage`.
-- **Memory Pressure**: Check `Get-PcaiMemoryStats`.
+- **Memory Pressure**: Check `Get-PcaiMemoryStat`.
 
 ### Capabilities
 

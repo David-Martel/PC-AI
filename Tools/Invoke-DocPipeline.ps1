@@ -193,7 +193,7 @@ function Invoke-RustDocGeneration {
 
     $workspaces = @(
         (Join-Path $repoRoot 'Native\pcai_core'),
-        (Join-Path $repoRoot 'Deploy\pcai-inference'),
+        (Join-Path $repoRoot 'Native\pcai_core\pcai_inference'),
         (Join-Path $repoRoot 'Deploy\rust-functiongemma-runtime'),
         (Join-Path $repoRoot 'Deploy\rust-functiongemma-train')
     )

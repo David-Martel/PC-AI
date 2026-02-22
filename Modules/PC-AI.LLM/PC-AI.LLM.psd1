@@ -47,8 +47,8 @@
     PrivateData = @{
         PSData = @{
             Tags = @('pcai-inference', 'LLM', 'AI', 'Diagnostics', 'PC-AI')
-            LicenseUri = ''
-            ProjectUri = ''
+            LicenseUri = 'https://github.com/David-Martel/PC-AI/blob/main/LICENSE'
+            ProjectUri = 'https://github.com/David-Martel/PC-AI'
             IconUri = ''
             ReleaseNotes = 'Updated to use pcai-inference as the primary local LLM backend'
         }

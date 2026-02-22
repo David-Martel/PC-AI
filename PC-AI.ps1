@@ -1328,6 +1328,27 @@ function Invoke-LLMCommand {
             }
         }
 
+        'tui' {
+            Write-Header 'LLM Chat TUI'
+
+            $rawTuiArgs = @($CmdArgs | Select-Object -Skip 1)
+            $buildIfMissing = $false
+            $tuiArgs = @()
+            foreach ($arg in $rawTuiArgs) {
+                if ($arg -in @('--build-if-missing', '--build')) {
+                    $buildIfMissing = $true
+                    continue
+                }
+                $tuiArgs += $arg
+            }
+
+            try {
+                Invoke-LLMChatTui -Arguments $tuiArgs -BuildIfMissing:$buildIfMissing
+            } catch {
+                Write-Error "Failed to launch TUI: $_"
+            }
+        }
+
         'router-prepare' {
             Write-Header 'FunctionGemma Router Dataset'
 

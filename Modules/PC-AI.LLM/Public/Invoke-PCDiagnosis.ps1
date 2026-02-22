@@ -119,13 +119,17 @@ function Invoke-PCDiagnosis {
 
     begin {
         Write-Verbose "Initializing PC diagnosis analysis..."
-        $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+        $projectRoot = $null
+        if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
+            $projectRoot = Resolve-PcaiPath -PathType 'Root'
+        } elseif ($env:PCAI_ROOT) {
+            $projectRoot = $env:PCAI_ROOT
+        } else {
+            $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+        }
 
         $diagnosePromptPath = Join-Path -Path $projectRoot -ChildPath 'DIAGNOSE.md'
         $diagnoseLogicPath = Join-Path -Path $projectRoot -ChildPath 'DIAGNOSE_LOGIC.md'
-
-        if (-not (Test-Path $diagnosePromptPath)) { $diagnosePromptPath = "C:\Users\david\PC_AI\DIAGNOSE.md" }
-        if (-not (Test-Path $diagnoseLogicPath)) { $diagnoseLogicPath = "C:\Users\david\PC_AI\DIAGNOSE_LOGIC.md" }
 
         $diagnosePrompt = Get-Content -Path $diagnosePromptPath -Raw -Encoding utf8
         $diagnoseLogic = Get-Content -Path $diagnoseLogicPath -Raw -Encoding utf8

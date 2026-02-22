@@ -49,7 +49,19 @@
 						"category": {
 							"type": "string",
 							"description": "Information category.",
-							"enum": ["Storage", "Network", "USB", "BIOS", "OS", "GPU", "DiskDrive", "Net", "Display", "Media", "HIDClass"]
+							"enum": [
+								"Storage",
+								"Network",
+								"USB",
+								"BIOS",
+								"OS",
+								"GPU",
+								"DiskDrive",
+								"Net",
+								"Display",
+								"Media",
+								"HIDClass"
+							]
 						},
 						"detail": {
 							"type": "string",

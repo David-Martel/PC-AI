@@ -75,15 +75,29 @@ jobs:
       - name: Generate Coverage Report
         if: matrix.rust == 'stable'
         working-directory: Native/pcai_core/pcai_inference
-        run: cargo llvm-cov --no-default-features --features server,ffi --lib --lcov --output-path coverage.lcov
+        run: cargo llvm-cov --no-default-features --features server,ffi --lib --lcov --output-path lcov.info
+
+      - name: Check coverage threshold
+        if: matrix.rust == 'stable'
+        working-directory: Native/pcai_core/pcai_inference
+        run: |
+          cargo llvm-cov --no-default-features --features server,ffi --lib --fail-under-lines 70
 
       - name: Upload Coverage to Codecov
         if: matrix.rust == 'stable'
         uses: codecov/codecov-action@v4
         with:
-          files: Native/pcai_core/pcai_inference/coverage.lcov
+          files: Native/pcai_core/pcai_inference/lcov.info
           flags: rust-inference
           fail_ci_if_error: false
+
+      - name: Upload LCOV artifact
+        if: matrix.rust == 'stable' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-lcov-${{ github.sha }}
+          path: Native/pcai_core/pcai_inference/lcov.info
+          retention-days: 30
 
   clippy:
     name: Clippy Lints
@@ -196,7 +210,7 @@ jobs:
           if-no-files-found: warn
 
   build-cuda:
-    name: Build with CUDA
+    name: Build with CUDA (llamacpp)
     runs-on: windows-latest
     needs: [test, clippy]
     if: github.event_name == 'push'
@@ -238,11 +252,11 @@ jobs:
 
       - name: Build CUDA Backend
         working-directory: Native/pcai_core/pcai_inference
-        run: cargo build --release --features llamacpp,ffi,server,cuda
+        run: cargo build --release --features llamacpp,ffi,server,cuda-llamacpp
 
       - name: Run CUDA Tests
         working-directory: Native/pcai_core/pcai_inference
-        run: cargo test --release --features llamacpp,ffi,cuda
+        run: cargo test --release --features llamacpp,ffi,cuda-llamacpp
 
       - name: Copy CUDA Artifacts
         shell: pwsh

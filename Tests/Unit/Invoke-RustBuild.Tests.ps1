@@ -123,9 +123,10 @@ Describe 'Invoke-RustBuild' {
             $content | Should -Match 'Import-Module CargoTools'
         }
 
-        It 'Should throw if CargoTools not available' {
+        It 'Should fall back when CargoTools is not available' {
             $content = Get-Content $script:RustBuildPath -Raw
-            $content | Should -Match "throw.*'CargoTools module not found"
+            $content | Should -Match "Write-Warning 'CargoTools module not found\. Falling back to direct cargo invocation\.'"
+            $content | Should -Match '\$script:UseCargoTools = \$false'
         }
 
         It 'Should configure LLVM lld-link path' {
@@ -165,6 +166,12 @@ Describe 'Invoke-RustBuild' {
         It 'Should call Invoke-CargoWrapper' {
             $content = Get-Content $script:RustBuildPath -Raw
             $content | Should -Match 'Invoke-CargoWrapper'
+        }
+
+        It 'Should invoke cargo directly when CargoTools fallback is active' {
+            $content = Get-Content $script:RustBuildPath -Raw
+            $content | Should -Match 'if \(\$script:UseCargoTools\)'
+            $content | Should -Match '& cargo @finalArgs'
         }
 
         It 'Should use Push-Location and Pop-Location' {

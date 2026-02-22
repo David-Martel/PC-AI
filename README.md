@@ -27,7 +27,7 @@ Import-Module .\Modules\PC-AI.Hardware\PC-AI.Hardware.psd1
 Import-Module .\Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1
 
 # Run hardware diagnostics (requires Admin)
-.\Get-PcDiagnostics.ps1
+.\PC-AI.ps1 diagnose hardware
 
 # Check available Rust tools for acceleration
 Get-RustToolStatus
@@ -41,16 +41,16 @@ Search-ContentFast -Path "C:\Scripts" -Pattern "function" -FilePattern "*.ps1"
 
 ## Modules
 
-| Module | Description |
-|--------|-------------|
-| **PC-AI.Hardware** | Device manager, disk health, USB, network diagnostics |
-| **PC-AI.Virtualization** | Optional Hyper-V/WSL diagnostics and optimization |
-| **PC-AI.USB** | USB device management and WSL passthrough |
-| **PC-AI.Network** | Network diagnostics, VSock optimization |
-| **PC-AI.Performance** | Disk optimization, resource monitoring |
-| **PC-AI.Cleanup** | PATH cleanup, duplicate detection, temp cleanup |
-| **PC-AI.LLM** | pcai-inference + FunctionGemma integration for AI analysis |
-| **PC-AI.Acceleration** | Rust tools integration with PS7+ parallelism |
+| Module                   | Description                                                |
+| ------------------------ | ---------------------------------------------------------- |
+| **PC-AI.Hardware**       | Device manager, disk health, USB, network diagnostics      |
+| **PC-AI.Virtualization** | Optional Hyper-V/WSL diagnostics and optimization          |
+| **PC-AI.USB**            | USB device management and WSL passthrough                  |
+| **PC-AI.Network**        | Network diagnostics, VSock optimization                    |
+| **PC-AI.Performance**    | Disk optimization, resource monitoring                     |
+| **PC-AI.Cleanup**        | PATH cleanup, duplicate detection, temp cleanup            |
+| **PC-AI.LLM**            | pcai-inference + FunctionGemma integration for AI analysis |
+| **PC-AI.Acceleration**   | Rust tools integration with PS7+ parallelism               |
 
 ## Native Acceleration (Rust DLL + C# Hybrid)
 
@@ -70,20 +70,20 @@ pcai-inference LLM Analysis (local GGUF)
 
 ### Native Operations
 
-| Operation | Speedup | Technology |
-|-----------|---------|------------|
-| Duplicate Detection | 5-10x | Parallel SHA-256 with rayon |
-| File Search | 5-10x | Parallel glob with ignore crate |
-| Content Search | 3-8x | Parallel regex matching |
+| Operation           | Speedup | Technology                      |
+| ------------------- | ------- | ------------------------------- |
+| Duplicate Detection | 5-10x   | Parallel SHA-256 with rayon     |
+| File Search         | 5-10x   | Parallel glob with ignore crate |
+| Content Search      | 3-8x    | Parallel regex matching         |
 
 ### Quick Start (Native)
 
 ```powershell
-# Build native DLLs (requires Rust + .NET 8 SDK)
-.\Native\build.ps1
+# Build components with the unified build orchestrator (recommended)
+.\Build.ps1
 
-# Run all tests (requires PowerShell 7)
-pwsh .\test-all.ps1 -Suite All
+# Run all tests (requires PowerShell 7 + Pester 5)
+pwsh .\Tests\Invoke-AllTests.ps1 -Suite All
 
 # Use native duplicate detection
 Import-Module .\Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1
@@ -98,12 +98,12 @@ Invoke-SmartDiagnosis -Path "C:\Temp" -AnalysisType Quick
 
 ### Test Results
 
-| Suite | Passed | Failed | Duration |
-|-------|--------|--------|----------|
-| Rust | 40 | 0 | ~1s |
-| Pester | 37 | 0 | ~7s |
-| Module | 199 | 0 | ~88s |
-| **Total** | **276** | **0** | **~98s** |
+| Suite     | Passed  | Failed | Duration |
+| --------- | ------- | ------ | -------- |
+| Rust      | 40      | 0      | ~1s      |
+| Pester    | 37      | 0      | ~7s      |
+| Module    | 199     | 0      | ~88s     |
+| **Total** | **276** | **0**  | **~98s** |
 
 ## Rust CLI Tools Integration
 
@@ -111,17 +111,18 @@ The `PC-AI.Acceleration` module also supports external Rust CLI tools with autom
 
 ### Supported Rust Tools
 
-| Tool | Use Case | Speedup |
-|------|----------|---------|
-| `fd` | File finding | 5-10x |
-| `ripgrep` (rg) | Content search | **40x+** |
-| `procs` | Process listing | Better formatting |
-| `bat` | File viewing | Syntax highlighting |
-| `hyperfine` | Benchmarking | Statistical accuracy |
+| Tool           | Use Case        | Speedup              |
+| -------------- | --------------- | -------------------- |
+| `fd`           | File finding    | 5-10x                |
+| `ripgrep` (rg) | Content search  | **40x+**             |
+| `procs`        | Process listing | Better formatting    |
+| `bat`          | File viewing    | Syntax highlighting  |
+| `hyperfine`    | Benchmarking    | Statistical accuracy |
 
 ### Performance Pattern
 
 All acceleration functions follow a consistent fallback:
+
 1. **Native DLL** (fastest) - Rust via C# P/Invoke
 2. **Rust CLI tool** - if native DLLs unavailable
 3. **PS7+ parallel** - ForEach-Object -Parallel
@@ -171,27 +172,17 @@ Speedup:            44.6x
 PC-AI integrates with local LLM providers for intelligent diagnostic analysis and tool routing:
 
 ### pcai-inference (Default)
+
 ```powershell
-# Build HTTP server (OpenAI-compatible)
+# Build inference backends with the unified build flow (recommended)
+.\Build.ps1 -Component inference -EnableCuda
+
+# Direct backend build flow (advanced)
 cd .\Native\pcai_core\pcai_inference
-cargo build --release --features "llamacpp,server"
+.\Invoke-PcaiBuild.ps1 -Backend llamacpp -Configuration Release -EnableCuda
 
-# Create a config (required) and start the server
-$configPath = "C:\Users\david\PC_AI\.pcai\runtime\pcai-inference\config.json"
-@"
-{
-  "backend": { "type": "llama_cpp", "n_gpu_layers": 35, "n_ctx": 4096 },
-  "model": { "path": "C:\\Models\\model.gguf" },
-  "server": { "host": "127.0.0.1", "port": 8080, "cors": true }
-}
-"@ | Set-Content $configPath
-.\target\release\pcai-llamacpp.exe --config $configPath
-
-# Or use the helper (creates config + launches)
+# Start the local service (creates config + launches)
 Invoke-PcaiServiceHost -Backend rust -NativeBackend llamacpp -ModelPath "C:\Models\model.gguf" -GpuLayers 35
-
-# Enable CUDA (llama.cpp backend)
-cargo build --release --features "llamacpp,server,cuda-llamacpp"
 
 # Run analysis with default model (pcai-inference)
 Invoke-PCDiagnosis -ReportPath ".\report.txt"
@@ -216,11 +207,13 @@ Use the unified CLI to regenerate datasets, build token caches, train adapters, 
 ```
 
 Key files:
+
 - `Config/pcai-functiongemma.json` (runtime + training defaults)
 - `Config/pcai-functiongemma-eval.json` (CPU-safe training/eval defaults)
 - `Deploy/rust-functiongemma-train/examples/scenarios.json` (routing scenarios)
 
 ### pcai-native (FFI)
+
 ```powershell
 # Native FFI (no HTTP server)
 Import-Module .\Modules\PcaiInference.psm1
@@ -230,6 +223,7 @@ Invoke-PcaiInference -Prompt "Summarize this report..."
 ```
 
 ### PcaiServiceHost (FFI utilities)
+
 ```powershell
 pcai-servicehost inference status
 pcai-servicehost inference init --backend llamacpp
@@ -239,6 +233,7 @@ pcai-servicehost inference shutdown
 ```
 
 ### FunctionGemma (Tool Router)
+
 FunctionGemma is used as a **tool-calling router** to choose and execute PC-AI tools,
 then pcai-inference produces the final narrative response.
 
@@ -261,12 +256,14 @@ PC-AI ships an evaluation harness for LLM backends with structured progress logg
 **Runner:** `Tests\Evaluation\Invoke-InferenceEvaluation.ps1`
 
 **What it does:**
+
 - Loads a dataset (built-in or custom JSON)
 - Starts/initializes the requested backend
 - Runs test cases and aggregates metrics
 - Writes run outputs to `.pcai\evaluation\runs\<timestamp-label>\`
 
 **Outputs per run:**
+
 - `events.jsonl` (structured event stream for LLM agents)
 - `progress.log` (progress snapshots)
 - `summary.json` (aggregate results)
@@ -291,30 +288,35 @@ Stop-EvaluationRun
 ```
 
 ### HVSocket / VSock Endpoints
+
 `Config/llm-config.json` supports HVSocket aliases for local routing. Use the `hvsock://` scheme
 to resolve endpoints through `Config/hvsock-proxy.conf` (if configured).
 Primary aliases:
+
 - `hvsock://pcai-inference` (8080)
 - `hvsock://functiongemma` (8000)
 
 ### TUI Modes
+
 `PcaiChatTui.exe` supports single-shot, multi-turn, streaming, and tool-routing modes:
+
 ```
 PcaiChatTui.exe --provider pcai-inference --mode stream
-PcaiChatTui.exe --provider pcai-inference --mode react --tools C:\Users\david\PC_AI\Config\pcai-tools.json
+PcaiChatTui.exe --provider pcai-inference --mode react --tools .\Config\pcai-tools.json
 PcaiChatTui.exe --provider pcai-native --backend llamacpp --model-path C:\Models\model.gguf
 ```
 
 ### Recommended Models
 
-| Model | Size | Best For |
-|-------|------|----------|
-| GGUF: Llama 3 | Varies | General analysis |
-| GGUF: Mistral | Varies | Fast general analysis |
-| GGUF: Phi | Varies | Lightweight local analysis |
-| GGUF: Gemma | Varies | High-quality responses |
+| Model         | Size   | Best For                   |
+| ------------- | ------ | -------------------------- |
+| GGUF: Llama 3 | Varies | General analysis           |
+| GGUF: Mistral | Varies | Fast general analysis      |
+| GGUF: Phi     | Varies | Lightweight local analysis |
+| GGUF: Gemma   | Varies | High-quality responses     |
 
 ### Router Inputs
+
 - `DIAGNOSE.md` + `DIAGNOSE_LOGIC.md` define diagnostic routing behavior
 - `CHAT.md` defines general chat behavior
 - `Config/pcai-tools.json` defines tool schema and mappings
@@ -353,8 +355,8 @@ Outputs are written to `Reports/` (e.g. `AUTO_DOCS_SUMMARY.md`, `DOC_PIPELINE_RE
 
 ```
 PC_AI/
+├── Build.ps1                 # Unified build orchestrator
 ├── PC-AI.ps1                 # Unified CLI entry point
-├── Get-PcDiagnostics.ps1     # Core diagnostics script
 ├── DIAGNOSE.md               # LLM system prompt
 ├── DIAGNOSE_LOGIC.md         # Decision tree for analysis
 ├── CHAT.md                   # Chat system prompt
@@ -367,11 +369,13 @@ PC_AI/
 │   ├── PC-AI.Cleanup/        # System cleanup
 │   ├── PC-AI.LLM/            # LLM integration
 │   └── PC-AI.Acceleration/   # Rust tools + parallelism
+├── Native/
+│   └── pcai_core/pcai_inference/ # Rust LLM inference engine (HTTP + FFI)
 ├── Deploy/
-│   ├── pcai-inference/        # Rust LLM inference engine (HTTP + FFI)
 │   ├── rust-functiongemma-runtime/ # Rust router runtime (tool_calls)
 │   ├── rust-functiongemma-train/   # Rust router dataset + training
-│   └── functiongemma-finetune/ # Legacy Python training + router tools (archived)
+│   ├── rust-functiongemma-core/    # Shared Rust library
+│   └── rust-functiongemma/         # Top-level workspace
 ├── Tests/                    # Pester test suites
 ├── Config/                   # Configuration files
 └── Reports/                  # Generated diagnostic reports

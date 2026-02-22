@@ -78,9 +78,14 @@ function Invoke-PcaiServiceHost {
     if ($Backend -eq 'auto') {
         # Check for Rust binary first
         $rustExePaths = @(
-            'T:\RustCache\cargo-target\release\pcai-inference.exe',
-            "$PSScriptRoot\..\..\..\Deploy\pcai-inference\target\release\pcai-inference.exe",
-            "$env:USERPROFILE\PC_AI\Deploy\pcai-inference\target\release\pcai-inference.exe"
+            'T:\RustCache\cargo-target\release\pcai-llamacpp.exe',
+            'T:\RustCache\cargo-target\release\pcai-mistralrs.exe',
+            "$PSScriptRoot\..\..\..\Native\pcai_core\pcai_inference\target\release\pcai-llamacpp.exe",
+            "$PSScriptRoot\..\..\..\Native\pcai_core\pcai_inference\target\release\pcai-mistralrs.exe",
+            "$env:USERPROFILE\PC_AI\Native\pcai_core\pcai_inference\target\release\pcai-llamacpp.exe",
+            "$env:USERPROFILE\PC_AI\Native\pcai_core\pcai_inference\target\release\pcai-mistralrs.exe",
+            "$PSScriptRoot\..\..\..\.pcai\build\artifacts\pcai-llamacpp\pcai-llamacpp.exe",
+            "$PSScriptRoot\..\..\..\.pcai\build\artifacts\pcai-mistralrs\pcai-mistralrs.exe"
         )
 
         $rustExe = $rustExePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -140,11 +145,11 @@ function Start-RustInferenceServer {
         throw @"
 pcai-llamacpp.exe or pcai-mistralrs.exe not found. Build with:
 
-    cd Native\pcai_core\pcai_inference
-    cargo build --release --features "llamacpp,server"
+    .\Build.ps1 -Component inference
 
 Or with mistralrs backend:
-    cargo build --release --features "mistralrs-backend,server"
+    cd Native\pcai_core\pcai_inference
+    .\Invoke-PcaiBuild.ps1 -Backend mistralrs -Configuration Release
 "@
     }
 
@@ -230,7 +235,20 @@ function Start-CSharpServiceHost {
     )
 
     if (-not $HostPath) {
-        $HostPath = 'C:\Users\david\PC_AI\Native\PcaiServiceHost\bin\Release\net8.0\PcaiServiceHost.dll'
+        $repoRoot = (Join-Path $PSScriptRoot '..\..\..' | Resolve-Path).Path
+        $hostPathCandidates = @(
+            (Join-Path $repoRoot 'Native\PcaiServiceHost\bin\Release\net8.0\PcaiServiceHost.dll'),
+            (Join-Path $repoRoot '.pcai\build\artifacts\pcai-servicehost\PcaiServiceHost.dll')
+        )
+        if ($env:PCAI_ROOT) {
+            $hostPathCandidates += Join-Path $env:PCAI_ROOT 'Native\PcaiServiceHost\bin\Release\net8.0\PcaiServiceHost.dll'
+        }
+        $hostPathCandidates = $hostPathCandidates | Where-Object { $_ -and (Test-Path $_) }
+        $HostPath = $hostPathCandidates | Select-Object -First 1
+    }
+
+    if (-not $HostPath) {
+        throw "PcaiServiceHost DLL not found. Build with: dotnet build Native\\PcaiServiceHost\\PcaiServiceHost.csproj -c Release"
     }
 
     if (-not (Test-Path $HostPath)) {

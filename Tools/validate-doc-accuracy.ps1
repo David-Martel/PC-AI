@@ -3,7 +3,11 @@
 # Checks: TOOLS.md, training_data.jsonl, DOC_STATUS.md
 
 $ErrorActionPreference = 'Continue'
-$repoRoot = 'C:\Users\david\PC_AI'
+$repoRoot = if ($env:PCAI_ROOT -and (Test-Path $env:PCAI_ROOT)) {
+    $env:PCAI_ROOT
+} else {
+    Split-Path -Parent $PSScriptRoot
+}
 
 $report = @{
     timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'

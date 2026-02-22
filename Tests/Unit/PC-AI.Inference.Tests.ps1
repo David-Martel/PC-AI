@@ -185,7 +185,7 @@ Describe 'PC-AI.ps1 Inference Parameters' {
 
 Describe 'Build Configuration' {
     BeforeAll {
-        $ConfigPath = Join-Path $PSScriptRoot '..\..\Deploy\pcai-inference\build-config.json'
+        $ConfigPath = Join-Path $PSScriptRoot '..\..\Native\pcai_core\pcai_inference\build-config.json'
     }
 
     Context 'build-config.json' {
@@ -221,8 +221,8 @@ Describe 'Build Configuration' {
 
 Describe 'CMake Configuration' {
     BeforeAll {
-        $ToolchainPath = Join-Path $PSScriptRoot '..\..\Deploy\pcai-inference\cmake\toolchain-msvc.cmake'
-        $PresetsPath = Join-Path $PSScriptRoot '..\..\Deploy\pcai-inference\CMakePresets.json'
+        $ToolchainPath = Join-Path $PSScriptRoot '..\..\Native\pcai_core\pcai_inference\cmake\toolchain-msvc.cmake'
+        $PresetsPath = Join-Path $PSScriptRoot '..\..\Native\pcai_core\pcai_inference\CMakePresets.json'
     }
 
     Context 'Toolchain File' {

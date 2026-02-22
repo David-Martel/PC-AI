@@ -50,10 +50,10 @@
             Tags = @('Cleanup', 'Maintenance', 'PATH', 'Duplicates', 'TempFiles', 'Windows')
 
             # A URL to the license for this module.
-            LicenseUri = ''
+            LicenseUri = 'https://github.com/David-Martel/PC-AI/blob/main/LICENSE'
 
             # A URL to the main website for this project.
-            ProjectUri = ''
+            ProjectUri = 'https://github.com/David-Martel/PC-AI'
 
             # ReleaseNotes of this module
             ReleaseNotes = @'

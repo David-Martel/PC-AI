@@ -122,8 +122,10 @@ function Get-PcaiServiceHealth {
         @(
             "$env:USERPROFILE\.local\bin\pcai_inference.dll",
             'T:\RustCache\cargo-target\release\pcai_inference.dll',
-            "$PSScriptRoot\..\..\..\Deploy\pcai-inference\target\release\pcai_inference.dll",
-            "$env:USERPROFILE\PC_AI\Deploy\pcai-inference\target\release\pcai_inference.dll"
+            "$PSScriptRoot\..\..\..\Native\pcai_core\pcai_inference\target\release\pcai_inference.dll",
+            "$env:USERPROFILE\PC_AI\Native\pcai_core\pcai_inference\target\release\pcai_inference.dll",
+            "$PSScriptRoot\..\..\..\.pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll",
+            "$PSScriptRoot\..\..\..\.pcai\build\artifacts\pcai-mistralrs\pcai_inference.dll"
         )
     }
     foreach ($dllPath in $dllPaths) {

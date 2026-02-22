@@ -11,13 +11,13 @@ function Install-WSLVsockBridge {
         [string]$Distribution = 'Ubuntu',
 
         [Parameter()]
-        [string]$BridgeScriptPath = 'C:\Users\david\PC_AI\Tools\pcai-vsock-bridge.sh',
+        [string]$BridgeScriptPath,
 
         [Parameter()]
-        [string]$ServiceFilePath = 'C:\Users\david\PC_AI\Tools\pcai-vsock-bridge.service',
+        [string]$ServiceFilePath,
 
         [Parameter()]
-        [string]$ConfigPath = 'C:\Users\david\PC_AI\Config\vsock-bridges.conf',
+        [string]$ConfigPath,
 
         [Parameter()]
         [switch]$EnableService = $true,
@@ -37,10 +37,42 @@ function Install-WSLVsockBridge {
         Errors = @()
     }
 
+    function Convert-WindowsToWslPath {
+        param([Parameter(Mandatory)][string]$WindowsPath)
+
+        $fullPath = [System.IO.Path]::GetFullPath($WindowsPath)
+        if ($fullPath -match '^(?<drive>[A-Za-z]):\\(?<rest>.*)$') {
+            $drive = $Matches['drive'].ToLowerInvariant()
+            $rest = ($Matches['rest'] -replace '\\', '/')
+            if ($rest) {
+                return "/mnt/$drive/$rest"
+            }
+            return "/mnt/$drive"
+        }
+
+        throw "Unable to convert Windows path to WSL path: $WindowsPath"
+    }
+
     try {
+        if (-not $BridgeScriptPath -or -not $ServiceFilePath -or -not $ConfigPath) {
+            $repoRoot = if ($env:PCAI_ROOT -and (Test-Path $env:PCAI_ROOT)) {
+                $env:PCAI_ROOT
+            } else {
+                Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+            }
+
+            if (-not $BridgeScriptPath) { $BridgeScriptPath = Join-Path $repoRoot 'Tools\pcai-vsock-bridge.sh' }
+            if (-not $ServiceFilePath) { $ServiceFilePath = Join-Path $repoRoot 'Tools\pcai-vsock-bridge.service' }
+            if (-not $ConfigPath) { $ConfigPath = Join-Path $repoRoot 'Config\vsock-bridges.conf' }
+        }
+
         if (-not (Test-Path $BridgeScriptPath)) { throw "Bridge script not found: $BridgeScriptPath" }
         if (-not (Test-Path $ServiceFilePath)) { throw "Service file not found: $ServiceFilePath" }
         if (-not (Test-Path $ConfigPath)) { throw "Config file not found: $ConfigPath" }
+
+        $bridgeWslSource = Convert-WindowsToWslPath -WindowsPath $BridgeScriptPath
+        $serviceWslSource = Convert-WindowsToWslPath -WindowsPath $ServiceFilePath
+        $configWslSource = Convert-WindowsToWslPath -WindowsPath $ConfigPath
 
         # Ensure systemd enabled
         Enable-WSLSystemd -Distribution $Distribution -RestartWSL | Out-Null
@@ -58,15 +90,15 @@ function Install-WSLVsockBridge {
 
         # Copy bridge script
         $bridgeWslPath = '/usr/local/bin/pcai-vsock-bridge'
-        wsl -d $Distribution -- bash -lc "sudo cp /mnt/c/Users/david/PC_AI/Tools/pcai-vsock-bridge.sh $bridgeWslPath && sudo chmod 755 $bridgeWslPath" | Out-Null
+        wsl -d $Distribution -- bash -lc "sudo cp '$bridgeWslSource' $bridgeWslPath && sudo chmod 755 $bridgeWslPath" | Out-Null
         $result.ScriptInstalled = $true
 
         # Copy config
-        wsl -d $Distribution -- bash -lc "sudo mkdir -p /etc/pcai && sudo cp /mnt/c/Users/david/PC_AI/Config/vsock-bridges.conf /etc/pcai/vsock-bridges.conf" | Out-Null
+        wsl -d $Distribution -- bash -lc "sudo mkdir -p /etc/pcai && sudo cp '$configWslSource' /etc/pcai/vsock-bridges.conf" | Out-Null
         $result.ConfigInstalled = $true
 
         # Copy systemd service
-        wsl -d $Distribution -- bash -lc "sudo cp /mnt/c/Users/david/PC_AI/Tools/pcai-vsock-bridge.service /etc/systemd/system/pcai-vsock-bridge.service" | Out-Null
+        wsl -d $Distribution -- bash -lc "sudo cp '$serviceWslSource' /etc/systemd/system/pcai-vsock-bridge.service" | Out-Null
         wsl -d $Distribution -- bash -lc "sudo systemctl daemon-reload" | Out-Null
         $result.ServiceInstalled = $true
 

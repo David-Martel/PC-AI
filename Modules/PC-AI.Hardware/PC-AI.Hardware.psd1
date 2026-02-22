@@ -7,11 +7,6 @@
     Copyright         = '(c) 2025 David Martel. All rights reserved.'
     Description       = 'Hardware diagnostics module for PC-AI (WMI/CIM based).'
     FunctionsToExport = @(
-        'Get-PcDeviceError',
-        'Get-PcDiskStatus',
-        'Get-PcUsbStatus',
-        'Get-PcNetworkStatus',
-        'Get-PcSystemEvent',
         'Get-DeviceErrors',
         'Get-DiskHealth',
         'Get-UsbStatus',

@@ -13,11 +13,22 @@ function Register-HVSockServices {
     [OutputType([PSCustomObject])]
     param(
         [Parameter()]
-        [string]$ConfigPath = 'C:\Users\david\PC_AI\Config\hvsock-proxy.conf',
+        [string]$ConfigPath,
 
         [Parameter()]
         [switch]$Force
     )
+
+    if (-not $ConfigPath) {
+        if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
+            $ConfigPath = Resolve-PcaiPath -PathType 'HVSockConfig'
+        } elseif ($env:PCAI_ROOT) {
+            $ConfigPath = Join-Path $env:PCAI_ROOT 'Config\hvsock-proxy.conf'
+        } else {
+            $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+            $ConfigPath = Join-Path $repoRoot 'Config\hvsock-proxy.conf'
+        }
+    }
 
     $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) {

@@ -75,7 +75,7 @@ Describe "E2E: Build and Artifact Verification" -Tag "E2E", "Build" {
 
         It "pcai_inference.dll exists in bin directory" {
             if (-not (Test-Path $DllPath)) {
-                Set-ItResult -Skipped -Because "DLL not built - run Deploy\pcai-inference\build.ps1"
+                Set-ItResult -Skipped -Because "DLL not built - run Native\pcai_core\pcai_inference\Invoke-PcaiBuild.ps1"
             } else {
                 Test-Path $DllPath | Should -BeTrue
             }

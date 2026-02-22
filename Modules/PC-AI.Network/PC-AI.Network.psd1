@@ -44,7 +44,8 @@
     PrivateData = @{
         PSData = @{
             Tags = @('Network', 'Diagnostics', 'VSock', 'WSL', 'PC-AI')
-            ProjectUri = 'https://github.com/david-t-martel/PC_AI'
+            LicenseUri = 'https://github.com/David-Martel/PC-AI/blob/main/LICENSE'
+            ProjectUri = 'https://github.com/David-Martel/PC-AI'
         }
         PCAI = @{
             Commands = @('diagnose', 'optimize', 'perf')

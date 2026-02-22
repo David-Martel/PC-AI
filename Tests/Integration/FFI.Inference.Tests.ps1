@@ -15,7 +15,7 @@
 
 .NOTES
     Run these tests after building the native modules with:
-    .\Deploy\pcai-inference\build.ps1 -Configuration Release
+    .\Native\pcai_core\pcai_inference\Invoke-PcaiBuild.ps1 -Configuration Release
 #>
 
 BeforeAll {
@@ -71,7 +71,7 @@ Describe "PCAI Inference Native Library - FFI Boundary Tests" -Tag "FFI", "Infer
             if (Test-InferenceDllExists) {
                 $true | Should -BeTrue
             } else {
-                Set-ItResult -Skipped -Because "DLL not built (run .\Deploy\pcai-inference\build.ps1)"
+                Set-ItResult -Skipped -Because "DLL not built (run .\Native\pcai_core\pcai_inference\Invoke-PcaiBuild.ps1)"
             }
         }
 

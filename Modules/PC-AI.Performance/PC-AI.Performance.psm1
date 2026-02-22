@@ -2,14 +2,48 @@
 
 <#
 .SYNOPSIS
-    PC-AI Performance Module
-    Bridges PowerShell to Rust/C# native modules for high-performance diagnostics.
+    PC-AI Performance Module — native-accelerated system performance diagnostics.
 
 .DESCRIPTION
-    Provides cmdlets for:
-    - Fast disk usage analysis
-    - Low-overhead process monitoring
-    - System memory statistics
+    Bridges PowerShell to the Rust/C# native layer (PcaiNative.dll,
+    PerformanceModule) for high-throughput diagnostics that would be prohibitively
+    slow with pure PowerShell cmdlets. Falls back to WMI/CIM implementations
+    automatically when PcaiNative.dll is not present.
+
+    Exported functions:
+      Get-DiskSpace          - Report used/free space for all local fixed volumes.
+      Get-ProcessPerformance - Snapshot CPU and working-set usage for all running
+                               processes using low-overhead native counters.
+      Watch-SystemResources  - Continuously monitor CPU, memory, and disk I/O,
+                               emitting structured objects at a configurable interval.
+      Optimize-Disks         - Run TRIM (SSD) or defragmentation (HDD) with
+                               smart detection of drive type; supports scheduled
+                               task registration.
+      Get-PcaiDiskUsage      - Native-accelerated recursive directory size scan.
+                               Processes millions of files per second via Rust FFI.
+                               Mapped by FunctionGemma router as pcai_get_disk_usage.
+      Get-PcaiTopProcess     - Return the top N processes sorted by CPU or memory
+                               using native performance counters.
+                               Mapped by FunctionGemma router as pcai_get_top_processes.
+      Get-PcaiMemoryStat     - Return system-wide memory statistics (total, used,
+                               available, commit charge) via native query.
+                               Mapped by FunctionGemma router as pcai_get_memory_stats.
+      Test-PcaiNative        - Probe PcaiNative.dll availability and verify that
+                               PerformanceModule is loadable; returns a status object.
+
+    Native acceleration (PcaiNative.dll — PerformanceModule):
+      Get-PcaiDiskUsage, Get-PcaiTopProcess, and Get-PcaiMemoryStat require
+      bin\PcaiNative.dll built from Native\PcaiNative\. Test-PcaiNative confirms
+      whether the DLL is present and the [PcaiNative.PerformanceModule] type can
+      be resolved. The remaining functions (Get-DiskSpace, Get-ProcessPerformance,
+      Watch-SystemResources, Optimize-Disks) work without the DLL.
+
+    Dependencies:
+      - PowerShell 5.1 or later
+      - Windows 10/11
+      - bin\PcaiNative.dll (optional, required for Get-PcaiDiskUsage /
+        Get-PcaiTopProcess / Get-PcaiMemoryStat)
+      - Administrator rights recommended for Watch-SystemResources disk I/O counters
 #>
 
 # Module variables
@@ -29,86 +63,6 @@ if (Test-Path $publicPath) {
     Get-ChildItem -Path $publicPath -Filter '*.ps1' | ForEach-Object {
         . $_.FullName
     }
-}
-
-function Get-PcaiDiskUsage {
-    <#
-    .SYNOPSIS
-        Gets disk usage statistics for a directory.
-    .DESCRIPTION
-        Uses native Rust traversal for high-performance analysis.
-    .PARAMETER Path
-        Directory to analyze. Defaults to current location.
-    .PARAMETER Top
-        Number of top subdirectories to return.
-    #>
-    [CmdletBinding()]
-    param(
-        [string]$Path = $PWD,
-        [int]$Top = 10
-    )
-
-    Import-Module PC-AI.Common -ErrorAction SilentlyContinue
-    if (-not (Initialize-PcaiNative)) { return }
-
-    $Json = [PcaiNative.PerformanceModule]::GetDiskUsageJson($Path, $Top)
-    if ($Json) {
-        return $Json | ConvertFrom-Json
-    }
-}
-
-function Get-PcaiTopProcess {
-    <#
-    .SYNOPSIS
-        Gets top resource-consuming processes.
-    .DESCRIPTION
-        Returns a snapshot of processes sorted by CPU or Memory.
-    #>
-    [CmdletBinding()]
-    param(
-        [ValidateSet('memory', 'cpu')]
-        [string]$SortBy = 'memory',
-        [int]$Top = 20
-    )
-
-    Import-Module PC-AI.Common -ErrorAction SilentlyContinue
-    if (-not (Initialize-PcaiNative)) { return }
-
-    $Json = [PcaiNative.PerformanceModule]::GetTopProcessesJson($Top, $SortBy)
-    if ($Json) {
-        return $Json | ConvertFrom-Json
-    }
-}
-
-function Get-PcaiMemoryStat {
-    <#
-    .SYNOPSIS
-        Gets system memory statistics.
-    #>
-    [CmdletBinding()]
-    param()
-
-    Import-Module PC-AI.Common -ErrorAction SilentlyContinue
-    if (-not (Initialize-PcaiNative)) { return }
-
-    $Json = [PcaiNative.PerformanceModule]::GetMemoryStatsJson()
-    if ($Json) {
-        return $Json | ConvertFrom-Json
-    }
-}
-
-function Test-PcaiNative {
-    <#
-    .SYNOPSIS
-        Verifies native DLL is loaded and working.
-    #>
-    [CmdletBinding()]
-    param()
-
-    Import-Module PC-AI.Common -ErrorAction SilentlyContinue
-    if (-not (Initialize-PcaiNative)) { return $false }
-
-    return [PcaiNative.PerformanceModule]::Test()
 }
 
 Export-ModuleMember -Function @(

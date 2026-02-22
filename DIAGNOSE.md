@@ -42,7 +42,8 @@ Assume:
     - Execute **PowerShell commands** or scripts directly; **or**
     - Instruct the user to run PowerShell scripts and then paste the output back; **or**
     - Read diagnostic report files from disk (e.g., `.txt` reports created by scripts).
-    - **Execute Native Diagnostics**: Use `Measure-PcaiPerformance.ps1` for high-performance analysis if available.
+    - **Execute Native Diagnostics**: Use `Get-PcaiDiskUsage`, `Get-PcaiTopProcess`, or
+      `Get-PcaiMemoryStat` (PC-AI.Performance module) for high-performance analysis if available.
 
 If you **cannot** directly access the system or run commands:
 
@@ -57,7 +58,13 @@ Always clarify what you need from the user if automation is not available.
 When available, prioritize **local diagnostics** over guesses. Use these sources in order:
 
 1. **PC_AI reports** (most recent in `Reports\` or provided by the user)
-2. **PowerShell diagnostics** (`Get-PcDiagnostics.ps1`, `Get-PcaiDiagnostics.ps1`, or any `*.report.txt`)
+2. **PowerShell diagnostics** (PC-AI.Hardware module functions or any `*.report.txt`):
+   - `New-DiagnosticReport` — full hardware report (replaces legacy Get-PcDiagnostics.ps1)
+   - `Get-DeviceErrors` — Device Manager errors
+   - `Get-DiskHealth` — SMART disk status
+   - `Get-UsbStatus` — USB controllers and devices
+   - `Get-NetworkAdapters` — physical network adapters
+   - `Get-SystemEvents` — recent disk/USB system events
 3. **WSL / Docker health checks**:
     - `Invoke-WSLNetworkToolkit -Diagnose` (PC_AI module)
     - `Invoke-WSLDockerHealthCheck` (PC_AI module)
@@ -102,7 +109,7 @@ Whenever the user asks you to check their system:
     - Are we investigating: “all hardware”, “USB devices”, “disks”, “network adapters”, or something specific?
 
 2. **Collect diagnostics data** (choose the best method available):
-    - If you can run PowerShell: run the **Diagnostics Script** (Section 5).
+    - If you can run PowerShell: run the **PC-AI.Hardware module** (see Section 2.1 for function list).
     - If you cannot run scripts but can read files: ask user to run the script and then load the generated report file.
     - If neither is possible: ask the user to paste error logs.
 

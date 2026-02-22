@@ -145,7 +145,7 @@ Get-ChildItem -Recurse -Filter *.psd1 | ForEach-Object {
 - PRs to `main`
 
 **Jobs:**
-- Cargo checks/tests/clippy/fmt for `Deploy/pcai-inference`
+- Cargo checks/tests/clippy/fmt for `Native/pcai_core/pcai_inference`
 - Windows MSVC build
 - Optional CUDA build (push only)
 - Integration tests for the inference DLL
@@ -224,7 +224,7 @@ PC-AI-1.0.0/
 │   └── ...
 ├── Reports/
 ├── Config/
-├── Get-PcDiagnostics.ps1
+├── PC-AI.ps1
 ├── Install.ps1
 ├── DIAGNOSE.md
 ├── DIAGNOSE_LOGIC.md

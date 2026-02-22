@@ -92,8 +92,7 @@ if ($config -and $config.evaluation -and $config.evaluation.binSearchPaths) {
 }
 
 $exeSearchDirs += @(
-    (Join-Path $userProfile '.local\bin'),
-    'T:\RustCache\cargo-target\release'
+    (Join-Path $userProfile '.local\bin')
 ) | Where-Object { $_ }
 
 $llamacppExe = $null

@@ -24,7 +24,7 @@ function Get-PcaiCompiledBinaryPath {
                 }
             }
         } catch {
-            Write-Verbose "Failed to parse $configPath: $_"
+            Write-Verbose "Failed to parse ${configPath}: $_"
         }
     }
 

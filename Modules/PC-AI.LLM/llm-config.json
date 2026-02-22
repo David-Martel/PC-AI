@@ -1,16 +1,16 @@
 ﻿{
-  "DefaultTimeout": 120,
-  "RouterModel": "functiongemma-270m-it",
   "ProviderOrder": [
     "pcai-inference",
     "pcai-native"
   ],
-  "RouterApiUrl": "http://127.0.0.1:8000",
-  "VLLMModel": "functiongemma-270m-it",
-  "OllamaPath": "",
-  "DefaultModel": "pcai-inference",
   "OllamaApiUrl": "http://127.0.0.1:8080",
-  "LMStudioApiUrl": "http://localhost:1234",
+  "RouterModel": "functiongemma-270m-it",
+  "VLLMApiUrl": "http://127.0.0.1:8000",
+  "RouterApiUrl": "http://127.0.0.1:8000",
+  "DefaultModel": "pcai-inference",
+  "OllamaPath": "",
   "PcaiInferenceApiUrl": "http://127.0.0.1:8080",
-  "VLLMApiUrl": "http://127.0.0.1:8000"
+  "LMStudioApiUrl": "http://localhost:1234",
+  "DefaultTimeout": 120,
+  "VLLMModel": "functiongemma-270m-it"
 }

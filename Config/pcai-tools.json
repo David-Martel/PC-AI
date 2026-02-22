@@ -1,4 +1,4 @@
-{
+﻿{
 	"tools": [
 		{
 			"type": "function",
@@ -141,7 +141,7 @@
 			},
 			"pcai_mapping": {
 				"module": "PC-AI.Hardware",
-				"cmdlet": "Get-PcDeviceError",
+				"cmdlet": "Get-DeviceErrors",
 				"params": {}
 			}
 		},
@@ -157,7 +157,7 @@
 			},
 			"pcai_mapping": {
 				"module": "PC-AI.Hardware",
-				"cmdlet": "Get-PcDiskStatus",
+				"cmdlet": "Get-DiskHealth",
 				"params": {}
 			}
 		},
@@ -178,7 +178,7 @@
 			},
 			"pcai_mapping": {
 				"module": "PC-AI.Hardware",
-				"cmdlet": "Get-PcSystemEvent",
+				"cmdlet": "Get-SystemEvents",
 				"params": {
 					"Days": "$days"
 				}
@@ -201,7 +201,7 @@
 			},
 			"pcai_mapping": {
 				"module": "PC-AI.Hardware",
-				"cmdlet": "Get-PcUsbStatus",
+				"cmdlet": "Get-UsbStatus",
 				"params": {
 					"ErrorsOnly": "$errors_only"
 				}
@@ -219,7 +219,7 @@
 			},
 			"pcai_mapping": {
 				"module": "PC-AI.Hardware",
-				"cmdlet": "Get-PcNetworkStatus",
+				"cmdlet": "Get-NetworkAdapters",
 				"params": {}
 			}
 		},

@@ -8,10 +8,10 @@
     Description = 'LLM Evaluation Framework for PC-AI Inference Backends'
     PowerShellVersion = '7.0'
 
-    # PcaiInference is required for native backend evaluation
-    RequiredModules = @(
-        @{ ModuleName = 'PcaiInference'; ModuleVersion = '1.0.0'; Guid = '8e7c4f1a-3b9d-4c5e-8f0a-1b2c3d4e5f6a' }
-    )
+    # PcaiInference is a soft dependency — ValidateDependencies.ps1 checks availability.
+    # Removed RequiredModules GUID constraint because PcaiInference is a standalone .psm1
+    # without a manifest. The module degrades gracefully when inference DLL is absent.
+    RequiredModules = @()
 
     # Script to run before importing module - validates DLL availability
     ScriptsToProcess = @('ValidateDependencies.ps1')
@@ -50,11 +50,17 @@
         'Export-EvaluationDataset'
 
         # Evaluation Run Utilities
+        'Get-PcaiProjectRoot'
         'Get-PcaiArtifactsRoot'
         'Initialize-EvaluationPaths'
         'New-PcaiEvaluationRunContext'
         'Get-EvaluationRunState'
         'Stop-EvaluationRun'
+
+        # Compiled Server Utilities
+        'Get-PcaiCompiledBinaryPath'
+        'New-PcaiServerConfigFile'
+        'Start-PcaiCompiledServer'
 
         # Quality Metrics (internal but exported for testing)
         'Measure-Coherence'

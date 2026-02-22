@@ -63,7 +63,7 @@ fn test_full_training_config_integration() {
 
 #[test]
 fn test_checkpoint_workflow() {
-    let temp_dir = TempDir::new().unwrap();
+    let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
 
     // Create a checkpoint
     let checkpoint = Checkpoint {
@@ -75,10 +75,10 @@ fn test_checkpoint_workflow() {
     };
 
     let ckpt_path = temp_dir.path().join("checkpoint-500");
-    checkpoint.save(&ckpt_path).unwrap();
+    checkpoint.save(&ckpt_path).expect("TODO: Verify unwrap");
 
     // Verify it can be loaded
-    let loaded = Checkpoint::load(&ckpt_path).unwrap();
+    let loaded = Checkpoint::load(&ckpt_path).expect("TODO: Verify unwrap");
     assert_eq!(loaded.global_step, 500);
     assert_eq!(loaded.epoch, 2);
     assert_eq!(loaded.best_loss, 0.25);
@@ -187,7 +187,7 @@ fn test_early_stopping_integration() {
 
 #[test]
 fn test_checkpoint_cleanup() {
-    let temp_dir = TempDir::new().unwrap();
+    let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
     let checkpoint_config = CheckpointConfig {
         output_dir: temp_dir.path().to_path_buf(),
         save_every_n_steps: 100,
@@ -204,11 +204,11 @@ fn test_checkpoint_cleanup() {
             rng_state: None,
         };
         let ckpt_path = temp_dir.path().join(format!("checkpoint-{}", step));
-        checkpoint.save(&ckpt_path).unwrap();
+        checkpoint.save(&ckpt_path).expect("TODO: Verify unwrap");
     }
 
     // Cleanup should keep only the 2 most recent
-    Checkpoint::cleanup_old(&checkpoint_config).unwrap();
+    Checkpoint::cleanup_old(&checkpoint_config).expect("TODO: Verify unwrap");
 
     // Verify checkpoint-100 was removed
     let ckpt_100 = temp_dir.path().join("checkpoint-100");

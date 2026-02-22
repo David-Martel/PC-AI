@@ -175,7 +175,7 @@ pub fn custom_load(varmap: &VarMap, paths: &[PathBuf]) -> Result<usize> {
 
     let st_names: HashSet<String> = st.tensors().iter().map(|(n, _)| n.clone()).collect();
 
-    let data = varmap.data().lock().unwrap();
+    let data = varmap.data().lock().expect("TODO: Verify unwrap");
 
     // Inner helper: attempt to load all vars using the given optional prefix.
     // Returns the count of successfully updated variables.
@@ -236,7 +236,7 @@ pub fn custom_load_verbose(varmap: &VarMap, paths: &[PathBuf], verbose: bool) ->
         );
     }
 
-    let data = varmap.data().lock().unwrap();
+    let data = varmap.data().lock().expect("TODO: Verify unwrap");
 
     let load_with_prefix = |prefix: Option<&str>| -> Result<usize> {
         let mut count = 0usize;
@@ -345,7 +345,7 @@ mod tests {
     #[test]
     fn collect_model_safetensors_empty_dir() {
         let dir = std::env::temp_dir().join("pcai_test_collect_empty");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
         let files = collect_model_safetensors(&dir);
         assert!(files.is_empty());
         std::fs::remove_dir_all(&dir).ok();

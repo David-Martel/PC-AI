@@ -460,8 +460,7 @@ mod tests {
             &item,
             true,
             false,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
 
         assert_eq!(result.expected_label, "test_tool");
         assert_eq!(result.predicted_label, "test_tool");

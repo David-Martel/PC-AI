@@ -175,7 +175,7 @@ impl DataGenerator {
         let scenarios_val: Value = serde_json::from_str(&raw)?;
 
         let items_val = if scenarios_val.is_array() {
-            scenarios_val.as_array().unwrap().clone()
+            scenarios_val.as_array().expect("TODO: Verify unwrap").clone()
         } else {
             scenarios_val
                 .get("scenarios")
@@ -314,15 +314,14 @@ mod tests {
 
     #[test]
     fn test_scenario_no_tool() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         let path = dir.path().join("neg.json");
         std::fs::write(
             &path,
             r#"{"scenarios":[{"mode":"no_tool","user_content":"Hello","assistant_content":"NO_TOOL"}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).unwrap();
+        let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].messages[1].content.as_deref(), Some("NO_TOOL"));
         assert!(items[0].messages[1].tool_calls.is_none());
@@ -330,64 +329,60 @@ mod tests {
 
     #[test]
     fn test_scenario_no_tool_missing_assistant_content_defaults_to_no_tool() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         let path = dir.path().join("neg.json");
         // assistant_content omitted - should default to "NO_TOOL"
         std::fs::write(
             &path,
             r#"{"scenarios":[{"mode":"no_tool","user_content":"Hello"}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).unwrap();
+        let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].messages[1].content.as_deref(), Some("NO_TOOL"));
     }
 
     #[test]
     fn test_scenario_chat_mode_treated_as_no_tool() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         let path = dir.path().join("chat.json");
         std::fs::write(
             &path,
             r#"{"scenarios":[{"mode":"chat","user_content":"Explain WSL","assistant_content":"NO_TOOL"}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).unwrap();
+        let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].messages[1].content.as_deref(), Some("NO_TOOL"));
     }
 
     #[test]
     fn test_scenario_single_tool_skipped() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         let path = dir.path().join("single.json");
         std::fs::write(
             &path,
             r#"{"scenarios":[{"mode":"diagnose","user_content":"Check disk","tool_name":"pcai_get_disk_status","tool_arguments":{}}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).unwrap();
+        let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         // Single-tool scenarios are skipped in generate_from_scenarios.
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn test_scenario_multi_tool() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         let path = dir.path().join("multi.json");
         std::fs::write(
             &path,
             r#"{"scenarios":[{"mode":"multi_tool","user_content":"Check disk and USB","tool_sequence":["pcai_get_disk_status","pcai_get_usb_status"]}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).unwrap();
+        let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         assert_eq!(items.len(), 1);
-        let tc = items[0].messages[1].tool_calls.as_ref().unwrap();
-        let arr = tc.as_array().unwrap();
+        let tc = items[0].messages[1].tool_calls.as_ref().expect("TODO: Verify unwrap");
+        let arr = tc.as_array().expect("TODO: Verify unwrap");
         assert_eq!(arr.len(), 2);
         assert_eq!(arr[0]["function"]["name"], "pcai_get_disk_status");
         assert_eq!(arr[1]["function"]["name"], "pcai_get_usb_status");
@@ -395,37 +390,34 @@ mod tests {
 
     #[test]
     fn test_scenario_multi_tool_three_tools() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         let path = dir.path().join("multi3.json");
         std::fs::write(
             &path,
             r#"{"scenarios":[{"mode":"multi_tool","user_content":"Full check","tool_sequence":["pcai_get_network_status","pcai_get_disk_status","pcai_get_usb_status"]}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).unwrap();
+        let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         assert_eq!(items.len(), 1);
         let arr = items[0].messages[1]
             .tool_calls
             .as_ref()
             .unwrap()
-            .as_array()
-            .unwrap();
+            .as_array().expect("TODO: Verify unwrap");
         assert_eq!(arr.len(), 3);
     }
 
     #[test]
     fn test_scenario_multi_tool_thought_mentions_tool_count() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         let path = dir.path().join("thought.json");
         std::fs::write(
             &path,
             r#"{"scenarios":[{"mode":"multi_tool","user_content":"Disk and USB","tool_sequence":["pcai_get_disk_status","pcai_get_usb_status"]}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).unwrap();
-        let content = items[0].messages[1].content.as_deref().unwrap();
+        let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
+        let content = items[0].messages[1].content.as_deref().expect("TODO: Verify unwrap");
         assert!(
             content.contains("2 tools"),
             "thought should mention tool count"
@@ -435,46 +427,42 @@ mod tests {
 
     #[test]
     fn test_scenario_dir_loads_all_json() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         std::fs::write(
             dir.path().join("a.json"),
             r#"{"scenarios":[{"mode":"no_tool","user_content":"Hi"}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         std::fs::write(
             dir.path().join("b.json"),
             r#"{"scenarios":[{"mode":"no_tool","user_content":"Bye"}]}"#,
-        )
-        .unwrap();
-        std::fs::write(dir.path().join("not.txt"), "ignored").unwrap();
+        ).expect("TODO: Verify unwrap");
+        std::fs::write(dir.path().join("not.txt"), "ignored").expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenario_dir(dir.path()).unwrap();
+        let items = gen.generate_from_scenario_dir(dir.path()).expect("TODO: Verify unwrap");
         assert_eq!(items.len(), 2);
     }
 
     #[test]
     fn test_scenario_dir_empty_dir_returns_empty() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenario_dir(dir.path()).unwrap();
+        let items = gen.generate_from_scenario_dir(dir.path()).expect("TODO: Verify unwrap");
         assert!(items.is_empty());
     }
 
     #[test]
     fn test_scenario_dir_mixes_modes() {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
         std::fs::write(
             dir.path().join("no_tool.json"),
             r#"{"scenarios":[{"mode":"no_tool","user_content":"Hello"},{"mode":"no_tool","user_content":"Thanks"}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         std::fs::write(
             dir.path().join("multi.json"),
             r#"{"scenarios":[{"mode":"multi_tool","user_content":"Check all","tool_sequence":["pcai_get_disk_status","pcai_get_usb_status"]}]}"#,
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         let gen = make_generator();
-        let items = gen.generate_from_scenario_dir(dir.path()).unwrap();
+        let items = gen.generate_from_scenario_dir(dir.path()).expect("TODO: Verify unwrap");
         // 2 no_tool + 1 multi_tool = 3 total
         assert_eq!(items.len(), 3);
     }

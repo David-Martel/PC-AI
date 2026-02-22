@@ -127,7 +127,7 @@ impl Checkpoint {
 
         // Sort by step number and return the highest
         checkpoints.sort_by_key(|(step, _)| *step);
-        let (_, latest) = checkpoints.into_iter().last().unwrap();
+        let (_, latest) = checkpoints.into_iter().last().expect("TODO: Verify unwrap");
 
         Ok(latest)
     }
@@ -193,8 +193,8 @@ mod tests {
             rng_state: Some(42),
         };
 
-        let json = serde_json::to_string(&checkpoint).unwrap();
-        let deserialized: Checkpoint = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&checkpoint).expect("TODO: Verify unwrap");
+        let deserialized: Checkpoint = serde_json::from_str(&json).expect("TODO: Verify unwrap");
 
         assert_eq!(checkpoint, deserialized);
     }

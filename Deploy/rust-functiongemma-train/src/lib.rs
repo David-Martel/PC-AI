@@ -39,7 +39,7 @@ mod tests {
         let is_cuda = device.is_cuda();
 
         // Create a tensor on the device
-        let tensor = Tensor::zeros((2, 3), candle_core::DType::F32, &device).unwrap();
+        let tensor = Tensor::zeros((2, 3), candle_core::DType::F32, &device).expect("TODO: Verify unwrap");
         assert_eq!(tensor.dims(), &[2, 3]);
 
         if is_cuda {

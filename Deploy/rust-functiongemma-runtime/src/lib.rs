@@ -62,7 +62,7 @@ async fn bind_listener(addr: SocketAddr) -> anyhow::Result<tokio::net::TcpListen
     match tokio::net::TcpListener::bind(addr).await {
         Ok(listener) => Ok(listener),
         Err(err) if err.kind() == io::ErrorKind::AddrInUse => {
-            let fallback: SocketAddr = "127.0.0.1:0".parse().expect("valid fallback address");
+            let fallback = std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, 0));
             tracing::warn!(
                 "router_addr {} already in use; falling back to {}",
                 addr,

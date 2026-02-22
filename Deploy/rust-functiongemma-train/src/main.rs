@@ -775,7 +775,7 @@ fn main() -> Result<()> {
             maybe_log_cuda_snapshot("eval_after_load", cuda_index);
             if let Some(samples_path) = samples_output.as_ref() {
                 let meta_path = PathBuf::from(samples_path).with_extension("meta.json");
-                let total_vars = varmap.data().lock().unwrap().len();
+                let total_vars = varmap.data().lock().expect("TODO: Verify unwrap").len();
                 let meta = json!({
                     "base_loaded": base_loaded,
                     "adapter_loaded": adapter_loaded,

@@ -313,7 +313,7 @@ impl RotaryEmbedding {
     }
 
     fn forward(&self, x: &Tensor, seq_len: usize) -> Result<(Tensor, Tensor)> {
-        let mut cache = self.cache.lock().unwrap();
+        let mut cache = self.cache.lock().expect("TODO: Verify unwrap");
         if let Some((cached_len, cos, sin)) = cache.as_ref() {
             if *cached_len >= seq_len && cos.device().is_cuda() == x.device().is_cuda() {
                 return Ok((cos.narrow(0, 0, seq_len)?, sin.narrow(0, 0, seq_len)?));

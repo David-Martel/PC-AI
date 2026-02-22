@@ -81,10 +81,10 @@ mod tests {
     #[test]
     fn test_resolve_existing_relative_path() {
         let dir = std::env::temp_dir().join("pcai_test_model_resolve");
-        std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("config.json"), "{}").unwrap();
+        std::fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
+        std::fs::write(dir.join("config.json"), "{}").expect("TODO: Verify unwrap");
 
-        let result = resolve_model_path(dir.to_str().unwrap());
+        let result = resolve_model_path(dir.to_str().expect("TODO: Verify unwrap"));
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), dir);
 
@@ -95,9 +95,9 @@ mod tests {
     fn test_resolve_with_env_var() {
         let base = std::env::temp_dir().join("pcai_test_models_env");
         let model_dir = base.join("test-model");
-        std::fs::create_dir_all(&model_dir).unwrap();
+        std::fs::create_dir_all(&model_dir).expect("TODO: Verify unwrap");
 
-        std::env::set_var("PCAI_MODELS_DIR", base.to_str().unwrap());
+        std::env::set_var("PCAI_MODELS_DIR", base.to_str().expect("TODO: Verify unwrap"));
         let result = resolve_model_path("test-model");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), model_dir);

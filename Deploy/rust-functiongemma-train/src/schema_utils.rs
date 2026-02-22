@@ -8,7 +8,7 @@ pub fn generate_arg_sets(parameters: &Map<String, Value>, max_cases: usize) -> V
     if props.is_none() {
         return vec![Map::new()];
     }
-    let props = props.unwrap();
+    let props = props.expect("TODO: Verify unwrap");
 
     let required: HashSet<&str> = parameters.get("required")
         .and_then(|v| v.as_array())
@@ -65,7 +65,7 @@ pub fn generate_arg_sets(parameters: &Map<String, Value>, max_cases: usize) -> V
     let mut unique = Vec::new();
     for set in arg_sets {
         // Use a stable key for deduplication
-        let key = serde_json::to_string(&set).unwrap();
+        let key = serde_json::to_string(&set).expect("TODO: Verify unwrap");
         if seen.insert(key) {
             unique.push(set);
         }
@@ -100,7 +100,7 @@ fn values_for_param(schema: &Value) -> Vec<Value> {
             if param_type == "integer" {
                 values.into_iter().map(|v| Value::Number((v as i64).into())).collect()
             } else {
-                values.into_iter().map(|v| Value::Number(serde_json::Number::from_f64(v).unwrap())).collect()
+                values.into_iter().map(|v| Value::Number(serde_json::Number::from_f64(v).expect("TODO: Verify unwrap"))).collect()
             }
         },
         "array" => {

@@ -175,7 +175,7 @@ impl<'a> Trainer<'a> {
         if !self.trainer_cfg.use_lora {
             return Ok(self.varmap.all_vars());
         }
-        let data = self.varmap.data().lock().unwrap();
+        let data = self.varmap.data().lock().expect("TODO: Verify unwrap");
         let mut vars = Vec::new();
         for (name, var) in data.iter() {
             if name.contains("lora_a") || name.contains("lora_b") {
@@ -603,7 +603,7 @@ impl<'a> Trainer<'a> {
     pub fn save_adapters(&self, path: &std::path::Path) -> Result<()> {
         // Collect only lora tensors
         let mut lora_vars = std::collections::HashMap::new();
-        for (name, var) in self.varmap.data().lock().unwrap().iter() {
+        for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
             if name.contains("lora_a") || name.contains("lora_b") {
                 lora_vars.insert(name.clone(), var.as_tensor().clone());
             }
@@ -629,7 +629,7 @@ impl<'a> Trainer<'a> {
         // Collect LoRA tensors
         let mut lora_vars = std::collections::HashMap::new();
         let mut target_modules = std::collections::BTreeSet::new();
-        for (name, var) in self.varmap.data().lock().unwrap().iter() {
+        for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
             if name.contains("lora_a") || name.contains("lora_b") {
                 lora_vars.insert(name.clone(), var.as_tensor().clone());
                 if let Some(module) = Self::lora_target_from_name(name) {
@@ -697,7 +697,7 @@ impl<'a> Trainer<'a> {
         // Save model weights (LoRA adapters)
         let weights_path = checkpoint_dir.join("adapter_model.safetensors");
         let mut lora_vars = std::collections::HashMap::new();
-        for (name, var) in self.varmap.data().lock().unwrap().iter() {
+        for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
             if name.contains("lora_a") || name.contains("lora_b") {
                 lora_vars.insert(name.clone(), var.as_tensor().clone());
             }
@@ -735,7 +735,7 @@ impl<'a> Trainer<'a> {
 
             // Update varmap with loaded tensors
             for (name, tensor) in tensors {
-                if let Some(var) = self.varmap.data().lock().unwrap().get_mut(&name) {
+                if let Some(var) = self.varmap.data().lock().expect("TODO: Verify unwrap").get_mut(&name) {
                     var.set(&tensor)?;
                 } else {
                     println!("Warning: Checkpoint contains tensor '{}' not found in model", name);

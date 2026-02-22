@@ -76,21 +76,33 @@ function Get-TestModelPath {
         Find a test model for inference tests.
     .DESCRIPTION
         Searches for a .gguf model file in the following order:
-        1. PCAI_TEST_MODEL environment variable
+        1. Config/llm-config.json (providers.pcai-native.modelPath)
         2. LM Studio cache directory
         3. Ollama cache directory
     .OUTPUTS
         String path to model file, or $null if not found.
     #>
 
-    # Check environment variable first
-    if ($env:PCAI_TEST_MODEL -and (Test-Path $env:PCAI_TEST_MODEL)) {
-        Write-Verbose "Using model from PCAI_TEST_MODEL: $env:PCAI_TEST_MODEL"
-        return $env:PCAI_TEST_MODEL
+    $projectRoot = Get-ProjectRoot -StartPath $PSScriptRoot
+    if ($projectRoot) {
+        $configPath = Join-Path $projectRoot 'Config\llm-config.json'
+        if (Test-Path $configPath) {
+            try {
+                $config = Get-Content $configPath -Raw | ConvertFrom-Json
+                $modelPath = $config.providers.'pcai-native'.modelPath
+                if ($modelPath -and (Test-Path $modelPath)) {
+                    Write-Verbose "Using model from Config/llm-config.json: $modelPath"
+                    return $modelPath
+                }
+            } catch {
+                Write-Verbose "Failed to parse llm-config.json: $_"
+            }
+        }
     }
 
     # Check LM Studio cache (Windows)
-    $lmStudioPath = Join-Path $env:LOCALAPPDATA "lm-studio\models"
+    $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
+    $lmStudioPath = Join-Path $localAppData "lm-studio\models"
     if (Test-Path $lmStudioPath) {
         $ggufFiles = Get-ChildItem -Path $lmStudioPath -Filter "*.gguf" -Recurse -File -ErrorAction SilentlyContinue |
             Select-Object -First 1
@@ -101,7 +113,8 @@ function Get-TestModelPath {
     }
 
     # Check Ollama cache
-    $ollamaPath = Join-Path $env:USERPROFILE ".ollama\models\blobs"
+    $userProfile = [Environment]::GetFolderPath('UserProfile')
+    $ollamaPath = Join-Path $userProfile ".ollama\models\blobs"
     if (Test-Path $ollamaPath) {
         $ggufFiles = Get-ChildItem -Path $ollamaPath -Filter "*.gguf" -Recurse -File -ErrorAction SilentlyContinue |
             Select-Object -First 1
@@ -111,7 +124,7 @@ function Get-TestModelPath {
         }
     }
 
-    Write-Verbose "No test model found. Set PCAI_TEST_MODEL environment variable."
+    Write-Verbose "No test model found. Set providers.pcai-native.modelPath in Config/llm-config.json."
     return $null
 }
 
@@ -226,7 +239,7 @@ function Assert-TestPrerequisites {
     if ($RequireModel) {
         $modelPath = Get-TestModelPath
         if (-not $modelPath) {
-            Set-ItResult -Skipped -Because "No test model (set PCAI_TEST_MODEL environment variable)"
+            Set-ItResult -Skipped -Because "No test model (configure Config/llm-config.json)"
             return $false
         }
     }

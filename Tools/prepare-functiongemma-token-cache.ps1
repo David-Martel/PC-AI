@@ -12,6 +12,7 @@ param(
     [string]$Input,
     [string]$TokenizerPath,
     [string]$OutputDir,
+    [string]$ChatTemplate,
     [switch]$UseLld,
     [switch]$LlmDebug
 )
@@ -25,6 +26,11 @@ $trainRoot = Join-Path $repoRoot 'Deploy\rust-functiongemma-train'
 if (-not $Input) { $Input = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\data\rust_router_train.jsonl' }
 if (-not $TokenizerPath) { $TokenizerPath = Join-Path $repoRoot 'Models\functiongemma-270m-it\tokenizer.json' }
 if (-not $OutputDir) { $OutputDir = Join-Path $repoRoot 'output\functiongemma-token-cache' }
+if (-not $ChatTemplate) {
+    $modelDir = Split-Path -Parent $TokenizerPath
+    $candidate = Join-Path $modelDir 'chat_template.jinja'
+    if (Test-Path $candidate) { $ChatTemplate = $candidate }
+}
 
 $cargoArgs = @(
     'run','--','prepare-cache',
@@ -32,6 +38,7 @@ $cargoArgs = @(
     '--tokenizer', $TokenizerPath,
     '--output-dir', $OutputDir
 )
+if ($ChatTemplate) { $cargoArgs += @('--chat-template', $ChatTemplate) }
 
 & (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') `
     -Path $trainRoot `

@@ -1222,6 +1222,19 @@ function Invoke-LLMCommand {
     }
 
     $subCommand = $parsed.SubCommand
+    $values = $parsed.Values
+    $flags = $parsed.Flags
+
+    function Get-ArgValue {
+        param([string]$Name, $Default = $null)
+        if ($values.ContainsKey($Name)) { return $values[$Name] }
+        return $Default
+    }
+
+    function Get-ArgFlag {
+        param([string]$Name)
+        return ($flags.ContainsKey($Name) -and $flags[$Name])
+    }
 
     if (-not (Ensure-Module 'PC-AI.LLM')) { return }
 
@@ -1313,6 +1326,130 @@ function Invoke-LLMCommand {
             } catch {
                 Write-Error "LLM connectivity test failed: $_"
             }
+        }
+
+        'router-prepare' {
+            Write-Header 'FunctionGemma Router Dataset'
+
+            $args = @{}
+            $args.ToolsPath = Get-ArgValue 'tools'
+            $args.DiagnosePrompt = Get-ArgValue 'diagnose-prompt'
+            $args.ChatPrompt = Get-ArgValue 'chat-prompt'
+            $args.ScenariosPath = Get-ArgValue 'scenarios'
+            $args.Output = Get-ArgValue 'output'
+            $args.TestVectors = Get-ArgValue 'test-vectors'
+
+            $maxCases = Get-ArgValue 'max-cases'
+            if ($null -ne $maxCases) { $args.MaxCases = [int]$maxCases }
+
+            if (Get-ArgFlag 'no-tool-coverage') { $args.NoToolCoverage = $true }
+            if (Get-ArgFlag 'stream') { $args.Stream = $true }
+            if (Get-ArgFlag 'native') { $args.UseNative = $true }
+            if (Get-ArgFlag 'native-only') { $args.NativeOnly = $true }
+            if (Get-ArgFlag 'use-lld') { $args.UseLld = $true }
+            if (Get-ArgFlag 'llm-debug') { $args.LlmDebug = $true }
+
+            Invoke-FunctionGemmaDataset @args
+        }
+
+        'router-cache' {
+            Write-Header 'FunctionGemma Token Cache'
+
+            $args = @{}
+            $args.Input = Get-ArgValue 'input'
+            $args.TokenizerPath = Get-ArgValue 'tokenizer'
+            $args.OutputDir = Get-ArgValue 'output-dir'
+            if (Get-ArgFlag 'use-lld') { $args.UseLld = $true }
+            if (Get-ArgFlag 'llm-debug') { $args.LlmDebug = $true }
+
+            Invoke-FunctionGemmaTokenCache @args
+        }
+
+        'router-train' {
+            Write-Header 'FunctionGemma Training'
+
+            $args = @{}
+            $args.ModelPath = Get-ArgValue 'model-path'
+            $args.TrainData = Get-ArgValue 'train-data'
+            $args.EvalData = Get-ArgValue 'eval-data'
+            $args.EvalSplit = Get-ArgValue 'eval-split'
+            $args.TokenCache = Get-ArgValue 'token-cache'
+            $args.Output = Get-ArgValue 'output'
+            $args.ConfigPath = Get-ArgValue 'config'
+
+            $epochs = Get-ArgValue 'epochs'
+            if ($null -ne $epochs) { $args.Epochs = [int]$epochs }
+            $lr = Get-ArgValue 'lr'
+            if ($null -ne $lr) { $args.Lr = [double]$lr }
+            $loraR = Get-ArgValue 'lora-r'
+            if ($null -ne $loraR) { $args.LoraR = [int]$loraR }
+            $loraAlpha = Get-ArgValue 'lora-alpha'
+            if ($null -ne $loraAlpha) { $args.LoraAlpha = [double]$loraAlpha }
+            $loraDropout = Get-ArgValue 'lora-dropout'
+            if ($null -ne $loraDropout) { $args.LoraDropout = [double]$loraDropout }
+            $batchSize = Get-ArgValue 'batch-size'
+            if ($null -ne $batchSize) { $args.BatchSize = [int]$batchSize }
+            $gradAccum = Get-ArgValue 'grad-accum'
+            if ($null -ne $gradAccum) { $args.GradAccum = [int]$gradAccum }
+            $maxSeqLen = Get-ArgValue 'max-seq-len'
+            if ($null -ne $maxSeqLen) { $args.MaxSeqLen = [int]$maxSeqLen }
+            $eosTokenId = Get-ArgValue 'eos-token-id'
+            if ($null -ne $eosTokenId) { $args.EosTokenId = [int]$eosTokenId }
+            $warmupSteps = Get-ArgValue 'warmup-steps'
+            if ($null -ne $warmupSteps) { $args.WarmupSteps = [int]$warmupSteps }
+            $schedulerType = Get-ArgValue 'scheduler-type'
+            if ($null -ne $schedulerType) { $args.SchedulerType = $schedulerType }
+            $earlyStoppingPatience = Get-ArgValue 'early-stopping-patience'
+            if ($null -ne $earlyStoppingPatience) { $args.EarlyStoppingPatience = [int]$earlyStoppingPatience }
+            $earlyStoppingMinDelta = Get-ArgValue 'early-stopping-min-delta'
+            if ($null -ne $earlyStoppingMinDelta) { $args.EarlyStoppingMinDelta = [double]$earlyStoppingMinDelta }
+            $evalMaxBatches = Get-ArgValue 'eval-max-batches'
+            if ($null -ne $evalMaxBatches) { $args.EvalMaxBatches = [int]$evalMaxBatches }
+
+            if (Get-ArgFlag 'pack-sequences') { $args.PackSequences = $true }
+            if (Get-ArgFlag 'disable-lora') { $args.DisableLora = $true }
+            if (Get-ArgFlag 'use-4bit') { $args.Use4Bit = $true }
+            if (Get-ArgFlag 'use-lld') { $args.UseLld = $true }
+            if (Get-ArgFlag 'llm-debug') { $args.LlmDebug = $true }
+
+            Invoke-FunctionGemmaTrain @args
+        }
+
+        'router-eval' {
+            Write-Header 'FunctionGemma Evaluation'
+
+            $args = @{}
+            $args.ModelPath = Get-ArgValue 'model-path'
+            $args.TestData = Get-ArgValue 'test-data'
+            $args.Adapters = Get-ArgValue 'adapters'
+            $args.Output = Get-ArgValue 'output'
+            $args.ConfigPath = Get-ArgValue 'config'
+
+            $maxNewTokens = Get-ArgValue 'max-new-tokens'
+            if ($null -ne $maxNewTokens) { $args.MaxNewTokens = [int]$maxNewTokens }
+            $loraR = Get-ArgValue 'lora-r'
+            if ($null -ne $loraR) { $args.LoraR = [int]$loraR }
+            $maxSamples = Get-ArgValue 'max-samples'
+            if ($null -ne $maxSamples) { $args.MaxSamples = [int]$maxSamples }
+
+            if (Get-ArgFlag 'quiet') { $args.Quiet = $true }
+            if (Get-ArgFlag 'verbose') { $args.VerboseOutput = $true }
+            if (Get-ArgFlag 'fast-eval') { $args.FastEval = $true }
+            if (Get-ArgFlag 'no-schema-validate') { $args.NoSchemaValidate = $true }
+            if (Get-ArgFlag 'use-lld') { $args.UseLld = $true }
+            if (Get-ArgFlag 'llm-debug') { $args.LlmDebug = $true }
+
+            Invoke-FunctionGemmaEval @args
+        }
+
+        'router-tests' {
+            Write-Header 'FunctionGemma Test Suite'
+
+            $args = @{}
+            if (Get-ArgFlag 'use-lld') { $args.UseLld = $true }
+            if (Get-ArgFlag 'llm-debug') { $args.LlmDebug = $true }
+
+            Invoke-FunctionGemmaTests @args
         }
 
         default {

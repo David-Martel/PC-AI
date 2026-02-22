@@ -59,10 +59,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$script:UseCargoTools = $true
 if (-not (Get-Module -ListAvailable CargoTools)) {
-    throw 'CargoTools module not found. Ensure it is installed under PSModulePath.'
-}
-if (-not (Get-Module CargoTools)) {
+    Write-Warning 'CargoTools module not found. Falling back to direct cargo invocation.'
+    $script:UseCargoTools = $false
+} elseif (-not (Get-Module CargoTools)) {
     Import-Module CargoTools -ErrorAction Stop
 }
 
@@ -128,7 +129,7 @@ if ($Preflight) {
 # rust-analyzer diagnostics are opt-in to avoid singleton contention by default
 if ($RaPreflight) {
     $env:CARGO_RA_PREFLIGHT = '1'
-} elseif (-not $env:CARGO_RA_PREFLIGHT) {
+} else {
     $env:CARGO_RA_PREFLIGHT = '0'
 }
 
@@ -142,12 +143,24 @@ if ($UseLld) { $wrapperArgs += '--use-lld' }
 if ($NoLld) { $wrapperArgs += '--no-lld' }
 
 $finalArgs = if ($CargoArgs -and $CargoArgs.Count -gt 0) { $CargoArgs } else { $RemainingArgs }
+if ($finalArgs -is [string]) { $finalArgs = @($finalArgs) }
 $wrapperArgs += @($finalArgs)
 
 Push-Location $Path
 try {
-    Invoke-CargoWrapper @wrapperArgs
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if ($script:UseCargoTools) {
+        Invoke-CargoWrapper @wrapperArgs
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    } else {
+        if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+            throw 'cargo not found on PATH. Install Rust and ensure cargo is available.'
+        }
+        if (-not $finalArgs -or $finalArgs.Count -eq 0) {
+            throw 'No cargo arguments provided.'
+        }
+        & cargo @finalArgs
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
 } finally {
     Pop-Location
 }

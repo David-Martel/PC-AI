@@ -15,7 +15,7 @@
 
 .NOTES
     These tests may take longer to run as they exercise the full system.
-    Set PCAI_TEST_MODEL environment variable to test with a real model.
+    Set providers.pcai-native.modelPath in Config/llm-config.json to test with a real model.
 
 .EXAMPLE
     Invoke-Pester -Path .\Tests\E2E\Inference.E2E.Tests.ps1 -Tag E2E
@@ -331,7 +331,7 @@ Describe "E2E: Full Inference Pipeline" -Tag "E2E", "Inference" {
             if (-not $DllAvailable) {
                 Set-ItResult -Skipped -Because "DLL not available"
             } elseif (-not $TestModel) {
-                Set-ItResult -Skipped -Because "No test model (set PCAI_TEST_MODEL)"
+                Set-ItResult -Skipped -Because "No test model (configure Config/llm-config.json)"
             } else {
                 # Initialize
                 $init = Initialize-PcaiInference -Backend llamacpp -ErrorAction SilentlyContinue
@@ -367,7 +367,7 @@ Describe "E2E: Full Inference Pipeline" -Tag "E2E", "Inference" {
             if (-not $DllAvailable) {
                 Set-ItResult -Skipped -Because "DLL not available"
             } elseif (-not $TestModel) {
-                Set-ItResult -Skipped -Because "No test model (set PCAI_TEST_MODEL)"
+                Set-ItResult -Skipped -Because "No test model (configure Config/llm-config.json)"
             } else {
                 # Initialize and load
                 $init = Initialize-PcaiInference -Backend llamacpp -ErrorAction SilentlyContinue

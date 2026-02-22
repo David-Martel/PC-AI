@@ -293,6 +293,27 @@ function Invoke-ApiSignatureReport {
 }
 
 # ============================================================================
+# Step 4c: Generate Tools catalog
+# ============================================================================
+function Invoke-ToolsCatalogGeneration {
+    Write-Host "`n=== Generating Tools catalog ===" -ForegroundColor Cyan
+
+    $script = Join-Path $toolsDir 'generate-tools-catalog.ps1'
+    if (-not (Test-Path $script)) {
+        Add-PipelineStep -Name 'ToolsCatalog' -Status 'Warning' -Error 'Script not found'
+        return
+    }
+
+    try {
+        & $script
+        Add-PipelineStep -Name 'ToolsCatalog' -Status 'Success' -Output (Join-Path $reportsDir 'TOOLS_CATALOG.md')
+    }
+    catch {
+        Add-PipelineStep -Name 'ToolsCatalog' -Status 'Error' -Error $_.Exception.Message
+    }
+}
+
+# ============================================================================
 # Step 5: Generate FunctionGemma training data
 # ============================================================================
 function Invoke-TrainingDataGeneration {
@@ -474,6 +495,7 @@ switch ($Mode) {
         Invoke-RustDocGeneration
         Invoke-PowerShellDocGeneration
         Invoke-ApiSignatureReport
+        Invoke-ToolsCatalogGeneration
         Invoke-TrainingDataGeneration
         Invoke-TrainingDataValidation
     }
@@ -483,6 +505,7 @@ switch ($Mode) {
         Invoke-RustDocGeneration
         Invoke-PowerShellDocGeneration
         Invoke-ApiSignatureReport
+        Invoke-ToolsCatalogGeneration
     }
     'TrainingOnly' {
         Invoke-TrainingDataGeneration

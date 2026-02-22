@@ -15,13 +15,14 @@
 
 .NOTES
     These tests require:
-    - PCAI_TEST_MODEL environment variable set to a .gguf model path
+    - providers.pcai-native.modelPath set in Config/llm-config.json
     - OR a model installed via LM Studio or Ollama
 
     Run with: Invoke-Pester -Path .\Tests\Functional\ -Tag Functional
 
 .EXAMPLE
-    $env:PCAI_TEST_MODEL = "C:\models\llama-2-7b-chat.Q4_K_M.gguf"
+    # Example:
+    # Set providers.pcai-native.modelPath in Config/llm-config.json
     Invoke-Pester -Path .\Tests\Functional\Inference.Functional.Tests.ps1
 #>
 

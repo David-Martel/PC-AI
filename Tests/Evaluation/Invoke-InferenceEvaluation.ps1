@@ -63,7 +63,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet('llamacpp', 'mistralrs', 'llamacpp-bin', 'mistralrs-bin', 'http', 'ollama', 'all')]
-    [string]$Backend = 'llamacpp',
+    [string]$Backend = 'mistralrs',
 
     [string]$ModelPath,
 
@@ -100,14 +100,29 @@ param(
 
     [int]$RequestTimeoutSec = 120,
 
-    [string]$StopSignalPath
+    [string]$StopSignalPath,
+
+    [switch]$ExerciseCSharpFfi
 )
 
 $ErrorActionPreference = 'Stop'
 
+if (-not $PSBoundParameters.ContainsKey('ExerciseCSharpFfi')) {
+    $ExerciseCSharpFfi = $true
+}
+
 # Import required modules
 $scriptRoot = Split-Path -Parent $PSScriptRoot
 $projectRoot = Split-Path -Parent $scriptRoot
+$configPath = Join-Path $projectRoot 'Config\llm-config.json'
+$script:LlmConfig = $null
+if (Test-Path $configPath) {
+    try {
+        $script:LlmConfig = Get-Content $configPath -Raw | ConvertFrom-Json
+    } catch {
+        Write-Verbose "Failed to parse $configPath: $_"
+    }
+}
 
 $moduleRoot = Join-Path $projectRoot 'Modules'
 if ($env:PSModulePath -notlike "*$moduleRoot*") {
@@ -170,19 +185,39 @@ function Test-BackendAvailable {
     switch ($Backend) {
         { $_ -in 'llamacpp', 'mistralrs' } {
             # Check if DLL is available
-            $dllPath = Join-Path $projectRoot "bin\Release\pcai_inference.dll"
-            if (-not (Test-Path $dllPath)) {
-                $dllPath = Join-Path $env:CARGO_TARGET_DIR "release\pcai_inference.dll" -ErrorAction SilentlyContinue
+            $dllCandidates = @()
+            if ($script:LlmConfig -and $script:LlmConfig.nativeInference -and $script:LlmConfig.nativeInference.dllSearchPaths) {
+                foreach ($path in $script:LlmConfig.nativeInference.dllSearchPaths) {
+                    if (-not $path) { continue }
+                    if ([System.IO.Path]::IsPathRooted($path)) {
+                        $dllCandidates += $path
+                    } else {
+                        $dllCandidates += (Join-Path $projectRoot $path)
+                    }
+                }
             }
-            return Test-Path $dllPath
+            $dllCandidates += @(
+                (Join-Path $projectRoot "bin\Release\pcai_inference.dll"),
+                (Join-Path $projectRoot "bin\Debug\pcai_inference.dll")
+            )
+            return ($dllCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1) -ne $null
         }
         { $_ -in 'llamacpp-bin', 'mistralrs-bin' } {
             $binaryName = if ($Backend -eq 'llamacpp-bin') { 'pcai-llamacpp.exe' } else { 'pcai-mistralrs.exe' }
-            $candidateDirs = @(
-                $env:PCAI_BIN_DIR,
-                $env:PCAI_LOCAL_BIN,
-                (Join-Path $env:USERPROFILE '.local\bin'),
-                (Join-Path $env:CARGO_TARGET_DIR 'release'),
+            $candidateDirs = @()
+            if ($script:LlmConfig -and $script:LlmConfig.evaluation -and $script:LlmConfig.evaluation.binSearchPaths) {
+                foreach ($path in $script:LlmConfig.evaluation.binSearchPaths) {
+                    if (-not $path) { continue }
+                    if ([System.IO.Path]::IsPathRooted($path)) {
+                        $candidateDirs += $path
+                    } else {
+                        $candidateDirs += (Join-Path $projectRoot $path)
+                    }
+                }
+            }
+            $userProfile = [Environment]::GetFolderPath('UserProfile')
+            $candidateDirs += @(
+                (Join-Path $userProfile '.local\bin'),
                 'T:\RustCache\cargo-target\release'
             ) | Where-Object { $_ }
 
@@ -211,6 +246,49 @@ function Test-BackendAvailable {
     return $false
 }
 
+function Get-ServiceHostPath {
+    $candidates = @(
+        (Join-Path $projectRoot 'Native\PcaiServiceHost\bin\Release\net8.0\win-x64\PcaiServiceHost.dll'),
+        (Join-Path $projectRoot 'Native\PcaiServiceHost\bin\Release\net8.0\PcaiServiceHost.dll'),
+        (Join-Path $env:USERPROFILE 'PC_AI\Native\PcaiServiceHost\bin\Release\net8.0\win-x64\PcaiServiceHost.dll')
+    )
+    return $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+}
+
+function Invoke-CSharpInferenceSmoke {
+    param(
+        [string]$Backend,
+        [string]$ModelPath,
+        [int]$GpuLayers
+    )
+
+    $hostPath = Get-ServiceHostPath
+    if (-not $hostPath) {
+        Write-Warning "PcaiServiceHost.dll not found. Skipping C# inference smoke."
+        return
+    }
+
+    $dotnet = (Get-Command dotnet -ErrorAction SilentlyContinue)?.Source
+    if (-not $dotnet) {
+        Write-Warning "dotnet not found. Skipping C# inference smoke."
+        return
+    }
+
+    Write-Host "  C# FFI smoke: status" -ForegroundColor DarkGray
+    & $dotnet $hostPath inference status | Out-Host
+
+    Write-Host "  C# FFI smoke: init $Backend" -ForegroundColor DarkGray
+    & $dotnet $hostPath inference init --backend $Backend | Out-Host
+
+    if ($ModelPath) {
+        Write-Host "  C# FFI smoke: load model" -ForegroundColor DarkGray
+        & $dotnet $hostPath inference load --model-path $ModelPath --gpu-layers $GpuLayers | Out-Host
+
+        Write-Host "  C# FFI smoke: generate" -ForegroundColor DarkGray
+        & $dotnet $hostPath inference generate --prompt "Health check: summarize system readiness." | Out-Host
+    }
+}
+
 #endregion
 
 #region Main Evaluation Logic
@@ -231,7 +309,8 @@ function Invoke-BackendEvaluation {
         [switch]$EmitStructuredMessages,
         [int]$HeartbeatSeconds,
         [int]$RequestTimeoutSec,
-        [string]$StopSignalPath
+        [string]$StopSignalPath,
+        [switch]$ExerciseCSharpFfi
     )
 
     Write-Section "Evaluating Backend: $Backend"
@@ -278,6 +357,10 @@ function Invoke-BackendEvaluation {
     }
 
     $runLabelEffective = if ($RunLabel) { "$RunLabel-$Backend-$Dataset" } else { "$Backend-$Dataset" }
+
+    if ($ExerciseCSharpFfi -and $Backend -in @('llamacpp', 'mistralrs')) {
+        Invoke-CSharpInferenceSmoke -Backend $Backend -ModelPath $ModelPath -GpuLayers $GpuLayers
+    }
 
     $results = Invoke-EvaluationSuite -Suite $suite `
         -Backend $Backend `
@@ -416,7 +499,7 @@ try {
     # Single/Multi Backend Mode
     else {
         $backends = if ($Backend -eq 'all') {
-            @('llamacpp', 'mistralrs', 'http', 'ollama')
+            @('mistralrs', 'llamacpp', 'http', 'ollama')
         } else {
             @($Backend)
         }
@@ -436,7 +519,8 @@ try {
                 -EmitStructuredMessages:$EmitStructuredMessages `
                 -HeartbeatSeconds $HeartbeatSeconds `
                 -RequestTimeoutSec $RequestTimeoutSec `
-                -StopSignalPath $StopSignalPath
+                -StopSignalPath $StopSignalPath `
+                -ExerciseCSharpFfi:$ExerciseCSharpFfi
 
             if ($evalResult) {
                 $allResults[$be] = $evalResult
@@ -502,7 +586,7 @@ try {
                 MaxTokens = $MaxTokens
                 Temperature = $Temperature
             }
-            Results = $allResults | ForEach-Object {
+            Results = $allResults.GetEnumerator() | ForEach-Object {
                 @{
                     Key = $_.Key
                     Value = if ($_.Value.Results) { $_.Value.Results } else { $_.Value }

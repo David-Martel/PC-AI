@@ -304,7 +304,7 @@ public static class PcaiInferenceTest
             if (-not $DllAvailable) {
                 Set-ItResult -Skipped -Because "DLL not available"
             } elseif (-not $TestModelPath) {
-                Set-ItResult -Skipped -Because "No test model available (set PCAI_TEST_MODEL)"
+                Set-ItResult -Skipped -Because "No test model available (configure Config/llm-config.json)"
             } else {
                 $initResult = [PcaiInferenceTest]::pcai_init("llamacpp")
                 if ($initResult -ne 0) {
@@ -334,7 +334,7 @@ public static class PcaiInferenceTest
             if (-not $DllAvailable) {
                 Set-ItResult -Skipped -Because "DLL not available"
             } elseif (-not $TestModelPath) {
-                Set-ItResult -Skipped -Because "No test model available (set PCAI_TEST_MODEL)"
+                Set-ItResult -Skipped -Because "No test model available (configure Config/llm-config.json)"
             } else {
                 # Initialize
                 $initResult = [PcaiInferenceTest]::pcai_init("llamacpp")

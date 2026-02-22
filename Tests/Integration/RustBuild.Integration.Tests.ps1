@@ -20,6 +20,7 @@ Describe 'Rust Build Integration' -Tag 'Integration', 'Rust' {
         $script:RustBuildPath = Join-Path $script:ProjectRoot 'Tools\Invoke-RustBuild.ps1'
         $script:RuntimePath = Join-Path $script:ProjectRoot 'Deploy\rust-functiongemma-runtime'
         $script:TrainPath = Join-Path $script:ProjectRoot 'Deploy\rust-functiongemma-train'
+        $script:FunctionGemmaWorkspace = Join-Path $script:ProjectRoot 'Deploy\rust-functiongemma'
         $script:CargoAvailable = $null -ne (Get-Command cargo -ErrorAction SilentlyContinue)
     }
 
@@ -37,15 +38,15 @@ Describe 'Rust Build Integration' -Tag 'Integration', 'Rust' {
         }
     }
 
-    Context 'FunctionGemma Runtime Build' -Skip:(-not ($script:CargoAvailable -and (Test-Path $script:RuntimePath))) {
+    Context 'FunctionGemma Runtime Build' -Skip:(-not ($script:CargoAvailable -and (Test-Path $script:RuntimePath) -and (Test-Path $script:FunctionGemmaWorkspace))) {
         It 'Should have Cargo.toml in runtime directory' {
             Test-Path (Join-Path $script:RuntimePath 'Cargo.toml') | Should -BeTrue
         }
 
         It 'Should pass cargo check' {
-            Push-Location $script:RuntimePath
+            Push-Location $script:FunctionGemmaWorkspace
             try {
-                $result = cargo check 2>&1
+                $result = cargo check -p rust-functiongemma-runtime 2>&1
                 $LASTEXITCODE | Should -Be 0
             } finally {
                 Pop-Location
@@ -53,9 +54,9 @@ Describe 'Rust Build Integration' -Tag 'Integration', 'Rust' {
         }
 
         It 'Should run tests successfully' {
-            Push-Location $script:RuntimePath
+            Push-Location $script:FunctionGemmaWorkspace
             try {
-                cargo test --no-fail-fast 2>&1
+                cargo test -p rust-functiongemma-runtime --no-fail-fast 2>&1
                 $LASTEXITCODE | Should -Be 0
             } finally {
                 Pop-Location
@@ -63,9 +64,9 @@ Describe 'Rust Build Integration' -Tag 'Integration', 'Rust' {
         }
 
         It 'Should pass cargo clippy' {
-            Push-Location $script:RuntimePath
+            Push-Location $script:FunctionGemmaWorkspace
             try {
-                cargo clippy --all-targets -- -D warnings 2>&1
+                cargo clippy -p rust-functiongemma-runtime --all-targets -- -D warnings 2>&1
                 $LASTEXITCODE | Should -Be 0
             } finally {
                 Pop-Location
@@ -73,15 +74,15 @@ Describe 'Rust Build Integration' -Tag 'Integration', 'Rust' {
         }
     }
 
-    Context 'FunctionGemma Train Build' -Skip:(-not ($script:CargoAvailable -and (Test-Path $script:TrainPath))) {
+    Context 'FunctionGemma Train Build' -Skip:(-not ($script:CargoAvailable -and (Test-Path $script:TrainPath) -and (Test-Path $script:FunctionGemmaWorkspace))) {
         It 'Should have Cargo.toml in train directory' {
             Test-Path (Join-Path $script:TrainPath 'Cargo.toml') | Should -BeTrue
         }
 
         It 'Should pass cargo check' {
-            Push-Location $script:TrainPath
+            Push-Location $script:FunctionGemmaWorkspace
             try {
-                $result = cargo check 2>&1
+                $result = cargo check -p rust-functiongemma-train 2>&1
                 $LASTEXITCODE | Should -Be 0
             } finally {
                 Pop-Location
@@ -89,9 +90,9 @@ Describe 'Rust Build Integration' -Tag 'Integration', 'Rust' {
         }
 
         It 'Should run tests successfully' {
-            Push-Location $script:TrainPath
+            Push-Location $script:FunctionGemmaWorkspace
             try {
-                cargo test --no-fail-fast 2>&1
+                cargo test -p rust-functiongemma-train --no-fail-fast 2>&1
                 $LASTEXITCODE | Should -Be 0
             } finally {
                 Pop-Location
@@ -99,9 +100,9 @@ Describe 'Rust Build Integration' -Tag 'Integration', 'Rust' {
         }
 
         It 'Should pass cargo clippy' {
-            Push-Location $script:TrainPath
+            Push-Location $script:FunctionGemmaWorkspace
             try {
-                cargo clippy --all-targets -- -D warnings 2>&1
+                cargo clippy -p rust-functiongemma-train --all-targets -- -D warnings 2>&1
                 $LASTEXITCODE | Should -Be 0
             } finally {
                 Pop-Location

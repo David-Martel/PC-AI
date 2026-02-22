@@ -21,6 +21,7 @@ param(
     [string]$TestVectors,
     [int]$MaxCases = 24,
     [switch]$NoToolCoverage,
+    [switch]$Stream,
     [switch]$UseLld,
     [switch]$LlmDebug,
     [switch]$UseNative,
@@ -34,8 +35,8 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $trainRoot = Join-Path $repoRoot 'Deploy\rust-functiongemma-train'
 
 if (-not $ToolsPath) { $ToolsPath = Join-Path $repoRoot 'Config\pcai-tools.json' }
-if (-not $DiagnosePrompt) { $DiagnosePrompt = Join-Path $repoRoot 'DIAGNOSE.md' }
-if (-not $ChatPrompt) { $ChatPrompt = Join-Path $repoRoot 'CHAT.md' }
+if (-not $DiagnosePrompt) { $DiagnosePrompt = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\examples\router_diagnose_prompt.md' }
+if (-not $ChatPrompt) { $ChatPrompt = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\examples\router_chat_prompt.md' }
 if (-not $ScenariosPath) { $ScenariosPath = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\examples\scenarios.json' }
 if (-not $Output) { $Output = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\data\rust_router_train.jsonl' }
 if (-not $TestVectors) { $TestVectors = Join-Path $repoRoot 'Deploy\rust-functiongemma-train\data\test_vectors.json' }
@@ -146,6 +147,7 @@ $cargoArgs = @(
 if ($ScenariosPath) { $cargoArgs += @('--scenarios', $ScenariosPath) }
 if ($NoToolCoverage) { $cargoArgs += '--no-tool-coverage' }
 if ($TestVectors) { $cargoArgs += @('--test-vectors', $TestVectors) }
+if ($Stream) { $cargoArgs += '--stream' }
 
 & (Join-Path $repoRoot 'Tools\Invoke-RustBuild.ps1') `
     -Path $trainRoot `

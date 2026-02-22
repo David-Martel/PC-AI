@@ -99,14 +99,26 @@ cells.append(code_cell([
 
 cells.append(md_cell([
     "## Model + binary discovery\n",
-    "We auto-detect a test model and compiled backend binaries. For llama.cpp we need a `.gguf`. For mistral.rs, a SafeTensors model is acceptable. Set `PCAI_TEST_MODEL` to override.\n",
+    "We auto-detect a test model and compiled backend binaries. For llama.cpp we need a `.gguf`. For mistral.rs, a SafeTensors model is acceptable. Set `providers.pcai-native.modelPath` in Config/llm-config.json to override.\n",
 ]))
 
 cells.append(code_cell([
+    "def load_model_path_from_config():\n",
+    "    config_path = PROJECT_ROOT / 'Config' / 'llm-config.json'\n",
+    "    if config_path.exists():\n",
+    "        try:\n",
+    "            cfg = json.loads(config_path.read_text())\n",
+    "            model_path = cfg.get('providers', {}).get('pcai-native', {}).get('modelPath')\n",
+    "            if model_path and Path(model_path).exists():\n",
+    "                return Path(model_path)\n",
+    "        except Exception:\n",
+    "            pass\n",
+    "    return None\n",
+    "\n",
     "def find_model_path():\n",
-    "    env_path = os.environ.get('PCAI_TEST_MODEL')\n",
-    "    if env_path and Path(env_path).exists():\n",
-    "        return Path(env_path)\n",
+    "    config_path = load_model_path_from_config()\n",
+    "    if config_path:\n",
+    "        return config_path\n",
     "\n",
     "    models_dir = PROJECT_ROOT / 'Models'\n",
     "    gguf = list(models_dir.rglob('*.gguf'))\n",
@@ -133,10 +145,10 @@ cells.append(code_cell([
     "\n",
     "def find_binary(name):\n",
     "    candidates = [\n",
-    "        Path(os.environ.get('PCAI_BIN_DIR','')) if os.environ.get('PCAI_BIN_DIR') else None,\n",
-    "        Path(os.environ.get('PCAI_LOCAL_BIN','')) if os.environ.get('PCAI_LOCAL_BIN') else None,\n",
+    "        PROJECT_ROOT / 'bin',\n",
     "        Path.home() / '.local' / 'bin',\n",
-    "        Path(os.environ.get('CARGO_TARGET_DIR','')) / 'release' if os.environ.get('CARGO_TARGET_DIR') else None,\n",
+    "        PROJECT_ROOT / 'Native' / 'pcai_core' / 'pcai_inference' / 'target-ffi' / 'release',\n",
+    "        PROJECT_ROOT / 'Native' / 'pcai_core' / 'pcai_inference' / 'target-ffi-nosccache' / 'release',\n",
     "        Path('T:/RustCache/cargo-target/release')\n",
     "    ]\n",
     "    for base in [c for c in candidates if c]:\n",
@@ -154,7 +166,7 @@ cells.append(code_cell([
     "print('MISTRAL_BIN:', MISTRAL_BIN)\n",
     "\n",
     "if MODEL_PATH is None or LLAMACPP_BIN is None:\n",
-    "    raise RuntimeError('Missing gguf model or pcai-llamacpp.exe. Set PCAI_TEST_MODEL and ensure binaries are in .local/bin.')\n",
+    "    raise RuntimeError('Missing gguf model or pcai-llamacpp.exe. Set providers.pcai-native.modelPath in Config/llm-config.json and ensure binaries are in .local/bin.')\n",
 ]))
 
 cells.append(md_cell([
@@ -170,7 +182,7 @@ cells.append(code_cell([
     "max_test_cases = 3\n",
     "\n",
     "backends = ['llamacpp-bin']\n",
-    "if os.environ.get('PCAI_INCLUDE_MISTRALRS') == '1' and MISTRAL_BIN:\n",
+    "if MISTRAL_BIN:\n",
     "    backends.append('mistralrs-bin')\n",
     "\n",
     "print('Backends:', backends)\n",
@@ -218,9 +230,7 @@ cells.append(code_cell([
     "    return False\n",
     "\n",
     "def start_server(binary: Path, config_path: Path):\n",
-    "    env = os.environ.copy()\n",
-    "    env['PCAI_CONFIG'] = str(config_path)\n",
-    "    return subprocess.Popen([str(binary)], cwd=binary.parent, env=env)\n",
+    "    return subprocess.Popen([str(binary), '--config', str(config_path)], cwd=binary.parent)\n",
 ]))
 
 cells.append(md_cell([

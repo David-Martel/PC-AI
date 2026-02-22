@@ -24,7 +24,7 @@ fn main() {
 }
 
 fn generate_version_info() {
-    let out_dir = env::var_os("OUT_DIR").unwrap();
+    let out_dir = env::var_os("OUT_DIR").expect("TODO: Verify unwrap");
     let dest_path = Path::new(&out_dir).join("build_info.rs");
 
     // Try to get version from environment (set by Build.ps1)
@@ -46,9 +46,8 @@ fn generate_version_info() {
 
     let git_branch = env::var("PCAI_GIT_BRANCH").unwrap_or_else(|_| get_git_branch());
 
-    let build_timestamp = env::var("PCAI_BUILD_TIMESTAMP").unwrap_or_else(|_| {
-        chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
-    });
+    let build_timestamp = env::var("PCAI_BUILD_TIMESTAMP")
+        .unwrap_or_else(|_| chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string());
 
     let build_type = env::var("PCAI_BUILD_TYPE").unwrap_or_else(|_| "dev".to_string());
 
@@ -187,9 +186,7 @@ fn get_git_hash() -> String {
         .ok()
         .and_then(|output| {
             if output.status.success() {
-                String::from_utf8(output.stdout)
-                    .ok()
-                    .map(|s| s.trim().to_string())
+                String::from_utf8(output.stdout).ok().map(|s| s.trim().to_string())
             } else {
                 None
             }
@@ -204,9 +201,7 @@ fn get_git_branch() -> String {
         .ok()
         .and_then(|output| {
             if output.status.success() {
-                String::from_utf8(output.stdout)
-                    .ok()
-                    .map(|s| s.trim().to_string())
+                String::from_utf8(output.stdout).ok().map(|s| s.trim().to_string())
             } else {
                 None
             }
@@ -222,9 +217,7 @@ fn get_version_from_git() -> String {
         .ok()
         .and_then(|output| {
             if output.status.success() {
-                String::from_utf8(output.stdout)
-                    .ok()
-                    .map(|s| s.trim().to_string())
+                String::from_utf8(output.stdout).ok().map(|s| s.trim().to_string())
             } else {
                 None
             }
@@ -288,7 +281,7 @@ fn get_cuda_version() -> String {
                 .and_then(|path| {
                     // Extract version from path like "C:\...\CUDA\v13.1"
                     path.split(['\\', '/'])
-                        .last()
+                        .next_back()
                         .filter(|s| s.starts_with('v') || s.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false))
                         .map(|s| s.trim_start_matches('v').to_string())
                 })

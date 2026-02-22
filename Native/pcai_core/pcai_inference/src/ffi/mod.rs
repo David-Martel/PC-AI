@@ -216,10 +216,7 @@ pub extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
     let backend_str = match unsafe { c_str_from_ptr(backend_name) } {
         Ok(s) => s,
         Err(e) => {
-            set_last_error_with_code(
-                format!("Invalid backend name: {}", e),
-                PcaiErrorCode::InvalidInput,
-            );
+            set_last_error_with_code(format!("Invalid backend name: {}", e), PcaiErrorCode::InvalidInput);
             return PcaiErrorCode::InvalidInput as i32;
         }
     };
@@ -228,7 +225,10 @@ pub extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
     #[cfg(not(any(feature = "llamacpp", feature = "mistralrs-backend")))]
     {
         set_last_error_with_code(
-            format!("Unknown backend: {}. No backend features enabled. Enable 'llamacpp' or 'mistralrs-backend' feature.", backend_str),
+            format!(
+                "Unknown backend: {}. No backend features enabled. Enable 'llamacpp' or 'mistralrs-backend' feature.",
+                backend_str
+            ),
             PcaiErrorCode::InvalidInput,
         );
         PcaiErrorCode::InvalidInput as i32
@@ -243,10 +243,7 @@ pub extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
         "mistralrs" | "mistral.rs" | "mistral_rs" => BackendType::MistralRs,
 
         _ => {
-            set_last_error_with_code(
-                format!("Unknown backend: {}", backend_str),
-                PcaiErrorCode::InvalidInput,
-            );
+            set_last_error_with_code(format!("Unknown backend: {}", backend_str), PcaiErrorCode::InvalidInput);
             return PcaiErrorCode::InvalidInput as i32;
         }
     };
@@ -258,10 +255,7 @@ pub extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
         let mut guard = match state.lock() {
             Ok(g) => g,
             Err(e) => {
-                set_last_error_with_code(
-                    format!("Failed to lock state: {}", e),
-                    PcaiErrorCode::BackendError,
-                );
+                set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
                 return PcaiErrorCode::BackendError as i32;
             }
         };
@@ -270,10 +264,7 @@ pub extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
         let backend = match backend_type.create() {
             Ok(b) => b,
             Err(e) => {
-                set_last_error_with_code(
-                    format!("Failed to create backend: {}", e),
-                    PcaiErrorCode::BackendError,
-                );
+                set_last_error_with_code(format!("Failed to create backend: {}", e), PcaiErrorCode::BackendError);
                 return PcaiErrorCode::BackendError as i32;
             }
         };
@@ -306,10 +297,7 @@ pub extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) ->
     let path_str = match unsafe { c_str_from_ptr(model_path) } {
         Ok(s) => s.to_string(),
         Err(e) => {
-            set_last_error_with_code(
-                format!("Invalid model path: {}", e),
-                PcaiErrorCode::InvalidInput,
-            );
+            set_last_error_with_code(format!("Invalid model path: {}", e), PcaiErrorCode::InvalidInput);
             return PcaiErrorCode::InvalidInput as i32;
         }
     };
@@ -319,10 +307,7 @@ pub extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) ->
     let mut guard = match state.lock() {
         Ok(g) => g,
         Err(e) => {
-            set_last_error_with_code(
-                format!("Failed to lock state: {}", e),
-                PcaiErrorCode::BackendError,
-            );
+            set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
             return PcaiErrorCode::BackendError as i32;
         }
     };
@@ -411,21 +396,14 @@ pub extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) ->
 /// * Caller must free the returned string with pcai_free_string
 /// * Must call pcai_load_model first
 #[no_mangle]
-pub extern "C" fn pcai_generate(
-    prompt: *const c_char,
-    max_tokens: u32,
-    temperature: f32,
-) -> *mut c_char {
+pub extern "C" fn pcai_generate(prompt: *const c_char, max_tokens: u32, temperature: f32) -> *mut c_char {
     clear_last_error();
 
     // Parse prompt
     let prompt_str = match unsafe { c_str_from_ptr(prompt) } {
         Ok(s) => s,
         Err(e) => {
-            set_last_error_with_code(
-                format!("Invalid prompt: {}", e),
-                PcaiErrorCode::InvalidInput,
-            );
+            set_last_error_with_code(format!("Invalid prompt: {}", e), PcaiErrorCode::InvalidInput);
             return std::ptr::null_mut();
         }
     };
@@ -434,11 +412,7 @@ pub extern "C" fn pcai_generate(
     const MAX_PROMPT_SIZE: usize = 100 * 1024; // 100KB
     if prompt_str.len() > MAX_PROMPT_SIZE {
         set_last_error_with_code(
-            format!(
-                "Prompt too large: {} bytes (max {})",
-                prompt_str.len(),
-                MAX_PROMPT_SIZE
-            ),
+            format!("Prompt too large: {} bytes (max {})", prompt_str.len(), MAX_PROMPT_SIZE),
             PcaiErrorCode::InvalidInput,
         );
         return std::ptr::null_mut();
@@ -449,10 +423,7 @@ pub extern "C" fn pcai_generate(
     let guard = match state.lock() {
         Ok(g) => g,
         Err(e) => {
-            set_last_error_with_code(
-                format!("Failed to lock state: {}", e),
-                PcaiErrorCode::BackendError,
-            );
+            set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
             return std::ptr::null_mut();
         }
     };
@@ -486,19 +457,13 @@ pub extern "C" fn pcai_generate(
         } else {
             None
         },
-        temperature: if temperature > 0.0 {
-            Some(temperature)
-        } else {
-            None
-        },
+        temperature: if temperature > 0.0 { Some(temperature) } else { None },
         top_p: None,
         stop: vec![],
     };
 
     // Generate (async operation, block on runtime)
-    let result = guard
-        .runtime
-        .block_on(async { backend.generate(request).await });
+    let result = guard.runtime.block_on(async { backend.generate(request).await });
 
     match result {
         Ok(response) => {
@@ -508,19 +473,13 @@ pub extern "C" fn pcai_generate(
             match CString::new(response.text) {
                 Ok(c_str) => c_str.into_raw(),
                 Err(e) => {
-                    set_last_error_with_code(
-                        format!("Failed to create C string: {}", e),
-                        PcaiErrorCode::BackendError,
-                    );
+                    set_last_error_with_code(format!("Failed to create C string: {}", e), PcaiErrorCode::BackendError);
                     std::ptr::null_mut()
                 }
             }
         }
         Err(e) => {
-            set_last_error_with_code(
-                format!("Generation failed: {}", e),
-                PcaiErrorCode::BackendError,
-            );
+            set_last_error_with_code(format!("Generation failed: {}", e), PcaiErrorCode::BackendError);
             std::ptr::null_mut()
         }
     }
@@ -571,10 +530,7 @@ pub extern "C" fn pcai_generate_streaming(
     let prompt_str = match unsafe { c_str_from_ptr(prompt) } {
         Ok(s) => s,
         Err(e) => {
-            set_last_error_with_code(
-                format!("Invalid prompt: {}", e),
-                PcaiErrorCode::InvalidInput,
-            );
+            set_last_error_with_code(format!("Invalid prompt: {}", e), PcaiErrorCode::InvalidInput);
             return PcaiErrorCode::InvalidInput as i32;
         }
     };
@@ -583,11 +539,7 @@ pub extern "C" fn pcai_generate_streaming(
     const MAX_PROMPT_SIZE: usize = 100 * 1024; // 100KB
     if prompt_str.len() > MAX_PROMPT_SIZE {
         set_last_error_with_code(
-            format!(
-                "Prompt too large: {} bytes (max {})",
-                prompt_str.len(),
-                MAX_PROMPT_SIZE
-            ),
+            format!("Prompt too large: {} bytes (max {})", prompt_str.len(), MAX_PROMPT_SIZE),
             PcaiErrorCode::InvalidInput,
         );
         return PcaiErrorCode::InvalidInput as i32;
@@ -600,10 +552,7 @@ pub extern "C" fn pcai_generate_streaming(
     let guard = match state.lock() {
         Ok(g) => g,
         Err(e) => {
-            set_last_error_with_code(
-                format!("Failed to lock state: {}", e),
-                PcaiErrorCode::BackendError,
-            );
+            set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
             return PcaiErrorCode::BackendError as i32;
         }
     };
@@ -637,11 +586,7 @@ pub extern "C" fn pcai_generate_streaming(
         } else {
             None
         },
-        temperature: if temperature > 0.0 {
-            Some(temperature)
-        } else {
-            None
-        },
+        temperature: if temperature > 0.0 { Some(temperature) } else { None },
         top_p: None,
         stop: vec![],
     };
@@ -692,6 +637,9 @@ pub extern "C" fn pcai_free_string(s: *mut c_char) {
         return;
     }
 
+    // SAFETY: `s` is non-null (checked above) and was produced by `CString::into_raw`
+    // inside `pcai_generate`. Ownership is transferred back here so the allocation is
+    // freed exactly once. The caller must not use `s` after this call.
     unsafe {
         let _ = CString::from_raw(s);
     }
@@ -709,19 +657,14 @@ pub extern "C" fn pcai_shutdown() {
     let mut guard = match state.lock() {
         Ok(g) => g,
         Err(e) => {
-            set_last_error_with_code(
-                format!("Failed to lock state: {}", e),
-                PcaiErrorCode::BackendError,
-            );
+            set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
             return;
         }
     };
 
     if let Some(mut backend) = guard.backend.take() {
         // Unload model
-        let _ = guard
-            .runtime
-            .block_on(async { backend.unload_model().await });
+        let _ = guard.runtime.block_on(async { backend.unload_model().await });
 
         tracing::info!("Backend shutdown");
     }
@@ -877,11 +820,7 @@ pub extern "C" fn pcai_version() -> *const c_char {
 /// * `prompt` must be a valid null-terminated C string
 /// * Must call `pcai_load_model` before submitting requests
 #[no_mangle]
-pub extern "C" fn pcai_generate_async(
-    prompt: *const c_char,
-    max_tokens: u32,
-    temperature: f32,
-) -> i64 {
+pub extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: u32, temperature: f32) -> i64 {
     clear_last_error();
 
     let prompt_str = match unsafe { c_str_from_ptr(prompt) } {
@@ -896,11 +835,7 @@ pub extern "C" fn pcai_generate_async(
     const MAX_PROMPT_SIZE: usize = 100 * 1024;
     if prompt_str.len() > MAX_PROMPT_SIZE {
         set_last_error_with_code(
-            format!(
-                "Prompt too large: {} bytes (max {})",
-                prompt_str.len(),
-                MAX_PROMPT_SIZE
-            ),
+            format!("Prompt too large: {} bytes (max {})", prompt_str.len(), MAX_PROMPT_SIZE),
             PcaiErrorCode::InvalidInput,
         );
         return -1;
@@ -912,10 +847,7 @@ pub extern "C" fn pcai_generate_async(
         let guard = match state.lock() {
             Ok(g) => g,
             Err(e) => {
-                set_last_error_with_code(
-                    format!("Failed to lock state: {}", e),
-                    PcaiErrorCode::BackendError,
-                );
+                set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
                 return -1;
             }
         };
@@ -928,7 +860,7 @@ pub extern "C" fn pcai_generate_async(
             return -1;
         }
 
-        let backend = guard.backend.as_ref().unwrap();
+        let backend = guard.backend.as_ref().expect("backend is_none was checked above");
         if !backend.is_loaded() {
             set_last_error_with_code(
                 "Model not loaded. Call pcai_load_model first.",
@@ -990,24 +922,16 @@ pub extern "C" fn pcai_generate_async(
                 } else {
                     None
                 },
-                temperature: if temperature > 0.0 {
-                    Some(temperature)
-                } else {
-                    None
-                },
+                temperature: if temperature > 0.0 { Some(temperature) } else { None },
                 top_p: None,
                 stop: vec![],
             };
 
             // Split borrow: `runtime` and `backend` are separate fields.
-            let GlobalState {
-                runtime, backend, ..
-            } = &mut *guard;
+            let GlobalState { runtime, backend, .. } = &mut *guard;
             match backend.as_ref() {
                 Some(b) => runtime.block_on(b.generate(req)),
-                None => Err(crate::Error::InvalidInput(
-                    "Backend not initialized".to_string(),
-                )),
+                None => Err(crate::Error::InvalidInput("Backend not initialized".to_string())),
             }
         };
 
@@ -1019,12 +943,10 @@ pub extern "C" fn pcai_generate_async(
             }
             match result {
                 Ok(response) => {
-                    g.requests
-                        .insert(id, RequestStatus::Complete(response.text));
+                    g.requests.insert(id, RequestStatus::Complete(response.text));
                 }
                 Err(e) => {
-                    g.requests
-                        .insert(id, RequestStatus::Failed(format!("{}", e)));
+                    g.requests.insert(id, RequestStatus::Failed(format!("{}", e)));
                 }
             }
         }
@@ -1183,7 +1105,7 @@ mod tests {
         assert!(!version_ptr.is_null());
 
         let version_str = unsafe { CStr::from_ptr(version_ptr) };
-        let version = version_str.to_str().unwrap();
+        let version = version_str.to_str().expect("TODO: Verify unwrap");
 
         // Version should be non-empty and match CARGO_PKG_VERSION
         assert!(!version.is_empty());
@@ -1236,7 +1158,7 @@ mod tests {
         // Reset state by calling shutdown
         pcai_shutdown();
 
-        let prompt = CString::new("test").unwrap();
+        let prompt = CString::new("test").expect("TODO: Verify unwrap");
         let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
         assert!(result.is_null());
         assert!(!pcai_last_error().is_null());
@@ -1249,7 +1171,7 @@ mod tests {
 
         // Create a prompt larger than 100KB
         let large_prompt = "x".repeat(101 * 1024);
-        let prompt_cstr = CString::new(large_prompt).unwrap();
+        let prompt_cstr = CString::new(large_prompt).expect("TODO: Verify unwrap");
 
         let result = pcai_generate(prompt_cstr.as_ptr(), 10, 0.7);
         assert!(result.is_null());
@@ -1258,7 +1180,7 @@ mod tests {
         assert!(!err_ptr.is_null());
 
         let err_str = unsafe { CStr::from_ptr(err_ptr) };
-        let err_text = err_str.to_str().unwrap();
+        let err_text = err_str.to_str().expect("TODO: Verify unwrap");
 
         // Error should mention prompt size
         assert!(
@@ -1278,7 +1200,7 @@ mod tests {
         // Reset state
         pcai_shutdown();
 
-        let prompt = CString::new("hello").unwrap();
+        let prompt = CString::new("hello").expect("TODO: Verify unwrap");
         let id = pcai_generate_async(prompt.as_ptr(), 10, 0.7);
         assert_eq!(id, -1, "Should fail when no backend is initialised");
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
@@ -1294,7 +1216,7 @@ mod tests {
     #[test]
     fn test_async_generate_prompt_too_large() {
         let large = "x".repeat(101 * 1024);
-        let cstr = CString::new(large).unwrap();
+        let cstr = CString::new(large).expect("TODO: Verify unwrap");
         let id = pcai_generate_async(cstr.as_ptr(), 10, 0.7);
         assert_eq!(id, -1, "Should fail on oversized prompt");
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);

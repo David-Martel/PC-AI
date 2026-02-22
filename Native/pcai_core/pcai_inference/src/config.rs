@@ -164,8 +164,8 @@ mod tests {
     #[test]
     fn test_generation_defaults_serde_roundtrip() {
         let defaults = GenerationDefaults::default();
-        let json = serde_json::to_string(&defaults).unwrap();
-        let deserialized: GenerationDefaults = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&defaults).expect("TODO: Verify unwrap");
+        let deserialized: GenerationDefaults = serde_json::from_str(&json).expect("TODO: Verify unwrap");
         assert_eq!(deserialized.max_tokens, defaults.max_tokens);
         assert!((deserialized.temperature - defaults.temperature).abs() < f32::EPSILON);
         assert!((deserialized.top_p - defaults.top_p).abs() < f32::EPSILON);
@@ -179,8 +179,8 @@ mod tests {
             model_type: Some("llama".to_string()),
             generation: GenerationDefaults::default(),
         };
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: ModelConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).expect("TODO: Verify unwrap");
+        let deserialized: ModelConfig = serde_json::from_str(&json).expect("TODO: Verify unwrap");
         assert_eq!(deserialized.path, PathBuf::from("models/test.gguf"));
         assert_eq!(deserialized.model_type, Some("llama".to_string()));
     }
@@ -195,9 +195,9 @@ mod tests {
 
     #[test]
     fn test_config_from_file_invalid_json() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("TODO: Verify unwrap");
         let path = dir.path().join("bad.json");
-        std::fs::write(&path, "not valid json {{{").unwrap();
+        std::fs::write(&path, "not valid json {{{").expect("TODO: Verify unwrap");
         let result = InferenceConfig::from_file(&path);
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -217,7 +217,7 @@ mod tests {
     fn test_generation_defaults_serde_with_overrides() {
         // Partial JSON: only max_tokens is set, rest should use defaults
         let json = r#"{"max_tokens": 1024}"#;
-        let deserialized: GenerationDefaults = serde_json::from_str(json).unwrap();
+        let deserialized: GenerationDefaults = serde_json::from_str(json).expect("TODO: Verify unwrap");
         assert_eq!(deserialized.max_tokens, 1024);
         assert!((deserialized.temperature - 0.7).abs() < f32::EPSILON);
         assert!((deserialized.top_p - 0.95).abs() < f32::EPSILON);
@@ -228,7 +228,7 @@ mod tests {
     fn test_model_config_minimal_serde() {
         // Only required field 'path' - model_type defaults to None, generation to Default
         let json = r#"{"path": "model.gguf"}"#;
-        let config: ModelConfig = serde_json::from_str(json).unwrap();
+        let config: ModelConfig = serde_json::from_str(json).expect("TODO: Verify unwrap");
         assert_eq!(config.path, PathBuf::from("model.gguf"));
         assert!(config.model_type.is_none());
         assert_eq!(config.generation.max_tokens, 512);

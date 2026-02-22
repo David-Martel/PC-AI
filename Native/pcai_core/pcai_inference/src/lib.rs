@@ -30,24 +30,31 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Error types for inference operations
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// An error reported by the active inference backend (e.g. llama.cpp or mistral.rs).
     #[error("Backend error: {0}")]
     Backend(String),
 
+    /// Invalid or missing configuration (bad JSON schema, missing required field, etc.).
     #[error("Configuration error: {0}")]
     Config(String),
 
+    /// A generation was attempted before a model was loaded via `load_model`.
     #[error("Model not loaded")]
     ModelNotLoaded,
 
+    /// The caller supplied a malformed argument (null pointer, oversized prompt, etc.).
     #[error("Invalid input: {0}")]
     InvalidInput(String),
 
+    /// An I/O error from the standard library (file not found, permission denied, etc.).
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
+    /// A JSON serialization or deserialization error.
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
+    /// Any other error that does not fit the categories above.
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }

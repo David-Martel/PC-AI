@@ -243,26 +243,26 @@ mod tests {
 
     #[test]
     fn test_disk_usage_basic() {
-        let temp_dir = TempDir::new().unwrap();
+        let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
         let temp_path = temp_dir.path();
 
         // Create some test files
-        let mut file1 = File::create(temp_path.join("file1.txt")).unwrap();
-        file1.write_all(b"Hello, World!").unwrap();
+        let mut file1 = File::create(temp_path.join("file1.txt")).expect("TODO: Verify unwrap");
+        file1.write_all(b"Hello, World!").expect("TODO: Verify unwrap");
 
-        let mut file2 = File::create(temp_path.join("file2.txt")).unwrap();
-        file2.write_all(b"Test content here").unwrap();
+        let mut file2 = File::create(temp_path.join("file2.txt")).expect("TODO: Verify unwrap");
+        file2.write_all(b"Test content here").expect("TODO: Verify unwrap");
 
         // Create a subdirectory with a file
         let subdir = temp_path.join("subdir");
-        fs::create_dir(&subdir).unwrap();
-        let mut file3 = File::create(subdir.join("file3.txt")).unwrap();
-        file3.write_all(b"Subdirectory content").unwrap();
+        fs::create_dir(&subdir).expect("TODO: Verify unwrap");
+        let mut file3 = File::create(subdir.join("file3.txt")).expect("TODO: Verify unwrap");
+        file3.write_all(b"Subdirectory content").expect("TODO: Verify unwrap");
 
-        let result = get_disk_usage(temp_path.to_str().unwrap(), 10);
+        let result = get_disk_usage(temp_path.to_str().expect("TODO: Verify unwrap"), 10);
         assert!(result.is_ok());
 
-        let (stats, entries) = result.unwrap();
+        let (stats, entries) = result.expect("TODO: Verify unwrap");
         assert_eq!(stats.status, PcaiStatus::Success);
         assert!(stats.total_files >= 3);
         assert!(stats.total_size_bytes > 0);

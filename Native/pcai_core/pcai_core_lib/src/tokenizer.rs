@@ -15,7 +15,7 @@ pub fn estimate_tokens(text: &str) -> usize {
             [\p{L}\p{N}]+ |  # Words or numbers
             \s+           |  # Whitespace
             [^\p{L}\p{N}\s]  # Punctuation/Other
-        ").unwrap_or_else(|_| Regex::new(".").unwrap()) // Fallback to safe catch-all
+        ").unwrap_or_else(|_| Regex::new(".").expect("TODO: Verify unwrap")) // Fallback to safe catch-all
     });
 
     let mut count = 0;

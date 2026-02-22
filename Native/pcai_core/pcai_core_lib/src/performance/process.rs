@@ -219,7 +219,7 @@ mod tests {
         let process = get_process_by_pid(pid);
         assert!(process.is_some());
 
-        let p = process.unwrap();
+        let p = process.expect("TODO: Verify unwrap");
         assert_eq!(p.pid, pid);
         assert!(!p.name.is_empty());
     }

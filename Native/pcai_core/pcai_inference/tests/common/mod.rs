@@ -14,7 +14,11 @@ fn load_config_model_path() -> Option<PathBuf> {
         .and_then(|p| p.get("modelPath"))
         .and_then(|p| p.as_str())?;
     let path_buf = PathBuf::from(model_path);
-    if path_buf.exists() { Some(path_buf) } else { None }
+    if path_buf.exists() {
+        Some(path_buf)
+    } else {
+        None
+    }
 }
 
 /// Find a test GGUF model in common locations

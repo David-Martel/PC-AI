@@ -1,6 +1,6 @@
 //! Unit tests for backend selection logic
 
-use pcai_inference::backends::{BackendType, GenerateRequest, GenerateResponse, FinishReason};
+use pcai_inference::backends::{BackendType, FinishReason, GenerateRequest, GenerateResponse};
 
 #[test]
 fn test_generate_request_defaults() {
@@ -41,7 +41,7 @@ fn test_finish_reason_serialization() {
     ];
 
     for (reason, expected) in reasons {
-        let json = serde_json::to_string(&reason).unwrap();
+        let json = serde_json::to_string(&reason).expect("TODO: Verify unwrap");
         assert!(json.contains(expected), "Should serialize to {}", expected);
     }
 }
@@ -125,8 +125,8 @@ fn test_backend_trait_object_safety() {
 fn test_backend_switching() {
     use pcai_inference::backends::BackendType;
 
-    let llamacpp = BackendType::LlamaCpp.create().unwrap();
-    let mistralrs = BackendType::MistralRs.create().unwrap();
+    let llamacpp = BackendType::LlamaCpp.create().expect("TODO: Verify unwrap");
+    let mistralrs = BackendType::MistralRs.create().expect("TODO: Verify unwrap");
 
     assert_eq!(llamacpp.backend_name(), "llama.cpp");
     assert_eq!(mistralrs.backend_name(), "mistral.rs");

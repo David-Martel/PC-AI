@@ -173,7 +173,7 @@ fn find_files_impl(config: &FileSearchConfig) -> FileSearchResult {
                           modified,
                           readonly
                       };
-                      found_files_clone.lock().unwrap().push(file_info);
+                      found_files_clone.lock().expect("TODO: Verify unwrap").push(file_info);
                  }
              }
         }
@@ -181,7 +181,7 @@ fn find_files_impl(config: &FileSearchConfig) -> FileSearchResult {
     });
 
     let elapsed = start.elapsed();
-    let mut files = std::mem::take(&mut *found_files.lock().unwrap());
+    let mut files = std::mem::take(&mut *found_files.lock().expect("TODO: Verify unwrap"));
     files.sort_by(|a, b| a.path.cmp(&b.path));
 
     FileSearchResult {

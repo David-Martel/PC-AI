@@ -14,13 +14,18 @@ pub mod mistralrs;
 /// Request for text generation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenerateRequest {
+    /// The input prompt to generate a continuation for.
     pub prompt: String,
+    /// Maximum number of tokens to generate. `None` uses the backend default.
     #[serde(default)]
     pub max_tokens: Option<usize>,
+    /// Sampling temperature (0.0 = greedy, 1.0 = creative). `None` uses the backend default.
     #[serde(default)]
     pub temperature: Option<f32>,
+    /// Nucleus sampling threshold. `None` uses the backend default.
     #[serde(default)]
     pub top_p: Option<f32>,
+    /// Stop sequences that terminate generation early.
     #[serde(default)]
     pub stop: Vec<String>,
 }
@@ -28,8 +33,11 @@ pub struct GenerateRequest {
 /// Response from text generation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenerateResponse {
+    /// The generated text continuation.
     pub text: String,
+    /// Number of tokens produced by the backend.
     pub tokens_generated: usize,
+    /// Why generation stopped.
     pub finish_reason: FinishReason,
 }
 
@@ -37,8 +45,11 @@ pub struct GenerateResponse {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FinishReason {
+    /// A stop sequence was encountered or the end-of-sequence token was generated.
     Stop,
+    /// The `max_tokens` limit was reached before a stop condition.
     Length,
+    /// The backend returned an error during generation.
     Error,
 }
 
@@ -75,16 +86,21 @@ pub trait InferenceBackend: Send + Sync {
     fn backend_name(&self) -> &'static str;
 }
 
-/// Factory for creating backends
+/// Discriminant used to select which backend implementation to instantiate.
 pub enum BackendType {
+    /// The llama.cpp backend (enabled by the `llamacpp` feature).
     #[cfg(feature = "llamacpp")]
     LlamaCpp,
 
+    /// The mistral.rs backend (enabled by the `mistralrs-backend` feature).
     #[cfg(feature = "mistralrs-backend")]
     MistralRs,
 }
 
 impl BackendType {
+    /// Construct a boxed [`InferenceBackend`] for this variant.
+    ///
+    /// Returns an error if no backend feature is compiled in.
     pub fn create(&self) -> Result<Box<dyn InferenceBackend>> {
         match self {
             #[cfg(feature = "llamacpp")]
@@ -106,7 +122,7 @@ mod tests {
     #[test]
     fn test_generate_request_serde_minimal() {
         let json = r#"{"prompt": "Hello"}"#;
-        let req: GenerateRequest = serde_json::from_str(json).unwrap();
+        let req: GenerateRequest = serde_json::from_str(json).expect("TODO: Verify unwrap");
         assert_eq!(req.prompt, "Hello");
         assert!(req.max_tokens.is_none());
         assert!(req.temperature.is_none());
@@ -123,8 +139,8 @@ mod tests {
             top_p: Some(0.9),
             stop: vec!["END".to_string(), "\n".to_string()],
         };
-        let json = serde_json::to_string(&req).unwrap();
-        let deserialized: GenerateRequest = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&req).expect("TODO: Verify unwrap");
+        let deserialized: GenerateRequest = serde_json::from_str(&json).expect("TODO: Verify unwrap");
         assert_eq!(deserialized.prompt, "Test prompt");
         assert_eq!(deserialized.max_tokens, Some(256));
         assert!((deserialized.temperature.unwrap() - 0.8).abs() < f32::EPSILON);
@@ -139,8 +155,8 @@ mod tests {
             tokens_generated: 42,
             finish_reason: FinishReason::Stop,
         };
-        let json = serde_json::to_string(&resp).unwrap();
-        let deserialized: GenerateResponse = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&resp).expect("TODO: Verify unwrap");
+        let deserialized: GenerateResponse = serde_json::from_str(&json).expect("TODO: Verify unwrap");
         assert_eq!(deserialized.text, "Generated output");
         assert_eq!(deserialized.tokens_generated, 42);
         assert!(matches!(deserialized.finish_reason, FinishReason::Stop));
@@ -155,17 +171,17 @@ mod tests {
 
     #[test]
     fn test_finish_reason_deserialization() {
-        let stop: FinishReason = serde_json::from_str("\"stop\"").unwrap();
+        let stop: FinishReason = serde_json::from_str("\"stop\"").expect("TODO: Verify unwrap");
         assert!(matches!(stop, FinishReason::Stop));
-        let length: FinishReason = serde_json::from_str("\"length\"").unwrap();
+        let length: FinishReason = serde_json::from_str("\"length\"").expect("TODO: Verify unwrap");
         assert!(matches!(length, FinishReason::Length));
-        let error: FinishReason = serde_json::from_str("\"error\"").unwrap();
+        let error: FinishReason = serde_json::from_str("\"error\"").expect("TODO: Verify unwrap");
         assert!(matches!(error, FinishReason::Error));
     }
 
     #[test]
     fn test_generate_request_default_stop_empty() {
-        let req: GenerateRequest = serde_json::from_str(r#"{"prompt": "x"}"#).unwrap();
+        let req: GenerateRequest = serde_json::from_str(r#"{"prompt": "x"}"#).expect("TODO: Verify unwrap");
         assert!(req.stop.is_empty());
     }
 
@@ -175,6 +191,9 @@ mod tests {
         // With no backend features enabled, BackendType has no variants,
         // so we can't construct one. The enum is effectively empty.
         // This test verifies the module compiles correctly without backends.
-        assert!(true, "BackendType correctly has no constructible variants without features");
+        assert!(
+            true,
+            "BackendType correctly has no constructible variants without features"
+        );
     }
 }

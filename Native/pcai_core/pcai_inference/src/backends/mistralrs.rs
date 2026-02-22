@@ -74,19 +74,14 @@ impl MistralRsBackend {
                 .to_string();
 
             // Use parent directory or current directory as model ID
-            let model_id = path_obj
-                .parent()
-                .and_then(|p| p.to_str())
-                .unwrap_or(".")
-                .to_string();
+            let model_id = path_obj.parent().and_then(|p| p.to_str()).unwrap_or(".").to_string();
 
             Ok((model_id, filename))
         } else {
             // Assume it's a HuggingFace repo (e.g., "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
             // In this case, the user should specify the GGUF filename separately
             Err(Error::Backend(
-                "For HuggingFace GGUF models, please provide full path or use load_gguf_hf"
-                    .to_string(),
+                "For HuggingFace GGUF models, please provide full path or use load_gguf_hf".to_string(),
             ))
         }
     }
@@ -110,8 +105,7 @@ impl MistralRsBackend {
             );
         }
 
-        let device = best_device(force_cpu)
-            .map_err(|e| Error::Backend(format!("Failed to get device: {}", e)))?;
+        let device = best_device(force_cpu).map_err(|e| Error::Backend(format!("Failed to get device: {}", e)))?;
         tracing::info!("Using device: {:?}", device);
 
         // Build the model
@@ -144,8 +138,7 @@ impl MistralRsBackend {
             );
         }
 
-        let device = best_device(force_cpu)
-            .map_err(|e| Error::Backend(format!("Failed to get device: {}", e)))?;
+        let device = best_device(force_cpu).map_err(|e| Error::Backend(format!("Failed to get device: {}", e)))?;
         tracing::info!("Using device: {:?}", device);
 
         // Build the model using TextModelBuilder for SafeTensors
@@ -212,16 +205,9 @@ impl InferenceBackend for MistralRsBackend {
     }
 
     async fn generate(&self, request: GenerateRequest) -> Result<GenerateResponse> {
-        let model = self
-            .model
-            .as_ref()
-            .ok_or(Error::ModelNotLoaded)?
-            .clone();
+        let model = self.model.as_ref().ok_or(Error::ModelNotLoaded)?.clone();
 
-        tracing::debug!(
-            "Generating response for prompt (length: {})",
-            request.prompt.len()
-        );
+        tracing::debug!("Generating response for prompt (length: {})", request.prompt.len());
 
         // Build messages - treat prompt as user message
         // Future enhancement: Parse system/user messages from prompt
@@ -240,10 +226,7 @@ impl InferenceBackend for MistralRsBackend {
             .await
             .map_err(|e| Error::Backend(format!("Generation failed: {}", e)))?;
 
-        tracing::debug!(
-            "Generated {} tokens",
-            response.usage.completion_tokens
-        );
+        tracing::debug!("Generated {} tokens", response.usage.completion_tokens);
 
         Self::map_response(response)
     }
@@ -283,7 +266,7 @@ mod tests {
     fn test_parse_gguf_path() {
         let result = MistralRsBackend::parse_gguf_path("/path/to/model.gguf");
         assert!(result.is_ok());
-        let (model_id, filename) = result.unwrap();
+        let (model_id, filename) = result.expect("TODO: Verify unwrap");
         assert_eq!(filename, "model.gguf");
     }
 

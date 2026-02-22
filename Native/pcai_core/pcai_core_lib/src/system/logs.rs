@@ -399,14 +399,14 @@ mod tests {
     #[test]
     fn test_search_logs_with_matches() {
         // Create a temp directory with test log file
-        let dir = tempdir().unwrap();
+        let dir = tempdir().expect("TODO: Verify unwrap");
         let log_path = dir.path().join("test.log");
-        let mut file = File::create(&log_path).unwrap();
-        writeln!(file, "Line 1: normal content").unwrap();
-        writeln!(file, "Line 2: ERROR something failed").unwrap();
-        writeln!(file, "Line 3: more normal content").unwrap();
-        writeln!(file, "Line 4: ERROR another failure").unwrap();
-        writeln!(file, "Line 5: final line").unwrap();
+        let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
+        writeln!(file, "Line 1: normal content").expect("TODO: Verify unwrap");
+        writeln!(file, "Line 2: ERROR something failed").expect("TODO: Verify unwrap");
+        writeln!(file, "Line 3: more normal content").expect("TODO: Verify unwrap");
+        writeln!(file, "Line 4: ERROR another failure").expect("TODO: Verify unwrap");
+        writeln!(file, "Line 5: final line").expect("TODO: Verify unwrap");
 
         let options = LogSearchOptions {
             pattern: "ERROR".to_string(),
@@ -429,12 +429,12 @@ mod tests {
 
     #[test]
     fn test_search_logs_case_insensitive() {
-        let dir = tempdir().unwrap();
+        let dir = tempdir().expect("TODO: Verify unwrap");
         let log_path = dir.path().join("test.log");
-        let mut file = File::create(&log_path).unwrap();
-        writeln!(file, "error lowercase").unwrap();
-        writeln!(file, "ERROR uppercase").unwrap();
-        writeln!(file, "Error mixed").unwrap();
+        let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
+        writeln!(file, "error lowercase").expect("TODO: Verify unwrap");
+        writeln!(file, "ERROR uppercase").expect("TODO: Verify unwrap");
+        writeln!(file, "Error mixed").expect("TODO: Verify unwrap");
 
         let options = LogSearchOptions {
             pattern: "error".to_string(),

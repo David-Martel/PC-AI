@@ -105,10 +105,7 @@ pub struct AppState {
 }
 
 /// Run the HTTP server
-pub async fn run_server(
-    config: ServerConfig,
-    backend: Box<dyn InferenceBackend>,
-) -> Result<()> {
+pub async fn run_server(config: ServerConfig, backend: Box<dyn InferenceBackend>) -> Result<()> {
     tracing::info!("Starting HTTP server on {}:{}", config.host, config.port);
 
     let state = AppState {
@@ -132,9 +129,7 @@ pub async fn run_server(
 
     tracing::info!("Server listening on {}", addr);
 
-    axum::serve(listener, app)
-        .await
-        .map_err(|e| Error::Other(e.into()))?;
+    axum::serve(listener, app).await.map_err(|e| Error::Other(e.into()))?;
 
     Ok(())
 }
@@ -142,11 +137,7 @@ pub async fn run_server(
 /// Health check endpoint
 async fn health_check(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let backend = state.backend.read().await;
-    let status = if backend.is_loaded() {
-        "ready"
-    } else {
-        "not_ready"
-    };
+    let status = if backend.is_loaded() { "ready" } else { "not_ready" };
 
     Json(serde_json::json!({
         "status": status,
@@ -193,20 +184,12 @@ async fn completions(
     if req.stream.unwrap_or(false) {
         let created = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .expect("system clock is before UNIX_EPOCH")
             .as_secs();
         let id = format!("cmpl-{}", Uuid::new_v4());
         let model = req.model.unwrap_or_else(|| "pcai-inference".to_string());
 
-        let sse = stream_completions(
-            state.backend.clone(),
-            generate_req,
-            stop,
-            id,
-            model,
-            created,
-        )
-        .await?;
+        let sse = stream_completions(state.backend.clone(), generate_req, stop, id, model, created).await?;
         return Ok(sse.into_response());
     }
 
@@ -218,15 +201,14 @@ async fn completions(
 
     let response = backend.generate(generate_req).await?;
 
-    let (text, finish_reason) =
-        apply_stop_sequences(&response.text, &stop, response.finish_reason);
+    let (text, finish_reason) = apply_stop_sequences(&response.text, &stop, response.finish_reason);
 
     let completion_response = CompletionResponse {
         id: format!("cmpl-{}", Uuid::new_v4()),
         object: "text_completion".to_string(),
         created: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .expect("system clock is before UNIX_EPOCH")
             .as_secs(),
         model: req.model.unwrap_or_else(|| "pcai-inference".to_string()),
         choices: vec![Choice {
@@ -282,20 +264,12 @@ async fn chat_completions(
     if req.stream.unwrap_or(false) {
         let created = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .expect("system clock is before UNIX_EPOCH")
             .as_secs();
         let id = format!("chatcmpl-{}", Uuid::new_v4());
         let model = req.model.unwrap_or_else(|| "pcai-inference".to_string());
 
-        let sse = stream_chat_completions(
-            state.backend.clone(),
-            generate_req,
-            stop,
-            id,
-            model,
-            created,
-        )
-        .await?;
+        let sse = stream_chat_completions(state.backend.clone(), generate_req, stop, id, model, created).await?;
         return Ok(sse.into_response());
     }
 
@@ -306,15 +280,14 @@ async fn chat_completions(
     }
 
     let response = backend.generate(generate_req).await?;
-    let (content, finish_reason) =
-        apply_stop_sequences(&response.text, &stop, response.finish_reason);
+    let (content, finish_reason) = apply_stop_sequences(&response.text, &stop, response.finish_reason);
 
     let completion_response = ChatCompletionResponse {
         id: format!("chatcmpl-{}", Uuid::new_v4()),
         object: "chat.completion".to_string(),
         created: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .expect("system clock is before UNIX_EPOCH")
             .as_secs(),
         model: req.model.unwrap_or_else(|| "pcai-inference".to_string()),
         choices: vec![ChatChoice {
@@ -463,9 +436,7 @@ impl IntoResponse for AppError {
 
 fn build_chat_prompt(messages: &[ChatMessage]) -> std::result::Result<String, AppError> {
     if messages.is_empty() {
-        return Err(AppError(Error::InvalidInput(
-            "messages must not be empty".to_string(),
-        )));
+        return Err(AppError(Error::InvalidInput("messages must not be empty".to_string())));
     }
 
     let mut prompt = String::new();
@@ -498,16 +469,12 @@ fn estimate_tokens(text: &str) -> usize {
     }
 
     let char_count = text.chars().count();
-    let char_tokens = (char_count + 3) / 4;
+    let char_tokens = char_count.div_ceil(4);
     let word_tokens = text.split_whitespace().count();
     char_tokens.max(word_tokens).max(1)
 }
 
-fn apply_stop_sequences(
-    text: &str,
-    stop: &Option<Vec<String>>,
-    finish_reason: FinishReason,
-) -> (String, FinishReason) {
+fn apply_stop_sequences(text: &str, stop: &Option<Vec<String>>, finish_reason: FinishReason) -> (String, FinishReason) {
     let Some(stops) = stop else {
         return (text.to_string(), finish_reason);
     };
@@ -546,8 +513,7 @@ async fn stream_completions(
     id: String,
     model: String,
     created: u64,
-) -> std::result::Result<Sse<impl futures::Stream<Item = std::result::Result<Event, Infallible>>>, AppError>
-{
+) -> std::result::Result<Sse<impl futures::Stream<Item = std::result::Result<Event, Infallible>>>, AppError> {
     let (tx, rx) = mpsc::unbounded_channel::<StreamItem>();
     let tx_tokens = tx.clone();
 
@@ -591,50 +557,50 @@ async fn stream_completions(
         let id = Arc::clone(&id);
         let model = Arc::clone(&model);
         async move {
-        match rx.recv().await {
-            Some(item) => {
-                let data = match item {
-                    StreamItem::Token(token) => serde_json::json!({
-                        "id": id.as_str(),
-                        "object": "text_completion.chunk",
-                        "created": created,
-                        "model": model.as_str(),
-                        "choices": [
-                            {
-                                "index": 0,
-                                "text": token,
-                                "finish_reason": null
+            match rx.recv().await {
+                Some(item) => {
+                    let data = match item {
+                        StreamItem::Token(token) => serde_json::json!({
+                            "id": id.as_str(),
+                            "object": "text_completion.chunk",
+                            "created": created,
+                            "model": model.as_str(),
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "text": token,
+                                    "finish_reason": null
+                                }
+                            ]
+                        })
+                        .to_string(),
+                        StreamItem::Final(reason) => serde_json::json!({
+                            "id": id.as_str(),
+                            "object": "text_completion.chunk",
+                            "created": created,
+                            "model": model.as_str(),
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "text": "",
+                                    "finish_reason": finish_reason_to_string(reason)
+                                }
+                            ]
+                        })
+                        .to_string(),
+                        StreamItem::Error(msg) => serde_json::json!({
+                            "error": {
+                                "message": msg,
+                                "type": "server_error"
                             }
-                        ]
-                    })
-                    .to_string(),
-                    StreamItem::Final(reason) => serde_json::json!({
-                        "id": id.as_str(),
-                        "object": "text_completion.chunk",
-                        "created": created,
-                        "model": model.as_str(),
-                        "choices": [
-                            {
-                                "index": 0,
-                                "text": "",
-                                "finish_reason": finish_reason_to_string(reason)
-                            }
-                        ]
-                    })
-                    .to_string(),
-                    StreamItem::Error(msg) => serde_json::json!({
-                        "error": {
-                            "message": msg,
-                            "type": "server_error"
-                        }
-                    })
-                    .to_string(),
-                    StreamItem::Done => "[DONE]".to_string(),
-                };
-                Some((Ok(Event::default().data(data)), rx))
+                        })
+                        .to_string(),
+                        StreamItem::Done => "[DONE]".to_string(),
+                    };
+                    Some((Ok(Event::default().data(data)), rx))
+                }
+                None => None,
             }
-            None => None,
-        }
         }
     });
 
@@ -648,8 +614,7 @@ async fn stream_chat_completions(
     id: String,
     model: String,
     created: u64,
-) -> std::result::Result<Sse<impl futures::Stream<Item = std::result::Result<Event, Infallible>>>, AppError>
-{
+) -> std::result::Result<Sse<impl futures::Stream<Item = std::result::Result<Event, Infallible>>>, AppError> {
     let (tx, rx) = mpsc::unbounded_channel::<StreamItem>();
     let tx_tokens = tx.clone();
 
@@ -693,50 +658,50 @@ async fn stream_chat_completions(
         let id = Arc::clone(&id);
         let model = Arc::clone(&model);
         async move {
-        match rx.recv().await {
-            Some(item) => {
-                let data = match item {
-                    StreamItem::Token(token) => serde_json::json!({
-                        "id": id.as_str(),
-                        "object": "chat.completion.chunk",
-                        "created": created,
-                        "model": model.as_str(),
-                        "choices": [
-                            {
-                                "index": 0,
-                                "delta": { "content": token },
-                                "finish_reason": null
+            match rx.recv().await {
+                Some(item) => {
+                    let data = match item {
+                        StreamItem::Token(token) => serde_json::json!({
+                            "id": id.as_str(),
+                            "object": "chat.completion.chunk",
+                            "created": created,
+                            "model": model.as_str(),
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": { "content": token },
+                                    "finish_reason": null
+                                }
+                            ]
+                        })
+                        .to_string(),
+                        StreamItem::Final(reason) => serde_json::json!({
+                            "id": id.as_str(),
+                            "object": "chat.completion.chunk",
+                            "created": created,
+                            "model": model.as_str(),
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {},
+                                    "finish_reason": finish_reason_to_string(reason)
+                                }
+                            ]
+                        })
+                        .to_string(),
+                        StreamItem::Error(msg) => serde_json::json!({
+                            "error": {
+                                "message": msg,
+                                "type": "server_error"
                             }
-                        ]
-                    })
-                    .to_string(),
-                    StreamItem::Final(reason) => serde_json::json!({
-                        "id": id.as_str(),
-                        "object": "chat.completion.chunk",
-                        "created": created,
-                        "model": model.as_str(),
-                        "choices": [
-                            {
-                                "index": 0,
-                                "delta": {},
-                                "finish_reason": finish_reason_to_string(reason)
-                            }
-                        ]
-                    })
-                    .to_string(),
-                    StreamItem::Error(msg) => serde_json::json!({
-                        "error": {
-                            "message": msg,
-                            "type": "server_error"
-                        }
-                    })
-                    .to_string(),
-                    StreamItem::Done => "[DONE]".to_string(),
-                };
-                Some((Ok(Event::default().data(data)), rx))
+                        })
+                        .to_string(),
+                        StreamItem::Done => "[DONE]".to_string(),
+                    };
+                    Some((Ok(Event::default().data(data)), rx))
+                }
+                None => None,
             }
-            None => None,
-        }
         }
     });
 
@@ -757,16 +722,13 @@ fn stream_functiongemma_response(
     let id = response
         .get("id")
         .and_then(|v| v.as_str())
-        .unwrap_or_else(|| "chatcmpl-functiongemma");
-    let created = response
-        .get("created")
-        .and_then(|v| v.as_u64())
-        .unwrap_or_else(|| {
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs()
-        });
+        .unwrap_or("chatcmpl-functiongemma");
+    let created = response.get("created").and_then(|v| v.as_u64()).unwrap_or_else(|| {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock is before UNIX_EPOCH")
+            .as_secs()
+    });
     let model = response
         .get("model")
         .and_then(|v| v.as_str())
@@ -778,20 +740,13 @@ fn stream_functiongemma_response(
         .and_then(|v| v.first())
         .ok_or_else(|| AppError(Error::Backend("Router response missing choices".to_string())))?;
 
-    let finish_reason = choice
-        .get("finish_reason")
-        .and_then(|v| v.as_str())
-        .unwrap_or_else(|| {
-            if choice
-                .get("message")
-                .and_then(|m| m.get("tool_calls"))
-                .is_some()
-            {
-                "tool_calls"
-            } else {
-                "stop"
-            }
-        });
+    let finish_reason = choice.get("finish_reason").and_then(|v| v.as_str()).unwrap_or_else(|| {
+        if choice.get("message").and_then(|m| m.get("tool_calls")).is_some() {
+            "tool_calls"
+        } else {
+            "stop"
+        }
+    });
 
     let message = choice
         .get("message")
@@ -834,10 +789,7 @@ fn stream_functiongemma_response(
 
     if let Some(tool_calls) = message.get("tool_calls").and_then(|v| v.as_array()) {
         for (index, tool_call) in tool_calls.iter().enumerate() {
-            let id_value = tool_call
-                .get("id")
-                .and_then(|v| v.as_str())
-                .unwrap_or_else(|| "call_0");
+            let id_value = tool_call.get("id").and_then(|v| v.as_str()).unwrap_or("call_0");
             let func = tool_call.get("function").cloned().unwrap_or_else(|| {
                 serde_json::json!({
                     "name": "unknown",
@@ -934,9 +886,7 @@ fn should_route_to_functiongemma(req: &ChatCompletionRequest) -> bool {
     keywords.iter().any(|k| content.contains(k))
 }
 
-async fn call_functiongemma(
-    req: &ChatCompletionRequest,
-) -> std::result::Result<serde_json::Value, AppError> {
+async fn call_functiongemma(req: &ChatCompletionRequest) -> std::result::Result<serde_json::Value, AppError> {
     let settings = router_settings();
     let base_url = settings.base_url.clone();
     let model = settings.model.clone();
@@ -988,7 +938,7 @@ fn load_default_tools() -> Option<Vec<serde_json::Value>> {
     let doc: serde_json::Value = serde_json::from_str(&content).ok()?;
     doc.get("tools")
         .and_then(|tools| tools.as_array())
-        .map(|arr| arr.clone())
+        .map(|arr| arr.to_vec())
 }
 
 #[derive(Debug)]
@@ -1109,7 +1059,7 @@ mod tests {
             },
         ];
 
-        let prompt = build_chat_prompt(&messages).unwrap();
+        let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
         assert!(prompt.contains("System: You are helpful."));
         assert!(prompt.contains("User: Hello"));
         assert!(prompt.ends_with("Assistant: "));
@@ -1146,7 +1096,7 @@ mod tests {
             role: "custom_role".to_string(),
             content: "Hi".to_string(),
         }];
-        let prompt = build_chat_prompt(&messages).unwrap();
+        let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
         // Unknown role should map to "User"
         assert!(prompt.contains("User: Hi"));
         assert!(prompt.ends_with("Assistant: "));
@@ -1158,7 +1108,7 @@ mod tests {
             role: "tool".to_string(),
             content: "result data".to_string(),
         }];
-        let prompt = build_chat_prompt(&messages).unwrap();
+        let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
         assert!(prompt.contains("Tool: result data"));
     }
 
@@ -1168,7 +1118,7 @@ mod tests {
             role: "user".to_string(),
             content: "What is 2+2?".to_string(),
         }];
-        let prompt = build_chat_prompt(&messages).unwrap();
+        let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
         assert_eq!(prompt, "User: What is 2+2?\nAssistant: ");
     }
 

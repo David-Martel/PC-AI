@@ -42,8 +42,7 @@ impl LlamaCppBackend {
 
     /// Create a new llama.cpp backend with custom configuration
     pub fn with_config(n_gpu_layers: u32, n_ctx: u32, n_batch: u32) -> Self {
-        let backend = LlamaCppBackend_::init()
-            .expect("Failed to initialize llama.cpp backend");
+        let backend = LlamaCppBackend_::init().expect("Failed to initialize llama.cpp backend");
 
         Self {
             backend: Arc::new(backend),
@@ -83,10 +82,7 @@ impl LlamaCppBackend {
             .str_to_token(&request.prompt, AddBos::Always)
             .map_err(|e| Error::Backend(format!("Tokenization failed: {:?}", e)))?;
 
-        tracing::info!(
-            "Tokenized prompt: {} tokens",
-            tokens_list.len()
-        );
+        tracing::info!("Tokenized prompt: {} tokens", tokens_list.len());
 
         // Create batch and add prompt tokens
         let mut batch = LlamaBatch::new(self.n_batch as usize, 1);
@@ -219,11 +215,7 @@ impl InferenceBackend for LlamaCppBackend {
             .new_context(&self.backend, ctx_params)
             .map_err(|e| Error::Backend(format!("Failed to create context: {:?}", e)))?;
 
-        tracing::info!(
-            "Context created: n_ctx={}, n_batch={}",
-            self.n_ctx,
-            self.n_batch
-        );
+        tracing::info!("Context created: n_ctx={}, n_batch={}", self.n_ctx, self.n_batch);
 
         // Store the leaked box and context
         // We'll manually drop the box in unload_model after dropping the context
@@ -231,8 +223,7 @@ impl InferenceBackend for LlamaCppBackend {
         *self
             .context
             .lock()
-            .map_err(|e| Error::Backend(format!("Failed to lock context: {}", e)))? =
-            Some(context);
+            .map_err(|e| Error::Backend(format!("Failed to lock context: {}", e)))? = Some(context);
         self.model_path = Some(PathBuf::from(model_path));
 
         Ok(())

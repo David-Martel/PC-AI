@@ -249,7 +249,7 @@ fn search_content_impl(config: &ContentSearchConfig) -> ContentSearchResult {
                 total_matches.fetch_add(match_count, Ordering::Relaxed);
 
                 // Lock only when we have matches to add
-                let mut all = all_matches.lock().unwrap();
+                let mut all = all_matches.lock().expect("TODO: Verify unwrap");
                 for m in matches {
                     if config.max_results > 0 && all.len() as u64 >= config.max_results {
                         truncated.store(true, Ordering::Relaxed);
@@ -399,23 +399,21 @@ mod tests {
     use tempfile::TempDir;
 
     fn create_test_dir() -> TempDir {
-        let dir = TempDir::new().unwrap();
+        let dir = TempDir::new().expect("TODO: Verify unwrap");
 
         fs::write(
             dir.path().join("file1.txt"),
             "Hello world\nThis is a test\nHello again",
-        )
-        .unwrap();
+        ).expect("TODO: Verify unwrap");
         fs::write(
             dir.path().join("file2.log"),
             "Error: something failed\nWarning: check this\nError: another failure",
-        )
-        .unwrap();
-        fs::write(dir.path().join("data.json"), r#"{"key": "value"}"#).unwrap();
+        ).expect("TODO: Verify unwrap");
+        fs::write(dir.path().join("data.json"), r#"{"key": "value"}"#).expect("TODO: Verify unwrap");
 
         let subdir = dir.path().join("subdir");
-        fs::create_dir(&subdir).unwrap();
-        fs::write(subdir.join("nested.txt"), "Hello from nested").unwrap();
+        fs::create_dir(&subdir).expect("TODO: Verify unwrap");
+        fs::write(subdir.join("nested.txt"), "Hello from nested").expect("TODO: Verify unwrap");
 
         dir
     }
@@ -424,7 +422,7 @@ mod tests {
     fn test_search_content_basic() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("Hello").unwrap();
+        let regex = Regex::new("Hello").expect("TODO: Verify unwrap");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,
@@ -446,8 +444,8 @@ mod tests {
     fn test_search_content_with_file_pattern() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("Error").unwrap();
-        let glob = Glob::new("*.log").unwrap();
+        let regex = Regex::new("Error").expect("TODO: Verify unwrap");
+        let glob = Glob::new("*.log").expect("TODO: Verify unwrap");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,
@@ -469,7 +467,7 @@ mod tests {
     fn test_search_content_with_context() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("test").unwrap();
+        let regex = Regex::new("test").expect("TODO: Verify unwrap");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,
@@ -495,7 +493,7 @@ mod tests {
     fn test_search_content_max_results() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("Hello|Error").unwrap();
+        let regex = Regex::new("Hello|Error").expect("TODO: Verify unwrap");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,
@@ -517,7 +515,7 @@ mod tests {
     fn test_search_content_stats() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("Hello").unwrap();
+        let regex = Regex::new("Hello").expect("TODO: Verify unwrap");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,

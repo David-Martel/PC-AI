@@ -126,8 +126,8 @@ fn test_generate_request_serialization() {
         stop: vec!["STOP".to_string()],
     };
 
-    let json = serde_json::to_string(&req).unwrap();
-    let deserialized: GenerateRequest = serde_json::from_str(&json).unwrap();
+    let json = serde_json::to_string(&req).expect("TODO: Verify unwrap");
+    let deserialized: GenerateRequest = serde_json::from_str(&json).expect("TODO: Verify unwrap");
 
     assert_eq!(req.prompt, deserialized.prompt);
     assert_eq!(req.max_tokens, deserialized.max_tokens);
@@ -144,8 +144,8 @@ fn test_generate_response_serialization() {
         finish_reason: FinishReason::Stop,
     };
 
-    let json = serde_json::to_string(&resp).unwrap();
-    let deserialized: GenerateResponse = serde_json::from_str(&json).unwrap();
+    let json = serde_json::to_string(&resp).expect("TODO: Verify unwrap");
+    let deserialized: GenerateResponse = serde_json::from_str(&json).expect("TODO: Verify unwrap");
 
     assert_eq!(resp.text, deserialized.text);
     assert_eq!(resp.tokens_generated, deserialized.tokens_generated);
@@ -160,10 +160,10 @@ fn test_finish_reason_serialization() {
     ];
 
     for (reason, expected) in reasons {
-        let json = serde_json::to_string(&reason).unwrap();
+        let json = serde_json::to_string(&reason).expect("TODO: Verify unwrap");
         assert_eq!(json, expected);
 
-        let deserialized: FinishReason = serde_json::from_str(&json).unwrap();
+        let deserialized: FinishReason = serde_json::from_str(&json).expect("TODO: Verify unwrap");
         assert!(matches!(deserialized, _));
     }
 }
@@ -240,7 +240,7 @@ fn test_backend_type_llamacpp() {
     let backend_result = BackendType::LlamaCpp.create();
     assert!(backend_result.is_ok());
 
-    let backend = backend_result.unwrap();
+    let backend = backend_result.expect("TODO: Verify unwrap");
     assert_eq!(backend.backend_name(), "llama.cpp");
     assert!(!backend.is_loaded());
 }
@@ -251,7 +251,7 @@ fn test_backend_type_mistralrs() {
     let backend_result = BackendType::MistralRs.create();
     assert!(backend_result.is_ok());
 
-    let backend = backend_result.unwrap();
+    let backend = backend_result.expect("TODO: Verify unwrap");
     assert_eq!(backend.backend_name(), "mistral.rs");
     assert!(!backend.is_loaded());
 }
@@ -268,18 +268,18 @@ async fn test_mock_backend_lifecycle() {
     assert!(!backend.is_loaded());
 
     // Load model
-    backend.load_model("dummy.gguf").await.unwrap();
+    backend.load_model("dummy.gguf").await.expect("TODO: Verify unwrap");
     assert!(backend.is_loaded());
 
     // Unload model
-    backend.unload_model().await.unwrap();
+    backend.unload_model().await.expect("TODO: Verify unwrap");
     assert!(!backend.is_loaded());
 }
 
 #[tokio::test]
 async fn test_mock_backend_generate() {
     let mut backend = MockBackend::new();
-    backend.load_model("dummy.gguf").await.unwrap();
+    backend.load_model("dummy.gguf").await.expect("TODO: Verify unwrap");
 
     let request = GenerateRequest {
         prompt: "Hello, world!".to_string(),
@@ -289,7 +289,7 @@ async fn test_mock_backend_generate() {
         stop: vec![],
     };
 
-    let response = backend.generate(request).await.unwrap();
+    let response = backend.generate(request).await.expect("TODO: Verify unwrap");
     assert!(response.text.contains("Mock response"));
     assert_eq!(response.tokens_generated, 50);
     assert!(matches!(response.finish_reason, FinishReason::Stop));
@@ -346,7 +346,7 @@ async fn test_llamacpp_generate_with_model() {
     let model_path = common::require_test_model();
     let mut backend = LlamaCppBackend::new();
 
-    backend.load_model(&model_path).await.unwrap();
+    backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
     assert!(backend.is_loaded());
 
     let request = GenerateRequest {
@@ -357,7 +357,7 @@ async fn test_llamacpp_generate_with_model() {
         stop: vec![],
     };
 
-    let response = backend.generate(request).await.unwrap();
+    let response = backend.generate(request).await.expect("TODO: Verify unwrap");
     assert!(!response.text.is_empty());
     assert!(response.tokens_generated > 0);
     assert!(response.tokens_generated <= 10);
@@ -373,7 +373,7 @@ async fn test_mistralrs_generate_with_model() {
     let model_path = common::require_test_model();
     let mut backend = MistralRsBackend::new();
 
-    backend.load_model(&model_path).await.unwrap();
+    backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
     assert!(backend.is_loaded());
 
     let request = GenerateRequest {
@@ -384,7 +384,7 @@ async fn test_mistralrs_generate_with_model() {
         stop: vec![],
     };
 
-    let response = backend.generate(request).await.unwrap();
+    let response = backend.generate(request).await.expect("TODO: Verify unwrap");
     assert!(!response.text.is_empty());
     assert!(response.tokens_generated > 0);
 }
@@ -413,7 +413,7 @@ mod ffi_tests {
 
     #[test]
     fn test_ffi_init_unknown_backend() {
-        let backend = CString::new("unknown_backend").unwrap();
+        let backend = CString::new("unknown_backend").expect("TODO: Verify unwrap");
         let result = pcai_init(backend.as_ptr());
         // InvalidInput error code = -3
         assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
@@ -430,7 +430,7 @@ mod ffi_tests {
     fn test_ffi_init_llamacpp() {
         pcai_shutdown(); // Clean state
 
-        let backend = CString::new("llamacpp").unwrap();
+        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
         let result = pcai_init(backend.as_ptr());
 
         if result != 0 {
@@ -450,7 +450,7 @@ mod ffi_tests {
     fn test_ffi_init_mistralrs() {
         pcai_shutdown(); // Clean state
 
-        let backend = CString::new("mistralrs").unwrap();
+        let backend = CString::new("mistralrs").expect("TODO: Verify unwrap");
         let result = pcai_init(backend.as_ptr());
         assert_eq!(result, 0);
 
@@ -471,7 +471,7 @@ mod ffi_tests {
     fn test_ffi_load_model_before_init() {
         pcai_shutdown(); // Ensure no backend initialized
 
-        let path = CString::new("/nonexistent/model.gguf").unwrap();
+        let path = CString::new("/nonexistent/model.gguf").expect("TODO: Verify unwrap");
         let result = pcai_load_model(path.as_ptr(), 0);
         // NotInitialized error code = -1
         assert_eq!(result, PcaiErrorCode::NotInitialized as i32);
@@ -499,7 +499,7 @@ mod ffi_tests {
     fn test_ffi_generate_before_init() {
         pcai_shutdown(); // Ensure no backend initialized
 
-        let prompt = CString::new("Test prompt").unwrap();
+        let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
         let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
         assert!(result.is_null());
 
@@ -516,12 +516,12 @@ mod ffi_tests {
         pcai_shutdown(); // Clean state
 
         // Initialize backend
-        let backend = CString::new("llamacpp").unwrap();
+        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
         let init_result = pcai_init(backend.as_ptr());
         assert_eq!(init_result, 0);
 
         // Try to generate without loading model
-        let prompt = CString::new("Test prompt").unwrap();
+        let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
         let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
         assert!(result.is_null());
 
@@ -564,12 +564,12 @@ mod ffi_tests {
         pcai_shutdown(); // Clean state
 
         // Initialize
-        let backend = CString::new("llamacpp").unwrap();
+        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
         assert_eq!(pcai_init(backend.as_ptr()), 0);
 
         // Load model
         let model_path = common::require_test_model();
-        let path = CString::new(model_path).unwrap();
+        let path = CString::new(model_path).expect("TODO: Verify unwrap");
         let load_result = pcai_load_model(path.as_ptr(), 0);
 
         if load_result != 0 {
@@ -582,12 +582,12 @@ mod ffi_tests {
         assert_eq!(load_result, 0);
 
         // Generate
-        let prompt = CString::new("The capital of France is").unwrap();
+        let prompt = CString::new("The capital of France is").expect("TODO: Verify unwrap");
         let result_ptr = pcai_generate(prompt.as_ptr(), 10, 0.1);
         assert!(!result_ptr.is_null());
 
         let result_str = unsafe { std::ffi::CStr::from_ptr(result_ptr) };
-        let text = result_str.to_str().unwrap();
+        let text = result_str.to_str().expect("TODO: Verify unwrap");
         assert!(!text.is_empty());
 
         // Free result
@@ -612,7 +612,7 @@ async fn stress_test_sequential_generations() {
 
     let model_path = common::require_test_model();
     let mut backend = LlamaCppBackend::new();
-    backend.load_model(&model_path).await.unwrap();
+    backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
 
     for i in 0..10 {
         let request = GenerateRequest {
@@ -623,7 +623,7 @@ async fn stress_test_sequential_generations() {
             stop: vec![],
         };
 
-        let response = backend.generate(request).await.unwrap();
+        let response = backend.generate(request).await.expect("TODO: Verify unwrap");
         assert!(!response.text.is_empty());
     }
 }
@@ -640,7 +640,7 @@ async fn stress_test_backend_switching() {
     {
         use pcai_inference::backends::llamacpp::LlamaCppBackend;
         let mut backend = LlamaCppBackend::new();
-        backend.load_model(&model_path).await.unwrap();
+        backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
 
         let request = GenerateRequest {
             prompt: "Test".to_string(),
@@ -650,15 +650,15 @@ async fn stress_test_backend_switching() {
             stop: vec![],
         };
 
-        let _ = backend.generate(request).await.unwrap();
-        backend.unload_model().await.unwrap();
+        let _ = backend.generate(request).await.expect("TODO: Verify unwrap");
+        backend.unload_model().await.expect("TODO: Verify unwrap");
     }
 
     // Test mistralrs
     {
         use pcai_inference::backends::mistralrs::MistralRsBackend;
         let mut backend = MistralRsBackend::new();
-        backend.load_model(&model_path).await.unwrap();
+        backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
 
         let request = GenerateRequest {
             prompt: "Test".to_string(),
@@ -668,7 +668,7 @@ async fn stress_test_backend_switching() {
             stop: vec![],
         };
 
-        let _ = backend.generate(request).await.unwrap();
-        backend.unload_model().await.unwrap();
+        let _ = backend.generate(request).await.expect("TODO: Verify unwrap");
+        backend.unload_model().await.expect("TODO: Verify unwrap");
     }
 }

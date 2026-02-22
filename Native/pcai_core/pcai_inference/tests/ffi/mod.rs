@@ -7,6 +7,6 @@
 //! - Error propagation
 //! - Resource cleanup
 
-pub mod memory_safety;
 pub mod concurrent_access;
 pub mod error_propagation;
+pub mod memory_safety;

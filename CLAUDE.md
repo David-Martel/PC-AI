@@ -17,17 +17,29 @@ The agent operates on **Windows 10/11** with native-first inference via **pcai-i
 
 ```
 PC_AI/
-├── DIAGNOSE.md                    # LLM system prompt defining assistant behavior
-├── DIAGNOSE_LOGIC.md              # Branched reasoning decision tree for analysis
-├── CHAT.md                        # General chat system prompt
-├── Get-PcDiagnostics.ps1          # Core hardware/device diagnostics script
-├── Native/pcai_core/              # Rust workspace (monorepo)
-│   ├── pcai_inference/            # Rust LLM inference engine (HTTP + FFI)
-│   └── pcai_core_lib/             # Shared Rust library (telemetry, fs, search)
-├── Native/PcaiNative/             # C# P/Invoke wrapper for PowerShell
-├── Deploy/rust-functiongemma-runtime/ # Rust router runtime
-├── Deploy/rust-functiongemma-train/   # Rust router dataset + training
-└── CLAUDE.md                      # This file
+├── DIAGNOSE.md                        # LLM system prompt defining assistant behavior
+├── DIAGNOSE_LOGIC.md                  # Branched reasoning decision tree for analysis
+├── CHAT.md                            # General chat system prompt
+├── Get-PcDiagnostics.ps1              # Core hardware/device diagnostics script
+├── Native/pcai_core/                  # Rust workspace (monorepo)
+│   ├── pcai_inference/                # Rust LLM inference engine (HTTP + FFI)
+│   └── pcai_core_lib/                 # Shared Rust library (telemetry, fs, search)
+├── Native/PcaiNative/                 # C# P/Invoke wrapper for PowerShell
+├── Native/PcaiChatTui/                # C# interactive chat TUI (async backends)
+├── Deploy/rust-functiongemma-core/    # Shared Rust library (model, GPU, prompt, config)
+├── Deploy/rust-functiongemma-runtime/ # Rust router runtime (axum HTTP server)
+├── Deploy/rust-functiongemma-train/   # Rust router dataset + training pipeline
+├── Modules/
+│   ├── PC-AI.Acceleration/            # Native FFI wrappers (P/Invoke bridge)
+│   ├── PC-AI.Hardware/                # Device, disk, USB, network diagnostics
+│   ├── PC-AI.LLM/                     # Local LLM integration (Ollama, native)
+│   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
+│   └── PcaiInference.psm1            # Inference module (load/generate/stream)
+├── Config/
+│   ├── llm-config.json                # Backend + model configuration
+│   ├── pcai-tools.json                # FunctionGemma tool schema
+│   └── pcai-functiongemma.json        # Router GPU + runtime config
+└── CLAUDE.md                          # This file
 ```
 
 ### Design Pattern
@@ -115,8 +127,17 @@ cd Native\pcai_core\pcai_inference
 | `mistralrs-backend` | mistral.rs backend (alternative) |
 | `cuda-llamacpp` | CUDA for llama.cpp |
 | `cuda-mistralrs` | CUDA for mistral.rs |
-| `ffi` | C FFI exports for PowerShell |
+| `ffi` | C FFI exports for PowerShell (15 functions) |
 | `server` | HTTP server with OpenAI-compatible API |
+
+**Minimal Build Variants:**
+```powershell
+# FFI-only DLL (289KB, no backend — for P/Invoke testing)
+cargo build --no-default-features --features ffi --release
+
+# Server + FFI (no backend — for unit testing pure logic)
+cargo test --no-default-features --features server,ffi --lib
+```
 
 ### Evaluation Harness
 
@@ -250,8 +271,9 @@ wmic diskdrive get model, status
 ### FunctionGemma Router
 - Tool schema: `Config/pcai-tools.json`
 - Router interface: `Invoke-FunctionGemmaReAct` / `Invoke-LLMChatRouted`
-- Training data: `Deploy/rust-functiongemma-train/`
-- Runtime: `Deploy/rust-functiongemma-runtime/`
+- Shared library: `Deploy/rust-functiongemma-core/` (model, GPU, prompt, config, LoRA, safetensors)
+- Training pipeline: `Deploy/rust-functiongemma-train/`
+- Runtime server: `Deploy/rust-functiongemma-runtime/` (axum, port 8000)
 - HVSocket aliases: `Config/hvsock-proxy.conf` with `hvsock://functiongemma` / `hvsock://pcai-inference`
 
 ### pcai-inference Endpoints
@@ -291,6 +313,31 @@ When reporting findings, use this structure:
 3. Update category handling in `DIAGNOSE.md`
 
 ### Testing
+
+**Rust Unit Tests (58 tests):**
+```powershell
+cd Native\pcai_core\pcai_inference
+cargo test --no-default-features --features server,ffi --lib
+```
+
+| Module | Tests | Coverage |
+|--------|-------|----------|
+| `lib.rs` | 5 | Error Display + From conversions |
+| `config.rs` | 8 | Serde roundtrip, file I/O, defaults |
+| `backends/mod.rs` | 7 | Request/Response serde, FinishReason |
+| `http/mod.rs` | 21 | Chat prompt, tokens, stop sequences, chunks, StopTracker |
+| `ffi/mod.rs` | 17 | FFI edge cases, init/shutdown, error codes |
+
+**FFI Integration Tests (49 tests):**
+```powershell
+# Integration tests (28 tests — requires DLL at bin/pcai_inference.dll)
+pwsh -Command "Invoke-Pester Tests/Integration/FFI.Inference.Tests.ps1"
+
+# Stress tests (21 tests — concurrency, memory, error hammering)
+pwsh -Command "Invoke-Pester Tests/Integration/FFI.Stress.Tests.ps1"
+```
+
+**PowerShell Diagnostics:**
 ```powershell
 # Test diagnostics script runs without errors
 .\Get-PcDiagnostics.ps1
@@ -312,9 +359,17 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 - Rust toolchain (`rustup`)
 
 **Optional (for GPU):**
-- CUDA Toolkit 12.x (`CUDA_PATH` env var)
+- CUDA Toolkit 13.x (`CUDA_PATH` env var) — 13.1 tested and working
 - cuDNN (for mistral.rs flash attention)
 - sccache (for faster rebuilds)
+
+**GPU Configuration:**
+| GPU | VRAM | Compute | Role |
+|-----|------|---------|------|
+| RTX 2000 Ada | 8GB | SM 89 | Inference / runtime (GPU 0) |
+| RTX 5060 Ti | 16GB | SM 120 | Training / QLoRA (GPU 1) |
+
+Config files: `Config/pcai-functiongemma.json` (router_gpu, cuda_visible_devices)
 
 **Common Build Issues:**
 | Issue | Solution |
@@ -323,6 +378,7 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 | "CMake not found" | `winget install Kitware.CMake`, restart terminal |
 | "CUDA not found" | Install CUDA Toolkit, verify `$env:CUDA_PATH` |
 | CRT mismatch linker errors | Script auto-forces `/MD`; run with `-Clean` if switching backends |
+| CUDA env override needed | `Tools\Set-CudaBuildEnv.ps1` or `.cargo/config.toml` env vars |
 
 ### Performance Configuration
 

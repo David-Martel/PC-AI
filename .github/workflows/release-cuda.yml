@@ -18,8 +18,31 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    name: Unit Tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Native/pcai_core/pcai_inference
+          shared-key: pcai-inference-test
+
+      - name: Run Unit Tests
+        shell: pwsh
+        run: |
+          cd Native\pcai_core\pcai_inference
+          cargo test --no-default-features --features server,ffi --lib
+          if ($LASTEXITCODE -ne 0) { throw "Unit tests failed" }
+
   build:
     name: Build ${{ matrix.backend }} (${{ matrix.cuda && 'CUDA' || 'CPU' }})
+    needs: test
     runs-on: windows-latest
     strategy:
       fail-fast: false

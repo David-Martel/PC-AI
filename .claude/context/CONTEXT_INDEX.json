@@ -10,7 +10,7 @@
       "agents_involved": ["Claude-opus"],
       "summary": "42 Rust unit tests (TDD plan complete), CUDA 13.1 now works with updated crate deps, .gitignore/.rgignore updated for alternate target dirs and training checkpoints",
       "supersedes": ["ctx-pcai-20260222-ffi-torture"],
-      "commit": "pending"
+      "commit": "bcfceb4"
     },
     {
       "id": "ctx-pcai-20260222-ffi-torture",

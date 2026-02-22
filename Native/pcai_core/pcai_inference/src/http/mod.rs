@@ -29,6 +29,7 @@ struct LlmConfigFile {
 }
 
 #[derive(Debug, Deserialize, Default)]
+#[allow(dead_code)]
 struct RouterConfigFile {
     enabled: Option<bool>,
     provider: Option<String>,
@@ -436,10 +437,7 @@ impl From<Error> for AppError {
 }
 
 impl AppError {
-    fn model_not_loaded() -> Self {
-        AppError(Error::ModelNotLoaded)
-    }
-
+    #[allow(non_upper_case_globals)]
     const ModelNotLoaded: Self = AppError(Error::ModelNotLoaded);
 }
 

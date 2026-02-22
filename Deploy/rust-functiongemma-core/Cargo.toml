@@ -8,6 +8,7 @@ anyhow = "1.0.100"
 thiserror = "2"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.149"
+safetensors = "0.4"
 minijinja = "2"
 candle-core = { version = "0.9.2", features = ["cuda"] }
 candle-nn = { version = "0.9.2", features = ["cuda"] }

@@ -57,6 +57,21 @@ pub fn parse_escape_args(args_text: &str) -> Value {
     Value::Object(map)
 }
 
+/// Returns `true` when the model output is empty or contains only whitespace
+/// and invisible Unicode characters (ZWNJ, ZWJ, BOM).
+pub fn is_degenerate_output(text: &str) -> bool {
+    for ch in text.chars() {
+        if ch.is_whitespace() {
+            continue;
+        }
+        if matches!(ch, '\u{200c}' | '\u{200d}' | '\u{feff}') {
+            continue;
+        }
+        return false;
+    }
+    true
+}
+
 pub fn parse_function_call(output: &str) -> Option<(String, Value)> {
     let start_tag = "<start_function_call>call:";
     let end_tag = "<end_function_call>";
@@ -73,4 +88,25 @@ pub fn parse_function_call(output: &str) -> Option<(String, Value)> {
         parse_escape_args(args_text)
     };
     Some((name.to_string(), args))
+}
+
+/// Trim a token-ID sequence to `max_len` by keeping the first half and the
+/// last half, dropping the middle.
+///
+/// This preserves the start-of-sequence (system prompt / BOS) and the
+/// end-of-sequence (most recent user turn) while discarding the least
+/// relevant middle portion.
+///
+/// Returns the input unchanged when `max_len` is 0 or the sequence is
+/// already within bounds.
+pub fn trim_input_ids(ids: Vec<u32>, max_len: usize) -> Vec<u32> {
+    if max_len == 0 || ids.len() <= max_len {
+        return ids;
+    }
+    let head = max_len / 2;
+    let tail = max_len.saturating_sub(head);
+    let mut trimmed = Vec::with_capacity(max_len);
+    trimmed.extend_from_slice(&ids[..head]);
+    trimmed.extend_from_slice(&ids[ids.len() - tail..]);
+    trimmed
 }

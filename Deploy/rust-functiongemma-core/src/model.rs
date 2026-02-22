@@ -2,7 +2,7 @@ use candle_core::quantized::{GgmlDType, QMatMul, QTensor};
 use candle_core::safetensors::MmapedSafetensors;
 use candle_core::{DType, Device, Module, Result, Tensor};
 use candle_nn::{Activation, Linear, VarBuilder};
-use qlora_rs::{QLoraConfig, QuantizedLinear};
+use qlora_rs::{dequantize_nf4, QLoraConfig, QLoraLayer, QuantizedLinear};
 use serde::Deserialize;
 
 #[cfg(feature = "flash-attn")]
@@ -142,22 +142,47 @@ impl LoraLinear {
     }
 
     pub fn merge(&mut self) -> Result<()> {
-        if self.qlora.is_some() {
-            return Err(candle_core::Error::msg(
-                "QLoRA merge is not supported. Use dequantize + merge + re-quantize.",
-            ));
+        // QLoRA merge: dequantize NF4 base, add LoRA delta, store as plain Linear.
+        // LoRA weights live inside the QuantizedLinear, not in self.lora_a/b.
+        if let Some(qlora) = self.qlora.take() {
+            let ql = QLoraLayer::new(qlora);
+            let base_f32 = dequantize_nf4(ql.quantized_weight(), ql.device())
+                .map_err(|e| candle_core::Error::msg(e.to_string()))?;
+            let (lora_a, lora_b) = ql.lora_weights();
+            let scale = ql.lora_scale();
+            let delta = lora_b.matmul(lora_a)?.affine(scale, 0.0)?;
+            let merged = base_f32.add(&delta)?;
+            self.base = Some(candle_nn::Linear::new(merged, None));
+            self.lora_a = None;
+            self.lora_b = None;
+            return Ok(());
         }
-        if self.qmatmul.is_some() {
-            return Err(candle_core::Error::msg(
-                "Candle QMatMul merge is not supported. Use dequantize + merge + re-quantize.",
-            ));
+
+        // Candle QMatMul merge: dequantize via f16 path then cast to f32,
+        // add LoRA delta (stored in self.lora_a/b), store as plain Linear.
+        if let Some(qmatmul) = self.qmatmul.take() {
+            let base_f32 = qmatmul
+                .dequantize_f16()?
+                .to_dtype(candle_core::DType::F32)?;
+            let merged = if let (Some(a), Some(b)) = (&self.lora_a, &self.lora_b) {
+                let delta = b.matmul(a)?.affine(self.scale, 0.0)?;
+                base_f32.add(&delta)?
+            } else {
+                base_f32
+            };
+            self.base = Some(candle_nn::Linear::new(merged, None));
+            self.lora_a = None;
+            self.lora_b = None;
+            return Ok(());
         }
+
+        // Standard (full-precision) LoRA merge into the existing base weight.
         if let (Some(a), Some(b)) = (&self.lora_a, &self.lora_b) {
             let base = self
                 .base
                 .as_ref()
                 .ok_or_else(|| candle_core::Error::msg("Base linear missing"))?;
-            let delta = b.matmul(&a)?.affine(self.scale, 0.0)?;
+            let delta = b.matmul(a)?.affine(self.scale, 0.0)?;
             let new_weight = base.weight().add(&delta)?;
             self.base = Some(candle_nn::Linear::new(new_weight, None));
             self.lora_a = None;

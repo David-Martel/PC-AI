@@ -136,6 +136,17 @@ pub struct RuntimeConfig {
 
     /// `tracing` filter string (e.g. `"info"`, `"debug,hyper=warn"`).
     pub log_filter: String,
+
+    /// Maximum concurrent inference requests (router queue depth).
+    pub router_queue_depth: usize,
+
+    /// Per-request timeout in seconds.
+    pub router_request_timeout_secs: u64,
+
+    /// Optional bearer token for API authentication.
+    /// Leave empty (the default) to disable authentication.
+    #[serde(default)]
+    pub api_key: String,
 }
 
 impl Default for RuntimeConfig {
@@ -169,6 +180,9 @@ impl Default for RuntimeConfig {
             router_cuda_mem_snapshot: false,
             verbose: false,
             log_filter: "info".to_string(),
+            router_queue_depth: 4,
+            router_request_timeout_secs: 30,
+            api_key: String::new(),
         }
     }
 }

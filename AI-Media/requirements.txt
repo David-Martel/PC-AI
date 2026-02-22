@@ -1,0 +1,9 @@
+torch>=2.1.0
+transformers>=4.38.0
+accelerate>=0.27.0
+sentencepiece
+numpy
+pillow
+# Optional: For upscaling
+basicsr>=1.4.2
+realesrgan>=0.3.0

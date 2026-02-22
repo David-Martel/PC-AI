@@ -218,7 +218,7 @@ release_build_errors.txt
    - Validate PowerShell module loading
 
 3. **Dependabot Alert**
-   - Review: https://github.com/david-t-martel/PC-AI/security/dependabot/1
+   - Review: https://github.com/David-Martel/PC-AI/security/dependabot/1
    - High severity vulnerability reported
 
 ## Recommended Agents

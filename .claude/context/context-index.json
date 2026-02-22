@@ -43,7 +43,7 @@
       {"id": "CVE-2024-43485", "package": "System.Text.Json", "fixed_version": "8.0.5"}
     ],
     "cves_pending": [
-      {"id": "high-severity", "package": "unknown", "status": "Review required", "url": "https://github.com/david-t-martel/PC-AI/security/dependabot/1"}
+      {"id": "high-severity", "package": "unknown", "status": "Review required", "url": "https://github.com/David-Martel/PC-AI/security/dependabot/1"}
     ]
   },
   "cargotools": {

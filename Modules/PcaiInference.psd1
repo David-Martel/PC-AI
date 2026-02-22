@@ -24,8 +24,8 @@
     PrivateData = @{
         PSData = @{
             Tags = @('LLM', 'Inference', 'FFI', 'Native', 'AI', 'llama.cpp', 'mistral.rs')
-            ProjectUri = 'https://github.com/david-t-martel/PC-AI'
-            LicenseUri = 'https://github.com/david-t-martel/PC-AI/blob/main/LICENSE'
+            ProjectUri = 'https://github.com/David-Martel/PC-AI'
+            LicenseUri = 'https://github.com/David-Martel/PC-AI/blob/main/LICENSE'
         }
 
         # Native DLL requirements

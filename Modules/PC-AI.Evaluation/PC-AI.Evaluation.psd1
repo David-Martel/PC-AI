@@ -68,7 +68,7 @@
     PrivateData = @{
         PSData = @{
             Tags = @('LLM', 'Evaluation', 'Testing', 'Inference', 'AI')
-            ProjectUri = 'https://github.com/david-t-martel/PC-AI'
+            ProjectUri = 'https://github.com/David-Martel/PC-AI'
         }
     }
 }

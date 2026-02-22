@@ -24,9 +24,9 @@ For each candidate you identify, provide a response in the following structured 
 - **Current State:** (Brief description of the PowerShell/C# implementation and its flaw).
 - **Rust Advantage:** (Why Rust is better here: e.g., "SIMD usage," "Zero-allocation parsing," "Type-safe Win32 calls").
 - **Proposed Architecture:**
-  - **Rust Signature:** `pub extern "C" fn ...(args) -> ...`
-  - **C# P/Invoke Definition:** `[DllImport(...)] static extern ...`
-  - **PowerShell Strategy:** (How to expose this to the script user).
+    - **Rust Signature:** `pub extern "C" fn ...(args) -> ...`
+    - **C# P/Invoke Definition:** `[DllImport(...)] static extern ...`
+    - **PowerShell Strategy:** (How to expose this to the script user).
 - **LLM Data Benefit:** (How this improves the data feed for the local LLM).
 
 ---

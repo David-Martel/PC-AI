@@ -89,16 +89,16 @@ function Write-BuildInfo {
 function Write-BuildStatus {
     param([string]$Message, [ValidateSet('Info', 'Success', 'Warning', 'Error')]$Level = 'Info')
     $symbol = switch ($Level) {
-        'Info'    { '[..]' }
+        'Info' { '[..]' }
         'Success' { '[OK]' }
         'Warning' { '[!!]' }
-        'Error'   { '[XX]' }
+        'Error' { '[XX]' }
     }
     $color = switch ($Level) {
-        'Info'    { 'White' }
+        'Info' { 'White' }
         'Success' { 'Green' }
         'Warning' { 'Yellow' }
-        'Error'   { 'Red' }
+        'Error' { 'Red' }
     }
     Write-Host "  $symbol " -ForegroundColor $color -NoNewline
     Write-Host $Message
@@ -243,7 +243,7 @@ function Initialize-TensorRtEnvironment {
 #region Environment Initialization
 
 function Initialize-BuildEnvironment {
-    Write-BuildSection "Environment Setup"
+    Write-BuildSection 'Environment Setup'
 
     # Detect real cargo (bypass wrappers like cargo.ps1)
     $script:cargoExe = Join-Path $env:USERPROFILE '.cargo\bin\cargo.exe'
@@ -700,7 +700,7 @@ function Invoke-Build {
             $elapsed = $now - $script:BuildStartTime
             $since = $now - $script:BuildLastLineTime
             $pkg = if ($script:BuildLastPkg) { $script:BuildLastPkg } else { 'unknown' }
-            Write-Host ("  Build heartbeat: {0:mm\\:ss} elapsed, last package: {1}, last output {2:mm\\:ss} ago" -f $elapsed, $pkg, $since) -ForegroundColor DarkGray
+            Write-Host ('  Build heartbeat: {0:mm\\:ss} elapsed, last package: {1}, last output {2:mm\\:ss} ago' -f $elapsed, $pkg, $since) -ForegroundColor DarkGray
         }
         $heartbeatTimer.Start()
     }
@@ -803,7 +803,7 @@ function Copy-CompiledArtifacts {
         [string]$BackendBuilt = 'all'
     )
 
-    Write-BuildSection "Collecting Artifacts"
+    Write-BuildSection 'Collecting Artifacts'
 
     $targetRoot = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $ProjectRoot 'target' }
     $configDir = if ($Configuration -eq 'Debug') { 'debug' } else { 'release' }
@@ -856,35 +856,35 @@ function Copy-CompiledArtifacts {
     }
 
     if ($copiedCount -eq 0) {
-        Write-BuildStatus "No artifacts found to copy" 'Warning'
+        Write-BuildStatus 'No artifacts found to copy' 'Warning'
     } else {
         Write-BuildStatus "Copied $copiedCount artifacts to $localBin" 'Success'
     }
 }
 
 # Main Execution
-Write-BuildBanner "PCAI-INFERENCE BUILD"
+Write-BuildBanner 'PCAI-INFERENCE BUILD'
 
 # Initialize version information
 $versionScript = Join-Path $RepoRoot 'Tools\Get-BuildVersion.ps1'
 if (Test-Path $versionScript) {
     $versionInfo = & $versionScript -SetEnv -Quiet
-    Write-BuildInfo "Version" $versionInfo.Version 'Cyan'
-    Write-BuildInfo "Git" "$($versionInfo.GitHashShort) ($($versionInfo.GitBranch))"
+    Write-BuildInfo 'Version' $versionInfo.Version 'Cyan'
+    Write-BuildInfo 'Git' "$($versionInfo.GitHashShort) ($($versionInfo.GitBranch))"
 } else {
-    Write-BuildInfo "Version" "0.1.0+unknown (version script not found)" 'Yellow'
+    Write-BuildInfo 'Version' '0.1.0+unknown (version script not found)' 'Yellow'
 }
 
-Write-BuildInfo "Backend" $Backend
-Write-BuildInfo "Configuration" $Configuration
-Write-BuildInfo "CUDA" $(if ($EnableCuda) { "Enabled" } else { "Disabled" }) $(if ($EnableCuda) { "Green" } else { "DarkGray" })
-Write-BuildInfo "Cache" $(if ($DisableCache) { "Disabled" } else { "Enabled" })
+Write-BuildInfo 'Backend' $Backend
+Write-BuildInfo 'Configuration' $Configuration
+Write-BuildInfo 'CUDA' $(if ($EnableCuda) { 'Enabled' } else { 'Disabled' }) $(if ($EnableCuda) { 'Green' } else { 'DarkGray' })
+Write-BuildInfo 'Cache' $(if ($DisableCache) { 'Disabled' } else { 'Enabled' })
 
 if ($Clean) {
-    Write-BuildSection "Cleaning"
+    Write-BuildSection 'Cleaning'
     if (Test-Path (Join-Path $ProjectRoot 'target')) {
         Remove-Item (Join-Path $ProjectRoot 'target') -Recurse -Force
-        Write-BuildStatus "Removed target directory" 'Success'
+        Write-BuildStatus 'Removed target directory' 'Success'
     }
 }
 
@@ -907,10 +907,10 @@ Copy-CompiledArtifacts -Configuration $Configuration -BackendBuilt $Backend
 
 # Build Summary
 $totalDuration = (Get-Date) - $script:BuildStartTime
-Write-BuildBanner "BUILD COMPLETE"
-Write-BuildInfo "Total Time" $totalDuration.ToString('hh\:mm\:ss') 'Cyan'
-Write-BuildInfo "Artifacts" "$env:USERPROFILE\.local\bin" 'Green'
+Write-BuildBanner 'BUILD COMPLETE'
+Write-BuildInfo 'Total Time' $totalDuration.ToString('hh\:mm\:ss') 'Cyan'
+Write-BuildInfo 'Artifacts' "$env:USERPROFILE\.local\bin" 'Green'
 if (Test-Path $script:BuildLogsDir) {
-    Write-BuildInfo "Logs" $script:BuildLogsDir 'DarkGray'
+    Write-BuildInfo 'Logs' $script:BuildLogsDir 'DarkGray'
 }
-Write-Host ""
+Write-Host ''

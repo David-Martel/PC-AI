@@ -1,16 +1,26 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-20260222-ffi-torture",
+  "latest": "ctx-pcai-20260222b-tdd-cleanup",
   "contexts": [
+    {
+      "id": "ctx-pcai-20260222b-tdd-cleanup",
+      "file": "pcai-context-20260222-tdd-and-cleanup.md",
+      "created": "2026-02-22T18:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["Claude-opus"],
+      "summary": "42 Rust unit tests (TDD plan complete), CUDA 13.1 now works with updated crate deps, .gitignore/.rgignore updated for alternate target dirs and training checkpoints",
+      "supersedes": ["ctx-pcai-20260222-ffi-torture"],
+      "commit": "pending"
+    },
     {
       "id": "ctx-pcai-20260222-ffi-torture",
       "file": "pcai-context-20260222-ffi-torture-test.md",
       "created": "2026-02-22T12:00:00Z",
       "project": "PC_AI",
       "agents_involved": ["rust-pro", "csharp-pro", "test-automator", "Claude-opus"],
-      "summary": "4-phase completion: CUDA 12.6 fix, FunctionGemma build+train+eval, C# TUI ReAct mode, FFI torture tests (49 tests, 43 pass, 0 fail, 6 skip)",
+      "summary": "4-phase completion: CUDA fix, FunctionGemma build+train+eval, C# TUI ReAct mode, FFI torture tests (49 tests, 43 pass, 0 fail, 6 skip)",
       "supersedes": ["ctx-pcai-20260221-consolidation"],
-      "commit": "pending"
+      "commit": "0b9e9ce"
     },
     {
       "id": "ctx-pcai-20260221-consolidation",
@@ -300,7 +310,7 @@
     "pcai-inference": {
       "status": "clean",
       "warnings": 0,
-      "tests": 13,
+      "tests": 58,
       "features": ["ffi", "llamacpp", "mistralrs-backend", "server"],
       "backends": {
         "llamacpp": "available (requires CUDA+MSVC toolchain)",
@@ -345,8 +355,8 @@
     }
   },
   "cuda_status": {
-    "toolkit_version": "v13.1 (using 12.6 via .cargo/config.toml override)",
-    "build_cuda": "12.6",
+    "toolkit_version": "v13.1 (native support with updated Rust crate deps)",
+    "build_cuda": "13.1",
     "gpus": [
       {"name": "RTX 2000 Ada", "vram": "8GB", "compute": "8.9", "role": "inference/runtime"},
       {"name": "RTX 5060 Ti", "vram": "16GB", "compute": "12.0", "role": "training"}

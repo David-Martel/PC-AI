@@ -15,7 +15,7 @@ public sealed class PowerShellHost : IDisposable
 
     public PowerShellHost()
     {
-        var iss = InitialSessionState.CreateDefault();
+        var iss = InitialSessionState.CreateDefault2();
         // Allow loading modules from the project
         iss.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.RemoteSigned;
 

@@ -73,25 +73,26 @@ namespace PcaiNative
             var configPath = FindConfigPath(assembly);
             if (string.IsNullOrEmpty(configPath))
             {
-                yield break;
+                return Array.Empty<string>();
             }
 
             var projectRoot = Directory.GetParent(Path.GetDirectoryName(configPath) ?? string.Empty)?.FullName;
             if (string.IsNullOrEmpty(projectRoot))
             {
-                yield break;
+                return Array.Empty<string>();
             }
 
             try
             {
+                var results = new List<string>();
                 using var doc = JsonDocument.Parse(File.ReadAllText(configPath));
                 if (!doc.RootElement.TryGetProperty("nativeInference", out var nativeInference))
                 {
-                    yield break;
+                    return results;
                 }
                 if (!nativeInference.TryGetProperty("dllSearchPaths", out var paths) || paths.ValueKind != JsonValueKind.Array)
                 {
-                    yield break;
+                    return results;
                 }
 
                 foreach (var element in paths.EnumerateArray())
@@ -107,17 +108,18 @@ namespace PcaiNative
                     }
                     if (Path.IsPathRooted(path))
                     {
-                        yield return path;
+                        results.Add(path);
                     }
                     else
                     {
-                        yield return Path.Combine(projectRoot, path);
+                        results.Add(Path.Combine(projectRoot, path));
                     }
                 }
+                return results;
             }
             catch
             {
-                yield break;
+                return Array.Empty<string>();
             }
         }
 

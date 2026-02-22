@@ -8,6 +8,8 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace PcaiNative
 {
     /// <summary>
@@ -188,39 +190,51 @@ namespace PcaiNative
 
         #region Native Imports
 
+        /// <summary>Initialises the native inference backend. Returns 0 on success.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern int pcai_init([MarshalAs(UnmanagedType.LPUTF8Str)] string backendName);
 
+        /// <summary>Loads a GGUF/SafeTensors model from disk. Returns 0 on success.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern int pcai_load_model([MarshalAs(UnmanagedType.LPUTF8Str)] string modelPath, int gpuLayers);
 
+        /// <summary>Runs synchronous inference and returns a heap-allocated UTF-8 string pointer. Free with <see cref="pcai_free_string"/>.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern IntPtr pcai_generate([MarshalAs(UnmanagedType.LPUTF8Str)] string prompt, uint maxTokens, float temperature);
 
+        /// <summary>Runs streaming inference, invoking <paramref name="callback"/> for each token. Returns 0 on success.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern int pcai_generate_streaming([MarshalAs(UnmanagedType.LPUTF8Str)] string prompt, uint maxTokens, float temperature, TokenCallback callback, IntPtr userData);
 
+        /// <summary>Shuts down the native backend and releases all loaded model resources.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void pcai_shutdown();
 
+        /// <summary>Returns a pointer to the last thread-local error message, or <see cref="IntPtr.Zero"/> if none.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr pcai_last_error();
 
+        /// <summary>Returns the integer error code of the last native operation, or 0 if no error occurred.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int pcai_last_error_code();
 
+        /// <summary>Frees a heap-allocated string previously returned by the native library.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void pcai_free_string(IntPtr ptr);
 
+        /// <summary>Returns non-zero if the native backend has been successfully initialised.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int pcai_is_initialized();
 
+        /// <summary>Returns non-zero if a model is currently loaded into the native backend.</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int pcai_is_model_loaded();
 
+        /// <summary>Returns a pointer to a static string identifying the active backend name (e.g. "llamacpp").</summary>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr pcai_get_backend_name();
 
+        /// <summary>Callback signature invoked by the native layer for each streamed token.</summary>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void TokenCallback(IntPtr token, IntPtr userData);
 
@@ -263,6 +277,7 @@ namespace PcaiNative
 
         #region High-level Wrappers
 
+        /// <summary>Returns <c>true</c> if the native DLL is loaded and the backend is reachable.</summary>
         public static bool IsAvailable
         {
             get
@@ -288,6 +303,7 @@ namespace PcaiNative
             catch { return false; }
         }
 
+        /// <summary>Runs synchronous inference and returns the generated text, or <c>null</c> on failure.</summary>
         public static string? Generate(string prompt, uint maxTokens = 512, float temperature = 0.7f)
         {
             var ptr = pcai_generate(prompt, maxTokens, temperature);

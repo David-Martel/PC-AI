@@ -1,4 +1,5 @@
 // InferenceBackend.cs - Backend selection for TUI
+#nullable enable
 using System.Net.Http.Json;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -7,25 +8,42 @@ using PcaiNative;
 
 namespace PcaiChatTui;
 
+/// <summary>Identifies which inference backend the TUI should connect to.</summary>
 public enum BackendType
 {
+    /// <summary>Automatically select the best available backend.</summary>
     Auto,
-    Http,       // pcai-inference via HTTP (OpenAI-compatible)
-    LlamaCpp,   // Native llama.cpp via FFI
-    MistralRs   // Native mistral.rs via FFI
+    /// <summary>Connect to pcai-inference via the OpenAI-compatible HTTP API.</summary>
+    Http,
+    /// <summary>Use the native llama.cpp backend via FFI.</summary>
+    LlamaCpp,
+    /// <summary>Use the native mistral.rs backend via FFI.</summary>
+    MistralRs
 }
 
+/// <summary>Abstraction over native FFI and HTTP inference backends.</summary>
 public interface IInferenceBackend : IAsyncDisposable
 {
+    /// <summary>Human-readable name of the backend including the endpoint or variant.</summary>
     string Name { get; }
+
+    /// <summary>Returns <c>true</c> if the backend is reachable and ready to serve requests.</summary>
     Task<bool> CheckAvailabilityAsync();
+
+    /// <summary>Loads the model at <paramref name="modelPath"/> with the specified GPU layer count.</summary>
     Task<bool> LoadModelAsync(string modelPath, int gpuLayers = -1);
+
+    /// <summary>Generates a completion for <paramref name="prompt"/> and returns the full result.</summary>
     Task<string> GenerateAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f);
+
+    /// <summary>Generates a streaming completion, yielding tokens as they are produced.</summary>
     IAsyncEnumerable<string> GenerateStreamingAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f);
 }
 
+/// <summary>Creates <see cref="IInferenceBackend"/> instances for the requested <see cref="BackendType"/>.</summary>
 public static class BackendFactory
 {
+    /// <summary>Creates and returns the backend for <paramref name="type"/>, performing auto-detection when needed.</summary>
     public static async Task<IInferenceBackend> CreateAsync(BackendType type, string? httpEndpoint = null)
     {
         return type switch
@@ -53,20 +71,23 @@ public static class BackendFactory
     }
 }
 
-// Native FFI backend
+/// <summary>Inference backend that calls the native Rust DLL via FFI (P/Invoke).</summary>
 public class NativeBackend : IInferenceBackend
 {
     private readonly string _backendName;
     private bool _initialized;
     private bool _disposed;
 
+    /// <summary>Initialises the backend wrapper for the named Rust backend variant.</summary>
     public NativeBackend(string backendName)
     {
         _backendName = backendName;
     }
 
+    /// <inheritdoc/>
     public string Name => $"Native ({_backendName})";
 
+    /// <inheritdoc/>
     public Task<bool> CheckAvailabilityAsync()
     {
         try
@@ -90,6 +111,7 @@ public class NativeBackend : IInferenceBackend
         }
     }
 
+    /// <inheritdoc/>
     public Task<bool> LoadModelAsync(string modelPath, int gpuLayers = -1)
     {
         if (!_initialized)
@@ -104,6 +126,7 @@ public class NativeBackend : IInferenceBackend
         return Task.FromResult(result == 0);
     }
 
+    /// <inheritdoc/>
     public Task<string> GenerateAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f)
     {
         var result = InferenceModule.Generate(prompt, (uint)maxTokens, temperature);
@@ -116,6 +139,7 @@ public class NativeBackend : IInferenceBackend
         return Task.FromResult(result);
     }
 
+    /// <inheritdoc/>
     public async IAsyncEnumerable<string> GenerateStreamingAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f)
     {
         var channel = Channel.CreateUnbounded<string>();
@@ -148,6 +172,7 @@ public class NativeBackend : IInferenceBackend
         }
     }
 
+    /// <inheritdoc/>
     public ValueTask DisposeAsync()
     {
         if (!_disposed && _initialized)
@@ -159,20 +184,23 @@ public class NativeBackend : IInferenceBackend
     }
 }
 
-// HTTP backend (pcai-inference OpenAI-compatible)
+/// <summary>Inference backend that communicates with pcai-inference over the OpenAI-compatible HTTP API.</summary>
 public class HttpBackend : IInferenceBackend
 {
     private readonly HttpClient _client;
     private readonly string _endpoint;
 
+    /// <summary>Initialises the HTTP backend targeting the given base <paramref name="endpoint"/> URL.</summary>
     public HttpBackend(string endpoint)
     {
         _endpoint = endpoint.TrimEnd('/');
         _client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
     }
 
+    /// <inheritdoc/>
     public string Name => $"HTTP ({_endpoint})";
 
+    /// <inheritdoc/>
     public async Task<bool> CheckAvailabilityAsync()
     {
         try
@@ -186,12 +214,14 @@ public class HttpBackend : IInferenceBackend
         }
     }
 
+    /// <inheritdoc/>
     public Task<bool> LoadModelAsync(string modelPath, int gpuLayers = -1)
     {
         // HTTP backends auto-load models
         return Task.FromResult(true);
     }
 
+    /// <inheritdoc/>
     public async Task<string> GenerateAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f)
     {
         var request = new
@@ -217,6 +247,7 @@ public class HttpBackend : IInferenceBackend
         return choices[0].GetProperty("text").GetString() ?? "";
     }
 
+    /// <inheritdoc/>
     public async IAsyncEnumerable<string> GenerateStreamingAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f)
     {
         var request = new
@@ -263,6 +294,7 @@ public class HttpBackend : IInferenceBackend
         }
     }
 
+    /// <inheritdoc/>
     public ValueTask DisposeAsync()
     {
         _client.Dispose();

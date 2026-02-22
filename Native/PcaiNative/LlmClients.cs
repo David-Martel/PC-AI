@@ -12,7 +12,7 @@ public sealed class PcaiLlmClient : IDisposable
     private readonly HttpClient _http;
     private readonly string _baseUrl;
 
-    public PcaiLlmClient(string baseUrl = "http://127.0.0.1:8080")
+    public PcaiLlmClient(string baseUrl = "")
     {
         _baseUrl = baseUrl.TrimEnd('/');
         _http = new HttpClient();

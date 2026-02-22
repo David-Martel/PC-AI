@@ -1,3 +1,4 @@
+#nullable enable
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -6,9 +7,10 @@ using PcaiNative;
 
 namespace PcaiChatTui;
 
+/// <summary>Application entry point for the PC_AI interactive chat TUI.</summary>
 public static class Program
 {
-    private const string DefaultBaseUrl = "http://127.0.0.1:8080";
+    private const string DefaultBaseUrl = "";
     private const string DefaultModel = "pcai-inference";
     private const int DefaultTimeoutSec = 120;
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -1058,6 +1060,7 @@ public static class Program
     }
 }
 
+/// <summary>Parsed command-line options for the PcaiChatTui executable.</summary>
 public sealed class CliOptions
 {
     public string? BaseUrl { get; init; }
@@ -1247,6 +1250,7 @@ Native Inference:
     }
 }
 
+/// <summary>Strongly-typed representation of <c>Config/llm-config.json</c>.</summary>
 public sealed class LlmConfig
 {
     public string? DefaultProvider { get; init; }
@@ -1367,6 +1371,7 @@ public sealed class LlmConfig
     }
 }
 
+/// <summary>Configuration for a single named LLM provider entry.</summary>
 public sealed class ProviderConfig
 {
     public string? Type { get; init; }
@@ -1375,6 +1380,7 @@ public sealed class ProviderConfig
     public int? TimeoutSec { get; init; }
 }
 
+/// <summary>Native FFI provider settings read from the <c>pcai-native</c> provider block.</summary>
 public sealed class NativeProviderConfig
 {
     public string? Backend { get; init; }
@@ -1384,6 +1390,7 @@ public sealed class NativeProviderConfig
     public int? DefaultMaxTokens { get; init; }
 }
 
+/// <summary>Result of an LLM endpoint health check, serialised for JSON output.</summary>
 public sealed class HealthResult
 {
     [JsonPropertyName("ok")]
@@ -1402,48 +1409,56 @@ public sealed class HealthResult
     public NativeDiagnostics Native { get; set; } = new();
 }
 
+/// <summary>Ollama version response model.</summary>
 public sealed class OllamaVersion
 {
     [JsonPropertyName("version")]
     public string Version { get; set; } = string.Empty;
 }
 
+/// <summary>Ollama model tags list response.</summary>
 public sealed class OllamaTags
 {
     [JsonPropertyName("models")]
     public List<OllamaModel>? Models { get; set; }
 }
 
+/// <summary>A single model entry in the Ollama tags list.</summary>
 public sealed class OllamaModel
 {
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 }
 
+/// <summary>OpenAI-compatible <c>/v1/models</c> response envelope.</summary>
 public sealed class OpenAiModels
 {
     [JsonPropertyName("data")]
     public List<OpenAiModel>? Data { get; set; }
 }
 
+/// <summary>A single model entry from the OpenAI models list.</summary>
 public sealed class OpenAiModel
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
 }
 
+/// <summary>OpenAI-compatible chat completion response.</summary>
 public sealed class OpenAiChatResponse
 {
     [JsonPropertyName("choices")]
     public List<OpenAiChoice>? Choices { get; set; }
 }
 
+/// <summary>A single choice within a chat completion response.</summary>
 public sealed class OpenAiChoice
 {
     [JsonPropertyName("message")]
     public OpenAiMessage? Message { get; set; }
 }
 
+/// <summary>Message payload within an OpenAI choice, including optional tool calls.</summary>
 public sealed class OpenAiMessage
 {
     [JsonPropertyName("content")]
@@ -1453,6 +1468,7 @@ public sealed class OpenAiMessage
     public JsonElement? ToolCalls { get; set; }
 }
 
+/// <summary>Request body for the Ollama <c>/api/chat</c> endpoint.</summary>
 public sealed class OllamaChatRequest
 {
     [JsonPropertyName("model")]
@@ -1465,16 +1481,20 @@ public sealed class OllamaChatRequest
     public List<ChatMessage> Messages { get; set; } = new();
 }
 
+/// <summary>Response body from the Ollama <c>/api/chat</c> endpoint.</summary>
 public sealed class OllamaChatResponse
 {
     [JsonPropertyName("message")]
     public ChatMessage? Message { get; set; }
 }
 
+/// <summary>A single message in a chat conversation, compatible with both OpenAI and Ollama formats.</summary>
 public sealed class ChatMessage
 {
+    /// <summary>Initialises an empty <see cref="ChatMessage"/> for deserialisation.</summary>
     public ChatMessage() { }
 
+    /// <summary>Initialises a <see cref="ChatMessage"/> with the given role and content.</summary>
     public ChatMessage(string role, string content)
     {
         Role = role;

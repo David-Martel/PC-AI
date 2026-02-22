@@ -1,0 +1,204 @@
+{
+  "scenarios": [
+    {
+      "mode": "no_tool",
+      "user_content": "Hello! How are you doing today?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Thanks, that completely fixed my issue!",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Good morning! Is there anything I should know before I start work?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "I appreciate all your help, talk to you later.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Hey, just wanted to say things are running great now.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Can you say that again more clearly?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Never mind, I figured it out myself.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "You were very helpful earlier, thanks a lot.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "OK got it, bye for now!",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "That was exactly what I was looking for, cheers.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "What is the capital city of Japan?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "How far is the Moon from the Earth on average?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Who invented the telephone?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "What does RAM stand for in computing?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Can you explain what SMART stands for in the context of hard drives?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "What is the difference between a process and a thread?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Which programming language was Rust inspired by?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Explain the OSI model in simple terms.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "What is the difference between SSD and HDD storage?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "How does TCP handshake work?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "My computer feels slow lately, what could be causing that?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Something seems off with my network but I am not sure what.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Can you help me understand why my PC might be crashing?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "I want to monitor my system but I do not know where to start.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Is there a way to improve the performance of my machine in general?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "I keep seeing errors but I am not sure if they are disk or network related.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "My USB device stopped working after an update, any ideas?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Sometimes services seem to hang, is that normal?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "The fan is running loud, does that tell you anything?",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "I think something is using too much CPU but I am not certain which program.",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Get disk usage statistics for all mounted volumes",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Fetch the current network throughput in bytes per second",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "List all USB hubs connected to my system",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Run a full hardware health check and email me the results",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Diagnose why my Bluetooth adapter is not showing up",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Start the Windows Update service and check for pending patches",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Check if my GPU temperature is within safe limits",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Show me a breakdown of memory usage per application",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Reboot the machine and send me a confirmation when it comes back up",
+      "assistant_content": "NO_TOOL"
+    },
+    {
+      "mode": "no_tool",
+      "user_content": "Tell me the BIOS version and check if a firmware update is available online",
+      "assistant_content": "NO_TOOL"
+    }
+  ]
+}

@@ -2,20 +2,12 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::fs;
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-use crate::data_gen::{Message, TrainingItem};
+use crate::data_gen::{Message, Scenario, TrainingItem};
 use crate::schema_utils::generate_arg_sets;
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct Scenario {
-    pub mode: String,
-    pub user_content: String,
-    pub tool_name: Option<String>,
-    #[serde(default)]
-    pub tool_arguments: Map<String, Value>,
-    pub assistant_content: Option<String>,
-}
+use rust_functiongemma_core::prompt::format_function_call;
 
 #[derive(Debug, Clone)]
 pub struct RouterDatasetConfig {
@@ -37,7 +29,11 @@ pub struct ToolTestVector {
 fn load_tools(path: &Path) -> Result<Vec<Value>> {
     let raw = fs::read_to_string(path).context("Failed to read tools path")?;
     let tools_json: Value = serde_json::from_str(&raw).context("Failed to parse tools JSON")?;
-    let tools = tools_json.get("tools").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let tools = tools_json
+        .get("tools")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
     Ok(tools)
 }
 
@@ -57,7 +53,10 @@ fn load_scenarios(path: Option<&Path>) -> Vec<Scenario> {
                     let items = if val.is_array() {
                         val.as_array().cloned().unwrap_or_default()
                     } else {
-                        val.get("scenarios").and_then(|v| v.as_array()).cloned().unwrap_or_default()
+                        val.get("scenarios")
+                            .and_then(|v| v.as_array())
+                            .cloned()
+                            .unwrap_or_default()
                     };
                     let mut scenarios = Vec::new();
                     for item in items {
@@ -78,8 +77,12 @@ fn load_scenarios(path: Option<&Path>) -> Vec<Scenario> {
             mode: "diagnose".to_string(),
             user_content: "Run a WSL network diagnosis and summarize any failures.".to_string(),
             tool_name: Some("pcai_run_wsl_network_tool".to_string()),
-            tool_arguments: Map::from_iter([("mode".to_string(), Value::String("diagnose".to_string()))]),
+            tool_arguments: Map::from_iter([(
+                "mode".to_string(),
+                Value::String("diagnose".to_string()),
+            )]),
             assistant_content: None,
+            tool_sequence: Vec::new(),
         },
         Scenario {
             mode: "diagnose".to_string(),
@@ -87,6 +90,7 @@ fn load_scenarios(path: Option<&Path>) -> Vec<Scenario> {
             tool_name: Some("pcai_get_wsl_health".to_string()),
             tool_arguments: Map::new(),
             assistant_content: None,
+            tool_sequence: Vec::new(),
         },
         Scenario {
             mode: "diagnose".to_string(),
@@ -94,6 +98,7 @@ fn load_scenarios(path: Option<&Path>) -> Vec<Scenario> {
             tool_name: Some("pcai_restart_wsl".to_string()),
             tool_arguments: Map::new(),
             assistant_content: None,
+            tool_sequence: Vec::new(),
         },
         Scenario {
             mode: "diagnose".to_string(),
@@ -101,6 +106,7 @@ fn load_scenarios(path: Option<&Path>) -> Vec<Scenario> {
             tool_name: Some("pcai_get_docker_status".to_string()),
             tool_arguments: Map::new(),
             assistant_content: None,
+            tool_sequence: Vec::new(),
         },
         Scenario {
             mode: "chat".to_string(),
@@ -108,6 +114,7 @@ fn load_scenarios(path: Option<&Path>) -> Vec<Scenario> {
             tool_name: None,
             tool_arguments: Map::new(),
             assistant_content: Some("NO_TOOL".to_string()),
+            tool_sequence: Vec::new(),
         },
         Scenario {
             mode: "chat".to_string(),
@@ -115,6 +122,7 @@ fn load_scenarios(path: Option<&Path>) -> Vec<Scenario> {
             tool_name: None,
             tool_arguments: Map::new(),
             assistant_content: Some("NO_TOOL".to_string()),
+            tool_sequence: Vec::new(),
         },
     ]
 }
@@ -130,7 +138,10 @@ fn build_system_prompt(mode: &str, diagnose_prompt: &str, chat_prompt: &str) -> 
 
 fn build_tool_prompt(name: &str, description: &str, args: &Map<String, Value>) -> String {
     let args_text = serde_json::to_string(args).unwrap_or_else(|_| "{}".to_string());
-    format!("Use {} to perform the task: {}. Arguments: {}", name, description, args_text)
+    format!(
+        "Use {} to perform the task: {}. Arguments: {}",
+        name, description, args_text
+    )
 }
 
 fn tool_call_payload(name: &str, args: &Map<String, Value>) -> Value {
@@ -145,28 +156,50 @@ fn tool_call_payload(name: &str, args: &Map<String, Value>) -> Value {
     ])
 }
 
-fn build_conversation(scenario: &Scenario, tools: &[Value], diagnose_prompt: &str, chat_prompt: &str) -> TrainingItem {
+fn build_conversation(
+    scenario: &Scenario,
+    tools: &[Value],
+    diagnose_prompt: &str,
+    chat_prompt: &str,
+) -> TrainingItem {
     let system_msg = build_system_prompt(&scenario.mode, diagnose_prompt, chat_prompt);
     let mut messages = vec![
-        Message { role: "developer".to_string(), content: Some(system_msg), tool_calls: None },
-        Message { role: "user".to_string(), content: Some(scenario.user_content.clone()), tool_calls: None },
+        Message {
+            role: "developer".to_string(),
+            content: Some(system_msg),
+            tool_calls: None,
+        },
+        Message {
+            role: "user".to_string(),
+            content: Some(scenario.user_content.clone()),
+            tool_calls: None,
+        },
     ];
 
     if let Some(tool_name) = &scenario.tool_name {
+        let function_call = format_function_call(tool_name, &scenario.tool_arguments);
         messages.push(Message {
             role: "assistant".to_string(),
-            content: None,
+            content: Some(function_call),
             tool_calls: Some(tool_call_payload(tool_name, &scenario.tool_arguments)),
         });
     } else {
         messages.push(Message {
             role: "assistant".to_string(),
-            content: Some(scenario.assistant_content.clone().unwrap_or_else(|| "NO_TOOL".to_string())),
+            content: Some(
+                scenario
+                    .assistant_content
+                    .clone()
+                    .unwrap_or_else(|| "NO_TOOL".to_string()),
+            ),
             tool_calls: None,
         });
     }
 
-    TrainingItem { messages, tools: Value::Array(tools.to_vec()) }
+    TrainingItem {
+        messages,
+        tools: Value::Array(tools.to_vec()),
+    }
 }
 
 pub fn build_router_dataset(cfg: &RouterDatasetConfig) -> Result<Vec<TrainingItem>> {
@@ -175,17 +208,29 @@ pub fn build_router_dataset(cfg: &RouterDatasetConfig) -> Result<Vec<TrainingIte
     let diagnose_prompt = load_prompt(&cfg.diagnose_prompt);
     let chat_prompt = load_prompt(&cfg.chat_prompt);
 
-    let mut items: Vec<TrainingItem> = scenarios.iter()
+    let mut items: Vec<TrainingItem> = scenarios
+        .iter()
         .map(|s| build_conversation(s, &tools, &diagnose_prompt, &chat_prompt))
         .collect();
 
     if cfg.include_tool_coverage {
         for tool in &tools {
-            let fn_obj = tool.get("function").context("Tool has no function object")?;
-            let name = fn_obj.get("name").and_then(|v| v.as_str()).context("Tool has no name")?;
-            let description = fn_obj.get("description").and_then(|v| v.as_str()).unwrap_or("");
+            let fn_obj = tool
+                .get("function")
+                .context("Tool has no function object")?;
+            let name = fn_obj
+                .get("name")
+                .and_then(|v| v.as_str())
+                .context("Tool has no name")?;
+            let description = fn_obj
+                .get("description")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
             let empty_params = Map::new();
-            let params = fn_obj.get("parameters").and_then(|v| v.as_object()).unwrap_or(&empty_params);
+            let params = fn_obj
+                .get("parameters")
+                .and_then(|v| v.as_object())
+                .unwrap_or(&empty_params);
 
             for args in generate_arg_sets(params, cfg.max_cases) {
                 let scenario = Scenario {
@@ -194,8 +239,14 @@ pub fn build_router_dataset(cfg: &RouterDatasetConfig) -> Result<Vec<TrainingIte
                     tool_name: Some(name.to_string()),
                     tool_arguments: args,
                     assistant_content: None,
+                    tool_sequence: Vec::new(),
                 };
-                items.push(build_conversation(&scenario, &tools, &diagnose_prompt, &chat_prompt));
+                items.push(build_conversation(
+                    &scenario,
+                    &tools,
+                    &diagnose_prompt,
+                    &chat_prompt,
+                ));
             }
         }
     }
@@ -203,15 +254,86 @@ pub fn build_router_dataset(cfg: &RouterDatasetConfig) -> Result<Vec<TrainingIte
     Ok(items)
 }
 
+pub fn write_jsonl_streaming(cfg: &RouterDatasetConfig) -> Result<usize> {
+    let tools = load_tools(&cfg.tools_path)?;
+    let scenarios = load_scenarios(cfg.scenarios_path.as_deref());
+    let diagnose_prompt = load_prompt(&cfg.diagnose_prompt);
+    let chat_prompt = load_prompt(&cfg.chat_prompt);
+
+    if let Some(parent) = cfg.output.parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+
+    let file = fs::File::create(&cfg.output)?;
+    let mut writer = BufWriter::new(file);
+    let mut count = 0usize;
+
+    for scenario in &scenarios {
+        let item = build_conversation(scenario, &tools, &diagnose_prompt, &chat_prompt);
+        serde_json::to_writer(&mut writer, &item)?;
+        writer.write_all(b"\n")?;
+        count += 1;
+    }
+
+    if cfg.include_tool_coverage {
+        for tool in &tools {
+            let fn_obj = tool
+                .get("function")
+                .context("Tool has no function object")?;
+            let name = fn_obj
+                .get("name")
+                .and_then(|v| v.as_str())
+                .context("Tool has no name")?;
+            let description = fn_obj
+                .get("description")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let empty_params = Map::new();
+            let params = fn_obj
+                .get("parameters")
+                .and_then(|v| v.as_object())
+                .unwrap_or(&empty_params);
+
+            for args in generate_arg_sets(params, cfg.max_cases) {
+                let scenario = Scenario {
+                    mode: "diagnose".to_string(),
+                    user_content: build_tool_prompt(name, description, &args),
+                    tool_name: Some(name.to_string()),
+                    tool_arguments: args,
+                    assistant_content: None,
+                    tool_sequence: Vec::new(),
+                };
+                let item = build_conversation(&scenario, &tools, &diagnose_prompt, &chat_prompt);
+                serde_json::to_writer(&mut writer, &item)?;
+                writer.write_all(b"\n")?;
+                count += 1;
+            }
+        }
+    }
+
+    writer.flush()?;
+    Ok(count)
+}
+
 pub fn build_tool_test_vectors(tools_path: &Path, max_cases: usize) -> Result<Vec<ToolTestVector>> {
     let tools = load_tools(tools_path)?;
     let mut vectors = Vec::new();
 
     for tool in &tools {
-        let fn_obj = tool.get("function").context("Tool has no function object")?;
-        let name = fn_obj.get("name").and_then(|v| v.as_str()).context("Tool has no name")?;
+        let fn_obj = tool
+            .get("function")
+            .context("Tool has no function object")?;
+        let name = fn_obj
+            .get("name")
+            .and_then(|v| v.as_str())
+            .context("Tool has no name")?;
         let empty_params = Map::new();
-        let params = fn_obj.get("parameters").and_then(|v| v.as_object()).unwrap_or(&empty_params);
+        let params = fn_obj
+            .get("parameters")
+            .and_then(|v| v.as_object())
+            .unwrap_or(&empty_params);
 
         for args in generate_arg_sets(params, max_cases) {
             vectors.push(ToolTestVector {

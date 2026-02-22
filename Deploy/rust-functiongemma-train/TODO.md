@@ -26,14 +26,15 @@ Deploy/functiongemma-finetune (Python) and to enable a Rust-only router runtime.
 - [x] Emit tool test vectors alongside tool-coverage datasets (parity with generate_training_data.py). Implemented via `prepare-router --test-vectors`.
 
 ## P0 - Training parity
-- [ ] LoRA/QLoRA support with target modules (q/k/v/o/gate/up/down). (LoRA done; QLoRA stub wired, quantization pending)
+- [ ] LoRA/QLoRA support with target modules (q/k/v/o/gate/up/down). (LoRA targets updated; QLoRA quantization pending)
+  - [ ] Evaluate qlora-rs (NF4 + double quantization) as a Rust-first QLoRA path.
 - [x] Warmup + LR scheduling (linear or cosine).
 - [x] Resume from checkpoint.
-- [ ] Eval split and optional early stopping. (early stopping wired; eval split pending)
+- [x] Eval split and optional early stopping. (early stopping wired; eval split implemented)
 - [x] Save PEFT-style adapter outputs + tokenizer metadata.
 
 ## P0 - Runtime inference parity
-- [ ] Load base model + LoRA adapters, or merged model.
+- [x] Load base model + LoRA adapters, or merged model.
 - [ ] Match FunctionGemma chat template behavior.
 - [ ] Provide deterministic generation settings for routing (low temp, short max tokens).
 - [ ] Expose model + tools + version in /v1/models or /health endpoints.
@@ -49,13 +50,20 @@ Deploy/functiongemma-finetune (Python) and to enable a Rust-only router runtime.
 - [x] Add config in Config/llm-config.json to point router base URL to Rust runtime.
 
 ## P2 - Performance + UX
-- [ ] Incremental dataset generation and streaming JSONL output.
-- [ ] Memory/throughput metrics in runtime server.
-- [ ] Optional GPU selection and memory limits in config.
+- [x] Incremental dataset generation and streaming JSONL output.
+- [x] Memory/throughput metrics in runtime server.
+- [x] Optional GPU selection and memory limits in config.
 - [x] Pre-tokenize datasets and cache token IDs on disk (memmap2) for faster training/eval.
 - [x] Add prompt packing (multiple short samples per batch) to improve GPU utilization.
 - [x] Add deterministic eval metrics (tool-name accuracy + argument exact match) with JSON output.
 - [x] Add JSON schema validation for tool call outputs (reject invalid arguments early).
+- [ ] Evaluate candle-cuda-vmm or CUDA memory pool options for more stable VRAM allocation.
+- [ ] oLLM parity: add optional KV cache offload to CPU/disk (with streaming readback).
+- [ ] oLLM parity: implement chunked/online softmax attention + chunked MLP for large-context prefill.
+- [ ] oLLM parity: safe-tensors reader to avoid mmap-induced RAM spikes (optional path).
+- [ ] oLLM parity: evaluate cuFILE/GPUDirect Storage via cudarc for direct GPU <-> disk transfer.
+- [ ] Prototype RAG memory hooks (rag-redis at W:\dropbox-local\rag-redis; Redis 6379/6380) for router eval inputs.
+- [ ] Scope reduction: consider narrowing FunctionGemma to an intermediate tool-execution layer between pcai_inference and PC-AI modules (drop chat/diagnose router role) to simplify training targets and reduce memory/compute. (See README.md, ARCHITECTURE.md)
 
 ## Crate candidates (easy wins)
 - hf-hub: download and cache gated models.
@@ -72,4 +80,4 @@ Deploy/functiongemma-finetune (Python) and to enable a Rust-only router runtime.
 - [x] Convert to a Rust workspace:
   - [x] rust-functiongemma-runtime (server) - Deploy/rust-functiongemma-runtime
   - [x] rust-functiongemma-train (dataset + training) - Deploy/rust-functiongemma-train
-  - [ ] rust-functiongemma-core (shared model/prompt/util)
+  - [x] rust-functiongemma-core (shared model/prompt/util)

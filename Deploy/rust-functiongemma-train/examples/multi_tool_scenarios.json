@@ -1,0 +1,154 @@
+{
+  "scenarios": [
+    {
+      "mode": "multi_tool",
+      "user_content": "Check my disk health and also look for any USB errors.",
+      "tool_sequence": ["pcai_get_disk_status", "pcai_get_usb_status"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Run full system diagnostics - check network, disk, and USB.",
+      "tool_sequence": ["pcai_get_network_status", "pcai_get_disk_status", "pcai_get_usb_status"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "I'm seeing slowdowns. Check which processes are consuming the most CPU and then look at disk health.",
+      "tool_sequence": ["pcai_get_top_processes", "pcai_get_disk_status"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Something is wrong with my system. Pull device errors and also check the system event log.",
+      "tool_sequence": ["pcai_get_device_errors", "pcai_get_system_events"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Check network connectivity and then look at system events for any related errors.",
+      "tool_sequence": ["pcai_get_network_status", "pcai_get_system_events"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Restart WSL and then run a WSL network diagnosis to confirm it recovered.",
+      "tool_sequence": ["pcai_restart_wsl", "pcai_run_wsl_network_tool"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Get WSL health status and also check Docker to see if both are up.",
+      "tool_sequence": ["pcai_get_wsl_health", "pcai_get_docker_status"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Restart the vLLM service and then check WSL health to confirm the stack is healthy.",
+      "tool_sequence": ["pcai_restart_service", "pcai_get_wsl_health"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Stop the PC_AI-HVSockProxy service and then restart it to clear any stuck state.",
+      "tool_sequence": ["pcai_stop_service", "pcai_start_service"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Check top memory-consuming processes and then look at system events for out-of-memory warnings.",
+      "tool_sequence": ["pcai_get_top_processes", "pcai_get_system_events"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Scan for USB errors and also check device manager for any device errors.",
+      "tool_sequence": ["pcai_get_usb_status", "pcai_get_device_errors"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Check disk status and pull recent system events to correlate any storage-related warnings.",
+      "tool_sequence": ["pcai_get_disk_status", "pcai_get_system_events"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "I want a full picture of my hardware health: disk, network, and any device errors.",
+      "tool_sequence": ["pcai_get_disk_status", "pcai_get_network_status", "pcai_get_device_errors"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Check which processes are hogging resources and also run a network status check.",
+      "tool_sequence": ["pcai_get_top_processes", "pcai_get_network_status"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Get current Docker status and then run a WSL network tool diagnosis.",
+      "tool_sequence": ["pcai_get_docker_status", "pcai_run_wsl_network_tool"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Search the system logs for disk errors and then check disk health directly.",
+      "tool_sequence": ["SearchLogs", "pcai_get_disk_status"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Look up device error documentation and then pull device errors from the system.",
+      "tool_sequence": ["SearchDocs", "pcai_get_device_errors"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Get system info about the OS build and then check recent system events for crashes.",
+      "tool_sequence": ["GetSystemInfo", "pcai_get_system_events"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Check USB status and then scan logs for any xHCI controller errors.",
+      "tool_sequence": ["pcai_get_usb_status", "SearchLogs"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Run a WSL network diagnosis and then check Docker to confirm the inference stack is healthy.",
+      "tool_sequence": ["pcai_run_wsl_network_tool", "pcai_get_docker_status"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Optimize the model host GPU usage and then check WSL health to confirm the change took effect.",
+      "tool_sequence": ["pcai_optimize_model_host", "pcai_get_wsl_health"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Set the LLM provider order and then restart WSL so the new settings load.",
+      "tool_sequence": ["pcai_set_provider_order", "pcai_restart_wsl"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Check for device errors and USB issues at the same time to speed up diagnosis.",
+      "tool_sequence": ["pcai_get_device_errors", "pcai_get_usb_status"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Pull disk status and top processes to see if heavy I/O is causing slowdowns.",
+      "tool_sequence": ["pcai_get_disk_status", "pcai_get_top_processes"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Check network status and then run the WSL network tool to compare host-level vs WSL-level connectivity.",
+      "tool_sequence": ["pcai_get_network_status", "pcai_run_wsl_network_tool"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Get system info about the GPU driver version and then check top processes to see GPU-bound tasks.",
+      "tool_sequence": ["GetSystemInfo", "pcai_get_top_processes"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Restart WSL, get WSL health, and then check Docker status to confirm everything is up.",
+      "tool_sequence": ["pcai_restart_wsl", "pcai_get_wsl_health", "pcai_get_docker_status"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Check disk status, pull system events, and look at device errors for a thorough storage audit.",
+      "tool_sequence": ["pcai_get_disk_status", "pcai_get_system_events", "pcai_get_device_errors"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Check network status, USB status, and top processes to get a broad system health overview.",
+      "tool_sequence": ["pcai_get_network_status", "pcai_get_usb_status", "pcai_get_top_processes"]
+    },
+    {
+      "mode": "multi_tool",
+      "user_content": "Stop the service, optimize the model host, and then start the service again for a clean restart.",
+      "tool_sequence": ["pcai_stop_service", "pcai_optimize_model_host", "pcai_start_service"]
+    }
+  ]
+}

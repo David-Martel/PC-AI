@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "../rust-functiongemma-runtime",
     "../rust-functiongemma-train",
+    "../rust-functiongemma-core",
 ]
 
 [workspace.dependencies]
@@ -27,3 +28,4 @@ rand = "0.8.5"
 memmap2 = "0.9.5"
 reqwest = { version = "0.12", features = ["json"] }
 rust-functiongemma-train = { path = "../rust-functiongemma-train" }
+sysinfo = "0.38"

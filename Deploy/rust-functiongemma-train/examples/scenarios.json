@@ -73,6 +73,78 @@
       "tool_arguments": {"pattern": "USB|usbhub|xHCI", "rootPath": "C:\\\\Windows\\\\System32\\\\LogFiles"}
     },
     {
+      "mode": "diagnose",
+      "user_content": "Get-Process | Sort-Object CPU -Descending | Select-Object -First 10",
+      "tool_name": "pcai_get_top_processes",
+      "tool_arguments": {"sort_by": "cpu", "top": 10}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 5",
+      "tool_name": "pcai_get_top_processes",
+      "tool_arguments": {"sort_by": "memory", "top": 5}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-PhysicalDisk | Format-Table FriendlyName,HealthStatus,OperationalStatus",
+      "tool_name": "pcai_get_disk_status",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-CimInstance Win32_DiskDrive | Select-Object Model,SerialNumber,Status",
+      "tool_name": "GetSystemInfo",
+      "tool_arguments": {"category": "DiskDrive", "detail": "Summary"}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-NetAdapter | Where-Object Status -eq 'Up'",
+      "tool_name": "pcai_get_network_status",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-PnpDevice -Class USB -Status Error",
+      "tool_name": "pcai_get_usb_status",
+      "tool_arguments": {"errors_only": true}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-PnpDevice | Where-Object { $_.Problem -ne 0 }",
+      "tool_name": "pcai_get_device_errors",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-ChildItem C:\\\\Windows\\\\System32\\\\LogFiles -Recurse -Filter *.log | Select-String -Pattern 'USB|xHCI'",
+      "tool_name": "SearchLogs",
+      "tool_arguments": {"pattern": "USB|xHCI", "rootPath": "C:\\\\Windows\\\\System32\\\\LogFiles", "filePattern": "*.log"}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-EventLog -LogName System -Newest 200 | Where-Object { $_.Message -match 'disk|stor|nvme' }",
+      "tool_name": "pcai_get_system_events",
+      "tool_arguments": {"days": 7}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-CimInstance Win32_OperatingSystem | Select-Object Caption,BuildNumber",
+      "tool_name": "GetSystemInfo",
+      "tool_arguments": {"category": "OS", "detail": "Summary"}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-CimInstance Win32_BIOS | Select-Object SMBIOSBIOSVersion,ReleaseDate",
+      "tool_name": "GetSystemInfo",
+      "tool_arguments": {"category": "BIOS", "detail": "Summary"}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion",
+      "tool_name": "GetSystemInfo",
+      "tool_arguments": {"category": "GPU", "detail": "DriverVersion"}
+    },
+    {
       "mode": "chat",
       "user_content": "Explain what WSL is and when to use it.",
       "assistant_content": "NO_TOOL"

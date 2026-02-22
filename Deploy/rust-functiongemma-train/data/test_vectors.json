@@ -1,0 +1,1028 @@
+[
+  {
+    "tool": "SearchDocs",
+    "arguments": {
+      "query": "example"
+    }
+  },
+  {
+    "tool": "SearchDocs",
+    "arguments": {
+      "query": "example",
+      "source": "Microsoft"
+    }
+  },
+  {
+    "tool": "SearchDocs",
+    "arguments": {
+      "query": "example",
+      "source": "Intel"
+    }
+  },
+  {
+    "tool": "SearchDocs",
+    "arguments": {
+      "query": "example",
+      "source": "AMD"
+    }
+  },
+  {
+    "tool": "SearchDocs",
+    "arguments": {
+      "query": "example",
+      "source": "Dell"
+    }
+  },
+  {
+    "tool": "SearchDocs",
+    "arguments": {
+      "query": "example",
+      "source": "HP"
+    }
+  },
+  {
+    "tool": "SearchDocs",
+    "arguments": {
+      "query": "example",
+      "source": "Lenovo"
+    }
+  },
+  {
+    "tool": "SearchDocs",
+    "arguments": {
+      "query": "example",
+      "source": "Generic"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Storage"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Network"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "USB"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "BIOS"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "OS"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "GPU"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "DiskDrive"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Net"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Display"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Media"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "HIDClass"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Storage",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Network",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "USB",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "BIOS",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "OS",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "GPU",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "DiskDrive",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Net",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Display",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "Media",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "GetSystemInfo",
+    "arguments": {
+      "category": "HIDClass",
+      "detail": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": true,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": false,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "contextLines": 0,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "contextLines": 1,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": true,
+      "contextLines": 0,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": true,
+      "contextLines": 1,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": false,
+      "contextLines": 0,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": false,
+      "contextLines": 1,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "filePattern": "example",
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": true,
+      "filePattern": "example",
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": false,
+      "filePattern": "example",
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "contextLines": 0,
+      "filePattern": "example",
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "contextLines": 1,
+      "filePattern": "example",
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": true,
+      "contextLines": 0,
+      "filePattern": "example",
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": true,
+      "contextLines": 1,
+      "filePattern": "example",
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": false,
+      "contextLines": 0,
+      "filePattern": "example",
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": false,
+      "contextLines": 1,
+      "filePattern": "example",
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "maxMatches": 0,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "maxMatches": 1,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": true,
+      "maxMatches": 0,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": true,
+      "maxMatches": 1,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": false,
+      "maxMatches": 0,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "SearchLogs",
+    "arguments": {
+      "caseSensitive": false,
+      "maxMatches": 1,
+      "pattern": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_device_errors",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_disk_status",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_system_events",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_system_events",
+    "arguments": {
+      "days": 0
+    }
+  },
+  {
+    "tool": "pcai_get_system_events",
+    "arguments": {
+      "days": 1
+    }
+  },
+  {
+    "tool": "pcai_get_usb_status",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_usb_status",
+    "arguments": {
+      "errors_only": true
+    }
+  },
+  {
+    "tool": "pcai_get_usb_status",
+    "arguments": {
+      "errors_only": false
+    }
+  },
+  {
+    "tool": "pcai_get_network_status",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_llm_status",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": true
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": false
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "distribution": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": true,
+      "distribution": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": false,
+      "distribution": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "functiongemma_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": true,
+      "functiongemma_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": false,
+      "functiongemma_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "distribution": "example",
+      "functiongemma_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": true,
+      "distribution": "example",
+      "functiongemma_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": false,
+      "distribution": "example",
+      "functiongemma_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": true,
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": false,
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "distribution": "example",
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": true,
+      "distribution": "example",
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": false,
+      "distribution": "example",
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "functiongemma_url": "example",
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": true,
+      "functiongemma_url": "example",
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": false,
+      "functiongemma_url": "example",
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "distribution": "example",
+      "functiongemma_url": "example",
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": true,
+      "distribution": "example",
+      "functiongemma_url": "example",
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_service_health",
+    "arguments": {
+      "check_legacy_providers": false,
+      "distribution": "example",
+      "functiongemma_url": "example",
+      "pcai_inference_url": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_wsl_status",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_wsl_status",
+    "arguments": {
+      "detailed": true
+    }
+  },
+  {
+    "tool": "pcai_get_wsl_status",
+    "arguments": {
+      "detailed": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "quick": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "quick": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": true,
+      "quick": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": true,
+      "quick": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": false,
+      "quick": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": false,
+      "quick": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "verbose": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "verbose": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": true,
+      "verbose": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": true,
+      "verbose": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": false,
+      "verbose": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": false,
+      "verbose": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "quick": true,
+      "verbose": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "quick": true,
+      "verbose": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "quick": false,
+      "verbose": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "quick": false,
+      "verbose": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": true,
+      "quick": true,
+      "verbose": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": true,
+      "quick": true,
+      "verbose": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": true,
+      "quick": false,
+      "verbose": true
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": true,
+      "quick": false,
+      "verbose": false
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_docker_health_check",
+    "arguments": {
+      "auto_recover": false,
+      "quick": true,
+      "verbose": true
+    }
+  },
+  {
+    "tool": "pcai_get_disk_usage",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_disk_usage",
+    "arguments": {
+      "path": "example"
+    }
+  },
+  {
+    "tool": "pcai_get_disk_usage",
+    "arguments": {
+      "top": 0
+    }
+  },
+  {
+    "tool": "pcai_get_disk_usage",
+    "arguments": {
+      "top": 1
+    }
+  },
+  {
+    "tool": "pcai_get_disk_usage",
+    "arguments": {
+      "path": "example",
+      "top": 0
+    }
+  },
+  {
+    "tool": "pcai_get_disk_usage",
+    "arguments": {
+      "path": "example",
+      "top": 1
+    }
+  },
+  {
+    "tool": "pcai_get_top_processes",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_top_processes",
+    "arguments": {
+      "sort_by": "memory"
+    }
+  },
+  {
+    "tool": "pcai_get_top_processes",
+    "arguments": {
+      "sort_by": "cpu"
+    }
+  },
+  {
+    "tool": "pcai_get_top_processes",
+    "arguments": {
+      "top": 0
+    }
+  },
+  {
+    "tool": "pcai_get_top_processes",
+    "arguments": {
+      "top": 1
+    }
+  },
+  {
+    "tool": "pcai_get_top_processes",
+    "arguments": {
+      "sort_by": "memory",
+      "top": 0
+    }
+  },
+  {
+    "tool": "pcai_get_top_processes",
+    "arguments": {
+      "sort_by": "memory",
+      "top": 1
+    }
+  },
+  {
+    "tool": "pcai_get_top_processes",
+    "arguments": {
+      "sort_by": "cpu",
+      "top": 0
+    }
+  },
+  {
+    "tool": "pcai_get_top_processes",
+    "arguments": {
+      "sort_by": "cpu",
+      "top": 1
+    }
+  },
+  {
+    "tool": "pcai_get_memory_stats",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_run_wsl_network_tool",
+    "arguments": {
+      "mode": "check"
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_network_tool",
+    "arguments": {
+      "mode": "diagnose"
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_network_tool",
+    "arguments": {
+      "mode": "repair"
+    }
+  },
+  {
+    "tool": "pcai_run_wsl_network_tool",
+    "arguments": {
+      "mode": "full"
+    }
+  },
+  {
+    "tool": "pcai_get_wsl_health",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_optimize_model_host",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_optimize_model_host",
+    "arguments": {
+      "gpu_limit": 0.0
+    }
+  },
+  {
+    "tool": "pcai_optimize_model_host",
+    "arguments": {
+      "gpu_limit": 1.0
+    }
+  },
+  {
+    "tool": "pcai_restart_wsl",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_get_docker_status",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_set_provider_order",
+    "arguments": {
+      "order": "example"
+    }
+  },
+  {
+    "tool": "pcai_start_service",
+    "arguments": {
+      "service": "example"
+    }
+  },
+  {
+    "tool": "pcai_stop_service",
+    "arguments": {
+      "service": "example"
+    }
+  },
+  {
+    "tool": "pcai_restart_service",
+    "arguments": {
+      "service": "example"
+    }
+  },
+  {
+    "tool": "pcai_native_inference_status",
+    "arguments": {}
+  },
+  {
+    "tool": "pcai_switch_inference_backend",
+    "arguments": {
+      "backend": "llamacpp"
+    }
+  },
+  {
+    "tool": "pcai_switch_inference_backend",
+    "arguments": {
+      "backend": "mistralrs"
+    }
+  },
+  {
+    "tool": "pcai_switch_inference_backend",
+    "arguments": {
+      "backend": "auto"
+    }
+  },
+  {
+    "tool": "pcai_load_model",
+    "arguments": {
+      "model_path": "example"
+    }
+  },
+  {
+    "tool": "pcai_load_model",
+    "arguments": {
+      "gpu_layers": 0,
+      "model_path": "example"
+    }
+  },
+  {
+    "tool": "pcai_load_model",
+    "arguments": {
+      "gpu_layers": 1,
+      "model_path": "example"
+    }
+  },
+  {
+    "tool": "pcai_run_evaluation",
+    "arguments": {
+      "suite_name": "example"
+    }
+  },
+  {
+    "tool": "pcai_run_evaluation",
+    "arguments": {
+      "dataset": "example",
+      "suite_name": "example"
+    }
+  },
+  {
+    "tool": "pcai_run_evaluation",
+    "arguments": {
+      "metrics": "example",
+      "suite_name": "example"
+    }
+  },
+  {
+    "tool": "pcai_run_evaluation",
+    "arguments": {
+      "dataset": "example",
+      "metrics": "example",
+      "suite_name": "example"
+    }
+  }
+]

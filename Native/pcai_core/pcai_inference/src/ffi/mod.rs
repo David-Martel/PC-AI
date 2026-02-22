@@ -362,7 +362,7 @@ pub extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) ->
 
     // Load the model (async operation, block on runtime)
     // Split mutable reference to satisfy borrow checker
-    let GlobalState { runtime, backend } = &mut *guard;
+    let GlobalState { runtime, backend, .. } = &mut *guard;
 
     if let Some(backend) = backend {
         let result = runtime.block_on(async { backend.load_model(&path_str).await });
@@ -1316,10 +1316,15 @@ mod tests {
     #[test]
     fn test_async_result_repr_c() {
         // Ensure PcaiAsyncResult has the expected field layout for FFI callers.
-        // status is i32 (4 bytes) and text is a pointer.
+        // repr(C) on 64-bit: i32 (4 bytes) + 4 bytes padding + pointer (8 bytes) = 16 bytes.
+        let expected_size = if std::mem::size_of::<*mut c_char>() == 8 {
+            16 // 64-bit: 4 + 4 padding + 8
+        } else {
+            8 // 32-bit: 4 + 4
+        };
         assert_eq!(
             std::mem::size_of::<PcaiAsyncResult>(),
-            std::mem::size_of::<i32>() + std::mem::size_of::<*mut c_char>(),
+            expected_size,
             "PcaiAsyncResult layout must match expected C ABI size"
         );
     }

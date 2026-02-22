@@ -35,13 +35,11 @@ jobs:
           workspaces: Native/pcai_core/pcai_inference
           shared-key: pcai-inference
 
-      - name: Check (no features)
-        working-directory: Native/pcai_core/pcai_inference
-        run: cargo check --lib --no-default-features
-
-      - name: Check (with server)
-        working-directory: Native/pcai_core/pcai_inference
-        run: cargo check --lib --features server
+      - name: Check via Build.ps1
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component lint -LintProfile rust-inference-check -DependencyStrategy locked
+          if ($LASTEXITCODE -ne 0) { throw "Build.ps1 lint (rust-inference-check) failed with exit code $LASTEXITCODE" }
 
   test:
     name: Rust Tests
@@ -117,9 +115,11 @@ jobs:
           workspaces: Native/pcai_core/pcai_inference
           shared-key: pcai-inference
 
-      - name: Run Clippy
-        working-directory: Native/pcai_core/pcai_inference
-        run: cargo clippy --no-default-features --features server,ffi -- -D warnings
+      - name: Run Clippy via Build.ps1
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component lint -LintProfile rust-inference-clippy -DependencyStrategy locked
+          if ($LASTEXITCODE -ne 0) { throw "Build.ps1 lint (rust-inference-clippy) failed with exit code $LASTEXITCODE" }
 
   fmt:
     name: Format Check
@@ -132,9 +132,11 @@ jobs:
         with:
           components: rustfmt
 
-      - name: Check Format
-        working-directory: Native/pcai_core/pcai_inference
-        run: cargo fmt --check
+      - name: Check Format via Build.ps1
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component format -LintProfile rust-inference-fmt -DependencyStrategy locked
+          if ($LASTEXITCODE -ne 0) { throw "Build.ps1 format (rust-inference-fmt) failed with exit code $LASTEXITCODE" }
 
   powershell-tests:
     name: PowerShell Module Tests

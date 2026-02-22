@@ -220,7 +220,8 @@ function Invoke-RustDocGeneration {
             Pop-Location
 
             if ($LASTEXITCODE -eq 0) {
-                Add-PipelineStep -Name 'RustDocs' -Status 'Success' -Output "$rustWorkspace -> T:\RustCache\cargo-target\doc"
+                $docDir = if ($env:CARGO_TARGET_DIR) { "$env:CARGO_TARGET_DIR\doc" } else { "$rustWorkspace\target\doc" }
+                Add-PipelineStep -Name 'RustDocs' -Status 'Success' -Output "$rustWorkspace -> $docDir"
             } else {
                 Add-PipelineStep -Name 'RustDocs' -Status 'Warning' -Error ("$($rustWorkspace): " + ($cargoDoc | Select-Object -Last 5 | Out-String))
             }

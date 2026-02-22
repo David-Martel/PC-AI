@@ -31,6 +31,10 @@
     - pcainative: PcaiNative .NET interop wrapper
     - servicehost: PcaiServiceHost .NET host binary
     - nukenul: Hybrid Rust/C# Native/NukeNul utility
+    - lint: Run repository lint checks only
+    - format: Run formatting checks only
+    - fix: Apply automated formatting/fixes where supported
+    - deps: Refresh and validate Rust dependency graph/cache state
     - native: .NET native toolchain (pcainative + servicehost + tui)
     - all: All components (default)
 
@@ -75,6 +79,23 @@
     Optional passthrough arguments for FunctionGemma operation components:
     functiongemma-router-data, functiongemma-token-cache, functiongemma-train, functiongemma-eval.
 
+.PARAMETER LintProfile
+    Lint/format profile selector used by lint/format/fix components:
+    all, rust-check, rust-clippy, rust-fmt, rust-inference-check,
+    rust-inference-clippy, rust-inference-fmt, dotnet-format, powershell, docs, astgrep, toml.
+
+.PARAMETER DependencyStrategy
+    Rust dependency lock behavior:
+    - locked: pass --locked to cargo commands (default, cache-friendly)
+    - frozen: pass --frozen to cargo commands
+    - update: allow dependency updates (no lock flag)
+
+.PARAMETER AutoFix
+    Apply auto-fixes where supported (ast-grep update, formatters, dotnet format write mode).
+
+.PARAMETER SkipQualityGate
+    Skip pre-build ast-grep quality gate for non-lint components.
+
 .PARAMETER Verbose
     Show detailed build output.
 
@@ -101,11 +122,23 @@
 .EXAMPLE
     .\Build.ps1 -Component nukenul
     Build Native/NukeNul hybrid Rust + C# utility.
+
+.EXAMPLE
+    .\Build.ps1 -Component lint -LintProfile all
+    Run repository lint checks only.
+
+.EXAMPLE
+    .\Build.ps1 -Component format -LintProfile rust-fmt
+    Run Rust formatting checks only.
+
+.EXAMPLE
+    .\Build.ps1 -Component fix -LintProfile all -AutoFix
+    Apply automated code/document fixes where toolchains support write mode.
 #>
 
 [CmdletBinding()]
 param(
-    [ValidateSet('inference', 'llamacpp', 'mistralrs', 'functiongemma', 'functiongemma-router-data', 'functiongemma-token-cache', 'functiongemma-train', 'functiongemma-eval', 'tui', 'pcainative', 'servicehost', 'nukenul', 'native', 'all')]
+    [ValidateSet('inference', 'llamacpp', 'mistralrs', 'functiongemma', 'functiongemma-router-data', 'functiongemma-token-cache', 'functiongemma-train', 'functiongemma-eval', 'tui', 'pcainative', 'servicehost', 'nukenul', 'lint', 'format', 'fix', 'deps', 'native', 'all')]
     [string]$Component = 'all',
 
     [ValidateSet('Debug', 'Release')]
@@ -124,6 +157,12 @@ param(
     [string]$CargoPreflightMode = 'check',
     [switch]$SyncCargoDefaults,
     [string[]]$FunctionGemmaArgs = @(),
+    [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml')]
+    [string]$LintProfile = 'all',
+    [ValidateSet('locked', 'frozen', 'update')]
+    [string]$DependencyStrategy = 'locked',
+    [switch]$AutoFix,
+    [switch]$SkipQualityGate,
     [switch]$Quiet
 )
 
@@ -143,6 +182,7 @@ $script:BuildDeployDir = Join-Path $script:BuildRoot 'deploy'
 $script:QuietMode = $Quiet.IsPresent
 $script:CargoToolsEnabled = $false
 $script:RustBuildWrapper = Join-Path $script:ProjectRoot 'Tools\Invoke-RustBuild.ps1'
+$script:DependencyStrategy = $DependencyStrategy
 
 #region Output Formatting
 
@@ -365,6 +405,30 @@ function Initialize-CargoToolsDefaults {
     return $script:CargoToolsEnabled
 }
 
+function Add-CargoDependencyFlags {
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$CargoArgs
+    )
+
+    if (-not $CargoArgs -or $CargoArgs.Count -eq 0) {
+        return $CargoArgs
+    }
+
+    if ($CargoArgs -contains '--locked' -or $CargoArgs -contains '--frozen') {
+        return $CargoArgs
+    }
+
+    if ($script:DependencyStrategy -eq 'locked') {
+        return $CargoArgs + @('--locked')
+    }
+    if ($script:DependencyStrategy -eq 'frozen') {
+        return $CargoArgs + @('--frozen')
+    }
+
+    return $CargoArgs
+}
+
 function Invoke-RustBuildCommand {
     param(
         [Parameter(Mandatory)]
@@ -379,9 +443,11 @@ function Invoke-RustBuildCommand {
         throw "Rust project path not found: $Path"
     }
 
+    $effectiveCargoArgs = Add-CargoDependencyFlags -CargoArgs $CargoArgs
+
     if (Test-Path $script:RustBuildWrapper) {
         $shellExe = Resolve-PowerShellExecutable
-        $wrapperArgs = @('-NoProfile', '-File', $script:RustBuildWrapper, '-Path', $Path, '-CargoArgs') + $CargoArgs
+        $wrapperArgs = @('-NoProfile', '-File', $script:RustBuildWrapper, '-Path', $Path, '-CargoArgs') + $effectiveCargoArgs
 
         if ($env:CARGO_USE_LLD -eq '1') {
             $wrapperArgs += '-UseLld'
@@ -414,14 +480,15 @@ function Invoke-RustBuildCommand {
             }
 
             foreach ($preflightArgs in $preflightSets) {
-                & cargo @preflightArgs 2>&1 | Tee-Object -FilePath $LogFile | Out-Null
+                $effectivePreflightArgs = Add-CargoDependencyFlags -CargoArgs $preflightArgs
+                & cargo @effectivePreflightArgs 2>&1 | Tee-Object -FilePath $LogFile | Out-Null
                 if ($LASTEXITCODE -ne 0) {
                     return $false
                 }
             }
         }
 
-        & cargo @CargoArgs 2>&1 | Tee-Object -FilePath $LogFile | Out-Null
+        & cargo @effectiveCargoArgs 2>&1 | Tee-Object -FilePath $LogFile | Out-Null
         return ($LASTEXITCODE -eq 0)
     } finally {
         Pop-Location
@@ -515,44 +582,594 @@ function Clear-BuildArtifacts {
 
 #endregion
 
-#region Preflight Checks
+#region Quality Checks
 
-function Invoke-AstGrepCheck {
-    Write-BuildPhase 'Security' 'Running AST-Grep security checks and auto-fixes'
+function Get-QualityTargets {
+    param(
+        [ValidateSet('all', 'inference')]
+        [string]$Scope = 'all'
+    )
 
-    # Run YAML auto-formatter first
-    $yamlFormatScript = Join-Path $script:ProjectRoot 'Tools\Invoke-YamlFormat.ps1'
-    if (Test-Path $yamlFormatScript) {
-        Write-BuildStep 'Formatting AST-Grep YAML rules...' 'running'
-        & $yamlFormatScript | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-BuildStep 'YAML formatting failed' 'warning'
-        } else {
-            Write-BuildStep 'YAML rules formatted' 'success'
-        }
+    if ($Scope -eq 'inference') {
+        return @(
+            @{
+                Name = 'pcai-inference'
+                Path = Join-Path $script:ProjectRoot 'Native\pcai_core\pcai_inference'
+            }
+        ) | Where-Object { Test-Path $_.Path }
     }
 
-    if (-not (Get-Command sg -ErrorAction SilentlyContinue)) {
-        Write-BuildStep 'ast-grep (sg) not found, skipping security checks' 'warning'
+    return @(
+        @{
+            Name = 'pcai-core'
+            Path = Join-Path $script:ProjectRoot 'Native\pcai_core'
+        },
+        @{
+            Name = 'functiongemma-workspace'
+            Path = Join-Path $script:ProjectRoot 'Deploy\rust-functiongemma'
+        },
+        @{
+            Name = 'nukenul-core'
+            Path = Join-Path $script:ProjectRoot 'Native\NukeNul\nuker_core'
+        }
+    ) | Where-Object { Test-Path $_.Path }
+}
+
+function Invoke-PrettierQuality {
+    param(
+        [switch]$WriteMode
+    )
+
+    if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
+        Write-BuildStep 'npx not found; skipping JSON/YAML/Markdown/TOML formatting checks' 'warning'
         return $true
     }
 
-    # Auto-fix structural issues first
-    Write-BuildStep 'Applying AST-Grep auto-fixes (--update-all)...' 'running'
-    $fixOutput = sg scan --update-all 2>&1
-    Write-BuildStep 'AST-Grep auto-fixes applied' 'success'
+    $configPath = Join-Path $script:ProjectRoot '.prettierrc.toml'
+    $ignorePath = Join-Path $script:ProjectRoot '.prettierignore'
+    $glob = '**/*.{json,yml,yaml,md,toml}'
 
-    # Run final scan to check for errors/hardcoded endpoints
-    Write-BuildStep 'Scanning for network security violations...' 'running'
-    $output = sg scan 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-BuildStep 'AST-Grep found hardcoded endpoint violations!' 'error'
-        Write-Error ($output -join "`n")
-        throw 'AST-Grep security check failed.'
+    $args = @('prettier')
+    if (Test-Path $configPath) { $args += @('--config', $configPath) }
+    if (Test-Path $ignorePath) { $args += @('--ignore-path', $ignorePath) }
+    if ($WriteMode) {
+        $args += @('--write', $glob)
+        Write-BuildStep 'Running Prettier write pass (JSON/YAML/Markdown/TOML)...' 'running'
+    } else {
+        $args += @('--check', $glob)
+        Write-BuildStep 'Running Prettier check (JSON/YAML/Markdown/TOML)...' 'running'
     }
 
-    Write-BuildStep 'AST-Grep security checks passed' 'success'
+    Push-Location $script:ProjectRoot
+    try {
+        & npx @args 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-BuildStep 'Prettier quality pass failed' 'error'
+            return $false
+        }
+    } finally {
+        Pop-Location
+    }
+
+    Write-BuildStep 'Prettier quality pass complete' 'success'
     return $true
+}
+
+function Invoke-NativeCommandCapture {
+    param(
+        [Parameter(Mandatory)]
+        [string]$FilePath,
+        [string[]]$ArgumentList = @(),
+        [string]$WorkingDirectory = $script:ProjectRoot
+    )
+
+    $commandInfo = Get-Command $FilePath -ErrorAction Stop
+    $resolvedPath = if ($commandInfo.Path) { $commandInfo.Path } else { $FilePath }
+    $launchFile = $resolvedPath
+    $launchArgs = $ArgumentList
+    if ([System.IO.Path]::GetExtension($resolvedPath).ToLowerInvariant() -eq '.ps1') {
+        $launchFile = Resolve-PowerShellExecutable
+        $launchArgs = @('-NoProfile', '-File', $resolvedPath) + $ArgumentList
+    }
+
+    $stdoutFile = New-TemporaryFile
+    $stderrFile = New-TemporaryFile
+    try {
+        $process = Start-Process `
+            -FilePath $launchFile `
+            -ArgumentList $launchArgs `
+            -WorkingDirectory $WorkingDirectory `
+            -NoNewWindow `
+            -Wait `
+            -PassThru `
+            -RedirectStandardOutput $stdoutFile.FullName `
+            -RedirectStandardError $stderrFile.FullName
+
+        $stdoutLines = @()
+        $stderrLines = @()
+        if (Test-Path $stdoutFile.FullName) {
+            $stdoutLines = Get-Content -Path $stdoutFile.FullName -ErrorAction SilentlyContinue
+        }
+        if (Test-Path $stderrFile.FullName) {
+            $stderrLines = Get-Content -Path $stderrFile.FullName -ErrorAction SilentlyContinue
+        }
+
+        return @{
+            ExitCode = $process.ExitCode
+            StdOut = $stdoutLines
+            StdErr = $stderrLines
+        }
+    } finally {
+        Remove-Item $stdoutFile.FullName -Force -ErrorAction SilentlyContinue
+        Remove-Item $stderrFile.FullName -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-AstGrepCheck {
+    param(
+        [switch]$EnableAutoFix
+    )
+
+    if (-not (Get-Command sg -ErrorAction SilentlyContinue)) {
+        Write-BuildStep 'ast-grep (sg) not found; skipping ast-grep checks' 'warning'
+        return $true
+    }
+
+    $scanArgs = @('scan')
+    $configPath = Join-Path $script:ProjectRoot 'sgconfig.yml'
+    if (Test-Path $configPath) {
+        $scanArgs += @('--config', $configPath)
+    }
+    $astGrepParsePattern = 'Cannot parse rule|not a valid ast-grep rule|Fail to parse yaml as Rule|Rule contains invalid pattern matcher|`rule` is not configured correctly|Invalid config|No such file'
+
+    $rulesRoot = Join-Path $script:ProjectRoot 'rules'
+    if (Test-Path $rulesRoot) {
+        $rules = Get-ChildItem -Path $rulesRoot -Filter '*.yml' -File -Recurse -ErrorAction SilentlyContinue
+        if ($rules.Count -gt 0) {
+            Write-BuildStep "Validating $($rules.Count) AST-grep rule file(s)..." 'running'
+            $dummyFile = New-TemporaryFile
+            try {
+                'validation_probe' | Set-Content -Path $dummyFile.FullName -Encoding UTF8
+                foreach ($rule in $rules) {
+                    $validationResult = Invoke-NativeCommandCapture -FilePath 'sg' -ArgumentList @('scan', '--rule', $rule.FullName, $dummyFile.FullName) -WorkingDirectory $script:ProjectRoot
+                    $validationText = (($validationResult.StdOut + $validationResult.StdErr) -join "`n")
+                    if ($validationResult.ExitCode -gt 1 -or ($validationText -match $astGrepParsePattern)) {
+                        Write-BuildStep "AST-grep rule validation failed: $($rule.Name)" 'error'
+                        return $false
+                    }
+                }
+            } finally {
+                Remove-Item $dummyFile.FullName -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    if ($EnableAutoFix) {
+        Write-BuildStep 'Applying AST-grep auto-fixes (--update-all)...' 'running'
+        $fixResult = Invoke-NativeCommandCapture -FilePath 'sg' -ArgumentList ($scanArgs + @('--update-all')) -WorkingDirectory $script:ProjectRoot
+        if ($fixResult.ExitCode -ne 0) {
+            Write-BuildStep 'AST-grep auto-fix pass failed' 'error'
+            return $false
+        }
+        Write-BuildStep 'AST-grep auto-fix pass complete' 'success'
+    }
+
+    Write-BuildStep 'Running AST-grep scan...' 'running'
+    $scanResult = Invoke-NativeCommandCapture -FilePath 'sg' -ArgumentList ($scanArgs + @('--json=stream')) -WorkingDirectory $script:ProjectRoot
+    $scanOutput = $scanResult.StdOut
+    $scanErrors = ($scanResult.StdErr -join "`n")
+    if ($scanResult.ExitCode -gt 1 -or ($scanErrors -match $astGrepParsePattern)) {
+        Write-BuildStep "AST-grep reported a parser/config error: $($scanResult.StdErr[0])" 'error'
+        return $false
+    }
+
+    $findingsByRule = @{}
+    $severityTotals = @{
+        error = 0
+        warning = 0
+        info = 0
+        hint = 0
+        other = 0
+    }
+
+    foreach ($line in $scanOutput) {
+        if ([string]::IsNullOrWhiteSpace($line)) {
+            continue
+        }
+
+        $lineText = [string]$line
+        if ($lineText -match '^Error:' -or $lineText -match '^Help:' -or $lineText -match 'Caused by') {
+            Write-BuildStep "AST-grep reported a parser/config error: $lineText" 'error'
+            return $false
+        }
+
+        try {
+            $parsed = $lineText | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+            continue
+        }
+
+        if (-not $parsed.ruleId) {
+            continue
+        }
+
+        $ruleId = [string]$parsed.ruleId
+        $severity = [string]$parsed.severity
+        $message = [string]$parsed.message
+        if ([string]::IsNullOrWhiteSpace($severity)) {
+            $severity = 'other'
+        }
+
+        if (-not $findingsByRule.ContainsKey($ruleId)) {
+            $findingsByRule[$ruleId] = [ordered]@{
+                Count = 0
+                Severity = $severity
+                Message = $message
+            }
+        }
+
+        $findingsByRule[$ruleId].Count += 1
+        $sevKey = $severity.ToLowerInvariant()
+        if ($severityTotals.ContainsKey($sevKey)) {
+            $severityTotals[$sevKey] += 1
+        } else {
+            $severityTotals.other += 1
+        }
+    }
+
+    if ($findingsByRule.Count -eq 0) {
+        if ($scanResult.ExitCode -eq 0) {
+            Write-BuildStep 'AST-grep checks passed (no findings)' 'success'
+            return $true
+        }
+
+        $fallbackMessage = if ($scanResult.StdErr.Count -gt 0) { $scanResult.StdErr[0] } else { 'AST-grep scan failed without structured findings.' }
+        Write-BuildStep "AST-grep scan failed: $fallbackMessage" 'error'
+        return $false
+    }
+
+    $sortedRules = $findingsByRule.GetEnumerator() | Sort-Object { $_.Value.Count } -Descending
+    $topRules = $sortedRules | Select-Object -First 10
+    foreach ($rule in $topRules) {
+        $summary = "{0} ({1}) x{2}: {3}" -f $rule.Key, $rule.Value.Severity, $rule.Value.Count, $rule.Value.Message
+        Write-BuildStep $summary 'warning'
+    }
+    if ($findingsByRule.Count -gt 10) {
+        Write-BuildStep "$($findingsByRule.Count - 10) additional AST-grep rule(s) omitted from summary" 'warning'
+    }
+
+    $errorCount = $severityTotals.error
+    $warningCount = $severityTotals.warning
+    $infoCount = $severityTotals.info + $severityTotals.hint + $severityTotals.other
+    Write-BuildStep "AST-grep totals: errors=$errorCount warnings=$warningCount info=$infoCount" 'running'
+
+    if ($errorCount -gt 0) {
+        Write-BuildStep 'AST-grep scan blocked the pipeline due to error-level findings' 'error'
+        return $false
+    }
+
+    Write-BuildStep 'AST-grep scan completed with non-blocking findings only' 'warning'
+    return $true
+}
+
+function Invoke-RustQuality {
+    param(
+        [ValidateSet('check', 'clippy', 'fmt')]
+        [string]$Mode,
+        [switch]$WriteMode,
+        [ValidateSet('all', 'inference')]
+        [string]$TargetScope = 'all'
+    )
+
+    $targets = Get-QualityTargets -Scope $TargetScope
+    if (-not $targets -or $targets.Count -eq 0) {
+        Write-BuildStep 'No Rust quality targets found' 'warning'
+        return $true
+    }
+
+    $success = $true
+    foreach ($target in $targets) {
+        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $logFile = Join-Path $script:BuildLogsDir "quality_rust_${Mode}_$($target.Name)_$timestamp.log"
+        $cargoArgs = switch ($Mode) {
+            'check' { @('check', '--workspace', '--all-targets') }
+            'clippy' { @('clippy', '--workspace', '--all-targets', '--', '-D', 'warnings') }
+            'fmt' {
+                if ($WriteMode) { @('fmt', '--all') } else { @('fmt', '--all', '--', '--check') }
+            }
+        }
+
+        Write-BuildStep "Rust $Mode ($($target.Name))..." 'running'
+        $ok = Invoke-RustBuildCommand -Path $target.Path -CargoArgs $cargoArgs -LogFile $logFile
+        if (-not $ok) {
+            $success = $false
+            Write-BuildStep "Rust $Mode failed for $($target.Name)" 'error'
+        } else {
+            Write-BuildStep "Rust $Mode passed for $($target.Name)" 'success'
+        }
+    }
+
+    return $success
+}
+
+function Invoke-RustInferenceQuality {
+    param(
+        [ValidateSet('check', 'clippy', 'fmt')]
+        [string]$Mode,
+        [switch]$WriteMode
+    )
+
+    $inferencePath = Join-Path $script:ProjectRoot 'Native\pcai_core\pcai_inference'
+    if (-not (Test-Path $inferencePath)) {
+        Write-BuildStep 'pcai_inference crate not found for targeted quality checks' 'warning'
+        return $true
+    }
+
+    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $commands = @()
+    switch ($Mode) {
+        'check' {
+            $commands += ,@('check', '--lib', '--no-default-features')
+            $commands += ,@('check', '--lib', '--features', 'server')
+        }
+        'clippy' {
+            $commands += ,@('clippy', '--no-default-features', '--features', 'server,ffi', '--', '-D', 'warnings')
+        }
+        'fmt' {
+            if ($WriteMode) {
+                $commands += ,@('fmt', '--all')
+            } else {
+                $commands += ,@('fmt', '--all', '--', '--check')
+            }
+        }
+    }
+
+    $allOk = $true
+    $index = 0
+    foreach ($cargoArgs in $commands) {
+        $index += 1
+        $logFile = Join-Path $script:BuildLogsDir "quality_inference_${Mode}_${index}_$timestamp.log"
+        Write-BuildStep "pcai_inference $Mode command $index..." 'running'
+        $ok = Invoke-RustBuildCommand -Path $inferencePath -CargoArgs $cargoArgs -LogFile $logFile
+        if (-not $ok) {
+            $allOk = $false
+            Write-BuildStep "pcai_inference $Mode command $index failed" 'error'
+        } else {
+            Write-BuildStep "pcai_inference $Mode command $index passed" 'success'
+        }
+    }
+
+    return $allOk
+}
+
+function Invoke-DotnetFormatQuality {
+    param(
+        [switch]$WriteMode
+    )
+
+    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        Write-BuildStep 'dotnet not found; skipping C# format checks' 'warning'
+        return $true
+    }
+
+    $projects = @(
+        'Native\PcaiChatTui\PcaiChatTui.csproj',
+        'Native\PcaiNative\PcaiNative.csproj',
+        'Native\PcaiServiceHost\PcaiServiceHost.csproj',
+        'Native\NukeNul\NukeNul.csproj'
+    ) | ForEach-Object { Join-Path $script:ProjectRoot $_ } | Where-Object { Test-Path $_ }
+
+    if (-not $projects -or $projects.Count -eq 0) {
+        Write-BuildStep 'No C# project files found for dotnet format' 'warning'
+        return $true
+    }
+
+    $allOk = $true
+    foreach ($project in $projects) {
+        $name = Split-Path $project -Leaf
+        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $logFile = Join-Path $script:BuildLogsDir "quality_dotnet_${name}_$timestamp.log"
+        $args = @('format', $project, '--no-restore', '--verbosity', 'minimal')
+        if (-not $WriteMode) { $args += '--verify-no-changes' }
+
+        Write-BuildStep "dotnet format ($name)..." 'running'
+        & dotnet @args 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            $allOk = $false
+            Write-BuildStep "dotnet format failed for $name" 'error'
+        } else {
+            Write-BuildStep "dotnet format passed for $name" 'success'
+        }
+    }
+
+    return $allOk
+}
+
+function Invoke-PowerShellQuality {
+    param(
+        [switch]$WriteMode
+    )
+
+    if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) {
+        Write-BuildStep 'PSScriptAnalyzer module not found; skipping PowerShell lint checks' 'warning'
+        return $true
+    }
+
+    Import-Module PSScriptAnalyzer -ErrorAction Stop
+    $settingsPath = Join-Path $script:ProjectRoot 'PSScriptAnalyzerSettings.psd1'
+    $excludeRegex = '\\(target|bin|obj|node_modules|\.git|\.pcai|packages|artifacts|output)\\'
+    $psFiles = Get-ChildItem -Path $script:ProjectRoot -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+        $_.Extension -in @('.ps1', '.psm1', '.psd1') -and $_.FullName -notmatch $excludeRegex
+    }
+
+    if (-not $psFiles -or $psFiles.Count -eq 0) {
+        Write-BuildStep 'No PowerShell files found for quality checks' 'warning'
+        return $true
+    }
+
+    if ($WriteMode) {
+        Write-BuildStep 'Running PowerShell formatter pass...' 'running'
+        foreach ($file in $psFiles) {
+            try {
+                $formatted = Invoke-Formatter -Path $file.FullName -Settings $settingsPath
+                Set-Content -Path $file.FullName -Value $formatted -Encoding UTF8
+            } catch {
+                Write-BuildStep "Formatter failed for $($file.FullName): $($_.Exception.Message)" 'error'
+                return $false
+            }
+        }
+    }
+
+    $issues = @()
+    foreach ($file in $psFiles) {
+        $issues += Invoke-ScriptAnalyzer -Path $file.FullName -Settings $settingsPath -Severity Warning, Error
+    }
+
+    if ($issues.Count -gt 0) {
+        Write-BuildStep "PowerShell analyzer reported $($issues.Count) issue(s)" 'error'
+        return $false
+    }
+
+    Write-BuildStep 'PowerShell analyzer checks passed' 'success'
+    return $true
+}
+
+function Invoke-TomlQuality {
+    param(
+        [switch]$WriteMode
+    )
+
+    if (Get-Command taplo -ErrorAction SilentlyContinue) {
+        $taploConfig = Join-Path $script:ProjectRoot 'taplo.toml'
+        $args = @('fmt')
+        if (Test-Path $taploConfig) { $args += @('--config', $taploConfig) }
+        if (-not $WriteMode) { $args += '--check' }
+        $args += '.'
+
+        Push-Location $script:ProjectRoot
+        try {
+            & taplo @args 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                Write-BuildStep 'taplo TOML quality pass failed' 'error'
+                return $false
+            }
+            Write-BuildStep 'taplo TOML quality pass complete' 'success'
+            return $true
+        } finally {
+            Pop-Location
+        }
+    }
+
+    Write-BuildStep 'taplo not found; skipping TOML format checks' 'warning'
+    return $true
+}
+
+function Invoke-RustDependencyRefresh {
+    Write-BuildPhase 'Dependencies' 'Refreshing Rust dependency graph and warming local cache'
+
+    $targets = Get-QualityTargets
+    if (-not $targets -or $targets.Count -eq 0) {
+        Write-BuildStep 'No Rust targets found for dependency refresh' 'warning'
+        return $true
+    }
+
+    $ok = $true
+    foreach ($target in $targets) {
+        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $logFile = Join-Path $script:BuildLogsDir "deps_$($target.Name)_$timestamp.log"
+
+        if ($script:DependencyStrategy -eq 'update') {
+            Write-BuildStep "Updating lockfile in $($target.Name)..." 'running'
+            Push-Location $target.Path
+            try {
+                & cargo update -w 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+                if ($LASTEXITCODE -ne 0) {
+                    $ok = $false
+                    Write-BuildStep "cargo update failed for $($target.Name)" 'error'
+                    continue
+                }
+            } finally {
+                Pop-Location
+            }
+        }
+
+        Write-BuildStep "Fetching crates in $($target.Name)..." 'running'
+        $fetchArgs = Add-CargoDependencyFlags -CargoArgs @('fetch')
+        Push-Location $target.Path
+        try {
+            & cargo @fetchArgs 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                $ok = $false
+                Write-BuildStep "cargo fetch failed for $($target.Name)" 'error'
+            } else {
+                Write-BuildStep "Dependency refresh passed for $($target.Name)" 'success'
+            }
+        } finally {
+            Pop-Location
+        }
+    }
+
+    return $ok
+}
+
+function Invoke-QualityPipeline {
+    param(
+        [ValidateSet('lint', 'format', 'fix')]
+        [string]$Mode,
+        [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml')]
+        [string]$Profile
+    )
+
+    Write-BuildPhase 'Quality' "Running quality pipeline ($Mode / $Profile)"
+    $fixMode = $AutoFix -or ($Mode -eq 'fix')
+    $ok = $true
+
+    switch ($Profile) {
+        'rust-check' { return (Invoke-RustQuality -Mode 'check') }
+        'rust-clippy' { return (Invoke-RustQuality -Mode 'clippy') }
+        'rust-fmt' { return (Invoke-RustQuality -Mode 'fmt' -WriteMode:$fixMode) }
+        'rust-inference-check' { return (Invoke-RustInferenceQuality -Mode 'check') }
+        'rust-inference-clippy' { return (Invoke-RustInferenceQuality -Mode 'clippy') }
+        'rust-inference-fmt' { return (Invoke-RustInferenceQuality -Mode 'fmt' -WriteMode:$fixMode) }
+        'dotnet-format' { return (Invoke-DotnetFormatQuality -WriteMode:$fixMode) }
+        'powershell' { return (Invoke-PowerShellQuality -WriteMode:$fixMode) }
+        'docs' { return (Invoke-PrettierQuality -WriteMode:$fixMode) }
+        'astgrep' { return (Invoke-AstGrepCheck -EnableAutoFix:$fixMode) }
+        'toml' { return (Invoke-TomlQuality -WriteMode:$fixMode) }
+        default {
+            if ($Mode -eq 'lint') {
+                $ok = (Invoke-AstGrepCheck) -and $ok
+                $ok = (Invoke-RustQuality -Mode 'check') -and $ok
+                $ok = (Invoke-RustQuality -Mode 'clippy') -and $ok
+                $ok = (Invoke-RustQuality -Mode 'fmt') -and $ok
+                $ok = (Invoke-DotnetFormatQuality) -and $ok
+                $ok = (Invoke-PowerShellQuality) -and $ok
+                $ok = (Invoke-PrettierQuality) -and $ok
+                $ok = (Invoke-TomlQuality) -and $ok
+            } elseif ($Mode -eq 'format') {
+                $ok = (Invoke-RustQuality -Mode 'fmt' -WriteMode:$fixMode) -and $ok
+                $ok = (Invoke-DotnetFormatQuality -WriteMode:$fixMode) -and $ok
+                $ok = (Invoke-PowerShellQuality -WriteMode:$fixMode) -and $ok
+                $ok = (Invoke-PrettierQuality -WriteMode:$fixMode) -and $ok
+                $ok = (Invoke-TomlQuality -WriteMode:$fixMode) -and $ok
+            } else {
+                $ok = (Invoke-AstGrepCheck -EnableAutoFix:$true) -and $ok
+                $ok = (Invoke-RustQuality -Mode 'fmt' -WriteMode:$true) -and $ok
+                $ok = (Invoke-DotnetFormatQuality -WriteMode:$true) -and $ok
+                $ok = (Invoke-PowerShellQuality -WriteMode:$true) -and $ok
+                $ok = (Invoke-PrettierQuality -WriteMode:$true) -and $ok
+                $ok = (Invoke-TomlQuality -WriteMode:$true) -and $ok
+                $ok = (Invoke-AstGrepCheck) -and $ok
+                $ok = (Invoke-RustQuality -Mode 'fmt') -and $ok
+                $ok = (Invoke-DotnetFormatQuality) -and $ok
+                $ok = (Invoke-PowerShellQuality) -and $ok
+                $ok = (Invoke-PrettierQuality) -and $ok
+                $ok = (Invoke-TomlQuality) -and $ok
+            }
+        }
+    }
+
+    return $ok
 }
 
 #endregion
@@ -1298,6 +1915,10 @@ Write-Host "  Deploy:        $(if ($Deploy) { 'Yes' } else { 'No' })" -Foregroun
 Write-Host "  CargoTools:    $CargoTools" -ForegroundColor White
 Write-Host "  Preflight:     $(if ($CargoPreflight) { $CargoPreflightMode } else { 'Disabled' })" -ForegroundColor White
 Write-Host "  SyncDefaults:  $(if ($SyncCargoDefaults) { 'Yes' } else { 'No' })" -ForegroundColor White
+Write-Host "  LintProfile:   $LintProfile" -ForegroundColor White
+Write-Host "  DepStrategy:   $DependencyStrategy" -ForegroundColor White
+Write-Host "  AutoFix:       $(if ($AutoFix) { 'Yes' } else { 'No' })" -ForegroundColor White
+Write-Host "  SkipQGate:     $(if ($SkipQualityGate) { 'Yes' } else { 'No' })" -ForegroundColor White
 Write-Host "  FG Args:       $(if ($FunctionGemmaArgs.Count -gt 0) { ($FunctionGemmaArgs -join ' ') } else { '(none)' })" -ForegroundColor White
 Write-Host "  Artifacts Root: $script:ArtifactsRoot" -ForegroundColor White
 
@@ -1305,9 +1926,6 @@ Write-Host "  Artifacts Root: $script:ArtifactsRoot" -ForegroundColor White
 if ($Clean) {
     Clear-BuildArtifacts
 }
-
-# Preflight checks
-Invoke-AstGrepCheck
 
 # Initialize directories
 Initialize-BuildDirectories
@@ -1317,6 +1935,27 @@ $versionInfo = Initialize-BuildVersion
 
 # Initialize CargoTools defaults / wrappers
 Initialize-CargoToolsDefaults | Out-Null
+
+# Quality-only components
+if ($Component -in @('lint', 'format', 'fix')) {
+    $mode = if ($Component -eq 'lint') { 'lint' } elseif ($Component -eq 'format') { 'format' } else { 'fix' }
+    $qualitySuccess = Invoke-QualityPipeline -Mode $mode -Profile $LintProfile
+    exit $(if ($qualitySuccess) { 0 } else { 1 })
+}
+
+# Dependency refresh-only component
+if ($Component -eq 'deps') {
+    $depsSuccess = Invoke-RustDependencyRefresh
+    exit $(if ($depsSuccess) { 0 } else { 1 })
+}
+
+# Pre-build quality gate
+if (-not $SkipQualityGate) {
+    $qualityGatePassed = Invoke-AstGrepCheck
+    if (-not $qualityGatePassed) {
+        exit 1
+    }
+}
 
 # Deploy implies package creation
 if ($Deploy) {
@@ -1337,6 +1976,10 @@ $buildTargets = switch ($Component) {
     'pcainative' { @('pcainative') }
     'servicehost' { @('servicehost') }
     'nukenul' { @('nukenul') }
+    'lint' { @() }
+    'format' { @() }
+    'fix' { @() }
+    'deps' { @() }
     'native' { @('pcainative', 'servicehost', 'tui', 'nukenul') }
     'all' { @('llamacpp', 'mistralrs', 'functiongemma', 'pcainative', 'servicehost', 'tui', 'nukenul') }
 }

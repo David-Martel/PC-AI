@@ -1,22 +1,3 @@
 # ast-grep config for PC_AI documentation + status tracking
-
 ruleDirs:
   - ./rules
-
-utility:
-  ignoreFiles:
-    - '.git/**'
-    - 'node_modules/**'
-    - '**/bin/**'
-    - '**/obj/**'
-    - '**/target/**'
-    - '**/dist/**'
-    - '**/*.min.*'
-  includes:
-    - '**/*.ps1'
-    - '**/*.md'
-    - '**/*.json'
-    - '**/*.yml'
-    - '**/*.yaml'
-    - '**/*.rs'
-    - '**/*.cs'

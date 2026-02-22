@@ -12,7 +12,7 @@
   powershell -NoProfile -ExecutionPolicy Bypass -File .\llm-router.ps1
 
 .EXAMPLE
-  .\llm-router.ps1 -ListenPort 11435 -OllamaBaseUrl http://localhost:11434 -LMStudioBaseUrl http://localhost:1234
+  .\llm-router.ps1 -ListenPort 11435
 #>
 
 [CmdletBinding()]
@@ -22,10 +22,10 @@ param(
     [int]$ListenPort = 11435,
 
     [Parameter()]
-    [string]$OllamaBaseUrl = 'http://localhost:11434',
+    [string]$OllamaBaseUrl,
 
     [Parameter()]
-    [string]$LMStudioBaseUrl = 'http://localhost:1234',
+    [string]$LMStudioBaseUrl,
 
     [Parameter()]
     [ValidateSet('Ollama', 'LMStudio')]
@@ -45,10 +45,23 @@ function Read-RequestBody {
     $reader = New-Object System.IO.StreamReader($Request.InputStream, $Request.ContentEncoding)
     try {
         return $reader.ReadToEnd()
-    }
-    finally {
+    } finally {
         $reader.Close()
     }
+}
+
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$cfgPath = Join-Path $repoRoot 'Config\llm-config.json'
+if (Test-Path $cfgPath) {
+    try {
+        $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
+        if (-not $OllamaBaseUrl -and $cfg.providers.ollama.baseUrl) {
+            $OllamaBaseUrl = $cfg.providers.ollama.baseUrl
+        }
+        if (-not $LMStudioBaseUrl -and $cfg.providers.lmstudio.baseUrl) {
+            $LMStudioBaseUrl = $cfg.providers.lmstudio.baseUrl
+        }
+    } catch {}
 }
 
 function Write-JsonResponse {
@@ -75,9 +88,9 @@ function Invoke-HttpJson {
     )
 
     $params = @{
-        Uri = $Url
-        Method = $Method
-        TimeoutSec = $TimeoutSec
+        Uri         = $Url
+        Method      = $Method
+        TimeoutSec  = $TimeoutSec
         ErrorAction = 'Stop'
     }
 
@@ -89,7 +102,7 @@ function Invoke-HttpJson {
     $resp = Invoke-WebRequest @params
     return [PSCustomObject]@{
         StatusCode = $resp.StatusCode
-        Content = $resp.Content
+        Content    = $resp.Content
     }
 }
 
@@ -99,8 +112,7 @@ function Try-Ollama {
     $url = "$OllamaBaseUrl$Path"
     try {
         return Invoke-HttpJson -Method $Method -Url $url -Body $Body
-    }
-    catch {
+    } catch {
         return $null
     }
 }
@@ -111,8 +123,7 @@ function Try-LMStudio {
     $url = "$LMStudioBaseUrl$Path"
     try {
         return Invoke-HttpJson -Method $Method -Url $url -Body $Body
-    }
-    catch {
+    } catch {
         return $null
     }
 }
@@ -125,11 +136,11 @@ function Convert-LMStudioModelsToOllamaTags {
 
     foreach ($item in $lm.data) {
         $models += [PSCustomObject]@{
-            name = $item.id
+            name        = $item.id
             modified_at = $null
-            size = $null
-            digest = $null
-            details = @{}
+            size        = $null
+            digest      = $null
+            details     = @{}
         }
     }
 
@@ -150,8 +161,7 @@ function Convert-LMStudioChatToOllamaResponse {
         $choice = $lm.choices[0]
         if ($choice.message -and $choice.message.content) {
             $content = $choice.message.content
-        }
-        elseif ($choice.text) {
+        } elseif ($choice.text) {
             $content = $choice.text
         }
     }
@@ -166,18 +176,17 @@ function Convert-LMStudioChatToOllamaResponse {
 
     if ($GenerateMode) {
         $payload = [PSCustomObject]@{
-            model = $Model
+            model      = $Model
             created_at = (Get-Date).ToString('o')
-            response = $content
-            done = $true
+            response   = $content
+            done       = $true
         }
-    }
-    else {
+    } else {
         $payload = [PSCustomObject]@{
-            model = $Model
+            model      = $Model
             created_at = (Get-Date).ToString('o')
-            message = [PSCustomObject]@{ role = 'assistant'; content = $content }
-            done = $true
+            message    = [PSCustomObject]@{ role = 'assistant'; content = $content }
+            done       = $true
         }
     }
 
@@ -195,9 +204,9 @@ function Convert-OllamaGenerateToLMStudioChat {
     $messages += @{ role = 'user'; content = $OllamaRequest.prompt }
 
     $body = @{
-        model = $OllamaRequest.model
+        model    = $OllamaRequest.model
         messages = $messages
-        stream = $OllamaRequest.stream
+        stream   = $OllamaRequest.stream
     }
 
     if ($OllamaRequest.options) {
@@ -216,9 +225,9 @@ function Convert-OllamaChatToLMStudioChat {
     param([PSCustomObject]$OllamaRequest)
 
     $body = @{
-        model = $OllamaRequest.model
+        model    = $OllamaRequest.model
         messages = $OllamaRequest.messages
-        stream = $OllamaRequest.stream
+        stream   = $OllamaRequest.stream
     }
 
     if ($OllamaRequest.options) {
@@ -234,7 +243,7 @@ function Convert-OllamaChatToLMStudioChat {
 }
 
 $listener = New-Object System.Net.HttpListener
-$prefix = "http://localhost:$ListenPort/"
+$prefix = "http://*:$ListenPort/"
 $listener.Prefixes.Add($prefix)
 $listener.Start()
 
@@ -264,7 +273,7 @@ try {
 
                     $lm = Try-LMStudio -Method 'GET' -Path '/v1/models' -Body $null
                     if (-not $lm) {
-                        throw "Neither Ollama nor LM Studio responded"
+                        throw 'Neither Ollama nor LM Studio responded'
                     }
 
                     $json = Convert-LMStudioModelsToOllamaTags -LmJson $lm.Content
@@ -296,7 +305,7 @@ try {
                     $lmBody = Convert-OllamaGenerateToLMStudioChat -OllamaRequest $reqObj
                     $lm = Try-LMStudio -Method 'POST' -Path '/v1/chat/completions' -Body $lmBody
                     if (-not $lm) {
-                        throw "LM Studio did not respond"
+                        throw 'LM Studio did not respond'
                     }
 
                     $json = Convert-LMStudioChatToOllamaResponse -LmJson $lm.Content -Model $reqObj.model -GenerateMode
@@ -328,7 +337,7 @@ try {
                     $lmBody = Convert-OllamaChatToLMStudioChat -OllamaRequest $reqObj
                     $lm = Try-LMStudio -Method 'POST' -Path '/v1/chat/completions' -Body $lmBody
                     if (-not $lm) {
-                        throw "LM Studio did not respond"
+                        throw 'LM Studio did not respond'
                     }
 
                     $json = Convert-LMStudioChatToOllamaResponse -LmJson $lm.Content -Model $reqObj.model
@@ -345,15 +354,12 @@ try {
                     break
                 }
             }
-        }
-        catch {
+        } catch {
             $msg = $_.Exception.Message.Replace('"', "'")
-            Write-JsonResponse -Response $response -StatusCode 500 -Json "{\"error\":\"$msg\"}"
+            Write-JsonResponse -Response $response -StatusCode 500 -Json '{\'error\":\"$msg\"}"
         }
     }
-}
-finally {
+} finally {
     $listener.Stop()
     $listener.Close()
 }
-

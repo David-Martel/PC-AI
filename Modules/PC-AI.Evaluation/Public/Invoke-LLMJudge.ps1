@@ -83,7 +83,8 @@ $(($Criteria | ForEach-Object { "  `"$_`": <1-10>" }) -join ",`n"),
                 options = @{ temperature = 0.3; num_predict = 500 }
             } | ConvertTo-Json
 
-            $result = Invoke-RestMethod -Uri "http://127.0.0.1:11434/api/generate" -Method Post -Body $body -ContentType 'application/json'
+            $judgeBaseUrl = Resolve-EvaluationBackendBaseUrl -Backend 'ollama' -BaseUrl $null
+            $result = Invoke-RestMethod -Uri "$judgeBaseUrl/api/generate" -Method Post -Body $body -ContentType 'application/json'
             $result.response
         }
 

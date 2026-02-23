@@ -17,7 +17,7 @@ function Invoke-PCDiagnosis {
         Direct diagnostic report text (alternative to file path)
 
     .PARAMETER Model
-        The model to use for analysis (default: qwen2.5-coder:7b)
+        The model to use for analysis (default: configured module default)
 
     .PARAMETER Temperature
         Controls analysis consistency (0.0-2.0). Lower = more deterministic. Default: 0.3
@@ -38,10 +38,10 @@ function Invoke-PCDiagnosis {
         Routes the diagnostic report through FunctionGemma for tool call planning before analysis
 
     .PARAMETER RouterBaseUrl
-        Base URL for the FunctionGemma router API. Default: http://127.0.0.1:8000
+        Base URL for the FunctionGemma router API. Default from module configuration.
 
     .PARAMETER RouterModel
-        Model name to use for FunctionGemma routing. Default: qwen2.5-coder:7b
+        Model name to use for FunctionGemma routing. Default from module configuration.
 
     .PARAMETER RouterToolsPath
         Path to the tools configuration JSON file for FunctionGemma routing
@@ -75,7 +75,7 @@ function Invoke-PCDiagnosis {
         [string]$ReportText,
 
         [Parameter()]
-        [string]$Model = "qwen2.5-coder:7b",
+        [string]$Model = $script:ModuleConfig.DefaultModel,
 
         [Parameter()]
         [ValidateRange(0.0, 2.0)]
@@ -101,7 +101,7 @@ function Invoke-PCDiagnosis {
         [string]$RouterBaseUrl = $script:ModuleConfig.RouterApiUrl,
 
         [Parameter()]
-        [string]$RouterModel = "qwen2.5-coder:7b",
+        [string]$RouterModel = $script:ModuleConfig.RouterModel,
 
         [Parameter()]
         [string]$RouterToolsPath,
@@ -168,14 +168,19 @@ You are analyzing a Windows PC hardware diagnostic report. Follow the reasoning 
             $routerHealthy = Get-CachedProviderHealth -Provider 'functiongemma' -TimeoutSeconds ([math]::Min($TimeoutSeconds, 10)) -ApiUrl $resolvedRouterUrl
             if ($routerHealthy) {
                 try {
-                    $routerResult = Invoke-FunctionGemmaReAct `
-                        -Prompt $routerPrompt `
-                        -BaseUrl $resolvedRouterUrl `
-                        -Model $RouterModel `
-                        -ExecuteTools:([bool]$RouterExecuteTools) `
-                        -MaxToolCalls $RouterMaxCalls `
-                        -TimeoutSeconds $TimeoutSeconds `
-                        -SkipHealthCheck
+                    $routerInvokeSplat = @{
+                        Prompt          = $routerPrompt
+                        BaseUrl         = $resolvedRouterUrl
+                        Model           = $RouterModel
+                        ExecuteTools    = [bool]$RouterExecuteTools
+                        MaxToolCalls    = $RouterMaxCalls
+                        TimeoutSeconds  = $TimeoutSeconds
+                        SkipHealthCheck = $true
+                    }
+                    if (-not [string]::IsNullOrWhiteSpace($RouterToolsPath)) {
+                        $routerInvokeSplat.ToolsPath = $RouterToolsPath
+                    }
+                    $routerResult = Invoke-FunctionGemmaReAct @routerInvokeSplat
 
                     if ($routerResult -and $routerResult.ToolResults) {
                         $routerSummary = ($routerResult.ToolResults | ConvertTo-Json -Depth 6)

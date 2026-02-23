@@ -12,10 +12,10 @@
     WSL distribution to check. Default: Ubuntu
 
 .PARAMETER PcaiInferenceUrl
-    URL of the pcai-inference HTTP server. Default: http://127.0.0.1:8080
+    URL of the pcai-inference HTTP server. Defaults to providers.pcai-inference.baseUrl from Config/llm-config.json.
 
 .PARAMETER FunctionGemmaUrl
-    URL of the FunctionGemma router. Default: http://127.0.0.1:8000
+    URL of the FunctionGemma router. Defaults to providers.functiongemma.baseUrl from Config/llm-config.json.
 
 .PARAMETER CheckLegacyProviders
     Also check legacy Ollama/vLLM providers for backward compatibility.
@@ -36,24 +36,41 @@ function Get-PcaiServiceHealth {
         [string]$Distribution = "Ubuntu",
 
         [Parameter()]
-        [string]$PcaiInferenceUrl = "http://127.0.0.1:8080",
+        [string]$PcaiInferenceUrl,
 
         [Parameter()]
-        [string]$FunctionGemmaUrl = "http://127.0.0.1:8000",
+        [string]$FunctionGemmaUrl,
 
         [Parameter()]
         [switch]$CheckLegacyProviders,
+
+        [Parameter()]
+        [string]$ConfigPath,
 
         [Parameter()]
         [string[]]$NativeDllSearchPaths,
 
         # Legacy parameters (mapped to new backends)
         [Parameter()]
-        [string]$OllamaBaseUrl = "http://localhost:11434",
+        [string]$OllamaBaseUrl,
 
         [Parameter()]
-        [string]$vLLMBaseUrl = "http://localhost:8000"
+        [string]$vLLMBaseUrl
     )
+
+    $runtimeDefaults = Get-PcaiRuntimeDefaults -ConfigPath $ConfigPath
+    if (-not $PSBoundParameters.ContainsKey('PcaiInferenceUrl') -or [string]::IsNullOrWhiteSpace($PcaiInferenceUrl)) {
+        $PcaiInferenceUrl = $runtimeDefaults.PcaiInferenceUrl
+    }
+    if (-not $PSBoundParameters.ContainsKey('FunctionGemmaUrl') -or [string]::IsNullOrWhiteSpace($FunctionGemmaUrl)) {
+        $FunctionGemmaUrl = $runtimeDefaults.FunctionGemmaUrl
+    }
+    if (-not $PSBoundParameters.ContainsKey('OllamaBaseUrl') -or [string]::IsNullOrWhiteSpace($OllamaBaseUrl)) {
+        $OllamaBaseUrl = $runtimeDefaults.OllamaBaseUrl
+    }
+    if (-not $PSBoundParameters.ContainsKey('vLLMBaseUrl') -or [string]::IsNullOrWhiteSpace($vLLMBaseUrl)) {
+        $vLLMBaseUrl = $runtimeDefaults.vLLMBaseUrl
+    }
 
     $results = [PSCustomObject]@{
         Timestamp       = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
@@ -119,14 +136,7 @@ function Get-PcaiServiceHealth {
     $dllPaths = if ($NativeDllSearchPaths -and $NativeDllSearchPaths.Count -gt 0) {
         $NativeDllSearchPaths
     } else {
-        @(
-            "$env:USERPROFILE\.local\bin\pcai_inference.dll",
-            'T:\RustCache\cargo-target\release\pcai_inference.dll',
-            "$PSScriptRoot\..\..\..\Native\pcai_core\pcai_inference\target\release\pcai_inference.dll",
-            "$env:USERPROFILE\PC_AI\Native\pcai_core\pcai_inference\target\release\pcai_inference.dll",
-            "$PSScriptRoot\..\..\..\.pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll",
-            "$PSScriptRoot\..\..\..\.pcai\build\artifacts\pcai-mistralrs\pcai_inference.dll"
-        )
+        $runtimeDefaults.NativeDllSearchPaths
     }
     foreach ($dllPath in $dllPaths) {
         if (Test-Path $dllPath) {

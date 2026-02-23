@@ -55,6 +55,12 @@ $script:EvaluationRunState = $null
 
 #endregion
 
+# Shared runtime config helper (PC-AI.Common)
+$sharedRuntimeHelper = Join-Path (Split-Path -Parent $PSScriptRoot) 'PC-AI.Common\Public\Get-PcaiRuntimeConfig.ps1'
+if (Test-Path $sharedRuntimeHelper) {
+    . $sharedRuntimeHelper
+}
+
 #region Classes
 # Classes MUST remain inline in the .psm1 — PowerShell cannot dot-source class definitions.
 
@@ -141,6 +147,10 @@ if (Test-Path $privatePath) {
 $publicPath = Join-Path $PSScriptRoot 'Public'
 if (Test-Path $publicPath) {
     Get-ChildItem -Path $publicPath -Filter '*.ps1' | ForEach-Object { . $_.FullName }
+}
+
+if (Get-Command Initialize-EvaluationRuntimeDefaults -ErrorAction SilentlyContinue) {
+    Initialize-EvaluationRuntimeDefaults
 }
 
 Export-ModuleMember -Function *

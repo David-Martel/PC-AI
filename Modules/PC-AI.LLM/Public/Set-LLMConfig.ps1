@@ -90,15 +90,115 @@ function Set-LLMConfig {
 
         $configPath = $script:ModuleConfig.ConfigPath
         $projectConfigPath = $script:ModuleConfig.ProjectConfigPath
-        $configPersistExclusions = @('ConfigPath', 'ProjectConfigPath')
+        $targetConfigPath = if (-not [string]::IsNullOrWhiteSpace($projectConfigPath)) { $projectConfigPath } else { $configPath }
 
-        # Default configuration
-        $defaultConfig = @{
-            PcaiInferenceApiUrl = 'http://127.0.0.1:8080'
-            OllamaApiUrl = 'http://127.0.0.1:8080'
-            LMStudioApiUrl = 'http://localhost:1234'
-            DefaultModel = 'pcai-inference'
-            DefaultTimeout = 120
+        # Default configuration snapshot captured at module load time.
+        if ($script:ModuleDefaults -and $script:ModuleDefaults.Count -gt 0) {
+            $defaultConfig = @{}
+            foreach ($key in $script:ModuleDefaults.Keys) {
+                $defaultConfig[$key] = $script:ModuleDefaults[$key]
+            }
+        } else {
+            $defaultConfig = @{
+                PcaiInferenceApiUrl = $script:ModuleConfig.PcaiInferenceApiUrl
+                OllamaApiUrl = $script:ModuleConfig.OllamaApiUrl
+                LMStudioApiUrl = $script:ModuleConfig.LMStudioApiUrl
+                DefaultModel = $script:ModuleConfig.DefaultModel
+                DefaultTimeout = $script:ModuleConfig.DefaultTimeout
+            }
+        }
+
+        function Initialize-ConfigProperty {
+            param(
+                [Parameter(Mandatory)]
+                [psobject]$Object,
+                [Parameter(Mandatory)]
+                [string]$Name,
+                [Parameter(Mandatory)]
+                [object]$DefaultValue
+            )
+
+            if (-not $Object.PSObject.Properties[$Name]) {
+                $Object | Add-Member -MemberType NoteProperty -Name $Name -Value $DefaultValue -Force
+            }
+            return $Object.PSObject.Properties[$Name].Value
+        }
+
+        function Set-ConfigValue {
+            param(
+                [Parameter(Mandatory)]
+                [psobject]$Object,
+                [Parameter(Mandatory)]
+                [string]$Name,
+                [Parameter(Mandatory)]
+                [AllowNull()]
+                [object]$Value
+            )
+
+            if ($Object.PSObject.Properties[$Name]) {
+                $Object.PSObject.Properties[$Name].Value = $Value
+            } else {
+                $Object | Add-Member -MemberType NoteProperty -Name $Name -Value $Value -Force
+            }
+        }
+
+        function Save-CanonicalConfig {
+            param(
+                [Parameter(Mandatory)]
+                [string]$TargetPath
+            )
+
+            if ([string]::IsNullOrWhiteSpace($TargetPath)) {
+                throw 'Cannot persist LLM configuration because no target config path is defined.'
+            }
+
+            $targetDir = Split-Path -Parent $TargetPath
+            if (-not (Test-Path $targetDir)) {
+                New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
+            }
+
+            $projectConfig = if (Test-Path $TargetPath) {
+                Get-Content -Path $TargetPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            } else {
+                [PSCustomObject]@{}
+            }
+
+            $providers = Initialize-ConfigProperty -Object $projectConfig -Name 'providers' -DefaultValue ([PSCustomObject]@{})
+            $pcaiProvider = Initialize-ConfigProperty -Object $providers -Name 'pcai-inference' -DefaultValue ([PSCustomObject]@{})
+            $functionGemmaProvider = Initialize-ConfigProperty -Object $providers -Name 'functiongemma' -DefaultValue ([PSCustomObject]@{})
+            $ollamaProvider = Initialize-ConfigProperty -Object $providers -Name 'ollama' -DefaultValue ([PSCustomObject]@{})
+            $lmstudioProvider = Initialize-ConfigProperty -Object $providers -Name 'lmstudio' -DefaultValue ([PSCustomObject]@{})
+            $vllmProvider = Initialize-ConfigProperty -Object $providers -Name 'vllm' -DefaultValue ([PSCustomObject]@{})
+
+            $router = Initialize-ConfigProperty -Object $projectConfig -Name 'router' -DefaultValue ([PSCustomObject]@{})
+            $fallbackOrder = if ($script:ModuleConfig.ProviderOrder -and $script:ModuleConfig.ProviderOrder.Count -gt 0) {
+                @($script:ModuleConfig.ProviderOrder)
+            } else {
+                @('pcai-inference')
+            }
+
+            Set-ConfigValue -Object $pcaiProvider -Name 'baseUrl' -Value $script:ModuleConfig.PcaiInferenceApiUrl
+            Set-ConfigValue -Object $pcaiProvider -Name 'defaultModel' -Value $script:ModuleConfig.DefaultModel
+            Set-ConfigValue -Object $pcaiProvider -Name 'timeout' -Value ([int]($script:ModuleConfig.DefaultTimeout * 1000))
+
+            Set-ConfigValue -Object $functionGemmaProvider -Name 'baseUrl' -Value $script:ModuleConfig.RouterApiUrl
+            Set-ConfigValue -Object $functionGemmaProvider -Name 'defaultModel' -Value $script:ModuleConfig.RouterModel
+
+            Set-ConfigValue -Object $router -Name 'baseUrl' -Value $script:ModuleConfig.RouterApiUrl
+            Set-ConfigValue -Object $router -Name 'model' -Value $script:ModuleConfig.RouterModel
+            if (-not $router.toolsPath) {
+                Set-ConfigValue -Object $router -Name 'toolsPath' -Value 'Config/pcai-tools.json'
+            }
+
+            Set-ConfigValue -Object $ollamaProvider -Name 'baseUrl' -Value $script:ModuleConfig.OllamaApiUrl
+            Set-ConfigValue -Object $lmstudioProvider -Name 'baseUrl' -Value $script:ModuleConfig.LMStudioApiUrl
+            Set-ConfigValue -Object $vllmProvider -Name 'baseUrl' -Value $script:ModuleConfig.VLLMApiUrl
+            Set-ConfigValue -Object $vllmProvider -Name 'defaultModel' -Value $script:ModuleConfig.VLLMModel
+
+            Set-ConfigValue -Object $projectConfig -Name 'fallbackOrder' -Value $fallbackOrder
+
+            $projectJson = $projectConfig | ConvertTo-Json -Depth 12
+            [System.IO.File]::WriteAllText($TargetPath, $projectJson, [System.Text.Encoding]::UTF8)
         }
     }
 
@@ -111,15 +211,9 @@ function Set-LLMConfig {
                 $script:ModuleConfig[$key] = $defaultConfig[$key]
             }
 
-            # Save to file
+            # Persist to canonical config file
             try {
-                $persistConfig = @{}
-                foreach ($key in $script:ModuleConfig.Keys) {
-                    if ($key -in $configPersistExclusions) { continue }
-                    $persistConfig[$key] = $script:ModuleConfig[$key]
-                }
-                $jsonContent = $persistConfig | ConvertTo-Json -Depth 10
-                [System.IO.File]::WriteAllText($configPath, $jsonContent, [System.Text.Encoding]::UTF8)
+                Save-CanonicalConfig -TargetPath $targetConfigPath
                 Write-Host "Configuration reset successfully" -ForegroundColor Green
             }
             catch {
@@ -194,54 +288,11 @@ function Set-LLMConfig {
             # Save configuration if anything was updated
             if ($updated) {
                 try {
-                    $persistConfig = @{}
-                    foreach ($key in $script:ModuleConfig.Keys) {
-                        if ($key -in $configPersistExclusions) { continue }
-                        $persistConfig[$key] = $script:ModuleConfig[$key]
-                    }
-                    $jsonContent = $persistConfig | ConvertTo-Json -Depth 10
-                    [System.IO.File]::WriteAllText($configPath, $jsonContent, [System.Text.Encoding]::UTF8)
-                    Write-Verbose "Configuration saved to: $configPath"
+                    Save-CanonicalConfig -TargetPath $targetConfigPath
+                    Write-Verbose "Configuration saved to: $targetConfigPath"
                 }
                 catch {
                     Write-Error "Failed to save configuration: $_"
-                }
-
-                # Also update project-level config if available
-                if ($projectConfigPath -and (Test-Path $projectConfigPath)) {
-                    try {
-                        $projectConfig = Get-Content -Path $projectConfigPath -Raw | ConvertFrom-Json
-                        if ($PSBoundParameters.ContainsKey('DefaultModel')) {
-                            if ($projectConfig.providers.'pcai-inference') {
-                                $projectConfig.providers.'pcai-inference'.defaultModel = $DefaultModel
-                            }
-                        }
-                        if ($PSBoundParameters.ContainsKey('PcaiInferenceApiUrl')) {
-                            if ($projectConfig.providers.'pcai-inference') {
-                                $projectConfig.providers.'pcai-inference'.baseUrl = $PcaiInferenceApiUrl
-                            }
-                        }
-                        if ($PSBoundParameters.ContainsKey('OllamaApiUrl')) {
-                            if ($projectConfig.providers.'pcai-inference') {
-                                $projectConfig.providers.'pcai-inference'.baseUrl = $OllamaApiUrl
-                            }
-                        }
-                        if ($PSBoundParameters.ContainsKey('LMStudioApiUrl')) {
-                            $projectConfig.providers.lmstudio.baseUrl = $LMStudioApiUrl
-                        }
-                        if ($PSBoundParameters.ContainsKey('DefaultTimeout')) {
-                            if ($projectConfig.providers.'pcai-inference') {
-                                $projectConfig.providers.'pcai-inference'.timeout = ($DefaultTimeout * 1000)
-                            }
-                        }
-
-                        $projectJson = $projectConfig | ConvertTo-Json -Depth 10
-                        [System.IO.File]::WriteAllText($projectConfigPath, $projectJson, [System.Text.Encoding]::UTF8)
-                        Write-Verbose "Project configuration saved to: $projectConfigPath"
-                    }
-                    catch {
-                        Write-Warning "Failed to update project configuration: $_"
-                    }
                 }
             }
             else {
@@ -257,7 +308,7 @@ function Set-LLMConfig {
             LMStudioApiUrl = $script:ModuleConfig.LMStudioApiUrl
             DefaultModel = $script:ModuleConfig.DefaultModel
             DefaultTimeout = $script:ModuleConfig.DefaultTimeout
-            ConfigPath = $configPath
+            ConfigPath = $targetConfigPath
             LastUpdated = Get-Date
         }
     }

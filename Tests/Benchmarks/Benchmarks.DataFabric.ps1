@@ -4,7 +4,9 @@
     Compares the native consolidated context retrieval against legacy PS/CIM methods.
 #>
 
-$PcaiRoot = "C:\Users\david\PC_AI"
+. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
+$PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
 $NativeDll = Join-Path $PcaiRoot "bin\PcaiNative.dll"
 
 # Load native assembly

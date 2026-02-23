@@ -1,8 +1,10 @@
 #Requires -Version 5.1
 
+. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
 Describe "PC-AI Phase 5 Hardening & Resilience" {
     BeforeAll {
-        $projectRoot = "c:\Users\david\PC_AI"
+        $projectRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
         Import-Module (Join-Path $projectRoot "Modules\PC-AI.Virtualization\PC-AI.Virtualization.psd1") -Force
         Import-Module (Join-Path $projectRoot "Modules\PC-AI.LLM\PC-AI.LLM.psd1") -Force
         Add-Type -Path (Join-Path $projectRoot "bin\PcaiNative.dll") -ErrorAction SilentlyContinue
@@ -37,7 +39,7 @@ Describe "PC-AI Phase 5 Hardening & Resilience" {
     Context "Service Health Orchestration" {
         It "Should detect Ollama availability correctly" {
             # Dotsource directly to ensure it's available regardless of module state
-            . "c:\Users\david\PC_AI\Modules\PC-AI.Virtualization\Public\Get-PcaiServiceHealth.ps1"
+            . (Join-Path $projectRoot "Modules\PC-AI.Virtualization\Public\Get-PcaiServiceHealth.ps1")
             $health = Get-PcaiServiceHealth
             $health.Ollama.Responding | Should -BeOfType [bool]
         }
@@ -47,11 +49,12 @@ Describe "PC-AI Phase 5 Hardening & Resilience" {
             # or just rely on the fact that we're running in a terminal.
             # In Pester, capturing Write-Host can be tricky without mocking.
             # We'll use the redirection trick.
-            $output = pwsh -Command {
-                Import-Module "c:\Users\david\PC_AI\Modules\PC-AI.Virtualization\PC-AI.Virtualization.psd1"
-                Import-Module "c:\Users\david\PC_AI\Modules\PC-AI.LLM\PC-AI.LLM.psd1"
+            $output = pwsh -NoProfile -Command {
+                param([string]$ProjectRoot)
+                Import-Module (Join-Path $ProjectRoot "Modules\PC-AI.Virtualization\PC-AI.Virtualization.psd1")
+                Import-Module (Join-Path $ProjectRoot "Modules\PC-AI.LLM\PC-AI.LLM.psd1")
                 Invoke-SmartDiagnosis -AnalysisType "Quic" -SkipLLMAnalysis
-            } 2>&1
+            } -Args $projectRoot 2>&1
 
             $output | Out-String | Should -Match "Using best match: 'Quick'"
         }
@@ -60,7 +63,7 @@ Describe "PC-AI Phase 5 Hardening & Resilience" {
     Context "Error Resilience" {
         It "Should skip LLM analysis gracefully if Ollama is unreachable" {
             # Dotsource directly to ensure it's available
-            . "c:\Users\david\PC_AI\Modules\PC-AI.Virtualization\Public\Get-PcaiServiceHealth.ps1"
+            . (Join-Path $projectRoot "Modules\PC-AI.Virtualization\Public\Get-PcaiServiceHealth.ps1")
             # Use a valid TimeoutSeconds (30) to avoid validation error
             $results = Invoke-SmartDiagnosis -SkipLLMAnalysis:$false -OllamaBaseUrl "http://localhost:11111" -TimeoutSeconds 30 -InformationAction SilentlyContinue 2>$null
             $results.LLMAnalysis | Should -Be 'Skipped'

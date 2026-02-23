@@ -1,6 +1,8 @@
 #Requires -Version 5.1
 
-$PcaiRoot = 'C:\Users\david\PC_AI'
+. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
+$PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
 Import-Module (Join-Path $PcaiRoot 'Modules\PC-AI.LLM\PC-AI.LLM.psd1') -Force -ErrorAction Stop
 
 Write-Host 'E2E VERIFICATION STARTING...' -ForegroundColor Cyan

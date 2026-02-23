@@ -1,7 +1,9 @@
 #Requires -Version 5.1
 
+. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
 BeforeAll {
-    $PcaiRoot = 'C:\Users\david\PC_AI'
+    $PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
 
     # Import the module
     $ModulePath = Join-Path $PcaiRoot 'Modules\PC-AI.LLM\PC-AI.LLM.psd1'

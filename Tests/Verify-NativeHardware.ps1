@@ -1,9 +1,12 @@
+. (Join-Path $PSScriptRoot 'Helpers\Resolve-TestRepoRoot.ps1')
+
 # Requires -Version 5.1
 
 $ErrorActionPreference = 'Stop'
 
 # Path to the main entry point
-$pcai = 'c:\Users\david\PC_AI\PC-AI.ps1'
+$repoRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
+$pcai = Join-Path $repoRoot 'PC-AI.ps1'
 
 Write-Host '--- PC-AI Native Hardware Diagnostics Verification ---' -ForegroundColor Cyan
 

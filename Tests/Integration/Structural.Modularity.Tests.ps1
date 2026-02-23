@@ -1,9 +1,11 @@
 #Requires -Version 5.1
 #Requires -Modules Pester
 
+. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
 Describe "PC-AI SOLID Modularity (Phase 7)" {
     BeforeAll {
-        $script:ModulesRoot = "C:\Users\david\PC_AI\Modules"
+        $script:ModulesRoot = Join-Path (Resolve-TestRepoRoot -StartPath $PSScriptRoot) "Modules"
         $script:AccelerationPath = Join-Path $script:ModulesRoot "PC-AI.Acceleration\PC-AI.Acceleration.psd1"
 
         # Identify all PC-AI modules to test (excluding non-module directories like 'Archive')

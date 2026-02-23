@@ -4,7 +4,9 @@
     Verifies the performance gains documented in Phase 3.
 #>
 
-$PcaiRoot = "C:\Users\david\PC_AI"
+. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
+$PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
 $AccelerationModule = Join-Path $PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1"
 
 # Load module

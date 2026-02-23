@@ -1,5 +1,7 @@
+. (Join-Path $PSScriptRoot 'Helpers\Resolve-TestRepoRoot.ps1')
+
 # Verification script for PC-AI Structured Diagnostic Output
-$projectRoot = 'c:\Users\david\PC_AI'
+$projectRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
 $modulesPath = Join-Path $projectRoot 'Modules'
 
 # Import all modules
@@ -11,7 +13,7 @@ Get-ChildItem -Path $modulesPath -Directory | ForEach-Object {
 	}
 }
 
-$testPath = 'c:\Users\david\PC_AI\Native'
+$testPath = Join-Path $projectRoot 'Native'
 $reportPath = Join-Path $env:TEMP 'PC-AI-Test-Report.json'
 $model = 'qwen2.5-coder:7b'
 

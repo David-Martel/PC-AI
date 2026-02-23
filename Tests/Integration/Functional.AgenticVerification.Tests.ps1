@@ -1,6 +1,8 @@
+. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
 Describe "PC-AI Agentic Verification (Phase 6)" {
     BeforeAll {
-        $script:PcaiRoot = "C:\Users\david\PC_AI"
+        $script:PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
         $script:ModulePath = Join-Path $script:PcaiRoot "Modules\PC-AI.LLM\PC-AI.LLM.psd1"
 
         # Load dependencies first

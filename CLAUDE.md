@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 **PC_AI** is a local LLM-powered PC diagnostics and optimization agent designed to:
+
 - Diagnose hardware issues, device errors, and system problems
 - Analyze event logs, SMART status, and device configurations
 - Propose optimizations for disk, network, and system performance
@@ -99,6 +100,7 @@ Config: `.litho/litho.toml` — knowledge categories cover architecture, modules
 ### Reports Directory
 
 The doc pipeline generates structured reports under `Reports/`:
+
 - `DOC_STATUS.md` — TODO/FIXME/DEPRECATED markers across codebase
 - `PS_MODULE_INDEX.md` — PowerShell function index by module
 - `API_SIGNATURE_REPORT.md` — Cross-layer API alignment
@@ -131,6 +133,7 @@ The doc pipeline generates structured reports under `Reports/`:
 ```
 
 **Build Output Structure:**
+
 ```
 .pcai/build/
 ├── artifacts/           # Final distributable binaries
@@ -160,11 +163,13 @@ Override artifact location: `$env:PCAI_ARTIFACTS_ROOT = 'D:\build'`
 ```
 
 **Version Format:** `{semver}.{commits}+{hash}[.dirty]`
+
 - Example: `0.2.0.15+abc1234` (15 commits since v0.2.0, hash abc1234)
 - Example: `0.2.0+abc1234` (exactly at tag v0.2.0)
 - Example: `0.2.0.3+abc1234.dirty` (uncommitted changes)
 
 **Embedded in binaries:**
+
 - `pcai-llamacpp.exe --version` shows full build info
 - `/version` endpoint returns JSON with git hash, timestamp, features
 
@@ -190,6 +195,7 @@ cd Native\pcai_core\pcai_inference
 | `server` | HTTP server with OpenAI-compatible API |
 
 **Minimal Build Variants:**
+
 ```powershell
 # FFI-only DLL (289KB, no backend — for P/Invoke testing)
 cargo build --no-default-features --features ffi --release
@@ -216,11 +222,13 @@ Outputs are written under `.pcai\evaluation\runs\<timestamp-label>\` with:
 `events.jsonl`, `progress.log`, `summary.json`, and `stop.signal`.
 
 **Performance Tips:**
+
 - Enable sccache: `Tools\Initialize-CacheEnvironment.ps1`
 - Use Ninja generator (auto-detected)
 - CUDA builds require matching CRT: script auto-forces `/MD`
 
 ### Run Hardware Diagnostics
+
 ```powershell
 # Requires Administrator
 Import-Module PC-AI.Hardware
@@ -238,7 +246,9 @@ New-DiagnosticReport      # Generates complete diagnostic report
 ```
 
 ### Output Sections
+
 The diagnostic report contains:
+
 1. **Device Manager Errors** - Devices with ConfigManagerErrorCode != 0
 2. **Disk SMART Status** - Drive health via wmic
 3. **System Event Errors** - Disk/USB errors from last 3 days
@@ -250,6 +260,7 @@ The diagnostic report contains:
 The project uses GitHub Actions to build and release pre-compiled CUDA binaries.
 
 **Trigger a release:**
+
 ```bash
 # Tag a version to trigger the release workflow
 git tag v1.0.0
@@ -257,6 +268,7 @@ git push origin v1.0.0
 ```
 
 **Manual trigger (for testing):**
+
 - Go to Actions > "Release Native Binaries" > Run workflow
 - Enter a tag name (e.g., `v1.0.0-beta`)
 
@@ -269,6 +281,7 @@ git push origin v1.0.0
 | `pcai-inference-mistralrs-cpu-win64.zip` | mistral.rs | CPU-only |
 
 **CUDA builds target:**
+
 - SM 75: Turing (RTX 20 series, GTX 16xx)
 - SM 80/86: Ampere (RTX 30 series)
 - SM 89: Ada Lovelace (RTX 40 series)
@@ -280,33 +293,38 @@ git push origin v1.0.0
 The following scripts from the home directory could potentially enhance PC-AI capabilities:
 
 ### Disk Optimization
+
 - `Optimize-Disks.ps1` - Smart TRIM/defrag for SSD/HDD with scheduled task support (consider integrating into PC-AI.Performance)
 
 ### Cleanup
+
 - `clean_machine_path.ps1` - Remove duplicate/stale PATH entries (extends PC-AI.Cleanup functionality)
 - `cleanup-duplicates.ps1` - Duplicate file detection and removal (complements PC-AI.Cleanup module)
 
 ### Performance
+
 - `wezterm-performance-profiler.ps1` - Terminal startup/memory/render benchmarking (candidate for PC-AI.Performance)
 
 ## Diagnostic Categories
 
 ### Priority Classification
+
 - **Critical**: SMART failures, disk bad blocks, hardware virtualization disabled
 - **High**: USB controller errors, device driver failures, service crashes
 - **Medium**: Performance degradation, missing Defender exclusions, VMQ issues
 - **Low**: Unused adapters, informational warnings
 
 ### ConfigManagerErrorCode Reference
-| Code | Meaning |
-|------|---------|
-| 1 | Device not configured correctly |
-| 10 | Device cannot start |
-| 12 | Cannot find enough free resources |
-| 22 | Device is disabled |
-| 28 | Drivers not installed |
-| 31 | Device not working properly |
-| 43 | Device stopped responding |
+
+| Code | Meaning                           |
+| ---- | --------------------------------- |
+| 1    | Device not configured correctly   |
+| 10   | Device cannot start               |
+| 12   | Cannot find enough free resources |
+| 22   | Device is disabled                |
+| 28   | Drivers not installed             |
+| 31   | Device not working properly       |
+| 43   | Device stopped responding         |
 
 ## Safety Constraints
 
@@ -319,6 +337,7 @@ The following scripts from the home directory could potentially enhance PC-AI ca
 ## Integration Points
 
 ### Event Log Queries
+
 ```powershell
 # Disk/USB errors
 Get-WinEvent -FilterHashtable @{LogName='System'; Level=1,2,3; StartTime=(Get-Date).AddDays(-3)}
@@ -326,6 +345,7 @@ Get-WinEvent -FilterHashtable @{LogName='System'; Level=1,2,3; StartTime=(Get-Da
 ```
 
 ### WMI/CIM Queries
+
 ```powershell
 # Device errors
 Get-CimInstance Win32_PnPEntity | Where-Object { $_.ConfigManagerErrorCode -ne 0 }
@@ -338,6 +358,7 @@ wmic diskdrive get model, status
 ```
 
 ### FunctionGemma Router
+
 - Tool schema: `Config/pcai-tools.json`
 - Router interface: `Invoke-FunctionGemmaReAct` / `Invoke-LLMChatRouted`
 - Shared library: `Deploy/rust-functiongemma-core/` (model, GPU, prompt, config, LoRA, safetensors)
@@ -346,16 +367,19 @@ wmic diskdrive get model, status
 - HVSocket aliases: `Config/hvsock-proxy.conf` with `hvsock://functiongemma` / `hvsock://pcai-inference`
 
 ### pcai-inference Endpoints
+
 - Health check: `GET http://127.0.0.1:8080/health`
 - Models list: `GET http://127.0.0.1:8080/v1/models`
 - Completion: `POST http://127.0.0.1:8080/v1/completions`
 
 ### Async Inference (FFI)
+
 - `pcai_generate_async(prompt, max_tokens, temperature)` - Initiate async generation, returns request ID
 - `pcai_poll_result(request_id)` - Poll result status without blocking, returns status + partial text
 - `pcai_cancel(request_id)` - Cancel async request, returns success/failure
 
 PowerShell wrappers:
+
 - `Invoke-PcaiGenerateAsync` - Async generation with `-NoWait` for manual polling
 - `Get-PcaiAsyncResult` - Poll or wait for async result completion
 - `Stop-PcaiGeneration` - Cancel ongoing async request
@@ -387,6 +411,7 @@ When reporting findings, use this structure:
 ## Development Notes
 
 ### Adding New Diagnostics
+
 1. Add data collection function to `Modules/PC-AI.Hardware/Public/` or relevant module
 2. Add parsing logic to `DIAGNOSE_LOGIC.md`
 3. Update category handling in `DIAGNOSE.md`
@@ -395,21 +420,23 @@ When reporting findings, use this structure:
 ### Testing
 
 **Rust Unit Tests (61+ tests):**
+
 ```powershell
 cd Native\pcai_core\pcai_inference
 cargo test --no-default-features --features server,ffi --lib
 ```
 
-| Module | Tests | Coverage |
-|--------|-------|----------|
-| `lib.rs` | 5 | Error Display + From conversions |
-| `config.rs` | 8 | Serde roundtrip, file I/O, defaults |
-| `backends/mod.rs` | 7 | Request/Response serde, FinishReason |
-| `http/mod.rs` | 21 | Chat prompt, tokens, stop sequences, chunks, StopTracker |
-| `ffi/mod.rs` | 17 | FFI edge cases, init/shutdown, error codes |
-| Version | 3 | Build version detection and formatting |
+| Module            | Tests | Coverage                                                 |
+| ----------------- | ----- | -------------------------------------------------------- |
+| `lib.rs`          | 5     | Error Display + From conversions                         |
+| `config.rs`       | 8     | Serde roundtrip, file I/O, defaults                      |
+| `backends/mod.rs` | 7     | Request/Response serde, FinishReason                     |
+| `http/mod.rs`     | 21    | Chat prompt, tokens, stop sequences, chunks, StopTracker |
+| `ffi/mod.rs`      | 17    | FFI edge cases, init/shutdown, error codes               |
+| Version           | 3     | Build version detection and formatting                   |
 
 **FFI Integration Tests (49 tests):**
+
 ```powershell
 # Integration tests (28 tests — requires DLL at bin/pcai_inference.dll)
 pwsh -Command "Invoke-Pester Tests/Integration/FFI.Inference.Tests.ps1"
@@ -419,6 +446,7 @@ pwsh -Command "Invoke-Pester Tests/Integration/FFI.Stress.Tests.ps1"
 ```
 
 **PowerShell Diagnostics:**
+
 ```powershell
 # Import and test diagnostics module
 Import-Module PC-AI.Hardware
@@ -429,6 +457,7 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 ```
 
 ### PowerShell Requirements
+
 - Requires Administrator for full diagnostics
 - Uses Get-CimInstance (not deprecated Get-WmiObject)
 - Handles missing features gracefully with try/catch
@@ -436,11 +465,13 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 ### pcai-inference Build Requirements
 
 **Required:**
+
 - Visual Studio 2022 with C++ Build Tools + Windows SDK
 - CMake 3.x (included with VS or `winget install Kitware.CMake`)
 - Rust toolchain (`rustup`)
 
 **Optional (for GPU):**
+
 - CUDA Toolkit 13.x (`CUDA_PATH` env var) — 13.1 tested and working
 - cuDNN (for mistral.rs flash attention)
 - sccache (for faster rebuilds)
@@ -460,7 +491,7 @@ Config files: `Config/pcai-functiongemma.json` (router_gpu, cuda_visible_devices
 | "CMake not found" | `winget install Kitware.CMake`, restart terminal |
 | "CUDA not found" | Install CUDA Toolkit, verify `$env:CUDA_PATH` |
 | CRT mismatch linker errors | Script auto-forces `/MD`; run with `-Clean` if switching backends |
-| CUDA env override needed | `Tools\Set-CudaBuildEnv.ps1` or `.cargo/config.toml` env vars |
+| CUDA env override needed | `Tools\Initialize-CudaEnvironment.ps1 -WorkaroundMsvc1944` or `.cargo/config.toml` env vars |
 
 ### Performance Configuration
 
@@ -469,8 +500,8 @@ Config files: `Config/pcai-functiongemma.json` (router_gpu, cuda_visible_devices
 {
   "backend": {
     "type": "llama_cpp",
-    "n_gpu_layers": 35,    // GPU offload (0 = CPU only)
-    "n_ctx": 4096          // Context window
+    "n_gpu_layers": 35, // GPU offload (0 = CPU only)
+    "n_ctx": 4096 // Context window
   },
   "model": {
     "path": "Models/model.gguf",
@@ -485,7 +516,7 @@ Config files: `Config/pcai-functiongemma.json` (router_gpu, cuda_visible_devices
 **GPU Layer Offload Guide:**
 | VRAM | Recommended `n_gpu_layers` |
 |------|---------------------------|
-| 4GB  | 10-15 |
-| 8GB  | 25-30 |
+| 4GB | 10-15 |
+| 8GB | 25-30 |
 | 12GB | 35-40 |
 | 24GB | 50+ (full offload) |

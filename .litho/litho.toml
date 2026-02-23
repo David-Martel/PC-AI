@@ -65,18 +65,18 @@ included_extensions = []
 
 [llm]
 provider = "openai"
-api_key = "${LITHO_LLM_API_KEY}"
-api_base_url = "http://localhost:11434/v1"
+api_key = "pcai-local"
+api_base_url = "http://127.0.0.1:8085/v1"
 internal_path = ".litho"
-model_efficient = "qwen2.5-coder:7b"
-model_powerful = "qwen2.5-coder:7b"
-max_tokens = 8192
+model_efficient = "qwen2.5-coder"
+model_powerful = "qwen2.5-coder"
+max_tokens = 4096
 temperature = 0.1
 retry_attempts = 3
 retry_delay_ms = 3000
-timeout_seconds = 900
+timeout_seconds = 120
 max_parallels = 1
-disable_preset_tools = false
+disable_preset_tools = true
 
 [cache]
 enabled = true

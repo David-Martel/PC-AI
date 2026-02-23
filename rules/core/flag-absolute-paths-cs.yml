@@ -1,0 +1,12 @@
+id: flag-absolute-paths-cs
+language: csharp
+message: "Avoid machine-specific absolute paths; resolve from config or repository root helpers."
+severity: warning
+ignores:
+  - "**/Tests/**"
+  - "**/test/**"
+  - "**/obj/**"
+  - "**/bin/**"
+rule:
+  kind: string_literal
+  regex: '(?i)[A-Z]:\\\\Users\\\\[^\\\\]+\\\\PC_AI'

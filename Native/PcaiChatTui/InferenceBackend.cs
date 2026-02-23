@@ -48,7 +48,7 @@ public static class BackendFactory
     {
         return type switch
         {
-            BackendType.Http => new HttpBackend(httpEndpoint ?? "http://127.0.0.1:8080"),
+            BackendType.Http => CreateHttpBackend(httpEndpoint),
             BackendType.LlamaCpp => new NativeBackend("llamacpp"),
             BackendType.MistralRs => new NativeBackend("mistralrs"),
             BackendType.Auto => await ResolveAutoAsync(httpEndpoint),
@@ -67,7 +67,18 @@ public static class BackendFactory
         if (await native.CheckAvailabilityAsync())
             return native;
 
-        return new HttpBackend(httpEndpoint ?? "http://127.0.0.1:8080");
+        return CreateHttpBackend(httpEndpoint);
+    }
+
+    private static IInferenceBackend CreateHttpBackend(string? httpEndpoint)
+    {
+        if (string.IsNullOrWhiteSpace(httpEndpoint))
+        {
+            throw new InvalidOperationException(
+                "HTTP endpoint is not configured. Set providers.pcai-inference.baseUrl in Config/llm-config.json or pass --base-url.");
+        }
+
+        return new HttpBackend(httpEndpoint);
     }
 }
 

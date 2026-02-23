@@ -48,7 +48,9 @@ public static class Program
             backend = BackendType.Http;
         }
 
-        var baseUrl = NormalizeBaseUrl(options.BaseUrl ?? providerConfig?.BaseUrl ?? DefaultBaseUrl);
+        var primaryHttpProvider = config.GetProvider("pcai-inference");
+        var baseUrlCandidate = options.BaseUrl ?? providerConfig?.BaseUrl ?? primaryHttpProvider?.BaseUrl ?? config.RouterBaseUrl ?? DefaultBaseUrl;
+        var baseUrl = NormalizeBaseUrl(baseUrlCandidate);
         baseUrl = ResolveHvsockEndpoint(baseUrl, options.HvsockConfigPath ?? config.HvsockConfigPath);
         var model = options.Model ?? providerConfig?.DefaultModel ?? DefaultModel;
         var timeoutSec = options.TimeoutSec ?? providerConfig?.TimeoutSec ?? DefaultTimeoutSec;
@@ -128,6 +130,12 @@ public static class Program
             }
             useNative = false;
             backend = BackendType.Http;
+        }
+
+        if (!useNative && string.IsNullOrWhiteSpace(baseUrl))
+        {
+            Console.WriteLine("error> No HTTP endpoint configured. Set providers.pcai-inference.baseUrl in Config/llm-config.json or pass --base-url.");
+            return 1;
         }
 
         if (options.HealthOnly)
@@ -1216,7 +1224,7 @@ public sealed class CliOptions
 Usage: PcaiChatTui [options]
 
 Options:
-  --base-url, -u <url>      LLM endpoint URL (default: http://127.0.0.1:8080)
+  --base-url, -u <url>      LLM endpoint URL (default: providers.pcai-inference.baseUrl from Config/llm-config.json)
   --model, -m <name>        Model name for HTTP providers
   --provider <name>         Provider: pcai-inference, pcai-native, vllm, lmstudio (default: pcai-inference)
   --mode <mode>             Mode: chat, diagnose, stream, single, react
@@ -1258,6 +1266,7 @@ public sealed class LlmConfig
     public NativeProviderConfig? NativeProvider { get; init; }
     public string? ToolsPath { get; init; }
     public string? HvsockConfigPath { get; init; }
+    public string? RouterBaseUrl { get; init; }
 
     public ProviderConfig? GetProvider(string name)
     {
@@ -1284,6 +1293,7 @@ public sealed class LlmConfig
             var providersMap = new Dictionary<string, ProviderConfig>(StringComparer.OrdinalIgnoreCase);
             string? defaultProvider = null;
             string? toolsPath = null;
+            string? routerBaseUrl = null;
             var hvsockConfigPath = PathResolver.ResolvePath("Config/hvsock-proxy.conf");
             NativeProviderConfig? nativeProvider = null;
 
@@ -1354,11 +1364,17 @@ public sealed class LlmConfig
             {
                 toolsPath = toolsElement.GetString();
             }
+            if (doc.RootElement.TryGetProperty("router", out var routerNode) &&
+                routerNode.TryGetProperty("baseUrl", out var routerBaseUrlElement))
+            {
+                routerBaseUrl = routerBaseUrlElement.GetString();
+            }
 
             return new LlmConfig
             {
                 DefaultProvider = defaultProvider,
                 ToolsPath = toolsPath,
+                RouterBaseUrl = routerBaseUrl,
                 HvsockConfigPath = hvsockConfigPath,
                 NativeProvider = nativeProvider,
                 Providers = providersMap

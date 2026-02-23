@@ -70,11 +70,11 @@ fn load_router_settings() -> RouterSettings {
 
     let router = config.router;
     let enabled = router.enabled.unwrap_or(true);
-    let disable = router.disable.unwrap_or(!enabled);
     let base_url = router
         .base_url
         .filter(|v| !v.trim().is_empty())
-        .unwrap_or_else(|| "http://127.0.0.1:8000".to_string());
+        .or_else(|| std::env::var("PCAI_ROUTER_BASE_URL").ok())
+        .unwrap_or_default();
     let model = router
         .model
         .filter(|v| !v.trim().is_empty())
@@ -82,7 +82,9 @@ fn load_router_settings() -> RouterSettings {
     let tools_path = router
         .tools_path
         .filter(|v| !v.trim().is_empty())
-        .unwrap_or_else(|| "Config/pcai-tools.json".to_string());
+        .or_else(|| std::env::var("PCAI_TOOLS_PATH").ok())
+        .unwrap_or_default();
+    let disable = router.disable.unwrap_or(!enabled) || base_url.trim().is_empty();
 
     RouterSettings {
         base_url,

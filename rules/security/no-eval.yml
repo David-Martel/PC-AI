@@ -1,0 +1,7 @@
+id: no-eval
+language: JavaScript
+severity: error
+message: "Avoid eval() - it's a security risk and performance hit"
+rule:
+  pattern: eval($CODE)
+note: "eval() can execute arbitrary code - use JSON.parse() or Function constructor instead"

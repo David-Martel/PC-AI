@@ -1,0 +1,18 @@
+id: expect-call
+message: expect() will panic on None/Err - prefer ? operator or proper error handling
+severity: error
+language: rust
+rule:
+  pattern: $EXPR.expect($MSG)
+fix: '$EXPR.map_err(|e| Error::from_context($MSG, e))?
+
+  '
+note: 'Example fix:
+
+  Before: value.expect("Should have value")
+
+  After:  value.ok_or_else(|| Error::ValueMissing("Should have value".into()))?
+
+  '
+
+

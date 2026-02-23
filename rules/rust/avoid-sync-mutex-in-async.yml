@@ -1,0 +1,9 @@
+id: avoid-sync-mutex-in-async
+language: Rust
+severity: error
+message: "Do not use std::sync::Mutex across await points; it blocks the async executor."
+rule:
+  any:
+    - pattern: std::sync::Mutex
+    - pattern: std::sync::Mutex::new($EXPR)
+note: "Synchronous Mutexes block the Tokio worker thread entirely, causing thread pool starvation. Use tokio::sync::Mutex instead in async contexts."

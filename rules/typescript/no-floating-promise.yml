@@ -1,0 +1,7 @@
+id: no-floating-promise
+language: TypeScript
+severity: info
+message: "Possible floating promise: ensure you await or void-handle async calls"
+rule:
+  pattern: "$CALL()"
+  kind: call_expression

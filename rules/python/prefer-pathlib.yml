@@ -1,0 +1,13 @@
+id: prefer-pathlib
+language: Python
+severity: info
+message: "Use pathlib.Path instead of os.path for cleaner path handling"
+rule:
+  any:
+  - pattern: os.path.join($ARGS)
+  - pattern: os.path.exists($PATH)
+  - pattern: os.path.isfile($PATH)
+  - pattern: os.path.isdir($PATH)
+  - pattern: os.path.dirname($PATH)
+  - pattern: os.path.basename($PATH)
+note: "pathlib provides object-oriented filesystem paths (Python 3.4+)"

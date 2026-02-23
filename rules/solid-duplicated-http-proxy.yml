@@ -1,0 +1,11 @@
+id: solid-duplicated-http-proxy
+language: bash # PowerShell
+rule:
+  any:
+    - pattern: Invoke-RestMethod
+    - pattern: Invoke-WebRequest
+message: |
+  SOLID PRINCIPLE: Duplicated HTTP Proxy Logic
+  Scattered direct usages of Invoke-WebRequest/Invoke-RestMethod often duplicate payload serialization, error handling, and timeout configurations.
+  Ensure these are wrapped in a unified API client module (e.g. PC-AI.LLM / Invoke-HttpJson) rather than duplicated across tool scripts.
+severity: info

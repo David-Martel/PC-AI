@@ -1,0 +1,11 @@
+id: avoid-generic-catch
+language: csharp
+severity: warning
+message: "Avoid totally empty generic catch blocks that silently swallow exceptions."
+rule:
+  pattern: |
+    try {
+      $$$TRY
+    } catch (Exception $EX) {
+    }
+note: "Either log the exception, add a 'throw;', or catch a more specific exception type."

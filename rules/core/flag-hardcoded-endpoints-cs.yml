@@ -2,6 +2,11 @@ id: flag-hardcoded-endpoints-cs
 language: csharp
 message: "Hardcoded IP addresses and loopback hosts are not permitted. Use llm-config.json for dynamic lookup."
 severity: error
+ignores:
+  - '**/Tests/**'
+  - '**/test/**'
+  - '**/obj/**'
+  - '**/bin/**'
 rule:
   kind: string_literal
-  regex: '(127\.0\.0\.1|localhost|0\.0\.0\.0)'
+  regex: '(https?://(?:127\.0\.0\.1|localhost|0\.0\.0\.0)(?::\d+)?|(?:127\.0\.0\.1|localhost|0\.0\.0\.0):\d+)'

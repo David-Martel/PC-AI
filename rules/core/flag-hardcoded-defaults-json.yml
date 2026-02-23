@@ -1,0 +1,13 @@
+id: flag-hardcoded-defaults-json
+language: json
+message: "Hardcoded port defaults should come from Config/llm-config.json provider entries."
+severity: warning
+ignores:
+  - "Config/**"
+  - "Modules/**/llm-config.json"
+  - "Reports/**"
+  - ".pcai/**"
+  - "**/node_modules/**"
+rule:
+  kind: string
+  regex: '\b(8080|8000|11434|1234|8001)\b'

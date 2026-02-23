@@ -1,0 +1,8 @@
+id: use-char-indices
+language: Rust
+severity: info
+message: "Use char_indices() instead of chars().enumerate() for better performance"
+rule:
+  pattern: $STR.chars().enumerate()
+fix: $STR.char_indices()
+note: "char_indices() is more efficient as it doesn't require separate index tracking"

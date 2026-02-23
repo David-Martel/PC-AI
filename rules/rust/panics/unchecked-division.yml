@@ -1,0 +1,22 @@
+id: unchecked-division
+message: Division can panic on zero - add zero check or use checked_div
+severity: error
+language: rust
+rule:
+  pattern: $EXPR / $DIVISOR
+constraints:
+  DIVISOR:
+    not:
+      kind: integer_literal
+fix: '$EXPR.checked_div($DIVISOR).ok_or(Error::DivisionByZero)?
+
+  '
+note: 'Example fix:
+
+  Before: let result = a / b;
+
+  After:  let result = a.checked_div(b).ok_or(Error::DivisionByZero)?;
+
+  '
+
+

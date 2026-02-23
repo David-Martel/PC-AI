@@ -1,0 +1,8 @@
+id: avoid-unwrap
+language: Rust
+severity: warning
+message: "Avoid unwrap() in production code - use proper error handling"
+rule:
+  pattern: "$EXPR.unwrap()"
+fix: '$EXPR.expect("TODO: Verify unwrap")'
+note: "unwrap() panics on None/Err - use ?, expect(), or match instead"

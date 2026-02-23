@@ -1,0 +1,13 @@
+id: flag-hardcoded-endpoints-json
+language: json
+message: "Hardcoded IP addresses and loopback hosts are not permitted. Use llm-config.json for dynamic lookup."
+severity: error
+ignores:
+  - 'Config/**'
+  - 'Modules/**/llm-config.json'
+  - 'Reports/**'
+  - '.pcai/**'
+  - '**/node_modules/**'
+rule:
+  kind: string
+  regex: '(https?://(?:127\.0\.0\.1|localhost|0\.0\.0\.0)(?::\d+)?|(?:127\.0\.0\.1|localhost|0\.0\.0\.0):\d+)'

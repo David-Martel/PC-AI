@@ -1,0 +1,21 @@
+id: string-slice-panic
+message: String/slice operations can panic on invalid indices - use safe methods
+severity: error
+language: rust
+rule:
+  any:
+  - pattern: $STR[$START..$END]
+  - pattern: $STR[..$END]
+  - pattern: $STR[$START..]
+note: 'Use safe alternatives:
+
+  - str.get(start..end).ok_or(Error::InvalidRange)?
+
+  - String operations: chars(), split(), etc.
+
+
+  String slicing must be on UTF-8 character boundaries.
+
+  '
+
+

@@ -1,0 +1,11 @@
+id: no-useless-async
+language: TypeScript
+severity: info
+message: "Remove async from functions without await"
+rule:
+  all:
+  - pattern: "async function $NAME($PARAMS) { $BODY }"
+  - not:
+      inside:
+        pattern: "await $EXPR"
+fix: "function $NAME($PARAMS) { $BODY }"

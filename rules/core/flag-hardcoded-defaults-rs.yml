@@ -1,0 +1,12 @@
+id: flag-hardcoded-defaults-rs
+language: rust
+message: "Hardcoded port defaults should come from runtime config (Config/llm-config.json)."
+severity: warning
+ignores:
+  - "**/tests/**"
+  - "**/examples/**"
+  - "**/target/**"
+  - "Deploy/rust-functiongemma-*/**"
+rule:
+  kind: string_literal
+  regex: '\b(8080|8000|11434|1234|8001)\b'

@@ -1,0 +1,16 @@
+id: bail-without-context
+message: Error message lacks context - add helpful information
+severity: info
+language: rust
+rule:
+  pattern: candle_core::bail!($MSG)
+constraints:
+  MSG:
+    not:
+      regex: (not|un|alternative|instead|use|try|recompile|feature)
+note: "Good error messages include:\n- What went wrong\n- Why it went wrong\n- What\
+  \ the user should do\n\nExample:\ncandle_core::bail!(\n    \"Flash attention not\
+  \ available. Recompile with --features flash-attn \\\n    or use standard attention\
+  \ by setting attention_backend='standard'\"\n)\n"
+
+

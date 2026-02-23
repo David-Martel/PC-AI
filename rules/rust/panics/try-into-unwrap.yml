@@ -1,0 +1,20 @@
+id: try-into-unwrap
+message: try_into/try_from can fail - use ? instead of unwrap()
+severity: error
+language: rust
+rule:
+  any:
+  - pattern: $EXPR.try_into().unwrap()
+  - pattern: $TYPE::try_from($EXPR).unwrap()
+fix: '$EXPR.try_into()?
+
+  '
+note: 'Example fix:
+
+  Before: let val: u32 = x.try_into().unwrap();
+
+  After:  let val: u32 = x.try_into()?;
+
+  '
+
+

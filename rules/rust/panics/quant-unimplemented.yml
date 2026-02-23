@@ -1,0 +1,20 @@
+id: quant-unimplemented
+message: Quantization method not implemented - return error to caller
+severity: error
+language: rust
+rule:
+  all:
+  - pattern: unimplemented!($MSG)
+  - inside:
+      pattern: "impl QuantMethod for $TYPE {\n  $$$BODY\n}\n"
+fix: 'candle_core::bail!("Quantization method not yet implemented: $MSG. Use GGUF
+  or ISQ instead.")
+
+  '
+note: 'Document unsupported quantization methods clearly.
+
+  Guide users to working alternatives.
+
+  '
+
+

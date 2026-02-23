@@ -1,0 +1,7 @@
+id: no-duplicate-functions
+language: TypeScript
+severity: warning
+message: "PRIME DIRECTIVE: Check for duplicate function implementations"
+rule:
+  pattern: "function $NAME($$$ARGS) { $$$BODY }"
+note: "Use configuration parameters or inheritance instead of duplicating functions"

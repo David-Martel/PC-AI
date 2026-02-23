@@ -1,0 +1,15 @@
+id: fixed-size-init
+message: Fixed-size initialization can panic if size is wrong - validate size
+severity: info
+language: rust
+rule:
+  pattern: 'let $VAR: [$TYPE; $SIZE] = $INIT;
+
+    '
+note: 'Ensure the initialization matches the declared size.
+
+  Consider using Vec or validating length at runtime.
+
+  '
+
+

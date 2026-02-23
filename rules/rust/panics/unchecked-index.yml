@@ -1,0 +1,19 @@
+id: unchecked-index
+message: Indexing without bounds check can panic - use get() or check bounds first
+severity: error
+language: rust
+rule:
+  any:
+  - pattern: $ARRAY[$INDEX]
+  - pattern: $VEC[$INDEX]
+constraints:
+  ARRAY:
+    not:
+      regex: ^(slice|arr|buffer)
+fix: '$ARRAY.get($INDEX).ok_or(Error::IndexOutOfBounds)?
+
+  '
+note: "Example fix:\nBefore: let item = vec[index];\nAfter:  let item = vec.get(index).ok_or(Error::IndexOutOfBounds)?;\n\
+  \nOr with bounds check:\nif index < vec.len() {\n    let item = vec[index];\n}\n"
+
+

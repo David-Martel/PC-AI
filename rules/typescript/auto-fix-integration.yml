@@ -1,0 +1,25 @@
+id: auto-fix-integration
+language: TypeScript
+severity: info
+message: "Code quality issue detected - auto-fix available"
+rule:
+  any:
+    # Detect inefficient string concatenation
+  - pattern: "$VAR + $STR"
+    # Detect deprecated API usage
+  - pattern: "fs.existsSync($PATH)"
+  - pattern: "new Buffer($ARGS)"
+  - pattern: "process.exit($CODE)"
+
+fix: "`${$VAR}${$STR}`"
+note: "This rule helps integrate ast-grep with the project's auto-fix framework"
+files:
+- "**/*.ts"
+- "**/*.js"
+- "**/*.tsx"
+- "**/*.jsx"
+ignores:
+- "node_modules/**"
+- "dist/**"
+- "**/test/**"
+- "**/*.test.*"

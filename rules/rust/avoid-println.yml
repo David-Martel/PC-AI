@@ -1,0 +1,8 @@
+id: avoid-println
+language: Rust
+severity: warning
+message: "Avoid println! in libraries and production code - use structured logging"
+rule:
+  pattern: println!($$$ARGS)
+fix: tracing::info!($$$ARGS)
+note: "Directly writing to stdout bypasses the application logging framework. Use the macro from the tracing context."

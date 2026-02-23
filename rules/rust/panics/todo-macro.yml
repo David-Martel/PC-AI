@@ -1,0 +1,21 @@
+id: todo-macro
+message: todo!() will panic at runtime - implement or return error
+severity: error
+language: rust
+rule:
+  pattern: todo!($$$ARGS)
+fix: 'candle_core::bail!("TODO: $$$ARGS - not yet implemented")
+
+  '
+note: 'Example fix:
+
+  Before: todo!("Add validation")
+
+  After:  candle_core::bail!("Validation not yet implemented")
+
+
+  Better: Actually implement the functionality or document why it''s deferred
+
+  '
+
+

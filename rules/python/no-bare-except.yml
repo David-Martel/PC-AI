@@ -1,0 +1,12 @@
+id: no-bare-except
+language: Python
+severity: warning
+message: "Avoid bare except clauses - catch specific exceptions instead"
+rule:
+  pattern: |
+    except:
+        $$$BODY
+fix: |
+  except Exception:
+      $$$BODY
+note: "Bare except catches SystemExit, KeyboardInterrupt - use Exception at minimum"

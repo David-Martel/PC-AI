@@ -1,0 +1,9 @@
+id: require-configure-await
+language: csharp
+severity: warning
+message: "Always specify .ConfigureAwait(false) in library code to prevent UI deadlocks"
+rule:
+  pattern: await $TASK;
+  not:
+    pattern: await $TASK.ConfigureAwait($BOOL);
+note: "If a SynchronizationContext is present (like in a UI app), lacking ConfigureAwait(false) on background tasks can cause a critical deadlock."

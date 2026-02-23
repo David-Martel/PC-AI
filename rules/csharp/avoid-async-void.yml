@@ -1,0 +1,8 @@
+id: avoid-async-void
+language: csharp
+severity: error
+message: "Avoid 'async void' methods. Exceptions thrown here will crash the process."
+rule:
+  pattern: async void $METHOD($$$ARGS) { $$$BODY }
+fix: async Task $METHOD($$$ARGS) { $$$BODY }
+note: "Use 'async Task' so exceptions can be awaited and caught by the caller."

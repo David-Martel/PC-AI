@@ -15,7 +15,7 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string]$Model = 'qwen2.5-coder:7b',
+    [string]$Model,
 
     [Parameter()]
     [string]$Path = $env:TEMP
@@ -24,7 +24,28 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-Import-Module C:\Users\david\PC_AI\Modules\PC-AI.LLM\PC-AI.LLM.psd1 -Force
+$repoRoot = if ($env:PCAI_ROOT) {
+    $env:PCAI_ROOT
+} else {
+    Split-Path -Parent $PSScriptRoot
+}
+
+$llmConfigPath = Join-Path $repoRoot 'Config\llm-config.json'
+if (-not $Model) {
+    if (Test-Path $llmConfigPath) {
+        try {
+            $llmConfig = Get-Content -Path $llmConfigPath -Raw | ConvertFrom-Json
+            $Model = $llmConfig.providers.'pcai-inference'.defaultModel
+        } catch {
+            Write-Warning "Failed to parse llm-config.json: $_"
+        }
+    }
+    if (-not $Model) {
+        $Model = 'pcai-inference'
+    }
+}
+
+Import-Module (Join-Path $repoRoot 'Modules\PC-AI.LLM\PC-AI.LLM.psd1') -Force
 
 Write-Host "[LLM Validation] Checking router/Ollama connectivity..." -ForegroundColor Cyan
 $status = Get-LLMStatus -TestConnection -IncludeLMStudio

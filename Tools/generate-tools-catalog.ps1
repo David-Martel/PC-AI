@@ -27,56 +27,17 @@ if (-not (Test-Path $ToolsPath)) {
     throw "Tools path not found: $ToolsPath"
 }
 
-function Get-HelpBlock {
-    param([string]$Text)
-    $m = [regex]::Match($Text, '<#([\s\S]*?)#>')
-    if ($m.Success) { return $m.Groups[1].Value }
-    return $null
-}
-
-function Parse-HelpSection {
-    param(
-        [string]$HelpText,
-        [string]$Section
-    )
-
-    if (-not $HelpText) { return $null }
-    $lines = $HelpText -split "`r?`n"
-    $sectionMarker = ".$Section"
-    $capture = $false
-    $buffer = New-Object System.Collections.Generic.List[string]
-
-    foreach ($line in $lines) {
-        if ($line.Trim().StartsWith('.')) {
-            if ($capture) { break }
-        }
-        if ($line.Trim().Equals($sectionMarker, [System.StringComparison]::OrdinalIgnoreCase)) {
-            $capture = $true
-            continue
-        }
-        if ($capture) {
-            if ($line.Trim() -ne '') {
-                $buffer.Add($line.Trim())
-            }
-        }
-    }
-
-    if ($buffer.Count -eq 0) { return $null }
-    return ($buffer -join ' ')
-}
+. "$repoRoot\Modules\PC-AI.Common\Public\Get-ScriptMetadata.ps1"
 
 $entries = @()
 Get-ChildItem -Path $ToolsPath -Filter '*.ps1' -File | Sort-Object Name | ForEach-Object {
-    $text = Get-Content -Path $_.FullName -Raw
-    $help = Get-HelpBlock -Text $text
-    $synopsis = Parse-HelpSection -HelpText $help -Section 'SYNOPSIS'
-    $description = Parse-HelpSection -HelpText $help -Section 'DESCRIPTION'
+    $meta = Get-ScriptMetadata -Path $_.FullName
 
     $entries += [PSCustomObject]@{
-        Name = $_.Name
-        Path = $_.FullName
-        Synopsis = $synopsis
-        Description = $description
+        Name        = $_.Name
+        Path        = $_.FullName
+        Synopsis    = $meta.Synopsis
+        Description = $meta.Description
     }
 }
 

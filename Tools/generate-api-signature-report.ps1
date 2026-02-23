@@ -29,75 +29,12 @@ if (-not (Test-Path $reportDir)) {
     New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
 }
 
+. "$RepoRoot\Modules\PC-AI.Common\Public\Get-ScriptMetadata.ps1"
+
 function Get-PublicFunctionInfo {
     param([string]$Path)
-
-    $tokens = $null
-    $errors = $null
-    $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$tokens, [ref]$errors)
-    $functions = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)
-
-    $content = Get-Content -Path $Path -Raw -Encoding UTF8
-    if ([string]::IsNullOrEmpty($content)) {
-        return @()
-    }
-    $helpMatches = [regex]::Matches($content, '(?s)<#(.*?)#>\s*function\s+([A-Za-z0-9_-]+)')
-    $helpMap = @{}
-    foreach ($m in $helpMatches) {
-        $helpMap[$m.Groups[2].Value] = $m.Groups[1].Value
-    }
-
-    $results = @()
-    foreach ($func in $functions) {
-        $parent = $func.Parent
-        $nested = $false
-        while ($parent) {
-            if ($parent -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
-                $nested = $true
-                break
-            }
-            $parent = $parent.Parent
-        }
-        if ($nested) { continue }
-        $paramNames = @()
-        if ($func.Body -and $func.Body.ParamBlock) {
-            foreach ($p in $func.Body.ParamBlock.Parameters) {
-                if ($p.Name -and $p.Name.VariablePath) {
-                    $paramNames += $p.Name.VariablePath.UserPath
-                }
-            }
-        }
-
-        $helpBlock = $null
-        if ($helpMap.ContainsKey($func.Name)) { $helpBlock = $helpMap[$func.Name] }
-        $helpParams = @()
-        if ($helpBlock) {
-            $paramMatches = [regex]::Matches($helpBlock, '(?ms)^\s*\.PARAMETER\s+([^\s]+)')
-            foreach ($pm in $paramMatches) {
-                $helpParams += $pm.Groups[1].Value
-            }
-        }
-
-        $missingHelp = @($paramNames | Where-Object { $helpParams -notcontains $_ })
-        $commonParams = @(
-            'WhatIf','Confirm','Verbose','Debug','ErrorAction','WarningAction','InformationAction',
-            'ErrorVariable','WarningVariable','InformationVariable','OutVariable','OutBuffer',
-            'PipelineVariable','ProgressAction'
-        )
-        $extraHelp = @($helpParams | Where-Object { ($paramNames -notcontains $_) -and ($commonParams -notcontains $_) })
-
-        $results += [PSCustomObject]@{
-            Name = $func.Name
-            Parameters = $paramNames
-            HelpPresent = [bool]$helpBlock
-            HelpParameters = $helpParams
-            MissingHelpParameters = $missingHelp
-            ExtraHelpParameters = $extraHelp
-            SourcePath = $Path
-        }
-    }
-
-    return $results
+    $meta = Get-ScriptMetadata -Path $Path
+    return $meta.Functions
 }
 
 function Get-CSharpDllImports {
@@ -196,19 +133,19 @@ $csCoreMethods = Get-CSharpPcaiCoreMethods -Path $pcaiCorePath
 $missingCsharpMethods = @($psPcaiCalls | Where-Object { $csCoreMethods -notcontains $_ })
 
 $report = [PSCustomObject]@{
-    Generated = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-    PowerShell = [PSCustomObject]@{
-        FunctionCount = @($psFunctions).Count
-        MissingHelpCount = @($missingHelp).Count
+    Generated          = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+    PowerShell         = [PSCustomObject]@{
+        FunctionCount         = @($psFunctions).Count
+        MissingHelpCount      = @($missingHelp).Count
         MissingHelpParameters = $missingHelpParams
-        ExtraHelpParameters = $extraHelpParams
+        ExtraHelpParameters   = $extraHelpParams
     }
-    CSharp = [PSCustomObject]@{
-        DllImportCount = @($csDllImports).Count
+    CSharp             = [PSCustomObject]@{
+        DllImportCount     = @($csDllImports).Count
         MissingRustExports = $missingRustExports
     }
     PowerShellToCSharp = [PSCustomObject]@{
-        PcaiCalls = $psPcaiCalls
+        PcaiCalls            = $psPcaiCalls
         MissingCsharpMethods = $missingCsharpMethods
     }
 }
@@ -227,7 +164,7 @@ $null = $md.AppendLine("PowerShell functions: $($report.PowerShell.FunctionCount
 $null = $md.AppendLine("Missing help blocks: $($report.PowerShell.MissingHelpCount)")
 $null = $md.AppendLine("C# DllImports: $($report.CSharp.DllImportCount)")
 $null = $md.AppendLine("Missing Rust exports: $(@($report.CSharp.MissingRustExports).Count)")
-$null = $md.AppendLine("")
+$null = $md.AppendLine('')
 
 if (@($report.PowerShell.MissingHelpParameters).Count -gt 0) {
     $null = $md.AppendLine('## Missing help parameters')

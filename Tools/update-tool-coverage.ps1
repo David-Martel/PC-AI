@@ -42,23 +42,20 @@ $mappedTools = @()
 $sgExe = Get-Command sg.exe -ErrorAction SilentlyContinue
 if ($sgExe) {
     try {
-        $sgArgs = @('scan', '-c', (Join-Path $RepoRoot 'sgconfig.yml'), '--json=compact')
+        $sgArgs = @('scan', '-c', (Join-Path $RepoRoot 'sgconfig.yml'), '--json=stream')
         $sgOutput = & $sgExe.Path @sgArgs 2>$null
         if ($LASTEXITCODE -eq 0 -and $sgOutput) {
-            $sgJson = $sgOutput | ConvertFrom-Json
-            $sgMatches = $null
-            if ($sgJson -is [System.Collections.IEnumerable] -and -not ($sgJson -is [string]) -and -not ($sgJson.PSObject.Properties.Name -contains 'matches')) {
-                $sgMatches = $sgJson
-            } elseif ($sgJson.matches) {
-                $sgMatches = $sgJson.matches
-            }
-            if ($sgMatches) {
-                foreach ($m in $sgMatches) {
-                    if ($m.file -like "*Invoke-FunctionGemmaReAct.ps1" -and $m.text -match "pcai_") {
+            foreach ($line in $sgOutput) {
+                if ([string]::IsNullOrWhiteSpace($line)) { continue }
+                try {
+                    $m = $line | ConvertFrom-Json
+                    if ($null -ne $m -and $m.file -like '*Invoke-FunctionGemmaReAct.ps1' -and $m.text -match 'pcai_') {
                         if ($m.text -match "'(?<name>pcai_[^']+)'" ) {
                             $mappedTools += $Matches['name']
                         }
                     }
+                } catch {
+                    # Skip malformed lines
                 }
             }
         }
@@ -85,11 +82,11 @@ $missingInMapping = @($schemaTools | Where-Object { $mappedTools -notcontains $_
 $extraMapping = @($mappedTools | Where-Object { $schemaTools -notcontains $_ })
 
 $report = [PSCustomObject]@{
-    Generated = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-    ToolSchemaCount = $schemaTools.Count
+    Generated        = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+    ToolSchemaCount  = $schemaTools.Count
     ToolMappingCount = $mappedTools.Count
     MissingInMapping = $missingInMapping
-    ExtraMapping = $extraMapping
+    ExtraMapping     = $extraMapping
 }
 
 $reportJson = Join-Path $reportDir 'TOOL_SCHEMA_REPORT.json'

@@ -27,6 +27,7 @@
     - functiongemma-token-cache: Build FunctionGemma token cache artifacts
     - functiongemma-train: Run FunctionGemma training via rust-functiongemma-train
     - functiongemma-eval: Run FunctionGemma evaluation harness via Rust CLI
+    - media: pcai-media Janus-Pro media agent (FFI DLL + HTTP server)
     - tui: PcaiChatTui .NET chat terminal UI
     - pcainative: PcaiNative .NET interop wrapper
     - servicehost: PcaiServiceHost .NET host binary
@@ -138,7 +139,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('inference', 'llamacpp', 'mistralrs', 'functiongemma', 'functiongemma-router-data', 'functiongemma-token-cache', 'functiongemma-train', 'functiongemma-eval', 'tui', 'pcainative', 'servicehost', 'nukenul', 'lint', 'format', 'fix', 'deps', 'native', 'all')]
+    [ValidateSet('inference', 'llamacpp', 'mistralrs', 'functiongemma', 'functiongemma-router-data', 'functiongemma-token-cache', 'functiongemma-train', 'functiongemma-eval', 'media', 'tui', 'pcainative', 'servicehost', 'nukenul', 'lint', 'format', 'fix', 'deps', 'native', 'all')]
     [string]$Component = 'all',
 
     [ValidateSet('Debug', 'Release')]
@@ -530,6 +531,7 @@ function Initialize-BuildDirectories {
         (Join-Path $script:BuildArtifactsDir 'pcai-chattui'),
         (Join-Path $script:BuildArtifactsDir 'pcai-native'),
         (Join-Path $script:BuildArtifactsDir 'pcai-servicehost'),
+        (Join-Path $script:BuildArtifactsDir 'pcai-media'),
         (Join-Path $script:BuildArtifactsDir 'nukenul'),
         $script:BuildLogsDir,
         $script:BuildPackagesDir,
@@ -1632,6 +1634,70 @@ function Invoke-DotnetComponentBuild {
     }
 }
 
+function Invoke-MediaBuild {
+    param(
+        [string]$Configuration,
+        [bool]$EnableCuda
+    )
+
+    $componentStart = Get-Date
+    $mediaRoot = Join-Path $script:ProjectRoot 'Native\pcai_core'
+    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $logFile = Join-Path $script:BuildLogsDir "build_media_$timestamp.log"
+    $artifactDir = Join-Path $script:BuildArtifactsDir 'pcai-media'
+
+    if (-not (Test-Path $artifactDir)) {
+        New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
+    }
+
+    Write-BuildStep 'Building pcai-media (Janus-Pro media agent)...' 'running'
+    try {
+        $cargoArgs = @('build')
+        if ($Configuration -eq 'Release') { $cargoArgs += '--release' }
+        $cargoArgs += @('-p', 'pcai-media', '-p', 'pcai-media-server')
+
+        if ($EnableCuda) {
+            $cargoArgs += @('--features', 'pcai-media/cuda,pcai-media/flash-attn')
+        }
+
+        $rustOk = Invoke-RustBuildCommand -Path $mediaRoot -CargoArgs $cargoArgs -LogFile $logFile
+        if (-not $rustOk) {
+            return @{
+                Success   = $false
+                Duration  = (Get-Date) - $componentStart
+                Artifacts = @()
+                LogFile   = $logFile
+            }
+        }
+
+        $targetDir = Resolve-CargoOutputDirectory -ProjectDir $mediaRoot -Configuration $Configuration
+        $artifacts = @()
+
+        foreach ($file in @('pcai_media.dll', 'pcai_media.dll.lib', 'pcai_media.pdb', 'pcai-media.exe', 'pcai-media.pdb')) {
+            $src = Join-Path $targetDir $file
+            if (Test-Path $src) {
+                Copy-Item $src -Destination $artifactDir -Force
+                $artifacts += $file
+            }
+        }
+
+        return @{
+            Success   = $true
+            Duration  = (Get-Date) - $componentStart
+            Artifacts = $artifacts
+            LogFile   = $logFile
+        }
+    } catch {
+        Write-BuildStep "pcai-media build failed: $($_.Exception.Message)" 'error'
+        return @{
+            Success   = $false
+            Duration  = (Get-Date) - $componentStart
+            Artifacts = @()
+            Error     = $_.Exception.Message
+        }
+    }
+}
+
 function Invoke-NukeNulBuild {
     param([string]$Configuration)
 
@@ -1981,13 +2047,14 @@ $buildTargets = switch ($Component) {
     'tui' { @('tui') }
     'pcainative' { @('pcainative') }
     'servicehost' { @('servicehost') }
+    'media' { @('media') }
     'nukenul' { @('nukenul') }
     'lint' { @() }
     'format' { @() }
     'fix' { @() }
     'deps' { @() }
     'native' { @('pcainative', 'servicehost', 'tui', 'nukenul') }
-    'all' { @('llamacpp', 'mistralrs', 'functiongemma', 'pcainative', 'servicehost', 'tui', 'nukenul') }
+    'all' { @('llamacpp', 'mistralrs', 'functiongemma', 'media', 'pcainative', 'servicehost', 'tui', 'nukenul') }
 }
 
 $results = @{}
@@ -2028,6 +2095,10 @@ foreach ($target in $buildTargets) {
         $result = Invoke-DotnetComponentBuild -ComponentName 'pcai-servicehost' -ProjectRelativePath 'Native\PcaiServiceHost\PcaiServiceHost.csproj' -Configuration $Configuration
         $results['pcai-servicehost'] = $result
         Write-BuildResult 'pcai-servicehost' $result.Success $result.Duration $result.Artifacts
+    } elseif ($target -eq 'media') {
+        $result = Invoke-MediaBuild -Configuration $Configuration -EnableCuda $EnableCuda
+        $results['pcai-media'] = $result
+        Write-BuildResult 'pcai-media' $result.Success $result.Duration $result.Artifacts
     } elseif ($target -eq 'nukenul') {
         $result = Invoke-NukeNulBuild -Configuration $Configuration
         $results['nukenul'] = $result

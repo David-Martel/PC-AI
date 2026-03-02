@@ -1,0 +1,9 @@
+{
+    "model": "deepseek-ai/Janus-Pro-7B",
+    "device": "cuda:0",
+    "dtype": "bf16",
+    "guidance_scale": 5.0,
+    "temperature": 1.0,
+    "parallel_size": 1,
+    "gpu_layers": -1
+}

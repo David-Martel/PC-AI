@@ -166,6 +166,8 @@ struct MediaState {
     runtime: Runtime,
     /// Loaded generation pipeline (None until `pcai_media_load_model` succeeds).
     pipeline: Option<GenerationPipeline>,
+    /// Device string set by `pcai_media_init`, propagated to `load_model`.
+    device: String,
 }
 
 /// The global singleton protected by a `Mutex`.
@@ -181,6 +183,7 @@ fn get_state() -> &'static Mutex<MediaState> {
         Mutex::new(MediaState {
             runtime,
             pipeline: None,
+            device: "cuda:0".to_string(),
         })
     })
 }
@@ -235,8 +238,11 @@ pub extern "C" fn pcai_media_init(device: *const c_char) -> i32 {
         return PcaiMediaErrorCode::InvalidInput as i32;
     }
 
-    // Ensure the global state (and its runtime) exists.
-    let _ = get_state();
+    // Ensure the global state (and its runtime) exists, then store the device.
+    let state = get_state();
+    if let Ok(mut guard) = state.lock() {
+        guard.device = device_str.clone();
+    }
 
     tracing::info!(device = %device_str, "pcai_media_init");
     PcaiMediaErrorCode::Success as i32
@@ -285,6 +291,7 @@ pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i
     let config = PipelineConfig {
         model: path_str.clone(),
         gpu_layers,
+        device: guard.device.clone(),
         ..PipelineConfig::default()
     };
 

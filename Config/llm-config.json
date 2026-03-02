@@ -11,8 +11,8 @@
 		"pcai-native": {
 			"enabled": true,
 			"type": "ffi",
-			"backend": "mistralrs",
-			"modelPath": "Models/ollama/registry.ollama.ai_library_deepseek-r1_7b__96c41565.gguf",
+			"backend": "llamacpp",
+			"modelPath": "Models/open_llama_3b-q4_0-ggjt.bin",
 			"gpuLayers": -1,
 			"defaultTemperature": 0.7,
 			"defaultMaxTokens": 2048
@@ -84,6 +84,58 @@
 			"bin/pcai_inference.dll",
 			"Deploy/pcai-inference/target/release/pcai_inference.dll"
 		],
+		"runtimeBinarySelection": {
+			"enabled": true,
+			"autoDownload": false,
+			"variants": [
+				{
+					"name": "cuda-sm120",
+					"kind": "cuda",
+					"minCompute": 120,
+					"maxCompute": 129,
+					"dllPath": "bin/prebuilt/cuda-sm120/pcai_inference.dll",
+					"url": ""
+				},
+				{
+					"name": "cuda-sm89",
+					"kind": "cuda",
+					"minCompute": 89,
+					"maxCompute": 119,
+					"dllPath": "bin/prebuilt/cuda-sm89/pcai_inference.dll",
+					"url": ""
+				},
+				{
+					"name": "cuda-sm86",
+					"kind": "cuda",
+					"minCompute": 86,
+					"maxCompute": 88,
+					"dllPath": "bin/prebuilt/cuda-sm86/pcai_inference.dll",
+					"url": ""
+				},
+				{
+					"name": "cuda-sm80",
+					"kind": "cuda",
+					"minCompute": 80,
+					"maxCompute": 85,
+					"dllPath": "bin/prebuilt/cuda-sm80/pcai_inference.dll",
+					"url": ""
+				},
+				{
+					"name": "cuda-sm75",
+					"kind": "cuda",
+					"minCompute": 75,
+					"maxCompute": 79,
+					"dllPath": "bin/prebuilt/cuda-sm75/pcai_inference.dll",
+					"url": ""
+				},
+				{
+					"name": "cpu-generic",
+					"kind": "cpu",
+					"dllPath": "bin/pcai_inference.dll",
+					"url": ""
+				}
+			]
+		},
 		"backends": {
 			"mistralrs": {
 				"priority": 1,
@@ -91,7 +143,20 @@
 			},
 			"llamacpp": {
 				"priority": 2,
-				"description": "llama.cpp backend (GGUF models, CUDA support)"
+				"description": "llama-rs compatibility backend (GGML models, optional cuBLAS)",
+				"settings": {
+					"architecture": "llama",
+					"n_ctx": 4096,
+					"n_batch": 512,
+					"n_gpu_layers": -1,
+					"samplers": [
+						"repetition:penalty=1.15:last_n=64",
+						"topk:k=40",
+						"topp:p=0.95",
+						"temperature:0.7"
+					],
+					"seed": 42
+				}
 			}
 		}
 	},

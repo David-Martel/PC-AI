@@ -3,7 +3,7 @@
 //! Dual-backend LLM inference engine for PC diagnostics.
 //!
 //! Supports two backends:
-//! - llama.cpp via llama-cpp-2 (feature: `llamacpp`)
+//! - llama-rs (`llm`) via the `llamacpp` compatibility feature
 //! - mistral.rs (feature: `mistralrs-backend`)
 //!
 //! Optional features:

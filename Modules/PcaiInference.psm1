@@ -13,7 +13,7 @@
       Initialize-PcaiInference  - Load PcaiNative.dll and initialize the selected
                                   inference backend (llamacpp | mistralrs | auto).
                                   Must be called before any generate/model operation.
-      Import-PcaiModel          - Load a GGUF or SafeTensors model file into the
+      Import-PcaiModel          - Load a configured model file (GGML/GGUF/SafeTensors) into the
                                   active backend with optional GPU layer offloading.
       Invoke-PcaiInference      - Run synchronous text completion for a prompt.
       Invoke-PcaiGenerate       - Alias for Invoke-PcaiInference.
@@ -76,6 +76,144 @@ function Add-EnvPath {
     }
 }
 
+function Get-PcaiProjectRoot {
+    return (Split-Path $script:ModulePath -Parent)
+}
+
+function Get-PcaiConfig {
+    $projectRoot = Get-PcaiProjectRoot
+    $configPath = Join-Path $projectRoot 'Config\llm-config.json'
+    if (-not (Test-Path $configPath)) { return $null }
+
+    try {
+        return (Get-Content $configPath -Raw | ConvertFrom-Json)
+    } catch {
+        Write-Verbose "Failed to parse ${configPath}: $_"
+        return $null
+    }
+}
+
+function Get-PcaiNativeProviderConfig {
+    $config = Get-PcaiConfig
+    if ($config -and $config.providers -and $config.providers.'pcai-native') {
+        return $config.providers.'pcai-native'
+    }
+    return $null
+}
+
+function Resolve-PcaiModelPathFromConfig {
+    $projectRoot = Get-PcaiProjectRoot
+    $nativeCfg = Get-PcaiNativeProviderConfig
+    $configuredPath = if ($nativeCfg) { $nativeCfg.modelPath } else { $null }
+    if (-not $configuredPath) { return $null }
+    if ([System.IO.Path]::IsPathRooted([string]$configuredPath)) { return [string]$configuredPath }
+    return (Join-Path $projectRoot ([string]$configuredPath))
+}
+
+function Get-PcaiCudaCapability {
+    try {
+        $cap = nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>$null | Select-Object -First 1
+        if (-not $cap) { return $null }
+        $raw = ([string]$cap).Trim()
+        if (-not $raw) { return $null }
+        if ($raw -match '^(\d+)\.(\d+)$') {
+            return ([int]$Matches[1] * 10 + [int]$Matches[2])
+        }
+        if ($raw -match '^(\d+)$') {
+            return [int]$Matches[1]
+        }
+    } catch {
+        Write-Verbose "Unable to detect CUDA capability via nvidia-smi: $_"
+    }
+    return $null
+}
+
+function Resolve-PcaiRuntimeVariantDll {
+    param(
+        [Parameter(Mandatory)] $Config,
+        [Parameter(Mandatory)][string]$ProjectRoot
+    )
+
+    if (-not $Config -or -not $Config.nativeInference -or -not $Config.nativeInference.runtimeBinarySelection) {
+        return $null
+    }
+
+    $selector = $Config.nativeInference.runtimeBinarySelection
+    if (-not $selector.enabled -or -not $selector.variants) {
+        return $null
+    }
+
+    $capability = Get-PcaiCudaCapability
+    $variants = @($selector.variants)
+
+    $ranked = @()
+    foreach ($v in $variants) {
+        if (-not $v -or -not $v.dllPath) { continue }
+        $kind = if ($v.kind) { [string]$v.kind } else { 'cpu' }
+        $minCompute = if ($null -ne $v.minCompute) { [int]$v.minCompute } else { -1 }
+        $maxCompute = if ($null -ne $v.maxCompute) { [int]$v.maxCompute } else { 9999 }
+        $isEligible = $true
+
+        if ($kind -eq 'cuda') {
+            if ($null -eq $capability) { $isEligible = $false }
+            elseif ($capability -lt $minCompute -or $capability -gt $maxCompute) { $isEligible = $false }
+        }
+
+        if ($isEligible) {
+            $rank = if ($kind -eq 'cuda') { 1000 + $minCompute } else { $minCompute }
+            $ranked += [PSCustomObject]@{
+                Rank = $rank
+                Variant = $v
+            }
+        }
+    }
+
+    if (-not $ranked) { return $null }
+
+    $ordered = $ranked | Sort-Object -Property Rank -Descending
+    foreach ($entry in $ordered) {
+        $selected = $entry.Variant
+        $path = [string]$selected.dllPath
+        if (-not [System.IO.Path]::IsPathRooted($path)) {
+            $path = Join-Path $ProjectRoot $path
+        }
+
+        if (-not (Test-Path $path) -and $selector.autoDownload -and $selected.url) {
+            try {
+                $dir = Split-Path $path -Parent
+                if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+                Write-Verbose "Downloading precompiled runtime variant: $($selected.url)"
+                Invoke-WebRequest -Uri ([string]$selected.url) -OutFile $path -UseBasicParsing -TimeoutSec 600
+            } catch {
+                Write-Warning "Failed to download runtime variant from $($selected.url): $_"
+            }
+        }
+
+        if (-not (Test-Path $path)) {
+            continue
+        }
+
+        # Activate the selected variant by staging it to the canonical bin location
+        # used by both PowerShell and PcaiNative resolver paths.
+        try {
+            $canonical = Join-Path $ProjectRoot 'bin\pcai_inference.dll'
+            $canonicalDir = Split-Path $canonical -Parent
+            if (-not (Test-Path $canonicalDir)) { New-Item -ItemType Directory -Path $canonicalDir -Force | Out-Null }
+            if ((Resolve-Path $path).Path -ne (Resolve-Path $canonical -ErrorAction SilentlyContinue).Path) {
+                Copy-Item -Path $path -Destination $canonical -Force
+                $canonicalLib = Join-Path $ProjectRoot 'bin\pcai_inference_lib.dll'
+                Copy-Item -Path $path -Destination $canonicalLib -Force
+            }
+            return (Resolve-Path $canonical).Path
+        } catch {
+            Write-Verbose "Failed to stage runtime variant to canonical bin path: $_"
+            return (Resolve-Path $path).Path
+        }
+    }
+
+    return $null
+}
+
 function Resolve-PcaiInferenceDll {
     param([string]$OverridePath)
 
@@ -86,15 +224,12 @@ function Resolve-PcaiInferenceDll {
         return $null
     }
 
-    $projectRoot = Split-Path $script:ModulePath -Parent
-    $configPath = Join-Path $projectRoot 'Config\llm-config.json'
-    $config = $null
-    if (Test-Path $configPath) {
-        try {
-            $config = Get-Content $configPath -Raw | ConvertFrom-Json
-        } catch {
-            Write-Verbose "Failed to parse ${configPath}: $_"
-        }
+    $projectRoot = Get-PcaiProjectRoot
+    $config = Get-PcaiConfig
+
+    $runtimeVariant = Resolve-PcaiRuntimeVariantDll -Config $config -ProjectRoot $projectRoot
+    if ($runtimeVariant) {
+        return $runtimeVariant
     }
 
     $candidates = @()
@@ -163,7 +298,7 @@ function Initialize-PcaiFFI {
     }
 
     # Resolve project bin
-    $projectRoot = Split-Path $script:ModulePath -Parent
+    $projectRoot = Get-PcaiProjectRoot
     $projectBin = Join-Path $projectRoot 'bin'
 
     # Ensure PcaiNative.dll is loaded
@@ -193,7 +328,15 @@ function Initialize-PcaiInference {
         [string]$DllPath
     )
 
-    $backendName = if ($Backend -eq 'auto') { 'mistralrs' } else { $Backend }
+    $config = Get-PcaiConfig
+    $nativeCfg = Get-PcaiNativeProviderConfig
+    $configuredBackend = if ($nativeCfg) { $nativeCfg.backend } else { $null }
+    $backendChoice = if ($Backend -eq 'auto') {
+        if ($configuredBackend) { [string]$configuredBackend } else { 'mistralrs' }
+    } else {
+        $Backend
+    }
+    $backendName = $backendChoice
     if ($backendName -eq 'llamacpp') {
         $backendName = 'llama_cpp'
     }
@@ -232,7 +375,7 @@ function Initialize-PcaiInference {
 function Import-PcaiModel {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
+        [Parameter()]
         [string]$ModelPath,
 
         [Parameter()]
@@ -243,6 +386,20 @@ function Import-PcaiModel {
         throw 'Backend not initialized. Call Initialize-PcaiInference first.'
     }
 
+    if (-not $ModelPath) {
+        $ModelPath = Resolve-PcaiModelPathFromConfig
+    }
+    if (-not $PSBoundParameters.ContainsKey('GpuLayers')) {
+        $nativeCfg = Get-PcaiNativeProviderConfig
+        $configuredGpuLayers = if ($nativeCfg) { $nativeCfg.gpuLayers } else { $null }
+        if ($null -ne $configuredGpuLayers) {
+            $GpuLayers = [int]$configuredGpuLayers
+        }
+    }
+
+    if (-not $ModelPath) {
+        throw 'Model path not provided and providers.pcai-native.modelPath is not set in Config\llm-config.json.'
+    }
     if (-not (Test-Path $ModelPath)) {
         throw "Model file not found: $ModelPath"
     }
@@ -284,6 +441,16 @@ function Invoke-PcaiInference {
 
     if (-not $script:ModelLoaded) {
         throw 'Model not loaded. Call Import-PcaiModel first.'
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('MaxTokens') -or -not $PSBoundParameters.ContainsKey('Temperature')) {
+        $nativeCfg = Get-PcaiNativeProviderConfig
+        if (-not $PSBoundParameters.ContainsKey('MaxTokens') -and $nativeCfg -and $null -ne $nativeCfg.defaultMaxTokens) {
+            $MaxTokens = [uint32]$nativeCfg.defaultMaxTokens
+        }
+        if (-not $PSBoundParameters.ContainsKey('Temperature') -and $nativeCfg -and $null -ne $nativeCfg.defaultTemperature) {
+            $Temperature = [float]$nativeCfg.defaultTemperature
+        }
     }
 
     try {
@@ -366,6 +533,16 @@ function Invoke-PcaiGenerateAsync {
 
     if (-not $script:ModelLoaded) {
         throw 'Model not loaded. Call Import-PcaiModel first.'
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('MaxTokens') -or -not $PSBoundParameters.ContainsKey('Temperature')) {
+        $nativeCfg = Get-PcaiNativeProviderConfig
+        if (-not $PSBoundParameters.ContainsKey('MaxTokens') -and $nativeCfg -and $null -ne $nativeCfg.defaultMaxTokens) {
+            $MaxTokens = [uint32]$nativeCfg.defaultMaxTokens
+        }
+        if (-not $PSBoundParameters.ContainsKey('Temperature') -and $nativeCfg -and $null -ne $nativeCfg.defaultTemperature) {
+            $Temperature = [float]$nativeCfg.defaultTemperature
+        }
     }
 
     try {

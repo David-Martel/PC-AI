@@ -28,9 +28,9 @@ reqwest.workspace = true
 axum = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 
-# Backend: llama.cpp (optional) - CUDA disabled by default for CPU-only builds
-llama-cpp-2 = { workspace = true, optional = true }
-encoding_rs = { workspace = true, optional = true }
+# Backend: llama-rs/llm (optional)
+llm = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
 
 # Backend: mistral.rs (optional)
 # Switched from local path to external crate as per USER directive
@@ -43,10 +43,10 @@ dirs = "5.0"
 
 [features]
 default = ["server"]
-llamacpp = ["dep:llama-cpp-2", "dep:encoding_rs"]
+llamacpp = ["dep:llm", "dep:rand"]
 mistralrs-backend = ["dep:mistralrs", "dep:mistralrs-core"]
 # CUDA feature gates GPU acceleration for backends
-cuda-llamacpp = ["llama-cpp-2/cuda"]
+cuda-llamacpp = ["llamacpp", "llm/cublas"]
 cuda-mistralrs = ["mistralrs/cuda", "mistralrs-core/cuda"]
 # Back-compat umbrella feature
 cuda = ["cuda-llamacpp", "cuda-mistralrs"]

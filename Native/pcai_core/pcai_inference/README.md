@@ -5,7 +5,7 @@ Dual-backend LLM inference engine for PC diagnostics with native Rust performanc
 ## Features
 
 - **Dual Backend Support**
-  - llama.cpp via `llama-cpp-2` (feature: `llamacpp`)
+  - llama-rs (`llm`) via the `llamacpp` compatibility feature
   - mistral.rs (feature: `mistralrs-backend`)
 
 - **Flexible Deployment**
@@ -76,13 +76,35 @@ curl -X POST http://localhost:8080/v1/completions \
 
 | Feature | Description | Default |
 |---------|-------------|---------|
-| `llamacpp` | llama.cpp backend via llama-cpp-2 | Yes |
+| `llamacpp` | llama-rs (`llm`) compatibility backend | Yes |
 | `mistralrs-backend` | mistral.rs backend | No |
-| `cuda-llamacpp` | CUDA for llama.cpp backend | No |
+| `cuda-llamacpp` | CUDA (cuBLAS) for llama-rs backend | No |
 | `cuda-mistralrs` | CUDA for mistral.rs backend | No |
 | `cuda` | CUDA GPU acceleration (umbrella) | No |
 | `server` | HTTP server with Axum | Yes |
 | `ffi` | C FFI exports for PowerShell | No |
+
+## CUDA Target Selection
+
+When building with `cuda-llamacpp`, CUDA arch targets are selected by the vendored
+`ggml-sys` build script in this order:
+
+1. `GGML_CUDA_ARCH_LIST` (comma/semicolon/space-separated values such as `75,86,89`)
+2. `PCAI_CUDA_ARCH_LIST` (same format)
+3. Auto-detection via `nvidia-smi --query-gpu=compute_cap`
+4. Fallback list: `61,70,75,80,86`
+
+Examples:
+
+```bash
+# Build for a single target (RTX 4000 / Turing)
+set GGML_CUDA_ARCH_LIST=75
+cargo build --release --features "llamacpp,ffi,cuda-llamacpp"
+
+# Build a multi-arch binary
+set GGML_CUDA_ARCH_LIST=75,86,89,120
+cargo build --release --features "llamacpp,ffi,cuda-llamacpp"
+```
 
 ## Development
 

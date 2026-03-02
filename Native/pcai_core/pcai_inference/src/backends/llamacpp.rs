@@ -1,61 +1,254 @@
-//! llama.cpp backend implementation
+//! `llamacpp` compatibility backend implemented with llama-rs (`llm` crate).
 
 use async_trait::async_trait;
-use std::num::NonZeroU32;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-
-use llama_cpp_2::context::params::LlamaContextParams;
-use llama_cpp_2::context::LlamaContext;
-use llama_cpp_2::llama_backend::LlamaBackend as LlamaCppBackend_;
-use llama_cpp_2::llama_batch::LlamaBatch;
-use llama_cpp_2::model::params::LlamaModelParams;
-use llama_cpp_2::model::{AddBos, LlamaModel, Special};
-use llama_cpp_2::sampling::LlamaSampler;
+use llm::{
+    InferenceFeedback, InferenceParameters, InferenceRequest, InferenceResponse, InferenceSessionConfig,
+    Model, ModelArchitecture, ModelParameters, OutputRequest, TokenizerSource,
+};
+use rand::{rngs::StdRng, SeedableRng};
+use serde::Deserialize;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use super::{FinishReason, GenerateRequest, GenerateResponse, InferenceBackend};
 use crate::{Error, Result};
 
-/// llama.cpp backend implementation
+#[derive(Debug, Clone, Default)]
+struct LlamaRsRuntimeConfig {
+    architecture: Option<ModelArchitecture>,
+    sampler_options: Option<Vec<String>>,
+    seed: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct LlmConfigFile {
+    #[serde(rename = "nativeInference", default)]
+    native_inference: NativeInferenceConfigFile,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct NativeInferenceConfigFile {
+    #[serde(default)]
+    backends: NativeBackendsConfigFile,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct NativeBackendsConfigFile {
+    #[serde(default)]
+    llamacpp: NativeLlamaCppConfigFile,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct NativeLlamaCppConfigFile {
+    #[serde(default)]
+    settings: NativeLlamaCppSettingsFile,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct NativeLlamaCppSettingsFile {
+    architecture: Option<String>,
+    n_ctx: Option<u32>,
+    n_batch: Option<u32>,
+    n_gpu_layers: Option<i32>,
+    #[serde(default, alias = "samplerOptions")]
+    samplers: Vec<String>,
+    #[serde(alias = "randomSeed")]
+    seed: Option<u64>,
+}
+
+/// Compatibility backend for the existing `llamacpp` feature/identifier.
+///
+/// Internally this backend uses `llama-rs` (`llm`) instead of `llama-cpp-2`.
 pub struct LlamaCppBackend {
-    /// Global llama.cpp backend (initialized once)
-    backend: Arc<LlamaCppBackend_>,
-    /// Loaded model (heap-allocated for stable address)
-    model: Option<Box<LlamaModel>>,
-    /// Inference context
-    context: Arc<Mutex<Option<LlamaContext<'static>>>>,
-    /// Model path
+    /// Loaded model.
+    model: Option<Arc<dyn Model>>,
+    /// Model path.
     model_path: Option<PathBuf>,
-    /// GPU layers to offload (-1 = all)
+    /// Detected or configured model architecture.
+    architecture: Option<ModelArchitecture>,
+    /// GPU layers to offload (`u32::MAX` = all layers, `0` = CPU only).
     n_gpu_layers: u32,
-    /// Context size
+    /// Context size.
     n_ctx: u32,
-    /// Batch size
+    /// Batch size.
     n_batch: u32,
+    /// Runtime controls loaded from config.
+    runtime_config: LlamaRsRuntimeConfig,
 }
 
 impl LlamaCppBackend {
-    /// Create a new llama.cpp backend
+    /// Create a new backend with defaults.
     pub fn new() -> Self {
         Self::with_config(u32::MAX, 8192, 2048)
     }
 
-    /// Create a new llama.cpp backend with custom configuration
+    /// Create a new backend with custom configuration.
     pub fn with_config(n_gpu_layers: u32, n_ctx: u32, n_batch: u32) -> Self {
-        let backend = LlamaCppBackend_::init().expect("Failed to initialize llama.cpp backend");
-
         Self {
-            backend: Arc::new(backend),
             model: None,
-            context: Arc::new(Mutex::new(None)),
             model_path: None,
+            architecture: None,
             n_gpu_layers,
             n_ctx,
             n_batch,
+            runtime_config: LlamaRsRuntimeConfig::default(),
         }
     }
 
-    /// Generate text with streaming callback
+    fn find_llm_config_path() -> Option<PathBuf> {
+        let mut candidates: Vec<PathBuf> = Vec::new();
+
+        if let Ok(cwd) = std::env::current_dir() {
+            candidates.push(cwd);
+        }
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(parent) = exe.parent() {
+                candidates.push(parent.to_path_buf());
+            }
+        }
+
+        for mut start in candidates {
+            for _ in 0..8 {
+                let candidate = start.join("Config").join("llm-config.json");
+                if candidate.exists() {
+                    return Some(candidate);
+                }
+                if !start.pop() {
+                    break;
+                }
+            }
+        }
+
+        None
+    }
+
+    fn load_llama_cpp_settings() -> Option<NativeLlamaCppSettingsFile> {
+        let config_path = Self::find_llm_config_path()?;
+        let raw = std::fs::read_to_string(&config_path).ok()?;
+        let cfg: LlmConfigFile = serde_json::from_str(&raw).ok()?;
+        Some(cfg.native_inference.backends.llamacpp.settings)
+    }
+
+    fn apply_runtime_settings(&mut self) {
+        let Some(settings) = Self::load_llama_cpp_settings() else {
+            return;
+        };
+
+        if let Some(n_ctx) = settings.n_ctx {
+            self.n_ctx = n_ctx;
+        }
+        if let Some(n_batch) = settings.n_batch {
+            self.n_batch = n_batch;
+        }
+        if let Some(n_gpu_layers) = settings.n_gpu_layers {
+            self.n_gpu_layers = if n_gpu_layers < 0 {
+                u32::MAX
+            } else {
+                n_gpu_layers as u32
+            };
+        }
+
+        if let Some(arch_text) = settings.architecture.as_deref() {
+            match arch_text.parse::<ModelArchitecture>() {
+                Ok(arch) => {
+                    self.runtime_config.architecture = Some(arch);
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "Invalid nativeInference.backends.llamacpp.settings.architecture='{}': {}",
+                        arch_text,
+                        e
+                    );
+                }
+            }
+        }
+
+        if !settings.samplers.is_empty() {
+            self.runtime_config.sampler_options = Some(settings.samplers.clone());
+        }
+        self.runtime_config.seed = settings.seed;
+    }
+
+    fn resolve_architecture(&self, model_path: &Path) -> Result<ModelArchitecture> {
+        if let Some(arch) = self.runtime_config.architecture {
+            return Ok(arch);
+        }
+
+        let name = model_path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_lowercase())
+            .unwrap_or_default();
+
+        let guesses = [
+            ("gptneox", "gptneox"),
+            ("neox", "gptneox"),
+            ("gpt-j", "gptj"),
+            ("gptj", "gptj"),
+            ("gpt2", "gpt2"),
+            ("bloom", "bloom"),
+            ("mpt", "mpt"),
+            ("falcon", "falcon"),
+            ("llama", "llama"),
+            ("alpaca", "llama"),
+            ("vicuna", "llama"),
+        ];
+
+        for (marker, arch_name) in guesses {
+            if name.contains(marker) {
+                if let Ok(arch) = arch_name.parse::<ModelArchitecture>() {
+                    return Ok(arch);
+                }
+            }
+        }
+
+        "llama"
+            .parse::<ModelArchitecture>()
+            .map_err(|e| Error::Backend(format!("Failed to resolve llama-rs architecture: {}", e)))
+    }
+
+    fn model_parameters(&self) -> ModelParameters {
+        #[cfg(feature = "cuda-llamacpp")]
+        let use_gpu = self.n_gpu_layers != 0;
+        #[cfg(not(feature = "cuda-llamacpp"))]
+        let use_gpu = false;
+
+        let gpu_layers = if !use_gpu {
+            None
+        } else if self.n_gpu_layers == u32::MAX {
+            None
+        } else {
+            Some(self.n_gpu_layers as usize)
+        };
+
+        ModelParameters {
+            context_size: self.n_ctx as usize,
+            use_gpu,
+            gpu_layers,
+            ..Default::default()
+        }
+    }
+
+    fn session_config(&self) -> InferenceSessionConfig {
+        let n_threads = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(8);
+
+        InferenceSessionConfig {
+            n_batch: self.n_batch as usize,
+            n_threads,
+            ..Default::default()
+        }
+    }
+
+    fn stop_match_index(text: &str, stops: &[String]) -> Option<usize> {
+        stops
+            .iter()
+            .filter(|s| !s.is_empty())
+            .filter_map(|s| text.find(s))
+            .min()
+    }
+
+    /// Generate text with streaming callback.
     pub async fn generate_streaming_internal<F>(
         &self,
         request: GenerateRequest,
@@ -67,98 +260,98 @@ impl LlamaCppBackend {
         let model = self
             .model
             .as_ref()
+            .cloned()
             .ok_or_else(|| Error::Backend("No model loaded".to_string()))?;
 
-        let context = self.context.clone();
-        let mut ctx_guard = context
-            .lock()
-            .map_err(|e| Error::Backend(format!("Failed to lock context: {}", e)))?;
-        let ctx = ctx_guard
-            .as_mut()
-            .ok_or_else(|| Error::Backend("No context available".to_string()))?;
-
-        // Tokenize prompt
-        let tokens_list = model
-            .str_to_token(&request.prompt, AddBos::Always)
-            .map_err(|e| Error::Backend(format!("Tokenization failed: {:?}", e)))?;
-
-        tracing::info!("Tokenized prompt: {} tokens", tokens_list.len());
-
-        // Create batch and add prompt tokens
-        let mut batch = LlamaBatch::new(self.n_batch as usize, 1);
-        let last_index = tokens_list.len() as i32 - 1;
-
-        for (i, token) in (0_i32..).zip(tokens_list.into_iter()) {
-            let is_last = i == last_index;
-            batch
-                .add(token, i, &[0], is_last)
-                .map_err(|e| Error::Backend(format!("Batch add failed: {:?}", e)))?;
-        }
-
-        // Decode prompt
-        ctx.decode(&mut batch)
-            .map_err(|e| Error::Backend(format!("Decode failed: {:?}", e)))?;
-
-        // Generate tokens
         let max_tokens = request.max_tokens.unwrap_or(512);
         let temperature = request.temperature.unwrap_or(0.7);
         let top_p = request.top_p.unwrap_or(0.9);
+        let stop_sequences = request.stop.clone();
 
-        let mut n_cur = batch.n_tokens();
-        let mut generated_text = String::new();
-        let mut tokens_generated = 0;
-        let mut finish_reason = FinishReason::Length;
+        let sampler_options = self
+            .runtime_config
+            .sampler_options
+            .clone()
+            .unwrap_or_else(|| {
+                vec![
+                    format!("temperature:{}", temperature),
+                    format!("top-p:p={}", top_p),
+                ]
+            });
 
-        // Create sampler chain: temp -> top_p -> dist
-        let mut sampler = if temperature <= 0.0 {
-            LlamaSampler::greedy()
-        } else {
-            LlamaSampler::chain_simple(vec![
-                LlamaSampler::temp(temperature),
-                LlamaSampler::top_p(top_p, 1),
-                LlamaSampler::dist(42), // seed
-            ])
+        let sampler = llm::samplers::build_sampler(model.tokenizer().len(), &[], &sampler_options)
+            .map_err(|e| Error::Backend(format!("Failed to build llama-rs sampler chain: {}", e)))?;
+
+        let inference_parameters = InferenceParameters { sampler };
+        let inference_request = InferenceRequest {
+            prompt: request.prompt.as_str().into(),
+            parameters: &inference_parameters,
+            play_back_previous_tokens: false,
+            maximum_token_count: Some(max_tokens),
         };
 
-        while tokens_generated < max_tokens {
-            // Sample next token
-            let token = sampler.sample(ctx, batch.n_tokens() - 1);
-            sampler.accept(token);
+        let mut output_request = OutputRequest::default();
+        let mut session = model.start_session(self.session_config());
+        let mut rng = self
+            .runtime_config
+            .seed
+            .map(StdRng::seed_from_u64)
+            .unwrap_or_else(StdRng::from_entropy);
 
-            // Check for EOS or stop sequences
-            if token == model.token_eos() {
-                finish_reason = FinishReason::Stop;
-                break;
-            }
+        let mut generated_text = String::new();
+        let mut tokens_generated = 0usize;
+        let mut finish_reason = FinishReason::Length;
 
-            // Decode token to text
-            let token_str = model
-                .token_to_str(token, Special::Tokenize)
-                .map_err(|e| Error::Backend(format!("Token decode failed: {:?}", e)))?;
+        session
+            .infer::<std::convert::Infallible>(
+                model.as_ref(),
+                &mut rng,
+                &inference_request,
+                &mut output_request,
+                |response| match response {
+                    InferenceResponse::InferredToken(token) => {
+                        tokens_generated += 1;
 
-            // Check stop sequences
-            if !request.stop.is_empty() {
-                let potential_text = format!("{}{}", generated_text, token_str);
-                if request.stop.iter().any(|s| potential_text.contains(s)) {
-                    finish_reason = FinishReason::Stop;
-                    break;
-                }
-            }
+                        if stop_sequences.is_empty() {
+                            generated_text.push_str(&token);
+                            if !token.is_empty() {
+                                callback(token);
+                            }
+                            return Ok(InferenceFeedback::Continue);
+                        }
 
-            generated_text.push_str(&token_str);
-            callback(token_str);
-            tokens_generated += 1;
+                        let mut candidate = generated_text.clone();
+                        candidate.push_str(&token);
 
-            // Add token to batch for next iteration
-            batch.clear();
-            batch
-                .add(token, n_cur, &[0], true)
-                .map_err(|e| Error::Backend(format!("Batch add failed: {:?}", e)))?;
-            n_cur += 1;
+                        if let Some(stop_idx) = Self::stop_match_index(&candidate, &stop_sequences) {
+                            if stop_idx > generated_text.len() {
+                                let safe_suffix = &candidate[generated_text.len()..stop_idx];
+                                if !safe_suffix.is_empty() {
+                                    callback(safe_suffix.to_string());
+                                }
+                            }
+                            generated_text = candidate[..stop_idx].to_string();
+                            finish_reason = FinishReason::Stop;
+                            return Ok(InferenceFeedback::Halt);
+                        }
 
-            // Decode next token
-            ctx.decode(&mut batch)
-                .map_err(|e| Error::Backend(format!("Decode failed: {:?}", e)))?;
+                        generated_text = candidate;
+                        if !token.is_empty() {
+                            callback(token);
+                        }
+                        Ok(InferenceFeedback::Continue)
+                    }
+                    InferenceResponse::EotToken => {
+                        finish_reason = FinishReason::Stop;
+                        Ok(InferenceFeedback::Halt)
+                    }
+                    _ => Ok(InferenceFeedback::Continue),
+                },
+            )
+            .map_err(|e| Error::Backend(format!("Generation failed: {}", e)))?;
+
+        if matches!(finish_reason, FinishReason::Length) && tokens_generated < max_tokens {
+            finish_reason = FinishReason::Stop;
         }
 
         Ok(GenerateResponse {
@@ -178,59 +371,38 @@ impl Default for LlamaCppBackend {
 #[async_trait]
 impl InferenceBackend for LlamaCppBackend {
     async fn load_model(&mut self, model_path: &str) -> Result<()> {
-        tracing::info!("Loading model from: {}", model_path);
+        self.apply_runtime_settings();
 
-        // Configure model parameters
-        let mut params = LlamaModelParams::default();
-        params = params.with_n_gpu_layers(self.n_gpu_layers);
+        let path = PathBuf::from(model_path);
+        if !path.exists() {
+            return Err(Error::Backend(format!(
+                "Model path does not exist: {}",
+                path.display()
+            )));
+        }
 
-        // Load model
-        let model = LlamaModel::load_from_file(&self.backend, model_path, &params)
-            .map_err(|e| Error::Backend(format!("Failed to load model: {:?}", e)))?;
+        tracing::info!("Loading llama-rs model from: {}", path.display());
 
-        tracing::info!(
-            "Model loaded: {} params, {} layers, vocab size: {}",
-            model.n_params(),
-            model.n_layer(),
-            model.n_vocab()
-        );
+        let architecture = self.resolve_architecture(&path)?;
+        let model_params = self.model_parameters();
 
-        // Create context
-        let mut ctx_params = LlamaContextParams::default();
-        ctx_params = ctx_params
-            .with_n_ctx(NonZeroU32::new(self.n_ctx))
-            .with_n_batch(self.n_batch);
+        let loaded_model = llm::load_dynamic(
+            Some(architecture),
+            path.as_path(),
+            TokenizerSource::Embedded,
+            model_params,
+            |_| {},
+        )
+        .map_err(|e| Error::Backend(format!("Failed to load model via llama-rs: {}", e)))?;
 
-        // Heap-allocate the model to get a stable address
-        let model_box = Box::new(model);
-
-        // SAFETY: We leak the box to get a 'static reference, which is required by LlamaContext.
-        // This is safe because:
-        // 1. We maintain ownership via self.model
-        // 2. We drop the context before the model in unload_model()
-        // 3. The Box ensures the model has a stable memory address
-        let model_static: &'static LlamaModel = Box::leak(model_box);
-
-        let context = model_static
-            .new_context(&self.backend, ctx_params)
-            .map_err(|e| Error::Backend(format!("Failed to create context: {:?}", e)))?;
-
-        tracing::info!("Context created: n_ctx={}, n_batch={}", self.n_ctx, self.n_batch);
-
-        // Store the leaked box and context
-        // We'll manually drop the box in unload_model after dropping the context
-        self.model = Some(unsafe { Box::from_raw(model_static as *const _ as *mut LlamaModel) });
-        *self
-            .context
-            .lock()
-            .map_err(|e| Error::Backend(format!("Failed to lock context: {}", e)))? = Some(context);
-        self.model_path = Some(PathBuf::from(model_path));
+        self.model = Some(Arc::from(loaded_model));
+        self.model_path = Some(path);
+        self.architecture = Some(architecture);
 
         Ok(())
     }
 
     async fn generate(&self, request: GenerateRequest) -> Result<GenerateResponse> {
-        // Use streaming version with no-op callback
         self.generate_streaming_internal(request, |_| {}).await
     }
 
@@ -239,22 +411,14 @@ impl InferenceBackend for LlamaCppBackend {
         request: GenerateRequest,
         callback: &mut (dyn FnMut(String) + Send),
     ) -> Result<GenerateResponse> {
-        self.generate_streaming_internal(request, |token| callback(token)).await
+        self.generate_streaming_internal(request, |token| callback(token))
+            .await
     }
 
     async fn unload_model(&mut self) -> Result<()> {
-        tracing::info!("Unloading model");
-
-        // Drop context first
-        *self
-            .context
-            .lock()
-            .map_err(|e| Error::Backend(format!("Failed to lock context: {}", e)))? = None;
-
-        // Drop model
         self.model = None;
         self.model_path = None;
-
+        self.architecture = None;
         Ok(())
     }
 
@@ -263,13 +427,10 @@ impl InferenceBackend for LlamaCppBackend {
     }
 
     fn backend_name(&self) -> &'static str {
+        // Preserve existing external backend name for compatibility with current FFI and PS wrappers.
         "llama.cpp"
     }
 }
-
-// Thread-safety: LlamaCppBackend is Send + Sync due to Arc/Mutex
-unsafe impl Send for LlamaCppBackend {}
-unsafe impl Sync for LlamaCppBackend {}
 
 #[cfg(test)]
 mod tests {

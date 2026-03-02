@@ -55,7 +55,7 @@ function Resolve-PcaiEndpoint {
         if ($ProviderName) {
             switch ($ProviderName) {
                 'pcai-inference' { if ($script:ModuleConfig.PcaiInferenceApiUrl) { $ApiUrl = $script:ModuleConfig.PcaiInferenceApiUrl } }
-                'ollama' { if ($script:ModuleConfig.PcaiInferenceApiUrl) { $ApiUrl = $script:ModuleConfig.PcaiInferenceApiUrl } }
+                'ollama' { if ($script:ModuleConfig.OllamaApiUrl) { $ApiUrl = $script:ModuleConfig.OllamaApiUrl } }
                 'functiongemma' {
                     if ($script:ModuleConfig.RouterApiUrl) { $ApiUrl = $script:ModuleConfig.RouterApiUrl }
                     elseif ($script:ModuleConfig.VLLMApiUrl) { $ApiUrl = $script:ModuleConfig.VLLMApiUrl }
@@ -1088,6 +1088,21 @@ function Invoke-LLMChatWithFallback {
     } else {
         @($Provider)
     }
+    $providers = @(
+        $providers |
+            ForEach-Object {
+                switch ($_) {
+                    'pcai-native' { 'ollama' }
+                    'functiongemma' { 'vllm' }
+                    default { $_ }
+                }
+            } |
+            Where-Object { $_ -in @('pcai-inference', 'ollama', 'vllm', 'lmstudio') } |
+            Select-Object -Unique
+    )
+    if (-not $providers -or $providers.Count -eq 0) {
+        $providers = @('ollama', 'pcai-inference')
+    }
 
     foreach ($p in $providers) {
         switch ($p) {
@@ -1100,10 +1115,10 @@ function Invoke-LLMChatWithFallback {
                 }
             }
             'ollama' {
-                if (Get-CachedProviderHealth -Provider 'ollama' -TimeoutSeconds ([math]::Min($TimeoutSeconds, 10)) -ApiUrl $script:ModuleConfig.PcaiInferenceApiUrl) {
+                if (Get-CachedProviderHealth -Provider 'ollama' -TimeoutSeconds ([math]::Min($TimeoutSeconds, 10)) -ApiUrl $script:ModuleConfig.OllamaApiUrl) {
                     $modelToUse = if ($Model) { $Model } else { $script:ModuleConfig.DefaultModel }
-                    $resp = Invoke-OpenAIChat -Messages $Messages -Model $modelToUse -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $script:ModuleConfig.PcaiInferenceApiUrl
-                    $resp | Add-Member -MemberType NoteProperty -Name Provider -Value 'pcai-inference' -Force
+                    $resp = Invoke-OpenAIChat -Messages $Messages -Model $modelToUse -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $script:ModuleConfig.OllamaApiUrl
+                    $resp | Add-Member -MemberType NoteProperty -Name Provider -Value 'ollama' -Force
                     return $resp
                 }
             }

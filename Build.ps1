@@ -1247,6 +1247,12 @@ function Invoke-InferenceBuild {
         if (Test-Path $libDllPath) {
             Copy-Item $libDllPath -Destination $artifactDir -Force
             $artifacts += 'pcai_inference_lib.dll'
+            # Compatibility alias: some build paths emit only pcai_inference_lib.dll.
+            # Stage a pcai_inference.dll copy for PcaiNative P/Invoke resolution.
+            if (-not (Test-Path $dllPath)) {
+                Copy-Item $libDllPath -Destination (Join-Path $artifactDir 'pcai_inference.dll') -Force
+                $artifacts += 'pcai_inference.dll'
+            }
         }
 
         $status = if ($success) { 'success' } else { 'error' }

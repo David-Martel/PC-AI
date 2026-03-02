@@ -119,9 +119,32 @@ function Resolve-PcaiInferenceDll {
         (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.local\bin\pcai_inference.dll')
     ) | Where-Object { $_ }
 
+    $libCandidates = @(
+        (Join-Path $projectRoot 'bin\pcai_inference_lib.dll'),
+        (Join-Path $projectRoot 'bin\Release\pcai_inference_lib.dll'),
+        (Join-Path $projectRoot 'bin\Debug\pcai_inference_lib.dll'),
+        (Join-Path $projectRoot '.pcai\build\artifacts\pcai-llamacpp\pcai_inference_lib.dll'),
+        (Join-Path $projectRoot '.pcai\build\artifacts\pcai-mistralrs\pcai_inference_lib.dll'),
+        (Join-Path $projectRoot 'Native\pcai_core\pcai_inference\target\release\pcai_inference_lib.dll'),
+        (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.local\bin\pcai_inference_lib.dll')
+    ) | Where-Object { $_ }
+
     foreach ($candidate in $candidates) {
         if (Test-Path $candidate) {
             return (Resolve-Path $candidate).Path
+        }
+    }
+
+    # Compatibility fallback: if only pcai_inference_lib.dll exists, create a local
+    # alias as pcai_inference.dll for P/Invoke binding and return that path.
+    foreach ($libCandidate in $libCandidates) {
+        if (-not (Test-Path $libCandidate)) { continue }
+        $dllAlias = Join-Path (Split-Path $libCandidate -Parent) 'pcai_inference.dll'
+        if (-not (Test-Path $dllAlias)) {
+            try { Copy-Item $libCandidate -Destination $dllAlias -Force } catch {}
+        }
+        if (Test-Path $dllAlias) {
+            return (Resolve-Path $dllAlias).Path
         }
     }
 

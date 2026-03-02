@@ -5,6 +5,7 @@ members = [
     "pcai_inference",
     "pcai_media_model",
     "pcai_media",
+    "pcai_media_server",
 ]
 
 [workspace.package]

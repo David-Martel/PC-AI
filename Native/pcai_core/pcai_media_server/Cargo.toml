@@ -1,0 +1,25 @@
+[package]
+name = "pcai-media-server"
+version = "0.1.0"
+edition = "2021"
+description = "HTTP server for Janus-Pro media inference"
+license = "MIT"
+
+[[bin]]
+name = "pcai-media"
+path = "src/main.rs"
+
+[dependencies]
+pcai-media = { path = "../pcai_media", default-features = false, features = ["server"] }
+pcai-media-model = { path = "../pcai_media_model" }
+anyhow = "1.0"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+axum = "0.7"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+clap = { version = "4", features = ["derive"] }
+base64 = "0.22"
+image = "0.25"

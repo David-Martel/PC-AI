@@ -4047,6 +4047,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pcai-media-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.22.1",
+ "clap",
+ "image",
+ "pcai-media",
+ "pcai-media-model",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "pcai_core_lib"
 version = "0.1.0"
 dependencies = [

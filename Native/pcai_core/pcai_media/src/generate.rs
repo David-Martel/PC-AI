@@ -477,7 +477,7 @@ fn multinomial_sample(probs: &Tensor) -> Result<Vec<u32>> {
 ///
 /// Uses [`std::collections::hash_map::DefaultHasher`] seeded from the
 /// current system time and thread ID.  Not suitable for cryptographic use.
-fn rand_val() -> f64 {
+pub(crate) fn rand_val() -> f64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
     use std::time::SystemTime;

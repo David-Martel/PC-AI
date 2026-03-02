@@ -4,6 +4,7 @@ members = [
     "pcai_core_lib",
     "pcai_inference",
     "pcai_media_model",
+    "pcai_media",
 ]
 
 [workspace.package]

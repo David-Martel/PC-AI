@@ -1,0 +1,47 @@
+[package]
+name = "pcai-media"
+version = "0.1.0"
+edition = "2021"
+description = "Janus-Pro media pipeline with FFI and HTTP support"
+license = "MIT"
+
+[lib]
+name = "pcai_media"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pcai-media-model = { path = "../pcai_media_model" }
+anyhow = "1.0"
+thiserror = "2.0"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+
+candle-core = { version = "0.9" }
+candle-nn = "0.9"
+candle-transformers = "0.9"
+safetensors = "0.4"
+tokenizers = "0.20"
+image = "0.25"
+hf-hub = "0.4"
+memmap2 = "0.9"
+
+[features]
+default = ["ffi"]
+ffi = []
+server = ["dep:axum", "dep:tower-http"]
+cuda = ["candle-core/cuda", "pcai-media-model/cuda"]
+flash-attn = ["pcai-media-model/flash-attn"]
+
+[dependencies.axum]
+version = "0.7"
+optional = true
+
+[dependencies.tower-http]
+version = "0.6"
+features = ["cors", "trace"]
+optional = true
+
+[dev-dependencies]
+tempfile = "3"

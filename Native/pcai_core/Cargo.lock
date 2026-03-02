@@ -1597,6 +1597,9 @@ name = "esaxx-rs"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d817e038c30374a4bcb22f94d0a8a0e216958d4c3dcde369b1439fec4bdda6e6"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "exr"
@@ -2321,6 +2324,7 @@ dependencies = [
  "indicatif 0.17.11",
  "libc",
  "log",
+ "native-tls",
  "num_cpus",
  "rand 0.9.2",
  "reqwest 0.12.28",
@@ -2795,6 +2799,24 @@ name = "itertools"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
 dependencies = [
  "either",
 ]
@@ -3988,6 +4010,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "pcai-media"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "candle-core",
+ "candle-nn",
+ "candle-transformers",
+ "hf-hub",
+ "image",
+ "memmap2 0.9.9",
+ "pcai-media-model",
+ "safetensors 0.4.5",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokenizers 0.20.4",
+ "tokio",
+ "tower-http",
+ "tracing",
+]
+
+[[package]]
 name = "pcai-media-model"
 version = "0.1.0"
 dependencies = [
@@ -4553,6 +4599,17 @@ checksum = "fd1259362c9065e5ea39a789ef40b1e3fd934c94beb7b5ab3ac6629d3b5e7cb7"
 dependencies = [
  "either",
  "itertools 0.8.2",
+ "rayon",
+]
+
+[[package]]
+name = "rayon-cond"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "059f538b55efd2309c9794130bc149c6a553db90e9d99c2030785c82f0bd7df9"
+dependencies = [
+ "either",
+ "itertools 0.11.0",
  "rayon",
 ]
 
@@ -6070,6 +6127,38 @@ dependencies = [
 
 [[package]]
 name = "tokenizers"
+version = "0.20.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b08cc37428a476fc9e20ac850132a513a2e1ce32b6a31addf2b74fa7033b905"
+dependencies = [
+ "aho-corasick 1.1.4",
+ "derive_builder 0.20.2",
+ "esaxx-rs",
+ "getrandom 0.2.17",
+ "indicatif 0.17.11",
+ "itertools 0.12.1",
+ "lazy_static",
+ "log",
+ "macro_rules_attribute 0.2.2",
+ "monostate",
+ "onig",
+ "paste",
+ "rand 0.8.5",
+ "rayon",
+ "rayon-cond 0.3.0",
+ "regex",
+ "regex-syntax 0.8.8",
+ "serde",
+ "serde_json",
+ "spm_precompiled",
+ "thiserror 1.0.69",
+ "unicode-normalization-alignments",
+ "unicode-segmentation",
+ "unicode_categories",
+]
+
+[[package]]
+name = "tokenizers"
 version = "0.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a620b996116a59e184c2fa2dfd8251ea34a36d0a514758c6f966386bd2e03476"
@@ -6548,6 +6637,7 @@ dependencies = [
  "base64 0.22.1",
  "flate2",
  "log",
+ "native-tls",
  "once_cell",
  "rustls",
  "rustls-pki-types",

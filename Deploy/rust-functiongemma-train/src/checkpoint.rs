@@ -54,8 +54,7 @@ impl Checkpoint {
             .with_context(|| format!("Failed to create checkpoint directory: {}", path.display()))?;
 
         let metadata_path = path.join("metadata.json");
-        let json = serde_json::to_string_pretty(self)
-            .context("Failed to serialize checkpoint metadata")?;
+        let json = serde_json::to_string_pretty(self).context("Failed to serialize checkpoint metadata")?;
 
         fs::write(&metadata_path, json)
             .with_context(|| format!("Failed to write checkpoint metadata to {}", metadata_path.display()))?;

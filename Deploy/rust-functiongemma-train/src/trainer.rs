@@ -1,17 +1,17 @@
-use anyhow::Result;
-use candle_core::{Device, DType, Var};
-use candle_nn::{Optimizer, VarMap};
-use rust_functiongemma_core::model::{Model, Config};
-use crate::dataset::Dataset;
-use tokenizers::Tokenizer;
-use crate::scheduler::{LRScheduler, SchedulerConfig, SchedulerType};
 use crate::checkpoint::{Checkpoint, CheckpointConfig};
+use crate::dataset::Dataset;
 use crate::early_stopping::{EarlyStopping, EarlyStoppingConfig};
-use std::path::PathBuf;
+use crate::scheduler::{LRScheduler, SchedulerConfig, SchedulerType};
+use anyhow::Result;
+use candle_core::{DType, Device, Var};
+use candle_nn::{Optimizer, VarMap};
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
-use std::io::{self, Write};
 use rust_functiongemma_core::gpu::cuda_mem_snapshot;
+use rust_functiongemma_core::model::{Config, Model};
+use std::io::{self, Write};
+use std::path::PathBuf;
+use tokenizers::Tokenizer;
 
 pub struct TrainerConfig {
     pub lr: f64,
@@ -190,7 +190,12 @@ impl<'a> Trainer<'a> {
         Ok(vars)
     }
 
-    pub fn train(&mut self, dataset: &Dataset, tokenizer: Option<&Tokenizer>, eval_dataset: Option<&Dataset>) -> Result<()> {
+    pub fn train(
+        &mut self,
+        dataset: &Dataset,
+        tokenizer: Option<&Tokenizer>,
+        eval_dataset: Option<&Dataset>,
+    ) -> Result<()> {
         if self.trainer_cfg.use_4bit {
             println!("QLoRA 4-bit enabled.");
         }
@@ -220,8 +225,7 @@ impl<'a> Trainer<'a> {
             } else {
                 println!(
                     "Warning: warmup_steps ({}) exceeds total_steps ({}). Clamping.",
-                    warmup_steps,
-                    total_steps
+                    warmup_steps, total_steps
                 );
             }
             warmup_steps = total_steps;
@@ -296,7 +300,9 @@ impl<'a> Trainer<'a> {
                     let logits = self.model.forward(&inputs)?;
                     let (loss, loss_val, mask_sum) = self.compute_loss(&logits, &targets, &loss_mask)?;
                     if mask_sum == 0.0 {
-                        return Err(anyhow::anyhow!("Loss mask sum is zero; check dataset/tokenization alignment."));
+                        return Err(anyhow::anyhow!(
+                            "Loss mask sum is zero; check dataset/tokenization alignment."
+                        ));
                     }
 
                     epoch_loss += loss_val;
@@ -400,10 +406,7 @@ impl<'a> Trainer<'a> {
         // Save final checkpoint
         self.save_checkpoint(last_epoch, best_loss)?;
         if self.trainer_cfg.progress_json {
-            println!(
-                "{{\"event\":\"train_complete\",\"best_loss\":{:.6}}}",
-                best_loss
-            );
+            println!("{{\"event\":\"train_complete\",\"best_loss\":{:.6}}}", best_loss);
         } else {
             println!("Training completed. Best loss: {:.4}", best_loss);
         }
@@ -411,7 +414,12 @@ impl<'a> Trainer<'a> {
         Ok(())
     }
 
-    fn compute_loss(&self, logits: &candle_core::Tensor, targets: &candle_core::Tensor, loss_mask: &candle_core::Tensor) -> Result<(candle_core::Tensor, f64, f64)> {
+    fn compute_loss(
+        &self,
+        logits: &candle_core::Tensor,
+        targets: &candle_core::Tensor,
+        loss_mask: &candle_core::Tensor,
+    ) -> Result<(candle_core::Tensor, f64, f64)> {
         let (b, s, v) = logits.dims3()?;
         let logits_flat = logits.reshape((b * s, v))?;
         let logits_for_loss = if self.trainer_cfg.loss_in_f32 && logits_flat.dtype() != candle_core::DType::F32 {
@@ -583,7 +591,9 @@ impl<'a> Trainer<'a> {
             let logits = self.model.forward(&inputs)?;
             let (_, loss_val, mask_sum) = self.compute_loss(&logits, &targets, &loss_mask)?;
             if mask_sum == 0.0 {
-                return Err(anyhow::anyhow!("Eval batch has zero loss mask sum; check dataset/tokenization alignment."));
+                return Err(anyhow::anyhow!(
+                    "Eval batch has zero loss mask sum; check dataset/tokenization alignment."
+                ));
             }
             drop(logits);
             drop(inputs);
@@ -691,7 +701,10 @@ impl<'a> Trainer<'a> {
     fn save_checkpoint(&self, epoch: usize, best_loss: f64) -> Result<()> {
         use std::fs;
 
-        let checkpoint_dir = self.checkpoint_config.output_dir.join(format!("checkpoint-{}", self.global_step));
+        let checkpoint_dir = self
+            .checkpoint_config
+            .output_dir
+            .join(format!("checkpoint-{}", self.global_step));
         fs::create_dir_all(&checkpoint_dir)?;
 
         // Save model weights (LoRA adapters)
@@ -710,7 +723,7 @@ impl<'a> Trainer<'a> {
             global_step: self.global_step,
             best_loss,
             optimizer_state: vec![], // TODO: Save optimizer state if needed
-            rng_state: None, // TODO: Save RNG state for reproducibility
+            rng_state: None,         // TODO: Save RNG state for reproducibility
         };
 
         checkpoint.save(&checkpoint_dir)?;

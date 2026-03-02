@@ -1,9 +1,5 @@
 use rust_functiongemma_train::router_dataset::{
-    build_router_dataset,
-    build_tool_test_vectors,
-    write_jsonl,
-    write_test_vectors,
-    RouterDatasetConfig,
+    build_router_dataset, build_tool_test_vectors, write_jsonl, write_test_vectors, RouterDatasetConfig,
 };
 use serde_json::json;
 use std::fs;
@@ -50,7 +46,8 @@ fn builds_router_dataset_and_writes_jsonl() {
                     "assistant_content": "NO_TOOL"
                 }
             ]
-        })).expect("TODO: Verify unwrap"),
+        }))
+        .expect("TODO: Verify unwrap"),
     )
     .expect("write scenarios");
 
@@ -66,12 +63,12 @@ fn builds_router_dataset_and_writes_jsonl() {
 
     let items = build_router_dataset(&cfg).expect("build dataset");
     assert!(items.len() >= 2);
-    assert!(items.iter().any(|item| {
-        item.messages.iter().any(|m| m.tool_calls.is_some())
-    }));
-    assert!(items.iter().any(|item| {
-        item.messages.iter().any(|m| m.content.as_deref() == Some("NO_TOOL"))
-    }));
+    assert!(items
+        .iter()
+        .any(|item| { item.messages.iter().any(|m| m.tool_calls.is_some()) }));
+    assert!(items
+        .iter()
+        .any(|item| { item.messages.iter().any(|m| m.content.as_deref() == Some("NO_TOOL")) }));
 
     write_jsonl(&output_path, &items).expect("write jsonl");
     let output = fs::read_to_string(&output_path).expect("read jsonl");

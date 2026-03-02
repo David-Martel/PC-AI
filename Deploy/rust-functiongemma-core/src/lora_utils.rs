@@ -59,14 +59,8 @@ pub fn read_lora_config(config_path: &Path) -> Option<(usize, f64, f64)> {
     let contents = std::fs::read_to_string(config_path).ok()?;
     let val = serde_json::from_str::<Value>(&contents).ok()?;
     let r = val.get("r").and_then(|v| v.as_u64()).map(|v| v as usize)?;
-    let alpha = val
-        .get("lora_alpha")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(32.0);
-    let dropout = val
-        .get("lora_dropout")
-        .and_then(|v| v.as_f64())
-        .unwrap_or(0.0);
+    let alpha = val.get("lora_alpha").and_then(|v| v.as_f64()).unwrap_or(32.0);
+    let dropout = val.get("lora_dropout").and_then(|v| v.as_f64()).unwrap_or(0.0);
     Some((r, alpha, dropout))
 }
 
@@ -129,15 +123,9 @@ pub fn infer_lora_r_from_weights(path: &Path) -> Option<usize> {
 /// ```
 pub fn resolve_lora_from_path(path: PathBuf) -> Option<LoraInfo> {
     let (weights_path, config_path) = if path.is_dir() {
-        (
-            path.join("adapter_model.safetensors"),
-            path.join("adapter_config.json"),
-        )
+        (path.join("adapter_model.safetensors"), path.join("adapter_config.json"))
     } else {
-        let config_path = path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join("adapter_config.json");
+        let config_path = path.parent().unwrap_or(Path::new(".")).join("adapter_config.json");
         (path, config_path)
     };
 
@@ -172,10 +160,7 @@ mod tests {
             "lora_alpha": alpha,
             "lora_dropout": dropout,
         });
-        fs::write(
-            dir.join("adapter_config.json"),
-            serde_json::to_string(&json).unwrap(),
-        ).expect("TODO: Verify unwrap");
+        fs::write(dir.join("adapter_config.json"), serde_json::to_string(&json).unwrap()).expect("TODO: Verify unwrap");
     }
 
     #[test]
@@ -195,10 +180,7 @@ mod tests {
         let dir = std::env::temp_dir().join("pcai_test_lora_defaults");
         fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
         let json = serde_json::json!({ "r": 8 });
-        fs::write(
-            dir.join("adapter_config.json"),
-            serde_json::to_string(&json).unwrap(),
-        ).expect("TODO: Verify unwrap");
+        fs::write(dir.join("adapter_config.json"), serde_json::to_string(&json).unwrap()).expect("TODO: Verify unwrap");
 
         let result = read_lora_config(&dir.join("adapter_config.json"));
         assert_eq!(result, Some((8, 32.0, 0.0)));
@@ -211,10 +193,7 @@ mod tests {
         let dir = std::env::temp_dir().join("pcai_test_lora_no_r");
         fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
         let json = serde_json::json!({ "lora_alpha": 16.0 });
-        fs::write(
-            dir.join("adapter_config.json"),
-            serde_json::to_string(&json).unwrap(),
-        ).expect("TODO: Verify unwrap");
+        fs::write(dir.join("adapter_config.json"), serde_json::to_string(&json).unwrap()).expect("TODO: Verify unwrap");
 
         let result = read_lora_config(&dir.join("adapter_config.json"));
         assert_eq!(result, None);

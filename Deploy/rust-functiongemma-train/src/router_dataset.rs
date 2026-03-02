@@ -77,10 +77,7 @@ fn load_scenarios(path: Option<&Path>) -> Vec<Scenario> {
             mode: "diagnose".to_string(),
             user_content: "Run a WSL network diagnosis and summarize any failures.".to_string(),
             tool_name: Some("pcai_run_wsl_network_tool".to_string()),
-            tool_arguments: Map::from_iter([(
-                "mode".to_string(),
-                Value::String("diagnose".to_string()),
-            )]),
+            tool_arguments: Map::from_iter([("mode".to_string(), Value::String("diagnose".to_string()))]),
             assistant_content: None,
             tool_sequence: Vec::new(),
         },
@@ -156,12 +153,7 @@ fn tool_call_payload(name: &str, args: &Map<String, Value>) -> Value {
     ])
 }
 
-fn build_conversation(
-    scenario: &Scenario,
-    tools: &[Value],
-    diagnose_prompt: &str,
-    chat_prompt: &str,
-) -> TrainingItem {
+fn build_conversation(scenario: &Scenario, tools: &[Value], diagnose_prompt: &str, chat_prompt: &str) -> TrainingItem {
     let system_msg = build_system_prompt(&scenario.mode, diagnose_prompt, chat_prompt);
     let mut messages = vec![
         Message {
@@ -215,17 +207,12 @@ pub fn build_router_dataset(cfg: &RouterDatasetConfig) -> Result<Vec<TrainingIte
 
     if cfg.include_tool_coverage {
         for tool in &tools {
-            let fn_obj = tool
-                .get("function")
-                .context("Tool has no function object")?;
+            let fn_obj = tool.get("function").context("Tool has no function object")?;
             let name = fn_obj
                 .get("name")
                 .and_then(|v| v.as_str())
                 .context("Tool has no name")?;
-            let description = fn_obj
-                .get("description")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let description = fn_obj.get("description").and_then(|v| v.as_str()).unwrap_or("");
             let empty_params = Map::new();
             let params = fn_obj
                 .get("parameters")
@@ -241,12 +228,7 @@ pub fn build_router_dataset(cfg: &RouterDatasetConfig) -> Result<Vec<TrainingIte
                     assistant_content: None,
                     tool_sequence: Vec::new(),
                 };
-                items.push(build_conversation(
-                    &scenario,
-                    &tools,
-                    &diagnose_prompt,
-                    &chat_prompt,
-                ));
+                items.push(build_conversation(&scenario, &tools, &diagnose_prompt, &chat_prompt));
             }
         }
     }
@@ -279,17 +261,12 @@ pub fn write_jsonl_streaming(cfg: &RouterDatasetConfig) -> Result<usize> {
 
     if cfg.include_tool_coverage {
         for tool in &tools {
-            let fn_obj = tool
-                .get("function")
-                .context("Tool has no function object")?;
+            let fn_obj = tool.get("function").context("Tool has no function object")?;
             let name = fn_obj
                 .get("name")
                 .and_then(|v| v.as_str())
                 .context("Tool has no name")?;
-            let description = fn_obj
-                .get("description")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let description = fn_obj.get("description").and_then(|v| v.as_str()).unwrap_or("");
             let empty_params = Map::new();
             let params = fn_obj
                 .get("parameters")
@@ -322,9 +299,7 @@ pub fn build_tool_test_vectors(tools_path: &Path, max_cases: usize) -> Result<Ve
     let mut vectors = Vec::new();
 
     for tool in &tools {
-        let fn_obj = tool
-            .get("function")
-            .context("Tool has no function object")?;
+        let fn_obj = tool.get("function").context("Tool has no function object")?;
         let name = fn_obj
             .get("name")
             .and_then(|v| v.as_str())

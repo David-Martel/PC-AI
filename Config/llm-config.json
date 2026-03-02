@@ -11,7 +11,7 @@
 		"pcai-native": {
 			"enabled": true,
 			"type": "ffi",
-			"backend": "llamacpp",
+			"backend": "mistralrs",
 			"modelPath": "Models/ollama/registry.ollama.ai_library_deepseek-r1_7b__96c41565.gguf",
 			"gpuLayers": -1,
 			"defaultTemperature": 0.7,

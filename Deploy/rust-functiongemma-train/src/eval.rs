@@ -34,8 +34,7 @@ impl EvaluationMetrics {
     }
 
     pub fn record_prediction(&mut self, expected: &str, predicted: &str) {
-        self.predictions
-            .push((expected.to_string(), predicted.to_string()));
+        self.predictions.push((expected.to_string(), predicted.to_string()));
     }
 
     pub fn confusion_matrix(&self) -> HashMap<(String, String), u32> {
@@ -130,8 +129,8 @@ pub fn evaluate_sample(
         .context("No assistant message in expected item")?;
 
     let expected_tool = extract_expected_tool(expected_assistant.tool_calls.as_ref());
-    let parsed_tool = parse_function_call(output)
-        .or_else(|| parse_tool_call_json(output).and_then(extract_parsed_tool));
+    let parsed_tool =
+        parse_function_call(output).or_else(|| parse_tool_call_json(output).and_then(extract_parsed_tool));
 
     let mut tool_match = false;
     let mut arg_match = false;
@@ -290,11 +289,7 @@ fn validate_args_against_schema(args: &Value, params: &serde_json::Map<String, V
     let required: Vec<String> = params
         .get("required")
         .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                .collect()
-        })
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
     for req in required {
         if !arg_obj.contains_key(&req) {
@@ -319,10 +314,7 @@ fn validate_value(schema: &Value, val: &Value) -> bool {
     if let Some(enum_vals) = schema.get("enum").and_then(|v| v.as_array()) {
         return enum_vals.iter().any(|v| v == val);
     }
-    let typ = schema
-        .get("type")
-        .and_then(|v| v.as_str())
-        .unwrap_or("string");
+    let typ = schema.get("type").and_then(|v| v.as_str()).unwrap_or("string");
     match typ {
         "string" => val.is_string(),
         "boolean" => val.is_boolean(),
@@ -460,7 +452,8 @@ mod tests {
             &item,
             true,
             false,
-        ).expect("TODO: Verify unwrap");
+        )
+        .expect("TODO: Verify unwrap");
 
         assert_eq!(result.expected_label, "test_tool");
         assert_eq!(result.predicted_label, "test_tool");

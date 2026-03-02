@@ -129,8 +129,7 @@ pub fn is_memory_pressure() -> bool {
         return false;
     }
 
-    let usage_percent =
-        (stats.used_memory_bytes as f64 / stats.total_memory_bytes as f64) * 100.0;
+    let usage_percent = (stats.used_memory_bytes as f64 / stats.total_memory_bytes as f64) * 100.0;
 
     // Consider memory pressure if usage > 90%
     usage_percent > 90.0

@@ -221,14 +221,7 @@ impl Dataset {
         };
         let end_idx = (start_idx + batch_size).min(dataset_len);
         let indices: Vec<usize> = (start_idx..end_idx).collect();
-        self.get_batch_by_indices(
-            &indices,
-            tokenizer,
-            device,
-            pack_sequences,
-            max_seq_len,
-            eos_token_id,
-        )
+        self.get_batch_by_indices(&indices, tokenizer, device, pack_sequences, max_seq_len, eos_token_id)
     }
 
     pub fn get_batch_by_indices(
@@ -256,8 +249,7 @@ impl Dataset {
             let tokenizer = tokenizer.context("Tokenizer required for non-cached dataset")?;
             for &i in indices {
                 let item = &self.items[i];
-                let (ids, mask) =
-                    encode_item_with_mask(item, tokenizer, self.chat_template.as_deref())?;
+                let (ids, mask) = encode_item_with_mask(item, tokenizer, self.chat_template.as_deref())?;
 
                 max_len = max_len.max(ids.len());
                 input_ids_batch.push(ids);
@@ -346,9 +338,7 @@ fn encode_item_with_mask(
     if let Some(template) = chat_template {
         let messages_value = serde_json::to_value(&item.messages)?;
         let full_text = render_chat_template(template, &messages_value, &item.tools, false)?;
-        let full_encoding = tokenizer
-            .encode(full_text.as_str(), true)
-            .map_err(anyhow::Error::msg)?;
+        let full_encoding = tokenizer.encode(full_text.as_str(), true).map_err(anyhow::Error::msg)?;
         let full_ids = full_encoding.get_ids().to_vec();
         let mut mask = vec![0u8; full_ids.len()];
 
@@ -388,9 +378,7 @@ fn encode_item_with_mask(
     let mut full_text = String::new();
     for msg in &item.messages {
         let text = format_message_as_text(msg)?;
-        let encoding = tokenizer
-            .encode(text.as_str(), false)
-            .map_err(anyhow::Error::msg)?;
+        let encoding = tokenizer.encode(text.as_str(), false).map_err(anyhow::Error::msg)?;
         let msg_ids = encoding.get_ids();
         let trainable = matches!(msg.role.as_str(), "assistant" | "model");
         raw_ids.extend_from_slice(msg_ids);
@@ -398,9 +386,7 @@ fn encode_item_with_mask(
         full_text.push_str(&text);
     }
 
-    let full_encoding = tokenizer
-        .encode(full_text, true)
-        .map_err(anyhow::Error::msg)?;
+    let full_encoding = tokenizer.encode(full_text, true).map_err(anyhow::Error::msg)?;
     let full_ids = full_encoding.get_ids().to_vec();
 
     if full_ids.len() == raw_ids.len() {
@@ -466,11 +452,7 @@ fn pack_token_sequences_with_mask(
         if seq.is_empty() {
             continue;
         }
-        let extra = if current.is_empty() {
-            seq.len()
-        } else {
-            seq.len() + 1
-        };
+        let extra = if current.is_empty() { seq.len() } else { seq.len() + 1 };
         if current.len() + extra > max_len && !current.is_empty() {
             packed.push(current);
             packed_masks.push(current_mask);
@@ -578,21 +560,11 @@ impl TokenCache {
 
     /// Return the token IDs for the entry at `index`.
     pub fn get_ids(&self, index: usize) -> Result<Vec<u32>> {
-        let entry = self
-            .entries
-            .get(index)
-            .context("Token cache index out of range")?;
-        let header_offset = if self.has_header {
-            CACHE_HEADER_SIZE
-        } else {
-            0
-        };
+        let entry = self.entries.get(index).context("Token cache index out of range")?;
+        let header_offset = if self.has_header { CACHE_HEADER_SIZE } else { 0 };
         let start = header_offset + (entry.offset * 4) as usize;
         let end = start + (entry.len as usize * 4);
-        let bytes = self
-            .mmap
-            .get(start..end)
-            .context("Token cache slice out of range")?;
+        let bytes = self.mmap.get(start..end).context("Token cache slice out of range")?;
         let mut ids = Vec::with_capacity(entry.len as usize);
         for chunk in bytes.chunks_exact(4) {
             ids.push(u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
@@ -605,16 +577,9 @@ impl TokenCache {
     /// Returns an all-ones mask when no mask file is present (train on every
     /// token).
     pub fn get_mask(&self, index: usize) -> Result<Vec<u8>> {
-        let entry = self
-            .entries
-            .get(index)
-            .context("Token cache index out of range")?;
+        let entry = self.entries.get(index).context("Token cache index out of range")?;
         if let Some(mask_mmap) = &self.mask_mmap {
-            let header_offset = if self.has_header {
-                CACHE_HEADER_SIZE
-            } else {
-                0
-            };
+            let header_offset = if self.has_header { CACHE_HEADER_SIZE } else { 0 };
             let start = header_offset + entry.offset as usize;
             let end = start + (entry.len as usize);
             let bytes = mask_mmap
@@ -651,10 +616,7 @@ mod cache_validation_tests {
         let mut buf = vec![0u8; CACHE_HEADER_SIZE];
         buf[0..4].copy_from_slice(b"XXXX");
         let err = validate_cache_header(&buf, &[0u8; 16]).unwrap_err();
-        assert!(
-            err.to_string().contains("invalid magic"),
-            "unexpected error: {err}"
-        );
+        assert!(err.to_string().contains("invalid magic"), "unexpected error: {err}");
     }
 
     #[test]
@@ -665,10 +627,7 @@ mod cache_validation_tests {
         // Overwrite version field with 99.
         buf[4..8].copy_from_slice(&99u32.to_le_bytes());
         let err = validate_cache_header(&buf, &hash).unwrap_err();
-        assert!(
-            err.to_string().contains("version mismatch"),
-            "unexpected error: {err}"
-        );
+        assert!(err.to_string().contains("version mismatch"), "unexpected error: {err}");
     }
 
     #[test]
@@ -688,10 +647,7 @@ mod cache_validation_tests {
     fn test_cache_header_too_small() {
         let buf = vec![0u8; 10];
         let err = validate_cache_header(&buf, &[0u8; 16]).unwrap_err();
-        assert!(
-            err.to_string().contains("too small"),
-            "unexpected error: {err}"
-        );
+        assert!(err.to_string().contains("too small"), "unexpected error: {err}");
     }
 
     // ---- tokenizer hash ----
@@ -715,9 +671,6 @@ mod cache_validation_tests {
         std::fs::write(&path_b, b"tokenizer B").expect("TODO: Verify unwrap");
         let hash_a = compute_tokenizer_hash(&path_a).expect("TODO: Verify unwrap");
         let hash_b = compute_tokenizer_hash(&path_b).expect("TODO: Verify unwrap");
-        assert_ne!(
-            hash_a, hash_b,
-            "different content must yield different hashes"
-        );
+        assert_ne!(hash_a, hash_b, "different content must yield different hashes");
     }
 }

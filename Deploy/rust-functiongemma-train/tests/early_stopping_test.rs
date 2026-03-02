@@ -16,12 +16,15 @@ fn test_early_stopping_patience() {
     // Stagnant losses within min_delta
     assert!(!stopper.should_stop(0.8001)); // patience 1
     assert!(!stopper.should_stop(0.8002)); // patience 2
-    assert!(stopper.should_stop(0.8003));  // patience 3 -> stop
+    assert!(stopper.should_stop(0.8003)); // patience 3 -> stop
 }
 
 #[test]
 fn test_early_stopping_improvement_resets() {
-    let config = EarlyStoppingConfig { patience: 3, min_delta: 0.01 };
+    let config = EarlyStoppingConfig {
+        patience: 3,
+        min_delta: 0.01,
+    };
     let mut stopper = EarlyStopping::new(config);
 
     stopper.should_stop(1.0);
@@ -36,7 +39,10 @@ fn test_early_stopping_improvement_resets() {
 
 #[test]
 fn test_early_stopping_zero_patience() {
-    let config = EarlyStoppingConfig { patience: 0, min_delta: 0.001 };
+    let config = EarlyStoppingConfig {
+        patience: 0,
+        min_delta: 0.001,
+    };
     let mut stopper = EarlyStopping::new(config);
 
     // With zero patience, should stop immediately on first non-improvement
@@ -46,7 +52,10 @@ fn test_early_stopping_zero_patience() {
 
 #[test]
 fn test_early_stopping_best_loss() {
-    let config = EarlyStoppingConfig { patience: 3, min_delta: 0.01 };
+    let config = EarlyStoppingConfig {
+        patience: 3,
+        min_delta: 0.01,
+    };
     let mut stopper = EarlyStopping::new(config);
 
     stopper.should_stop(1.0);
@@ -61,7 +70,10 @@ fn test_early_stopping_best_loss() {
 
 #[test]
 fn test_early_stopping_min_delta_boundary() {
-    let config = EarlyStoppingConfig { patience: 2, min_delta: 0.1 };
+    let config = EarlyStoppingConfig {
+        patience: 2,
+        min_delta: 0.1,
+    };
     let mut stopper = EarlyStopping::new(config);
 
     stopper.should_stop(1.0); // best = 1.0

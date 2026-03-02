@@ -17,17 +17,17 @@ use rust_functiongemma_core::gpu::{
 };
 use rust_functiongemma_core::lora_utils::read_lora_config;
 use rust_functiongemma_core::{
-    collect_model_safetensors, custom_load_verbose, default_dtype, detect_tie_embeddings,
-    is_degenerate_output, open_mmaped_safetensors, parse_ggml_dtype, resolve_device_with_index,
-    trim_input_ids, DeviceSelectionParams, KvCacheQuant, PcaiConfig,
+    collect_model_safetensors, custom_load_verbose, default_dtype, detect_tie_embeddings, is_degenerate_output,
+    open_mmaped_safetensors, parse_ggml_dtype, resolve_device_with_index, trim_input_ids, DeviceSelectionParams,
+    KvCacheQuant, PcaiConfig,
 };
 use rust_functiongemma_train::data_gen::DataGenerator;
 use rust_functiongemma_train::dataset::Dataset;
 use rust_functiongemma_train::early_stopping::EarlyStoppingConfig;
 use rust_functiongemma_train::eval::{evaluate_sample, EvaluationMetrics};
 use rust_functiongemma_train::router_dataset::{
-    build_router_dataset, build_tool_test_vectors, write_jsonl, write_jsonl_streaming,
-    write_test_vectors, RouterDatasetConfig,
+    build_router_dataset, build_tool_test_vectors, write_jsonl, write_jsonl_streaming, write_test_vectors,
+    RouterDatasetConfig,
 };
 use rust_functiongemma_train::trainer::{Trainer, TrainerConfig};
 use rust_functiongemma_train::{Config, LoraSettings, Model};
@@ -138,10 +138,7 @@ fn resolve_loss_in_f32(device: &Device) -> bool {
         Some("bf16") => false,
         Some("auto") | None => !device.is_cuda(),
         Some(other) => {
-            println!(
-                "Warning: Unknown loss_dtype '{}', defaulting to auto.",
-                other
-            );
+            println!("Warning: Unknown loss_dtype '{}', defaulting to auto.", other);
             !device.is_cuda()
         }
     }
@@ -172,8 +169,7 @@ fn build_lora_settings(
         }
     }
     if allow_candle_qmatmul && cfg.candle_qmatmul.unwrap_or(false) {
-        let dtype =
-            parse_ggml_dtype(cfg.candle_qmatmul_dtype.as_deref()).unwrap_or(GgmlDType::Q4_0);
+        let dtype = parse_ggml_dtype(cfg.candle_qmatmul_dtype.as_deref()).unwrap_or(GgmlDType::Q4_0);
         settings.enable_candle_qmatmul(dtype);
     }
     if allow_flash_attn && cfg.flash_attn.unwrap_or(false) {
@@ -485,11 +481,7 @@ fn main() -> Result<()> {
             if let Some(test_vectors_path) = test_vectors {
                 let vectors = build_tool_test_vectors(&cfg.tools_path, cfg.max_cases)?;
                 write_test_vectors(&PathBuf::from(&test_vectors_path), &vectors)?;
-                println!(
-                    "Wrote {} tool test vectors to {}",
-                    vectors.len(),
-                    test_vectors_path
-                );
+                println!("Wrote {} tool test vectors to {}", vectors.len(), test_vectors_path);
             }
         }
         Commands::Train {
@@ -569,8 +561,7 @@ fn main() -> Result<()> {
             // Using BF16 here causes dtype mismatch in matmul (F32 vs BF16).
             let vb_dtype = if use_4bit { DType::F32 } else { default_dtype(&device) };
             let vb = VarBuilder::from_varmap(&varmap, vb_dtype, &device);
-            let lora_settings =
-                build_lora_settings(lora_r, lora_alpha, lora_dropout, use_4bit, false, true);
+            let lora_settings = build_lora_settings(lora_r, lora_alpha, lora_dropout, use_4bit, false, true);
 
             let model = if use_4bit {
                 println!("Loading base weights (QLoRA)...");
@@ -592,10 +583,7 @@ fn main() -> Result<()> {
             maybe_log_cuda_snapshot("after_model_load", cuda_index);
 
             let mut eval_dataset = if let Some(eval_path) = &eval_data {
-                Some(
-                    Dataset::load(&PathBuf::from(eval_path))?
-                        .with_chat_template(chat_template.clone()),
-                )
+                Some(Dataset::load(&PathBuf::from(eval_path))?.with_chat_template(chat_template.clone()))
             } else {
                 None
             };
@@ -604,18 +592,15 @@ fn main() -> Result<()> {
                 if split <= 0.0 || split >= 0.5 {
                     println!("Warning: eval_split should be between 0.0 and 0.5; ignoring.");
                     if let Some(cache_dir) = &token_cache {
-                        Dataset::load_cached(&PathBuf::from(cache_dir))?
-                            .with_chat_template(chat_template.clone())
+                        Dataset::load_cached(&PathBuf::from(cache_dir))?.with_chat_template(chat_template.clone())
                     } else {
-                        Dataset::load(&PathBuf::from(train_data))?
-                            .with_chat_template(chat_template.clone())
+                        Dataset::load(&PathBuf::from(train_data))?.with_chat_template(chat_template.clone())
                     }
                 } else {
                     if token_cache.is_some() {
                         println!("Warning: eval_split requested; ignoring token cache for split.");
                     }
-                    let full = Dataset::load(&PathBuf::from(train_data))?
-                        .with_chat_template(chat_template.clone());
+                    let full = Dataset::load(&PathBuf::from(train_data))?.with_chat_template(chat_template.clone());
                     let split_idx = ((1.0 - split) * full.items.len() as f64).round() as usize;
                     let split_idx = split_idx.clamp(1, full.items.len().saturating_sub(1));
                     let eval_items = full.items[split_idx..].to_vec();
@@ -632,18 +617,14 @@ fn main() -> Result<()> {
                     }
                 }
             } else if let Some(cache_dir) = &token_cache {
-                Dataset::load_cached(&PathBuf::from(cache_dir))?
-                    .with_chat_template(chat_template.clone())
+                Dataset::load_cached(&PathBuf::from(cache_dir))?.with_chat_template(chat_template.clone())
             } else {
                 Dataset::load(&PathBuf::from(train_data))?.with_chat_template(chat_template.clone())
             };
             let tokenizer = if token_cache.is_some() {
                 None
             } else {
-                Some(
-                    Tokenizer::from_file(model_dir.join("tokenizer.json"))
-                        .map_err(anyhow::Error::msg)?,
-                )
+                Some(Tokenizer::from_file(model_dir.join("tokenizer.json")).map_err(anyhow::Error::msg)?)
             };
 
             let early_stopping = if early_stopping_patience > 0 && eval_dataset.is_some() {
@@ -658,11 +639,7 @@ fn main() -> Result<()> {
                 println!("Warning: early stopping configured but no eval dataset provided.");
             }
 
-            let max_grad_norm = if max_grad_norm > 0.0 {
-                Some(max_grad_norm)
-            } else {
-                None
-            };
+            let max_grad_norm = if max_grad_norm > 0.0 { Some(max_grad_norm) } else { None };
             let optimizer = optimizer
                 .or_else(|| train_config().optimizer.clone())
                 .unwrap_or_else(|| "adamw".to_string());
@@ -755,14 +732,7 @@ fn main() -> Result<()> {
                     resolved_dropout = dropout;
                 }
             }
-            let lora_settings = build_lora_settings(
-                resolved_r,
-                resolved_alpha,
-                resolved_dropout,
-                false,
-                true,
-                true,
-            );
+            let lora_settings = build_lora_settings(resolved_r, resolved_alpha, resolved_dropout, false, true, true);
             let model = Model::new(&config, lora_settings, vb, true)?;
 
             let model_files = require_model_safetensors(&model_dir)?;
@@ -785,8 +755,7 @@ fn main() -> Result<()> {
             }
 
             let dataset = Dataset::load(&PathBuf::from(test_data))?;
-            let tokenizer = Tokenizer::from_file(model_dir.join("tokenizer.json"))
-                .map_err(anyhow::Error::msg)?;
+            let tokenizer = Tokenizer::from_file(model_dir.join("tokenizer.json")).map_err(anyhow::Error::msg)?;
             let chat_template = load_chat_template(&model_dir).ok();
             let kv_quant = KvCacheQuant::from_str(
                 kv_cache_quant
@@ -794,9 +763,7 @@ fn main() -> Result<()> {
                     .or_else(|| train_config().kv_cache_quant.as_deref()),
             );
             let kv_max_len = kv_cache_max_len.or(train_config().kv_cache_max_len);
-            let kv_store = kv_cache_store
-                .clone()
-                .or_else(|| train_config().kv_cache_store.clone());
+            let kv_store = kv_cache_store.clone().or_else(|| train_config().kv_cache_store.clone());
             let kv_store_on_cpu = kv_store
                 .as_deref()
                 .map(|v| v.eq_ignore_ascii_case("cpu"))
@@ -806,9 +773,7 @@ fn main() -> Result<()> {
             } else {
                 train_config().kv_cache_streaming.unwrap_or(false)
             };
-            let kv_block_len = kv_cache_block_len
-                .or(train_config().kv_cache_block_len)
-                .unwrap_or(0);
+            let kv_block_len = kv_cache_block_len.or(train_config().kv_cache_block_len).unwrap_or(0);
 
             let mut correct = 0;
             let mut metrics = EvaluationMetrics::default();
@@ -816,9 +781,7 @@ fn main() -> Result<()> {
                 Some(path) => Some(BufWriter::new(fs::File::create(path)?)),
                 None => None,
             };
-            let total = max_samples
-                .map(|v| v.min(dataset.len()))
-                .unwrap_or(dataset.len());
+            let total = max_samples.map(|v| v.min(dataset.len())).unwrap_or(dataset.len());
             for i in 0..total {
                 let item = &dataset.items[i];
                 // For eval, we want to prompt with all messages EXCEPT the last model response
@@ -835,18 +798,13 @@ fn main() -> Result<()> {
                 } else {
                     eval_item.to_prompt() + "<start_of_turn>model\n"
                 };
-                let encoding = tokenizer
-                    .encode(prompt.as_str(), true)
-                    .map_err(anyhow::Error::msg)?;
+                let encoding = tokenizer.encode(prompt.as_str(), true).map_err(anyhow::Error::msg)?;
                 let mut input_ids = encoding.get_ids().to_vec();
                 if let Some(max_len) = train_config().max_seq_len {
                     let original_len = input_ids.len();
                     input_ids = trim_input_ids(input_ids, max_len);
                     if !quiet && input_ids.len() < original_len {
-                        println!(
-                            "Truncated prompt from {} to {} tokens for eval",
-                            original_len, max_len
-                        );
+                        println!("Truncated prompt from {} to {} tokens for eval", original_len, max_len);
                     }
                 }
                 let input_len = input_ids.len();
@@ -854,11 +812,7 @@ fn main() -> Result<()> {
 
                 if !quiet {
                     println!("\nTest Case {}:", i + 1);
-                    let user_text = item
-                        .messages
-                        .get(0)
-                        .and_then(|m| m.content.as_deref())
-                        .unwrap_or("");
+                    let user_text = item.messages.get(0).and_then(|m| m.content.as_deref()).unwrap_or("");
                     println!("User: {}", user_text);
                 }
 
@@ -872,20 +826,14 @@ fn main() -> Result<()> {
                     kv_streaming,
                     kv_block_len,
                 )?;
-                let output_text = tokenizer
-                    .decode(&output_ids, true)
-                    .map_err(anyhow::Error::msg)?;
+                let output_text = tokenizer.decode(&output_ids, true).map_err(anyhow::Error::msg)?;
                 if is_degenerate_output(&output_text) {
                     return Err(anyhow::anyhow!(
                         "Degenerate model output detected during eval; aborting for debugging."
                     ));
                 }
 
-                let expected_text = item
-                    .messages
-                    .last()
-                    .and_then(|m| m.content.as_deref())
-                    .unwrap_or("");
+                let expected_text = item.messages.last().and_then(|m| m.content.as_deref()).unwrap_or("");
                 if !quiet {
                     println!("Model Output: {}", output_text);
                     println!("Expected: {}", expected_text);
@@ -971,20 +919,12 @@ fn main() -> Result<()> {
                 resolved_alpha = alpha;
                 resolved_dropout = dropout;
             }
-            let lora_settings = build_lora_settings(
-                resolved_r,
-                resolved_alpha,
-                resolved_dropout,
-                false,
-                false,
-                false,
-            );
+            let lora_settings = build_lora_settings(resolved_r, resolved_alpha, resolved_dropout, false, false, false);
             let mut model = Model::new(&config, lora_settings, vb, true)?;
 
             let model_files = require_model_safetensors(&model_dir)?;
             let _ = custom_load_verbose(&varmap, &model_files, train_config().verbose)?;
-            let _ =
-                custom_load_verbose(&varmap, &[PathBuf::from(adapters)], train_config().verbose)?;
+            let _ = custom_load_verbose(&varmap, &[PathBuf::from(adapters)], train_config().verbose)?;
 
             println!("Merging adapters...");
             model.merge_adapters()?;

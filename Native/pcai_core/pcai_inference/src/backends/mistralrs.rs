@@ -5,13 +5,7 @@
 //! - SafeTensors (HuggingFace) models
 //! - Multimodal models (vision + text)
 //! - CUDA acceleration (when available)
-//! - CPU fallback (default on Windows due to bindgen_cuda issues)
-//!
-//! ## Windows CUDA Limitation
-//!
-//! CUDA builds are currently blocked on Windows due to bindgen_cuda library issues.
-//! The implementation will automatically fall back to CPU mode on Windows.
-//! For CUDA support, use WSL2 or Linux.
+//! - CPU fallback when CUDA is not enabled at build time
 
 use async_trait::async_trait;
 use std::path::Path;
@@ -36,6 +30,13 @@ pub struct MistralRsBackend {
 }
 
 impl MistralRsBackend {
+    #[inline]
+    fn cuda_enabled() -> bool {
+        // Keep compatibility with legacy umbrella feature (`cuda`) and explicit backend
+        // feature (`cuda-mistralrs`) used by Invoke-PcaiBuild for mistralrs.
+        cfg!(feature = "cuda") || cfg!(feature = "cuda-mistralrs")
+    }
+
     /// Create a new mistral.rs backend
     pub fn new() -> Self {
         Self {
@@ -94,14 +95,13 @@ impl MistralRsBackend {
         let (model_id, gguf_file) = Self::parse_gguf_path(path)?;
 
         // Detect best available device (prefer CUDA, fallback to CPU)
-        // On Windows, use CPU by default unless CUDA feature is enabled
-        let default_force_cpu = cfg!(target_os = "windows") && !cfg!(feature = "cuda");
+        let default_force_cpu = cfg!(target_os = "windows") && !Self::cuda_enabled();
         let force_cpu = self.force_cpu || default_force_cpu;
 
         if force_cpu && cfg!(target_os = "windows") && !self.force_cpu {
             tracing::info!(
-                "Defaulting to CPU mode on Windows. For GPU support, build with 'cuda' feature \
-                 and ensure CUDA environment is initialized."
+                "Defaulting to CPU mode on Windows. For GPU support, build with 'cuda-mistralrs' \
+                 (or umbrella 'cuda') and ensure CUDA environment is initialized."
             );
         }
 
@@ -128,13 +128,13 @@ impl MistralRsBackend {
         tracing::info!("Loading SafeTensors model from: {}", path);
 
         // Detect best available device (prefer CUDA, fallback to CPU)
-        let default_force_cpu = cfg!(target_os = "windows") && !cfg!(feature = "cuda");
+        let default_force_cpu = cfg!(target_os = "windows") && !Self::cuda_enabled();
         let force_cpu = self.force_cpu || default_force_cpu;
 
         if force_cpu && cfg!(target_os = "windows") && !self.force_cpu {
             tracing::info!(
-                "Defaulting to CPU mode on Windows. For GPU support, build with 'cuda' feature \
-                 and ensure CUDA environment is initialized."
+                "Defaulting to CPU mode on Windows. For GPU support, build with 'cuda-mistralrs' \
+                 (or umbrella 'cuda') and ensure CUDA environment is initialized."
             );
         }
 

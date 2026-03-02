@@ -19,7 +19,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string[]]$PreferredVersions = @('v13.1', 'v13.0', 'v12.6', 'v12.5'),
+    [string[]]$PreferredVersions = @('v13.1', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
     [string]$CudaPath,
     [switch]$Quiet
 )
@@ -78,6 +78,11 @@ function Get-CudaCandidates {
     )
     $candidates = @()
     if ($CudaPath) { $candidates += $CudaPath }
+
+    foreach ($ver in $PreferredVersions) {
+        $candidates += "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\$ver"
+    }
+
     if ($env:CUDA_PATH) { $candidates += $env:CUDA_PATH }
     if ($env:CUDA_HOME) { $candidates += $env:CUDA_HOME }
 
@@ -85,19 +90,74 @@ function Get-CudaCandidates {
         ForEach-Object { $_.Value }
     if ($envCandidates) { $candidates += $envCandidates }
 
-    foreach ($ver in $PreferredVersions) {
-        $candidates += "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\$ver"
-    }
-
     return $candidates |
         Where-Object { $_ -and $_.Trim().Length -gt 0 } |
         Select-Object -Unique
 }
 
+function Resolve-MsvcCompilerBin {
+    $candidates = [System.Collections.Generic.List[string]]::new()
+
+    $currentCcbin = $env:NVCC_CCBIN
+    if ($currentCcbin -and (Test-Path -LiteralPath $currentCcbin)) {
+        if (Test-Path -LiteralPath (Join-Path $currentCcbin 'cl.exe')) {
+            $candidates.Add($currentCcbin)
+        }
+    }
+
+    $clCommand = Get-Command cl.exe -ErrorAction SilentlyContinue
+    if ($clCommand -and $clCommand.Source -and (Test-Path -LiteralPath $clCommand.Source)) {
+        $candidates.Add((Split-Path -Parent $clCommand.Source))
+    }
+
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path -LiteralPath $vswhere) {
+        $installRoots = & $vswhere -all -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        foreach ($root in @($installRoots)) {
+            if (-not $root) { continue }
+            $msvcRoot = Join-Path $root 'VC\Tools\MSVC'
+            if (-not (Test-Path -LiteralPath $msvcRoot)) { continue }
+            $toolsetRoots = Get-ChildItem -Path $msvcRoot -Directory -ErrorAction SilentlyContinue
+            foreach ($toolsetRoot in $toolsetRoots) {
+                $binDir = Join-Path $toolsetRoot.FullName 'bin\Hostx64\x64'
+                if (Test-Path -LiteralPath (Join-Path $binDir 'cl.exe')) {
+                    $candidates.Add($binDir)
+                }
+            }
+        }
+    }
+
+    if (-not $candidates.Count) {
+        foreach ($base in @('C:\Program Files\Microsoft Visual Studio', 'C:\Program Files (x86)\Microsoft Visual Studio')) {
+            if (-not (Test-Path -LiteralPath $base)) { continue }
+            $fallback = Get-ChildItem -Path $base -Filter cl.exe -Recurse -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -match '\\VC\\Tools\\MSVC\\[^\\]+\\bin\\Hostx64\\x64\\cl\.exe$' } |
+                Select-Object -ExpandProperty FullName
+            foreach ($clPath in @($fallback)) {
+                if ($clPath -and (Test-Path -LiteralPath $clPath)) {
+                    $candidates.Add((Split-Path -Parent $clPath))
+                }
+            }
+        }
+    }
+
+    if (-not $candidates.Count) { return $null }
+
+    return $candidates |
+        Select-Object -Unique |
+        Sort-Object {
+            if ($_ -match '\\MSVC\\(?<ver>[^\\]+)\\bin\\Hostx64\\x64$') {
+                return [version]$Matches.ver
+            }
+            return [version]'0.0.0'
+        } -Descending |
+        Select-Object -First 1
+}
+
 function Initialize-CudaEnvironment {
     [CmdletBinding()]
     param(
-        [string[]]$PreferredVersions = @('v13.1', 'v13.0', 'v12.6', 'v12.5'),
+        [string[]]$PreferredVersions = @('v13.1', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
         [string]$CudaPath,
         [switch]$Quiet
     )
@@ -168,6 +228,13 @@ function Initialize-CudaEnvironment {
     # Set CMake-specific CUDA variables (no fallbacks)
     $env:CMAKE_CUDA_COMPILER = ($nvccPath -replace '\\', '/')
     $env:CUDAToolkit_ROOT = ($selected -replace '\\', '/')
+    $msvcBin = Resolve-MsvcCompilerBin
+    if ($msvcBin) {
+        $env:NVCC_CCBIN = ($msvcBin -replace '\\', '/')
+        Add-ToPath $msvcBin | Out-Null
+    } elseif (Test-Path Env:NVCC_CCBIN) {
+        Remove-Item Env:NVCC_CCBIN -ErrorAction SilentlyContinue
+    }
 
     # Set CUDA compute capabilities for common architectures
     # 75=Turing, 80=Ampere, 86=GA102, 89=Ada, 90=Hopper
@@ -178,6 +245,7 @@ function Initialize-CudaEnvironment {
     $result = [PSCustomObject]@{
         Found = $true
         CudaPath = $selected
+        SelectedVersion = (Split-Path -Leaf $selected)
         Nvcc = $nvccPath
         Cicc = $ciccPath
         Include = $includePath
@@ -186,7 +254,22 @@ function Initialize-CudaEnvironment {
         IncludeUpdated = $includeUpdated
         LibUpdated = $libUpdated
         CudaArchs = $env:CUDAARCHS
+        NvccCcbin = $env:NVCC_CCBIN
+        CompatibilityWarning = $null
         Notes = @()
+    }
+
+    $majorVersion = 0
+    if ($result.SelectedVersion -match '^v(?<major>\d+)\.(?<minor>\d+)$') {
+        $majorVersion = [int]$Matches.major
+    }
+    if ($majorVersion -lt 13) {
+        $warn = "CUDA $($result.SelectedVersion) selected as fallback. Preferred default for this repository is CUDA v13.1."
+        $result.CompatibilityWarning = $warn
+        $result.Notes += $warn
+        if (-not $Quiet) {
+            Write-Warning $warn
+        }
     }
 
     if (-not $Quiet) {
@@ -194,6 +277,7 @@ function Initialize-CudaEnvironment {
         Write-Host "  nvcc:                 $nvccPath" -ForegroundColor DarkGray
         Write-Host "  cicc:                 $ciccPath" -ForegroundColor DarkGray
         Write-Host "  CMAKE_CUDA_COMPILER:  $nvccPath" -ForegroundColor DarkGray
+        Write-Host "  NVCC_CCBIN:           $($env:NVCC_CCBIN)" -ForegroundColor DarkGray
         Write-Host "  CUDAARCHS:            $($env:CUDAARCHS)" -ForegroundColor DarkGray
     }
 

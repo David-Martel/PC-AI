@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "disk": {
+    "freeSpaceWarningPercent": 15,
+    "freeSpaceCriticalPercent": 5,
+    "smartStatusCritical": ["FAILING", "PREDICTED FAIL", "Pred Fail"],
+    "smartStatusWarning": ["CAUTION", "UNKNOWN"]
+  },
+  "memory": {
+    "usageWarningPercent": 85,
+    "usageCriticalPercent": 95,
+    "processMemoryWarningMB": 500,
+    "processMemoryCriticalMB": 1000
+  },
+  "cpu": {
+    "usageWarningPercent": 80,
+    "usageCriticalPercent": 95,
+    "temperatureWarningCelsius": 80,
+    "temperatureCriticalCelsius": 95
+  },
+  "devices": {
+    "criticalErrorCodes": [1, 10, 12, 28, 31, 43],
+    "warningErrorCodes": [22, 29, 32, 44]
+  },
+  "eventLog": {
+    "lookbackDays": 3,
+    "maxEventsToAnalyze": 100,
+    "criticalProviders": ["disk", "storahci", "nvme", "stornvme"],
+    "warningProviders": ["usbhub", "USB", "partmgr"]
+  },
+  "network": {
+    "expectedMinSpeedMbps": 100,
+    "latencyWarningMs": 100,
+    "latencyCriticalMs": 500
+  },
+  "wsl": {
+    "minMemoryGB": 4,
+    "recommendedMemoryGB": 8,
+    "minProcessors": 2,
+    "recommendedProcessors": 4
+  },
+  "priorities": {
+    "critical": ["SMART failure", "disk bad blocks", "hardware virtualization disabled"],
+    "high": ["USB controller errors", "device driver failures", "service crashes"],
+    "medium": ["performance degradation", "missing Defender exclusions", "VMQ issues"],
+    "low": ["unused adapters", "informational warnings"]
+  }
+}

@@ -1,9 +1,9 @@
-use windows_sys::Win32::Storage::FileSystem::*;
-use windows_sys::Win32::Foundation::*;
-use windows_sys::Win32::System::IO::DeviceIoControl;
-use std::ptr::null_mut;
 use serde::Serialize;
 use std::ffi::CString;
+use std::ptr::null_mut;
+use windows_sys::Win32::Foundation::*;
+use windows_sys::Win32::Storage::FileSystem::*;
+use windows_sys::Win32::System::IO::DeviceIoControl;
 
 #[derive(Serialize)]
 pub struct DiskHealthDetail {
@@ -64,11 +64,16 @@ pub fn collect_disk_health() -> Vec<DiskHealthDetail> {
                 smart_version.len() as u32,
                 &mut bytes_returned,
                 null_mut(),
-            ) != 0 {
+            ) != 0
+            {
                 detail.smart_capable = true;
             }
 
-            detail.status = if detail.smart_capable { "OK".to_string() } else { "N/A".to_string() };
+            detail.status = if detail.smart_capable {
+                "OK".to_string()
+            } else {
+                "N/A".to_string()
+            };
 
             disks.push(detail);
             CloseHandle(h_device as *mut _); // HANDLE in foundation/mod.rs is isize, but error said *mut void

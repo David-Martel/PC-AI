@@ -1,0 +1,106 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"version": "2.1.0",
+	"providers": {
+		"pcai-inference": {
+			"enabled": true,
+			"baseUrl": "http://127.0.0.1:8080",
+			"defaultModel": "pcai-inference",
+			"timeout": 120000
+		},
+		"pcai-native": {
+			"enabled": true,
+			"type": "ffi",
+			"backend": "llamacpp",
+			"modelPath": "Models/ollama/registry.ollama.ai_library_deepseek-r1_7b__96c41565.gguf",
+			"gpuLayers": -1,
+			"defaultTemperature": 0.7,
+			"defaultMaxTokens": 2048
+		},
+		"functiongemma": {
+			"enabled": true,
+			"baseUrl": "http://127.0.0.1:8000",
+			"defaultModel": "functiongemma-270m-it",
+			"timeout": 120000
+		},
+		"ollama": {
+			"enabled": true,
+			"baseUrl": "http://127.0.0.1:11434",
+			"defaultModel": "llama3.2:latest",
+			"timeout": 120000
+		},
+		"lmstudio": {
+			"enabled": true,
+			"baseUrl": "http://127.0.0.1:1234",
+			"defaultModel": "local-model",
+			"timeout": 120000
+		},
+		"vllm": {
+			"enabled": true,
+			"baseUrl": "http://127.0.0.1:8001",
+			"defaultModel": "vllm-model",
+			"timeout": 120000
+		}
+	},
+	"contextManagement": {
+		"maxContextTokens": 16384,
+		"reservedForResponse": 4096,
+		"systemPromptFile": "DIAGNOSE.md",
+		"decisionTreeFile": "DIAGNOSE_LOGIC.md",
+		"chatPromptFile": "CHAT.md"
+	},
+	"router": {
+		"enabled": true,
+		"provider": "functiongemma",
+		"baseUrl": "http://127.0.0.1:8000",
+		"model": "functiongemma-270m-it",
+		"toolsPath": "Config/pcai-tools.json",
+		"disable": false,
+		"force": false,
+		"strict": false,
+		"defaultTemperature": 0.2
+	},
+	"prompts": {
+		"diagnosticAnalysis": {
+			"temperature": 0.3,
+			"maxTokens": 4096,
+			"topP": 0.9
+		},
+		"optimization": {
+			"temperature": 0.5,
+			"maxTokens": 2048,
+			"topP": 0.95
+		}
+	},
+	"responseFormat": {
+		"includeReasoningSteps": true,
+		"structuredOutput": true,
+		"markdownFormatting": true
+	},
+	"fallbackOrder": ["pcai-native", "pcai-inference"],
+	"nativeInference": {
+		"preferNative": true,
+		"dllSearchPaths": [
+			"bin/pcai_inference.dll",
+			"Deploy/pcai-inference/target/release/pcai_inference.dll"
+		],
+		"backends": {
+			"mistralrs": {
+				"priority": 1,
+				"description": "Rust mistral.rs backend (optimized for Mistral models)"
+			},
+			"llamacpp": {
+				"priority": 2,
+				"description": "llama.cpp backend (GGUF models, CUDA support)"
+			}
+		}
+	},
+	"evaluation": {
+		"binSearchPaths": [
+			"bin",
+			"%USERPROFILE%/.local/bin",
+			"Native/pcai_core/pcai_inference/target/release",
+			"Deploy/pcai-inference/target/release"
+		]
+	}
+}

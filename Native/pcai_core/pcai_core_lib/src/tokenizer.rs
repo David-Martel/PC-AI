@@ -11,11 +11,14 @@ pub fn estimate_tokens(text: &str) -> usize {
     }
 
     let re = TOKEN_RE.get_or_init(|| {
-        Regex::new(r"(?x)
+        Regex::new(
+            r"(?x)
             [\p{L}\p{N}]+ |  # Words or numbers
             \s+           |  # Whitespace
             [^\p{L}\p{N}\s]  # Punctuation/Other
-        ").unwrap_or_else(|_| Regex::new(".").expect("TODO: Verify unwrap")) // Fallback to safe catch-all
+        ",
+        )
+        .unwrap_or_else(|_| Regex::new(".").expect("TODO: Verify unwrap")) // Fallback to safe catch-all
     });
 
     let mut count = 0;

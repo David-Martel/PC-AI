@@ -19,10 +19,7 @@ pub fn format_function_call(name: &str, args: &Map<String, Value>) -> String {
         parts.push(format!("{key}:<escape>{value}<escape>"));
     }
     let args_text = parts.join(",");
-    format!(
-        "<start_function_call>call:{}{{{}}}<end_function_call>",
-        name, args_text
-    )
+    format!("<start_function_call>call:{}{{{}}}<end_function_call>", name, args_text)
 }
 
 pub fn parse_escape_args(args_text: &str) -> Value {

@@ -168,6 +168,7 @@ fn set_last_error_with_code(err: impl Into<String>, code: PcaiErrorCode) {
 }
 
 /// Set the last error message with the `Unknown` error code
+#[cfg(test)]
 fn set_last_error(err: impl Into<String>) {
     set_last_error_with_code(err, PcaiErrorCode::Unknown);
 }

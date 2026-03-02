@@ -55,12 +55,7 @@ impl LoraLinear {
     /// - Base weights: Identity or random (frozen)
     /// - LoRA A: Kaiming uniform (trainable)
     /// - LoRA B: Zeros (trainable)
-    pub fn new(
-        in_features: usize,
-        out_features: usize,
-        config: &LoraConfig,
-        device: &Device,
-    ) -> Result<Self> {
+    pub fn new(in_features: usize, out_features: usize, config: &LoraConfig, device: &Device) -> Result<Self> {
         let r = config.r;
 
         // Create base linear layer with identity initialization
@@ -142,8 +137,8 @@ impl Module for LoraLinear {
         let x_flat = x.reshape((batch_size * seq_len, hidden_dim))?;
 
         // Compute LoRA path: x @ A^T @ B^T
-        let lora_out = x_flat.matmul(&self.lora_a.t()?)?;  // (batch*seq, r)
-        let lora_out = lora_out.matmul(&self.lora_b.t()?)?;  // (batch*seq, out_features)
+        let lora_out = x_flat.matmul(&self.lora_a.t()?)?; // (batch*seq, r)
+        let lora_out = lora_out.matmul(&self.lora_b.t()?)?; // (batch*seq, out_features)
 
         // Reshape back to (batch, seq_len, out_features)
         let lora_out = lora_out.reshape((batch_size, seq_len, ()))?;
@@ -201,7 +196,11 @@ mod tests {
         assert_eq!(lora_b.dims(), &[256, 4]);
 
         // Check that lora_b is initialized to zeros
-        let sum = lora_b.sum_all().unwrap().to_scalar::<f32>().expect("TODO: Verify unwrap");
+        let sum = lora_b
+            .sum_all()
+            .unwrap()
+            .to_scalar::<f32>()
+            .expect("TODO: Verify unwrap");
         assert_eq!(sum, 0.0);
     }
 }

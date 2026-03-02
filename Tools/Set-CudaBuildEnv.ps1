@@ -1,28 +1,66 @@
 <#
 .SYNOPSIS
-    Sets CUDA 12.9 environment for Rust compilation (workaround for CUDA 13.1 bindgen_cuda panic).
+    Sets CUDA build environment for Rust/Candle compilation.
 .DESCRIPTION
-    CUDA 13.1 causes bindgen_cuda::Builder::build_ptx to panic due to nvcc
-    failing to preprocess host compiler properties with MSVC 19.44.
-    CUDA 12.9 works correctly. This script sets the environment variables.
+    Prefers CUDA 13.1 by default for current pc-ai CUDA builds,
+    auto-detects the newest MSVC x64 toolchain, and updates process-scoped
+    environment variables for immediate build use.
 #>
+[CmdletBinding()]
 param(
-    [string]$CudaVersion = "v12.9"
+    [string]$CudaVersion = 'v13.1'
 )
 
-$cudaBase = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\$CudaVersion"
-$msvcBin = "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64"
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
-if (-not (Test-Path "$cudaBase\bin\nvcc.exe")) {
-    Write-Error "CUDA $CudaVersion not found at $cudaBase"
-    return
+$cudaBase = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\$CudaVersion"
+if (-not (Test-Path -LiteralPath "$cudaBase\bin\nvcc.exe")) {
+    throw "CUDA $CudaVersion not found at $cudaBase"
+}
+
+$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+if (-not (Test-Path -LiteralPath $vswhere)) {
+    throw "vswhere.exe not found at $vswhere"
+}
+
+$installRoots = & $vswhere -all -products * -property installationPath
+$msvcCandidates = @()
+foreach ($installRoot in @($installRoots)) {
+    if (-not $installRoot) { continue }
+    $msvcRoot = Join-Path $installRoot 'VC\Tools\MSVC'
+    if (-not (Test-Path -LiteralPath $msvcRoot)) { continue }
+
+    $bins = Get-ChildItem -Path $msvcRoot -Directory -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.FullName 'bin\Hostx64\x64' } |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_ 'cl.exe') }
+    if ($bins) { $msvcCandidates += $bins }
+}
+
+$msvcBin = $msvcCandidates |
+    Sort-Object {
+        if ($_ -match '\\MSVC\\(?<ver>[^\\]+)\\bin\\Hostx64\\x64$') {
+            return [version]$Matches.ver
+        }
+        return [version]'0.0.0'
+    } -Descending |
+    Select-Object -First 1
+
+if (-not $msvcBin) {
+    throw 'Unable to locate MSVC cl.exe under Visual Studio installations.'
 }
 
 $env:CUDA_PATH = $cudaBase
+$env:CUDA_HOME = $cudaBase
 $env:NVCC_CCBIN = $msvcBin
-$env:PATH = "$cudaBase\bin;$msvcBin;$env:PATH"
 
-Write-Host "CUDA build environment set:" -ForegroundColor Green
+foreach ($segment in @("$cudaBase\bin", "$cudaBase\nvvm\bin", $msvcBin)) {
+    if ($env:PATH -notlike "*$segment*") {
+        $env:PATH = "$segment;$env:PATH"
+    }
+}
+
+Write-Host 'CUDA build environment set:' -ForegroundColor Green
 Write-Host "  CUDA_PATH  = $env:CUDA_PATH"
 Write-Host "  NVCC_CCBIN = $env:NVCC_CCBIN"
 & nvcc --version | Select-Object -Last 2

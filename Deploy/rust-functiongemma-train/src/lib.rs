@@ -1,16 +1,16 @@
 pub use rust_functiongemma_core::model;
-pub mod schema_utils;
+pub mod checkpoint;
 pub mod data_gen;
 pub mod dataset;
-pub mod eval;
-pub mod router_dataset;
-pub mod trainer;
-pub mod lora;
-pub mod scheduler;
-pub mod checkpoint;
 pub mod early_stopping;
+pub mod eval;
+pub mod lora;
+pub mod router_dataset;
+pub mod scheduler;
+pub mod schema_utils;
+pub mod trainer;
 
-pub use rust_functiongemma_core::model::{Config, Model, LoraSettings};
+pub use rust_functiongemma_core::model::{Config, LoraSettings, Model};
 
 #[cfg(test)]
 mod tests {

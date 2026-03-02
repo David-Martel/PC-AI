@@ -55,18 +55,14 @@ unsafe fn c_str_to_str<'a>(ptr: *const c_char) -> Result<&'a str, PcaiStatus> {
     if ptr.is_null() {
         return Err(PcaiStatus::NullPointer);
     }
-    CStr::from_ptr(ptr)
-        .to_str()
-        .map_err(|_| PcaiStatus::InvalidUtf8)
+    CStr::from_ptr(ptr).to_str().map_err(|_| PcaiStatus::InvalidUtf8)
 }
 
 fn create_backup(path: &Path) -> std::io::Result<()> {
-    let backup_path = path.with_extension(
-        format!(
-            "{}.bak",
-            path.extension().and_then(|s| s.to_str()).unwrap_or("")
-        )
-    );
+    let backup_path = path.with_extension(format!(
+        "{}.bak",
+        path.extension().and_then(|s| s.to_str()).unwrap_or("")
+    ));
     fs::copy(path, backup_path)?;
     Ok(())
 }
@@ -78,12 +74,10 @@ fn replace_in_file_impl(
     is_regex: bool,
     backup: bool,
 ) -> Result<usize, String> {
-    let content = fs::read_to_string(file_path)
-        .map_err(|e| format!("Failed to read file: {}", e))?;
+    let content = fs::read_to_string(file_path).map_err(|e| format!("Failed to read file: {}", e))?;
 
     let (new_content, count) = if is_regex {
-        let re = Regex::new(pattern)
-            .map_err(|e| format!("Invalid regex pattern: {}", e))?;
+        let re = Regex::new(pattern).map_err(|e| format!("Invalid regex pattern: {}", e))?;
         let new = re.replace_all(&content, replacement).to_string();
         let matches = re.find_iter(&content).count();
         (new, matches)
@@ -95,12 +89,10 @@ fn replace_in_file_impl(
 
     if count > 0 {
         if backup {
-            create_backup(file_path)
-                .map_err(|e| format!("Failed to create backup: {}", e))?;
+            create_backup(file_path).map_err(|e| format!("Failed to create backup: {}", e))?;
         }
 
-        fs::write(file_path, new_content)
-            .map_err(|e| format!("Failed to write file: {}", e))?;
+        fs::write(file_path, new_content).map_err(|e| format!("Failed to write file: {}", e))?;
     }
 
     Ok(count)
@@ -133,10 +125,7 @@ pub extern "C" fn pcai_fs_version() -> u32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn pcai_delete_fs_item(
-    path: *const c_char,
-    recursive: bool,
-) -> PcaiStatus {
+pub unsafe extern "C" fn pcai_delete_fs_item(path: *const c_char, recursive: bool) -> PcaiStatus {
     let path_str = match c_str_to_str(path) {
         Ok(s) => s,
         Err(e) => return e,
@@ -238,28 +227,22 @@ pub unsafe extern "C" fn pcai_replace_in_files(
     let files_scanned = files.len();
     let results: Vec<(bool, usize)> = files
         .par_iter()
-        .map(|path| {
-            match replace_in_file_impl(path, content_pat, repl, is_regex, backup) {
+        .map(
+            |path| match replace_in_file_impl(path, content_pat, repl, is_regex, backup) {
                 Ok(count) => (count > 0, count),
                 Err(_) => (false, 0),
-            }
-        })
+            },
+        )
         .collect();
 
     let files_changed = results.iter().filter(|(changed, _)| *changed).count();
     let matches_replaced = results.iter().map(|(_, count)| count).sum();
     let elapsed_ms = start.elapsed().as_millis() as u64;
 
-    let result = ReplaceResult::success(
-        files_scanned,
-        files_changed,
-        matches_replaced,
-        elapsed_ms,
-    );
+    let result = ReplaceResult::success(files_scanned, files_changed, matches_replaced, elapsed_ms);
 
-    let json = serde_json::to_string(&result).unwrap_or_else(|_| {
-        r#"{"status":"error","error":"JSON serialization failed"}"#.to_string()
-    });
+    let json = serde_json::to_string(&result)
+        .unwrap_or_else(|_| r#"{"status":"error","error":"JSON serialization failed"}"#.to_string());
 
     PcaiStringBuffer::from_string(&json)
 }

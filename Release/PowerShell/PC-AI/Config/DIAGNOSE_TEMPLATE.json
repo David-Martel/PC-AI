@@ -1,0 +1,32 @@
+{
+  "diagnosis_version": "2.0.0",
+  "timestamp": "ISO-8601-TIMESTAMP",
+  "model_id": "MODEL-SHORT-NAME",
+  "environment": {
+    "os_version": "STRING",
+    "pcai_tooling": "STRING"
+  },
+  "summary": [
+    "BULLET-POINT-1",
+    "BULLET-POINT-2"
+  ],
+  "findings": [
+    {
+      "category": "Hardware|Storage|USB|Network|GPU|Virtualization",
+      "issue": "DESCRIPTION",
+      "criticality": "Critical|High|Medium|Low",
+      "evidence": "QUOTE-FROM-REPORT-OR-LOGS"
+    }
+  ],
+  "recommendations": [
+    {
+      "step": 1,
+      "action": "DESCRIPTION",
+      "risk": "None|Low|Medium|High",
+      "warning": "OPTIONAL-SAFETY-WARNING"
+    }
+  ],
+  "what_is_missing": [
+    "REQUIRED-COMMAND-OR-DATA"
+  ]
+}

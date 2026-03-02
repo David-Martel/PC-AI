@@ -2,8 +2,8 @@
 //!
 //! Provides optimized access to hardware, OS, and process information.
 
-use sysinfo::{System, Disks, Networks, Components};
 use serde::Serialize;
+use sysinfo::{Components, Disks, Networks, System};
 
 use crate::string::PcaiStringBuffer;
 use crate::PcaiStatus;
@@ -13,7 +13,6 @@ pub mod path;
 
 use std::ffi::CStr;
 use std::os::raw::c_char;
-
 
 #[derive(Serialize)]
 pub struct SystemSummary {
@@ -57,26 +56,35 @@ pub fn get_system_summary() -> SystemSummary {
     sys.refresh_all();
 
     let disks_list = Disks::new_with_refreshed_list();
-    let disks = disks_list.iter().map(|d| DiskInfo {
-        name: d.name().to_string_lossy().into_owned(),
-        mount_point: d.mount_point().to_string_lossy().into_owned(),
-        total_gb: d.total_space() as f64 / 1_000_000_000.0,
-        available_gb: d.available_space() as f64 / 1_000_000_000.0,
-        is_removable: d.is_removable(),
-    }).collect();
+    let disks = disks_list
+        .iter()
+        .map(|d| DiskInfo {
+            name: d.name().to_string_lossy().into_owned(),
+            mount_point: d.mount_point().to_string_lossy().into_owned(),
+            total_gb: d.total_space() as f64 / 1_000_000_000.0,
+            available_gb: d.available_space() as f64 / 1_000_000_000.0,
+            is_removable: d.is_removable(),
+        })
+        .collect();
 
     let networks_list = Networks::new_with_refreshed_list();
-    let networks = networks_list.iter().map(|(name, data)| NetworkInfo {
-        interface: name.clone(),
-        received_kb: data.received() / 1024,
-        transmitted_kb: data.transmitted() / 1024,
-    }).collect();
+    let networks = networks_list
+        .iter()
+        .map(|(name, data)| NetworkInfo {
+            interface: name.clone(),
+            received_kb: data.received() / 1024,
+            transmitted_kb: data.transmitted() / 1024,
+        })
+        .collect();
 
     let components_list = Components::new_with_refreshed_list();
-    let temperatures = components_list.iter().map(|c| ComponentTemp {
-        label: c.label().to_string(),
-        celsius: c.temperature().unwrap_or(0.0),
-    }).collect();
+    let temperatures = components_list
+        .iter()
+        .map(|c| ComponentTemp {
+            label: c.label().to_string(),
+            celsius: c.temperature().unwrap_or(0.0),
+        })
+        .collect();
 
     SystemSummary {
         os_name: System::name().unwrap_or_default(),
@@ -120,10 +128,13 @@ pub extern "C" fn pcai_query_hardware_metrics() -> PcaiStringBuffer {
     let avg_load = sys.global_cpu_usage();
 
     let components_list = Components::new_with_refreshed_list();
-    let temps = components_list.iter().map(|c| ComponentTemp {
-        label: c.label().to_string(),
-        celsius: c.temperature().unwrap_or(0.0),
-    }).collect();
+    let temps = components_list
+        .iter()
+        .map(|c| ComponentTemp {
+            label: c.label().to_string(),
+            celsius: c.temperature().unwrap_or(0.0),
+        })
+        .collect();
 
     crate::string::json_to_buffer(&Metrics {
         cpu_usage,

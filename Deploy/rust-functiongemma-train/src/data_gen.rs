@@ -66,8 +66,7 @@ pub struct DataGenerator {
 impl DataGenerator {
     pub fn new(tools_path: &Path, system_prompt_path: Option<&Path>) -> Result<Self> {
         let tools_raw = fs::read_to_string(tools_path).context("Failed to read tools path")?;
-        let tools_json: Value =
-            serde_json::from_str(&tools_raw).context("Failed to parse tools JSON")?;
+        let tools_json: Value = serde_json::from_str(&tools_raw).context("Failed to parse tools JSON")?;
         let tools = tools_json.get("tools").cloned().unwrap_or(json!([]));
 
         let mut default_system_msg =
@@ -93,17 +92,12 @@ impl DataGenerator {
         let tools_arr = self.tools.as_array().context("Tools is not an array")?;
 
         for tool in tools_arr {
-            let fn_obj = tool
-                .get("function")
-                .context("Tool has no function object")?;
+            let fn_obj = tool.get("function").context("Tool has no function object")?;
             let name = fn_obj
                 .get("name")
                 .and_then(|v| v.as_str())
                 .context("Tool has no name")?;
-            let description = fn_obj
-                .get("description")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let description = fn_obj.get("description").and_then(|v| v.as_str()).unwrap_or("");
             let params = fn_obj
                 .get("parameters")
                 .and_then(|v| v.as_object())
@@ -131,10 +125,7 @@ impl DataGenerator {
                     messages: vec![
                         Message {
                             role: "user".to_string(),
-                            content: Some(format!(
-                                "{}\n\n{}",
-                                self.default_system_msg, context_aware_prompt
-                            )),
+                            content: Some(format!("{}\n\n{}", self.default_system_msg, context_aware_prompt)),
                             tool_calls: None,
                         },
                         Message {
@@ -222,10 +213,7 @@ impl DataGenerator {
                     messages: vec![
                         Message {
                             role: "user".to_string(),
-                            content: Some(format!(
-                                "{}\n\n{}",
-                                self.default_system_msg, scenario.user_content
-                            )),
+                            content: Some(format!("{}\n\n{}", self.default_system_msg, scenario.user_content)),
                             tool_calls: None,
                         },
                         Message {
@@ -250,19 +238,12 @@ impl DataGenerator {
                 messages: vec![
                     Message {
                         role: "user".to_string(),
-                        content: Some(format!(
-                            "{}\n\n{}",
-                            self.default_system_msg, scenario.user_content
-                        )),
+                        content: Some(format!("{}\n\n{}", self.default_system_msg, scenario.user_content)),
                         tool_calls: None,
                     },
                     Message {
                         role: "assistant".to_string(),
-                        content: Some(
-                            scenario
-                                .assistant_content
-                                .unwrap_or_else(|| "NO_TOOL".to_string()),
-                        ),
+                        content: Some(scenario.assistant_content.unwrap_or_else(|| "NO_TOOL".to_string())),
                         tool_calls: None,
                     },
                 ],
@@ -319,7 +300,8 @@ mod tests {
         std::fs::write(
             &path,
             r#"{"scenarios":[{"mode":"no_tool","user_content":"Hello","assistant_content":"NO_TOOL"}]}"#,
-        ).expect("TODO: Verify unwrap");
+        )
+        .expect("TODO: Verify unwrap");
         let gen = make_generator();
         let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         assert_eq!(items.len(), 1);
@@ -332,10 +314,8 @@ mod tests {
         let dir = TempDir::new().expect("TODO: Verify unwrap");
         let path = dir.path().join("neg.json");
         // assistant_content omitted - should default to "NO_TOOL"
-        std::fs::write(
-            &path,
-            r#"{"scenarios":[{"mode":"no_tool","user_content":"Hello"}]}"#,
-        ).expect("TODO: Verify unwrap");
+        std::fs::write(&path, r#"{"scenarios":[{"mode":"no_tool","user_content":"Hello"}]}"#)
+            .expect("TODO: Verify unwrap");
         let gen = make_generator();
         let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         assert_eq!(items.len(), 1);
@@ -349,7 +329,8 @@ mod tests {
         std::fs::write(
             &path,
             r#"{"scenarios":[{"mode":"chat","user_content":"Explain WSL","assistant_content":"NO_TOOL"}]}"#,
-        ).expect("TODO: Verify unwrap");
+        )
+        .expect("TODO: Verify unwrap");
         let gen = make_generator();
         let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         assert_eq!(items.len(), 1);
@@ -403,7 +384,8 @@ mod tests {
             .tool_calls
             .as_ref()
             .unwrap()
-            .as_array().expect("TODO: Verify unwrap");
+            .as_array()
+            .expect("TODO: Verify unwrap");
         assert_eq!(arr.len(), 3);
     }
 
@@ -418,10 +400,7 @@ mod tests {
         let gen = make_generator();
         let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
         let content = items[0].messages[1].content.as_deref().expect("TODO: Verify unwrap");
-        assert!(
-            content.contains("2 tools"),
-            "thought should mention tool count"
-        );
+        assert!(content.contains("2 tools"), "thought should mention tool count");
         assert!(content.contains("<thought>"));
     }
 
@@ -431,11 +410,13 @@ mod tests {
         std::fs::write(
             dir.path().join("a.json"),
             r#"{"scenarios":[{"mode":"no_tool","user_content":"Hi"}]}"#,
-        ).expect("TODO: Verify unwrap");
+        )
+        .expect("TODO: Verify unwrap");
         std::fs::write(
             dir.path().join("b.json"),
             r#"{"scenarios":[{"mode":"no_tool","user_content":"Bye"}]}"#,
-        ).expect("TODO: Verify unwrap");
+        )
+        .expect("TODO: Verify unwrap");
         std::fs::write(dir.path().join("not.txt"), "ignored").expect("TODO: Verify unwrap");
         let gen = make_generator();
         let items = gen.generate_from_scenario_dir(dir.path()).expect("TODO: Verify unwrap");
@@ -456,7 +437,8 @@ mod tests {
         std::fs::write(
             dir.path().join("no_tool.json"),
             r#"{"scenarios":[{"mode":"no_tool","user_content":"Hello"},{"mode":"no_tool","user_content":"Thanks"}]}"#,
-        ).expect("TODO: Verify unwrap");
+        )
+        .expect("TODO: Verify unwrap");
         std::fs::write(
             dir.path().join("multi.json"),
             r#"{"scenarios":[{"mode":"multi_tool","user_content":"Check all","tool_sequence":["pcai_get_disk_status","pcai_get_usb_status"]}]}"#,

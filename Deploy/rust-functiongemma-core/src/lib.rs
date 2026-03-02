@@ -17,6 +17,6 @@ pub use lora_utils::LoraInfo;
 pub use model::{Config, KvCacheQuant, LoraSettings, Model};
 pub use prompt::{is_degenerate_output, trim_input_ids};
 pub use safetensors_utils::{
-    collect_model_safetensors, custom_load, custom_load_verbose, detect_safetensors_prefix,
-    detect_tie_embeddings, open_mmaped_safetensors,
+    collect_model_safetensors, custom_load, custom_load_verbose, detect_safetensors_prefix, detect_tie_embeddings,
+    open_mmaped_safetensors,
 };

@@ -247,20 +247,13 @@ fn find_duplicates_impl(config: &DuplicateConfig) -> DuplicateResult {
     for (hash, files) in hash_map {
         if files.len() > 1 {
             let size = files[0].1;
-            let paths: Vec<String> = files
-                .iter()
-                .map(|(p, _)| p.to_string_lossy().into_owned())
-                .collect();
+            let paths: Vec<String> = files.iter().map(|(p, _)| p.to_string_lossy().into_owned()).collect();
 
             let duplicates = files.len() as u64 - 1; // Exclude "original"
             total_duplicate_files += duplicates;
             total_wasted_bytes += duplicates * size;
 
-            groups.push(DuplicateGroup {
-                hash,
-                size,
-                paths,
-            });
+            groups.push(DuplicateGroup { hash, size, paths });
         }
     }
 
@@ -403,10 +396,7 @@ mod tests {
         let hash = hash_file(&path).expect("TODO: Verify unwrap");
 
         // Known SHA-256 of "hello world"
-        assert_eq!(
-            hash,
-            "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
-        );
+        assert_eq!(hash, "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
     }
 
     #[test]

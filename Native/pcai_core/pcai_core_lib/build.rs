@@ -16,7 +16,8 @@ fn main() {
             "pub const VERSION: &str = \"{}\";\npub const VERSION_CSTR: &[u8] = b\"{}\";\n",
             version, version_cstr
         ),
-    ).expect("TODO: Verify unwrap");
+    )
+    .expect("TODO: Verify unwrap");
 
     println!("cargo:rerun-if-env-changed=PCAI_BUILD_VERSION");
 }

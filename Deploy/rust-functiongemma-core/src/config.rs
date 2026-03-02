@@ -351,13 +351,9 @@ mod tests {
     #[test]
     fn empty_env_var_does_not_override() {
         with_env_var("PCAI_ROUTER_ADDR", "", || {
-            let cfg =
-                PcaiConfig::load_from(Path::new("/nonexistent/config.json")).expect("defaults");
+            let cfg = PcaiConfig::load_from(Path::new("/nonexistent/config.json")).expect("defaults");
             // Empty override must not replace the default.
-            assert_eq!(
-                cfg.runtime.router_addr,
-                RuntimeConfig::default().router_addr
-            );
+            assert_eq!(cfg.runtime.router_addr, RuntimeConfig::default().router_addr);
         });
     }
 
@@ -382,10 +378,7 @@ mod tests {
     fn missing_file_returns_defaults() {
         let cfg = PcaiConfig::load_from(Path::new("/nonexistent/path/config.json"))
             .expect("should return defaults, not an error");
-        assert_eq!(
-            cfg.runtime.router_addr,
-            RuntimeConfig::default().router_addr
-        );
+        assert_eq!(cfg.runtime.router_addr, RuntimeConfig::default().router_addr);
     }
 
     // ------------------------------------------------------------------
@@ -398,10 +391,7 @@ mod tests {
         let cfg: PcaiConfig = serde_json::from_str(json).expect("partial config should parse");
         assert_eq!(cfg.runtime.router_addr, "127.0.0.1:1234");
         // Fields not present in the JSON get their defaults.
-        assert_eq!(
-            cfg.runtime.router_model,
-            RuntimeConfig::default().router_model
-        );
+        assert_eq!(cfg.runtime.router_model, RuntimeConfig::default().router_model);
         assert_eq!(
             cfg.runtime.router_default_max_tokens,
             RuntimeConfig::default().router_default_max_tokens

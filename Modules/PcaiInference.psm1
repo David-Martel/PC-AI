@@ -164,7 +164,7 @@ function Initialize-PcaiInference {
     param(
         [Parameter()]
         [ValidateSet('auto', 'llamacpp', 'mistralrs')]
-        [string]$Backend = 'llamacpp',
+        [string]$Backend = 'auto',
 
         [Parameter()]
         [string]$DllPath

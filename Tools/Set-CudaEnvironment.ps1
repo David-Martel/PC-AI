@@ -1,64 +1,61 @@
 <#
 .SYNOPSIS
-    Sets up CUDA environment variables for Rust/candle-core compilation.
+    Sets CUDA environment variables for Rust/Candle compilation.
 .DESCRIPTION
-    Configures CUDA_PATH and adds nvvm/bin to PATH for cicc compiler access.
+    Configures CUDA_PATH plus PATH/include/lib entries. Defaults to process
+    scope for safety; use -Scope Machine for persistent system updates.
 #>
 [CmdletBinding()]
 param(
-    [string]$CudaVersion = "v13.0"
+    [string]$CudaVersion = 'v13.1',
+    [ValidateSet('Process', 'Machine')]
+    [string]$Scope = 'Process'
 )
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
 $cudaBase = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\$CudaVersion"
-
-if (-not (Test-Path $cudaBase)) {
-    Write-Error "CUDA $CudaVersion not found at $cudaBase"
-    exit 1
+if (-not (Test-Path -LiteralPath $cudaBase)) {
+    throw "CUDA $CudaVersion not found at $cudaBase"
 }
 
-# Set CUDA_PATH
-$currentCudaPath = [System.Environment]::GetEnvironmentVariable('CUDA_PATH', 'Machine')
+$setScope = if ($Scope -eq 'Machine') { 'Machine' } else { 'Process' }
+$currentCudaPath = [Environment]::GetEnvironmentVariable('CUDA_PATH', $setScope)
 if ($currentCudaPath -ne $cudaBase) {
-    Write-Host "Setting CUDA_PATH to $cudaBase"
-    [System.Environment]::SetEnvironmentVariable('CUDA_PATH', $cudaBase, 'Machine')
-} else {
-    Write-Host "CUDA_PATH already set to $cudaBase"
+    [Environment]::SetEnvironmentVariable('CUDA_PATH', $cudaBase, $setScope)
 }
 
-# Add CUDA bin to PATH for nvcc
-$cudaBin = "$cudaBase\bin"
-$currentPath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+$pathValue = [Environment]::GetEnvironmentVariable('Path', $setScope)
+if (-not $pathValue) { $pathValue = '' }
 
-if ($currentPath -notlike "*$cudaBin*") {
-    Write-Host "Adding $cudaBin to system PATH"
-    $currentPath = "$currentPath;$cudaBin"
-    [System.Environment]::SetEnvironmentVariable('Path', $currentPath, 'Machine')
-} else {
-    Write-Host "CUDA bin already in PATH"
+$requiredPathSegments = @(
+    "$cudaBase\bin",
+    "$cudaBase\nvvm\bin",
+    "$cudaBase\libnvvp"
+)
+
+foreach ($segment in $requiredPathSegments) {
+    if ((Test-Path -LiteralPath $segment) -and ($pathValue -notlike "*$segment*")) {
+        $pathValue = if ([string]::IsNullOrWhiteSpace($pathValue)) { $segment } else { "$segment;$pathValue" }
+    }
 }
 
-# Add nvvm/bin to PATH for cicc
-$nvvmBin = "$cudaBase\nvvm\bin"
+[Environment]::SetEnvironmentVariable('Path', $pathValue, $setScope)
 
-if ($currentPath -notlike "*$nvvmBin*") {
-    Write-Host "Adding $nvvmBin to system PATH"
-    $currentPath = "$currentPath;$nvvmBin"
-    [System.Environment]::SetEnvironmentVariable('Path', $currentPath, 'Machine')
-} else {
-    Write-Host "nvvm/bin already in PATH"
+# Mirror into process env for immediate use even when applying machine scope.
+$env:CUDA_PATH = $cudaBase
+$env:CUDA_HOME = $cudaBase
+$env:PATH = $pathValue
+
+if ($env:INCLUDE -notlike "*$cudaBase\\include*") {
+    $env:INCLUDE = if ($env:INCLUDE) { "$cudaBase\include;$env:INCLUDE" } else { "$cudaBase\include" }
+}
+if ($env:LIB -notlike "*$cudaBase\\lib\\x64*") {
+    $env:LIB = if ($env:LIB) { "$cudaBase\lib\x64;$env:LIB" } else { "$cudaBase\lib\x64" }
 }
 
-# Add libnvvp to PATH
-$libnvvp = "$cudaBase\libnvvp"
-if ((Test-Path $libnvvp) -and ($currentPath -notlike "*$libnvvp*")) {
-    Write-Host "Adding $libnvvp to system PATH"
-    [System.Environment]::SetEnvironmentVariable('Path', "$currentPath;$libnvvp", 'Machine')
-}
-
-# Verify
-Write-Host "`nVerification:"
-Write-Host "  CUDA_PATH: $([System.Environment]::GetEnvironmentVariable('CUDA_PATH', 'Machine'))"
-Write-Host "  cicc.exe exists: $(Test-Path "$nvvmBin\cicc.exe")"
-Write-Host "  nvcc.exe exists: $(Test-Path "$cudaBase\bin\nvcc.exe")"
-
-Write-Host "`nNote: You may need to restart your terminal for PATH changes to take effect."
+Write-Host "CUDA environment configured ($Scope scope):" -ForegroundColor Green
+Write-Host "  CUDA_PATH: $env:CUDA_PATH"
+Write-Host "  nvcc.exe exists: $(Test-Path -LiteralPath "$cudaBase\bin\nvcc.exe")"
+Write-Host "  cicc.exe exists: $(Test-Path -LiteralPath "$cudaBase\nvvm\bin\cicc.exe")"

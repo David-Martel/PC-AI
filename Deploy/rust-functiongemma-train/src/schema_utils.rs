@@ -1,7 +1,7 @@
-use serde_json::{Value, Map};
+use crate::data_gen::{Message, TrainingItem};
 use itertools::Itertools;
+use serde_json::{Map, Value};
 use std::collections::HashSet;
-use crate::data_gen::{TrainingItem, Message};
 
 pub fn generate_arg_sets(parameters: &Map<String, Value>, max_cases: usize) -> Vec<Map<String, Value>> {
     let props = parameters.get("properties").and_then(|v| v.as_object());
@@ -10,7 +10,8 @@ pub fn generate_arg_sets(parameters: &Map<String, Value>, max_cases: usize) -> V
     }
     let props = props.expect("TODO: Verify unwrap");
 
-    let required: HashSet<&str> = parameters.get("required")
+    let required: HashSet<&str> = parameters
+        .get("required")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect())
         .unwrap_or_default();
@@ -100,16 +101,25 @@ fn values_for_param(schema: &Value) -> Vec<Value> {
             if param_type == "integer" {
                 values.into_iter().map(|v| Value::Number((v as i64).into())).collect()
             } else {
-                values.into_iter().map(|v| Value::Number(serde_json::Number::from_f64(v).expect("TODO: Verify unwrap"))).collect()
+                values
+                    .into_iter()
+                    .map(|v| Value::Number(serde_json::Number::from_f64(v).expect("TODO: Verify unwrap")))
+                    .collect()
             }
-        },
+        }
         "array" => {
             let items = schema.get("items");
-            let first_val = items.map(values_for_param).and_then(|v| v.into_iter().next()).unwrap_or(Value::String("item".to_string()));
+            let first_val = items
+                .map(values_for_param)
+                .and_then(|v| v.into_iter().next())
+                .unwrap_or(Value::String("item".to_string()));
             vec![Value::Array(vec![first_val])]
-        },
+        }
         "object" => vec![Value::Object(Map::new())],
-        _ => vec![schema.get("default").cloned().unwrap_or(Value::String("example".to_string()))],
+        _ => vec![schema
+            .get("default")
+            .cloned()
+            .unwrap_or(Value::String("example".to_string()))],
     }
 }
 
@@ -133,7 +143,10 @@ pub fn generate_negative_cases(tools: &Value) -> Vec<TrainingItem> {
                 },
                 Message {
                     role: "model".to_string(),
-                    content: Some("I'm sorry, I cannot perform any tool calls for that request. How else can I help you?".to_string()),
+                    content: Some(
+                        "I'm sorry, I cannot perform any tool calls for that request. How else can I help you?"
+                            .to_string(),
+                    ),
                     tool_calls: None,
                 },
             ],

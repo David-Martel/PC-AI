@@ -59,10 +59,7 @@ impl std::fmt::Debug for LoraLinear {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LoraLinear")
             .field("has_base", &self.base.is_some())
-            .field(
-                "has_lora",
-                &(self.lora_a.is_some() && self.lora_b.is_some()),
-            )
+            .field("has_lora", &(self.lora_a.is_some() && self.lora_b.is_some()))
             .field("has_qlora", &self.qlora.is_some())
             .field("has_qmatmul", &self.qmatmul.is_some())
             .field("scale", &self.scale)
@@ -71,22 +68,13 @@ impl std::fmt::Debug for LoraLinear {
 }
 
 impl LoraLinear {
-    pub fn new(
-        in_dim: usize,
-        out_dim: usize,
-        settings: LoraSettings,
-        vb: VarBuilder,
-    ) -> Result<Self> {
+    pub fn new(in_dim: usize, out_dim: usize, settings: LoraSettings, vb: VarBuilder) -> Result<Self> {
         // Match the base model's naming schema (e.g., q_proj.weight)
         let base_weight = vb.get((out_dim, in_dim), "weight")?;
         Self::new_with_base(base_weight, settings, vb)
     }
 
-    pub fn new_with_base(
-        base_weight: Tensor,
-        settings: LoraSettings,
-        vb: VarBuilder,
-    ) -> Result<Self> {
+    pub fn new_with_base(base_weight: Tensor, settings: LoraSettings, vb: VarBuilder) -> Result<Self> {
         let base_weight = if settings.use_4bit && base_weight.dtype() != DType::F32 {
             base_weight.to_dtype(DType::F32)?
         } else {
@@ -95,9 +83,8 @@ impl LoraLinear {
         let (out_dim, in_dim) = base_weight.dims2()?;
         if settings.use_4bit {
             let qlora_cfg = settings.qlora_config()?;
-            let qlora =
-                QuantizedLinear::from_weight_with_varbuilder(&base_weight, None, &qlora_cfg, vb)
-                    .map_err(|err| candle_core::Error::msg(err.to_string()))?;
+            let qlora = QuantizedLinear::from_weight_with_varbuilder(&base_weight, None, &qlora_cfg, vb)
+                .map_err(|err| candle_core::Error::msg(err.to_string()))?;
             return Ok(Self {
                 base: None,
                 lora_a: None,
@@ -161,9 +148,7 @@ impl LoraLinear {
         // Candle QMatMul merge: dequantize via f16 path then cast to f32,
         // add LoRA delta (stored in self.lora_a/b), store as plain Linear.
         if let Some(qmatmul) = self.qmatmul.take() {
-            let base_f32 = qmatmul
-                .dequantize_f16()?
-                .to_dtype(candle_core::DType::F32)?;
+            let base_f32 = qmatmul.dequantize_f16()?.to_dtype(candle_core::DType::F32)?;
             let merged = if let (Some(a), Some(b)) = (&self.lora_a, &self.lora_b) {
                 let delta = b.matmul(a)?.affine(self.scale, 0.0)?;
                 base_f32.add(&delta)?
@@ -455,12 +440,7 @@ impl LoraSettings {
     }
 }
 
-fn load_weight(
-    st: &MmapedSafetensors,
-    name: &str,
-    device: &Device,
-    dtype: DType,
-) -> Result<Tensor> {
+fn load_weight(st: &MmapedSafetensors, name: &str, device: &Device, dtype: DType) -> Result<Tensor> {
     let mut tensor = st.load(name, device)?;
     if tensor.dtype() != dtype {
         tensor = tensor.to_dtype(dtype)?;
@@ -599,11 +579,9 @@ impl Attention {
             attn_weights.matmul(&v)?
         };
 
-        let attn_output = attn_output.transpose(1, 2)?.reshape((
-            b_sz,
-            seq_len,
-            self.num_heads * self.head_dim,
-        ))?;
+        let attn_output = attn_output
+            .transpose(1, 2)?
+            .reshape((b_sz, seq_len, self.num_heads * self.head_dim))?;
 
         self.o_proj.forward(&attn_output)
     }
@@ -702,16 +680,8 @@ impl Attention {
             KvCacheQuant::Int8 => {
                 let (k_q, k_scale) = quantize_tensor_int8(&k)?;
                 let (v_q, v_scale) = quantize_tensor_int8(&v)?;
-                let k_q = if store_on_cpu {
-                    k_q.to_device(&cpu_device)?
-                } else {
-                    k_q
-                };
-                let v_q = if store_on_cpu {
-                    v_q.to_device(&cpu_device)?
-                } else {
-                    v_q
-                };
+                let k_q = if store_on_cpu { k_q.to_device(&cpu_device)? } else { k_q };
+                let v_q = if store_on_cpu { v_q.to_device(&cpu_device)? } else { v_q };
                 KvCacheEntry::Int8 {
                     k: k_q,
                     v: v_q,
@@ -731,10 +701,7 @@ impl Attention {
                 } else {
                     v.clone()
                 };
-                KvCacheEntry::Full {
-                    k: k_store,
-                    v: v_store,
-                }
+                KvCacheEntry::Full { k: k_store, v: v_store }
             }
         });
 
@@ -754,11 +721,9 @@ impl Attention {
             attn_weights.matmul(&v)?
         };
 
-        let attn_output = attn_output.transpose(1, 2)?.reshape((
-            b_sz,
-            seq_len,
-            self.num_heads * self.head_dim,
-        ))?;
+        let attn_output = attn_output
+            .transpose(1, 2)?
+            .reshape((b_sz, seq_len, self.num_heads * self.head_dim))?;
 
         self.o_proj.forward(&attn_output)
     }
@@ -769,9 +734,7 @@ impl Attention {
             Ok(x)
         } else {
             let (b, n_kv_head, seq_len, head_dim) = x.dims4()?;
-            let x = x
-                .unsqueeze(2)?
-                .expand((b, n_kv_head, n_rep, seq_len, head_dim))?;
+            let x = x.unsqueeze(2)?.expand((b, n_kv_head, n_rep, seq_len, head_dim))?;
             x.reshape((b, n_kv_head * n_rep, seq_len, head_dim))
         }
     }
@@ -790,33 +753,20 @@ struct DecoderLayer {
 impl DecoderLayer {
     fn new(cfg: &Config, lora: LoraSettings, layer_idx: usize, vb: VarBuilder) -> Result<Self> {
         let is_sliding = if let Some(types) = &cfg.layer_types {
-            types
-                .get(layer_idx)
-                .map(|s| s == "sliding_attention")
-                .unwrap_or(false)
+            types.get(layer_idx).map(|s| s == "sliding_attention").unwrap_or(false)
         } else {
             false
         };
 
         let self_attn = Attention::new(cfg, lora, is_sliding, vb.pp("self_attn"))?;
         let mlp = Mlp::new(cfg, lora, vb.pp("mlp"))?;
-        let input_layernorm =
-            RmsNorm::new(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("input_layernorm"))?;
-        let pre_feedforward_layernorm = RmsNorm::new(
-            cfg.hidden_size,
-            cfg.rms_norm_eps,
-            vb.pp("pre_feedforward_layernorm"),
-        )?;
-        let post_attention_layernorm = RmsNorm::new(
-            cfg.hidden_size,
-            cfg.rms_norm_eps,
-            vb.pp("post_attention_layernorm"),
-        )?;
-        let post_feedforward_layernorm = RmsNorm::new(
-            cfg.hidden_size,
-            cfg.rms_norm_eps,
-            vb.pp("post_feedforward_layernorm"),
-        )?;
+        let input_layernorm = RmsNorm::new(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("input_layernorm"))?;
+        let pre_feedforward_layernorm =
+            RmsNorm::new(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("pre_feedforward_layernorm"))?;
+        let post_attention_layernorm =
+            RmsNorm::new(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("post_attention_layernorm"))?;
+        let post_feedforward_layernorm =
+            RmsNorm::new(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("post_feedforward_layernorm"))?;
 
         Ok(Self {
             self_attn,
@@ -838,10 +788,7 @@ impl DecoderLayer {
         dtype: DType,
     ) -> Result<Self> {
         let is_sliding = if let Some(types) = &cfg.layer_types {
-            types
-                .get(layer_idx)
-                .map(|s| s == "sliding_attention")
-                .unwrap_or(false)
+            types.get(layer_idx).map(|s| s == "sliding_attention").unwrap_or(false)
         } else {
             false
         };
@@ -854,35 +801,16 @@ impl DecoderLayer {
         let k_weight = load_weight(st, &format!("{attn_prefix}.k_proj.weight"), device, dtype)?;
         let v_weight = load_weight(st, &format!("{attn_prefix}.v_proj.weight"), device, dtype)?;
         let o_weight = load_weight(st, &format!("{attn_prefix}.o_proj.weight"), device, dtype)?;
-        let q_norm_weight =
-            load_weight(st, &format!("{attn_prefix}.q_norm.weight"), device, dtype)?;
-        let k_norm_weight =
-            load_weight(st, &format!("{attn_prefix}.k_norm.weight"), device, dtype)?;
+        let q_norm_weight = load_weight(st, &format!("{attn_prefix}.q_norm.weight"), device, dtype)?;
+        let k_norm_weight = load_weight(st, &format!("{attn_prefix}.k_norm.weight"), device, dtype)?;
 
-        let gate_weight =
-            load_weight(st, &format!("{mlp_prefix}.gate_proj.weight"), device, dtype)?;
+        let gate_weight = load_weight(st, &format!("{mlp_prefix}.gate_proj.weight"), device, dtype)?;
         let up_weight = load_weight(st, &format!("{mlp_prefix}.up_proj.weight"), device, dtype)?;
-        let down_weight =
-            load_weight(st, &format!("{mlp_prefix}.down_proj.weight"), device, dtype)?;
+        let down_weight = load_weight(st, &format!("{mlp_prefix}.down_proj.weight"), device, dtype)?;
 
-        let input_ln_weight = load_weight(
-            st,
-            &format!("{prefix}.input_layernorm.weight"),
-            device,
-            dtype,
-        )?;
-        let pre_ff_ln_weight = load_weight(
-            st,
-            &format!("{prefix}.pre_feedforward_layernorm.weight"),
-            device,
-            dtype,
-        )?;
-        let post_attn_ln_weight = load_weight(
-            st,
-            &format!("{prefix}.post_attention_layernorm.weight"),
-            device,
-            dtype,
-        )?;
+        let input_ln_weight = load_weight(st, &format!("{prefix}.input_layernorm.weight"), device, dtype)?;
+        let pre_ff_ln_weight = load_weight(st, &format!("{prefix}.pre_feedforward_layernorm.weight"), device, dtype)?;
+        let post_attn_ln_weight = load_weight(st, &format!("{prefix}.post_attention_layernorm.weight"), device, dtype)?;
         let post_ff_ln_weight = load_weight(
             st,
             &format!("{prefix}.post_feedforward_layernorm.weight"),
@@ -1043,10 +971,7 @@ fn quantize_tensor_int8(tensor: &Tensor) -> Result<(Tensor, f32)> {
     let max_sq = f32.sqr()?.max_all()?.to_scalar::<f32>()?;
     let max = max_sq.sqrt().max(1e-6);
     let scale = max / 127.0;
-    let scaled = f32
-        .affine(1.0 / scale as f64, 0.0)?
-        .round()?
-        .clamp(-127f64, 127f64)?;
+    let scaled = f32.affine(1.0 / scale as f64, 0.0)?.round()?.clamp(-127f64, 127f64)?;
     let shifted = scaled.affine(1.0, 128.0)?;
     let q = shifted.to_dtype(DType::U8)?;
     Ok((q, scale))
@@ -1060,23 +985,12 @@ fn dequantize_tensor_int8(tensor: &Tensor, scale: f32, dtype: DType) -> Result<T
 }
 
 impl Model {
-    pub fn new(
-        cfg: &Config,
-        lora: LoraSettings,
-        vb: VarBuilder,
-        tie_embeddings: bool,
-    ) -> Result<Self> {
-        let embed_tokens =
-            candle_nn::embedding(cfg.vocab_size, cfg.hidden_size, vb.pp("model.embed_tokens"))?;
+    pub fn new(cfg: &Config, lora: LoraSettings, vb: VarBuilder, tie_embeddings: bool) -> Result<Self> {
+        let embed_tokens = candle_nn::embedding(cfg.vocab_size, cfg.hidden_size, vb.pp("model.embed_tokens"))?;
 
         let mut layers = Vec::with_capacity(cfg.num_hidden_layers);
         for i in 0..cfg.num_hidden_layers {
-            layers.push(DecoderLayer::new(
-                cfg,
-                lora,
-                i,
-                vb.pp(format!("model.layers.{}", i)),
-            )?);
+            layers.push(DecoderLayer::new(cfg, lora, i, vb.pp(format!("model.layers.{}", i)))?);
         }
 
         let norm = RmsNorm::new(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("model.norm"))?;
@@ -1221,12 +1135,7 @@ impl Model {
         Ok(generated)
     }
 
-    pub fn generate(
-        &self,
-        input_ids: &Tensor,
-        max_len: usize,
-        device: &Device,
-    ) -> Result<Vec<u32>> {
+    pub fn generate(&self, input_ids: &Tensor, max_len: usize, device: &Device) -> Result<Vec<u32>> {
         let mut generated = Vec::new();
         let mut current_ids = input_ids.clone();
 

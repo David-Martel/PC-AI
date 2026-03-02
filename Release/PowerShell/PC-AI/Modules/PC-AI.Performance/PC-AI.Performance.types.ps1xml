@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Types>
+  <Type>
+    <Name>PcaiNative.ProcessStats</Name>
+    <Members>
+        <ScriptProperty>
+            <Name>CpuPercent</Name>
+            <GetScriptBlock>
+                $this.SystemCpuUsage
+            </GetScriptBlock>
+        </ScriptProperty>
+        <ScriptProperty>
+            <Name>MemoryGB</Name>
+            <GetScriptBlock>
+                [math]::Round($this.SystemMemoryUsedBytes / 1GB, 2)
+            </GetScriptBlock>
+        </ScriptProperty>
+    </Members>
+  </Type>
+    <Type>
+    <Name>PcaiNative.DiskUsageStats</Name>
+    <Members>
+        <ScriptProperty>
+            <Name>SizeMB</Name>
+            <GetScriptBlock>
+                [math]::Round($this.TotalSizeBytes / 1MB, 2)
+            </GetScriptBlock>
+        </ScriptProperty>
+    </Members>
+  </Type>
+</Types>

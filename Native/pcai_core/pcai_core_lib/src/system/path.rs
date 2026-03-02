@@ -150,8 +150,8 @@ fn get_user_and_machine_paths() -> (Vec<String>, Vec<String>) {
     }
 
     // Try to read Machine PATH from registry
-    if let Ok(hklm) = RegKey::predef(HKEY_LOCAL_MACHINE)
-        .open_subkey(r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")
+    if let Ok(hklm) =
+        RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey(r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")
     {
         if let Ok(path) = hklm.get_value::<String, _>("Path") {
             machine_paths = path.split(';').map(|s| s.to_string()).collect();
@@ -188,8 +188,7 @@ pub fn analyze_path() -> (PathAnalysisStats, PathAnalysisJson) {
 
     // Create sets for User and Machine normalized paths
     let user_normalized: HashSet<String> = user_paths.iter().map(|p| normalize_path(p)).collect();
-    let machine_normalized: HashSet<String> =
-        machine_paths.iter().map(|p| normalize_path(p)).collect();
+    let machine_normalized: HashSet<String> = machine_paths.iter().map(|p| normalize_path(p)).collect();
 
     // Track normalized paths for duplicate detection
     let mut seen: HashMap<String, Vec<(usize, String, String)>> = HashMap::new();
@@ -237,10 +236,7 @@ pub fn analyze_path() -> (PathAnalysisStats, PathAnalysisJson) {
         }
 
         // Check for trailing slashes
-        if entry.len() > 3
-            && (entry.ends_with('\\') || entry.ends_with('/'))
-            && !entry.ends_with(":\\")
-        {
+        if entry.len() > 3 && (entry.ends_with('\\') || entry.ends_with('/')) && !entry.ends_with(":\\") {
             stats.trailing_slash_count += 1;
             issues.push(PathIssue {
                 severity: "Low".to_string(),
@@ -301,12 +297,7 @@ pub fn analyze_path() -> (PathAnalysisStats, PathAnalysisJson) {
             for (i, entry) in entries.iter().enumerate() {
                 if i > 0 {
                     issues.push(PathIssue {
-                        severity: if has_user && has_machine {
-                            "High"
-                        } else {
-                            "Medium"
-                        }
-                        .to_string(),
+                        severity: if has_user && has_machine { "High" } else { "Medium" }.to_string(),
                         issue_type: if has_user && has_machine {
                             "CrossDuplicate"
                         } else {
@@ -332,10 +323,7 @@ pub fn analyze_path() -> (PathAnalysisStats, PathAnalysisJson) {
     stats.elapsed_ms = start.elapsed().as_millis() as u64;
 
     // Determine health status
-    let health_status = if stats.duplicate_count == 0
-        && stats.non_existent_count == 0
-        && stats.empty_count == 0
-    {
+    let health_status = if stats.duplicate_count == 0 && stats.non_existent_count == 0 && stats.empty_count == 0 {
         "Healthy"
     } else if stats.cross_duplicate_count > 0 || stats.non_existent_count > 5 {
         "NeedsAttention"
@@ -378,16 +366,8 @@ pub fn analyze_path() -> (PathAnalysisStats, PathAnalysisJson) {
         ));
     }
 
-    let machine_entries: Vec<PathEntryRef> = all_entries
-        .iter()
-        .filter(|e| e.source == "Machine")
-        .cloned()
-        .collect();
-    let user_entries: Vec<PathEntryRef> = all_entries
-        .iter()
-        .filter(|e| e.source == "User")
-        .cloned()
-        .collect();
+    let machine_entries: Vec<PathEntryRef> = all_entries.iter().filter(|e| e.source == "Machine").cloned().collect();
+    let user_entries: Vec<PathEntryRef> = all_entries.iter().filter(|e| e.source == "User").cloned().collect();
     let machine_total_entries = machine_entries.len() as u32;
     let user_total_entries = user_entries.len() as u32;
 
@@ -436,10 +416,7 @@ mod tests {
 
         // Test case insensitivity on Windows
         #[cfg(windows)]
-        assert_eq!(
-            normalize_path("C:\\WINDOWS"),
-            normalize_path("C:\\windows")
-        );
+        assert_eq!(normalize_path("C:\\WINDOWS"), normalize_path("C:\\windows"));
     }
 
     #[test]

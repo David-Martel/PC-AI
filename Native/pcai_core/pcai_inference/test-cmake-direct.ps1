@@ -61,7 +61,7 @@ Write-Host "vcpkg toolchain: $vcpkgToolchain"
     "-DCMAKE_CXX_COMPILER=$clPath" `
     "-DCMAKE_BUILD_TYPE=Release" `
     "-DGGML_CUDA=ON" `
-    "-DCMAKE_CUDA_COMPILER=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/bin/nvcc.exe" `
+    "-DCMAKE_CUDA_COMPILER=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.1/bin/nvcc.exe" `
     "-DLLAMA_CURL=OFF" `
     "-DLLAMA_BUILD_TESTS=OFF" `
     "-DLLAMA_BUILD_EXAMPLES=OFF" `

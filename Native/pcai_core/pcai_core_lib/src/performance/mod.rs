@@ -6,21 +6,18 @@ pub mod disk;
 pub mod memory;
 pub mod process;
 
-use crate::PcaiStatus;
 use crate::string::PcaiStringBuffer;
+use crate::PcaiStatus;
 use std::ffi::{c_char, CStr};
 use std::time::Instant;
 
 // Re-export types
-pub use disk::{DiskUsageStats};
-pub use memory::{MemoryStats};
-pub use process::{ProcessStats};
+pub use disk::DiskUsageStats;
+pub use memory::MemoryStats;
+pub use process::ProcessStats;
 
 #[no_mangle]
-pub unsafe extern "C" fn pcai_get_disk_usage(
-    root_path: *const c_char,
-    top_n: u32,
-) -> DiskUsageStats {
+pub unsafe extern "C" fn pcai_get_disk_usage(root_path: *const c_char, top_n: u32) -> DiskUsageStats {
     if root_path.is_null() {
         return DiskUsageStats::error(PcaiStatus::NullPointer);
     }
@@ -37,10 +34,7 @@ pub unsafe extern "C" fn pcai_get_disk_usage(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn pcai_get_disk_usage_json(
-    root_path: *const c_char,
-    top_n: u32,
-) -> PcaiStringBuffer {
+pub unsafe extern "C" fn pcai_get_disk_usage_json(root_path: *const c_char, top_n: u32) -> PcaiStringBuffer {
     if root_path.is_null() {
         return PcaiStringBuffer::error(PcaiStatus::NullPointer);
     }
@@ -73,10 +67,7 @@ pub extern "C" fn pcai_get_process_stats() -> ProcessStats {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn pcai_get_top_processes_json(
-    top_n: u32,
-    sort_by: *const c_char,
-) -> PcaiStringBuffer {
+pub unsafe extern "C" fn pcai_get_top_processes_json(top_n: u32, sort_by: *const c_char) -> PcaiStringBuffer {
     let sort_key = if sort_by.is_null() {
         "memory"
     } else {

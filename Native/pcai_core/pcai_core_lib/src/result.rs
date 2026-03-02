@@ -170,13 +170,7 @@ pub struct DiskUsageResult {
 
 impl DiskUsageResult {
     /// Creates a new result with the given statistics.
-    pub fn new(
-        file_count: u64,
-        dir_count: u64,
-        total_bytes: u64,
-        errors: u64,
-        elapsed_ms: u64,
-    ) -> Self {
+    pub fn new(file_count: u64, dir_count: u64, total_bytes: u64, errors: u64, elapsed_ms: u64) -> Self {
         Self {
             status: PcaiStatus::Success,
             file_count,
@@ -222,13 +216,7 @@ pub struct SearchResult {
 
 impl SearchResult {
     /// Creates a new result with the given statistics.
-    pub fn new(
-        files_examined: u64,
-        files_matched: u64,
-        lines_matched: u64,
-        errors: u64,
-        elapsed_ms: u64,
-    ) -> Self {
+    pub fn new(files_examined: u64, files_matched: u64, lines_matched: u64, errors: u64, elapsed_ms: u64) -> Self {
         Self {
             status: PcaiStatus::Success,
             files_examined,

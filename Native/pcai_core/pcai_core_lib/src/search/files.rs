@@ -87,11 +87,7 @@ struct FileSearchConfig {
 }
 
 impl FileSearchConfig {
-    fn from_ffi(
-        root_path: *const c_char,
-        pattern: *const c_char,
-        max_results: u64,
-    ) -> Result<Self, PcaiStatus> {
+    fn from_ffi(root_path: *const c_char, pattern: *const c_char, max_results: u64) -> Result<Self, PcaiStatus> {
         // Parse root path with cross-platform normalization
         let root = parse_path_ffi(root_path)?;
 
@@ -152,30 +148,35 @@ fn find_files_impl(config: &FileSearchConfig) -> FileSearchResult {
 
     let stats = run_walker(walker_config, move |entry: &ignore::DirEntry| {
         if let Ok(metadata) = entry.metadata() {
-             if metadata.is_file() {
-                 let path = entry.path();
-                 if matcher.is_match(path) || matcher.is_match(path.file_name().unwrap_or_default()) {
-                      let current = files_matched_clone.fetch_add(1, Ordering::Relaxed);
-                      if max_results > 0 && current >= max_results {
-                          truncated_clone.store(true, Ordering::Relaxed);
-                          return ignore::WalkState::Quit;
-                      }
+            if metadata.is_file() {
+                let path = entry.path();
+                if matcher.is_match(path) || matcher.is_match(path.file_name().unwrap_or_default()) {
+                    let current = files_matched_clone.fetch_add(1, Ordering::Relaxed);
+                    if max_results > 0 && current >= max_results {
+                        truncated_clone.store(true, Ordering::Relaxed);
+                        return ignore::WalkState::Quit;
+                    }
 
-                      let size = metadata.len();
-                      total_size_clone.fetch_add(size, Ordering::Relaxed);
+                    let size = metadata.len();
+                    total_size_clone.fetch_add(size, Ordering::Relaxed);
 
-                      let modified = metadata.modified().ok().and_then(|t: std::time::SystemTime| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d: std::time::Duration| d.as_secs()).unwrap_or(0);
-                      let readonly = metadata.permissions().readonly();
+                    let modified = metadata
+                        .modified()
+                        .ok()
+                        .and_then(|t: std::time::SystemTime| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d: std::time::Duration| d.as_secs())
+                        .unwrap_or(0);
+                    let readonly = metadata.permissions().readonly();
 
-                      let file_info = FoundFile {
-                          path: path.to_string_lossy().into_owned(),
-                          size,
-                          modified,
-                          readonly
-                      };
-                      found_files_clone.lock().expect("TODO: Verify unwrap").push(file_info);
-                 }
-             }
+                    let file_info = FoundFile {
+                        path: path.to_string_lossy().into_owned(),
+                        size,
+                        modified,
+                        readonly,
+                    };
+                    found_files_clone.lock().expect("TODO: Verify unwrap").push(file_info);
+                }
+            }
         }
         ignore::WalkState::Continue
     });
@@ -227,11 +228,11 @@ fn find_files_stats_impl(config: &FileSearchConfig) -> FileSearchStats {
     let stats = run_walker(walker_config, move |entry: &ignore::DirEntry| {
         if let Ok(metadata) = entry.metadata() {
             if metadata.is_file() {
-                 let path = entry.path();
-                 if matcher.is_match(path) || matcher.is_match(path.file_name().unwrap_or_default()) {
-                     files_matched_clone.fetch_add(1, Ordering::Relaxed);
-                     total_size_clone.fetch_add(metadata.len(), Ordering::Relaxed);
-                 }
+                let path = entry.path();
+                if matcher.is_match(path) || matcher.is_match(path.file_name().unwrap_or_default()) {
+                    files_matched_clone.fetch_add(1, Ordering::Relaxed);
+                    total_size_clone.fetch_add(metadata.len(), Ordering::Relaxed);
+                }
             }
         }
         ignore::WalkState::Continue
@@ -253,11 +254,7 @@ fn find_files_stats_impl(config: &FileSearchConfig) -> FileSearchStats {
 // ============================================================================
 
 /// FFI entry point for file search with full JSON result.
-pub fn find_files_ffi(
-    root_path: *const c_char,
-    pattern: *const c_char,
-    max_results: u64,
-) -> PcaiStringBuffer {
+pub fn find_files_ffi(root_path: *const c_char, pattern: *const c_char, max_results: u64) -> PcaiStringBuffer {
     match FileSearchConfig::from_ffi(root_path, pattern, max_results) {
         Ok(config) => {
             let result = find_files_impl(&config);
@@ -268,11 +265,7 @@ pub fn find_files_ffi(
 }
 
 /// FFI entry point for file search with stats only.
-pub fn find_files_stats_ffi(
-    root_path: *const c_char,
-    pattern: *const c_char,
-    max_results: u64,
-) -> FileSearchStats {
+pub fn find_files_stats_ffi(root_path: *const c_char, pattern: *const c_char, max_results: u64) -> FileSearchStats {
     match FileSearchConfig::from_ffi(root_path, pattern, max_results) {
         Ok(config) => find_files_stats_impl(&config),
         Err(status) => FileSearchStats::error(status),

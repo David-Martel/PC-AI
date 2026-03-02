@@ -1,8 +1,8 @@
+use serde::Serialize;
+use std::ptr::null_mut;
+use windows_sys::core::GUID;
 use windows_sys::Win32::Devices::DeviceAndDriverInstallation::*;
 use windows_sys::Win32::Foundation::*;
-use windows_sys::core::GUID;
-use std::ptr::null_mut;
-use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct PnpDeviceDetail {
@@ -22,12 +22,7 @@ pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
 
     unsafe {
         // Use DIGCF_ALLCLASSES to see all devices, then filter as needed.
-        let h_dev_info = SetupDiGetClassDevsW(
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            DIGCF_PRESENT | DIGCF_ALLCLASSES,
-        );
+        let h_dev_info = SetupDiGetClassDevsW(null_mut(), null_mut(), null_mut(), DIGCF_PRESENT | DIGCF_ALLCLASSES);
 
         if h_dev_info as isize == INVALID_HANDLE_VALUE as isize {
             return devices;
@@ -35,7 +30,12 @@ pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
 
         let mut dev_info_data = SP_DEVINFO_DATA {
             cbSize: std::mem::size_of::<SP_DEVINFO_DATA>() as u32,
-            ClassGuid: GUID { data1: 0, data2: 0, data3: 0, data4: [0; 8] },
+            ClassGuid: GUID {
+                data1: 0,
+                data2: 0,
+                data3: 0,
+                data4: [0; 8],
+            },
             DevInst: 0,
             Reserved: 0,
         };
@@ -64,8 +64,16 @@ pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
             // Get Device Instance ID (the true unique ID)
             let mut device_id_buf = [0u16; 512];
             let mut device_id = "Unknown".to_string();
-            if CM_Get_Device_IDW(dev_info_data.DevInst, device_id_buf.as_mut_ptr(), device_id_buf.len() as u32, 0) == 0 {
-                let len = (0..device_id_buf.len()).find(|&i| device_id_buf[i] == 0).unwrap_or(device_id_buf.len());
+            if CM_Get_Device_IDW(
+                dev_info_data.DevInst,
+                device_id_buf.as_mut_ptr(),
+                device_id_buf.len() as u32,
+                0,
+            ) == 0
+            {
+                let len = (0..device_id_buf.len())
+                    .find(|&i| device_id_buf[i] == 0)
+                    .unwrap_or(device_id_buf.len());
                 device_id = String::from_utf16_lossy(&device_id_buf[..len]);
             }
 
@@ -96,7 +104,11 @@ pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
                     detail.error_summary = info.help_summary.to_string();
                     detail.help_url = info.help_url.to_string();
                 } else {
-                    detail.status = if problem_code == 0 { "OK".to_string() } else { format!("Error {}", problem_code) };
+                    detail.status = if problem_code == 0 {
+                        "OK".to_string()
+                    } else {
+                        format!("Error {}", problem_code)
+                    };
                 }
             }
 
@@ -121,7 +133,8 @@ unsafe fn get_device_property(h_dev_info: HDEVINFO, dev_info_data: *mut SP_DEVIN
         buffer.as_mut_ptr() as *mut u8,
         (buffer.len() * 2) as u32,
         &mut required_size,
-    ) != 0 {
+    ) != 0
+    {
         let len = (0..buffer.len()).find(|&i| buffer[i] == 0).unwrap_or(buffer.len());
         String::from_utf16_lossy(&buffer[..len])
     } else {

@@ -7,11 +7,7 @@ use std::time::Instant;
 use serde::Serialize;
 
 use rust_functiongemma_train::router_dataset::{
-    build_router_dataset,
-    build_tool_test_vectors,
-    write_jsonl,
-    write_test_vectors,
-    RouterDatasetConfig,
+    build_router_dataset, build_tool_test_vectors, write_jsonl, write_test_vectors, RouterDatasetConfig,
 };
 
 use crate::string::{c_str_to_rust, json_to_buffer, PcaiStringBuffer};

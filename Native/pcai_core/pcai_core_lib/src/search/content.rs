@@ -155,25 +155,56 @@ impl ContentSearchConfig {
     /// Checks if a file should be searched based on the file pattern.
     fn should_search_file(&self, path: &Path) -> bool {
         if let Some(ref matcher) = self.file_matcher {
-            matcher.is_match(path)
-                || matcher.is_match(path.file_name().unwrap_or_default())
+            matcher.is_match(path) || matcher.is_match(path.file_name().unwrap_or_default())
         } else {
             // Default: search common text file extensions
-            let ext = path
-                .extension()
-                .and_then(|e| e.to_str())
-                .unwrap_or("")
-                .to_lowercase();
+            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
 
             matches!(
                 ext.as_str(),
-                "txt" | "log" | "md" | "json" | "xml" | "yaml" | "yml"
-                    | "toml" | "ini" | "cfg" | "conf" | "config"
-                    | "ps1" | "psm1" | "psd1" | "bat" | "cmd" | "sh" | "bash"
-                    | "py" | "rs" | "js" | "ts" | "jsx" | "tsx" | "cs" | "cpp"
-                    | "c" | "h" | "hpp" | "java" | "go" | "rb" | "php"
-                    | "html" | "htm" | "css" | "scss" | "sass" | "less"
-                    | "sql" | "graphql" | "proto"
+                "txt"
+                    | "log"
+                    | "md"
+                    | "json"
+                    | "xml"
+                    | "yaml"
+                    | "yml"
+                    | "toml"
+                    | "ini"
+                    | "cfg"
+                    | "conf"
+                    | "config"
+                    | "ps1"
+                    | "psm1"
+                    | "psd1"
+                    | "bat"
+                    | "cmd"
+                    | "sh"
+                    | "bash"
+                    | "py"
+                    | "rs"
+                    | "js"
+                    | "ts"
+                    | "jsx"
+                    | "tsx"
+                    | "cs"
+                    | "cpp"
+                    | "c"
+                    | "h"
+                    | "hpp"
+                    | "java"
+                    | "go"
+                    | "rb"
+                    | "php"
+                    | "html"
+                    | "htm"
+                    | "css"
+                    | "scss"
+                    | "sass"
+                    | "less"
+                    | "sql"
+                    | "graphql"
+                    | "proto"
             )
         }
     }
@@ -282,10 +313,7 @@ fn search_content_impl(config: &ContentSearchConfig) -> ContentSearchResult {
 
 /// Searches a single file for matches using streaming to avoid memory explosion.
 /// Uses a rolling buffer for context lines to minimize memory usage.
-fn search_file_streaming(
-    path: &Path,
-    config: &ContentSearchConfig,
-) -> std::io::Result<Vec<ContentMatch>> {
+fn search_file_streaming(path: &Path, config: &ContentSearchConfig) -> std::io::Result<Vec<ContentMatch>> {
     let file = File::open(path)?;
     let reader = BufReader::with_capacity(64 * 1024, file); // 64KB buffer
     let mut matches = Vec::new();
@@ -369,8 +397,7 @@ pub fn search_content_ffi(
     max_results: u64,
     context_lines: u32,
 ) -> PcaiStringBuffer {
-    match ContentSearchConfig::from_ffi(root_path, pattern, file_pattern, max_results, context_lines)
-    {
+    match ContentSearchConfig::from_ffi(root_path, pattern, file_pattern, max_results, context_lines) {
         Ok(config) => {
             let result = search_content_impl(&config);
             json_to_buffer(&result)
@@ -401,14 +428,13 @@ mod tests {
     fn create_test_dir() -> TempDir {
         let dir = TempDir::new().expect("TODO: Verify unwrap");
 
-        fs::write(
-            dir.path().join("file1.txt"),
-            "Hello world\nThis is a test\nHello again",
-        ).expect("TODO: Verify unwrap");
+        fs::write(dir.path().join("file1.txt"), "Hello world\nThis is a test\nHello again")
+            .expect("TODO: Verify unwrap");
         fs::write(
             dir.path().join("file2.log"),
             "Error: something failed\nWarning: check this\nError: another failure",
-        ).expect("TODO: Verify unwrap");
+        )
+        .expect("TODO: Verify unwrap");
         fs::write(dir.path().join("data.json"), r#"{"key": "value"}"#).expect("TODO: Verify unwrap");
 
         let subdir = dir.path().join("subdir");

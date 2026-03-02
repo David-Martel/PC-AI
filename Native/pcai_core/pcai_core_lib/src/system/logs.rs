@@ -3,8 +3,8 @@
 //! Parallel log file searching with regex support, context lines, and
 //! structured JSON output optimized for LLM consumption.
 
-use ignore::WalkBuilder;
 use crate::PcaiStatus;
+use ignore::WalkBuilder;
 use rayon::prelude::*;
 use regex::Regex;
 use serde::Serialize;
@@ -212,11 +212,7 @@ pub fn search_logs(options: &LogSearchOptions) -> (LogSearchStats, LogSearchJson
                 glob.is_match(e.path())
             } else {
                 // Default to common log extensions
-                let ext = e
-                    .path()
-                    .extension()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("");
+                let ext = e.path().extension().and_then(|s| s.to_str()).unwrap_or("");
                 matches!(ext.to_lowercase().as_str(), "log" | "txt" | "json")
             }
         })
@@ -327,10 +323,7 @@ pub fn search_logs(options: &LogSearchOptions) -> (LogSearchStats, LogSearchJson
         results,
         truncated: if truncated { Some(true) } else { None },
         truncation_message: if truncated {
-            Some(format!(
-                "Results truncated at {} matches",
-                options.max_matches
-            ))
+            Some(format!("Results truncated at {} matches", options.max_matches))
         } else {
             None
         },

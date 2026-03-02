@@ -34,17 +34,18 @@ use std::os::raw::c_char;
 /// Assembles a prompt from a JSON-formatted variable map.
 /// Input variables must be a JSON string: {"key": "value"}
 #[no_mangle]
-pub extern "C" fn pcai_assemble_prompt(
-    template: *const c_char,
-    json_vars: *const c_char,
-) -> PcaiStringBuffer {
+pub extern "C" fn pcai_assemble_prompt(template: *const c_char, json_vars: *const c_char) -> PcaiStringBuffer {
     let template = unsafe {
-        if template.is_null() { return crate::string::error_buffer(crate::error::PcaiStatus::InvalidArgument); }
+        if template.is_null() {
+            return crate::string::error_buffer(crate::error::PcaiStatus::InvalidArgument);
+        }
         CStr::from_ptr(template).to_string_lossy()
     };
 
     let json_vars = unsafe {
-        if json_vars.is_null() { return crate::string::error_buffer(crate::error::PcaiStatus::InvalidArgument); }
+        if json_vars.is_null() {
+            return crate::string::error_buffer(crate::error::PcaiStatus::InvalidArgument);
+        }
         CStr::from_ptr(json_vars).to_string_lossy()
     };
 

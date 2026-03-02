@@ -112,20 +112,14 @@ fn calculate_dir_size(path: &Path) -> (u64, u64) {
 }
 
 /// Get disk usage statistics with top-N largest directories
-pub fn get_disk_usage(
-    root_path: &str,
-    top_n: usize,
-) -> io::Result<(DiskUsageStats, Vec<DirUsageEntry>)> {
+pub fn get_disk_usage(root_path: &str, top_n: usize) -> io::Result<(DiskUsageStats, Vec<DirUsageEntry>)> {
     let root = Path::new(root_path);
     if !root.exists() {
         return Err(io::Error::new(io::ErrorKind::NotFound, "path not found"));
     }
 
     if !root.is_dir() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "path is not a directory",
-        ));
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "path is not a directory"));
     }
 
     // Collect immediate subdirectories

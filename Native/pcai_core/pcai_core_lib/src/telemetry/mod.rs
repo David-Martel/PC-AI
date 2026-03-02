@@ -1,14 +1,14 @@
-pub mod usb;
-pub mod network;
-pub mod process;
 pub mod device_codes;
-pub mod pnp;
 pub mod disk_health;
 pub mod event_log;
+pub mod network;
+pub mod pnp;
+pub mod process;
+pub mod usb;
 
-use sysinfo::System;
 use std::sync::Mutex;
 use std::sync::OnceLock;
+use sysinfo::System;
 
 static SYS: OnceLock<Mutex<System>> = OnceLock::new();
 
@@ -83,8 +83,12 @@ pub fn collect_telemetry() -> SystemTelemetry {
 pub fn check_resource_safety(gpu_limit: f32) -> bool {
     let telemetry = collect_telemetry();
     if let Some(gpu) = telemetry.gpu_utilization {
-        if gpu > (gpu_limit * 100.0) { return false; }
+        if gpu > (gpu_limit * 100.0) {
+            return false;
+        }
     }
-    if telemetry.cpu_usage > 90.0 { return false; }
+    if telemetry.cpu_usage > 90.0 {
+        return false;
+    }
     true
 }

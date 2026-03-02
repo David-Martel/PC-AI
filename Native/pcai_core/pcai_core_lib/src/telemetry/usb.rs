@@ -1,8 +1,8 @@
+use serde::Serialize;
+use std::ptr::null_mut;
+use windows_sys::core::GUID;
 use windows_sys::Win32::Devices::DeviceAndDriverInstallation::*;
 use windows_sys::Win32::Foundation::*;
-use windows_sys::core::GUID;
-use std::ptr::null_mut;
-use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct UsbDeviceDetail {
@@ -33,12 +33,7 @@ pub fn collect_usb_diagnostics() -> Vec<UsbDeviceDetail> {
     unsafe {
         // Use DIGCF_ALLCLASSES to see all devices, then filter for USB enumerator.
         // This catches disabled and child devices that DIGCF_DEVICEINTERFACE might miss.
-        let h_dev_info = SetupDiGetClassDevsW(
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            DIGCF_PRESENT | DIGCF_ALLCLASSES,
-        );
+        let h_dev_info = SetupDiGetClassDevsW(null_mut(), null_mut(), null_mut(), DIGCF_PRESENT | DIGCF_ALLCLASSES);
 
         if h_dev_info as isize == INVALID_HANDLE_VALUE as isize {
             return devices;
@@ -46,7 +41,12 @@ pub fn collect_usb_diagnostics() -> Vec<UsbDeviceDetail> {
 
         let mut dev_info_data = SP_DEVINFO_DATA {
             cbSize: std::mem::size_of::<SP_DEVINFO_DATA>() as u32,
-            ClassGuid: GUID { data1: 0, data2: 0, data3: 0, data4: [0; 8] },
+            ClassGuid: GUID {
+                data1: 0,
+                data2: 0,
+                data3: 0,
+                data4: [0; 8],
+            },
             DevInst: 0,
             Reserved: 0,
         };
@@ -57,11 +57,11 @@ pub fn collect_usb_diagnostics() -> Vec<UsbDeviceDetail> {
             let enumerator = get_device_property(h_dev_info, &mut dev_info_data, SPDRP_ENUMERATOR_NAME);
             let hardware_id = get_device_property(h_dev_info, &mut dev_info_data, SPDRP_HARDWAREID);
 
-            let is_usb = enumerator == "USB" ||
-                         enumerator == "USBVIDEO" ||
-                         enumerator.contains("USB") ||
-                         hardware_id.starts_with("USB\\") ||
-                         hardware_id.starts_with("HDAUDIO\\"); // Match NVIDIA Audio if possible
+            let is_usb = enumerator == "USB"
+                || enumerator == "USBVIDEO"
+                || enumerator.contains("USB")
+                || hardware_id.starts_with("USB\\")
+                || hardware_id.starts_with("HDAUDIO\\"); // Match NVIDIA Audio if possible
 
             if !is_usb {
                 i += 1;
@@ -100,7 +100,11 @@ pub fn collect_usb_diagnostics() -> Vec<UsbDeviceDetail> {
                     detail.error_summary = info.help_summary.to_string();
                     detail.help_url = info.help_url.to_string();
                 } else {
-                    detail.status = if problem_code == 0 { "OK".to_string() } else { format!("Error {}", problem_code) };
+                    detail.status = if problem_code == 0 {
+                        "OK".to_string()
+                    } else {
+                        format!("Error {}", problem_code)
+                    };
                 }
             }
 
@@ -125,7 +129,8 @@ unsafe fn get_device_property(h_dev_info: HDEVINFO, dev_info_data: *mut SP_DEVIN
         buffer.as_mut_ptr() as *mut u8,
         (buffer.len() * 2) as u32,
         &mut required_size,
-    ) != 0 {
+    ) != 0
+    {
         let len = (0..buffer.len()).find(|&i| buffer[i] == 0).unwrap_or(buffer.len());
         String::from_utf16_lossy(&buffer[..len])
     } else {

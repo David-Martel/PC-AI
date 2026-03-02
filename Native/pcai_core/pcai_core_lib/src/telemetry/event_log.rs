@@ -1,9 +1,9 @@
-use windows_sys::Win32::System::EventLog::*;
-use windows_sys::Win32::Foundation::*;
-use std::ptr::null_mut;
 use serde::Serialize;
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStrExt;
+use std::ptr::null_mut;
+use windows_sys::Win32::Foundation::*;
+use windows_sys::Win32::System::EventLog::*;
 
 #[derive(Serialize)]
 pub struct EventLogEntry {
@@ -38,7 +38,15 @@ pub fn sample_hardware_events(days: u32, max_events: u32) -> Vec<EventLogEntry> 
 
         let count_to_fetch = if max_events < 100 { max_events } else { 100 };
 
-        if EvtNext(h_query, count_to_fetch, h_events.as_mut_ptr(), 1000, 0, &mut events_returned) != 0 {
+        if EvtNext(
+            h_query,
+            count_to_fetch,
+            h_events.as_mut_ptr(),
+            1000,
+            0,
+            &mut events_returned,
+        ) != 0
+        {
             for i in 0..events_returned as usize {
                 let h_event = h_events[i];
 

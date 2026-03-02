@@ -77,6 +77,17 @@ $script:BuildLogsDir = Join-Path $script:BuildRoot 'logs'
 $script:BuildArtifactsDir = Join-Path $script:BuildRoot 'artifacts'
 $script:BuildStartTime = Get-Date
 
+# Ensure LLVM toolchain hints are available for bindgen/cmake crates.
+$llvmBin = 'C:\Program Files\LLVM\bin'
+if (Test-Path (Join-Path $llvmBin 'libclang.dll')) {
+    $env:LIBCLANG_PATH = $llvmBin
+}
+if (Test-Path (Join-Path $llvmBin 'lld-link.exe')) {
+    if (-not $env:CARGO_LLD_PATH) {
+        $env:CARGO_LLD_PATH = (Join-Path $llvmBin 'lld-link.exe')
+    }
+}
+
 if (-not $Preflight -and $env:CARGO_PREFLIGHT -eq '1') {
     $Preflight = $true
 }
@@ -141,6 +152,7 @@ $script:HasMkl = $false
 $script:HasCudnn = $false
 $script:HasTensorRt = $false
 $script:MsVcRuntime = $null
+$script:MsvcClPath = $null
 
 function Add-EnvPath {
     param([string]$Value)
@@ -171,6 +183,74 @@ function Add-EnvList {
         return $true
     }
     return $false
+}
+
+function Resolve-MsvcClPath {
+    param(
+        [string]$PreferredVsPath
+    )
+
+    $candidates = [System.Collections.Generic.List[string]]::new()
+
+    $command = Get-Command cl.exe -ErrorAction SilentlyContinue
+    if ($command -and $command.Source -and (Test-Path -LiteralPath $command.Source)) {
+        $candidates.Add($command.Source)
+    }
+
+    $vsRoots = @()
+    if ($PreferredVsPath -and (Test-Path -LiteralPath $PreferredVsPath)) {
+        $vsRoots += $PreferredVsPath
+    }
+
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path -LiteralPath $vswhere) {
+        $discoveredRoots = & $vswhere -all -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if ($discoveredRoots) {
+            $vsRoots += @($discoveredRoots | Where-Object { $_ -and (Test-Path -LiteralPath $_) })
+        }
+    }
+
+    foreach ($root in ($vsRoots | Select-Object -Unique)) {
+        $msvcRoot = Join-Path $root 'VC\Tools\MSVC'
+        if (-not (Test-Path -LiteralPath $msvcRoot)) { continue }
+
+        $toolsets = Get-ChildItem -Path $msvcRoot -Directory -ErrorAction SilentlyContinue
+        foreach ($toolset in $toolsets) {
+            $clCandidate = Join-Path $toolset.FullName 'bin\Hostx64\x64\cl.exe'
+            if (Test-Path -LiteralPath $clCandidate) {
+                $candidates.Add($clCandidate)
+            }
+        }
+    }
+
+    if (-not $candidates.Count) {
+        foreach ($base in @('C:\Program Files\Microsoft Visual Studio', 'C:\Program Files (x86)\Microsoft Visual Studio')) {
+            if (-not (Test-Path -LiteralPath $base)) { continue }
+            $fallback = Get-ChildItem -Path $base -Filter cl.exe -Recurse -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -match '\\VC\\Tools\\MSVC\\[^\\]+\\bin\\Hostx64\\x64\\cl\.exe$' } |
+                Select-Object -ExpandProperty FullName
+            foreach ($path in @($fallback)) {
+                if ($path -and (Test-Path -LiteralPath $path)) {
+                    $candidates.Add($path)
+                }
+            }
+        }
+    }
+
+    if (-not $candidates.Count) { return $null }
+
+    $resolved = $candidates |
+        Select-Object -Unique |
+        Sort-Object {
+            if ($_ -match '\\MSVC\\(?<ver>[^\\]+)\\bin\\Hostx64\\x64\\cl\.exe$') {
+                return [version]$Matches.ver
+            }
+            return [version]'0.0.0'
+        } -Descending |
+        Select-Object -First 1
+
+    if (-not $resolved) { return $null }
+    return ($resolved -replace '\\', '/')
 }
 
 function Initialize-OneApiEnvironment {
@@ -326,11 +406,41 @@ function Initialize-BuildEnvironment {
     # 3. Initialize MSVC and SDK (Clear polluted env vars, set cl.exe and rc.exe)
     $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
     if (Test-Path $vswhere) {
-        $vsPath = & $vswhere -latest -property installationPath
-        $devShell = Join-Path $vsPath 'Common7\Tools\Launch-VsDevShell.ps1'
-        if (Test-Path $devShell) {
+        $vsPath = & $vswhere -latest -products * -property installationPath
+        if (-not $vsPath) {
+            $fallbackVsPath = 'C:\Program Files\Microsoft Visual Studio\2022\Community'
+            if (Test-Path $fallbackVsPath) {
+                $vsPath = $fallbackVsPath
+            }
+        }
+
+        if (-not $vsPath) {
+            Write-Warning 'Visual Studio installation path not found via vswhere; skipping Launch-VsDevShell initialization.'
+        } else {
+            $devShell = Join-Path $vsPath 'Common7\Tools\Launch-VsDevShell.ps1'
+        }
+
+        if ($devShell -and (Test-Path $devShell)) {
             Write-Host '  Initializing MSVC via Launch-VsDevShell.ps1...' -ForegroundColor Cyan
-            & $devShell -SkipAutomaticLocation -HostArch amd64 -Arch amd64
+            $vsShellInitialized = $false
+            foreach ($argSet in @(
+                @('-SkipAutomaticLocation', '-HostArch', 'amd64', '-Arch', 'amd64'),
+                @('-HostArch', 'amd64', '-Arch', 'amd64'),
+                @('-Arch', 'amd64'),
+                @()
+            )) {
+                try {
+                    & $devShell @argSet
+                    $vsShellInitialized = $true
+                    break
+                } catch {
+                    continue
+                }
+            }
+
+            if (-not $vsShellInitialized) {
+                Write-Warning 'Launch-VsDevShell invocation failed; continuing with ambient toolchain PATH.'
+            }
 
             # CRITICAL: Clear polluted environment variables (Only ones that actually cause issues)
             @('LINK', '_LINK_') | ForEach-Object {
@@ -341,8 +451,9 @@ function Initialize-BuildEnvironment {
             }
 
             # Set CC/CXX for crates using cc-rs or cmake
-            $clPath = (Get-Command cl.exe -ErrorAction SilentlyContinue).Source -replace '\\', '/'
+            $clPath = Resolve-MsvcClPath -PreferredVsPath $vsPath
             if ($clPath) {
+                $script:MsvcClPath = $clPath
                 $env:CC = $clPath
                 $env:CXX = $clPath
                 $env:CMAKE_C_COMPILER = $clPath
@@ -373,6 +484,8 @@ function Initialize-BuildEnvironment {
                 $env:CMAKE_TOOLCHAIN_FILE = $vcpkgToolchain
                 Write-Host '    vcpkg toolchain enabled' -ForegroundColor Green
             }
+        } elseif ($vsPath) {
+            Write-Warning "Launch-VsDevShell.ps1 not found under $vsPath; proceeding without VS shell bootstrap."
         }
     }
 
@@ -393,11 +506,7 @@ function Initialize-BuildEnvironment {
         Write-Host "  Generator: Ninja enabled ($($env:CMAKE_MAKE_PROGRAM))" -ForegroundColor Green
     }
 
-    if (-not $env:PCAI_USE_LLD) {
-        $lldPath = $env:CARGO_LLD_PATH
-        if (-not $lldPath) { $lldPath = 'C:\Program Files\LLVM\bin\lld-link.exe' }
-        if (Test-Path $lldPath) { $env:PCAI_USE_LLD = '1' }
-    }
+    if (-not $env:PCAI_USE_LLD) { $env:PCAI_USE_LLD = '0' }
     $useLld = ($env:PCAI_USE_LLD -eq '1') -or ($env:CARGO_USE_LLD -eq '1')
     if ($useLld) {
         $lldPath = $env:CARGO_LLD_PATH
@@ -508,9 +617,22 @@ function Initialize-BuildEnvironment {
                     Write-Host "    nvcc identified (forcing /MD): $nvccPath" -ForegroundColor Green
 
                     # Set NVCC_CCBIN for candle/mistralrs
-                    $clPath = (Get-Command cl.exe -ErrorAction SilentlyContinue).Source -replace '\\', '/'
+                    $clPath = $script:MsvcClPath
+                    if (-not $clPath) {
+                        $clPath = Resolve-MsvcClPath
+                        $script:MsvcClPath = $clPath
+                    }
                     if ($clPath) {
-                        $env:NVCC_CCBIN = $clPath
+                        $ccbin = Split-Path $clPath -Parent
+                        if (Test-Path -LiteralPath $ccbin) {
+                            $env:NVCC_CCBIN = $ccbin
+                            Write-Host "    NVCC_CCBIN set: $ccbin" -ForegroundColor Green
+                        } else {
+                            Write-Host "    NVCC_CCBIN skipped, compiler dir not found: $ccbin" -ForegroundColor Yellow
+                        }
+                    } elseif (Test-Path Env:NVCC_CCBIN) {
+                        Remove-Item Env:NVCC_CCBIN -ErrorAction SilentlyContinue
+                        Write-Host "    Cleared stale NVCC_CCBIN (no valid cl.exe found)" -ForegroundColor Yellow
                     }
                 }
 
@@ -622,13 +744,14 @@ function Clear-IncompleteCmakeConfig {
     # 1. Use cargo metadata to find registry paths reliably
     Write-Host '  Locating build artifacts folder...' -ForegroundColor Gray
     try {
-        $metadata = & $script:cargoExe metadata --format-version 1 --no-deps | ConvertFrom-Json
+        $manifestPath = Join-Path $ProjectRoot 'Cargo.toml'
+        $metadata = & $script:cargoExe metadata --manifest-path $manifestPath --format-version 1 --no-deps | ConvertFrom-Json
         $targetDir = $metadata.target_directory
     } catch {
         $targetDir = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $ProjectRoot 'target' }
     }
 
-    if (-not (Test-Path $targetDir)) { return }
+    if ([string]::IsNullOrWhiteSpace($targetDir) -or -not (Test-Path $targetDir)) { return }
 
     # Targeted cleaning for troublesome crates (ALWAYS wipe when changing CRT/CUDA flags)
     Write-Host '  Aggressive cleaning for candle and mistralrs (Due to CRT changes)...' -ForegroundColor Cyan
@@ -873,7 +996,9 @@ function Invoke-Build {
         }
     } finally {
         if ($heartbeatTimer) { $heartbeatTimer.Stop() }
-        if ($heartbeatEvent) { Unregister-Event -SourceIdentifier $heartbeatEvent.SourceIdentifier -ErrorAction SilentlyContinue }
+        if ($heartbeatEvent -and $heartbeatEvent.SourceIdentifier) {
+            Unregister-Event -SourceIdentifier $heartbeatEvent.SourceIdentifier -ErrorAction SilentlyContinue
+        }
         if ($heartbeatTimer) { $heartbeatTimer.Dispose() }
         $ErrorActionPreference = $prevErrorActionPreference
         Pop-Location

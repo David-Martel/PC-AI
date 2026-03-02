@@ -3,10 +3,8 @@
 //! Provides health checks for WSL2/Hyper-V host communication.
 //! Some structures and constants are reserved for future direct vsock support.
 
-use windows_sys::Win32::Networking::WinSock::{
-    socket, AF_HYPERV, SOCK_STREAM, INVALID_SOCKET,
-};
 use windows_sys::core::GUID;
+use windows_sys::Win32::Networking::WinSock::{socket, AF_HYPERV, INVALID_SOCKET, SOCK_STREAM};
 
 // Define SOCKADDR_HV manually since it might not be in windows-sys's version for networking
 // Reserved for future direct vsock connect support

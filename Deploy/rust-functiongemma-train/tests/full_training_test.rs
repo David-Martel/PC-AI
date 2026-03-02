@@ -1,8 +1,8 @@
 use rust_functiongemma_train::{
-    lora::LoraConfig,
-    scheduler::{LRScheduler, SchedulerConfig, SchedulerType},
     checkpoint::{Checkpoint, CheckpointConfig},
     early_stopping::{EarlyStopping, EarlyStoppingConfig},
+    lora::LoraConfig,
+    scheduler::{LRScheduler, SchedulerConfig, SchedulerType},
     trainer::TrainerConfig,
 };
 use tempfile::TempDir;

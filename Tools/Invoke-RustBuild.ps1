@@ -67,6 +67,11 @@ if (-not (Get-Module -ListAvailable CargoTools)) {
     Import-Module CargoTools -ErrorAction Stop
 }
 
+if ($script:UseCargoTools -and -not (Get-Command cl.exe -ErrorAction SilentlyContinue)) {
+    Write-Verbose 'MSVC cl.exe not detected in this shell; bypassing CargoTools route and using cargo.exe directly.'
+    $script:UseCargoTools = $false
+}
+
 # Ensure LLVM lld-link path is configured for optional use
 $llvmBin = 'C:\Program Files\LLVM\bin'
 $lldPath = Join-Path $llvmBin 'lld-link.exe'
@@ -75,6 +80,10 @@ if (Test-Path $lldPath) {
     if ($env:PATH -notlike "*${llvmBin}*") {
         $env:PATH = "$llvmBin;$env:PATH"
     }
+}
+$libclangDll = Join-Path $llvmBin 'libclang.dll'
+if (Test-Path $libclangDll) {
+    $env:LIBCLANG_PATH = $llvmBin
 }
 
 # Default: do not use lld unless explicitly requested
@@ -152,13 +161,25 @@ try {
         Invoke-CargoWrapper @wrapperArgs
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     } else {
-        if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+        $cargoCommand = Get-Command cargo -ErrorAction SilentlyContinue
+        if (-not $cargoCommand) {
             throw 'cargo not found on PATH. Install Rust and ensure cargo is available.'
         }
         if (-not $finalArgs -or $finalArgs.Count -eq 0) {
             throw 'No cargo arguments provided.'
         }
-        & cargo @finalArgs
+
+        $cargoPath = $cargoCommand.Path
+        # In some environments cargo is wrapped by a PowerShell script that may
+        # enforce extra preflight checks. Prefer the rustup cargo.exe directly.
+        if ($cargoPath -and $cargoPath.EndsWith('.ps1', [System.StringComparison]::OrdinalIgnoreCase)) {
+            $candidateCargoExe = Join-Path $HOME '.cargo\bin\cargo.exe'
+            if (Test-Path -LiteralPath $candidateCargoExe) {
+                $cargoPath = $candidateCargoExe
+            }
+        }
+
+        & $cargoPath @finalArgs
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
 } finally {

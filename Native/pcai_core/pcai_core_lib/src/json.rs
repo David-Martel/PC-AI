@@ -22,7 +22,9 @@ pub fn extract_json_from_markdown(input: &str) -> Option<String> {
 /// FFI export for JSON extraction.
 #[no_mangle]
 pub extern "C" fn pcai_extract_json(input: *const c_char) -> *mut c_char {
-    if input.is_null() { return std::ptr::null_mut(); }
+    if input.is_null() {
+        return std::ptr::null_mut();
+    }
     let c_str = unsafe { CStr::from_ptr(input) };
     let text = match c_str.to_str() {
         Ok(s) => s,
@@ -38,7 +40,9 @@ pub extern "C" fn pcai_extract_json(input: *const c_char) -> *mut c_char {
 /// Validates that a string is valid JSON.
 #[no_mangle]
 pub extern "C" fn pcai_is_valid_json(input: *const c_char) -> bool {
-    if input.is_null() { return false; }
+    if input.is_null() {
+        return false;
+    }
     let c_str = unsafe { CStr::from_ptr(input) };
     let text = match c_str.to_str() {
         Ok(s) => s,

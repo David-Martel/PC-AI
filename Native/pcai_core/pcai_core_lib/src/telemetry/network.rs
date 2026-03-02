@@ -1,7 +1,7 @@
-use windows_sys::Win32::NetworkManagement::IpHelper::*;
-use windows_sys::Win32::Foundation::*;
 use serde::Serialize;
 use std::ptr::null_mut;
+use windows_sys::Win32::Foundation::*;
+use windows_sys::Win32::NetworkManagement::IpHelper::*;
 
 #[derive(Serialize)]
 pub struct NetworkInterfaceDetail {

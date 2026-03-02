@@ -1,7 +1,7 @@
+use serde::Serialize;
+use windows_sys::Win32::Foundation::*;
 use windows_sys::Win32::System::ProcessStatus::*;
 use windows_sys::Win32::System::Threading::*;
-use windows_sys::Win32::Foundation::*;
-use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct ProcessHistory {
@@ -25,11 +25,18 @@ pub fn collect_process_telemetry() -> Vec<ProcessHistory> {
     let mut bytes_returned = 0;
 
     unsafe {
-        if EnumProcesses(pids.as_mut_ptr(), std::mem::size_of_val(&pids) as u32, &mut bytes_returned) != 0 {
+        if EnumProcesses(
+            pids.as_mut_ptr(),
+            std::mem::size_of_val(&pids) as u32,
+            &mut bytes_returned,
+        ) != 0
+        {
             let count = bytes_returned as usize / std::mem::size_of::<u32>();
             for i in 0..count {
                 let pid = pids[i];
-                if pid == 0 { continue; }
+                if pid == 0 {
+                    continue;
+                }
 
                 let handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, pid);
                 if !handle.is_null() {
@@ -77,9 +84,13 @@ pub fn collect_process_telemetry() -> Vec<ProcessHistory> {
                     // For now, we return 0 or a very rough estimate if we had session state.
                     // To keep it high-perf, we'll stick to raw counters.
 
-                    if GetProcessMemoryInfo(handle, &mut counters, std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32) != 0
-                       && GetProcessIoCounters(handle, &mut io_counters) != 0 {
-
+                    if GetProcessMemoryInfo(
+                        handle,
+                        &mut counters,
+                        std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32,
+                    ) != 0
+                        && GetProcessIoCounters(handle, &mut io_counters) != 0
+                    {
                         results.push(ProcessHistory {
                             pid,
                             name: process_name,

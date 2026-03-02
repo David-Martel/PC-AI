@@ -11,27 +11,27 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
 pub mod error;
-pub mod json;
-pub mod path;
-pub mod result;
-pub mod string;
-pub mod search;
-pub mod hash;
-pub mod system;
-pub mod tokenizer;
-pub mod telemetry;
-pub mod vmm_health;
-pub mod prompt_engine;
-pub mod performance;
 pub mod fs;
 #[cfg(feature = "functiongemma")]
 pub mod functiongemma;
+pub mod hash;
+pub mod json;
+pub mod path;
+pub mod performance;
+pub mod prompt_engine;
+pub mod result;
+pub mod search;
+pub mod string;
+pub mod system;
+pub mod telemetry;
+pub mod tokenizer;
+pub mod vmm_health;
 
 pub use error::PcaiStatus;
 pub use json::{extract_json_from_markdown, pcai_extract_json, pcai_is_valid_json};
-pub use path::{PathStyle, normalize_path, parse_path_ffi};
+pub use path::{normalize_path, parse_path_ffi, PathStyle};
 pub use result::PcaiResult;
-pub use string::{PcaiStringBuffer, json_to_buffer_pretty, rust_str_to_c, c_str_to_rust};
+pub use string::{c_str_to_rust, json_to_buffer_pretty, rust_str_to_c, PcaiStringBuffer};
 
 include!(concat!(env!("OUT_DIR"), "/version.rs"));
 
@@ -56,13 +56,17 @@ pub extern "C" fn pcai_search_version() -> *const c_char {
 #[no_mangle]
 pub extern "C" fn pcai_free_string(buffer: *mut c_char) {
     if !buffer.is_null() {
-        unsafe { let _ = CString::from_raw(buffer); }
+        unsafe {
+            let _ = CString::from_raw(buffer);
+        }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn pcai_string_copy(input: *const c_char) -> *mut c_char {
-    if input.is_null() { return std::ptr::null_mut(); }
+    if input.is_null() {
+        return std::ptr::null_mut();
+    }
     let c_str = unsafe { CStr::from_ptr(input) };
     match c_str.to_str() {
         Ok(s) => rust_str_to_c(s),
@@ -94,7 +98,11 @@ pub extern "C" fn pcai_estimate_tokens(text: *const c_char) -> usize {
 
 #[no_mangle]
 pub extern "C" fn pcai_check_resource_safety(gpu_limit: f32) -> i32 {
-    if telemetry::check_resource_safety(gpu_limit) { 1 } else { 0 }
+    if telemetry::check_resource_safety(gpu_limit) {
+        1
+    } else {
+        0
+    }
 }
 
 #[no_mangle]
@@ -198,10 +206,7 @@ pub extern "C" fn pcai_get_process_history_json() -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn pcai_query_prompt_assembly(
-    template: *const c_char,
-    json_vars: *const c_char,
-) -> PcaiStringBuffer {
+pub extern "C" fn pcai_query_prompt_assembly(template: *const c_char, json_vars: *const c_char) -> PcaiStringBuffer {
     prompt_engine::pcai_assemble_prompt(template, json_vars)
 }
 

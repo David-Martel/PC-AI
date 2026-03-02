@@ -42,19 +42,14 @@ pub fn find_duplicates(
     let start = std::time::Instant::now();
 
     // Compile matchers
-    let include_matcher =
-        include_pattern.and_then(|p| globset::Glob::new(p).ok().map(|g| g.compile_matcher()));
-    let exclude_matcher =
-        exclude_pattern.and_then(|p| globset::Glob::new(p).ok().map(|g| g.compile_matcher()));
+    let include_matcher = include_pattern.and_then(|p| globset::Glob::new(p).ok().map(|g| g.compile_matcher()));
+    let exclude_matcher = exclude_pattern.and_then(|p| globset::Glob::new(p).ok().map(|g| g.compile_matcher()));
 
     // Phase 1: Fast enumeration and size grouping
     let mut size_map: HashMap<u64, Vec<PathBuf>> = HashMap::new();
     let mut scanned = 0;
 
-    let walker = WalkBuilder::new(root)
-        .hidden(false)
-        .git_ignore(true)
-        .build();
+    let walker = WalkBuilder::new(root).hidden(false).git_ignore(true).build();
 
     for entry in walker {
         scanned += 1;
@@ -88,13 +83,9 @@ pub fn find_duplicates(
     }
 
     // Phase 2: Parallel hashing of candidates (only for sizes with multiple files)
-    let candidates: Vec<(u64, Vec<PathBuf>)> = size_map
-        .into_iter()
-        .filter(|(_, paths)| paths.len() > 1)
-        .collect();
+    let candidates: Vec<(u64, Vec<PathBuf>)> = size_map.into_iter().filter(|(_, paths)| paths.len() > 1).collect();
 
-    let hash_groups: Arc<Mutex<HashMap<(u64, String), Vec<String>>>> =
-        Arc::new(Mutex::new(HashMap::new()));
+    let hash_groups: Arc<Mutex<HashMap<(u64, String), Vec<String>>>> = Arc::new(Mutex::new(HashMap::new()));
 
     candidates.into_par_iter().for_each(|(size, paths)| {
         paths.into_par_iter().for_each(|path| {

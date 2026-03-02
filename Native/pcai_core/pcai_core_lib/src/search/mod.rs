@@ -7,9 +7,8 @@ pub mod duplicates;
 pub mod files;
 pub mod walker;
 
-use std::os::raw::c_char;
 use crate::string::PcaiStringBuffer;
-
+use std::os::raw::c_char;
 
 // Re-export FFI from submodules with unified naming if needed,
 // but submodules have their own ffi functions usually named _ffi.

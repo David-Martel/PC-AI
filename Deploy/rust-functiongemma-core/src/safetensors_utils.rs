@@ -45,9 +45,7 @@ pub fn open_mmaped_safetensors(paths: &[PathBuf]) -> Result<MmapedSafetensors> {
 /// separate `lm_head.weight` tensor, meaning the model re-uses the
 /// embedding matrix for the output projection.
 pub fn detect_tie_embeddings(st: &MmapedSafetensors) -> bool {
-    !st.tensors()
-        .iter()
-        .any(|(name, _)| name == "lm_head.weight")
+    !st.tensors().iter().any(|(name, _)| name == "lm_head.weight")
 }
 
 /// Collect all model safetensors files from a directory.
@@ -124,9 +122,7 @@ pub fn detect_safetensors_prefix(st_names: &HashSet<String>) -> Option<String> {
             }
         }
         if name.ends_with("embed_tokens.weight") {
-            let prefix = name
-                .trim_end_matches("embed_tokens.weight")
-                .trim_end_matches('.');
+            let prefix = name.trim_end_matches("embed_tokens.weight").trim_end_matches('.');
             if !prefix.is_empty() {
                 return Some(prefix.to_string());
             }
@@ -308,32 +304,20 @@ mod tests {
 
     #[test]
     fn detect_prefix_model_dot() {
-        let names: HashSet<String> = ["model.embed_tokens.weight".to_string()]
-            .into_iter()
-            .collect();
+        let names: HashSet<String> = ["model.embed_tokens.weight".to_string()].into_iter().collect();
         assert_eq!(detect_safetensors_prefix(&names), Some("model".to_string()));
     }
 
     #[test]
     fn detect_prefix_via_layers() {
-        let names: HashSet<String> = ["transformer.layers.0.attn.weight".to_string()]
-            .into_iter()
-            .collect();
-        assert_eq!(
-            detect_safetensors_prefix(&names),
-            Some("transformer".to_string())
-        );
+        let names: HashSet<String> = ["transformer.layers.0.attn.weight".to_string()].into_iter().collect();
+        assert_eq!(detect_safetensors_prefix(&names), Some("transformer".to_string()));
     }
 
     #[test]
     fn detect_prefix_via_embed_tokens() {
-        let names: HashSet<String> = ["encoder.embed_tokens.weight".to_string()]
-            .into_iter()
-            .collect();
-        assert_eq!(
-            detect_safetensors_prefix(&names),
-            Some("encoder".to_string())
-        );
+        let names: HashSet<String> = ["encoder.embed_tokens.weight".to_string()].into_iter().collect();
+        assert_eq!(detect_safetensors_prefix(&names), Some("encoder".to_string()));
     }
 
     #[test]

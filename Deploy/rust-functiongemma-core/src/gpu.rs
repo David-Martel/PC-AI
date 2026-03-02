@@ -24,10 +24,7 @@ pub struct GpuInfo {
 /// callers should cache the result when appropriate.
 pub fn query_nvidia_smi(min_vram_mb: Option<u64>, visible_devices: &[usize]) -> Vec<GpuInfo> {
     let output = Command::new("nvidia-smi")
-        .args([
-            "--query-gpu=index,name,memory.total",
-            "--format=csv,noheader,nounits",
-        ])
+        .args(["--query-gpu=index,name,memory.total", "--format=csv,noheader,nounits"])
         .output();
     let output = match output {
         Ok(o) if o.status.success() => o,
@@ -369,10 +366,7 @@ pub fn cuda_mem_snapshot(device_index: Option<usize>) -> Option<CudaMemSnapshot>
     })
 }
 
-pub fn configure_cuda_mem_pool(
-    device_index: usize,
-    cfg: CudaMemPoolConfig,
-) -> Result<Option<CudaMemPoolStatus>> {
+pub fn configure_cuda_mem_pool(device_index: usize, cfg: CudaMemPoolConfig) -> Result<Option<CudaMemPoolStatus>> {
     use cudarc::runtime::sys;
 
     if !cfg.enable {
@@ -420,11 +414,7 @@ pub fn configure_cuda_mem_pool(
         .result()
         .context("cudaMemPoolSetAttribute(reuse_follow_event_dependencies) failed")?;
 
-        let opportunistic = if cfg.reuse_allow_opportunistic {
-            1u32
-        } else {
-            0u32
-        };
+        let opportunistic = if cfg.reuse_allow_opportunistic { 1u32 } else { 0u32 };
         sys::cudaMemPoolSetAttribute(
             pool,
             sys::cudaMemPoolAttr::cudaMemPoolReuseAllowOpportunistic,

@@ -36,7 +36,8 @@ fn test_checkpoint_find_latest() {
             optimizer_state: vec![],
             rng_state: None,
         };
-        ckpt.save(&temp_dir.path().join(format!("checkpoint-{}", step))).expect("TODO: Verify unwrap");
+        ckpt.save(&temp_dir.path().join(format!("checkpoint-{}", step)))
+            .expect("TODO: Verify unwrap");
     }
 
     let latest = Checkpoint::find_latest(temp_dir.path()).expect("TODO: Verify unwrap");
@@ -56,7 +57,8 @@ fn test_checkpoint_cleanup_old() {
             optimizer_state: vec![],
             rng_state: None,
         };
-        ckpt.save(&temp_dir.path().join(format!("checkpoint-{}", step))).expect("TODO: Verify unwrap");
+        ckpt.save(&temp_dir.path().join(format!("checkpoint-{}", step)))
+            .expect("TODO: Verify unwrap");
     }
 
     let config = CheckpointConfig {
@@ -68,7 +70,8 @@ fn test_checkpoint_cleanup_old() {
     Checkpoint::cleanup_old(&config).expect("TODO: Verify unwrap");
 
     // Should keep only the latest 3
-    let remaining: Vec<_> = std::fs::read_dir(temp_dir.path()).expect("TODO: Verify unwrap")
+    let remaining: Vec<_> = std::fs::read_dir(temp_dir.path())
+        .expect("TODO: Verify unwrap")
         .filter_map(|e| e.ok())
         .map(|e| e.file_name().to_string_lossy().to_string())
         .collect();

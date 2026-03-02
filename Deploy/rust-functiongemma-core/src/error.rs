@@ -90,8 +90,7 @@ mod tests {
 
     #[test]
     fn json_variant_display() {
-        let json_err: serde_json::Error =
-            serde_json::from_str::<serde_json::Value>("bad{").unwrap_err();
+        let json_err: serde_json::Error = serde_json::from_str::<serde_json::Value>("bad{").unwrap_err();
         let e: PcaiError = json_err.into();
         assert!(e.to_string().contains("JSON error"));
     }

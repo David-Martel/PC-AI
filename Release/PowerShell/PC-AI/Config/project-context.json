@@ -1,0 +1,419 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-31T00:00:00Z",
+  "contextFormat": "pc-ai-v1",
+
+  "projectOverview": {
+    "name": "PC_AI",
+    "fullName": "Local LLM-Powered PC Diagnostics Framework",
+    "location": "C:\\Users\\david\\PC_AI",
+    "description": "A comprehensive PowerShell 7+ framework for Windows PC diagnostics, optimization, and system analysis powered by local LLMs via pcai-inference",
+    "targetPlatform": "Windows 10/11 with WSL2 integration",
+    "targetUsers": "Development workstations with Docker, Hyper-V, and cross-platform tooling",
+    "primaryGoals": [
+      "Diagnose hardware issues, device errors, and system problems",
+      "Analyze event logs, SMART status, and device configurations",
+      "Propose optimizations for disk, network, WSL2, virtualization, and system performance",
+      "Clean up duplicates, PATH entries, and unnecessary system artifacts",
+      "Integrate local LLM analysis for intelligent diagnostic interpretation"
+    ],
+    "repository": {
+      "type": "git",
+      "branch": "main",
+      "status": "GitHub ready - all tests pass",
+      "initialCommit": "6800a79 feat: initial commit - PC-AI local LLM diagnostics framework"
+    }
+  },
+
+  "architecture": {
+    "pattern": "Modular PowerShell Framework",
+    "coreWorkflow": "collect -> parse -> reason -> recommend",
+    "components": {
+      "modules": 8,
+      "testSuites": 7,
+      "configFiles": 3,
+      "entryPoints": 2
+    },
+    "designDocuments": {
+      "systemPrompt": "DIAGNOSE.md",
+      "decisionTree": "DIAGNOSE_LOGIC.md",
+      "projectGuide": "CLAUDE.md"
+    },
+    "keyDirectories": {
+      "modules": "Modules/",
+      "tests": "Tests/",
+      "config": "Config/",
+      "legacy": "Legacy/",
+      "workflows": ".github/workflows/"
+    }
+  },
+
+  "modules": {
+    "PC-AI.Hardware": {
+      "version": "1.0.0",
+      "psVersion": "5.1",
+      "requiresAdmin": true,
+      "description": "Device manager, disk health, USB, network diagnostics",
+      "functions": [
+        "Get-DeviceErrors",
+        "Get-DiskHealth",
+        "Get-UsbStatus",
+        "Get-NetworkAdapters",
+        "Get-SystemEvents",
+        "New-DiagnosticReport"
+      ],
+      "dependencies": ["Win32_PnPEntity", "wmic", "Get-WinEvent"]
+    },
+    "PC-AI.Virtualization": {
+      "version": "1.0.0",
+      "psVersion": "5.1",
+      "requiresAdmin": true,
+      "description": "WSL2, Hyper-V, Docker status and optimization",
+      "functions": [
+        "Get-WSLStatus",
+        "Get-HyperVStatus",
+        "Get-DockerStatus",
+        "Backup-WSLConfig",
+        "Optimize-WSLConfig",
+        "Repair-WSLNetworking",
+        "Set-WSLDefenderExclusions"
+      ],
+      "dependencies": ["wsl.exe", "Hyper-V cmdlets", "Docker Desktop"]
+    },
+    "PC-AI.USB": {
+      "version": "1.0.0",
+      "psVersion": "5.1",
+      "requiresAdmin": true,
+      "description": "USB device management and WSL passthrough via usbipd-win",
+      "functions": [
+        "Get-UsbDeviceList",
+        "Mount-UsbToWSL",
+        "Dismount-UsbFromWSL",
+        "Get-UsbWSLStatus",
+        "Invoke-UsbBind"
+      ],
+      "dependencies": ["usbipd-win (optional)", "Win32_PnPEntity"],
+      "notes": "Recently fixed PS version requirement from 7.0 to 5.1 for broader compatibility"
+    },
+    "PC-AI.Network": {
+      "version": "1.0.0",
+      "psVersion": "5.1",
+      "requiresAdmin": true,
+      "description": "Network diagnostics, WSL connectivity, VSock optimization",
+      "functions": [
+        "Get-NetworkDiagnostics",
+        "Test-WSLConnectivity",
+        "Watch-VSockPerformance",
+        "Optimize-VSock"
+      ],
+      "dependencies": ["Get-NetAdapter", "Get-NetIPConfiguration", "wsl.exe"],
+      "notes": "Recently fixed test assertions for WSL connectivity tests"
+    },
+    "PC-AI.Performance": {
+      "version": "1.0.0",
+      "psVersion": "5.1",
+      "requiresAdmin": false,
+      "description": "Disk optimization, resource monitoring, process analysis",
+      "functions": [
+        "Get-DiskSpace",
+        "Get-ProcessPerformance",
+        "Watch-SystemResources",
+        "Optimize-Disks"
+      ]
+    },
+    "PC-AI.Cleanup": {
+      "version": "1.0.0",
+      "psVersion": "5.1",
+      "requiresAdmin": true,
+      "description": "PATH cleanup, duplicate detection, temp file cleanup",
+      "functions": [
+        "Get-PathDuplicates",
+        "Repair-MachinePath",
+        "Find-DuplicateFiles",
+        "Clear-TempFiles"
+      ]
+    },
+    "PC-AI.LLM": {
+      "version": "1.0.0",
+      "psVersion": "5.1",
+      "requiresAdmin": false,
+      "description": "pcai-inference + FunctionGemma integration for AI-powered analysis",
+      "functions": [
+        "Get-LLMStatus",
+        "Send-OllamaRequest",
+        "Invoke-LLMChat",
+        "Invoke-PCDiagnosis",
+        "Set-LLMConfig"
+      ],
+      "dependencies": ["pcai-inference", "FunctionGemma (optional)"],
+      "supportedModels": {
+        "default": "pcai-inference",
+        "fallback": [],
+        "recommended": [
+          {"model": "GGUF: Llama 3", "size": "Varies", "use": "General analysis"},
+          {"model": "GGUF: Mistral", "size": "Varies", "use": "Fast general analysis"},
+          {"model": "GGUF: Phi", "size": "Varies", "use": "Lightweight local analysis"},
+          {"model": "GGUF: Gemma", "size": "Varies", "use": "High-quality responses"}
+        ]
+      }
+    },
+    "PC-AI.Acceleration": {
+      "version": "1.0.0",
+      "psVersion": "5.1",
+      "requiresAdmin": false,
+      "description": "Rust tools integration with PS7+ parallelism for performance",
+      "functions": [
+        "Get-RustToolStatus",
+        "Test-RustToolAvailable",
+        "Search-LogsFast",
+        "Find-FilesFast",
+        "Get-ProcessesFast",
+        "Get-FileHashParallel",
+        "Find-DuplicatesFast",
+        "Get-DiskUsageFast",
+        "Search-ContentFast",
+        "Measure-CommandPerformance",
+        "Compare-ToolPerformance"
+      ],
+      "rustTools": {
+        "fd": {"use": "File finding", "speedup": "5-10x"},
+        "ripgrep": {"use": "Content search", "speedup": "40x+"},
+        "procs": {"use": "Process listing", "speedup": "Better formatting"},
+        "bat": {"use": "File viewing", "speedup": "Syntax highlighting"},
+        "hyperfine": {"use": "Benchmarking", "speedup": "Statistical accuracy"}
+      },
+      "fallbackPattern": "Rust tool (fastest) -> PS7+ parallel -> Sequential PS"
+    }
+  },
+
+  "testing": {
+    "framework": "Pester 5.x",
+    "runner": "Tests/.pester.ps1",
+    "configuration": "Tests/PesterConfiguration.psd1",
+    "mockData": "Tests/Fixtures/MockData.psm1",
+    "currentStatus": {
+      "totalTests": 199,
+      "passed": 199,
+      "failed": 0,
+      "skipped": 19,
+      "coverageTarget": "85%"
+    },
+    "testSuites": [
+      "PC-AI.Hardware.Tests.ps1",
+      "PC-AI.Virtualization.Tests.ps1",
+      "PC-AI.USB.Tests.ps1",
+      "PC-AI.Network.Tests.ps1",
+      "PC-AI.Performance.Tests.ps1",
+      "PC-AI.Cleanup.Tests.ps1",
+      "PC-AI.LLM.Tests.ps1"
+    ],
+    "integrationTests": [
+      "ModuleLoading.Tests.ps1",
+      "ReportGeneration.Tests.ps1"
+    ],
+    "commands": {
+      "all": ".\\Tests\\.pester.ps1 -Type All",
+      "unit": ".\\Tests\\.pester.ps1 -Type Unit",
+      "integration": ".\\Tests\\.pester.ps1 -Type Integration",
+      "withCoverage": ".\\Tests\\.pester.ps1 -Type All -Coverage",
+      "ci": ".\\Tests\\.pester.ps1 -CI"
+    }
+  },
+
+  "cicd": {
+    "platform": "GitHub Actions",
+    "workflows": {
+      "powershell-tests.yml": {
+        "triggers": ["push to main/develop", "PR to main"],
+        "jobs": ["lint", "test", "integration"],
+        "matrix": ["PowerShell 5.1", "PowerShell 7.4"]
+      },
+      "release.yml": "Release automation",
+      "security.yml": "Security scanning",
+      "scheduled-checks.yml": "Scheduled maintenance checks"
+    },
+    "linting": {
+      "tool": "PSScriptAnalyzer",
+      "settings": "PSScriptAnalyzerSettings.psd1"
+    }
+  },
+
+  "configuration": {
+    "mainSettings": "Config/settings.json",
+    "llmConfig": "Config/llm-config.json",
+    "thresholds": "Config/diagnostic-thresholds.json",
+    "llmSettings": {
+      "providers": {
+        "pcai-inference": {
+          "baseUrl": "http://127.0.0.1:8080",
+          "defaultModel": "pcai-inference",
+          "timeout": 120000,
+          "retryAttempts": 3
+        },
+        "functiongemma": {
+          "baseUrl": "http://127.0.0.1:8000",
+          "defaultModel": "functiongemma-270m-it",
+          "timeout": 120000
+        }
+      },
+      "contextManagement": {
+        "maxContextTokens": 16384,
+        "reservedForResponse": 4096
+      }
+    }
+  },
+
+  "recentWork": {
+    "lastSession": "2026-01-23",
+    "completedTasks": [
+      "Initial framework creation with 8 modules",
+      "199 Pester tests with 100% pass rate",
+      "pcai-inference integration with FunctionGemma routing",
+      "USB module PS version fix (7.0 -> 5.1)",
+      "Network test assertion fixes for WSL connectivity",
+      "Legacy scripts archived with README documentation",
+      "CI/CD pipeline with GitHub Actions",
+      "Rust tools acceleration layer (40x+ speedup for search)"
+    ],
+    "recentFixes": [
+      {
+        "module": "PC-AI.USB",
+        "issue": "PowerShell version requirement too restrictive",
+        "fix": "Changed from PS 7.0 to PS 5.1 requirement",
+        "files": ["PC-AI.USB.psm1"]
+      },
+      {
+        "module": "PC-AI.Network",
+        "issue": "Test assertions for WSL connectivity were incorrect",
+        "fix": "Updated test expectations to match actual function behavior",
+        "files": ["Tests/Unit/PC-AI.Network.Tests.ps1"]
+      }
+    ],
+    "legacyArchive": {
+      "location": "Legacy/",
+      "documentation": "Legacy/README.md",
+      "archivedDate": "2026-01-23",
+      "scripts": [
+        "wsl-vsock-bridge-configured.sh",
+        "install-bridges.sh",
+        "docker-wsl-startup.bat",
+        "wsl-docker-health-check.ps1",
+        "create-startup-task.ps1"
+      ]
+    }
+  },
+
+  "codePatterns": {
+    "errorHandling": "Try/catch with specific exception types",
+    "moduleStructure": "Public/Private folders with dot-sourced functions",
+    "testingPattern": "BeforeAll mocks with Context-based organization",
+    "outputFormat": "PSCustomObject with consistent property names",
+    "safetyPattern": "Read-only by default, explicit consent for modifications",
+    "adminChecks": "Test-IsAdministrator helper function in each module",
+    "mockStrategy": "MockData.psm1 provides factory functions for realistic test data"
+  },
+
+  "designDecisions": {
+    "psVersionRequirement": {
+      "decision": "PowerShell 5.1 minimum for all modules",
+      "rationale": "Broader compatibility while maintaining Windows 10 support"
+    },
+    "llmIntegration": {
+      "decision": "Local-only LLM via pcai-inference (OpenAI-compatible HTTP + native FFI)",
+      "rationale": "Privacy, no internet dependency, unified local inference with streaming"
+    },
+    "accelerationLayer": {
+      "decision": "Rust tools with PowerShell fallback",
+      "rationale": "40x+ speedup when available, graceful degradation otherwise"
+    },
+    "testingFramework": {
+      "decision": "Pester 5.x with comprehensive mocking",
+      "rationale": "Industry standard for PowerShell, good CI/CD integration"
+    },
+    "moduleGranularity": {
+      "decision": "Separate modules per functional domain",
+      "rationale": "Independent loading, clear separation of concerns"
+    }
+  },
+
+  "technicalDebt": {
+    "identified": [
+      "Coverage tracking not fully implemented in CI",
+      "Some integration tests require real hardware",
+      "Router availability not fully validated in all environments"
+    ],
+    "planned": [
+      "Add codecov integration",
+      "Mock hardware dependencies in integration tests",
+      "Complete pcai-inference + router parity across environments"
+    ]
+  },
+
+  "futureRoadmap": {
+    "v1.1": [
+      "GUI dashboard for diagnostics visualization",
+      "Scheduled diagnostics with alerting",
+      "Export to HTML/PDF reports"
+    ],
+    "v1.2": [
+      "Remote diagnostics support",
+      "Multi-machine aggregation",
+      "Historical trend analysis"
+    ],
+    "v2.0": [
+      "Cross-platform support (macOS/Linux)",
+      "Cloud LLM provider option",
+      "Agent-based autonomous remediation"
+    ]
+  },
+
+  "agentCoordination": {
+    "sessionHistory": [
+      {
+        "date": "2026-01-23",
+        "agent": "context-manager",
+        "tasks": ["Initial context capture", "Project documentation"],
+        "outcome": "Complete project context saved"
+      }
+    ],
+    "successfulPatterns": [
+      "Use search-specialist for file discovery",
+      "Use python-pro for PowerShell analysis (similar patterns)",
+      "Use architect-reviewer for module structure reviews"
+    ],
+    "agentSpecificContext": {
+      "forCodeReview": "Check PSScriptAnalyzer settings in PSScriptAnalyzerSettings.psd1",
+      "forTesting": "Run Tests/.pester.ps1 with appropriate flags",
+      "forDeployment": "GitHub Actions workflows in .github/workflows/"
+    }
+  },
+
+  "quickReference": {
+    "commands": {
+      "runAllTests": ".\\Tests\\.pester.ps1 -Type All",
+      "runDiagnostics": ".\\Get-PcDiagnostics.ps1 (requires Admin)",
+      "checkRustTools": "Get-RustToolStatus",
+      "llmAnalysis": "Invoke-PCDiagnosis -ReportPath '.\\report.txt'",
+      "unifiedCLI": ".\\PC-AI.ps1 diagnose all"
+    },
+    "keyFiles": {
+      "entryPoint": "PC-AI.ps1",
+      "diagnosticsScript": "Get-PcDiagnostics.ps1",
+      "testRunner": "Tests/.pester.ps1",
+      "llmPrompt": "DIAGNOSE.md",
+      "decisionTree": "DIAGNOSE_LOGIC.md"
+    },
+    "configManagerErrorCodes": {
+      "0": "Device working properly",
+      "1": "Device not configured correctly",
+      "10": "Device cannot start",
+      "12": "Cannot find enough free resources",
+      "22": "Device is disabled",
+      "28": "Drivers not installed",
+      "31": "Device not working properly",
+      "43": "Device stopped responding"
+    }
+  }
+}
+

@@ -50,6 +50,7 @@ use tokio::runtime::Runtime;
 
 use crate::config::PipelineConfig;
 use crate::generate::GenerationPipeline;
+use crate::understand::UnderstandingPipeline;
 
 // ============================================================================
 // Error Codes
@@ -384,35 +385,12 @@ pub extern "C" fn pcai_media_generate_image(
     };
 
     // Override config fields when non-zero caller values are supplied.
-    // We need access to the pipeline's config, but GenerationPipeline does
-    // not expose a mutable config accessor, so we patch through the generate
-    // call using the stored defaults from the pipeline.  The cfg_scale and
-    // temperature are applied at generate time via the stored PipelineConfig
-    // fields — the caller can pass 0.0 to use the defaults already baked in.
-    //
-    // For simplicity we expose a patch: if the caller passes non-zero values
-    // we recreate the pipeline config before generating.  Since the pipeline
-    // is already loaded (weights in memory), we only update the numeric params
-    // by rebuilding GenerationPipeline is NOT needed — the generate loop reads
-    // self.config.guidance_scale and self.config.temperature at runtime.
-    //
-    // Because we cannot mutate self.config directly without unsafe, we take
-    // a different approach: call generate with the current pipeline but note
-    // that the pipeline stores the config at load time. The caller-supplied
-    // cfg_scale / temperature override is therefore advisory documentation
-    // for future pipeline versions that support hot-patching config. For now
-    // the pipeline uses whatever was set during load.
-    //
-    // TODO: expose a `PipelineConfig` accessor on `GenerationPipeline` and
-    // apply the override without reloading weights.
-    let _ = cfg_scale;    // reserved for future hot-patch
-    let _ = temperature;  // reserved for future hot-patch
+    // `generate_with_overrides` applies the per-call overrides without
+    // mutating the pipeline's stored config.
+    let override_cfg = if cfg_scale > 0.0 { Some(cfg_scale as f64) } else { None };
+    let override_temp = if temperature > 0.0 { Some(temperature as f64) } else { None };
 
-    // `GenerationPipeline::generate` is synchronous — no async executor is
-    // required.  We call it directly while holding the Mutex guard.  The
-    // Tokio runtime field exists on MediaState but is only needed for I/O
-    // operations in `load_model`; generation is pure CPU/GPU tensor work.
-    let generate_result = pipeline.generate(&prompt_str);
+    let generate_result = pipeline.generate_with_overrides(&prompt_str, override_cfg, override_temp);
 
     let image = match generate_result {
         Ok(img) => img,
@@ -438,6 +416,235 @@ pub extern "C" fn pcai_media_generate_image(
         prompt = %prompt_str,
         output = %out_str,
         "image saved"
+    );
+    PcaiMediaErrorCode::Success as i32
+}
+
+/// Run image-to-text understanding on an existing image file.
+///
+/// Returns a heap-allocated UTF-8 string containing the model's text
+/// response.  The caller **must** free the returned pointer with
+/// [`pcai_media_free_string`].
+///
+/// # Arguments
+///
+/// * `image_path`  — Absolute file path to the input image (PNG, JPEG, BMP).
+/// * `prompt`      — Question or instruction for the model.
+/// * `max_tokens`  — Maximum number of text tokens to generate.
+/// * `temperature` — Sampling temperature (`0.0` = greedy, `1.0` = creative).
+///
+/// # Returns
+///
+/// A non-null heap-allocated C string on success, or `NULL` on failure.
+/// Inspect [`pcai_media_last_error`] for failure details.
+///
+/// # Safety
+///
+/// `image_path` and `prompt` must be valid null-terminated C strings.
+#[no_mangle]
+pub extern "C" fn pcai_media_understand_image(
+    image_path: *const c_char,
+    prompt: *const c_char,
+    max_tokens: u32,
+    temperature: f32,
+) -> *mut c_char {
+    clear_error();
+
+    let path_str = match unsafe { c_str_to_str(image_path) } {
+        Ok(s) => s.to_string(),
+        Err(_) => return std::ptr::null_mut(),
+    };
+    let prompt_str = match unsafe { c_str_to_str(prompt) } {
+        Ok(s) => s.to_string(),
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    let state = get_state();
+    let guard = match state.lock() {
+        Ok(g) => g,
+        Err(e) => {
+            set_error(
+                format!("Failed to acquire state lock: {e}"),
+                PcaiMediaErrorCode::GenerationError,
+            );
+            return std::ptr::null_mut();
+        }
+    };
+
+    let pipeline = match guard.pipeline.as_ref() {
+        Some(p) => p,
+        None => {
+            set_error(
+                "No model loaded — call pcai_media_load_model first",
+                PcaiMediaErrorCode::ModelNotLoaded,
+            );
+            return std::ptr::null_mut();
+        }
+    };
+
+    // Load image from file.
+    let dyn_image = match image::open(&path_str) {
+        Ok(img) => img,
+        Err(e) => {
+            set_error(
+                format!("Failed to open image '{path_str}': {e}"),
+                PcaiMediaErrorCode::IoError,
+            );
+            return std::ptr::null_mut();
+        }
+    };
+
+    // Run understanding pipeline (borrows from GenerationPipeline).
+    let result = UnderstandingPipeline::understand(
+        pipeline.model(),
+        pipeline.tokenizer(),
+        &dyn_image,
+        &prompt_str,
+        max_tokens,
+        temperature,
+        pipeline.device(),
+        pipeline.dtype(),
+    );
+
+    match result {
+        Ok(text) => {
+            match CString::new(text) {
+                Ok(cstr) => cstr.into_raw(),
+                Err(e) => {
+                    set_error(
+                        format!("Response text contains null byte: {e}"),
+                        PcaiMediaErrorCode::GenerationError,
+                    );
+                    std::ptr::null_mut()
+                }
+            }
+        }
+        Err(e) => {
+            set_error(
+                format!("Understanding failed: {e}"),
+                PcaiMediaErrorCode::GenerationError,
+            );
+            std::ptr::null_mut()
+        }
+    }
+}
+
+/// Generate an image and return raw PNG bytes instead of writing to a file.
+///
+/// On success, `*out_data` is set to a heap-allocated byte buffer and
+/// `*out_len` is set to the buffer length.  The caller **must** free the
+/// buffer with [`pcai_media_free_bytes`].
+///
+/// # Arguments
+///
+/// * `prompt`      — Text prompt.
+/// * `cfg_scale`   — CFG scale (pass `0.0` for default).
+/// * `temperature` — Sampling temperature (pass `0.0` for default).
+/// * `out_data`    — Output pointer to the PNG byte buffer.
+/// * `out_len`     — Output pointer to the byte count.
+///
+/// # Returns
+///
+/// `0` on success, negative error code on failure.
+///
+/// # Safety
+///
+/// `prompt` must be a valid null-terminated C string.  `out_data` and
+/// `out_len` must be valid, non-null, writable pointers.
+#[no_mangle]
+pub extern "C" fn pcai_media_generate_image_bytes(
+    prompt: *const c_char,
+    cfg_scale: f32,
+    temperature: f32,
+    out_data: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    clear_error();
+
+    if out_data.is_null() || out_len.is_null() {
+        set_error(
+            "out_data and out_len must be non-null",
+            PcaiMediaErrorCode::InvalidInput,
+        );
+        return PcaiMediaErrorCode::InvalidInput as i32;
+    }
+
+    let prompt_str = match unsafe { c_str_to_str(prompt) } {
+        Ok(s) => s.to_string(),
+        Err(code) => return code as i32,
+    };
+
+    let state = get_state();
+    let guard = match state.lock() {
+        Ok(g) => g,
+        Err(e) => {
+            set_error(
+                format!("Failed to acquire state lock: {e}"),
+                PcaiMediaErrorCode::GenerationError,
+            );
+            return PcaiMediaErrorCode::GenerationError as i32;
+        }
+    };
+
+    let pipeline = match guard.pipeline.as_ref() {
+        Some(p) => p,
+        None => {
+            set_error(
+                "No model loaded — call pcai_media_load_model first",
+                PcaiMediaErrorCode::ModelNotLoaded,
+            );
+            return PcaiMediaErrorCode::ModelNotLoaded as i32;
+        }
+    };
+
+    let override_cfg = if cfg_scale > 0.0 { Some(cfg_scale as f64) } else { None };
+    let override_temp = if temperature > 0.0 { Some(temperature as f64) } else { None };
+
+    let image = match pipeline.generate_with_overrides(&prompt_str, override_cfg, override_temp) {
+        Ok(img) => img,
+        Err(e) => {
+            set_error(
+                format!("Image generation failed: {e}"),
+                PcaiMediaErrorCode::GenerationError,
+            );
+            return PcaiMediaErrorCode::GenerationError as i32;
+        }
+    };
+
+    // Encode to PNG in memory.
+    let mut png_buf: Vec<u8> = Vec::new();
+    {
+        use image::codecs::png::PngEncoder;
+        use image::ImageEncoder;
+        let encoder = PngEncoder::new(&mut png_buf);
+        if let Err(e) = encoder.write_image(
+            image.as_raw(),
+            image.width(),
+            image.height(),
+            image::ExtendedColorType::Rgb8,
+        ) {
+            set_error(
+                format!("PNG encode failed: {e}"),
+                PcaiMediaErrorCode::GenerationError,
+            );
+            return PcaiMediaErrorCode::GenerationError as i32;
+        }
+    }
+
+    let len = png_buf.len();
+    let ptr = png_buf.as_mut_ptr();
+    std::mem::forget(png_buf);
+
+    // SAFETY: out_data and out_len were checked for null above.
+    unsafe {
+        *out_data = ptr;
+        *out_len = len;
+    }
+
+    tracing::info!(
+        prompt = %prompt_str,
+        png_bytes = len,
+        "image generated (bytes)"
     );
     PcaiMediaErrorCode::Success as i32
 }
@@ -722,5 +929,103 @@ mod tests {
         };
         // This must not panic or produce UB under Miri / Valgrind.
         pcai_media_free_bytes(ptr, len);
+    }
+
+    // ── understand_image null safety ────────────────────────────────────
+
+    #[test]
+    fn test_understand_image_null_image_path() {
+        let prompt = CString::new("describe this").expect("valid");
+        let result = pcai_media_understand_image(
+            std::ptr::null(),
+            prompt.as_ptr(),
+            128,
+            0.7,
+        );
+        assert!(result.is_null(), "null image_path should return null");
+        assert_eq!(
+            pcai_media_last_error_code(),
+            PcaiMediaErrorCode::InvalidInput as i32,
+        );
+    }
+
+    #[test]
+    fn test_understand_image_null_prompt() {
+        let path = CString::new("test.png").expect("valid");
+        let result = pcai_media_understand_image(
+            path.as_ptr(),
+            std::ptr::null(),
+            128,
+            0.7,
+        );
+        assert!(result.is_null(), "null prompt should return null");
+        assert_eq!(
+            pcai_media_last_error_code(),
+            PcaiMediaErrorCode::InvalidInput as i32,
+        );
+    }
+
+    #[test]
+    fn test_understand_image_no_model_loaded() {
+        // Ensure init has run (other tests may have already done this).
+        let device = CString::new("cpu").expect("valid");
+        pcai_media_init(device.as_ptr());
+        pcai_media_shutdown(); // clear any loaded model
+
+        let path = CString::new("test.png").expect("valid");
+        let prompt = CString::new("describe").expect("valid");
+        let result = pcai_media_understand_image(
+            path.as_ptr(),
+            prompt.as_ptr(),
+            128,
+            0.7,
+        );
+        assert!(result.is_null(), "should fail without loaded model");
+        // Could be ModelNotLoaded or IoError depending on execution order.
+        assert_ne!(pcai_media_last_error_code(), 0);
+    }
+
+    // ── generate_image_bytes null safety ────────────────────────────────
+
+    #[test]
+    fn test_generate_image_bytes_null_out_data() {
+        let prompt = CString::new("test").expect("valid");
+        let mut len: usize = 0;
+        let result = pcai_media_generate_image_bytes(
+            prompt.as_ptr(),
+            0.0,
+            0.0,
+            std::ptr::null_mut(),
+            &mut len as *mut usize,
+        );
+        assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
+    }
+
+    #[test]
+    fn test_generate_image_bytes_null_out_len() {
+        let prompt = CString::new("test").expect("valid");
+        let mut data: *mut u8 = std::ptr::null_mut();
+        let result = pcai_media_generate_image_bytes(
+            prompt.as_ptr(),
+            0.0,
+            0.0,
+            &mut data as *mut *mut u8,
+            std::ptr::null_mut(),
+        );
+        assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
+    }
+
+    #[test]
+    fn test_generate_image_bytes_null_prompt() {
+        let mut data: *mut u8 = std::ptr::null_mut();
+        let mut len: usize = 0;
+        let result = pcai_media_generate_image_bytes(
+            std::ptr::null(),
+            0.0,
+            0.0,
+            &mut data as *mut *mut u8,
+            &mut len as *mut usize,
+        );
+        assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
     }
 }

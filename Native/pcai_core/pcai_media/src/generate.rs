@@ -140,10 +140,36 @@ impl GenerationPipeline {
         })
     }
 
+    /// Returns a reference to the underlying [`JanusModel`].
+    pub fn model(&self) -> &JanusModel {
+        &self.model
+    }
+
+    /// Returns a reference to the loaded tokenizer.
+    pub fn tokenizer(&self) -> &tokenizers::Tokenizer {
+        &self.tokenizer
+    }
+
+    /// Returns a reference to the [`PipelineConfig`].
+    pub fn config(&self) -> &PipelineConfig {
+        &self.config
+    }
+
+    /// Returns the device used by this pipeline.
+    pub fn device(&self) -> &Device {
+        &self.device
+    }
+
+    /// Returns the dtype used by this pipeline.
+    pub fn dtype(&self) -> DType {
+        self.dtype
+    }
+
     /// Generate an image from a text prompt.
     ///
     /// Runs the 576-step autoregressive Janus-Pro generation loop with
-    /// Classifier-Free Guidance (CFG).
+    /// Classifier-Free Guidance (CFG).  Uses the `guidance_scale` and
+    /// `temperature` stored in [`PipelineConfig`] at load time.
     ///
     /// # Arguments
     ///
@@ -158,6 +184,22 @@ impl GenerationPipeline {
     ///
     /// Returns an error on any tensor operation failure or tokenization error.
     pub fn generate(&self, prompt: &str) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+        self.generate_with_overrides(prompt, None, None)
+    }
+
+    /// Generate an image with optional per-call parameter overrides.
+    ///
+    /// When `cfg_scale` or `temperature` is `Some`, the provided value
+    /// overrides the pipeline default for this call only.  `None` uses the
+    /// value stored in the [`PipelineConfig`] at load time.
+    pub fn generate_with_overrides(
+        &self,
+        prompt: &str,
+        cfg_scale: Option<f64>,
+        temperature: Option<f64>,
+    ) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+        let guidance_scale = cfg_scale.unwrap_or(self.config.guidance_scale);
+        let temperature_val = temperature.unwrap_or(self.config.temperature);
         let parallel_size = self.config.parallel_size;
         // CFG requires a paired positive/negative batch.
         let batch_size = parallel_size * 2;
@@ -306,7 +348,7 @@ impl GenerationPipeline {
             };
 
             // guided = uncond + guidance_scale * (cond - uncond)
-            let scale = self.config.guidance_scale;
+            let scale = guidance_scale;
             let diff = (cond.clone() - uncond.clone())
                 .map_err(|e| anyhow::anyhow!("step {step}: CFG diff failed: {e}"))?;
             let guided = (uncond + (diff * scale)?)
@@ -314,9 +356,8 @@ impl GenerationPipeline {
 
             // F. Temperature scaling + softmax → probability distribution
             //    [parallel_size, image_vocab_size]
-            let temperature = self.config.temperature;
-            let scaled = if (temperature - 1.0_f64).abs() > 1e-6 {
-                (guided / temperature)
+            let scaled = if (temperature_val - 1.0_f64).abs() > 1e-6 {
+                (guided / temperature_val)
                     .map_err(|e| anyhow::anyhow!("step {step}: temperature scale failed: {e}"))?
             } else {
                 guided

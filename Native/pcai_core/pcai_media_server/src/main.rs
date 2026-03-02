@@ -1,14 +1,16 @@
 //! HTTP server binary for Janus-Pro media inference.
 //!
-//! Exposes a small REST API for text-to-image generation backed by the
-//! `pcai-media` pipeline crate.
+//! Exposes a small REST API for text-to-image generation and image
+//! understanding backed by the `pcai-media` pipeline crate.
 //!
 //! # Endpoints
 //!
 //! | Method | Path | Description |
 //! |--------|------|-------------|
 //! | `GET`  | `/health` | Server and model load status |
+//! | `GET`  | `/v1/models` | List loaded models |
 //! | `POST` | `/v1/images/generate` | Generate an image from a text prompt |
+//! | `POST` | `/v1/images/understand` | Describe / answer questions about an image |
 //!
 //! # Usage
 //!
@@ -37,6 +39,7 @@ use tracing_subscriber::EnvFilter;
 
 use pcai_media::config::PipelineConfig;
 use pcai_media::generate::GenerationPipeline;
+use pcai_media::understand::UnderstandingPipeline;
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -116,6 +119,55 @@ struct HealthResponse {
     model: String,
     /// Whether the generation pipeline has been successfully loaded.
     model_loaded: bool,
+}
+
+/// Request body for `POST /v1/images/understand`.
+#[derive(Debug, Deserialize)]
+struct UnderstandRequest {
+    /// Base64-encoded image bytes (any format supported by the `image` crate).
+    image_base64: String,
+
+    /// User question or instruction about the image.
+    prompt: String,
+
+    /// Maximum number of new tokens to generate (default: 512).
+    #[serde(default = "default_max_tokens")]
+    max_tokens: u32,
+
+    /// Sampling temperature (default: 0.7).  Values ≤ 0.01 use greedy argmax.
+    #[serde(default = "default_understand_temperature")]
+    temperature: f64,
+}
+
+fn default_max_tokens() -> u32 {
+    512
+}
+
+fn default_understand_temperature() -> f64 {
+    0.7
+}
+
+/// Response body for `POST /v1/images/understand`.
+#[derive(Debug, Serialize)]
+struct UnderstandResponse {
+    /// Generated text description or answer.
+    text: String,
+}
+
+/// A single model entry returned by `GET /v1/models`.
+#[derive(Debug, Serialize)]
+struct ModelInfo {
+    /// Model identifier (HuggingFace repo ID or local path).
+    id: String,
+    /// Whether the pipeline has been successfully loaded and is ready.
+    loaded: bool,
+}
+
+/// Response body for `GET /v1/models`.
+#[derive(Debug, Serialize)]
+struct ModelsResponse {
+    /// List of models known to this server instance.
+    models: Vec<ModelInfo>,
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +268,94 @@ async fn generate_image(
     }))
 }
 
+/// `POST /v1/images/understand` — run the Janus-Pro image-understanding pipeline.
+///
+/// Decodes the Base64-encoded image, preprocesses it, and generates a text
+/// response conditioned on the user's prompt.  Returns the generated text.
+async fn understand_image(
+    State(state): State<SharedState>,
+    Json(req): Json<UnderstandRequest>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    // Validate inputs before acquiring any lock.
+    if req.temperature <= 0.0 {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "temperature must be positive".to_string(),
+        ));
+    }
+    if req.max_tokens == 0 {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "max_tokens must be at least 1".to_string(),
+        ));
+    }
+
+    // Decode Base64 → raw bytes.
+    let image_bytes = base64::engine::general_purpose::STANDARD
+        .decode(&req.image_base64)
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("base64 decode failed: {e}")))?;
+
+    // Decode bytes → DynamicImage.
+    let dynamic_image = image::load_from_memory(&image_bytes)
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("image decode failed: {e}")))?;
+
+    // Check pipeline is loaded.
+    {
+        let guard = state.read().await;
+        if guard.pipeline.is_none() {
+            return Err((
+                StatusCode::SERVICE_UNAVAILABLE,
+                "model not loaded".to_string(),
+            ));
+        }
+    }
+
+    // Run understanding.  Borrow model/tokenizer/device/dtype from the pipeline
+    // while holding a read lock — other readers remain unblocked.
+    let text = {
+        let prompt = req.prompt.clone();
+        let max_tokens = req.max_tokens;
+        let temperature = req.temperature as f32;
+
+        let guard = state.read().await;
+        let pipeline = guard
+            .pipeline
+            .as_ref()
+            .expect("pipeline presence checked above");
+
+        tokio::task::block_in_place(|| {
+            UnderstandingPipeline::understand(
+                pipeline.model(),
+                pipeline.tokenizer(),
+                &dynamic_image,
+                &prompt,
+                max_tokens,
+                temperature,
+                pipeline.device(),
+                pipeline.dtype(),
+            )
+        })
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    };
+
+    Ok(Json(UnderstandResponse { text }))
+}
+
+/// `GET /v1/models` — list models known to this server instance.
+///
+/// Returns the configured model name and whether the pipeline has been
+/// successfully loaded.
+async fn list_models(State(state): State<SharedState>) -> impl IntoResponse {
+    let guard = state.read().await;
+    let loaded = guard.pipeline.is_some();
+    Json(ModelsResponse {
+        models: vec![ModelInfo {
+            id: guard.config.model.clone(),
+            loaded,
+        }],
+    })
+}
+
 // ---------------------------------------------------------------------------
 // PNG encoding helper
 // ---------------------------------------------------------------------------
@@ -284,7 +424,9 @@ async fn main() -> Result<()> {
     // Build the Axum router.
     let app = Router::new()
         .route("/health", get(health))
+        .route("/v1/models", get(list_models))
         .route("/v1/images/generate", post(generate_image))
+        .route("/v1/images/understand", post(understand_image))
         .with_state(state)
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive());
@@ -376,5 +518,99 @@ mod tests {
         assert_eq!(decoded["image_base64"], "abc123");
         assert_eq!(decoded["width"], 384);
         assert_eq!(decoded["height"], 384);
+    }
+
+    /// `UnderstandRequest` must deserialise with optional fields absent, using defaults.
+    #[test]
+    fn test_understand_request_defaults() {
+        let json = r#"{"image_base64":"aGVsbG8=","prompt":"what is this?"}"#;
+        let req: UnderstandRequest = serde_json::from_str(json).expect("deserialise failed");
+        assert_eq!(req.image_base64, "aGVsbG8=");
+        assert_eq!(req.prompt, "what is this?");
+        assert_eq!(req.max_tokens, 512);
+        assert!((req.temperature - 0.7).abs() < f64::EPSILON);
+    }
+
+    /// `UnderstandRequest` must deserialise with all optional fields present.
+    #[test]
+    fn test_understand_request_full() {
+        let json = r#"{
+            "image_base64": "aGVsbG8=",
+            "prompt": "describe in detail",
+            "max_tokens": 256,
+            "temperature": 0.3
+        }"#;
+        let req: UnderstandRequest = serde_json::from_str(json).expect("deserialise failed");
+        assert_eq!(req.prompt, "describe in detail");
+        assert_eq!(req.max_tokens, 256);
+        assert!((req.temperature - 0.3).abs() < f64::EPSILON);
+    }
+
+    /// `UnderstandResponse` must serialise with the expected `text` field.
+    #[test]
+    fn test_understand_response_serde() {
+        let resp = UnderstandResponse {
+            text: "a fluffy cat sitting on a mat".to_string(),
+        };
+        let json = serde_json::to_string(&resp).expect("serialise failed");
+        let decoded: serde_json::Value = serde_json::from_str(&json).expect("deserialise failed");
+        assert_eq!(decoded["text"], "a fluffy cat sitting on a mat");
+    }
+
+    /// `UnderstandResponse` must round-trip through JSON without data loss.
+    #[test]
+    fn test_understand_response_roundtrip() {
+        let original = UnderstandResponse {
+            text: "the image shows a sunset over the ocean".to_string(),
+        };
+        let json = serde_json::to_string(&original).expect("serialise");
+        let decoded: serde_json::Value = serde_json::from_str(&json).expect("deserialise");
+        assert_eq!(decoded["text"], original.text);
+    }
+
+    /// `ModelsResponse` must serialise with a `models` array containing a
+    /// single entry with the expected fields.
+    #[test]
+    fn test_models_response_serde() {
+        let resp = ModelsResponse {
+            models: vec![ModelInfo {
+                id: "deepseek-ai/Janus-Pro-7B".to_string(),
+                loaded: true,
+            }],
+        };
+        let json = serde_json::to_string(&resp).expect("serialise failed");
+        let decoded: serde_json::Value = serde_json::from_str(&json).expect("deserialise failed");
+        assert!(decoded["models"].is_array());
+        assert_eq!(decoded["models"].as_array().unwrap().len(), 1);
+        assert_eq!(decoded["models"][0]["id"], "deepseek-ai/Janus-Pro-7B");
+        assert_eq!(decoded["models"][0]["loaded"], true);
+    }
+
+    /// `ModelsResponse` with `loaded: false` must serialise correctly.
+    #[test]
+    fn test_models_response_not_loaded() {
+        let resp = ModelsResponse {
+            models: vec![ModelInfo {
+                id: "deepseek-ai/Janus-Pro-1B".to_string(),
+                loaded: false,
+            }],
+        };
+        let json = serde_json::to_string(&resp).expect("serialise failed");
+        let decoded: serde_json::Value = serde_json::from_str(&json).expect("deserialise failed");
+        assert_eq!(decoded["models"][0]["loaded"], false);
+        assert_eq!(decoded["models"][0]["id"], "deepseek-ai/Janus-Pro-1B");
+    }
+
+    /// `ModelInfo` must round-trip through JSON preserving both fields.
+    #[test]
+    fn test_model_info_roundtrip() {
+        let info = ModelInfo {
+            id: "local/janus-1b".to_string(),
+            loaded: true,
+        };
+        let json = serde_json::to_string(&info).expect("serialise");
+        let decoded: serde_json::Value = serde_json::from_str(&json).expect("deserialise");
+        assert_eq!(decoded["id"], "local/janus-1b");
+        assert_eq!(decoded["loaded"], true);
     }
 }

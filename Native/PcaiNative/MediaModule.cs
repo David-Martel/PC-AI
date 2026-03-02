@@ -241,6 +241,31 @@ namespace PcaiNative
             float temperature);
 
         /// <summary>
+        /// Generates an image from a text prompt and returns raw PNG bytes.
+        /// The caller must free the buffer with <see cref="pcai_media_free_bytes"/>.
+        /// </summary>
+        /// <param name="prompt">Natural-language description of the desired image (UTF-8).</param>
+        /// <param name="cfgScale">Classifier-free guidance scale. Pass 0 for default.</param>
+        /// <param name="temperature">Sampling temperature. Pass 0 for default.</param>
+        /// <param name="outData">Receives pointer to the PNG byte buffer.</param>
+        /// <param name="outLen">Receives the byte count of the buffer.</param>
+        /// <returns>0 on success; non-zero on failure.</returns>
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern int pcai_media_generate_image_bytes(
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string prompt,
+            float cfgScale,
+            float temperature,
+            out IntPtr outData,
+            out UIntPtr outLen);
+
+        /// <summary>
+        /// Frees a byte buffer previously returned by <see cref="pcai_media_generate_image_bytes"/>.
+        /// Passing <see cref="IntPtr.Zero"/> is a safe no-op.
+        /// </summary>
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void pcai_media_free_bytes(IntPtr data, UIntPtr len);
+
+        /// <summary>
         /// Shuts down the pcai_media backend and releases all model resources.
         /// Safe to call multiple times; subsequent calls after the first are no-ops.
         /// </summary>
@@ -351,6 +376,35 @@ namespace PcaiNative
             finally
             {
                 pcai_media_free_string(ptr);
+            }
+        }
+
+        /// <summary>
+        /// Generates an image and returns the raw PNG bytes as a managed byte array.
+        /// </summary>
+        /// <param name="prompt">Natural-language description of the desired image.</param>
+        /// <param name="cfgScale">Classifier-free guidance scale. Defaults to 5.0.</param>
+        /// <param name="temperature">Sampling temperature. Defaults to 1.0.</param>
+        /// <returns>PNG bytes on success, or <c>null</c> on failure.</returns>
+        public static byte[]? GenerateImageBytes(
+            string prompt,
+            float cfgScale = 5.0f,
+            float temperature = 1.0f)
+        {
+            var result = pcai_media_generate_image_bytes(prompt, cfgScale, temperature, out var dataPtr, out var lenPtr);
+            if (result != 0 || dataPtr == IntPtr.Zero)
+                return null;
+
+            var len = (int)lenPtr;
+            try
+            {
+                var bytes = new byte[len];
+                Marshal.Copy(dataPtr, bytes, 0, len);
+                return bytes;
+            }
+            finally
+            {
+                pcai_media_free_bytes(dataPtr, lenPtr);
             }
         }
 

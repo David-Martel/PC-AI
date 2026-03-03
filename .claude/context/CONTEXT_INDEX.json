@@ -1,7 +1,17 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-20260222b-tdd-cleanup",
+  "latest": "ctx-pcai-20260303-toolchain",
   "contexts": [
+    {
+      "id": "ctx-pcai-20260303-toolchain",
+      "file": "pcai-context-20260303-toolchain-integration.md",
+      "created": "2026-03-03T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["Claude-opus"],
+      "summary": "CUDA/LLVM toolchain integration: CargoTools GPU/CUDA/MSVC/LLVM/SDK auto-detection, lld-link preferred linker, .cargo/config.toml gitignored with templates, pcai-media pipeline hardened (rand RNG, SigLIP vision, async FFI, RealESRGAN upscale), NativeResolver.cs centralized DLL resolution, 26-file commit a8c2d00",
+      "supersedes": ["ctx-pcai-20260222b-tdd-cleanup"],
+      "commit": "a8c2d00"
+    },
     {
       "id": "ctx-pcai-20260222b-tdd-cleanup",
       "file": "pcai-context-20260222-tdd-and-cleanup.md",
@@ -10,7 +20,8 @@
       "agents_involved": ["Claude-opus"],
       "summary": "42 Rust unit tests (TDD plan complete), CUDA 13.1 now works with updated crate deps, .gitignore/.rgignore updated for alternate target dirs and training checkpoints",
       "supersedes": ["ctx-pcai-20260222-ffi-torture"],
-      "commit": "bcfceb4"
+      "commit": "bcfceb4",
+      "status": "superseded"
     },
     {
       "id": "ctx-pcai-20260222-ffi-torture",
@@ -136,6 +147,37 @@
     }
   ],
   "completed_goals": [
+    {
+      "goal": "CargoTools GPU/CUDA/MSVC/LLVM/SDK auto-detection (5 new functions)",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00"
+    },
+    {
+      "goal": "Initialize-ProjectCargoConfig dynamic .cargo/config.toml generation",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00"
+    },
+    {
+      "goal": "LLVM lld-link as preferred linker with auto LIB env setup",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00"
+    },
+    {
+      "goal": "pcai-media pipeline hardened: rand RNG, SigLIP, async FFI, RealESRGAN upscale",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00",
+      "outputs": ["upscale.rs", "NativeResolver.cs", "Install-LlvmFromSource.ps1", ".cargo/config.toml.template (x2)"]
+    },
+    {
+      "goal": "Centralized NativeResolver.cs for DLL path resolution",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00"
+    },
     {
       "goal": "Fix CUDA 13.1 nvcc compatibility using CUDA 12.6 env overrides",
       "completed": "2026-02-22",
@@ -282,6 +324,13 @@
   ],
   "active_blockers": [
     {
+      "blocker": "CUDA driver 576.57 vs toolkit 13.1 mismatch",
+      "severity": "high",
+      "status": "pending driver update",
+      "notes": "Driver 576.57 supports max CUDA 12.9 runtime. Compilation works (nvcc 13.1), but runtime CUDA calls fail. Need driver update for 13.1 compatibility.",
+      "added": "2026-03-03"
+    },
+    {
       "blocker": "Dependabot Alert #1 - protobuf CVE",
       "severity": "high",
       "status": "monitoring",
@@ -310,11 +359,11 @@
     "pcai-inference": {
       "status": "clean",
       "warnings": 0,
-      "tests": 58,
+      "tests": 44,
       "features": ["ffi", "llamacpp", "mistralrs-backend", "server"],
       "backends": {
-        "llamacpp": "available (requires CUDA+MSVC toolchain)",
-        "mistralrs": "working (deployed)"
+        "llamacpp": "available (requires CUDA+MSVC toolchain, artifact dir empty)",
+        "mistralrs": "working (deployed, 84MB)"
       },
       "build_outputs": {
         "pcai_inference.dll (ffi-only)": "289KB",
@@ -325,7 +374,34 @@
       "ffi_exports": 15,
       "deployed_to": ["bin/", ".pcai/build/artifacts/pcai-inference-ffi/"],
       "torture_tests": {"total": 49, "pass": 43, "fail": 0, "skip": 6},
-      "last_verified": "2026-02-22T12:00:00Z"
+      "last_verified": "2026-03-03T12:00:00Z"
+    },
+    "pcai-media": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 59,
+      "features": ["upscale"],
+      "ffi_exports": 16,
+      "last_verified": "2026-03-03T12:00:00Z"
+    },
+    "pcai-media-model": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 31,
+      "notes": "29 pass + 2 ignored",
+      "last_verified": "2026-03-03T12:00:00Z"
+    },
+    "pcai-media-server": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 13,
+      "last_verified": "2026-03-03T12:00:00Z"
+    },
+    "pcai_core_lib": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 50,
+      "last_verified": "2026-03-03T12:00:00Z"
     },
     "rust-functiongemma-train": {
       "status": "clean",
@@ -341,28 +417,22 @@
       "cuda_enabled": true,
       "last_verified": "2026-01-30T16:00:00Z"
     },
-    "pcai_fs": {
-      "status": "clean",
-      "warnings": 0,
-      "tests": 14,
-      "last_verified": "2026-01-30T14:30:00Z"
-    },
-    "pcai_core_lib": {
-      "status": "clean",
-      "warnings": 0,
-      "tests": 0,
-      "last_verified": "2026-01-30T14:30:00Z"
-    }
+    "total_tests": 197
   },
   "cuda_status": {
-    "toolkit_version": "v13.1 (native support with updated Rust crate deps)",
+    "toolkit_version": "v13.1",
     "build_cuda": "13.1",
+    "driver_version": "576.57",
+    "driver_max_cuda": "12.9",
+    "driver_mismatch": true,
     "gpus": [
-      {"name": "RTX 2000 Ada", "vram": "8GB", "compute": "8.9", "role": "inference/runtime"},
-      {"name": "RTX 5060 Ti", "vram": "16GB", "compute": "12.0", "role": "training"}
+      {"name": "Quadro RTX 4000", "vram": "8GB", "compute": "7.5", "sm": "sm_75", "arch": "Turing", "role": "inference/runtime (GPU 0)"},
+      {"name": "RTX 5060 Ti", "vram": "16GB", "compute": "12.0", "sm": "sm_120", "arch": "Blackwell", "role": "training/QLoRA (GPU 1)"}
     ],
     "device_detected": true,
     "tensor_ops_verified": true,
-    "llamacpp_cuda_verified": true
+    "llamacpp_cuda_verified": true,
+    "linker": "lld-link.exe (LLVM, preferred)",
+    "config_generation": "CargoTools Initialize-ProjectCargoConfig"
   }
 }

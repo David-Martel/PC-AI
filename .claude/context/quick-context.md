@@ -1,133 +1,101 @@
 # PC_AI Quick Context
 
 > For rapid session restoration - read this first
-> Updated: 2026-01-28 | Version: 5.2.0
+> Updated: 2026-03-03 | Branch: main @ a8c2d00 | 215 commits, no tags
 
 ## What Is This Project?
 
-**PC_AI** is a local LLM-powered PC diagnostics framework with:
-- 10 PowerShell modules (NEW: PC-AI.Common)
-- **Native Rust acceleration** (Consolidated pcai_core_lib + C# Hybrid)
-- **LLM Integration** (Ollama, LM Studio, vLLM, FunctionGemma)
+**PC_AI** is a local-first LLM-powered Windows diagnostics and optimization agent:
+- 12 PowerShell modules + CLI entry point (PC-AI.ps1, 2066 lines)
+- 5 Rust crates in pcai_core workspace (inference, media model, media pipeline, media server, core lib)
+- C# P/Invoke bridge (PcaiNative, 18 .cs files)
+- FunctionGemma tool router (Deploy/rust-functiongemma-*/*)
+- Dual inference backends: llama.cpp + mistral.rs
+- Media pipeline: Janus-Pro (image gen/understand) + RealESRGAN (upscale)
 
-## Current State (Rust Consolidation Complete)
+## Current State (2026-03-03)
 
 | Component | Status |
 |-----------|--------|
-| 10 PowerShell Modules | All functional |
-| Unified CLI | `PC-AI.ps1` |
-| **Git Status** | **Clean (all committed)** |
-| **Latest Commit** | **06092bb** |
-| Rust Structure | **Consolidated into pcai_core_lib** |
-| Native FFI Tests | Updated for new structure |
+| 12 PowerShell Modules | All functional |
+| pcai-mistralrs.exe | BUILT (84MB) |
+| pcai_inference.dll | BUILT (4.1MB, in bin/) |
+| PcaiNative.dll | BUILT (91KB, in bin/) |
+| pcai-llamacpp | INCOMPLETE (artifact dir empty) |
+| FunctionGemma runtime | INCOMPLETE (artifact dir empty) |
+| pcai_media.dll | Code complete, needs build |
+| Rust tests | 197 total across 5 crates |
+| Git status | Clean (all committed) |
+| Latest commit | a8c2d00 |
 
-## Security Status
+## Latest Session: CUDA/LLVM Toolchain Integration
 
-| Alert | Status |
-|-------|--------|
-| Dependabot High Severity | ⚠️ Review required |
-| CVE-2024-30105 | ✓ Fixed (System.Text.Json 8.0.5) |
-| CVE-2024-43485 | ✓ Fixed (System.Text.Json 8.0.5) |
+26-file commit `a8c2d00` covering three workstreams:
 
-## Recent Session (2026-01-28)
+1. **CargoTools enhanced** -- 5 new detection functions (GPU, CUDA, MSVC, LLVM, SDK), `Initialize-ProjectCargoConfig` generates machine-specific `.cargo/config.toml`
+2. **Media pipeline hardened** -- rand-based RNG, SigLIP vision model wired, async FFI (generate/poll/cancel), RealESRGAN upscale module (ort, behind feature flag)
+3. **Build infra** -- `.cargo/config.toml` gitignored (machine-specific), templates committed, lld-link preferred linker, NativeResolver.cs centralizes DLL resolution
 
-**8 Commits Pushed (84 files):**
-1. `c561a13` chore: update gitignore and rgignore patterns
-2. `8d8a38c` refactor(rust): consolidate pcai crates into pcai_core_lib modules
-3. `939dfcc` refactor(csharp): update native modules for Rust consolidation
-4. `dc69c1b` feat(modules): add PC-AI.Common module and tool parameter validation
-5. `989ba0e` feat(training): enhance FunctionGemma training with Docker and profiling
-6. `0f619a7` feat(training): add Rust-based FunctionGemma trainer
-7. `1200f97` test: update FFI tests and add new integration tests
-8. `06092bb` chore: update context and configuration files
+## Active Blockers
 
-**Rust-Analyzer Analysis Completed:**
-- Version 1.93.0 with 8 Cargo workspaces
-- 3 config tiers documented (Minimal/Balanced/Full)
-- MCP integration options: rust-analyzer-mcp, cclsp
+| Blocker | Severity |
+|---------|----------|
+| CUDA driver 576.57 vs toolkit 13.1 (compile OK, runtime fails) | HIGH |
+| Dependabot #1 protobuf CVE | HIGH |
+| llamacpp backend build incomplete | MEDIUM |
+| FunctionGemma runtime build incomplete | MEDIUM |
 
-## Rust Workspace Changes
+## GPU and Toolchain
 
-**Before (standalone crates):**
-```
-Native/pcai_core/
-├── pcai_core_lib/
-├── pcai_performance/  ← REMOVED
-├── pcai_search/       ← REMOVED
-└── pcai_system/       ← REMOVED
-```
+| Component | Detail |
+|-----------|--------|
+| GPU 0 | Quadro RTX 4000, 8GB, SM 75 (Turing) |
+| GPU 1 | RTX 5060 Ti, 16GB, SM 120 (Blackwell) |
+| CUDA Toolkit | 13.1 |
+| NVIDIA Driver | 576.57 (supports max CUDA 12.9 -- MISMATCH) |
+| Linker | lld-link.exe (LLVM, preferred) |
+| Rust | stable, sccache wrapper |
 
-**After (consolidated):**
-```
-Native/pcai_core/
-└── pcai_core_lib/src/
-    ├── lib.rs
-    ├── fs/           ← File ops
-    ├── performance/  ← Disk, memory, process
-    ├── search/       ← File/content search
-    ├── system/       ← Logs, paths
-    └── telemetry/    ← USB, hardware
-```
-
-## Key Files (Updated Paths)
+## Key Files
 
 | Category | Path |
 |----------|------|
 | Rust Workspace | `Native/pcai_core/Cargo.toml` |
-| Core Library | `Native/pcai_core/pcai_core_lib/src/lib.rs` |
-| Performance | `Native/pcai_core/pcai_core_lib/src/performance/mod.rs` |
-| Search | `Native/pcai_core/pcai_core_lib/src/search/mod.rs` |
-| System | `Native/pcai_core/pcai_core_lib/src/system/mod.rs` |
-| C# Core | `Native/PcaiNative/PcaiCore.cs` |
-| C# Performance | `Native/PcaiNative/PerformanceModule.cs` |
-
-## New Projects Added
-
-| Project | Description |
-|---------|-------------|
-| `Deploy/rust-functiongemma-train/` | Rust-based training data generator |
-| `Modules/PC-AI.Common/` | Shared PowerShell utilities |
-| `Deploy/functiongemma-finetune/Dockerfile` | Docker training support |
+| Inference Crate | `Native/pcai_core/pcai_inference/` |
+| Media Pipeline | `Native/pcai_core/pcai_media/` |
+| Media Model | `Native/pcai_core/pcai_media_model/` |
+| C# Interop | `Native/PcaiNative/` (InferenceModule, MediaModule, NativeResolver) |
+| Build System | `Build.ps1` (2077 lines) |
+| Cargo Templates | `Native/pcai_core/.cargo/config.toml.template` |
+| Config | `Config/llm-config.json`, `pcai-media.json`, `pcai-functiongemma.json` |
 
 ## Quick Commands
 
 ```powershell
-# Navigate to project
-cd C:\Users\david\PC_AI
+# Build everything
+.\Build.ps1
 
-# Build Rust (release)
-cd Native\pcai_core && cargo build --release
+# Build with CUDA
+.\Build.ps1 -Component inference -EnableCuda
 
-# Build C#
-cd Native\PcaiNative && dotnet build -c Release
+# Rust unit tests (no backend needed)
+cd Native\pcai_core\pcai_inference
+cargo test --no-default-features --features server,ffi --lib
 
-# Run all tests
-Invoke-Pester -Path Tests/
+# All workspace tests
+cd Native\pcai_core
+cargo test --workspace
 
-# Check Dependabot alert
-gh browse /security/dependabot/1
+# Regenerate .cargo/config.toml from toolchain
+Initialize-ProjectCargoConfig -Path 'Native/pcai_core' -Force
+
+# PowerShell tests
+Invoke-Pester Tests/
 ```
-
-## Next Steps
-
-1. **Apply rust-analyzer Config**: Add Balanced tier settings to `.vscode/settings.json`
-2. **Validate Build**: Run `cargo build --release` to verify consolidation
-3. **Run Tests**: Execute FFI test suite
-4. **Review Alert**: Check Dependabot high-severity vulnerability
-5. **Test Docker**: Validate FunctionGemma Docker training workflow
-
-## Recommended Agents
-
-| Agent | Purpose |
-|-------|---------|
-| rust-pro | Validate consolidated workspace builds |
-| test-runner | Execute FFI test suite |
-| security-auditor | Review Dependabot high-severity alert |
-| csharp-pro | Verify P/Invoke bindings |
 
 ## For Full Context
 
-- **Latest Context**: `.claude/context/pcai-context-20260128.md`
+- **Latest Context**: `.claude/context/pcai-context-20260303-toolchain-integration.md`
+- **Context Index**: `.claude/context/CONTEXT_INDEX.json`
+- **Memory (master)**: `~/.claude/projects/C--codedev-pc-ai/memory/MEMORY.md`
 - **Native Details**: `.claude/context/native-acceleration-context.md`
-- **Full Project**: `.claude/context/project-context.md`
-- **Context Index**: `.claude/context/context-index.json`

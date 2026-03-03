@@ -69,7 +69,7 @@ public struct PcaiStringBuffer
     public readonly string? ToManagedString()
     {
         if (!IsValid) return null;
-        return Marshal.PtrToStringUTF8(Data);
+        return Marshal.PtrToStringUTF8(Data, (int)(uint)Length);
     }
 }
 

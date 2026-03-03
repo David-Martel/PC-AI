@@ -30,6 +30,9 @@ pub mod generate;
 pub mod hub;
 pub mod understand;
 
+#[cfg(feature = "upscale")]
+pub mod upscale;
+
 #[cfg(feature = "ffi")]
 pub mod ffi;
 

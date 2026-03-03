@@ -404,21 +404,29 @@ function Initialize-BuildEnvironment {
     }
 
     # 3. Initialize MSVC and SDK (Clear polluted env vars, set cl.exe and rc.exe)
-    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-    if (Test-Path $vswhere) {
-        $vsPath = & $vswhere -latest -products * -property installationPath
-        if (-not $vsPath) {
-            $fallbackVsPath = 'C:\Program Files\Microsoft Visual Studio\2022\Community'
-            if (Test-Path $fallbackVsPath) {
-                $vsPath = $fallbackVsPath
-            }
-        }
+    # Prefer VS 2022 Community with x64 cl.exe over older BuildTools that vswhere might return.
+    $vsPath = $null
+    $vs2022Community = 'C:\Program Files\Microsoft Visual Studio\2022\Community'
+    $vs2022Cl = Join-Path $vs2022Community 'VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe'
+    if ((Test-Path $vs2022Community) -and (Get-Item $vs2022Cl -ErrorAction SilentlyContinue)) {
+        $vsPath = $vs2022Community
+        Write-Host "  VS 2022 Community detected on disk (preferred over vswhere results)" -ForegroundColor Green
+    }
 
-        if (-not $vsPath) {
-            Write-Warning 'Visual Studio installation path not found via vswhere; skipping Launch-VsDevShell initialization.'
-        } else {
-            $devShell = Join-Path $vsPath 'Common7\Tools\Launch-VsDevShell.ps1'
+    if (-not $vsPath) {
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        if (Test-Path $vswhere) {
+            $vsPath = & $vswhere -latest -products * -property installationPath
         }
+        if (-not $vsPath -and (Test-Path $vs2022Community)) {
+            $vsPath = $vs2022Community
+        }
+    }
+
+    if (-not $vsPath) {
+        Write-Warning 'Visual Studio installation path not found; skipping Launch-VsDevShell initialization.'
+    } else {
+        $devShell = Join-Path $vsPath 'Common7\Tools\Launch-VsDevShell.ps1'
 
         if ($devShell -and (Test-Path $devShell)) {
             Write-Host '  Initializing MSVC via Launch-VsDevShell.ps1...' -ForegroundColor Cyan
@@ -449,43 +457,96 @@ function Initialize-BuildEnvironment {
                     Remove-Item "Env:$_" -ErrorAction SilentlyContinue
                 }
             }
-
-            # Set CC/CXX for crates using cc-rs or cmake
-            $clPath = Resolve-MsvcClPath -PreferredVsPath $vsPath
-            if ($clPath) {
-                $script:MsvcClPath = $clPath
-                $env:CC = $clPath
-                $env:CXX = $clPath
-                $env:CMAKE_C_COMPILER = $clPath
-                $env:CMAKE_CXX_COMPILER = $clPath
-                $clDir = Split-Path $clPath -Parent
-                if ($env:PATH -notlike "*$clDir*") {
-                    $env:PATH = "$clDir;$env:PATH"
-                }
-                Write-Host "    cl.exe identified: $clPath" -ForegroundColor Green
-            }
-
-            # Find Windows SDK rc.exe (required by CMake on Windows)
-            $rcPath = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Recurse -Filter 'rc.exe' -ErrorAction SilentlyContinue |
-                Where-Object { $_.FullName -like '*x64*' } |
-                Sort-Object { [version]($_.FullName -replace '^.*\\(\d+\.\d+\.\d+\.\d+)\\.*$', '$1') } -Descending |
-                Select-Object -First 1 -ExpandProperty FullName
-            if ($rcPath) {
-                $rcPath = $rcPath -replace '\\', '/'
-                $env:CMAKE_RC_COMPILER = $rcPath
-                $rcDir = Split-Path $rcPath -Parent
-                $env:PATH = "$rcDir;$env:PATH"
-                Write-Host "    rc.exe identified: $rcPath" -ForegroundColor Green
-            }
-
-            # vcpkg toolchain
-            $vcpkgToolchain = Join-Path $vsPath 'VC\vcpkg\scripts\buildsystems\vcpkg.cmake'
-            if (Test-Path $vcpkgToolchain) {
-                $env:CMAKE_TOOLCHAIN_FILE = $vcpkgToolchain
-                Write-Host '    vcpkg toolchain enabled' -ForegroundColor Green
-            }
-        } elseif ($vsPath) {
+        } else {
             Write-Warning "Launch-VsDevShell.ps1 not found under $vsPath; proceeding without VS shell bootstrap."
+        }
+
+        # Set CC/CXX for crates using cc-rs or cmake
+        $clPath = Resolve-MsvcClPath -PreferredVsPath $vsPath
+        if ($clPath) {
+            $script:MsvcClPath = $clPath
+            $env:CC = $clPath
+            $env:CXX = $clPath
+            $env:CMAKE_C_COMPILER = $clPath
+            $env:CMAKE_CXX_COMPILER = $clPath
+            $clDir = Split-Path $clPath -Parent
+            if ($env:PATH -notlike "*$clDir*") {
+                $env:PATH = "$clDir;$env:PATH"
+            }
+            Write-Host "    cl.exe identified: $clPath" -ForegroundColor Green
+        }
+
+        # Find Windows SDK rc.exe (required by CMake on Windows)
+        $rcPath = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Recurse -Filter 'rc.exe' -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -like '*x64*' } |
+            Sort-Object { [version]($_.FullName -replace '^.*\\(\d+\.\d+\.\d+\.\d+)\\.*$', '$1') } -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+        if ($rcPath) {
+            $rcPath = $rcPath -replace '\\', '/'
+            $env:CMAKE_RC_COMPILER = $rcPath
+            $rcDir = Split-Path $rcPath -Parent
+            $env:PATH = "$rcDir;$env:PATH"
+            Write-Host "    rc.exe identified: $rcPath" -ForegroundColor Green
+        }
+
+        # Ensure Windows SDK and MSVC include/lib paths are set (fallback if Launch-VsDevShell didn't run or didn't set them)
+        if (-not $env:VCINSTALLDIR -or -not $env:WindowsSdkDir) {
+            Write-Host '    Applying manual MSVC/SDK include/lib paths (Launch-VsDevShell did not set them)...' -ForegroundColor Yellow
+
+            # MSVC includes and libs
+            $msvcRoot = Join-Path $vsPath 'VC\Tools\MSVC'
+            if (Test-Path $msvcRoot) {
+                $msvcVer = (Get-ChildItem -Path $msvcRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1).Name
+                if ($msvcVer) {
+                    $msvcInclude = Join-Path $msvcRoot "$msvcVer\include"
+                    $msvcLib = Join-Path $msvcRoot "$msvcVer\lib\x64"
+                    if (Test-Path $msvcInclude) {
+                        $env:INCLUDE = ($env:INCLUDE ? "$msvcInclude;$($env:INCLUDE)" : $msvcInclude)
+                        $env:VCINSTALLDIR = Join-Path $vsPath 'VC'
+                        $env:VCToolsVersion = $msvcVer
+                        Write-Host "    MSVC include: $msvcInclude" -ForegroundColor Green
+                    }
+                    if (Test-Path $msvcLib) {
+                        $env:LIB = ($env:LIB ? "$msvcLib;$($env:LIB)" : $msvcLib)
+                        Write-Host "    MSVC lib: $msvcLib" -ForegroundColor Green
+                    }
+                }
+            }
+
+            # Windows SDK (UCRT + UM)
+            $sdkBase = 'C:\Program Files (x86)\Windows Kits\10'
+            if (Test-Path $sdkBase) {
+                $sdkVer = (Get-ChildItem -Path (Join-Path $sdkBase 'Include') -Directory |
+                    Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+                    Sort-Object Name -Descending | Select-Object -First 1).Name
+                if ($sdkVer) {
+                    $env:WindowsSdkDir = $sdkBase
+                    $env:WindowsSDKVersion = "$sdkVer\"
+                    $ucrtInclude = Join-Path $sdkBase "Include\$sdkVer\ucrt"
+                    $umInclude = Join-Path $sdkBase "Include\$sdkVer\um"
+                    $sharedInclude = Join-Path $sdkBase "Include\$sdkVer\shared"
+                    $ucrtLib = Join-Path $sdkBase "Lib\$sdkVer\ucrt\x64"
+                    $umLib = Join-Path $sdkBase "Lib\$sdkVer\um\x64"
+                    foreach ($inc in @($ucrtInclude, $umInclude, $sharedInclude)) {
+                        if (Test-Path $inc) {
+                            $env:INCLUDE = "$($env:INCLUDE);$inc"
+                        }
+                    }
+                    foreach ($lib in @($ucrtLib, $umLib)) {
+                        if (Test-Path $lib) {
+                            $env:LIB = "$($env:LIB);$lib"
+                        }
+                    }
+                    Write-Host "    Windows SDK $sdkVer include/lib paths applied" -ForegroundColor Green
+                }
+            }
+        }
+
+        # vcpkg toolchain
+        $vcpkgToolchain = Join-Path $vsPath 'VC\vcpkg\scripts\buildsystems\vcpkg.cmake'
+        if (Test-Path $vcpkgToolchain) {
+            $env:CMAKE_TOOLCHAIN_FILE = $vcpkgToolchain
+            Write-Host '    vcpkg toolchain enabled' -ForegroundColor Green
         }
     }
 

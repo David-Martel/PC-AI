@@ -31,6 +31,7 @@ use anyhow::{Context, Result};
 use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::{VarBuilder, VarMap};
 use candle_transformers::models::llama;
+use candle_transformers::models::siglip;
 use image::{ImageBuffer, Rgb};
 
 use pcai_media_model::{config::JanusConfig, JanusModel};
@@ -54,9 +55,30 @@ pub struct GenerationPipeline {
     model_config: JanusConfig,
     device: Device,
     dtype: DType,
+    /// SigLIP vision encoder for image understanding.
+    /// `None` if vision weights were not found in the safetensors shards.
+    siglip: Option<siglip::VisionModel>,
 }
 
 impl GenerationPipeline {
+    /// Build the SigLIP-Large VisionConfig matching the Janus-Pro encoder.
+    ///
+    /// Parameters are taken from the DeepSeek Janus-Pro model card and verified
+    /// against the `vision_model` keys in the published safetensors.
+    fn siglip_config(janus_cfg: &JanusConfig) -> siglip::VisionConfig {
+        siglip::VisionConfig {
+            hidden_size: 1024,
+            intermediate_size: 4096,
+            num_hidden_layers: 24,
+            num_attention_heads: 16,
+            num_channels: 3,
+            image_size: janus_cfg.image_size,
+            patch_size: janus_cfg.patch_size,
+            hidden_act: candle_nn::Activation::GeluPytorchTanh,
+            layer_norm_eps: 1e-6,
+        }
+    }
+
     /// Load the Janus-Pro pipeline from the configuration.
     ///
     /// Steps performed:
@@ -66,6 +88,7 @@ impl GenerationPipeline {
     /// 4. Build [`JanusModel`] via [`VarMap`] + [`VarBuilder`].
     /// 5. Load weights from safetensors shards into the [`VarMap`].
     /// 6. Load the tokenizer from `tokenizer.json`.
+    /// 7. Build the SigLIP vision encoder (if `vision_model` weights exist).
     ///
     /// # Errors
     ///
@@ -130,6 +153,27 @@ impl GenerationPipeline {
         let tokenizer = hub::load_tokenizer(&model_path)
             .context("failed to load tokenizer")?;
 
+        // 6. Build SigLIP vision encoder from the same VarMap.
+        //    The Janus-Pro safetensors store SigLIP weights under the
+        //    "vision_model" prefix.  If those weights were present in the
+        //    shards loaded above the VarMap already contains them.
+        let siglip_cfg = Self::siglip_config(&model_config);
+        let siglip_vb = VarBuilder::from_varmap(&varmap, dtype, &device)
+            .pp("vision_model");
+        let siglip = match siglip::VisionModel::new(&siglip_cfg, false, siglip_vb) {
+            Ok(vm) => {
+                tracing::info!("SigLIP vision encoder loaded");
+                Some(vm)
+            }
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    "SigLIP vision encoder construction failed; understanding will use placeholder"
+                );
+                None
+            }
+        };
+
         Ok(Self {
             model,
             tokenizer,
@@ -137,6 +181,7 @@ impl GenerationPipeline {
             model_config,
             device,
             dtype,
+            siglip,
         })
     }
 
@@ -163,6 +208,11 @@ impl GenerationPipeline {
     /// Returns the dtype used by this pipeline.
     pub fn dtype(&self) -> DType {
         self.dtype
+    }
+
+    /// Returns the SigLIP vision encoder, if loaded.
+    pub fn siglip(&self) -> Option<&siglip::VisionModel> {
+        self.siglip.as_ref()
     }
 
     /// Generate an image from a text prompt.
@@ -476,9 +526,9 @@ pub fn tensor_to_image(tensor: &Tensor) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>>
 /// `probs` must have shape `[batch, vocab_size]` with values in `[0, 1]`
 /// summing (approximately) to 1 per row.
 ///
-/// The implementation uses a hash-based pseudo-random value to avoid the
-/// `rand` crate dependency. This is not cryptographically secure but is
-/// sufficient for image generation sampling.
+/// The implementation uses [`rand::random`] for uniform sampling.
+/// This is not cryptographically secure but provides proper statistical
+/// properties for image generation sampling.
 ///
 /// Returns a `Vec<u32>` of length `batch` containing the sampled token for
 /// each row.
@@ -514,32 +564,13 @@ fn multinomial_sample(probs: &Tensor) -> Result<Vec<u32>> {
     Ok(tokens)
 }
 
-/// Hash-based pseudo-random float in `[0, 1)`.
+/// Random float in `[0, 1)` via the `rand` crate.
 ///
-/// Uses [`std::collections::hash_map::DefaultHasher`] seeded from the
-/// current system time and thread ID.  Not suitable for cryptographic use.
+/// Uses the thread-local RNG seeded by the OS.  Not suitable for
+/// cryptographic use but provides proper statistical properties for
+/// multinomial sampling.
 pub(crate) fn rand_val() -> f64 {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    use std::time::SystemTime;
-
-    let mut hasher = DefaultHasher::new();
-    SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .subsec_nanos()
-        .hash(&mut hasher);
-    std::thread::current().id().hash(&mut hasher);
-    // Mix the counter to avoid identical values in tight loops.
-    static COUNTER: std::sync::atomic::AtomicU64 =
-        std::sync::atomic::AtomicU64::new(0);
-    COUNTER
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        .hash(&mut hasher);
-
-    let hash = hasher.finish();
-    // Map u64 range to [0, 1).
-    (hash as f64) / (u64::MAX as f64)
+    rand::random::<f64>()
 }
 
 // ---------------------------------------------------------------------------

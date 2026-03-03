@@ -121,9 +121,9 @@ impl JanusModel {
         let image_vocab_size = config.image_token_num_tokens;
 
         // ── LLM backbone ──────────────────────────────────────────────────
-        // flash-attn is disabled by default; callers that compiled with the
-        // `flash-attn` feature can set this to `true`.
-        let use_flash_attn = false;
+        // Enable flash-attn when the crate is compiled with the `flash-attn`
+        // feature; otherwise fall back to standard attention.
+        let use_flash_attn = cfg!(feature = "flash-attn");
         let llama_cfg = config.to_llama_config(use_flash_attn);
         let llama =
             llama::Llama::load(vb.pp("language_model"), &llama_cfg)?;

@@ -42,8 +42,10 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
 use std::sync::{Mutex, OnceLock};
 
 use tokio::runtime::Runtime;
@@ -95,6 +97,42 @@ impl PcaiMediaErrorCode {
             _ => Self::Unknown,
         }
     }
+}
+
+// ============================================================================
+// Async Request Tracking
+// ============================================================================
+
+/// Monotonically increasing request ID counter.
+static NEXT_REQUEST_ID: AtomicI64 = AtomicI64::new(1);
+
+/// Status of an async image generation request.
+enum MediaRequestStatus {
+    /// Request accepted, not yet picked up by worker thread.
+    Pending,
+    /// Worker thread is actively running generation.
+    Running,
+    /// Generation finished successfully; path is the output file.
+    Complete(String),
+    /// Generation failed; text is the error message.
+    Failed(String),
+    /// Request was cancelled before or during generation.
+    Cancelled,
+}
+
+/// Result of polling an async media request.
+///
+/// Returned by [`pcai_media_poll_result`].  When `status` is 2 (complete) or
+/// 3 (failed) the `text` pointer is non-null and **must** be freed by the
+/// caller with [`pcai_media_free_string`].
+#[repr(C)]
+pub struct PcaiMediaAsyncResult {
+    /// 0 = pending, 1 = running, 2 = complete, 3 = failed, 4 = cancelled, -1 = unknown id
+    pub status: i32,
+    /// Result text (output path on success, error message on failure).
+    /// Only valid when `status` is 2 or 3.  Caller must free with
+    /// [`pcai_media_free_string`].
+    pub text: *mut c_char,
 }
 
 // ============================================================================
@@ -169,6 +207,8 @@ struct MediaState {
     pipeline: Option<GenerationPipeline>,
     /// Device string set by `pcai_media_init`, propagated to `load_model`.
     device: String,
+    /// Async request status map (request ID → status).
+    requests: HashMap<i64, MediaRequestStatus>,
 }
 
 /// The global singleton protected by a `Mutex`.
@@ -185,6 +225,7 @@ fn get_state() -> &'static Mutex<MediaState> {
             runtime,
             pipeline: None,
             device: "cuda:0".to_string(),
+            requests: HashMap::new(),
         })
     })
 }
@@ -504,6 +545,7 @@ pub extern "C" fn pcai_media_understand_image(
         temperature,
         pipeline.device(),
         pipeline.dtype(),
+        pipeline.siglip(),
     );
 
     match result {
@@ -631,9 +673,10 @@ pub extern "C" fn pcai_media_generate_image_bytes(
         }
     }
 
-    let len = png_buf.len();
-    let ptr = png_buf.as_mut_ptr();
-    std::mem::forget(png_buf);
+    // Convert to boxed slice to guarantee len == capacity for safe deallocation.
+    let boxed = png_buf.into_boxed_slice();
+    let len = boxed.len();
+    let ptr = Box::into_raw(boxed) as *mut u8;
 
     // SAFETY: out_data and out_len were checked for null above.
     unsafe {
@@ -646,6 +689,351 @@ pub extern "C" fn pcai_media_generate_image_bytes(
         png_bytes = len,
         "image generated (bytes)"
     );
+    PcaiMediaErrorCode::Success as i32
+}
+
+/// Submit an asynchronous image generation request.
+///
+/// Returns a request ID (`> 0`) immediately.  The caller should poll for
+/// results with [`pcai_media_poll_result`] and can cancel with
+/// [`pcai_media_cancel`].
+///
+/// # Arguments
+///
+/// * `prompt`      — Text prompt.
+/// * `cfg_scale`   — CFG scale (pass `0.0` for default).
+/// * `temperature` — Sampling temperature (pass `0.0` for default).
+/// * `output_path` — File path where the PNG will be written on success.
+///
+/// # Returns
+///
+/// Request ID `> 0` on success, `-1` on error.
+///
+/// # Safety
+///
+/// All pointer arguments must be valid null-terminated C strings.
+#[no_mangle]
+pub extern "C" fn pcai_media_generate_image_async(
+    prompt: *const c_char,
+    cfg_scale: f32,
+    temperature: f32,
+    output_path: *const c_char,
+) -> i64 {
+    clear_error();
+
+    let prompt_str = match unsafe { c_str_to_str(prompt) } {
+        Ok(s) => s.to_string(),
+        Err(_) => return -1,
+    };
+    let out_str = match unsafe { c_str_to_str(output_path) } {
+        Ok(s) => s.to_string(),
+        Err(_) => return -1,
+    };
+
+    // Validate that a model is loaded before allocating an ID.
+    {
+        let state = get_state();
+        let guard = match state.lock() {
+            Ok(g) => g,
+            Err(e) => {
+                set_error(
+                    format!("Failed to lock state: {e}"),
+                    PcaiMediaErrorCode::GenerationError,
+                );
+                return -1;
+            }
+        };
+        if guard.pipeline.is_none() {
+            set_error(
+                "No model loaded — call pcai_media_load_model first",
+                PcaiMediaErrorCode::ModelNotLoaded,
+            );
+            return -1;
+        }
+    }
+
+    // Allocate a unique request ID and register it as Pending.
+    let id = NEXT_REQUEST_ID.fetch_add(1, AtomicOrdering::SeqCst);
+    {
+        let state = get_state();
+        if let Ok(mut g) = state.lock() {
+            g.requests.insert(id, MediaRequestStatus::Pending);
+        }
+    }
+
+    // Spawn a plain OS thread (not Tokio) to avoid nesting block_on.
+    let cfg_scale_val = cfg_scale;
+    let temperature_val = temperature;
+    std::thread::spawn(move || {
+        // Transition: Pending → Running (unless already cancelled).
+        {
+            let state = get_state();
+            if let Ok(mut g) = state.lock() {
+                if matches!(g.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
+                    return;
+                }
+                g.requests.insert(id, MediaRequestStatus::Running);
+            }
+        }
+
+        // Run the synchronous generation under the lock.
+        let result = {
+            let state = get_state();
+            let guard = match state.lock() {
+                Ok(g) => g,
+                Err(e) => {
+                    if let Ok(mut g2) = get_state().lock() {
+                        g2.requests.insert(
+                            id,
+                            MediaRequestStatus::Failed(format!("Lock failed: {e}")),
+                        );
+                    }
+                    return;
+                }
+            };
+
+            // Check for cancellation before expensive work.
+            if matches!(guard.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
+                return;
+            }
+
+            let pipeline = match guard.pipeline.as_ref() {
+                Some(p) => p,
+                None => {
+                    drop(guard);
+                    if let Ok(mut g2) = get_state().lock() {
+                        g2.requests.insert(
+                            id,
+                            MediaRequestStatus::Failed("Model not loaded".to_string()),
+                        );
+                    }
+                    return;
+                }
+            };
+
+            let override_cfg = if cfg_scale_val > 0.0 {
+                Some(cfg_scale_val as f64)
+            } else {
+                None
+            };
+            let override_temp = if temperature_val > 0.0 {
+                Some(temperature_val as f64)
+            } else {
+                None
+            };
+
+            pipeline.generate_with_overrides(&prompt_str, override_cfg, override_temp)
+        };
+
+        // Store the terminal status.
+        if let Ok(mut g) = get_state().lock() {
+            if matches!(g.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
+                return;
+            }
+            match result {
+                Ok(image) => {
+                    if let Err(e) = image.save(&out_str) {
+                        g.requests.insert(
+                            id,
+                            MediaRequestStatus::Failed(format!("Save failed: {e}")),
+                        );
+                    } else {
+                        g.requests
+                            .insert(id, MediaRequestStatus::Complete(out_str));
+                    }
+                }
+                Err(e) => {
+                    g.requests
+                        .insert(id, MediaRequestStatus::Failed(format!("{e}")));
+                }
+            }
+        }
+    });
+
+    id
+}
+
+/// Poll the status of an async media request.
+///
+/// When `status` is 2 (complete) or 3 (failed), the request is removed from
+/// the internal map and the `text` pointer is non-null.  The caller **must**
+/// free it with [`pcai_media_free_string`].
+///
+/// Status codes:
+/// * 0 = pending
+/// * 1 = running
+/// * 2 = complete (`text` = output file path)
+/// * 3 = failed (`text` = error message)
+/// * 4 = cancelled
+/// * -1 = unknown request ID
+///
+/// # Arguments
+///
+/// * `request_id` — ID returned by [`pcai_media_generate_image_async`].
+#[no_mangle]
+pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResult {
+    let state = get_state();
+    let mut guard = match state.lock() {
+        Ok(g) => g,
+        Err(_) => {
+            return PcaiMediaAsyncResult {
+                status: -1,
+                text: std::ptr::null_mut(),
+            };
+        }
+    };
+
+    match guard.requests.get(&request_id) {
+        Some(MediaRequestStatus::Pending) => PcaiMediaAsyncResult {
+            status: 0,
+            text: std::ptr::null_mut(),
+        },
+        Some(MediaRequestStatus::Running) => PcaiMediaAsyncResult {
+            status: 1,
+            text: std::ptr::null_mut(),
+        },
+        Some(MediaRequestStatus::Complete(_)) => {
+            if let Some(MediaRequestStatus::Complete(text)) =
+                guard.requests.remove(&request_id)
+            {
+                let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
+                PcaiMediaAsyncResult {
+                    status: 2,
+                    text: c_str.into_raw(),
+                }
+            } else {
+                PcaiMediaAsyncResult {
+                    status: -1,
+                    text: std::ptr::null_mut(),
+                }
+            }
+        }
+        Some(MediaRequestStatus::Failed(_)) => {
+            if let Some(MediaRequestStatus::Failed(text)) =
+                guard.requests.remove(&request_id)
+            {
+                let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
+                PcaiMediaAsyncResult {
+                    status: 3,
+                    text: c_str.into_raw(),
+                }
+            } else {
+                PcaiMediaAsyncResult {
+                    status: -1,
+                    text: std::ptr::null_mut(),
+                }
+            }
+        }
+        Some(MediaRequestStatus::Cancelled) => {
+            guard.requests.remove(&request_id);
+            PcaiMediaAsyncResult {
+                status: 4,
+                text: std::ptr::null_mut(),
+            }
+        }
+        None => PcaiMediaAsyncResult {
+            status: -1,
+            text: std::ptr::null_mut(),
+        },
+    }
+}
+
+/// Cancel an async media request.
+///
+/// Marks a pending or running request as cancelled.  The cancellation is
+/// cooperative — the worker thread checks for it at defined points.
+///
+/// # Arguments
+///
+/// * `request_id` — ID returned by [`pcai_media_generate_image_async`].
+///
+/// # Returns
+///
+/// `0` if the request was successfully cancelled, `-1` if the ID was not
+/// found or the request had already finished.
+#[no_mangle]
+pub extern "C" fn pcai_media_cancel(request_id: i64) -> i32 {
+    let state = get_state();
+    let mut guard = match state.lock() {
+        Ok(g) => g,
+        Err(_) => return -1,
+    };
+
+    match guard.requests.get_mut(&request_id) {
+        Some(
+            status @ MediaRequestStatus::Pending | status @ MediaRequestStatus::Running,
+        ) => {
+            *status = MediaRequestStatus::Cancelled;
+            0
+        }
+        _ => -1,
+    }
+}
+
+// ============================================================================
+// Upscale (optional — requires `upscale` feature)
+// ============================================================================
+
+/// Upscale an image 4x using RealESRGAN.
+///
+/// Loads the ONNX model from `model_path`, reads the image from `input_path`,
+/// performs 4x super-resolution, and saves the result to `output_path`.
+///
+/// # Returns
+///
+/// `0` on success, negative error code on failure.
+#[cfg(feature = "upscale")]
+#[no_mangle]
+pub extern "C" fn pcai_media_upscale_image(
+    model_path: *const c_char,
+    input_path: *const c_char,
+    output_path: *const c_char,
+) -> i32 {
+    clear_error();
+
+    let model = match unsafe { c_str_to_str(model_path) } {
+        Ok(s) => s,
+        Err(code) => return code as i32,
+    };
+    let input = match unsafe { c_str_to_str(input_path) } {
+        Ok(s) => s,
+        Err(code) => return code as i32,
+    };
+    let output = match unsafe { c_str_to_str(output_path) } {
+        Ok(s) => s,
+        Err(code) => return code as i32,
+    };
+
+    let mut pipeline = match crate::upscale::UpscalePipeline::load(model) {
+        Ok(p) => p,
+        Err(e) => {
+            set_error(&format!("failed to load upscale model: {e:#}"), PcaiMediaErrorCode::IoError);
+            return PcaiMediaErrorCode::IoError as i32;
+        }
+    };
+
+    let img = match image::open(input) {
+        Ok(i) => i,
+        Err(e) => {
+            set_error(&format!("failed to open input image: {e}"), PcaiMediaErrorCode::IoError);
+            return PcaiMediaErrorCode::IoError as i32;
+        }
+    };
+
+    let upscaled = match pipeline.upscale(&img) {
+        Ok(u) => u,
+        Err(e) => {
+            set_error(&format!("upscale failed: {e:#}"), PcaiMediaErrorCode::GenerationError);
+            return PcaiMediaErrorCode::GenerationError as i32;
+        }
+    };
+
+    if let Err(e) = upscaled.save(output) {
+        set_error(&format!("failed to save upscaled image: {e}"), PcaiMediaErrorCode::IoError);
+        return PcaiMediaErrorCode::IoError as i32;
+    }
+
+    tracing::info!(input = input, output = output, "image upscaled 4x");
     PcaiMediaErrorCode::Success as i32
 }
 
@@ -746,11 +1134,12 @@ pub extern "C" fn pcai_media_free_bytes(data: *mut u8, len: usize) {
     if data.is_null() {
         return;
     }
-    // SAFETY: `data` is non-null, was allocated by `Vec::into_raw_parts` (or
-    // equivalent) inside this library, and `len` matches the original
-    // allocation length.
+    // SAFETY: `data` was allocated via `Box::into_raw` on a `Box<[u8]>` with
+    // exactly `len` bytes.  Reconstructing the `Box<[u8]>` and dropping it
+    // returns the memory to the allocator correctly.
     unsafe {
-        let _ = Vec::from_raw_parts(data, len, len);
+        let slice = std::slice::from_raw_parts_mut(data, len);
+        let _ = Box::from_raw(slice);
     }
 }
 
@@ -1027,5 +1416,85 @@ mod tests {
             &mut len as *mut usize,
         );
         assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
+    }
+
+    // ── async FFI tests ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_async_generate_null_prompt() {
+        let out = CString::new("out.png").expect("valid");
+        let id = pcai_media_generate_image_async(
+            std::ptr::null(),
+            0.0,
+            0.0,
+            out.as_ptr(),
+        );
+        assert_eq!(id, -1, "null prompt should return -1");
+        assert_eq!(
+            pcai_media_last_error_code(),
+            PcaiMediaErrorCode::InvalidInput as i32,
+        );
+    }
+
+    #[test]
+    fn test_async_generate_null_output_path() {
+        let prompt = CString::new("test").expect("valid");
+        let id = pcai_media_generate_image_async(
+            prompt.as_ptr(),
+            0.0,
+            0.0,
+            std::ptr::null(),
+        );
+        assert_eq!(id, -1, "null output_path should return -1");
+        assert_eq!(
+            pcai_media_last_error_code(),
+            PcaiMediaErrorCode::InvalidInput as i32,
+        );
+    }
+
+    #[test]
+    fn test_async_generate_no_model_loaded() {
+        let device = CString::new("cpu").expect("valid");
+        pcai_media_init(device.as_ptr());
+        pcai_media_shutdown(); // ensure no model
+
+        let prompt = CString::new("test").expect("valid");
+        let out = CString::new("out.png").expect("valid");
+        let id = pcai_media_generate_image_async(
+            prompt.as_ptr(),
+            5.0,
+            1.0,
+            out.as_ptr(),
+        );
+        assert_eq!(id, -1, "should fail without loaded model");
+        assert_ne!(pcai_media_last_error_code(), 0);
+    }
+
+    #[test]
+    fn test_poll_result_unknown_id() {
+        let result = pcai_media_poll_result(999_999);
+        assert_eq!(result.status, -1, "unknown ID should return status -1");
+        assert!(result.text.is_null());
+    }
+
+    #[test]
+    fn test_cancel_unknown_id() {
+        let rc = pcai_media_cancel(999_999);
+        assert_eq!(rc, -1, "cancelling an unknown ID should return -1");
+    }
+
+    #[test]
+    fn test_async_result_repr_c() {
+        // Verify PcaiMediaAsyncResult has the expected layout for FFI callers.
+        let expected_size = if std::mem::size_of::<*mut c_char>() == 8 {
+            16 // 64-bit: i32 (4) + 4 padding + pointer (8)
+        } else {
+            8 // 32-bit: i32 (4) + pointer (4)
+        };
+        assert_eq!(
+            std::mem::size_of::<PcaiMediaAsyncResult>(),
+            expected_size,
+            "PcaiMediaAsyncResult layout must match expected C ABI size"
+        );
     }
 }

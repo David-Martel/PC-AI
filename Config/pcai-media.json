@@ -1,9 +1,14 @@
 {
-    "model": "deepseek-ai/Janus-Pro-7B",
+    "model": "Models/Janus-Pro-1B",
     "device": "cuda:0",
-    "dtype": "bf16",
+    "dtype": "f16",
     "guidance_scale": 5.0,
     "temperature": 1.0,
     "parallel_size": 1,
-    "gpu_layers": -1
+    "gpu_layers": -1,
+    "upscale": {
+        "enabled": true,
+        "model_path": "Models/RealESRGAN/RealESRGAN_x4.onnx",
+        "scale_factor": 4
+    }
 }

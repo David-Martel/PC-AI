@@ -46,7 +46,10 @@
 
 use anyhow::{Context, Result};
 use candle_core::{DType, Device, IndexOp, Tensor};
+#[allow(unused_imports)]
+use candle_nn::Module; // Required by siglip::VisionModel::forward at runtime
 use candle_transformers::models::llama;
+use candle_transformers::models::siglip;
 use image::{DynamicImage, imageops::FilterType};
 
 use pcai_media_model::JanusModel;
@@ -135,28 +138,35 @@ impl UnderstandingPipeline {
         temperature: f32,
         device: &Device,
         dtype: DType,
+        siglip_model: Option<&siglip::VisionModel>,
     ) -> Result<String> {
         // ── 1. Preprocess image ──────────────────────────────────────────────
         let image_tensor = preprocess_image(image, model.config.image_size, device)
             .context("image preprocessing failed")?;
 
         // ── 2. SigLIP vision encoding ────────────────────────────────────────
-        // TODO: load the SigLIP vision model separately (weights path needs its
-        // own mapping in config.json, separate from the LLM backbone).  Until
-        // that is implemented we use a zero-tensor of the expected shape so
-        // the downstream aligner and KV-cache path can be exercised in tests.
-        //
-        // Expected SigLIP output: [1, num_image_tokens, siglip_dim=1024]
-        let num_image_tokens = model.config.num_image_tokens(); // 576 for 7B
+        // When a SigLIP VisionModel is available, run the real encoder.
+        // Otherwise, fall back to a zero-tensor placeholder so tests can
+        // exercise the downstream aligner / KV-cache path without weights.
+        let num_image_tokens = model.config.num_image_tokens(); // 576
         let siglip_dim: usize = 1024;
-        let siglip_features = Tensor::zeros(
-            (1_usize, num_image_tokens, siglip_dim),
-            dtype,
-            device,
-        )
-        .context("failed to create placeholder SigLIP features")?;
-        // Silence unused-variable warning until the real encoder is wired in.
-        let _ = (&image_tensor, &siglip_features);
+
+        let siglip_features = if let Some(vision) = siglip_model {
+            // Cast to the model's expected dtype for the forward pass.
+            let img_input = image_tensor
+                .to_dtype(dtype)
+                .context("cast image tensor to model dtype")?;
+            vision
+                .forward(&img_input)
+                .context("SigLIP vision forward pass failed")?
+        } else {
+            Tensor::zeros(
+                (1_usize, num_image_tokens, siglip_dim),
+                dtype,
+                device,
+            )
+            .context("failed to create placeholder SigLIP features")?
+        };
 
         // ── 3. Map SigLIP features into LLM hidden space ─────────────────────
         // understand_aligner: [1, num_image_tokens, 1024] → [1, num_image_tokens, hidden_size]

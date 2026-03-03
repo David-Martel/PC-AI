@@ -333,6 +333,7 @@ async fn understand_image(
                 temperature,
                 pipeline.device(),
                 pipeline.dtype(),
+                pipeline.siglip(),
             )
         })
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?

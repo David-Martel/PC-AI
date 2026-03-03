@@ -246,10 +246,9 @@ function New-PcaiImage {
     Write-Verbose "Generating image for prompt: '$Prompt' -> $OutputPath"
 
     try {
-        $result = [PcaiNative.MediaModule]::GenerateImage($Prompt, $CfgScale, $Temperature, $OutputPath)
-        if ($result -ne 0) {
-            $errorMsg = [PcaiNative.MediaModule]::GetLastError()
-            throw "Image generation failed: $errorMsg"
+        $result = [PcaiNative.MediaModule]::GenerateImage($Prompt, $OutputPath, $CfgScale, $Temperature)
+        if ($null -ne $result) {
+            throw "Image generation failed: $result"
         }
 
         Write-Verbose "Image saved to: $OutputPath"
@@ -383,6 +382,148 @@ function Get-PcaiMediaStatus {
     }
 }
 
+function New-PcaiImageAsync {
+    <#
+    .SYNOPSIS
+        Generate an image asynchronously from a text prompt.
+    .DESCRIPTION
+        Calls [PcaiNative.MediaModule]::GenerateImageNativeAsync() to start async
+        image generation.  Returns a request ID that can be polled or awaited.
+    .PARAMETER Prompt
+        Text description of the image to generate.
+    .PARAMETER OutputPath
+        Absolute file path where the PNG will be saved.
+    .PARAMETER CfgScale
+        Classifier-Free Guidance scale.  Defaults to 5.0.
+    .PARAMETER Temperature
+        Sampling temperature.  Defaults to 1.0.
+    .EXAMPLE
+        $id = New-PcaiImageAsync -Prompt "a sunset" -OutputPath "C:\out.png"
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [string]$Prompt,
+
+        [Parameter()]
+        [string]$OutputPath,
+
+        [Parameter()]
+        [ValidateRange(0.1, 20.0)]
+        [float]$CfgScale = 5.0,
+
+        [Parameter()]
+        [ValidateRange(0.01, 2.0)]
+        [float]$Temperature = 1.0
+    )
+
+    if (-not $script:ModelLoaded) {
+        throw 'Model not loaded. Call Import-PcaiMediaModel first.'
+    }
+
+    if (-not $OutputPath) {
+        $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $OutputPath = Join-Path ([Environment]::GetFolderPath('Desktop')) "janus-$timestamp.png"
+    }
+
+    $parentDir = Split-Path $OutputPath -Parent
+    if ($parentDir -and -not (Test-Path $parentDir)) {
+        New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+    }
+
+    Write-Verbose "Starting async image generation: '$Prompt' -> $OutputPath"
+
+    try {
+        $requestId = [PcaiNative.MediaModule]::GenerateImageNativeAsync($Prompt, $CfgScale, $Temperature, $OutputPath)
+        if ($requestId -lt 0) {
+            $errorMsg = [PcaiNative.MediaModule]::GetLastError()
+            throw "Async image generation failed to start: $errorMsg"
+        }
+
+        return [PSCustomObject]@{
+            RequestId  = $requestId
+            Prompt     = $Prompt
+            OutputPath = $OutputPath
+        }
+    } catch {
+        throw "Async image generation error: $_"
+    }
+}
+
+function Invoke-PcaiUpscale {
+    <#
+    .SYNOPSIS
+        Upscale an image by 4x using RealESRGAN.
+    .DESCRIPTION
+        Calls [PcaiNative.MediaModule]::UpscaleImage() to perform 4x super-resolution
+        upscaling on the given input image.  Requires pcai_media.dll built with the
+        'upscale' feature and a RealESRGAN ONNX model.
+    .PARAMETER InputPath
+        Absolute file path to the image to upscale.
+    .PARAMETER OutputPath
+        Absolute file path where the upscaled image will be saved.
+    .PARAMETER ModelPath
+        Path to the RealESRGAN ONNX model file.  Defaults to
+        Models/RealESRGAN/RealESRGAN_x4.onnx relative to the project root.
+    .EXAMPLE
+        Invoke-PcaiUpscale -InputPath "C:\Photos\small.png" -OutputPath "C:\Photos\small_4x.png"
+    .EXAMPLE
+        Invoke-PcaiUpscale -InputPath .\input.jpg -OutputPath .\output.png -ModelPath "C:\Models\esrgan.onnx"
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [string]$InputPath,
+
+        [Parameter(Mandatory, Position = 1)]
+        [string]$OutputPath,
+
+        [Parameter()]
+        [string]$ModelPath
+    )
+
+    if (-not $script:Initialized) {
+        throw 'Media pipeline not initialized. Call Initialize-PcaiMedia first.'
+    }
+
+    if (-not (Test-Path $InputPath)) {
+        throw "Input image not found: $InputPath"
+    }
+
+    if (-not $ModelPath) {
+        $projectRoot = Get-PcaiProjectRoot
+        $ModelPath = Join-Path $projectRoot 'Models\RealESRGAN\RealESRGAN_x4.onnx'
+    }
+
+    if (-not (Test-Path $ModelPath)) {
+        throw "RealESRGAN ONNX model not found: $ModelPath"
+    }
+
+    $parentDir = Split-Path $OutputPath -Parent
+    if ($parentDir -and -not (Test-Path $parentDir)) {
+        New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+    }
+
+    Write-Verbose "Upscaling image: $InputPath -> $OutputPath (model: $ModelPath)"
+
+    try {
+        $error = [PcaiNative.MediaModule]::UpscaleImage($ModelPath, $InputPath, $OutputPath)
+        if ($null -ne $error) {
+            throw "Image upscaling failed: $error"
+        }
+
+        Write-Verbose "Upscaled image saved to: $OutputPath"
+        return [PSCustomObject]@{
+            Success    = $true
+            InputPath  = $InputPath
+            OutputPath = $OutputPath
+            ScaleFactor = 4
+        }
+    } catch {
+        throw "Image upscaling error: $_"
+    }
+}
+
 #endregion
 
 #region Module Cleanup
@@ -404,7 +545,9 @@ Export-ModuleMember -Function @(
     'Initialize-PcaiMedia',
     'Import-PcaiMediaModel',
     'New-PcaiImage',
+    'New-PcaiImageAsync',
     'Get-PcaiImageAnalysis',
+    'Invoke-PcaiUpscale',
     'Stop-PcaiMedia',
     'Get-PcaiMediaStatus'
 )

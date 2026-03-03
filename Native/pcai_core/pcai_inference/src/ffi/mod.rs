@@ -1000,7 +1000,7 @@ pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
         },
         Some(RequestStatus::Complete(_)) => {
             if let Some(RequestStatus::Complete(text)) = guard.requests.remove(&request_id) {
-                let c_str = CString::new(text).unwrap_or_default();
+                let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
                 PcaiAsyncResult {
                     status: 2,
                     text: c_str.into_raw(),
@@ -1014,7 +1014,7 @@ pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
         }
         Some(RequestStatus::Failed(_)) => {
             if let Some(RequestStatus::Failed(text)) = guard.requests.remove(&request_id) {
-                let c_str = CString::new(text).unwrap_or_default();
+                let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
                 PcaiAsyncResult {
                     status: 3,
                     text: c_str.into_raw(),

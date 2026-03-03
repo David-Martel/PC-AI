@@ -2,7 +2,7 @@
   "runtime": {
     "router_addr": "127.0.0.1:8000",
     "router_model": "functiongemma-270m-it",
-    "router_model_path": "Models/functiongemma-270m-it",
+    "router_model_path": "Models/FunctionGemma/functiongemma-270m-it-Q4_K_M.gguf",
     "router_engine": "model",
     "tools_path": "Config/pcai-tools.json",
     "router_kv_cache": true,

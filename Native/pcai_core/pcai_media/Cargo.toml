@@ -24,6 +24,7 @@ candle-transformers = "0.9"
 safetensors = "0.4"
 tokenizers = "0.20"
 image = "0.25"
+rand = "0.8"
 hf-hub = "0.4"
 memmap2 = "0.9"
 
@@ -33,6 +34,7 @@ ffi = []
 server = ["dep:axum", "dep:tower-http"]
 cuda = ["candle-core/cuda", "pcai-media-model/cuda"]
 flash-attn = ["pcai-media-model/flash-attn"]
+upscale = ["dep:ort"]
 
 [dependencies.axum]
 version = "0.7"
@@ -41,6 +43,11 @@ optional = true
 [dependencies.tower-http]
 version = "0.6"
 features = ["cors", "trace"]
+optional = true
+
+[dependencies.ort]
+version = "2.0.0-rc.11"
+features = ["download-binaries"]
 optional = true
 
 [dev-dependencies]

@@ -33,6 +33,23 @@ namespace PcaiNative
     /// handle this automatically.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Result of polling an async media request via <see cref="MediaModule.pcai_media_poll_result"/>.
+    /// </summary>
+    /// <remarks>
+    /// Status codes: 0=pending, 1=running, 2=complete, 3=failed, 4=cancelled, -1=unknown ID.
+    /// When <see cref="Status"/> is 2 or 3, <see cref="Text"/> is non-null and must be freed
+    /// with <c>pcai_media_free_string</c>.
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PcaiMediaAsyncResult
+    {
+        /// <summary>Status code (0=pending, 1=running, 2=complete, 3=failed, 4=cancelled, -1=unknown).</summary>
+        public int Status;
+        /// <summary>Result text (output path on success, error on failure). Must be freed by caller.</summary>
+        public IntPtr Text;
+    }
+
     public static class MediaModule
     {
         private const string DllName = "pcai_media";
@@ -43,128 +60,7 @@ namespace PcaiNative
         /// </summary>
         static MediaModule()
         {
-            NativeLibrary.SetDllImportResolver(typeof(MediaModule).Assembly, ResolveDll);
-        }
-
-        /// <summary>
-        /// Custom DLL resolver for <c>pcai_media.dll</c>.
-        /// Called by the .NET runtime before the default OS search is attempted.
-        /// </summary>
-        /// <param name="libraryName">The DLL name requested by a <see cref="DllImportAttribute"/>.</param>
-        /// <param name="assembly">The assembly that contains the import declaration.</param>
-        /// <param name="searchPath">The default search path hint supplied by the runtime.</param>
-        /// <returns>
-        /// A valid native library handle, or <see cref="IntPtr.Zero"/> to fall through to the
-        /// default OS loader.
-        /// </returns>
-        private static IntPtr ResolveDll(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
-        {
-            if (libraryName != DllName)
-                return IntPtr.Zero;
-
-            // Try default resolution first (handles PATH, system directories, etc.)
-            if (NativeLibrary.TryLoad(libraryName, assembly, searchPath, out IntPtr handle))
-                return handle;
-
-            // Build prioritised candidate list.
-            var candidates = new List<string>();
-
-            // 0. Config-driven search paths from Config/llm-config.json
-            foreach (var path in LoadConfigSearchPaths(assembly))
-                candidates.Add(path);
-
-            // 1. Runtime native folder deployed by the build script
-            var assemblyDir = Path.GetDirectoryName(assembly.Location);
-            if (!string.IsNullOrEmpty(assemblyDir))
-            {
-                candidates.Add(Path.Combine(assemblyDir, "runtimes", "win-x64", "native", "pcai_media.dll"));
-                candidates.Add(Path.Combine(assemblyDir, "pcai_media.dll"));
-            }
-
-            // 2. AppContext base directory (used by single-file publish and some hosts)
-            candidates.Add(Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "pcai_media.dll"));
-            candidates.Add(Path.Combine(AppContext.BaseDirectory, "pcai_media.dll"));
-
-            // 3. Common project locations relative to %USERPROFILE%
-            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            candidates.Add(Path.Combine(userProfile, "PC_AI", "bin", "pcai_media.dll"));
-            candidates.Add(Path.Combine(userProfile, ".local", "bin", "pcai_media.dll"));
-            candidates.Add(Path.Combine(userProfile, "PC_AI", "Native", "pcai_core", "pcai_media", "target", "release", "pcai_media.dll"));
-            candidates.Add(Path.Combine(userProfile, "PC_AI", "Deploy", "pcai-media", "target", "release", "pcai_media.dll"));
-
-            foreach (var path in candidates)
-            {
-                if (File.Exists(path) && NativeLibrary.TryLoad(path, out handle))
-                    return handle;
-            }
-
-            return IntPtr.Zero;
-        }
-
-        /// <summary>
-        /// Loads DLL search paths from <c>Config/llm-config.json</c> under the
-        /// <c>nativeMedia.dllSearchPaths</c> array. Both absolute and project-relative
-        /// paths are supported.
-        /// </summary>
-        private static IEnumerable<string> LoadConfigSearchPaths(Assembly assembly)
-        {
-            var configPath = FindConfigPath(assembly);
-            if (string.IsNullOrEmpty(configPath))
-                return Array.Empty<string>();
-
-            var projectRoot = Directory.GetParent(Path.GetDirectoryName(configPath) ?? string.Empty)?.FullName;
-            if (string.IsNullOrEmpty(projectRoot))
-                return Array.Empty<string>();
-
-            try
-            {
-                var results = new List<string>();
-                using var doc = JsonDocument.Parse(File.ReadAllText(configPath));
-
-                if (!doc.RootElement.TryGetProperty("nativeMedia", out var nativeMedia))
-                    return results;
-
-                if (!nativeMedia.TryGetProperty("dllSearchPaths", out var paths) || paths.ValueKind != JsonValueKind.Array)
-                    return results;
-
-                foreach (var element in paths.EnumerateArray())
-                {
-                    if (element.ValueKind != JsonValueKind.String)
-                        continue;
-
-                    var path = element.GetString();
-                    if (string.IsNullOrWhiteSpace(path))
-                        continue;
-
-                    results.Add(Path.IsPathRooted(path)
-                        ? path
-                        : Path.Combine(projectRoot, path));
-                }
-
-                return results;
-            }
-            catch
-            {
-                return Array.Empty<string>();
-            }
-        }
-
-        /// <summary>
-        /// Walks up the directory tree from the assembly location looking for
-        /// <c>Config/llm-config.json</c>, stopping after six levels.
-        /// </summary>
-        private static string? FindConfigPath(Assembly assembly)
-        {
-            var current = Path.GetDirectoryName(assembly.Location);
-            for (var i = 0; i < 6 && !string.IsNullOrEmpty(current); i++)
-            {
-                var candidate = Path.Combine(current, "Config", "llm-config.json");
-                if (File.Exists(candidate))
-                    return candidate;
-
-                current = Directory.GetParent(current)?.FullName;
-            }
-            return null;
+            NativeResolver.EnsureRegistered(typeof(MediaModule).Assembly);
         }
 
         #region Native Imports
@@ -296,6 +192,53 @@ namespace PcaiNative
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void pcai_media_free_string(IntPtr ptr);
 
+        /// <summary>
+        /// Submits an asynchronous image generation request to the native backend.
+        /// Returns a request ID immediately; use <see cref="pcai_media_poll_result"/> to check progress.
+        /// </summary>
+        /// <param name="prompt">Text prompt (UTF-8).</param>
+        /// <param name="cfgScale">CFG scale. Pass 0 for default.</param>
+        /// <param name="temperature">Sampling temperature. Pass 0 for default.</param>
+        /// <param name="outputPath">Absolute path where the PNG will be written on success.</param>
+        /// <returns>Request ID &gt; 0 on success, or -1 on error.</returns>
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern long pcai_media_generate_image_async(
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string prompt,
+            float cfgScale,
+            float temperature,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string outputPath);
+
+        /// <summary>
+        /// Polls the status of an async media request.
+        /// When status is 2 (complete) or 3 (failed), the text pointer must be freed
+        /// with <see cref="pcai_media_free_string"/>.
+        /// </summary>
+        /// <param name="requestId">ID returned by <see cref="pcai_media_generate_image_async"/>.</param>
+        /// <returns>A <see cref="PcaiMediaAsyncResult"/> with status and optional text.</returns>
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern PcaiMediaAsyncResult pcai_media_poll_result(long requestId);
+
+        /// <summary>
+        /// Cancels an in-progress async media request.
+        /// </summary>
+        /// <param name="requestId">ID returned by <see cref="pcai_media_generate_image_async"/>.</param>
+        /// <returns>0 if cancelled successfully, -1 if ID not found or already finished.</returns>
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int pcai_media_cancel(long requestId);
+
+        /// <summary>
+        /// Upscale an image 4x using RealESRGAN ONNX model.
+        /// </summary>
+        /// <param name="modelPath">Path to the RealESRGAN ONNX model file.</param>
+        /// <param name="inputPath">Path to the input image.</param>
+        /// <param name="outputPath">Path to save the upscaled output image.</param>
+        /// <returns>0 on success, negative error code on failure.</returns>
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int pcai_media_upscale_image(
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string modelPath,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string inputPath,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string outputPath);
+
         #endregion
 
         #region High-level Wrappers
@@ -409,6 +352,69 @@ namespace PcaiNative
         }
 
         /// <summary>
+        /// Generates an image using the native async FFI (no thread-pool blocking).
+        /// The native backend runs generation on its own OS thread; this method polls
+        /// for completion with cooperative cancellation.
+        /// </summary>
+        /// <param name="prompt">Natural-language description of the desired image.</param>
+        /// <param name="outputPath">Absolute path where the generated PNG will be saved.</param>
+        /// <param name="cfgScale">CFG scale. Defaults to 5.0.</param>
+        /// <param name="temperature">Sampling temperature. Defaults to 1.0.</param>
+        /// <param name="pollIntervalMs">Polling interval in milliseconds. Defaults to 100.</param>
+        /// <param name="cancellationToken">Token for cooperative cancellation.</param>
+        /// <returns><c>null</c> on success, or an error message on failure.</returns>
+        public static async Task<string?> GenerateImageNativeAsync(
+            string prompt,
+            string outputPath,
+            float cfgScale = 5.0f,
+            float temperature = 1.0f,
+            int pollIntervalMs = 100,
+            CancellationToken cancellationToken = default)
+        {
+            var requestId = pcai_media_generate_image_async(prompt, cfgScale, temperature, outputPath);
+            if (requestId < 0)
+                return GetLastError() ?? "Failed to submit async generation request";
+
+            try
+            {
+                while (true)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var result = pcai_media_poll_result(requestId);
+                    switch (result.Status)
+                    {
+                        case 0: // pending
+                        case 1: // running
+                            await Task.Delay(pollIntervalMs, cancellationToken).ConfigureAwait(false);
+                            continue;
+                        case 2: // complete
+                            if (result.Text != IntPtr.Zero)
+                                pcai_media_free_string(result.Text);
+                            return null;
+                        case 3: // failed
+                            string? error = null;
+                            if (result.Text != IntPtr.Zero)
+                            {
+                                error = Marshal.PtrToStringUTF8(result.Text);
+                                pcai_media_free_string(result.Text);
+                            }
+                            return error ?? "Unknown generation error";
+                        case 4: // cancelled
+                            throw new OperationCanceledException("Native request was cancelled");
+                        default: // -1 or unknown
+                            return "Unknown request ID or internal error";
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                pcai_media_cancel(requestId);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Asynchronously generates an image from a text prompt by running the blocking
         /// native call on a thread-pool thread.
         /// </summary>
@@ -474,6 +480,20 @@ namespace PcaiNative
             return Task.Run(
                 () => UnderstandImage(imagePath, prompt, maxTokens, temperature),
                 cancellationToken);
+        }
+
+        /// <summary>
+        /// Upscale an image 4x using the RealESRGAN ONNX model.
+        /// Requires the native DLL built with the <c>upscale</c> feature.
+        /// </summary>
+        /// <param name="modelPath">Path to the RealESRGAN ONNX model file.</param>
+        /// <param name="inputPath">Path to the input image.</param>
+        /// <param name="outputPath">Path where the 4x-upscaled image will be saved.</param>
+        /// <returns><c>null</c> on success, or an error message on failure.</returns>
+        public static string? UpscaleImage(string modelPath, string inputPath, string outputPath)
+        {
+            int rc = pcai_media_upscale_image(modelPath, inputPath, outputPath);
+            return rc == 0 ? null : GetLastError() ?? $"Upscale failed (code {rc})";
         }
 
         #endregion

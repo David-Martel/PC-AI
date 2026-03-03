@@ -1654,11 +1654,14 @@ function Invoke-MediaBuild {
     try {
         $cargoArgs = @('build')
         if ($Configuration -eq 'Release') { $cargoArgs += '--release' }
-        $cargoArgs += @('-p', 'pcai-media', '-p', 'pcai-media-server')
+        $cargoArgs += @('--package', 'pcai-media', '--package', 'pcai-media-server')
 
+        $featureList = @('pcai-media/upscale')
         if ($EnableCuda) {
-            $cargoArgs += @('--features', 'pcai-media/cuda,pcai-media/flash-attn')
+            $featureList += 'pcai-media/cuda'
+            $featureList += 'pcai-media/flash-attn'
         }
+        $cargoArgs += @('--features', ($featureList -join ','))
 
         $rustOk = Invoke-RustBuildCommand -Path $mediaRoot -CargoArgs $cargoArgs -LogFile $logFile
         if (-not $rustOk) {

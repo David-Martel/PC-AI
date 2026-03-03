@@ -12,7 +12,7 @@
 			"enabled": true,
 			"type": "ffi",
 			"backend": "llamacpp",
-			"modelPath": "Models/open_llama_3b-q4_0-ggjt.bin",
+			"modelPath": "Models/Qwen2.5-3B-Instruct-GGUF/Qwen2.5-3B-Instruct-Q4_K_M.gguf",
 			"gpuLayers": -1,
 			"defaultTemperature": 0.7,
 			"defaultMaxTokens": 2048

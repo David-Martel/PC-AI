@@ -1,0 +1,14 @@
+id: match-arm-unwrap
+message: unwrap() in match arm without prior validation can panic
+severity: error
+language: rust
+rule:
+  pattern: "match $EXPR {\n  $$$BEFORE\n  $PATTERN => $$$UNWRAP.unwrap(),\n  $$$AFTER\n\
+    }\n"
+note: 'Ensure the match pattern guarantees the unwrap() will succeed,
+
+  or use proper error handling instead.
+
+  '
+
+

@@ -100,6 +100,9 @@ pcai-inference LLM Analysis (local GGUF)
 # Refresh Rust dependency graph and warm crate cache state
 .\Build.ps1 -Component deps -DependencyStrategy locked
 
+# Run only canonical ast-grep rules (rules/core) through Build.ps1
+.\Build.ps1 -Component lint -LintProfile astgrep
+
 # Build with explicit CargoTools preflight and persisted defaults
 .\Build.ps1 -Component all -CargoTools enabled -CargoPreflight -CargoPreflightMode check -SyncCargoDefaults
 
@@ -119,6 +122,8 @@ Invoke-PcaiNativeDuplicates -Path "D:\Downloads" -MinimumSize 1MB
 Import-Module .\Modules\PC-AI.LLM\PC-AI.LLM.psd1
 Invoke-SmartDiagnosis -Path "C:\Temp" -AnalysisType Quick
 ```
+
+`Build.ps1` quality profiles are config-first: endpoint defaults and tool paths are resolved from `Config/llm-config.json` and `Config/pcai-tools.json` before fallback behavior is applied.
 
 ### Test Results
 

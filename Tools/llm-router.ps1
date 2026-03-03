@@ -51,18 +51,10 @@ function Read-RequestBody {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$cfgPath = Join-Path $repoRoot 'Config\llm-config.json'
-if (Test-Path $cfgPath) {
-    try {
-        $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
-        if (-not $OllamaBaseUrl -and $cfg.providers.ollama.baseUrl) {
-            $OllamaBaseUrl = $cfg.providers.ollama.baseUrl
-        }
-        if (-not $LMStudioBaseUrl -and $cfg.providers.lmstudio.baseUrl) {
-            $LMStudioBaseUrl = $cfg.providers.lmstudio.baseUrl
-        }
-    } catch {}
-}
+Import-Module (Join-Path $repoRoot 'Modules\PC-AI.LLM\PC-AI.LLM.psd1') -Force
+
+if (-not $OllamaBaseUrl) { $OllamaBaseUrl = Resolve-PcaiEndpoint -ProviderName 'ollama' }
+if (-not $LMStudioBaseUrl) { $LMStudioBaseUrl = Resolve-PcaiEndpoint -ProviderName 'lmstudio' }
 
 function Write-JsonResponse {
     param(

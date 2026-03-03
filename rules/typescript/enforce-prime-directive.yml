@@ -1,0 +1,7 @@
+id: enforce-prime-directive
+language: TypeScript
+severity: error
+message: "PRIME DIRECTIVE violation: Creating duplicate files is forbidden"
+rule:
+  pattern: "// TODO: Create $FILE"
+note: "Consolidate functionality into existing files instead of creating variants"

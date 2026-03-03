@@ -1,0 +1,7 @@
+id: no-any-type
+language: TypeScript
+severity: warning
+message: "Avoid 'any' type - use specific types for better type safety"
+rule:
+  pattern: "$VAR: any"
+note: "Consider using proper typing or 'unknown' for better type safety"

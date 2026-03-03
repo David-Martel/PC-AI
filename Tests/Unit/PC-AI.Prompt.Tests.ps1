@@ -1,7 +1,13 @@
 #Requires -Version 5.1
 
 BeforeAll {
-    $PcaiRoot = 'C:\\Users\\david\\PC_AI'
+    $resolveRootHelper = Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1'
+    if (Test-Path $resolveRootHelper) {
+        . $resolveRootHelper
+        $PcaiRoot = Resolve-TestRepoRoot
+    } else {
+        $PcaiRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+    }
 
     # Ensure Acceleration module is imported to load native types
     $AccelPath = Join-Path $PcaiRoot 'Modules\\PC-AI.Acceleration\\PC-AI.Acceleration.psd1'
@@ -49,14 +55,20 @@ Describe "PC-AI Prompt Enrichment" {
             } | ConvertTo-Json | ConvertFrom-Json
         )
 
-        $result = & $script:LlmModule { Invoke-ToolByName -Name "test_tool" -Args @{} -Tools $args[0] -ModuleRoot "C:\\Users\\david\\PC_AI" } $Tools
+        $result = & $script:LlmModule {
+            param($ToolsArg, $ModuleRootArg)
+            Invoke-ToolByName -Name "test_tool" -Args @{} -Tools $ToolsArg -ModuleRoot $ModuleRootArg
+        } $Tools $PcaiRoot
 
         $expected = (Get-Date -Format "yyyy") | ConvertTo-Json -Compress
         $result | Should -Be $expected
     }
 
     It "Should handle missing tools gracefully when collection is empty" {
-        $result = & $script:LlmModule { Invoke-ToolByName -Name "missing_tool" -Args @{} -Tools @() -ModuleRoot "C:\\Users\\david\\PC_AI" }
+        $result = & $script:LlmModule {
+            param($ModuleRootArg)
+            Invoke-ToolByName -Name "missing_tool" -Args @{} -Tools @() -ModuleRoot $ModuleRootArg
+        } $PcaiRoot
         $result | Should -Match "Unhandled tool"
         $result | Should -Match "no tools provided"
     }

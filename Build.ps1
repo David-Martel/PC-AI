@@ -158,7 +158,7 @@ param(
     [string]$CargoPreflightMode = 'check',
     [switch]$SyncCargoDefaults,
     [string[]]$FunctionGemmaArgs = @(),
-    [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml')]
+    [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality')]
     [string]$LintProfile = 'all',
     [ValidateSet('locked', 'frozen', 'update')]
     [string]$DependencyStrategy = 'locked',
@@ -228,6 +228,17 @@ function Write-BuildStep {
     }
     Write-Host "  $symbol " -ForegroundColor $color -NoNewline
     Write-Host $Step
+}
+
+function Format-InvariantString {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Template,
+        [Parameter(Mandatory)]
+        [object[]]$Args
+    )
+
+    return [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, $Template, $Args)
 }
 
 function Write-BuildResult {
@@ -698,13 +709,60 @@ function Invoke-NativeCommandCapture {
 
         return @{
             ExitCode = $process.ExitCode
-            StdOut = $stdoutLines
-            StdErr = $stderrLines
+            StdOut   = $stdoutLines
+            StdErr   = $stderrLines
         }
     } finally {
         Remove-Item $stdoutFile.FullName -Force -ErrorAction SilentlyContinue
         Remove-Item $stderrFile.FullName -Force -ErrorAction SilentlyContinue
     }
+}
+
+function Get-AstGrepRuleDirectories {
+    $defaultRulesDir = Join-Path $script:ProjectRoot 'rules'
+    $configPath = Join-Path $script:ProjectRoot 'sgconfig.yml'
+    if (-not (Test-Path $configPath)) {
+        if (Test-Path $defaultRulesDir) { return @($defaultRulesDir) }
+        return @()
+    }
+
+    $ruleDirs = @()
+    $inRuleDirsSection = $false
+    $lines = Get-Content -Path $configPath -ErrorAction SilentlyContinue
+    foreach ($line in $lines) {
+        $trimmed = $line.Trim()
+        if ($trimmed -match '^ruleDirs\s*:') {
+            $inRuleDirsSection = $true
+            continue
+        }
+
+        if (-not $inRuleDirsSection) {
+            continue
+        }
+
+        if ($trimmed -match '^-\s*(.+)$') {
+            $raw = $matches[1].Trim().Trim("'`"")
+            $candidate = if ([System.IO.Path]::IsPathRooted($raw)) {
+                $raw
+            } else {
+                Join-Path $script:ProjectRoot $raw
+            }
+            if (Test-Path $candidate) {
+                $ruleDirs += (Resolve-Path -Path $candidate).Path
+            }
+            continue
+        }
+
+        if ($trimmed -match '^[A-Za-z0-9_]+\s*:') {
+            break
+        }
+    }
+
+    if ($ruleDirs.Count -eq 0 -and (Test-Path $defaultRulesDir)) {
+        return @($defaultRulesDir)
+    }
+
+    return @($ruleDirs | Select-Object -Unique)
 }
 
 function Invoke-AstGrepCheck {
@@ -722,11 +780,40 @@ function Invoke-AstGrepCheck {
     if (Test-Path $configPath) {
         $scanArgs += @('--config', $configPath)
     }
+
+    $isDiffMode = $false
+    $diffFiles = @()
+    if (-not $EnableAutoFix) {
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+            $gitOutput = Invoke-NativeCommandCapture -FilePath 'git' -ArgumentList @('diff', '--name-only', 'HEAD') -WorkingDirectory $script:ProjectRoot
+            if ($gitOutput.ExitCode -eq 0) {
+                $isDiffMode = $true
+                foreach ($file in $gitOutput.StdOut) {
+                    if (-not [string]::IsNullOrWhiteSpace($file) -and (Test-Path (Join-Path $script:ProjectRoot $file) -PathType Leaf)) {
+                        $diffFiles += $file
+                    }
+                }
+            }
+        }
+
+        if ($isDiffMode) {
+            if ($diffFiles.Count -eq 0) {
+                Write-BuildStep 'AST-grep fast-path: no modified files to scan' 'success'
+                return $true
+            }
+            $scanArgs += $diffFiles
+        }
+    }
+
     $astGrepParsePattern = 'Cannot parse rule|not a valid ast-grep rule|Fail to parse yaml as Rule|Rule contains invalid pattern matcher|`rule` is not configured correctly|Invalid config|No such file'
 
-    $rulesRoot = Join-Path $script:ProjectRoot 'rules'
-    if (Test-Path $rulesRoot) {
-        $rules = Get-ChildItem -Path $rulesRoot -Filter '*.yml' -File -Recurse -ErrorAction SilentlyContinue
+    $rules = @()
+    $ruleDirs = Get-AstGrepRuleDirectories
+    foreach ($ruleDir in $ruleDirs) {
+        $rules += Get-ChildItem -Path $ruleDir -Filter '*.yml' -File -Recurse -ErrorAction SilentlyContinue
+    }
+    if ($rules.Count -gt 0) {
+        $rules = @($rules | Sort-Object -Property FullName -Unique)
         if ($rules.Count -gt 0) {
             Write-BuildStep "Validating $($rules.Count) AST-grep rule file(s)..." 'running'
             $dummyFile = New-TemporaryFile
@@ -767,11 +854,11 @@ function Invoke-AstGrepCheck {
 
     $findingsByRule = @{}
     $severityTotals = @{
-        error = 0
+        error   = 0
         warning = 0
-        info = 0
-        hint = 0
-        other = 0
+        info    = 0
+        hint    = 0
+        other   = 0
     }
 
     foreach ($line in $scanOutput) {
@@ -804,9 +891,9 @@ function Invoke-AstGrepCheck {
 
         if (-not $findingsByRule.ContainsKey($ruleId)) {
             $findingsByRule[$ruleId] = [ordered]@{
-                Count = 0
+                Count    = 0
                 Severity = $severity
-                Message = $message
+                Message  = $message
             }
         }
 
@@ -833,7 +920,7 @@ function Invoke-AstGrepCheck {
     $sortedRules = $findingsByRule.GetEnumerator() | Sort-Object { $_.Value.Count } -Descending
     $topRules = $sortedRules | Select-Object -First 10
     foreach ($rule in $topRules) {
-        $summary = "{0} ({1}) x{2}: {3}" -f $rule.Key, $rule.Value.Severity, $rule.Value.Count, $rule.Value.Message
+        $summary = Format-InvariantString -Template '{0} ({1}) x{2}: {3}' -Args @($rule.Key, $rule.Value.Severity, $rule.Value.Count, $rule.Value.Message)
         Write-BuildStep $summary 'warning'
     }
     if ($findingsByRule.Count -gt 10) {
@@ -843,7 +930,7 @@ function Invoke-AstGrepCheck {
     $errorCount = $severityTotals.error
     $warningCount = $severityTotals.warning
     $infoCount = $severityTotals.info + $severityTotals.hint + $severityTotals.other
-    Write-BuildStep "AST-grep totals: errors=$errorCount warnings=$warningCount info=$infoCount" 'running'
+    Write-BuildStep (Format-InvariantString -Template 'AST-grep totals: errors={0} warnings={1} info={2}' -Args @($errorCount, $warningCount, $infoCount)) 'running'
 
     if ($errorCount -gt 0) {
         Write-BuildStep 'AST-grep scan blocked the pipeline due to error-level findings' 'error'
@@ -911,17 +998,17 @@ function Invoke-RustInferenceQuality {
     $commands = @()
     switch ($Mode) {
         'check' {
-            $commands += ,@('check', '--lib', '--no-default-features')
-            $commands += ,@('check', '--lib', '--features', 'server')
+            $commands += , @('check', '--lib', '--no-default-features')
+            $commands += , @('check', '--lib', '--features', 'server')
         }
         'clippy' {
-            $commands += ,@('clippy', '--no-default-features', '--features', 'server,ffi', '--', '-D', 'warnings')
+            $commands += , @('clippy', '--no-default-features', '--features', 'server,ffi', '--', '-D', 'warnings')
         }
         'fmt' {
             if ($WriteMode) {
-                $commands += ,@('fmt', '--all')
+                $commands += , @('fmt', '--all')
             } else {
-                $commands += ,@('fmt', '--all', '--', '--check')
+                $commands += , @('fmt', '--all', '--', '--check')
             }
         }
     }
@@ -987,6 +1074,56 @@ function Invoke-DotnetFormatQuality {
     return $allOk
 }
 
+function Invoke-PowerShellLiteralPathCheck {
+    if (-not (Get-Command rg -ErrorAction SilentlyContinue)) {
+        Write-BuildStep 'rg not found; skipping PowerShell literal path guard' 'warning'
+        return $true
+    }
+
+    $pattern = '(?i)[A-Z]:\\Users\\[^\\]+\\PC_AI'
+    $rgArgs = @(
+        '--line-number',
+        '--with-filename',
+        '--pcre2',
+        '--glob', '*.ps1',
+        '--glob', '*.psm1',
+        '--glob', '*.psd1',
+        '--glob', '!**/target/**',
+        '--glob', '!**/bin/**',
+        '--glob', '!**/obj/**',
+        '--glob', '!**/node_modules/**',
+        '--glob', '!**/.git/**',
+        '--glob', '!**/.pcai/**',
+        '--glob', '!**/packages/**',
+        '--glob', '!**/artifacts/**',
+        '--glob', '!**/output/**',
+        $pattern,
+        $script:ProjectRoot
+    )
+
+    $scanResult = Invoke-NativeCommandCapture -FilePath 'rg' -ArgumentList $rgArgs -WorkingDirectory $script:ProjectRoot
+    if ($scanResult.ExitCode -gt 1) {
+        $reason = if ($scanResult.StdErr.Count -gt 0) { $scanResult.StdErr[0] } else { 'unknown rg error' }
+        Write-BuildStep "PowerShell literal path guard failed: $reason" 'error'
+        return $false
+    }
+
+    $matches = @($scanResult.StdOut | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($matches.Count -gt 0) {
+        Write-BuildStep "PowerShell literal path guard found $($matches.Count) hardcoded repo path hit(s)" 'error'
+        $matches | Select-Object -First 20 | ForEach-Object {
+            Write-BuildStep $_ 'error'
+        }
+        if ($matches.Count -gt 20) {
+            Write-BuildStep "$($matches.Count - 20) additional hardcoded path hit(s) omitted from summary" 'warning'
+        }
+        return $false
+    }
+
+    Write-BuildStep 'PowerShell literal path guard passed' 'success'
+    return $true
+}
+
 function Invoke-PowerShellQuality {
     param(
         [switch]$WriteMode
@@ -1022,13 +1159,70 @@ function Invoke-PowerShellQuality {
         }
     }
 
+    $syntaxErrors = @()
+    foreach ($file in $psFiles) {
+        if (-not (Test-Path $file.FullName)) {
+            Write-BuildStep "PowerShell file disappeared during syntax scan; skipping $($file.FullName)" 'warning'
+            continue
+        }
+
+        try {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors) {
+                foreach ($parseError in $parseErrors) {
+                    $extent = $parseError.Extent
+                    $syntaxErrors += Format-InvariantString -Template '{0}:{1}:{2} {3}' -Args @($file.FullName, $extent.StartLineNumber, $extent.StartColumnNumber, $parseError.Message)
+                }
+            }
+        } catch {
+            Write-BuildStep "PowerShell syntax scan failed for $($file.FullName): $($_.Exception.Message)" 'error'
+            return $false
+        }
+    }
+
+    if ($syntaxErrors.Count -gt 0) {
+        Write-BuildStep "PowerShell syntax check reported $($syntaxErrors.Count) parse issue(s)" 'error'
+        $syntaxErrors | Select-Object -First 10 | ForEach-Object { Write-BuildStep $_ 'error' }
+        if ($syntaxErrors.Count -gt 10) {
+            Write-BuildStep "$($syntaxErrors.Count - 10) additional parse issue(s) omitted from summary" 'warning'
+        }
+        return $false
+    }
+
     $issues = @()
     foreach ($file in $psFiles) {
-        $issues += Invoke-ScriptAnalyzer -Path $file.FullName -Settings $settingsPath -Severity Warning, Error
+        if (-not (Test-Path $file.FullName)) {
+            Write-BuildStep "PowerShell file disappeared during analyzer scan; skipping $($file.FullName)" 'warning'
+            continue
+        }
+
+        try {
+            $issues += Invoke-ScriptAnalyzer -Path $file.FullName -Settings $settingsPath -Severity Warning, Error
+        } catch {
+            Write-BuildStep "PowerShell analyzer failed for $($file.FullName): $($_.Exception.Message)" 'error'
+            return $false
+        }
     }
 
     if ($issues.Count -gt 0) {
         Write-BuildStep "PowerShell analyzer reported $($issues.Count) issue(s)" 'error'
+        $issues | Select-Object -First 10 | ForEach-Object {
+            $issuePath = if ($_ -and $_.ScriptPath) { $_.ScriptPath } else { '(unknown)' }
+            $issueLine = if ($_ -and $null -ne $_.Line) { [int]$_.Line } else { 0 }
+            $issueColumn = if ($_ -and $null -ne $_.Column) { [int]$_.Column } else { 0 }
+            $issueRule = if ($_ -and $_.RuleName) { $_.RuleName } else { 'UnknownRule' }
+            $issueMessage = if ($_ -and $_.Message) { $_.Message } else { 'No analyzer message provided.' }
+            Write-BuildStep "${issuePath}:${issueLine}:${issueColumn} [$issueRule] $issueMessage" 'error'
+        }
+        if ($issues.Count -gt 10) {
+            Write-BuildStep "$($issues.Count - 10) additional analyzer issue(s) omitted from summary" 'warning'
+        }
+        return $false
+    }
+
+    if (-not (Invoke-PowerShellLiteralPathCheck)) {
         return $false
     }
 
@@ -1114,11 +1308,42 @@ function Invoke-RustDependencyRefresh {
     return $ok
 }
 
+function Invoke-RagQuality {
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Write-BuildStep 'uv not found; skipping RAG semantic overlap checks' 'warning'
+        return $true
+    }
+
+    $clusterScript = Join-Path $script:ProjectRoot 'Deploy\rag-database\cluster_rag.py'
+    if (-not (Test-Path $clusterScript)) {
+        return $true
+    }
+
+    Write-BuildStep 'Running RAG cluster deduplication crawler...' 'running'
+    $dbUrl = if ($env:PCAI_DB_URL) { $env:PCAI_DB_URL } else { 'postgresql://pcai_user:password@localhost/semantic_rag' }
+
+    $ragArgs = @('run', $clusterScript, '--db', $dbUrl, '--ci-mode')
+    $ragResult = Invoke-NativeCommandCapture -FilePath 'uv' -ArgumentList $ragArgs -WorkingDirectory $script:ProjectRoot
+
+    if ($ragResult.ExitCode -eq 2) {
+        $msg = if ($ragResult.StdOut.Count -gt 0) { $ragResult.StdOut[-1] } else { 'Semantic overlap detected.' }
+        Write-BuildStep "RAG cluster deduplication failed: $msg" 'error'
+        return $false
+    } elseif ($ragResult.ExitCode -ne 0) {
+        $msg = if ($ragResult.StdErr.Count -gt 0) { $ragResult.StdErr[0] } else { 'Execution failed.' }
+        Write-BuildStep "RAG cluster deduplication error: $msg" 'warning'
+        return $true
+    }
+
+    Write-BuildStep 'RAG cluster deduplication passed (no semantic overlap violations)' 'success'
+    return $true
+}
+
 function Invoke-QualityPipeline {
     param(
         [ValidateSet('lint', 'format', 'fix')]
         [string]$Mode,
-        [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml')]
+        [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality')]
         [string]$Profile
     )
 
@@ -1138,40 +1363,80 @@ function Invoke-QualityPipeline {
         'docs' { return (Invoke-PrettierQuality -WriteMode:$fixMode) }
         'astgrep' { return (Invoke-AstGrepCheck -EnableAutoFix:$fixMode) }
         'toml' { return (Invoke-TomlQuality -WriteMode:$fixMode) }
+        'rag-quality' { return (Invoke-RagQuality) }
         default {
+            $profiles = @()
             if ($Mode -eq 'lint') {
-                $ok = (Invoke-AstGrepCheck) -and $ok
-                $ok = (Invoke-RustQuality -Mode 'check') -and $ok
-                $ok = (Invoke-RustQuality -Mode 'clippy') -and $ok
-                $ok = (Invoke-RustQuality -Mode 'fmt') -and $ok
-                $ok = (Invoke-DotnetFormatQuality) -and $ok
-                $ok = (Invoke-PowerShellQuality) -and $ok
-                $ok = (Invoke-PrettierQuality) -and $ok
-                $ok = (Invoke-TomlQuality) -and $ok
+                $profiles = @('astgrep', 'rag-quality', 'rust-check', 'rust-clippy', 'rust-fmt', 'dotnet-format', 'powershell', 'docs', 'toml')
             } elseif ($Mode -eq 'format') {
-                $ok = (Invoke-RustQuality -Mode 'fmt' -WriteMode:$fixMode) -and $ok
-                $ok = (Invoke-DotnetFormatQuality -WriteMode:$fixMode) -and $ok
-                $ok = (Invoke-PowerShellQuality -WriteMode:$fixMode) -and $ok
-                $ok = (Invoke-PrettierQuality -WriteMode:$fixMode) -and $ok
-                $ok = (Invoke-TomlQuality -WriteMode:$fixMode) -and $ok
+                $profiles = @('rust-fmt', 'dotnet-format', 'powershell', 'docs', 'toml')
             } else {
-                $ok = (Invoke-AstGrepCheck -EnableAutoFix:$true) -and $ok
-                $ok = (Invoke-RustQuality -Mode 'fmt' -WriteMode:$true) -and $ok
-                $ok = (Invoke-DotnetFormatQuality -WriteMode:$true) -and $ok
-                $ok = (Invoke-PowerShellQuality -WriteMode:$true) -and $ok
-                $ok = (Invoke-PrettierQuality -WriteMode:$true) -and $ok
-                $ok = (Invoke-TomlQuality -WriteMode:$true) -and $ok
-                $ok = (Invoke-AstGrepCheck) -and $ok
-                $ok = (Invoke-RustQuality -Mode 'fmt') -and $ok
-                $ok = (Invoke-DotnetFormatQuality) -and $ok
-                $ok = (Invoke-PowerShellQuality) -and $ok
-                $ok = (Invoke-PrettierQuality) -and $ok
-                $ok = (Invoke-TomlQuality) -and $ok
+                $profiles = @('astgrep', 'rag-quality', 'rust-fmt', 'dotnet-format', 'powershell', 'docs', 'toml')
+            }
+
+            Write-BuildStep "Launching $($profiles.Count) parallel quality gates concurrently..." 'running'
+
+            $jobs = @()
+            $pwshExe = (Get-Process -Id $PID).Path
+            if (-not $pwshExe) { $pwshExe = 'pwsh' }
+
+            $buildScriptPath = Join-Path $script:ProjectRoot 'Build.ps1'
+
+            # Consolidate concurrent outputs into NDJSON
+            $qaLogFile = Join-Path $script:BuildLogsDir 'BUILD_QA_LOGS.jsonl'
+            if (Test-Path $qaLogFile) { Remove-Item $qaLogFile -Force -ErrorAction SilentlyContinue }
+
+            foreach ($p in $profiles) {
+                $jobArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $buildScriptPath, '-Component', 'lint', '-LintProfile', $p)
+                if ($AutoFix -or $Mode -eq 'fix') { $jobArgs += '-AutoFix' }
+                if ($SkipQualityGate) { $jobArgs += '-SkipQualityGate' }
+
+                $outLog = Join-Path $script:BuildLogsDir "qa_job_$($p)_out.log"
+                $errLog = Join-Path $script:BuildLogsDir "qa_job_$($p)_err.log"
+
+                $proc = Start-Process -FilePath $pwshExe -ArgumentList $jobArgs -NoNewWindow -PassThru -RedirectStandardOutput $outLog -RedirectStandardError $errLog
+                $jobs += [PSCustomObject]@{ Profile = $p; Process = $proc; OutLog = $outLog; ErrLog = $errLog }
+            }
+
+            foreach ($job in $jobs) {
+                $job.Process.WaitForExit()
+                $exitCode = $job.Process.ExitCode
+                $status = if ($exitCode -eq 0) { 'success' } else { 'error' }
+                Write-BuildStep "Quality Gate Pipeline: $($job.Profile) exited with code $exitCode" $status
+
+                # Append raw outputs to the centralized QA tracking JSONL container securely
+                [PSCustomObject]@{
+                    Profile  = $job.Profile
+                    ExitCode = $exitCode
+                    Output   = if (Test-Path $job.OutLog) { Get-Content $job.OutLog -Raw } else { '' }
+                    Error    = if (Test-Path $job.ErrLog) { Get-Content $job.ErrLog -Raw } else { '' }
+                } | ConvertTo-Json -Compress | Out-File -FilePath $qaLogFile -Append -Encoding UTF8
+
+                if ($exitCode -ne 0) { $ok = $false }
             }
         }
     }
 
     return $ok
+}
+
+function Test-QualityProfileRequiresRust {
+    param(
+        [ValidateSet('lint', 'format', 'fix')]
+        [string]$Mode,
+        [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality')]
+        [string]$Profile
+    )
+
+    if ($Profile -in @('rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt')) {
+        return $true
+    }
+
+    if ($Profile -eq 'all') {
+        return ($Mode -in @('lint', 'format', 'fix'))
+    }
+
+    return $false
 }
 
 #endregion
@@ -2005,24 +2270,33 @@ if ($Clean) {
 # Initialize directories
 Initialize-BuildDirectories
 
-# Initialize version information (sets PCAI_* environment variables)
-$versionInfo = Initialize-BuildVersion
-
-# Initialize CargoTools defaults / wrappers
-Initialize-CargoToolsDefaults | Out-Null
-
 # Quality-only components
 if ($Component -in @('lint', 'format', 'fix')) {
     $mode = if ($Component -eq 'lint') { 'lint' } elseif ($Component -eq 'format') { 'format' } else { 'fix' }
+    $requiresRustToolchain = Test-QualityProfileRequiresRust -Mode $mode -Profile $LintProfile
+    if ($requiresRustToolchain) {
+        $versionInfo = Initialize-BuildVersion
+        Initialize-CargoToolsDefaults | Out-Null
+    } else {
+        Write-BuildStep 'Skipping Rust toolchain initialization for non-Rust quality profile' 'skip'
+    }
     $qualitySuccess = Invoke-QualityPipeline -Mode $mode -Profile $LintProfile
     exit $(if ($qualitySuccess) { 0 } else { 1 })
 }
 
 # Dependency refresh-only component
 if ($Component -eq 'deps') {
+    $versionInfo = Initialize-BuildVersion
+    Initialize-CargoToolsDefaults | Out-Null
     $depsSuccess = Invoke-RustDependencyRefresh
     exit $(if ($depsSuccess) { 0 } else { 1 })
 }
+
+# Initialize version information (sets PCAI_* environment variables)
+$versionInfo = Initialize-BuildVersion
+
+# Initialize CargoTools defaults / wrappers
+Initialize-CargoToolsDefaults | Out-Null
 
 # Pre-build quality gate
 if (-not $SkipQualityGate) {

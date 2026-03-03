@@ -211,7 +211,7 @@ Set-LLMConfig -Reset
 - `-ShowConfig` - Display current config
 - `-Reset` - Reset to defaults
 
-**Configuration saved to:** `llm-config.json` in module directory
+**Configuration saved to:** `Config/llm-config.json` at repo root (canonical shared config)
 
 ## Model Selection Guide
 
@@ -232,15 +232,27 @@ Set-LLMConfig -Reset
 
 ## Configuration
 
-Module uses `llm-config.json` for persistence:
+Module persists settings into the canonical repo config `Config/llm-config.json`:
 
 ```json
 {
-  "PcaiInferenceApiUrl": "http://127.0.0.1:8080",
-  "RouterApiUrl": "http://127.0.0.1:8000",
-  "RouterModel": "functiongemma-270m-it",
-  "DefaultModel": "pcai-inference",
-  "DefaultTimeout": 120
+  "providers": {
+    "pcai-inference": {
+      "baseUrl": "http://127.0.0.1:8080",
+      "defaultModel": "pcai-inference",
+      "timeout": 120000
+    },
+    "functiongemma": {
+      "baseUrl": "http://127.0.0.1:8000",
+      "defaultModel": "functiongemma-270m-it"
+    }
+  },
+  "router": {
+    "baseUrl": "http://127.0.0.1:8000",
+    "model": "functiongemma-270m-it",
+    "toolsPath": "Config/pcai-tools.json"
+  },
+  "fallbackOrder": ["pcai-inference"]
 }
 ```
 

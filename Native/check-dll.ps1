@@ -1,6 +1,14 @@
 # Check PcaiNative.dll types
-Copy-Item 'C:\Users\david\PC_AI\Native\PcaiNative\bin\Release\net8.0\win-x64\PcaiNative.dll' 'C:\Users\david\PC_AI\bin\' -Force
+$repoRoot = if ($env:PCAI_ROOT) {
+    $env:PCAI_ROOT
+} else {
+    Split-Path -Parent $PSScriptRoot
+}
+$sourceDll = Join-Path $repoRoot 'Native\PcaiNative\bin\Release\net8.0\win-x64\PcaiNative.dll'
+$targetDir = Join-Path $repoRoot 'bin'
+$targetDll = Join-Path $targetDir 'PcaiNative.dll'
 
-$assembly = [System.Reflection.Assembly]::LoadFrom('C:\Users\david\PC_AI\bin\PcaiNative.dll')
+Copy-Item $sourceDll $targetDir -Force
+$assembly = [System.Reflection.Assembly]::LoadFrom($targetDll)
 Write-Host "Public types in PcaiNative.dll:"
 $assembly.GetTypes() | Where-Object { $_.IsPublic } | ForEach-Object { Write-Host "  - $($_.FullName)" }

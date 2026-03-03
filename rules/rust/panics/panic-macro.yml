@@ -1,0 +1,16 @@
+id: panic-macro
+message: panic!() causes immediate program termination - return error instead
+severity: error
+language: rust
+rule:
+  pattern: panic!($$$ARGS)
+fix: 'return Err(Error::Panic("$$$ARGS".to_string()))
+
+  '
+note: 'panic!() should only be used for truly unrecoverable errors.
+
+  Most cases should return Result<T, Error> instead.
+
+  '
+
+

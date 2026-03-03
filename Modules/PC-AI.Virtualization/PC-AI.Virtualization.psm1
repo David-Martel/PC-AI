@@ -13,6 +13,12 @@
 
 $script:ModuleRoot = $PSScriptRoot
 
+# Shared runtime config helper (PC-AI.Common)
+$sharedRuntimeHelper = Join-Path (Split-Path -Parent $PSScriptRoot) 'PC-AI.Common\Public\Get-PcaiRuntimeConfig.ps1'
+if (Test-Path $sharedRuntimeHelper) {
+    . $sharedRuntimeHelper
+}
+
 # Import private functions
 $privatePath = Join-Path $PSScriptRoot 'Private'
 if (Test-Path $privatePath) {

@@ -1,0 +1,9 @@
+id: no-innerhtml
+language: JavaScript
+severity: warning
+message: "Avoid innerHTML - use textContent or DOM methods to prevent XSS"
+rule:
+  any:
+  - pattern: $EL.innerHTML = $VALUE
+  - pattern: $EL.outerHTML = $VALUE
+note: "innerHTML can execute scripts - prefer textContent for plain text"

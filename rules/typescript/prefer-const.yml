@@ -1,0 +1,10 @@
+id: prefer-const
+language: TypeScript
+severity: info
+message: "Prefer const for variables never reassigned"
+rule:
+  all:
+  - pattern: "let $NAME = $VALUE"
+  - not:
+      pattern: "$NAME = $ANY"
+fix: "const $NAME = $VALUE"

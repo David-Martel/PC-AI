@@ -1,0 +1,7 @@
+id: prefer-write-verbose
+language: bash # PowerShell
+severity: info
+message: "Prefer Write-Verbose or Write-Information over Write-Host"
+rule:
+  pattern: Write-Host
+note: "Write-Host writes directly to the console bypassing output streams, making automated pipeline ingestion impossible. Consider Write-Information or Write-Verbose."

@@ -1,0 +1,21 @@
+id: no-console-log
+language: TypeScript
+severity: warning
+message: "Avoid console methods in committed code (use structured logger)"
+rule:
+  any:
+  - pattern: "console.log($ARGS)"
+  - pattern: "console.error($ARGS)"
+  - pattern: "console.warn($ARGS)"
+  - pattern: "console.info($ARGS)"
+  - pattern: "console.debug($ARGS)"
+fix: "// removed console method"
+note: "Use a proper logger instead of console methods"
+files:
+- "src/**/*.js"
+- "src/**/*.ts"
+- "src/**/*.tsx"
+ignores:
+- "**/*.test.*"
+- "**/*.spec.*"
+- "**/test/**"

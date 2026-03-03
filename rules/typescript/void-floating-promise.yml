@@ -1,0 +1,7 @@
+id: void-floating-promise
+language: TypeScript
+severity: info
+message: "Add void to floating promise"
+rule:
+  pattern: "$OBJ.dispose()"
+fix: "void $OBJ.dispose()"

@@ -1,8 +1,11 @@
 #Requires -Version 7.0
 
-$script:PcaiRoot = "C:\Users\david\PC_AI"
+. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
+$script:PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
 $dllDir = Join-Path $script:PcaiRoot "Native\PcaiNative\bin\Release\net8.0\win-x64"
 $toolsPath = Join-Path $script:PcaiRoot "Config\pcai-tools.json"
+$llmConfigPath = Join-Path $script:PcaiRoot "Config\llm-config.json"
 
 # Load PcaiNative
 $wrapperPath = Join-Path $dllDir "PcaiNative.dll"
@@ -20,6 +23,20 @@ function Test-LlmConnectivity {
 }
 
 $ollamaUrl = "http://localhost:11434"
+$model = "llama3.1:latest"
+if (Test-Path $llmConfigPath) {
+    try {
+        $llmConfig = Get-Content -Path $llmConfigPath -Raw | ConvertFrom-Json
+        if ($llmConfig.providers.ollama.baseUrl) {
+            $ollamaUrl = $llmConfig.providers.ollama.baseUrl
+        }
+        if ($llmConfig.providers.ollama.defaultModel) {
+            $model = $llmConfig.providers.ollama.defaultModel
+        }
+    } catch {
+        Write-Warning "Failed to parse llm-config.json: $_"
+    }
+}
 if (-not (Test-LlmConnectivity $ollamaUrl)) {
     Write-Warning "Ollama not found at $ollamaUrl. Evaluation will be restricted."
     # Skip real E2E if no LLM
@@ -32,8 +49,6 @@ Write-Host "REAL LLM EVALUATION STARTING..." -ForegroundColor Cyan
 $client = [PcaiNative.PcaiOpenAiClient]::new($ollamaUrl)
 $psHost = [PcaiNative.PowerShellHost]::new()
 $executor = [PcaiNative.ToolExecutor]::new($toolsPath, $psHost)
-$model = "llama3.1:latest" # Standard model with tool support
-
 $orchestrator = [PcaiNative.ReActOrchestrator]::new($client, $executor, $model)
 
 # Bind events for logging

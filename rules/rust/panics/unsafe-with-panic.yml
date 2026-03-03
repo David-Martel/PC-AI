@@ -1,0 +1,21 @@
+id: unsafe-with-panic
+message: Unsafe block contains panic-inducing code - ensure safety invariants
+severity: error
+language: rust
+rule:
+  all:
+  - pattern: "unsafe {\n  $$$BODY\n}\n"
+  - inside:
+      any:
+      - pattern: unwrap()
+      - pattern: expect($_)
+      - pattern: panic!($$$)
+      - pattern: unimplemented!($$$)
+      - pattern: todo!($$$)
+note: 'Unsafe blocks should not contain panicking code.
+
+  Either handle errors properly or document why panic is safe here.
+
+  '
+
+

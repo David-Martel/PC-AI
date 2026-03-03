@@ -12,27 +12,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run PSScriptAnalyzer
+      - name: Install PSScriptAnalyzer
         shell: pwsh
         run: |
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
-          Invoke-ScriptAnalyzer -Path . -Recurse -Settings PSScriptAnalyzerSettings.psd1 -EnableExit
 
-      - name: Check PowerShell Syntax
+      - name: Run PowerShell lint via Build.ps1
         shell: pwsh
         run: |
-          $errors = @()
-          Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 | ForEach-Object {
-              $parseErrors = $null
-              $null = [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$parseErrors)
-              if ($parseErrors) {
-                  $errors += "$($_.Name): $($parseErrors -join ', ')"
-              }
-          }
-          if ($errors) {
-              $errors | ForEach-Object { Write-Error $_ }
-              exit 1
-          }
+          .\Build.ps1 -Component lint -LintProfile powershell
+          if ($LASTEXITCODE -ne 0) { throw "Build.ps1 lint (powershell) failed with exit code $LASTEXITCODE" }
 
   test:
     runs-on: windows-latest

@@ -1,0 +1,19 @@
+id: library-unwrap
+message: Library code should not use unwrap() - propagate errors to caller
+severity: error
+language: rust
+rule:
+  pattern: $EXPR.unwrap()
+files:
+  - "**/src/**/*.rs"
+note: "Library code should propagate errors using ? or return Result.
+
+  Only use unwrap() in:
+
+  - Test code
+
+  - Example code
+
+  - After explicit checks that guarantee success
+
+  "

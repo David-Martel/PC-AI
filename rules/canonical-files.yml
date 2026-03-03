@@ -1,0 +1,13 @@
+id: enforce-canonical-file-editing
+language: rust
+severity: error
+message: Do not create duplicate files with prefixes like enhanced_, simple_, or improved_. Always edit the canonical version.
+rule:
+  any:
+    - pattern: fs::write("enhanced_$NAME", $CONTENT)
+    - pattern: fs::write("simple_$NAME", $CONTENT)
+    - pattern: fs::write("improved_$NAME", $CONTENT)
+    - pattern: File::create("enhanced_$NAME")
+    - pattern: File::create("simple_$NAME")
+    - pattern: File::create("improved_$NAME")
+note: This violates the canonical file editing rule. Edit the original file directly.

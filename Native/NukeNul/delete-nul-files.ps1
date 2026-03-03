@@ -135,7 +135,7 @@ else {
     }
     Write-Host ""
     Write-Host "Build NukeNul or install to ~/bin/:" -ForegroundColor Cyan
-    Write-Host "  cd C:\Users\david\PC_AI\Native\NukeNul && .\build.ps1" -ForegroundColor White
+    Write-Host "  cd $PSScriptRoot && .\build.ps1" -ForegroundColor White
     Write-Host ""
     Write-Host "Falling back to PowerShell implementation..." -ForegroundColor Yellow
     Write-Host ""

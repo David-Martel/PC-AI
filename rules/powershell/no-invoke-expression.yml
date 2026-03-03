@@ -1,0 +1,9 @@
+id: no-invoke-expression
+language: bash # PowerShell
+severity: error
+message: "Invoke-Expression (IEX) is a critical security vulnerability and is blocked."
+rule:
+  any:
+    - pattern: Invoke-Expression
+    - pattern: iex
+note: "IEX evaluates arbitrary strings as dynamic code, leading to Remote Code Execution (RCE) flaws. Use the explicit call operator '&' or scriptblocks instead."

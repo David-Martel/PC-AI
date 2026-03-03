@@ -1,0 +1,7 @@
+id: no-console-error
+language: TypeScript
+severity: warning
+message: "Avoid console.error in committed code (use structured logger)"
+rule:
+  pattern: "console.error($ARGS)"
+fix: "// removed console.error($ARGS)"

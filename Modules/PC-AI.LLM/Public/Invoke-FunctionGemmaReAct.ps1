@@ -117,7 +117,7 @@ function Invoke-FunctionGemmaReAct {
         [string]$Model = $script:ModuleConfig.RouterModel,
 
         [Parameter()]
-        [string]$ToolsPath = (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'Config\pcai-tools.json'),
+        [string]$ToolsPath = $(if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) { Resolve-PcaiPath -PathType 'Tools' } else { Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'Config\pcai-tools.json' }),
 
         [Parameter()]
         [switch]$ExecuteTools,

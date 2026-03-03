@@ -1,0 +1,8 @@
+id: inefficient-string-allocation
+language: Rust
+severity: info
+message: "Use .to_owned() or String::from() instead of .to_string() on literal strings."
+rule:
+  pattern: '"$STR".to_string()'
+fix: '"$STR".to_owned()'
+note: ".to_string() runs through the Display formatter, which is much heavier than direct memory allocation via .to_owned()."

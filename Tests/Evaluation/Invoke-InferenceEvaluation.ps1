@@ -120,7 +120,7 @@ if (Test-Path $configPath) {
     try {
         $script:LlmConfig = Get-Content $configPath -Raw | ConvertFrom-Json
     } catch {
-        Write-Verbose "Failed to parse $configPath: $_"
+        Write-Verbose ([string]::Format([System.Globalization.CultureInfo]::InvariantCulture, 'Failed to parse {0}: {1}', $configPath, $_))
     }
 }
 

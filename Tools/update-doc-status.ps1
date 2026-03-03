@@ -42,8 +42,7 @@ function Convert-ToRepoRelativePath {
         if ($full.StartsWith($repoFull, [System.StringComparison]::OrdinalIgnoreCase)) {
             return $full.Substring($repoFull.Length).TrimStart('\', '/')
         }
-    }
-    catch {
+    } catch {
         # Fall back to original path if normalization fails.
     }
 
@@ -93,33 +92,31 @@ $sgJson = $null
 $sgExe = Get-Command sg.exe -ErrorAction SilentlyContinue
 if ($sgExe) {
     try {
-        $sgArgs = @('scan', '-c', (Join-Path $RepoRoot 'sgconfig.yml'), '--json=compact')
+        $sgArgs = @('scan', '-c', (Join-Path $RepoRoot 'sgconfig.yml'), '--json=stream')
         $sgOutput = & $sgExe.Path @sgArgs 2>$null
         if ($LASTEXITCODE -eq 0 -and $sgOutput) {
-            $sgJson = $sgOutput | ConvertFrom-Json
             $sgOutput | Set-Content -Path $docStatusJson -Encoding UTF8
-            $sgMatches = $null
-            if ($sgJson -is [System.Collections.IEnumerable] -and -not ($sgJson -is [string]) -and -not ($sgJson.PSObject.Properties.Name -contains 'matches')) {
-                $sgMatches = $sgJson
-            } elseif ($sgJson.matches) {
-                $sgMatches = $sgJson.matches
-            }
-            if ($sgMatches) {
-                foreach ($m in $sgMatches) {
-                    $key = "$($m.file)|$($m.line)|$($m.text)"
-                    if (-not $entryIndex.ContainsKey($key)) {
-                        $entryIndex[$key] = $true
-                        $entries += [PSCustomObject]@{
-                            Path = Convert-ToRepoRelativePath -Path $m.file -RepoRoot $RepoRoot
-                            Line = $m.line
-                            Match = $m.text
+            foreach ($line in $sgOutput) {
+                if ([string]::IsNullOrWhiteSpace($line)) { continue }
+                try {
+                    $m = $line | ConvertFrom-Json
+                    if ($null -ne $m -and $m.file) {
+                        $key = "$($m.file)|$($m.line)|$($m.text)"
+                        if (-not $entryIndex.ContainsKey($key)) {
+                            $entryIndex[$key] = $true
+                            $entries += [PSCustomObject]@{
+                                Path  = Convert-ToRepoRelativePath -Path $m.file -RepoRoot $RepoRoot
+                                Line  = $m.line
+                                Match = $m.text
+                            }
                         }
                     }
+                } catch {
+                    # Skip malformed NDJSON lines
                 }
             }
         }
-    }
-    catch {
+    } catch {
         $sgJson = $null
     }
 }
@@ -131,8 +128,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 Push-Location $RepoRoot
 try {
     $rgOut = & rg @rgArgs 2>$null
-}
-finally {
+} finally {
     Pop-Location
 }
 $ErrorActionPreference = $prevEAP
@@ -145,8 +141,8 @@ if ($rgOut) {
             if (-not $entryIndex.ContainsKey($key)) {
                 $entryIndex[$key] = $true
                 $entries += [PSCustomObject]@{
-                    Path = Convert-ToRepoRelativePath -Path $parts[0] -RepoRoot $RepoRoot
-                    Line = $parts[1]
+                    Path  = Convert-ToRepoRelativePath -Path $parts[0] -RepoRoot $RepoRoot
+                    Line  = $parts[1]
                     Match = $parts[2].Trim()
                 }
             }
@@ -164,16 +160,16 @@ $counts = $entries | Group-Object -Property {
 }
 
 $md = New-Object System.Text.StringBuilder
-$null = $md.AppendLine("# DOC_STATUS")
-$null = $md.AppendLine("")
+$null = $md.AppendLine('# DOC_STATUS')
+$null = $md.AppendLine('')
 $null = $md.AppendLine("Generated: $timestamp")
-$null = $md.AppendLine("")
-$null = $md.AppendLine("## Counts")
+$null = $md.AppendLine('')
+$null = $md.AppendLine('## Counts')
 foreach ($c in $counts) {
     $null = $md.AppendLine("- $($c.Name): $($c.Count)")
 }
-$null = $md.AppendLine("")
-$null = $md.AppendLine("## Matches")
+$null = $md.AppendLine('')
+$null = $md.AppendLine('## Matches')
 foreach ($e in $entries) {
     $null = $md.AppendLine("- $($e.Path):$($e.Line) $($e.Match)")
 }

@@ -10,10 +10,10 @@
     report plus recommended next steps.
 
 .PARAMETER PcaiInferenceUrl
-    URL of the pcai-inference HTTP server. Default: http://127.0.0.1:8080
+    URL of the pcai-inference HTTP server. Defaults to providers.pcai-inference.baseUrl from Config/llm-config.json.
 
 .PARAMETER FunctionGemmaUrl
-    URL of the FunctionGemma router. Default: http://127.0.0.1:8000
+    URL of the FunctionGemma router. Defaults to providers.functiongemma.baseUrl from Config/llm-config.json.
 
 .PARAMETER NativeDllSearchPaths
     Optional list of pcai_inference.dll search paths to override defaults.
@@ -32,10 +32,13 @@ function Invoke-PcaiDoctor {
     [OutputType([PSCustomObject])]
     param(
         [Parameter()]
-        [string]$PcaiInferenceUrl = "http://127.0.0.1:8080",
+        [string]$PcaiInferenceUrl,
 
         [Parameter()]
-        [string]$FunctionGemmaUrl = "http://127.0.0.1:8000",
+        [string]$FunctionGemmaUrl,
+
+        [Parameter()]
+        [string]$ConfigPath,
 
         [Parameter()]
         [string[]]$NativeDllSearchPaths,
@@ -45,9 +48,10 @@ function Invoke-PcaiDoctor {
     )
 
     $healthParams = @{
-        PcaiInferenceUrl = $PcaiInferenceUrl
-        FunctionGemmaUrl = $FunctionGemmaUrl
+        ConfigPath = $ConfigPath
     }
+    if ($PSBoundParameters.ContainsKey('PcaiInferenceUrl') -and -not [string]::IsNullOrWhiteSpace($PcaiInferenceUrl)) { $healthParams.PcaiInferenceUrl = $PcaiInferenceUrl }
+    if ($PSBoundParameters.ContainsKey('FunctionGemmaUrl') -and -not [string]::IsNullOrWhiteSpace($FunctionGemmaUrl)) { $healthParams.FunctionGemmaUrl = $FunctionGemmaUrl }
 
     if ($NativeDllSearchPaths -and $NativeDllSearchPaths.Count -gt 0) {
         $healthParams.NativeDllSearchPaths = $NativeDllSearchPaths
@@ -60,15 +64,17 @@ function Invoke-PcaiDoctor {
     $health = Get-PcaiServiceHealth @healthParams
 
     $recommendations = @()
+    $pcaiTarget = if (-not [string]::IsNullOrWhiteSpace($PcaiInferenceUrl)) { $PcaiInferenceUrl } else { 'providers.pcai-inference.baseUrl' }
+    $routerTarget = if (-not [string]::IsNullOrWhiteSpace($FunctionGemmaUrl)) { $FunctionGemmaUrl } else { 'providers.functiongemma.baseUrl' }
 
     if ($health.PcaiInference.Status -ne 'OK') {
-        $recommendations += "pcai-inference not responding at $PcaiInferenceUrl. Start it with Invoke-PcaiServiceHost."
+        $recommendations += "pcai-inference not responding at $pcaiTarget. Start it with Invoke-PcaiServiceHost."
     } elseif (-not $health.PcaiInference.ModelLoaded) {
         $recommendations += 'pcai-inference is responding but no model is loaded. Load a model or configure the server.'
     }
 
     if ($health.FunctionGemma.Status -ne 'OK') {
-        $recommendations += "FunctionGemma router not responding at $FunctionGemmaUrl. Start rust-functiongemma-runtime on port 8000."
+        $recommendations += "FunctionGemma router not responding at $routerTarget. Start rust-functiongemma-runtime for providers.functiongemma.baseUrl."
     }
 
     if (-not $health.NativeFFI.DllExists) {

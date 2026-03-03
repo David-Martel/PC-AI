@@ -1,0 +1,11 @@
+id: flag-absolute-paths-rs
+language: rust
+message: "Avoid machine-specific absolute paths; resolve from config or repository root helpers."
+severity: warning
+ignores:
+  - "**/tests/**"
+  - "**/target/**"
+  - "**/Deploy/rust-functiongemma-*/**"
+rule:
+  kind: string_literal
+  regex: '(?i)[A-Z]:\\\\Users\\\\[^\\\\]+\\\\PC_AI'

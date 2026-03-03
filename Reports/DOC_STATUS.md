@@ -1,20 +1,17 @@
 # DOC_STATUS
 
-Generated: 2026-02-22 13:39:15
+Generated: 2026-02-22 16:21:11
 
 ## Counts
 - @status: 1
 - DEPRECATED: 2
 - FIXME: 2
 - INCOMPLETE: 2
-- TODO: 313
+- TODO: 317
 
 ## Matches
 - AGENTS.md:201 ## Known gaps / TODOs
-- rules\doc-status.yml:7 - pattern: "TODO"
-- rules\doc-status.yml:8 - pattern: "FIXME"
-- rules\doc-status.yml:9 - pattern: "INCOMPLETE"
-- rules\doc-status.yml:10 - pattern: "DEPRECATED"
+- CLAUDE.md:104 - `DOC_STATUS.md` — TODO/FIXME/DEPRECATED markers across codebase
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:788 prompt_tokens: 0, // TODO: Implement token counting
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:937 // TODO: Implement actual model loading with llama-cpp-2
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:948 architecture: "unknown".into(), // TODO: Read from GGUF metadata
@@ -24,80 +21,38 @@ Generated: 2026-02-22 13:39:15
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:1142 // TODO: Implement actual mistralrs model loading
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:1191 // TODO: Implement actual mistralrs generation
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:1224 // TODO: Implement streaming with mistralrs
-- TODO.md:1 # TODO
 - Deploy\rust-functiongemma-train\TODO.md:1 # TODO - Rust FunctionGemma (PC_AI)
 - Deploy\rust-functiongemma-train\TODO.md:3 This TODO captures the minimum work required to reach feature parity with
-- Deploy\rust-functiongemma-core\src\safetensors_utils.rs:178 let data = varmap.data().lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\safetensors_utils.rs:239 let data = varmap.data().lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\safetensors_utils.rs:348 std::fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:129 let json = serde_json::to_string(&req).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:130 let deserialized: GenerateRequest = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:147 let json = serde_json::to_string(&resp).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:148 let deserialized: GenerateResponse = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:163 let json = serde_json::to_string(&reason).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:166 let deserialized: FinishReason = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:243 let backend = backend_result.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:254 let backend = backend_result.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:271 backend.load_model("dummy.gguf").await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:275 backend.unload_model().await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:282 backend.load_model("dummy.gguf").await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:292 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:349 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:360 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:376 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:387 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:416 let backend = CString::new("unknown_backend").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:433 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:453 let backend = CString::new("mistralrs").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:474 let path = CString::new("/nonexistent/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:502 let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:519 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:524 let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:567 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:572 let path = CString::new(model_path).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:585 let prompt = CString::new("The capital of France is").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:590 let text = result_str.to_str().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:615 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:626 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:643 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:653 let _ = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:654 backend.unload_model().await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:661 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:671 let _ = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:672 backend.unload_model().await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\prompt.rs:45 Value::Number(serde_json::Number::from_f64(n).expect("TODO: Verify unwrap"))
-- Deploy\rust-functiongemma-train\tests\router_dataset.rs:40 fs::write(&tools_path, serde_json::to_string(&tools).expect("TODO: Verify unwrap")).expect("write tools");
-- Deploy\rust-functiongemma-train\tests\router_dataset.rs:53 })).expect("TODO: Verify unwrap"),
-- Tools\Invoke-DocPipeline.ps1:142 # Step 1: Generate DOC_STATUS report (TODO/FIXME/DEPRECATED markers)
-- Deploy\rust-functiongemma-core\src\model.rs:316 let mut cache = self.cache.lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\lora_test.rs:13 let lora = LoraLinear::new(768, 768, &config, &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\lora_test.rs:14 let input = Tensor::randn(0f32, 1f32, (2, 10, 768), &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\lora_test.rs:15 let output = lora.forward(&input).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-core\src\config.rs:322 let _guard = ENV_LOCK.lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:66 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:78 checkpoint.save(&ckpt_path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:81 let loaded = Checkpoint::load(&ckpt_path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:190 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:207 checkpoint.save(&ckpt_path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:211 Checkpoint::cleanup_old(&checkpoint_config).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-core\src\lora_utils.rs:178 ).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-core\src\lora_utils.rs:184 fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-core\src\lora_utils.rs:196 fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-core\src\lora_utils.rs:201 ).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-core\src\lora_utils.rs:212 fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-core\src\lora_utils.rs:217 ).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-core\src\safetensors_utils.rs:178 let data = varmap.data().lock().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-core\src\safetensors_utils.rs:239 let data = varmap.data().lock().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-core\src\safetensors_utils.rs:348 std::fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-core\src\model.rs:316 let mut cache = self.cache.lock().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-core\src\prompt.rs:45 Value::Number(serde_json::Number::from_f64(n).expect("TODO: Verify unwrap"))
+- Deploy\rust-functiongemma-train\examples\checkpoint_usage.md:75 // TODO: Restore optimizer state and RNG
+- Deploy\rust-functiongemma-train\examples\checkpoint_usage.md:105 optimizer_state: vec![0.1, 0.2, 0.3], // TODO: Serialize actual optimizer
+- Deploy\rust-functiongemma-train\examples\checkpoint_usage.md:106 rng_state: Some(rand::random()), // TODO: Get actual RNG state
+- Deploy\rust-functiongemma-train\tests\router_dataset.rs:40 fs::write(&tools_path, serde_json::to_string(&tools).expect("TODO: Verify unwrap")).expect("write tools");
+- Deploy\rust-functiongemma-train\tests\router_dataset.rs:53 })).expect("TODO: Verify unwrap"),
+- Deploy\rust-functiongemma-train\tests\lora_test.rs:13 let lora = LoraLinear::new(768, 768, &config, &device).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\tests\lora_test.rs:14 let input = Tensor::randn(0f32, 1f32, (2, 10, 768), &device).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\tests\lora_test.rs:15 let output = lora.forward(&input).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\README.md:20 - FunctionGemma model inference with tool-call parsing (TODO)
 - Deploy\rust-functiongemma-train\README.md:26 - LoRA/QLoRA fine-tuning (TODO)
 - Deploy\rust-functiongemma-train\README.md:27 - Eval harness + regression checks (TODO)
 - Deploy\rust-functiongemma-train\README.md:174 with the Python pipeline and has several TODOs (see TODO.md).
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:29 let invalid = CString::new("invalid_backend").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:51 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:57 let backend = CString::new("mistralrs").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:70 let empty = CString::new("").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:88 let long = CString::new(long_string).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:103 let unicode = CString::new("backend_日本語").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:128 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:146 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\tests\full_training_test.rs:66 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\tests\full_training_test.rs:78 checkpoint.save(&ckpt_path).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\tests\full_training_test.rs:81 let loaded = Checkpoint::load(&ckpt_path).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\tests\full_training_test.rs:190 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\tests\full_training_test.rs:207 checkpoint.save(&ckpt_path).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\tests\full_training_test.rs:211 Checkpoint::cleanup_old(&checkpoint_config).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:6 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:17 original.save(&checkpoint_path).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:18 let loaded = Checkpoint::load(&checkpoint_path).expect("TODO: Verify unwrap");
@@ -110,38 +65,39 @@ Generated: 2026-02-22 13:39:15
 - Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:71 let remaining: Vec<_> = std::fs::read_dir(temp_dir.path()).expect("TODO: Verify unwrap")
 - Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:84 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:91 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\trainer.rs:178 let data = self.varmap.data().lock().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\trainer.rs:606 for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
+- Deploy\rust-functiongemma-train\src\trainer.rs:632 for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
+- Deploy\rust-functiongemma-train\src\trainer.rs:700 for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
+- Deploy\rust-functiongemma-train\src\trainer.rs:712 optimizer_state: vec![], // TODO: Save optimizer state if needed
+- Deploy\rust-functiongemma-train\src\trainer.rs:713 rng_state: None, // TODO: Save RNG state for reproducibility
+- Deploy\rust-functiongemma-train\src\trainer.rs:738 if let Some(var) = self.varmap.data().lock().expect("TODO: Verify unwrap").get_mut(&name) {
+- Deploy\rust-functiongemma-train\src\schema_utils.rs:11 let props = props.expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\schema_utils.rs:68 let key = serde_json::to_string(&set).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\schema_utils.rs:103 values.into_iter().map(|v| Value::Number(serde_json::Number::from_f64(v).expect("TODO: Verify unwrap"))).collect()
+- Deploy\rust-functiongemma-train\src\main.rs:778 let total_vars = varmap.data().lock().expect("TODO: Verify unwrap").len();
+- Deploy\rust-functiongemma-train\src\lora.rs:180 let lora = LoraLinear::new(768, 768, &config, &device).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\lora.rs:197 let lora = LoraLinear::new(512, 256, &config, &device).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\lora.rs:204 let sum = lora_b.sum_all().unwrap().to_scalar::<f32>().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\lib.rs:42 let tensor = Tensor::zeros((2, 3), candle_core::DType::F32, &device).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\eval.rs:463 ).expect("TODO: Verify unwrap");
+- rules\typescript\enforce-prime-directive.yml:6 pattern: "// TODO: Create $FILE"
+- Deploy\rust-functiongemma-train\src\dataset.rs:641 write_cache_header(&mut buf, &hash).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:644 validate_cache_header(&buf, &hash).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:664 write_cache_header(&mut buf, &hash).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:679 write_cache_header(&mut buf, &hash_a).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:701 let dir = TempDir::new().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:703 std::fs::write(&path, b"test tokenizer content").expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:704 let hash1 = compute_tokenizer_hash(&path).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:705 let hash2 = compute_tokenizer_hash(&path).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:711 let dir = TempDir::new().expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:714 std::fs::write(&path_a, b"tokenizer A").expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:715 std::fs::write(&path_b, b"tokenizer B").expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:716 let hash_a = compute_tokenizer_hash(&path_a).expect("TODO: Verify unwrap");
+- Deploy\rust-functiongemma-train\src\dataset.rs:717 let hash_b = compute_tokenizer_hash(&path_b).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\src\checkpoint.rs:130 let (_, latest) = checkpoints.into_iter().last().expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\src\checkpoint.rs:196 let json = serde_json::to_string(&checkpoint).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\src\checkpoint.rs:197 let deserialized: Checkpoint = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Tools\update-doc-status.ps1:8 Scans the repo for TODO/FIXME/INCOMPLETE/@status/DEPRECATED markers and writes:
-- Tools\update-doc-status.ps1:67 $markers = 'TODO|FIXME|INCOMPLETE|@status|DEPRECATED'
-- Tools\update-doc-status.ps1:158 if ($_.Match -match 'TODO') { 'TODO' }
-- Tools\update-doc-status.ps1:159 elseif ($_.Match -match 'FIXME') { 'FIXME' }
-- Tools\update-doc-status.ps1:160 elseif ($_.Match -match 'INCOMPLETE') { 'INCOMPLETE' }
-- Tools\update-doc-status.ps1:161 elseif ($_.Match -match '@status') { '@status' }
-- Tools\update-doc-status.ps1:162 elseif ($_.Match -match 'DEPRECATED') { 'DEPRECATED' }
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:22 let backend = CString::new("unknown_backend_12345").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:49 let path = CString::new("/test/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:82 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:87 let nonexistent = CString::new("/nonexistent/path/to/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:117 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:122 let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:156 let backend = CString::new(backend_name).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:185 let invalid = CString::new("invalid").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:197 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:242 let unknown = CString::new("unknown_backend").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:260 let path = CString::new("/test/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:272 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:277 let prompt = CString::new("Test").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:291 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:296 let nonexistent = CString::new("/nonexistent/path/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:321 let prompt_cstr = CString::new(large_prompt).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:41 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:47 let backend = CString::new(format!("test_{}", i)).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:67 let invalid = CString::new("invalid").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:100 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:129 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:137 let prompt = CString::new(format!("Test prompt {}", i)).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\src\data_gen.rs:178 scenarios_val.as_array().expect("TODO: Verify unwrap").clone()
 - Deploy\rust-functiongemma-train\src\data_gen.rs:317 let dir = TempDir::new().expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\src\data_gen.rs:322 ).expect("TODO: Verify unwrap");
@@ -179,45 +135,94 @@ Generated: 2026-02-22 13:39:15
 - Deploy\rust-functiongemma-train\src\data_gen.rs:459 ).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\src\data_gen.rs:463 ).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-train\src\data_gen.rs:465 let items = gen.generate_from_scenario_dir(dir.path()).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\trainer.rs:178 let data = self.varmap.data().lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\trainer.rs:606 for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
-- Deploy\rust-functiongemma-train\src\trainer.rs:632 for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
-- Deploy\rust-functiongemma-train\src\trainer.rs:700 for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
-- Deploy\rust-functiongemma-train\src\trainer.rs:712 optimizer_state: vec![], // TODO: Save optimizer state if needed
-- Deploy\rust-functiongemma-train\src\trainer.rs:713 rng_state: None, // TODO: Save RNG state for reproducibility
-- Deploy\rust-functiongemma-train\src\trainer.rs:738 if let Some(var) = self.varmap.data().lock().expect("TODO: Verify unwrap").get_mut(&name) {
-- Deploy\rust-functiongemma-train\src\dataset.rs:641 write_cache_header(&mut buf, &hash).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:644 validate_cache_header(&buf, &hash).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:664 write_cache_header(&mut buf, &hash).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:679 write_cache_header(&mut buf, &hash_a).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:701 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:703 std::fs::write(&path, b"test tokenizer content").expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:704 let hash1 = compute_tokenizer_hash(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:705 let hash2 = compute_tokenizer_hash(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:711 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:714 std::fs::write(&path_a, b"tokenizer A").expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:715 std::fs::write(&path_b, b"tokenizer B").expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:716 let hash_a = compute_tokenizer_hash(&path_a).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:717 let hash_b = compute_tokenizer_hash(&path_b).expect("TODO: Verify unwrap");
+- rules\core\doc-status.yml:7 - pattern: "TODO"
+- rules\core\doc-status.yml:8 - pattern: "FIXME"
+- rules\core\doc-status.yml:9 - pattern: "INCOMPLETE"
+- rules\core\doc-status.yml:10 - pattern: "DEPRECATED"
+- Tools\update-doc-status.ps1:8 Scans the repo for TODO/FIXME/INCOMPLETE/@status/DEPRECATED markers and writes:
+- Tools\update-doc-status.ps1:66 $markers = 'TODO|FIXME|INCOMPLETE|@status|DEPRECATED'
+- Tools\update-doc-status.ps1:154 if ($_.Match -match 'TODO') { 'TODO' }
+- Tools\update-doc-status.ps1:155 elseif ($_.Match -match 'FIXME') { 'FIXME' }
+- Tools\update-doc-status.ps1:156 elseif ($_.Match -match 'INCOMPLETE') { 'INCOMPLETE' }
+- Tools\update-doc-status.ps1:157 elseif ($_.Match -match '@status') { '@status' }
+- Tools\update-doc-status.ps1:158 elseif ($_.Match -match 'DEPRECATED') { 'DEPRECATED' }
+- rules\rust\avoid-unwrap.yml:7 fix: '$EXPR.expect("TODO: Verify unwrap")'
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:129 let json = serde_json::to_string(&req).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:130 let deserialized: GenerateRequest = serde_json::from_str(&json).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:147 let json = serde_json::to_string(&resp).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:148 let deserialized: GenerateResponse = serde_json::from_str(&json).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:163 let json = serde_json::to_string(&reason).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:166 let deserialized: FinishReason = serde_json::from_str(&json).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:243 let backend = backend_result.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:254 let backend = backend_result.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:271 backend.load_model("dummy.gguf").await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:275 backend.unload_model().await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:282 backend.load_model("dummy.gguf").await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:292 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:349 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:360 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:376 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:387 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:416 let backend = CString::new("unknown_backend").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:433 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:453 let backend = CString::new("mistralrs").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:474 let path = CString::new("/nonexistent/model.gguf").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:502 let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:519 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:524 let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:567 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:572 let path = CString::new(model_path).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:585 let prompt = CString::new("The capital of France is").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:590 let text = result_str.to_str().expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:615 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:626 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:643 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:653 let _ = backend.generate(request).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:654 backend.unload_model().await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:661 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:671 let _ = backend.generate(request).await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\integration_test.rs:672 backend.unload_model().await.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:29 let invalid = CString::new("invalid_backend").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:51 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:57 let backend = CString::new("mistralrs").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:70 let empty = CString::new("").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:88 let long = CString::new(long_string).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:103 let unicode = CString::new("backend_日本語").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:128 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:146 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- rules\rust\panics\todo-macro.yml:7 fix: 'candle_core::bail!("TODO: $$$ARGS - not yet implemented")
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:22 let backend = CString::new("unknown_backend_12345").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:49 let path = CString::new("/test/model.gguf").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:82 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:87 let nonexistent = CString::new("/nonexistent/path/to/model.gguf").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:117 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:122 let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:156 let backend = CString::new(backend_name).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:185 let invalid = CString::new("invalid").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:197 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:242 let unknown = CString::new("unknown_backend").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:260 let path = CString::new("/test/model.gguf").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:272 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:277 let prompt = CString::new("Test").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:291 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:296 let nonexistent = CString::new("/nonexistent/path/model.gguf").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:321 let prompt_cstr = CString::new(large_prompt).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:41 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:47 let backend = CString::new(format!("test_{}", i)).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:67 let invalid = CString::new("invalid").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:100 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:129 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:137 let prompt = CString::new(format!("Test prompt {}", i)).expect("TODO: Verify unwrap");
+- TODO.md:1 # TODO
 - Native\pcai_core\pcai_inference\tests\backend_selection_test.rs:44 let json = serde_json::to_string(&reason).expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_inference\tests\backend_selection_test.rs:128 let llamacpp = BackendType::LlamaCpp.create().expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_inference\tests\backend_selection_test.rs:129 let mistralrs = BackendType::MistralRs.create().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\schema_utils.rs:11 let props = props.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\schema_utils.rs:68 let key = serde_json::to_string(&set).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\schema_utils.rs:103 values.into_iter().map(|v| Value::Number(serde_json::Number::from_f64(v).expect("TODO: Verify unwrap"))).collect()
-- Deploy\rust-functiongemma-train\examples\checkpoint_usage.md:75 // TODO: Restore optimizer state and RNG
-- Deploy\rust-functiongemma-train\examples\checkpoint_usage.md:105 optimizer_state: vec![0.1, 0.2, 0.3], // TODO: Serialize actual optimizer
-- Deploy\rust-functiongemma-train\examples\checkpoint_usage.md:106 rng_state: Some(rand::random()), // TODO: Get actual RNG state
-- Deploy\rust-functiongemma-train\src\lora.rs:180 let lora = LoraLinear::new(768, 768, &config, &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\lora.rs:197 let lora = LoraLinear::new(512, 256, &config, &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\lora.rs:204 let sum = lora_b.sum_all().unwrap().to_scalar::<f32>().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\main.rs:778 let total_vars = varmap.data().lock().expect("TODO: Verify unwrap").len();
-- Deploy\rust-functiongemma-train\src\lib.rs:42 let tensor = Tensor::zeros((2, 3), candle_core::DType::F32, &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\eval.rs:463 ).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\http\mod.rs:1062 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\http\mod.rs:1099 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\http\mod.rs:1111 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\http\mod.rs:1121 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
+- Tools\Invoke-DocPipeline.ps1:142 # Step 1: Generate DOC_STATUS report (TODO/FIXME/DEPRECATED markers)
+- Native\pcai_core\pcai_inference\build.rs:27 let out_dir = env::var_os("OUT_DIR").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\http\mod.rs:1064 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\http\mod.rs:1101 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\http\mod.rs:1113 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\http\mod.rs:1123 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_inference\src\ffi\mod.rs:1108 let version = version_str.to_str().expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_inference\src\ffi\mod.rs:1161 let prompt = CString::new("test").expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_inference\src\ffi\mod.rs:1174 let prompt_cstr = CString::new(large_prompt).expect("TODO: Verify unwrap");
@@ -232,6 +237,32 @@ Generated: 2026-02-22 13:39:15
 - Native\pcai_core\pcai_inference\src\config.rs:200 std::fs::write(&path, "not valid json {{{").expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_inference\src\config.rs:220 let deserialized: GenerationDefaults = serde_json::from_str(json).expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_inference\src\config.rs:231 let config: ModelConfig = serde_json::from_str(json).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mod.rs:125 let req: GenerateRequest = serde_json::from_str(json).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mod.rs:142 let json = serde_json::to_string(&req).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mod.rs:143 let deserialized: GenerateRequest = serde_json::from_str(&json).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mod.rs:158 let json = serde_json::to_string(&resp).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mod.rs:159 let deserialized: GenerateResponse = serde_json::from_str(&json).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mod.rs:174 let stop: FinishReason = serde_json::from_str("\"stop\"").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mod.rs:176 let length: FinishReason = serde_json::from_str("\"length\"").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mod.rs:178 let error: FinishReason = serde_json::from_str("\"error\"").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mod.rs:184 let req: GenerateRequest = serde_json::from_str(r#"{"prompt": "x"}"#).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_inference\src\backends\mistralrs.rs:220 // TODO: Implement a custom RequestLike to support full sampling control.
+- Native\pcai_core\pcai_inference\src\backends\mistralrs.rs:269 let (model_id, filename) = result.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\tokenizer.rs:18 ").unwrap_or_else(|_| Regex::new(".").expect("TODO: Verify unwrap")) // Fallback to safe catch-all
+- Modules\PC-AI.Acceleration\Public\Search-ContentFast.ps1:40 Search-ContentFast -Path "." -LiteralPattern "TODO:" -Context 2
+- Modules\PC-AI.Acceleration\Public\Search-ContentFast.ps1:41 Finds TODO comments with context
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:402 let dir = tempdir().expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:404 let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:405 writeln!(file, "Line 1: normal content").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:406 writeln!(file, "Line 2: ERROR something failed").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:407 writeln!(file, "Line 3: more normal content").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:408 writeln!(file, "Line 4: ERROR another failure").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:409 writeln!(file, "Line 5: final line").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:432 let dir = tempdir().expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:434 let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:435 writeln!(file, "error lowercase").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:436 writeln!(file, "ERROR uppercase").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\system\logs.rs:437 writeln!(file, "Error mixed").expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-runtime\tests\http_router.rs:7 let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-runtime\tests\http_router.rs:8 let addr = listener.local_addr().expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-runtime\tests\http_router.rs:10 axum::serve(listener, app).await.expect("TODO: Verify unwrap");
@@ -257,66 +288,13 @@ Generated: 2026-02-22 13:39:15
 - Deploy\rust-functiongemma-runtime\tests\http_router.rs:182 let addr = listener.local_addr().expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-runtime\tests\http_router.rs:184 axum::serve(listener, app).await.expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-runtime\tests\http_router.rs:202 .await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\build.rs:27 let out_dir = env::var_os("OUT_DIR").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:125 let req: GenerateRequest = serde_json::from_str(json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:142 let json = serde_json::to_string(&req).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:143 let deserialized: GenerateRequest = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:158 let json = serde_json::to_string(&resp).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:159 let deserialized: GenerateResponse = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:174 let stop: FinishReason = serde_json::from_str("\"stop\"").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:176 let length: FinishReason = serde_json::from_str("\"length\"").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:178 let error: FinishReason = serde_json::from_str("\"error\"").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:184 let req: GenerateRequest = serde_json::from_str(r#"{"prompt": "x"}"#).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mistralrs.rs:220 // TODO: Implement a custom RequestLike to support full sampling control.
-- Native\pcai_core\pcai_inference\src\backends\mistralrs.rs:269 let (model_id, filename) = result.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\build.rs:7 let out_dir = env::var_os("OUT_DIR").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\build.rs:19 ).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-runtime\src\model_support.rs:84 std::fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-runtime\src\model_support.rs:85 std::fs::write(dir.join("config.json"), "{}").expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-runtime\src\model_support.rs:87 let result = resolve_model_path(dir.to_str().expect("TODO: Verify unwrap"));
 - Deploy\rust-functiongemma-runtime\src\model_support.rs:98 std::fs::create_dir_all(&model_dir).expect("TODO: Verify unwrap");
 - Deploy\rust-functiongemma-runtime\src\model_support.rs:100 std::env::set_var("PCAI_MODELS_DIR", base.to_str().expect("TODO: Verify unwrap"));
-- Native\pcai_core\pcai_core_lib\src\tokenizer.rs:18 ").unwrap_or_else(|_| Regex::new(".").expect("TODO: Verify unwrap")) // Fallback to safe catch-all
-- Modules\PC-AI.Acceleration\Public\Search-ContentFast.ps1:40 Search-ContentFast -Path "." -LiteralPattern "TODO:" -Context 2
-- Modules\PC-AI.Acceleration\Public\Search-ContentFast.ps1:41 Finds TODO comments with context
-- Native\pcai_core\pcai_core_lib\build.rs:7 let out_dir = env::var_os("OUT_DIR").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\build.rs:19 ).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:402 let dir = tempdir().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:404 let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:405 writeln!(file, "Line 1: normal content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:406 writeln!(file, "Line 2: ERROR something failed").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:407 writeln!(file, "Line 3: more normal content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:408 writeln!(file, "Line 4: ERROR another failure").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:409 writeln!(file, "Line 5: final line").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:432 let dir = tempdir().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:434 let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:435 writeln!(file, "error lowercase").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:436 writeln!(file, "ERROR uppercase").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:437 writeln!(file, "Error mixed").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\process.rs:222 let p = process.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:246 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:250 let mut file1 = File::create(temp_path.join("file1.txt")).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:251 file1.write_all(b"Hello, World!").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:253 let mut file2 = File::create(temp_path.join("file2.txt")).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:254 file2.write_all(b"Test content here").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:258 fs::create_dir(&subdir).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:259 let mut file3 = File::create(subdir.join("file3.txt")).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:260 file3.write_all(b"Subdirectory content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:262 let result = get_disk_usage(temp_path.to_str().expect("TODO: Verify unwrap"), 10);
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:265 let (stats, entries) = result.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\files.rs:176 found_files_clone.lock().expect("TODO: Verify unwrap").push(file_info);
-- Native\pcai_core\pcai_core_lib\src\search\files.rs:184 let mut files = std::mem::take(&mut *found_files.lock().expect("TODO: Verify unwrap"));
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:233 let mut map = hash_map.lock().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:341 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:344 fs::write(dir.path().join("file1.txt"), "duplicate content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:345 fs::write(dir.path().join("file2.txt"), "duplicate content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:346 fs::write(dir.path().join("unique.txt"), "unique content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:350 fs::create_dir(&subdir).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:351 fs::write(subdir.join("file3.txt"), "duplicate content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:352 fs::write(subdir.join("other.txt"), "other content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:381 fs::write(dir.path().join("tiny.txt"), "x").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:382 fs::write(dir.path().join("tiny2.txt"), "x").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:399 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:401 fs::write(&path, "hello world").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:403 let hash = hash_file(&path).expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_core_lib\src\search\content.rs:252 let mut all = all_matches.lock().expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_core_lib\src\search\content.rs:402 let dir = TempDir::new().expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_core_lib\src\search\content.rs:407 ).expect("TODO: Verify unwrap");
@@ -330,4 +308,30 @@ Generated: 2026-02-22 13:39:15
 - Native\pcai_core\pcai_core_lib\src\search\content.rs:470 let regex = Regex::new("test").expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_core_lib\src\search\content.rs:496 let regex = Regex::new("Hello|Error").expect("TODO: Verify unwrap");
 - Native\pcai_core\pcai_core_lib\src\search\content.rs:518 let regex = Regex::new("Hello").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:246 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:250 let mut file1 = File::create(temp_path.join("file1.txt")).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:251 file1.write_all(b"Hello, World!").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:253 let mut file2 = File::create(temp_path.join("file2.txt")).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:254 file2.write_all(b"Test content here").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:258 fs::create_dir(&subdir).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:259 let mut file3 = File::create(subdir.join("file3.txt")).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:260 file3.write_all(b"Subdirectory content").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:262 let result = get_disk_usage(temp_path.to_str().expect("TODO: Verify unwrap"), 10);
+- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:265 let (stats, entries) = result.expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:233 let mut map = hash_map.lock().expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:341 let dir = TempDir::new().expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:344 fs::write(dir.path().join("file1.txt"), "duplicate content").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:345 fs::write(dir.path().join("file2.txt"), "duplicate content").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:346 fs::write(dir.path().join("unique.txt"), "unique content").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:350 fs::create_dir(&subdir).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:351 fs::write(subdir.join("file3.txt"), "duplicate content").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:352 fs::write(subdir.join("other.txt"), "other content").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:381 fs::write(dir.path().join("tiny.txt"), "x").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:382 fs::write(dir.path().join("tiny2.txt"), "x").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:399 let dir = TempDir::new().expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:401 fs::write(&path, "hello world").expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:403 let hash = hash_file(&path).expect("TODO: Verify unwrap");
+- Native\pcai_core\pcai_core_lib\src\search\files.rs:176 found_files_clone.lock().expect("TODO: Verify unwrap").push(file_info);
+- Native\pcai_core\pcai_core_lib\src\search\files.rs:184 let mut files = std::mem::take(&mut *found_files.lock().expect("TODO: Verify unwrap"));
+- Native\pcai_core\pcai_core_lib\src\performance\process.rs:222 let p = process.expect("TODO: Verify unwrap");
 

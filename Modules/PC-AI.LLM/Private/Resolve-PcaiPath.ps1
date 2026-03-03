@@ -53,9 +53,13 @@ function Resolve-PcaiPath {
         return $null
     }
 
-    # Determine root path (env override -> module location -> working directory)
+    # Determine root path (shared helper -> env override -> module location -> working directory)
     $root = $null
-    if ($env:PCAI_ROOT -and (Test-Path $env:PCAI_ROOT)) {
+    if (Get-Command Resolve-PcaiRepoRoot -ErrorAction SilentlyContinue) {
+        $root = Resolve-PcaiRepoRoot -StartPath $PSScriptRoot
+    }
+
+    if (-not $root -and $env:PCAI_ROOT -and (Test-Path $env:PCAI_ROOT)) {
         $root = $env:PCAI_ROOT
     }
 

@@ -1,0 +1,15 @@
+id: unimplemented-macro
+message: unimplemented!() will panic at runtime - replace with proper error or Result
+severity: error
+language: rust
+rule:
+  pattern: unimplemented!($$$ARGS)
+fix: 'candle_core::bail!("Not yet implemented: $$$ARGS")
+
+  '
+note: "Example fix:\nBefore: unimplemented!(\"Feature X\")\nAfter:  candle_core::bail!(\"\
+  Feature X not yet implemented. Please use alternative Y\")\n\nOr return Result:\n\
+  fn example() -> Result<T> {\n    Err(Error::NotImplemented(\"Feature X\".to_string()))\n\
+  }\n"
+
+

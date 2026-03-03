@@ -1,0 +1,12 @@
+id: flag-hardcoded-defaults-cs
+language: csharp
+message: "Hardcoded port defaults should come from Config/llm-config.json provider entries."
+severity: warning
+ignores:
+  - "**/Tests/**"
+  - "**/test/**"
+  - "**/obj/**"
+  - "**/bin/**"
+rule:
+  kind: string_literal
+  regex: '\b(8080|8000|11434|1234|8001)\b'

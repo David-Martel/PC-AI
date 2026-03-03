@@ -1,9 +1,11 @@
 #Requires -Version 5.1
 #Requires -Modules Pester
 
+. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
 Describe "PC-AI USB High-Fidelity Diagnostics (Phase 6)" {
     BeforeAll {
-        $PcaiRoot = "C:\Users\david\PC_AI"
+        $PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
         Import-Module (Join-Path $PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1") -Force
         Import-Module (Join-Path $PcaiRoot "Modules\PC-AI.USB\PC-AI.USB.psd1") -Force
     }

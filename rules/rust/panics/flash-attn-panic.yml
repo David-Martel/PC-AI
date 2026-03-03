@@ -1,0 +1,28 @@
+id: flash-attn-panic
+message: Flash attention call without feature check will panic
+severity: error
+language: rust
+rule:
+  all:
+  - pattern: flash_attn($$$ARGS)
+  - not:
+      inside:
+        pattern: '#[cfg(any(feature = "flash-attn", feature = "flash-attn-v3"))]
+
+          '
+fix: '#[cfg(any(feature = "flash-attn", feature = "flash-attn-v3"))]
+
+  flash_attn($$$ARGS)
+
+  #[cfg(not(any(feature = "flash-attn", feature = "flash-attn-v3")))]
+
+  return Err(Error::FeatureNotEnabled("flash-attn"))
+
+  '
+note: 'Flash attention requires compile-time feature flags.
+
+  Check feature availability or return appropriate error.
+
+  '
+
+

@@ -16,6 +16,11 @@
     Import-Module (Join-Path $PSScriptRoot "..\Helpers\TestHelpers.psm1") -Force
 #>
 
+$repoRootResolver = Join-Path $PSScriptRoot 'Resolve-TestRepoRoot.ps1'
+if (Test-Path $repoRootResolver) {
+    . $repoRootResolver
+}
+
 function Get-ProjectRoot {
     <#
     .SYNOPSIS
@@ -29,45 +34,19 @@ function Get-ProjectRoot {
         [string]$StartPath
     )
 
-    # Determine the starting point
     if (-not $StartPath) {
         $StartPath = $PSScriptRoot
     }
 
-    # If StartPath is a file, get its directory
+    if (Get-Command Resolve-TestRepoRoot -ErrorAction SilentlyContinue) {
+        return Resolve-TestRepoRoot -StartPath $StartPath
+    }
+
+    # Fallback when helper is unavailable.
     if (Test-Path $StartPath -PathType Leaf) {
         $StartPath = Split-Path -Parent $StartPath
     }
-
-    # Traverse upward to find the Tests directory, then go up one more level
-    $current = $StartPath
-    while ($current -and (Split-Path -Leaf $current) -ne 'Tests') {
-        $parent = Split-Path -Parent $current
-        if (-not $parent -or $parent -eq $current) {
-            # Reached root without finding Tests directory
-            # Assume we're in the module itself (Tests/Helpers)
-            # Go up two levels from Helpers
-            if ((Split-Path -Leaf $StartPath) -eq 'Helpers') {
-                $testRoot = Split-Path -Parent $StartPath
-                return Split-Path -Parent $testRoot
-            }
-            break
-        }
-        $current = $parent
-    }
-
-    if ($current -and (Split-Path -Leaf $current) -eq 'Tests') {
-        # Found Tests directory, go up one level to project root
-        return Split-Path -Parent $current
-    }
-
-    # Fallback: if we're in Helpers subdirectory of Tests
-    if ($PSScriptRoot -and (Split-Path -Leaf (Split-Path -Parent $PSScriptRoot)) -eq 'Tests') {
-        return Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    }
-
-    # Last resort: return null and let caller handle
-    return $null
+    return Split-Path -Parent (Split-Path -Parent $StartPath)
 }
 
 function Get-TestModelPath {

@@ -13,7 +13,7 @@ function Invoke-EvaluationSuite {
         Path to model file (for native backends)
 
     .PARAMETER BaseUrl
-        API base URL (for HTTP backends)
+        API base URL (for HTTP backends). Defaults to Config/llm-config.json provider baseUrl for the selected backend.
 
     .PARAMETER Parallel
         Run test cases in parallel
@@ -56,7 +56,7 @@ function Invoke-EvaluationSuite {
 
         [string]$ModelPath,
 
-        [string]$BaseUrl = "http://127.0.0.1:8080",
+        [string]$BaseUrl,
 
         [int]$GpuLayers = -1,
 
@@ -110,9 +110,7 @@ function Invoke-EvaluationSuite {
         Cancelled = $false
         LastProgressUtc = $null
     }
-    if ($Backend -eq 'ollama' -and $BaseUrl -eq 'http://127.0.0.1:8080') {
-        $BaseUrl = 'http://127.0.0.1:11434'
-    }
+    $BaseUrl = Resolve-EvaluationBackendBaseUrl -Backend $Backend -BaseUrl $BaseUrl
 
     $summary = $null
 

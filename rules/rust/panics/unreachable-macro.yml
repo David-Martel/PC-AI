@@ -1,0 +1,13 @@
+id: unreachable-macro
+message: unreachable!() will panic if reached - ensure it's truly unreachable
+severity: error
+language: rust
+rule:
+  pattern: unreachable!($$$ARGS)
+note: 'Verify this is truly unreachable. If not, return an error:
+
+  return Err(Error::UnexpectedState("$$$ARGS".into()))
+
+  '
+
+

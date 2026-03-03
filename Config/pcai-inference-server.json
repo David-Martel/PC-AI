@@ -1,0 +1,22 @@
+{
+	"backend": {
+		"type": "llama_cpp",
+		"n_gpu_layers": -1,
+		"n_ctx": 4096
+	},
+	"model": {
+		"path": "Models/linked/Qwen2.5-0.5B-Instruct-Q8_0.gguf.gguf",
+		"model_type": "qwen2",
+		"generation": {
+			"max_tokens": 4096,
+			"temperature": 0.1,
+			"top_p": 0.9,
+			"stop": []
+		}
+	},
+	"server": {
+		"host": "127.0.0.1",
+		"port": 8085,
+		"cors": true
+	}
+}

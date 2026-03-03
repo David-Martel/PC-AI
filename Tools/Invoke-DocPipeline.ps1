@@ -315,6 +315,66 @@ function Invoke-ToolsCatalogGeneration {
 }
 
 # ============================================================================
+# Step 4d: Litho AST extraction (tree-sitter based)
+# ============================================================================
+function Invoke-LithoExtraction {
+    Write-Host "`n=== Litho AST Extraction ===" -ForegroundColor Cyan
+
+    $lithoExe = Get-Command litho -ErrorAction SilentlyContinue
+    if (-not $lithoExe) {
+        $lithoPath = Join-Path $env:USERPROFILE 'bin\litho.exe'
+        if (Test-Path $lithoPath) { $lithoExe = $lithoPath }
+    }
+
+    if (-not $lithoExe) {
+        Add-PipelineStep -Name 'LithoExtract' -Status 'Skipped' -Error 'litho binary not found'
+        return
+    }
+
+    try {
+        $lithoCmd = if ($lithoExe -is [System.Management.Automation.ApplicationInfo]) { $lithoExe.Source } else { $lithoExe }
+        & $lithoCmd extract $repoRoot --format json | Out-File (Join-Path $reportsDir 'LITHO_EXTRACT.json') -Encoding utf8
+        & $lithoCmd extract $repoRoot --format summary | Out-File (Join-Path $reportsDir 'LITHO_EXTRACT_SUMMARY.md') -Encoding utf8
+        Add-PipelineStep -Name 'LithoExtract' -Status 'Success' -Output (Join-Path $reportsDir 'LITHO_EXTRACT.json')
+    }
+    catch {
+        Add-PipelineStep -Name 'LithoExtract' -Status 'Error' -Error $_.Exception.Message
+    }
+}
+
+# ============================================================================
+# Step 4e: Litho documentation generation (optional, requires codex-cli)
+# ============================================================================
+function Invoke-LithoDocGeneration {
+    if ($Mode -ne 'Full') { return }
+
+    Write-Host "`n=== Litho Documentation Generation ===" -ForegroundColor Cyan
+
+    $lithoExe = Get-Command litho -ErrorAction SilentlyContinue
+    if (-not $lithoExe) {
+        $lithoPath = Join-Path $env:USERPROFILE 'bin\litho.exe'
+        if (Test-Path $lithoPath) { $lithoExe = $lithoPath }
+    }
+
+    if (-not $lithoExe) {
+        Add-PipelineStep -Name 'LithoDocs' -Status 'Skipped' -Error 'litho binary not found'
+        return
+    }
+
+    $lithoDocsDir = Join-Path $repoRoot 'docs\auto\litho'
+    if (-not (Test-Path $lithoDocsDir)) { New-Item -ItemType Directory -Path $lithoDocsDir -Force | Out-Null }
+
+    try {
+        $lithoCmd = if ($lithoExe -is [System.Management.Automation.ApplicationInfo]) { $lithoExe.Source } else { $lithoExe }
+        & $lithoCmd generate $repoRoot --provider codex --output $lithoDocsDir
+        Add-PipelineStep -Name 'LithoDocs' -Status 'Success' -Output $lithoDocsDir
+    }
+    catch {
+        Add-PipelineStep -Name 'LithoDocs' -Status 'Warning' -Error $_.Exception.Message
+    }
+}
+
+# ============================================================================
 # Step 5: Generate FunctionGemma training data
 # ============================================================================
 function Invoke-TrainingDataGeneration {
@@ -497,6 +557,8 @@ switch ($Mode) {
         Invoke-PowerShellDocGeneration
         Invoke-ApiSignatureReport
         Invoke-ToolsCatalogGeneration
+        Invoke-LithoExtraction
+        Invoke-LithoDocGeneration
         Invoke-TrainingDataGeneration
         Invoke-TrainingDataValidation
     }
@@ -507,6 +569,8 @@ switch ($Mode) {
         Invoke-PowerShellDocGeneration
         Invoke-ApiSignatureReport
         Invoke-ToolsCatalogGeneration
+        Invoke-LithoExtraction
+        Invoke-LithoDocGeneration
     }
     'TrainingOnly' {
         Invoke-TrainingDataGeneration

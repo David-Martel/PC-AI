@@ -1,0 +1,15 @@
+id: unwrap-call
+message: unwrap() will panic on None/Err - use ? operator or explicit error handling
+severity: error
+language: rust
+rule:
+  pattern: $EXPR.unwrap()
+fix: '$EXPR?
+
+  '
+note: "Example fixes:\n1. Use ? operator: value.some_method()?\n2. Use unwrap_or:\
+  \ value.unwrap_or(default)\n3. Use unwrap_or_else: value.unwrap_or_else(|| compute_default())\n\
+  4. Match explicitly:\n   match value {\n       Some(v) => v,\n       None => return\
+  \ Err(Error::ValueMissing),\n   }\n"
+
+

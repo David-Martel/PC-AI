@@ -21,7 +21,9 @@
 param(
     [string[]]$PreferredVersions = @('v13.1', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
     [string]$CudaPath,
-    [switch]$Quiet
+    [switch]$Quiet,
+    [switch]$InstallMachineGlobal,
+    [switch]$WorkaroundMsvc1944
 )
 
 function Add-ToPath {
@@ -59,7 +61,7 @@ function Get-ShortPath {
     param([string]$Path)
     if (-not $Path) { return $null }
     try {
-        $short = & cmd /c "for %I in (\"$Path\") do @echo %~sI" 2>$null
+        $short = & cmd /c 'for %I in (\'$Path\") do @echo %~sI" 2>$null
         $short = $short | Select-Object -First 1
         if ($short) {
             $short = $short.Trim()
@@ -159,7 +161,9 @@ function Initialize-CudaEnvironment {
     param(
         [string[]]$PreferredVersions = @('v13.1', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
         [string]$CudaPath,
-        [switch]$Quiet
+        [switch]$Quiet,
+        [switch]$InstallMachineGlobal,
+        [switch]$WorkaroundMsvc1944
     )
 
     $candidates = Get-CudaCandidates -PreferredVersions $PreferredVersions -CudaPath $CudaPath
@@ -190,13 +194,13 @@ function Initialize-CudaEnvironment {
 
     if (-not $selected) {
         return [PSCustomObject]@{
-            Found = $false
-            CudaPath = $null
-            Nvcc = $null
-            Cicc = $null
-            Include = $null
+            Found       = $false
+            CudaPath    = $null
+            Nvcc        = $null
+            Cicc        = $null
+            Include     = $null
             PathUpdated = $false
-            Notes = $reasons
+            Notes       = $reasons
         }
     }
 
@@ -239,24 +243,59 @@ function Initialize-CudaEnvironment {
     # Set CUDA compute capabilities for common architectures
     # 75=Turing, 80=Ampere, 86=GA102, 89=Ada, 90=Hopper
     if (-not $env:CUDAARCHS) {
-        $env:CUDAARCHS = "75;80;86;89"
+        $env:CUDAARCHS = '75;80;86;89'
+    }
+
+    if ($WorkaroundMsvc1944) {
+        $msvcBin = 'C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64'
+        if (Test-Path $msvcBin) {
+            $env:NVCC_CCBIN = $msvcBin
+            $pathUpdated = (Add-ToPath $msvcBin) -or $pathUpdated
+            if (-not $Quiet) { Write-Host "  NVCC_CCBIN workaround applied: $msvcBin" -ForegroundColor DarkGray }
+        } else {
+            if (-not $Quiet) { Write-Warning 'MSVC 19.44 Hostx64 bin not found; skipping WorkaroundMsvc1944.' }
+        }
+    }
+
+    if ($InstallMachineGlobal) {
+        $currentCudaPath = [System.Environment]::GetEnvironmentVariable('CUDA_PATH', 'Machine')
+        if ($currentCudaPath -ne $selected) {
+            [System.Environment]::SetEnvironmentVariable('CUDA_PATH', $selected, 'Machine')
+            if (-not $Quiet) { Write-Host 'Registered CUDA_PATH globally to Machine scope.' -ForegroundColor Green }
+        }
+
+        $machinePath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+        $binDir = Join-Path $selected 'bin'
+        $nvvmDir = Join-Path $selected 'nvvm\bin'
+        $libnvvpDir = Join-Path $selected 'libnvvp'
+
+        $envParts = @()
+        if ($machinePath -notlike "*$binDir*") { $envParts += $binDir }
+        if ($machinePath -notlike "*$nvvmDir*") { $envParts += $nvvmDir }
+        if ((Test-Path $libnvvpDir) -and ($machinePath -notlike "*$libnvvpDir*")) { $envParts += $libnvvpDir }
+
+        if ($envParts.Count -gt 0) {
+            $newMachinePath = ($envParts -join ';') + ';' + $machinePath
+            [System.Environment]::SetEnvironmentVariable('Path', $newMachinePath, 'Machine')
+            if (-not $Quiet) { Write-Host "Added $($envParts.Count) CUDA locations to Machine Path." -ForegroundColor Green }
+        }
     }
 
     $result = [PSCustomObject]@{
-        Found = $true
-        CudaPath = $selected
-        SelectedVersion = (Split-Path -Leaf $selected)
-        Nvcc = $nvccPath
-        Cicc = $ciccPath
-        Include = $includePath
-        Lib = $libPath
-        PathUpdated = $pathUpdated
-        IncludeUpdated = $includeUpdated
-        LibUpdated = $libUpdated
-        CudaArchs = $env:CUDAARCHS
-        NvccCcbin = $env:NVCC_CCBIN
+        Found                = $true
+        CudaPath             = $selected
+        SelectedVersion      = (Split-Path -Leaf $selected)
+        Nvcc                 = $nvccPath
+        Cicc                 = $ciccPath
+        Include              = $includePath
+        Lib                  = $libPath
+        PathUpdated          = $pathUpdated
+        IncludeUpdated       = $includeUpdated
+        LibUpdated           = $libUpdated
+        CudaArchs            = $env:CUDAARCHS
+        NvccCcbin            = $env:NVCC_CCBIN
         CompatibilityWarning = $null
-        Notes = @()
+        Notes                = @()
     }
 
     $majorVersion = 0
@@ -285,5 +324,5 @@ function Initialize-CudaEnvironment {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    Initialize-CudaEnvironment -PreferredVersions $PreferredVersions -CudaPath $CudaPath -Quiet:$Quiet
+    Initialize-CudaEnvironment -PreferredVersions $PreferredVersions -CudaPath $CudaPath -Quiet:$Quiet -InstallMachineGlobal:$InstallMachineGlobal -WorkaroundMsvc1944:$WorkaroundMsvc1944
 }

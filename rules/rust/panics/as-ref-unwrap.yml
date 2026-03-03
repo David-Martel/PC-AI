@@ -1,0 +1,13 @@
+id: as-ref-unwrap
+message: Chaining as_ref().unwrap() can panic - use pattern matching or ?
+severity: error
+language: rust
+rule:
+  pattern: $EXPR.as_ref().unwrap()
+fix: '$EXPR.as_ref().ok_or(Error::NoneValue)?
+
+  '
+note: "Better pattern:\nmatch &$EXPR {\n    Some(ref val) => val,\n    None => return\
+  \ Err(Error::NoneValue),\n}\n"
+
+

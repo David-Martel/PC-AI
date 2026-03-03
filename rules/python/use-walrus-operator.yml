@@ -1,0 +1,13 @@
+id: use-walrus-operator
+language: Python
+severity: info
+message: "Consider using walrus operator (:=) for cleaner code"
+rule:
+  pattern: |
+    if $COND:
+        $VAR = $EXPR
+        $$$BODY
+fix: |
+  if ($VAR := $EXPR):
+      $$$BODY
+note: "Python 3.8+ assignment expression - assigns and returns in one operation"

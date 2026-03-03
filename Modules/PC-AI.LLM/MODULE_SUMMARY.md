@@ -22,7 +22,7 @@ PC-AI.LLM/
 ├── README.md                   # Comprehensive documentation
 ├── USAGE_EXAMPLES.ps1          # Working examples of all functions
 ├── MODULE_SUMMARY.md           # This file
-├── llm-config.json             # User configuration (created on first use)
+├── (uses ..\..\Config\llm-config.json) # Canonical shared LLM config
 │
 ├── Private/
 │   └── LLM-Helpers.ps1         # 8 internal helper functions
@@ -57,7 +57,7 @@ PC-AI.LLM/
 ### 2. Module Loader (PC-AI.LLM.psm1)
 
 **Features:**
-- Automatic configuration loading from `llm-config.json`
+- Automatic configuration loading from `Config/llm-config.json`
 - Dynamic function discovery and loading
 - Module-level configuration variables
 - Verbose logging support
@@ -238,7 +238,7 @@ DefaultTimeout  = 120
 - Update individual settings
 - Reset to defaults
 - Model validation (checks if model exists)
-- Persistent storage (llm-config.json)
+- Persistent storage (`Config/llm-config.json`)
 
 **Parameters:**
 - `DefaultModel` - Change default model

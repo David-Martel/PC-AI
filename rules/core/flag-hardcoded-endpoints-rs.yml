@@ -1,0 +1,13 @@
+id: flag-hardcoded-endpoints-rs
+language: rust
+message: "Hardcoded IP addresses and loopback hosts are not permitted. Use llm-config.json for dynamic lookup."
+severity: error
+ignores:
+  - '**/tests/**'
+  - '**/examples/**'
+  - '**/target/**'
+  - 'Deploy/rust-functiongemma-*/**'
+  - 'Native/pcai_core/pcai_core_lib/src/path.rs'
+rule:
+  kind: string_literal
+  regex: '(https?://(?:127\.0\.0\.1|localhost|0\.0\.0\.0)(?::\d+)?|(?:127\.0\.0\.1|localhost|0\.0\.0\.0):\d+)'

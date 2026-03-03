@@ -1,4 +1,10 @@
-$PC_AIRoot = 'c:\Users\david\PC_AI'
+$PC_AIRoot = if ($env:PCAI_ROOT -and (Test-Path $env:PCAI_ROOT)) {
+    (Resolve-Path $env:PCAI_ROOT).Path
+} elseif ($PSCommandPath) {
+    (Resolve-Path (Split-Path -Parent $PSCommandPath)).Path
+} else {
+    (Get-Location).Path
+}
 
 Write-Host 'Importing Common and Acceleration modules...'
 Import-Module (Join-Path $PC_AIRoot 'Modules\PC-AI.Common') -Force

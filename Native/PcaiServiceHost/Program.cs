@@ -66,7 +66,7 @@ public static class Program
         }
 
         var action = args[0].ToLowerInvariant();
-        var composePath = GetArg(args, "--compose") ?? @"C:\Users\david\PC_AI\Deploy\docker\vllm\docker-compose.yml";
+        var composePath = GetArg(args, "--compose") ?? ResolveProjectPath("Deploy/docker/vllm/docker-compose.yml");
         var intervalSec = int.TryParse(GetArg(args, "--interval"), out var parsed) ? parsed : 15;
 
         return action switch
@@ -149,7 +149,7 @@ public static class Program
         }
 
         var action = args[0].ToLowerInvariant();
-        var configPath = GetArg(args, "--config") ?? @"C:\Users\david\PC_AI\Config\hvsock-proxy.conf";
+        var configPath = GetArg(args, "--config") ?? ResolveProjectPath("Config/hvsock-proxy.conf");
         var statePath = GetArg(args, "--state") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "PC_AI", "hvsock-proxy", "state.json");
 
         return action switch
@@ -293,7 +293,7 @@ public static class Program
         }
 
         var action = args[0].ToLowerInvariant();
-        var configPath = @"C:\Users\david\PC_AI\Config\llm-config.json";
+        var configPath = ResolveProjectPath("Config/llm-config.json");
 
         if (!File.Exists(configPath))
         {
@@ -569,6 +569,35 @@ public static class Program
         }
 
         File.WriteAllText(path, JsonSerializer.Serialize(state, JsonOptions));
+    }
+
+    private static string ResolveProjectPath(string relativePath)
+    {
+        var root = ResolveProjectRoot();
+        var normalized = relativePath.Replace('/', Path.DirectorySeparatorChar);
+        return Path.Combine(root, normalized);
+    }
+
+    private static string ResolveProjectRoot()
+    {
+        var envRoot = Environment.GetEnvironmentVariable("PCAI_ROOT");
+        if (!string.IsNullOrWhiteSpace(envRoot) && Directory.Exists(envRoot))
+        {
+            return envRoot;
+        }
+
+        var current = AppContext.BaseDirectory;
+        while (!string.IsNullOrWhiteSpace(current))
+        {
+            if (File.Exists(Path.Combine(current, "PC-AI.ps1")) || Directory.Exists(Path.Combine(current, "Config")))
+            {
+                return current;
+            }
+
+            current = Directory.GetParent(current)?.FullName;
+        }
+
+        return AppContext.BaseDirectory;
     }
 }
 

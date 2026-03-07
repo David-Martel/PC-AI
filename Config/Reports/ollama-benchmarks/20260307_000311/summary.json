@@ -1,0 +1,26 @@
+[
+  {
+    "Model": "qwen2.5-coder:3b",
+    "Role": "fast-baseline",
+    "Profile": "balanced",
+    "AverageQuality": 0.5655,
+    "AveragePassRate": 0.0,
+    "AverageLatencyMs": 10366.67,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.45
+  },
+  {
+    "Model": "qwen2.5-coder:3b",
+    "Role": "fast-baseline",
+    "Profile": "fast",
+    "AverageQuality": 0.5646,
+    "AveragePassRate": 0.0,
+    "AverageLatencyMs": 8368.33,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.3
+  }
+]

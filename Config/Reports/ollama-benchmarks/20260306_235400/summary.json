@@ -1,0 +1,122 @@
+[
+  {
+    "Model": "qwen2.5-coder:3b",
+    "Role": "fast-baseline",
+    "Profile": "fast",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  },
+  {
+    "Model": "qwen2.5-coder:3b",
+    "Role": "fast-baseline",
+    "Profile": "balanced",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  },
+  {
+    "Model": "dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest",
+    "Role": "summary-baseline",
+    "Profile": "fast",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  },
+  {
+    "Model": "dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest",
+    "Role": "summary-baseline",
+    "Profile": "balanced",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  },
+  {
+    "Model": "gpt-oss:20b",
+    "Role": "tool-primary",
+    "Profile": "fast",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  },
+  {
+    "Model": "gpt-oss:20b",
+    "Role": "tool-primary",
+    "Profile": "balanced",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  },
+  {
+    "Model": "qwen3:14b",
+    "Role": "tool-alternative",
+    "Profile": "fast",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  },
+  {
+    "Model": "qwen3:14b",
+    "Role": "tool-alternative",
+    "Profile": "balanced",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  },
+  {
+    "Model": "qwen3:30b",
+    "Role": "quality-reference",
+    "Profile": "fast",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  },
+  {
+    "Model": "qwen3:30b",
+    "Role": "quality-reference",
+    "Profile": "balanced",
+    "AverageQuality": null,
+    "AveragePassRate": null,
+    "AverageLatencyMs": null,
+    "ToolNameAccuracy": null,
+    "ArgumentAccuracy": null,
+    "ToolDurationSeconds": null,
+    "CompositeScore": 0.0
+  }
+]

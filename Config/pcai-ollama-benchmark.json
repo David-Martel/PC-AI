@@ -1,0 +1,91 @@
+{
+  "outputRoot": "../Reports/ollama-benchmarks",
+  "requestTimeoutSec": 180,
+  "qualityDatasets": [
+    {
+      "name": "diagnostic",
+      "maxTestCases": 3
+    },
+    {
+      "name": "general",
+      "maxTestCases": 3
+    }
+  ],
+  "toolEvaluation": {
+    "enabled": true,
+    "scenarioPath": "Deploy/rust-functiongemma-train/examples/scenarios.json",
+    "maxScenarios": 6,
+    "maxToolRounds": 3,
+    "maxTokens": 192,
+    "systemPrompt": "You are a Windows workstation diagnostics assistant. Use tools when the request requires live system data or an imperative action. If no tool is needed, answer directly."
+  },
+  "candidateModels": [
+    {
+      "name": "qwen2.5-coder:3b",
+      "role": "fast-baseline"
+    },
+    {
+      "name": "dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest",
+      "role": "summary-baseline"
+    },
+    {
+      "name": "gpt-oss:20b",
+      "role": "tool-primary"
+    },
+    {
+      "name": "qwen3:14b",
+      "role": "tool-alternative"
+    },
+    {
+      "name": "qwen3:30b",
+      "role": "quality-reference"
+    },
+    {
+      "name": "Qwen/Qwen3.5-35B-A3B",
+      "role": "hf-reference",
+      "provider": "huggingface",
+      "expectedLocal": true
+    }
+  ],
+  "profiles": [
+    {
+      "name": "fast",
+      "temperature": 0.1,
+      "maxTokens": 256,
+      "numCtx": 32768,
+      "numThread": 8,
+      "topP": 0.85,
+      "topK": 24,
+      "repeatLastN": 64,
+      "repeatPenalty": 1.05,
+      "tfsZ": 1.0,
+      "seed": 42
+    },
+    {
+      "name": "balanced",
+      "temperature": 0.1,
+      "maxTokens": 384,
+      "numCtx": 65536,
+      "numThread": 8,
+      "topP": 0.9,
+      "topK": 40,
+      "repeatLastN": 128,
+      "repeatPenalty": 1.1,
+      "tfsZ": 1.0,
+      "seed": 42
+    },
+    {
+      "name": "quality",
+      "temperature": 0.15,
+      "maxTokens": 512,
+      "numCtx": 131072,
+      "numThread": 8,
+      "topP": 0.92,
+      "topK": 64,
+      "repeatLastN": 256,
+      "repeatPenalty": 1.12,
+      "tfsZ": 1.0,
+      "seed": 42
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "Name": "qwen2.5-coder:3b",
+    "Provider": "ollama",
+    "Role": "fast-baseline",
+    "Available": true,
+    "Hints": ""
+  },
+  {
+    "Name": "dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest",
+    "Provider": "ollama",
+    "Role": "summary-baseline",
+    "Available": true,
+    "Hints": ""
+  },
+  {
+    "Name": "gpt-oss:20b",
+    "Provider": "ollama",
+    "Role": "tool-primary",
+    "Available": true,
+    "Hints": ""
+  },
+  {
+    "Name": "qwen3:14b",
+    "Provider": "ollama",
+    "Role": "tool-alternative",
+    "Available": true,
+    "Hints": ""
+  },
+  {
+    "Name": "qwen3:30b",
+    "Provider": "ollama",
+    "Role": "quality-reference",
+    "Available": true,
+    "Hints": ""
+  },
+  {
+    "Name": "Qwen/Qwen3.5-35B-A3B",
+    "Provider": "huggingface",
+    "Role": "hf-reference",
+    "Available": false,
+    "Hints": ""
+  }
+]

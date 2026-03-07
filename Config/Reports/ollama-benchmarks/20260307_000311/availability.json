@@ -1,0 +1,7 @@
+{
+  "Name": "qwen2.5-coder:3b",
+  "Provider": "ollama",
+  "Role": "fast-baseline",
+  "Available": true,
+  "Hints": ""
+}

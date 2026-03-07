@@ -21,17 +21,27 @@ PC_AI/
 ├── DIAGNOSE.md                        # LLM system prompt defining assistant behavior
 ├── DIAGNOSE_LOGIC.md                  # Branched reasoning decision tree for analysis
 ├── CHAT.md                            # General chat system prompt
-├── Native/pcai_core/                  # Rust workspace (monorepo)
-│   ├── pcai_inference/                # Rust LLM inference engine (HTTP + FFI)
-│   └── pcai_core_lib/                 # Shared Rust library (telemetry, fs, search)
+├── PC-AI.ps1                          # Unified CLI entry point
+├── Build.ps1                          # Unified build orchestrator
+├── Native/pcai_core/                  # Rust workspace (6-crate monorepo)
+│   ├── pcai_inference/                # LLM inference engine (HTTP + FFI, llama.cpp/mistral.rs)
+│   ├── pcai_core_lib/                 # Shared library (telemetry, fs, search, Windows APIs)
+│   ├── pcai_ollama_rs/                # Ollama benchmark/integration tool
+│   ├── pcai_media/                    # Media processing FFI DLL (Janus-Pro)
+│   ├── pcai_media_model/              # Media model definitions and config
+│   └── pcai_media_server/             # Media HTTP server (axum)
 ├── Native/PcaiNative/                 # C# P/Invoke wrapper for PowerShell
 ├── Native/PcaiChatTui/                # C# interactive chat TUI (async backends)
 ├── Native/PcaiServiceHost/            # C# Windows service host for inference
 ├── Native/NukeNul/                    # C# utility for null-file removal
-├── Deploy/rust-functiongemma/         # Rust workspace root (includes core/runtime/train)
-├── Deploy/rust-functiongemma-core/    # Shared Rust library (model, GPU, prompt, config)
-├── Deploy/rust-functiongemma-runtime/ # Rust router runtime (axum HTTP server)
-├── Deploy/rust-functiongemma-train/   # Rust router dataset + training pipeline
+├── AI-Media/                          # Python Janus-Pro media agent (CUDA)
+├── Deploy/
+│   ├── rust-functiongemma/            # Rust workspace root (includes core/runtime/train)
+│   ├── rust-functiongemma-core/       # Shared library (model, GPU, prompt, config, LoRA)
+│   ├── rust-functiongemma-runtime/    # Router runtime (axum HTTP, port 8000)
+│   ├── rust-functiongemma-train/      # Router dataset + training pipeline
+│   ├── docker/                        # Docker deployment configs
+│   └── rag-database/                  # RAG database setup
 ├── Modules/
 │   ├── PC-AI.Acceleration/            # Native FFI wrappers (P/Invoke bridge)
 │   ├── PC-AI.Cleanup/                 # Duplicate detection, PATH cleanup
@@ -44,17 +54,20 @@ PC_AI/
 │   ├── PC-AI.Performance/             # Native perf metrics (Rust FFI)
 │   ├── PC-AI.USB/                     # USB device management
 │   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
-│   └── PcaiInference.psm1             # Inference module (load/generate/stream/async)
-├── Tools/
-│   ├── Invoke-DocPipeline.ps1         # Master doc generation orchestrator
-│   ├── generate-auto-docs.ps1         # Unified auto-doc (ast-grep, PS, C#, Rust)
-│   ├── validate-doc-accuracy.ps1      # Doc accuracy validation
-│   ├── Build.ps1 / Invoke-RustBuild   # Build system scripts
-│   └── ...                            # 30+ utility scripts
+│   ├── PcaiInference.psm1             # Inference module (load/generate/stream/async)
+│   └── PcaiMedia.psm1                 # Media processing module (Janus-Pro wrapper)
+├── Tools/                             # 33 utility/build scripts
+├── Tests/                             # Pester + Rust test suites (22 integration test files)
+├── Scripts/                           # Rust analyzer health, CargoTools tests
 ├── Config/
 │   ├── llm-config.json                # Backend + model configuration
 │   ├── pcai-tools.json                # FunctionGemma tool schema
-│   └── pcai-functiongemma.json        # Router GPU + runtime config
+│   ├── pcai-functiongemma.json        # Router GPU + runtime config
+│   ├── pcai-media.json                # Media agent configuration
+│   ├── pcai-inference-server.json     # Inference server settings
+│   └── pcai-ollama-benchmark.json     # Ollama benchmark config
+├── Notebooks/                         # Evaluation Jupyter notebooks
+├── Reports/                           # Auto-generated doc pipeline reports
 ├── .litho/litho.toml                  # Litho (deepwiki-rs) documentation config
 └── CLAUDE.md                          # This file
 ```
@@ -122,15 +135,24 @@ The doc pipeline generates structured reports under `Reports/`:
 # Build both inference backends
 .\Build.ps1 -Component inference -EnableCuda
 
-# Build C# Chat TUI
-.\Build.ps1 -Component tui
+# Build media agent (Janus-Pro FFI DLL + HTTP server)
+.\Build.ps1 -Component media -EnableCuda
+
+# Build all .NET native tools (tui + pcainative + servicehost)
+.\Build.ps1 -Component native
 
 # Clean build and create release packages
 .\Build.ps1 -Clean -Package -EnableCuda
 
+# Lint / format / fix
+.\Build.ps1 -Component lint
+.\Build.ps1 -Component fix
+
 # Debug build
 .\Build.ps1 -Component mistralrs -Configuration Debug
 ```
+
+**Available `-Component` values:** `all` (default), `inference`, `llamacpp`, `mistralrs`, `functiongemma`, `functiongemma-router-data`, `functiongemma-token-cache`, `functiongemma-train`, `functiongemma-eval`, `media`, `tui`, `pcainative`, `servicehost`, `nukenul`, `native`, `lint`, `format`, `fix`, `deps`
 
 **Build Output Structure:**
 
@@ -284,9 +306,21 @@ git push origin v1.0.0
 
 - SM 75: Turing (RTX 20 series, GTX 16xx)
 - SM 80/86: Ampere (RTX 30 series)
-- SM 89: Ada Lovelace (RTX 40 series)
+- SM 89: Ada Lovelace (RTX 40 series, RTX 2000 Ada)
+- SM 120: Blackwell (RTX 50 series)
 
-**Workflow file:** `.github/workflows/release-cuda.yml`
+**CI/CD Workflows (`.github/workflows/`):**
+| Workflow | Trigger |
+|----------|---------|
+| `release-cuda.yml` | Tag push (`v*`) — builds 4 CUDA/CPU release ZIPs |
+| `release.yml` | Tag push — general release pipeline |
+| `rust-inference.yml` | PR/push — Rust build + test |
+| `powershell-tests.yml` | PR/push — Pester test suite |
+| `evaluation-smoke.yml` | PR — evaluation harness smoke test |
+| `docs-pipeline.yml` | PR — doc generation validation |
+| `security.yml` | Scheduled — dependency vulnerability scan |
+| `scheduled-checks.yml` | Cron — periodic health checks |
+| `tooling-automation.yml` | Dispatch — tool maintenance automation |
 
 ## Potential Enhancements from Home Directory Scripts
 
@@ -419,31 +453,36 @@ When reporting findings, use this structure:
 
 ### Testing
 
-**Rust Unit Tests (61+ tests):**
+**Rust Unit Tests (65+ tests):**
 
 ```powershell
 cd Native\pcai_core\pcai_inference
 cargo test --no-default-features --features server,ffi --lib
 ```
 
-| Module            | Tests | Coverage                                                 |
-| ----------------- | ----- | -------------------------------------------------------- |
-| `lib.rs`          | 5     | Error Display + From conversions                         |
-| `config.rs`       | 8     | Serde roundtrip, file I/O, defaults                      |
-| `backends/mod.rs` | 7     | Request/Response serde, FinishReason                     |
-| `http/mod.rs`     | 21    | Chat prompt, tokens, stop sequences, chunks, StopTracker |
-| `ffi/mod.rs`      | 17    | FFI edge cases, init/shutdown, error codes               |
-| Version           | 3     | Build version detection and formatting                   |
+| Module                | Tests | Coverage                                                 |
+| --------------------- | ----- | -------------------------------------------------------- |
+| `lib.rs`              | 5     | Error Display + From conversions                         |
+| `config.rs`           | 8     | Serde roundtrip, file I/O, defaults                      |
+| `backends/mod.rs`     | 7     | Request/Response serde, FinishReason                     |
+| `backends/llamacpp.rs`| 2     | llama.cpp backend specifics                              |
+| `backends/mistralrs.rs`| 2    | mistral.rs backend specifics                             |
+| `http/mod.rs`         | 21    | Chat prompt, tokens, stop sequences, chunks, StopTracker |
+| `ffi/mod.rs`          | 17    | FFI edge cases, init/shutdown, error codes               |
+| `version.rs`          | 3     | Build version detection and formatting                   |
 
-**FFI Integration Tests (49 tests):**
+**Integration & Functional Tests (22 test files):**
 
 ```powershell
-# Integration tests (28 tests — requires DLL at bin/pcai_inference.dll)
-pwsh -Command "Invoke-Pester Tests/Integration/FFI.Inference.Tests.ps1"
+# Run all tests
+pwsh Tests\Invoke-AllTests.ps1
 
-# Stress tests (21 tests — concurrency, memory, error hammering)
+# FFI integration tests (requires DLL at bin/pcai_inference.dll)
+pwsh -Command "Invoke-Pester Tests/Integration/FFI.Inference.Tests.ps1"
 pwsh -Command "Invoke-Pester Tests/Integration/FFI.Stress.Tests.ps1"
 ```
+
+Test categories: `FFI.*` (core, fs, inference, search, stress, system, performance), `Functional.*` (agentic, hardening, native, USB), `E2E.*` (smart diagnosis), `Router.*` (FunctionGemma, providers), `Quality.*`, `Structural.*`, `ModuleLoading.*`, `RustBuild.*`
 
 **PowerShell Diagnostics:**
 

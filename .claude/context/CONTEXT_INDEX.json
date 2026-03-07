@@ -1,7 +1,16 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-20260303-toolchain",
+  "latest": "ctx-pcai-20260307-claude-md-audit",
   "contexts": [
+    {
+      "id": "ctx-pcai-20260307-claude-md-audit",
+      "file": "pcai-context-20260307-claude-md-audit.md",
+      "created": "2026-03-07T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["claude-md-improver"],
+      "summary": "CLAUDE.md audit and update: architecture tree updated with 6 Rust crates, AI-Media, PcaiMedia module; Build.ps1 20 components documented; test counts fixed (65+); 22 integration test files; 9 CI workflows; SM 120 Blackwell CUDA target added",
+      "supersedes": ["ctx-pcai-20260303-toolchain"]
+    },
     {
       "id": "ctx-pcai-20260303-toolchain",
       "file": "pcai-context-20260303-toolchain-integration.md",
@@ -359,7 +368,7 @@
     "pcai-inference": {
       "status": "clean",
       "warnings": 0,
-      "tests": 44,
+      "tests": 65,
       "features": ["ffi", "llamacpp", "mistralrs-backend", "server"],
       "backends": {
         "llamacpp": "available (requires CUDA+MSVC toolchain, artifact dir empty)",

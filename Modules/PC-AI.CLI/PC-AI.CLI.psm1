@@ -22,8 +22,8 @@
                               (function name -> synopsis).
       Get-PCModuleHelpEntry - Retrieve the full comment-based help block for a
                               single named function.
-      Parse-PCArguments     - Parse a raw argument string into a structured
-                              parameter hashtable.
+      ConvertTo-PCArgumentMap - Convert a raw argument string into a
+                               structured parameter hashtable.
       Resolve-PCArguments   - Resolve parsed arguments against a command's
                               declared parameter set, applying defaults and
                               validation.
@@ -62,6 +62,6 @@ Export-ModuleMember -Function @(
     'Get-PCCommandModules'
     'Get-PCCommandList'
     'Get-PCCommandSummary'
-    'Parse-PCArguments'
+    'ConvertTo-PCArgumentMap'
     'Resolve-PCArguments'
 )

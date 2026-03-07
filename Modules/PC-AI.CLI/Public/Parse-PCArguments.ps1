@@ -1,4 +1,4 @@
-function Parse-PCArguments {
+function ConvertTo-PCArgumentMap {
     [CmdletBinding()]
     param(
         [string[]]$InputArgs,

@@ -37,6 +37,34 @@ function Write-Bullet {
 
 # Singleton initialization state
 $script:PcaiNativeInitialized = $false
+$script:PcaiAccelerationManifestPath = $null
+
+function Resolve-PcaiAccelerationManifestPath {
+    if ($script:PcaiAccelerationManifestPath -and (Test-Path -LiteralPath $script:PcaiAccelerationManifestPath)) {
+        return $script:PcaiAccelerationManifestPath
+    }
+
+    $moduleRoot = Split-Path -Parent $PSScriptRoot
+    $candidates = @(
+        (Join-Path $moduleRoot 'PC-AI.Acceleration\PC-AI.Acceleration.psd1'),
+        (Join-Path (Join-Path $env:LOCALAPPDATA 'PowerShell\Modules') 'PC-AI.Acceleration\PC-AI.Acceleration.psd1')
+    )
+
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) {
+            $script:PcaiAccelerationManifestPath = $candidate
+            return $candidate
+        }
+    }
+
+    $availableModule = Get-Module -ListAvailable -Name 'PC-AI.Acceleration' | Sort-Object Version -Descending | Select-Object -First 1
+    if ($availableModule -and $availableModule.Path) {
+        $script:PcaiAccelerationManifestPath = $availableModule.Path
+        return $availableModule.Path
+    }
+
+    return $null
+}
 
 function Initialize-PcaiNative {
     [CmdletBinding()]
@@ -48,7 +76,10 @@ function Initialize-PcaiNative {
 
     $accelModule = Get-Module PC-AI.Acceleration
     if (-not $accelModule) {
-        $accelModule = Import-Module PC-AI.Acceleration -PassThru -ErrorAction SilentlyContinue
+        $accelManifest = Resolve-PcaiAccelerationManifestPath
+        if ($accelManifest) {
+            $accelModule = Import-Module -Name $accelManifest -PassThru -ErrorAction SilentlyContinue
+        }
     }
 
     if ($accelModule) {

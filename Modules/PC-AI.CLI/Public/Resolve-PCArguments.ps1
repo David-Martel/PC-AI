@@ -5,5 +5,5 @@ function Resolve-PCArguments {
         [hashtable]$Defaults = @{}
     )
 
-    return Parse-PCArguments -InputArgs $InputArgs -Defaults $Defaults
+    return ConvertTo-PCArgumentMap -InputArgs $InputArgs -Defaults $Defaults
 }

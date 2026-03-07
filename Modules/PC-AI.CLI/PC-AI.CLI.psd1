@@ -14,7 +14,7 @@
         'Get-PCCommandSummary'
         'Get-PCModuleHelpIndex'
         'Get-PCModuleHelpEntry'
-        'Parse-PCArguments'
+        'ConvertTo-PCArgumentMap'
         'Resolve-PCArguments'
     )
     PrivateData = @{

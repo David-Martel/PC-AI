@@ -1,4 +1,9 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
+
+$sharedCacheHelper = Join-Path $PSScriptRoot 'Get-PcaiSharedCache.ps1'
+if ((-not (Get-Command Get-PcaiSharedCacheEntry -ErrorAction SilentlyContinue)) -and (Test-Path $sharedCacheHelper)) {
+    . $sharedCacheHelper
+}
 
 if (-not ('Pcai.Common.RuntimeConfigBridge' -as [type])) {
     Add-Type -Language CSharp -TypeDefinition @"
@@ -160,28 +165,62 @@ function Resolve-PcaiRepoRoot {
         [string]$StartPath
     )
 
-    if ($env:PCAI_ROOT -and (Test-Path $env:PCAI_ROOT)) {
-        try {
-            return (Resolve-Path -Path $env:PCAI_ROOT -ErrorAction Stop).Path
-        } catch {
-            return $env:PCAI_ROOT
-        }
-    }
-
     $searchRoot = if ($StartPath) { $StartPath } elseif ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).ProviderPath }
     if (Test-Path $searchRoot -PathType Leaf) {
         $searchRoot = Split-Path -Parent $searchRoot
     }
 
-    $resolvedRoot = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($searchRoot)
+    $resolvedSearchRoot = try {
+        (Resolve-Path -Path $searchRoot -ErrorAction Stop).Path
+    } catch {
+        $searchRoot
+    }
+
+    $cacheKey = $resolvedSearchRoot
+    if (Get-Command Get-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+        $cachedRoot = Get-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -TtlSeconds 300
+        if ($cachedRoot) {
+            return [string]$cachedRoot
+        }
+    }
+
+    $resolvedRoot = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($resolvedSearchRoot)
     if (-not [string]::IsNullOrWhiteSpace($resolvedRoot)) {
+        if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+            Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedRoot | Out-Null
+        }
         return $resolvedRoot
     }
 
+    $commonCandidates = @(
+        'C:\codedev\PC_AI'
+    ) | Select-Object -Unique
+
+    foreach ($candidate in $commonCandidates) {
+        if (-not $candidate -or -not (Test-Path $candidate)) {
+            continue
+        }
+
+        $resolvedCandidate = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($candidate)
+        if (-not [string]::IsNullOrWhiteSpace($resolvedCandidate)) {
+            if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+                Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedCandidate | Out-Null
+            }
+            return $resolvedCandidate
+        }
+    }
+
     try {
-        return (Resolve-Path -Path $searchRoot -ErrorAction Stop).Path
+        $fallbackRoot = (Resolve-Path -Path $resolvedSearchRoot -ErrorAction Stop).Path
+        if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+            Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $fallbackRoot | Out-Null
+        }
+        return $fallbackRoot
     } catch {
-        return $searchRoot
+        if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+            Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedSearchRoot | Out-Null
+        }
+        return $resolvedSearchRoot
     }
 }
 
@@ -212,30 +251,48 @@ function Get-PcaiRuntimeConfig {
         Join-Path $resolvedRoot 'Config\pcai-tools.json'
     }
 
+    $runtimeCacheKey = '{0}|{1}|{2}' -f $resolvedRoot, $resolvedConfigPath, $resolvedToolsPath
+    $runtimeConfigStamp = if (Get-Command Get-PcaiDependencyStamp -ErrorAction SilentlyContinue) {
+        Get-PcaiDependencyStamp -InputObject @($resolvedConfigPath)
+    } else {
+        $null
+    }
+    if (Get-Command Get-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+        $cachedRuntime = Get-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "runtime-config::$runtimeCacheKey" -DependencyStamp $runtimeConfigStamp
+        if ($cachedRuntime) {
+            return [PSCustomObject]$cachedRuntime
+        }
+    }
+
     $runtime = [ordered]@{
         ProjectRoot = $resolvedRoot
         ConfigPath = $resolvedConfigPath
         ToolsPath = $resolvedToolsPath
         Exists = $false
 
-        PcaiInferenceUrl = 'http://127.0.0.1:8080'
-        PcaiInferenceModel = 'pcai-inference'
+        PcaiInferenceUrl = 'http://127.0.0.1:18080'
+        PcaiInferenceModel = 'llama.cpp'
         PcaiInferenceTimeoutMs = 120000
+
+        OllamaBaseUrl = 'http://127.0.0.1:11434'
+        OllamaModel = 'qwen2.5-coder:3b'
+        OllamaToolModel = ''
+        OllamaSummaryModel = ''
+        OllamaTimeoutMs = 90000
+        OllamaCliSearchPaths = @()
+        OllamaToolInvokerPath = (Join-Path $resolvedRoot 'Tools\Invoke-PcaiMappedTool.ps1')
 
         FunctionGemmaUrl = 'http://127.0.0.1:8000'
         FunctionGemmaModel = 'functiongemma-270m-it'
 
         RouterBaseUrl = 'http://127.0.0.1:8000'
         RouterModel = 'functiongemma-270m-it'
-
-        OllamaBaseUrl = 'http://127.0.0.1:11434'
-        OllamaModel = 'llama3.2'
         LMStudioApiUrl = 'http://127.0.0.1:1234'
 
         vLLMBaseUrl = 'http://127.0.0.1:8001'
         vLLMModel = 'functiongemma-270m-it'
 
-        FallbackOrder = @('pcai-inference')
+        FallbackOrder = @('ollama', 'pcai-inference')
         NativeDllSearchPaths = @()
     }
 
@@ -265,11 +322,28 @@ function Get-PcaiRuntimeConfig {
             $routerModel = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('router', 'model'))
             if (-not [string]::IsNullOrWhiteSpace($routerModel)) { $runtime.RouterModel = $routerModel } else { $runtime.RouterModel = $runtime.FunctionGemmaModel }
 
-            $ollamaUrl = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('providers', 'ollama', 'baseUrl'))
+            $ollamaUrl = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('ollama', 'base_url'))
+            if (-not [string]::IsNullOrWhiteSpace($ollamaUrl)) { $runtime.OllamaBaseUrl = $ollamaUrl }
+            if ([string]::IsNullOrWhiteSpace($ollamaUrl)) {
+                $ollamaUrl = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('providers', 'ollama', 'baseUrl'))
+            }
             if (-not [string]::IsNullOrWhiteSpace($ollamaUrl)) { $runtime.OllamaBaseUrl = $ollamaUrl }
 
-            $ollamaModel = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('providers', 'ollama', 'defaultModel'))
+            $ollamaModel = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('ollama', 'model'))
             if (-not [string]::IsNullOrWhiteSpace($ollamaModel)) { $runtime.OllamaModel = $ollamaModel }
+            if ([string]::IsNullOrWhiteSpace($ollamaModel)) {
+                $ollamaModel = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('providers', 'ollama', 'defaultModel'))
+            }
+            if (-not [string]::IsNullOrWhiteSpace($ollamaModel)) { $runtime.OllamaModel = $ollamaModel }
+
+            $ollamaToolModel = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('ollama', 'tool_model'))
+            if (-not [string]::IsNullOrWhiteSpace($ollamaToolModel)) { $runtime.OllamaToolModel = $ollamaToolModel }
+
+            $ollamaSummaryModel = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('ollama', 'summary_model'))
+            if (-not [string]::IsNullOrWhiteSpace($ollamaSummaryModel)) { $runtime.OllamaSummaryModel = $ollamaSummaryModel }
+
+            $ollamaTimeout = [Pcai.Common.RuntimeConfigBridge]::TryGetInt($json, @('ollama', 'timeout_ms'))
+            if ($ollamaTimeout -and $ollamaTimeout -gt 0) { $runtime.OllamaTimeoutMs = [int]$ollamaTimeout }
 
             $lmstudioUrl = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('providers', 'lmstudio', 'baseUrl'))
             if (-not [string]::IsNullOrWhiteSpace($lmstudioUrl)) { $runtime.LMStudioApiUrl = $lmstudioUrl }
@@ -285,14 +359,29 @@ function Get-PcaiRuntimeConfig {
                 $runtime.FallbackOrder = @($fallback)
             }
 
+            $ollamaCliSearchPaths = [Pcai.Common.RuntimeConfigBridge]::TryGetStringArray($json, @('ollama', 'cliSearchPaths'))
+            foreach ($cliPath in $ollamaCliSearchPaths) {
+                if ([string]::IsNullOrWhiteSpace($cliPath)) { continue }
+                $normalizedPath = if ([System.IO.Path]::IsPathRooted($cliPath)) {
+                    $cliPath
+                } else {
+                    Join-Path $resolvedRoot $cliPath
+                }
+                $runtime.OllamaCliSearchPaths += $normalizedPath
+            }
+
+            $toolInvokerPath = [Pcai.Common.RuntimeConfigBridge]::TryGetString($json, @('ollama', 'toolInvokerPath'))
+            if (-not [string]::IsNullOrWhiteSpace($toolInvokerPath)) {
+                $runtime.OllamaToolInvokerPath = if ([System.IO.Path]::IsPathRooted($toolInvokerPath)) { $toolInvokerPath } else { Join-Path $resolvedRoot $toolInvokerPath }
+            }
+
             $dllPaths = [Pcai.Common.RuntimeConfigBridge]::TryGetStringArray($json, @('nativeInference', 'dllSearchPaths'))
             foreach ($dllPath in $dllPaths) {
                 if ([string]::IsNullOrWhiteSpace($dllPath)) { continue }
-                $expanded = [Environment]::ExpandEnvironmentVariables([string]$dllPath)
-                $normalizedPath = if ([System.IO.Path]::IsPathRooted($expanded)) {
-                    $expanded
+                $normalizedPath = if ([System.IO.Path]::IsPathRooted([string]$dllPath)) {
+                    [string]$dllPath
                 } else {
-                    Join-Path $resolvedRoot $expanded
+                    Join-Path $resolvedRoot ([string]$dllPath)
                 }
                 $runtime.NativeDllSearchPaths += $normalizedPath
             }
@@ -313,6 +402,20 @@ function Get-PcaiRuntimeConfig {
             (Join-Path $resolvedRoot '.pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll'),
             (Join-Path $resolvedRoot '.pcai\build\artifacts\pcai-mistralrs\pcai_inference.dll')
         )
+    }
+
+    if (-not $runtime.OllamaCliSearchPaths -or $runtime.OllamaCliSearchPaths.Count -eq 0) {
+        $runtime.OllamaCliSearchPaths = @(
+            (Join-Path $resolvedRoot 'Native\pcai_core\bin\pcai-ollama-rs.exe'),
+            'C:\Users\david\.local\bin\pcai-ollama-rs.exe',
+            (Join-Path $resolvedRoot 'Native\pcai_core\target\release\pcai-ollama-rs.exe'),
+            (Join-Path $resolvedRoot 'Native\pcai_core\pcai_ollama_rs\target\release\pcai-ollama-rs.exe'),
+            'T:\RustCache\cargo-target\release\pcai-ollama-rs.exe'
+        )
+    }
+
+    if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+        Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "runtime-config::$runtimeCacheKey" -Value $runtime -DependencyStamp $runtimeConfigStamp | Out-Null
     }
 
     return [PSCustomObject]$runtime

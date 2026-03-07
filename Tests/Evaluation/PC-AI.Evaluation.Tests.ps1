@@ -204,7 +204,7 @@ Describe "PC-AI.Evaluation Module" {
                 priority = "low"
             } | ConvertTo-Json
 
-            $result = Evaluate-DiagnosticQuality -DiagnosticOutput $output -DiagnosticInput "Check system"
+            $result = Measure-DiagnosticQuality -DiagnosticOutput $output -DiagnosticInput "Check system"
 
             $result.valid_json | Should -BeTrue
             $result.has_findings | Should -BeTrue
@@ -218,7 +218,7 @@ Describe "PC-AI.Evaluation Module" {
                 # Missing recommendations
             } | ConvertTo-Json
 
-            $result = Evaluate-DiagnosticQuality -DiagnosticOutput $output -DiagnosticInput "Check disk"
+            $result = Measure-DiagnosticQuality -DiagnosticOutput $output -DiagnosticInput "Check disk"
 
             $result.has_recommendations | Should -BeFalse
             $result.issues | Should -Contain "Missing recommendations section"
@@ -232,7 +232,7 @@ Describe "PC-AI.Evaluation Module" {
                 priority = "critical"
             } | ConvertTo-Json
 
-            $result = Evaluate-DiagnosticQuality -DiagnosticOutput $output -DiagnosticInput $input
+            $result = Measure-DiagnosticQuality -DiagnosticOutput $output -DiagnosticInput $input
 
             $result.safety_warnings_present | Should -BeFalse
             $result.issues | Should -Contain "Missing safety warnings for critical issues"

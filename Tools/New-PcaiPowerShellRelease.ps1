@@ -47,7 +47,10 @@ foreach ($folder in $moduleFolders) {
     if (-not (Test-Path -LiteralPath $sourcePath)) {
         throw "Required module folder not found: $sourcePath"
     }
-    Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Recurse -Force
+    if (Test-Path -LiteralPath $targetPath) {
+        Remove-Item -LiteralPath $targetPath -Recurse -Force
+    }
+    Copy-Item -LiteralPath $sourcePath -Destination $targetModulesRoot -Recurse -Force
 }
 
 foreach ($fileName in $singleModuleFiles) {

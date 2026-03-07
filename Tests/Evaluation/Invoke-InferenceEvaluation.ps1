@@ -89,6 +89,24 @@ param(
 
     [string]$BaseUrl,
 
+    [string]$Model,
+
+    [int]$NumCtx,
+
+    [int]$NumThread,
+
+    [double]$TopP,
+
+    [int]$TopK,
+
+    [int]$RepeatLastN,
+
+    [double]$RepeatPenalty,
+
+    [double]$TfsZ,
+
+    [int]$Seed,
+
     [int]$MaxTestCases = 0,
 
     [ValidateSet('auto', 'stream', 'bar', 'silent')]
@@ -135,6 +153,7 @@ if (Test-Path (Join-Path $projectRoot 'Modules\PcaiInference.psd1')) {
     Import-Module (Join-Path $projectRoot 'Modules\PcaiInference.psm1') -Force -ErrorAction SilentlyContinue
 }
 Import-Module (Join-Path $projectRoot 'Modules\PC-AI.Evaluation\PC-AI.Evaluation.psd1') -Force
+Import-Module (Join-Path $projectRoot 'Modules\PC-AI.LLM\PC-AI.LLM.psd1') -Force -ErrorAction SilentlyContinue
 
 Write-Host @'
 
@@ -250,7 +269,8 @@ function Get-ServiceHostPath {
     $candidates = @(
         (Join-Path $projectRoot 'Native\PcaiServiceHost\bin\Release\net8.0\win-x64\PcaiServiceHost.dll'),
         (Join-Path $projectRoot 'Native\PcaiServiceHost\bin\Release\net8.0\PcaiServiceHost.dll'),
-        (Join-Path $env:USERPROFILE 'PC_AI\Native\PcaiServiceHost\bin\Release\net8.0\win-x64\PcaiServiceHost.dll')
+        $(if ($env:PCAI_ROOT) { Join-Path $env:PCAI_ROOT 'Native\PcaiServiceHost\bin\Release\net8.0\win-x64\PcaiServiceHost.dll' }),
+        $(if ($env:PCAI_ROOT) { Join-Path $env:PCAI_ROOT 'Native\PcaiServiceHost\bin\Release\net8.0\PcaiServiceHost.dll' })
     )
     return $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 }
@@ -366,9 +386,18 @@ function Invoke-BackendEvaluation {
         -Backend $Backend `
         -ModelPath $ModelPath `
         -BaseUrl $effectiveBaseUrl `
+        -Model $Model `
         -MaxTokens $MaxTokens `
         -Temperature $Temperature `
         -GpuLayers $GpuLayers `
+        -NumCtx $NumCtx `
+        -NumThread $NumThread `
+        -TopP $TopP `
+        -TopK $TopK `
+        -RepeatLastN $RepeatLastN `
+        -RepeatPenalty $RepeatPenalty `
+        -TfsZ $TfsZ `
+        -Seed $Seed `
         -RunLabel $runLabelEffective `
         -OutputRoot $OutputRoot `
         -ProgressMode $ProgressMode `
@@ -582,9 +611,18 @@ try {
             Parameters = @{
                 Backend     = $Backend
                 ModelPath   = $ModelPath
+                Model       = $Model
                 Dataset     = $Dataset
                 MaxTokens   = $MaxTokens
                 Temperature = $Temperature
+                NumCtx      = $NumCtx
+                NumThread   = $NumThread
+                TopP        = $TopP
+                TopK        = $TopK
+                RepeatLastN = $RepeatLastN
+                RepeatPenalty = $RepeatPenalty
+                TfsZ        = $TfsZ
+                Seed        = $Seed
             }
             Results    = $allResults.GetEnumerator() | ForEach-Object {
                 @{

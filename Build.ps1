@@ -184,6 +184,11 @@ $script:QuietMode = $Quiet.IsPresent
 $script:CargoToolsEnabled = $false
 $script:RustBuildWrapper = Join-Path $script:ProjectRoot 'Tools\Invoke-RustBuild.ps1'
 $script:DependencyStrategy = $DependencyStrategy
+$script:PcaiModuleBootstrap = Join-Path $script:ProjectRoot 'Tools\PcaiModuleBootstrap.ps1'
+
+if (Test-Path -LiteralPath $script:PcaiModuleBootstrap) {
+    . $script:PcaiModuleBootstrap
+}
 
 #region Output Formatting
 
@@ -352,8 +357,13 @@ function Initialize-CargoToolsDefaults {
         return $false
     }
 
-    $cargoToolsModule = Get-Module -ListAvailable CargoTools
-    if (-not $cargoToolsModule) {
+    $cargoToolsManifest = if (Get-Command Resolve-PcaiModuleManifestPath -ErrorAction SilentlyContinue) {
+        Resolve-PcaiModuleManifestPath -ModuleName 'CargoTools' -RepoRoot $script:ProjectRoot
+    } else {
+        $null
+    }
+
+    if (-not $cargoToolsManifest) {
         if ($CargoTools -eq 'enabled') {
             Write-BuildStep 'CargoTools module required but not installed' 'error'
             throw 'CargoTools integration was explicitly enabled but the module was not found.'
@@ -363,11 +373,13 @@ function Initialize-CargoToolsDefaults {
     }
 
     if (-not (Get-Module CargoTools)) {
-        Import-Module CargoTools -ErrorAction Stop
+        Import-Module -Name $cargoToolsManifest -ErrorAction Stop | Out-Null
     }
 
     $cacheRoot = if ($env:PCAI_CACHE_ROOT) {
         $env:PCAI_CACHE_ROOT
+    } elseif (Get-Command Resolve-CacheRoot -Module CargoTools -ErrorAction SilentlyContinue) {
+        Resolve-CacheRoot
     } elseif (Test-Path 'T:\RustCache') {
         'T:\RustCache'
     } else {
@@ -396,6 +408,7 @@ function Initialize-CargoToolsDefaults {
         }
 
         $script:CargoToolsEnabled = $true
+        Write-BuildStep "CargoTools manifest: $cargoToolsManifest" 'success'
         Write-BuildStep "CargoTools initialized (cache root: $cacheRoot)" 'success'
         if ($env:RUSTC_WRAPPER) {
             Write-BuildStep "Rust compiler wrapper: $($env:RUSTC_WRAPPER)" 'success'

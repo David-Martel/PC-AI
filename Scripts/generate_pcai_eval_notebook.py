@@ -2,7 +2,7 @@ import json
 import datetime
 from pathlib import Path
 
-project_root = Path(r"C:\Users\david\PC_AI")
+project_root = Path(__file__).resolve().parents[1]
 nb_dir = project_root / "Notebooks"
 nb_dir.mkdir(exist_ok=True)
 

@@ -59,12 +59,23 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$pcaiModuleBootstrap = Join-Path $PSScriptRoot 'PcaiModuleBootstrap.ps1'
+if (Test-Path -LiteralPath $pcaiModuleBootstrap) {
+    . $pcaiModuleBootstrap
+}
+
 $script:UseCargoTools = $true
-if (-not (Get-Module -ListAvailable CargoTools)) {
+$cargoToolsManifest = if (Get-Command Resolve-PcaiModuleManifestPath -ErrorAction SilentlyContinue) {
+    Resolve-PcaiModuleManifestPath -ModuleName 'CargoTools' -RepoRoot (Split-Path -Parent $PSScriptRoot)
+} else {
+    $null
+}
+
+if (-not $cargoToolsManifest) {
     Write-Warning 'CargoTools module not found. Falling back to direct cargo invocation.'
     $script:UseCargoTools = $false
 } elseif (-not (Get-Module CargoTools)) {
-    Import-Module CargoTools -ErrorAction Stop
+    Import-Module -Name $cargoToolsManifest -ErrorAction Stop | Out-Null
 }
 
 if ($script:UseCargoTools -and -not (Get-Command cl.exe -ErrorAction SilentlyContinue)) {

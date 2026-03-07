@@ -118,9 +118,10 @@ Describe 'Invoke-RustBuild' {
             $content | Should -Match 'Get-Module.*CargoTools'
         }
 
-        It 'Should import CargoTools module' {
+        It 'Should resolve CargoTools module manifest explicitly' {
             $content = Get-Content $script:RustBuildPath -Raw
-            $content | Should -Match 'Import-Module CargoTools'
+            $content | Should -Match 'Resolve-PcaiModuleManifestPath'
+            $content | Should -Match 'Import-Module -Name \\$cargoToolsManifest'
         }
 
         It 'Should fall back when CargoTools is not available' {

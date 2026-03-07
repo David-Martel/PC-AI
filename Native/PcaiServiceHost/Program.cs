@@ -580,12 +580,6 @@ public static class Program
 
     private static string ResolveProjectRoot()
     {
-        var envRoot = Environment.GetEnvironmentVariable("PCAI_ROOT");
-        if (!string.IsNullOrWhiteSpace(envRoot) && Directory.Exists(envRoot))
-        {
-            return envRoot;
-        }
-
         var current = AppContext.BaseDirectory;
         while (!string.IsNullOrWhiteSpace(current))
         {

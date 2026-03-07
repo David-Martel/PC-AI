@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "pcai_core_lib",
+    "pcai_ollama_rs",
     "pcai_inference",
     "pcai_media_model",
     "pcai_media",
@@ -91,6 +92,9 @@ llm = { git = "https://github.com/rustformers/llama-rs.git", rev = "b11ffb14fde0
 mistralrs = "0.7"
 mistralrs-core = "0.7"
 rand = "0.8.5"
+ollama-rs = { version = "0.3.4", features = ["stream"] }
+schemars = "0.8.22"
+url = "2.5"
 
 [profile.release]
 opt-level = 3      # Maximum optimization

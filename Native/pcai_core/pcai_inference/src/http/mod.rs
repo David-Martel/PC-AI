@@ -18,32 +18,9 @@ use uuid::Uuid;
 
 use crate::{
     backends::{FinishReason, GenerateRequest, InferenceBackend},
-    config::ServerConfig,
+    config::{RouterConfig, ServerConfig},
     Error, Result,
 };
-
-#[derive(Debug, Deserialize, Default)]
-struct LlmConfigFile {
-    #[serde(default)]
-    router: RouterConfigFile,
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[allow(dead_code)]
-struct RouterConfigFile {
-    enabled: Option<bool>,
-    provider: Option<String>,
-    #[serde(rename = "baseUrl")]
-    base_url: Option<String>,
-    model: Option<String>,
-    #[serde(rename = "toolsPath")]
-    tools_path: Option<String>,
-    strict: Option<bool>,
-    force: Option<bool>,
-    disable: Option<bool>,
-    #[serde(rename = "defaultTemperature")]
-    default_temperature: Option<f64>,
-}
 
 #[derive(Debug, Clone)]
 struct RouterSettings {
@@ -58,47 +35,28 @@ struct RouterSettings {
 
 static ROUTER_SETTINGS: OnceLock<RouterSettings> = OnceLock::new();
 
-fn config_path() -> PathBuf {
-    PathBuf::from("Config/llm-config.json")
-}
-
-fn load_router_settings() -> RouterSettings {
-    let raw = fs::read_to_string(config_path()).ok();
-    let config = raw
-        .and_then(|text| serde_json::from_str::<LlmConfigFile>(&text).ok())
-        .unwrap_or_default();
-
-    let router = config.router;
-    let enabled = router.enabled.unwrap_or(true);
-    let base_url = router
-        .base_url
-        .filter(|v| !v.trim().is_empty())
-        .or_else(|| std::env::var("PCAI_ROUTER_BASE_URL").ok())
-        .unwrap_or_default();
-    let model = router
-        .model
-        .filter(|v| !v.trim().is_empty())
-        .unwrap_or_else(|| "functiongemma-270m-it".to_string());
-    let tools_path = router
-        .tools_path
-        .filter(|v| !v.trim().is_empty())
-        .or_else(|| std::env::var("PCAI_TOOLS_PATH").ok())
-        .unwrap_or_default();
-    let disable = router.disable.unwrap_or(!enabled) || base_url.trim().is_empty();
+fn map_router_settings(router: &RouterConfig) -> RouterSettings {
+    let enabled = router.enabled;
+    let base_url = router.base_url.trim().to_string();
+    let disable = router.disable || !enabled || base_url.is_empty();
 
     RouterSettings {
         base_url,
-        model,
-        tools_path,
-        strict: router.strict.unwrap_or(false),
-        force: router.force.unwrap_or(false),
+        model: if router.model.trim().is_empty() {
+            "functiongemma-270m-it".to_string()
+        } else {
+            router.model.trim().to_string()
+        },
+        tools_path: router.tools_path.trim().to_string(),
+        strict: router.strict,
+        force: router.force,
         disable,
-        default_temperature: router.default_temperature.unwrap_or(0.2),
+        default_temperature: router.default_temperature,
     }
 }
 
 fn router_settings() -> &'static RouterSettings {
-    ROUTER_SETTINGS.get_or_init(load_router_settings)
+    ROUTER_SETTINGS.get_or_init(|| map_router_settings(&RouterConfig::default()))
 }
 
 /// Shared application state
@@ -107,8 +65,14 @@ pub struct AppState {
 }
 
 /// Run the HTTP server
-pub async fn run_server(config: ServerConfig, backend: Box<dyn InferenceBackend>) -> Result<()> {
+pub async fn run_server(
+    config: ServerConfig,
+    router_config: RouterConfig,
+    backend: Box<dyn InferenceBackend>,
+) -> Result<()> {
     tracing::info!("Starting HTTP server on {}:{}", config.host, config.port);
+
+    let _ = ROUTER_SETTINGS.set(map_router_settings(&router_config));
 
     let state = AppState {
         backend: Arc::new(RwLock::new(backend)),

@@ -12,6 +12,10 @@ pub struct InferenceConfig {
     /// Model configuration
     pub model: ModelConfig,
 
+    /// Router/tool-call configuration
+    #[serde(default)]
+    pub router: RouterConfig,
+
     /// Server configuration (if feature = "server")
     #[cfg(feature = "server")]
     pub server: Option<ServerConfig>,
@@ -87,6 +91,69 @@ fn default_temperature() -> f32 {
 
 fn default_top_p() -> f32 {
     0.95
+}
+
+/// Router configuration passed to the HTTP service at runtime.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RouterConfig {
+    #[serde(default = "default_router_enabled")]
+    pub enabled: bool,
+
+    #[serde(default = "default_router_provider")]
+    pub provider: String,
+
+    #[serde(default)]
+    pub base_url: String,
+
+    #[serde(default = "default_router_model")]
+    pub model: String,
+
+    #[serde(default)]
+    pub tools_path: String,
+
+    #[serde(default)]
+    pub strict: bool,
+
+    #[serde(default)]
+    pub force: bool,
+
+    #[serde(default)]
+    pub disable: bool,
+
+    #[serde(default = "default_router_temperature")]
+    pub default_temperature: f64,
+}
+
+impl Default for RouterConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_router_enabled(),
+            provider: default_router_provider(),
+            base_url: String::new(),
+            model: default_router_model(),
+            tools_path: String::new(),
+            strict: false,
+            force: false,
+            disable: false,
+            default_temperature: default_router_temperature(),
+        }
+    }
+}
+
+fn default_router_enabled() -> bool {
+    true
+}
+
+fn default_router_provider() -> String {
+    "functiongemma".to_string()
+}
+
+fn default_router_model() -> String {
+    "functiongemma-270m-it".to_string()
+}
+
+fn default_router_temperature() -> f64 {
+    0.2
 }
 
 /// Server configuration

@@ -152,6 +152,14 @@ public static class PcaiCore
     }
 
     /// <summary>
+    /// Collects a directory manifest using native traversal.
+    /// </summary>
+    public static string? CollectDirectoryManifest(string rootPath, uint maxDepth = 0, ulong maxResults = 0)
+    {
+        return PcaiSearch.CollectDirectoryManifestJson(rootPath, maxDepth, (uint)maxResults);
+    }
+
+    /// <summary>
     /// Finds duplicate files using parallel native hashing.
     /// </summary>
     public static string? FindDuplicates(string rootPath, ulong minSize = 0, string? includePattern = null, string? excludePattern = null)

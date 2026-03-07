@@ -3,7 +3,15 @@
 
 $publicPath = Join-Path $PSScriptRoot 'Public'
 if (Test-Path $publicPath) {
-    Get-ChildItem -Path $publicPath -Filter '*.ps1' -File -ErrorAction SilentlyContinue | ForEach-Object {
+    $sharedCacheHelper = Join-Path $publicPath 'Get-PcaiSharedCache.ps1'
+    if (Test-Path $sharedCacheHelper) {
+        . $sharedCacheHelper
+    }
+}
+if (Test-Path $publicPath) {
+    Get-ChildItem -Path $publicPath -Filter '*.ps1' -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -ne 'Get-PcaiSharedCache.ps1' } |
+        ForEach-Object {
         . $_.FullName
     }
 }
@@ -17,6 +25,10 @@ Export-ModuleMember -Function @(
     'Write-SubHeader',
     'Write-Bullet',
     'Initialize-PcaiNative',
+    'Get-PcaiDependencyStamp',
+    'Get-PcaiSharedCacheEntry',
+    'Set-PcaiSharedCacheEntry',
+    'Clear-PcaiSharedCache',
     'Resolve-PcaiRepoRoot',
     'Get-PcaiRuntimeConfig',
     'Get-ScriptMetadata'

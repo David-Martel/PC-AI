@@ -33,9 +33,79 @@ function Get-PcaiCapabilities {
     $native = Get-PcaiNativeStatus
     $modules = $native.Modules
 
+    $backendCoverage = @(
+        [PSCustomObject]@{
+            Operation            = 'TokenEstimate'
+            Category             = 'Core'
+            RustAvailable        = [bool]$native.CoreAvailable
+            CSharpBridgeAvailable = [bool]$native.CoreAvailable
+            PowerShellSurface    = [bool](Get-Command Get-PcaiTokenEstimate -ErrorAction SilentlyContinue)
+            ManagedBaseline      = $true
+            PreferredBackend     = if ($native.CoreAvailable) { 'Rust+C#' } else { 'PowerShell' }
+        }
+        [PSCustomObject]@{
+            Operation            = 'DirectoryManifest'
+            Category             = 'Search'
+            RustAvailable        = [bool]$modules.Search
+            CSharpBridgeAvailable = [bool]$modules.Search
+            PowerShellSurface    = [bool](Get-Command Invoke-PcaiNativeDirectoryManifest -ErrorAction SilentlyContinue)
+            ManagedBaseline      = $true
+            PreferredBackend     = if ($modules.Search) { 'Rust+C#' } else { 'PowerShell' }
+        }
+        [PSCustomObject]@{
+            Operation            = 'FileSearch'
+            Category             = 'Search'
+            RustAvailable        = [bool]$modules.Search
+            CSharpBridgeAvailable = [bool]$modules.Search
+            PowerShellSurface    = [bool](Get-Command Invoke-PcaiNativeFileSearch -ErrorAction SilentlyContinue)
+            ManagedBaseline      = $true
+            PreferredBackend     = if ($modules.Search) { 'Rust+C#' } else { 'PowerShell/fd' }
+        }
+        [PSCustomObject]@{
+            Operation            = 'ContentSearch'
+            Category             = 'Search'
+            RustAvailable        = [bool]$modules.Search
+            CSharpBridgeAvailable = [bool]$modules.Search
+            PowerShellSurface    = [bool](Get-Command Invoke-PcaiNativeContentSearch -ErrorAction SilentlyContinue)
+            ManagedBaseline      = $true
+            PreferredBackend     = if ($modules.Search) { 'Rust+C#' } else { 'PowerShell/rg' }
+        }
+        [PSCustomObject]@{
+            Operation            = 'FullContext'
+            Category             = 'Diagnostics'
+            RustAvailable        = [bool]$native.CoreAvailable
+            CSharpBridgeAvailable = [bool]$native.CoreAvailable
+            PowerShellSurface    = [bool](Get-Command Invoke-PcaiNativeSystemInfo -ErrorAction SilentlyContinue)
+            ManagedBaseline      = $true
+            PreferredBackend     = if ($native.CoreAvailable) { 'Rust+C#' } else { 'PowerShell' }
+        }
+        [PSCustomObject]@{
+            Operation            = 'DiskUsage'
+            Category             = 'Performance'
+            RustAvailable        = [bool]$modules.Performance
+            CSharpBridgeAvailable = [bool]$modules.Performance
+            PowerShellSurface    = [bool]$modules.Performance
+            ManagedBaseline      = $true
+            PreferredBackend     = if ($modules.Performance) { 'Rust+C#' } else { 'PowerShell' }
+        }
+    ) | ForEach-Object {
+        $_ | Add-Member -NotePropertyName CoverageState -NotePropertyValue (
+            if ($_.RustAvailable -and $_.CSharpBridgeAvailable -and $_.PowerShellSurface) { 'Rust+CSharp+PS' }
+            elseif ($_.CSharpBridgeAvailable -and $_.PowerShellSurface) { 'CSharp+PS' }
+            elseif ($_.PowerShellSurface) { 'PSOnly' }
+            else { 'Unavailable' }
+        ) -PassThru | Add-Member -NotePropertyName Gap -NotePropertyValue (
+            if ($_.RustAvailable -and $_.CSharpBridgeAvailable -and $_.PowerShellSurface) { '' }
+            elseif (-not $_.RustAvailable) { 'Native/Rust coverage missing' }
+            elseif (-not $_.PowerShellSurface) { 'PowerShell wrapper missing' }
+            else { 'Bridge availability incomplete' }
+        ) -PassThru
+    }
+
     $features = [PSCustomObject]@{
         JsonExtraction = $native.CoreAvailable
         PromptAssembly = $native.CoreAvailable
+        DirectoryManifest = $modules.Search
         FileSearch     = $modules.Search
         ContentSearch  = $modules.Search
         DuplicateScan  = $modules.Search
@@ -85,6 +155,7 @@ function Get-PcaiCapabilities {
         Timestamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
         Native    = $native
         Features  = $features
+        BackendCoverage = $backendCoverage
         Cpu       = $cpu
         Gpu       = $gpu
         Services  = $services

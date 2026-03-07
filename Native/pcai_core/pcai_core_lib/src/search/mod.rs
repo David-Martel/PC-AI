@@ -33,6 +33,24 @@ pub extern "C" fn pcai_find_files_stats(
 }
 
 #[no_mangle]
+pub extern "C" fn pcai_collect_directory_manifest(
+    root_path: *const c_char,
+    max_depth: u32,
+    max_results: u64,
+) -> PcaiStringBuffer {
+    files::collect_directory_manifest_ffi(root_path, max_depth, max_results)
+}
+
+#[no_mangle]
+pub extern "C" fn pcai_collect_directory_manifest_stats(
+    root_path: *const c_char,
+    max_depth: u32,
+    max_results: u64,
+) -> files::DirectoryManifestStats {
+    files::collect_directory_manifest_stats_ffi(root_path, max_depth, max_results)
+}
+
+#[no_mangle]
 pub extern "C" fn pcai_search_content(
     root_path: *const c_char,
     pattern: *const c_char,

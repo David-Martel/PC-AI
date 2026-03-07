@@ -44,6 +44,27 @@ impl FileSearchStats {
     }
 }
 
+/// Statistics returned by directory manifest operations.
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DirectoryManifestStats {
+    pub status: PcaiStatus,
+    pub entries_returned: u64,
+    pub file_count: u64,
+    pub directory_count: u64,
+    pub total_size: u64,
+    pub elapsed_ms: u64,
+}
+
+impl DirectoryManifestStats {
+    fn error(status: PcaiStatus) -> Self {
+        Self {
+            status,
+            ..Default::default()
+        }
+    }
+}
+
 /// Information about a found file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FoundFile {
@@ -54,6 +75,19 @@ pub struct FoundFile {
     /// Last modified timestamp (Unix epoch seconds)
     pub modified: u64,
     /// Whether the file is read-only
+    pub readonly: bool,
+}
+
+/// Information about a manifest entry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DirectoryManifestEntry {
+    pub path: String,
+    pub relative_path: String,
+    pub entry_type: String,
+    pub extension: String,
+    pub depth: u32,
+    pub size: u64,
+    pub modified: u64,
     pub readonly: bool,
 }
 
@@ -78,12 +112,48 @@ pub struct FileSearchResult {
     pub truncated: bool,
 }
 
+/// Complete result of a directory manifest operation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DirectoryManifestResult {
+    pub status: String,
+    pub root_path: String,
+    pub max_depth: u32,
+    pub entries_returned: u64,
+    pub file_count: u64,
+    pub directory_count: u64,
+    pub total_size: u64,
+    pub elapsed_ms: u64,
+    pub entries: Vec<DirectoryManifestEntry>,
+    pub truncated: bool,
+}
+
 /// Configuration for file search.
 struct FileSearchConfig {
     root_path: PathBuf,
     pattern: String,
     matcher: GlobMatcher,
     max_results: u64,
+}
+
+struct DirectoryManifestConfig {
+    root_path: PathBuf,
+    max_depth: u32,
+    max_results: u64,
+}
+
+impl DirectoryManifestConfig {
+    fn from_ffi(root_path: *const c_char, max_depth: u32, max_results: u64) -> Result<Self, PcaiStatus> {
+        let root = parse_path_ffi(root_path)?;
+        if !root.exists() {
+            return Err(PcaiStatus::PathNotFound);
+        }
+
+        Ok(Self {
+            root_path: root,
+            max_depth,
+            max_results,
+        })
+    }
 }
 
 impl FileSearchConfig {
@@ -249,6 +319,178 @@ fn find_files_stats_impl(config: &FileSearchConfig) -> FileSearchStats {
     }
 }
 
+fn collect_directory_manifest_impl(config: &DirectoryManifestConfig) -> DirectoryManifestResult {
+    let start = Instant::now();
+
+    let file_count = Arc::new(AtomicU64::new(0));
+    let directory_count = Arc::new(AtomicU64::new(0));
+    let total_size = Arc::new(AtomicU64::new(0));
+    let truncated = Arc::new(AtomicBool::new(false));
+    let entries = Arc::new(Mutex::new(Vec::new()));
+
+    let walker_config = WalkerConfig {
+        root_path: &config.root_path,
+        include_patterns: vec![],
+        exclude_patterns: vec![],
+        git_ignore: false,
+        hidden: false,
+    };
+
+    let root_path = config.root_path.clone();
+    let max_depth = config.max_depth;
+    let max_results = config.max_results;
+    let file_count_clone = file_count.clone();
+    let directory_count_clone = directory_count.clone();
+    let total_size_clone = total_size.clone();
+    let truncated_clone = truncated.clone();
+    let entries_clone = entries.clone();
+
+    run_walker(walker_config, move |entry: &ignore::DirEntry| {
+        let depth = entry.depth() as u32;
+        if depth == 0 {
+            return ignore::WalkState::Continue;
+        }
+        if max_depth > 0 && depth > max_depth {
+            return ignore::WalkState::Continue;
+        }
+
+        if let Ok(metadata) = entry.metadata() {
+            let is_dir = metadata.is_dir();
+            let current = {
+                let guard = entries_clone.lock().expect("directory manifest lock poisoned");
+                guard.len() as u64
+            };
+
+            if max_results > 0 && current >= max_results {
+                truncated_clone.store(true, Ordering::Relaxed);
+                return ignore::WalkState::Quit;
+            }
+
+            if is_dir {
+                directory_count_clone.fetch_add(1, Ordering::Relaxed);
+            } else if metadata.is_file() {
+                file_count_clone.fetch_add(1, Ordering::Relaxed);
+                total_size_clone.fetch_add(metadata.len(), Ordering::Relaxed);
+            }
+
+            let relative_path = entry
+                .path()
+                .strip_prefix(&root_path)
+                .ok()
+                .map(|path| path.to_string_lossy().replace('\\', "/"))
+                .unwrap_or_else(|| entry.path().to_string_lossy().replace('\\', "/"));
+
+            let extension = entry
+                .path()
+                .extension()
+                .and_then(|value| value.to_str())
+                .unwrap_or_default()
+                .to_string();
+
+            let modified = metadata
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+
+            let manifest_entry = DirectoryManifestEntry {
+                path: entry.path().to_string_lossy().into_owned(),
+                relative_path,
+                entry_type: if is_dir { "directory".to_string() } else { "file".to_string() },
+                extension,
+                depth,
+                size: if metadata.is_file() { metadata.len() } else { 0 },
+                modified,
+                readonly: metadata.permissions().readonly(),
+            };
+
+            entries_clone
+                .lock()
+                .expect("directory manifest lock poisoned")
+                .push(manifest_entry);
+        }
+
+        ignore::WalkState::Continue
+    });
+
+    let elapsed = start.elapsed();
+    let mut manifest_entries = std::mem::take(&mut *entries.lock().expect("directory manifest lock poisoned"));
+    manifest_entries.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
+
+    DirectoryManifestResult {
+        status: "Success".to_string(),
+        root_path: config.root_path.to_string_lossy().into_owned(),
+        max_depth: config.max_depth,
+        entries_returned: manifest_entries.len() as u64,
+        file_count: file_count.load(Ordering::Relaxed),
+        directory_count: directory_count.load(Ordering::Relaxed),
+        total_size: total_size.load(Ordering::Relaxed),
+        elapsed_ms: elapsed.as_millis() as u64,
+        entries: manifest_entries,
+        truncated: truncated.load(Ordering::Relaxed),
+    }
+}
+
+fn collect_directory_manifest_stats_impl(config: &DirectoryManifestConfig) -> DirectoryManifestStats {
+    let start = Instant::now();
+    let file_count = Arc::new(AtomicU64::new(0));
+    let directory_count = Arc::new(AtomicU64::new(0));
+    let total_size = Arc::new(AtomicU64::new(0));
+    let entries_returned = Arc::new(AtomicU64::new(0));
+
+    let walker_config = WalkerConfig {
+        root_path: &config.root_path,
+        include_patterns: vec![],
+        exclude_patterns: vec![],
+        git_ignore: false,
+        hidden: false,
+    };
+
+    let max_depth = config.max_depth;
+    let max_results = config.max_results;
+    let file_count_clone = file_count.clone();
+    let directory_count_clone = directory_count.clone();
+    let total_size_clone = total_size.clone();
+    let entries_returned_clone = entries_returned.clone();
+
+    run_walker(walker_config, move |entry: &ignore::DirEntry| {
+        let depth = entry.depth() as u32;
+        if depth == 0 {
+            return ignore::WalkState::Continue;
+        }
+        if max_depth > 0 && depth > max_depth {
+            return ignore::WalkState::Continue;
+        }
+
+        let current = entries_returned_clone.load(Ordering::Relaxed);
+        if max_results > 0 && current >= max_results {
+            return ignore::WalkState::Quit;
+        }
+
+        if let Ok(metadata) = entry.metadata() {
+            entries_returned_clone.fetch_add(1, Ordering::Relaxed);
+            if metadata.is_dir() {
+                directory_count_clone.fetch_add(1, Ordering::Relaxed);
+            } else if metadata.is_file() {
+                file_count_clone.fetch_add(1, Ordering::Relaxed);
+                total_size_clone.fetch_add(metadata.len(), Ordering::Relaxed);
+            }
+        }
+
+        ignore::WalkState::Continue
+    });
+
+    DirectoryManifestStats {
+        status: PcaiStatus::Success,
+        entries_returned: entries_returned.load(Ordering::Relaxed),
+        file_count: file_count.load(Ordering::Relaxed),
+        directory_count: directory_count.load(Ordering::Relaxed),
+        total_size: total_size.load(Ordering::Relaxed),
+        elapsed_ms: start.elapsed().as_millis() as u64,
+    }
+}
+
 // ============================================================================
 // FFI Entry Points
 // ============================================================================
@@ -269,6 +511,33 @@ pub fn find_files_stats_ffi(root_path: *const c_char, pattern: *const c_char, ma
     match FileSearchConfig::from_ffi(root_path, pattern, max_results) {
         Ok(config) => find_files_stats_impl(&config),
         Err(status) => FileSearchStats::error(status),
+    }
+}
+
+/// FFI entry point for directory manifest collection with full JSON result.
+pub fn collect_directory_manifest_ffi(
+    root_path: *const c_char,
+    max_depth: u32,
+    max_results: u64,
+) -> PcaiStringBuffer {
+    match DirectoryManifestConfig::from_ffi(root_path, max_depth, max_results) {
+        Ok(config) => {
+            let result = collect_directory_manifest_impl(&config);
+            json_to_buffer(&result)
+        }
+        Err(status) => PcaiStringBuffer::error(status),
+    }
+}
+
+/// FFI entry point for directory manifest collection with stats only.
+pub fn collect_directory_manifest_stats_ffi(
+    root_path: *const c_char,
+    max_depth: u32,
+    max_results: u64,
+) -> DirectoryManifestStats {
+    match DirectoryManifestConfig::from_ffi(root_path, max_depth, max_results) {
+        Ok(config) => collect_directory_manifest_stats_impl(&config),
+        Err(status) => DirectoryManifestStats::error(status),
     }
 }
 

@@ -65,6 +65,18 @@ internal static partial class NativeCore
         ulong maxResults);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern PcaiStringBuffer pcai_collect_directory_manifest(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? rootPath,
+        uint maxDepth,
+        ulong maxResults);
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern DirectoryManifestStats pcai_collect_directory_manifest_stats(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? rootPath,
+        uint maxDepth,
+        ulong maxResults);
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern PcaiStringBuffer pcai_search_content(
         [MarshalAs(UnmanagedType.LPUTF8Str)] string? rootPath,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string? pattern,

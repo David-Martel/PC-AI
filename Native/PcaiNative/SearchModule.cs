@@ -40,6 +40,22 @@ public struct FileSearchStats
 }
 
 /// <summary>
+/// Statistics returned by directory manifest operations.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+public struct DirectoryManifestStats
+{
+    public PcaiStatus Status;
+    public ulong EntriesReturned;
+    public ulong FileCount;
+    public ulong DirectoryCount;
+    public ulong TotalSize;
+    public ulong ElapsedMs;
+
+    public readonly bool IsSuccess => Status == PcaiStatus.Success;
+}
+
+/// <summary>
 /// Statistics returned by content search operations.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -131,6 +147,36 @@ public sealed class FoundFile
 }
 
 /// <summary>
+/// Information about a manifest entry.
+/// </summary>
+public sealed class DirectoryManifestEntry
+{
+    [JsonPropertyName("path")]
+    public string Path { get; set; } = "";
+
+    [JsonPropertyName("relative_path")]
+    public string RelativePath { get; set; } = "";
+
+    [JsonPropertyName("entry_type")]
+    public string EntryType { get; set; } = "";
+
+    [JsonPropertyName("extension")]
+    public string Extension { get; set; } = "";
+
+    [JsonPropertyName("depth")]
+    public uint Depth { get; set; }
+
+    [JsonPropertyName("size")]
+    public ulong Size { get; set; }
+
+    [JsonPropertyName("modified")]
+    public ulong Modified { get; set; }
+
+    [JsonPropertyName("readonly")]
+    public bool ReadOnly { get; set; }
+}
+
+/// <summary>
 /// Complete result of a file search operation.
 /// </summary>
 public sealed class FileSearchResult
@@ -155,6 +201,44 @@ public sealed class FileSearchResult
 
     [JsonPropertyName("files")]
     public List<FoundFile> Files { get; set; } = new();
+
+    [JsonPropertyName("truncated")]
+    public bool Truncated { get; set; }
+
+    public bool IsSuccess => Status == "Success";
+}
+
+/// <summary>
+/// Complete result of a directory manifest operation.
+/// </summary>
+public sealed class DirectoryManifestResult
+{
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = "";
+
+    [JsonPropertyName("root_path")]
+    public string RootPath { get; set; } = "";
+
+    [JsonPropertyName("max_depth")]
+    public uint MaxDepth { get; set; }
+
+    [JsonPropertyName("entries_returned")]
+    public ulong EntriesReturned { get; set; }
+
+    [JsonPropertyName("file_count")]
+    public ulong FileCount { get; set; }
+
+    [JsonPropertyName("directory_count")]
+    public ulong DirectoryCount { get; set; }
+
+    [JsonPropertyName("total_size")]
+    public ulong TotalSize { get; set; }
+
+    [JsonPropertyName("elapsed_ms")]
+    public ulong ElapsedMs { get; set; }
+
+    [JsonPropertyName("entries")]
+    public List<DirectoryManifestEntry> Entries { get; set; } = new();
 
     [JsonPropertyName("truncated")]
     public bool Truncated { get; set; }
@@ -362,6 +446,44 @@ public static class PcaiSearch
         return NativeCore.pcai_find_files_stats(rootPath, pattern, maxResults);
     }
 
+    /// <summary>
+    /// Collects a directory manifest using native traversal.
+    /// </summary>
+    public static DirectoryManifestResult? CollectDirectoryManifest(
+        string? rootPath = null,
+        uint maxDepth = 0,
+        ulong maxResults = 0)
+    {
+        if (!IsAvailable) return null;
+
+        var buffer = NativeCore.pcai_collect_directory_manifest(rootPath, maxDepth, maxResults);
+        try
+        {
+            var json = buffer.ToManagedString();
+            if (string.IsNullOrEmpty(json)) return null;
+
+            return JsonSerializer.Deserialize<DirectoryManifestResult>(json);
+        }
+        finally
+        {
+            NativeCore.pcai_free_string_buffer(ref buffer);
+        }
+    }
+
+    /// <summary>
+    /// Gets directory manifest statistics without the full entry list.
+    /// </summary>
+    public static DirectoryManifestStats CollectDirectoryManifestStats(
+        string? rootPath = null,
+        uint maxDepth = 0,
+        ulong maxResults = 0)
+    {
+        if (!IsAvailable)
+            return new DirectoryManifestStats { Status = PcaiStatus.NotImplemented };
+
+        return NativeCore.pcai_collect_directory_manifest_stats(rootPath, maxDepth, maxResults);
+    }
+
     // =========================================================================
     // Content Search
     // =========================================================================
@@ -438,6 +560,14 @@ public static class PcaiSearch
     {
         if (!IsAvailable) return null;
         var buffer = NativeCore.pcai_search_content(rootPath, pattern, filePattern, maxResults, contextLines);
+        try { return buffer.ToManagedString(); }
+        finally { NativeCore.pcai_free_string_buffer(ref buffer); }
+    }
+
+    public static string? CollectDirectoryManifestJson(string? rootPath, uint maxDepth = 0, uint maxResults = 0)
+    {
+        if (!IsAvailable) return null;
+        var buffer = NativeCore.pcai_collect_directory_manifest(rootPath, maxDepth, maxResults);
         try { return buffer.ToManagedString(); }
         finally { NativeCore.pcai_free_string_buffer(ref buffer); }
     }

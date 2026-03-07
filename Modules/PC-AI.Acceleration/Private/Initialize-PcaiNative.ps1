@@ -264,7 +264,7 @@ function Invoke-PcaiNativeDuplicates {
     $resolvedPath = Resolve-Path $Path | Select-Object -ExpandProperty Path
 
     if ($StatsOnly) {
-        throw 'StatsOnly not supported in consolidated NativeDuplicate implementation'
+        return [PcaiNative.PcaiSearch]::FindDuplicatesStats($resolvedPath, [uint64]$MinimumSize, $IncludePattern, $ExcludePattern)
     }
 
     $result = [PcaiNative.PcaiSearch]::FindDuplicates($resolvedPath, [uint64]$MinimumSize, $IncludePattern, $ExcludePattern)
@@ -303,12 +303,46 @@ function Invoke-PcaiNativeFileSearch {
     }
 
     if ($StatsOnly) {
-        throw 'StatsOnly not supported in consolidated NativeFileSearch implementation'
+        return [PcaiNative.PcaiSearch]::FindFilesStats($Pattern, $resolvedPath, [uint64]$MaxResults)
     }
 
     $result = [PcaiNative.PcaiSearch]::FindFiles($Pattern, $resolvedPath, [uint32]$MaxResults)
     return $result
     return $null
+}
+
+function Invoke-PcaiNativeDirectoryManifest {
+    <#
+    .SYNOPSIS
+        Collects a shallow or deep directory manifest using native traversal
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [ValidateScript({ Test-Path $_ -PathType Container })]
+        [string]$Path,
+
+        [Parameter()]
+        [uint32]$MaxDepth = 0,
+
+        [Parameter()]
+        [uint64]$MaxResults = 0,
+
+        [Parameter()]
+        [switch]$StatsOnly
+    )
+
+    if (-not (Test-PcaiNativeAvailable)) {
+        throw 'PCAI Native tools not available.'
+    }
+
+    $resolvedPath = Resolve-Path $Path | Select-Object -ExpandProperty Path
+
+    if ($StatsOnly) {
+        return [PcaiNative.PcaiSearch]::CollectDirectoryManifestStats($resolvedPath, $MaxDepth, $MaxResults)
+    }
+
+    return [PcaiNative.PcaiSearch]::CollectDirectoryManifest($resolvedPath, $MaxDepth, $MaxResults)
 }
 
 function Invoke-PcaiNativeContentSearch {
@@ -348,7 +382,7 @@ function Invoke-PcaiNativeContentSearch {
     }
 
     if ($StatsOnly) {
-        throw 'StatsOnly not supported in consolidated NativeContentSearch implementation'
+        return [PcaiNative.PcaiSearch]::SearchContentStats($Pattern, $resolvedPath, $FilePattern, [uint64]$MaxResults)
     }
 
     $result = [PcaiNative.PcaiSearch]::SearchContent($Pattern, $resolvedPath, $FilePattern, [uint32]$MaxResults, [uint32]$ContextLines)

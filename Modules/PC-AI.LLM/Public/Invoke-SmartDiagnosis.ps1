@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 <#
 .SYNOPSIS
     Smart PC diagnosis combining native high-performance tools with pcai-inference LLM analysis
@@ -59,7 +59,7 @@ function Invoke-SmartDiagnosis {
         $searchPath = if ($Path) {
             Resolve-Path $Path -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Path
         } else {
-            $env:USERPROFILE
+            [Environment]::GetFolderPath('UserProfile')
         }
 
         if (-not $searchPath -or -not (Test-Path $searchPath)) {

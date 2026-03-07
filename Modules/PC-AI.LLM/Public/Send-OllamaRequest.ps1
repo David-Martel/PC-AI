@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 function Send-OllamaRequest {
     <#
@@ -73,7 +73,41 @@ function Send-OllamaRequest {
         [int]$MaxTokens,
 
         [Parameter()]
+        [ValidateRange(1024, 1048576)]
+        [int]$NumCtx,
+
+        [Parameter()]
+        [ValidateRange(1, 256)]
+        [int]$NumThread,
+
+        [Parameter()]
+        [ValidateRange(0.0, 1.0)]
+        [double]$TopP,
+
+        [Parameter()]
+        [ValidateRange(1, 1000)]
+        [int]$TopK,
+
+        [Parameter()]
+        [ValidateRange(-1, 1048576)]
+        [int]$RepeatLastN,
+
+        [Parameter()]
+        [ValidateRange(0.0, 5.0)]
+        [double]$RepeatPenalty,
+
+        [Parameter()]
+        [ValidateRange(0.0, 5.0)]
+        [double]$TfsZ,
+
+        [Parameter()]
+        [int]$Seed,
+
+        [Parameter()]
         [switch]$Stream,
+
+        [Parameter()]
+        [switch]$EnableTools,
 
         [Parameter()]
         [ValidateRange(1, 600)]
@@ -89,14 +123,12 @@ function Send-OllamaRequest {
     )
 
     begin {
-        Write-Verbose "Initializing pcai-inference request..."
+        Write-Verbose "Initializing native Ollama request..."
 
-        # Verify pcai-inference connectivity
-        if (-not (Test-PcaiInferenceConnection)) {
-            throw "Cannot connect to pcai-inference at $($script:ModuleConfig.PcaiInferenceApiUrl). Ensure the server is running."
+        if (-not (Test-OllamaConnection)) {
+            throw "Cannot reach the native Ollama runner. Verify pcai-ollama-rs.exe is built and Ollama is healthy."
         }
 
-        # Verify model exists (best effort)
         $availableModels = Get-OllamaModels
         $modelExists = $availableModels | Where-Object { $_.Name -eq $Model }
         if (-not $modelExists -and $availableModels.Count -gt 0) {
@@ -123,6 +155,7 @@ function Send-OllamaRequest {
                     Temperature = $Temperature
                     Stream = $Stream.IsPresent
                     TimeoutSeconds = $TimeoutSeconds
+                    EnableTools = $EnableTools.IsPresent
                 }
 
                 if ($System) {
@@ -132,12 +165,32 @@ function Send-OllamaRequest {
                 if ($PSBoundParameters.ContainsKey('MaxTokens')) {
                     $params['MaxTokens'] = $MaxTokens
                 }
-
-                if ($Stream) {
-                    $response = Invoke-OpenAICompletionStream -Prompt $Prompt -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $script:ModuleConfig.PcaiInferenceApiUrl
-                } else {
-                    $response = Invoke-OllamaGenerate @params
+                if ($PSBoundParameters.ContainsKey('NumCtx')) {
+                    $params['NumCtx'] = $NumCtx
                 }
+                if ($PSBoundParameters.ContainsKey('NumThread')) {
+                    $params['NumThread'] = $NumThread
+                }
+                if ($PSBoundParameters.ContainsKey('TopP')) {
+                    $params['TopP'] = $TopP
+                }
+                if ($PSBoundParameters.ContainsKey('TopK')) {
+                    $params['TopK'] = $TopK
+                }
+                if ($PSBoundParameters.ContainsKey('RepeatLastN')) {
+                    $params['RepeatLastN'] = $RepeatLastN
+                }
+                if ($PSBoundParameters.ContainsKey('RepeatPenalty')) {
+                    $params['RepeatPenalty'] = $RepeatPenalty
+                }
+                if ($PSBoundParameters.ContainsKey('TfsZ')) {
+                    $params['TfsZ'] = $TfsZ
+                }
+                if ($PSBoundParameters.ContainsKey('Seed')) {
+                    $params['Seed'] = $Seed
+                }
+
+                $response = Invoke-OllamaGenerate @params
 
                 $success = $true
                 Write-Verbose "Request completed successfully"
@@ -161,28 +214,21 @@ function Send-OllamaRequest {
         $duration = ($endTime - $startTime).TotalSeconds
 
         # Format response
-        if (-not $Stream) {
-            $text = $null
-            if ($response.choices -and $response.choices.Count -gt 0) {
-                $text = $response.choices[0].text
-            }
-
-            $result = [PSCustomObject]@{
-                Response = $text
-                Model = $response.model
-                CreatedAt = $response.created
-                Usage = $response.usage
-                RequestDurationSeconds = [math]::Round($duration, 2)
-                Timestamp = $startTime
-            }
-
-            return $result
-        } else {
-            return $response
+        $result = [PSCustomObject]@{
+            Response = $response.message.content
+            Model = $response.model
+            CreatedAt = $startTime
+            Usage = $response.raw.timing
+            RequestDurationSeconds = [math]::Round($duration, 2)
+            Timestamp = $startTime
+            ToolCalls = $response.ToolCalls
+            ExecutedTools = $response.ExecutedTools
         }
+
+        return $result
     }
 
     end {
-        Write-Verbose "pcai-inference request completed"
+        Write-Verbose "native ollama request completed"
     }
 }

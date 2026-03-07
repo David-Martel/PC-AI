@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 function Invoke-PCDiagnosis {
     <#
@@ -122,8 +122,6 @@ function Invoke-PCDiagnosis {
         $projectRoot = $null
         if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
             $projectRoot = Resolve-PcaiPath -PathType 'Root'
-        } elseif ($env:PCAI_ROOT) {
-            $projectRoot = $env:PCAI_ROOT
         } else {
             $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
         }

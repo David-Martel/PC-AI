@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 function Get-LLMStatus {
     <#
@@ -53,14 +53,23 @@ function Get-LLMStatus {
                 ApiUrl       = $script:ModuleConfig.PcaiInferenceApiUrl
                 ApiConnected = $false
                 Models       = @()
-                DefaultModel = $script:ModuleConfig.DefaultModel
+                DefaultModel = $script:ModuleConfig.PcaiInferenceModel
             }
             Router          = [PSCustomObject]@{
                 ApiUrl       = $script:ModuleConfig.RouterApiUrl
                 ApiConnected = $false
                 Model        = $script:ModuleConfig.RouterModel
             }
-            Ollama          = $null
+            Ollama          = [PSCustomObject]@{
+                ApiUrl       = $script:ModuleConfig.OllamaApiUrl
+                ApiConnected = $false
+                Models       = @()
+                DefaultModel = $script:ModuleConfig.DefaultModel
+                ToolModel    = $script:ModuleConfig.OllamaToolModel
+                SummaryModel = $script:ModuleConfig.OllamaSummaryModel
+                Runner       = 'ollama-rs'
+                CliPath      = $null
+            }
             VLLM            = $null
             LMStudio        = $null
             Recommendations = @()
@@ -68,7 +77,21 @@ function Get-LLMStatus {
             ActiveModel     = $script:ModuleConfig.DefaultModel
         }
 
-        # Test pcai-inference connectivity
+        try {
+            $status.Ollama.CliPath = Resolve-OllamaNativeCliPath
+        } catch {
+            $status.Recommendations += $_.Exception.Message
+        }
+
+        $status.Ollama.ApiConnected = Test-OllamaConnection
+        if ($status.Ollama.ApiConnected) {
+            $ollamaModels = Get-OllamaModels
+            $status.Ollama.Models = @($ollamaModels)
+        } else {
+            $status.Recommendations += 'Native Ollama runner is not healthy. Build pcai-ollama-rs or verify the Ollama configuration.'
+        }
+
+        # Test legacy pcai-inference connectivity
         $status.PcaiInference.ApiConnected = Test-PcaiInferenceConnection
         Write-Verbose "pcai-inference API connectivity: $($status.PcaiInference.ApiConnected)"
 
@@ -93,8 +116,9 @@ function Get-LLMStatus {
         $status.PcaiInference | Add-Member -MemberType NoteProperty -Name AvailableModels -Value $status.PcaiInference.Models -Force
         $status.PcaiInference | Add-Member -MemberType NoteProperty -Name ModelsLoaded -Value ($status.PcaiInference.Models | ForEach-Object { $_.Name }) -Force
 
-        # Alias legacy Ollama status to pcai-inference for compatibility
-        $status.Ollama = $status.PcaiInference
+        $status.Ollama | Add-Member -MemberType NoteProperty -Name Available -Value $status.Ollama.ApiConnected -Force
+        $status.Ollama | Add-Member -MemberType NoteProperty -Name AvailableModels -Value $status.Ollama.Models -Force
+        $status.Ollama | Add-Member -MemberType NoteProperty -Name ModelsLoaded -Value ($status.Ollama.Models | ForEach-Object { $_.Name }) -Force
 
         # Router status (FunctionGemma)
         if ($status.Router.ApiUrl) {
@@ -145,8 +169,8 @@ function Get-LLMStatus {
         }
 
         # Overall health check
-        $modelCount = @($status.PcaiInference.Models).Count
-        if ($status.PcaiInference.ApiConnected -and $modelCount -gt 0) {
+        $modelCount = @($status.Ollama.Models).Count
+        if ($status.Ollama.ApiConnected -and $modelCount -gt 0) {
             Write-Verbose 'LLM system is healthy and ready'
         } else {
             Write-Warning 'LLM system is not fully operational. Check recommendations.'

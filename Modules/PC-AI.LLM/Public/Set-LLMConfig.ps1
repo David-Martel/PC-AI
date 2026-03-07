@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 function Set-LLMConfig {
     <#
@@ -171,10 +171,11 @@ function Set-LLMConfig {
             $vllmProvider = Initialize-ConfigProperty -Object $providers -Name 'vllm' -DefaultValue ([PSCustomObject]@{})
 
             $router = Initialize-ConfigProperty -Object $projectConfig -Name 'router' -DefaultValue ([PSCustomObject]@{})
+            $ollamaRuntime = Initialize-ConfigProperty -Object $projectConfig -Name 'ollama' -DefaultValue ([PSCustomObject]@{})
             $fallbackOrder = if ($script:ModuleConfig.ProviderOrder -and $script:ModuleConfig.ProviderOrder.Count -gt 0) {
                 @($script:ModuleConfig.ProviderOrder)
             } else {
-                @('pcai-inference')
+                @('ollama', 'pcai-inference')
             }
 
             Set-ConfigValue -Object $pcaiProvider -Name 'baseUrl' -Value $script:ModuleConfig.PcaiInferenceApiUrl
@@ -191,6 +192,14 @@ function Set-LLMConfig {
             }
 
             Set-ConfigValue -Object $ollamaProvider -Name 'baseUrl' -Value $script:ModuleConfig.OllamaApiUrl
+            Set-ConfigValue -Object $ollamaProvider -Name 'defaultModel' -Value $script:ModuleConfig.DefaultModel
+            Set-ConfigValue -Object $ollamaProvider -Name 'timeout' -Value ([int]($script:ModuleConfig.DefaultTimeout * 1000))
+            Set-ConfigValue -Object $ollamaRuntime -Name 'base_url' -Value $script:ModuleConfig.OllamaApiUrl
+            Set-ConfigValue -Object $ollamaRuntime -Name 'model' -Value $script:ModuleConfig.DefaultModel
+            Set-ConfigValue -Object $ollamaRuntime -Name 'timeout_ms' -Value ([int]($script:ModuleConfig.DefaultTimeout * 1000))
+            if (-not $ollamaRuntime.toolInvokerPath) {
+                Set-ConfigValue -Object $ollamaRuntime -Name 'toolInvokerPath' -Value 'Tools/Invoke-PcaiMappedTool.ps1'
+            }
             Set-ConfigValue -Object $lmstudioProvider -Name 'baseUrl' -Value $script:ModuleConfig.LMStudioApiUrl
             Set-ConfigValue -Object $vllmProvider -Name 'baseUrl' -Value $script:ModuleConfig.VLLMApiUrl
             Set-ConfigValue -Object $vllmProvider -Name 'defaultModel' -Value $script:ModuleConfig.VLLMModel

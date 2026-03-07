@@ -8,8 +8,7 @@
     Copyright = '(c) 2026 PC-AI Project. All rights reserved.'
     Description = 'PowerShell module for integrating pcai-inference LLM with PC diagnostics and analysis'
 
-    # Minimum PowerShell version
-    PowerShellVersion = '5.1'
+    CompatiblePSEditions = @('Core')
 
     # Functions to export
     FunctionsToExport = @(

@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 <#
 .SYNOPSIS
     Invokes native high-performance search operations for LLM analysis

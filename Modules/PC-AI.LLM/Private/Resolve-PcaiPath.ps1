@@ -1,8 +1,8 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 <#
 .SYNOPSIS
-    Resolves PC_AI paths dynamically with environment variable support.
+    Resolves PC_AI paths dynamically from the repository layout.
 
 .PARAMETER PathType
     The type of path to resolve: Root, Config, HVSockConfig, Models, Logs
@@ -53,14 +53,10 @@ function Resolve-PcaiPath {
         return $null
     }
 
-    # Determine root path (shared helper -> env override -> module location -> working directory)
+    # Determine root path (shared helper -> module location -> working directory)
     $root = $null
     if (Get-Command Resolve-PcaiRepoRoot -ErrorAction SilentlyContinue) {
         $root = Resolve-PcaiRepoRoot -StartPath $PSScriptRoot
-    }
-
-    if (-not $root -and $env:PCAI_ROOT -and (Test-Path $env:PCAI_ROOT)) {
-        $root = $env:PCAI_ROOT
     }
 
     if (-not $root -and $PSScriptRoot) {

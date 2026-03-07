@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 <#
 .SYNOPSIS
     Routes a user request through FunctionGemma tool-calling, then returns a final LLM response.

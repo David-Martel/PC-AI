@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 <#
 .SYNOPSIS
@@ -11,7 +11,11 @@
 $ModuleRoot = $PSScriptRoot
 $PrivatePath = Join-Path -Path $ModuleRoot -ChildPath 'Private'
 $PublicPath = Join-Path -Path $ModuleRoot -ChildPath 'Public'
+$sharedCacheHelper = Join-Path (Split-Path -Parent $ModuleRoot) 'PC-AI.Common\Public\Get-PcaiSharedCache.ps1'
 $sharedRuntimeHelper = Join-Path (Split-Path -Parent $ModuleRoot) 'PC-AI.Common\Public\Get-PcaiRuntimeConfig.ps1'
+if (Test-Path $sharedCacheHelper) {
+    . $sharedCacheHelper
+}
 if (Test-Path $sharedRuntimeHelper) {
     . $sharedRuntimeHelper
 }
@@ -33,36 +37,62 @@ $resolvedConfigPath = if ($runtimeConfig -and $runtimeConfig.ConfigPath) {
 
 # Module-level variables
 $script:ModuleConfig = @{
-    # Primary Rust inference (pcai-inference)
-    PcaiInferenceApiUrl = if ($runtimeConfig -and $runtimeConfig.PcaiInferenceUrl) { $runtimeConfig.PcaiInferenceUrl } else { 'http://127.0.0.1:8080' }
-    DefaultModel        = if ($runtimeConfig -and $runtimeConfig.PcaiInferenceModel) { $runtimeConfig.PcaiInferenceModel } else { 'pcai-inference' }
-    DefaultTimeout      = if ($runtimeConfig -and $runtimeConfig.PcaiInferenceTimeoutMs) { [math]::Ceiling([double]$runtimeConfig.PcaiInferenceTimeoutMs / 1000.0) } else { 120 }
+    ProjectRoot          = $projectRoot
+    ConfigPath           = $resolvedConfigPath
+    ProjectConfigPath    = $resolvedConfigPath
+    ToolsPath            = if ($runtimeConfig -and $runtimeConfig.ToolsPath) { $runtimeConfig.ToolsPath } else { Join-Path $projectRoot 'Config\pcai-tools.json' }
+
+    # Legacy HTTP inference remains available as a fallback only.
+    PcaiInferenceApiUrl  = if ($runtimeConfig -and $runtimeConfig.PcaiInferenceUrl) { $runtimeConfig.PcaiInferenceUrl } else { 'http://127.0.0.1:18080' }
+    PcaiInferenceModel   = if ($runtimeConfig -and $runtimeConfig.PcaiInferenceModel) { $runtimeConfig.PcaiInferenceModel } else { 'llama.cpp' }
+    PcaiInferenceTimeout = if ($runtimeConfig -and $runtimeConfig.PcaiInferenceTimeoutMs) { [math]::Ceiling([double]$runtimeConfig.PcaiInferenceTimeoutMs / 1000.0) } else { 120 }
+
+    # Native Ollama runner configuration.
+    OllamaPath           = ''
+    OllamaApiUrl         = if ($runtimeConfig -and $runtimeConfig.OllamaBaseUrl) { $runtimeConfig.OllamaBaseUrl } else { 'http://127.0.0.1:11434' }
+    OllamaToolModel      = if ($runtimeConfig -and $runtimeConfig.OllamaToolModel) { $runtimeConfig.OllamaToolModel } else { '' }
+    OllamaSummaryModel   = if ($runtimeConfig -and $runtimeConfig.OllamaSummaryModel) { $runtimeConfig.OllamaSummaryModel } else { '' }
+    OllamaTimeout        = if ($runtimeConfig -and $runtimeConfig.OllamaTimeoutMs) { [math]::Ceiling([double]$runtimeConfig.OllamaTimeoutMs / 1000.0) } else { 90 }
+    OllamaCliSearchPaths = if ($runtimeConfig -and $runtimeConfig.OllamaCliSearchPaths) { @($runtimeConfig.OllamaCliSearchPaths) } else { @() }
+    OllamaToolInvokerPath = if ($runtimeConfig -and $runtimeConfig.OllamaToolInvokerPath) { $runtimeConfig.OllamaToolInvokerPath } else { Join-Path $projectRoot 'Tools\Invoke-PcaiMappedTool.ps1' }
 
     # Rust FunctionGemma router
-    RouterApiUrl = if ($runtimeConfig -and $runtimeConfig.RouterBaseUrl) { $runtimeConfig.RouterBaseUrl } else { 'http://127.0.0.1:8000' }
-    RouterModel  = if ($runtimeConfig -and $runtimeConfig.RouterModel) { $runtimeConfig.RouterModel } else { 'functiongemma-270m-it' }
+    RouterApiUrl         = if ($runtimeConfig -and $runtimeConfig.RouterBaseUrl) { $runtimeConfig.RouterBaseUrl } else { 'http://127.0.0.1:8000' }
+    RouterModel          = if ($runtimeConfig -and $runtimeConfig.RouterModel) { $runtimeConfig.RouterModel } else { 'functiongemma-270m-it' }
 
-    # Provider order (auto fallback)
-    ProviderOrder = if ($runtimeConfig -and $runtimeConfig.FallbackOrder -and $runtimeConfig.FallbackOrder.Count -gt 0) { @($runtimeConfig.FallbackOrder) } else { @('pcai-inference') }
+    LMStudioApiUrl       = if ($runtimeConfig -and $runtimeConfig.LMStudioApiUrl) { $runtimeConfig.LMStudioApiUrl } else { 'http://127.0.0.1:1234' }
+    VLLMApiUrl           = if ($runtimeConfig -and $runtimeConfig.vLLMBaseUrl) { $runtimeConfig.vLLMBaseUrl } elseif ($runtimeConfig -and $runtimeConfig.RouterBaseUrl) { $runtimeConfig.RouterBaseUrl } else { 'http://127.0.0.1:8000' }
+    VLLMModel            = if ($runtimeConfig -and $runtimeConfig.vLLMModel) { $runtimeConfig.vLLMModel } elseif ($runtimeConfig -and $runtimeConfig.RouterModel) { $runtimeConfig.RouterModel } else { 'functiongemma-270m-it' }
 
-    # Legacy keys retained for compatibility (mapped to Rust backends)
-    OllamaPath     = ''
-    OllamaApiUrl   = if ($runtimeConfig -and $runtimeConfig.OllamaBaseUrl) { $runtimeConfig.OllamaBaseUrl } elseif ($runtimeConfig -and $runtimeConfig.PcaiInferenceUrl) { $runtimeConfig.PcaiInferenceUrl } else { 'http://127.0.0.1:8080' }
-    LMStudioApiUrl = if ($runtimeConfig -and $runtimeConfig.LMStudioApiUrl) { $runtimeConfig.LMStudioApiUrl } else { 'http://127.0.0.1:1234' }
-    VLLMApiUrl     = if ($runtimeConfig -and $runtimeConfig.vLLMBaseUrl) { $runtimeConfig.vLLMBaseUrl } elseif ($runtimeConfig -and $runtimeConfig.RouterBaseUrl) { $runtimeConfig.RouterBaseUrl } else { 'http://127.0.0.1:8000' }
-    VLLMModel      = if ($runtimeConfig -and $runtimeConfig.vLLMModel) { $runtimeConfig.vLLMModel } elseif ($runtimeConfig -and $runtimeConfig.RouterModel) { $runtimeConfig.RouterModel } else { 'functiongemma-270m-it' }
-
-    ConfigPath = $resolvedConfigPath
-    ProjectConfigPath = $resolvedConfigPath
+    ProviderOrder        = if ($runtimeConfig -and $runtimeConfig.FallbackOrder -and $runtimeConfig.FallbackOrder.Count -gt 0) { @($runtimeConfig.FallbackOrder) } else { @('ollama', 'pcai-inference') }
+    DefaultModel         = if ($runtimeConfig -and $runtimeConfig.OllamaModel) { $runtimeConfig.OllamaModel } else { 'qwen2.5-coder:3b' }
+    DefaultTimeout       = if ($runtimeConfig -and $runtimeConfig.OllamaTimeoutMs) { [math]::Ceiling([double]$runtimeConfig.OllamaTimeoutMs / 1000.0) } else { 90 }
 }
 
 # Finally, check settings.json for direct overrides
 $settingsPath = Join-Path -Path $projectRoot -ChildPath 'Config\settings.json'
 if (Test-Path -Path $settingsPath) {
     try {
-        $settings = Get-Content -Path $settingsPath -Raw | ConvertFrom-Json
+        $settingsStamp = if (Get-Command Get-PcaiDependencyStamp -ErrorAction SilentlyContinue) {
+            Get-PcaiDependencyStamp -InputObject @($settingsPath)
+        } else {
+            $null
+        }
+        $settings = if (Get-Command Get-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+            Get-PcaiSharedCacheEntry -Namespace 'pcai-llm' -Key "settings::$settingsPath" -DependencyStamp $settingsStamp
+        } else {
+            $null
+        }
+        if (-not $settings) {
+            $settings = Get-Content -Path $settingsPath -Raw | ConvertFrom-Json
+            if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+                Set-PcaiSharedCacheEntry -Namespace 'pcai-llm' -Key "settings::$settingsPath" -Value $settings -DependencyStamp $settingsStamp | Out-Null
+            }
+        }
         if ($settings.llm) {
             if ($settings.llm.activeModel) { $script:ModuleConfig.DefaultModel = $settings.llm.activeModel }
+            if ($settings.llm.toolModel) { $script:ModuleConfig.OllamaToolModel = $settings.llm.toolModel }
+            if ($settings.llm.summaryModel) { $script:ModuleConfig.OllamaSummaryModel = $settings.llm.summaryModel }
             if ($settings.llm.routerUrl) {
                 $script:ModuleConfig.RouterApiUrl = $settings.llm.routerUrl
                 $script:ModuleConfig.VLLMApiUrl = $settings.llm.routerUrl

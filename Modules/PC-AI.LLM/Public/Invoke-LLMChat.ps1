@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 function Invoke-LLMChat {
     <#
@@ -211,13 +211,19 @@ function Invoke-LLMChat {
                         $assistantMessage = $null
                         if ($Stream) {
                             $streamProvider = if ($Provider -eq 'auto') { $script:ModuleConfig.ProviderOrder[0] } else { $Provider }
-                            $streamApiUrl = switch ($streamProvider) {
-                                'vllm' { $script:ModuleConfig.VLLMApiUrl }
-                                'lmstudio' { $script:ModuleConfig.LMStudioApiUrl }
-                                default { $script:ModuleConfig.PcaiInferenceApiUrl }
+                            if ($streamProvider -eq 'ollama') {
+                                $response = Invoke-LLMChatWithFallback @params
+                                $assistantMessage = $response.message.content
+                                Write-Host "`nAssistant: $assistantMessage" -ForegroundColor Blue
+                            } else {
+                                $streamApiUrl = switch ($streamProvider) {
+                                    'vllm' { $script:ModuleConfig.VLLMApiUrl }
+                                    'lmstudio' { $script:ModuleConfig.LMStudioApiUrl }
+                                    default { $script:ModuleConfig.PcaiInferenceApiUrl }
+                                }
+                                $assistantMessage = Invoke-OpenAIChatStream -Messages $params.Messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $streamApiUrl
+                                $response = [PSCustomObject]@{ Provider = $streamProvider; message = @{ content = $assistantMessage } }
                             }
-                            $assistantMessage = Invoke-OpenAIChatStream -Messages $params.Messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $streamApiUrl
-                            $response = [PSCustomObject]@{ Provider = $streamProvider; message = @{ content = $assistantMessage } }
                         } else {
                             $response = Invoke-LLMChatWithFallback @params
                             $assistantMessage = $response.message.content
@@ -289,13 +295,18 @@ function Invoke-LLMChat {
             $assistantMessage = $null
             if ($Stream) {
                 $streamProvider = if ($Provider -eq 'auto') { $script:ModuleConfig.ProviderOrder[0] } else { $Provider }
-                $streamApiUrl = switch ($streamProvider) {
-                    'vllm' { $script:ModuleConfig.VLLMApiUrl }
-                    'lmstudio' { $script:ModuleConfig.LMStudioApiUrl }
-                    default { $script:ModuleConfig.PcaiInferenceApiUrl }
+                if ($streamProvider -eq 'ollama') {
+                    $response = Invoke-LLMChatWithFallback @params
+                    $assistantMessage = $response.message.content
+                } else {
+                    $streamApiUrl = switch ($streamProvider) {
+                        'vllm' { $script:ModuleConfig.VLLMApiUrl }
+                        'lmstudio' { $script:ModuleConfig.LMStudioApiUrl }
+                        default { $script:ModuleConfig.PcaiInferenceApiUrl }
+                    }
+                    $assistantMessage = Invoke-OpenAIChatStream -Messages $params.Messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $streamApiUrl
+                    $response = [PSCustomObject]@{ Provider = $streamProvider; message = @{ content = $assistantMessage } }
                 }
-                $assistantMessage = Invoke-OpenAIChatStream -Messages $params.Messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $streamApiUrl
-                $response = [PSCustomObject]@{ Provider = $streamProvider; message = @{ content = $assistantMessage } }
             } else {
                 $response = Invoke-LLMChatWithFallback @params
                 $assistantMessage = $response.message.content
@@ -333,7 +344,7 @@ function Invoke-LLMChat {
             return [PSCustomObject]@{
                 Response      = $finalResponse
                 RawResponse   = $assistantMessage
-                Model         = $Model
+                Model         = if ($response.PSObject.Properties['model'] -and $response.model) { $response.model } else { $Model }
                 History       = $conversationHistory.ToArray()
                 TotalDuration = $response.total_duration
                 Metrics       = $metricsSummary

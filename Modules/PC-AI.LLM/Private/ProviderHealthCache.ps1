@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 <#
 .SYNOPSIS
@@ -105,8 +105,8 @@ function Get-CachedProviderHealth {
                 $message = if ($isHealthy) { 'Connected' } else { 'Connection failed' }
             }
             'ollama' {
-                $targetUrl = if ($ApiUrl) { $ApiUrl } else { $script:ModuleConfig.PcaiInferenceApiUrl }
-                $isHealthy = Test-PcaiInferenceConnection -ApiUrl $targetUrl -TimeoutSeconds $TimeoutSeconds
+                $targetUrl = if ($ApiUrl) { $ApiUrl } else { $script:ModuleConfig.OllamaApiUrl }
+                $isHealthy = Test-OllamaConnection -ApiUrl $targetUrl -TimeoutSeconds $TimeoutSeconds
                 $message = if ($isHealthy) { 'Connected' } else { 'Connection failed' }
             }
             'vllm' {

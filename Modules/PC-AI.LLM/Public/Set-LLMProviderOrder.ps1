@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 <#
 .SYNOPSIS
     Updates the LLM provider fallback order via PcaiServiceHost.
@@ -11,12 +11,26 @@ function Set-LLMProviderOrder {
         [string[]]$Order
     )
 
-    $orderValue = $Order -join ','
-    $result = Invoke-PcaiServiceHost -ServerArgs @('provider','set-order', $orderValue)
-    if (-not $result.Success) {
-        throw "Failed to update provider order: $($result.Output)"
+    $script:ModuleConfig.ProviderOrder = @($Order)
+
+    $configPath = if ($script:ModuleConfig.ProjectConfigPath) { $script:ModuleConfig.ProjectConfigPath } else { $script:ModuleConfig.ConfigPath }
+    if (-not (Test-Path $configPath)) {
+        throw "Config file not found: $configPath"
     }
 
-    Write-Host "Provider order updated: $orderValue" -ForegroundColor Green
-    return $result
+    $config = Get-Content -Path $configPath -Raw -Encoding UTF8 | ConvertFrom-Json -Depth 20
+    if ($config.PSObject.Properties['fallbackOrder']) {
+        $config.fallbackOrder = @($Order)
+    } else {
+        $config | Add-Member -MemberType NoteProperty -Name fallbackOrder -Value @($Order) -Force
+    }
+
+    [System.IO.File]::WriteAllText($configPath, ($config | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
+
+    Write-Host "Provider order updated: $($Order -join ',')" -ForegroundColor Green
+    return [PSCustomObject]@{
+        Success = $true
+        Order = @($Order)
+        ConfigPath = $configPath
+    }
 }

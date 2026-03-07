@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 <#
 .SYNOPSIS
@@ -21,8 +21,6 @@ function Resolve-PcaiEndpoint {
     if (-not $ConfigPath) {
         if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
             $ConfigPath = Resolve-PcaiPath -PathType 'HVSockConfig'
-        } elseif ($env:PCAI_ROOT) {
-            $ConfigPath = Join-Path $env:PCAI_ROOT 'Config\hvsock-proxy.conf'
         }
     }
 
@@ -83,6 +81,225 @@ function Resolve-PcaiEndpoint {
     return $ApiUrl
 }
 
+function Resolve-OllamaNativeCliPath {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+
+    $candidates = @()
+    if ($script:ModuleConfig.OllamaCliSearchPaths) {
+        $candidates += @($script:ModuleConfig.OllamaCliSearchPaths)
+    }
+
+    $candidates += @(
+        (Join-Path $script:ModuleConfig.ProjectRoot 'Native\pcai_core\bin\pcai-ollama-rs.exe'),
+        'C:\Users\david\.local\bin\pcai-ollama-rs.exe',
+        (Join-Path $script:ModuleConfig.ProjectRoot 'Native\pcai_core\target\release\pcai-ollama-rs.exe'),
+        (Join-Path $script:ModuleConfig.ProjectRoot 'Native\pcai_core\pcai_ollama_rs\target\release\pcai-ollama-rs.exe'),
+        'T:\RustCache\cargo-target\release\pcai-ollama-rs.exe'
+    )
+
+    $dependencyStamp = if (Get-Command Get-PcaiDependencyStamp -ErrorAction SilentlyContinue) {
+        Get-PcaiDependencyStamp -InputObject @($candidates)
+    } else {
+        $null
+    }
+    if (Get-Command Get-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+        $cachedCliPath = Get-PcaiSharedCacheEntry -Namespace 'pcai-llm' -Key "ollama-cli::$($script:ModuleConfig.ProjectRoot)" -DependencyStamp $dependencyStamp
+        if ($cachedCliPath) {
+            return [string]$cachedCliPath
+        }
+    }
+
+    $resolved = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+    if (-not $resolved) {
+        throw "pcai-ollama-rs.exe not found. Build Native\pcai_core\pcai_ollama_rs and ensure Config\llm-config.json ollama.cliSearchPaths points to the binary."
+    }
+
+    if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+        Set-PcaiSharedCacheEntry -Namespace 'pcai-llm' -Key "ollama-cli::$($script:ModuleConfig.ProjectRoot)" -Value $resolved -DependencyStamp $dependencyStamp | Out-Null
+    }
+
+    return $resolved
+}
+
+function Invoke-OllamaNativeCli {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$Arguments
+    )
+
+    $cliPath = Resolve-OllamaNativeCliPath
+    $cliArgs = @()
+    if ($Arguments.Count -gt 0) {
+        $cliArgs += $Arguments[0]
+        if ($script:ModuleConfig.ConfigPath) {
+            $cliArgs += @('--config', $script:ModuleConfig.ConfigPath)
+        }
+        if ($Arguments.Count -gt 1) {
+            $cliArgs += $Arguments[1..($Arguments.Count - 1)]
+        }
+    } elseif ($script:ModuleConfig.ConfigPath) {
+        $cliArgs += @('--config', $script:ModuleConfig.ConfigPath)
+    }
+
+    $rawOutput = & $cliPath @cliArgs 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) {
+        throw "pcai-ollama-rs failed: $($rawOutput.Trim())"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($rawOutput)) {
+        return $null
+    }
+
+    return $rawOutput | ConvertFrom-Json -Depth 20 -ErrorAction Stop
+}
+
+function Invoke-OllamaNativeChat {
+    [CmdletBinding()]
+    [OutputType([PSCustomObject])]
+    param(
+        [Parameter(Mandatory)]
+        [array]$Messages,
+
+        [Parameter()]
+        [string]$Model = $script:ModuleConfig.DefaultModel,
+
+        [Parameter()]
+        [double]$Temperature = 0.7,
+
+        [Parameter()]
+        [int]$MaxTokens,
+
+        [Parameter()]
+        [int]$TimeoutSeconds = $script:ModuleConfig.DefaultTimeout,
+
+        [Parameter()]
+        [ValidateRange(1024, 1048576)]
+        [int]$NumCtx,
+
+        [Parameter()]
+        [ValidateRange(1, 256)]
+        [int]$NumThread,
+
+        [Parameter()]
+        [ValidateRange(0.0, 1.0)]
+        [double]$TopP,
+
+        [Parameter()]
+        [ValidateRange(1, 1000)]
+        [int]$TopK,
+
+        [Parameter()]
+        [ValidateRange(-1, 1048576)]
+        [int]$RepeatLastN,
+
+        [Parameter()]
+        [ValidateRange(0.0, 5.0)]
+        [double]$RepeatPenalty,
+
+        [Parameter()]
+        [ValidateRange(0.0, 5.0)]
+        [double]$TfsZ,
+
+        [Parameter()]
+        [int]$Seed,
+
+        [Parameter()]
+        [switch]$EnableTools
+    )
+
+    $selectedModel = $Model
+    if ($EnableTools -and
+        $script:ModuleConfig.OllamaToolModel -and
+        $selectedModel -eq $script:ModuleConfig.DefaultModel) {
+        $selectedModel = $script:ModuleConfig.OllamaToolModel
+    }
+
+    $requestFile = Join-Path ([System.IO.Path]::GetTempPath()) ("pcai-ollama-request-{0}.json" -f ([System.Guid]::NewGuid().ToString('N')))
+    try {
+        $requestPayload = [ordered]@{
+            model         = $selectedModel
+            temperature   = $Temperature
+            enableTools   = [bool]$EnableTools
+            maxToolRounds = 4
+            toolsPath     = $script:ModuleConfig.ToolsPath
+            messages      = @()
+        }
+        if ($PSBoundParameters.ContainsKey('MaxTokens')) {
+            $requestPayload.maxTokens = $MaxTokens
+        }
+        if ($PSBoundParameters.ContainsKey('NumCtx')) {
+            $requestPayload.numCtx = $NumCtx
+        }
+        if ($PSBoundParameters.ContainsKey('NumThread')) {
+            $requestPayload.numThread = $NumThread
+        }
+        if ($PSBoundParameters.ContainsKey('TopP')) {
+            $requestPayload.topP = $TopP
+        }
+        if ($PSBoundParameters.ContainsKey('TopK')) {
+            $requestPayload.topK = $TopK
+        }
+        if ($PSBoundParameters.ContainsKey('RepeatLastN')) {
+            $requestPayload.repeatLastN = $RepeatLastN
+        }
+        if ($PSBoundParameters.ContainsKey('RepeatPenalty')) {
+            $requestPayload.repeatPenalty = $RepeatPenalty
+        }
+        if ($PSBoundParameters.ContainsKey('TfsZ')) {
+            $requestPayload.tfsZ = $TfsZ
+        }
+        if ($PSBoundParameters.ContainsKey('Seed')) {
+            $requestPayload.seed = $Seed
+        }
+
+        foreach ($message in $Messages) {
+            $toolCalls = @()
+            if ($message.PSObject.Properties['tool_calls']) {
+                $toolCalls = @($message.tool_calls)
+            } elseif ($message.PSObject.Properties['toolCalls']) {
+                $toolCalls = @($message.toolCalls)
+            }
+
+            $requestPayload.messages += [ordered]@{
+                role      = [string]$message.role
+                content   = [string]$message.content
+                toolCalls = @($toolCalls | ForEach-Object {
+                    if ($_ -is [string]) {
+                        try { $_ | ConvertFrom-Json -Depth 20 } catch { $null }
+                    } else {
+                        $_
+                    }
+                } | Where-Object { $null -ne $_ })
+            }
+        }
+
+        $requestPayload | ConvertTo-Json -Depth 20 | Set-Content -Path $requestFile -Encoding UTF8
+        $result = Invoke-OllamaNativeCli -Arguments @('chat', '--request-file', $requestFile)
+        if (-not $result.ok) {
+            throw ($result.error ?? 'Unknown ollama native error')
+        }
+
+        return [PSCustomObject]@{
+            message = [PSCustomObject]@{
+                content = $result.content
+            }
+            Provider = 'ollama'
+            model    = $result.model
+            ToolCalls = @($result.toolCalls)
+            ExecutedTools = @($result.executedTools)
+            total_duration = if ($result.timing) { $result.timing.totalDurationNs } else { $null }
+            raw = $result
+        }
+    } finally {
+        if (Test-Path $requestFile) {
+            Remove-Item -Path $requestFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Get-EnrichedSystemPrompt {
     <#
     .SYNOPSIS
@@ -102,8 +319,6 @@ function Get-EnrichedSystemPrompt {
     if (-not $ProjectRoot) {
         if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
             $ProjectRoot = Resolve-PcaiPath -PathType 'Root'
-        } elseif ($env:PCAI_ROOT) {
-            $ProjectRoot = $env:PCAI_ROOT
         } elseif ($PSScriptRoot) {
             $ProjectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
         } else {
@@ -327,13 +542,20 @@ function Test-OllamaConnection {
     [OutputType([bool])]
     param(
         [Parameter()]
-        [string]$ApiUrl = $script:ModuleConfig.PcaiInferenceApiUrl,
+        [string]$ApiUrl = $script:ModuleConfig.OllamaApiUrl,
 
         [Parameter()]
         [int]$TimeoutSeconds = 5
     )
 
-    return (Test-PcaiInferenceConnection -ApiUrl $ApiUrl -TimeoutSeconds $TimeoutSeconds)
+    try {
+        $health = Invoke-OllamaNativeCli -Arguments @('health')
+        return [bool]$health.ok
+    }
+    catch {
+        Write-Verbose "ollama native health check failed: $_"
+        return $false
+    }
 }
 
 function Test-LMStudioConnection {
@@ -560,15 +782,14 @@ function Invoke-OpenAIChatWithProgress {
     if ($MaxTokens) { $body['max_tokens'] = $MaxTokens }
 
     $jsonBody = $body | ConvertTo-Json -Depth 10
-    $jsonBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
     $headers = @{}
     if ($ApiKey) { $headers['Authorization'] = "Bearer $ApiKey" }
 
     $uri = "$ApiUrl/v1/chat/completions"
     $job = Start-Job -ScriptBlock {
-        param($u, $bytes, $hdrs, $timeout)
-        Invoke-RestMethod -Uri $u -Method Post -Body $bytes -Headers $hdrs -ContentType 'application/json; charset=utf-8' -TimeoutSec $timeout
-    } -ArgumentList $uri, $jsonBytes, $headers, $TimeoutSeconds
+        param($u, $body, $hdrs, $timeout)
+        Invoke-RestMethod -Uri $u -Method Post -Body $body -Headers $hdrs -ContentType 'application/json' -TimeoutSec $timeout
+    } -ArgumentList $uri, $jsonBody, $headers, $TimeoutSeconds
 
     $modelInfo = Get-VLLMModelInfo -ApiUrl $ApiUrl -ModelName $Model
     $start = Get-Date
@@ -611,29 +832,20 @@ function Get-OllamaModels {
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject[]])]
-    param(
-        [Parameter()]
-        [string]$ApiUrl = $script:ModuleConfig.PcaiInferenceApiUrl
-    )
-
-    $ApiUrl = Resolve-PcaiEndpoint -ApiUrl $ApiUrl -ProviderName 'pcai-inference'
+    param()
 
     try {
-        $response = Invoke-RestMethod -Uri "$ApiUrl/v1/models" -Method Get -ErrorAction Stop
-
-        if ($response.data) {
-            return $response.data | ForEach-Object {
-                [PSCustomObject]@{
-                    Name = $_.id
-                    OwnedBy = $_.owned_by
-                    Root = $_.root
-                }
+        $response = Invoke-OllamaNativeCli -Arguments @('models')
+        return @($response.models | ForEach-Object {
+            [PSCustomObject]@{
+                Name = $_
+                OwnedBy = 'ollama'
+                Root = 'local'
             }
-        }
-        return @()
+        })
     }
     catch {
-        Write-Error "Failed to retrieve pcai-inference models: $_"
+        Write-Error "Failed to retrieve native Ollama models: $_"
         return @()
     }
 }
@@ -665,52 +877,50 @@ function Invoke-OllamaGenerate {
         [int]$MaxTokens,
 
         [Parameter()]
+        [int]$NumCtx,
+
+        [Parameter()]
+        [int]$NumThread,
+
+        [Parameter()]
+        [double]$TopP,
+
+        [Parameter()]
+        [int]$TopK,
+
+        [Parameter()]
+        [int]$RepeatLastN,
+
+        [Parameter()]
+        [double]$RepeatPenalty,
+
+        [Parameter()]
+        [double]$TfsZ,
+
+        [Parameter()]
+        [int]$Seed,
+
+        [Parameter()]
         [bool]$Stream = $false,
 
         [Parameter()]
         [int]$TimeoutSeconds = $script:ModuleConfig.DefaultTimeout,
 
         [Parameter()]
-        [string]$ApiUrl = $script:ModuleConfig.PcaiInferenceApiUrl
+        [switch]$EnableTools
     )
 
-    $ApiUrl = Resolve-PcaiEndpoint -ApiUrl $ApiUrl -ProviderName 'pcai-inference'
-
-    $body = @{
-        model = $Model
-        prompt = $Prompt
-        stream = $Stream
-        temperature = $Temperature
+    if ($Stream) {
+        Write-Warning 'Native Ollama requests currently return the final response after completion; token streaming is not yet exposed through the PowerShell wrapper.'
     }
 
+    $messages = @()
     if ($System) {
-        # pcai-inference completions do not have a system field; prepend to prompt.
-        $body.prompt = "$System`n`n$Prompt"
+        $messages += @{ role = 'system'; content = $System }
     }
+    $messages += @{ role = 'user'; content = $Prompt }
 
-    if ($MaxTokens) {
-        $body['max_tokens'] = $MaxTokens
-    }
-
-    $jsonBody = $body | ConvertTo-Json -Depth 10
-    $jsonBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
-
-    try {
-        Write-Verbose "Sending request to pcai-inference completions: Model=$Model, Stream=$Stream"
-
-        $response = Invoke-RestMethod -Uri "$ApiUrl/v1/completions" `
-            -Method Post `
-            -Body $jsonBytes `
-            -ContentType 'application/json; charset=utf-8' `
-            -TimeoutSec $TimeoutSeconds `
-            -ErrorAction Stop
-
-        return $response
-    }
-    catch {
-        Write-Error "pcai-inference completion request failed: $_"
-        throw
-    }
+    return Invoke-OllamaNativeChat -Messages $messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -NumCtx $NumCtx -NumThread $NumThread -TopP $TopP -TopK $TopK -RepeatLastN $RepeatLastN -RepeatPenalty $RepeatPenalty -TfsZ $TfsZ -Seed $Seed -EnableTools:$EnableTools
 }
 
 function Invoke-OllamaChat {
@@ -747,10 +957,10 @@ function Invoke-OllamaChat {
     )
 
     if ($Stream) {
-        return Invoke-OpenAIChatStream -Messages $Messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $ApiUrl
+        Write-Warning 'Native Ollama requests currently return the final response after completion; token streaming is not yet exposed through the PowerShell wrapper.'
     }
 
-    return Invoke-OpenAIChat -Messages $Messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $ApiUrl
+    return Invoke-OllamaNativeChat -Messages $Messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -EnableTools
 }
 
 function Invoke-OllamaChatStream {
@@ -833,7 +1043,6 @@ function Invoke-OpenAIChat {
     }
 
     $jsonBody = $body | ConvertTo-Json -Depth 10
-    $jsonBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
 
     $headers = @{}
     if ($ApiKey) {
@@ -843,9 +1052,9 @@ function Invoke-OpenAIChat {
     try {
         $response = Invoke-RestMethod -Uri "$ApiUrl/v1/chat/completions" `
             -Method Post `
-            -Body $jsonBytes `
+            -Body $jsonBody `
             -Headers $headers `
-            -ContentType 'application/json; charset=utf-8' `
+            -ContentType 'application/json' `
             -TimeoutSec $TimeoutSeconds `
             -ErrorAction Stop
 
@@ -912,12 +1121,11 @@ function Invoke-OpenAIChatStream {
     }
 
     $jsonBody = $body | ConvertTo-Json -Depth 10
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
 
     $client = New-Object System.Net.Http.HttpClient
     $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
-    $content = New-Object System.Net.Http.ByteArrayContent($bytes)
-    $content.Headers.ContentType = 'application/json'
+    $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
+    $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
 
     $sb = New-Object System.Text.StringBuilder
     try {
@@ -1004,12 +1212,11 @@ function Invoke-OpenAICompletionStream {
     }
 
     $jsonBody = $body | ConvertTo-Json -Depth 10
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
 
     $client = New-Object System.Net.Http.HttpClient
     $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
-    $content = New-Object System.Net.Http.ByteArrayContent($bytes)
-    $content.Headers.ContentType = 'application/json'
+    $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
+    $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
 
     $sb = New-Object System.Text.StringBuilder
     try {
@@ -1117,7 +1324,7 @@ function Invoke-LLMChatWithFallback {
             'ollama' {
                 if (Get-CachedProviderHealth -Provider 'ollama' -TimeoutSeconds ([math]::Min($TimeoutSeconds, 10)) -ApiUrl $script:ModuleConfig.OllamaApiUrl) {
                     $modelToUse = if ($Model) { $Model } else { $script:ModuleConfig.DefaultModel }
-                    $resp = Invoke-OpenAIChat -Messages $Messages -Model $modelToUse -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -ApiUrl $script:ModuleConfig.OllamaApiUrl
+                    $resp = Invoke-OllamaChat -Messages $Messages -Model $modelToUse -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds
                     $resp | Add-Member -MemberType NoteProperty -Name Provider -Value 'ollama' -Force
                     return $resp
                 }

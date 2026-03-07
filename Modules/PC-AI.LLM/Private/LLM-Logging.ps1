@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 
 <#
 .SYNOPSIS
@@ -128,8 +128,6 @@ function Write-LLMLog {
         $logDir = $null
         if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
             $logDir = Resolve-PcaiPath -PathType 'Logs'
-        } elseif ($env:PCAI_ROOT) {
-            $logDir = Join-Path $env:PCAI_ROOT 'Reports\Logs'
         } else {
             $logDir = Join-Path (Get-Location).ProviderPath 'Reports\Logs'
         }

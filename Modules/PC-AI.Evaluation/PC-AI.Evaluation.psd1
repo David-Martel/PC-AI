@@ -31,7 +31,7 @@
         # LLM-as-Judge
         'Invoke-LLMJudge'
         'Compare-ResponsePair'
-        'Evaluate-DiagnosticQuality'
+        'Measure-DiagnosticQuality'
 
         # Regression Testing
         'New-BaselineSnapshot'

@@ -60,6 +60,24 @@ function Invoke-EvaluationSuite {
 
         [int]$GpuLayers = -1,
 
+        [string]$Model,
+
+        [int]$NumCtx,
+
+        [int]$NumThread,
+
+        [double]$TopP,
+
+        [int]$TopK,
+
+        [int]$RepeatLastN,
+
+        [double]$RepeatPenalty,
+
+        [double]$TfsZ,
+
+        [int]$Seed,
+
         [switch]$Parallel,
 
         [int]$MaxTokens = 512,
@@ -157,7 +175,7 @@ function Invoke-EvaluationSuite {
                 testCaseId = $testCase.Id
             }
 
-            $result = Invoke-SingleTestCase -TestCase $testCase -Backend $Backend -MaxTokens $MaxTokens -Temperature $Temperature -RequestTimeoutSec $RequestTimeoutSec
+            $result = Invoke-SingleTestCase -TestCase $testCase -Backend $Backend -MaxTokens $MaxTokens -Temperature $Temperature -RequestTimeoutSec $RequestTimeoutSec -Model $Model -NumCtx $NumCtx -NumThread $NumThread -TopP $TopP -TopK $TopK -RepeatLastN $RepeatLastN -RepeatPenalty $RepeatPenalty -TfsZ $TfsZ -Seed $Seed
 
             # Calculate metrics
             foreach ($metric in $Suite.Metrics) {
@@ -213,7 +231,7 @@ function Invoke-EvaluationSuite {
         $summary = $Suite.GetSummary()
         $summary.TotalDuration = $totalDuration
         $summary.Backend = $Backend
-        $summary.Model = $ModelPath ?? $BaseUrl
+        $summary.Model = if ($Model) { $Model } else { ($ModelPath ?? $BaseUrl) }
         $summary.Cancelled = $script:EvaluationRunState.Cancelled
 
         if ($RunContext -and $RunContext.SummaryPath) {

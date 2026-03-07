@@ -64,7 +64,7 @@ $comparison = Compare-ResponsePair -Question $q `
 Diagnostic-specific evaluation:
 
 ```powershell
-$quality = Evaluate-DiagnosticQuality -DiagnosticOutput $output `
+$quality = Measure-DiagnosticQuality -DiagnosticOutput $output `
     -DiagnosticInput $input
 ```
 

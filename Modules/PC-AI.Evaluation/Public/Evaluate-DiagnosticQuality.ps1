@@ -1,4 +1,4 @@
-function Evaluate-DiagnosticQuality {
+function Measure-DiagnosticQuality {
     <#
     .SYNOPSIS
         Evaluates diagnostic output quality specific to PC-AI use case

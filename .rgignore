@@ -8,6 +8,14 @@
 !.pcai/
 !.pcai/**
 
+# Keep generated release and build trees searchable even when gitignored
+!Release/PowerShell/
+!Release/PowerShell/**
+!bin/
+!bin/**
+!obj/
+!obj/**
+
 # Exclude from code search (but keep locally for dev)
 **/.venv*/
 **/*.tfevents.*

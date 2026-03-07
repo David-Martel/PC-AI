@@ -3,16 +3,16 @@
 	"version": "2.1.0",
 	"providers": {
 		"pcai-inference": {
-			"enabled": true,
-			"baseUrl": "http://127.0.0.1:8080",
-			"defaultModel": "pcai-inference",
+			"enabled": false,
+			"baseUrl": "http://127.0.0.1:18080",
+			"defaultModel": "llama.cpp",
 			"timeout": 120000
 		},
 		"pcai-native": {
 			"enabled": true,
 			"type": "ffi",
 			"backend": "llamacpp",
-			"modelPath": "Models/Qwen2.5-3B-Instruct-GGUF/Qwen2.5-3B-Instruct-Q4_K_M.gguf",
+			"modelPath": "Models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
 			"gpuLayers": -1,
 			"defaultTemperature": 0.7,
 			"defaultMaxTokens": 2048
@@ -26,8 +26,8 @@
 		"ollama": {
 			"enabled": true,
 			"baseUrl": "http://127.0.0.1:11434",
-			"defaultModel": "llama3.2:latest",
-			"timeout": 120000
+			"defaultModel": "qwen2.5-coder:3b",
+			"timeout": 90000
 		},
 		"lmstudio": {
 			"enabled": true,
@@ -48,6 +48,49 @@
 		"systemPromptFile": "DIAGNOSE.md",
 		"decisionTreeFile": "DIAGNOSE_LOGIC.md",
 		"chatPromptFile": "CHAT.md"
+	},
+	"ollama": {
+		"enabled": true,
+		"model": "qwen2.5-coder:3b",
+		"tool_model": "gpt-oss:20b",
+		"summary_model": "dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest",
+		"base_url": "http://127.0.0.1:11434",
+		"timeout_ms": 90000,
+		"temperature": 0.1,
+		"num_ctx": 131072,
+		"num_gpu": 40,
+		"num_thread": 8,
+		"num_predict": 1536,
+		"keep_alive_seconds": 900,
+		"adaptive_ctx_enabled": true,
+		"adaptive_ctx_min": 8192,
+		"adaptive_ctx_max": 131072,
+		"adaptive_ctx_chars_per_token": 4,
+		"adaptive_ctx_base_headroom": 1024,
+		"adaptive_ctx_step_tokens": 4096,
+		"top_p": 0.9,
+		"top_k": 40,
+		"repeat_last_n": 128,
+		"repeat_penalty": 1.1,
+		"tfs_z": 1.0,
+		"seed": 42,
+		"auto_detect_models": false,
+		"required_models": [
+			"qwen2.5-coder:3b",
+			"gpt-oss:20b",
+			"dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest"
+		],
+		"warm_models_on_start": false,
+		"auto_pull_missing_models": false,
+		"strict_model_selection": false,
+		"cliSearchPaths": [
+			"Native/pcai_core/bin/pcai-ollama-rs.exe",
+			"C:/Users/david/.local/bin/pcai-ollama-rs.exe",
+			"Native/pcai_core/target/release/pcai-ollama-rs.exe",
+			"Native/pcai_core/pcai_ollama_rs/target/release/pcai-ollama-rs.exe",
+			"T:/RustCache/cargo-target/release/pcai-ollama-rs.exe"
+		],
+		"toolInvokerPath": "Tools/Invoke-PcaiMappedTool.ps1"
 	},
 	"router": {
 		"enabled": true,
@@ -77,7 +120,7 @@
 		"structuredOutput": true,
 		"markdownFormatting": true
 	},
-	"fallbackOrder": ["pcai-native", "pcai-inference"],
+	"fallbackOrder": ["ollama", "pcai-inference"],
 	"nativeInference": {
 		"preferNative": true,
 		"dllSearchPaths": [
@@ -163,7 +206,7 @@
 	"evaluation": {
 		"binSearchPaths": [
 			"bin",
-			"%USERPROFILE%/.local/bin",
+			".local/bin",
 			"Native/pcai_core/pcai_inference/target/release",
 			"Deploy/pcai-inference/target/release"
 		]

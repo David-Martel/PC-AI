@@ -61,6 +61,7 @@ obj/
 *.dll
 *.exe
 *.pdb
+Release/PowerShell/PC-AI/
 Modules/Archive/
 
 # PC-AI local artifacts (gitignored but searchable for LLM agents)

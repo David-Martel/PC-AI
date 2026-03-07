@@ -52,8 +52,10 @@
     "createBackups": true
   },
   "llm": {
-    "activeProvider": "pcai-inference",
-    "activeModel": "pcai-inference",
+    "activeProvider": "ollama",
+    "activeModel": "qwen2.5-coder:3b",
+    "toolModel": "gpt-oss:20b",
+    "summaryModel": "dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest",
     "routerModel": "functiongemma-270m-it",
     "routerUrl": "http://127.0.0.1:8000",
     "temperature": 0.4,

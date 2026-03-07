@@ -1,0 +1,84 @@
+{
+  "reportDirectory": "Reports/tooling-benchmarks",
+  "defaultSuite": "default",
+  "defaults": {
+    "iterations": 5,
+    "warmup": 1,
+    "maxDepth": 3,
+    "maxResults": 250,
+    "filePattern": "*.ps1",
+    "contentPattern": "function",
+    "contentFilePattern": "*.ps1",
+    "tokenSampleRepeat": 4000
+  },
+  "suites": {
+    "quick": [
+      "token-estimate",
+      "directory-manifest",
+      "file-search",
+      "runtime-config",
+      "command-map"
+    ],
+    "default": [
+      "token-estimate",
+      "directory-manifest",
+      "file-search",
+      "content-search",
+      "full-context",
+      "runtime-config",
+      "command-map"
+    ]
+  },
+  "cases": [
+    {
+      "id": "token-estimate",
+      "name": "Token Estimate",
+      "category": "Core",
+      "path": "."
+    },
+    {
+      "id": "directory-manifest",
+      "name": "Directory Manifest",
+      "category": "Search",
+      "path": ".",
+      "maxDepth": 3,
+      "maxResults": 500
+    },
+    {
+      "id": "file-search",
+      "name": "File Search",
+      "category": "Search",
+      "path": ".",
+      "filePattern": "*.ps1",
+      "maxResults": 250
+    },
+    {
+      "id": "content-search",
+      "name": "Content Search",
+      "category": "Search",
+      "path": ".",
+      "contentPattern": "function",
+      "contentFilePattern": "*.ps1",
+      "maxResults": 100
+    },
+    {
+      "id": "full-context",
+      "name": "Full Context",
+      "category": "Diagnostics",
+      "path": ".",
+      "iterations": 3
+    },
+    {
+      "id": "runtime-config",
+      "name": "Runtime Config Cache",
+      "category": "PowerShell",
+      "path": "."
+    },
+    {
+      "id": "command-map",
+      "name": "Command Map Cache",
+      "category": "PowerShell",
+      "path": "."
+    }
+  ]
+}

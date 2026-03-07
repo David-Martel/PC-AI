@@ -40,6 +40,13 @@ context toolkit against `PC-AI.Acceleration` on March 6, 2026.
   LRU-style cache.
 - Narrowed Claude-context matching to project-specific names instead of broad
   `*context*` scans.
+- Added a session-wide shared cache helper in `PC-AI.Common` so repeated
+  metadata/config lookups can be reused across `PC-AI.Common`, `PC-AI.CLI`, and
+  `PC-AI.LLM` instead of each module maintaining isolated cache state.
+- Added stamp-based caching for `Get-PcaiRuntimeConfig`, keyed by the runtime
+  config path and file metadata rather than TTL alone.
+- Reused the shared cache for `PC-AI.CLI` command-map discovery and
+  `PC-AI.LLM` settings/native-Ollama CLI resolution.
 
 ## Next Work
 
@@ -61,13 +68,13 @@ context toolkit against `PC-AI.Acceleration` on March 6, 2026.
   import.
   Codex-style toolchains frequently need to know whether acceleration is
   installed, not to immediately load every command.
-- Add shared cache helpers to other frequently-called PowerShell modules.
+- Extend the shared cache helpers already added in `PC-AI.Common` to other
+  frequently-called PowerShell modules.
   Likely targets:
-  - `PC-AI.Common`
   - `PC-AI.CLI`
   - `PC-AI.LLM`
   - any path-resolution or config-loading helpers called on every command
-- Add cache invalidation keyed by dependency stamps, not only TTL.
+- Extend cache invalidation keyed by dependency stamps, not only TTL.
   Good candidates:
   - directory manifest cache keyed by root path + top-level last-write summary
   - config cache keyed by file mtime + file length

@@ -40,12 +40,52 @@ function Initialize-PcaiNative {
 
     Write-Verbose 'Initializing PCAI Native tools...'
 
+    # Resolve the repo root first so moved checkouts do not depend on ~/PC_AI.
+    $repoRoot = $null
+    if (Get-Command Resolve-PcaiRepoRoot -ErrorAction SilentlyContinue) {
+        try {
+            $repoRoot = Resolve-PcaiRepoRoot -StartPath $PSScriptRoot
+        } catch {}
+    }
+    if (-not $repoRoot -and $env:PCAI_ROOT -and (Test-Path $env:PCAI_ROOT)) {
+        $repoRoot = $env:PCAI_ROOT
+    }
+    if (-not $repoRoot) {
+        try {
+            $repoRoot = (Join-Path $PSScriptRoot '..\..\..' | Resolve-Path -ErrorAction Stop).Path
+        } catch {}
+    }
+    if (-not $repoRoot) {
+        foreach ($candidate in @('C:\codedev\PC_AI', (Join-Path $HOME 'PC_AI')) | Select-Object -Unique) {
+            if (-not $candidate -or -not (Test-Path $candidate)) {
+                continue
+            }
+
+            try {
+                $repoRoot = (Resolve-Path -Path $candidate -ErrorAction Stop).Path
+                break
+            } catch {}
+        }
+    }
+
+    $bridgeModule = Get-Module -ListAvailable -Name 'PcaiNativeBridge' -ErrorAction SilentlyContinue |
+        Sort-Object -Property Version -Descending |
+        Select-Object -First 1
+    $bridgeBin = $null
+    if ($bridgeModule -and $bridgeModule.Path) {
+        $bridgeModuleRoot = Split-Path -Parent $bridgeModule.Path
+        $bridgeBin = Join-Path $bridgeModuleRoot 'bin'
+    }
+
     # Find DLL locations
     $searchPaths = @(
-        (Join-Path $PSScriptRoot '..\..\..\bin')                               # PC_AI\bin
-        (Join-Path $PSScriptRoot '..\..\..\Native\pcai_core\target\release')    # Native workspace target
-        (Join-Path $env:USERPROFILE 'PC_AI\bin')                               # User bin
-    )
+        $(if ($repoRoot) { Join-Path $repoRoot 'bin' })                                  # Repo bin
+        $(if ($repoRoot) { Join-Path $repoRoot 'Native\PcaiNative\bin\Release\net8.0\win-x64' })
+        $(if ($repoRoot) { Join-Path $repoRoot '.pcai\build\artifacts\pcai-native' })
+        $(if ($repoRoot) { Join-Path $repoRoot 'Native\pcai_core\target\release' })      # Native workspace target
+        $bridgeBin                                                                         # Installed bridge bin
+        (Join-Path $env:USERPROFILE 'PC_AI\bin')                                          # Legacy compatibility path
+    ) | Select-Object -Unique | Where-Object { $_ }
 
     $dllPath = $null
     foreach ($searchPath in $searchPaths) {

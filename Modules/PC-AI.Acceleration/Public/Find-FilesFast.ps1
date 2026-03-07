@@ -76,8 +76,27 @@ function Find-FilesFast {
         [switch]$PreferNative
     )
 
+    $resolvedPath = Resolve-PcaiPath -Path $Path
+    $cacheKey = Get-PcaiCacheKey -Category 'find-files' -Parameters @{
+        path         = $resolvedPath
+        pattern      = $Pattern
+        extension    = (@($Extension) -join ',')
+        type         = $Type
+        depth        = $MaxDepth
+        hidden       = [bool]$Hidden
+        exclude      = (@($Exclude) -join ',')
+        fullPath     = [bool]$FullPath
+        noIgnore     = [bool]$NoIgnore
+        preferNative = [bool]$PreferNative
+    }
+
+    $cached = Get-PcaiCachedValue -Key $cacheKey -TtlSeconds 15
+    if ($null -ne $cached) {
+        return @($cached)
+    }
+
     $nativeAvailable = $false
-    if ($PreferNative -and $Pattern) {
+    if ($PreferNative -and ($Pattern -or $Extension)) {
         $nativeProbe = Get-Command -Name 'Test-PcaiNativeAvailable' -ErrorAction SilentlyContinue
         if ($nativeProbe) {
             try {
@@ -89,8 +108,9 @@ function Find-FilesFast {
         }
     }
 
-    if ($nativeAvailable -and $MaxDepth -le 0) {
-        return Find-WithPcaiNative @PSBoundParameters
+    if ($nativeAvailable) {
+        $results = @(Find-WithPcaiNative @PSBoundParameters)
+        return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
     }
 
     $fdPath = Get-RustToolPath -ToolName 'fd'
@@ -104,11 +124,13 @@ function Find-FilesFast {
     }
 
     if ($useFd) {
-        return Find-WithFd @forwardParams -FdPath $fdPath
+        $results = @(Find-WithFd @forwardParams -FdPath $fdPath)
+        return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
     }
     else {
         Write-Verbose "fd not available, using Get-ChildItem fallback"
-        return Find-WithGetChildItem @forwardParams
+        $results = @(Find-WithGetChildItem @forwardParams)
+        return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
     }
 }
 
@@ -193,12 +215,15 @@ function Find-WithFd {
     $args += $Path
 
     try {
-        $output = & $FdPath @args 2>&1
+        $output = & $FdPath @args 2>$null
 
         $results = @()
         foreach ($line in $output) {
-            if ($line -and (Test-Path $line -ErrorAction SilentlyContinue)) {
-                $results += Get-Item $line -ErrorAction SilentlyContinue
+            if ($line) {
+                $item = New-PcaiPathItem -Path $line -Type $Type
+                if ($item) {
+                    $results += $item
+                }
             }
         }
         return $results
@@ -224,11 +249,7 @@ function Find-WithPcaiNative {
         [switch]$PreferNative
     )
 
-    $resolvedPath = if ($Path) {
-        Resolve-Path $Path -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Path
-    } else {
-        Get-Location | Select-Object -ExpandProperty Path
-    }
+    $resolvedPath = Resolve-PcaiPath -Path $Path
 
     if (-not $resolvedPath) {
         return @()
@@ -273,11 +294,13 @@ function Find-WithPcaiNative {
 
         $results = @()
         foreach ($path in ($paths | Select-Object -Unique)) {
-            if (Test-Path $path -ErrorAction SilentlyContinue) {
-                $item = Get-Item $path -ErrorAction SilentlyContinue
-                if ($item) {
-                    $results += $item
-                }
+            if ($MaxDepth -gt 0 -and (Get-PcaiRelativeDepth -BasePath $resolvedPath -CandidatePath $path) -gt $MaxDepth) {
+                continue
+            }
+
+            $item = New-PcaiPathItem -Path $path -Type 'file'
+            if ($item) {
+                $results += $item
             }
         }
 

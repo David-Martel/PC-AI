@@ -6,7 +6,8 @@
     CompanyName = 'PC_AI'
     Copyright = '(c) 2025 PC_AI Project. All rights reserved.'
     Description = 'Rust and .NET performance acceleration layer for PC_AI framework'
-    PowerShellVersion = '5.1'
+    PowerShellVersion = '7.0'
+    CompatiblePSEditions = @('Core')
 
     FunctionsToExport = @(
         # Tool Detection

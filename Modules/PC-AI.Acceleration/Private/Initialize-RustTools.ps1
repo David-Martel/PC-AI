@@ -28,19 +28,15 @@ function Find-RustTool {
     }
 
     # Check common locations
-    $searchPaths = @(
-        "$env:USERPROFILE\.cargo\bin"
-        "$env:USERPROFILE\bin"
-        "$env:USERPROFILE\.local\bin"
-        "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
-        'C:\Program Files\ripgrep'
-        'C:\Program Files\fd'
-    )
+    $searchPaths = @($script:SearchPaths + 'C:\Program Files\fd') | Select-Object -Unique
 
     foreach ($searchPath in $searchPaths) {
         $exePath = Join-Path $searchPath "$ToolName.exe"
         if (Test-Path $exePath) {
             $script:RustToolCache[$ToolName] = $exePath
+            if ($script:ToolPaths.ContainsKey($ToolName)) {
+                $script:ToolPaths[$ToolName] = $exePath
+            }
             return $exePath
         }
     }
@@ -50,6 +46,9 @@ function Find-RustTool {
         $result = & where.exe $ToolName 2>$null | Select-Object -First 1
         if ($result -and (Test-Path $result)) {
             $script:RustToolCache[$ToolName] = $result
+            if ($script:ToolPaths.ContainsKey($ToolName)) {
+                $script:ToolPaths[$ToolName] = $result
+            }
             return $result
         }
     } catch {

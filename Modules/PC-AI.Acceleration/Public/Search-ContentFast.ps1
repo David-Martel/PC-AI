@@ -91,6 +91,26 @@ function Search-ContentFast {
         $Pattern
     }
 
+    $resolvedPath = Resolve-PcaiPath -Path $Path
+    $cacheKey = Get-PcaiCacheKey -Category 'search-content' -Parameters @{
+        path          = $resolvedPath
+        pattern       = $searchPattern
+        literal       = $LiteralPattern
+        filePattern   = (@($FilePattern) -join ',')
+        context       = $Context
+        caseSensitive = [bool]$CaseSensitive
+        wholeWord     = [bool]$WholeWord
+        invert        = [bool]$Invert
+        maxResults    = $MaxResults
+        filesOnly     = [bool]$FilesOnly
+        noIgnore      = [bool]$NoIgnore
+    }
+
+    $cached = Get-PcaiCachedValue -Key $cacheKey -TtlSeconds 15
+    if ($null -ne $cached) {
+        return @($cached)
+    }
+
     $rgPath = Get-RustToolPath -ToolName 'rg'
     $useRipgrep = $null -ne $rgPath -and (Test-Path $rgPath)
 
@@ -98,16 +118,18 @@ function Search-ContentFast {
     if ($nativeType -and [PcaiNative.PcaiCore]::IsAvailable -and -not $FilesOnly -and -not $Invert) {
         $nativeResults = Search-WithPcaiNativeContent @PSBoundParameters -SearchPattern $searchPattern
         if ($null -ne $nativeResults) {
-            return $nativeResults
+            return @(Set-PcaiCachedValue -Key $cacheKey -Value @($nativeResults))
         }
     }
 
     if ($useRipgrep) {
-        return Search-WithRipgrepAdvanced @PSBoundParameters -SearchPattern $searchPattern -RgPath $rgPath
+        $results = @(Search-WithRipgrepAdvanced @PSBoundParameters -SearchPattern $searchPattern -RgPath $rgPath)
+        return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
     }
     else {
         Write-Verbose "ripgrep not available, using parallel Select-String"
-        return Search-WithParallelSelectString @PSBoundParameters -SearchPattern $searchPattern
+        $results = @(Search-WithParallelSelectString @PSBoundParameters -SearchPattern $searchPattern)
+        return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
     }
 }
 
@@ -307,10 +329,10 @@ function Search-WithRipgrepAdvanced {
     $args += $Path
 
     try {
-        $output = & $RgPath @args 2>&1
+        $output = & $RgPath @args 2>$null
 
         if ($FilesOnly) {
-            return $output | Where-Object { $_ -and (Test-Path $_ -ErrorAction SilentlyContinue) } |
+            return $output | Where-Object { $_ } |
                 ForEach-Object {
                     [PSCustomObject]@{
                         Path = $_

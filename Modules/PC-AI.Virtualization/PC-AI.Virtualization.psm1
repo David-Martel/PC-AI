@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -PSEdition Core
 <#
 .SYNOPSIS
     PC-AI Virtualization Module

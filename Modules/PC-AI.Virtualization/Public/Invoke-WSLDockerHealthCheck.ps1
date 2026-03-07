@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Wrapper for the WSL/Docker health check script in C:\Scripts\Startup.
@@ -26,12 +26,14 @@ function Invoke-WSLDockerHealthCheck {
     if ($Quick) { $args += '-Quick' }
 
     if ($scriptExists) {
-        $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @args 2>&1
+        $hostShell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
+        $output = & $hostShell -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @args 2>&1
         $exitCode = $LASTEXITCODE
 
         return [PSCustomObject]@{
             ScriptPath = $ScriptPath
             Arguments  = $args
+            HostShell  = $hostShell
             ExitCode   = $exitCode
             Output     = ($output | Out-String).Trim()
             Success    = ($exitCode -eq 0)
@@ -53,6 +55,7 @@ function Invoke-WSLDockerHealthCheck {
     return [PSCustomObject]@{
         ScriptPath   = $ScriptPath
         Arguments    = $args
+        HostShell    = 'internal'
         ExitCode     = $fallbackExitCode
         Output       = $fallbackOutput
         Success      = ($fallbackExitCode -eq 0)

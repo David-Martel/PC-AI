@@ -125,3 +125,42 @@ Training/evaluation data is generated to match this format.
 3. Execute test cases with streaming progress + JSONL events.
 4. Persist outputs under `.pcai\evaluation\runs\<timestamp-label>\`.
 5. Optional: compare baselines and regressions.
+
+## Tooling Benchmark And Backend Coverage Flow
+
+PC_AI also maintains a dedicated benchmark path for the tooling/runtime layer so
+native backend work can be measured independently from model-response quality.
+
+Primary assets:
+
+- `Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1`
+- `Config/pcai-tooling-benchmarks.json`
+- `Reports/TOOL_BACKEND_COVERAGE.md`
+- `Reports/tooling-benchmarks/<timestamp>/`
+
+The benchmark runner evaluates each operation across the backends that actually
+exist in the current repo state:
+
+1. Native Rust export
+2. C# bridge exposure
+3. PowerShell wrapper
+4. Accelerated CLI-backed path when applicable
+5. Pure PowerShell baseline
+
+Currently tracked operations:
+
+- `TokenEstimate`
+- `DirectoryManifest`
+- `FileSearch`
+- `ContentSearch`
+- `FullContext`
+- `DiskUsage`
+
+Current architectural finding:
+
+- The new native `DirectoryManifest` path is the clearest example of where a
+  Rust-first API is the right shape for PC_AI workloads.
+- The existing accelerated `fd`/`rg` path still outperforms the current native
+  file/content search implementation, so the architecture should continue to
+  use accelerated CLI search as the preferred fast path until the Rust search
+  layer adds stronger batched search and ripgrep-class matching behavior.

@@ -13,6 +13,9 @@
   },
   "suites": {
     "quick": [
+      "acceleration-import",
+      "acceleration-probe",
+      "direct-core-probe",
       "token-estimate",
       "directory-manifest",
       "file-search",
@@ -20,6 +23,9 @@
       "command-map"
     ],
     "default": [
+      "acceleration-import",
+      "acceleration-probe",
+      "direct-core-probe",
       "token-estimate",
       "directory-manifest",
       "file-search",
@@ -31,9 +37,29 @@
   },
   "cases": [
     {
+      "id": "acceleration-import",
+      "name": "Acceleration Module Import",
+      "category": "Startup",
+      "path": ".",
+      "iterations": 3,
+      "warmup": 1
+    },
+    {
       "id": "token-estimate",
       "name": "Token Estimate",
       "category": "Core",
+      "path": "."
+    },
+    {
+      "id": "acceleration-probe",
+      "name": "Acceleration Probe",
+      "category": "Startup",
+      "path": "."
+    },
+    {
+      "id": "direct-core-probe",
+      "name": "Direct Core Probe",
+      "category": "Startup",
       "path": "."
     },
     {

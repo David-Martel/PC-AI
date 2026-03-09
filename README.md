@@ -328,6 +328,76 @@ Create the `stop.signal` file in the run folder (shown in output), or call:
 Stop-EvaluationRun
 ```
 
+### Tooling Benchmark Framework
+
+PC-AI also ships a dedicated benchmark runner for the tooling stack itself, not
+just the LLM path. It benchmarks native Rust+C# bridge operations, accelerated
+CLI-backed operations, and pure PowerShell baselines, then writes both coverage
+and timing reports.
+
+Primary entrypoint:
+
+- `Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1`
+
+Primary config:
+
+- `Config\pcai-tooling-benchmarks.json`
+
+Outputs:
+
+- `Reports\tooling-benchmarks\<timestamp>\tooling-benchmark-report.json`
+- `Reports\tooling-benchmarks\<timestamp>\tooling-benchmark-report.md`
+- `Reports\TOOL_BACKEND_COVERAGE.md`
+- `Reports\TOOL_SCHEMA_REPORT.md`
+
+Example usage:
+
+```powershell
+# Quick benchmark sweep
+pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick
+
+# Default suite
+pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1
+
+# Targeted heavy cases
+pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -CaseId content-search,full-context
+
+# Through the main test runner
+pwsh .\Tests\Invoke-AllTests.ps1 -Suite Benchmarks
+```
+
+Validated benchmark findings from March 7, 2026:
+
+- Native `directory-manifest` is a major win and now has full `Rust+CSharp+PS`
+  coverage: about `28.55 ms` native vs about `1161.75 ms` PowerShell on
+  `C:\codedev\PC_AI`.
+- Native `token-estimate` is about `2.9x` faster than the PowerShell baseline.
+- Native `full-context` is faster than the PowerShell baseline, but only
+  moderately in the current implementation: about `5045 ms` native vs about
+  `7568 ms` PowerShell.
+- Current native `file-search` and `content-search` improve backend coverage but
+  do not yet beat the accelerated `fd`/`rg` path on this machine.
+  - `file-search`: about `104.07 ms` native vs about `8.7 ms` accelerated vs
+    about `3435.82 ms` PowerShell
+  - `content-search`: about `3283.99 ms` native vs about `11.58 ms`
+    accelerated vs about `4734.92 ms` PowerShell
+
+Current backend recommendation:
+
+1. Prefer the new native path for `directory-manifest`, token estimation, and
+   full-context collection.
+2. Keep `fd`/`rg`-backed acceleration as the preferred fast path for generic
+   file/content search until the Rust search backend is expanded with batched
+   and ripgrep-class search behavior.
+
+Build note:
+
+- Rust release artifacts are currently emitted under `T:\RustCache\cargo-target`
+  on this machine. After rebuilding the Rust core, copy the fresh DLL or EXE
+  back into repo-local runtime paths such as `PC_AI\bin\` and the relevant
+  bridge output directory so PowerShell and C# do not load stale cached
+  binaries.
+
 ### HVSocket / VSock Endpoints
 
 `Config/llm-config.json` supports HVSocket aliases for local routing. Use the `hvsock://` scheme

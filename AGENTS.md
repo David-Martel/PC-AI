@@ -1,213 +1,253 @@
 # AGENTS.md
 
-Local-first diagnostics agent guidance for PC_AI (PowerShell + Rust/C# + local LLMs).
+Current agent guidance for `PC_AI` as of March 2026.
 
-## High-level goals
+## Mission
 
-- Deterministic diagnostics with explicit tool execution (no hallucinated system state).
-- Safety-first: read-only by default; destructive actions require explicit consent.
-- Local LLM reasoning with clear prompts and structured output.
-- Performance via Rust native DLLs and Rust CLI fallbacks.
+`PC_AI` is no longer just a local diagnostics shell around an LLM. It is an
+active PowerShell + Rust/C# platform for:
+
+- deterministic Windows diagnostics and optimization
+- native-first acceleration for expensive tooling paths
+- local LLM inference, routing, and evaluation
+- benchmark-driven performance work
+- an emerging multimodal/media stack built around Janus-style models
+
+Agents working in this repo should optimize for measurable improvement, not
+just feature addition.
+
+## Current priorities
+
+### 1. Benchmark-first optimization of the PC-AI toolchain
+
+The repo now has a real tooling benchmark path and agents should use it when
+changing acceleration, search, context gathering, or other hot-path tooling.
+
+Primary entrypoints:
+
+- `Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1`
+- `Config/pcai-tooling-benchmarks.json`
+- `Reports/tooling-benchmarks/<timestamp>/`
+- `Reports/TOOL_BACKEND_COVERAGE.md`
+
+Current benchmark guidance from the repo:
+
+- native `directory-manifest` is a clear win and should be preferred
+- native `token-estimate` is also a meaningful improvement
+- native `full-context` is promising but still moderate
+- accelerated `fd` / `rg` remains the preferred fast path for generic
+  file/content search until the Rust search layer catches up
+
+Do not claim a performance win without either:
+
+- a tooling benchmark run
+- an evaluation baseline / regression comparison
+- a targeted microbenchmark for the changed routine
+
+### 2. Native-first parity and startup-cost reduction
+
+The architecture direction is still Rust/C# first where that produces better
+determinism, performance, or reuse. Current backlog themes pulled from
+`TODO.md` and `optimization.TODO.md`:
+
+- reduce cold import cost in `PC-AI.Acceleration`
+- stop paying full module parse / dot-source costs on every startup
+- add batched native manifest/search APIs instead of repeated point queries
+- standardize C ABI contracts and JSON schemas
+- improve cancellation, structured logging, and error translation across
+  PowerShell -> C# -> Rust
+
+When touching the acceleration layer, keep startup latency and cache behavior as
+first-class constraints.
+
+### 3. AO-media / AI-Media and native media stack uplift
+
+The repo contains both:
+
+- legacy/prototype media work in `AI-Media/`
+- the canonical native media path in `Native/pcai_core/pcai_media_model/`,
+  `Native/pcai_core/pcai_media/`, and `Native/pcai_core/pcai_media_server/`
+
+Agents should treat the native `pcai_media*` crates as the long-term home of
+the media agent, with `AI-Media/` mainly useful as prototype/reference code.
+
+Current media-stack expectations:
+
+- keep Janus/vision-generation changes aligned across Rust, C#, and PowerShell
+- expand testing fixtures instead of relying only on ad hoc manual runs
+- benchmark performance-sensitive tensor, attention, decode, and image pipeline
+  routines
+- prefer optimized implementations that stay measurable and testable
+- avoid one-off prototype improvements that never land in the canonical native
+  crates
+
+The media backlog currently includes both fixture expansion and performance
+cleanup. If you optimize media routines, add or update tests and document how to
+reproduce the measurement.
 
 ## Architecture quick map
 
-- `PC-AI.ps1` is the unified CLI entry point.
-- PowerShell modules live under `Modules/` (Hardware/Virtualization/USB/Network/Performance/Cleanup/LLM/Acceleration).
-- Native acceleration: `Native/` (Rust DLLs → C# P/Invoke → PowerShell wrapper).
-- LLM inference: `Native/pcai_core/pcai_inference/` (Rust, dual-backend: llama.cpp or mistral.rs)
-- Router pipeline (optional):
-    1. FunctionGemma runtime selects tools from `Config/pcai-tools.json`
-    2. Tool outputs are gathered
-    3. Primary LLM (pcai-inference) writes the response
+- `PC-AI.ps1`: unified CLI entry point
+- `Modules/`: PowerShell command surface
+  - `PC-AI.LLM`: inference orchestration and router integration
+  - `PC-AI.Evaluation`: evaluation, baselines, regressions, A/B testing
+  - `PC-AI.Acceleration`: Rust CLI + native DLL acceleration
+  - `PcaiMedia.psm1`: PowerShell media wrapper over native media bindings
+- `Native/PcaiNative/`: C# bridge and native resolver layer
+- `Native/pcai_core/`: Rust workspace
+  - `pcai_inference`: llama.cpp / mistral.rs inference backends
+  - `pcai_core_lib`: shared native acceleration surface
+  - `pcai_media_model`: Janus-style model components
+  - `pcai_media`: media pipeline + FFI exports
+  - `pcai_media_server`: server wrapper for media APIs
+- `AI-Media/`: older standalone/prototype multimodal workspace
+- `Tests/`: Pester, evaluation, benchmark, and integration automation
 
-## Prompt contracts
+## Prompt and routing contracts
 
-- Diagnose mode: `DIAGNOSE.md` + `DIAGNOSE_LOGIC.md`
-    - Output must be valid JSON per `Config/DIAGNOSE_TEMPLATE.json`
-    - Evidence-first: tie findings to exact report/log lines
-- Chat mode: `CHAT.md` (concise, safe, actionable)
+- Diagnose mode uses `DIAGNOSE.md` + `DIAGNOSE_LOGIC.md`
+  - output must be valid JSON per `Config/DIAGNOSE_TEMPLATE.json`
+  - findings must be evidence-first and tied to concrete report/log lines
+- Chat mode uses `CHAT.md`
+- Tool-routing schema lives in `Config/pcai-tools.json`
+- Router scenarios/training data live under
+  `Deploy/rust-functiongemma-train/examples/`
 
-## LLM + Router integration
+If a tool or native capability changes diagnostic behavior, update the prompt
+contracts and routing/training assets in the same workstream.
 
-- Provider config: `Config/llm-config.json`
-    - `pcai-inference` → `http://127.0.0.1:8080` (OpenAI-compatible)
-    - `functiongemma` → `http://127.0.0.1:8000` (router runtime)
-- HVSocket aliases: `Config/hvsock-proxy.conf` (optional)
-- Router entry points: `Invoke-FunctionGemmaReAct`, `Invoke-LLMChatRouted`
+## Build and runtime workflow
 
-## Unified Build System
-
-The project uses a unified build orchestrator for all components:
+Recommended build entrypoint:
 
 ```powershell
-# Build all components (recommended)
 .\Build.ps1
+```
 
-# Build specific backend with CUDA
-.\Build.ps1 -Component llamacpp -EnableCuda
+Useful variants:
 
-# Build both inference backends
+```powershell
 .\Build.ps1 -Component inference -EnableCuda
-
-# Clean build and create release packages
+.\Build.ps1 -Component llamacpp -EnableCuda
 .\Build.ps1 -Clean -Package -EnableCuda
 ```
 
-**Output structure:**
-```
-.pcai/build/
-├── artifacts/           # Final distributable binaries
-│   ├── pcai-llamacpp/   # llamacpp backend
-│   ├── pcai-mistralrs/  # mistralrs backend
-│   └── manifest.json    # Build manifest with version + SHA256 hashes
-├── logs/                # Timestamped build logs
-└── packages/            # Release ZIPs (with -Package flag)
-```
-
-## pcai-inference compilation
-
-For direct backend builds (debugging/advanced):
+Direct inference builds:
 
 ```powershell
 cd Native\pcai_core\pcai_inference
-
-# CPU-only build (llamacpp backend)
 .\Invoke-PcaiBuild.ps1 -Backend llamacpp -Configuration Release
-
-# CUDA GPU build
-.\Invoke-PcaiBuild.ps1 -Backend llamacpp -Configuration Release -EnableCuda
-
-# Both backends with CUDA
 .\Invoke-PcaiBuild.ps1 -Backend all -Configuration Release -EnableCuda
 ```
 
-**Build prerequisites:**
-- Visual Studio 2022 C++ Build Tools + Windows SDK
-- CMake 3.x (auto-detected from VS)
-- CUDA 12.x+ (for `-EnableCuda`)
+Version metadata comes from git via `Tools/Get-BuildVersion.ps1`.
 
-**Performance optimizations (auto-enabled):**
-- sccache: Compiler caching for faster rebuilds
-- Ninja generator: Parallel CMake builds
-- lld-link: Fast LLVM linker
-- CRT alignment: Forces `/MD` to avoid CUDA linker errors
+## Benchmark and evaluation workflow
 
-**Backend comparison:**
-| Backend | Strength | When to use |
-|---------|----------|-------------|
-| `llamacpp` | Mature, GGUF support, lower VRAM | Default, most models |
-| `mistralrs` | Flash attention, cuDNN, newer arch | Mistral/Llama3 with 12GB+ VRAM |
+### Tooling/runtime benchmarks
 
-## Version System
-
-Version info is embedded at compile time from git metadata:
+Use when changing acceleration, native wrappers, repo search/context routines,
+or startup-sensitive code:
 
 ```powershell
-# Get version info
-.\Tools\Get-BuildVersion.ps1
-
-# Output as JSON
-.\Tools\Get-BuildVersion.ps1 -Format Json
-
-# Set environment variables for builds
-.\Tools\Get-BuildVersion.ps1 -SetEnv
+pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick
+pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -CaseId content-search,full-context
+pwsh .\Tests\Invoke-AllTests.ps1 -Suite Benchmarks
 ```
 
-**Version format:** `{semver}.{commits}+{hash}[.dirty]`
-- `0.2.0.15+abc1234` - 15 commits since v0.2.0
-- `0.2.0+abc1234` - exactly at tag v0.2.0
-- `0.2.0.3+abc1234.dirty` - uncommitted changes
+### LLM evaluation and regressions
 
-**Runtime access:**
-```powershell
-# Check binary version
-.\pcai-llamacpp.exe --version
-.\pcai-llamacpp.exe --version-json
+Use when changing inference, prompts, routing, model defaults, or evaluation
+logic:
 
-# HTTP endpoint
-GET http://127.0.0.1:8080/version
-```
-
-## LLM runtime debugging (native-first)
-
-Use these when diagnosing LLM stack failures or routing issues:
-
-- `Invoke-PcaiDoctor` (summary + recommendations)
-- `Get-PcaiServiceHealth` (HTTP + FFI health checks)
-- `Get-PcaiNativeStatus` / `Get-PcaiCapabilities` (native DLL availability)
-- LLM endpoints:
-    - pcai-inference: `GET http://127.0.0.1:8080/health` or `/v1/models`
-    - FunctionGemma router: `GET http://127.0.0.1:8000/health` or `/v1/models`
-
-## LLM evaluation harness
-
-Use the evaluation runner to benchmark inference backends and capture structured outputs:
-
-- Runner: `Tests\Evaluation\Invoke-InferenceEvaluation.ps1`
-- Default output root: `.pcai\evaluation\runs\`
-- Per-run outputs: `events.jsonl`, `progress.log`, `summary.json`, `stop.signal`
-
-Example:
 ```powershell
 pwsh .\Tests\Evaluation\Invoke-InferenceEvaluation.ps1 `
   -Backend llamacpp-bin `
   -ModelPath "C:\Models\tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf" `
   -Dataset diagnostic `
-  -MaxTestCases 5 `
-  -ProgressMode stream `
   -RunLabel local-smoke
 ```
 
-Stop a run:
-```powershell
-Stop-EvaluationRun
-```
+Key support features already exist:
 
-## Tooling update workflow
+- baselines via `New-BaselineSnapshot`
+- regression detection via `Test-ForRegression`
+- evaluation artifacts under `.pcai/evaluation/runs/`
 
-1. Add/update tool in `Config/pcai-tools.json` (with `pcai_mapping`).
-2. Add/update scenarios in `Deploy/rust-functiongemma-train/examples/scenarios.json`.
-3. Rebuild training data + fine-tune FunctionGemma.
-4. If tool changes impact diagnostics, update `DIAGNOSE.md` / `DIAGNOSE_LOGIC.md`.
+Agents should prefer baseline/regression comparisons over one-off anecdotes.
 
-## Native acceleration guidelines (CSharp_RustDLL)
+## Media-agent guidance
 
-- Prioritize heavy loops, deep recursion, or regex-heavy operations.
-- Emit compact, stable JSON for LLM ingestion.
-- Use C ABI (`extern "C"`) + C# P/Invoke wrapper for PowerShell.
+If the task touches the Janus/media path:
 
-## CI/CD: Native Binary Releases
+1. Check whether the change belongs in `AI-Media/` or should be ported directly
+   into `Native/pcai_core/pcai_media_model` or `Native/pcai_core/pcai_media`.
+2. Keep the FFI and PowerShell/C# wrapper implications in scope:
+   `Native/PcaiNative/MediaModule.cs` and `Modules/PcaiMedia.psm1`.
+3. Add or extend test fixtures for prompts, images, tensor transforms, async
+   request handling, or model-loading edge cases.
+4. Add a reproducible benchmark or profiling note for optimized routines.
+5. Prefer improvements that can graduate from prototype code into the canonical
+   native media crates.
 
-Pre-compiled CUDA binaries are published via GitHub Actions on version tags:
+High-value media work right now:
 
-```bash
-# Tag a release
-git tag v1.0.0
-git push origin v1.0.0
-```
+- broaden fixtures beyond basic constructor/FFI smoke coverage
+- benchmark decode/attention/tensor hot paths
+- tighten async request lifecycle and cancellation behavior
+- align error/reporting behavior with the rest of the native stack
 
-**Release artifacts (4 variants):**
-| File | Backend | GPU |
-|------|---------|-----|
-| `pcai-inference-llamacpp-cuda-win64.zip` | llama.cpp | CUDA |
-| `pcai-inference-llamacpp-cpu-win64.zip` | llama.cpp | CPU-only |
-| `pcai-inference-mistralrs-cuda-win64.zip` | mistral.rs | CUDA |
-| `pcai-inference-mistralrs-cpu-win64.zip` | mistral.rs | CPU-only |
+## Testing expectations
 
-**CUDA GPU targets:** SM 75 (Turing), SM 80/86 (Ampere), SM 89 (Ada)
+At minimum, choose the narrowest relevant validation path:
 
-**Workflow:** `.github/workflows/release-cuda.yml`
+- Pester for PowerShell module behavior
+- Rust unit/integration tests for native crates
+- evaluation runs for inference or prompt behavior
+- tooling benchmarks for hot-path acceleration changes
+- baseline/regression comparisons for performance-sensitive work
 
-## Known gaps / TODOs
+Important active testing gaps:
 
-- Define a versioned C ABI contract for Rust DLL exports (error codes, ownership).
-- Standardize JSON schemas for native outputs (schema folder + version pinning).
-- Provide progress + streaming updates for long native operations.
-- Finalize eval split + QLoRA quantization for rust-functiongemma-train.
+- more native DLL availability and fallback coverage across surfaces
+- benchmark-backed regression tests for acceleration hot paths
+- stronger fixture coverage for the media agent and multimodal routines
 
-## Documentation automation
+## Runtime diagnostics
 
-- Full pipeline: `Tools/Invoke-DocPipeline.ps1 -Mode Full`
-- Docs-only: `Tools/Invoke-DocPipeline.ps1 -Mode DocsOnly`
-- Lightweight summaries: `Tools/generate-auto-docs.ps1 -BuildDocs`
-- Tools catalog: `Tools/generate-tools-catalog.ps1`
+Useful commands when the LLM or native stack is unhealthy:
+
+- `Invoke-PcaiDoctor`
+- `Get-PcaiServiceHealth`
+- `Get-PcaiNativeStatus`
+- `Get-PcaiCapabilities`
+
+Service endpoints:
+
+- pcai-inference: `http://127.0.0.1:8080/health` and `/v1/models`
+- FunctionGemma router: `http://127.0.0.1:8000/health` and `/v1/models`
+
+## Outstanding repo work
+
+These themes should be treated as live backlog, not stale notes:
+
+- large-context offload ideas for `pcai_inference`
+- versioned C ABI contract and shared native schemas
+- cancellation/timeouts across the full host stack
+- streaming/progress support for long native operations
+- structured native logging and metrics
+- expanded benchmarking coverage for startup, caching, and batched search
+- media-agent fixture growth and performance tuning
+- continued consolidation away from PowerShell-only implementations when the
+  native path is clearly better
+
+## Documentation and automation
+
+- `Tools/Invoke-DocPipeline.ps1 -Mode Full`
+- `Tools/Invoke-DocPipeline.ps1 -Mode DocsOnly`
+- `Tools/generate-auto-docs.ps1 -BuildDocs`
+- `Tools/generate-tools-catalog.ps1`
+
+Keep docs aligned with the real scripts, benchmarks, and active backlog. If the
+repo gains a new benchmark, fixture suite, or native capability, update this
+file along with the relevant README or module docs.

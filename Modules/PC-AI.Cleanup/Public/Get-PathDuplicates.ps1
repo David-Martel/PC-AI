@@ -62,9 +62,9 @@ function Get-PathDuplicates {
             [string]$Source
         )
 
-        $entries = @()
-        $duplicates = @()
-        $nonExistent = @()
+        $entries = [System.Collections.Generic.List[PSObject]]::new()
+        $duplicates = [System.Collections.Generic.List[PSObject]]::new()
+        $nonExistent = [System.Collections.Generic.List[PSObject]]::new()
         $emptyEntries = 0
         $seenPaths = @{}
 
@@ -114,17 +114,17 @@ function Get-PathDuplicates {
             if ($seenPaths.ContainsKey($normalizedPath)) {
                 $entry.IsDuplicate = $true
                 $entry.DuplicateOf = $seenPaths[$normalizedPath]
-                $duplicates += $entry
+                $duplicates.Add($entry)
             } else {
                 $seenPaths[$normalizedPath] = $index
             }
 
             # Check for non-existent
             if (-not $entry.Exists) {
-                $nonExistent += $entry
+                $nonExistent.Add($entry)
             }
 
-            $entries += $entry
+            $entries.Add($entry)
         }
 
         $trailingSlashEntries = $entries | Where-Object { $_.HasTrailingSlash }
@@ -146,7 +146,7 @@ function Get-PathDuplicates {
         UserPath        = $null
         MachinePath     = $null
         ProcessPath     = $null
-        CrossDuplicates = @()
+        CrossDuplicates = [System.Collections.Generic.List[PSObject]]::new()
         Summary         = $null
     }
 
@@ -206,7 +206,7 @@ function Get-PathDuplicates {
                     AllEntries               = @($report.machine_entries | ForEach-Object { Map-NativeEntry $_ $report.issues })
                 }
                 ProcessPath     = $null # Native analysis focused on persistent PATH
-                CrossDuplicates = @()
+                CrossDuplicates = [System.Collections.Generic.List[PSObject]]::new()
                 Summary         = [PSCustomObject]@{
                     HealthStatus         = $report.health_status
                     TotalDuplicates      = $report.duplicate_count
@@ -224,12 +224,12 @@ function Get-PathDuplicates {
                 $hasMachine = $duplicate.entries | Where-Object { $_.source -eq 'Machine' }
 
                 if ($hasUser -and $hasMachine) {
-                    $result.CrossDuplicates += [PSCustomObject]@{
+                    $result.CrossDuplicates.Add([PSCustomObject]@{
                         Path           = $duplicate.normalized_path
                         UserIndex      = ($hasUser | Select-Object -First 1).index + 1
                         MachineIndex   = ($hasMachine | Select-Object -First 1).index + 1
                         Recommendation = 'Remove from User PATH (Machine PATH takes precedence)'
-                    }
+                    })
                 }
             }
 
@@ -273,13 +273,13 @@ function Get-PathDuplicates {
 
         foreach ($entry in $result.MachinePath.AllEntries) {
             if (-not $entry.IsDuplicate -and $userNormalized.ContainsKey($entry.NormalizedValue)) {
-                $result.CrossDuplicates += [PSCustomObject]@{
+                $result.CrossDuplicates.Add([PSCustomObject]@{
                     Path           = $entry.OriginalValue
                     NormalizedPath = $entry.NormalizedValue
                     UserIndex      = $userNormalized[$entry.NormalizedValue].Index
                     MachineIndex   = $entry.Index
                     Recommendation = 'Remove from User PATH (Machine PATH takes precedence)'
-                }
+                })
             }
         }
 
@@ -290,7 +290,7 @@ function Get-PathDuplicates {
     $totalDuplicates = 0
     $totalNonExistent = 0
     $totalEmpty = 0
-    $recommendations = @()
+    $recommendations = [System.Collections.Generic.List[string]]::new()
 
     if ($result.UserPath) {
         $totalDuplicates += $result.UserPath.Duplicates.Count
@@ -298,10 +298,10 @@ function Get-PathDuplicates {
         $totalEmpty += $result.UserPath.EmptyEntries
 
         if ($result.UserPath.Duplicates.Count -gt 0) {
-            $recommendations += "User PATH has $($result.UserPath.Duplicates.Count) duplicate entries - run Repair-MachinePath -Target User"
+            $recommendations.Add("User PATH has $($result.UserPath.Duplicates.Count) duplicate entries - run Repair-MachinePath -Target User")
         }
         if ($result.UserPath.NonExistent.Count -gt 0) {
-            $recommendations += "User PATH has $($result.UserPath.NonExistent.Count) non-existent paths - consider removing"
+            $recommendations.Add("User PATH has $($result.UserPath.NonExistent.Count) non-existent paths - consider removing")
         }
     }
 
@@ -311,19 +311,19 @@ function Get-PathDuplicates {
         $totalEmpty += $result.MachinePath.EmptyEntries
 
         if ($result.MachinePath.Duplicates.Count -gt 0) {
-            $recommendations += "Machine PATH has $($result.MachinePath.Duplicates.Count) duplicate entries - run Repair-MachinePath -Target Machine (requires admin)"
+            $recommendations.Add("Machine PATH has $($result.MachinePath.Duplicates.Count) duplicate entries - run Repair-MachinePath -Target Machine (requires admin)")
         }
         if ($result.MachinePath.NonExistent.Count -gt 0) {
-            $recommendations += "Machine PATH has $($result.MachinePath.NonExistent.Count) non-existent paths - consider removing"
+            $recommendations.Add("Machine PATH has $($result.MachinePath.NonExistent.Count) non-existent paths - consider removing")
         }
     }
 
     if ($result.CrossDuplicates.Count -gt 0) {
-        $recommendations += "$($result.CrossDuplicates.Count) paths appear in both User and Machine PATH - consolidate for efficiency"
+        $recommendations.Add("$($result.CrossDuplicates.Count) paths appear in both User and Machine PATH - consolidate for efficiency")
     }
 
     if ($totalEmpty -gt 0) {
-        $recommendations += "$totalEmpty empty PATH entries found - will be removed during repair"
+        $recommendations.Add("$totalEmpty empty PATH entries found - will be removed during repair")
     }
 
     $healthStatus = 'Healthy'

@@ -111,8 +111,30 @@ function Optimize-Disks {
                 }
             }
 
+            # Pre-fetch volume and optimization data to avoid per-drive WMI round-trips
+            $volumeMap = @{}
+            $optimizeStatusMap = @{}
+            try {
+                foreach ($vol in (Get-Volume -ErrorAction SilentlyContinue)) {
+                    if ($vol.DriveLetter) {
+                        $volumeMap[$vol.DriveLetter.ToString().ToUpper()] = $vol
+                    }
+                }
+            } catch {
+                Write-Verbose "Could not pre-fetch volume data: $_"
+            }
+            try {
+                foreach ($msftVol in (Get-CimInstance -Namespace 'Root\Microsoft\Windows\Defrag' -ClassName 'MSFT_Volume' -ErrorAction SilentlyContinue)) {
+                    if ($msftVol.DriveLetter) {
+                        $optimizeStatusMap[$msftVol.DriveLetter.ToString().ToUpper()] = $msftVol
+                    }
+                }
+            } catch {
+                Write-Verbose "Could not pre-fetch optimization status data: $_"
+            }
+
             foreach ($drive in $drives) {
-                $letter = $drive.DeviceID -replace ':', ''
+                $letter = ($drive.DeviceID -replace ':', '').ToUpper()
                 $volumePath = "$letter`:"
 
                 # Determine drive type
@@ -127,18 +149,11 @@ function Optimize-Disks {
                     default { 'Analyze' }
                 }
 
-                # Get current optimization status
+                # Get current optimization status from pre-fetched data
                 $optimizeStatus = $null
-                try {
-                    $volume = Get-Volume -DriveLetter $letter -ErrorAction SilentlyContinue
-                    if ($volume) {
-                        $optimizeStatus = Get-CimInstance -Namespace 'Root\Microsoft\Windows\Defrag' `
-                            -ClassName 'MSFT_Volume' `
-                            -Filter "DriveLetter = '$letter'" -ErrorAction SilentlyContinue
-                    }
-                }
-                catch {
-                    Write-Verbose "Could not get optimization status for drive $letter"
+                $volume = $volumeMap[$letter]
+                if ($volume) {
+                    $optimizeStatus = $optimizeStatusMap[$letter]
                 }
 
                 # Analyze-only mode

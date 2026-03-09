@@ -383,11 +383,6 @@ fn find_files_stats_impl(config: &FileSearchConfig) -> FileSearchStats {
 
     // Clone config fields
     let matcher = config.matcher.clone();
-    // max_results unused? No, needed for logic?
-    // find_files_stats usually runs until completion (stats), but can optimize if we have limit?
-    // Original NukeNul stats didn't limit?
-    // But files.rs logic for stats (lines 211 in previous) didn't use max_results check.
-    // So I can omit max_results.
 
     let stats = run_walker(walker_config, move |entry: &ignore::DirEntry| {
         let path = entry.path();

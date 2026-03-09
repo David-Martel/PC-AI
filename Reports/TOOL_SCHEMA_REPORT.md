@@ -1,6 +1,6 @@
 # TOOL_SCHEMA_REPORT
 
-Generated: 2026-02-22 16:21:17
+Generated: 2026-03-07 20:29:56
 
 - Tool schema count: 28
 - Tool mapping count: 0
@@ -37,4 +37,7 @@ Generated: 2026-02-22 16:21:17
 
 ## Extra mapping entries
 - None
+
+## Backend coverage rows
+- 0
 

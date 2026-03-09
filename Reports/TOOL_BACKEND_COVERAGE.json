@@ -1,0 +1,68 @@
+[
+  {
+    "Operation": "TokenEstimate",
+    "Category": "Core",
+    "RustAvailable": true,
+    "CSharpBridgeAvailable": true,
+    "PowerShellSurface": true,
+    "ManagedBaseline": true,
+    "PreferredBackend": "Rust+C#",
+    "CoverageState": "Rust+CSharp+PS",
+    "Gap": ""
+  },
+  {
+    "Operation": "DirectoryManifest",
+    "Category": "Search",
+    "RustAvailable": true,
+    "CSharpBridgeAvailable": true,
+    "PowerShellSurface": true,
+    "ManagedBaseline": true,
+    "PreferredBackend": "Rust+C#",
+    "CoverageState": "Rust+CSharp+PS",
+    "Gap": ""
+  },
+  {
+    "Operation": "FileSearch",
+    "Category": "Search",
+    "RustAvailable": true,
+    "CSharpBridgeAvailable": true,
+    "PowerShellSurface": true,
+    "ManagedBaseline": true,
+    "PreferredBackend": "Rust+C#",
+    "CoverageState": "Rust+CSharp+PS",
+    "Gap": ""
+  },
+  {
+    "Operation": "ContentSearch",
+    "Category": "Search",
+    "RustAvailable": true,
+    "CSharpBridgeAvailable": true,
+    "PowerShellSurface": true,
+    "ManagedBaseline": true,
+    "PreferredBackend": "Rust+C#",
+    "CoverageState": "Rust+CSharp+PS",
+    "Gap": ""
+  },
+  {
+    "Operation": "FullContext",
+    "Category": "Diagnostics",
+    "RustAvailable": true,
+    "CSharpBridgeAvailable": true,
+    "PowerShellSurface": true,
+    "ManagedBaseline": true,
+    "PreferredBackend": "Rust+C#",
+    "CoverageState": "Rust+CSharp+PS",
+    "Gap": ""
+  },
+  {
+    "Operation": "DiskUsage",
+    "Category": "Performance",
+    "RustAvailable": true,
+    "CSharpBridgeAvailable": true,
+    "PowerShellSurface": true,
+    "ManagedBaseline": true,
+    "PreferredBackend": "Rust+C#",
+    "CoverageState": "Rust+CSharp+PS",
+    "Gap": ""
+  }
+]

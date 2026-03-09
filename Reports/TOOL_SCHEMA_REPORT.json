@@ -1,5 +1,5 @@
 {
-  "Generated": "2026-02-22 16:21:17",
+  "Generated": "2026-03-07 20:29:56",
   "ToolSchemaCount": 28,
   "ToolMappingCount": 0,
   "MissingInMapping": [
@@ -32,5 +32,6 @@
     "SearchDocs",
     "SearchLogs"
   ],
-  "ExtraMapping": []
+  "ExtraMapping": [],
+  "BackendCoverageCount": 0
 }

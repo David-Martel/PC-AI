@@ -1,517 +1,262 @@
-# PC-AI: Local LLM-Powered PC Diagnostics Framework
+<p align="center">
+  <h1 align="center">PC-AI</h1>
+  <p align="center">
+    Local LLM-powered PC diagnostics and optimization for Windows
+  </p>
+  <p align="center">
+    <a href="https://github.com/David-Martel/PC-AI/actions/workflows/powershell-tests.yml"><img src="https://github.com/David-Martel/PC-AI/actions/workflows/powershell-tests.yml/badge.svg" alt="PowerShell Tests"></a>
+    <a href="https://github.com/David-Martel/PC-AI/actions/workflows/rust-inference.yml"><img src="https://github.com/David-Martel/PC-AI/actions/workflows/rust-inference.yml/badge.svg" alt="Rust Build"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+    <img src="https://img.shields.io/badge/PowerShell-7.0%2B-blue?logo=powershell" alt="PowerShell 7+">
+    <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6?logo=windows" alt="Windows">
+  </p>
+</p>
 
-A comprehensive PowerShell 7+ framework for Windows PC diagnostics, optimization, and system analysis powered by local LLMs via **pcai-inference** (Rust).
+---
 
-## Features
+PC-AI is a modular PowerShell framework that diagnoses hardware issues, analyzes system health, and recommends optimizations -- all powered by local LLMs running on your own machine. No cloud APIs, no data leaves your PC.
 
-- **Hardware Diagnostics**: Device errors, SMART status, USB controllers, network adapters
-- **Virtualization Diagnostics (optional)**: Hyper-V/WSL status and remediation tooling
-- **Performance Acceleration**: Rust tool integration (ripgrep, fd, procs) with PS7+ parallelism
-- **LLM Analysis**: Local AI-powered diagnostic interpretation via **pcai-inference** (OpenAI-compatible HTTP + native FFI)
-- **Tool-Calling Router**: **FunctionGemma** runtime selects and executes PC-AI tools before analysis
-- **Unified CLI**: Single entry point for all diagnostic and optimization tasks
+## Key Features
 
-## Requirements
+- **Hardware Diagnostics** -- Device errors, SMART disk health, USB controllers, network adapters
+- **Native Acceleration** -- Rust + C# hybrid engine delivering 5-40x speedups over pure PowerShell
+- **Local LLM Analysis** -- AI-powered diagnostic interpretation via pcai-inference (llama.cpp / mistral.rs backends)
+- **Tool-Calling Router** -- FunctionGemma selects and executes the right diagnostic tool before LLM analysis
+- **Interactive TUI** -- Terminal chat interface with streaming, multi-turn, and ReAct tool-routing modes
+- **Unified CLI** -- Single `PC-AI.ps1` entry point for all operations
+- **Safety First** -- Read-only by default, explicit consent for any system modifications
 
-- **Windows 10/11** with PowerShell 7.0+
-- **Optional**: pcai-inference HTTP server or pcai-inference DLL for LLM features
-- **Optional**: FunctionGemma runtime (rust-functiongemma-runtime) for tool routing
-- **No WSL/Docker required** for pcai-inference or FunctionGemma (native-first)
-- **Optional**: Rust CLI tools for acceleration (fd, ripgrep, procs, bat, etc.)
+## Architecture
+
+```
+                          PC-AI.ps1 (Unified CLI)
+                                  |
+              +-------------------+-------------------+
+              |                   |                   |
+      PowerShell Modules    FunctionGemma        pcai-inference
+     (Hardware, USB, Net,   (Tool Router)        (LLM Engine)
+      Perf, Cleanup, LLM)       |                    |
+              |            Rust Runtime         llama.cpp / mistral.rs
+              |            (axum, port 8000)    (HTTP + FFI, port 8080)
+              |                   |                   |
+              +-------------------+-------------------+
+                                  |
+                     Native Acceleration Layer
+                   Rust (pcai_core_lib) + C# (PcaiNative)
+                        via P/Invoke bridge
+```
 
 ## Quick Start
 
-```powershell
-# Import the main modules
-Import-Module .\Modules\PC-AI.Hardware\PC-AI.Hardware.psd1
-Import-Module .\Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1
+### Install
 
-# Run hardware diagnostics (requires Admin)
+```powershell
+# Clone the repository
+git clone https://github.com/David-Martel/PC-AI.git
+cd PC-AI
+
+# Run hardware diagnostics (requires Administrator)
 .\PC-AI.ps1 diagnose hardware
 
-# Check available Rust tools for acceleration
-Get-RustToolStatus
+# Check system health
+.\PC-AI.ps1 doctor
+```
 
-# Fast file search using fd
-Find-FilesFast -Path "C:\Projects" -Pattern "*.ps1"
+### Build Native Components (Optional)
 
-# Fast content search using ripgrep
-Search-ContentFast -Path "C:\Scripts" -Pattern "function" -FilePattern "*.ps1"
+```powershell
+# Build everything (Rust + C# + PowerShell validation)
+.\Build.ps1
+
+# Build with CUDA GPU acceleration
+.\Build.ps1 -Component inference -EnableCuda
+
+# Run lint and format checks
+.\Build.ps1 -Component lint
+```
+
+### Use the CLI
+
+```powershell
+# Diagnostics
+.\PC-AI.ps1 diagnose hardware    # Device errors, disk health, USB, network
+.\PC-AI.ps1 diagnose all         # Full system scan
+
+# Optimization
+.\PC-AI.ps1 optimize disk        # TRIM/defrag recommendations
+
+# Cleanup
+.\PC-AI.ps1 cleanup path --dry-run   # Preview PATH cleanup
+.\PC-AI.ps1 cleanup temp             # Clean temp files
+
+# LLM Analysis (requires pcai-inference or Ollama)
+.\PC-AI.ps1 analyze                   # AI-powered diagnostic interpretation
+.\PC-AI.ps1 analyze --model mistral   # Use specific model
 ```
 
 ## Modules
 
-| Module                   | Description                                                |
-| ------------------------ | ---------------------------------------------------------- |
-| **PC-AI.Hardware**       | Device manager, disk health, USB, network diagnostics      |
-| **PC-AI.Virtualization** | Optional Hyper-V/WSL diagnostics and optimization          |
-| **PC-AI.USB**            | USB device management and WSL passthrough                  |
-| **PC-AI.Network**        | Network diagnostics, VSock optimization                    |
-| **PC-AI.Performance**    | Disk optimization, resource monitoring                     |
-| **PC-AI.Cleanup**        | PATH cleanup, duplicate detection, temp cleanup            |
-| **PC-AI.LLM**            | pcai-inference + FunctionGemma integration for AI analysis |
-| **PC-AI.Acceleration**   | Rust tools integration with PS7+ parallelism               |
+| Module | Purpose |
+|--------|---------|
+| **PC-AI.Hardware** | Device manager errors, SMART status, USB, network adapters |
+| **PC-AI.Acceleration** | Rust/C# native bridge + CLI tool integration (fd, ripgrep) |
+| **PC-AI.Performance** | Resource monitoring, memory pressure, optimization planning |
+| **PC-AI.Cleanup** | PATH deduplication, temp cleanup, duplicate file detection |
+| **PC-AI.LLM** | pcai-inference + FunctionGemma integration for AI analysis |
+| **PC-AI.Network** | Network diagnostics, adapter configuration |
+| **PC-AI.USB** | USB device management and status |
+| **PC-AI.Virtualization** | Hyper-V / WSL2 diagnostics (optional) |
 
-## Native Acceleration (Rust DLL + C# Hybrid)
+## Native Acceleration
 
-PC-AI includes a high-performance native layer built with Rust and C#:
+PC-AI includes a high-performance native layer for compute-intensive operations:
 
-### Architecture
+| Operation | Native (Rust+C#) | PowerShell | Speedup |
+|-----------|-------------------|------------|---------|
+| Directory manifest | 29 ms | 1,162 ms | **40x** |
+| File search | 104 ms | 3,436 ms | **33x** |
+| Content search (ripgrep) | 12 ms | 4,735 ms | **395x** |
+| Token estimation | 2.9x faster | baseline | **2.9x** |
+| Duplicate detection | parallel SHA-256 | sequential | **5-10x** |
 
-```
-Rust DLLs (pcai_core_lib.dll, pcai_search.dll)
-         ↓
-C# P/Invoke Wrapper (PcaiNative.dll, .NET 8)
-         ↓
-PowerShell 7 Modules (PC-AI.Acceleration)
-         ↓
-pcai-inference LLM Analysis (local GGUF)
-```
-
-### Native Operations
-
-| Operation           | Speedup | Technology                      |
-| ------------------- | ------- | ------------------------------- |
-| Duplicate Detection | 5-10x   | Parallel SHA-256 with rayon     |
-| File Search         | 5-10x   | Parallel glob with ignore crate |
-| Content Search      | 3-8x    | Parallel regex matching         |
-
-### Quick Start (Native)
-
-```powershell
-# Build components with the unified build orchestrator (recommended)
-.\Build.ps1
-
-# Build + run component-aligned tests
-.\Build.ps1 -Component all -RunTests
-
-# Build only the Native/NukeNul hybrid utility
-.\Build.ps1 -Component nukenul
-
-# Run full multi-language lint checks only (Rust/C#/PowerShell/docs/ast-grep/TOML)
-.\Build.ps1 -Component lint -LintProfile all
-
-# Run formatting checks only
-.\Build.ps1 -Component format -LintProfile all
-
-# Auto-fix supported issues (formatters + ast-grep rewrite), then re-validate
-.\Build.ps1 -Component fix -LintProfile all -AutoFix
-
-# Refresh Rust dependency graph and warm crate cache state
-.\Build.ps1 -Component deps -DependencyStrategy locked
-
-# Run only canonical ast-grep rules (rules/core) through Build.ps1
-.\Build.ps1 -Component lint -LintProfile astgrep
-
-# Build with explicit CargoTools preflight and persisted defaults
-.\Build.ps1 -Component all -CargoTools enabled -CargoPreflight -CargoPreflightMode check -SyncCargoDefaults
-
-# Produce deployable bundles and per-component packages
-.\Build.ps1 -Component all -EnableCuda -Package -Deploy
-
-# Run all tests (requires PowerShell 7 + Pester 5)
-pwsh .\Tests\Invoke-AllTests.ps1 -Suite All
-
-# Use native duplicate detection
-Import-Module .\Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1
-Get-PcaiNativeStatus
-Get-PcaiCapabilities -IncludeGpu
-Invoke-PcaiNativeDuplicates -Path "D:\Downloads" -MinimumSize 1MB
-
-# Smart diagnosis with LLM
-Import-Module .\Modules\PC-AI.LLM\PC-AI.LLM.psd1
-Invoke-SmartDiagnosis -Path "C:\Temp" -AnalysisType Quick
-```
-
-`Build.ps1` quality profiles are config-first: endpoint defaults and tool paths are resolved from `Config/llm-config.json` and `Config/pcai-tools.json` before fallback behavior is applied.
-
-### Test Results
-
-| Suite     | Passed  | Failed | Duration |
-| --------- | ------- | ------ | -------- |
-| Rust      | 40      | 0      | ~1s      |
-| Pester    | 37      | 0      | ~7s      |
-| Module    | 199     | 0      | ~88s     |
-| **Total** | **276** | **0**  | **~98s** |
-
-## Rust CLI Tools Integration
-
-The `PC-AI.Acceleration` module also supports external Rust CLI tools with automatic fallback to PowerShell:
-
-### Supported Rust Tools
-
-| Tool           | Use Case        | Speedup              |
-| -------------- | --------------- | -------------------- |
-| `fd`           | File finding    | 5-10x                |
-| `ripgrep` (rg) | Content search  | **40x+**             |
-| `procs`        | Process listing | Better formatting    |
-| `bat`          | File viewing    | Syntax highlighting  |
-| `hyperfine`    | Benchmarking    | Statistical accuracy |
-
-### Performance Pattern
-
-All acceleration functions follow a consistent fallback:
-
-1. **Native DLL** (fastest) - Rust via C# P/Invoke
-2. **Rust CLI tool** - if native DLLs unavailable
-3. **PS7+ parallel** - ForEach-Object -Parallel
-4. **Sequential PS** - compatible fallback
-
-### Example: Content Search Performance
-
-```
-Directory: C:\Users (1000+ files)
-----------------------------------------
-ripgrep (Rust):     391ms
-Select-String (PS): 17,471ms
-Speedup:            44.6x
-```
-
-## Unified CLI
-
-```powershell
-# Diagnostics
-.\PC-AI.ps1 diagnose hardware
-.\PC-AI.ps1 diagnose all
-
-# Optimization
-.\PC-AI.ps1 optimize disk
-
-# USB Management
-.\PC-AI.ps1 usb list
-.\PC-AI.ps1 usb attach <busid>
-
-# LLM Analysis
-.\PC-AI.ps1 analyze
-.\PC-AI.ps1 analyze --model mistral
-
-# Repair
-.\PC-AI.ps1 cleanup path
-
-# Cleanup
-.\PC-AI.ps1 cleanup path --dry-run
-.\PC-AI.ps1 cleanup temp
-
-# Doctor (runtime health checks)
-.\PC-AI.ps1 doctor
-```
+The acceleration layer follows a tiered fallback strategy:
+1. **Native DLL** (Rust via C# P/Invoke) -- fastest
+2. **Rust CLI tools** (fd, ripgrep, procs) -- if DLLs unavailable
+3. **PS7+ parallel** (ForEach-Object -Parallel) -- no external deps
+4. **Sequential PowerShell** -- universal compatibility
 
 ## LLM Integration
 
-PC-AI integrates with local LLM providers for intelligent diagnostic analysis and tool routing:
+PC-AI works with local LLM providers. No cloud APIs required.
 
-### pcai-inference (Default)
+### Supported Backends
 
-```powershell
-# Build inference backends with the unified build flow (recommended)
-.\Build.ps1 -Component inference -EnableCuda
+| Backend | Type | GPU Support | Notes |
+|---------|------|-------------|-------|
+| **pcai-inference** | Native (Rust) | CUDA | Built-in, HTTP + FFI modes |
+| **Ollama** | External | CUDA/ROCm | Drop-in, auto-detected |
+| **LM Studio** | External | CUDA | OpenAI-compatible API |
+| **vLLM** | External (Docker) | CUDA | High-throughput serving |
 
-# Backend-specific build flow
-.\Build.ps1 -Component llamacpp -EnableCuda
-.\Build.ps1 -Component mistralrs -EnableCuda
+### FunctionGemma Router
 
-# Start the local service (creates config + launches)
-Invoke-PcaiServiceHost -Backend rust -NativeBackend llamacpp -ModelPath "C:\Models\model.gguf" -GpuLayers 35
-
-# Run analysis with default model (pcai-inference)
-Invoke-PCDiagnosis -ReportPath ".\report.txt"
-```
-
-### FunctionGemma Router Training (Local)
-
-Use `Build.ps1` for Rust-side build/data/eval operations, and use the unified CLI
-for end-user routing/training flows:
+FunctionGemma acts as a tool-calling router: it analyzes user requests, selects appropriate PC-AI diagnostic tools, executes them, then passes structured results to the main LLM for interpretation.
 
 ```powershell
-# Rust-side dataset generation (Build.ps1 primary path)
-.\Build.ps1 -Component functiongemma-router-data
-
-# Rust-side token cache generation
-.\Build.ps1 -Component functiongemma-token-cache
-
-# Rust-side training run
-.\Build.ps1 -Component functiongemma-train
-
-# Rust-side evaluation run
-.\Build.ps1 -Component functiongemma-eval
-
-# Unified CLI wrappers (equivalent high-level operations)
-.\PC-AI.ps1 llm router-prepare --stream
-
-.\PC-AI.ps1 llm router-cache
-
-# Fine-tune (LoRA) with default settings via unified CLI
-.\PC-AI.ps1 llm router-train --epochs 1 --lora-r 16 --lora-alpha 32
-
-# Evaluate routing accuracy (CPU-safe config)
-.\PC-AI.ps1 llm router-eval --config .\Config\pcai-functiongemma-eval.json --max-samples 25 --fast-eval
-```
-
-Key files:
-
-- `Config/pcai-functiongemma.json` (runtime + training defaults)
-- `Config/pcai-functiongemma-eval.json` (CPU-safe training/eval defaults)
-- `Deploy/rust-functiongemma-train/examples/scenarios.json` (routing scenarios)
-
-### pcai-native (FFI)
-
-```powershell
-# Native FFI (no HTTP server)
-Import-Module .\Modules\PcaiInference.psm1
-Initialize-PcaiInference -Backend llamacpp
-Import-PcaiModel -ModelPath "C:\Models\model.gguf" -GpuLayers 35
-Invoke-PcaiInference -Prompt "Summarize this report..."
-```
-
-### PcaiServiceHost (FFI utilities)
-
-```powershell
-pcai-servicehost inference status
-pcai-servicehost inference init --backend llamacpp
-pcai-servicehost inference load --model-path C:\Models\model.gguf --gpu-layers 35
-pcai-servicehost inference generate --prompt "Quick summary"
-pcai-servicehost inference shutdown
-```
-
-### FunctionGemma (Tool Router)
-
-FunctionGemma is used as a **tool-calling router** to choose and execute PC-AI tools,
-then pcai-inference produces the final narrative response.
-
-```powershell
-# Run rust-functiongemma runtime (router)
-.\Build.ps1 -Component functiongemma -RunTests
-.\Deploy\rust-functiongemma-runtime\target\debug\rust-functiongemma-runtime.exe
-
-# Route a request through FunctionGemma, then answer with the main LLM
+# Routed diagnosis: FunctionGemma picks tools, LLM interprets results
 Invoke-LLMChatRouted -Message "Check disk health and summarize issues." -Mode diagnose
 
-# Or use routed chat (non-interactive)
-Invoke-LLMChat -Message "Explain WSL vs Docker." -UseRouter -RouterMode chat
+# Direct LLM chat (no tool routing)
+Invoke-LLMChat -Message "Explain WSL vs Docker." -Mode chat
 ```
 
-## Evaluation & Benchmarking
-
-PC-AI ships an evaluation harness for LLM backends with structured progress logging and run outputs.
-
-**Runner:** `Tests\Evaluation\Invoke-InferenceEvaluation.ps1`
-
-**What it does:**
-
-- Loads a dataset (built-in or custom JSON)
-- Starts/initializes the requested backend
-- Runs test cases and aggregates metrics
-- Writes run outputs to `.pcai\evaluation\runs\<timestamp-label>\`
-
-**Outputs per run:**
-
-- `events.jsonl` (structured event stream for LLM agents)
-- `progress.log` (progress snapshots)
-- `summary.json` (aggregate results)
-
-**Example (compiled llama.cpp backend):**
+### Interactive TUI
 
 ```powershell
-pwsh .\Tests\Evaluation\Invoke-InferenceEvaluation.ps1 `
-  -Backend llamacpp-bin `
-  -ModelPath "C:\Models\tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf" `
-  -Dataset diagnostic `
-  -MaxTestCases 5 `
-  -ProgressMode stream `
-  -RunLabel local-smoke
-```
-
-**Stop a running evaluation:**
-Create the `stop.signal` file in the run folder (shown in output), or call:
-
-```powershell
-Stop-EvaluationRun
-```
-
-### Tooling Benchmark Framework
-
-PC-AI also ships a dedicated benchmark runner for the tooling stack itself, not
-just the LLM path. It benchmarks native Rust+C# bridge operations, accelerated
-CLI-backed operations, and pure PowerShell baselines, then writes both coverage
-and timing reports.
-
-Primary entrypoint:
-
-- `Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1`
-
-Primary config:
-
-- `Config\pcai-tooling-benchmarks.json`
-
-Outputs:
-
-- `Reports\tooling-benchmarks\<timestamp>\tooling-benchmark-report.json`
-- `Reports\tooling-benchmarks\<timestamp>\tooling-benchmark-report.md`
-- `Reports\TOOL_BACKEND_COVERAGE.md`
-- `Reports\TOOL_SCHEMA_REPORT.md`
-
-Example usage:
-
-```powershell
-# Quick benchmark sweep
-pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick
-
-# Default suite
-pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1
-
-# Targeted heavy cases
-pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -CaseId content-search,full-context
-
-# Through the main test runner
-pwsh .\Tests\Invoke-AllTests.ps1 -Suite Benchmarks
-```
-
-Validated benchmark findings from March 7, 2026:
-
-- Native `directory-manifest` is a major win and now has full `Rust+CSharp+PS`
-  coverage: about `28.55 ms` native vs about `1161.75 ms` PowerShell on
-  `C:\codedev\PC_AI`.
-- Native `token-estimate` is about `2.9x` faster than the PowerShell baseline.
-- Native `full-context` is faster than the PowerShell baseline, but only
-  moderately in the current implementation: about `5045 ms` native vs about
-  `7568 ms` PowerShell.
-- Current native `file-search` and `content-search` improve backend coverage but
-  do not yet beat the accelerated `fd`/`rg` path on this machine.
-  - `file-search`: about `104.07 ms` native vs about `8.7 ms` accelerated vs
-    about `3435.82 ms` PowerShell
-  - `content-search`: about `3283.99 ms` native vs about `11.58 ms`
-    accelerated vs about `4734.92 ms` PowerShell
-
-Current backend recommendation:
-
-1. Prefer the new native path for `directory-manifest`, token estimation, and
-   full-context collection.
-2. Keep `fd`/`rg`-backed acceleration as the preferred fast path for generic
-   file/content search until the Rust search backend is expanded with batched
-   and ripgrep-class search behavior.
-
-Build note:
-
-- Rust release artifacts are currently emitted under `T:\RustCache\cargo-target`
-  on this machine. After rebuilding the Rust core, copy the fresh DLL or EXE
-  back into repo-local runtime paths such as `PC_AI\bin\` and the relevant
-  bridge output directory so PowerShell and C# do not load stale cached
-  binaries.
-
-### HVSocket / VSock Endpoints
-
-`Config/llm-config.json` supports HVSocket aliases for local routing. Use the `hvsock://` scheme
-to resolve endpoints through `Config/hvsock-proxy.conf` (if configured).
-Primary aliases:
-
-- `hvsock://pcai-inference` (8080)
-- `hvsock://functiongemma` (8000)
-
-### TUI Modes
-
-`PcaiChatTui.exe` supports single-shot, multi-turn, streaming, and tool-routing modes:
-
-```
+# Streaming chat
 PcaiChatTui.exe --provider pcai-inference --mode stream
-PcaiChatTui.exe --provider pcai-inference --mode react --tools .\Config\pcai-tools.json
-PcaiChatTui.exe --provider pcai-native --backend llamacpp --model-path C:\Models\model.gguf
+
+# ReAct tool-routing mode
+PcaiChatTui.exe --provider pcai-inference --mode react --tools Config\pcai-tools.json
 ```
 
-### Recommended Models
-
-| Model         | Size   | Best For                   |
-| ------------- | ------ | -------------------------- |
-| GGUF: Llama 3 | Varies | General analysis           |
-| GGUF: Mistral | Varies | Fast general analysis      |
-| GGUF: Phi     | Varies | Lightweight local analysis |
-| GGUF: Gemma   | Varies | High-quality responses     |
-
-### Router Inputs
-
-- `DIAGNOSE.md` + `DIAGNOSE_LOGIC.md` define diagnostic routing behavior
-- `CHAT.md` defines general chat behavior
-- `Config/pcai-tools.json` defines tool schema and mappings
-
-## Documentation Automation
-
-PC-AI includes automated documentation generation tools:
+## Evaluation and Benchmarking
 
 ```powershell
-# Full documentation + training pipeline
-.\Tools\Invoke-DocPipeline.ps1 -Mode Full
+# Benchmark LLM backends
+pwsh Tests\Evaluation\Invoke-InferenceEvaluation.ps1 `
+  -Backend llamacpp-bin -Dataset diagnostic -MaxTestCases 5
 
-# Docs-only (PowerShell, Rust, C# summaries)
-.\Tools\Invoke-DocPipeline.ps1 -Mode DocsOnly
-
-# Lightweight auto-docs summary
-.\Tools\generate-auto-docs.ps1 -BuildDocs
+# Benchmark the native tooling stack
+pwsh Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick
 ```
 
-Outputs are written to `Reports/` (e.g. `AUTO_DOCS_SUMMARY.md`, `DOC_PIPELINE_REPORT.md`).
+## Build System
+
+The unified `Build.ps1` orchestrator supports 20+ components:
+
+```powershell
+.\Build.ps1 -Component inference -EnableCuda   # LLM backends with GPU
+.\Build.ps1 -Component functiongemma            # Tool router
+.\Build.ps1 -Component native                   # All .NET components
+.\Build.ps1 -Component lint -LintProfile all    # Multi-language linting
+.\Build.ps1 -Component fix -AutoFix             # Auto-fix lint issues
+.\Build.ps1 -Clean -Package -EnableCuda         # Release build
+```
+
+**CUDA targets**: SM 75 (Turing), SM 80/86 (Ampere), SM 89 (Ada Lovelace), SM 120 (Blackwell)
 
 ## Testing
 
 ```powershell
-# Run all tests with coverage
-.\tests\.pester.ps1 -Type All -Coverage
+# Run the full test suite
+pwsh Tests\Invoke-AllTests.ps1 -Suite All
 
-# Run unit tests only
-.\tests\.pester.ps1 -Type Unit
-
-# Run integration tests
-.\tests\.pester.ps1 -Type Integration
+# Rust unit tests
+cargo test --manifest-path Native\pcai_core\Cargo.toml
 ```
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| Rust (pcai_core + inference) | 197 | Passing |
+| Pester (PowerShell) | 37 | Passing |
+| Module validation | 199 | Passing |
+| **Total** | **433** | **All passing** |
 
 ## Project Structure
 
 ```
-PC_AI/
-├── Build.ps1                 # Unified build orchestrator
-├── PC-AI.ps1                 # Unified CLI entry point
-├── DIAGNOSE.md               # LLM system prompt
-├── DIAGNOSE_LOGIC.md         # Decision tree for analysis
-├── CHAT.md                   # Chat system prompt
-├── Modules/
-│   ├── PC-AI.Hardware/       # Hardware diagnostics
-│   ├── PC-AI.Virtualization/ # WSL2, Hyper-V, Docker
-│   ├── PC-AI.USB/            # USB management
-│   ├── PC-AI.Network/        # Network diagnostics
-│   ├── PC-AI.Performance/    # Performance optimization
-│   ├── PC-AI.Cleanup/        # System cleanup
-│   ├── PC-AI.LLM/            # LLM integration
-│   └── PC-AI.Acceleration/   # Rust tools + parallelism
-├── Native/
-│   └── pcai_core/pcai_inference/ # Rust LLM inference engine (HTTP + FFI)
-├── Deploy/
-│   ├── rust-functiongemma-runtime/ # Rust router runtime (tool_calls)
-│   ├── rust-functiongemma-train/   # Rust router dataset + training
-│   ├── rust-functiongemma-core/    # Shared Rust library
-│   └── rust-functiongemma/         # Top-level workspace
-├── Tests/                    # Pester test suites
-├── Config/                   # Configuration files
-└── Reports/                  # Generated diagnostic reports
+PC-AI/
++-- PC-AI.ps1                    # Unified CLI entry point
++-- Build.ps1                    # Build orchestrator (20+ components)
++-- Modules/                     # PowerShell diagnostic modules
+|   +-- PC-AI.Hardware/          #   Device, disk, USB, network
+|   +-- PC-AI.Acceleration/      #   Native FFI + CLI tool wrappers
+|   +-- PC-AI.Performance/       #   Resource monitoring + optimizer
+|   +-- PC-AI.LLM/               #   LLM integration layer
+|   +-- PC-AI.Cleanup/           #   PATH, temp, duplicate cleanup
+|   +-- ...                      #   (8 modules total)
++-- Native/
+|   +-- pcai_core/               # Rust workspace (6 crates)
+|   |   +-- pcai_inference/      #   LLM engine (llama.cpp + mistral.rs)
+|   |   +-- pcai_core_lib/       #   Shared lib (search, perf, telemetry)
+|   |   +-- pcai_media/          #   Media processing (Janus-Pro)
+|   |   +-- pcai_ollama_rs/      #   Ollama benchmarking
+|   +-- PcaiNative/              # C# P/Invoke bridge (.NET 8)
+|   +-- PcaiChatTui/             # Interactive chat TUI
++-- Deploy/
+|   +-- rust-functiongemma*/     # FunctionGemma router (3 crates)
+|   +-- rag-database/            # RAG pipeline (PostgreSQL + pgvector)
++-- Config/                      # Runtime configuration
++-- Tests/                       # Pester + Rust test suites
++-- Tools/                       # 33 utility scripts
 ```
+
+## Requirements
+
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| Windows | 10 / 11 | Primary platform |
+| PowerShell | 7.0+ | Core runtime |
+| Pester | 5.0+ | Testing (optional) |
+| Rust | Latest stable | Native components (optional) |
+| .NET SDK | 8.0 | C# interop (optional) |
+| CUDA Toolkit | 12.x+ | GPU acceleration (optional) |
+
+No WSL or Docker required for core functionality.
 
 ## Safety
 
-- **Read-only by default**: Diagnostics collect data without modifications
-- **Explicit consent**: Destructive operations require confirmation
-- **Backup warnings**: BIOS/disk operations include backup prompts
-- **Dry-run support**: Preview changes before execution
+- **Read-only by default** -- diagnostics collect data without modifications
+- **Explicit consent** -- destructive operations require confirmation
+- **Backup prompts** -- disk repair and BIOS operations warn first
+- **Dry-run support** -- preview changes before execution (`--dry-run`)
+- **Professional escalation** -- recommends expert help for suspected hardware failure
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Run tests: `.\tests\.pester.ps1 -Type All`
-4. Submit a pull request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and PR guidelines.
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-- [Rust CLI tools](https://github.com/sharkdp/fd) for performance acceleration
-- pcai-inference (Rust) for local LLM inference
-- [Pester](https://pester.dev/) for PowerShell testing
+[MIT License](LICENSE) -- Copyright (c) 2025 David Martel

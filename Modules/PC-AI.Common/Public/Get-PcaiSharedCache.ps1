@@ -1,6 +1,11 @@
 #Requires -PSEdition Core
 
-if (-not $global:PcaiSharedCache) {
+if (-not (Get-Variable -Name 'PcaiSharedCache' -Scope Global -ErrorAction SilentlyContinue) -or
+    -not $global:PcaiSharedCache -or
+    -not ($global:PcaiSharedCache -is [System.Collections.IDictionary]) -or
+    -not $global:PcaiSharedCache.Contains('MaxEntries') -or
+    -not $global:PcaiSharedCache.Contains('Entries') -or
+    -not ($global:PcaiSharedCache.Entries -is [System.Collections.Specialized.OrderedDictionary])) {
     $global:PcaiSharedCache = @{
         MaxEntries = 256
         Entries    = [System.Collections.Specialized.OrderedDictionary]::new()

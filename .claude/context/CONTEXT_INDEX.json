@@ -1,7 +1,18 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-20260307-commit-cluster-analysis",
+  "latest": "ctx-pcai-20260309-rust-toolchain",
   "contexts": [
+    {
+      "id": "ctx-pcai-20260309-rust-toolchain",
+      "file": "pcai-context-20260309-rust-toolchain-optimization.md",
+      "created": "2026-03-09T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["powershell-pro", "rust-pro"],
+      "summary": "CargoTools v0.10.0: lspmux integration (5 new functions), maturin/PyO3 binding optimization, ConfigFiles bug fixes, stale toolchain cleanup, nightly 1.96.0",
+      "supersedes": ["ctx-pcai-20260307-commit-cluster-analysis"],
+      "commit": "pending",
+      "cross_repo": {"repo": "CargoTools", "path": "C:\\Users\\david\\AppData\\Local\\PowerShell\\Modules\\CargoTools"}
+    },
     {
       "id": "ctx-pcai-20260307-commit-cluster-analysis",
       "file": "pcai-context-20260307-commit-cluster-analysis.md",

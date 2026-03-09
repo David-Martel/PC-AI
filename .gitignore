@@ -189,3 +189,17 @@ docs/auto/deepwiki_litho_docs/
 
 # ast-grep scan output
 scan_results.json
+
+# Internal development context (session-specific)
+.claude/context/
+.claude/plans/
+
+# Auto-generated model index (contains local paths)
+MODELS.md
+
+# Machine-specific performance data
+Reports/detailed-process-data.json
+Reports/system-performance-data.json
+
+# Outdated template
+README-TEMPLATE.md

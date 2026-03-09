@@ -1333,7 +1333,7 @@ function Invoke-RagQuality {
     }
 
     Write-BuildStep 'Running RAG cluster deduplication crawler...' 'running'
-    $dbUrl = if ($env:PCAI_DB_URL) { $env:PCAI_DB_URL } else { 'postgresql://pcai_user:password@localhost/semantic_rag' }
+    $dbUrl = if ($env:PCAI_DB_URL) { $env:PCAI_DB_URL } else { 'postgresql://pcai_user:changeme@localhost/semantic_rag' }
 
     $ragArgs = @('run', $clusterScript, '--db', $dbUrl, '--ci-mode')
     $ragResult = Invoke-NativeCommandCapture -FilePath 'uv' -ArgumentList $ragArgs -WorkingDirectory $script:ProjectRoot

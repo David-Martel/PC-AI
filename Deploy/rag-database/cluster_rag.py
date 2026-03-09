@@ -31,7 +31,7 @@ def main():
     parser.add_argument(
         "--db",
         required=True,
-        help="PostgreSQL connection URI (e.g. postgresql://pcai_user:password@localhost/semantic_rag)",
+        help="PostgreSQL connection URI (e.g. postgresql://pcai_user:changeme@localhost/semantic_rag)",
     )
     parser.add_argument(
         "--threshold",

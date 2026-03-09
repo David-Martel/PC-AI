@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -68,6 +69,75 @@ public struct ContentSearchStats
     public ulong ElapsedMs;
 
     public readonly bool IsSuccess => Status == PcaiStatus.Success;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct FileSearchCompactHeader
+{
+    public PcaiStatus Status;
+    public uint Reserved;
+    public ulong FilesScanned;
+    public ulong FilesMatched;
+    public ulong TotalSize;
+    public ulong ElapsedMs;
+    public ulong EntryCount;
+    public ulong StringBytes;
+    public byte Truncated;
+    public byte Padding0;
+    public byte Padding1;
+    public byte Padding2;
+    public byte Padding3;
+    public byte Padding4;
+    public byte Padding5;
+    public byte Padding6;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct FileSearchCompactEntry
+{
+    public uint PathOffset;
+    public uint PathLength;
+    public ulong Size;
+    public ulong Modified;
+    public byte ReadOnly;
+    public byte Padding0;
+    public byte Padding1;
+    public byte Padding2;
+    public byte Padding3;
+    public byte Padding4;
+    public byte Padding5;
+    public byte Padding6;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct ContentSearchCompactHeader
+{
+    public PcaiStatus Status;
+    public uint Reserved;
+    public ulong FilesScanned;
+    public ulong FilesMatched;
+    public ulong TotalMatches;
+    public ulong ElapsedMs;
+    public ulong EntryCount;
+    public ulong StringBytes;
+    public byte Truncated;
+    public byte Padding0;
+    public byte Padding1;
+    public byte Padding2;
+    public byte Padding3;
+    public byte Padding4;
+    public byte Padding5;
+    public byte Padding6;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct ContentSearchCompactEntry
+{
+    public uint PathOffset;
+    public uint PathLength;
+    public uint LineOffset;
+    public uint LineLength;
+    public ulong LineNumber;
 }
 
 // ============================================================================
@@ -351,6 +421,168 @@ public static class PcaiSearch
     /// </summary>
     public static string Version => _version.Value;
 
+    private static bool TryReadStruct<T>(ReadOnlySpan<byte> buffer, ref int offset, out T value) where T : unmanaged
+    {
+        var size = Marshal.SizeOf<T>();
+        if (offset < 0 || offset > buffer.Length - size) {
+            value = default;
+            return false;
+        }
+
+        value = MemoryMarshal.Read<T>(buffer.Slice(offset, size));
+        offset += size;
+        return true;
+    }
+
+    private static bool TryReadUtf8String(ReadOnlySpan<byte> stringData, uint offset, uint length, out string value)
+    {
+        if (length == 0) {
+            value = string.Empty;
+            return true;
+        }
+
+        try
+        {
+            var start = checked((int)offset);
+            var count = checked((int)length);
+            if (start < 0 || count < 0 || start > stringData.Length - count) {
+                value = string.Empty;
+                return false;
+            }
+
+            value = Encoding.UTF8.GetString(stringData.Slice(start, count));
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            value = string.Empty;
+            return false;
+        }
+        catch (OverflowException)
+        {
+            value = string.Empty;
+            return false;
+        }
+    }
+
+    private static bool TrySlice(ReadOnlySpan<byte> buffer, int offset, int length, out ReadOnlySpan<byte> slice)
+    {
+        if (offset < 0 || length < 0 || offset > buffer.Length - length) {
+            slice = default;
+            return false;
+        }
+
+        slice = buffer.Slice(offset, length);
+        return true;
+    }
+
+    private static FileSearchResult? ParseCompactFileSearch(PcaiByteBuffer buffer, string pattern)
+    {
+        var bytes = buffer.ToManagedBytes();
+        if (bytes is null || bytes.Length < Marshal.SizeOf<FileSearchCompactHeader>()) {
+            return null;
+        }
+
+        var data = bytes.AsSpan();
+        var offset = 0;
+        if (!TryReadStruct<FileSearchCompactHeader>(data, ref offset, out var header) || header.Status != PcaiStatus.Success) {
+            return null;
+        }
+
+        var entryCount = checked((int)header.EntryCount);
+        var compactEntries = new FileSearchCompactEntry[entryCount];
+        for (var i = 0; i < compactEntries.Length; i++) {
+            if (!TryReadStruct<FileSearchCompactEntry>(data, ref offset, out compactEntries[i])) {
+                return null;
+            }
+        }
+
+        if (!TrySlice(data, offset, checked((int)header.StringBytes), out var stringData)) {
+            return null;
+        }
+
+        var entries = new List<FoundFile>(compactEntries.Length);
+        foreach (var entry in compactEntries) {
+            if (!TryReadUtf8String(stringData, entry.PathOffset, entry.PathLength, out var path)) {
+                return null;
+            }
+
+            entries.Add(new FoundFile {
+                Path = path,
+                Size = entry.Size,
+                Modified = entry.Modified,
+                ReadOnly = entry.ReadOnly != 0
+            });
+        }
+
+        return new FileSearchResult {
+            Status = header.Status.ToString(),
+            Pattern = pattern,
+            FilesScanned = header.FilesScanned,
+            FilesMatched = header.FilesMatched,
+            TotalSize = header.TotalSize,
+            ElapsedMs = header.ElapsedMs,
+            Files = entries,
+            Truncated = header.Truncated != 0
+        };
+    }
+
+    private static ContentSearchResult? ParseCompactContentSearch(PcaiByteBuffer buffer, string pattern, string? filePattern)
+    {
+        var bytes = buffer.ToManagedBytes();
+        if (bytes is null || bytes.Length < Marshal.SizeOf<ContentSearchCompactHeader>()) {
+            return null;
+        }
+
+        var data = bytes.AsSpan();
+        var offset = 0;
+        if (!TryReadStruct<ContentSearchCompactHeader>(data, ref offset, out var header) || header.Status != PcaiStatus.Success) {
+            return null;
+        }
+
+        var entryCount = checked((int)header.EntryCount);
+        var entries = new ContentMatch[entryCount];
+        var compactEntries = new ContentSearchCompactEntry[entries.Length];
+
+        for (var i = 0; i < compactEntries.Length; i++) {
+            if (!TryReadStruct<ContentSearchCompactEntry>(data, ref offset, out compactEntries[i])) {
+                return null;
+            }
+        }
+
+        if (!TrySlice(data, offset, checked((int)header.StringBytes), out var stringData)) {
+            return null;
+        }
+
+        for (var i = 0; i < compactEntries.Length; i++) {
+            var entry = compactEntries[i];
+            if (!TryReadUtf8String(stringData, entry.PathOffset, entry.PathLength, out var path) ||
+                !TryReadUtf8String(stringData, entry.LineOffset, entry.LineLength, out var line)) {
+                return null;
+            }
+
+            entries[i] = new ContentMatch {
+                Path = path,
+                LineNumber = entry.LineNumber,
+                Line = line,
+                Before = new List<string>(),
+                After = new List<string>()
+            };
+        }
+
+        return new ContentSearchResult {
+            Status = header.Status.ToString(),
+            Pattern = pattern,
+            FilePattern = filePattern,
+            FilesScanned = header.FilesScanned,
+            FilesMatched = header.FilesMatched,
+            TotalMatches = header.TotalMatches,
+            ElapsedMs = header.ElapsedMs,
+            Matches = new List<ContentMatch>(entries),
+            Truncated = header.Truncated != 0
+        };
+    }
+
     // =========================================================================
     // Duplicate Detection
     // =========================================================================
@@ -417,6 +649,28 @@ public static class PcaiSearch
         ulong maxResults = 0)
     {
         if (!IsAvailable) return null;
+
+        var compactBuffer = NativeCore.pcai_find_files_compact(rootPath, pattern, maxResults);
+        try
+        {
+            if (compactBuffer.IsValid) {
+                try
+                {
+                    var parsed = ParseCompactFileSearch(compactBuffer, pattern);
+                    if (parsed is not null) {
+                        return parsed;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Fall through to the JSON path if the compact payload is malformed.
+                }
+            }
+        }
+        finally
+        {
+            NativeCore.pcai_free_byte_buffer(ref compactBuffer);
+        }
 
         var buffer = NativeCore.pcai_find_files(rootPath, pattern, maxResults);
         try
@@ -505,6 +759,30 @@ public static class PcaiSearch
         uint contextLines = 0)
     {
         if (!IsAvailable) return null;
+
+        if (contextLines == 0) {
+            var compactBuffer = NativeCore.pcai_search_content_compact(rootPath, pattern, filePattern, maxResults);
+            try
+            {
+                if (compactBuffer.IsValid) {
+                    try
+                    {
+                        var parsed = ParseCompactContentSearch(compactBuffer, pattern, filePattern);
+                        if (parsed is not null) {
+                            return parsed;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Fall through to the JSON path if the compact payload is malformed.
+                    }
+                }
+            }
+            finally
+            {
+                NativeCore.pcai_free_byte_buffer(ref compactBuffer);
+            }
+        }
 
         var buffer = NativeCore.pcai_search_content(rootPath, pattern, filePattern, maxResults, contextLines);
         try

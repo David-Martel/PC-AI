@@ -73,6 +73,30 @@ public struct PcaiStringBuffer
     }
 }
 
+[StructLayout(LayoutKind.Sequential)]
+public struct PcaiByteBuffer
+{
+    public PcaiStatus Status;
+    public IntPtr Data;
+    public UIntPtr Length;
+
+    public readonly bool IsValid => Status == PcaiStatus.Success && Data != IntPtr.Zero;
+
+    public readonly byte[]? ToManagedBytes()
+    {
+        if (!IsValid) return null;
+
+        var length = checked((int)(ulong)Length);
+        if (length == 0) {
+            return Array.Empty<byte>();
+        }
+
+        var bytes = new byte[length];
+        Marshal.Copy(Data, bytes, 0, length);
+        return bytes;
+    }
+}
+
 /// <summary>
 /// Diagnostic information about the native library.
 /// </summary>

@@ -27,6 +27,9 @@ internal static partial class NativeCore
     internal static extern void pcai_free_string_buffer(ref PcaiStringBuffer buffer);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern void pcai_free_byte_buffer(ref PcaiByteBuffer buffer);
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern uint pcai_cpu_count();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
@@ -65,6 +68,12 @@ internal static partial class NativeCore
         ulong maxResults);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern PcaiByteBuffer pcai_find_files_compact(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? rootPath,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? pattern,
+        ulong maxResults);
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern PcaiStringBuffer pcai_collect_directory_manifest(
         [MarshalAs(UnmanagedType.LPUTF8Str)] string? rootPath,
         uint maxDepth,
@@ -86,6 +95,13 @@ internal static partial class NativeCore
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern ContentSearchStats pcai_search_content_stats(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? rootPath,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? pattern,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? filePattern,
+        ulong maxResults);
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern PcaiByteBuffer pcai_search_content_compact(
         [MarshalAs(UnmanagedType.LPUTF8Str)] string? rootPath,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string? pattern,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string? filePattern,
@@ -235,6 +251,22 @@ internal static partial class NativeCore
     internal static extern PcaiStatus pcai_delete_fs_item(
         [MarshalAs(UnmanagedType.LPUTF8Str)] string path,
         [MarshalAs(UnmanagedType.U1)] bool recursive);
+
+    // ========================================================================
+    // Memory Optimizer
+    // ========================================================================
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern MemoryPressureReport pcai_analyze_memory_pressure();
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern PcaiStringBuffer pcai_get_memory_pressure_json();
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern PcaiStringBuffer pcai_get_process_categories_json();
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern PcaiStringBuffer pcai_get_optimization_recommendations_json();
 
     // ========================================================================
     // Prompt & LLM Ops

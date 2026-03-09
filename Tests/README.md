@@ -43,7 +43,7 @@ Get-Module Pester -ListAvailable
 
 ```powershell
 # Navigate to test directory
-cd C:\Users\david\PC_AI\Tests
+cd C:\codedev\PC_AI\Tests
 
 # Run all tests
 .\\.pester.ps1
@@ -62,7 +62,43 @@ cd C:\Users\david\PC_AI\Tests
 
 # Run specific tag
 .\\.pester.ps1 -Tag Hardware,Fast
+
+# Run the tooling benchmark suite
+.\Invoke-AllTests.ps1 -Suite Benchmarks
 ```
+
+### Running Tooling Benchmarks
+
+```powershell
+# Quick tooling benchmark sweep
+.\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick
+
+# Full default tooling benchmark sweep
+.\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1
+
+# Targeted heavy cases only
+.\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -CaseId content-search,full-context
+```
+
+### Validated Findings
+
+Results validated on March 7, 2026:
+
+- Native `directory-manifest` is currently the strongest native search/discovery
+  win: about `28.55 ms` native vs about `1161.75 ms` PowerShell on the
+  `PC_AI` repo root.
+- Native `token-estimate` is about `2.9x` faster than the PowerShell baseline.
+- Native `full-context` is faster than the PowerShell baseline, but not yet by
+  an order of magnitude.
+- Accelerated `fd`/`rg` search remains the preferred fast path for generic
+  file/content search on this machine.
+  - `file-search`: about `8.7 ms` accelerated vs about `104.07 ms` native vs
+    about `3435.82 ms` PowerShell
+  - `content-search`: about `11.58 ms` accelerated vs about `3283.99 ms`
+    native vs about `4734.92 ms` PowerShell
+
+Use the benchmark reports to decide backend preference by workload shape rather
+than assuming the native path is always fastest.
 
 ## Test Organization
 
@@ -385,6 +421,25 @@ CodeCoverage = @{
 ```
 
 ## Performance Benchmarks
+
+The dedicated tooling benchmark runner writes reports under
+`Reports\tooling-benchmarks\<timestamp>\` and records:
+
+- backend coverage (`Rust`, `C# bridge`, `PowerShell surface`)
+- schema coverage snapshots from `Tools\update-tool-coverage.ps1`
+- timing comparisons across native, accelerated, and PowerShell baselines
+- per-iteration memory deltas for working set, private bytes, managed heap
+  delta, and managed allocation volume
+
+Current validated entrypoints:
+
+- `token-estimate`
+- `directory-manifest`
+- `file-search`
+- `content-search`
+- `full-context`
+- `runtime-config`
+- `command-map`
 
 Expected test execution times:
 

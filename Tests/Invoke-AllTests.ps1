@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
 
 <#
@@ -81,6 +81,19 @@ $ErrorActionPreference = 'Stop'
 # Get project root
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $TestsRoot = Join-Path $ProjectRoot "Tests"
+
+if ($Suite -eq 'Benchmarks') {
+    $benchmarkScript = Join-Path $TestsRoot 'Benchmarks\Invoke-PcaiToolingBenchmarks.ps1'
+    if (-not (Test-Path $benchmarkScript)) {
+        Write-Warning "Benchmark runner not found: $benchmarkScript"
+        exit 1
+    }
+
+    Write-Host "=== PCAI Tooling Benchmark Runner ===" -ForegroundColor Cyan
+    $benchmarkResult = & $benchmarkScript -PassThru
+    Write-Host "Benchmark report: $($benchmarkResult.MarkdownPath)" -ForegroundColor Green
+    exit 0
+}
 
 Write-Host "=== PCAI Inference Test Runner ===" -ForegroundColor Cyan
 Write-Host "Project Root: $ProjectRoot" -ForegroundColor Gray

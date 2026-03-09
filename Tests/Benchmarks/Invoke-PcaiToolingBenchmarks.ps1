@@ -20,6 +20,9 @@ param(
     [switch]$SkipPerformance,
 
     [Parameter()]
+    [switch]$RefreshCoverage,
+
+    [Parameter()]
     [switch]$PassThru
 )
 
@@ -108,14 +111,22 @@ function Invoke-BackendBenchmark {
         [Parameter(Mandatory)]
         [string]$Backend,
         [Parameter(Mandatory)]
-        [scriptblock]$ScriptBlock,
+        [object]$Command,
         [Parameter(Mandatory)]
         [int]$Iterations,
         [Parameter(Mandatory)]
-        [int]$Warmup
+        [int]$Warmup,
+        [Parameter()]
+        [ValidateSet('pwsh', 'powershell', 'cmd', 'bash')]
+        [string]$Shell = 'pwsh'
     )
 
-    $measurement = Measure-CommandPerformance -Command $ScriptBlock -Iterations $Iterations -Warmup $Warmup -Name "$CaseId/$Backend"
+    $measureCommand = Get-ModuleFunctionCommand -Module $script:AccelerationModule -CommandName 'Measure-CommandPerformance'
+    $measurement = & $measureCommand -Command $Command -Iterations $Iterations -Warmup $Warmup -Name "$CaseId/$Backend" -Shell $Shell
+    if (-not $measurement) {
+        return $null
+    }
+
     [PSCustomObject]@{
         CaseId      = $CaseId
         Backend     = $Backend
@@ -126,7 +137,98 @@ function Invoke-BackendBenchmark {
         StdDevMs    = $measurement.StdDev
         Iterations  = $measurement.Iterations
         Tool        = $measurement.Tool
+        WorkingSetDeltaMeanBytes = $measurement.WorkingSetDeltaMeanBytes
+        WorkingSetDeltaMaxBytes  = $measurement.WorkingSetDeltaMaxBytes
+        PrivateMemoryDeltaMeanBytes = $measurement.PrivateMemoryDeltaMeanBytes
+        PrivateMemoryDeltaMaxBytes  = $measurement.PrivateMemoryDeltaMaxBytes
+        ManagedMemoryDeltaMeanBytes = $measurement.ManagedMemoryDeltaMeanBytes
+        ManagedMemoryDeltaMaxBytes  = $measurement.ManagedMemoryDeltaMaxBytes
+        ManagedAllocatedMeanBytes = $measurement.ManagedAllocatedMeanBytes
+        ManagedAllocatedMaxBytes  = $measurement.ManagedAllocatedMaxBytes
     }
+}
+
+function Add-BenchmarkMeasurement {
+    param(
+        [Parameter(Mandatory)]
+        [object]$Collection,
+        [AllowNull()]
+        [object]$Measurement
+    )
+
+    if ($null -ne $Measurement) {
+        $Collection.Add($Measurement)
+    }
+}
+
+function Invoke-ImportedModuleCommand {
+    param(
+        [Parameter(Mandatory)]
+        [System.Management.Automation.PSModuleInfo]$Module,
+        [Parameter(Mandatory)]
+        [scriptblock]$ScriptBlock,
+        [object[]]$ArgumentList = @()
+    )
+
+    if (-not $Module) {
+        throw 'Imported module handle is not available.'
+    }
+
+    & $Module $ScriptBlock @ArgumentList
+}
+
+function Invoke-AccelerationModuleCommand {
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$ScriptBlock,
+        [object[]]$ArgumentList = @()
+    )
+
+    Invoke-ImportedModuleCommand -Module $script:AccelerationModule -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+}
+
+function Invoke-CommonModuleCommand {
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$ScriptBlock,
+        [object[]]$ArgumentList = @()
+    )
+
+    Invoke-ImportedModuleCommand -Module $script:CommonModule -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+}
+
+function Invoke-CliModuleCommand {
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$ScriptBlock,
+        [object[]]$ArgumentList = @()
+    )
+
+    Invoke-ImportedModuleCommand -Module $script:CliModule -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+}
+
+function Get-ModuleFunctionCommand {
+    param(
+        [Parameter(Mandatory)]
+        [System.Management.Automation.PSModuleInfo]$Module,
+        [Parameter(Mandatory)]
+        [string]$CommandName
+    )
+
+    $resolved = $null
+    if ($Module.ExportedFunctions -and $Module.ExportedFunctions.ContainsKey($CommandName)) {
+        $resolved = $Module.ExportedFunctions[$CommandName]
+    }
+
+    if (-not $resolved -and $Module.ExportedCommands -and $Module.ExportedCommands.ContainsKey($CommandName)) {
+        $resolved = $Module.ExportedCommands[$CommandName]
+    }
+
+    if (-not $resolved) {
+        throw "Failed to resolve function '$CommandName' from module '$($Module.Name)'."
+    }
+
+    return $resolved
 }
 
 function Get-ToolingCaseBenchmarks {
@@ -165,20 +267,31 @@ function Get-ToolingCaseBenchmarks {
     $contentFilePattern = [string](Get-ConfigValue -Case $Case -Defaults $Defaults -Name 'contentFilePattern')
 
     $coverageLookup = @{}
-    foreach ($entry in @($Capabilities.BackendCoverage)) {
+    $backendCoverage = @()
+    if ($Capabilities -and $Capabilities.PSObject.Properties['BackendCoverage']) {
+        $backendCoverage = @($Capabilities.BackendCoverage)
+    }
+
+    foreach ($entry in $backendCoverage) {
         $coverageLookup[$entry.Operation] = $entry
     }
 
+    $accelerationModule = $script:AccelerationModule
+    $commonModule = $script:CommonModule
+    $cliModule = $script:CliModule
     $benchmarks = [System.Collections.Generic.List[object]]::new()
 
     switch ($Case.Id) {
         'token-estimate' {
-            if (Get-Command Get-PcaiTokenEstimate -ErrorAction SilentlyContinue) {
-                $scriptBlock = { Get-PcaiTokenEstimate -Text $TokenSample }.GetNewClosure()
-                $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -ScriptBlock $scriptBlock -Iterations $iterations -Warmup $warmup))
-            }
-            $baselineBlock = { Invoke-LegacyTokenEstimate -Text $TokenSample }.GetNewClosure()
-            $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -ScriptBlock $baselineBlock -Iterations $iterations -Warmup $warmup))
+            $nativeBlock = {
+                & $accelerationModule {
+                    param($InnerTokenSample)
+                    Get-PcaiTokenEstimate -Text $InnerTokenSample
+                } $TokenSample | Out-Null
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
+            $baselineBlock = { if ([string]::IsNullOrEmpty($TokenSample)) { 0 } else { ([regex]::Matches($TokenSample, '\w+')).Count } }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{
                 Case        = $Case
                 Path        = $resolvedPath
@@ -188,12 +301,33 @@ function Get-ToolingCaseBenchmarks {
             }
         }
         'directory-manifest' {
-            if (Get-Command Invoke-PcaiNativeDirectoryManifest -ErrorAction SilentlyContinue) {
-                $nativeBlock = { Invoke-PcaiNativeDirectoryManifest -Path $resolvedPath -MaxDepth $maxDepth -MaxResults $maxResults -StatsOnly }.GetNewClosure()
-                $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -ScriptBlock $nativeBlock -Iterations $iterations -Warmup $warmup))
-            }
-            $baselineBlock = { Get-PowerShellDirectoryManifest -Path $resolvedPath -MaxDepth $maxDepth -MaxResults $maxResults }.GetNewClosure()
-            $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -ScriptBlock $baselineBlock -Iterations $iterations -Warmup $warmup))
+            $nativeBlock = {
+                & $accelerationModule {
+                    param($InnerPath, $InnerMaxDepth, $InnerMaxResults)
+                    Invoke-PcaiNativeDirectoryManifest -Path $InnerPath -MaxDepth $InnerMaxDepth -MaxResults $InnerMaxResults -StatsOnly
+                } $resolvedPath $maxDepth $maxResults | Out-Null
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
+            $baselineBlock = {
+                $items = if ($maxDepth -gt 0) {
+                    Get-ChildItem -LiteralPath $resolvedPath -Force -ErrorAction SilentlyContinue -Recurse -Depth $maxDepth
+                } else {
+                    Get-ChildItem -LiteralPath $resolvedPath -Force -ErrorAction SilentlyContinue -Recurse
+                }
+                if ($maxResults -gt 0) {
+                    $items = $items | Select-Object -First $maxResults
+                }
+                $entries = @($items)
+                $files = @($entries | Where-Object { -not $_.PSIsContainer })
+                $directories = @($entries | Where-Object { $_.PSIsContainer })
+                [PSCustomObject]@{
+                    EntriesReturned = $entries.Count
+                    FileCount       = $files.Count
+                    DirectoryCount  = $directories.Count
+                    TotalSize       = ($files | Measure-Object -Property Length -Sum).Sum
+                } | Out-Null
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{
                 Case        = $Case
                 Path        = $resolvedPath
@@ -203,14 +337,27 @@ function Get-ToolingCaseBenchmarks {
             }
         }
         'file-search' {
-            if (Get-Command Invoke-PcaiNativeFileSearch -ErrorAction SilentlyContinue) {
-                $nativeBlock = { Invoke-PcaiNativeFileSearch -Pattern $filePattern -Path $resolvedPath -MaxResults $maxResults -StatsOnly }.GetNewClosure()
-                $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -ScriptBlock $nativeBlock -Iterations $iterations -Warmup $warmup))
-            }
-            if (Get-Command Find-FilesFast -ErrorAction SilentlyContinue) {
-                $acceleratedBlock = { Find-FilesFast -Path $resolvedPath -Pattern $filePattern -MaxResults $maxResults | Out-Null }.GetNewClosure()
-                $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'accelerated' -ScriptBlock $acceleratedBlock -Iterations $iterations -Warmup $warmup))
-            }
+            $nativeBlock = {
+                & $accelerationModule {
+                    param($InnerPattern, $InnerPath, $InnerMaxResults)
+                    Invoke-PcaiNativeFileSearch -Pattern $InnerPattern -Path $InnerPath -MaxResults $InnerMaxResults | Out-Null
+                } $filePattern $resolvedPath $maxResults
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
+            $acceleratedBlock = {
+                & $accelerationModule {
+                    param($InnerPath, $InnerPattern, $InnerMaxResults)
+                    if ($script:PcaiQueryCache -and $script:PcaiQueryCache.Entries) {
+                        $script:PcaiQueryCache.Entries.Clear()
+                    }
+                    $items = Find-FilesFast -Path $InnerPath -Pattern $InnerPattern
+                    if ($InnerMaxResults -gt 0) {
+                        $items = $items | Select-Object -First $InnerMaxResults
+                    }
+                    $items | Out-Null
+                } $resolvedPath $filePattern $maxResults
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'accelerated' -Command $acceleratedBlock -Iterations $iterations -Warmup $warmup)
             $baselineBlock = {
                 $items = Get-ChildItem -LiteralPath $resolvedPath -Recurse -File -Filter $filePattern -ErrorAction SilentlyContinue
                 if ($maxResults -gt 0) {
@@ -218,7 +365,7 @@ function Get-ToolingCaseBenchmarks {
                 }
                 $items | Out-Null
             }.GetNewClosure()
-            $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -ScriptBlock $baselineBlock -Iterations $iterations -Warmup $warmup))
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{
                 Case        = $Case
                 Path        = $resolvedPath
@@ -228,23 +375,32 @@ function Get-ToolingCaseBenchmarks {
             }
         }
         'content-search' {
-            if (Get-Command Invoke-PcaiNativeContentSearch -ErrorAction SilentlyContinue) {
-                $nativeBlock = { Invoke-PcaiNativeContentSearch -Pattern $contentPattern -Path $resolvedPath -FilePattern $contentFilePattern -MaxResults $maxResults -StatsOnly }.GetNewClosure()
-                $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -ScriptBlock $nativeBlock -Iterations $iterations -Warmup $warmup))
-            }
-            if (Get-Command Search-ContentFast -ErrorAction SilentlyContinue) {
-                $acceleratedBlock = { Search-ContentFast -Path $resolvedPath -Pattern $contentPattern -FilePattern $contentFilePattern -MaxResults $maxResults | Out-Null }.GetNewClosure()
-                $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'accelerated' -ScriptBlock $acceleratedBlock -Iterations $iterations -Warmup $warmup))
-            }
+            $nativeBlock = {
+                & $accelerationModule {
+                    param($InnerPattern, $InnerPath, $InnerFilePattern, $InnerMaxResults)
+                    Invoke-PcaiNativeContentSearch -Pattern $InnerPattern -Path $InnerPath -FilePattern $InnerFilePattern -MaxResults $InnerMaxResults | Out-Null
+                } $contentPattern $resolvedPath $contentFilePattern $maxResults
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
+            $acceleratedBlock = {
+                & $accelerationModule {
+                    param($InnerPath, $InnerPattern, $InnerFilePattern, $InnerMaxResults)
+                    if ($script:PcaiQueryCache -and $script:PcaiQueryCache.Entries) {
+                        $script:PcaiQueryCache.Entries.Clear()
+                    }
+                    Search-ContentFast -Path $InnerPath -Pattern $InnerPattern -FilePattern $InnerFilePattern -MaxResults $InnerMaxResults | Out-Null
+                } $resolvedPath $contentPattern $contentFilePattern $maxResults
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'accelerated' -Command $acceleratedBlock -Iterations $iterations -Warmup $warmup)
             $baselineBlock = {
                 $items = Get-ChildItem -LiteralPath $resolvedPath -Recurse -File -Filter $contentFilePattern -ErrorAction SilentlyContinue |
-                    Select-String -Pattern $contentPattern -List
+                    Select-String -Pattern $contentPattern
                 if ($maxResults -gt 0) {
                     $items = $items | Select-Object -First $maxResults
                 }
                 $items | Out-Null
             }.GetNewClosure()
-            $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -ScriptBlock $baselineBlock -Iterations $iterations -Warmup $warmup))
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{
                 Case        = $Case
                 Path        = $resolvedPath
@@ -254,12 +410,25 @@ function Get-ToolingCaseBenchmarks {
             }
         }
         'full-context' {
-            if ([PcaiNative.PcaiCore]::IsAvailable) {
-                $nativeBlock = { [PcaiNative.PcaiCore]::QueryFullContextJson() | Out-Null }.GetNewClosure()
-                $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -ScriptBlock $nativeBlock -Iterations $iterations -Warmup $warmup))
+            if (Invoke-AccelerationModuleCommand -ScriptBlock { [PcaiNative.PcaiCore]::IsAvailable }) {
+                $nativeBlock = {
+                    & $accelerationModule { [PcaiNative.PcaiCore]::QueryFullContextJson() | Out-Null }
+                }.GetNewClosure()
+                Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
             }
-            $baselineBlock = { Invoke-LegacyFullInterrogation | Out-Null }.GetNewClosure()
-            $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -ScriptBlock $baselineBlock -Iterations $iterations -Warmup $warmup))
+            $baselineBlock = {
+                $sys = Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, CSName
+                $cpu = Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, LoadPercentage
+                $net = Get-NetIPConfiguration
+                $wsl = wsl --list --verbose | Out-String
+                @{
+                    System  = $sys
+                    CPU     = $cpu
+                    Network = $net
+                    Vmm     = $wsl
+                } | ConvertTo-Json -Depth 3 | Out-Null
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{
                 Case        = $Case
                 Path        = $resolvedPath
@@ -269,8 +438,36 @@ function Get-ToolingCaseBenchmarks {
             }
         }
         'runtime-config' {
-            $scriptBlock = { Get-PcaiRuntimeConfig | Out-Null }.GetNewClosure()
-            $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -ScriptBlock $scriptBlock -Iterations $iterations -Warmup $warmup))
+            $scriptBlock = {
+                & $commonModule { Get-PcaiRuntimeConfig | Out-Null }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup)
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
+        'acceleration-probe' {
+            $scriptBlock = {
+                & $commonModule { Get-PcaiAccelerationProbe | Out-Null }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup)
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
+        'direct-core-probe' {
+            $scriptBlock = {
+                & $commonModule { Get-PcaiDirectCoreProbe | Out-Null }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{
                 Case        = $Case
                 Path        = $resolvedPath
@@ -280,8 +477,26 @@ function Get-ToolingCaseBenchmarks {
             }
         }
         'command-map' {
-            $scriptBlock = { Get-PCCommandMap | Out-Null }.GetNewClosure()
-            $benchmarks.Add((Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -ScriptBlock $scriptBlock -Iterations $iterations -Warmup $warmup))
+            $scriptBlock = {
+                & $cliModule { Get-PCCommandMap | Out-Null }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup)
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
+        'acceleration-import' {
+            $modulePath = Join-Path $RepoRoot 'Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1'
+            $importBlock = {
+                pwsh -NoProfile -Command "& { Import-Module '$modulePath' -Force }" | Out-Null
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $importBlock -Iterations $iterations -Warmup $warmup
+            )
             return [PSCustomObject]@{
                 Case        = $Case
                 Path        = $resolvedPath
@@ -304,12 +519,17 @@ $ConfigPath = (Resolve-Path -Path $ConfigPath -ErrorAction Stop).Path
 
 $moduleImports = @(
     Join-Path $PcaiRoot 'Modules\PC-AI.Common\PC-AI.Common.psm1'
-    Join-Path $PcaiRoot 'Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1'
+    Join-Path $PcaiRoot 'Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1'
     Join-Path $PcaiRoot 'Modules\PC-AI.CLI\PC-AI.CLI.psm1'
 )
+$script:ImportedModules = @{}
 foreach ($modulePath in $moduleImports) {
-    Import-Module $modulePath -Force
+    $importedModule = Import-Module $modulePath -Force -PassThru
+    $script:ImportedModules[$importedModule.Name] = $importedModule
 }
+$script:CommonModule = $script:ImportedModules['PC-AI.Common']
+$script:AccelerationModule = $script:ImportedModules['PC-AI.Acceleration']
+$script:CliModule = $script:ImportedModules['PC-AI.CLI']
 
 $config = Get-Content -Path $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $defaults = $config.defaults
@@ -350,7 +570,8 @@ New-Item -ItemType Directory -Path $reportRoot -Force | Out-Null
 
 $capabilities = $null
 if (-not $SkipCapabilities) {
-    $capabilities = Get-PcaiCapabilities
+    $capabilitiesCommand = Get-ModuleFunctionCommand -Module $script:AccelerationModule -CommandName 'Get-PcaiCapabilities'
+    $capabilities = & $capabilitiesCommand
     $capabilityJsonPath = Join-Path $reportRoot 'capabilities.json'
     $capabilities | ConvertTo-Json -Depth 8 | Set-Content -Path $capabilityJsonPath -Encoding UTF8
 }
@@ -363,8 +584,10 @@ if (-not $capabilities) {
 $toolCoverageJson = $null
 $toolCoverageScript = Join-Path $PcaiRoot 'Tools\update-tool-coverage.ps1'
 if (Test-Path $toolCoverageScript) {
-    & $toolCoverageScript -RepoRoot $PcaiRoot | Out-Null
     $toolCoverageJsonPath = Join-Path $PcaiRoot 'Reports\TOOL_SCHEMA_REPORT.json'
+    if ($RefreshCoverage -or -not (Test-Path $toolCoverageJsonPath)) {
+    & $toolCoverageScript -RepoRoot $PcaiRoot | Out-Null
+    }
     if (Test-Path $toolCoverageJsonPath) {
         $toolCoverageJson = Get-Content -Path $toolCoverageJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
     }
@@ -401,6 +624,14 @@ $benchmarkRows = foreach ($caseResult in $caseResults) {
             Tool               = $row.Tool
             SpeedupVsBaseline  = if ($baselineMean -and $row.MeanMs -gt 0) { [Math]::Round($baselineMean / [double]$row.MeanMs, 2) } else { $null }
             CoverageState      = if ($caseResult.Coverage) { $caseResult.Coverage.CoverageState } else { 'PowerShellOnly' }
+            WorkingSetDeltaMeanBytes = $row.WorkingSetDeltaMeanBytes
+            WorkingSetDeltaMaxBytes  = $row.WorkingSetDeltaMaxBytes
+            PrivateMemoryDeltaMeanBytes = $row.PrivateMemoryDeltaMeanBytes
+            PrivateMemoryDeltaMaxBytes  = $row.PrivateMemoryDeltaMaxBytes
+            ManagedMemoryDeltaMeanBytes = $row.ManagedMemoryDeltaMeanBytes
+            ManagedMemoryDeltaMaxBytes  = $row.ManagedMemoryDeltaMaxBytes
+            ManagedAllocatedMeanBytes = $row.ManagedAllocatedMeanBytes
+            ManagedAllocatedMaxBytes  = $row.ManagedAllocatedMaxBytes
         }
     }
 }
@@ -428,9 +659,9 @@ $summary | ConvertTo-Json -Depth 10 | Set-Content -Path $summary.Reports.Json -E
 $md = [System.Text.StringBuilder]::new()
 $null = $md.AppendLine('# PC_AI Tooling Benchmark Report')
 $null = $md.AppendLine()
-$null = $md.AppendLine("Generated: $($summary.Generated)")
-$null = $md.AppendLine("Suite: $($summary.Suite)")
-$null = $md.AppendLine("RepoRoot: `$($summary.RepoRoot)`")
+$null = $md.AppendLine(('Generated: {0}' -f $summary.Generated))
+$null = $md.AppendLine(('Suite: {0}' -f $summary.Suite))
+$null = $md.AppendLine(('RepoRoot: `{0}`' -f $summary.RepoRoot))
 $null = $md.AppendLine()
 
 if ($capabilities) {
@@ -440,7 +671,7 @@ if ($capabilities) {
     $null = $md.AppendLine('| --- | --- | --- | --- |')
     foreach ($coverageRow in @($capabilities.BackendCoverage)) {
         $gap = if ([string]::IsNullOrWhiteSpace([string]$coverageRow.Gap)) { '' } else { [string]$coverageRow.Gap }
-        $null = $md.AppendLine("| $($coverageRow.Operation) | $($coverageRow.CoverageState) | $($coverageRow.PreferredBackend) | $gap |")
+        $null = $md.AppendLine(('| {0} | {1} | {2} | {3} |' -f $coverageRow.Operation, $coverageRow.CoverageState, $coverageRow.PreferredBackend, $gap))
     }
     $null = $md.AppendLine()
 }
@@ -456,11 +687,15 @@ if ($toolCoverageJson) {
 
 $null = $md.AppendLine('## Performance Results')
 $null = $md.AppendLine()
-$null = $md.AppendLine('| Case | Backend | Mean ms | Median ms | StdDev ms | Speedup vs PS | Coverage |')
-$null = $md.AppendLine('| --- | --- | ---: | ---: | ---: | ---: | --- |')
+$null = $md.AppendLine('| Case | Backend | Mean ms | Median ms | StdDev ms | WS delta KB | Private delta KB | Managed delta KB | Managed alloc KB | Speedup vs PS | Coverage |')
+$null = $md.AppendLine('| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |')
 foreach ($row in @($benchmarkRows | Sort-Object CaseId, MeanMs)) {
     $speedup = if ($null -ne $row.SpeedupVsBaseline) { $row.SpeedupVsBaseline } else { '' }
-    $null = $md.AppendLine("| $($row.CaseId) | $($row.Backend) | $($row.MeanMs) | $($row.MedianMs) | $($row.StdDevMs) | $speedup | $($row.CoverageState) |")
+    $workingSetKb = if ($null -ne $row.WorkingSetDeltaMeanBytes) { [Math]::Round(([double]$row.WorkingSetDeltaMeanBytes / 1KB), 2) } else { '' }
+    $privateKb = if ($null -ne $row.PrivateMemoryDeltaMeanBytes) { [Math]::Round(([double]$row.PrivateMemoryDeltaMeanBytes / 1KB), 2) } else { '' }
+    $managedKb = if ($null -ne $row.ManagedMemoryDeltaMeanBytes) { [Math]::Round(([double]$row.ManagedMemoryDeltaMeanBytes / 1KB), 2) } else { '' }
+    $managedAllocatedKb = if ($null -ne $row.ManagedAllocatedMeanBytes) { [Math]::Round(([double]$row.ManagedAllocatedMeanBytes / 1KB), 2) } else { '' }
+    $null = $md.AppendLine(('| {0} | {1} | {2} | {3} | {4} | {5} | {6} | {7} | {8} | {9} | {10} |' -f $row.CaseId, $row.Backend, $row.MeanMs, $row.MedianMs, $row.StdDevMs, $workingSetKb, $privateKb, $managedKb, $managedAllocatedKb, $speedup, $row.CoverageState))
 }
 $md.ToString() | Set-Content -Path $summary.Reports.Markdown -Encoding UTF8
 

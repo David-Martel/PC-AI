@@ -675,6 +675,90 @@
 		{
 			"type": "function",
 			"function": {
+				"name": "pcai_analyze_image",
+				"description": "Analyze a screenshot or image using the Janus-Pro vision model. Extracts text, error codes, device names, and diagnostic information from screenshots of error dialogs, BSOD, Device Manager, Event Viewer, etc.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"image_path": {
+							"type": "string",
+							"description": "Absolute path to the image file (PNG, JPEG, BMP)."
+						},
+						"question": {
+							"type": "string",
+							"description": "Question or instruction for the model (default: describe the image)."
+						},
+						"max_tokens": {
+							"type": "integer",
+							"description": "Maximum tokens to generate (default: 512)."
+						}
+					},
+					"required": ["image_path"]
+				}
+			},
+			"pcai_mapping": {
+				"module": "PcaiMedia",
+				"cmdlet": "Get-PcaiImageAnalysis",
+				"params": {
+					"ImagePath": "$image_path",
+					"Question": "$question",
+					"MaxTokens": "$max_tokens"
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "pcai_generate_image",
+				"description": "Generate an image from a text description using the Janus-Pro model.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"prompt": {
+							"type": "string",
+							"description": "Text description of the image to generate."
+						},
+						"output_path": {
+							"type": "string",
+							"description": "Path to save the generated PNG (auto-generated if omitted)."
+						},
+						"cfg_scale": {
+							"type": "number",
+							"description": "Classifier-Free Guidance scale (1.0-10.0, default: 5.0)."
+						}
+					},
+					"required": ["prompt"]
+				}
+			},
+			"pcai_mapping": {
+				"module": "PcaiMedia",
+				"cmdlet": "New-PcaiImage",
+				"params": {
+					"Prompt": "$prompt",
+					"OutputPath": "$output_path",
+					"CfgScale": "$cfg_scale"
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "pcai_media_status",
+				"description": "Get the current status of the media pipeline (initialized, model loaded, device).",
+				"parameters": {
+					"type": "object",
+					"properties": {}
+				}
+			},
+			"pcai_mapping": {
+				"module": "PcaiMedia",
+				"cmdlet": "Get-PcaiMediaStatus",
+				"params": {}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
 				"name": "pcai_run_evaluation",
 				"description": "Run an evaluation suite against the active inference backend.",
 				"parameters": {

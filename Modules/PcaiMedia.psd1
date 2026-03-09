@@ -35,5 +35,9 @@
             MinVersion = '0.1.0'
             Models = @('deepseek-ai/Janus-Pro-1B', 'deepseek-ai/Janus-Pro-7B')
         }
+
+        PCAI = @{
+            Commands = @('media')
+        }
     }
 }

@@ -46,7 +46,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('diagnose', 'optimize', 'usb', 'analyze', 'chat', 'llm', 'cleanup', 'perf', 'doctor', 'status', 'version', 'help')]
+    [ValidateSet('diagnose', 'optimize', 'usb', 'analyze', 'chat', 'llm', 'cleanup', 'perf', 'media', 'doctor', 'status', 'version', 'help')]
     [string]$Command,
 
     [Parameter(Position = 1, ValueFromRemainingArguments)]
@@ -335,7 +335,7 @@ function Show-MainHelp {
             }
         }
     } else {
-        $commands = @('diagnose', 'optimize', 'usb', 'analyze', 'chat', 'llm', 'cleanup', 'perf', 'status', 'doctor', 'version', 'help')
+        $commands = @('diagnose', 'optimize', 'usb', 'analyze', 'chat', 'llm', 'cleanup', 'perf', 'media', 'status', 'doctor', 'version', 'help')
         foreach ($cmd in $commands) {
             Write-Host "    $cmd" -ForegroundColor White
         }
@@ -461,7 +461,7 @@ function Show-Help {
         $knownCommands = Get-PCCommandList -ProjectRoot $PSScriptRoot
     }
     if (-not $knownCommands -or $knownCommands.Count -eq 0) {
-        $knownCommands = @('diagnose', 'optimize', 'usb', 'analyze', 'chat', 'llm', 'cleanup', 'perf', 'doctor', 'status', 'version', 'help')
+        $knownCommands = @('diagnose', 'optimize', 'usb', 'analyze', 'chat', 'llm', 'cleanup', 'perf', 'media', 'doctor', 'status', 'version', 'help')
     }
     if (-not $Topic) {
         Show-MainHelp
@@ -2006,6 +2006,375 @@ function Invoke-VersionCommand {
 }
 #endregion
 
+#region Media Commands
+function Invoke-MediaCommand {
+    <#
+    .SYNOPSIS
+        Janus-Pro multimodal media pipeline (image generation, VQA, upscaling)
+    #>
+    param([string[]]$CmdArgs)
+
+    $parsed = Get-ParsedArguments -InputArgs $CmdArgs -Defaults @{
+        device      = $null
+        prompt      = $null
+        output      = $null
+        'cfg-scale' = $null
+        temperature = $null
+        'max-tokens' = $null
+        question    = $null
+        'gpu-layers' = $null
+    }
+
+    $subCommand = $parsed.SubCommand
+
+    # Load media config once
+    $mediaConfigPath = Join-Path $script:ConfigPath 'pcai-media.json'
+    $mediaConfig = $null
+    if (Test-Path $mediaConfigPath) {
+        try {
+            $mediaConfig = Get-Content $mediaConfigPath -Raw | ConvertFrom-Json
+        } catch {
+            Write-Warning "Could not read pcai-media.json: $_"
+        }
+    }
+
+    # Helper: resolve device from arg > config > default
+    function Resolve-MediaDevice {
+        $d = $parsed.Values['device']
+        if (-not $d -and $mediaConfig -and $mediaConfig.device) { $d = $mediaConfig.device }
+        if (-not $d) { $d = 'cuda:0' }
+        return $d
+    }
+
+    # Helper: resolve model from config > default
+    function Resolve-MediaModel {
+        if ($mediaConfig -and $mediaConfig.model) { return $mediaConfig.model }
+        return 'deepseek-ai/Janus-Pro-1B'
+    }
+
+    # Helper: resolve gpu-layers from arg > config > default (-1 = full GPU)
+    function Resolve-GpuLayers {
+        $v = $parsed.Values['gpu-layers']
+        if ($null -ne $v) { return [int]$v }
+        if ($mediaConfig -and $null -ne $mediaConfig.gpu_layers) { return [int]$mediaConfig.gpu_layers }
+        return -1
+    }
+
+    # Helper: ensure media pipeline is initialized and model loaded (auto-init path)
+    function Ensure-MediaPipeline {
+        $device = Resolve-MediaDevice
+        $model  = Resolve-MediaModel
+        $layers = Resolve-GpuLayers
+
+        # Load the module path directly — PcaiMedia.psm1 sits in Modules\
+        $mediaModulePath = Join-Path $script:ModulesPath 'PcaiMedia.psm1'
+        if (-not (Test-Path $mediaModulePath)) {
+            Write-Error 'PcaiMedia module not found. Expected: Modules\PcaiMedia.psm1'
+            return $false
+        }
+
+        try {
+            Import-Module $mediaModulePath -Force -ErrorAction Stop
+        } catch {
+            Write-Error "Failed to load PcaiMedia module: $_"
+            return $false
+        }
+
+        $status = Get-PcaiMediaStatus
+        if (-not $status.Initialized) {
+            Write-Info "Initializing media pipeline on $device ..."
+            $initResult = Initialize-PcaiMedia -Device $device
+            if (-not $initResult.Success) {
+                Write-Error "Failed to initialize media pipeline: $($initResult.Error)"
+                return $false
+            }
+        }
+
+        if (-not $status.ModelLoaded) {
+            Write-Info "Loading model: $model (gpu_layers=$layers) ..."
+            $loadResult = Import-PcaiMediaModel -ModelPath $model -GpuLayers $layers
+            if (-not $loadResult.Success) {
+                Write-Error "Failed to load media model: $($loadResult.Error)"
+                return $false
+            }
+            Write-Success "Model loaded: $model"
+        }
+
+        return $true
+    }
+
+    switch ($subCommand) {
+
+        'status' {
+            Write-Header 'Media Pipeline Status'
+
+            $mediaModulePath = Join-Path $script:ModulesPath 'PcaiMedia.psm1'
+            if (-not (Test-Path $mediaModulePath)) {
+                Write-Bullet 'PcaiMedia module: Missing' -Color Red
+                Write-Info 'Expected: Modules\PcaiMedia.psm1'
+                return
+            }
+
+            try {
+                Import-Module $mediaModulePath -Force -ErrorAction Stop
+                $status = Get-PcaiMediaStatus
+
+                $initColor = if ($status.Initialized) { 'Green' } else { 'Yellow' }
+                Write-Bullet "Initialized: $($status.Initialized)" -Color $initColor
+
+                $modelColor = if ($status.ModelLoaded) { 'Green' } else { 'Yellow' }
+                Write-Bullet "Model Loaded: $($status.ModelLoaded)" -Color $modelColor
+
+                if ($status.CurrentModel) {
+                    Write-Bullet "Current Model: $($status.CurrentModel)"
+                }
+
+                if ($mediaConfig) {
+                    Write-SubHeader 'Configuration'
+                    Write-Bullet "Config model: $(Resolve-MediaModel)"
+                    Write-Bullet "Device: $(Resolve-MediaDevice)"
+                    Write-Bullet "GPU Layers: $(Resolve-GpuLayers)"
+                    if ($mediaConfig.upscale -and $mediaConfig.upscale.enabled) {
+                        Write-Bullet "Upscale: enabled (x$($mediaConfig.upscale.scale_factor))"
+                    }
+                }
+            } catch {
+                Write-Error "Failed to get media status: $_"
+            }
+        }
+
+        'init' {
+            $device = Resolve-MediaDevice
+            $model  = Resolve-MediaModel
+            $layers = Resolve-GpuLayers
+
+            Write-Header 'Initializing Media Pipeline'
+            Write-Info "Device: $device"
+            Write-Info "Model:  $model"
+            Write-Info "GPU Layers: $layers"
+
+            $mediaModulePath = Join-Path $script:ModulesPath 'PcaiMedia.psm1'
+            if (-not (Test-Path $mediaModulePath)) {
+                Write-Error 'PcaiMedia module not found. Build with: .\Build.ps1 -Component media'
+                return
+            }
+
+            try {
+                Import-Module $mediaModulePath -Force -ErrorAction Stop
+
+                $initResult = Initialize-PcaiMedia -Device $device
+                if (-not $initResult.Success) {
+                    Write-Error "Initialization failed: $($initResult.Error)"
+                    return
+                }
+                Write-Success 'Media pipeline initialized'
+
+                Write-Info "Loading model: $model ..."
+                $loadResult = Import-PcaiMediaModel -ModelPath $model -GpuLayers $layers
+                if (-not $loadResult.Success) {
+                    Write-Error "Model load failed: $($loadResult.Error)"
+                    return
+                }
+                Write-Success "Model loaded: $model"
+            } catch {
+                Write-Error "Media initialization failed: $_"
+            }
+        }
+
+        'generate' {
+            Write-Header 'Image Generation'
+
+            # Resolve prompt: --prompt flag or first positional arg
+            $prompt = $parsed.Values['prompt']
+            if (-not $prompt -and $parsed.Positional -and $parsed.Positional.Count -gt 0) {
+                $prompt = $parsed.Positional[0]
+            }
+            if (-not $prompt) {
+                Write-Error 'Prompt required. Use: PC-AI media generate --prompt "text" or PC-AI media generate "text"'
+                return
+            }
+
+            if (-not (Ensure-MediaPipeline)) { return }
+
+            $outputPath = $parsed.Values['output']
+
+            $genParams = @{ Prompt = $prompt }
+
+            if (-not $outputPath) {
+                $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+                $outputPath = Join-Path $script:ReportsPath "media\image-$timestamp.png"
+            }
+            $outputDir = Split-Path $outputPath -Parent
+            if (-not (Test-Path $outputDir)) {
+                New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
+            }
+            $genParams['OutputPath'] = $outputPath
+
+            $cfgScale = $parsed.Values['cfg-scale']
+            if ($null -ne $cfgScale) {
+                $genParams['CfgScale'] = [double]$cfgScale
+            } elseif ($mediaConfig -and $null -ne $mediaConfig.guidance_scale) {
+                $genParams['CfgScale'] = [double]$mediaConfig.guidance_scale
+            }
+
+            $temp = $parsed.Values['temperature']
+            if ($null -ne $temp) {
+                $genParams['Temperature'] = [double]$temp
+            } elseif ($mediaConfig -and $null -ne $mediaConfig.temperature) {
+                $genParams['Temperature'] = [double]$mediaConfig.temperature
+            }
+
+            Write-Info "Prompt: $prompt"
+            Write-Info "Output: $outputPath"
+
+            try {
+                $result = New-PcaiImage @genParams
+                if ($result.Success) {
+                    Write-Success "Image generated: $($result.OutputPath)"
+                    if ($result.GenerationTime) {
+                        Write-Info "Generation time: $($result.GenerationTime)s"
+                    }
+                } else {
+                    Write-Error "Image generation failed: $($result.Error)"
+                }
+            } catch {
+                Write-Error "Image generation failed: $_"
+            }
+        }
+
+        'understand' {
+            Write-Header 'Image Understanding'
+
+            # First positional arg is the image path
+            $imagePath = $null
+            if ($parsed.Positional -and $parsed.Positional.Count -gt 0) {
+                $imagePath = $parsed.Positional[0]
+            }
+            if (-not $imagePath) {
+                Write-Error 'Image path required. Use: PC-AI media understand <image-path> [--question "text"]'
+                return
+            }
+            if (-not (Test-Path $imagePath)) {
+                Write-Error "Image not found: $imagePath"
+                return
+            }
+
+            if (-not (Ensure-MediaPipeline)) { return }
+
+            $question   = $parsed.Values['question']
+            $maxTokens  = $parsed.Values['max-tokens']
+
+            $analyzeParams = @{ ImagePath = $imagePath }
+            if ($question)  { $analyzeParams['Question']  = $question }
+            if ($null -ne $maxTokens) { $analyzeParams['MaxTokens'] = [int]$maxTokens }
+
+            Write-Info "Image: $imagePath"
+            if ($question) { Write-Info "Question: $question" }
+
+            try {
+                $result = Get-PcaiImageAnalysis @analyzeParams
+                if ($result.Success) {
+                    Write-SubHeader 'Analysis'
+                    Write-Host $result.Response
+                } else {
+                    Write-Error "Image analysis failed: $($result.Error)"
+                }
+            } catch {
+                Write-Error "Image analysis failed: $_"
+            }
+        }
+
+        'upscale' {
+            Write-Header 'Image Upscaling'
+
+            $inputPath  = $null
+            $outputPath = $parsed.Values['output']
+
+            if ($parsed.Positional -and $parsed.Positional.Count -gt 0) {
+                $inputPath = $parsed.Positional[0]
+            }
+            if ($parsed.Positional -and $parsed.Positional.Count -gt 1 -and -not $outputPath) {
+                $outputPath = $parsed.Positional[1]
+            }
+
+            if (-not $inputPath) {
+                Write-Error 'Input image path required. Use: PC-AI media upscale <input> [<output>]'
+                return
+            }
+            if (-not (Test-Path $inputPath)) {
+                Write-Error "Input image not found: $inputPath"
+                return
+            }
+
+            if (-not $outputPath) {
+                $base      = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
+                $ext       = [System.IO.Path]::GetExtension($inputPath)
+                $outputPath = Join-Path (Split-Path $inputPath -Parent) "${base}_upscaled${ext}"
+            }
+
+            # Upscale does not require the full LLM model — still load the module
+            $mediaModulePath = Join-Path $script:ModulesPath 'PcaiMedia.psm1'
+            if (-not (Test-Path $mediaModulePath)) {
+                Write-Error 'PcaiMedia module not found.'
+                return
+            }
+
+            try {
+                Import-Module $mediaModulePath -Force -ErrorAction Stop
+
+                Write-Info "Input:  $inputPath"
+                Write-Info "Output: $outputPath"
+
+                $result = Invoke-PcaiUpscale -InputPath $inputPath -OutputPath $outputPath
+                if ($result.Success) {
+                    Write-Success "Upscaled image saved: $($result.OutputPath)"
+                    if ($result.ScaleFactor) {
+                        Write-Info "Scale factor: $($result.ScaleFactor)x"
+                    }
+                } else {
+                    Write-Error "Upscaling failed: $($result.Error)"
+                }
+            } catch {
+                Write-Error "Upscaling failed: $_"
+            }
+        }
+
+        'shutdown' {
+            Write-Header 'Shutting Down Media Pipeline'
+
+            $mediaModulePath = Join-Path $script:ModulesPath 'PcaiMedia.psm1'
+            if (-not (Test-Path $mediaModulePath)) {
+                Write-Warning 'PcaiMedia module not found — nothing to shut down.'
+                return
+            }
+
+            try {
+                Import-Module $mediaModulePath -Force -ErrorAction Stop
+                $status = Get-PcaiMediaStatus
+                if (-not $status.Initialized) {
+                    Write-Info 'Media pipeline is not initialized — nothing to shut down.'
+                    return
+                }
+                Stop-PcaiMedia
+                Write-Success 'Media pipeline shut down successfully'
+            } catch {
+                Write-Error "Shutdown failed: $_"
+            }
+        }
+
+        'help' {
+            Show-ModuleHelp -CommandName 'media'
+        }
+
+        default {
+            if ($subCommand) {
+                Write-Error "Unknown media subcommand: $subCommand"
+                Write-Info "Available subcommands: status, init, generate, understand, upscale, shutdown, help"
+            }
+            Show-ModuleHelp -CommandName 'media'
+        }
+    }
+}
 #endregion
 
 #region Main Entry Point
@@ -2040,6 +2409,7 @@ function Main {
             'llm' { Invoke-LLMCommand -CmdArgs $Arguments }
             'cleanup' { Invoke-CleanupCommand -CmdArgs $Arguments }
             'perf' { Invoke-PerfCommand -CmdArgs $Arguments }
+            'media' { Invoke-MediaCommand -CmdArgs $Arguments }
             'doctor' { Invoke-DoctorCommand -CmdArgs $Arguments }
             'status' { Invoke-StatusCommand }
             'version' { Invoke-VersionCommand }
@@ -2057,6 +2427,23 @@ function Main {
         if ($script:NativeInferenceReady) {
             Write-Verbose 'Cleaning up native inference backend...'
             Close-PcaiInference
+        }
+
+        # Clean up media pipeline if it was initialized during this session
+        try {
+            $mediaModulePath = Join-Path $script:ModulesPath 'PcaiMedia.psm1'
+            if (Test-Path $mediaModulePath) {
+                $mediaCmdInfo = Get-Command -Name 'Get-PcaiMediaStatus' -ErrorAction SilentlyContinue
+                if ($mediaCmdInfo) {
+                    $mediaStatus = Get-PcaiMediaStatus
+                    if ($mediaStatus.Initialized) {
+                        Write-Verbose 'Cleaning up media pipeline...'
+                        Stop-PcaiMedia
+                    }
+                }
+            }
+        } catch {
+            Write-Verbose "Media pipeline cleanup skipped: $_"
         }
     }
 }

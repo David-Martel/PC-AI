@@ -1,0 +1,60 @@
+{
+  "Generated": "2026-03-07 20:30:28",
+  "RepoRoot": "C:\\codedev\\PC_AI",
+  "ConfigPath": "C:\\codedev\\PC_AI\\Config\\pcai-tooling-benchmarks.json",
+  "Suite": "quick",
+  "SelectedCases": [
+    "token-estimate",
+    "directory-manifest",
+    "file-search",
+    "runtime-config",
+    "command-map"
+  ],
+  "BenchmarkCount": 0,
+  "Reports": {
+    "Root": "C:\\codedev\\PC_AI\\Reports\\tooling-benchmarks\\20260307_202956",
+    "Json": "C:\\codedev\\PC_AI\\Reports\\tooling-benchmarks\\20260307_202956\\tooling-benchmark-report.json",
+    "Markdown": "C:\\codedev\\PC_AI\\Reports\\tooling-benchmarks\\20260307_202956\\tooling-benchmark-report.md"
+  },
+  "Capabilities": {
+    "BackendCoverage": []
+  },
+  "ToolSchemaReport": {
+    "Generated": "2026-03-07 20:29:56",
+    "ToolSchemaCount": 28,
+    "ToolMappingCount": 0,
+    "MissingInMapping": [
+      "GetSystemInfo",
+      "pcai_get_device_errors",
+      "pcai_get_disk_status",
+      "pcai_get_disk_usage",
+      "pcai_get_docker_status",
+      "pcai_get_llm_status",
+      "pcai_get_memory_stats",
+      "pcai_get_network_status",
+      "pcai_get_service_health",
+      "pcai_get_system_events",
+      "pcai_get_top_processes",
+      "pcai_get_usb_status",
+      "pcai_get_wsl_health",
+      "pcai_get_wsl_status",
+      "pcai_load_model",
+      "pcai_native_inference_status",
+      "pcai_optimize_model_host",
+      "pcai_restart_service",
+      "pcai_restart_wsl",
+      "pcai_run_evaluation",
+      "pcai_run_wsl_docker_health_check",
+      "pcai_run_wsl_network_tool",
+      "pcai_set_provider_order",
+      "pcai_start_service",
+      "pcai_stop_service",
+      "pcai_switch_inference_backend",
+      "SearchDocs",
+      "SearchLogs"
+    ],
+    "ExtraMapping": [],
+    "BackendCoverageCount": 0
+  },
+  "Results": []
+}

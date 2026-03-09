@@ -1,0 +1,81 @@
+{
+  "Generated": "2026-03-07 23:07:40",
+  "RepoRoot": "C:\\codedev\\PC_AI",
+  "ConfigPath": "C:\\codedev\\PC_AI\\Config\\pcai-tooling-benchmarks.json",
+  "Suite": "default",
+  "SelectedCases": [
+    "runtime-config"
+  ],
+  "BenchmarkCount": 1,
+  "Reports": {
+    "Root": "C:\\codedev\\PC_AI\\Reports\\tooling-benchmarks\\20260307_230738",
+    "Json": "C:\\codedev\\PC_AI\\Reports\\tooling-benchmarks\\20260307_230738\\tooling-benchmark-report.json",
+    "Markdown": "C:\\codedev\\PC_AI\\Reports\\tooling-benchmarks\\20260307_230738\\tooling-benchmark-report.md"
+  },
+  "Capabilities": {
+    "BackendCoverage": []
+  },
+  "ToolSchemaReport": {
+    "Generated": "2026-03-07 20:29:56",
+    "ToolSchemaCount": 28,
+    "ToolMappingCount": 0,
+    "MissingInMapping": [
+      "GetSystemInfo",
+      "pcai_get_device_errors",
+      "pcai_get_disk_status",
+      "pcai_get_disk_usage",
+      "pcai_get_docker_status",
+      "pcai_get_llm_status",
+      "pcai_get_memory_stats",
+      "pcai_get_network_status",
+      "pcai_get_service_health",
+      "pcai_get_system_events",
+      "pcai_get_top_processes",
+      "pcai_get_usb_status",
+      "pcai_get_wsl_health",
+      "pcai_get_wsl_status",
+      "pcai_load_model",
+      "pcai_native_inference_status",
+      "pcai_optimize_model_host",
+      "pcai_restart_service",
+      "pcai_restart_wsl",
+      "pcai_run_evaluation",
+      "pcai_run_wsl_docker_health_check",
+      "pcai_run_wsl_network_tool",
+      "pcai_set_provider_order",
+      "pcai_start_service",
+      "pcai_stop_service",
+      "pcai_switch_inference_backend",
+      "SearchDocs",
+      "SearchLogs"
+    ],
+    "ExtraMapping": [],
+    "BackendCoverageCount": 0
+  },
+  "Results": [
+    {
+      "CaseId": "runtime-config",
+      "Name": "Runtime Config Cache",
+      "Category": "PowerShell",
+      "Path": "C:\\codedev\\PC_AI",
+      "Backend": "powershell",
+      "MeanMs": 57.24,
+      "MedianMs": 31.43,
+      "StdDevMs": 44.31,
+      "MinMs": 19.06,
+      "MaxMs": 138.49,
+      "Iterations": 5,
+      "Tool": "Measure-Command",
+      "SpeedupVsBaseline": 1.0,
+      "CoverageState": "PowerShellOnly",
+      "WorkingSetDeltaMeanBytes": 700416.0,
+      "WorkingSetDeltaMaxBytes": 1282048.0,
+      "PrivateMemoryDeltaMeanBytes": 657817.6,
+      "PrivateMemoryDeltaMaxBytes": 1179648.0,
+      "ManagedMemoryDeltaMeanBytes": -1146091.2,
+      "ManagedMemoryDeltaMaxBytes": 1081472.0,
+      "ManagedAllocatedMeanBytes": 866905.6,
+      "ManagedAllocatedMaxBytes": 1070104.0
+    }
+  ]
+}

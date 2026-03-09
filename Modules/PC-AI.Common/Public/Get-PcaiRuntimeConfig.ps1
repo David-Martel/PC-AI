@@ -407,10 +407,8 @@ function Get-PcaiRuntimeConfig {
     if (-not $runtime.OllamaCliSearchPaths -or $runtime.OllamaCliSearchPaths.Count -eq 0) {
         $runtime.OllamaCliSearchPaths = @(
             (Join-Path $resolvedRoot 'Native\pcai_core\bin\pcai-ollama-rs.exe'),
-            'C:\Users\david\.local\bin\pcai-ollama-rs.exe',
             (Join-Path $resolvedRoot 'Native\pcai_core\target\release\pcai-ollama-rs.exe'),
-            (Join-Path $resolvedRoot 'Native\pcai_core\pcai_ollama_rs\target\release\pcai-ollama-rs.exe'),
-            'T:\RustCache\cargo-target\release\pcai-ollama-rs.exe'
+            (Join-Path $resolvedRoot 'Native\pcai_core\pcai_ollama_rs\target\release\pcai-ollama-rs.exe')
         )
     }
 

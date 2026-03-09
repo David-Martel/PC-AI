@@ -14,7 +14,7 @@ version = "0.1.0"
 authors = ["David Martel"]
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/david-t-martel/PC_AI"
+repository = "https://github.com/David-Martel/PC-AI"
 
 [workspace.dependencies]
 # FFI and C interop

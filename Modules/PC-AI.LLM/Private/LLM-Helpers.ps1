@@ -93,10 +93,8 @@ function Resolve-OllamaNativeCliPath {
 
     $candidates += @(
         (Join-Path $script:ModuleConfig.ProjectRoot 'Native\pcai_core\bin\pcai-ollama-rs.exe'),
-        'C:\Users\david\.local\bin\pcai-ollama-rs.exe',
         (Join-Path $script:ModuleConfig.ProjectRoot 'Native\pcai_core\target\release\pcai-ollama-rs.exe'),
-        (Join-Path $script:ModuleConfig.ProjectRoot 'Native\pcai_core\pcai_ollama_rs\target\release\pcai-ollama-rs.exe'),
-        'T:\RustCache\cargo-target\release\pcai-ollama-rs.exe'
+        (Join-Path $script:ModuleConfig.ProjectRoot 'Native\pcai_core\pcai_ollama_rs\target\release\pcai-ollama-rs.exe')
     )
 
     $dependencyStamp = if (Get-Command Get-PcaiDependencyStamp -ErrorAction SilentlyContinue) {

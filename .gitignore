@@ -194,6 +194,9 @@ scan_results.json
 .claude/context/
 .claude/plans/
 
+# Machine-specific development scripts (contain local paths)
+Scripts/
+
 # Auto-generated model index (contains local paths)
 MODELS.md
 

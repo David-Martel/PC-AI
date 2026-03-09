@@ -60,9 +60,8 @@ function Get-CandidatePaths {
         (Join-Path $HOME ".cache\huggingface\hub\models--$escaped*"),
         (Join-Path $HOME ".lmstudio\models\$escaped"),
         (Join-Path $HOME ".lmstudio\models\*$escaped*"),
-        "C:\Users\david\.cache\huggingface\hub\models--$escaped",
-        "C:\Users\david\.lmstudio\models\$escaped",
-        "T:\models\$escaped"
+        (Join-Path $env:USERPROFILE ".cache\huggingface\hub\models--$escaped"),
+        (Join-Path $env:USERPROFILE ".lmstudio\models\$escaped")
     ) | Select-Object -Unique
 }
 

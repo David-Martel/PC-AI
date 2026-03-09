@@ -14,9 +14,9 @@ services:
       - VLLM_LOGGING_LEVEL=${VLLM_LOGGING_LEVEL:-INFO}
       - VLLM_ATTENTION_BACKEND=FLASH_ATTN
     volumes:
-      - C:\Users\david\.cache\huggingface:/root/.cache/huggingface
-      - C:\Users\david\PC_AI\Models\functiongemma-270m-it:/models/functiongemma-270m-it
-      - C:\Users\david\PC_AI\Deploy\docker\vllm\tool_chat_template_functiongemma.jinja:/opt/pcai/tool_chat_template_functiongemma.jinja:ro
+      - ${HF_CACHE_DIR:-~/.cache/huggingface}:/root/.cache/huggingface
+      - ${PCAI_MODEL_DIR:-./Models/functiongemma-270m-it}:/models/functiongemma-270m-it
+      - ./tool_chat_template_functiongemma.jinja:/opt/pcai/tool_chat_template_functiongemma.jinja:ro
     deploy:
       resources:
         limits:

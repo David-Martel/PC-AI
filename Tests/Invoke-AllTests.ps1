@@ -193,6 +193,7 @@ if ($OutputFormat -ne 'None') {
 if ($CodeCoverage) {
     $modulesToCover = @(
         (Join-Path $ProjectRoot "Modules\PcaiInference.psm1")
+        (Join-Path $ProjectRoot "Modules\PcaiMedia.psm1")
     )
 
     $existingModules = $modulesToCover | Where-Object { Test-Path $_ }

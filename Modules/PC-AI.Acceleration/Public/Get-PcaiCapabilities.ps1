@@ -89,17 +89,28 @@ function Get-PcaiCapabilities {
             PreferredBackend     = if ($modules.Performance) { 'Rust+C#' } else { 'PowerShell' }
         }
     ) | ForEach-Object {
-        $_ | Add-Member -NotePropertyName CoverageState -NotePropertyValue (
-            if ($_.RustAvailable -and $_.CSharpBridgeAvailable -and $_.PowerShellSurface) { 'Rust+CSharp+PS' }
-            elseif ($_.CSharpBridgeAvailable -and $_.PowerShellSurface) { 'CSharp+PS' }
-            elseif ($_.PowerShellSurface) { 'PSOnly' }
-            else { 'Unavailable' }
-        ) -PassThru | Add-Member -NotePropertyName Gap -NotePropertyValue (
-            if ($_.RustAvailable -and $_.CSharpBridgeAvailable -and $_.PowerShellSurface) { '' }
-            elseif (-not $_.RustAvailable) { 'Native/Rust coverage missing' }
-            elseif (-not $_.PowerShellSurface) { 'PowerShell wrapper missing' }
-            else { 'Bridge availability incomplete' }
-        ) -PassThru
+        $coverageState = if ($_.RustAvailable -and $_.CSharpBridgeAvailable -and $_.PowerShellSurface) {
+            'Rust+CSharp+PS'
+        } elseif ($_.CSharpBridgeAvailable -and $_.PowerShellSurface) {
+            'CSharp+PS'
+        } elseif ($_.PowerShellSurface) {
+            'PSOnly'
+        } else {
+            'Unavailable'
+        }
+
+        $gap = if ($_.RustAvailable -and $_.CSharpBridgeAvailable -and $_.PowerShellSurface) {
+            ''
+        } elseif (-not $_.RustAvailable) {
+            'Native/Rust coverage missing'
+        } elseif (-not $_.PowerShellSurface) {
+            'PowerShell wrapper missing'
+        } else {
+            'Bridge availability incomplete'
+        }
+
+        $_ | Add-Member -NotePropertyName CoverageState -NotePropertyValue $coverageState -PassThru |
+            Add-Member -NotePropertyName Gap -NotePropertyValue $gap -PassThru
     }
 
     $features = [PSCustomObject]@{

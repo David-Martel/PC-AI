@@ -35,6 +35,12 @@
         'Invoke-PcaiNativeDuplicates'
         'Invoke-PcaiNativeFileSearch'
         'Invoke-PcaiNativeContentSearch'
+        'Invoke-PcaiNativeDirectoryManifest'
+        'Invoke-PcaiNativeSystemInfo'
+        'Test-PcaiResourceSafety'
+        'Get-UnifiedHardwareReportJson'
+        'Invoke-PcaiNativeUnifiedHardwareReport'
+        'Invoke-PcaiNativeEstimateTokens'
     )
 
     PrivateData = @{

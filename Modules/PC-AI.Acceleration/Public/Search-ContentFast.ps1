@@ -199,36 +199,28 @@ function Search-WithPcaiNativeContent {
     }
 
     $patterns = if ($FilePattern -and $FilePattern.Count -gt 0) { $FilePattern } else { @($null) }
-    $matches = @()
+    $matches = [System.Collections.Generic.List[object]]::new()
 
     foreach ($pattern in $patterns) {
         try {
             $remaining = if ($MaxResults -gt 0) { [uint64]($MaxResults - $matches.Count) } else { [uint64]0 }
             if ($MaxResults -gt 0 -and $remaining -le 0) { break }
 
-            $json = [PcaiNative.PcaiCore]::SearchContent(
-                $Path,
-                $nativePattern,
-                $pattern,
-                $remaining,
-                [uint32]$Context
-            )
-            if (-not $json) {
+            $nativeResult = Invoke-PcaiNativeContentSearch -Pattern $nativePattern -Path $Path -FilePattern $pattern -MaxResults $remaining -ContextLines $Context
+            if (-not $nativeResult -or -not $nativeResult.Matches) {
                 continue
             }
 
-            $result = $json | ConvertFrom-Json
-
-            foreach ($match in ($result.matches | Where-Object { $_ })) {
-                $matches += [PSCustomObject]@{
-                    Path       = $match.path
-                    LineNumber = $match.line_number
-                    Line       = $match.line
+            foreach ($match in @($nativeResult.Matches | Where-Object { $_ })) {
+                $matches.Add([PSCustomObject]@{
+                    Path       = $match.Path
+                    LineNumber = $match.LineNumber
+                    Line       = $match.Line
                     Column     = 0
                     Tool       = 'pcai_native'
-                    Before     = if ($match.before) { $match.before -join "`n" } else { '' }
-                    After      = if ($match.after) { $match.after -join "`n" } else { '' }
-                }
+                    Before     = if ($match.Before) { $match.Before -join "`n" } else { '' }
+                    After      = if ($match.After) { $match.After -join "`n" } else { '' }
+                })
 
                 if ($MaxResults -gt 0 -and $matches.Count -ge $MaxResults) {
                     break
@@ -245,10 +237,10 @@ function Search-WithPcaiNativeContent {
     }
 
     if ($MaxResults -gt 0) {
-        return $matches | Select-Object -First $MaxResults
+        return @($matches | Select-Object -First $MaxResults)
     }
 
-    return $matches
+    return @($matches)
 }
 
 function Search-WithRipgrepAdvanced {
@@ -332,28 +324,29 @@ function Search-WithRipgrepAdvanced {
         $output = & $RgPath @args 2>$null
 
         if ($FilesOnly) {
-            return $output | Where-Object { $_ } |
-                ForEach-Object {
-                    [PSCustomObject]@{
-                        Path = $_
+            $fileResults = [System.Collections.Generic.List[object]]::new()
+            foreach ($matchPath in @($output | Where-Object { $_ })) {
+                $fileResults.Add([PSCustomObject]@{
+                        Path = $matchPath
                         Tool = 'ripgrep'
-                    }
-                }
+                    })
+            }
+            return @($fileResults)
         }
 
-        $results = @()
+        $results = [System.Collections.Generic.List[object]]::new()
         foreach ($line in $output) {
             if ($line -match '^\{') {
                 try {
                     $json = $line | ConvertFrom-Json
                     if ($json.type -eq 'match') {
-                        $results += [PSCustomObject]@{
+                        $results.Add([PSCustomObject]@{
                             Path       = $json.data.path.text
                             LineNumber = $json.data.line_number
                             Line       = $json.data.lines.text.TrimEnd()
                             Column     = if ($json.data.submatches) { $json.data.submatches[0].start } else { 0 }
                             Tool       = 'ripgrep'
-                        }
+                        })
                     }
                 }
                 catch {
@@ -362,7 +355,7 @@ function Search-WithRipgrepAdvanced {
             }
         }
 
-        return $results
+        return @($results)
     }
     catch {
         Write-Warning "ripgrep failed: $_"
@@ -432,22 +425,22 @@ function Search-WithParallelSelectString {
                 }
             }
 
-            $fileResults = @()
+            $fileResults = [System.Collections.Generic.List[object]]::new()
             foreach ($match in $matches) {
-                $fileResults += [PSCustomObject]@{
+                $fileResults.Add([PSCustomObject]@{
                     Path       = $match.Path
                     LineNumber = $match.LineNumber
                     Line       = $match.Line
                     Column     = 0
                     Tool       = 'Select-String'
-                }
+                })
 
                 if ($maxRes -gt 0 -and $fileResults.Count -ge $maxRes) {
                     break
                 }
             }
 
-            return $fileResults
+            return @($fileResults)
         }
         catch {
             return $null

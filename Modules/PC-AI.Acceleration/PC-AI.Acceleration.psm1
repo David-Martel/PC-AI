@@ -171,22 +171,48 @@ function New-PcaiPathItem {
     return [System.IO.FileInfo]::new($Path)
 }
 
-# Dot-source all function files
+# Dot-source function files. Keep this import path lean because module parse and
+# script discovery still dominate cold-start time.
 $PublicPath = Join-Path $PSScriptRoot 'Public'
 $PrivatePath = Join-Path $PSScriptRoot 'Private'
 
-if (Test-Path $PrivatePath) {
-    Get-ChildItem -Path $PrivatePath -Filter '*.ps1' -Recurse | ForEach-Object {
-        . $_.FullName
+foreach ($scriptDirectory in @($PrivatePath, $PublicPath)) {
+    if (-not (Test-Path -LiteralPath $scriptDirectory -PathType Container)) {
+        continue
     }
-}
 
-if (Test-Path $PublicPath) {
-    Get-ChildItem -Path $PublicPath -Filter '*.ps1' -Recurse | ForEach-Object {
-        . $_.FullName
+    foreach ($scriptFile in (Get-ChildItem -LiteralPath $scriptDirectory -Filter '*.ps1' -File -ErrorAction SilentlyContinue | Sort-Object -Property Name)) {
+        . $scriptFile.FullName
     }
 }
 
 # Tool and native discovery stay lazy. The public entrypoints cache the first
 # successful lookup and only initialize native support when a native-backed
 # command is actually used.
+
+Export-ModuleMember -Function @(
+    'Get-RustToolStatus'
+    'Test-RustToolAvailable'
+    'Search-LogsFast'
+    'Find-FilesFast'
+    'Get-ProcessesFast'
+    'Get-FileHashParallel'
+    'Find-DuplicatesFast'
+    'Get-DiskUsageFast'
+    'Search-ContentFast'
+    'Measure-CommandPerformance'
+    'Compare-ToolPerformance'
+    'Get-PcaiCapabilities'
+    'Get-UnifiedHardwareReportJson'
+    'Initialize-PcaiNative'
+    'Test-PcaiNativeAvailable'
+    'Get-PcaiNativeStatus'
+    'Invoke-PcaiNativeDuplicates'
+    'Invoke-PcaiNativeFileSearch'
+    'Invoke-PcaiNativeContentSearch'
+    'Invoke-PcaiNativeDirectoryManifest'
+    'Invoke-PcaiNativeSystemInfo'
+    'Test-PcaiResourceSafety'
+    'Invoke-PcaiNativeUnifiedHardwareReport'
+    'Invoke-PcaiNativeEstimateTokens'
+)

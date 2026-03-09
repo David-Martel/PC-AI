@@ -217,16 +217,16 @@ function Find-WithFd {
     try {
         $output = & $FdPath @args 2>$null
 
-        $results = @()
+        $results = [System.Collections.Generic.List[object]]::new()
         foreach ($line in $output) {
             if ($line) {
                 $item = New-PcaiPathItem -Path $line -Type $Type
                 if ($item) {
-                    $results += $item
+                    $results.Add($item)
                 }
             }
         }
-        return $results
+        return @($results)
     }
     catch {
         Write-Warning "fd search failed: $_"
@@ -271,14 +271,18 @@ function Find-WithPcaiNative {
     }
 
     try {
-        $paths = @()
+        $uniquePaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
         foreach ($pat in $patterns) {
             $nativeResult = Invoke-PcaiNativeFileSearch -Pattern $pat -Path $resolvedPath -MaxResults 0
             if ($nativeResult -and $nativeResult.Files) {
-                $paths += $nativeResult.Files | ForEach-Object { $_.Path }
+                foreach ($file in @($nativeResult.Files)) {
+                    if ($file.Path) {
+                        $null = $uniquePaths.Add([string]$file.Path)
+                    }
+                }
             }
         }
-        if ($paths.Count -eq 0) {
+        if ($uniquePaths.Count -eq 0) {
             return @()
         }
 
@@ -286,25 +290,30 @@ function Find-WithPcaiNative {
             return @()
         }
 
-        if ($Exclude) {
+        $results = [System.Collections.Generic.List[object]]::new()
+        foreach ($path in $uniquePaths) {
+            $excluded = $false
             foreach ($exc in $Exclude) {
-                $paths = $paths | Where-Object { $_ -notmatch [regex]::Escape($exc) }
+                if ($path -match [regex]::Escape($exc)) {
+                    $excluded = $true
+                    break
+                }
             }
-        }
+            if ($excluded) {
+                continue
+            }
 
-        $results = @()
-        foreach ($path in ($paths | Select-Object -Unique)) {
             if ($MaxDepth -gt 0 -and (Get-PcaiRelativeDepth -BasePath $resolvedPath -CandidatePath $path) -gt $MaxDepth) {
                 continue
             }
 
             $item = New-PcaiPathItem -Path $path -Type 'file'
             if ($item) {
-                $results += $item
+                $results.Add($item)
             }
         }
 
-        return $results
+        return @($results)
     }
     catch {
         Write-Warning "PCAI native file search failed: $_"

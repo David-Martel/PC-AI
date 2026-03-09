@@ -72,7 +72,11 @@ When available, prioritize **local diagnostics** over guesses. Use these sources
 4. **LLM stack status**:
     - `Get-LLMStatus` (PC_AI module)
     - `Invoke-LLMChat` or `Invoke-PCDiagnosis` for live validation
-5. **Device Manager / Event Viewer snippets** if scripts are not available
+5. **Visual analysis** (PcaiMedia module — when user provides screenshots):
+    - `Get-PcaiImageAnalysis` — extract text and error codes from BSOD, Device Manager,
+      Event Viewer, or error dialog screenshots using Janus-Pro vision model
+    - `Get-PcaiMediaStatus` — check if media pipeline is initialized
+6. **Device Manager / Event Viewer snippets** if scripts are not available
 
 If data is missing, ask for it explicitly and **state why it is needed**.
 

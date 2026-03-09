@@ -269,6 +269,35 @@ Offer to:
 
 Run more targeted diagnostics in that area (e.g., performance, memory, CPU thermals) via additional scripts or instructions.
 
+6.9 Branch 8: Visual / Screenshot Analysis (PcaiMedia — Optional)
+
+Condition: User provides a screenshot of an error dialog, BSOD, Device Manager tree,
+Event Viewer entry, or any visual diagnostic artifact.
+
+Prerequisites:
+- PcaiMedia module loaded and model initialized (pcai-media.json config)
+- pcai_media.dll built with CUDA support for acceptable performance
+- Janus-Pro model downloaded (1B minimum, 7B recommended for accuracy)
+
+Response:
+
+1. **Accept the image**: Save user-provided screenshot to a temp path if needed.
+2. **Run understanding**: `Get-PcaiImageAnalysis -ImagePath <path> -Question "What error, warning, or diagnostic information is shown in this screenshot? Extract any error codes, device names, status messages, or dialog text."`
+3. **Parse extracted text**: Feed the model's response back into the standard diagnostic branches above.
+4. **Cross-reference**: If error codes are extracted, run `callTool(SearchDocs, 'extracted error code', 'Microsoft')`.
+
+Use Cases:
+- BSOD screenshots → extract stop code, parameters, faulting module
+- Device Manager screenshots → identify devices with yellow/red icons
+- Event Viewer screenshots → extract Event ID, Source, Level
+- Disk Management screenshots → identify partition layout issues
+- Error dialogs → extract error text and codes for lookup
+
+Quality Notes:
+- Janus-Pro-1B may miss fine text in small screenshots; recommend 7B for OCR-like tasks
+- For best results, crop to the relevant area before analysis
+- Multiple analysis passes with different questions improve extraction accuracy
+
 ## 6. Advanced Native Diagnostics (Optional)
 
 If the PC-AI.Performance module is imported and PcaiNative.dll is available, you can

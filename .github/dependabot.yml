@@ -1,0 +1,76 @@
+version: 2
+updates:
+  # Rust dependencies (pcai_core workspace)
+  - package-ecosystem: "cargo"
+    directory: "/Native/pcai_core"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "rust"
+    reviewers:
+      - "David-Martel"
+    commit-message:
+      prefix: "chore(deps):"
+
+  # Rust dependencies (FunctionGemma workspace)
+  - package-ecosystem: "cargo"
+    directory: "/Deploy/rust-functiongemma"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "rust"
+    reviewers:
+      - "David-Martel"
+    commit-message:
+      prefix: "chore(deps):"
+
+  # .NET dependencies (PcaiNative)
+  - package-ecosystem: "nuget"
+    directory: "/Native/PcaiNative"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dotnet"
+    reviewers:
+      - "David-Martel"
+    commit-message:
+      prefix: "chore(deps):"
+
+  # .NET dependencies (PcaiChatTui)
+  - package-ecosystem: "nuget"
+    directory: "/Native/PcaiChatTui"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "dotnet"
+    reviewers:
+      - "David-Martel"
+    commit-message:
+      prefix: "chore(deps):"
+
+  # GitHub Actions versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    reviewers:
+      - "David-Martel"
+    commit-message:
+      prefix: "chore(ci):"

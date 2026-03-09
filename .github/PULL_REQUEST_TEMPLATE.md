@@ -5,18 +5,25 @@
 ## Changes
 
 - [ ] Change 1
-- [ ] Change 2
+
+## Type of Change
+
+- [ ] Bug fix (non-breaking)
+- [ ] New feature (non-breaking)
+- [ ] Breaking change
+- [ ] Documentation update
+- [ ] Refactoring (no functional change)
+- [ ] CI/CD change
+- [ ] Dependency update
 
 ## Testing
 
-<!-- How was this tested? -->
-
-- [ ] All existing tests pass (`pwsh Tests\Invoke-AllTests.ps1 -Suite All`)
+- [ ] CI Gate passes (all required checks green)
 - [ ] New tests added for new functionality
-- [ ] Lint checks pass (`.\Build.ps1 -Component lint`)
+- [ ] Existing tests updated if behavior changed
 
 ## Checklist
 
-- [ ] Code follows project conventions
-- [ ] Documentation updated (if applicable)
-- [ ] No secrets or personal paths in committed files
+- [ ] Follows [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
+- [ ] No secrets, credentials, or personal paths in committed files
+- [ ] Documentation updated (if user-facing change)

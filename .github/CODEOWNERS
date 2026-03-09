@@ -1,0 +1,25 @@
+# Default owner
+* @David-Martel
+
+# Rust native layer
+/Native/pcai_core/                    @David-Martel
+/Deploy/rust-functiongemma*/          @David-Martel
+
+# C# interop
+/Native/PcaiNative/                   @David-Martel
+/Native/PcaiChatTui/                  @David-Martel
+/Native/PcaiServiceHost/              @David-Martel
+
+# PowerShell modules
+/Modules/                             @David-Martel
+
+# CI/CD (extra scrutiny on changes)
+/.github/                             @David-Martel
+
+# Build system
+/Build.ps1                            @David-Martel
+
+# Security-sensitive
+/Config/                              @David-Martel
+/DIAGNOSE.md                          @David-Martel
+/DIAGNOSE_LOGIC.md                    @David-Martel

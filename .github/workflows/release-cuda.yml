@@ -88,8 +88,8 @@ jobs:
             echo "CUDA_PATH=$env:CUDA_PATH" >> $env:GITHUB_ENV
             echo "LLAMA_CUDA=1" >> $env:GITHUB_ENV
             echo "GGML_CUDA=ON" >> $env:GITHUB_ENV
-            # Target architectures: Turing (75), Ampere (80, 86), Ada (89)
-            echo "CUDAARCHS=75;80;86;89" >> $env:GITHUB_ENV
+            # Target architectures: Turing (75), Ampere (80, 86), Ada (89), Blackwell (120)
+            echo "CUDAARCHS=75;80;86;89;120" >> $env:GITHUB_ENV
             # Force dynamic CRT for CUDA compatibility
             echo "RUSTFLAGS=-Ctarget-feature=-crt-static" >> $env:GITHUB_ENV
           }

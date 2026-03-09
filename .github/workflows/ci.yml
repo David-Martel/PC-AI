@@ -1,0 +1,330 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Fast checks (parallel, ~1 min each)
+  # ──────────────────────────────────────────────────────────────
+
+  security-scan:
+    name: Security Scan
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for Hardcoded Credentials
+        shell: pwsh
+        run: |
+          $patterns = @(
+              'password\s*=\s*["\'][^"\']+["\']',
+              'api[_-]?key\s*=\s*["\'][^"\']+["\']',
+              'secret\s*=\s*["\'][^"\']+["\']',
+              'token\s*=\s*["\'][^"\']+["\']',
+              'ConvertTo-SecureString.*-AsPlainText',
+              'PSCredential.*@\(',
+              'APIKey\s*=\s*["\'][A-Za-z0-9]{20,}["\']'
+          )
+          $findings = @()
+          Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 | ForEach-Object {
+              $content = Get-Content $_.FullName -Raw
+              foreach ($pattern in $patterns) {
+                  if ($content -match $pattern) {
+                      $findings += "$($_.FullName): Pattern match: $pattern"
+                  }
+              }
+          }
+          if ($findings) {
+              Write-Host "Security Issues Found:" -ForegroundColor Red
+              $findings | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+              exit 1
+          }
+          Write-Host "No hardcoded credentials found" -ForegroundColor Green
+
+      - name: Validate Module Manifests
+        shell: pwsh
+        run: |
+          $errors = @()
+          Get-ChildItem -Path Modules -Recurse -Filter *.psd1 | ForEach-Object {
+              try {
+                  $null = Test-ModuleManifest $_.FullName -ErrorAction Stop
+                  Write-Host "  $($_.Name) - Valid" -ForegroundColor Green
+              } catch {
+                  $errors += "$($_.Name): $_"
+              }
+          }
+          if ($errors) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+
+      - name: Check for Dangerous Commands
+        shell: pwsh
+        run: |
+          $cmds = @('Invoke-Expression', 'iex ', 'Start-Process.*-Verb RunAs',
+                     'Remove-Item.*-Recurse.*-Force', 'Format-Volume', 'Clear-Disk', 'Remove-Partition')
+          $findings = @()
+          Get-ChildItem -Recurse -Include *.ps1,*.psm1 | ForEach-Object {
+              $lines = Get-Content $_.FullName
+              foreach ($cmd in $cmds) {
+                  $matchingLines = $lines | Where-Object { $_ -match $cmd -and $_ -notmatch '^\s*#' }
+                  if ($matchingLines) {
+                      $findings += "$($_.FullName): $cmd"
+                  }
+              }
+          }
+          if ($findings) {
+              Write-Host "Potentially dangerous commands (review required):" -ForegroundColor Yellow
+              $findings | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+          }
+
+  rust-fmt:
+    name: Rust Format
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check Format
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component format -LintProfile rust-inference-fmt -DependencyStrategy locked
+          if ($LASTEXITCODE -ne 0) { throw "Format check failed" }
+
+  powershell-lint:
+    name: PowerShell Lint
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+      - name: Run Lint
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component lint -LintProfile powershell
+          if ($LASTEXITCODE -ne 0) { throw "PowerShell lint failed" }
+
+  # ──────────────────────────────────────────────────────────────
+  # Medium checks (~3-5 min each)
+  # ──────────────────────────────────────────────────────────────
+
+  rust-check:
+    name: Rust Check + Clippy
+    runs-on: windows-latest
+    needs: rust-fmt
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Native/pcai_core/pcai_inference
+          shared-key: pcai-inference
+      - name: Cargo Check
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component lint -LintProfile rust-inference-check -DependencyStrategy locked
+          if ($LASTEXITCODE -ne 0) { throw "Cargo check failed" }
+      - name: Clippy
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component lint -LintProfile rust-inference-clippy -DependencyStrategy locked
+          if ($LASTEXITCODE -ne 0) { throw "Clippy failed" }
+
+  rust-test:
+    name: Rust Tests
+    runs-on: windows-latest
+    needs: rust-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Native/pcai_core/pcai_inference
+          shared-key: pcai-inference-test
+      - name: Run Unit Tests
+        working-directory: Native/pcai_core/pcai_inference
+        run: cargo test --no-default-features --features server,ffi --lib
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Coverage Report
+        working-directory: Native/pcai_core/pcai_inference
+        run: |
+          cargo llvm-cov --no-default-features --features server,ffi --lib --lcov --output-path lcov.info
+          cargo llvm-cov --no-default-features --features server,ffi --lib --fail-under-lines 70
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: Native/pcai_core/pcai_inference/lcov.info
+          flags: rust-inference
+          fail_ci_if_error: false
+      - name: Upload LCOV Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-lcov-${{ github.sha }}
+          path: Native/pcai_core/pcai_inference/lcov.info
+          retention-days: 30
+
+  powershell-test:
+    name: PowerShell Tests
+    runs-on: windows-latest
+    needs: powershell-lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pester
+        shell: pwsh
+        run: Install-Module Pester -MinimumVersion 5.6.1 -Force -Scope CurrentUser
+      - name: Run Tests with Coverage
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path Tests/TestResults -Force | Out-Null
+          $config = New-PesterConfiguration
+          if (Test-Path "Tests/PesterConfiguration.psd1") {
+              $config = New-PesterConfiguration -Hashtable (Import-PowerShellDataFile Tests/PesterConfiguration.psd1)
+          }
+          $config.Run.Exit = $true
+          $config.CodeCoverage.Enabled = $true
+          $config.CodeCoverage.OutputFormat = 'JaCoCo'
+          $config.CodeCoverage.OutputPath = 'Tests/TestResults/coverage.xml'
+          $config.CodeCoverage.CoveragePercentTarget = 85
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config
+      - name: Upload Coverage
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./Tests/TestResults/coverage.xml
+          flags: powershell
+          fail_ci_if_error: false
+
+  # ──────────────────────────────────────────────────────────────
+  # Build + Integration (~5-8 min)
+  # ──────────────────────────────────────────────────────────────
+
+  build-llamacpp:
+    name: Build (llamacpp CPU)
+    runs-on: windows-latest
+    needs: rust-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - run: choco install ninja -y
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Native/pcai_core/pcai_inference
+          shared-key: pcai-inference-msvc
+      - name: Set MSVC Environment
+        shell: pwsh
+        run: |
+          $clPath = (Get-Command cl.exe).Source
+          echo "CC=$clPath" >> $env:GITHUB_ENV
+          echo "CXX=$clPath" >> $env:GITHUB_ENV
+          echo "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
+      - name: Build + Test
+        shell: pwsh
+        run: |
+          .\Build.ps1 -Component llamacpp -Configuration Release -RunTests
+          if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+      - name: Copy Artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path bin -Force
+          $paths = @(".pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll",
+                     "Native\pcai_core\pcai_inference\target\release\pcai_inference.dll")
+          foreach ($p in $paths) {
+              if (Test-Path $p) { Copy-Item $p -Destination bin/ -Force; break }
+          }
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcai-inference-dll-${{ github.sha }}
+          path: bin/pcai_inference.dll
+          if-no-files-found: warn
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: windows-latest
+    needs: [build-llamacpp, powershell-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: pcai-inference-dll-${{ github.sha }}
+          path: bin
+      - name: Install Pester
+        shell: pwsh
+        run: Install-Module Pester -MinimumVersion 5.6.1 -Force -Scope CurrentUser
+      - name: FFI Integration Tests
+        shell: pwsh
+        run: |
+          $config = New-PesterConfiguration
+          $config.Run.Path = "Tests/Integration/FFI.Inference.Tests.ps1"
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = "Detailed"
+          $config.Filter.Tag = "FFI"
+          Invoke-Pester -Configuration $config
+      - name: Module Import Smoke Test
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path Modules -Directory | ForEach-Object {
+              $manifest = Join-Path $_.FullName "$($_.Name).psd1"
+              if (Test-Path $manifest) {
+                  Import-Module $manifest -Force -ErrorAction Stop
+                  Write-Host "  $($_.Name) imported" -ForegroundColor Green
+              }
+          }
+
+  # ──────────────────────────────────────────────────────────────
+  # Gate (required status check for branch protection)
+  # ──────────────────────────────────────────────────────────────
+
+  gate:
+    name: CI Gate
+    runs-on: windows-latest
+    if: always()
+    needs:
+      - security-scan
+      - rust-fmt
+      - powershell-lint
+      - rust-check
+      - rust-test
+      - powershell-test
+      - build-llamacpp
+      - integration-tests
+    steps:
+      - name: Evaluate Results
+        shell: pwsh
+        run: |
+          $results = @(
+            '${{ needs.security-scan.result }}',
+            '${{ needs.rust-fmt.result }}',
+            '${{ needs.powershell-lint.result }}',
+            '${{ needs.rust-check.result }}',
+            '${{ needs.rust-test.result }}',
+            '${{ needs.powershell-test.result }}',
+            '${{ needs.build-llamacpp.result }}',
+            '${{ needs.integration-tests.result }}'
+          )
+          $failed = $results | Where-Object { $_ -notin @('success', 'skipped') }
+          if ($failed) {
+            Write-Host "CI Gate FAILED" -ForegroundColor Red
+            Write-Host "Failed jobs: $($failed -join ', ')" -ForegroundColor Red
+            exit 1
+          }
+          Write-Host "CI Gate PASSED - all checks succeeded or were skipped" -ForegroundColor Green

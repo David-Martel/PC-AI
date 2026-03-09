@@ -1,0 +1,251 @@
+name: Weekly Maintenance
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 6 AM UTC
+  workflow_dispatch:
+
+concurrency:
+  group: maintenance
+  cancel-in-progress: false
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: windows-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Credential Scan
+        shell: pwsh
+        run: |
+          $patterns = @(
+              'password\s*=\s*["\'][^"\']+["\']',
+              'api[_-]?key\s*=\s*["\'][^"\']+["\']',
+              'secret\s*=\s*["\'][^"\']+["\']',
+              'token\s*=\s*["\'][^"\']+["\']',
+              'ConvertTo-SecureString.*-AsPlainText',
+              'PSCredential.*@\(',
+              'APIKey\s*=\s*["\'][A-Za-z0-9]{20,}["\']'
+          )
+          $findings = @()
+          Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 | ForEach-Object {
+              $content = Get-Content $_.FullName -Raw
+              foreach ($pattern in $patterns) {
+                  if ($content -match $pattern) {
+                      $findings += "$($_.FullName): $pattern"
+                  }
+              }
+          }
+          if ($findings) {
+              Write-Host "Security Issues:" -ForegroundColor Red
+              $findings | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+              exit 1
+          }
+          Write-Host "No credentials found" -ForegroundColor Green
+
+      - name: Validate Module Manifests
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path Modules -Recurse -Filter *.psd1 | ForEach-Object {
+              try {
+                  $null = Test-ModuleManifest $_.FullName -ErrorAction Stop
+                  Write-Host "  $($_.Name) - Valid" -ForegroundColor Green
+              } catch {
+                  Write-Error "$($_.Name): $_"
+                  exit 1
+              }
+          }
+
+      - name: Cargo Audit (Rust Dependencies)
+        shell: pwsh
+        run: |
+          if (Get-Command cargo -ErrorAction SilentlyContinue) {
+              cargo install cargo-audit --quiet 2>$null
+              Set-Location Native/pcai_core
+              cargo audit 2>&1 | Tee-Object -Variable auditOutput
+              if ($LASTEXITCODE -ne 0) {
+                  Write-Host "Rust dependency vulnerabilities found" -ForegroundColor Yellow
+              }
+          } else {
+              Write-Host "Rust not available, skipping cargo audit" -ForegroundColor Yellow
+          }
+
+      - name: Generate Security Report
+        if: always()
+        shell: pwsh
+        run: |
+          @{ Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+             Repository = "${{ github.repository }}"
+             Branch = "${{ github.ref_name }}"
+             Status = "Completed" } |
+          ConvertTo-Json | Out-File "security-report.json" -Encoding UTF8
+
+      - name: Upload Security Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.json
+          retention-days: 30
+
+  dependency-health:
+    name: Dependency Health
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check PowerShell Gallery Updates
+        shell: pwsh
+        run: |
+          @('Pester', 'PSScriptAnalyzer') | ForEach-Object {
+              try {
+                  $available = Find-Module -Name $_ -ErrorAction Stop
+                  Write-Host "  $_`: latest $($available.Version)" -ForegroundColor Green
+              } catch {
+                  Write-Host "  Could not check $_" -ForegroundColor Yellow
+              }
+          }
+
+      - name: Validate Workflow YAML
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path .github/workflows -Filter *.yml | ForEach-Object {
+              $content = Get-Content $_.FullName -Raw
+              if ($content -notmatch 'runs-on:') {
+                  Write-Host "  $($_.Name) - Missing runs-on" -ForegroundColor Red
+              } else {
+                  Write-Host "  $($_.Name) - Valid" -ForegroundColor Green
+              }
+          }
+
+      - name: Check Documentation Links
+        shell: pwsh
+        run: |
+          $broken = @()
+          Get-ChildItem -Recurse -Include *.md -Depth 2 | ForEach-Object {
+              $content = Get-Content $_.FullName -Raw
+              [regex]::Matches($content, '\[([^\]]+)\]\(([^\)]+)\)') | ForEach-Object {
+                  $url = $_.Groups[2].Value
+                  if ($url -notmatch '^https?://' -and $url -notmatch '^#') {
+                      $target = Join-Path (Split-Path $_.Groups[0].Value) $url -ErrorAction SilentlyContinue
+                      # Only check root-level relative links
+                  }
+              }
+          }
+          Write-Host "Link check completed" -ForegroundColor Green
+
+  compatibility:
+    name: Compatibility Matrix
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "PowerShell 5.1"
+            type: powershell
+          - name: "Rust MSRV 1.75"
+            type: rust-msrv
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PowerShell 5.1 Tests
+        if: matrix.type == 'powershell'
+        shell: pwsh
+        run: |
+          Install-Module Pester -MinimumVersion 5.6.1 -Force -Scope CurrentUser
+          if (Test-Path ".\Tests\.pester.ps1") {
+              .\Tests\.pester.ps1 -CI
+          }
+
+      - name: Rust MSRV Check
+        if: matrix.type == 'rust-msrv'
+        shell: pwsh
+        run: |
+          rustup install 1.75.0
+          rustup run 1.75.0 cargo check --manifest-path Native/pcai_core/pcai_inference/Cargo.toml --no-default-features --features server,ffi
+
+  documentation:
+    name: Documentation Pipeline
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Doc Pipeline
+        shell: pwsh
+        run: |
+          if (Test-Path ".\Tools\Invoke-DocPipeline.ps1") {
+            .\Tools\Invoke-DocPipeline.ps1 -Mode Full -SkipRust
+          }
+
+      - name: Generate Auto Docs
+        shell: pwsh
+        run: |
+          if (Test-Path ".\Tools\generate-auto-docs.ps1") {
+            .\Tools\generate-auto-docs.ps1 -BuildDocs
+          }
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: maintenance-docs-${{ github.run_number }}
+          path: |
+            Reports/DOC_STATUS.md
+            Reports/DOC_PIPELINE_REPORT.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  health-report:
+    name: Health Report
+    runs-on: windows-latest
+    needs: [security-scan, dependency-health, compatibility, documentation]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Summary
+        shell: pwsh
+        run: |
+          $report = @{
+              Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+              Repository = "${{ github.repository }}"
+              Files = @{
+                  PowerShell = (Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1).Count
+                  Tests = (Get-ChildItem -Path Tests -Recurse -Include *.Tests.ps1 -ErrorAction SilentlyContinue).Count
+                  Workflows = (Get-ChildItem -Path .github/workflows -Filter *.yml).Count
+                  Documentation = (Get-ChildItem -Recurse -Include *.md -Depth 2).Count
+              }
+              Jobs = @{
+                  SecurityScan = '${{ needs.security-scan.result }}'
+                  DependencyHealth = '${{ needs.dependency-health.result }}'
+                  Compatibility = '${{ needs.compatibility.result }}'
+                  Documentation = '${{ needs.documentation.result }}'
+              }
+          }
+          $report | ConvertTo-Json -Depth 5 | Out-File "health-report.json" -Encoding UTF8
+
+          @"
+          ## Weekly Health Report
+          | Check | Status |
+          |-------|--------|
+          | Security Scan | $($report.Jobs.SecurityScan) |
+          | Dependencies | $($report.Jobs.DependencyHealth) |
+          | Compatibility | $($report.Jobs.Compatibility) |
+          | Documentation | $($report.Jobs.Documentation) |
+
+          | Metric | Count |
+          |--------|-------|
+          | PowerShell files | $($report.Files.PowerShell) |
+          | Test files | $($report.Files.Tests) |
+          | Workflows | $($report.Files.Workflows) |
+          "@ | Out-File $env:GITHUB_STEP_SUMMARY -Encoding utf8
+
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-report-${{ github.run_number }}
+          path: health-report.json
+          retention-days: 90

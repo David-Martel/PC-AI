@@ -1,0 +1,42 @@
+name: Changelog
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'CHANGELOG.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Commit Changelog
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changelog changes"
+          else
+            git add CHANGELOG.md
+            git commit -m "docs: update changelog [skip ci]"
+            git push
+          fi

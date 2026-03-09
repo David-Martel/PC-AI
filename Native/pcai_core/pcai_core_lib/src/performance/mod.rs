@@ -4,6 +4,7 @@
 
 pub mod disk;
 pub mod memory;
+pub mod optimizer;
 pub mod process;
 
 use crate::string::PcaiStringBuffer;
@@ -14,6 +15,7 @@ use std::time::Instant;
 // Re-export types
 pub use disk::DiskUsageStats;
 pub use memory::MemoryStats;
+pub use optimizer::MemoryPressureReport;
 pub use process::ProcessStats;
 
 #[no_mangle]
@@ -121,5 +123,64 @@ pub extern "C" fn pcai_get_memory_stats_json() -> PcaiStringBuffer {
         elapsed_ms: 0,
     };
 
+    crate::string::json_to_buffer(&json_output)
+}
+
+// ── optimizer FFI exports ─────────────────────────────────────────────────────
+
+/// Collect memory pressure metrics and return them as an FFI-safe struct.
+///
+/// The returned `MemoryPressureReport` can be inspected directly by C# P/Invoke
+/// callers without additional JSON parsing.
+#[no_mangle]
+pub extern "C" fn pcai_analyze_memory_pressure() -> MemoryPressureReport {
+    optimizer::analyze_memory_pressure()
+}
+
+/// Collect per-category process statistics and return them as a JSON string buffer.
+///
+/// Categories: `llm_agents`, `browsers`, `terminals`, `build_tools`,
+/// `system_services`. Each entry contains `count`, `working_set_mb`,
+/// `private_mb`, and `handle_count`.
+#[no_mangle]
+pub extern "C" fn pcai_get_process_categories_json() -> PcaiStringBuffer {
+    let start = Instant::now();
+    let (_, categories) = optimizer::get_process_categories();
+
+    let json_output = optimizer::ProcessCategoriesJson {
+        status: "Success".to_string(),
+        elapsed_ms: start.elapsed().as_millis() as u64,
+        categories,
+    };
+
+    crate::string::json_to_buffer(&json_output)
+}
+
+/// Generate a prioritised array of optimization recommendations and return them
+/// as a JSON string buffer.
+///
+/// Recommendations are sorted ascending by priority (1 = critical, 4 = low).
+#[no_mangle]
+pub extern "C" fn pcai_get_optimization_recommendations_json() -> PcaiStringBuffer {
+    let (elapsed_ms, recommendations) = optimizer::get_optimization_recommendations();
+
+    let json_output = optimizer::OptimizationRecommendationsJson {
+        status: "Success".to_string(),
+        elapsed_ms,
+        recommendation_count: recommendations.len() as u32,
+        recommendations,
+    };
+
+    crate::string::json_to_buffer(&json_output)
+}
+
+/// Serialize a freshly collected `MemoryPressureReport` to a JSON string buffer.
+///
+/// Includes a human-readable `pressure_label` field alongside all numeric
+/// fields from the `MemoryPressureReport` struct.
+#[no_mangle]
+pub extern "C" fn pcai_get_memory_pressure_json() -> PcaiStringBuffer {
+    let report = optimizer::analyze_memory_pressure();
+    let json_output = optimizer::memory_pressure_to_json(&report);
     crate::string::json_to_buffer(&json_output)
 }

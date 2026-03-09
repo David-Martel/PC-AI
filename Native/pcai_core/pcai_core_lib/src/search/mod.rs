@@ -7,7 +7,7 @@ pub mod duplicates;
 pub mod files;
 pub mod walker;
 
-use crate::string::PcaiStringBuffer;
+use crate::string::{PcaiByteBuffer, PcaiStringBuffer};
 use std::os::raw::c_char;
 
 // Re-export FFI from submodules with unified naming if needed,
@@ -30,6 +30,15 @@ pub extern "C" fn pcai_find_files_stats(
     max_results: u64,
 ) -> files::FileSearchStats {
     files::find_files_stats_ffi(root_path, pattern, max_results)
+}
+
+#[no_mangle]
+pub extern "C" fn pcai_find_files_compact(
+    root_path: *const c_char,
+    pattern: *const c_char,
+    max_results: u64,
+) -> PcaiByteBuffer {
+    files::find_files_compact_ffi(root_path, pattern, max_results)
 }
 
 #[no_mangle]
@@ -69,6 +78,16 @@ pub extern "C" fn pcai_search_content_stats(
     max_results: u64,
 ) -> content::ContentSearchStats {
     content::search_content_stats_ffi(root_path, pattern, file_pattern, max_results)
+}
+
+#[no_mangle]
+pub extern "C" fn pcai_search_content_compact(
+    root_path: *const c_char,
+    pattern: *const c_char,
+    file_pattern: *const c_char,
+    max_results: u64,
+) -> PcaiByteBuffer {
+    content::search_content_compact_ffi(root_path, pattern, file_pattern, max_results)
 }
 
 #[no_mangle]

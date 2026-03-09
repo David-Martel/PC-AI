@@ -11,6 +11,14 @@ pub struct PcaiStringBuffer {
     pub length: usize,
 }
 
+#[repr(C)]
+#[derive(Debug)]
+pub struct PcaiByteBuffer {
+    pub status: PcaiStatus,
+    pub data: *mut u8,
+    pub length: usize,
+}
+
 impl PcaiStringBuffer {
     pub fn from_string(s: &str) -> Self {
         match CString::new(s) {
@@ -50,6 +58,42 @@ impl Default for PcaiStringBuffer {
     }
 }
 
+impl PcaiByteBuffer {
+    pub fn from_vec(mut data: Vec<u8>) -> Self {
+        let len = data.len();
+        let ptr = data.as_mut_ptr();
+        std::mem::forget(data);
+
+        Self {
+            status: PcaiStatus::Success,
+            data: ptr,
+            length: len,
+        }
+    }
+
+    pub fn error(status: PcaiStatus) -> Self {
+        Self {
+            status,
+            data: std::ptr::null_mut(),
+            length: 0,
+        }
+    }
+
+    pub fn null() -> Self {
+        Self::error(PcaiStatus::NullPointer)
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.status.is_success() && !self.data.is_null()
+    }
+}
+
+impl Default for PcaiByteBuffer {
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn pcai_create_string_buffer(input: *const c_char) -> PcaiStringBuffer {
     if input.is_null() {
@@ -69,6 +113,20 @@ pub extern "C" fn pcai_free_string_buffer(buffer: *mut PcaiStringBuffer) {
         if !buf.data.is_null() {
             unsafe {
                 let _ = CString::from_raw(buf.data);
+            }
+            buf.data = std::ptr::null_mut();
+            buf.length = 0;
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn pcai_free_byte_buffer(buffer: *mut PcaiByteBuffer) {
+    if !buffer.is_null() {
+        let buf = unsafe { &mut *buffer };
+        if !buf.data.is_null() {
+            unsafe {
+                let _ = Vec::from_raw_parts(buf.data, buf.length, buf.length);
             }
             buf.data = std::ptr::null_mut();
             buf.length = 0;
@@ -106,6 +164,10 @@ pub fn json_to_buffer_pretty<T: serde::Serialize>(value: &T) -> PcaiStringBuffer
 
 pub fn rust_str_to_buffer(s: &str) -> PcaiStringBuffer {
     PcaiStringBuffer::from_string(s)
+}
+
+pub fn bytes_to_buffer(data: Vec<u8>) -> PcaiByteBuffer {
+    PcaiByteBuffer::from_vec(data)
 }
 
 pub fn error_buffer(status: PcaiStatus) -> PcaiStringBuffer {

@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use crate::search::walker::{run_walker, WalkerConfig};
 
 use crate::path::parse_path_ffi;
-use crate::string::{json_to_buffer, PcaiStringBuffer};
+use crate::string::{bytes_to_buffer, json_to_buffer, PcaiByteBuffer, PcaiStringBuffer};
 use crate::PcaiStatus;
 
 /// Statistics returned by file search operations.
@@ -54,6 +54,32 @@ pub struct DirectoryManifestStats {
     pub directory_count: u64,
     pub total_size: u64,
     pub elapsed_ms: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct FileSearchCompactHeader {
+    pub status: PcaiStatus,
+    pub reserved: u32,
+    pub files_scanned: u64,
+    pub files_matched: u64,
+    pub total_size: u64,
+    pub elapsed_ms: u64,
+    pub entry_count: u64,
+    pub string_bytes: u64,
+    pub truncated: u8,
+    pub _padding: [u8; 7],
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct FileSearchCompactEntry {
+    pub path_offset: u32,
+    pub path_length: u32,
+    pub size: u64,
+    pub modified: u64,
+    pub readonly: u8,
+    pub _padding: [u8; 7],
 }
 
 impl DirectoryManifestStats {
@@ -125,6 +151,72 @@ pub struct DirectoryManifestResult {
     pub elapsed_ms: u64,
     pub entries: Vec<DirectoryManifestEntry>,
     pub truncated: bool,
+}
+
+fn append_pod<T: Copy>(target: &mut Vec<u8>, value: &T) {
+    let bytes = unsafe {
+        std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>())
+    };
+    target.extend_from_slice(bytes);
+}
+
+fn append_pod_slice<T: Copy>(target: &mut Vec<u8>, values: &[T]) {
+    if values.is_empty() {
+        return;
+    }
+
+    let bytes = unsafe {
+        std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values))
+    };
+    target.extend_from_slice(bytes);
+}
+
+fn usize_to_u32(value: usize) -> Result<u32, PcaiStatus> {
+    u32::try_from(value).map_err(|_| PcaiStatus::OutOfMemory)
+}
+
+fn pack_file_search_result(result: &FileSearchResult) -> Result<PcaiByteBuffer, PcaiStatus> {
+    let mut string_data = Vec::new();
+    let mut entries = Vec::with_capacity(result.files.len());
+
+    for file in &result.files {
+        let path_bytes = file.path.as_bytes();
+        let path_offset = usize_to_u32(string_data.len())?;
+        string_data.extend_from_slice(path_bytes);
+        let path_length = usize_to_u32(path_bytes.len())?;
+
+        entries.push(FileSearchCompactEntry {
+            path_offset,
+            path_length,
+            size: file.size,
+            modified: file.modified,
+            readonly: if file.readonly { 1 } else { 0 },
+            _padding: [0; 7],
+        });
+    }
+
+    let header = FileSearchCompactHeader {
+        status: PcaiStatus::Success,
+        reserved: 0,
+        files_scanned: result.files_scanned,
+        files_matched: result.files_matched,
+        total_size: result.total_size,
+        elapsed_ms: result.elapsed_ms,
+        entry_count: entries.len() as u64,
+        string_bytes: string_data.len() as u64,
+        truncated: if result.truncated { 1 } else { 0 },
+        _padding: [0; 7],
+    };
+
+    let mut packed = Vec::with_capacity(
+        std::mem::size_of::<FileSearchCompactHeader>()
+            + (entries.len() * std::mem::size_of::<FileSearchCompactEntry>())
+            + string_data.len(),
+    );
+    append_pod(&mut packed, &header);
+    append_pod_slice(&mut packed, &entries);
+    packed.extend_from_slice(&string_data);
+    Ok(bytes_to_buffer(packed))
 }
 
 /// Configuration for file search.
@@ -217,35 +309,37 @@ fn find_files_impl(config: &FileSearchConfig) -> FileSearchResult {
     let max_results = config.max_results;
 
     let stats = run_walker(walker_config, move |entry: &ignore::DirEntry| {
+        let path = entry.path();
+        if !(matcher.is_match(path) || matcher.is_match(path.file_name().unwrap_or_default())) {
+            return ignore::WalkState::Continue;
+        }
+
         if let Ok(metadata) = entry.metadata() {
             if metadata.is_file() {
-                let path = entry.path();
-                if matcher.is_match(path) || matcher.is_match(path.file_name().unwrap_or_default()) {
-                    let current = files_matched_clone.fetch_add(1, Ordering::Relaxed);
-                    if max_results > 0 && current >= max_results {
-                        truncated_clone.store(true, Ordering::Relaxed);
-                        return ignore::WalkState::Quit;
-                    }
-
-                    let size = metadata.len();
-                    total_size_clone.fetch_add(size, Ordering::Relaxed);
-
-                    let modified = metadata
-                        .modified()
-                        .ok()
-                        .and_then(|t: std::time::SystemTime| t.duration_since(std::time::UNIX_EPOCH).ok())
-                        .map(|d: std::time::Duration| d.as_secs())
-                        .unwrap_or(0);
-                    let readonly = metadata.permissions().readonly();
-
-                    let file_info = FoundFile {
-                        path: path.to_string_lossy().into_owned(),
-                        size,
-                        modified,
-                        readonly,
-                    };
-                    found_files_clone.lock().expect("TODO: Verify unwrap").push(file_info);
+                let current = files_matched_clone.fetch_add(1, Ordering::Relaxed);
+                if max_results > 0 && current >= max_results {
+                    truncated_clone.store(true, Ordering::Relaxed);
+                    return ignore::WalkState::Quit;
                 }
+
+                let size = metadata.len();
+                total_size_clone.fetch_add(size, Ordering::Relaxed);
+
+                let modified = metadata
+                    .modified()
+                    .ok()
+                    .and_then(|t: std::time::SystemTime| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|d: std::time::Duration| d.as_secs())
+                    .unwrap_or(0);
+                let readonly = metadata.permissions().readonly();
+
+                let file_info = FoundFile {
+                    path: path.to_string_lossy().into_owned(),
+                    size,
+                    modified,
+                    readonly,
+                };
+                found_files_clone.lock().expect("TODO: Verify unwrap").push(file_info);
             }
         }
         ignore::WalkState::Continue
@@ -296,13 +390,15 @@ fn find_files_stats_impl(config: &FileSearchConfig) -> FileSearchStats {
     // So I can omit max_results.
 
     let stats = run_walker(walker_config, move |entry: &ignore::DirEntry| {
+        let path = entry.path();
+        if !(matcher.is_match(path) || matcher.is_match(path.file_name().unwrap_or_default())) {
+            return ignore::WalkState::Continue;
+        }
+
         if let Ok(metadata) = entry.metadata() {
             if metadata.is_file() {
-                let path = entry.path();
-                if matcher.is_match(path) || matcher.is_match(path.file_name().unwrap_or_default()) {
-                    files_matched_clone.fetch_add(1, Ordering::Relaxed);
-                    total_size_clone.fetch_add(metadata.len(), Ordering::Relaxed);
-                }
+                files_matched_clone.fetch_add(1, Ordering::Relaxed);
+                total_size_clone.fetch_add(metadata.len(), Ordering::Relaxed);
             }
         }
         ignore::WalkState::Continue
@@ -511,6 +607,20 @@ pub fn find_files_stats_ffi(root_path: *const c_char, pattern: *const c_char, ma
     match FileSearchConfig::from_ffi(root_path, pattern, max_results) {
         Ok(config) => find_files_stats_impl(&config),
         Err(status) => FileSearchStats::error(status),
+    }
+}
+
+/// FFI entry point for file search with compact binary result.
+pub fn find_files_compact_ffi(root_path: *const c_char, pattern: *const c_char, max_results: u64) -> PcaiByteBuffer {
+    match FileSearchConfig::from_ffi(root_path, pattern, max_results) {
+        Ok(config) => {
+            let result = find_files_impl(&config);
+            match pack_file_search_result(&result) {
+                Ok(buffer) => buffer,
+                Err(status) => PcaiByteBuffer::error(status),
+            }
+        }
+        Err(status) => PcaiByteBuffer::error(status),
     }
 }
 

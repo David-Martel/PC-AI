@@ -48,11 +48,11 @@ use anyhow::{Context, Result};
 use candle_core::{DType, Device, IndexOp, Tensor};
 #[allow(unused_imports)]
 use candle_nn::Module; // Required by siglip::VisionModel::forward at runtime
-use candle_transformers::models::llama;
 use candle_transformers::models::siglip;
 use image::{DynamicImage, imageops::FilterType};
 
 use pcai_media_model::JanusModel;
+use pcai_media_model::janus_llama::KvCache;
 use pcai_media_model::tensor_utils::normalize;
 
 // EOS token id used by the DeepSeek / Janus-Pro vocabulary.
@@ -203,8 +203,8 @@ impl UnderstandingPipeline {
 
         // ── 7. KV cache construction ──────────────────────────────────────────
         let llama_cfg = model.config.to_llama_config(false);
-        let mut cache = llama::Cache::new(false, dtype, &llama_cfg, device)
-            .map_err(|e| anyhow::anyhow!("Cache construction failed: {e}"))?;
+        let mut cache = KvCache::new(true, dtype, &llama_cfg, device)
+            .map_err(|e| anyhow::anyhow!("KvCache construction failed: {e}"))?;
 
         // ── 8. Prefill: forward combined embeddings to seed the KV cache ──────
         let _prefill_hidden = model
@@ -231,18 +231,12 @@ impl UnderstandingPipeline {
                 .map_err(|e| anyhow::anyhow!("step {step}: embed_tokens failed: {e}"))?;
 
             // B. LLM forward → logits [1, vocab_size]
-            let logits = model
+            //    forward_input_embed already extracts the last position.
+            let logits_last = model
                 .llama
                 .forward_input_embed(&token_embed, pos, &mut cache)
                 .map_err(|e| anyhow::anyhow!("step {step}: forward_input_embed failed: {e}"))?;
             pos += 1;
-
-            // C. Extract last-position logits → [1, vocab_size]
-            let last_pos = logits.dim(1)? - 1;
-            let logits_last = logits
-                .i((.., last_pos, ..))
-                .map_err(|e| anyhow::anyhow!("step {step}: logit i() failed: {e}"))?;
-            // logits_last: [1, vocab_size]
 
             // D. Sample next token (greedy or temperature)
             let next_token = if temperature <= 0.01 {

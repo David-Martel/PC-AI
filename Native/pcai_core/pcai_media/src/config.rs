@@ -95,7 +95,7 @@ fn default_device() -> String {
     "cpu".to_string()
 }
 fn default_dtype() -> String {
-    "f32".to_string()
+    "bf16".to_string()
 }
 fn default_guidance_scale() -> f64 {
     5.0
@@ -213,7 +213,7 @@ mod tests {
         let cfg = PipelineConfig::default();
         assert_eq!(cfg.model, "deepseek-ai/Janus-Pro-7B");
         assert_eq!(cfg.device, "cpu");
-        assert_eq!(cfg.dtype, "f32");
+        assert_eq!(cfg.dtype, "bf16");
         assert!((cfg.guidance_scale - 5.0).abs() < f64::EPSILON);
         assert!((cfg.temperature - 1.0).abs() < f64::EPSILON);
         assert_eq!(cfg.parallel_size, 1);
@@ -226,7 +226,7 @@ mod tests {
         let cfg: PipelineConfig = serde_json::from_str("{}").expect("empty object should be valid");
         assert_eq!(cfg.model, "deepseek-ai/Janus-Pro-7B");
         assert_eq!(cfg.device, "cpu");
-        assert_eq!(cfg.dtype, "f32");
+        assert_eq!(cfg.dtype, "bf16");
         assert!((cfg.guidance_scale - 5.0).abs() < f64::EPSILON);
         assert!((cfg.temperature - 1.0).abs() < f64::EPSILON);
         assert_eq!(cfg.parallel_size, 1);

@@ -347,7 +347,7 @@ pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i
             PcaiMediaErrorCode::Success as i32
         }
         Err(e) => {
-            let msg = format!("Failed to load model '{path_str}': {e}");
+            let msg = format!("Failed to load model '{path_str}': {e:#}");
             let code = if e.to_string().contains("not found")
                 || e.to_string().contains("No such file")
                 || e.to_string().contains("cannot open")

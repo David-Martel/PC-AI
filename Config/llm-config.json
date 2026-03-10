@@ -26,7 +26,7 @@
 		"ollama": {
 			"enabled": true,
 			"baseUrl": "http://127.0.0.1:11434",
-			"defaultModel": "qwen2.5-coder:3b",
+			"defaultModel": "qwen3:14b",
 			"timeout": 90000
 		},
 		"lmstudio": {
@@ -46,21 +46,23 @@
 		"maxContextTokens": 16384,
 		"reservedForResponse": 4096,
 		"systemPromptFile": "DIAGNOSE.md",
+		"localOptimizedPromptFile": "Config/diagnose-local-optimized.md",
 		"decisionTreeFile": "DIAGNOSE_LOGIC.md",
 		"chatPromptFile": "CHAT.md"
 	},
 	"ollama": {
 		"enabled": true,
-		"model": "qwen2.5-coder:3b",
-		"tool_model": "gpt-oss:20b",
+		"model": "qwen3:14b",
+		"tool_model": "qwen3:14b",
+		"diagnosticModel": "qwen3:14b",
 		"summary_model": "dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest",
 		"base_url": "http://127.0.0.1:11434",
 		"timeout_ms": 90000,
-		"temperature": 0.1,
+		"temperature": 0.2,
 		"num_ctx": 131072,
 		"num_gpu": 40,
 		"num_thread": 8,
-		"num_predict": 1536,
+		"num_predict": 2048,
 		"keep_alive_seconds": 900,
 		"adaptive_ctx_enabled": true,
 		"adaptive_ctx_min": 8192,
@@ -76,8 +78,7 @@
 		"seed": 42,
 		"auto_detect_models": false,
 		"required_models": [
-			"qwen2.5-coder:3b",
-			"gpt-oss:20b",
+			"qwen3:14b",
 			"dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest"
 		],
 		"warm_models_on_start": false,

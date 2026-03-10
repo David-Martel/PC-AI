@@ -236,14 +236,61 @@ function Initialize-CudaEnvironment {
     if ($msvcBin) {
         $env:NVCC_CCBIN = ($msvcBin -replace '\\', '/')
         Add-ToPath $msvcBin | Out-Null
+
+        # Resolve MSVC include/lib paths from the bin directory.
+        # nvcc host compiler (cl.exe) requires INCLUDE and LIB to find
+        # MSVC standard headers and the Windows SDK (ucrt, um, shared).
+        # Without these, nvcc fails with:
+        #   "nvcc fatal: Failed to preprocess host compiler properties."
+        $msvcToolsetRoot = ($msvcBin -replace '[\\/]bin[\\/]Hostx64[\\/]x64$', '')
+        $msvcInclude = Join-Path $msvcToolsetRoot 'include'
+        $msvcLib = Join-Path $msvcToolsetRoot 'lib\x64'
+        if (Test-Path $msvcInclude) {
+            $includeUpdated = (Add-ToEnvList -Name 'INCLUDE' -Value $msvcInclude) -or $includeUpdated
+        }
+        if (Test-Path $msvcLib) {
+            $libUpdated = (Add-ToEnvList -Name 'LIB' -Value $msvcLib) -or $libUpdated
+        }
+
+        # Resolve Windows SDK include/lib paths (ucrt, um, shared).
+        $sdkRoot = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $sdkRoot) {
+            $sdkIncludeBase = Join-Path $sdkRoot 'Include'
+            $sdkLibBase = Join-Path $sdkRoot 'Lib'
+            # Pick the latest SDK version
+            $sdkVer = Get-ChildItem -Path $sdkIncludeBase -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+                Sort-Object { [version]$_.Name } -Descending |
+                Select-Object -First 1 -ExpandProperty Name
+            if ($sdkVer) {
+                foreach ($sub in 'ucrt', 'um', 'shared') {
+                    $sdkInc = Join-Path $sdkIncludeBase "$sdkVer\$sub"
+                    if (Test-Path $sdkInc) {
+                        $includeUpdated = (Add-ToEnvList -Name 'INCLUDE' -Value $sdkInc) -or $includeUpdated
+                    }
+                }
+                foreach ($sub in 'ucrt', 'um') {
+                    $sdkLib = Join-Path $sdkLibBase "$sdkVer\$sub\x64"
+                    if (Test-Path $sdkLib) {
+                        $libUpdated = (Add-ToEnvList -Name 'LIB' -Value $sdkLib) -or $libUpdated
+                    }
+                }
+                if (-not $Quiet) {
+                    Write-Host "  Windows SDK $sdkVer INCLUDE/LIB paths added" -ForegroundColor DarkGray
+                }
+            }
+        }
+        if (-not $Quiet) {
+            Write-Host "  MSVC INCLUDE/LIB paths added for nvcc host compiler" -ForegroundColor DarkGray
+        }
     } elseif (Test-Path Env:NVCC_CCBIN) {
         Remove-Item Env:NVCC_CCBIN -ErrorAction SilentlyContinue
     }
 
     # Set CUDA compute capabilities for common architectures
-    # 75=Turing, 80=Ampere, 86=GA102, 89=Ada, 90=Hopper
+    # 75=Turing, 80=Ampere, 86=GA102, 89=Ada, 90=Hopper, 120=Blackwell
     if (-not $env:CUDAARCHS) {
-        $env:CUDAARCHS = '75;80;86;89'
+        $env:CUDAARCHS = '75;80;86;89;120'
     }
 
     if ($WorkaroundMsvc1944) {

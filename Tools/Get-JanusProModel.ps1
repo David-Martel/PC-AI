@@ -321,16 +321,16 @@ function Invoke-RealEsrganDownload {
         [switch]$Force
     )
 
-    $onnxDest = Join-Path $DestDir 'RealESRGAN_x4.onnx'
+    $pthDest = Join-Path $DestDir 'RealESRGAN_x4plus.pth'
 
-    if ((Test-Path $onnxDest) -and -not $Force) {
-        $sz = (Get-Item $onnxDest).Length
-        Write-Host "  [SKIP] RealESRGAN_x4.onnx ($(Format-Bytes $sz), already present)" -ForegroundColor DarkGray
+    if ((Test-Path $pthDest) -and -not $Force) {
+        $sz = (Get-Item $pthDest).Length
+        Write-Host "  [SKIP] RealESRGAN_x4plus.pth ($(Format-Bytes $sz), already present)" -ForegroundColor DarkGray
         return $true
     }
 
-    # Canonical GitHub Releases source for the ONNX export
-    # xinntao/Real-ESRGAN releases contain a dedicated ONNX asset
+    # Canonical GitHub Releases source for the PyTorch weights
+    # xinntao/Real-ESRGAN releases contain .pth weight files (no ONNX exports)
     $releaseApiUrl = 'https://api.github.com/repos/xinntao/Real-ESRGAN/releases'
     Write-Host 'Querying GitHub API for latest Real-ESRGAN release...' -ForegroundColor Cyan
 
@@ -345,40 +345,40 @@ function Invoke-RealEsrganDownload {
         $releases = $null
     }
 
-    $onnxUrl = $null
+    $pthUrl = $null
     if ($releases) {
         foreach ($release in $releases) {
             $asset = $release.assets | Where-Object {
-                $_.name -imatch 'RealESRGAN_x4plus.*\.onnx'
+                $_.name -eq 'RealESRGAN_x4plus.pth'
             } | Select-Object -First 1
             if ($asset) {
-                $onnxUrl = $asset.browser_download_url
-                Write-Host "  Found ONNX asset in release '$($release.tag_name)': $($asset.name)" -ForegroundColor Green
+                $pthUrl = $asset.browser_download_url
+                Write-Host "  Found weight asset in release '$($release.tag_name)': $($asset.name)" -ForegroundColor Green
                 break
             }
         }
     }
 
-    # Hard fallback to the well-known v0.3.0 ONNX asset if API search found nothing
-    if (-not $onnxUrl) {
-        $onnxUrl = 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.3.0/RealESRGAN_x4plus.onnx'
-        Write-Warning "  Could not locate ONNX asset via API; using fixed fallback URL."
+    # Hard fallback to the well-known v0.1.0 asset if API search found nothing
+    if (-not $pthUrl) {
+        $pthUrl = 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth'
+        Write-Warning "  Could not locate weight asset via API; using fixed fallback URL."
     }
 
-    Write-Host "  [DOWN] RealESRGAN_x4.onnx from $onnxUrl" -ForegroundColor Cyan
-    $tmpPath = "$onnxDest.tmp"
+    Write-Host "  [DOWN] RealESRGAN_x4plus.pth from $pthUrl" -ForegroundColor Cyan
+    $tmpPath = "$pthDest.tmp"
     try {
-        Invoke-WebRequestWithRetry -Uri $onnxUrl -Headers $ghHeaders -OutFile $tmpPath
+        Invoke-WebRequestWithRetry -Uri $pthUrl -Headers $ghHeaders -OutFile $tmpPath
     }
     catch {
-        Write-Error "  Failed to download RealESRGAN ONNX: $($_.Exception.Message)"
+        Write-Error "  Failed to download RealESRGAN weights: $($_.Exception.Message)"
         if (Test-Path $tmpPath) { Remove-Item $tmpPath -Force -ErrorAction SilentlyContinue }
         return $false
     }
 
-    Move-Item -Path $tmpPath -Destination $onnxDest -Force
-    $finalSize = (Get-Item $onnxDest).Length
-    Write-Host "  [OK]   RealESRGAN_x4.onnx ($(Format-Bytes $finalSize))" -ForegroundColor Green
+    Move-Item -Path $tmpPath -Destination $pthDest -Force
+    $finalSize = (Get-Item $pthDest).Length
+    Write-Host "  [OK]   RealESRGAN_x4plus.pth ($(Format-Bytes $finalSize))" -ForegroundColor Green
     return $true
 }
 
@@ -497,12 +497,15 @@ $requiredExact = @(
     'config.json',
     'tokenizer.json',
     'tokenizer_config.json',
-    'generation_config.json'
+    'generation_config.json',
+    'preprocessor_config.json',
+    'processor_config.json',
+    'special_tokens_map.json'
 )
 
 $wantedFiles = $allFiles | Where-Object {
     $n = $_.rfilename
-    ($requiredExact -contains $n) -or ($n -match '\.safetensors$')
+    ($requiredExact -contains $n) -or ($n -match '\.safetensors$') -or ($n -match '^pytorch_model.*\.bin$')
 }
 
 if ($wantedFiles.Count -eq 0) {
@@ -583,7 +586,7 @@ Write-Host 'Updating Config/pcai-media.json...' -ForegroundColor White
 
 # Build relative paths (relative to project root, matching existing config convention)
 $janusRelPath  = "Models/$modelName"
-$esrganRelPath = 'Models/RealESRGAN/RealESRGAN_x4.onnx'
+$esrganRelPath = 'Models/RealESRGAN/RealESRGAN_x4plus.pth'
 
 if ($PSCmdlet.ShouldProcess($configPath, 'Update model paths')) {
     Update-MediaConfig `

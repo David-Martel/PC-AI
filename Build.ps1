@@ -2311,6 +2311,21 @@ $versionInfo = Initialize-BuildVersion
 # Initialize CargoTools defaults / wrappers
 Initialize-CargoToolsDefaults | Out-Null
 
+# Initialize CUDA environment when GPU builds are requested.
+# Sets NVCC_CCBIN, INCLUDE, LIB, CUDA_PATH, and PATH so nvcc can find
+# the MSVC host compiler (cl.exe) and system headers.
+if ($EnableCuda) {
+    $cudaInitScript = Join-Path $script:ProjectRoot 'Tools\Initialize-CudaEnvironment.ps1'
+    if (Test-Path $cudaInitScript) {
+        $cudaResult = & $cudaInitScript
+        if ($cudaResult.Found) {
+            Write-BuildStep "CUDA environment initialized: $($cudaResult.SelectedVersion) (NVCC_CCBIN=$($cudaResult.NvccCcbin))" 'success'
+        } else {
+            Write-BuildStep 'CUDA not found - GPU build may fail' 'warning'
+        }
+    }
+}
+
 # Pre-build quality gate
 if (-not $SkipQualityGate) {
     $qualityGatePassed = Invoke-AstGrepCheck

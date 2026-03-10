@@ -206,3 +206,8 @@ Reports/system-performance-data.json
 
 # Outdated template
 README-TEMPLATE.md
+
+# Test-generated images (artifacts from media pipeline testing)
+gen_test*.png
+gpu_test*.png
+**/gen_test*.png

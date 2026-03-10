@@ -69,24 +69,44 @@ use candle_nn::{linear, Linear, VarBuilder};
 /// assert_eq!(head.forward(&x).unwrap().dims(), &[1, 5, 16384]);
 /// ```
 pub struct GenerationHead {
-    proj: Linear,
+    /// MLP projector: hidden_size → hidden_size (with bias).
+    output_mlp_projector: Linear,
+    /// Final projection: hidden_size → image_vocab_size (with bias).
+    vision_head: Linear,
 }
 
 impl GenerationHead {
     /// Constructs a [`GenerationHead`] that maps `hidden_size` → `image_vocab_size`.
     ///
+    /// Architecture matches the Janus-Pro reference:
+    /// `output_mlp_projector(hidden → hidden) → GELU → vision_head(hidden → vocab)`
+    ///
+    /// # Weight paths (relative to the `VarBuilder` root)
+    ///
+    /// | Parameter | Path |
+    /// |-----------|------|
+    /// | MLP projector weight | `output_mlp_projector.weight` |
+    /// | MLP projector bias   | `output_mlp_projector.bias` |
+    /// | Vision head weight   | `vision_head.weight` |
+    /// | Vision head bias     | `vision_head.bias` |
+    ///
     /// # Errors
     ///
     /// Returns a candle error if the weight tensor cannot be created or loaded.
     pub fn new(vb: VarBuilder, hidden_size: usize, image_vocab_size: usize) -> Result<Self> {
-        // linear_no_bias variant: weight only, no bias.
-        let proj = candle_nn::linear_no_bias(hidden_size, image_vocab_size, vb)?;
-        Ok(Self { proj })
+        let output_mlp_projector = linear(hidden_size, hidden_size, vb.pp("output_mlp_projector"))?;
+        let vision_head = linear(hidden_size, image_vocab_size, vb.pp("vision_head"))?;
+        Ok(Self {
+            output_mlp_projector,
+            vision_head,
+        })
     }
 }
 
 impl Module for GenerationHead {
     /// Projects hidden states to image-vocabulary logits.
+    ///
+    /// Pipeline: `output_mlp_projector → GELU → vision_head`
     ///
     /// # Arguments
     ///
@@ -96,7 +116,9 @@ impl Module for GenerationHead {
     ///
     /// `[B, S, image_vocab_size]`
     fn forward(&self, xs: &Tensor) -> Result<Tensor> {
-        self.proj.forward(xs)
+        let h = self.output_mlp_projector.forward(xs)?;
+        let h = h.gelu()?;
+        self.vision_head.forward(&h)
     }
 }
 
@@ -152,8 +174,11 @@ impl MlpAligner {
     ///
     /// Returns a candle error if any weight tensor cannot be created or loaded.
     pub fn new(vb: VarBuilder, in_dim: usize, out_dim: usize) -> Result<Self> {
-        let fc1 = linear(in_dim, out_dim, vb.pp("0"))?;
-        let fc2 = linear(out_dim, out_dim, vb.pp("2"))?;
+        // Weight paths match PyTorch nn.Sequential indexing with a "layers." prefix:
+        // layers.0.weight, layers.0.bias, layers.2.weight, layers.2.bias
+        let layers = vb.pp("layers");
+        let fc1 = linear(in_dim, out_dim, layers.pp("0"))?;
+        let fc2 = linear(out_dim, out_dim, layers.pp("2"))?;
         Ok(Self { fc1, fc2 })
     }
 }

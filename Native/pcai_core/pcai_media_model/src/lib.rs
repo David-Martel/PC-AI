@@ -41,15 +41,16 @@
 
 pub mod config;
 pub mod generation_head;
+pub mod janus_llama;
 pub mod tensor_utils;
 pub mod vq_vae;
 
-use candle_core::{Result, Tensor};
-use candle_nn::VarBuilder;
-use candle_transformers::models::llama;
+use candle_core::{Module, Result, Tensor};
+use candle_nn::{Conv2d, Conv2dConfig, VarBuilder};
 
 use config::JanusConfig;
 use generation_head::{GenerationHead, MlpAligner};
+use janus_llama::JanusLlama;
 use vq_vae::{VqCodebook, VqVaeConfig, VqVaeDecoder};
 
 // ---------------------------------------------------------------------------
@@ -79,13 +80,19 @@ use vq_vae::{VqCodebook, VqVaeConfig, VqVaeDecoder};
 /// all tensors to zero.
 pub struct JanusModel {
     /// LLM backbone (DeepSeek / Llama architecture).
-    pub llama: llama::Llama,
+    /// Uses our custom [`JanusLlama`] which exposes pre-lm_head hidden states.
+    pub llama: JanusLlama,
     /// Linear projection from hidden states to image vocabulary.
     pub gen_head: GenerationHead,
     /// MLP that maps image-token embeddings into LLM input space.
     pub gen_aligner: MlpAligner,
+    /// Image-token embedding table for generation mode.
+    /// Maps discrete image token IDs to continuous embeddings before the aligner.
+    pub gen_embed: candle_nn::Embedding,
     /// VQ codebook: maps discrete token IDs to continuous latent vectors.
     pub vq_codebook: VqCodebook,
+    /// 1×1 conv that maps codebook dim (8) → decoder z_channels (256).
+    pub post_quant_conv: Conv2d,
     /// VQ-GAN decoder: maps latent grids to RGB pixel tensors.
     pub vq_decoder: VqVaeDecoder,
     /// MLP that maps SigLIP visual features into the LLM hidden space.
@@ -108,8 +115,10 @@ impl JanusModel {
     /// |-----------|------|
     /// | LLM backbone | `language_model` |
     /// | Generation head | `gen_head` |
+    /// | Generation embedding | `gen_embed` |
     /// | Generation aligner | `gen_aligner` |
     /// | VQ codebook | `gen_vision_model.quantize.embedding` |
+    /// | Post-quant conv | `gen_vision_model.post_quant_conv` |
     /// | VQ decoder | `gen_vision_model.decoder` |
     /// | Understand aligner | `aligner` |
     ///
@@ -121,50 +130,73 @@ impl JanusModel {
         let image_vocab_size = config.image_token_num_tokens;
 
         // ── LLM backbone ──────────────────────────────────────────────────
-        // Enable flash-attn when the crate is compiled with the `flash-attn`
-        // feature; otherwise fall back to standard attention.
+        // Uses our custom JanusLlama which exposes pre-lm_head hidden states
+        // needed for the image generation head.
         let use_flash_attn = cfg!(feature = "flash-attn");
         let llama_cfg = config.to_llama_config(use_flash_attn);
         let llama =
-            llama::Llama::load(vb.pp("language_model"), &llama_cfg)?;
+            JanusLlama::load(vb.pp("language_model"), &llama_cfg)?;
 
         // ── Generation head ───────────────────────────────────────────────
         // hidden_size → image_vocab_size (no bias).
         let gen_head =
             GenerationHead::new(vb.pp("gen_head"), hidden_size, image_vocab_size)?;
 
+        // ── Generation embedding ──────────────────────────────────────────
+        // Image-token embedding table: maps discrete VQ token IDs to
+        // vq_embed_dim-dimensional vectors (8 for both 1B and 7B).
+        let vq_dim = config.vq_embed_dim;
+        let gen_embed = candle_nn::embedding(
+            image_vocab_size,
+            vq_dim,
+            vb.pp("gen_embed"),
+        )?;
+
         // ── Generation aligner ────────────────────────────────────────────
-        // Maps image-token embeddings (same hidden_size) → LLM input space.
+        // Maps vq_embed_dim (8) → hidden_size (2048 or 4096).
         let gen_aligner =
-            MlpAligner::new(vb.pp("gen_aligner"), hidden_size, hidden_size)?;
+            MlpAligner::new(vb.pp("gen_aligner"), vq_dim, hidden_size)?;
 
         // ── VQ codebook ───────────────────────────────────────────────────
-        // 16 384-token codebook with 256-dimensional latent vectors.
-        // Weights live at: gen_vision_model.quantize.embedding.embedding
-        const CODEBOOK_EMBED_DIM: usize = 256;
+        // 16 384-token codebook with vq_embed_dim-dimensional latent vectors.
+        // Weights live at: gen_vision_model.quantize.embedding.weight
         let vq_codebook = VqCodebook::new(
             vb.pp("gen_vision_model.quantize.embedding"),
             image_vocab_size,
-            CODEBOOK_EMBED_DIM,
+            vq_dim,
+        )?;
+
+        // ── Post-quantization conv ──────────────────────────────────────
+        // 1×1 conv that maps codebook dim (8) → decoder z_channels (256).
+        // Weight: gen_vision_model.post_quant_conv.{weight,bias}
+        let decoder_z_channels = VqVaeConfig::default().z_channels; // 256
+        let post_quant_conv = candle_nn::conv2d(
+            vq_dim,
+            decoder_z_channels,
+            1,
+            Conv2dConfig::default(),
+            vb.pp("gen_vision_model.post_quant_conv"),
         )?;
 
         // ── VQ-VAE decoder ────────────────────────────────────────────────
+        // Decoder takes 256-channel spatial grids (after post_quant_conv).
         let vq_decoder = VqVaeDecoder::new(
             vb.pp("gen_vision_model.decoder"),
             &VqVaeConfig::default(),
         )?;
 
         // ── Understanding aligner ─────────────────────────────────────────
-        // SigLIP outputs 1024-dim vectors; map them to hidden_size.
-        const SIGLIP_DIM: usize = 1024;
+        // SigLIP outputs understand_input_dim-dim vectors; map them to hidden_size.
         let understand_aligner =
-            MlpAligner::new(vb.pp("aligner"), SIGLIP_DIM, hidden_size)?;
+            MlpAligner::new(vb.pp("aligner"), config.understand_input_dim, hidden_size)?;
 
         Ok(Self {
             llama,
             gen_head,
             gen_aligner,
+            gen_embed,
             vq_codebook,
+            post_quant_conv,
             vq_decoder,
             understand_aligner,
             config: config.clone(),
@@ -192,7 +224,7 @@ impl JanusModel {
         &self,
         input_ids: &Tensor,
         pos: usize,
-        cache: &mut llama::Cache,
+        cache: &mut janus_llama::KvCache,
     ) -> Result<Tensor> {
         self.llama.forward(input_ids, pos, cache)
     }
@@ -238,8 +270,8 @@ impl JanusModel {
     /// Decodes discrete image tokens into an RGB pixel tensor.
     ///
     /// Pipeline:
-    /// 1. Codebook lookup → `[B, 576, 256]` continuous latents.
-    /// 2. Transpose + reshape → `[B, 256, 24, 24]` spatial grid.
+    /// 1. Codebook lookup → `[B, 576, vq_dim]` continuous latents.
+    /// 2. Transpose + reshape → `[B, vq_dim, 24, 24]` spatial grid.
     /// 3. VQ-GAN decoder → `[B, 3, 384, 384]` pixels.
     ///
     /// # Arguments
@@ -259,14 +291,17 @@ impl JanusModel {
         let num_img_tokens = self.config.num_image_tokens(); // 576
         let grid_size = (num_img_tokens as f64).sqrt() as usize; // 24
 
-        // 1. Codebook lookup: [B, H*W] → [B, H*W, z] → [B, z, H, W]
+        // 1. Codebook lookup: [B, H*W] → [B, vq_dim, H, W]
         //    VqCodebook::lookup_grid handles the reshape internally.
         let latent = self
             .vq_codebook
             .lookup_grid(tokens, grid_size, grid_size)?;
+        // latent shape: [B, 8, 24, 24]
 
-        // 2. latent is already [B, z_channels, H, W] — feed directly to decoder.
-        //    VQ-VAE decoder: [B, 256, 24, 24] → [B, 3, 384, 384]
+        // 2. Post-quantization conv: [B, 8, 24, 24] → [B, 256, 24, 24]
+        let latent = self.post_quant_conv.forward(&latent)?;
+
+        // 3. VQ-VAE decoder: [B, 256, 24, 24] → [B, 3, 384, 384]
         self.vq_decoder.decode(&latent)
     }
 }
@@ -378,15 +413,15 @@ mod tests {
         assert_eq!(img.dims(), &[1, 3, 8, 8]);
     }
 
-    /// Verify Cache construction matches the Llama config API.
+    /// Verify KvCache construction matches the Llama config API.
     #[test]
-    fn test_llama_cache_construction() {
+    fn test_kv_cache_construction() {
         let dev = Device::Cpu;
         let cfg = JanusConfig::janus_pro_1b();
         let llama_cfg = cfg.to_llama_config(false);
 
-        // Cache::new should succeed with CPU + F32.
-        let _cache = llama::Cache::new(false, DType::F32, &llama_cfg, &dev)
-            .expect("Cache construction failed");
+        // KvCache::new should succeed with CPU + F32.
+        let _cache = janus_llama::KvCache::new(false, DType::F32, &llama_cfg, &dev)
+            .expect("KvCache construction failed");
     }
 }

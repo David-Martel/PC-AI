@@ -12,15 +12,15 @@
 //!   ├─ conv_in (256 → 512, 3×3)
 //!   │
 //!   ├─ mid
-//!   │    ├─ block_1  ResBlock(512, 512)
-//!   │    ├─ attn_1   AttnBlock(512)
-//!   │    └─ block_2  ResBlock(512, 512)
+//!   │    ├─ mid.0  ResBlock(512, 512)
+//!   │    ├─ mid.1  AttnBlock(512)
+//!   │    └─ mid.2  ResBlock(512, 512)
 //!   │
-//!   ├─ up.4  ResBlock×3(512→256)  + Upsample(256)   → 48×48
-//!   ├─ up.3  ResBlock×3(256→256)  + Upsample(256)   → 96×96
-//!   ├─ up.2  ResBlock×3(256→128)  + Upsample(128)   → 192×192
-//!   ├─ up.1  ResBlock×3(128→128)  + Upsample(128)   → 384×384
-//!   └─ up.0  ResBlock×3(128→128)  (no upsample — last stage)
+//!   ├─ conv_blocks.0  (Res+Attn)×3(512→512)  + Upsample(512)  → 48×48
+//!   ├─ conv_blocks.1  ResBlock×3(512→256)    + Upsample(256)  → 96×96
+//!   ├─ conv_blocks.2  ResBlock×3(256→256)    + Upsample(256)  → 192×192
+//!   ├─ conv_blocks.3  ResBlock×3(256→128)    + Upsample(128)  → 384×384
+//!   └─ conv_blocks.4  ResBlock×3(128→128)    (no upsample)
 //!   │
 //!   ├─ norm_out  GroupNorm(32, 128)
 //!   ├─ SiLU
@@ -30,8 +30,9 @@
 //! ```
 //!
 //! Weight names in safetensors match the Python attribute tree under
-//! `gen_vision_model.decoder.*` (e.g. `conv_in`, `mid.block_1.*`,
-//! `up.4.block.0.*`, `up.4.upsample.conv.*`, `norm_out.*`, `conv_out.*`).
+//! `gen_vision_model.decoder.*` (e.g. `conv_in`, `mid.0.*`,
+//! `conv_blocks.0.res.0.*`, `conv_blocks.0.attn.0.*`,
+//! `conv_blocks.0.upsample.conv.*`, `norm_out.*`, `conv_out.*`).
 //!
 //! # Example (offline / CPU smoke-test)
 //!
@@ -265,19 +266,25 @@ impl Module for Upsample {
 // UpStage — one level of the decoder pyramid
 // ---------------------------------------------------------------------------
 
-/// One decoder stage: a sequence of [`ResBlock`]s followed by an optional
-/// [`Upsample`].
+/// One decoder stage: a sequence of [`ResBlock`]s (each optionally followed
+/// by an [`AttnBlock`]) and an optional [`Upsample`].
 ///
-/// Stored as typed vecs to avoid `Box<dyn Module>` allocation churn.
+/// Attention blocks are present only in the first decoder stage
+/// (conv_blocks.0), which is the widest (512-channel) feature map.
 struct UpStage {
     blocks: Vec<ResBlock>,
+    /// Attention blocks interleaved after each ResBlock (only in stage 0).
+    attns: Vec<AttnBlock>,
     upsample: Option<Upsample>,
 }
 
 impl UpStage {
     fn forward(&self, mut xs: Tensor) -> Result<Tensor> {
-        for block in &self.blocks {
+        for (i, block) in self.blocks.iter().enumerate() {
             xs = block.forward(&xs)?;
+            if let Some(attn) = self.attns.get(i) {
+                xs = attn.forward(&xs)?;
+            }
         }
         if let Some(up) = &self.upsample {
             xs = up.forward(&xs)?;
@@ -300,11 +307,12 @@ impl UpStage {
 /// | Tensor | Path |
 /// |--------|------|
 /// | conv_in | `conv_in` |
-/// | mid block_1 | `mid.block_1.*` |
-/// | mid attn_1 | `mid.attn_1.*` |
-/// | mid block_2 | `mid.block_2.*` |
-/// | up stage i, res block j | `up.{i}.block.{j}.*` |
-/// | up stage i, upsample | `up.{i}.upsample.*` |
+/// | mid ResBlock 0 | `mid.0.*` |
+/// | mid AttnBlock | `mid.1.*` |
+/// | mid ResBlock 1 | `mid.2.*` |
+/// | stage i, res block j | `conv_blocks.{i}.res.{j}.*` |
+/// | stage 0, attn block j | `conv_blocks.0.attn.{j}.*` |
+/// | stage i, upsample | `conv_blocks.{i}.upsample.*` |
 /// | norm_out | `norm_out` |
 /// | conv_out | `conv_out` |
 pub struct VqVaeDecoder {
@@ -341,58 +349,63 @@ impl VqVaeDecoder {
         )?;
 
         // ── mid block ──────────────────────────────────────────────────────
+        // Safetensors keys: mid.0.* (ResBlock), mid.1.* (AttnBlock), mid.2.* (ResBlock)
         let mid_vb = vb.pp("mid");
-        let mid_block_1 = ResBlock::new(mid_vb.pp("block_1"), top_ch, top_ch)?;
-        let mid_attn = AttnBlock::new(mid_vb.pp("attn_1"), top_ch)?;
-        let mid_block_2 = ResBlock::new(mid_vb.pp("block_2"), top_ch, top_ch)?;
+        let mid_block_1 = ResBlock::new(mid_vb.pp("0"), top_ch, top_ch)?;
+        let mid_attn = AttnBlock::new(mid_vb.pp("1"), top_ch)?;
+        let mid_block_2 = ResBlock::new(mid_vb.pp("2"), top_ch, top_ch)?;
 
         // ── up stages ──────────────────────────────────────────────────────
-        // The Python code counts stages from 0 to len(ch_mult)-1 in FORWARD
-        // order (narrow → wide), but the *decoder* iterates from high to low
-        // (wide → narrow).  The safetensors names are `up.{i}.*` where `i`
-        // runs in the ORIGINAL (forward-encoder) order, i.e.:
+        // Safetensors keys use `conv_blocks.{i}.*` where i=0 is the widest
+        // (512-channel) stage and i=4 is the narrowest (128-channel).
         //
-        //   Python decoder stage 0 → ch_mult index (len-1) → up.{len-1}.*
-        //   Python decoder stage 1 → ch_mult index (len-2) → up.{len-2}.*
-        //   …
-        //
-        // So we enumerate `ch_mult.iter().rev()` together with the index
-        // `i_level` that counts DOWN from `len-1` to `0`.
+        // We iterate ch_mult in reverse (wide → narrow):
+        //   decoder_stage_idx 0 → ch_mult[4]=4 → conv_blocks.0 (512ch, has attn+upsample)
+        //   decoder_stage_idx 1 → ch_mult[3]=2 → conv_blocks.1 (256ch, upsample)
+        //   decoder_stage_idx 2 → ch_mult[2]=2 → conv_blocks.2 (256ch, upsample)
+        //   decoder_stage_idx 3 → ch_mult[1]=1 → conv_blocks.3 (128ch, upsample)
+        //   decoder_stage_idx 4 → ch_mult[0]=1 → conv_blocks.4 (128ch, no upsample)
 
         let num_stages = cfg.ch_mult.len();
-        let up_vb = vb.pp("up");
+        let cb_vb = vb.pp("conv_blocks");
         let mut up_stages: Vec<UpStage> = Vec::with_capacity(num_stages);
 
         let mut in_ch = top_ch;
         for (decoder_stage_idx, &mult) in cfg.ch_mult.iter().rev().enumerate() {
-            // Weight file index = (len-1) - decoder_stage_idx
-            let weight_idx = num_stages - 1 - decoder_stage_idx;
             let out_ch = cfg.base_channels * mult;
 
-            let stage_vb = up_vb.pp(weight_idx.to_string());
-            let block_vb = stage_vb.pp("block");
+            let stage_vb = cb_vb.pp(decoder_stage_idx.to_string());
+            let res_vb = stage_vb.pp("res");
 
             // num_res_blocks + 1 residual blocks per stage
             let mut blocks: Vec<ResBlock> =
                 Vec::with_capacity(cfg.num_res_blocks + 1);
             let mut curr_ch = in_ch;
             for j in 0..=cfg.num_res_blocks {
-                // Only the first block in a stage may change the channel width
-                let blk_out = if j == 0 { out_ch } else { out_ch };
                 let blk_in = if j == 0 { curr_ch } else { out_ch };
-                blocks.push(ResBlock::new(block_vb.pp(j.to_string()), blk_in, blk_out)?);
-                curr_ch = blk_out;
+                blocks.push(ResBlock::new(res_vb.pp(j.to_string()), blk_in, out_ch)?);
+                curr_ch = out_ch;
+            }
+
+            // Attention blocks: only present in the first decoder stage
+            // (conv_blocks.0), one per ResBlock, interleaved after each.
+            let mut attns: Vec<AttnBlock> = Vec::new();
+            if decoder_stage_idx == 0 {
+                let attn_vb = stage_vb.pp("attn");
+                for j in 0..=cfg.num_res_blocks {
+                    attns.push(AttnBlock::new(attn_vb.pp(j.to_string()), out_ch)?);
+                }
             }
 
             // Upsample exists on all stages except the last decoder stage
-            // (which corresponds to weight index 0, the narrowest features).
-            let upsample = if weight_idx > 0 {
+            // (conv_blocks.4 = narrowest features, no spatial upsampling).
+            let upsample = if decoder_stage_idx < num_stages - 1 {
                 Some(Upsample::new(stage_vb.pp("upsample"), out_ch)?)
             } else {
                 None
             };
 
-            up_stages.push(UpStage { blocks, upsample });
+            up_stages.push(UpStage { blocks, attns, upsample });
             in_ch = out_ch;
         }
 
@@ -499,9 +512,12 @@ impl VqCodebook {
     /// Constructs a [`VqCodebook`] with `vocab_size` entries of dimension
     /// `z_channels`.
     ///
-    /// Weight path under `vb`: `embedding` (the embedding weight matrix).
+    /// Weight path under `vb`: `weight` (the embedding weight matrix).
+    /// Note: the parent VarBuilder should already be prefixed to
+    /// `gen_vision_model.quantize.embedding` so the full key becomes
+    /// `gen_vision_model.quantize.embedding.weight`.
     pub fn new(vb: VarBuilder, vocab_size: usize, z_channels: usize) -> Result<Self> {
-        let embedding = candle_nn::embedding(vocab_size, z_channels, vb.pp("embedding"))?;
+        let embedding = candle_nn::embedding(vocab_size, z_channels, vb)?;
         Ok(Self { embedding, z_channels })
     }
 

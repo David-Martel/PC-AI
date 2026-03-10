@@ -63,6 +63,20 @@ pub struct JanusConfig {
     /// Patch size used by the vision encoder.
     #[serde(default = "default_patch_size")]
     pub patch_size: usize,
+
+    /// VQ codebook embedding dimension (z_channels).
+    ///
+    /// This is the dimensionality of each codebook vector in the VQ-VAE.
+    /// Also used as the gen_embed output dimension and gen_aligner input
+    /// dimension.  Defaults to `8` (matches both 1B and 7B configs).
+    #[serde(default = "default_vq_embed_dim")]
+    pub vq_embed_dim: usize,
+
+    /// Understanding aligner input dimension (SigLIP feature size).
+    ///
+    /// Defaults to `1024` (SigLIP large).
+    #[serde(default = "default_understand_input_dim")]
+    pub understand_input_dim: usize,
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +109,12 @@ fn default_image_size() -> usize {
 }
 fn default_patch_size() -> usize {
     16
+}
+fn default_vq_embed_dim() -> usize {
+    8
+}
+fn default_understand_input_dim() -> usize {
+    1024
 }
 
 // ---------------------------------------------------------------------------
@@ -164,10 +184,12 @@ impl JanusConfig {
             num_attention_heads: 16,
             num_key_value_heads: 16,
             vocab_size: default_vocab_size(),
-            intermediate_size: 5504,
+            intermediate_size: 5632,
             image_token_num_tokens: default_image_token_num_tokens(),
             image_size: default_image_size(),
             patch_size: default_patch_size(),
+            vq_embed_dim: default_vq_embed_dim(),
+            understand_input_dim: default_understand_input_dim(),
         }
     }
 
@@ -185,21 +207,106 @@ impl JanusConfig {
             image_token_num_tokens: default_image_token_num_tokens(),
             image_size: default_image_size(),
             patch_size: default_patch_size(),
+            vq_embed_dim: default_vq_embed_dim(),
+            understand_input_dim: default_understand_input_dim(),
         }
     }
 
     /// Deserialises a [`JanusConfig`] from a `config.json` file on disk.
     ///
-    /// Fields absent from the file are filled with 7B defaults via serde's
-    /// `#[serde(default)]` annotations.
+    /// Supports two formats:
+    /// 1. **Flat** — fields at the top level (our internal format).
+    /// 2. **Nested Janus** — the HuggingFace `config.json` format where LLM
+    ///    parameters live under `language_config` and vision parameters under
+    ///    `gen_vision_config` / `vision_config`.
+    ///
+    /// Fields absent from the file are filled with 7B defaults.
     ///
     /// # Errors
     ///
     /// Returns an error if the file cannot be read or the JSON is malformed.
     pub fn from_file(path: impl AsRef<std::path::Path>) -> Result<Self> {
         let contents = std::fs::read_to_string(path)?;
-        let cfg = serde_json::from_str(&contents)?;
-        Ok(cfg)
+
+        // Try flat format first (our internal representation).
+        if let Ok(cfg) = serde_json::from_str::<JanusConfig>(&contents) {
+            // Check if it actually parsed meaningful values by looking for
+            // `hidden_size` at the top level.  If the JSON was nested Janus
+            // format, serde would have used 7B defaults for all fields.
+            let raw: serde_json::Value = serde_json::from_str(&contents)?;
+            if raw.get("hidden_size").is_some() {
+                return Ok(cfg);
+            }
+        }
+
+        // Parse as nested Janus/HuggingFace config.json.
+        Self::from_nested_json(&contents)
+    }
+
+    /// Parse the nested HuggingFace Janus `config.json` format.
+    ///
+    /// Extracts LLM dimensions from `language_config`, vision parameters
+    /// from `vision_config.params`, and codebook size from
+    /// `gen_vision_config.params`.
+    fn from_nested_json(json_str: &str) -> Result<Self> {
+        let raw: serde_json::Value = serde_json::from_str(json_str)?;
+
+        let lang = raw.get("language_config");
+        let vis = raw.get("vision_config");
+        let gen_vis = raw.get("gen_vision_config");
+        let aligner = raw.get("aligner_config");
+
+        let get_usize = |obj: Option<&serde_json::Value>, key: &str, default: usize| -> usize {
+            obj.and_then(|v| v.get(key))
+                .and_then(|v| v.as_u64())
+                .map(|v| v as usize)
+                .unwrap_or(default)
+        };
+
+        let get_nested_usize =
+            |obj: Option<&serde_json::Value>, key: &str, default: usize| -> usize {
+                obj.and_then(|v| v.get("params"))
+                    .and_then(|p| p.get(key))
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize)
+                    .unwrap_or(default)
+            };
+
+        Ok(Self {
+            hidden_size: get_usize(lang, "hidden_size", default_hidden_size()),
+            num_hidden_layers: get_usize(lang, "num_hidden_layers", default_num_hidden_layers()),
+            num_attention_heads: get_usize(
+                lang,
+                "num_attention_heads",
+                default_num_attention_heads(),
+            ),
+            num_key_value_heads: get_usize(
+                lang,
+                "num_key_value_heads",
+                default_num_key_value_heads(),
+            ),
+            vocab_size: get_usize(lang, "vocab_size", default_vocab_size()),
+            intermediate_size: get_usize(lang, "intermediate_size", default_intermediate_size()),
+            image_token_num_tokens: get_nested_usize(
+                gen_vis,
+                "image_token_size",
+                default_image_token_num_tokens(),
+            ),
+            image_size: get_nested_usize(vis, "image_size", default_image_size()),
+            patch_size: default_patch_size(),
+            // VQ codebook embedding dim: gen_vision_config.params.n_embed
+            vq_embed_dim: get_nested_usize(
+                gen_vis,
+                "n_embed",
+                default_vq_embed_dim(),
+            ),
+            // Understanding aligner input dim: aligner_config.params.input_dim
+            understand_input_dim: get_nested_usize(
+                aligner,
+                "input_dim",
+                default_understand_input_dim(),
+            ),
+        })
     }
 }
 
@@ -258,6 +365,34 @@ mod tests {
         assert_eq!(decoded.image_token_num_tokens, original.image_token_num_tokens);
         assert_eq!(decoded.image_size, original.image_size);
         assert_eq!(decoded.patch_size, original.patch_size);
+    }
+
+    /// Nested Janus config.json format (HuggingFace) should parse correctly.
+    #[test]
+    fn test_nested_janus_config() {
+        let json = r#"{
+            "language_config": {
+                "hidden_size": 2048,
+                "intermediate_size": 5632,
+                "num_attention_heads": 16,
+                "num_hidden_layers": 24,
+                "num_key_value_heads": 16,
+                "vocab_size": 102400
+            },
+            "gen_vision_config": {
+                "params": { "image_token_size": 16384 }
+            },
+            "vision_config": {
+                "params": { "image_size": 384 }
+            }
+        }"#;
+        let cfg = JanusConfig::from_nested_json(json).expect("nested parse failed");
+        assert_eq!(cfg.hidden_size, 2048);
+        assert_eq!(cfg.num_hidden_layers, 24);
+        assert_eq!(cfg.num_attention_heads, 16);
+        assert_eq!(cfg.intermediate_size, 5632);
+        assert_eq!(cfg.image_token_num_tokens, 16384);
+        assert_eq!(cfg.image_size, 384);
     }
 
     /// An empty JSON object `{}` should deserialise to the 7B defaults.

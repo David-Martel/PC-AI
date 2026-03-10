@@ -30,11 +30,10 @@
 use anyhow::{Context, Result};
 use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::{VarBuilder, VarMap};
-use candle_transformers::models::llama;
 use candle_transformers::models::siglip;
 use image::{ImageBuffer, Rgb};
 
-use pcai_media_model::{config::JanusConfig, JanusModel};
+use pcai_media_model::{config::JanusConfig, janus_llama::KvCache, JanusModel};
 
 use crate::config::PipelineConfig;
 use crate::hub;
@@ -127,9 +126,9 @@ impl GenerationPipeline {
         };
 
         // 3. Build JanusModel from a VarMap-backed VarBuilder.
-        let varmap = VarMap::new();
-        let vb = VarBuilder::from_varmap(&varmap, dtype, &device);
-        let model = JanusModel::new(vb, &model_config)
+        let mut varmap = Some(VarMap::new());
+        let vb = VarBuilder::from_varmap(varmap.as_ref().unwrap(), dtype, &device);
+        let mut model = JanusModel::new(vb, &model_config)
             .map_err(|e| anyhow::anyhow!("JanusModel construction failed: {e}"))?;
 
         // 4. Load safetensors weights into the VarMap.
@@ -140,7 +139,7 @@ impl GenerationPipeline {
                 "no safetensors shards found; model will use random weights"
             );
         } else {
-            let loaded = hub::load_weights(&varmap, &shards, dtype, &device)
+            let loaded = hub::load_weights(varmap.as_ref().unwrap(), &shards, dtype, &device)
                 .context("failed to load model weights from safetensors")?;
             tracing::info!(
                 shards = shards.len(),
@@ -149,28 +148,49 @@ impl GenerationPipeline {
             );
         }
 
-        // 5. Load tokenizer.
+        // 5. On CUDA, offload wte + lm_head to CPU to free ~800 MB VRAM.
+        //    These are only used during prefill (wte) and text generation
+        //    (lm_head) — not during the 576-step image generation loop.
+        //    Drop VarMap immediately after to release GPU tensor Arc references.
+        if matches!(device, Device::Cuda(_)) {
+            model
+                .llama
+                .offload_embeddings_to_cpu()
+                .map_err(|e| anyhow::anyhow!("wte/lm_head CPU offload failed: {e}"))?;
+            // Drop VarMap so the old GPU tensors (held by Arc) are freed NOW.
+            // On CUDA we skip SigLIP, so the VarMap is no longer needed.
+            varmap.take();
+            tracing::info!("Offloaded wte + lm_head to CPU (~800 MB VRAM freed)");
+        }
+
+        // 6. Load tokenizer.
         let tokenizer = hub::load_tokenizer(&model_path)
             .context("failed to load tokenizer")?;
 
-        // 6. Build SigLIP vision encoder from the same VarMap.
+        // 7. Optionally build SigLIP vision encoder.
+        //    For generation-only workloads, skip SigLIP to save ~400MB VRAM.
         //    The Janus-Pro safetensors store SigLIP weights under the
-        //    "vision_model" prefix.  If those weights were present in the
-        //    shards loaded above the VarMap already contains them.
-        let siglip_cfg = Self::siglip_config(&model_config);
-        let siglip_vb = VarBuilder::from_varmap(&varmap, dtype, &device)
-            .pp("vision_model");
-        let siglip = match siglip::VisionModel::new(&siglip_cfg, false, siglip_vb) {
-            Ok(vm) => {
-                tracing::info!("SigLIP vision encoder loaded");
-                Some(vm)
-            }
-            Err(e) => {
-                tracing::warn!(
-                    error = %e,
-                    "SigLIP vision encoder construction failed; understanding will use placeholder"
-                );
-                None
+        //    "vision_model" prefix.
+        let siglip = if matches!(device, Device::Cuda(_)) {
+            tracing::info!("Skipping SigLIP on CUDA to conserve VRAM (generation-only)");
+            None
+        } else {
+            let siglip_cfg = Self::siglip_config(&model_config);
+            let vm_ref = varmap.as_ref().unwrap();
+            let siglip_vb = VarBuilder::from_varmap(vm_ref, dtype, &device)
+                .pp("vision_model");
+            match siglip::VisionModel::new(&siglip_cfg, false, siglip_vb) {
+                Ok(vm) => {
+                    tracing::info!("SigLIP vision encoder loaded");
+                    Some(vm)
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        "SigLIP vision encoder construction failed; understanding will use placeholder"
+                    );
+                    None
+                }
             }
         };
 
@@ -251,8 +271,14 @@ impl GenerationPipeline {
         let guidance_scale = cfg_scale.unwrap_or(self.config.guidance_scale);
         let temperature_val = temperature.unwrap_or(self.config.temperature);
         let parallel_size = self.config.parallel_size;
-        // CFG requires a paired positive/negative batch.
-        let batch_size = parallel_size * 2;
+
+        // Disable CFG on CUDA to conserve VRAM (batch_size=1 vs 2).
+        // CFG doubles memory for KV cache and all intermediates.
+        let use_cfg = guidance_scale > 1.0 && !matches!(self.device, Device::Cuda(_));
+        let batch_size = if use_cfg { parallel_size * 2 } else { parallel_size };
+        if !use_cfg && guidance_scale > 1.0 {
+            tracing::info!("CFG disabled on CUDA to conserve VRAM (batch_size=1)");
+        }
 
         // ── 1. Tokenise ──────────────────────────────────────────────────────
         // Janus-Pro chat template.
@@ -261,50 +287,80 @@ impl GenerationPipeline {
             .tokenizer
             .encode(templated, true)
             .map_err(|e| anyhow::anyhow!("tokenizer encode failed: {e}"))?;
-        let prompt_ids: &[u32] = encoding.get_ids();
+        let mut prompt_ids: Vec<u32> = encoding.get_ids().to_vec();
+
+        // Append <begin_of_image> transition token to signal the model
+        // to switch from text mode to image generation mode.
+        let boi_id: u32 = self
+            .tokenizer
+            .token_to_id("<begin_of_image>")
+            .unwrap_or(100003);
+        prompt_ids.push(boi_id);
         let seq_len = prompt_ids.len();
+        tracing::debug!(seq_len, boi_id, "prompt tokens (including <begin_of_image>)");
 
         // ── 2. Build input tensor [batch_size, seq_len] ───────────────────────
         // Even indices: conditional (prompt) tokens.
-        // Odd indices: unconditional (pad) tokens.
+        // Odd indices: unconditional (pad) tokens for CFG.
         let pad_id: u32 = self
             .tokenizer
-            .token_to_id("<pad>")
-            .unwrap_or(0);
+            .token_to_id("<\u{ff5c}\u{2581}pad\u{2581}\u{ff5c}>")
+            .or_else(|| self.tokenizer.token_to_id("<pad>"))
+            .unwrap_or(100002);
 
         let mut flat_ids: Vec<u32> = Vec::with_capacity(batch_size * seq_len);
-        for i in 0..batch_size {
-            if i % 2 == 0 {
-                // Conditional: real prompt tokens.
-                flat_ids.extend_from_slice(prompt_ids);
-            } else {
-                // Unconditional: all-padding sequence of the same length.
-                flat_ids.extend(std::iter::repeat(pad_id).take(seq_len));
+        if use_cfg {
+            for i in 0..batch_size {
+                if i % 2 == 0 {
+                    // Conditional: real prompt tokens (including <begin_of_image>).
+                    flat_ids.extend_from_slice(&prompt_ids);
+                } else {
+                    // Unconditional: pad tokens + <begin_of_image> at the end.
+                    flat_ids.extend(std::iter::repeat(pad_id).take(seq_len - 1));
+                    flat_ids.push(boi_id);
+                }
+            }
+        } else {
+            // No CFG: only conditional tokens, batch_size = parallel_size.
+            for _ in 0..batch_size {
+                flat_ids.extend_from_slice(&prompt_ids);
             }
         }
-        let input_ids = Tensor::from_vec(flat_ids, (batch_size, seq_len), &self.device)
+
+        // On CUDA, wte lives on CPU (offloaded to save VRAM), so build
+        // input_ids on CPU for embedding, then move result to GPU.
+        let embed_device = if matches!(self.device, Device::Cuda(_)) {
+            &Device::Cpu
+        } else {
+            &self.device
+        };
+        let input_ids = Tensor::from_vec(flat_ids, (batch_size, seq_len), embed_device)
             .context("failed to build input_ids tensor")?;
 
         // ── 3. Build KV cache ────────────────────────────────────────────────
         let llama_cfg = self.model_config.to_llama_config(false);
-        let mut cache = llama::Cache::new(false, self.dtype, &llama_cfg, &self.device)
-            .map_err(|e| anyhow::anyhow!("Cache construction failed: {e}"))?;
+        let mut cache = KvCache::new(true, self.dtype, &llama_cfg, &self.device)
+            .map_err(|e| anyhow::anyhow!("KvCache construction failed: {e}"))?;
 
         // ── 4. Pre-fill: embed the prompt tokens ─────────────────────────────
         // Shape: [batch_size, seq_len, hidden_size]
+        // wte may be on CPU (CUDA offload); move embeddings to GPU after lookup.
         let prompt_embeds = self
             .model
             .embed_tokens(&input_ids)
-            .map_err(|e| anyhow::anyhow!("embed_tokens failed: {e}"))?;
+            .map_err(|e| anyhow::anyhow!("embed_tokens failed: {e}"))?
+            .to_device(&self.device)
+            .map_err(|e| anyhow::anyhow!("embed_tokens to_device failed: {e}"))?;
 
-        // Pre-fill step: forward the full prompt through the LLM backbone to
-        // populate the KV cache.  We use `forward_input_embed` on the public
-        // `llama` field to obtain hidden states rather than text-vocab logits.
-        let _prefill_hidden = self
+        // Pre-fill step: forward the full prompt (including <begin_of_image>)
+        // through the LLM backbone.  The hidden state at the last position
+        // (<begin_of_image>) carries the context for predicting the first
+        // image token — we use it at step 0 instead of a dummy embedding.
+        let prefill_hidden = self
             .model
             .llama
-            .forward_input_embed(&prompt_embeds, 0, &mut cache)
-            .map_err(|e| anyhow::anyhow!("prefill forward_input_embed failed: {e}"))?;
+            .forward_hidden(&prompt_embeds, 0, &mut cache)
+            .map_err(|e| anyhow::anyhow!("prefill forward_hidden failed: {e}"))?;
 
         // Track the current position for RoPE and KV-cache indexing.
         let mut pos = seq_len;
@@ -313,104 +369,94 @@ impl GenerationPipeline {
         let num_image_tokens = self.model_config.num_image_tokens(); // 576
         let mut generated_tokens: Vec<u32> = Vec::with_capacity(num_image_tokens);
 
-        // Use the first image token as the initial input to the generation
-        // loop.  In practice Janus inserts a special `<image>` token to
-        // separate the prompt from the image token sequence; we use a zero
-        // token as a neutral starting embedding.
-        let mut current_token_ids = {
-            let ids = vec![0u32; batch_size];
-            Tensor::from_vec(ids, (batch_size, 1_usize), &self.device)
-                .context("failed to build initial token tensor")?
-        };
+        // Placeholder for current token IDs; unused at step 0 where we
+        // consume the prefill hidden state directly.
+        let mut current_token_ids = Tensor::zeros(
+            (batch_size, 1_usize),
+            DType::U32,
+            &self.device,
+        ).context("failed to build initial token tensor")?;
 
         for step in 0..num_image_tokens {
-            // A. Embed current tokens → [batch_size, 1, hidden_size]
-            let embeds = self
-                .model
-                .embed_tokens(&current_token_ids)
-                .map_err(|e| anyhow::anyhow!("step {step}: embed_tokens failed: {e}"))?;
-
-            // B. LLM backbone: hidden states [batch_size, 1, hidden_size]
-            let hidden = self
-                .model
-                .llama
-                .forward_input_embed(&embeds, pos, &mut cache)
-                .map_err(|e| anyhow::anyhow!("step {step}: forward_input_embed failed: {e}"))?;
-            pos += 1;
-
-            // C. Project to image vocabulary logits [batch_size, 1, image_vocab_size]
-            let img_logits_full = self
-                .model
-                .project_to_image_vocab(&hidden)
-                .map_err(|e| anyhow::anyhow!("step {step}: project_to_image_vocab failed: {e}"))?;
-
-            // D. Extract last-position logits [batch_size, image_vocab_size]
-            let last_pos = img_logits_full.dim(1)? - 1;
-            let img_logits = img_logits_full
-                .i((.., last_pos, ..))
-                .map_err(|e| anyhow::anyhow!("step {step}: logit slice failed: {e}"))?;
-
-            // E. CFG: split batch into conditional (even rows) and unconditional
-            //    (odd rows).  The candle IndexOp trait does not support StepBy
-            //    iterators, so we select each pair explicitly and stack.
-            //    For parallel_size=1: cond = row 0, uncond = row 1.
-            let (cond, uncond) = if parallel_size == 1 {
-                let c = img_logits
-                    .i(0_usize)
-                    .map_err(|e| anyhow::anyhow!("step {step}: cond row 0 failed: {e}"))?
-                    .unsqueeze(0)
-                    .map_err(|e| anyhow::anyhow!("step {step}: cond unsqueeze failed: {e}"))?;
-                let u = img_logits
-                    .i(1_usize)
-                    .map_err(|e| anyhow::anyhow!("step {step}: uncond row 1 failed: {e}"))?
-                    .unsqueeze(0)
-                    .map_err(|e| anyhow::anyhow!("step {step}: uncond unsqueeze failed: {e}"))?;
-                (c, u)
+            // A. Get hidden states for this step.
+            //    Step 0: use the prefill hidden state from <begin_of_image>.
+            //    Steps 1+: embed the previously sampled image token via
+            //              gen_embed → gen_aligner → LLM forward_hidden.
+            let hidden = if step == 0 {
+                prefill_hidden.clone()
             } else {
-                // General case: gather even and odd row indices explicitly.
-                let cond_rows: Vec<Tensor> = (0..batch_size)
-                    .step_by(2)
-                    .map(|i| {
-                        img_logits
-                            .i(i)
-                            .and_then(|t| t.unsqueeze(0))
-                            .map_err(|e| {
-                                anyhow::anyhow!("step {step}: cond row {i}: {e}")
-                            })
-                    })
-                    .collect::<Result<_>>()?;
-                let uncond_rows: Vec<Tensor> = (1..batch_size)
-                    .step_by(2)
-                    .map(|i| {
-                        img_logits
-                            .i(i)
-                            .and_then(|t| t.unsqueeze(0))
-                            .map_err(|e| {
-                                anyhow::anyhow!("step {step}: uncond row {i}: {e}")
-                            })
-                    })
-                    .collect::<Result<_>>()?;
-                let c = Tensor::cat(&cond_rows, 0)
-                    .map_err(|e| anyhow::anyhow!("step {step}: cond cat: {e}"))?;
-                let u = Tensor::cat(&uncond_rows, 0)
-                    .map_err(|e| anyhow::anyhow!("step {step}: uncond cat: {e}"))?;
-                (c, u)
+                let embeds = {
+                    use candle_core::Module;
+                    let raw_embed = self.model.gen_embed.forward(&current_token_ids)
+                        .map_err(|e| anyhow::anyhow!("step {step}: gen_embed failed: {e}"))?;
+                    self.model.gen_aligner.forward(&raw_embed)
+                        .map_err(|e| anyhow::anyhow!("step {step}: gen_aligner failed: {e}"))?
+                };
+                let h = self
+                    .model
+                    .llama
+                    .forward_hidden(&embeds, pos, &mut cache)
+                    .map_err(|e| anyhow::anyhow!("step {step}: forward_hidden failed: {e}"))?;
+                pos += 1;
+                h
             };
 
-            // guided = uncond + guidance_scale * (cond - uncond)
-            let scale = guidance_scale;
-            let diff = (cond.clone() - uncond.clone())
-                .map_err(|e| anyhow::anyhow!("step {step}: CFG diff failed: {e}"))?;
-            let guided = (uncond + (diff * scale)?)
-                .map_err(|e| anyhow::anyhow!("step {step}: CFG add failed: {e}"))?;
+            // C. Project to image vocabulary logits [batch_size, image_vocab_size]
+            //    hidden is already [B, hidden_size] (last position extracted by forward_hidden).
+            let img_logits = self
+                .model
+                .project_to_image_vocab(&hidden.unsqueeze(1)?)
+                .map_err(|e| anyhow::anyhow!("step {step}: project_to_image_vocab failed: {e}"))?
+                .squeeze(1)
+                .map_err(|e| anyhow::anyhow!("step {step}: squeeze failed: {e}"))?;
+
+            // E. Apply CFG (if enabled) or use logits directly.
+            let logits_for_sampling = if use_cfg {
+                // CFG: split batch into conditional (even) and unconditional (odd).
+                let (cond, uncond) = if parallel_size == 1 {
+                    let c = img_logits
+                        .i(0_usize)
+                        .map_err(|e| anyhow::anyhow!("step {step}: cond row 0 failed: {e}"))?
+                        .unsqueeze(0)
+                        .map_err(|e| anyhow::anyhow!("step {step}: cond unsqueeze failed: {e}"))?;
+                    let u = img_logits
+                        .i(1_usize)
+                        .map_err(|e| anyhow::anyhow!("step {step}: uncond row 1 failed: {e}"))?
+                        .unsqueeze(0)
+                        .map_err(|e| anyhow::anyhow!("step {step}: uncond unsqueeze failed: {e}"))?;
+                    (c, u)
+                } else {
+                    let cond_rows: Vec<Tensor> = (0..batch_size)
+                        .step_by(2)
+                        .map(|i| {
+                            img_logits.i(i).and_then(|t| t.unsqueeze(0))
+                                .map_err(|e| anyhow::anyhow!("step {step}: cond row {i}: {e}"))
+                        })
+                        .collect::<Result<_>>()?;
+                    let uncond_rows: Vec<Tensor> = (1..batch_size)
+                        .step_by(2)
+                        .map(|i| {
+                            img_logits.i(i).and_then(|t| t.unsqueeze(0))
+                                .map_err(|e| anyhow::anyhow!("step {step}: uncond row {i}: {e}"))
+                        })
+                        .collect::<Result<_>>()?;
+                    (Tensor::cat(&cond_rows, 0)?, Tensor::cat(&uncond_rows, 0)?)
+                };
+                // guided = uncond + guidance_scale * (cond - uncond)
+                let diff = (cond.clone() - uncond.clone())?;
+                (uncond + (diff * guidance_scale)?)?
+            } else {
+                // No CFG: use logits directly.
+                img_logits
+            };
 
             // F. Temperature scaling + softmax → probability distribution
             //    [parallel_size, image_vocab_size]
             let scaled = if (temperature_val - 1.0_f64).abs() > 1e-6 {
-                (guided / temperature_val)
+                (logits_for_sampling / temperature_val)
                     .map_err(|e| anyhow::anyhow!("step {step}: temperature scale failed: {e}"))?
             } else {
-                guided
+                logits_for_sampling
             };
             let probs = candle_nn::ops::softmax_last_dim(&scaled)
                 .map_err(|e| anyhow::anyhow!("step {step}: softmax failed: {e}"))?;
@@ -430,18 +476,31 @@ impl GenerationPipeline {
             //    batch dimension [batch_size, 1].
             let mut next_ids_flat = Vec::with_capacity(batch_size);
             for &tok in &next_tokens {
-                // Even (cond) and odd (uncond) get the same token for the
-                // next-step embedding — Janus uses shared image tokens.
-                next_ids_flat.push(tok);
-                next_ids_flat.push(tok);
+                if use_cfg {
+                    // Even (cond) and odd (uncond) get the same token.
+                    next_ids_flat.push(tok);
+                    next_ids_flat.push(tok);
+                } else {
+                    next_ids_flat.push(tok);
+                }
             }
             current_token_ids =
                 Tensor::from_vec(next_ids_flat, (batch_size, 1_usize), &self.device)
                     .context("failed to build next token tensor")?;
 
             if step % 100 == 0 || step == num_image_tokens - 1 {
-                tracing::debug!(step, total = num_image_tokens, "generation progress");
+                tracing::debug!(step, total = num_image_tokens, token = first_token, "generation progress");
             }
+        }
+
+        // ── Token diversity check ────────────────────────────────────────────
+        {
+            let unique: std::collections::HashSet<u32> = generated_tokens.iter().copied().collect();
+            tracing::info!(
+                unique = unique.len(),
+                total = num_image_tokens,
+                "image tokens generated"
+            );
         }
 
         // ── 6. Decode tokens → pixel tensor [1, 3, H, W] ────────────────────

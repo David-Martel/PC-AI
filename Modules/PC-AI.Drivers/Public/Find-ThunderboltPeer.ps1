@@ -25,153 +25,161 @@ function Find-ThunderboltPeer {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    function Invoke-WindowsPowerShellJson {
-        param(
-            [Parameter(Mandatory)]
-            [string]$Script
-        )
-
-        $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Script))
-        $output = & powershell.exe -NoLogo -NoProfile -EncodedCommand $encoded 2>$null
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Windows PowerShell Thunderbolt discovery probe failed.'
-        }
-
-        $text = ($output -join [Environment]::NewLine).Trim()
-        if ([string]::IsNullOrWhiteSpace($text)) {
-            return $null
-        }
-
-        return $text | ConvertFrom-Json -Depth 12
-    }
-
-    function ConvertTo-PowerShellArrayLiteral {
-        param(
-            [Parameter(Mandatory)]
-            [string[]]$Value
-        )
-
-        if (-not $Value -or $Value.Count -eq 0) {
-            return '@()'
-        }
-
-        $quoted = foreach ($entry in $Value) {
-            "'{0}'" -f $entry.Replace("'", "''")
-        }
-
-        return '@({0})' -f ($quoted -join ', ')
-    }
-
-    $candidateLiteral = ConvertTo-PowerShellArrayLiteral -Value $ComputerNameCandidates
-    $portLiteral = [string]$WinRmPort
-    $timeoutLiteral = [string]$TcpTimeoutMs
-    $includeRawLiteral = if ($IncludeRaw) { '$true' } else { '$false' }
-
-    return Invoke-WindowsPowerShellJson -Script @"
-`$computerNameCandidates = $candidateLiteral
-`$winRmPort = $portLiteral
-`$tcpTimeoutMs = $timeoutLiteral
-`$includeRaw = $includeRawLiteral
-
-`$adapters = @(Get-NetAdapter -IncludeHidden -ErrorAction SilentlyContinue |
-    Where-Object {
-        `$_.Status -ne 'Disabled' -and (
-            `$_.InterfaceDescription -match 'USB4' -or
-            `$_.InterfaceDescription -match 'Thunderbolt' -or
-            `$_.InterfaceDescription -match 'P2P'
-        )
-    } |
-    Sort-Object InterfaceMetric, ifIndex |
-    Select-Object Name, InterfaceDescription, Status, MacAddress, LinkSpeed, InterfaceMetric, ifIndex)
-
-`$interfaceIndexes = @(`$adapters | ForEach-Object ifIndex)
-`$localAddresses = @()
-`$neighbors = @()
-if (`$interfaceIndexes.Count -gt 0) {
-    `$localAddresses = @(Get-NetIPAddress -InterfaceIndex `$interfaceIndexes -ErrorAction SilentlyContinue |
-        Where-Object { `$_.AddressFamily -in @('IPv4', 'IPv6') } |
-        Select-Object InterfaceIndex, InterfaceAlias, AddressFamily, IPAddress, PrefixLength)
-
-    `$neighbors = @(Get-NetNeighbor -InterfaceIndex `$interfaceIndexes -ErrorAction SilentlyContinue |
+    # ── Phase 1: Discover Thunderbolt/USB4 adapters via CIM ──────────────
+    $adapters = @(Get-CimInstance -ClassName Win32_NetworkAdapter -ErrorAction SilentlyContinue |
         Where-Object {
-            `$_.IPAddress -and
-            `$_.State -notin @(0, '0', 'Unreachable', 'Invalid') -and
-            `$_.IPAddress -notin @('255.255.255.255', '169.254.255.255') -and
-            `$_.IPAddress -notmatch '^(22[4-9]|23\d)\.' -and
-            `$_.IPAddress -notlike 'ff*' -and
-            `$_.LinkLayerAddress -and
-            `$_.LinkLayerAddress -notin @('00-00-00-00-00-00', '00:00:00:00:00:00', 'FF-FF-FF-FF-FF-FF', 'ff-ff-ff-ff-ff-ff', 'ff:ff:ff:ff:ff:ff') -and
-            `$_.IPAddress -ne 'ff02::1'
+            $_.NetConnectionID -and (
+                $_.Description -match 'USB4|Thunderbolt|P2P' -or
+                $_.Name -match 'USB4|Thunderbolt|P2P' -or
+                $_.PNPDeviceID -match 'PROT_USB4NET|THUNDERBOLT|USB4'
+            )
         } |
-        Select-Object InterfaceIndex, IPAddress, LinkLayerAddress, State)
-}
-
-`$candidateTargets = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-foreach (`$name in `$computerNameCandidates) {
-    if (-not [string]::IsNullOrWhiteSpace(`$name)) {
-        [void]`$candidateTargets.Add(`$name.Trim())
-    }
-}
-foreach (`$neighbor in `$neighbors) {
-    if (-not [string]::IsNullOrWhiteSpace(`$neighbor.IPAddress)) {
-        [void]`$candidateTargets.Add(`$neighbor.IPAddress)
-    }
-}
-
-`$nameResolution = foreach (`$target in `$candidateTargets) {
-    `$resolved = @(Resolve-DnsName -Name `$target -ErrorAction SilentlyContinue)
-    [pscustomobject]@{
-        Target          = `$target
-        Resolved        = `$resolved.Count -gt 0
-        ResolvedAddress = @(`$resolved | Where-Object IPAddress | Select-Object -ExpandProperty IPAddress)
-    }
-}
-
-`$winRmCandidates = foreach (`$target in `$candidateTargets) {
-    `$tcpReachable = `$false
-    `$client = New-Object System.Net.Sockets.TcpClient
-    try {
-        `$async = `$client.BeginConnect(`$target, `$winRmPort, `$null, `$null)
-        if (`$async.AsyncWaitHandle.WaitOne(`$tcpTimeoutMs, `$false)) {
-            try {
-                `$client.EndConnect(`$async)
-                `$tcpReachable = `$client.Connected
-            } catch {
-                `$tcpReachable = `$false
+        Sort-Object Index |
+        ForEach-Object {
+            [PSCustomObject]@{
+                Name                 = $_.Name
+                InterfaceDescription = $_.Description
+                InterfaceAlias       = $_.NetConnectionID
+                Status               = if ($_.NetEnabled) { 'Up' } else { 'Disconnected' }
+                MacAddress           = $_.MACAddress
+                LinkSpeed            = $_.Speed
+                ifIndex              = $_.Index
             }
+        })
+
+    # ── Phase 2: Gather IP addresses and neighbors for matched adapters ──
+    $interfaceIndexes = @($adapters | ForEach-Object { $_.ifIndex })
+    $localAddresses = @()
+    $neighbors = @()
+
+    if ($interfaceIndexes.Count -gt 0) {
+        $indexSet = [System.Collections.Generic.HashSet[int]]::new()
+        foreach ($idx in $interfaceIndexes) { [void]$indexSet.Add($idx) }
+
+        # IP addresses via StandardCimv2
+        $localAddresses = @(
+            Get-CimInstance -Namespace root/StandardCimv2 -ClassName MSFT_NetIPAddress -ErrorAction SilentlyContinue |
+            Where-Object { $indexSet.Contains([int]$_.InterfaceIndex) } |
+            ForEach-Object {
+                $family = switch ([int]$_.AddressFamily) { 2 { 'IPv4' }; 23 { 'IPv6' }; default { 'Other' } }
+                [PSCustomObject]@{
+                    InterfaceIndex  = $_.InterfaceIndex
+                    InterfaceAlias  = $_.InterfaceAlias
+                    AddressFamily   = $family
+                    IPAddress       = $_.IPAddress
+                    PrefixLength    = $_.PrefixLength
+                }
+            })
+
+        # Neighbors via StandardCimv2
+        $neighbors = @(
+            Get-CimInstance -Namespace root/StandardCimv2 -ClassName MSFT_NetNeighbor -ErrorAction SilentlyContinue |
+            Where-Object {
+                $indexSet.Contains([int]$_.InterfaceIndex) -and
+                $_.IPAddress -and
+                $_.State -notin @(0, '0', 'Unreachable', 'Invalid') -and
+                $_.IPAddress -notin @('255.255.255.255', '169.254.255.255') -and
+                $_.IPAddress -notmatch '^(22[4-9]|23\d)\.' -and
+                $_.IPAddress -notlike 'ff*' -and
+                $_.LinkLayerAddress -and
+                $_.LinkLayerAddress -notin @('00-00-00-00-00-00', '00:00:00:00:00:00', 'FF-FF-FF-FF-FF-FF', 'ff-ff-ff-ff-ff-ff', 'ff:ff:ff:ff:ff:ff') -and
+                $_.IPAddress -ne 'ff02::1'
+            } |
+            ForEach-Object {
+                [PSCustomObject]@{
+                    InterfaceIndex   = $_.InterfaceIndex
+                    IPAddress        = $_.IPAddress
+                    LinkLayerAddress = $_.LinkLayerAddress
+                    State            = [string]$_.State
+                }
+            })
+    }
+
+    # ── Phase 3: Build candidate target set ──────────────────────────────
+    $candidateTargets = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($name in $ComputerNameCandidates) {
+        if (-not [string]::IsNullOrWhiteSpace($name)) {
+            [void]$candidateTargets.Add($name.Trim())
         }
-    } catch {
-        `$tcpReachable = `$false
-    } finally {
-        `$client.Close()
     }
-    [pscustomobject]@{
-        Target       = `$target
-        WinRmPort    = `$winRmPort
-        TcpTimeoutMs = `$tcpTimeoutMs
-        TcpReachable = [bool]`$tcpReachable
+    foreach ($neighbor in $neighbors) {
+        if (-not [string]::IsNullOrWhiteSpace($neighbor.IPAddress)) {
+            [void]$candidateTargets.Add($neighbor.IPAddress)
+        }
     }
-}
 
-`$raw = `$null
-if (`$includeRaw) {
-    `$raw = [pscustomobject]@{
-        IpConfig = (ipconfig /all | Out-String).Trim()
-        Arp      = (arp -a | Out-String).Trim()
-        Route    = (route print | Out-String).Trim()
+    # ── Phase 4: DNS resolution (async with timeout) ────────────────────
+    $dnsTimeoutMs = [Math]::Min($TcpTimeoutMs, 2000)
+    $dnsTasks = [System.Collections.Generic.Dictionary[string, System.Threading.Tasks.Task]]::new()
+    foreach ($target in $candidateTargets) {
+        $dnsTasks[$target] = [System.Net.Dns]::GetHostAddressesAsync($target)
     }
-}
 
-[pscustomobject]@{
-    Timestamp       = Get-Date
-    LocalComputer   = `$env:COMPUTERNAME
-    AdapterCount    = `$adapters.Count
-    Adapters        = @(`$adapters)
-    LocalAddresses  = @(`$localAddresses)
-    Neighbors       = @(`$neighbors)
-    NameResolution  = @(`$nameResolution)
-    WinRmCandidates = @(`$winRmCandidates)
-    Raw             = `$raw
-} | ConvertTo-Json -Depth 12
-"@
+    $nameResolution = @(foreach ($target in @($candidateTargets)) {
+        $task = $dnsTasks[$target]
+        $resolved = @()
+        try {
+            if ($task.Wait($dnsTimeoutMs)) {
+                $resolved = @($task.Result | ForEach-Object { $_.IPAddressToString })
+            }
+        } catch { }
+        [PSCustomObject]@{
+            Target          = $target
+            Resolved        = $resolved.Count -gt 0
+            ResolvedAddress = $resolved
+        }
+    })
+
+    # ── Phase 5: TCP WinRM probe (parallel) ──────────────────────────────
+    $portCapture = $WinRmPort
+    $timeoutCapture = $TcpTimeoutMs
+    $winRmCandidates = @($candidateTargets | ForEach-Object -ThrottleLimit 8 -Parallel {
+        $target = $_
+        $tcpReachable = $false
+        $client = [System.Net.Sockets.TcpClient]::new()
+        try {
+            $async = $client.BeginConnect($target, $using:portCapture, $null, $null)
+            if ($async.AsyncWaitHandle.WaitOne($using:timeoutCapture, $false)) {
+                try {
+                    $client.EndConnect($async)
+                    $tcpReachable = $client.Connected
+                } catch {
+                    $tcpReachable = $false
+                }
+            }
+        } catch {
+            $tcpReachable = $false
+        } finally {
+            $client.Close()
+        }
+        [PSCustomObject]@{
+            Target       = $target
+            WinRmPort    = $using:portCapture
+            TcpTimeoutMs = $using:timeoutCapture
+            TcpReachable = [bool]$tcpReachable
+        }
+    })
+
+    # ── Phase 6: Optional raw diagnostics ────────────────────────────────
+    $raw = $null
+    if ($IncludeRaw) {
+        $raw = [PSCustomObject]@{
+            IpConfig = (ipconfig /all | Out-String).Trim()
+            Arp      = (arp -a | Out-String).Trim()
+            Route    = (route print | Out-String).Trim()
+        }
+    }
+
+    # ── Result ───────────────────────────────────────────────────────────
+    return [PSCustomObject]@{
+        Timestamp       = Get-Date
+        LocalComputer   = $env:COMPUTERNAME
+        AdapterCount    = $adapters.Count
+        Adapters        = @($adapters)
+        LocalAddresses  = @($localAddresses)
+        Neighbors       = @($neighbors)
+        NameResolution  = @($nameResolution)
+        WinRmCandidates = @($winRmCandidates)
+        Raw             = $raw
+    }
 }

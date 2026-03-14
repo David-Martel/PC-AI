@@ -99,7 +99,7 @@ url = "2.5"
 
 [profile.release]
 opt-level = 3      # Maximum optimization
-lto = false        # Disable LTO for faster troubleshooting
+lto = "thin"       # Thin LTO: 2-5% runtime speedup, moderate compile cost
 codegen-units = 16 # Parallelize for faster build
 strip = false      # Keep symbols for verification
 panic = "abort"    # Smaller binary, faster panics

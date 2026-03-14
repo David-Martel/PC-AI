@@ -4189,6 +4189,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pcai-perf"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "hex",
+ "pcai_core_lib",
+ "rayon",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "pcai_core_lib"
 version = "0.1.0"
 dependencies = [

@@ -115,7 +115,7 @@ function Resolve-OllamaNativeCliPath {
     }
 
     if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
-        Set-PcaiSharedCacheEntry -Namespace 'pcai-llm' -Key "ollama-cli::$($script:ModuleConfig.ProjectRoot)" -Value $resolved -DependencyStamp $dependencyStamp | Out-Null
+        Set-PcaiSharedCacheEntry -Namespace 'pcai-llm' -Key "ollama-cli::$($script:ModuleConfig.ProjectRoot)" -Value $resolved -DependencyStamp $dependencyStamp -TtlSeconds 300 | Out-Null
     }
 
     return $resolved

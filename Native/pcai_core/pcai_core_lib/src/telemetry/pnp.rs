@@ -3,6 +3,7 @@ use std::ptr::null_mut;
 use windows_sys::core::GUID;
 use windows_sys::Win32::Devices::DeviceAndDriverInstallation::*;
 use windows_sys::Win32::Foundation::*;
+use windows_sys::Win32::System::Registry::*;
 
 #[derive(Serialize)]
 pub struct PnpDeviceDetail {
@@ -15,6 +16,9 @@ pub struct PnpDeviceDetail {
     pub error_summary: String,
     pub help_url: String,
     pub device_id: String,
+    pub driver_version: String,
+    pub driver_date: String,
+    pub driver_provider: String,
 }
 
 pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
@@ -77,6 +81,10 @@ pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
                 device_id = String::from_utf16_lossy(&device_id_buf[..len]);
             }
 
+            // Query driver registry key path via SPDRP_DRIVER (e.g. "{4d36e972-...}\0001")
+            let (driver_version, driver_date, driver_provider) =
+                get_driver_metadata(h_dev_info, &mut dev_info_data);
+
             let mut detail = PnpDeviceDetail {
                 name,
                 hardware_id,
@@ -87,6 +95,9 @@ pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
                 error_summary: "".to_string(),
                 help_url: "".to_string(),
                 device_id,
+                driver_version,
+                driver_date,
+                driver_provider,
             };
 
             // Get Status / Error Code
@@ -120,6 +131,95 @@ pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
     }
 
     devices
+}
+
+/// Query `DriverVersion`, `DriverDate`, and `ProviderName` from the driver's registry key.
+///
+/// Uses `SPDRP_DRIVER` to obtain the relative path under
+/// `HKLM\SYSTEM\CurrentControlSet\Control\Class\`, then reads the three
+/// string values directly.  Returns empty strings on any failure so the
+/// caller always gets a valid (possibly empty) triple.
+unsafe fn get_driver_metadata(
+    h_dev_info: HDEVINFO,
+    dev_info_data: *mut SP_DEVINFO_DATA,
+) -> (String, String, String) {
+    // SPDRP_DRIVER returns a path fragment like "{4d36e972-e325-11ce-bfc1-08002be10318}\0001"
+    let driver_key_relative = get_device_property(h_dev_info, dev_info_data, SPDRP_DRIVER);
+    if driver_key_relative == "Unknown" || driver_key_relative.is_empty() {
+        return (String::new(), String::new(), String::new());
+    }
+
+    // Build the full registry key path.
+    let base = "SYSTEM\\CurrentControlSet\\Control\\Class\\";
+    let full_path = format!("{}{}", base, driver_key_relative);
+
+    // Convert to null-terminated UTF-16 for the registry APIs.
+    let full_path_w: Vec<u16> = full_path.encode_utf16().chain(std::iter::once(0)).collect();
+
+    let mut hkey: HKEY = std::ptr::null_mut();
+    let result = RegOpenKeyExW(
+        HKEY_LOCAL_MACHINE,
+        full_path_w.as_ptr(),
+        0,
+        KEY_READ,
+        &mut hkey,
+    );
+
+    if result != ERROR_SUCCESS {
+        return (String::new(), String::new(), String::new());
+    }
+
+    let driver_version = read_reg_sz(hkey, "DriverVersion");
+    let driver_date = read_reg_sz(hkey, "DriverDate");
+    let driver_provider = read_reg_sz(hkey, "ProviderName");
+
+    RegCloseKey(hkey);
+
+    (driver_version, driver_date, driver_provider)
+}
+
+/// Read a `REG_SZ` (or `REG_EXPAND_SZ`) string value from an open registry key.
+/// Returns an empty string if the value is absent or cannot be decoded.
+unsafe fn read_reg_sz(hkey: HKEY, value_name: &str) -> String {
+    let name_w: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
+
+    // First call: determine the required buffer size.
+    let mut data_type: u32 = 0;
+    let mut byte_len: u32 = 0;
+    let result = RegQueryValueExW(
+        hkey,
+        name_w.as_ptr(),
+        null_mut(),
+        &mut data_type,
+        null_mut(),
+        &mut byte_len,
+    );
+
+    if result != ERROR_SUCCESS || byte_len == 0 {
+        return String::new();
+    }
+
+    // Allocate buffer in u16 units (byte_len is in bytes; UTF-16 is 2 bytes/char).
+    let char_count = (byte_len as usize).div_ceil(2);
+    let mut buf: Vec<u16> = vec![0u16; char_count];
+
+    let mut byte_len2 = byte_len;
+    let result = RegQueryValueExW(
+        hkey,
+        name_w.as_ptr(),
+        null_mut(),
+        &mut data_type,
+        buf.as_mut_ptr() as *mut u8,
+        &mut byte_len2,
+    );
+
+    if result != ERROR_SUCCESS {
+        return String::new();
+    }
+
+    // Strip any trailing NUL characters before converting.
+    let len = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+    String::from_utf16_lossy(&buf[..len])
 }
 
 unsafe fn get_device_property(h_dev_info: HDEVINFO, dev_info_data: *mut SP_DEVINFO_DATA, property: u32) -> String {
@@ -158,10 +258,40 @@ mod tests {
             error_summary: "Working normally".to_string(),
             help_url: "http://example.com".to_string(),
             device_id: "DISPLAY\\TEST001\\0".to_string(),
+            driver_version: "31.0.101.5074".to_string(),
+            driver_date: "3-18-2025".to_string(),
+            driver_provider: "NVIDIA".to_string(),
         };
 
         let json = serde_json::to_string(&detail).expect("Should serialize");
         assert!(json.contains("\"name\":\"Test Device\""));
         assert!(json.contains("\"config_error_code\":0"));
+        assert!(json.contains("\"driver_version\":\"31.0.101.5074\""));
+        assert!(json.contains("\"driver_date\":\"3-18-2025\""));
+        assert!(json.contains("\"driver_provider\":\"NVIDIA\""));
+    }
+
+    #[test]
+    fn test_pnp_detail_empty_driver_fields() {
+        // Devices with no driver installed should produce empty strings, not panics.
+        let detail = PnpDeviceDetail {
+            name: "Unknown Device".to_string(),
+            hardware_id: "Unknown".to_string(),
+            manufacturer: "Unknown".to_string(),
+            pnp_class: "Unknown".to_string(),
+            status: "Unknown".to_string(),
+            config_error_code: 28,
+            error_summary: "Drivers not installed".to_string(),
+            help_url: "".to_string(),
+            device_id: "USB\\VID_0000&PID_0000\\1".to_string(),
+            driver_version: String::new(),
+            driver_date: String::new(),
+            driver_provider: String::new(),
+        };
+
+        let json = serde_json::to_string(&detail).expect("Should serialize");
+        assert!(json.contains("\"driver_version\":\"\""));
+        assert!(json.contains("\"driver_date\":\"\""));
+        assert!(json.contains("\"driver_provider\":\"\""));
     }
 }

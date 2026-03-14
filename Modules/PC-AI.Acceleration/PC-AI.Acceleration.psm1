@@ -15,6 +15,7 @@ $script:ToolPaths = @{
     fd       = $null
     bat      = $null
     procs    = $null
+    'pcai-perf' = $null
     tokei    = $null
     sd       = $null
     eza      = $null
@@ -42,16 +43,37 @@ function Get-PcaiCacheKey {
         [hashtable]$Parameters = @{}
     )
 
-    $serialized = @(
-        $Parameters.GetEnumerator() |
-            Sort-Object Key |
-            ForEach-Object {
-                $value = if ($null -eq $_.Value) { '<null>' } else { $_.Value.ToString() }
-                '{0}={1}' -f $_.Key, $value
-            }
-    ) -join ';'
+    if (-not $Parameters -or $Parameters.Count -eq 0) {
+        return "$Category::"
+    }
 
-    return '{0}::{1}' -f $Category, $serialized
+    $keys = [System.Collections.Generic.List[string]]::new()
+    foreach ($key in $Parameters.Keys) {
+        $keys.Add([string]$key)
+    }
+    $keys.Sort([System.StringComparer]::Ordinal)
+
+    $builder = [System.Text.StringBuilder]::new()
+    [void]$builder.Append($Category)
+    [void]$builder.Append('::')
+
+    for ($index = 0; $index -lt $keys.Count; $index++) {
+        if ($index -gt 0) {
+            [void]$builder.Append(';')
+        }
+
+        $key = $keys[$index]
+        $value = $Parameters[$key]
+        [void]$builder.Append($key)
+        [void]$builder.Append('=')
+        if ($null -eq $value) {
+            [void]$builder.Append('<null>')
+        } else {
+            [void]$builder.Append([string]$value)
+        }
+    }
+
+    return $builder.ToString()
 }
 
 function Get-PcaiCachedValue {

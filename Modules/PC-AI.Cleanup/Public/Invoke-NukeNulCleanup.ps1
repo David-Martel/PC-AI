@@ -37,13 +37,17 @@ function Invoke-NukeNulCleanup {
     Set-StrictMode -Version Latest
 
     $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    $nativeRoot = Join-Path $repoRoot 'Native\NukeNul'
+    $nativeRoot = @(
+        $env:NUKENUL_ROOT,
+        'C:\codedev\nukenul',
+        (Join-Path $repoRoot 'Native\NukeNul')
+    ) | Where-Object { $_ -and (Test-Path (Join-Path $_ 'NukeNul.csproj')) } | Select-Object -First 1
 
     $candidates = @(
         $ExePath,
         (Join-Path $env:USERPROFILE 'bin\NukeNul.exe'),
-        (Join-Path $nativeRoot 'bin\Release\net8.0\win-x64\NukeNul.exe'),
-        (Join-Path $nativeRoot 'bin\Release\net8.0\win-x64\publish\NukeNul.exe')
+        $(if ($nativeRoot) { Join-Path $nativeRoot 'bin\Release\net8.0\win-x64\NukeNul.exe' }),
+        $(if ($nativeRoot) { Join-Path $nativeRoot 'bin\Release\net8.0\win-x64\publish\NukeNul.exe' })
     ) | Where-Object { $_ -and (Test-Path $_ -PathType Leaf) }
 
     if (-not $candidates -or $candidates.Count -eq 0) {

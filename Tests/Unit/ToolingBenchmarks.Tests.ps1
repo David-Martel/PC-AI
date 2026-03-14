@@ -73,4 +73,35 @@ Describe "Invoke-PcaiToolingBenchmarks" -Tag 'Unit', 'Benchmarks', 'Acceleration
             $row.ManagedAllocatedMeanBytes | Should -Not -BeNullOrEmpty
         }
     }
+
+    It "emits a shared-cache benchmark row with memory metrics" {
+        $result = & $script:BenchmarkScript -CaseId 'shared-cache-hit' -SkipCapabilities -PassThru
+        $report = Get-Content -Path $result.JsonReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $row = @($report.Results | Where-Object CaseId -eq 'shared-cache-hit' | Select-Object -First 1)[0]
+
+        $row | Should -Not -BeNullOrEmpty
+        $row.Backend | Should -Be 'powershell'
+        $row.MeanMs | Should -BeGreaterThan 0
+        $row.ManagedAllocatedMeanBytes | Should -Not -BeNullOrEmpty
+    }
+
+    It "emits an external-cache-status benchmark row" {
+        $result = & $script:BenchmarkScript -CaseId 'external-cache-status' -SkipCapabilities -PassThru
+        $report = Get-Content -Path $result.JsonReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $row = @($report.Results | Where-Object CaseId -eq 'external-cache-status' | Select-Object -First 1)[0]
+
+        $row | Should -Not -BeNullOrEmpty
+        $row.Backend | Should -Be 'powershell'
+        $row.MeanMs | Should -BeGreaterThan 0
+    }
+
+    It "emits an acceleration-stack benchmark row" {
+        $result = & $script:BenchmarkScript -CaseId 'acceleration-stack' -SkipCapabilities -PassThru
+        $report = Get-Content -Path $result.JsonReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $row = @($report.Results | Where-Object CaseId -eq 'acceleration-stack' | Select-Object -First 1)[0]
+
+        $row | Should -Not -BeNullOrEmpty
+        $row.Backend | Should -Be 'powershell'
+        $row.MeanMs | Should -BeGreaterThan 0
+    }
 }

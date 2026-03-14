@@ -86,7 +86,7 @@ if (Test-Path -Path $settingsPath) {
         if (-not $settings) {
             $settings = Get-Content -Path $settingsPath -Raw | ConvertFrom-Json
             if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
-                Set-PcaiSharedCacheEntry -Namespace 'pcai-llm' -Key "settings::$settingsPath" -Value $settings -DependencyStamp $settingsStamp | Out-Null
+                Set-PcaiSharedCacheEntry -Namespace 'pcai-llm' -Key "settings::$settingsPath" -Value $settings -DependencyStamp $settingsStamp -TtlSeconds 300 | Out-Null
             }
         }
         if ($settings.llm) {

@@ -187,7 +187,7 @@ function Resolve-PcaiRepoRoot {
     $resolvedRoot = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($resolvedSearchRoot)
     if (-not [string]::IsNullOrWhiteSpace($resolvedRoot)) {
         if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
-            Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedRoot | Out-Null
+            Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedRoot -TtlSeconds 300 | Out-Null
         }
         return $resolvedRoot
     }
@@ -204,7 +204,7 @@ function Resolve-PcaiRepoRoot {
         $resolvedCandidate = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($candidate)
         if (-not [string]::IsNullOrWhiteSpace($resolvedCandidate)) {
             if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
-                Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedCandidate | Out-Null
+                Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedCandidate -TtlSeconds 300 | Out-Null
             }
             return $resolvedCandidate
         }
@@ -213,12 +213,12 @@ function Resolve-PcaiRepoRoot {
     try {
         $fallbackRoot = (Resolve-Path -Path $resolvedSearchRoot -ErrorAction Stop).Path
         if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
-            Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $fallbackRoot | Out-Null
+            Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $fallbackRoot -TtlSeconds 300 | Out-Null
         }
         return $fallbackRoot
     } catch {
         if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
-            Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedSearchRoot | Out-Null
+            Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedSearchRoot -TtlSeconds 300 | Out-Null
         }
         return $resolvedSearchRoot
     }
@@ -413,7 +413,7 @@ function Get-PcaiRuntimeConfig {
     }
 
     if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
-        Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "runtime-config::$runtimeCacheKey" -Value $runtime -DependencyStamp $runtimeConfigStamp | Out-Null
+        Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "runtime-config::$runtimeCacheKey" -Value $runtime -DependencyStamp $runtimeConfigStamp -TtlSeconds 300 | Out-Null
     }
 
     return [PSCustomObject]$runtime

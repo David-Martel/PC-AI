@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "pcai_core_lib",
+    "pcai_perf_cli",
     "pcai_ollama_rs",
     "pcai_inference",
     "pcai_media_model",

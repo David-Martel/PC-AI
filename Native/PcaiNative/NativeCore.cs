@@ -210,10 +210,20 @@ internal static partial class NativeCore
         uint topN);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern PcaiByteBuffer pcai_get_disk_usage_compact(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? rootPath,
+        uint topN);
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern ProcessStats pcai_get_process_stats();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern PcaiStringBuffer pcai_get_top_processes_json(
+        uint topN,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? sortBy);
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern PcaiByteBuffer pcai_get_top_processes_compact(
         uint topN,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string? sortBy);
 

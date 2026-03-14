@@ -11,7 +11,7 @@
   Working directory to run cargo from.
 
 .PARAMETER UseLld
-  Enable lld-link (CARGO_USE_LLD=1). Default is disabled to avoid Windows link issues.
+  Enable lld-link (CARGO_USE_LLD=1).
 
 .PARAMETER NoLld
   Force link.exe (CARGO_USE_LLD=0).
@@ -78,6 +78,15 @@ if (-not $cargoToolsManifest) {
     Import-Module -Name $cargoToolsManifest -ErrorAction Stop | Out-Null
 }
 
+$versionScript = Join-Path $PSScriptRoot 'Get-BuildVersion.ps1'
+if (Test-Path -LiteralPath $versionScript) {
+    try {
+        & $versionScript -SetEnv -Quiet | Out-Null
+    } catch {
+        Write-Verbose "Build version initialization failed: $($_.Exception.Message)"
+    }
+}
+
 if ($script:UseCargoTools -and -not (Get-Command cl.exe -ErrorAction SilentlyContinue)) {
     Write-Verbose 'MSVC cl.exe not detected in this shell; bypassing CargoTools route and using cargo.exe directly.'
     $script:UseCargoTools = $false
@@ -97,11 +106,13 @@ if (Test-Path $libclangDll) {
     $env:LIBCLANG_PATH = $llvmBin
 }
 
-# Default: do not use lld unless explicitly requested
-$env:CARGO_USE_LLD = '0'
+# Let CargoTools choose the best linker by default. Only override when the
+# caller explicitly requests lld-link or disables it for a problematic project.
 if ($UseLld) { $env:CARGO_USE_LLD = '1' }
 if ($NoLld) { $env:CARGO_USE_LLD = '0' }
-$env:PCAI_USE_LLD = $env:CARGO_USE_LLD
+if ($env:CARGO_USE_LLD) {
+    $env:PCAI_USE_LLD = $env:CARGO_USE_LLD
+}
 
 # Configure CUDA environment for candle-core/cudarc builds
 $cudaHelper = Join-Path $PSScriptRoot 'Initialize-CudaEnvironment.ps1'
@@ -146,11 +157,10 @@ if ($Preflight) {
     $env:CARGO_PREFLIGHT = '0'
 }
 
-# rust-analyzer diagnostics are opt-in to avoid singleton contention by default
+# rust-analyzer preflight remains caller-driven; otherwise defer to CargoTools
+# or environment defaults so CI/agent policies do not get overridden here.
 if ($RaPreflight) {
     $env:CARGO_RA_PREFLIGHT = '1'
-} else {
-    $env:CARGO_RA_PREFLIGHT = '0'
 }
 
 if ($PreflightBlocking) {

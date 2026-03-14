@@ -77,6 +77,7 @@ function Find-FilesFast {
     )
 
     $resolvedPath = Resolve-PcaiPath -Path $Path
+    $preferNativeSearch = $PreferNative -or -not ($env:PCAI_PREFER_NATIVE_SEARCH -and $env:PCAI_PREFER_NATIVE_SEARCH -eq '0')
     $cacheKey = Get-PcaiCacheKey -Category 'find-files' -Parameters @{
         path         = $resolvedPath
         pattern      = $Pattern
@@ -87,7 +88,7 @@ function Find-FilesFast {
         exclude      = (@($Exclude) -join ',')
         fullPath     = [bool]$FullPath
         noIgnore     = [bool]$NoIgnore
-        preferNative = [bool]$PreferNative
+        preferNative = [bool]$preferNativeSearch
     }
 
     $cached = Get-PcaiCachedValue -Key $cacheKey -TtlSeconds 15
@@ -96,7 +97,18 @@ function Find-FilesFast {
     }
 
     $nativeAvailable = $false
-    if ($PreferNative -and ($Pattern -or $Extension)) {
+    $supportsNativeSemantics =
+        ($Pattern -or $Extension) -and
+        -not $Hidden -and
+        -not $NoIgnore -and
+        -not ($Type -and $Type -notin @('file', 'f'))
+    $supportsNativeManifestFallback =
+        $preferNativeSearch -and
+        -not $Hidden -and
+        $NoIgnore -and
+        (($Type -and $Type -in @('directory', 'd')) -or $MaxDepth -gt 0 -or (-not $Pattern -and -not $Extension))
+
+    if ($preferNativeSearch -and ($supportsNativeSemantics -or $supportsNativeManifestFallback)) {
         $nativeProbe = Get-Command -Name 'Test-PcaiNativeAvailable' -ErrorAction SilentlyContinue
         if ($nativeProbe) {
             try {
@@ -109,8 +121,19 @@ function Find-FilesFast {
     }
 
     if ($nativeAvailable) {
-        $results = @(Find-WithPcaiNative @PSBoundParameters)
-        return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
+        $nativeResults = Find-WithPcaiNative @PSBoundParameters
+        if ($null -ne $nativeResults) {
+            $results = @($nativeResults)
+            return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
+        }
+
+        if ($supportsNativeManifestFallback) {
+            $manifestResults = Find-WithPcaiNativeManifest @PSBoundParameters
+            if ($null -ne $manifestResults) {
+                $results = @($manifestResults)
+                return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
+            }
+        }
     }
 
     $fdPath = Get-RustToolPath -ToolName 'fd'
@@ -316,8 +339,100 @@ function Find-WithPcaiNative {
         return @($results)
     }
     catch {
-        Write-Warning "PCAI native file search failed: $_"
+        Write-Verbose "PCAI native file search failed, falling back. $_"
+        return $null
+    }
+}
+
+function Find-WithPcaiNativeManifest {
+    [CmdletBinding()]
+    param(
+        [string]$Path,
+        [string]$Pattern,
+        [string[]]$Extension,
+        [string]$Type,
+        [int]$MaxDepth,
+        [switch]$Hidden,
+        [string[]]$Exclude,
+        [switch]$FullPath,
+        [switch]$NoIgnore,
+        [switch]$PreferNative
+    )
+
+    $resolvedPath = Resolve-PcaiPath -Path $Path
+    if (-not $resolvedPath) {
         return @()
+    }
+
+    try {
+        $manifest = Invoke-PcaiNativeDirectoryManifest -Path $resolvedPath -MaxDepth ([uint32][Math]::Max(0, $MaxDepth))
+        if (-not $manifest -or -not $manifest.Entries) {
+            return @()
+        }
+
+        $requestedType = switch ($Type) {
+            { $_ -in @('file', 'f') } { 'file'; break }
+            { $_ -in @('directory', 'd') } { 'directory'; break }
+            default { $null }
+        }
+        $normalizedExts = @($Extension | ForEach-Object { ".$(($_.TrimStart('*').TrimStart('.')).ToLowerInvariant())" } | Where-Object { $_ -ne '.' })
+        $results = [System.Collections.Generic.List[object]]::new()
+
+        foreach ($entry in @($manifest.Entries)) {
+            if (-not $entry -or [string]::IsNullOrWhiteSpace($entry.Path)) {
+                continue
+            }
+
+            if ($requestedType -and -not [string]::Equals($entry.EntryType, $requestedType, [System.StringComparison]::OrdinalIgnoreCase)) {
+                continue
+            }
+
+            if ($MaxDepth -gt 0) {
+                $entryDepth = if ($null -ne $entry.Depth) { [int]$entry.Depth } else { Get-PcaiRelativeDepth -BasePath $resolvedPath -CandidatePath $entry.Path }
+                if ($entryDepth -gt $MaxDepth) {
+                    continue
+                }
+            }
+
+            $leafName = [System.IO.Path]::GetFileName($entry.Path)
+            if ($Pattern -and ($leafName -notmatch $Pattern)) {
+                continue
+            }
+
+            if ($normalizedExts.Count -gt 0) {
+                $entryExt = if ($entry.Extension) { [string]$entry.Extension } else { [System.IO.Path]::GetExtension($entry.Path) }
+                if ([string]::IsNullOrWhiteSpace($entryExt)) {
+                    continue
+                }
+                if ($normalizedExts -notcontains $entryExt.ToLowerInvariant()) {
+                    continue
+                }
+            }
+
+            $excluded = $false
+            foreach ($exc in @($Exclude)) {
+                if ([string]::IsNullOrWhiteSpace($exc)) { continue }
+                if ($entry.Path -match [regex]::Escape($exc)) {
+                    $excluded = $true
+                    break
+                }
+            }
+            if ($excluded) {
+                continue
+            }
+
+            $itemType = if ([string]::Equals($entry.EntryType, 'directory', [System.StringComparison]::OrdinalIgnoreCase)) { 'directory' } else { 'file' }
+            $item = New-PcaiPathItem -Path $entry.Path -Type $itemType
+            if ($item) {
+                $results.Add($item)
+            }
+        }
+
+        return @($results)
+    }
+    catch {
+        Write-Verbose "PCAI native manifest search failed, falling back. $_"
+        return $null
     }
 }
 

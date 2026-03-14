@@ -29,9 +29,11 @@ Export-ModuleMember -Function @(
     'Get-PcaiDirectCoreProbe',
     'Get-PcaiDirectTokenEstimate',
     'Get-PcaiDependencyStamp',
+    'Get-PcaiExternalCacheStatus',
     'Get-PcaiSharedCacheEntry',
     'Set-PcaiSharedCacheEntry',
     'Clear-PcaiSharedCache',
+    'Import-PcaiAccelerationStack',
     'Resolve-PcaiRepoRoot',
     'Get-PcaiRuntimeConfig',
     'Get-ScriptMetadata'

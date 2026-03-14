@@ -211,7 +211,10 @@ function Search-WithPcaiNativeContent {
                 continue
             }
 
-            foreach ($match in @($nativeResult.Matches | Where-Object { $_ })) {
+            foreach ($match in @($nativeResult.Matches)) {
+                if ($null -eq $match) {
+                    continue
+                }
                 $matches.Add([PSCustomObject]@{
                     Path       = $match.Path
                     LineNumber = $match.LineNumber
@@ -338,7 +341,7 @@ function Search-WithRipgrepAdvanced {
         foreach ($line in $output) {
             if ($line -match '^\{') {
                 try {
-                    $json = $line | ConvertFrom-Json
+                    $json = ConvertFrom-Json -InputObject $line
                     if ($json.type -eq 'match') {
                         $results.Add([PSCustomObject]@{
                             Path       = $json.data.path.text

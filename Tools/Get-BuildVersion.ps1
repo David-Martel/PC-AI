@@ -57,12 +57,121 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$script:GitContextRoot = Split-Path -Parent $PSScriptRoot
+
+function Import-CargoToolsBuildVersion {
+    [CmdletBinding()]
+    param()
+
+    if (Get-Command Get-BuildVersionInfo -ErrorAction SilentlyContinue) {
+        return $true
+    }
+
+    $candidates = @()
+    $manifestFromBootstrap = if (Get-Command Resolve-PcaiModuleManifestPath -ErrorAction SilentlyContinue) {
+        Resolve-PcaiModuleManifestPath -ModuleName 'CargoTools' -RepoRoot $script:GitContextRoot
+    } else {
+        $null
+    }
+    if ($manifestFromBootstrap) {
+        $candidates += $manifestFromBootstrap
+    }
+
+    $candidates += @(
+        'CargoTools',
+        'C:\Users\david\Documents\PowerShell\Modules\CargoTools\CargoTools.psd1',
+        'C:\Users\david\OneDrive\Documents\PowerShell\Modules\CargoTools\CargoTools.psd1'
+    )
+
+    foreach ($candidate in $candidates | Select-Object -Unique) {
+        try {
+            if ($candidate -eq 'CargoTools') {
+                Import-Module CargoTools -ErrorAction Stop | Out-Null
+            } elseif (Test-Path -LiteralPath $candidate) {
+                Import-Module $candidate -ErrorAction Stop | Out-Null
+            } else {
+                continue
+            }
+
+            if (Get-Command Get-BuildVersionInfo -ErrorAction SilentlyContinue) {
+                return $true
+            }
+        } catch {
+        }
+    }
+
+    return $false
+}
+
+function ConvertTo-PcaiVersionInfo {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [pscustomobject]$VersionInfo
+    )
+
+    $major = 0
+    $minor = 1
+    $patch = 0
+    $preRelease = ''
+    if ($VersionInfo.SemVer -match '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?:-(?<pre>[0-9A-Za-z.-]+))?$') {
+        $major = [int]$Matches.major
+        $minor = [int]$Matches.minor
+        $patch = [int]$Matches.patch
+        if ($Matches.ContainsKey('pre')) {
+            $preRelease = [string]$Matches.pre
+        }
+    }
+
+    return [pscustomobject]@{
+        Version         = $VersionInfo.Version
+        SemVer          = $VersionInfo.SemVer
+        Major           = $major
+        Minor           = $minor
+        Patch           = $patch
+        PreRelease      = $preRelease
+        GitHash         = $VersionInfo.GitHash
+        GitHashShort    = $VersionInfo.GitHashShort
+        GitBranch       = $VersionInfo.GitBranch
+        GitDescribe     = if ($VersionInfo.PSObject.Properties['GitDescribe']) { $VersionInfo.GitDescribe } else { '' }
+        GitTag          = $VersionInfo.ReleaseTag
+        CommitsSinceTag = $VersionInfo.CommitsSinceTag
+        Timestamp       = $VersionInfo.Timestamp
+        TimestampUnix   = $VersionInfo.TimestampUnix
+        IsDirty         = $VersionInfo.IsDirty
+        BuildType       = $VersionInfo.BuildType
+        Features        = @()
+        AssemblyVersion = $VersionInfo.AssemblyVersion
+        FileVersion     = $VersionInfo.FileVersion
+        InformationalVersion = $VersionInfo.InformationalVersion
+        ReleaseTag      = $VersionInfo.ReleaseTag
+    }
+}
+
+function Invoke-GitText {
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$Arguments
+    )
+
+    $output = & git -C $script:GitContextRoot @Arguments 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        return $null
+    }
+
+    return ($output -join "`n")
+}
 
 function Get-BuildVersion {
     [CmdletBinding()]
     param(
         [switch]$Quiet
     )
+
+    if (Import-CargoToolsBuildVersion) {
+        $sharedInfo = Get-BuildVersionInfo -RepoRoot $script:GitContextRoot -DefaultVersion '0.1.0'
+        return ConvertTo-PcaiVersionInfo -VersionInfo $sharedInfo
+    }
 
     $result = [ordered]@{
         Version         = ''
@@ -86,7 +195,7 @@ function Get-BuildVersion {
     # Get git information
     try {
         # Full commit hash
-        $result.GitHash = (git rev-parse HEAD 2>$null) -replace '\s', ''
+        $result.GitHash = (Invoke-GitText -Arguments @('rev-parse', 'HEAD')) -replace '\s', ''
         if (-not $result.GitHash) { $result.GitHash = 'unknown' }
 
         # Short hash (7 chars)
@@ -95,15 +204,15 @@ function Get-BuildVersion {
         } else { 'unknown' }
 
         # Current branch
-        $result.GitBranch = (git rev-parse --abbrev-ref HEAD 2>$null) -replace '\s', ''
+        $result.GitBranch = (Invoke-GitText -Arguments @('rev-parse', '--abbrev-ref', 'HEAD')) -replace '\s', ''
         if (-not $result.GitBranch) { $result.GitBranch = 'unknown' }
 
         # Check for dirty working tree
-        $status = git status --porcelain 2>$null
+        $status = Invoke-GitText -Arguments @('status', '--porcelain')
         $result.IsDirty = [bool]$status
 
         # Get most recent tag
-        $tagInfo = git describe --tags --long --always 2>$null
+        $tagInfo = Invoke-GitText -Arguments @('describe', '--tags', '--long', '--always')
         if ($tagInfo -match '^v?(\d+)\.(\d+)\.(\d+)(-([a-zA-Z0-9.-]+))?-(\d+)-g([a-f0-9]+)$') {
             $result.Major = [int]$Matches[1]
             $result.Minor = [int]$Matches[2]
@@ -129,7 +238,7 @@ function Get-BuildVersion {
         }
         else {
             # No valid tag found, count all commits
-            $commitCount = (git rev-list --count HEAD 2>$null) -replace '\s', ''
+            $commitCount = (Invoke-GitText -Arguments @('rev-list', '--count', 'HEAD')) -replace '\s', ''
             if ($commitCount) {
                 $result.CommitsSinceTag = [int]$commitCount
             }
@@ -183,21 +292,26 @@ $versionInfo = Get-BuildVersion -Quiet:$Quiet
 
 # Set environment variables if requested
 if ($SetEnv) {
-    $env:PCAI_VERSION = $versionInfo.Version
-    $env:PCAI_SEMVER = $versionInfo.SemVer
+    if (Get-Command Set-BuildVersionEnvironment -ErrorAction SilentlyContinue) {
+        Set-BuildVersionEnvironment -VersionInfo $versionInfo -Prefixes @('BUILD', 'PCAI') | Out-Null
+    } else {
+        $env:PCAI_VERSION = $versionInfo.Version
+        $env:PCAI_SEMVER = $versionInfo.SemVer
+        $env:PCAI_GIT_HASH = $versionInfo.GitHash
+        $env:PCAI_GIT_HASH_SHORT = $versionInfo.GitHashShort
+        $env:PCAI_GIT_BRANCH = $versionInfo.GitBranch
+        $env:PCAI_BUILD_TIMESTAMP = $versionInfo.Timestamp
+        $env:PCAI_BUILD_TIMESTAMP_UNIX = $versionInfo.TimestampUnix
+        $env:PCAI_BUILD_TYPE = $versionInfo.BuildType
+        $env:PCAI_BUILD_DIRTY = if ($versionInfo.IsDirty) { '1' } else { '0' }
+        $env:PCAI_BUILD_VERSION = $versionInfo.Version
+    }
+
     $env:PCAI_VERSION_MAJOR = $versionInfo.Major
     $env:PCAI_VERSION_MINOR = $versionInfo.Minor
     $env:PCAI_VERSION_PATCH = $versionInfo.Patch
-    $env:PCAI_GIT_HASH = $versionInfo.GitHash
-    $env:PCAI_GIT_HASH_SHORT = $versionInfo.GitHashShort
-    $env:PCAI_GIT_BRANCH = $versionInfo.GitBranch
     $env:PCAI_GIT_TAG = $versionInfo.GitTag
-    $env:PCAI_BUILD_TIMESTAMP = $versionInfo.Timestamp
-    $env:PCAI_BUILD_TIMESTAMP_UNIX = $versionInfo.TimestampUnix
-    $env:PCAI_BUILD_TYPE = $versionInfo.BuildType
-    $env:PCAI_BUILD_DIRTY = if ($versionInfo.IsDirty) { '1' } else { '0' }
-
-    # Also set for Cargo build.rs
+    $env:PCAI_RELEASE_TAG = $versionInfo.GitTag
     $env:PCAI_BUILD_VERSION = $versionInfo.Version
 
     if (-not $Quiet) {

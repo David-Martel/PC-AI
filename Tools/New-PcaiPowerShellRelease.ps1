@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$OutputRoot = (Join-Path $PSScriptRoot '..\Release\PowerShell'),
-    [string]$ModuleVersion = '1.0.0',
+    [string]$ModuleVersion,
     [switch]$Clean
 )
 
@@ -9,11 +9,25 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
+$buildVersionScript = Join-Path $PSScriptRoot 'Get-BuildVersion.ps1'
 $sourceModulesRoot = Join-Path $projectRoot 'Modules'
 $sourceConfigRoot = Join-Path $projectRoot 'Config'
 $targetModuleRoot = Join-Path $OutputRoot 'PC-AI'
 $targetModulesRoot = Join-Path $targetModuleRoot 'Modules'
 $targetConfigRoot = Join-Path $targetModuleRoot 'Config'
+
+if (-not $ModuleVersion) {
+    $ModuleVersion = '1.0.0'
+    if (Test-Path -LiteralPath $buildVersionScript) {
+        try {
+            $buildVersion = & $buildVersionScript -Quiet
+            if ($buildVersion -and $buildVersion.SemVer) {
+                $ModuleVersion = $buildVersion.SemVer
+            }
+        } catch {
+        }
+    }
+}
 
 $moduleFolders = @(
     'PC-AI.Acceleration',
@@ -180,6 +194,18 @@ $licenseSource = Join-Path $projectRoot 'LICENSE'
 if (Test-Path -LiteralPath $licenseSource) {
     Copy-Item -LiteralPath $licenseSource -Destination (Join-Path $targetModuleRoot 'LICENSE') -Force
 }
+
+$releaseInfoPath = Join-Path $targetModuleRoot 'RELEASE_INFO.json'
+$releaseInfo = [ordered]@{
+    ModuleName = 'PC-AI'
+    ModuleVersion = $ModuleVersion
+    SourceRoot = $projectRoot
+    GeneratedAtUtc = [DateTime]::UtcNow.ToString('o')
+}
+if ($buildVersion) {
+    $releaseInfo.BuildVersion = $buildVersion
+}
+$releaseInfo | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $releaseInfoPath -Encoding UTF8
 
 $result = [PSCustomObject]@{
     OutputRoot = $OutputRoot

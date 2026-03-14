@@ -33,7 +33,7 @@ PC_AI/
 ├── Native/PcaiNative/                 # C# P/Invoke wrapper for PowerShell
 ├── Native/PcaiChatTui/                # C# interactive chat TUI (async backends)
 ├── Native/PcaiServiceHost/            # C# Windows service host for inference
-├── Native/NukeNul/                    # C# utility for null-file removal
+├── External: C:\codedev\nukenul\      # Standalone Rust/C# utility for null-file removal
 ├── AI-Media/                          # Python Janus-Pro media agent (CUDA)
 ├── Deploy/
 │   ├── rust-functiongemma/            # Rust workspace root (includes core/runtime/train)
@@ -153,6 +153,8 @@ The doc pipeline generates structured reports under `Reports/`:
 ```
 
 **Available `-Component` values:** `all` (default), `inference`, `llamacpp`, `mistralrs`, `functiongemma`, `functiongemma-router-data`, `functiongemma-token-cache`, `functiongemma-train`, `functiongemma-eval`, `media`, `tui`, `pcainative`, `servicehost`, `nukenul`, `native`, `lint`, `format`, `fix`, `deps`
+
+`nukenul` is now treated as an external project. `Build.ps1` resolves it from `$env:NUKENUL_ROOT`, then `C:\codedev\nukenul`, and only falls back to the legacy in-repo path if that still exists.
 
 **Build Output Structure:**
 

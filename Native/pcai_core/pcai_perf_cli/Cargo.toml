@@ -1,0 +1,17 @@
+[package]
+name = "pcai-perf"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Rust-native PC_AI performance CLI for PowerShell acceleration"
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rayon.workspace = true
+sha2.workspace = true
+hex.workspace = true
+pcai_core_lib = { path = "../pcai_core_lib" }

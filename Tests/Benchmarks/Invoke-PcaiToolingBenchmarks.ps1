@@ -450,9 +450,59 @@ function Get-ToolingCaseBenchmarks {
                 Results     = @($benchmarks)
             }
         }
+        'shared-cache-hit' {
+            $sharedCacheValue = [pscustomobject]@{
+                Name = 'pcai-benchmark'
+                Root = $RepoRoot
+                Stamp = (Get-Date).ToString('yyyyMMdd')
+            }
+            Invoke-CommonModuleCommand -ScriptBlock {
+                param($InnerValue)
+                Clear-PcaiSharedCache -Namespace 'pcai-benchmark'
+                Set-PcaiSharedCacheEntry -Namespace 'pcai-benchmark' -Key 'hit' -Value $InnerValue -TtlSeconds 120 | Out-Null
+            } -ArgumentList @($sharedCacheValue)
+
+            $scriptBlock = {
+                & $commonModule { Get-PcaiSharedCacheEntry -Namespace 'pcai-benchmark' -Key 'hit' -TtlSeconds 120 | Out-Null }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup)
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
+        'external-cache-status' {
+            $scriptBlock = {
+                & $commonModule { Get-PcaiExternalCacheStatus | Out-Null }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup)
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
         'acceleration-probe' {
             $scriptBlock = {
                 & $commonModule { Get-PcaiAccelerationProbe | Out-Null }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup)
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
+        'acceleration-stack' {
+            $scriptBlock = {
+                & $commonModule { Import-PcaiAccelerationStack -Modules @('ProfileAccelerator', 'PC-AI.Acceleration') -RepoRoot $RepoRoot | Out-Null }
             }.GetNewClosure()
             Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{

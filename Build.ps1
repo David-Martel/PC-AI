@@ -31,7 +31,7 @@
     - tui: PcaiChatTui .NET chat terminal UI
     - pcainative: PcaiNative .NET interop wrapper
     - servicehost: PcaiServiceHost .NET host binary
-    - nukenul: Hybrid Rust/C# Native/NukeNul utility
+    - nukenul: Hybrid Rust/C# NukeNul utility (external repo preferred)
     - lint: Run repository lint checks only
     - format: Run formatting checks only
     - fix: Apply automated formatting/fixes where supported
@@ -122,7 +122,7 @@
 
 .EXAMPLE
     .\Build.ps1 -Component nukenul
-    Build Native/NukeNul hybrid Rust + C# utility.
+    Build the NukeNul hybrid Rust + C# utility from `NUKENUL_ROOT` or `C:\codedev\nukenul`.
 
 .EXAMPLE
     .\Build.ps1 -Component lint -LintProfile all
@@ -185,9 +185,36 @@ $script:CargoToolsEnabled = $false
 $script:RustBuildWrapper = Join-Path $script:ProjectRoot 'Tools\Invoke-RustBuild.ps1'
 $script:DependencyStrategy = $DependencyStrategy
 $script:PcaiModuleBootstrap = Join-Path $script:ProjectRoot 'Tools\PcaiModuleBootstrap.ps1'
+$script:NukeNulRootCandidates = @(
+    $env:NUKENUL_ROOT,
+    'C:\codedev\nukenul',
+    (Join-Path $script:ProjectRoot 'Native\NukeNul')
+) | Where-Object { $_ }
 
 if (Test-Path -LiteralPath $script:PcaiModuleBootstrap) {
     . $script:PcaiModuleBootstrap
+}
+
+function Resolve-NukeNulProjectRoot {
+    foreach ($candidate in $script:NukeNulRootCandidates) {
+        if (-not $candidate) { continue }
+
+        $resolved = try {
+            if (Test-Path -LiteralPath $candidate) {
+                (Resolve-Path -LiteralPath $candidate -ErrorAction Stop).Path
+            } else {
+                [System.IO.Path]::GetFullPath($candidate)
+            }
+        } catch {
+            continue
+        }
+
+        if (Test-Path -LiteralPath (Join-Path $resolved 'NukeNul.csproj')) {
+            return $resolved
+        }
+    }
+
+    return $null
 }
 
 #region Output Formatting
@@ -262,7 +289,7 @@ function Write-BuildResult {
     Write-Host $status -ForegroundColor $color -NoNewline
     Write-Host " ($($Duration.ToString('mm\:ss')))"
 
-    if ($Artifacts -and $Artifacts.Count -gt 0) {
+    if ($Artifacts -and @($Artifacts).Count -gt 0) {
         Write-Host '  Artifacts:' -ForegroundColor DarkGray
         foreach ($artifact in $Artifacts) {
             Write-Host "    - $artifact" -ForegroundColor DarkGray
@@ -276,7 +303,7 @@ function Write-BuildSummary {
         [string]$ManifestPath
     )
     $elapsed = (Get-Date) - $script:StartTime
-    $successCount = ($Results.Values | Where-Object { $_.Success }).Count
+    $successCount = @($Results.Values | Where-Object { $_.Success }).Count
     $totalCount = $Results.Count
 
     Write-BuildHeader 'BUILD SUMMARY'
@@ -528,6 +555,11 @@ function Resolve-CargoOutputDirectory {
         [string]$Configuration
     )
 
+    if (Get-Command Resolve-CargoTargetDirectory -ErrorAction SilentlyContinue) {
+        $manifestPath = Join-Path $ProjectDir 'Cargo.toml'
+        return Resolve-CargoTargetDirectory -ProjectDir $ProjectDir -ManifestPath $manifestPath -Configuration $Configuration
+    }
+
     $configDir = $Configuration.ToLower()
     if ($env:CARGO_TARGET_DIR) {
         $sharedTargetDir = Join-Path $env:CARGO_TARGET_DIR $configDir
@@ -537,6 +569,155 @@ function Resolve-CargoOutputDirectory {
     }
 
     return Join-Path $ProjectDir "target\$configDir"
+}
+
+function Publish-StagedArtifact {
+    param(
+        [Parameter(Mandatory)]
+        [string]$SourcePath,
+        [Parameter(Mandatory)]
+        [string]$DestinationDirectory,
+        [string]$DestinationFileName,
+        [string]$ArtifactKind = 'binary'
+    )
+
+    if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
+        return $null
+    }
+
+    if (Get-Command Publish-BuildArtifact -ErrorAction SilentlyContinue) {
+        return Publish-BuildArtifact -SourcePath $SourcePath -DestinationDirectory $DestinationDirectory -DestinationFileName $DestinationFileName -VersionInfo $script:VersionInfo -ArtifactKind $ArtifactKind
+    }
+
+    if (-not (Test-Path -LiteralPath $DestinationDirectory)) {
+        New-Item -ItemType Directory -Path $DestinationDirectory -Force | Out-Null
+    }
+
+    if (-not $DestinationFileName) {
+        $DestinationFileName = [System.IO.Path]::GetFileName($SourcePath)
+    }
+
+    $destinationPath = Join-Path $DestinationDirectory $DestinationFileName
+    Copy-Item -LiteralPath $SourcePath -Destination $destinationPath -Force
+    return [pscustomobject]@{
+        DestinationPath = $destinationPath
+        ManifestPath = $null
+        FileName = [System.IO.Path]::GetFileName($destinationPath)
+    }
+}
+
+function ConvertTo-SafePathLabel {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Value
+    )
+
+    $safe = $Value -replace '[^A-Za-z0-9._-]', '_'
+    $safe = $safe.Trim('_')
+    if ([string]::IsNullOrWhiteSpace($safe)) {
+        return 'unknown'
+    }
+
+    return $safe
+}
+
+function Publish-PcaiNativeBundle {
+    param(
+        [Parameter(Mandatory)]
+        [string]$PublishRoot,
+        [Parameter(Mandatory)]
+        [string]$Configuration
+    )
+
+    $repoBinRoot = Join-Path $script:ProjectRoot 'bin'
+    $bundleParent = Join-Path $repoBinRoot 'native-bundles'
+    if (-not (Test-Path -LiteralPath $bundleParent)) {
+        New-Item -ItemType Directory -Path $bundleParent -Force | Out-Null
+    }
+
+    $versionLabel = if ($script:VersionInfo) {
+        if ($script:VersionInfo.ReleaseTag) {
+            $script:VersionInfo.ReleaseTag
+        } elseif ($script:VersionInfo.InformationalVersion) {
+            $script:VersionInfo.InformationalVersion
+        } elseif ($script:VersionInfo.SemVer) {
+            $script:VersionInfo.SemVer
+        } else {
+            $script:VersionInfo.FileVersion
+        }
+    } else {
+        'unknown'
+    }
+
+    $bundleName = '{0}-{1}' -f (ConvertTo-SafePathLabel -Value $versionLabel), (Get-Date -Format 'yyyyMMdd-HHmmss')
+    $bundleRoot = Join-Path $bundleParent $bundleName
+    if (-not (Test-Path -LiteralPath $bundleRoot)) {
+        New-Item -ItemType Directory -Path $bundleRoot -Force | Out-Null
+    }
+
+    $coreProjectDir = Join-Path $script:ProjectRoot 'Native\\pcai_core'
+    $coreTargetDir = Resolve-CargoOutputDirectory -ProjectDir $coreProjectDir -Configuration $Configuration
+
+    $publishedEntries = [System.Collections.Generic.List[object]]::new()
+    $bundleSpecs = @(
+        @{ Name = 'PcaiNative.dll'; Source = (Join-Path $PublishRoot 'PcaiNative.dll'); Kind = 'managed-dotnet'; Required = $true },
+        @{ Name = 'PcaiNative.deps.json'; Source = (Join-Path $PublishRoot 'PcaiNative.deps.json'); Kind = 'managed-dotnet'; Required = $true },
+        @{ Name = 'PcaiNative.pdb'; Source = (Join-Path $PublishRoot 'PcaiNative.pdb'); Kind = 'managed-dotnet'; Required = $false },
+        @{ Name = 'PcaiNative.xml'; Source = (Join-Path $PublishRoot 'PcaiNative.xml'); Kind = 'managed-dotnet'; Required = $false },
+        @{ Name = 'pcai_core_lib.dll'; Source = (Join-Path $coreTargetDir 'pcai_core_lib.dll'); Fallback = (Join-Path $PublishRoot 'pcai_core_lib.dll'); Kind = 'native-rust'; Required = $true },
+        @{ Name = 'pcai_core_lib.pdb'; Source = (Join-Path $coreTargetDir 'pcai_core_lib.pdb'); Fallback = (Join-Path $PublishRoot 'pcai_core_lib.pdb'); Kind = 'native-rust'; Required = $false },
+        @{ Name = 'pcai_inference.dll'; Source = (Join-Path $coreTargetDir 'pcai_inference.dll'); Fallback = (Join-Path $PublishRoot 'pcai_inference.dll'); Kind = 'native-rust'; Required = $false }
+    )
+
+    foreach ($spec in $bundleSpecs) {
+        $sourcePath = $spec.Source
+        if ((-not $sourcePath -or -not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) -and $spec.ContainsKey('Fallback')) {
+            $fallback = $spec.Fallback
+            if ($fallback -and (Test-Path -LiteralPath $fallback -PathType Leaf)) {
+                $sourcePath = $fallback
+            }
+        }
+
+        if (-not $sourcePath -or -not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+            if ($spec.Required) {
+                throw "Required native bundle asset not found: $($spec.Name)"
+            }
+
+            continue
+        }
+
+        $published = Publish-StagedArtifact -SourcePath $sourcePath -DestinationDirectory $bundleRoot -DestinationFileName $spec.Name -ArtifactKind $spec.Kind
+        if ($published) {
+            $publishedEntries.Add([pscustomobject]@{
+                Name = $spec.Name
+                SourcePath = $sourcePath
+                DestinationPath = $published.DestinationPath
+                Sha256 = (Get-FileHash -LiteralPath $published.DestinationPath -Algorithm SHA256).Hash
+            })
+        }
+    }
+
+    $bundleManifest = [ordered]@{
+        bundleName = $bundleName
+        bundleRoot = $bundleRoot
+        createdAt = (Get-Date).ToUniversalTime().ToString('o')
+        configuration = $Configuration
+        releaseTag = if ($script:VersionInfo) { $script:VersionInfo.ReleaseTag } else { $null }
+        semVer = if ($script:VersionInfo) { $script:VersionInfo.SemVer } else { $null }
+        informationalVersion = if ($script:VersionInfo) { $script:VersionInfo.InformationalVersion } else { $null }
+        cargoTargetDir = $coreTargetDir
+        files = @($publishedEntries)
+    }
+
+    $manifestPath = Join-Path $bundleRoot 'bundle.buildinfo.json'
+    $bundleManifest | ConvertTo-Json -Depth 6 | Out-File -FilePath $manifestPath -Encoding utf8
+
+    return [pscustomobject]@{
+        BundleRoot = $bundleRoot
+        BundleName = $bundleName
+        ManifestPath = $manifestPath
+        Files = @($publishedEntries)
+    }
 }
 
 #endregion
@@ -636,7 +817,7 @@ function Get-QualityTargets {
         },
         @{
             Name = 'nukenul-core'
-            Path = Join-Path $script:ProjectRoot 'Native\NukeNul\nuker_core'
+            Path = if (Resolve-NukeNulProjectRoot) { Join-Path (Resolve-NukeNulProjectRoot) 'nuker_core' } else { $null }
         }
     ) | Where-Object { Test-Path $_.Path }
 }
@@ -1057,9 +1238,13 @@ function Invoke-DotnetFormatQuality {
     $projects = @(
         'Native\PcaiChatTui\PcaiChatTui.csproj',
         'Native\PcaiNative\PcaiNative.csproj',
-        'Native\PcaiServiceHost\PcaiServiceHost.csproj',
-        'Native\NukeNul\NukeNul.csproj'
+        'Native\PcaiServiceHost\PcaiServiceHost.csproj'
     ) | ForEach-Object { Join-Path $script:ProjectRoot $_ } | Where-Object { Test-Path $_ }
+
+    $nukeRoot = Resolve-NukeNulProjectRoot
+    if ($nukeRoot) {
+        $projects += (Join-Path $nukeRoot 'NukeNul.csproj')
+    }
 
     if (-not $projects -or $projects.Count -eq 0) {
         Write-BuildStep 'No C# project files found for dotnet format' 'warning'
@@ -1836,14 +2021,19 @@ function Invoke-DotnetComponentBuild {
     param(
         [Parameter(Mandatory)]
         [string]$ComponentName,
-        [Parameter(Mandatory)]
+        [string]$ProjectPath,
         [string]$ProjectRelativePath,
         [Parameter(Mandatory)]
         [string]$Configuration
     )
 
     $componentStart = Get-Date
-    $projectPath = Join-Path $script:ProjectRoot $ProjectRelativePath
+    if (-not $ProjectPath) {
+        if (-not $ProjectRelativePath) {
+            throw 'ProjectPath or ProjectRelativePath is required.'
+        }
+        $projectPath = Join-Path $script:ProjectRoot $ProjectRelativePath
+    }
 
     if (-not (Test-Path $projectPath)) {
         Write-BuildStep "$ComponentName project not found: $projectPath" 'warning'
@@ -1871,6 +2061,14 @@ function Invoke-DotnetComponentBuild {
             '-p:PublishSingleFile=false',
             '-o', $publishRoot
         )
+        if ($script:VersionInfo) {
+            $dotnetArgs += @(
+                "-p:Version=$($script:VersionInfo.SemVer)",
+                "-p:AssemblyVersion=$($script:VersionInfo.AssemblyVersion)",
+                "-p:FileVersion=$($script:VersionInfo.FileVersion)",
+                "-p:InformationalVersion=$($script:VersionInfo.InformationalVersion)"
+            )
+        }
 
         & dotnet @dotnetArgs 2>&1 | Tee-Object -FilePath $logFile | Out-Null
         $success = $LASTEXITCODE -eq 0
@@ -1887,8 +2085,17 @@ function Invoke-DotnetComponentBuild {
             }
 
             foreach ($file in $filesToStage) {
-                Copy-Item $file.FullName -Destination $artifactDir -Force
-                $artifacts += $file.Name
+                $published = Publish-StagedArtifact -SourcePath $file.FullName -DestinationDirectory $artifactDir -DestinationFileName $file.Name -ArtifactKind 'managed-dotnet'
+                if ($published) {
+                    $artifacts += $file.Name
+                }
+            }
+
+            if ($ComponentName -eq 'pcai-native') {
+                $nativeBundle = Publish-PcaiNativeBundle -PublishRoot $publishRoot -Configuration $Configuration
+                if ($nativeBundle) {
+                    $artifacts += ("native-bundles/{0}" -f $nativeBundle.BundleName)
+                }
             }
         }
 
@@ -1957,7 +2164,7 @@ function Invoke-MediaBuild {
         foreach ($file in @('pcai_media.dll', 'pcai_media.dll.lib', 'pcai_media.pdb', 'pcai-media.exe', 'pcai-media.pdb')) {
             $src = Join-Path $targetDir $file
             if (Test-Path $src) {
-                Copy-Item $src -Destination $artifactDir -Force
+                Publish-StagedArtifact -SourcePath $src -DestinationDirectory $artifactDir -DestinationFileName $file -ArtifactKind 'native-rust' | Out-Null
                 $artifacts += $file
             }
         }
@@ -1983,7 +2190,11 @@ function Invoke-NukeNulBuild {
     param([string]$Configuration)
 
     $componentStart = Get-Date
-    $nukeRoot = Join-Path $script:ProjectRoot 'Native\NukeNul'
+    $nukeRoot = Resolve-NukeNulProjectRoot
+    if (-not $nukeRoot) {
+        Write-BuildStep 'NukeNul project root not found. Set NUKENUL_ROOT or install the external repo at C:\codedev\nukenul' 'warning'
+        return @{ Success = $false; Duration = (Get-Date) - $componentStart; Artifacts = @() }
+    }
     $rustDir = Join-Path $nukeRoot 'nuker_core'
     $projectPath = Join-Path $nukeRoot 'NukeNul.csproj'
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
@@ -2017,11 +2228,11 @@ function Invoke-NukeNulBuild {
         $rustTarget = Resolve-CargoOutputDirectory -ProjectDir $rustDir -Configuration $Configuration
         $rustDll = Join-Path $rustTarget 'nuker_core.dll'
         if (Test-Path $rustDll) {
-            Copy-Item $rustDll -Destination $nukeRoot -Force
-            Copy-Item $rustDll -Destination $artifactDir -Force
+            Publish-StagedArtifact -SourcePath $rustDll -DestinationDirectory $nukeRoot -DestinationFileName 'nuker_core.dll' -ArtifactKind 'native-rust' | Out-Null
+            Publish-StagedArtifact -SourcePath $rustDll -DestinationDirectory $artifactDir -DestinationFileName 'nuker_core.dll' -ArtifactKind 'native-rust' | Out-Null
         }
 
-        $dotnetResult = Invoke-DotnetComponentBuild -ComponentName 'nukenul' -ProjectRelativePath 'Native\NukeNul\NukeNul.csproj' -Configuration $Configuration
+        $dotnetResult = Invoke-DotnetComponentBuild -ComponentName 'nukenul' -ProjectPath $projectPath -Configuration $Configuration
         $artifacts = @($dotnetResult.Artifacts)
         if (Test-Path $rustDll) {
             $artifacts += 'nuker_core.dll'
@@ -2090,6 +2301,7 @@ function New-BuildManifest {
         manifestVersion    = '2.0'
         pcaiVersion        = $version
         semver             = $semver
+        releaseTag         = if ($env:PCAI_RELEASE_TAG) { $env:PCAI_RELEASE_TAG } elseif ($script:VersionInfo) { $script:VersionInfo.ReleaseTag } else { '' }
         buildTime          = (Get-Date).ToUniversalTime().ToString('o')
         buildTimestampUnix = [int][double]::Parse((Get-Date -UFormat %s))
         configuration      = $Configuration
@@ -2444,9 +2656,9 @@ if ($Deploy) {
 Write-BuildSummary -Results $results -ManifestPath $manifestPath
 
 # Exit with appropriate code
-$failedCount = ($results.Values | Where-Object { -not $_.Success }).Count
+$failedCount = @($results.Values | Where-Object { -not $_.Success }).Count
 if ($RunTests -and -not $SkipTests -and $testResult -and -not $testResult.Success) {
-    $failedCount += $testResult.Failed.Count
+    $failedCount += @($testResult.Failed).Count
 }
 exit $failedCount
 

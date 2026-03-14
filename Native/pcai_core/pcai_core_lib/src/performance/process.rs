@@ -2,6 +2,7 @@
 //!
 //! Process enumeration and statistics gathering using sysinfo crate.
 
+use crate::string::{bytes_to_buffer, PcaiByteBuffer};
 use crate::PcaiStatus;
 use serde::Serialize;
 use sysinfo::{Pid, ProcessesToUpdate, System};
@@ -60,6 +61,39 @@ pub struct ProcessListJson {
     pub processes: Vec<ProcessInfo>,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ProcessListCompactHeader {
+    pub status: PcaiStatus,
+    pub reserved: u32,
+    pub total_processes: u32,
+    pub total_threads: u32,
+    pub system_cpu_usage: f32,
+    pub _cpu_padding: [u8; 4],
+    pub system_memory_used_bytes: u64,
+    pub system_memory_total_bytes: u64,
+    pub elapsed_ms: u64,
+    pub sort_by_offset: u32,
+    pub sort_by_length: u32,
+    pub entry_count: u64,
+    pub string_bytes: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ProcessListCompactEntry {
+    pub pid: u32,
+    pub name_offset: u32,
+    pub name_length: u32,
+    pub status_offset: u32,
+    pub status_length: u32,
+    pub exe_path_offset: u32,
+    pub exe_path_length: u32,
+    pub cpu_usage: f32,
+    pub _cpu_padding: [u8; 4],
+    pub memory_bytes: u64,
+}
+
 /// Format bytes as human-readable string
 fn format_bytes(bytes: u64) -> String {
     const KB: u64 = 1024;
@@ -75,6 +109,94 @@ fn format_bytes(bytes: u64) -> String {
     } else {
         format!("{} B", bytes)
     }
+}
+
+fn append_pod<T: Copy>(target: &mut Vec<u8>, value: &T) {
+    let bytes = unsafe {
+        std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>())
+    };
+    target.extend_from_slice(bytes);
+}
+
+fn append_pod_slice<T: Copy>(target: &mut Vec<u8>, values: &[T]) {
+    if values.is_empty() {
+        return;
+    }
+
+    let bytes = unsafe {
+        std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values))
+    };
+    target.extend_from_slice(bytes);
+}
+
+fn usize_to_u32(value: usize) -> Result<u32, PcaiStatus> {
+    u32::try_from(value).map_err(|_| PcaiStatus::OutOfMemory)
+}
+
+fn append_string(string_data: &mut Vec<u8>, value: &str) -> Result<(u32, u32), PcaiStatus> {
+    let bytes = value.as_bytes();
+    let offset = usize_to_u32(string_data.len())?;
+    string_data.extend_from_slice(bytes);
+    let length = usize_to_u32(bytes.len())?;
+    Ok((offset, length))
+}
+
+pub fn pack_top_processes_compact(
+    stats: &ProcessStats,
+    sort_by: &str,
+    processes: &[ProcessInfo],
+) -> Result<PcaiByteBuffer, PcaiStatus> {
+    let mut string_data = Vec::new();
+    let (sort_by_offset, sort_by_length) = append_string(&mut string_data, sort_by)?;
+    let mut entries = Vec::with_capacity(processes.len());
+
+    for process in processes {
+        let (name_offset, name_length) = append_string(&mut string_data, &process.name)?;
+        let (status_offset, status_length) = append_string(&mut string_data, &process.status)?;
+        let (exe_path_offset, exe_path_length) = match process.exe_path.as_deref() {
+            Some(path) => append_string(&mut string_data, path)?,
+            None => (0, 0),
+        };
+
+        entries.push(ProcessListCompactEntry {
+            pid: process.pid,
+            name_offset,
+            name_length,
+            status_offset,
+            status_length,
+            exe_path_offset,
+            exe_path_length,
+            cpu_usage: process.cpu_usage,
+            _cpu_padding: [0; 4],
+            memory_bytes: process.memory_bytes,
+        });
+    }
+
+    let header = ProcessListCompactHeader {
+        status: stats.status,
+        reserved: 0,
+        total_processes: stats.total_processes,
+        total_threads: stats.total_threads,
+        system_cpu_usage: stats.system_cpu_usage,
+        _cpu_padding: [0; 4],
+        system_memory_used_bytes: stats.system_memory_used_bytes,
+        system_memory_total_bytes: stats.system_memory_total_bytes,
+        elapsed_ms: stats.elapsed_ms,
+        sort_by_offset,
+        sort_by_length,
+        entry_count: entries.len() as u64,
+        string_bytes: string_data.len() as u64,
+    };
+
+    let mut packed = Vec::with_capacity(
+        std::mem::size_of::<ProcessListCompactHeader>()
+            + (entries.len() * std::mem::size_of::<ProcessListCompactEntry>())
+            + string_data.len(),
+    );
+    append_pod(&mut packed, &header);
+    append_pod_slice(&mut packed, &entries);
+    packed.extend_from_slice(&string_data);
+    Ok(bytes_to_buffer(packed))
 }
 
 /// Get system-wide process statistics

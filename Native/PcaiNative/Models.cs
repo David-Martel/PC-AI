@@ -95,6 +95,22 @@ public struct PcaiByteBuffer
         Marshal.Copy(Data, bytes, 0, length);
         return bytes;
     }
+
+    public readonly unsafe ReadOnlySpan<byte> AsReadOnlySpan()
+    {
+        if (!IsValid)
+        {
+            return ReadOnlySpan<byte>.Empty;
+        }
+
+        var length = checked((int)(ulong)Length);
+        if (length == 0)
+        {
+            return ReadOnlySpan<byte>.Empty;
+        }
+
+        return new ReadOnlySpan<byte>(Data.ToPointer(), length);
+    }
 }
 
 /// <summary>

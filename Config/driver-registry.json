@@ -1,0 +1,215 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-03-11T00:00:00Z",
+  "trustedSources": [
+    {
+      "id": "realtek",
+      "name": "Realtek Semiconductor",
+      "baseUrl": "https://www.realtek.com",
+      "type": "vendor"
+    },
+    {
+      "id": "caldigit",
+      "name": "CalDigit",
+      "baseUrl": "https://caldigit.com",
+      "type": "vendor"
+    },
+    {
+      "id": "windows-update",
+      "name": "Microsoft Windows Update",
+      "baseUrl": "https://www.catalog.update.microsoft.com",
+      "type": "os"
+    }
+  ],
+  "categories": {
+    "network": {
+      "displayName": "Network Adapters",
+      "icon": "network"
+    },
+    "hub": {
+      "displayName": "USB / Thunderbolt Hubs",
+      "icon": "hub"
+    },
+    "bluetooth": {
+      "displayName": "Bluetooth",
+      "icon": "bluetooth"
+    },
+    "wireless": {
+      "displayName": "Wi-Fi",
+      "icon": "wifi"
+    },
+    "audio": {
+      "displayName": "Audio",
+      "icon": "audio"
+    }
+  },
+  "devices": [
+    {
+      "id": "realtek-rtl8156",
+      "name": "Realtek RTL8156 USB 2.5GbE Controller",
+      "category": "network",
+      "matchRules": [
+        { "type": "vid_pid", "vid": "0BDA", "pid": "8156" }
+      ],
+      "driver": {
+        "sourceId": "realtek",
+        "latestVersion": "1156.21.20.1110",
+        "packageVersion": "11.21.1110.2025",
+        "releaseDate": "2025-10-09",
+        "certification": "WHQL",
+        "downloadUrl": null,
+        "manualDownloadUrl": "https://www.realtek.com/Download/List?cate_id=585",
+        "installerType": "inf",
+        "infPath": "WIN11/cx/64/rtu56cx22x64sta.INF",
+        "sha256": null,
+        "versionComparable": true,
+        "notes": "Unified package covers RTL8152/8153/8156/8157/8159. Download SFX exe, extract with 7z, install INF via pnputil. Setup.exe hangs - use Install-InfDriver.ps1 instead."
+      },
+      "sharedDriverGroup": "realtek-usb-ethernet"
+    },
+    {
+      "id": "realtek-rtl8157",
+      "name": "Realtek RTL8157 USB 5GbE Controller",
+      "category": "network",
+      "matchRules": [
+        { "type": "vid_pid", "vid": "0BDA", "pid": "8157" }
+      ],
+      "driver": {
+        "sourceId": "realtek",
+        "latestVersion": "1157.21.20.1110",
+        "packageVersion": "11.21.1110.2025",
+        "releaseDate": "2025-10-09",
+        "certification": "WHQL",
+        "downloadUrl": null,
+        "manualDownloadUrl": "https://www.realtek.com/Download/List?cate_id=585",
+        "installerType": "inf",
+        "infPath": "WIN11/cx/64/rtu57cx22x64sta.INF",
+        "sha256": null,
+        "versionComparable": true,
+        "notes": "Unified package covers RTL8152/8153/8156/8157/8159. Download SFX exe, extract with 7z, install INF via pnputil. Setup.exe hangs - use Install-InfDriver.ps1 instead."
+      },
+      "sharedDriverGroup": "realtek-usb-ethernet"
+    },
+    {
+      "id": "caldigit-element-hub",
+      "name": "CalDigit Element Hub",
+      "category": "hub",
+      "matchRules": [
+        { "type": "friendly_name", "pattern": "*CalDigit*Element*" }
+      ],
+      "driver": {
+        "sourceId": "caldigit",
+        "latestVersion": "45.1",
+        "releaseDate": null,
+        "certification": null,
+        "downloadUrl": "https://downloads.caldigit.com/CalDigit-TBT-Firmware-Updater-v7.3.zip",
+        "manualDownloadUrl": "https://www.caldigit.com/element-hub/",
+        "installerType": "zip-with-exe",
+        "sha256": null,
+        "versionComparable": false,
+        "notes": "Firmware v45.1; requires CalDigit Updater v7.3 or later. Version is firmware, not driver."
+      },
+      "sharedDriverGroup": null
+    },
+    {
+      "id": "cable-matters-107064",
+      "name": "Cable Matters 107064 USB4 Hub",
+      "category": "hub",
+      "matchRules": [
+        { "type": "vid_pid", "vid": "8087", "pid": "5786" }
+      ],
+      "driver": {
+        "sourceId": null,
+        "latestVersion": null,
+        "releaseDate": null,
+        "certification": null,
+        "downloadUrl": null,
+        "manualDownloadUrl": null,
+        "installerType": "none",
+        "sha256": null,
+        "notes": "No driver updates available; uses inbox USB4 driver"
+      },
+      "sharedDriverGroup": null
+    },
+    {
+      "id": "acasis-tbu405pro",
+      "name": "ACASIS TBU405Pro Thunderbolt Hub",
+      "category": "hub",
+      "matchRules": [
+        { "type": "friendly_name", "pattern": "*ACASIS*TBU405*" }
+      ],
+      "driver": {
+        "sourceId": null,
+        "latestVersion": null,
+        "releaseDate": null,
+        "certification": null,
+        "downloadUrl": null,
+        "manualDownloadUrl": null,
+        "installerType": "none",
+        "sha256": null,
+        "notes": "No driver updates available; uses inbox Thunderbolt driver"
+      },
+      "sharedDriverGroup": null
+    },
+    {
+      "id": "intel-wireless-bluetooth",
+      "name": "Intel Wireless Bluetooth",
+      "category": "bluetooth",
+      "matchRules": [
+        { "type": "friendly_name", "pattern": "*Intel*Wireless Bluetooth*" }
+      ],
+      "driver": {
+        "sourceId": "windows-update",
+        "latestVersion": null,
+        "releaseDate": null,
+        "certification": "WHQL",
+        "downloadUrl": null,
+        "manualDownloadUrl": null,
+        "installerType": "windows-update",
+        "sha256": null,
+        "notes": "Managed via Windows Update"
+      },
+      "sharedDriverGroup": "intel-wireless"
+    },
+    {
+      "id": "intel-wifi",
+      "name": "Intel Wi-Fi",
+      "category": "wireless",
+      "matchRules": [
+        { "type": "pci_class", "class": "network", "vendor": "8086", "subsystem": "lenovo" }
+      ],
+      "driver": {
+        "sourceId": "windows-update",
+        "latestVersion": null,
+        "releaseDate": null,
+        "certification": "WHQL",
+        "downloadUrl": null,
+        "manualDownloadUrl": null,
+        "installerType": "windows-update",
+        "sha256": null,
+        "notes": "Managed via Windows Update"
+      },
+      "sharedDriverGroup": "intel-wireless"
+    },
+    {
+      "id": "realtek-audio",
+      "name": "Realtek High Definition Audio",
+      "category": "audio",
+      "matchRules": [
+        { "type": "pci_class", "class": "multimedia", "vendor": "10EC" }
+      ],
+      "driver": {
+        "sourceId": "windows-update",
+        "latestVersion": null,
+        "releaseDate": null,
+        "certification": "WHQL",
+        "downloadUrl": null,
+        "manualDownloadUrl": null,
+        "installerType": "windows-update",
+        "sha256": null,
+        "notes": "Managed via Windows Update or Lenovo Vantage"
+      },
+      "sharedDriverGroup": null
+    }
+  ]
+}

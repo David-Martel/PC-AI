@@ -65,7 +65,7 @@ function Get-PCCommandMap {
     }
 
     if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
-        Set-PcaiSharedCacheEntry -Namespace 'pcai-cli' -Key "command-map::$root" -Value $map -DependencyStamp $dependencyStamp | Out-Null
+        Set-PcaiSharedCacheEntry -Namespace 'pcai-cli' -Key "command-map::$root" -Value $map -DependencyStamp $dependencyStamp -TtlSeconds 300 | Out-Null
     } else {
         $script:CommandMapCache = $map
         $script:CommandMapCacheKey = $cacheKey

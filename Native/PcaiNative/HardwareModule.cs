@@ -18,7 +18,16 @@ namespace PcaiNative
         /// Enumerates PnP devices based on an optional class filter.
         /// </summary>
         /// <param name="classFilter">Device class to filter for (e.g. "USB", "DiskDrive") or null.</param>
-        /// <returns>JSON string containing list of PnpDeviceDetail objects.</returns>
+        /// <returns>
+        /// JSON string containing a list of PnpDeviceDetail objects. Each object includes the following
+        /// driver fields sourced from the Windows device registry:
+        /// <list type="bullet">
+        ///   <item><description><c>driver_version</c> — installed driver version string (e.g. "10.0.26100.3775"), or <c>null</c> if not present.</description></item>
+        ///   <item><description><c>driver_date</c> — driver release date in ISO 8601 format (e.g. "2006-06-21"), or <c>null</c> if not present.</description></item>
+        ///   <item><description><c>driver_provider</c> — publisher of the driver (e.g. "Microsoft"), or <c>null</c> if not present.</description></item>
+        /// </list>
+        /// Returns <c>null</c> if the native library is unavailable or the call fails.
+        /// </returns>
         public static string? GetPnpDevicesJson(string? classFilter = null)
         {
             if (!IsAvailable) return null;

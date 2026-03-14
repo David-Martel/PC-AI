@@ -275,7 +275,7 @@ if ($IncludeRust) {
 
     $workspaceRoots = @(
         (Join-Path $RepoRoot 'Native\pcai_core')
-        (Join-Path $RepoRoot 'Native\NukeNul\nuker_core')
+        'C:\codedev\nukenul\nuker_core'
     )
 
     foreach ($root in $workspaceRoots) {

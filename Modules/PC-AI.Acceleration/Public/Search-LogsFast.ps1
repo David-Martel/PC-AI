@@ -124,7 +124,7 @@ function Search-WithPcaiNativeLogs {
     )
 
     $patterns = if ($Include -and $Include.Count -gt 0) { $Include } else { @($null) }
-    $matches = @()
+    $matches = [System.Collections.Generic.List[object]]::new()
     $total = 0
 
     foreach ($pattern in $patterns) {
@@ -141,23 +141,25 @@ function Search-WithPcaiNativeLogs {
                 continue
             }
 
-            $result = $json | ConvertFrom-Json
+            $result = ConvertFrom-Json -InputObject $json
 
             if ($CountOnly) {
                 $total += [int]$result.total_matches
                 continue
             }
 
-            foreach ($fileResult in ($result.results | Where-Object { $_ })) {
-                foreach ($match in ($fileResult.matches | Where-Object { $_ })) {
-                    $matches += [PSCustomObject]@{
+            foreach ($fileResult in @($result.results)) {
+                if ($null -eq $fileResult) { continue }
+                foreach ($match in @($fileResult.matches)) {
+                    if ($null -eq $match) { continue }
+                    $matches.Add([PSCustomObject]@{
                         Path          = $match.file_path
                         LineNumber    = $match.line_number
                         Line          = $match.line_content
                         ContextBefore = if ($match.context_before) { $match.context_before -join "`n" } else { '' }
                         ContextAfter  = if ($match.context_after) { $match.context_after -join "`n" } else { '' }
                         Tool          = 'pcai_native'
-                    }
+                    })
 
                     if ($MaxCount -gt 0 -and $matches.Count -ge $MaxCount) {
                         break
@@ -188,10 +190,10 @@ function Search-WithPcaiNativeLogs {
     }
 
     if ($MaxCount -gt 0) {
-        return $matches | Select-Object -First $MaxCount
+        return @($matches | Select-Object -First $MaxCount)
     }
 
-    return $matches
+    return @($matches)
 }
 
 function Search-WithRipgrep {
@@ -254,18 +256,18 @@ function Search-WithRipgrep {
             }
         }
 
-        $results = @()
+        $results = [System.Collections.Generic.List[object]]::new()
         foreach ($line in $output) {
             if ($line -match '^\{') {
                 try {
-                    $json = $line | ConvertFrom-Json
+                    $json = ConvertFrom-Json -InputObject $line
                     if ($json.type -eq 'match') {
-                        $results += [PSCustomObject]@{
+                        $results.Add([PSCustomObject]@{
                             Path       = $json.data.path.text
                             LineNumber = $json.data.line_number
                             Line       = $json.data.lines.text.TrimEnd()
                             Tool       = 'ripgrep'
-                        }
+                        })
                     }
                 }
                 catch {
@@ -273,7 +275,7 @@ function Search-WithRipgrep {
                 }
             }
         }
-        return $results
+        return @($results)
     }
     catch {
         Write-Warning "ripgrep search failed: $_"

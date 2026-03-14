@@ -1,11 +1,12 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Computes file hashes in parallel using PowerShell 7+ native parallelism
+    Computes file hashes in parallel using a compiled .NET helper
 
 .DESCRIPTION
-    Uses ForEach-Object -Parallel (PS7+) to compute hashes of multiple files
-    concurrently. Significantly faster than sequential hashing for multiple files.
+    Enumerates candidate files in PowerShell, then delegates the hot hashing path
+    to a compiled .NET helper. This avoids runspace overhead and is substantially
+    faster and more reliable than invoking PowerShell cmdlets inside worker threads.
 
 .PARAMETER Path
     File path(s) or directory to hash
@@ -62,11 +63,12 @@ function Get-FileHashParallel {
 
     begin {
         $allFiles = [System.Collections.Generic.List[string]]::new()
+        $totalBytes = [int64]0
     }
 
     process {
         foreach ($p in $Path) {
-            if (Test-Path $p -PathType Container) {
+            if ([System.IO.Directory]::Exists($p)) {
                 $params = @{
                     Path        = $p
                     File        = $true
@@ -91,10 +93,11 @@ function Get-FileHashParallel {
                     $_.Length -ge $MinimumSize -and $_.Length -le $MaximumSize
                 } | ForEach-Object {
                     $allFiles.Add($_.FullName)
+                    $totalBytes += $_.Length
                 }
             }
-            elseif (Test-Path $p -PathType Leaf) {
-                $fileInfo = Get-Item $p
+            elseif ([System.IO.File]::Exists($p)) {
+                $fileInfo = [System.IO.FileInfo]::new($p)
                 if ($fileInfo.Length -ge $MinimumSize -and $fileInfo.Length -le $MaximumSize) {
                     # Check if file matches Include patterns
                     $matchesInclude = $true
@@ -109,6 +112,7 @@ function Get-FileHashParallel {
                     }
                     if ($matchesInclude) {
                         $allFiles.Add($p)
+                        $totalBytes += $fileInfo.Length
                     }
                 }
             }
@@ -124,49 +128,107 @@ function Get-FileHashParallel {
         Write-Verbose "Hashing $($allFiles.Count) files with $ThrottleLimit concurrent threads"
 
         $startTime = Get-Date
+        $useSequentialFastPath = $allFiles.Count -le 32 -and $totalBytes -le 4MB
+        $pcaiPerfPath = Get-PcaiPerfToolPath
+        $useRustHashPath = $Algorithm -eq 'SHA256' -and $allFiles.Count -ge 4096 -and $pcaiPerfPath -and $env:PCAI_PREFER_RUST_HASHER -eq '1'
+        $pendingPaths = $allFiles.ToArray()
 
-        $results = $allFiles | ForEach-Object -Parallel {
-            $filePath = $_
-            $algo = $using:Algorithm
+        if ($useRustHashPath) {
+            $results = @(Get-FileHashWithPcaiPerf -ToolPath $pcaiPerfPath -FilePaths $pendingPaths -Algorithm $Algorithm)
+            if ($results.Count -eq 0) {
+                $useRustHashPath = $false
+            }
+        }
 
-            try {
-                $fileInfo = Get-Item $filePath -ErrorAction Stop
-                $hash = Get-FileHash -Path $filePath -Algorithm $algo -ErrorAction Stop
-
-                [PSCustomObject]@{
-                    Path      = $filePath
-                    Name      = $fileInfo.Name
-                    Hash      = $hash.Hash
-                    Algorithm = $algo
-                    SizeBytes = $fileInfo.Length
-                    SizeMB    = [Math]::Round($fileInfo.Length / 1MB, 2)
-                    Success   = $true
-                    Error     = $null
+        if (-not $results -and -not $useRustHashPath -and $useSequentialFastPath) {
+            Write-Verbose "Using sequential hash fast path for small workload ($($allFiles.Count) files, $([Math]::Round($totalBytes / 1MB, 2)) MB)"
+            $results = foreach ($filePath in $pendingPaths) {
+                try {
+                    $hashResult = Get-FileHash -Path $filePath -Algorithm $Algorithm -ErrorAction Stop
+                    $fileInfo = [System.IO.FileInfo]::new($filePath)
+                    [PSCustomObject]@{
+                        Path      = $filePath
+                        Name      = $fileInfo.Name
+                        Hash      = $hashResult.Hash
+                        Algorithm = $Algorithm
+                        SizeBytes = $fileInfo.Length
+                        SizeMB    = [Math]::Round($fileInfo.Length / 1MB, 2)
+                        Success   = $true
+                        Error     = $null
+                    }
+                }
+                catch {
+                    [PSCustomObject]@{
+                        Path      = $filePath
+                        Name      = [System.IO.Path]::GetFileName($filePath)
+                        Hash      = $null
+                        Algorithm = $Algorithm
+                        SizeBytes = 0
+                        SizeMB    = 0
+                        Success   = $false
+                        Error     = $_.Exception.Message
+                    }
                 }
             }
-            catch {
-                [PSCustomObject]@{
-                    Path      = $filePath
-                    Name      = (Split-Path $filePath -Leaf)
-                    Hash      = $null
-                    Algorithm = $algo
-                    SizeBytes = 0
-                    SizeMB    = 0
-                    Success   = $false
-                    Error     = $_.Exception.Message
+        }
+        elseif (-not $results -and -not $useRustHashPath) {
+            $results = @(Invoke-ParallelFileHash -FilePaths $pendingPaths -Algorithm $Algorithm -MaxDegreeOfParallelism $ThrottleLimit)
+        }
+
+        if ($VerbosePreference -ne 'SilentlyContinue') {
+            $endTime = Get-Date
+            $duration = ($endTime - $startTime).TotalSeconds
+            $successCount = 0
+            $totalSize = [int64]0
+
+            foreach ($result in $results) {
+                if ($result.Success) {
+                    $successCount++
+                    $sizeValue = if ($null -ne $result.SizeBytes) { $result.SizeBytes } else { $result.Size }
+                    $totalSize += [int64]$sizeValue
                 }
             }
-        } -ThrottleLimit $ThrottleLimit
 
-        $endTime = Get-Date
-        $duration = ($endTime - $startTime).TotalSeconds
-
-        $successCount = ($results | Where-Object Success).Count
-        $totalSize = ($results | Where-Object Success | Measure-Object -Property SizeBytes -Sum).Sum
-
-        Write-Verbose "Hashed $successCount files ($([Math]::Round($totalSize / 1MB, 2)) MB) in $([Math]::Round($duration, 2)) seconds"
-        Write-Verbose "Throughput: $([Math]::Round(($totalSize / 1MB) / $duration, 2)) MB/s"
+            Write-Verbose "Hashed $successCount files ($([Math]::Round($totalSize / 1MB, 2)) MB) in $([Math]::Round($duration, 2)) seconds"
+            if ($duration -gt 0) {
+                Write-Verbose "Throughput: $([Math]::Round(($totalSize / 1MB) / $duration, 2)) MB/s"
+            }
+        }
 
         return $results
+    }
+}
+
+function Get-FileHashWithPcaiPerf {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ToolPath,
+        [Parameter(Mandatory)]
+        [string[]]$FilePaths,
+        [Parameter(Mandatory)]
+        [string]$Algorithm
+    )
+
+    try {
+        if (Get-Command Invoke-PcaiPerfWorkerRequest -ErrorAction SilentlyContinue) {
+            $result = Invoke-PcaiPerfWorkerRequest -ToolPath $ToolPath -Command 'hash-list' -Payload @{
+                algorithm = $Algorithm
+                paths     = $FilePaths
+            }
+            if ($result) {
+                return @($result)
+            }
+        }
+
+        $json = & $ToolPath 'hash-list' '--algorithm' $Algorithm @FilePaths 2>$null
+        if (-not $json) {
+            return @()
+        }
+
+        return @($json | ConvertFrom-Json)
+    } catch {
+        Write-Verbose "pcai-perf hash-list failed: $_"
+        return @()
     }
 }

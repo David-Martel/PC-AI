@@ -36,93 +36,67 @@ jobs:
         run: |
           $version = "${{ steps.version.outputs.VERSION }}"
           $releasePath = "PC-AI-$version"
-          $docsToCopy = @(
-            "README.md",
-            "DIAGNOSE.md",
-            "DIAGNOSE_LOGIC.md",
-            "CHAT.md",
-            "ARCHITECTURE.md",
-            "LICENSE"
-          )
+          $releaseModuleRoot = Join-Path $PWD "Release\PowerShell\PC-AI"
+          $packageModuleRoot = Join-Path $releasePath "PC-AI"
 
-          # Create release directory structure
-          New-Item -ItemType Directory -Path $releasePath -Force
-          New-Item -ItemType Directory -Path "$releasePath\Modules" -Force
-          New-Item -ItemType Directory -Path "$releasePath\Config" -Force
-          New-Item -ItemType Directory -Path "$releasePath\docs" -Force
-          New-Item -ItemType Directory -Path "$releasePath\Reports" -Force
-
-          # Copy entrypoint and runtime assets
-          Copy-Item -Path "PC-AI.ps1" -Destination $releasePath -Force
-          Copy-Item -Path "Modules\*" -Destination "$releasePath\Modules\" -Recurse -Force
-          Copy-Item -Path "Config\*" -Destination "$releasePath\Config\" -Recurse -Force
-          if (Test-Path "docs") {
-            Copy-Item -Path "docs\*" -Destination "$releasePath\docs\" -Recurse -Force
-          }
-          foreach ($doc in $docsToCopy) {
-            if (Test-Path $doc) {
-              Copy-Item -Path $doc -Destination $releasePath -Force
-            }
+          .\Tools\New-PcaiPowerShellRelease.ps1 -ModuleVersion $version -Clean | Out-Null
+          $validation = .\Tools\Test-PcaiReleaseModule.ps1 -ReleaseModulePath (Join-Path $releaseModuleRoot 'PC-AI.psd1')
+          if (-not $validation.Passed) {
+              throw "Release validation failed: $($validation.MissingCommands -join ', ')"
           }
 
-          # Create install script
+          if (Test-Path $releasePath) {
+              Remove-Item -LiteralPath $releasePath -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Path $releasePath -Force | Out-Null
+          Copy-Item -Path $releaseModuleRoot -Destination $releasePath -Recurse -Force
+
           @'
-          # PC_AI Installation Script
+          # PC-AI PowerShell module installer
           param(
-              [string]$InstallPath = "$env:LOCALAPPDATA\PC-AI",
-              [ValidateSet('CurrentUser', 'Machine', 'None')]
-              [string]$ModulePathScope = 'CurrentUser'
+              [ValidateSet('Documents', 'LocalAppData', 'OneDrive')]
+              [string]$Target = 'Documents'
           )
 
           $SourceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-          Write-Host "Installing PC_AI to $InstallPath..." -ForegroundColor Cyan
-
-          # Create installation directory
-          New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
-          New-Item -ItemType Directory -Path "$InstallPath\Modules" -Force | Out-Null
-          New-Item -ItemType Directory -Path "$InstallPath\Config" -Force | Out-Null
-          New-Item -ItemType Directory -Path "$InstallPath\docs" -Force | Out-Null
-          New-Item -ItemType Directory -Path "$InstallPath\Reports" -Force | Out-Null
-
-          # Copy runtime files
-          Copy-Item -Path "$SourceRoot\PC-AI.ps1" -Destination "$InstallPath\" -Force
-          Copy-Item -Path "$SourceRoot\Modules\*" -Destination "$InstallPath\Modules\" -Recurse -Force
-          Copy-Item -Path "$SourceRoot\Config\*" -Destination "$InstallPath\Config\" -Recurse -Force
-          if (Test-Path "$SourceRoot\docs") {
-              Copy-Item -Path "$SourceRoot\docs\*" -Destination "$InstallPath\docs\" -Recurse -Force
+          $ModuleSource = Join-Path $SourceRoot 'PC-AI'
+          if (-not (Test-Path -LiteralPath $ModuleSource)) {
+              throw "Module source not found: $ModuleSource"
           }
 
-          $rootDocs = @("README.md", "DIAGNOSE.md", "DIAGNOSE_LOGIC.md", "CHAT.md", "ARCHITECTURE.md", "LICENSE")
-          foreach ($doc in $rootDocs) {
-              $src = Join-Path $SourceRoot $doc
-              if (Test-Path $src) {
-                  Copy-Item -Path $src -Destination $InstallPath -Force
-              }
+          $modulesRoot = switch ($Target) {
+              'Documents' { Join-Path $env:USERPROFILE 'Documents\PowerShell\Modules' }
+              'LocalAppData' { Join-Path $env:LOCALAPPDATA 'PowerShell\Modules' }
+              'OneDrive' { Join-Path $env:USERPROFILE 'OneDrive\Documents\PowerShell\Modules' }
+          }
+          $moduleDestination = Join-Path $modulesRoot 'PC-AI'
+
+          New-Item -ItemType Directory -Path $modulesRoot -Force | Out-Null
+
+          $arguments = @(
+              $ModuleSource,
+              $moduleDestination,
+              '/MIR',
+              '/R:1',
+              '/W:1',
+              '/NFL',
+              '/NDL',
+              '/NJH',
+              '/NJS',
+              '/NP',
+              '/XJ'
+          )
+          & robocopy @arguments | Out-Null
+          if ($LASTEXITCODE -gt 7) {
+              throw "robocopy failed with exit code $LASTEXITCODE"
           }
 
-          # Add to PSModulePath if requested
-          if ($ModulePathScope -ne 'None') {
-              $currentPath = [Environment]::GetEnvironmentVariable("PSModulePath", $ModulePathScope)
-              $modulePath = "$InstallPath\Modules"
-              if ([string]::IsNullOrWhiteSpace($currentPath)) {
-                  $newPath = $modulePath
-              } elseif ($currentPath -notlike "*$modulePath*") {
-                  $newPath = "$currentPath;$modulePath"
-              } else {
-                  $newPath = $currentPath
-              }
-
-              if ($newPath -ne $currentPath) {
-                  [Environment]::SetEnvironmentVariable("PSModulePath", $newPath, $ModulePathScope)
-                  Write-Host "✓ Added to PSModulePath ($ModulePathScope)" -ForegroundColor Green
-              }
-          }
-
-          Write-Host "`n✓ PC_AI installed successfully!" -ForegroundColor Green
-          Write-Host "`nTo get started, run: & `"$InstallPath\PC-AI.ps1`" help" -ForegroundColor Cyan
+          $manifestPath = Join-Path $moduleDestination 'PC-AI.psd1'
+          Write-Host "PC-AI installed to $moduleDestination" -ForegroundColor Green
+          Write-Host "Import with: Import-Module `"$manifestPath`" -Force" -ForegroundColor Cyan
           '@ | Out-File -FilePath "$releasePath\Install.ps1" -Encoding UTF8
 
-          # Create archive
           Compress-Archive -Path $releasePath -DestinationPath "PC-AI-$version.zip" -Force
           Write-Host "✓ Created PC-AI-$version.zip"
 
@@ -135,34 +109,33 @@ jobs:
           ## PC_AI v$version
 
           ### Components
-          - Unified CLI entrypoint: `PC-AI.ps1`
-          - PowerShell modules under `Modules/`
-          - Runtime configuration under `Config/`
-          - Documentation from `docs/` and root markdown files
+          - PowerShell umbrella module: `PC-AI/PC-AI.psd1`
+          - Nested component modules under `PC-AI/Modules/`
+          - Runtime configuration under `PC-AI/Config/`
+          - Release metadata in `PC-AI/RELEASE_INFO.json`
 
           ### Installation
           ```powershell
           Expand-Archive PC-AI-$version.zip -DestinationPath C:\PC-AI
 
-          # Run per-user installation (default)
           Set-Location C:\PC-AI\PC-AI-$version
-          .\Install.ps1 -InstallPath "$env:LOCALAPPDATA\PC-AI"
+          .\Install.ps1 -Target Documents
+          Import-Module "$env:USERPROFILE\Documents\PowerShell\Modules\PC-AI\PC-AI.psd1" -Force
           ```
 
           ### Quick Start
           ```powershell
-          & "$env:LOCALAPPDATA\PC-AI\PC-AI.ps1" help
-          & "$env:LOCALAPPDATA\PC-AI\PC-AI.ps1" diagnose all
-          & "$env:LOCALAPPDATA\PC-AI\PC-AI.ps1" doctor
+          Import-Module "$env:USERPROFILE\Documents\PowerShell\Modules\PC-AI\PC-AI.psd1" -Force
+          Get-Command -Module PC-AI*
           ```
 
           ### System Requirements
           - Windows 10 1809+ or Windows 11
-          - PowerShell 5.1+ (PowerShell 7.4+ recommended)
-          - Administrator privileges for full diagnostics
+          - PowerShell 7.0+ (PowerShell 7.4+ recommended)
+          - Administrator privileges for the full diagnostics surface
 
           ### Documentation
-          See `README.md`, `DIAGNOSE.md`, `DIAGNOSE_LOGIC.md`, and the `docs/` folder for usage details.
+          See `PC-AI/README.md` and `PC-AI/RELEASE_INFO.json` for the packaged module layout and build metadata.
           "@
 
           # Save to file for GitHub release

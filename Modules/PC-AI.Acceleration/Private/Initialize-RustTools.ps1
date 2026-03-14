@@ -8,7 +8,7 @@ function Initialize-RustTool {
     [CmdletBinding()]
     param()
 
-    $tools = @('rg', 'fd', 'bat', 'procs', 'tokei', 'sd', 'eza', 'hyperfine', 'dust', 'btm')
+    $tools = @('rg', 'fd', 'bat', 'procs', 'pcai-perf', 'tokei', 'sd', 'eza', 'hyperfine', 'dust', 'btm')
 
     foreach ($tool in $tools) {
         $script:ToolPaths[$tool] = Find-RustTool -ToolName $tool
@@ -22,17 +22,20 @@ function Find-RustTool {
         [string]$ToolName
     )
 
-    # Check cache first
     if ($script:RustToolCache.ContainsKey($ToolName)) {
         return $script:RustToolCache[$ToolName]
     }
 
-    # Check common locations
-    $searchPaths = @($script:SearchPaths + 'C:\Program Files\fd') | Select-Object -Unique
+    $dynamicSearchPaths = @(
+        $(if ($env:PCAI_ROOT) { Join-Path $env:PCAI_ROOT 'bin' })
+        'C:\codedev\PC_AI\bin'
+    ) | Where-Object { $_ }
+
+    $searchPaths = @($dynamicSearchPaths + $script:SearchPaths + 'C:\Program Files\fd') | Select-Object -Unique
 
     foreach ($searchPath in $searchPaths) {
         $exePath = Join-Path $searchPath "$ToolName.exe"
-        if (Test-Path $exePath) {
+        if (Test-Path -LiteralPath $exePath) {
             $script:RustToolCache[$ToolName] = $exePath
             if ($script:ToolPaths.ContainsKey($ToolName)) {
                 $script:ToolPaths[$ToolName] = $exePath
@@ -41,10 +44,9 @@ function Find-RustTool {
         }
     }
 
-    # Try where.exe as fallback
     try {
         $result = & where.exe $ToolName 2>$null | Select-Object -First 1
-        if ($result -and (Test-Path $result)) {
+        if ($result -and (Test-Path -LiteralPath $result)) {
             $script:RustToolCache[$ToolName] = $result
             if ($script:ToolPaths.ContainsKey($ToolName)) {
                 $script:ToolPaths[$ToolName] = $result
@@ -80,5 +82,5 @@ function Test-RustToolInternal {
     )
 
     $path = Get-RustToolPath -ToolName $ToolName
-    return ($null -ne $path -and (Test-Path $path))
+    return ($null -ne $path -and (Test-Path -LiteralPath $path))
 }

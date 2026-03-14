@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Discover local LLM model files and generate MODELS.md.
@@ -55,14 +55,22 @@ if (Get-Command -Name 'Test-PcaiNativeAvailable' -ErrorAction SilentlyContinue) 
     }
 }
 
-# Import PC-AI Acceleration module for Find-FilesFast
-$accelModulePath = Join-Path $repoRoot 'Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1'
-if (Test-Path $accelModulePath) {
-    Import-Module $accelModulePath -ErrorAction SilentlyContinue
+# Import common bootstrap and requested acceleration modules for search/content scan.
+$commonModulePath = Join-Path $repoRoot 'Modules\PC-AI.Common\PC-AI.Common.psm1'
+if (Test-Path -LiteralPath $commonModulePath) {
+    Import-Module $commonModulePath -Force -ErrorAction SilentlyContinue | Out-Null
+}
+
+if (Get-Command Import-PcaiAccelerationStack -ErrorAction SilentlyContinue) {
+    $requestedModules = @('PC-AI.Acceleration')
+    if ($ContentScan) {
+        $requestedModules += 'ProfileAccelerator'
+    }
+    $null = Import-PcaiAccelerationStack -Modules $requestedModules -RepoRoot $repoRoot
 }
 
 if (-not (Get-Command Find-FilesFast -ErrorAction SilentlyContinue)) {
-    throw "Find-FilesFast not available. Ensure PC-AI.Acceleration is imported."
+    throw "Find-FilesFast not available. Ensure the acceleration stack is installed and importable."
 }
 
 $extensions = @('gguf', 'ggml', 'ggjt', 'bin', 'safetensors', 'pt', 'pth', 'onnx', 'ckpt')

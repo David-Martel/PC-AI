@@ -18,6 +18,53 @@ $script:PcaiNativeLoaded = $false
 $script:PcaiNativeVersion = $null
 $script:PcaiNativeDllPath = $null
 
+function Get-PcaiNativeCandidatePaths {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$BasePaths
+    )
+
+    $candidates = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($basePath in $BasePaths | Where-Object { $_ } | Select-Object -Unique) {
+        $resolved = Resolve-Path -Path $basePath -ErrorAction SilentlyContinue
+        if (-not $resolved) {
+            continue
+        }
+
+        $resolvedPath = $resolved.Path
+        $bundleRoots = @(
+            (Join-Path $resolvedPath 'native-bundles')
+            (Join-Path $resolvedPath 'bundles')
+            (Join-Path $resolvedPath 'versions')
+        )
+
+        foreach ($bundleRoot in $bundleRoots) {
+            if (-not (Test-Path $bundleRoot -PathType Container)) {
+                continue
+            }
+
+            Get-ChildItem -Path $bundleRoot -Directory -ErrorAction SilentlyContinue |
+                Sort-Object -Property LastWriteTime -Descending |
+                ForEach-Object {
+                    $bundlePath = $_.FullName
+                    if ((Test-Path (Join-Path $bundlePath 'pcai_core_lib.dll')) -and
+                        (Test-Path (Join-Path $bundlePath 'PcaiNative.dll'))) {
+                        $candidates.Add($bundlePath)
+                    }
+                }
+        }
+
+        if ((Test-Path (Join-Path $resolvedPath 'pcai_core_lib.dll')) -and
+            (Test-Path (Join-Path $resolvedPath 'PcaiNative.dll'))) {
+            $candidates.Add($resolvedPath)
+        }
+    }
+
+    return @($candidates | Select-Object -Unique)
+}
+
 function Initialize-PcaiNative {
     [CmdletBinding()]
     [OutputType([bool])]
@@ -77,8 +124,7 @@ function Initialize-PcaiNative {
         $bridgeBin = Join-Path $bridgeModuleRoot 'bin'
     }
 
-    # Find DLL locations
-    $searchPaths = @(
+    $baseSearchPaths = @(
         $(if ($repoRoot) { Join-Path $repoRoot 'bin' })                                  # Repo bin
         $(if ($repoRoot) { Join-Path $repoRoot 'Native\PcaiNative\bin\Release\net8.0\win-x64' })
         $(if ($repoRoot) { Join-Path $repoRoot '.pcai\build\artifacts\pcai-native' })
@@ -87,18 +133,16 @@ function Initialize-PcaiNative {
         (Join-Path $env:USERPROFILE 'PC_AI\bin')                                          # Legacy compatibility path
     ) | Select-Object -Unique | Where-Object { $_ }
 
+    $searchPaths = Get-PcaiNativeCandidatePaths -BasePaths $baseSearchPaths
+
     $dllPath = $null
     foreach ($searchPath in $searchPaths) {
-        $resolved = Resolve-Path -Path $searchPath -ErrorAction SilentlyContinue
-        if ($resolved) {
-            $coreDll = Join-Path $resolved.Path 'pcai_core_lib.dll'
-            $wrapperDll = Join-Path $resolved.Path 'PcaiNative.dll'
+        $coreDll = Join-Path $searchPath 'pcai_core_lib.dll'
+        $wrapperDll = Join-Path $searchPath 'PcaiNative.dll'
 
-
-            if ((Test-Path $coreDll) -and (Test-Path $wrapperDll)) {
-                $dllPath = $resolved.Path
-                break
-            }
+        if ((Test-Path $coreDll) -and (Test-Path $wrapperDll)) {
+            $dllPath = $searchPath
+            break
         }
     }
 

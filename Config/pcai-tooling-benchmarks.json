@@ -14,16 +14,20 @@
   "suites": {
     "quick": [
       "acceleration-import",
+      "acceleration-stack",
       "acceleration-probe",
       "direct-core-probe",
       "token-estimate",
       "directory-manifest",
       "file-search",
       "runtime-config",
+      "shared-cache-hit",
+      "external-cache-status",
       "command-map"
     ],
     "default": [
       "acceleration-import",
+      "acceleration-stack",
       "acceleration-probe",
       "direct-core-probe",
       "token-estimate",
@@ -32,6 +36,8 @@
       "content-search",
       "full-context",
       "runtime-config",
+      "shared-cache-hit",
+      "external-cache-status",
       "command-map"
     ]
   },
@@ -53,6 +59,12 @@
     {
       "id": "acceleration-probe",
       "name": "Acceleration Probe",
+      "category": "Startup",
+      "path": "."
+    },
+    {
+      "id": "acceleration-stack",
+      "name": "Acceleration Stack Bootstrap",
       "category": "Startup",
       "path": "."
     },
@@ -97,6 +109,18 @@
     {
       "id": "runtime-config",
       "name": "Runtime Config Cache",
+      "category": "PowerShell",
+      "path": "."
+    },
+    {
+      "id": "shared-cache-hit",
+      "name": "Shared Cache Hit",
+      "category": "PowerShell",
+      "path": "."
+    },
+    {
+      "id": "external-cache-status",
+      "name": "External Cache Status",
       "category": "PowerShell",
       "path": "."
     },

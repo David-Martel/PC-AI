@@ -60,9 +60,51 @@ function Get-DiskUsageFast {
     # Parse MinSize
     $minBytes = Convert-SizeToBytes -Size $MinSize
 
+    $preferRustCli = $env:PCAI_PREFER_RUST_CLI -eq '1'
+    $pcaiPerfPath = Get-PcaiPerfToolPath
     $dustPath = Get-RustToolPath -ToolName 'dust'
     $useDust = $null -ne $dustPath -and (Test-Path $dustPath)
     $nativeType = ([System.Management.Automation.PSTypeName]'PcaiNative.PerformanceModule').Type
+
+    $finalizeResults = {
+        param([object[]]$InputRows)
+        $rows = [System.Collections.Generic.List[object]]::new()
+        foreach ($row in @($InputRows)) {
+            if ($null -eq $row) {
+                continue
+            }
+            if ([int64]$row.SizeBytes -lt $minBytes) {
+                continue
+            }
+            $rows.Add($row)
+        }
+
+        if ($rows.Count -eq 0) {
+            return @()
+        }
+
+        $sorted = switch ($SortBy) {
+            'name'  { $rows | Sort-Object Path }
+            'count' { $rows | Sort-Object FileCount -Descending }
+            default { $rows | Sort-Object SizeBytes -Descending }
+        }
+
+        if ($Top -gt 0) {
+            return @($sorted | Select-Object -First $Top)
+        }
+
+        return @($sorted)
+    }
+
+    if ($preferRustCli -and $pcaiPerfPath -and $Top -gt 0) {
+        if ($Depth -gt 1) {
+            Write-Verbose "Rust disk usage ignores Depth; returning top entries only."
+        }
+        $rustResults = Get-DiskUsageWithPcaiPerf -Path $Path -Top $Top -ToolPath $pcaiPerfPath
+        if ($null -ne $rustResults) {
+            return @(& $finalizeResults $rustResults)
+        }
+    }
 
     if ($nativeType -and [PcaiNative.PcaiCore]::IsAvailable -and $Top -gt 0) {
         if ($Depth -gt 1) {
@@ -70,26 +112,58 @@ function Get-DiskUsageFast {
         }
         $nativeResults = Get-DiskUsageWithNative -Path $Path -Top $Top
         if ($null -ne $nativeResults) {
-            return $nativeResults |
-                Where-Object { $_.SizeBytes -ge $minBytes } |
-                Sort-DiskUsageResults -SortBy $SortBy |
-                Select-TopResults -Top $Top
+            return @(& $finalizeResults $nativeResults)
         }
     }
 
     if ($useDust) {
-        return Get-DiskUsageWithDust -Path $Path -Depth $Depth -DustPath $dustPath |
-            Where-Object { $_.SizeBytes -ge $minBytes } |
-            Sort-DiskUsageResults -SortBy $SortBy |
-            Select-TopResults -Top $Top
+        return @(& $finalizeResults (Get-DiskUsageWithDust -Path $Path -Depth $Depth -DustPath $dustPath))
     }
     else {
         Write-Verbose "dust not available, using parallel enumeration"
-        return Get-DiskUsageParallel -Path $Path -Depth $Depth -ThrottleLimit $ThrottleLimit |
-            Where-Object { $_.SizeBytes -ge $minBytes } |
-            Sort-DiskUsageResults -SortBy $SortBy |
-            Select-TopResults -Top $Top
+        return @(& $finalizeResults (Get-DiskUsageParallel -Path $Path -Depth $Depth -ThrottleLimit $ThrottleLimit))
     }
+}
+
+function Get-DiskUsageWithPcaiPerf {
+    [CmdletBinding()]
+    param(
+        [string]$Path,
+        [int]$Top,
+        [Parameter(Mandatory)]
+        [string]$ToolPath
+    )
+
+    try {
+        $json = & $ToolPath 'disk' '--path' $Path '--top' $Top 2>$null
+        if (-not $json) {
+            return $null
+        }
+
+        return @(ConvertFrom-Json -InputObject $json)
+    } catch {
+        return $null
+    }
+}
+
+function Convert-PcaiNativeDiskRows {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Rows,
+        [Parameter(Mandatory)]
+        [scriptblock]$Mapper
+    )
+
+    $results = [System.Collections.Generic.List[object]]::new()
+    foreach ($row in $Rows) {
+        if ($null -eq $row) {
+            continue
+        }
+        $results.Add((& $Mapper $row))
+    }
+
+    return @($results)
 }
 
 <#
@@ -110,29 +184,70 @@ function Get-DiskUsageWithNative {
     )
 
     try {
-        $json = [PcaiNative.PerformanceModule]::GetDiskUsageJson($Path, [uint32]$Top)
+        $preferCompact = $env:PCAI_PREFER_COMPACT_TRANSPORT -eq '1'
+        $performanceType = ([System.Management.Automation.PSTypeName]'PcaiNative.PerformanceModule').Type
+        $typedMethod = if ($performanceType) {
+            $performanceType.GetMethod('GetDiskUsageReport', [System.Reflection.BindingFlags]'Public,Static', $null, [Type[]]@([string], [uint32]), $null)
+        } else {
+            $null
+        }
+        $jsonMethod = if ($performanceType) {
+            $performanceType.GetMethod('GetDiskUsageJson', [System.Reflection.BindingFlags]'Public,Static', $null, [Type[]]@([string], [uint32]), $null)
+        } else {
+            $null
+        }
+
+        $json = $null
+        if ($jsonMethod -and -not $preferCompact) {
+            $json = [PcaiNative.PerformanceModule]::GetDiskUsageJson($Path, [uint32]$Top)
+        }
+        if (-not $json) {
+            $typedResult = $null
+            if ($typedMethod) {
+                $typedResult = [PcaiNative.PerformanceModule]::GetDiskUsageReport($Path, [uint32]$Top)
+            }
+
+            if ($typedResult -and $typedResult.TopEntries) {
+                return @(Convert-PcaiNativeDiskRows -Rows @($typedResult.TopEntries) -Mapper {
+                        param($row)
+                        [PSCustomObject]@{
+                            Path      = $row.Path
+                            SizeBytes = [int64]$row.SizeBytes
+                            SizeMB    = [Math]::Round([double]$row.SizeBytes / 1MB, 2)
+                            SizeGB    = [Math]::Round([double]$row.SizeBytes / 1GB, 2)
+                            SizeHuman = $row.SizeFormatted
+                            FileCount = [int64]$row.FileCount
+                            Tool      = 'pcai_native'
+                        }
+                    })
+            }
+
+            if ($jsonMethod -and $preferCompact) {
+                $json = [PcaiNative.PerformanceModule]::GetDiskUsageJson($Path, [uint32]$Top)
+            }
+        }
+
         if (-not $json) {
             return $null
         }
 
-        $result = $json | ConvertFrom-Json
+        $result = ConvertFrom-Json -InputObject $json
         if (-not $result.top_entries) {
             return @()
         }
 
-        return @(
-            $result.top_entries | ForEach-Object {
+        return @(Convert-PcaiNativeDiskRows -Rows @($result.top_entries) -Mapper {
+                param($row)
                 [PSCustomObject]@{
-                    Path      = $_.path
-                    SizeBytes = [int64]$_.size_bytes
-                    SizeMB    = [Math]::Round([double]$_.size_bytes / 1MB, 2)
-                    SizeGB    = [Math]::Round([double]$_.size_bytes / 1GB, 2)
-                    SizeHuman = $_.size_formatted
-                    FileCount = [int64]$_.file_count
+                    Path      = $row.path
+                    SizeBytes = [int64]$row.size_bytes
+                    SizeMB    = [Math]::Round([double]$row.size_bytes / 1MB, 2)
+                    SizeGB    = [Math]::Round([double]$row.size_bytes / 1GB, 2)
+                    SizeHuman = $row.size_formatted
+                    FileCount = [int64]$row.file_count
                     Tool      = 'pcai_native'
                 }
-            }
-        )
+            })
     }
     catch {
         return $null

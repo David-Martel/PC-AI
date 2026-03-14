@@ -7,7 +7,7 @@ pub mod memory;
 pub mod optimizer;
 pub mod process;
 
-use crate::string::PcaiStringBuffer;
+use crate::string::{PcaiByteBuffer, PcaiStringBuffer};
 use crate::PcaiStatus;
 use std::ffi::{c_char, CStr};
 use std::time::Instant;
@@ -64,6 +64,26 @@ pub unsafe extern "C" fn pcai_get_disk_usage_json(root_path: *const c_char, top_
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn pcai_get_disk_usage_compact(root_path: *const c_char, top_n: u32) -> PcaiByteBuffer {
+    if root_path.is_null() {
+        return PcaiByteBuffer::error(PcaiStatus::NullPointer);
+    }
+
+    let path_str = match CStr::from_ptr(root_path).to_str() {
+        Ok(s) => s,
+        Err(_) => return PcaiByteBuffer::error(PcaiStatus::InvalidUtf8),
+    };
+
+    match disk::get_disk_usage(path_str, top_n as usize) {
+        Ok((stats, entries)) => match disk::pack_disk_usage_compact(path_str, &stats, &entries) {
+            Ok(buffer) => buffer,
+            Err(status) => PcaiByteBuffer::error(status),
+        },
+        Err(_) => PcaiByteBuffer::error(PcaiStatus::IoError),
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn pcai_get_process_stats() -> ProcessStats {
     process::get_process_stats()
 }
@@ -92,6 +112,24 @@ pub unsafe extern "C" fn pcai_get_top_processes_json(top_n: u32, sort_by: *const
     };
 
     crate::string::json_to_buffer(&json_output)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pcai_get_top_processes_compact(top_n: u32, sort_by: *const c_char) -> PcaiByteBuffer {
+    let sort_key = if sort_by.is_null() {
+        "memory"
+    } else {
+        CStr::from_ptr(sort_by).to_str().unwrap_or("memory")
+    };
+
+    let start = Instant::now();
+    let (mut stats, processes) = process::get_top_processes(top_n as usize, sort_key);
+    stats.elapsed_ms = start.elapsed().as_millis() as u64;
+
+    match process::pack_top_processes_compact(&stats, sort_key, &processes) {
+        Ok(buffer) => buffer,
+        Err(status) => PcaiByteBuffer::error(status),
+    }
 }
 
 #[no_mangle]

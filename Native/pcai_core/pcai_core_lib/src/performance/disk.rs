@@ -2,6 +2,7 @@
 //!
 //! Parallel directory traversal for calculating disk usage with top-N breakdown.
 
+use crate::string::{bytes_to_buffer, PcaiByteBuffer};
 use crate::PcaiStatus;
 use parking_lot::Mutex;
 use rayon::prelude::*;
@@ -70,6 +71,30 @@ pub struct DiskUsageJson {
     pub top_entries: Vec<DirUsageEntry>,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DiskUsageCompactHeader {
+    pub status: PcaiStatus,
+    pub reserved: u32,
+    pub total_size_bytes: u64,
+    pub total_files: u64,
+    pub total_dirs: u64,
+    pub elapsed_ms: u64,
+    pub root_path_offset: u32,
+    pub root_path_length: u32,
+    pub entry_count: u64,
+    pub string_bytes: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DiskUsageCompactEntry {
+    pub path_offset: u32,
+    pub path_length: u32,
+    pub size_bytes: u64,
+    pub file_count: u64,
+}
+
 /// Format bytes as human-readable string
 fn format_bytes(bytes: u64) -> String {
     const KB: u64 = 1024;
@@ -88,6 +113,79 @@ fn format_bytes(bytes: u64) -> String {
     } else {
         format!("{} B", bytes)
     }
+}
+
+fn append_pod<T: Copy>(target: &mut Vec<u8>, value: &T) {
+    let bytes = unsafe {
+        std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>())
+    };
+    target.extend_from_slice(bytes);
+}
+
+fn append_pod_slice<T: Copy>(target: &mut Vec<u8>, values: &[T]) {
+    if values.is_empty() {
+        return;
+    }
+
+    let bytes = unsafe {
+        std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values))
+    };
+    target.extend_from_slice(bytes);
+}
+
+fn usize_to_u32(value: usize) -> Result<u32, PcaiStatus> {
+    u32::try_from(value).map_err(|_| PcaiStatus::OutOfMemory)
+}
+
+fn append_string(string_data: &mut Vec<u8>, value: &str) -> Result<(u32, u32), PcaiStatus> {
+    let bytes = value.as_bytes();
+    let offset = usize_to_u32(string_data.len())?;
+    string_data.extend_from_slice(bytes);
+    let length = usize_to_u32(bytes.len())?;
+    Ok((offset, length))
+}
+
+pub fn pack_disk_usage_compact(
+    root_path: &str,
+    stats: &DiskUsageStats,
+    entries: &[DirUsageEntry],
+) -> Result<PcaiByteBuffer, PcaiStatus> {
+    let mut string_data = Vec::new();
+    let (root_path_offset, root_path_length) = append_string(&mut string_data, root_path)?;
+    let mut compact_entries = Vec::with_capacity(entries.len());
+
+    for entry in entries {
+        let (path_offset, path_length) = append_string(&mut string_data, &entry.path)?;
+        compact_entries.push(DiskUsageCompactEntry {
+            path_offset,
+            path_length,
+            size_bytes: entry.size_bytes,
+            file_count: entry.file_count,
+        });
+    }
+
+    let header = DiskUsageCompactHeader {
+        status: stats.status,
+        reserved: 0,
+        total_size_bytes: stats.total_size_bytes,
+        total_files: stats.total_files,
+        total_dirs: stats.total_dirs,
+        elapsed_ms: stats.elapsed_ms,
+        root_path_offset,
+        root_path_length,
+        entry_count: compact_entries.len() as u64,
+        string_bytes: string_data.len() as u64,
+    };
+
+    let mut packed = Vec::with_capacity(
+        std::mem::size_of::<DiskUsageCompactHeader>()
+            + (compact_entries.len() * std::mem::size_of::<DiskUsageCompactEntry>())
+            + string_data.len(),
+    );
+    append_pod(&mut packed, &header);
+    append_pod_slice(&mut packed, &compact_entries);
+    packed.extend_from_slice(&string_data);
+    Ok(bytes_to_buffer(packed))
 }
 
 /// Calculate directory size recursively (single directory)

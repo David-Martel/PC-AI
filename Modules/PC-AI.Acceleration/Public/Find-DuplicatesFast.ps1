@@ -5,10 +5,11 @@
 
 .DESCRIPTION
     Finds duplicate files using a multi-phase approach:
-    1. Fast file enumeration with fd (if available)
-    2. Group by file size (quick filter)
-    3. Parallel hash computation (PS7+ ForEach-Object -Parallel)
-    4. Group by hash to identify duplicates
+    1. Prefer the native PCAI duplicate engine when available
+    2. Otherwise enumerate files with fd (if available)
+    3. Group by file size (quick filter)
+    4. Compute hashes with a compiled .NET parallel helper
+    5. Group by hash to identify duplicates
 
 .PARAMETER Path
     Root path to search for duplicates
@@ -72,7 +73,48 @@ function Find-DuplicatesFast {
         [int]$ThrottleLimit = [Environment]::ProcessorCount,
 
         [Parameter()]
-        [switch]$ShowProgress
+        [switch]$ShowProgress,
+
+        [Parameter()]
+        [switch]$DisableNative
+    )
+
+    $useNativeDuplicates =
+        -not $DisableNative -and
+        $Recurse -and
+        $Algorithm -eq 'SHA256' -and
+        (Get-Command Invoke-PcaiNativeDuplicates -ErrorAction SilentlyContinue) -and
+        (Test-PcaiNativeAvailable)
+
+    if ($useNativeDuplicates) {
+        $nativeInclude = if ($Include.Count -le 1) { $Include | Select-Object -First 1 } else { $null }
+        $nativeExclude = if ($Exclude.Count -le 1) { $Exclude | Select-Object -First 1 } else { $null }
+
+        if (($Include.Count -le 1) -and ($Exclude.Count -le 1)) {
+            $nativeResult = Invoke-PcaiNativeDuplicates -Path $Path -MinimumSize $MinimumSize -IncludePattern $nativeInclude -ExcludePattern $nativeExclude
+            if ($nativeResult -and $nativeResult.IsSuccess) {
+                return @(ConvertFrom-PcaiDuplicateResult -NativeResult $nativeResult -Algorithm $Algorithm -MaximumSize $MaximumSize)
+            }
+        }
+    }
+
+    return @(Invoke-PowerShellDuplicateScan @PSBoundParameters)
+}
+
+function Invoke-PowerShellDuplicateScan {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [switch]$Recurse,
+        [int64]$MinimumSize = 1KB,
+        [int64]$MaximumSize = [long]::MaxValue,
+        [string[]]$Include,
+        [string[]]$Exclude,
+        [ValidateSet('SHA256', 'SHA1', 'MD5')]
+        [string]$Algorithm = 'SHA256',
+        [int]$ThrottleLimit = [Environment]::ProcessorCount,
+        [switch]$ShowProgress,
+        [switch]$DisableNative
     )
 
     $startTime = Get-Date
@@ -84,7 +126,7 @@ function Find-DuplicatesFast {
 
     if ($useFd) {
         Write-Verbose "Using fd for file enumeration"
-        $files = Find-WithFdForDuplicates -Path $Path -Include $Include -Exclude $Exclude -FdPath $fdPath
+        $files = Find-WithFdForDuplicates -Path $Path -Recurse:$Recurse -Include $Include -Exclude $Exclude -FdPath $fdPath
     }
     else {
         Write-Verbose "Using Get-ChildItem for file enumeration"
@@ -128,24 +170,15 @@ function Find-DuplicatesFast {
     Write-Host "[*] Phase 3: Computing hashes in parallel (throttle: $ThrottleLimit)..." -ForegroundColor Cyan
 
     $candidateFiles = $sizeGroups | ForEach-Object { $_.Group.FullName }
-
-    $hashResults = $candidateFiles | ForEach-Object -Parallel {
-        $filePath = $_
-        $algo = $using:Algorithm
-
-        try {
-            $hash = Get-FileHash -Path $filePath -Algorithm $algo -ErrorAction Stop
+    $hashResults = @(Invoke-ParallelFileHash -FilePaths $candidateFiles -Algorithm $Algorithm -MaxDegreeOfParallelism $ThrottleLimit |
+        Where-Object { $_.Success } |
+        ForEach-Object {
             [PSCustomObject]@{
-                Path = $filePath
-                Hash = $hash.Hash
-                Size = (Get-Item $filePath).Length
+                Path = $_.Path
+                Hash = $_.Hash
+                Size = $_.Size
             }
-        }
-        catch {
-            # Skip files that can't be hashed
-            $null
-        }
-    } -ThrottleLimit $ThrottleLimit | Where-Object { $_ }
+        })
 
     # Phase 4: Group by hash to find actual duplicates
     Write-Host "[*] Phase 4: Identifying duplicates..." -ForegroundColor Cyan
@@ -193,16 +226,66 @@ function Find-DuplicatesFast {
     return $results | Sort-Object WastedBytes -Descending
 }
 
+function ConvertFrom-PcaiDuplicateResult {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]$NativeResult,
+        [Parameter(Mandatory)][string]$Algorithm,
+        [Parameter(Mandatory)][int64]$MaximumSize
+    )
+
+    $results = [System.Collections.Generic.List[object]]::new()
+    foreach ($group in @($NativeResult.Groups)) {
+        if (-not $group) { continue }
+        if ([int64]$group.Size -gt $MaximumSize) { continue }
+
+        $files = @($group.Paths | Sort-Object)
+        if ($files.Count -lt 2) { continue }
+
+        $results.Add([PSCustomObject]@{
+            Hash        = $group.Hash
+            Algorithm   = $Algorithm
+            FileSize    = [int64]$group.Size
+            FileSizeMB  = [Math]::Round(([double]$group.Size / 1MB), 2)
+            Count       = $files.Count
+            WastedBytes = [int64]$group.WastedBytes
+            WastedMB    = [Math]::Round(([double]$group.WastedBytes / 1MB), 2)
+            Files       = $files
+            Original    = $files[0]
+            Duplicates  = if ($files.Count -gt 1) { @($files | Select-Object -Skip 1) } else { @() }
+            Provider    = 'PcaiNative'
+            DurationMs  = [int64]$NativeResult.ElapsedMs
+        }) | Out-Null
+    }
+
+    Write-Host ""
+    Write-Host "=== Duplicate Analysis Complete ===" -ForegroundColor Green
+    Write-Host "  Total files scanned: $($NativeResult.FilesScanned)"
+    Write-Host "  Duplicate groups found: $($results.Count)"
+    Write-Host "  Total duplicate files: $($NativeResult.DuplicateFiles)"
+    Write-Host "  Wasted space: $([Math]::Round(([double]$NativeResult.WastedBytes / 1MB), 2)) MB ($([Math]::Round(([double]$NativeResult.WastedBytes / 1GB), 2)) GB)"
+    Write-Host "  Duration: $([Math]::Round(([double]$NativeResult.ElapsedMs / 1000), 2)) seconds"
+    Write-Host ""
+
+    return @($results | Sort-Object WastedBytes -Descending)
+}
+
 function Find-WithFdForDuplicates {
     [CmdletBinding()]
     param(
         [string]$Path,
+        [switch]$Recurse,
         [string[]]$Include,
         [string[]]$Exclude,
         [string]$FdPath
     )
 
-    $args = @('-t', 'f', '-a')  # Type: file, Absolute paths
+    $args = @('.', '-t', 'f', '-a')  # Pattern first, then type=file, absolute paths
+
+    if (-not $Recurse) {
+        $args += '-d'
+        $args += '1'
+    }
 
     foreach ($inc in $Include) {
         $args += '-e'

@@ -58,9 +58,21 @@ function Get-ProcessesFast {
         [switch]$RawOutput
     )
 
+    $preferRustCli = $env:PCAI_PREFER_RUST_CLI -eq '1'
+    $pcaiPerfPath = Get-PcaiPerfToolPath
     $procsPath = Get-RustToolPath -ToolName 'procs'
     $useProcs = $null -ne $procsPath -and (Test-Path $procsPath)
     $nativeType = ([System.Management.Automation.PSTypeName]'PcaiNative.PerformanceModule').Type
+
+    if ($preferRustCli -and $pcaiPerfPath -and -not $RawOutput -and -not $Tree -and -not $Watch) {
+        $rustSupportedSort = $SortBy -in @('cpu', 'mem')
+        if (-not $Name -and $Top -gt 0 -and $rustSupportedSort) {
+            $rustResults = Get-ProcessesWithPcaiPerf -Top $Top -SortBy $SortBy -ToolPath $pcaiPerfPath
+            if ($null -ne $rustResults) {
+                return $rustResults
+            }
+        }
+    }
 
     if ($nativeType -and [PcaiNative.PcaiCore]::IsAvailable -and -not $RawOutput -and -not $Tree -and -not $Watch) {
         $nativeSupportedSort = $SortBy -in @('cpu', 'mem')
@@ -79,6 +91,48 @@ function Get-ProcessesFast {
         # For structured output, use .NET parallel processing
         return Get-ProcessesParallel @PSBoundParameters
     }
+}
+
+function Get-ProcessesWithPcaiPerf {
+    [CmdletBinding()]
+    param(
+        [int]$Top,
+        [string]$SortBy,
+        [Parameter(Mandatory)]
+        [string]$ToolPath
+    )
+
+    try {
+        $sortKey = if ($SortBy -eq 'cpu') { 'cpu' } else { 'memory' }
+        $json = & $ToolPath 'processes' '--top' $Top '--sort-by' $sortKey 2>$null
+        if (-not $json) {
+            return $null
+        }
+
+        return @(ConvertFrom-Json -InputObject $json)
+    } catch {
+        return $null
+    }
+}
+
+function Convert-PcaiNativeProcessRows {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Rows,
+        [Parameter(Mandatory)]
+        [scriptblock]$Mapper
+    )
+
+    $results = [System.Collections.Generic.List[object]]::new()
+    foreach ($row in $Rows) {
+        if ($null -eq $row) {
+            continue
+        }
+        $results.Add((& $Mapper $row))
+    }
+
+    return @($results)
 }
 
 <#
@@ -100,33 +154,78 @@ function Get-ProcessesWithNative {
 
     try {
         $sortKey = if ($SortBy -eq 'cpu') { 'cpu' } else { 'memory' }
-        $json = [PcaiNative.PerformanceModule]::GetTopProcessesJson([uint32]$Top, $sortKey)
+        $preferCompact = $env:PCAI_PREFER_COMPACT_TRANSPORT -eq '1'
+        $performanceType = ([System.Management.Automation.PSTypeName]'PcaiNative.PerformanceModule').Type
+        $typedMethod = if ($performanceType) {
+            $performanceType.GetMethod('GetTopProcesses', [System.Reflection.BindingFlags]'Public,Static', $null, [Type[]]@([uint32], [string]), $null)
+        } else {
+            $null
+        }
+        $jsonMethod = if ($performanceType) {
+            $performanceType.GetMethod('GetTopProcessesJson', [System.Reflection.BindingFlags]'Public,Static', $null, [Type[]]@([uint32], [string]), $null)
+        } else {
+            $null
+        }
+
+        $json = $null
+        if ($jsonMethod -and -not $preferCompact) {
+            $json = [PcaiNative.PerformanceModule]::GetTopProcessesJson([uint32]$Top, $sortKey)
+        }
+        if (-not $json) {
+            $typedResult = $null
+            if ($typedMethod) {
+                $typedResult = [PcaiNative.PerformanceModule]::GetTopProcesses([uint32]$Top, $sortKey)
+            }
+
+            if ($typedResult -and $typedResult.Processes) {
+                return @(Convert-PcaiNativeProcessRows -Rows @($typedResult.Processes) -Mapper {
+                        param($row)
+                        [PSCustomObject]@{
+                            PID       = $row.Pid
+                            Name      = $row.Name
+                            CPU       = [Math]::Round([double]$row.CpuUsage, 2)
+                            MemoryMB  = [Math]::Round([double]$row.MemoryBytes / 1MB, 2)
+                            Threads   = $null
+                            Handles   = $null
+                            Owner     = $null
+                            Path      = $row.ExecutablePath
+                            StartTime = $null
+                            Status    = $row.Status
+                            Tool      = 'pcai_native'
+                        }
+                    })
+            }
+
+            if ($jsonMethod -and $preferCompact) {
+                $json = [PcaiNative.PerformanceModule]::GetTopProcessesJson([uint32]$Top, $sortKey)
+            }
+        }
+
         if (-not $json) {
             return $null
         }
 
-        $result = $json | ConvertFrom-Json
+        $result = ConvertFrom-Json -InputObject $json
         if (-not $result.processes) {
             return @()
         }
 
-        return @(
-            $result.processes | ForEach-Object {
+        return @(Convert-PcaiNativeProcessRows -Rows @($result.processes) -Mapper {
+                param($row)
                 [PSCustomObject]@{
-                    PID       = $_.pid
-                    Name      = $_.name
-                    CPU       = [Math]::Round([double]$_.cpu_usage, 2)
-                    MemoryMB  = [Math]::Round([double]$_.memory_bytes / 1MB, 2)
+                    PID       = $row.pid
+                    Name      = $row.name
+                    CPU       = [Math]::Round([double]$row.cpu_usage, 2)
+                    MemoryMB  = [Math]::Round([double]$row.memory_bytes / 1MB, 2)
                     Threads   = $null
                     Handles   = $null
                     Owner     = $null
-                    Path      = $_.exe_path
+                    Path      = $row.exe_path
                     StartTime = $null
-                    Status    = $_.status
+                    Status    = $row.status
                     Tool      = 'pcai_native'
                 }
-            }
-        )
+            })
     }
     catch {
         return $null
@@ -207,39 +306,61 @@ function Get-ProcessesParallel {
         return @()
     }
 
-    # Build results using PS7+ parallel processing for enhanced info
-    $throttleLimit = [Math]::Min(8, [Environment]::ProcessorCount)
+    $requiresOwnerLookup = $SortBy -eq 'user'
+    $results = [System.Collections.Generic.List[object]]::new()
 
-    $results = $processes | ForEach-Object -Parallel {
-        $proc = $_
-        $owner = $null
+    if (-not $requiresOwnerLookup) {
+        foreach ($proc in $processes) {
+            $results.Add([PSCustomObject]@{
+                    PID       = $proc.Id
+                    Name      = $proc.ProcessName
+                    CPU       = [Math]::Round($proc.CPU, 2)
+                    MemoryMB  = [Math]::Round($proc.WorkingSet64 / 1MB, 2)
+                    Threads   = $proc.Threads.Count
+                    Handles   = $proc.HandleCount
+                    Owner     = $null
+                    Path      = $proc.Path
+                    StartTime = $proc.StartTime
+                })
+        }
+    }
+    else {
+        $throttleLimit = [Math]::Min(8, [Environment]::ProcessorCount)
+        $parallelResults = $processes | ForEach-Object -Parallel {
+            $proc = $_
+            $owner = $null
 
-        # Try to get owner (this is the slow operation)
-        try {
-            $wmiProcess = Get-CimInstance Win32_Process -Filter "ProcessId = $($proc.Id)" -ErrorAction SilentlyContinue
-            if ($wmiProcess) {
-                $ownerInfo = Invoke-CimMethod -InputObject $wmiProcess -MethodName GetOwner -ErrorAction SilentlyContinue
-                if ($ownerInfo -and $ownerInfo.User) {
-                    $owner = "$($ownerInfo.Domain)\$($ownerInfo.User)"
+            try {
+                $wmiProcess = Get-CimInstance Win32_Process -Filter "ProcessId = $($proc.Id)" -ErrorAction SilentlyContinue
+                if ($wmiProcess) {
+                    $ownerInfo = Invoke-CimMethod -InputObject $wmiProcess -MethodName GetOwner -ErrorAction SilentlyContinue
+                    if ($ownerInfo -and $ownerInfo.User) {
+                        $owner = "$($ownerInfo.Domain)\$($ownerInfo.User)"
+                    }
                 }
             }
-        }
-        catch {
-            # Skip owner lookup errors
-        }
+            catch {
+            }
 
-        [PSCustomObject]@{
-            PID          = $proc.Id
-            Name         = $proc.ProcessName
-            CPU          = [Math]::Round($proc.CPU, 2)
-            MemoryMB     = [Math]::Round($proc.WorkingSet64 / 1MB, 2)
-            Threads      = $proc.Threads.Count
-            Handles      = $proc.HandleCount
-            Owner        = $owner
-            Path         = $proc.Path
-            StartTime    = $proc.StartTime
+            [PSCustomObject]@{
+                PID       = $proc.Id
+                Name      = $proc.ProcessName
+                CPU       = [Math]::Round($proc.CPU, 2)
+                MemoryMB  = [Math]::Round($proc.WorkingSet64 / 1MB, 2)
+                Threads   = $proc.Threads.Count
+                Handles   = $proc.HandleCount
+                Owner     = $owner
+                Path      = $proc.Path
+                StartTime = $proc.StartTime
+            }
+        } -ThrottleLimit $throttleLimit
+
+        foreach ($item in $parallelResults) {
+            if ($item) {
+                $results.Add($item)
+            }
         }
-    } -ThrottleLimit $throttleLimit
+    }
 
     # Sort
     $results = switch ($SortBy) {

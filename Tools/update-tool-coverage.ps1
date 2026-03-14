@@ -39,11 +39,22 @@ $toolData = Get-Content -Path $toolSchemaPath -Raw -Encoding UTF8 | ConvertFrom-
 $schemaTools = @($toolData.tools | ForEach-Object { $_.function.name })
 
 $mappedTools = @()
-$rgOut = & rg -n "'pcai_[^']+'" $toolMappingPath
-if ($LASTEXITCODE -eq 0 -and $rgOut) {
-    foreach ($line in $rgOut) {
-        if ($line -match "'(?<name>pcai_[^']+)'" ) {
-            $mappedTools += $Matches['name']
+
+# Primary: extract tool names that have pcai_mapping in the schema JSON itself
+foreach ($tool in $toolData.tools) {
+    if ($tool.pcai_mapping -and $tool.pcai_mapping.cmdlet) {
+        $mappedTools += $tool.function.name
+    }
+}
+
+# Fallback: also check Invoke-FunctionGemmaReAct.ps1 for hardcoded patterns
+if (Test-Path $toolMappingPath) {
+    $rgOut = & rg -n "'pcai_[^']+'" $toolMappingPath 2>$null
+    if ($LASTEXITCODE -eq 0 -and $rgOut) {
+        foreach ($line in $rgOut) {
+            if ($line -match "'(?<name>pcai_[^']+)'" ) {
+                $mappedTools += $Matches['name']
+            }
         }
     }
 }

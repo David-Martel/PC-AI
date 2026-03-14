@@ -204,6 +204,9 @@ MODELS.md
 Reports/detailed-process-data.json
 Reports/system-performance-data.json
 
+# Tooling benchmark runs (generated artifacts, accumulate rapidly)
+Reports/tooling-benchmarks/
+
 # Outdated template
 README-TEMPLATE.md
 

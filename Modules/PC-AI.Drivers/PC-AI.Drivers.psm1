@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
 
 <#
 .SYNOPSIS
@@ -56,5 +56,10 @@ Export-ModuleMember -Function @(
     'Compare-DriverVersion',
     'Get-DriverReport',
     'Install-DriverUpdate',
-    'Update-DriverRegistry'
+    'Update-DriverRegistry',
+    'Get-NetworkDiscoverySnapshot',
+    'Find-ThunderboltPeer',
+    'Get-ThunderboltNetworkStatus',
+    'Connect-ThunderboltPeer',
+    'Set-ThunderboltNetworkOptimization'
 )

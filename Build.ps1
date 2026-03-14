@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Unified build orchestrator for PC_AI native components.
@@ -271,6 +271,31 @@ function Format-InvariantString {
     )
 
     return [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, $Template, $Args)
+}
+
+function Get-DotnetPublishDefaults {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Configuration
+    )
+
+    $args = @(
+        '--nologo',
+        '-maxcpucount',
+        '-p:BuildInParallel=true',
+        '-p:UseSharedCompilation=true'
+    )
+
+    if ($Configuration -eq 'Release') {
+        $args += @(
+            '-p:TieredCompilation=true',
+            '-p:TieredPGO=true',
+            '-p:PublishReadyToRun=true',
+            '-p:ReadyToRunUseCrossgen2=true'
+        )
+    }
+
+    return $args
 }
 
 function Write-BuildResult {
@@ -1256,7 +1281,7 @@ function Invoke-DotnetFormatQuality {
         $name = Split-Path $project -Leaf
         $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
         $logFile = Join-Path $script:BuildLogsDir "quality_dotnet_${name}_$timestamp.log"
-        $args = @('format', $project, '--no-restore', '--verbosity', 'minimal')
+        $args = @('format', $project, '--no-restore', '--verbosity', 'minimal', '--nologo')
         if (-not $WriteMode) { $args += '--verify-no-changes' }
 
         Write-BuildStep "dotnet format ($name)..." 'running'
@@ -1969,7 +1994,8 @@ function Invoke-TuiBuild {
     try {
         $dotnetArgs = @(
             'publish',
-            $projectPath,
+            $projectPath
+        ) + (Get-DotnetPublishDefaults -Configuration $Configuration) + @(
             '-c', $Configuration,
             '-r', 'win-x64',
             '--self-contained', 'false',
@@ -2054,7 +2080,8 @@ function Invoke-DotnetComponentBuild {
     try {
         $dotnetArgs = @(
             'publish',
-            $projectPath,
+            $projectPath
+        ) + (Get-DotnetPublishDefaults -Configuration $Configuration) + @(
             '-c', $Configuration,
             '-r', 'win-x64',
             '--self-contained', 'false',

@@ -18,6 +18,19 @@
     <!-- Optimization Settings -->
     <Optimize>true</Optimize>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <BuildInParallel>true</BuildInParallel>
+    <UseSharedCompilation>true</UseSharedCompilation>
+    <TieredCompilation Condition="'$(Configuration)' == 'Release'">true</TieredCompilation>
+    <TieredPGO Condition="'$(Configuration)' == 'Release'">true</TieredPGO>
+    <ServerGarbageCollection Condition="'$(Configuration)' == 'Release'">true</ServerGarbageCollection>
+    <Deterministic>true</Deterministic>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Prefer32Bit>false</Prefer32Bit>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Release'">true</PublishReadyToRun>
+    <ReadyToRunUseCrossgen2 Condition="'$(Configuration)' == 'Release'">true</ReadyToRunUseCrossgen2>
 
     <!-- Generate XML documentation -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

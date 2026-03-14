@@ -555,6 +555,44 @@ function Get-ToolingCaseBenchmarks {
                 Results     = @($benchmarks)
             }
         }
+        'thunderbolt-status' {
+            $benchmarkScript = Join-Path $RepoRoot 'Tests\Benchmarks\Measure-PcaiThunderboltNetworking.ps1'
+            $interfaceAlias = [string](Get-ConfigValue -Case $Case -Defaults $Defaults -Name 'interfaceAlias')
+
+            $scriptBlock = {
+                & pwsh -NoProfile -File $benchmarkScript -InterfaceAlias $interfaceAlias | Out-Null
+            }.GetNewClosure()
+
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup
+            )
+
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
+        'network-discovery' {
+            $benchmarkScript = Join-Path $RepoRoot 'Tests\Benchmarks\Measure-PcaiNetworkDiscovery.ps1'
+            $scriptBlock = {
+                & pwsh -NoProfile -File $benchmarkScript | Out-Null
+            }.GetNewClosure()
+
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $scriptBlock -Iterations $iterations -Warmup $warmup
+            )
+
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
         default {
             throw "Unsupported benchmark case: $($Case.Id)"
         }

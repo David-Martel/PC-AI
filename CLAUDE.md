@@ -23,13 +23,14 @@ PC_AI/
 ├── CHAT.md                            # General chat system prompt
 ├── PC-AI.ps1                          # Unified CLI entry point
 ├── Build.ps1                          # Unified build orchestrator
-├── Native/pcai_core/                  # Rust workspace (6-crate monorepo)
+├── Native/pcai_core/                  # Rust workspace (7-crate monorepo)
 │   ├── pcai_inference/                # LLM inference engine (HTTP + FFI, llama.cpp/mistral.rs)
 │   ├── pcai_core_lib/                 # Shared library (telemetry, fs, search, Windows APIs)
 │   ├── pcai_ollama_rs/                # Ollama benchmark/integration tool
 │   ├── pcai_media/                    # Media processing FFI DLL (Janus-Pro)
 │   ├── pcai_media_model/              # Media model definitions and config
-│   └── pcai_media_server/             # Media HTTP server (axum)
+│   ├── pcai_media_server/             # Media HTTP server (axum)
+│   └── pcai_perf_cli/                 # Performance CLI for PowerShell acceleration
 ├── Native/PcaiNative/                 # C# P/Invoke wrapper for PowerShell
 ├── Native/PcaiChatTui/                # C# interactive chat TUI (async backends)
 ├── Native/PcaiServiceHost/            # C# Windows service host for inference
@@ -53,11 +54,12 @@ PC_AI/
 │   ├── PC-AI.Network/                 # Network diagnostics and monitoring
 │   ├── PC-AI.Performance/             # Native perf metrics (Rust FFI)
 │   ├── PC-AI.USB/                     # USB device management
+│   ├── PC-AI.Drivers/                 # Driver inventory, Thunderbolt/USB4 networking
 │   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
 │   ├── PcaiInference.psm1             # Inference module (load/generate/stream/async)
 │   └── PcaiMedia.psm1                 # Media processing module (Janus-Pro wrapper)
-├── Tools/                             # 33 utility/build scripts
-├── Tests/                             # Pester + Rust test suites (22 integration test files)
+├── Tools/                             # 51 utility/build scripts
+├── Tests/                             # Pester + Rust test suites (75+ test files)
 ├── Scripts/                           # Rust analyzer health, CargoTools tests
 ├── Config/
 │   ├── llm-config.json                # Backend + model configuration
@@ -65,7 +67,9 @@ PC_AI/
 │   ├── pcai-functiongemma.json        # Router GPU + runtime config
 │   ├── pcai-media.json                # Media agent configuration
 │   ├── pcai-inference-server.json     # Inference server settings
-│   └── pcai-ollama-benchmark.json     # Ollama benchmark config
+│   ├── pcai-ollama-benchmark.json     # Ollama benchmark config
+│   ├── pcai-tooling-benchmarks.json   # Tooling benchmark suite definitions
+│   └── driver-registry.json           # Curated driver version + update registry
 ├── Notebooks/                         # Evaluation Jupyter notebooks
 ├── Reports/                           # Auto-generated doc pipeline reports
 ├── .litho/litho.toml                  # Litho (deepwiki-rs) documentation config
@@ -269,6 +273,56 @@ New-DiagnosticReport      # Generates complete diagnostic report
 # Creates: Desktop\Hardware-Diagnostics-Report.txt
 ```
 
+### Driver Management & Thunderbolt Networking
+
+```powershell
+Import-Module PC-AI.Drivers
+
+# Driver inventory and updates
+Get-PnpDeviceInventory              # Enumerate PnP devices with driver versions
+Get-DriverRegistry                   # Load curated driver-registry.json
+Get-DriverReport                     # Combined inventory + version comparison report
+Compare-DriverVersion -Installed "1.0" -Latest "2.0"
+Install-DriverUpdate -DeviceId "realtek-rtl8156" -WhatIf
+Update-DriverRegistry                # Refresh registry from remote source
+
+# Thunderbolt/USB4 peer networking
+Find-ThunderboltPeer                 # Discover USB4/TB peers via ARP + DNS + WinRM probe
+Get-ThunderboltNetworkStatus         # Adapter + IP + neighbor status
+Get-NetworkDiscoverySnapshot         # Full network discovery snapshot
+Connect-ThunderboltPeer              # Establish peer connection
+Set-ThunderboltNetworkOptimization   # Tune link parameters
+```
+
+Config: `Config/driver-registry.json` — curated device entries with match rules (VID/PID, friendly name, PCI class), trusted sources, and update metadata.
+
+### Tooling Benchmarks
+
+```powershell
+# Run default benchmark suite (startup, search, cache, network)
+pwsh Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1
+
+# Run specific cases
+pwsh Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -CaseId file-search,content-search
+
+# Quick suite (skip slow cases)
+pwsh Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick
+
+# Network-specific benchmarks
+pwsh Tests\Benchmarks\Measure-PcaiNetworkDiscovery.ps1
+pwsh Tests\Benchmarks\Measure-PcaiThunderboltNetworking.ps1
+```
+
+Reports written to `Reports/tooling-benchmarks/<timestamp>/`. Key validated metrics:
+
+| Operation | Native (Rust FFI) | PowerShell | Speedup |
+|-----------|-------------------|------------|---------|
+| Content search | ~13ms | ~1,900ms | **143x** |
+| File search | ~22ms | ~2,150ms | **68x** |
+| Directory manifest | ~5ms | ~200ms | **40x** |
+
+Config: `Config/pcai-tooling-benchmarks.json` — 15 benchmark cases across startup, search, cache, and network categories.
+
 ### Output Sections
 
 The diagnostic report contains:
@@ -314,15 +368,13 @@ git push origin v1.0.0
 **CI/CD Workflows (`.github/workflows/`):**
 | Workflow | Trigger |
 |----------|---------|
+| `ci.yml` | PR/push to develop — unified gate: security, lint, Rust+PS test, build |
 | `release-cuda.yml` | Tag push (`v*`) — builds 4 CUDA/CPU release ZIPs |
-| `release.yml` | Tag push — general release pipeline |
-| `rust-inference.yml` | PR/push — Rust build + test |
-| `powershell-tests.yml` | PR/push — Pester test suite |
-| `evaluation-smoke.yml` | PR — evaluation harness smoke test |
-| `docs-pipeline.yml` | PR — doc generation validation |
-| `security.yml` | Scheduled — dependency vulnerability scan |
-| `scheduled-checks.yml` | Cron — periodic health checks |
-| `tooling-automation.yml` | Dispatch — tool maintenance automation |
+| `release.yml` | Tag push — PowerShell module release package |
+| `maintenance.yml` | Weekly Monday — security scan, dep health, PS 5.1 + MSRV compat |
+| `changelog.yml` | Push to main — auto-generate CHANGELOG.md via git-cliff |
+| `evaluation-smoke.yml` | Manual — LLM evaluation harness |
+| `tooling-automation.yml` | Manual — doc/FG/LLM tooling |
 
 ## Potential Enhancements from Home Directory Scripts
 
@@ -455,7 +507,7 @@ When reporting findings, use this structure:
 
 ### Testing
 
-**Rust Unit Tests (65+ tests):**
+**Rust Unit Tests (65+ in pcai_inference, plus pcai_core_lib and pcai_perf_cli):**
 
 ```powershell
 cd Native\pcai_core\pcai_inference
@@ -473,7 +525,7 @@ cargo test --no-default-features --features server,ffi --lib
 | `ffi/mod.rs`          | 17    | FFI edge cases, init/shutdown, error codes               |
 | `version.rs`          | 3     | Build version detection and formatting                   |
 
-**Integration & Functional Tests (22 test files):**
+**Integration & Functional Tests (75+ test files):**
 
 ```powershell
 # Run all tests
@@ -484,7 +536,7 @@ pwsh -Command "Invoke-Pester Tests/Integration/FFI.Inference.Tests.ps1"
 pwsh -Command "Invoke-Pester Tests/Integration/FFI.Stress.Tests.ps1"
 ```
 
-Test categories: `FFI.*` (core, fs, inference, search, stress, system, performance), `Functional.*` (agentic, hardening, native, USB), `E2E.*` (smart diagnosis), `Router.*` (FunctionGemma, providers), `Quality.*`, `Structural.*`, `ModuleLoading.*`, `RustBuild.*`
+Test categories: `FFI.*` (core, fs, inference, media, search, stress, system, performance), `Functional.*` (agentic, hardening, native, USB), `E2E.*` (smart diagnosis, inference, media), `Router.*` (FunctionGemma, providers), `Quality.*`, `Structural.*`, `ModuleLoading.*`, `RustBuild.*`, `Benchmarks.*` (tooling, network, media, native perf)
 
 **PowerShell Diagnostics:**
 

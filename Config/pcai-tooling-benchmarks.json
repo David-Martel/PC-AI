@@ -23,7 +23,8 @@
       "runtime-config",
       "shared-cache-hit",
       "external-cache-status",
-      "command-map"
+      "command-map",
+      "network-discovery"
     ],
     "default": [
       "acceleration-import",
@@ -38,7 +39,8 @@
       "runtime-config",
       "shared-cache-hit",
       "external-cache-status",
-      "command-map"
+      "command-map",
+      "network-discovery"
     ]
   },
   "cases": [
@@ -129,6 +131,22 @@
       "name": "Command Map Cache",
       "category": "PowerShell",
       "path": "."
+    },
+    {
+      "id": "thunderbolt-status",
+      "name": "Thunderbolt status",
+      "category": "network",
+      "path": ".",
+      "iterations": 3,
+      "warmup": 1
+    },
+    {
+      "id": "network-discovery",
+      "name": "Network discovery",
+      "category": "network",
+      "path": ".",
+      "iterations": 2,
+      "warmup": 1
     }
   ]
 }

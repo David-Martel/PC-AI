@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "lastUpdated": "2026-03-11T00:00:00Z",
+  "version": "1.1.0",
+  "lastUpdated": "2026-03-14T00:00:00Z",
   "trustedSources": [
     {
       "id": "realtek",
@@ -30,6 +30,10 @@
       "displayName": "USB / Thunderbolt Hubs",
       "icon": "hub"
     },
+    "thunderbolt": {
+      "displayName": "Thunderbolt / USB4",
+      "icon": "thunderbolt"
+    },
     "bluetooth": {
       "displayName": "Bluetooth",
       "icon": "bluetooth"
@@ -44,6 +48,66 @@
     }
   },
   "devices": [
+    {
+      "id": "usb4-p2p-network-adapter",
+      "name": "USB4 P2P Network Adapter",
+      "category": "thunderbolt",
+      "matchRules": [
+        { "type": "friendly_name", "pattern": "*USB4*P2P Network Adapter*" }
+      ],
+      "driver": {
+        "sourceId": "windows-update",
+        "latestVersion": null,
+        "releaseDate": null,
+        "certification": null,
+        "downloadUrl": null,
+        "manualDownloadUrl": null,
+        "installerType": "windows-update",
+        "sha256": null,
+        "notes": "Microsoft inbox USB4 peer-to-peer networking adapter. Expect link-local 169.254/16 or a manually assigned /30. Use Get-ThunderboltNetworkStatus and Set-ThunderboltNetworkOptimization for link validation and tuning."
+      },
+      "sharedDriverGroup": "windows-usb4"
+    },
+    {
+      "id": "usb4-host-router",
+      "name": "USB4 Host Router",
+      "category": "thunderbolt",
+      "matchRules": [
+        { "type": "friendly_name", "pattern": "*USB4*Host Router*" }
+      ],
+      "driver": {
+        "sourceId": "windows-update",
+        "latestVersion": null,
+        "releaseDate": null,
+        "certification": null,
+        "downloadUrl": null,
+        "manualDownloadUrl": null,
+        "installerType": "windows-update",
+        "sha256": null,
+        "notes": "Microsoft inbox USB4 host router. Firmware and security policy updates generally arrive via Windows Update and OEM firmware tools."
+      },
+      "sharedDriverGroup": "windows-usb4"
+    },
+    {
+      "id": "intel-thunderbolt-router",
+      "name": "Intel Thunderbolt Router",
+      "category": "thunderbolt",
+      "matchRules": [
+        { "type": "friendly_name", "pattern": "*Thunderbolt 3(TM) Router*" }
+      ],
+      "driver": {
+        "sourceId": "windows-update",
+        "latestVersion": null,
+        "releaseDate": null,
+        "certification": null,
+        "downloadUrl": null,
+        "manualDownloadUrl": null,
+        "installerType": "windows-update",
+        "sha256": null,
+        "notes": "Intel Thunderbolt router device. Treat as inbox/firmware-managed unless a specific OEM Thunderbolt package is required."
+      },
+      "sharedDriverGroup": "windows-usb4"
+    },
     {
       "id": "realtek-rtl8156",
       "name": "Realtek RTL8156 USB 2.5GbE Controller",

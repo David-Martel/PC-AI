@@ -127,7 +127,10 @@ impl Checkpoint {
         // Sort by step number and return the highest
         checkpoints.sort_by_key(|(step, _)| *step);
         // `checkpoints` is non-empty — guarded by the `anyhow::bail!` above.
-        let (_, latest) = checkpoints.into_iter().last().expect("checkpoints is non-empty — checked above");
+        let (_, latest) = checkpoints
+            .into_iter()
+            .last()
+            .expect("checkpoints is non-empty — checked above");
 
         Ok(latest)
     }

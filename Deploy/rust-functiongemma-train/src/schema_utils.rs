@@ -112,10 +112,7 @@ fn values_for_param(schema: &Value) -> Vec<Value> {
                         // Values come from finite schema bounds (min/max) or
                         // hardcoded constants; non-finite floats are not
                         // representable as JSON numbers, so fall back to 0.
-                        Value::Number(
-                            serde_json::Number::from_f64(v)
-                                .unwrap_or_else(|| serde_json::Number::from(0i64)),
-                        )
+                        Value::Number(serde_json::Number::from_f64(v).unwrap_or_else(|| serde_json::Number::from(0i64)))
                     })
                     .collect()
             }

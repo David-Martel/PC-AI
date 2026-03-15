@@ -44,19 +44,13 @@ pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
             .join("models")
             .join(model_id);
         if candidate.exists() {
-            tracing::info!(
-                "Model path (~/.cache/pcai/models/): {}",
-                candidate.display()
-            );
+            tracing::info!("Model path (~/.cache/pcai/models/): {}", candidate.display());
             return Ok(candidate);
         }
     }
 
     // 5. Fallback to HuggingFace hub download
-    tracing::info!(
-        "Model not found locally, trying HuggingFace hub: {}",
-        model_id
-    );
+    tracing::info!("Model not found locally, trying HuggingFace hub: {}", model_id);
     let api = Api::new()?;
     let repo = Repo::with_revision(model_id.to_string(), RepoType::Model, "main".to_string());
     let api = api.repo(repo);
@@ -66,9 +60,7 @@ pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
 
     let root = tokenizer_path.parent().unwrap_or(Path::new("."));
     if !template_path.exists() {
-        return Err(anyhow::anyhow!(
-            "chat_template.jinja not found after download"
-        ));
+        return Err(anyhow::anyhow!("chat_template.jinja not found after download"));
     }
 
     Ok(root.to_path_buf())
@@ -97,7 +89,10 @@ mod tests {
         let model_dir = base.join("test-model");
         std::fs::create_dir_all(&model_dir).expect("failed to create model dir for env-var test");
 
-        std::env::set_var("PCAI_MODELS_DIR", base.to_str().expect("temp base path is not valid UTF-8"));
+        std::env::set_var(
+            "PCAI_MODELS_DIR",
+            base.to_str().expect("temp base path is not valid UTF-8"),
+        );
         let result = resolve_model_path("test-model");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), model_dir);

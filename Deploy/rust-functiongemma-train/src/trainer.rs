@@ -771,12 +771,12 @@ impl<'a> Trainer<'a> {
             // Update varmap with loaded tensors
             for (name, tensor) in tensors {
                 if let Some(var) = self
-                .varmap
-                .data()
-                .lock()
-                .map_err(|e| anyhow::anyhow!("VarMap lock poisoned in resume_from_checkpoint: {}", e))?
-                .get_mut(&name)
-            {
+                    .varmap
+                    .data()
+                    .lock()
+                    .map_err(|e| anyhow::anyhow!("VarMap lock poisoned in resume_from_checkpoint: {}", e))?
+                    .get_mut(&name)
+                {
                     var.set(&tensor)?;
                 } else {
                     println!("Warning: Checkpoint contains tensor '{}' not found in model", name);

@@ -167,7 +167,10 @@ impl DataGenerator {
 
         let items_val = if scenarios_val.is_array() {
             // `is_array()` was checked above, so `as_array()` is always `Some` here.
-            scenarios_val.as_array().expect("value is an array — confirmed by is_array()").clone()
+            scenarios_val
+                .as_array()
+                .expect("value is an array — confirmed by is_array()")
+                .clone()
         } else {
             scenarios_val
                 .get("scenarios")
@@ -304,7 +307,9 @@ mod tests {
         )
         .expect("failed to write scenarios JSON");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).expect("generate_from_scenarios failed");
+        let items = gen
+            .generate_from_scenarios(&path)
+            .expect("generate_from_scenarios failed");
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].messages[1].content.as_deref(), Some("NO_TOOL"));
         assert!(items[0].messages[1].tool_calls.is_none());
@@ -318,7 +323,9 @@ mod tests {
         std::fs::write(&path, r#"{"scenarios":[{"mode":"no_tool","user_content":"Hello"}]}"#)
             .expect("failed to write scenarios JSON");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).expect("generate_from_scenarios failed");
+        let items = gen
+            .generate_from_scenarios(&path)
+            .expect("generate_from_scenarios failed");
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].messages[1].content.as_deref(), Some("NO_TOOL"));
     }
@@ -333,7 +340,9 @@ mod tests {
         )
         .expect("failed to write scenarios JSON");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).expect("generate_from_scenarios failed");
+        let items = gen
+            .generate_from_scenarios(&path)
+            .expect("generate_from_scenarios failed");
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].messages[1].content.as_deref(), Some("NO_TOOL"));
     }
@@ -347,7 +356,9 @@ mod tests {
             r#"{"scenarios":[{"mode":"diagnose","user_content":"Check disk","tool_name":"pcai_get_disk_status","tool_arguments":{}}]}"#,
         ).expect("failed to write scenarios JSON");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).expect("generate_from_scenarios failed");
+        let items = gen
+            .generate_from_scenarios(&path)
+            .expect("generate_from_scenarios failed");
         // Single-tool scenarios are skipped in generate_from_scenarios.
         assert_eq!(items.len(), 0);
     }
@@ -361,9 +372,14 @@ mod tests {
             r#"{"scenarios":[{"mode":"multi_tool","user_content":"Check disk and USB","tool_sequence":["pcai_get_disk_status","pcai_get_usb_status"]}]}"#,
         ).expect("failed to write scenarios JSON");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).expect("generate_from_scenarios failed");
+        let items = gen
+            .generate_from_scenarios(&path)
+            .expect("generate_from_scenarios failed");
         assert_eq!(items.len(), 1);
-        let tc = items[0].messages[1].tool_calls.as_ref().expect("multi_tool item must have tool_calls");
+        let tc = items[0].messages[1]
+            .tool_calls
+            .as_ref()
+            .expect("multi_tool item must have tool_calls");
         let arr = tc.as_array().expect("tool_calls must be a JSON array");
         assert_eq!(arr.len(), 2);
         assert_eq!(arr[0]["function"]["name"], "pcai_get_disk_status");
@@ -379,7 +395,9 @@ mod tests {
             r#"{"scenarios":[{"mode":"multi_tool","user_content":"Full check","tool_sequence":["pcai_get_network_status","pcai_get_disk_status","pcai_get_usb_status"]}]}"#,
         ).expect("failed to write scenarios JSON");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).expect("generate_from_scenarios failed");
+        let items = gen
+            .generate_from_scenarios(&path)
+            .expect("generate_from_scenarios failed");
         assert_eq!(items.len(), 1);
         let arr = items[0].messages[1]
             .tool_calls
@@ -399,8 +417,13 @@ mod tests {
             r#"{"scenarios":[{"mode":"multi_tool","user_content":"Disk and USB","tool_sequence":["pcai_get_disk_status","pcai_get_usb_status"]}]}"#,
         ).expect("failed to write scenarios JSON");
         let gen = make_generator();
-        let items = gen.generate_from_scenarios(&path).expect("generate_from_scenarios failed");
-        let content = items[0].messages[1].content.as_deref().expect("assistant message must have content");
+        let items = gen
+            .generate_from_scenarios(&path)
+            .expect("generate_from_scenarios failed");
+        let content = items[0].messages[1]
+            .content
+            .as_deref()
+            .expect("assistant message must have content");
         assert!(content.contains("2 tools"), "thought should mention tool count");
         assert!(content.contains("<thought>"));
     }
@@ -420,7 +443,9 @@ mod tests {
         .expect("failed to write b.json");
         std::fs::write(dir.path().join("not.txt"), "ignored").expect("failed to write not.txt");
         let gen = make_generator();
-        let items = gen.generate_from_scenario_dir(dir.path()).expect("generate_from_scenario_dir failed");
+        let items = gen
+            .generate_from_scenario_dir(dir.path())
+            .expect("generate_from_scenario_dir failed");
         assert_eq!(items.len(), 2);
     }
 
@@ -428,7 +453,9 @@ mod tests {
     fn test_scenario_dir_empty_dir_returns_empty() {
         let dir = TempDir::new().expect("failed to create temp dir");
         let gen = make_generator();
-        let items = gen.generate_from_scenario_dir(dir.path()).expect("generate_from_scenario_dir failed");
+        let items = gen
+            .generate_from_scenario_dir(dir.path())
+            .expect("generate_from_scenario_dir failed");
         assert!(items.is_empty());
     }
 
@@ -445,7 +472,9 @@ mod tests {
             r#"{"scenarios":[{"mode":"multi_tool","user_content":"Check all","tool_sequence":["pcai_get_disk_status","pcai_get_usb_status"]}]}"#,
         ).expect("failed to write multi.json");
         let gen = make_generator();
-        let items = gen.generate_from_scenario_dir(dir.path()).expect("generate_from_scenario_dir failed");
+        let items = gen
+            .generate_from_scenario_dir(dir.path())
+            .expect("generate_from_scenario_dir failed");
         // 2 no_tool + 1 multi_tool = 3 total
         assert_eq!(items.len(), 3);
     }

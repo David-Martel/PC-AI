@@ -319,7 +319,9 @@ mod tests {
         // SAFETY: only one thread modifies env vars at a time via the mutex.
         use std::sync::Mutex;
         static ENV_LOCK: Mutex<()> = Mutex::new(());
-        let _guard = ENV_LOCK.lock().expect("env-var test mutex poisoned by a previous panic");
+        let _guard = ENV_LOCK
+            .lock()
+            .expect("env-var test mutex poisoned by a previous panic");
         let old = std::env::var(key).ok();
         std::env::set_var(key, value);
         f();

@@ -1,0 +1,33 @@
+# PC_AI Lefthook Config — extends ~/lefthook.yml
+# Project-specific hooks for PC-AI diagnostics framework
+
+extends:
+  - ~/lefthook.yml
+
+pre-commit:
+  commands:
+    # --- AST-grep security scan (migrated from .git/hooks/pre-commit) ---
+    ast-grep-scan:
+      glob: "*.{rs,cs,ps1,psm1,json}"
+      run: sg scan {staged_files} 2>/dev/null
+      fail_text: "AST-grep found hardcoded endpoints or defaults. Use Config/llm-config.json."
+
+    # --- Rust: M-STATIC-VERIFICATION for pcai_core workspace ---
+    pcai-rust-fmt:
+      root: "Native/pcai_core/"
+      glob: "*.rs"
+      run: cargo fmt --all --check
+      fail_text: "pcai_core format check failed. Run: cd Native/pcai_core && cargo fmt --all"
+
+    # --- PowerShell: Module manifest validation ---
+    ps-manifest-check:
+      glob: "Modules/*/*.psd1"
+      run: pwsh -NoProfile -Command "Get-ChildItem -Path Modules -Recurse -Filter *.psd1 | ForEach-Object { Test-ModuleManifest $_.FullName -ErrorAction Stop }"
+      fail_text: "PowerShell module manifest validation failed."
+
+    # --- No TODO expects in Rust ---
+    rust-no-todo-expect:
+      glob: "*.rs"
+      run: |
+        grep -rn 'expect("TODO: Verify unwrap")' {staged_files} | head -5
+      fail_text: "Generic TODO expects found. Use descriptive expect messages."

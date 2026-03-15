@@ -376,7 +376,10 @@ impl From<Error> for AppError {
 }
 
 impl AppError {
-    #[expect(non_upper_case_globals, reason = "constant intentionally uses PascalCase to mirror the error variant name for readable call sites")]
+    #[expect(
+        non_upper_case_globals,
+        reason = "constant intentionally uses PascalCase to mirror the error variant name for readable call sites"
+    )]
     const ModelNotLoaded: Self = AppError(Error::ModelNotLoaded);
 }
 
@@ -1025,7 +1028,8 @@ mod tests {
             },
         ];
 
-        let prompt = build_chat_prompt(&messages).expect("test: build_chat_prompt must succeed for valid system+user messages");
+        let prompt =
+            build_chat_prompt(&messages).expect("test: build_chat_prompt must succeed for valid system+user messages");
         assert!(prompt.contains("System: You are helpful."));
         assert!(prompt.contains("User: Hello"));
         assert!(prompt.ends_with("Assistant: "));
@@ -1062,7 +1066,8 @@ mod tests {
             role: "custom_role".to_string(),
             content: "Hi".to_string(),
         }];
-        let prompt = build_chat_prompt(&messages).expect("test: build_chat_prompt must succeed for a message with an unknown role");
+        let prompt = build_chat_prompt(&messages)
+            .expect("test: build_chat_prompt must succeed for a message with an unknown role");
         // Unknown role should map to "User"
         assert!(prompt.contains("User: Hi"));
         assert!(prompt.ends_with("Assistant: "));
@@ -1074,7 +1079,8 @@ mod tests {
             role: "tool".to_string(),
             content: "result data".to_string(),
         }];
-        let prompt = build_chat_prompt(&messages).expect("test: build_chat_prompt must succeed for a message with role=tool");
+        let prompt =
+            build_chat_prompt(&messages).expect("test: build_chat_prompt must succeed for a message with role=tool");
         assert!(prompt.contains("Tool: result data"));
     }
 
@@ -1084,7 +1090,8 @@ mod tests {
             role: "user".to_string(),
             content: "What is 2+2?".to_string(),
         }];
-        let prompt = build_chat_prompt(&messages).expect("test: build_chat_prompt must succeed for a single user message");
+        let prompt =
+            build_chat_prompt(&messages).expect("test: build_chat_prompt must succeed for a single user message");
         assert_eq!(prompt, "User: What is 2+2?\nAssistant: ");
     }
 

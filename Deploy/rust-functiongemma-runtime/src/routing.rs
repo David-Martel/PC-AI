@@ -121,17 +121,10 @@ pub(crate) fn build_tool_calls(tool_name: &str, args: Value, call_id: &str) -> V
     ])
 }
 
-pub(crate) fn heuristic_route(
-    req: &ChatCompletionRequest,
-    prompt: &RouterPrompt,
-) -> InferenceResult {
+pub(crate) fn heuristic_route(req: &ChatCompletionRequest, prompt: &RouterPrompt) -> InferenceResult {
     let mut tool_name: Option<String> = None;
     let mut tool_args: Value = json!({});
-    let requires_tool = req
-        .tool_choice
-        .as_ref()
-        .map(tool_choice_requires_tool)
-        .unwrap_or(false);
+    let requires_tool = req.tool_choice.as_ref().map(tool_choice_requires_tool).unwrap_or(false);
 
     if let Some(choice) = req.tool_choice.as_ref().and_then(resolve_tool_choice) {
         tool_name = Some(choice);

@@ -1,11 +1,9 @@
 #![cfg(feature = "model")]
 
-use crate::config::{
-    default_model, router_lora_path_override, router_model_path_override, runtime_config,
-};
+use crate::config::{default_model, router_lora_path_override, router_model_path_override, runtime_config};
 use crate::gpu::{
-    default_dtype, maybe_configure_cuda_mem_pool, maybe_log_cuda_snapshot,
-    resolve_cuda_index_for_config, resolve_device,
+    default_dtype, maybe_configure_cuda_mem_pool, maybe_log_cuda_snapshot, resolve_cuda_index_for_config,
+    resolve_device,
 };
 use crate::routing::build_tool_calls;
 use crate::types::{InferenceResult, LoraMetadata, Message};
@@ -15,9 +13,8 @@ use rust_functiongemma_core::chat_template::render_chat_prompt;
 use rust_functiongemma_core::lora_utils::resolve_lora_from_path;
 use rust_functiongemma_core::prompt::parse_function_call;
 use rust_functiongemma_core::{
-    collect_model_safetensors, custom_load, detect_tie_embeddings, is_degenerate_output,
-    open_mmaped_safetensors, parse_ggml_dtype, trim_input_ids, Config, KvCacheQuant, LoraInfo,
-    LoraSettings, Model,
+    collect_model_safetensors, custom_load, detect_tie_embeddings, is_degenerate_output, open_mmaped_safetensors,
+    parse_ggml_dtype, trim_input_ids, Config, KvCacheQuant, LoraInfo, LoraSettings, Model,
 };
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -122,8 +119,7 @@ fn load_model_cache() -> anyhow::Result<ModelCache> {
     }
     maybe_log_cuda_snapshot("after_weights_load", device_index);
 
-    let tokenizer =
-        Tokenizer::from_file(model_path.join("tokenizer.json")).map_err(anyhow::Error::msg)?;
+    let tokenizer = Tokenizer::from_file(model_path.join("tokenizer.json")).map_err(anyhow::Error::msg)?;
 
     Ok(ModelCache {
         model,
@@ -151,8 +147,7 @@ pub(crate) fn resolve_lora_adapter(model_path: &Path) -> Option<LoraInfo> {
 
 pub(crate) fn lora_metadata() -> Option<crate::types::LoraMetadata> {
     let from_config = router_lora_path_override();
-    let from_model =
-        router_model_path_override().map(|p| PathBuf::from(p).join("adapter_model.safetensors"));
+    let from_model = router_model_path_override().map(|p| PathBuf::from(p).join("adapter_model.safetensors"));
     let candidate = from_config.or(from_model)?;
     let info = resolve_lora_from_path(candidate)?;
     Some(LoraMetadata {
@@ -172,9 +167,7 @@ pub(crate) fn use_kv_cache() -> bool {
     runtime_config().router_kv_cache
 }
 
-pub(crate) fn infer_with_model(
-    req: &crate::types::ChatCompletionRequest,
-) -> anyhow::Result<InferenceResult> {
+pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> anyhow::Result<InferenceResult> {
     let cache = get_or_init_model()?;
 
     let prompt = match req.tools.as_ref() {
@@ -189,25 +182,18 @@ pub(crate) fn infer_with_model(
         None
     };
 
-    let encoding = cache
-        .tokenizer
-        .encode(prompt, true)
-        .map_err(anyhow::Error::msg)?;
+    let encoding = cache.tokenizer.encode(prompt, true).map_err(anyhow::Error::msg)?;
     let mut input_ids = encoding.get_ids().to_vec();
     if let Some(max_len) = runtime_config().router_max_seq_len {
         input_ids = trim_input_ids(input_ids, max_len);
     }
     let input_tensor = Tensor::new(input_ids, &device)?.unsqueeze(0)?;
 
-    let max_tokens = req
-        .max_tokens
-        .unwrap_or(runtime_config().router_default_max_tokens) as usize;
+    let max_tokens = req.max_tokens.unwrap_or(runtime_config().router_default_max_tokens) as usize;
     let start = Instant::now();
     let kv_quant = KvCacheQuant::from_str(runtime_config().router_kv_cache_quant.as_deref());
     let kv_max_len = runtime_config().router_kv_cache_max_len;
-    let kv_store_on_cpu = runtime_config()
-        .router_kv_cache_store
-        .eq_ignore_ascii_case("cpu");
+    let kv_store_on_cpu = runtime_config().router_kv_cache_store.eq_ignore_ascii_case("cpu");
     let kv_streaming = runtime_config().router_kv_cache_streaming;
     let kv_block_len = runtime_config().router_kv_cache_block_len;
     maybe_log_cuda_snapshot("before_generate", device_index);
@@ -231,10 +217,7 @@ pub(crate) fn infer_with_model(
     TOTAL_REQUESTS.fetch_add(1, Ordering::Relaxed);
     TOTAL_TOKENS.fetch_add(output_ids.len() as u64, Ordering::Relaxed);
     TOTAL_INFER_MS.fetch_add(elapsed_ms, Ordering::Relaxed);
-    let output_text = cache
-        .tokenizer
-        .decode(&output_ids, true)
-        .map_err(anyhow::Error::msg)?;
+    let output_text = cache.tokenizer.decode(&output_ids, true).map_err(anyhow::Error::msg)?;
     drop(output_ids);
 
     if is_degenerate_output(&output_text) {

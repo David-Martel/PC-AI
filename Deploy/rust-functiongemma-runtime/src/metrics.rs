@@ -40,11 +40,7 @@ pub(crate) fn tools_metadata() -> ToolsMetadata {
                     }
                 }
             }
-            ToolsMetadata {
-                path,
-                count,
-                loaded,
-            }
+            ToolsMetadata { path, count, loaded }
         })
         .clone()
 }
@@ -136,11 +132,7 @@ pub(crate) fn router_stats() -> Option<RouterStats> {
     }
 
     let seconds = (infer_ms as f64) / 1000.0;
-    let avg_tokens_per_sec = if seconds > 0.0 {
-        tokens as f64 / seconds
-    } else {
-        0.0
-    };
+    let avg_tokens_per_sec = if seconds > 0.0 { tokens as f64 / seconds } else { 0.0 };
     let avg_latency_ms = (infer_ms as f64) / (requests as f64);
 
     Some(RouterStats {

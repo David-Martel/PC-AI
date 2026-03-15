@@ -82,8 +82,7 @@ pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
             }
 
             // Query driver registry key path via SPDRP_DRIVER (e.g. "{4d36e972-...}\0001")
-            let (driver_version, driver_date, driver_provider) =
-                get_driver_metadata(h_dev_info, &mut dev_info_data);
+            let (driver_version, driver_date, driver_provider) = get_driver_metadata(h_dev_info, &mut dev_info_data);
 
             let mut detail = PnpDeviceDetail {
                 name,
@@ -139,10 +138,7 @@ pub fn collect_pnp_devices(class_filter: Option<&str>) -> Vec<PnpDeviceDetail> {
 /// `HKLM\SYSTEM\CurrentControlSet\Control\Class\`, then reads the three
 /// string values directly.  Returns empty strings on any failure so the
 /// caller always gets a valid (possibly empty) triple.
-unsafe fn get_driver_metadata(
-    h_dev_info: HDEVINFO,
-    dev_info_data: *mut SP_DEVINFO_DATA,
-) -> (String, String, String) {
+unsafe fn get_driver_metadata(h_dev_info: HDEVINFO, dev_info_data: *mut SP_DEVINFO_DATA) -> (String, String, String) {
     // SPDRP_DRIVER returns a path fragment like "{4d36e972-e325-11ce-bfc1-08002be10318}\0001"
     let driver_key_relative = get_device_property(h_dev_info, dev_info_data, SPDRP_DRIVER);
     if driver_key_relative == "Unknown" || driver_key_relative.is_empty() {
@@ -157,13 +153,7 @@ unsafe fn get_driver_metadata(
     let full_path_w: Vec<u16> = full_path.encode_utf16().chain(std::iter::once(0)).collect();
 
     let mut hkey: HKEY = std::ptr::null_mut();
-    let result = RegOpenKeyExW(
-        HKEY_LOCAL_MACHINE,
-        full_path_w.as_ptr(),
-        0,
-        KEY_READ,
-        &mut hkey,
-    );
+    let result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, full_path_w.as_ptr(), 0, KEY_READ, &mut hkey);
 
     if result != ERROR_SUCCESS {
         return (String::new(), String::new(), String::new());

@@ -84,7 +84,8 @@ mod llamacpp_error_tests {
             return; // Skip if llamacpp not available
         }
 
-        let nonexistent = CString::new("/nonexistent/path/to/model.gguf").expect("CString should accept valid test input");
+        let nonexistent =
+            CString::new("/nonexistent/path/to/model.gguf").expect("CString should accept valid test input");
         let result = pcai_load_model(nonexistent.as_ptr(), 0);
 
         assert_eq!(result, -1);

@@ -111,15 +111,14 @@ impl GenerationPipeline {
         // 2. Load JanusConfig from config.json (with 7B fallback).
         let config_json = model_path.join("config.json");
         let model_config = if config_json.exists() {
-            JanusConfig::from_file(&config_json)
-                .unwrap_or_else(|err| {
-                    tracing::warn!(
-                        path = %config_json.display(),
-                        error = %err,
-                        "failed to parse config.json; using 7B defaults"
-                    );
-                    JanusConfig::janus_pro_7b()
-                })
+            JanusConfig::from_file(&config_json).unwrap_or_else(|err| {
+                tracing::warn!(
+                    path = %config_json.display(),
+                    error = %err,
+                    "failed to parse config.json; using 7B defaults"
+                );
+                JanusConfig::janus_pro_7b()
+            })
         } else {
             tracing::warn!("config.json not found; using 7B defaults");
             JanusConfig::janus_pro_7b()
@@ -128,8 +127,8 @@ impl GenerationPipeline {
         // 3. Build JanusModel from a VarMap-backed VarBuilder.
         let mut varmap = Some(VarMap::new());
         let vb = VarBuilder::from_varmap(varmap.as_ref().unwrap(), dtype, &device);
-        let mut model = JanusModel::new(vb, &model_config)
-            .map_err(|e| anyhow::anyhow!("JanusModel construction failed: {e}"))?;
+        let mut model =
+            JanusModel::new(vb, &model_config).map_err(|e| anyhow::anyhow!("JanusModel construction failed: {e}"))?;
 
         // 4. Load safetensors weights into the VarMap.
         let shards = hub::collect_safetensors(&model_path);
@@ -141,11 +140,7 @@ impl GenerationPipeline {
         } else {
             let loaded = hub::load_weights(varmap.as_ref().unwrap(), &shards, dtype, &device)
                 .context("failed to load model weights from safetensors")?;
-            tracing::info!(
-                shards = shards.len(),
-                tensors_loaded = loaded,
-                "weights loaded"
-            );
+            tracing::info!(shards = shards.len(), tensors_loaded = loaded, "weights loaded");
         }
 
         // 5. On CUDA, offload wte + lm_head to CPU to free ~800 MB VRAM.
@@ -164,8 +159,7 @@ impl GenerationPipeline {
         }
 
         // 6. Load tokenizer.
-        let tokenizer = hub::load_tokenizer(&model_path)
-            .context("failed to load tokenizer")?;
+        let tokenizer = hub::load_tokenizer(&model_path).context("failed to load tokenizer")?;
 
         // 7. Optionally build SigLIP vision encoder.
         //    For generation-only workloads, skip SigLIP to save ~400MB VRAM.
@@ -177,8 +171,7 @@ impl GenerationPipeline {
         } else {
             let siglip_cfg = Self::siglip_config(&model_config);
             let vm_ref = varmap.as_ref().unwrap();
-            let siglip_vb = VarBuilder::from_varmap(vm_ref, dtype, &device)
-                .pp("vision_model");
+            let siglip_vb = VarBuilder::from_varmap(vm_ref, dtype, &device).pp("vision_model");
             match siglip::VisionModel::new(&siglip_cfg, false, siglip_vb) {
                 Ok(vm) => {
                     tracing::info!("SigLIP vision encoder loaded");
@@ -291,10 +284,7 @@ impl GenerationPipeline {
 
         // Append <begin_of_image> transition token to signal the model
         // to switch from text mode to image generation mode.
-        let boi_id: u32 = self
-            .tokenizer
-            .token_to_id("<begin_of_image>")
-            .unwrap_or(100003);
+        let boi_id: u32 = self.tokenizer.token_to_id("<begin_of_image>").unwrap_or(100003);
         prompt_ids.push(boi_id);
         let seq_len = prompt_ids.len();
         tracing::debug!(seq_len, boi_id, "prompt tokens (including <begin_of_image>)");
@@ -371,11 +361,8 @@ impl GenerationPipeline {
 
         // Placeholder for current token IDs; unused at step 0 where we
         // consume the prefill hidden state directly.
-        let mut current_token_ids = Tensor::zeros(
-            (batch_size, 1_usize),
-            DType::U32,
-            &self.device,
-        ).context("failed to build initial token tensor")?;
+        let mut current_token_ids = Tensor::zeros((batch_size, 1_usize), DType::U32, &self.device)
+            .context("failed to build initial token tensor")?;
 
         for step in 0..num_image_tokens {
             // A. Get hidden states for this step.
@@ -387,9 +374,14 @@ impl GenerationPipeline {
             } else {
                 let embeds = {
                     use candle_core::Module;
-                    let raw_embed = self.model.gen_embed.forward(&current_token_ids)
+                    let raw_embed = self
+                        .model
+                        .gen_embed
+                        .forward(&current_token_ids)
                         .map_err(|e| anyhow::anyhow!("step {step}: gen_embed failed: {e}"))?;
-                    self.model.gen_aligner.forward(&raw_embed)
+                    self.model
+                        .gen_aligner
+                        .forward(&raw_embed)
                         .map_err(|e| anyhow::anyhow!("step {step}: gen_aligner failed: {e}"))?
                 };
                 let h = self
@@ -429,14 +421,18 @@ impl GenerationPipeline {
                     let cond_rows: Vec<Tensor> = (0..batch_size)
                         .step_by(2)
                         .map(|i| {
-                            img_logits.i(i).and_then(|t| t.unsqueeze(0))
+                            img_logits
+                                .i(i)
+                                .and_then(|t| t.unsqueeze(0))
                                 .map_err(|e| anyhow::anyhow!("step {step}: cond row {i}: {e}"))
                         })
                         .collect::<Result<_>>()?;
                     let uncond_rows: Vec<Tensor> = (1..batch_size)
                         .step_by(2)
                         .map(|i| {
-                            img_logits.i(i).and_then(|t| t.unsqueeze(0))
+                            img_logits
+                                .i(i)
+                                .and_then(|t| t.unsqueeze(0))
                                 .map_err(|e| anyhow::anyhow!("step {step}: uncond row {i}: {e}"))
                         })
                         .collect::<Result<_>>()?;
@@ -464,8 +460,8 @@ impl GenerationPipeline {
             // G. Multinomial sampling: one token per parallel image.
             //    We sample from probs [parallel_size, vocab_size] and
             //    collect the sampled index for each parallel sample.
-            let next_tokens = multinomial_sample(&probs)
-                .with_context(|| format!("step {step}: multinomial sampling failed"))?;
+            let next_tokens =
+                multinomial_sample(&probs).with_context(|| format!("step {step}: multinomial sampling failed"))?;
 
             // For parallel_size=1, store the single sampled token.
             // For parallel_size>1, store the first sample (later: batch decode).
@@ -484,12 +480,16 @@ impl GenerationPipeline {
                     next_ids_flat.push(tok);
                 }
             }
-            current_token_ids =
-                Tensor::from_vec(next_ids_flat, (batch_size, 1_usize), &self.device)
-                    .context("failed to build next token tensor")?;
+            current_token_ids = Tensor::from_vec(next_ids_flat, (batch_size, 1_usize), &self.device)
+                .context("failed to build next token tensor")?;
 
             if step % 100 == 0 || step == num_image_tokens - 1 {
-                tracing::debug!(step, total = num_image_tokens, token = first_token, "generation progress");
+                tracing::debug!(
+                    step,
+                    total = num_image_tokens,
+                    token = first_token,
+                    "generation progress"
+                );
             }
         }
 
@@ -552,18 +552,12 @@ impl GenerationPipeline {
 pub fn tensor_to_image(tensor: &Tensor) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
     // Validate shape [C, H, W].
     let dims = tensor.dims();
-    anyhow::ensure!(
-        dims.len() == 3,
-        "expected 3D tensor [C, H, W], got {}D",
-        dims.len()
-    );
+    anyhow::ensure!(dims.len() == 3, "expected 3D tensor [C, H, W], got {}D", dims.len());
     let (c, h, w) = (dims[0], dims[1], dims[2]);
     anyhow::ensure!(c == 3, "expected C=3 (RGB), got C={c}");
 
     // Permute [C, H, W] → [H, W, C] for row-major layout.
-    let hwc = tensor
-        .permute((1, 2, 0))
-        .context("permute [C,H,W] -> [H,W,C] failed")?;
+    let hwc = tensor.permute((1, 2, 0)).context("permute [C,H,W] -> [H,W,C] failed")?;
 
     // Flatten to a contiguous byte Vec.
     let raw: Vec<u8> = hwc
@@ -656,16 +650,14 @@ mod tests {
     /// `tensor_to_image` must return an error for a 2D tensor.
     #[test]
     fn test_tensor_to_image_wrong_dims() {
-        let tensor =
-            Tensor::zeros((3_usize, 10_usize), DType::U8, &Device::Cpu).unwrap();
+        let tensor = Tensor::zeros((3_usize, 10_usize), DType::U8, &Device::Cpu).unwrap();
         assert!(tensor_to_image(&tensor).is_err());
     }
 
     /// `tensor_to_image` must return an error when C != 3.
     #[test]
     fn test_tensor_to_image_wrong_channels() {
-        let tensor =
-            Tensor::zeros((4_usize, 8_usize, 8_usize), DType::U8, &Device::Cpu).unwrap();
+        let tensor = Tensor::zeros((4_usize, 8_usize, 8_usize), DType::U8, &Device::Cpu).unwrap();
         assert!(tensor_to_image(&tensor).is_err());
     }
 
@@ -682,8 +674,7 @@ mod tests {
     #[test]
     fn test_rand_val_not_all_same() {
         let vals: Vec<f64> = (0..50).map(|_| rand_val()).collect();
-        let unique: std::collections::HashSet<u64> =
-            vals.iter().map(|&v| v.to_bits()).collect();
+        let unique: std::collections::HashSet<u64> = vals.iter().map(|&v| v.to_bits()).collect();
         assert!(
             unique.len() > 1,
             "rand_val produced all identical values — counter not working"
@@ -696,8 +687,7 @@ mod tests {
     fn test_multinomial_sample_one_hot() {
         // One-hot at index 3 out of 5.
         let data: Vec<f32> = vec![0.0, 0.0, 0.0, 1.0, 0.0];
-        let probs =
-            Tensor::from_vec(data, (1_usize, 5_usize), &Device::Cpu).unwrap();
+        let probs = Tensor::from_vec(data, (1_usize, 5_usize), &Device::Cpu).unwrap();
         for _ in 0..20 {
             let tokens = multinomial_sample(&probs).unwrap();
             assert_eq!(tokens.len(), 1);
@@ -709,8 +699,7 @@ mod tests {
     #[test]
     fn test_multinomial_sample_batch_size() {
         let data: Vec<f32> = vec![0.5, 0.5, 0.5, 0.5]; // 2×2, row-normalised not needed (cumsum)
-        let probs =
-            Tensor::from_vec(data, (2_usize, 2_usize), &Device::Cpu).unwrap();
+        let probs = Tensor::from_vec(data, (2_usize, 2_usize), &Device::Cpu).unwrap();
         let tokens = multinomial_sample(&probs).unwrap();
         assert_eq!(tokens.len(), 2, "expected one token per batch row");
     }

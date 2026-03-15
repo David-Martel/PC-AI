@@ -112,9 +112,7 @@ fn format_bytes(bytes: u64) -> String {
 }
 
 fn append_pod<T: Copy>(target: &mut Vec<u8>, value: &T) {
-    let bytes = unsafe {
-        std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>())
-    };
+    let bytes = unsafe { std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>()) };
     target.extend_from_slice(bytes);
 }
 
@@ -123,9 +121,7 @@ fn append_pod_slice<T: Copy>(target: &mut Vec<u8>, values: &[T]) {
         return;
     }
 
-    let bytes = unsafe {
-        std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values))
-    };
+    let bytes = unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values)) };
     target.extend_from_slice(bytes);
 }
 

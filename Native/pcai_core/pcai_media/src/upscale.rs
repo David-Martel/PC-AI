@@ -51,10 +51,7 @@ impl UpscalePipeline {
             "RealESRGAN model loaded"
         );
 
-        Ok(Self {
-            session,
-            input_name,
-        })
+        Ok(Self { session, input_name })
     }
 
     /// Upscale an image by 4x using RealESRGAN.
@@ -101,16 +98,11 @@ impl UpscalePipeline {
             }
         }
 
-        ort::value::Tensor::from_array(([1usize, 3, height, width], data))
-            .context("failed to create input tensor")
+        ort::value::Tensor::from_array(([1usize, 3, height, width], data)).context("failed to create input tensor")
     }
 
     /// Convert a [1, 3, H*4, W*4] f32 output tensor to an RgbImage.
-    fn tensor_to_image(
-        output: &ort::value::DynValue,
-        out_h: usize,
-        out_w: usize,
-    ) -> Result<RgbImage> {
+    fn tensor_to_image(output: &ort::value::DynValue, out_h: usize, out_w: usize) -> Result<RgbImage> {
         let (shape, data) = output
             .try_extract_tensor::<f32>()
             .context("failed to extract output tensor")?;

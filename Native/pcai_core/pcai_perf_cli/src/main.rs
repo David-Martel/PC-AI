@@ -199,10 +199,7 @@ fn handle_worker_request(raw: &str) -> Result<Value> {
 
     match command {
         "hash-list" => {
-            let algorithm = request
-                .get("algorithm")
-                .and_then(Value::as_str)
-                .unwrap_or("SHA256");
+            let algorithm = request.get("algorithm").and_then(Value::as_str).unwrap_or("SHA256");
             let paths = request
                 .get("paths")
                 .and_then(Value::as_array)
@@ -215,10 +212,7 @@ fn handle_worker_request(raw: &str) -> Result<Value> {
         }
         "processes" => {
             let top = request.get("top").and_then(Value::as_u64).unwrap_or(10) as usize;
-            let sort_by = request
-                .get("sort_by")
-                .and_then(Value::as_str)
-                .unwrap_or("memory");
+            let sort_by = request.get("sort_by").and_then(Value::as_str).unwrap_or("memory");
             Ok(serde_json::to_value(collect_process_rows(top, sort_by))?)
         }
         "disk" => {

@@ -4,10 +4,14 @@ use serde_json::json;
 #[tokio::test]
 async fn test_streaming_chat_completion() {
     let app = rust_functiongemma_runtime::build_router();
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("async operation should succeed");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("async operation should succeed");
     let addr = listener.local_addr().expect("test operation should succeed");
     tokio::spawn(async move {
-        axum::serve(listener, app).await.expect("async operation should succeed");
+        axum::serve(listener, app)
+            .await
+            .expect("async operation should succeed");
     });
 
     let base = format!("http://{}", addr);
@@ -25,14 +29,16 @@ async fn test_streaming_chat_completion() {
         .post(format!("{}/v1/chat/completions", base))
         .json(&payload)
         .send()
-        .await.expect("async operation should succeed");
+        .await
+        .expect("async operation should succeed");
 
     assert_eq!(resp.status(), 200);
     let content_type = resp
         .headers()
         .get("content-type")
         .unwrap()
-        .to_str().expect("test operation should succeed");
+        .to_str()
+        .expect("test operation should succeed");
     assert!(
         content_type.contains("text/event-stream"),
         "Expected SSE content type, got: {}",
@@ -50,10 +56,14 @@ async fn test_streaming_chat_completion() {
 #[tokio::test]
 async fn health_and_models() {
     let app = rust_functiongemma_runtime::build_router();
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("async operation should succeed");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("async operation should succeed");
     let addr = listener.local_addr().expect("test operation should succeed");
     tokio::spawn(async move {
-        axum::serve(listener, app).await.expect("async operation should succeed");
+        axum::serve(listener, app)
+            .await
+            .expect("async operation should succeed");
     });
 
     let base = format!("http://{}", addr);
@@ -65,7 +75,8 @@ async fn health_and_models() {
         .await
         .unwrap()
         .json()
-        .await.expect("async operation should succeed");
+        .await
+        .expect("async operation should succeed");
     assert_eq!(health["status"], "ok");
     assert!(health["metadata"]["version"].as_str().is_some());
     assert!(health["metadata"]["model"].as_str().is_some());
@@ -77,7 +88,8 @@ async fn health_and_models() {
         .await
         .unwrap()
         .json()
-        .await.expect("async operation should succeed");
+        .await
+        .expect("async operation should succeed");
     assert_eq!(models["object"], "list");
     assert!(models["data"][0]["metadata"]["version"].as_str().is_some());
     assert!(models["data"][0]["metadata"]["model"].as_str().is_some());
@@ -87,10 +99,14 @@ async fn health_and_models() {
 #[tokio::test]
 async fn chat_completion_tool_call() {
     let app = rust_functiongemma_runtime::build_router();
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("async operation should succeed");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("async operation should succeed");
     let addr = listener.local_addr().expect("test operation should succeed");
     tokio::spawn(async move {
-        axum::serve(listener, app).await.expect("async operation should succeed");
+        axum::serve(listener, app)
+            .await
+            .expect("async operation should succeed");
     });
 
     let base = format!("http://{}", addr);
@@ -129,21 +145,28 @@ async fn chat_completion_tool_call() {
         .await
         .unwrap()
         .json()
-        .await.expect("async operation should succeed");
+        .await
+        .expect("async operation should succeed");
 
     let tool_calls = &resp["choices"][0]["message"]["tool_calls"];
     assert!(tool_calls.is_array());
-    let name = tool_calls[0]["function"]["name"].as_str().expect("test operation should succeed");
+    let name = tool_calls[0]["function"]["name"]
+        .as_str()
+        .expect("test operation should succeed");
     assert_eq!(name, "SearchDocs");
 }
 
 #[tokio::test]
 async fn chat_completion_no_tool() {
     let app = rust_functiongemma_runtime::build_router();
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("async operation should succeed");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("async operation should succeed");
     let addr = listener.local_addr().expect("test operation should succeed");
     tokio::spawn(async move {
-        axum::serve(listener, app).await.expect("async operation should succeed");
+        axum::serve(listener, app)
+            .await
+            .expect("async operation should succeed");
     });
 
     let base = format!("http://{}", addr);
@@ -165,9 +188,12 @@ async fn chat_completion_no_tool() {
         .await
         .unwrap()
         .json()
-        .await.expect("async operation should succeed");
+        .await
+        .expect("async operation should succeed");
 
-    let content = resp["choices"][0]["message"]["content"].as_str().expect("test operation should succeed");
+    let content = resp["choices"][0]["message"]["content"]
+        .as_str()
+        .expect("test operation should succeed");
     assert_eq!(content, "NO_TOOL");
 }
 
@@ -178,10 +204,14 @@ async fn test_returns_429_when_queue_full() {
     // Since the heuristic router is instant, we just verify the server starts
     // and responds correctly (the semaphore is there for model inference which takes time)
     let app = rust_functiongemma_runtime::build_router();
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("async operation should succeed");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("async operation should succeed");
     let addr = listener.local_addr().expect("test operation should succeed");
     tokio::spawn(async move {
-        axum::serve(listener, app).await.expect("async operation should succeed");
+        axum::serve(listener, app)
+            .await
+            .expect("async operation should succeed");
     });
 
     let base = format!("http://{}", addr);
@@ -199,6 +229,7 @@ async fn test_returns_429_when_queue_full() {
         .post(format!("{}/v1/chat/completions", base))
         .json(&payload)
         .send()
-        .await.expect("async operation should succeed");
+        .await
+        .expect("async operation should succeed");
     assert_eq!(resp.status(), StatusCode::OK);
 }

@@ -154,9 +154,7 @@ pub struct DirectoryManifestResult {
 }
 
 fn append_pod<T: Copy>(target: &mut Vec<u8>, value: &T) {
-    let bytes = unsafe {
-        std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>())
-    };
+    let bytes = unsafe { std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>()) };
     target.extend_from_slice(bytes);
 }
 
@@ -165,9 +163,7 @@ fn append_pod_slice<T: Copy>(target: &mut Vec<u8>, values: &[T]) {
         return;
     }
 
-    let bytes = unsafe {
-        std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values))
-    };
+    let bytes = unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values)) };
     target.extend_from_slice(bytes);
 }
 
@@ -339,7 +335,10 @@ fn find_files_impl(config: &FileSearchConfig) -> FileSearchResult {
                     modified,
                     readonly,
                 };
-                found_files_clone.lock().expect("found files mutex poisoned").push(file_info);
+                found_files_clone
+                    .lock()
+                    .expect("found files mutex poisoned")
+                    .push(file_info);
             }
         }
         ignore::WalkState::Continue
@@ -488,7 +487,11 @@ fn collect_directory_manifest_impl(config: &DirectoryManifestConfig) -> Director
             let manifest_entry = DirectoryManifestEntry {
                 path: entry.path().to_string_lossy().into_owned(),
                 relative_path,
-                entry_type: if is_dir { "directory".to_string() } else { "file".to_string() },
+                entry_type: if is_dir {
+                    "directory".to_string()
+                } else {
+                    "file".to_string()
+                },
                 extension,
                 depth,
                 size: if metadata.is_file() { metadata.len() } else { 0 },
@@ -620,11 +623,7 @@ pub fn find_files_compact_ffi(root_path: *const c_char, pattern: *const c_char, 
 }
 
 /// FFI entry point for directory manifest collection with full JSON result.
-pub fn collect_directory_manifest_ffi(
-    root_path: *const c_char,
-    max_depth: u32,
-    max_results: u64,
-) -> PcaiStringBuffer {
+pub fn collect_directory_manifest_ffi(root_path: *const c_char, max_depth: u32, max_results: u64) -> PcaiStringBuffer {
     match DirectoryManifestConfig::from_ffi(root_path, max_depth, max_results) {
         Ok(config) => {
             let result = collect_directory_manifest_impl(&config);

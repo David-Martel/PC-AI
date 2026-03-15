@@ -50,8 +50,7 @@ pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
     }
 
     tracing::info!(model = model_id, "downloading model from HuggingFace Hub");
-    let api = hf_hub::api::sync::Api::new()
-        .context("failed to initialise HuggingFace Hub API")?;
+    let api = hf_hub::api::sync::Api::new().context("failed to initialise HuggingFace Hub API")?;
     let repo = api.model(model_id.to_string());
 
     // Fetch config.json — the returned path reveals the local cache directory.
@@ -129,11 +128,9 @@ pub fn open_safetensors(paths: &[PathBuf]) -> Result<MmapedSafetensors> {
     // Safety: no concurrent writer modifies the files while mmap is alive.
     let archive = unsafe {
         if paths.len() == 1 {
-            MmapedSafetensors::new(&paths[0])
-                .with_context(|| format!("failed to mmap '{}'", paths[0].display()))?
+            MmapedSafetensors::new(&paths[0]).with_context(|| format!("failed to mmap '{}'", paths[0].display()))?
         } else {
-            MmapedSafetensors::multi(paths)
-                .context("failed to mmap safetensors shards")?
+            MmapedSafetensors::multi(paths).context("failed to mmap safetensors shards")?
         }
     };
     Ok(archive)
@@ -159,26 +156,14 @@ pub fn open_safetensors(paths: &[PathBuf]) -> Result<MmapedSafetensors> {
 ///
 /// Returns an error if `paths` is empty, if any I/O fails, or if a dtype cast
 /// fails.
-pub fn load_weights(
-    varmap: &VarMap,
-    paths: &[PathBuf],
-    dtype: DType,
-    device: &Device,
-) -> Result<usize> {
+pub fn load_weights(varmap: &VarMap, paths: &[PathBuf], dtype: DType, device: &Device) -> Result<usize> {
     let archive = open_safetensors(paths)?;
 
     // Build a fast lookup set from archive tensor names.
     use std::collections::HashSet;
-    let st_names: HashSet<String> = archive
-        .tensors()
-        .iter()
-        .map(|(name, _)| name.clone())
-        .collect();
+    let st_names: HashSet<String> = archive.tensors().iter().map(|(name, _)| name.clone()).collect();
 
-    let data = varmap
-        .data()
-        .lock()
-        .expect("VarMap lock poisoned");
+    let data = varmap.data().lock().expect("VarMap lock poisoned");
 
     // Try to load all variables using an optional dot-separated prefix.
     // Returns the count of successfully updated variables.
@@ -230,11 +215,7 @@ pub fn load_weights(
         }
     }
 
-    tracing::debug!(
-        loaded = direct_count,
-        total = total_vars,
-        "loaded weights (no prefix)"
-    );
+    tracing::debug!(loaded = direct_count, total = total_vars, "loaded weights (no prefix)");
     Ok(direct_count)
 }
 
@@ -251,9 +232,7 @@ fn detect_prefix(names: &std::collections::HashSet<String>) -> Option<String> {
             }
         }
         if name.ends_with("embed_tokens.weight") {
-            let prefix = name
-                .trim_end_matches("embed_tokens.weight")
-                .trim_end_matches('.');
+            let prefix = name.trim_end_matches("embed_tokens.weight").trim_end_matches('.');
             if !prefix.is_empty() {
                 return Some(prefix.to_string());
             }
@@ -280,8 +259,7 @@ pub fn load_tokenizer(model_path: &Path) -> Result<tokenizers::Tokenizer> {
         "tokenizer.json not found at '{}'",
         tokenizer_path.display()
     );
-    tokenizers::Tokenizer::from_file(&tokenizer_path)
-        .map_err(|e| anyhow::anyhow!("failed to load tokenizer: {e}"))
+    tokenizers::Tokenizer::from_file(&tokenizer_path).map_err(|e| anyhow::anyhow!("failed to load tokenizer: {e}"))
 }
 
 // ---------------------------------------------------------------------------

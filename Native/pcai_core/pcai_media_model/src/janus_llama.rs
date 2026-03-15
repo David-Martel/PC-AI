@@ -63,9 +63,7 @@ impl KvCache {
         if let Some(mask) = self.masks.get(&t) {
             Ok(mask.clone())
         } else {
-            let mask: Vec<_> = (0..t)
-                .flat_map(|i| (0..t).map(move |j| u8::from(j > i)))
-                .collect();
+            let mask: Vec<_> = (0..t).flat_map(|i| (0..t).map(move |j| u8::from(j > i))).collect();
             let mask = Tensor::from_slice(&mask, (t, t), &self.device)?;
             self.masks.insert(t, mask.clone());
             Ok(mask)
@@ -129,13 +127,7 @@ impl CausalSelfAttention {
             .reshape((b_sz, n_kv_head * n_rep, seq_len, head_dim))
     }
 
-    fn forward(
-        &self,
-        x: &Tensor,
-        index_pos: usize,
-        block_idx: usize,
-        cache: &mut KvCache,
-    ) -> Result<Tensor> {
+    fn forward(&self, x: &Tensor, index_pos: usize, block_idx: usize, cache: &mut KvCache) -> Result<Tensor> {
         let (b_sz, seq_len, hidden_size) = x.dims3()?;
         let q = self.q_proj.forward(x)?;
         let k = self.k_proj.forward(x)?;
@@ -198,7 +190,11 @@ impl CausalSelfAttention {
         let in_dtype = q.dtype();
         let use_f32_attn = matches!(in_dtype, DType::F64); // only upcast for F64
         let (q, k, v) = if use_f32_attn {
-            (q.to_dtype(DType::F32)?, k.to_dtype(DType::F32)?, v.to_dtype(DType::F32)?)
+            (
+                q.to_dtype(DType::F32)?,
+                k.to_dtype(DType::F32)?,
+                v.to_dtype(DType::F32)?,
+            )
         } else {
             (q, k, v)
         };
@@ -207,7 +203,9 @@ impl CausalSelfAttention {
             att
         } else {
             let mask = cache.mask(seq_len)?.broadcast_as(att.shape())?;
-            let neg_inf = if use_f32_attn { f32::NEG_INFINITY } else {
+            let neg_inf = if use_f32_attn {
+                f32::NEG_INFINITY
+            } else {
                 // For BF16/F16, use a large negative value instead of infinity
                 -65504.0_f32
             };
@@ -294,13 +292,7 @@ struct Block {
 }
 
 impl Block {
-    fn forward(
-        &self,
-        x: &Tensor,
-        index_pos: usize,
-        block_idx: usize,
-        cache: &mut KvCache,
-    ) -> Result<Tensor> {
+    fn forward(&self, x: &Tensor, index_pos: usize, block_idx: usize, cache: &mut KvCache) -> Result<Tensor> {
         let residual = x;
         let x = self.input_layernorm.forward(x)?;
         let x = (self.attn.forward(&x, index_pos, block_idx, cache)? + residual)?;
@@ -312,13 +304,9 @@ impl Block {
     fn load(vb: VarBuilder, cfg: &Config) -> Result<Self> {
         let attn = CausalSelfAttention::load(vb.pp("self_attn"), cfg)?;
         let mlp = Mlp::load(vb.pp("mlp"), cfg)?;
-        let input_layernorm =
-            candle_nn::rms_norm(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("input_layernorm"))?;
-        let post_attention_layernorm = candle_nn::rms_norm(
-            cfg.hidden_size,
-            cfg.rms_norm_eps,
-            vb.pp("post_attention_layernorm"),
-        )?;
+        let input_layernorm = candle_nn::rms_norm(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("input_layernorm"))?;
+        let post_attention_layernorm =
+            candle_nn::rms_norm(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("post_attention_layernorm"))?;
         Ok(Self {
             input_layernorm,
             attn,
@@ -364,12 +352,7 @@ impl JanusLlama {
     ///
     /// This is what Janus-Pro needs to project through `gen_head` to get
     /// image-vocabulary logits.
-    pub fn forward_hidden(
-        &self,
-        input_embed: &Tensor,
-        index_pos: usize,
-        cache: &mut KvCache,
-    ) -> Result<Tensor> {
+    pub fn forward_hidden(&self, input_embed: &Tensor, index_pos: usize, cache: &mut KvCache) -> Result<Tensor> {
         let (_, seq_len, _) = input_embed.dims3()?;
         let mut x = input_embed.clone();
         for (block_idx, block) in self.blocks.iter().enumerate() {
@@ -384,12 +367,7 @@ impl JanusLlama {
     ///
     /// Returns shape `[B, vocab_size]` — equivalent to candle's
     /// `Llama::forward_input_embed`.
-    pub fn forward_input_embed(
-        &self,
-        input_embed: &Tensor,
-        index_pos: usize,
-        cache: &mut KvCache,
-    ) -> Result<Tensor> {
+    pub fn forward_input_embed(&self, input_embed: &Tensor, index_pos: usize, cache: &mut KvCache) -> Result<Tensor> {
         let hidden = self.forward_hidden(input_embed, index_pos, cache)?;
         let logits = self.lm_head.forward(&hidden)?;
         logits.to_dtype(DType::F32)
@@ -434,8 +412,7 @@ impl JanusLlama {
         } else {
             linear_no_bias(cfg.hidden_size, cfg.vocab_size, vb.pp("lm_head"))?
         };
-        let ln_f =
-            candle_nn::rms_norm(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("model.norm"))?;
+        let ln_f = candle_nn::rms_norm(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("model.norm"))?;
         let blocks: Vec<_> = (0..cfg.num_hidden_layers)
             .map(|i| Block::load(vb.pp(format!("model.layers.{i}")), cfg))
             .collect::<Result<_>>()?;
@@ -494,8 +471,7 @@ mod tests {
         let llama = JanusLlama::load(vb, &cfg).expect("construction failed");
         let mut cache = KvCache::new(true, DType::F32, &cfg, &Device::Cpu).unwrap();
 
-        let embed =
-            Tensor::zeros((1_usize, 3_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
+        let embed = Tensor::zeros((1_usize, 3_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
         let hidden = llama.forward_hidden(&embed, 0, &mut cache).unwrap();
 
         assert_eq!(hidden.dims(), &[1, 64], "expected [B, hidden_size]");
@@ -510,8 +486,7 @@ mod tests {
         let llama = JanusLlama::load(vb, &cfg).expect("construction failed");
         let mut cache = KvCache::new(true, DType::F32, &cfg, &Device::Cpu).unwrap();
 
-        let embed =
-            Tensor::zeros((1_usize, 3_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
+        let embed = Tensor::zeros((1_usize, 3_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
         let logits = llama.forward_input_embed(&embed, 0, &mut cache).unwrap();
 
         assert_eq!(logits.dims(), &[1, 256], "expected [B, vocab_size]");
@@ -528,8 +503,7 @@ mod tests {
 
         assert_eq!(cache.memory_bytes(), 0);
 
-        let embed =
-            Tensor::zeros((1_usize, 3_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
+        let embed = Tensor::zeros((1_usize, 3_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
         let _ = llama.forward_hidden(&embed, 0, &mut cache).unwrap();
 
         assert!(cache.memory_bytes() > 0, "KV cache should have allocated memory");

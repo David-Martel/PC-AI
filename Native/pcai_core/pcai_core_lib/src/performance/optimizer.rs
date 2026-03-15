@@ -152,10 +152,7 @@ pub struct MemoryPressureJson {
 /// Classify a process name (lower-case) into one of the standard category keys.
 fn classify_process(name_lower: &str) -> &'static str {
     // LLM agents first so pcai is not also counted as a build tool
-    if matches_any(
-        name_lower,
-        &["claude", "codex", "ollama", "copilot", "pcai", "llama"],
-    ) {
+    if matches_any(name_lower, &["claude", "codex", "ollama", "copilot", "pcai", "llama"]) {
         return "llm_agents";
     }
     if matches_any(name_lower, &["chrome", "brave", "msedge", "firefox"]) {
@@ -163,14 +160,7 @@ fn classify_process(name_lower: &str) -> &'static str {
     }
     if matches_any(
         name_lower,
-        &[
-            "conhost",
-            "cmd",
-            "powershell",
-            "pwsh",
-            "wezterm",
-            "windowsterminal",
-        ],
+        &["conhost", "cmd", "powershell", "pwsh", "wezterm", "windowsterminal"],
     ) {
         return "terminals";
     }
@@ -226,9 +216,7 @@ fn collect_windows_metrics(sys: &System) -> WindowsMetrics {
 
     let committed_pct = unsafe {
         if GlobalMemoryStatusEx(&mut mem_status) != 0 {
-            let committed = mem_status
-                .ullTotalPageFile
-                .saturating_sub(mem_status.ullAvailPageFile);
+            let committed = mem_status.ullTotalPageFile.saturating_sub(mem_status.ullAvailPageFile);
             let limit = mem_status.ullTotalPageFile;
             if limit > 0 {
                 committed as f32 / limit as f32
@@ -247,9 +235,7 @@ fn collect_windows_metrics(sys: &System) -> WindowsMetrics {
     let total_mb = sys.total_memory() / (1024 * 1024);
     let available_mb = sys.available_memory() / (1024 * 1024);
     let working_set_sum_mb: u64 = sys.processes().values().map(|p| p.memory() / (1024 * 1024)).sum();
-    let pool_nonpaged_mb = total_mb
-        .saturating_sub(available_mb)
-        .saturating_sub(working_set_sum_mb);
+    let pool_nonpaged_mb = total_mb.saturating_sub(available_mb).saturating_sub(working_set_sum_mb);
 
     // --- Pages/sec: sysinfo does not expose this counter.  We read the
     //     Windows Performance counter registry value for a rough single-sample
@@ -294,9 +280,7 @@ fn collect_windows_metrics(sys: &System) -> WindowsMetrics {
     let total_mb = sys.total_memory() / (1024 * 1024);
     let available_mb = sys.available_memory() / (1024 * 1024);
     let working_set_sum_mb: u64 = sys.processes().values().map(|p| p.memory() / (1024 * 1024)).sum();
-    let pool_nonpaged_mb = total_mb
-        .saturating_sub(available_mb)
-        .saturating_sub(working_set_sum_mb);
+    let pool_nonpaged_mb = total_mb.saturating_sub(available_mb).saturating_sub(working_set_sum_mb);
 
     WindowsMetrics {
         pool_nonpaged_mb,
@@ -370,8 +354,7 @@ pub fn analyze_memory_pressure() -> MemoryPressureReport {
 
     // --- Per-process derived metrics ---
     // Build a set of live PIDs for orphan detection
-    let live_pids: std::collections::HashSet<u32> =
-        sys.processes().keys().map(|p| p.as_u32()).collect();
+    let live_pids: std::collections::HashSet<u32> = sys.processes().keys().map(|p| p.as_u32()).collect();
 
     let mut top_consumer_count = 0u32;
     let mut handle_leak_count = 0u32;
@@ -425,9 +408,7 @@ pub fn analyze_memory_pressure() -> MemoryPressureReport {
 #[cfg(target_os = "windows")]
 fn get_handle_count(pid: u32) -> u64 {
     use windows_sys::Win32::Foundation::CloseHandle;
-    use windows_sys::Win32::System::Threading::{
-        GetProcessHandleCount, OpenProcess, PROCESS_QUERY_INFORMATION,
-    };
+    use windows_sys::Win32::System::Threading::{GetProcessHandleCount, OpenProcess, PROCESS_QUERY_INFORMATION};
 
     unsafe {
         let handle = OpenProcess(PROCESS_QUERY_INFORMATION, 0, pid);
@@ -453,17 +434,10 @@ pub fn get_process_categories() -> (u64, HashMap<String, CategoryStats>) {
     let mut sys = System::new_all();
     sys.refresh_all();
 
-    let live_pids: std::collections::HashSet<u32> =
-        sys.processes().keys().map(|p| p.as_u32()).collect();
+    let live_pids: std::collections::HashSet<u32> = sys.processes().keys().map(|p| p.as_u32()).collect();
 
     let mut categories: HashMap<String, CategoryStats> = HashMap::new();
-    for cat in &[
-        "llm_agents",
-        "browsers",
-        "terminals",
-        "build_tools",
-        "system_services",
-    ] {
+    for cat in &["llm_agents", "browsers", "terminals", "build_tools", "system_services"] {
         categories.insert(cat.to_string(), CategoryStats::default());
     }
 
@@ -572,15 +546,9 @@ pub fn get_optimization_recommendations() -> (u64, Vec<OptimizationRecommendatio
     }
 
     // --- Priority 3: browser tab proliferation ---
-    let browser_count = categories
-        .get("browsers")
-        .map(|c| c.count)
-        .unwrap_or(0);
+    let browser_count = categories.get("browsers").map(|c| c.count).unwrap_or(0);
     if browser_count > 40 {
-        let browser_mb = categories
-            .get("browsers")
-            .map(|c| c.working_set_mb)
-            .unwrap_or(0);
+        let browser_mb = categories.get("browsers").map(|c| c.working_set_mb).unwrap_or(0);
         recs.push(OptimizationRecommendation {
             priority: 3,
             category: "browser_tab_sprawl".to_string(),
@@ -635,14 +603,8 @@ pub fn get_optimization_recommendations() -> (u64, Vec<OptimizationRecommendatio
     }
 
     // --- Priority 2: build tool memory (rust-analyzer leak) ---
-    let build_mb = categories
-        .get("build_tools")
-        .map(|c| c.working_set_mb)
-        .unwrap_or(0);
-    let build_handles = categories
-        .get("build_tools")
-        .map(|c| c.handle_count)
-        .unwrap_or(0);
+    let build_mb = categories.get("build_tools").map(|c| c.working_set_mb).unwrap_or(0);
+    let build_handles = categories.get("build_tools").map(|c| c.handle_count).unwrap_or(0);
     if build_mb > 8_192 || build_handles > 500_000 {
         recs.push(OptimizationRecommendation {
             priority: 2,
@@ -749,25 +711,12 @@ mod tests {
     fn test_get_process_categories_all_keys_present() {
         let (elapsed_ms, categories) = get_process_categories();
         // Every standard category key must be present
-        for key in &[
-            "llm_agents",
-            "browsers",
-            "terminals",
-            "build_tools",
-            "system_services",
-        ] {
-            assert!(
-                categories.contains_key(*key),
-                "missing category key: {}",
-                key
-            );
+        for key in &["llm_agents", "browsers", "terminals", "build_tools", "system_services"] {
+            assert!(categories.contains_key(*key), "missing category key: {}", key);
         }
         // system_services must always have at least one process (svchost, etc.)
         let sys_count = categories["system_services"].count;
-        assert!(
-            sys_count > 0,
-            "expected at least one system_services process"
-        );
+        assert!(sys_count > 0, "expected at least one system_services process");
         // elapsed must be plausible
         assert!(elapsed_ms < 60_000, "category scan took unexpectedly long");
     }
@@ -791,10 +740,7 @@ mod tests {
         let (_, recs) = get_optimization_recommendations();
         for rec in &recs {
             assert!(!rec.category.is_empty(), "recommendation has empty category");
-            assert!(
-                !rec.description.is_empty(),
-                "recommendation has empty description"
-            );
+            assert!(!rec.description.is_empty(), "recommendation has empty description");
             assert!(!rec.action.is_empty(), "recommendation has empty action");
             assert!(rec.priority >= 1 && rec.priority <= 4, "priority out of range");
         }

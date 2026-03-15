@@ -157,8 +157,7 @@ impl PipelineConfig {
         } else {
             anyhow::bail!("unrecognised device '{}'; expected 'cpu' or 'cuda[:N]'", self.device);
         };
-        Device::new_cuda(ordinal)
-            .with_context(|| format!("failed to open CUDA device {ordinal}"))
+        Device::new_cuda(ordinal).with_context(|| format!("failed to open CUDA device {ordinal}"))
     }
 
     /// Resolve the `dtype` string to a [`candle_core::DType`].
@@ -171,11 +170,7 @@ impl PipelineConfig {
             "bf16" => DType::BF16,
             "f32" => DType::F32,
             other => {
-                tracing::warn!(
-                    dtype = other,
-                    "unrecognised dtype '{}'; falling back to F32",
-                    other
-                );
+                tracing::warn!(dtype = other, "unrecognised dtype '{}'; falling back to F32", other);
                 DType::F32
             }
         }

@@ -46,14 +46,17 @@
 
 use anyhow::{Context, Result};
 use candle_core::{DType, Device, IndexOp, Tensor};
-#[expect(unused_imports, reason = "Module trait must be in scope for candle_transformers siglip::VisionModel::forward dispatch to resolve at compile time")]
+#[expect(
+    unused_imports,
+    reason = "Module trait must be in scope for candle_transformers siglip::VisionModel::forward dispatch to resolve at compile time"
+)]
 use candle_nn::Module; // Required by siglip::VisionModel::forward at runtime
 use candle_transformers::models::siglip;
-use image::{DynamicImage, imageops::FilterType};
+use image::{imageops::FilterType, DynamicImage};
 
-use pcai_media_model::JanusModel;
 use pcai_media_model::janus_llama::KvCache;
 use pcai_media_model::tensor_utils::normalize;
+use pcai_media_model::JanusModel;
 
 // EOS token id used by the DeepSeek / Janus-Pro vocabulary.
 const EOS_TOKEN_ID: u32 = 2;
@@ -141,8 +144,8 @@ impl UnderstandingPipeline {
         siglip_model: Option<&siglip::VisionModel>,
     ) -> Result<String> {
         // ── 1. Preprocess image ──────────────────────────────────────────────
-        let image_tensor = preprocess_image(image, model.config.image_size, device)
-            .context("image preprocessing failed")?;
+        let image_tensor =
+            preprocess_image(image, model.config.image_size, device).context("image preprocessing failed")?;
 
         // ── 2. SigLIP vision encoding ────────────────────────────────────────
         // When a SigLIP VisionModel is available, run the real encoder.
@@ -160,12 +163,8 @@ impl UnderstandingPipeline {
                 .forward(&img_input)
                 .context("SigLIP vision forward pass failed")?
         } else {
-            Tensor::zeros(
-                (1_usize, num_image_tokens, siglip_dim),
-                dtype,
-                device,
-            )
-            .context("failed to create placeholder SigLIP features")?
+            Tensor::zeros((1_usize, num_image_tokens, siglip_dim), dtype, device)
+                .context("failed to create placeholder SigLIP features")?
         };
 
         // ── 3. Map SigLIP features into LLM hidden space ─────────────────────
@@ -187,8 +186,8 @@ impl UnderstandingPipeline {
         let seq_len = prompt_ids.len();
 
         // ── 5. Text embeddings via LLM embedding table ────────────────────────
-        let prompt_id_tensor = Tensor::from_slice(prompt_ids, (1_usize, seq_len), device)
-            .context("failed to build prompt_ids tensor")?;
+        let prompt_id_tensor =
+            Tensor::from_slice(prompt_ids, (1_usize, seq_len), device).context("failed to build prompt_ids tensor")?;
         let text_embeds = model
             .embed_tokens(&prompt_id_tensor)
             .map_err(|e| anyhow::anyhow!("embed_tokens failed: {e}"))?;
@@ -223,9 +222,8 @@ impl UnderstandingPipeline {
 
         for step in 0..max_tokens {
             // A. Embed the current single token → [1, 1, hidden_size]
-            let token_tensor =
-                Tensor::from_slice(&[current_token], (1_usize, 1_usize), device)
-                    .with_context(|| format!("step {step}: failed to build token tensor"))?;
+            let token_tensor = Tensor::from_slice(&[current_token], (1_usize, 1_usize), device)
+                .with_context(|| format!("step {step}: failed to build token tensor"))?;
             let token_embed = model
                 .embed_tokens(&token_tensor)
                 .map_err(|e| anyhow::anyhow!("step {step}: embed_tokens failed: {e}"))?;
@@ -240,8 +238,7 @@ impl UnderstandingPipeline {
 
             // D. Sample next token (greedy or temperature)
             let next_token = if temperature <= 0.01 {
-                greedy_argmax(&logits_last)
-                    .with_context(|| format!("step {step}: greedy_argmax failed"))?
+                greedy_argmax(&logits_last).with_context(|| format!("step {step}: greedy_argmax failed"))?
             } else {
                 temperature_sample(&logits_last, temperature as f64)
                     .with_context(|| format!("step {step}: temperature_sample failed"))?
@@ -287,17 +284,9 @@ impl UnderstandingPipeline {
 /// # Errors
 ///
 /// Returns an error if tensor construction or normalisation fails.
-pub fn preprocess_image(
-    image: &DynamicImage,
-    target_size: usize,
-    device: &Device,
-) -> Result<Tensor> {
+pub fn preprocess_image(image: &DynamicImage, target_size: usize, device: &Device) -> Result<Tensor> {
     // Resize to target_size × target_size using a high-quality filter.
-    let resized = image.resize_exact(
-        target_size as u32,
-        target_size as u32,
-        FilterType::Lanczos3,
-    );
+    let resized = image.resize_exact(target_size as u32, target_size as u32, FilterType::Lanczos3);
 
     // Convert to RGB8 — ensures exactly 3 channels regardless of input mode.
     let rgb = resized.to_rgb8();
@@ -344,9 +333,7 @@ pub fn preprocess_image(
 /// sample only row 0).
 fn greedy_argmax(logits: &Tensor) -> Result<u32> {
     // logits: [1, vocab_size]
-    let row = logits
-        .i(0_usize)
-        .context("greedy_argmax: failed to index row 0")?;
+    let row = logits.i(0_usize).context("greedy_argmax: failed to index row 0")?;
     // to_vec1 → [vocab_size] f32 values
     let values: Vec<f32> = row
         .to_dtype(DType::F32)
@@ -370,19 +357,13 @@ fn greedy_argmax(logits: &Tensor) -> Result<u32> {
 /// 3. Draws one sample via inverse CDF with [`super::generate::rand_val`].
 fn temperature_sample(logits: &Tensor, temperature: f64) -> Result<u32> {
     // Scale and softmax on row 0.
-    let row = logits
-        .i(0_usize)
-        .context("temperature_sample: failed to index row 0")?;
+    let row = logits.i(0_usize).context("temperature_sample: failed to index row 0")?;
 
     let scaled = (row.to_dtype(DType::F32).context("dtype cast")? / temperature)
         .context("temperature_sample: logit scaling failed")?;
 
-    let probs = candle_nn::ops::softmax_last_dim(
-        &scaled
-            .unsqueeze(0)
-            .context("temperature_sample: unsqueeze failed")?,
-    )
-    .context("temperature_sample: softmax failed")?;
+    let probs = candle_nn::ops::softmax_last_dim(&scaled.unsqueeze(0).context("temperature_sample: unsqueeze failed")?)
+        .context("temperature_sample: softmax failed")?;
 
     // probs: [1, vocab_size]
     let probs_vec: Vec<f32> = probs
@@ -423,8 +404,7 @@ mod tests {
     fn test_preprocess_image_shape() {
         let img = DynamicImage::ImageRgb8(RgbImage::new(128, 96));
         let target = 64_usize;
-        let tensor = preprocess_image(&img, target, &Device::Cpu)
-            .expect("preprocess_image should succeed");
+        let tensor = preprocess_image(&img, target, &Device::Cpu).expect("preprocess_image should succeed");
         assert_eq!(
             tensor.dims(),
             &[1, 3, target, target],
@@ -446,14 +426,9 @@ mod tests {
             };
         }
         let img = DynamicImage::ImageRgb8(buf);
-        let tensor = preprocess_image(&img, 4, &Device::Cpu)
-            .expect("preprocess_image should succeed");
+        let tensor = preprocess_image(&img, 4, &Device::Cpu).expect("preprocess_image should succeed");
 
-        let values: Vec<f32> = tensor
-            .flatten_all()
-            .unwrap()
-            .to_vec1::<f32>()
-            .unwrap();
+        let values: Vec<f32> = tensor.flatten_all().unwrap().to_vec1::<f32>().unwrap();
 
         for v in &values {
             assert!(
@@ -467,18 +442,10 @@ mod tests {
     #[test]
     fn test_preprocess_image_black_is_minus_one() {
         let img = DynamicImage::ImageRgb8(RgbImage::new(8, 8));
-        let tensor = preprocess_image(&img, 8, &Device::Cpu)
-            .expect("preprocess_image should succeed");
-        let values: Vec<f32> = tensor
-            .flatten_all()
-            .unwrap()
-            .to_vec1::<f32>()
-            .unwrap();
+        let tensor = preprocess_image(&img, 8, &Device::Cpu).expect("preprocess_image should succeed");
+        let values: Vec<f32> = tensor.flatten_all().unwrap().to_vec1::<f32>().unwrap();
         for v in &values {
-            assert!(
-                (*v - (-1.0_f32)).abs() < 1e-5,
-                "black pixel must map to -1.0, got {v}"
-            );
+            assert!((*v - (-1.0_f32)).abs() < 1e-5, "black pixel must map to -1.0, got {v}");
         }
     }
 
@@ -490,18 +457,10 @@ mod tests {
             *pixel = image::Rgb([255_u8, 255, 255]);
         }
         let img = DynamicImage::ImageRgb8(buf);
-        let tensor = preprocess_image(&img, 8, &Device::Cpu)
-            .expect("preprocess_image should succeed");
-        let values: Vec<f32> = tensor
-            .flatten_all()
-            .unwrap()
-            .to_vec1::<f32>()
-            .unwrap();
+        let tensor = preprocess_image(&img, 8, &Device::Cpu).expect("preprocess_image should succeed");
+        let values: Vec<f32> = tensor.flatten_all().unwrap().to_vec1::<f32>().unwrap();
         for v in &values {
-            assert!(
-                (*v - 1.0_f32).abs() < 1e-3,
-                "white pixel must map to ~1.0, got {v}"
-            );
+            assert!((*v - 1.0_f32).abs() < 1e-3, "white pixel must map to ~1.0, got {v}");
         }
     }
 
@@ -520,8 +479,7 @@ mod tests {
     #[test]
     fn test_greedy_argmax_finds_max() {
         let logits_data: Vec<f32> = vec![-2.0, 3.5, 1.0, -0.5, 0.0];
-        let logits =
-            Tensor::from_vec(logits_data, (1_usize, 5_usize), &Device::Cpu).unwrap();
+        let logits = Tensor::from_vec(logits_data, (1_usize, 5_usize), &Device::Cpu).unwrap();
         let idx = greedy_argmax(&logits).expect("greedy_argmax should succeed");
         assert_eq!(idx, 1, "maximum is at index 1");
     }
@@ -530,8 +488,7 @@ mod tests {
     #[test]
     fn test_greedy_argmax_last_index() {
         let logits_data: Vec<f32> = vec![0.0, 0.0, 0.0, 0.0, 10.0];
-        let logits =
-            Tensor::from_vec(logits_data, (1_usize, 5_usize), &Device::Cpu).unwrap();
+        let logits = Tensor::from_vec(logits_data, (1_usize, 5_usize), &Device::Cpu).unwrap();
         let idx = greedy_argmax(&logits).expect("greedy_argmax should succeed");
         assert_eq!(idx, 4, "maximum is at the last index");
     }
@@ -544,8 +501,7 @@ mod tests {
     fn test_temperature_sample_one_hot() {
         // All probability mass at index 2 out of 5.
         let logits_data: Vec<f32> = vec![-1e9, -1e9, 1e9, -1e9, -1e9];
-        let logits =
-            Tensor::from_vec(logits_data, (1_usize, 5_usize), &Device::Cpu).unwrap();
+        let logits = Tensor::from_vec(logits_data, (1_usize, 5_usize), &Device::Cpu).unwrap();
         for _ in 0..20 {
             let idx = temperature_sample(&logits, 1.0).expect("temperature_sample");
             assert_eq!(idx, 2, "one-hot must always yield index 2");
@@ -557,8 +513,7 @@ mod tests {
     fn test_temperature_sample_in_range() {
         let vocab_size = 10_usize;
         let logits_data: Vec<f32> = (0..vocab_size as i32).map(|i| i as f32).collect();
-        let logits =
-            Tensor::from_vec(logits_data, (1_usize, vocab_size), &Device::Cpu).unwrap();
+        let logits = Tensor::from_vec(logits_data, (1_usize, vocab_size), &Device::Cpu).unwrap();
         for _ in 0..50 {
             let idx = temperature_sample(&logits, 1.0).expect("temperature_sample");
             assert!(

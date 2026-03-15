@@ -14,14 +14,12 @@ use anyhow::Result;
 fn main() -> Result<()> {
     // Simple arg parsing
     let args: Vec<String> = std::env::args().collect();
-    let model_path = get_arg(&args, "--model")
-        .unwrap_or_else(|| "C:\\codedev\\PC_AI\\Models\\Janus-Pro-1B".to_string());
-    let prompt = get_arg(&args, "--prompt")
-        .unwrap_or_else(|| "a glowing circuit board on a dark background".to_string());
-    let output = get_arg(&args, "--output")
-        .unwrap_or_else(|| "gen_test_output.png".to_string());
-    let device_str = get_arg(&args, "--device")
-        .unwrap_or_else(|| "cpu".to_string());
+    let model_path =
+        get_arg(&args, "--model").unwrap_or_else(|| "C:\\codedev\\PC_AI\\Models\\Janus-Pro-1B".to_string());
+    let prompt =
+        get_arg(&args, "--prompt").unwrap_or_else(|| "a glowing circuit board on a dark background".to_string());
+    let output = get_arg(&args, "--output").unwrap_or_else(|| "gen_test_output.png".to_string());
+    let device_str = get_arg(&args, "--device").unwrap_or_else(|| "cpu".to_string());
 
     eprintln!("=== pcai-media image generation test ===");
     eprintln!("Model:  {model_path}");

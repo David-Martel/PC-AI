@@ -224,11 +224,7 @@ mod tests {
         let head = GenerationHead::new(vb.pp("head"), 4096, 16384).unwrap();
         let x = Tensor::zeros((1_usize, 10_usize, 4096_usize), DType::F32, &dev).unwrap();
         let out = head.forward(&x).unwrap();
-        assert_eq!(
-            out.dims(),
-            &[1, 10, 16384],
-            "GenerationHead output shape mismatch"
-        );
+        assert_eq!(out.dims(), &[1, 10, 16384], "GenerationHead output shape mismatch");
     }
 
     /// MlpAligner: [1, 576, 1024] → [1, 576, 4096]
@@ -241,11 +237,7 @@ mod tests {
         let aligner = MlpAligner::new(vb.pp("aligner"), 1024, 4096).unwrap();
         let x = Tensor::zeros((1_usize, 576_usize, 1024_usize), DType::F32, &dev).unwrap();
         let out = aligner.forward(&x).unwrap();
-        assert_eq!(
-            out.dims(),
-            &[1, 576, 4096],
-            "MlpAligner output shape mismatch"
-        );
+        assert_eq!(out.dims(), &[1, 576, 4096], "MlpAligner output shape mismatch");
     }
 
     /// Verify that aligner with same in/out dimension works (used by gen_aligner).

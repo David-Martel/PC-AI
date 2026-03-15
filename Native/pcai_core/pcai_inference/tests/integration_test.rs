@@ -268,7 +268,10 @@ async fn test_mock_backend_lifecycle() {
     assert!(!backend.is_loaded());
 
     // Load model
-    backend.load_model("dummy.gguf").await.expect("async operation should succeed");
+    backend
+        .load_model("dummy.gguf")
+        .await
+        .expect("async operation should succeed");
     assert!(backend.is_loaded());
 
     // Unload model
@@ -279,7 +282,10 @@ async fn test_mock_backend_lifecycle() {
 #[tokio::test]
 async fn test_mock_backend_generate() {
     let mut backend = MockBackend::new();
-    backend.load_model("dummy.gguf").await.expect("async operation should succeed");
+    backend
+        .load_model("dummy.gguf")
+        .await
+        .expect("async operation should succeed");
 
     let request = GenerateRequest {
         prompt: "Hello, world!".to_string(),
@@ -346,7 +352,10 @@ async fn test_llamacpp_generate_with_model() {
     let model_path = common::require_test_model();
     let mut backend = LlamaCppBackend::new();
 
-    backend.load_model(&model_path).await.expect("async operation should succeed");
+    backend
+        .load_model(&model_path)
+        .await
+        .expect("async operation should succeed");
     assert!(backend.is_loaded());
 
     let request = GenerateRequest {
@@ -373,7 +382,10 @@ async fn test_mistralrs_generate_with_model() {
     let model_path = common::require_test_model();
     let mut backend = MistralRsBackend::new();
 
-    backend.load_model(&model_path).await.expect("async operation should succeed");
+    backend
+        .load_model(&model_path)
+        .await
+        .expect("async operation should succeed");
     assert!(backend.is_loaded());
 
     let request = GenerateRequest {
@@ -612,7 +624,10 @@ async fn stress_test_sequential_generations() {
 
     let model_path = common::require_test_model();
     let mut backend = LlamaCppBackend::new();
-    backend.load_model(&model_path).await.expect("async operation should succeed");
+    backend
+        .load_model(&model_path)
+        .await
+        .expect("async operation should succeed");
 
     for i in 0..10 {
         let request = GenerateRequest {
@@ -640,7 +655,10 @@ async fn stress_test_backend_switching() {
     {
         use pcai_inference::backends::llamacpp::LlamaCppBackend;
         let mut backend = LlamaCppBackend::new();
-        backend.load_model(&model_path).await.expect("async operation should succeed");
+        backend
+            .load_model(&model_path)
+            .await
+            .expect("async operation should succeed");
 
         let request = GenerateRequest {
             prompt: "Test".to_string(),
@@ -658,7 +676,10 @@ async fn stress_test_backend_switching() {
     {
         use pcai_inference::backends::mistralrs::MistralRsBackend;
         let mut backend = MistralRsBackend::new();
-        backend.load_model(&model_path).await.expect("async operation should succeed");
+        backend
+            .load_model(&model_path)
+            .await
+            .expect("async operation should succeed");
 
         let request = GenerateRequest {
             prompt: "Test".to_string(),

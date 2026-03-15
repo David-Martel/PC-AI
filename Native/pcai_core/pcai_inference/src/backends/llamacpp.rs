@@ -2,8 +2,8 @@
 
 use async_trait::async_trait;
 use llm::{
-    InferenceFeedback, InferenceParameters, InferenceRequest, InferenceResponse, InferenceSessionConfig,
-    Model, ModelArchitecture, ModelParameters, OutputRequest, TokenizerSource,
+    InferenceFeedback, InferenceParameters, InferenceRequest, InferenceResponse, InferenceSessionConfig, Model,
+    ModelArchitecture, ModelParameters, OutputRequest, TokenizerSource,
 };
 use rand::{rngs::StdRng, SeedableRng};
 use serde::Deserialize;
@@ -229,9 +229,7 @@ impl LlamaCppBackend {
     }
 
     fn session_config(&self) -> InferenceSessionConfig {
-        let n_threads = std::thread::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(8);
+        let n_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(8);
 
         InferenceSessionConfig {
             n_batch: self.n_batch as usize,
@@ -272,12 +270,7 @@ impl LlamaCppBackend {
             .runtime_config
             .sampler_options
             .clone()
-            .unwrap_or_else(|| {
-                vec![
-                    format!("temperature:{}", temperature),
-                    format!("top-p:p={}", top_p),
-                ]
-            });
+            .unwrap_or_else(|| vec![format!("temperature:{}", temperature), format!("top-p:p={}", top_p)]);
 
         let sampler = llm::samplers::build_sampler(model.tokenizer().len(), &[], &sampler_options)
             .map_err(|e| Error::Backend(format!("Failed to build llama-rs sampler chain: {}", e)))?;
@@ -375,10 +368,7 @@ impl InferenceBackend for LlamaCppBackend {
 
         let path = PathBuf::from(model_path);
         if !path.exists() {
-            return Err(Error::Backend(format!(
-                "Model path does not exist: {}",
-                path.display()
-            )));
+            return Err(Error::Backend(format!("Model path does not exist: {}", path.display())));
         }
 
         tracing::info!("Loading llama-rs model from: {}", path.display());
@@ -411,8 +401,7 @@ impl InferenceBackend for LlamaCppBackend {
         request: GenerateRequest,
         callback: &mut (dyn FnMut(String) + Send),
     ) -> Result<GenerateResponse> {
-        self.generate_streaming_internal(request, |token| callback(token))
-            .await
+        self.generate_streaming_internal(request, |token| callback(token)).await
     }
 
     async fn unload_model(&mut self) -> Result<()> {

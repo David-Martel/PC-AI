@@ -4184,6 +4184,7 @@ dependencies = [
  "base64 0.22.1",
  "clap",
  "image",
+ "mimalloc",
  "pcai-media",
  "pcai-media-model",
  "serde",
@@ -4199,6 +4200,7 @@ name = "pcai-ollama-rs"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "mimalloc",
  "ollama-rs",
  "schemars 0.8.22",
  "serde",
@@ -4213,6 +4215,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "hex",
+ "mimalloc",
  "pcai_core_lib",
  "rayon",
  "serde",

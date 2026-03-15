@@ -8,14 +8,14 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Instant;
 
 use globset::{Glob, GlobMatcher};
 use ignore::{DirEntry, ParallelVisitor, ParallelVisitorBuilder, WalkBuilder, WalkState};
-use regex::{Regex, bytes::Regex as BytesRegex};
+use regex::{bytes::Regex as BytesRegex, Regex};
 use serde::{Deserialize, Serialize};
 
 use crate::path::parse_path_ffi;
@@ -113,9 +113,7 @@ pub struct ContentSearchResult {
 }
 
 fn append_pod<T: Copy>(target: &mut Vec<u8>, value: &T) {
-    let bytes = unsafe {
-        std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>())
-    };
+    let bytes = unsafe { std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>()) };
     target.extend_from_slice(bytes);
 }
 
@@ -124,9 +122,7 @@ fn append_pod_slice<T: Copy>(target: &mut Vec<u8>, values: &[T]) {
         return;
     }
 
-    let bytes = unsafe {
-        std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values))
-    };
+    let bytes = unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values)) };
     target.extend_from_slice(bytes);
 }
 
@@ -252,10 +248,9 @@ impl ContentSearchConfig {
 }
 
 const DEFAULT_TEXT_EXTENSIONS: &[&str] = &[
-    "txt", "log", "md", "json", "xml", "yaml", "yml", "toml", "ini", "cfg", "conf", "config",
-    "ps1", "psm1", "psd1", "bat", "cmd", "sh", "bash", "py", "rs", "js", "ts", "jsx", "tsx",
-    "cs", "cpp", "c", "h", "hpp", "java", "go", "rb", "php", "html", "htm", "css", "scss",
-    "sass", "less", "sql", "graphql", "proto",
+    "txt", "log", "md", "json", "xml", "yaml", "yml", "toml", "ini", "cfg", "conf", "config", "ps1", "psm1", "psd1",
+    "bat", "cmd", "sh", "bash", "py", "rs", "js", "ts", "jsx", "tsx", "cs", "cpp", "c", "h", "hpp", "java", "go", "rb",
+    "php", "html", "htm", "css", "scss", "sass", "less", "sql", "graphql", "proto",
 ];
 
 fn should_search_file_path(path: &Path, matcher: Option<&GlobMatcher>) -> bool {
@@ -265,7 +260,11 @@ fn should_search_file_path(path: &Path, matcher: Option<&GlobMatcher>) -> bool {
 
     path.extension()
         .and_then(|ext| ext.to_str())
-        .map(|ext| DEFAULT_TEXT_EXTENSIONS.iter().any(|candidate| ext.eq_ignore_ascii_case(candidate)))
+        .map(|ext| {
+            DEFAULT_TEXT_EXTENSIONS
+                .iter()
+                .any(|candidate| ext.eq_ignore_ascii_case(candidate))
+        })
         .unwrap_or(false)
 }
 
@@ -350,12 +349,7 @@ impl ContentSearchVisitor {
             if self
                 .shared
                 .stored_matches
-                .compare_exchange_weak(
-                    current,
-                    current + granted as u64,
-                    Ordering::Relaxed,
-                    Ordering::Relaxed,
-                )
+                .compare_exchange_weak(current, current + granted as u64, Ordering::Relaxed, Ordering::Relaxed)
                 .is_ok()
             {
                 return granted;
@@ -368,7 +362,11 @@ impl ContentSearchVisitor {
             return;
         }
 
-        let mut shared_matches = self.shared.matches.lock().expect("content search matches mutex poisoned");
+        let mut shared_matches = self
+            .shared
+            .matches
+            .lock()
+            .expect("content search matches mutex poisoned");
         shared_matches.append(&mut self.local_matches);
     }
 }
@@ -476,12 +474,7 @@ fn execute_content_search(config: &ContentSearchConfig, collect_matches: bool) -
     };
     builder.build_parallel().visit(&mut visitor_builder);
 
-    let mut matches = std::mem::take(
-        &mut *shared
-            .matches
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()),
-    );
+    let mut matches = std::mem::take(&mut *shared.matches.lock().unwrap_or_else(|poisoned| poisoned.into_inner()));
     matches.sort_by(|left, right| {
         left.path
             .cmp(&right.path)
@@ -594,14 +587,14 @@ fn search_file_streaming(path: &Path, config: &ContentSearchWorkerConfig) -> std
         }
     }
 
-    Ok(SearchFileOutcome {
-        total_matches,
-        matches,
-    })
+    Ok(SearchFileOutcome { total_matches, matches })
 }
 
 /// Legacy function for backward compatibility in tests.
-#[expect(dead_code, reason = "legacy compatibility shim retained for test callers; not part of the public API")]
+#[expect(
+    dead_code,
+    reason = "legacy compatibility shim retained for test callers; not part of the public API"
+)]
 fn search_file(path: &Path, config: &ContentSearchConfig) -> std::io::Result<Vec<ContentMatch>> {
     let worker_config = ContentSearchWorkerConfig::from_config(config, true);
     Ok(search_file_streaming(path, &worker_config)?.matches)

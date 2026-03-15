@@ -116,9 +116,7 @@ fn format_bytes(bytes: u64) -> String {
 }
 
 fn append_pod<T: Copy>(target: &mut Vec<u8>, value: &T) {
-    let bytes = unsafe {
-        std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>())
-    };
+    let bytes = unsafe { std::slice::from_raw_parts((value as *const T) as *const u8, std::mem::size_of::<T>()) };
     target.extend_from_slice(bytes);
 }
 
@@ -127,9 +125,7 @@ fn append_pod_slice<T: Copy>(target: &mut Vec<u8>, values: &[T]) {
         return;
     }
 
-    let bytes = unsafe {
-        std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values))
-    };
+    let bytes = unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, std::mem::size_of_val(values)) };
     target.extend_from_slice(bytes);
 }
 
@@ -343,13 +339,17 @@ mod tests {
         file1.write_all(b"Hello, World!").expect("failed to write file1.txt");
 
         let mut file2 = File::create(temp_path.join("file2.txt")).expect("failed to create file2.txt");
-        file2.write_all(b"Test content here").expect("failed to write file2.txt");
+        file2
+            .write_all(b"Test content here")
+            .expect("failed to write file2.txt");
 
         // Create a subdirectory with a file
         let subdir = temp_path.join("subdir");
         fs::create_dir(&subdir).expect("failed to create subdir");
         let mut file3 = File::create(subdir.join("file3.txt")).expect("failed to create file3.txt");
-        file3.write_all(b"Subdirectory content").expect("failed to write file3.txt");
+        file3
+            .write_all(b"Subdirectory content")
+            .expect("failed to write file3.txt");
 
         let result = get_disk_usage(temp_path.to_str().expect("temp path is valid UTF-8"), 10);
         assert!(result.is_ok());

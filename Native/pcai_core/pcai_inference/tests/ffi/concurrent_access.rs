@@ -44,7 +44,8 @@ fn test_concurrent_init_calls() {
 
                 #[cfg(not(feature = "llamacpp"))]
                 {
-                    let backend = CString::new(format!("test_{}", i)).expect("CString should accept formatted test input");
+                    let backend =
+                        CString::new(format!("test_{}", i)).expect("CString should accept formatted test input");
                     let _ = pcai_init(backend.as_ptr());
                 }
             })
@@ -134,7 +135,8 @@ mod llamacpp_concurrent_tests {
         let handles: Vec<_> = (0..5)
             .map(|i| {
                 thread::spawn(move || {
-                    let prompt = CString::new(format!("Test prompt {}", i)).expect("CString should accept formatted test input");
+                    let prompt =
+                        CString::new(format!("Test prompt {}", i)).expect("CString should accept formatted test input");
                     let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
                     // Should return null (no model loaded) but not crash
                     assert!(result.is_null());

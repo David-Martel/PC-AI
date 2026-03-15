@@ -55,10 +55,6 @@ pub(crate) async fn bearer_auth(req: Request<Body>, next: Next) -> Response {
     if authorized {
         next.run(req).await
     } else {
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "unauthorized"})),
-        )
-            .into_response()
+        (StatusCode::UNAUTHORIZED, Json(json!({"error": "unauthorized"}))).into_response()
     }
 }

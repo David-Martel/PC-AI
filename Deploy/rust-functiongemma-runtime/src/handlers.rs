@@ -3,8 +3,8 @@ use crate::error::ErrorResponse;
 use crate::metrics::{router_metadata, router_stats, system_metrics};
 use crate::routing::{heuristic_route, last_user_message, parse_router_prompt};
 use crate::types::{
-    AppState, ChatCompletionChunk, ChatCompletionRequest, ChatCompletionResponse, Choice,
-    ChunkChoice, ChunkDelta, HealthResponse, Message, ModelInfo, ModelList, RouterEngine, Usage,
+    AppState, ChatCompletionChunk, ChatCompletionRequest, ChatCompletionResponse, Choice, ChunkChoice, ChunkDelta,
+    HealthResponse, Message, ModelInfo, ModelList, RouterEngine, Usage,
 };
 use axum::{
     extract::State,
@@ -64,10 +64,7 @@ pub(crate) fn validate_request(req: &ChatCompletionRequest) -> Result<(), ErrorR
     if let Some(mt) = req.max_tokens {
         if mt > MAX_TOKENS_CAP {
             return Err(ErrorResponse::bad_request(
-                format!(
-                    "max_tokens {} exceeds maximum allowed value of {}",
-                    mt, MAX_TOKENS_CAP
-                ),
+                format!("max_tokens {} exceeds maximum allowed value of {}", mt, MAX_TOKENS_CAP),
                 Some("max_tokens".to_string()),
             ));
         }
@@ -78,7 +75,10 @@ pub(crate) fn validate_request(req: &ChatCompletionRequest) -> Result<(), ErrorR
     for (i, msg) in req.messages.iter().enumerate() {
         if !valid_roles.contains(&msg.role.as_str()) {
             return Err(ErrorResponse::bad_request(
-                format!("Invalid role '{}' at messages[{}]. Must be one of: user, assistant, system, tool, developer", msg.role, i),
+                format!(
+                    "Invalid role '{}' at messages[{}]. Must be one of: user, assistant, system, tool, developer",
+                    msg.role, i
+                ),
                 Some(format!("messages[{}].role", i)),
             ));
         }
@@ -89,7 +89,10 @@ pub(crate) fn validate_request(req: &ChatCompletionRequest) -> Result<(), ErrorR
         match tc {
             Value::String(s) if s != "none" && s != "auto" && s != "required" => {
                 return Err(ErrorResponse::bad_request(
-                    format!("Invalid tool_choice value '{}'. Must be 'none', 'auto', 'required', or an object", s),
+                    format!(
+                        "Invalid tool_choice value '{}'. Must be 'none', 'auto', 'required', or an object",
+                        s
+                    ),
                     Some("tool_choice".to_string()),
                 ));
             }
@@ -108,24 +111,12 @@ pub(crate) fn validate_request(req: &ChatCompletionRequest) -> Result<(), ErrorR
     Ok(())
 }
 
-pub(crate) async fn chat(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<ChatCompletionRequest>,
-) -> Response {
+pub(crate) async fn chat(State(state): State<Arc<AppState>>, Json(req): Json<ChatCompletionRequest>) -> Response {
     // Acquire semaphore permit with timeout to bound concurrency
-    let _permit = match tokio::time::timeout(
-        state.request_timeout,
-        state.semaphore.clone().acquire_owned(),
-    )
-    .await
-    {
+    let _permit = match tokio::time::timeout(state.request_timeout, state.semaphore.clone().acquire_owned()).await {
         Ok(Ok(permit)) => permit,
-        Ok(Err(_)) => {
-            return ErrorResponse::service_unavailable("Server shutting down").into_response()
-        }
-        Err(_) => {
-            return ErrorResponse::too_many_requests("Server busy, try again later").into_response()
-        }
+        Ok(Err(_)) => return ErrorResponse::service_unavailable("Server shutting down").into_response(),
+        Err(_) => return ErrorResponse::too_many_requests("Server busy, try again later").into_response(),
     };
 
     // Validate request
@@ -139,9 +130,7 @@ pub(crate) async fn chat(
     chat_normal(req).into_response()
 }
 
-pub(crate) fn chat_normal(
-    req: ChatCompletionRequest,
-) -> Result<Json<ChatCompletionResponse>, ErrorResponse> {
+pub(crate) fn chat_normal(req: ChatCompletionRequest) -> Result<Json<ChatCompletionResponse>, ErrorResponse> {
     let model = req.model.clone().unwrap_or_else(default_model);
     let created = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -187,11 +176,7 @@ pub(crate) fn chat_normal(
     };
 
     // Estimate completion tokens
-    let completion_tokens = result
-        .content
-        .as_ref()
-        .map(|c| estimate_tokens(c))
-        .unwrap_or(0)
+    let completion_tokens = result.content.as_ref().map(|c| estimate_tokens(c)).unwrap_or(0)
         + result
             .tool_calls
             .as_ref()
@@ -224,9 +209,8 @@ pub(crate) fn chat_normal(
 
 pub(crate) fn chat_stream(
     req: ChatCompletionRequest,
-) -> axum::response::sse::Sse<
-    impl futures::Stream<Item = Result<axum::response::sse::Event, std::convert::Infallible>>,
-> {
+) -> axum::response::sse::Sse<impl futures::Stream<Item = Result<axum::response::sse::Event, std::convert::Infallible>>>
+{
     use axum::response::sse;
 
     let model = req.model.clone().unwrap_or_else(default_model);

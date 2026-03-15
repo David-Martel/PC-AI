@@ -180,15 +180,13 @@ unsafe fn c_str_to_str<'a>(ptr: *const c_char) -> Result<&'a str, PcaiMediaError
         return Err(PcaiMediaErrorCode::InvalidInput);
     }
     // SAFETY: caller guarantees ptr is a valid null-terminated C string.
-    CStr::from_ptr(ptr)
-        .to_str()
-        .map_err(|e| {
-            set_error(
-                format!("Invalid UTF-8 in C string: {e}"),
-                PcaiMediaErrorCode::InvalidInput,
-            );
-            PcaiMediaErrorCode::InvalidInput
-        })
+    CStr::from_ptr(ptr).to_str().map_err(|e| {
+        set_error(
+            format!("Invalid UTF-8 in C string: {e}"),
+            PcaiMediaErrorCode::InvalidInput,
+        );
+        PcaiMediaErrorCode::InvalidInput
+    })
 }
 
 // ============================================================================
@@ -201,7 +199,10 @@ struct MediaState {
     ///
     /// Retained for future async hub operations (e.g., background downloads).
     /// Not currently used by the synchronous load/generate paths.
-    #[expect(dead_code, reason = "Tokio runtime retained for future async hub download operations; not yet exercised by synchronous FFI paths")]
+    #[expect(
+        dead_code,
+        reason = "Tokio runtime retained for future async hub download operations; not yet exercised by synchronous FFI paths"
+    )]
     runtime: Runtime,
     /// Loaded generation pipeline (None until `pcai_media_load_model` succeeds).
     pipeline: Option<GenerationPipeline>,
@@ -268,9 +269,7 @@ pub extern "C" fn pcai_media_init(device: *const c_char) -> i32 {
     // Trigger lazy initialisation of the global state.  The device string is
     // stored nowhere here — it is applied when load_model creates the config.
     // We just validate it looks sane.
-    let valid_device = device_str == "cpu"
-        || device_str == "cuda"
-        || device_str.starts_with("cuda:");
+    let valid_device = device_str == "cpu" || device_str == "cuda" || device_str.starts_with("cuda:");
 
     if !valid_device {
         set_error(
@@ -429,7 +428,11 @@ pub extern "C" fn pcai_media_generate_image(
     // `generate_with_overrides` applies the per-call overrides without
     // mutating the pipeline's stored config.
     let override_cfg = if cfg_scale > 0.0 { Some(cfg_scale as f64) } else { None };
-    let override_temp = if temperature > 0.0 { Some(temperature as f64) } else { None };
+    let override_temp = if temperature > 0.0 {
+        Some(temperature as f64)
+    } else {
+        None
+    };
 
     let generate_result = pipeline.generate_with_overrides(&prompt_str, override_cfg, override_temp);
 
@@ -549,18 +552,16 @@ pub extern "C" fn pcai_media_understand_image(
     );
 
     match result {
-        Ok(text) => {
-            match CString::new(text) {
-                Ok(cstr) => cstr.into_raw(),
-                Err(e) => {
-                    set_error(
-                        format!("Response text contains null byte: {e}"),
-                        PcaiMediaErrorCode::GenerationError,
-                    );
-                    std::ptr::null_mut()
-                }
+        Ok(text) => match CString::new(text) {
+            Ok(cstr) => cstr.into_raw(),
+            Err(e) => {
+                set_error(
+                    format!("Response text contains null byte: {e}"),
+                    PcaiMediaErrorCode::GenerationError,
+                );
+                std::ptr::null_mut()
             }
-        }
+        },
         Err(e) => {
             set_error(
                 format!("Understanding failed: {e}"),
@@ -640,7 +641,11 @@ pub extern "C" fn pcai_media_generate_image_bytes(
     };
 
     let override_cfg = if cfg_scale > 0.0 { Some(cfg_scale as f64) } else { None };
-    let override_temp = if temperature > 0.0 { Some(temperature as f64) } else { None };
+    let override_temp = if temperature > 0.0 {
+        Some(temperature as f64)
+    } else {
+        None
+    };
 
     let image = match pipeline.generate_with_overrides(&prompt_str, override_cfg, override_temp) {
         Ok(img) => img,
@@ -665,10 +670,7 @@ pub extern "C" fn pcai_media_generate_image_bytes(
             image.height(),
             image::ExtendedColorType::Rgb8,
         ) {
-            set_error(
-                format!("PNG encode failed: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
+            set_error(format!("PNG encode failed: {e}"), PcaiMediaErrorCode::GenerationError);
             return PcaiMediaErrorCode::GenerationError as i32;
         }
     }
@@ -783,10 +785,8 @@ pub extern "C" fn pcai_media_generate_image_async(
                 Ok(g) => g,
                 Err(e) => {
                     if let Ok(mut g2) = get_state().lock() {
-                        g2.requests.insert(
-                            id,
-                            MediaRequestStatus::Failed(format!("Lock failed: {e}")),
-                        );
+                        g2.requests
+                            .insert(id, MediaRequestStatus::Failed(format!("Lock failed: {e}")));
                     }
                     return;
                 }
@@ -802,10 +802,8 @@ pub extern "C" fn pcai_media_generate_image_async(
                 None => {
                     drop(guard);
                     if let Ok(mut g2) = get_state().lock() {
-                        g2.requests.insert(
-                            id,
-                            MediaRequestStatus::Failed("Model not loaded".to_string()),
-                        );
+                        g2.requests
+                            .insert(id, MediaRequestStatus::Failed("Model not loaded".to_string()));
                     }
                     return;
                 }
@@ -833,18 +831,14 @@ pub extern "C" fn pcai_media_generate_image_async(
             match result {
                 Ok(image) => {
                     if let Err(e) = image.save(&out_str) {
-                        g.requests.insert(
-                            id,
-                            MediaRequestStatus::Failed(format!("Save failed: {e}")),
-                        );
-                    } else {
                         g.requests
-                            .insert(id, MediaRequestStatus::Complete(out_str));
+                            .insert(id, MediaRequestStatus::Failed(format!("Save failed: {e}")));
+                    } else {
+                        g.requests.insert(id, MediaRequestStatus::Complete(out_str));
                     }
                 }
                 Err(e) => {
-                    g.requests
-                        .insert(id, MediaRequestStatus::Failed(format!("{e}")));
+                    g.requests.insert(id, MediaRequestStatus::Failed(format!("{e}")));
                 }
             }
         }
@@ -893,9 +887,7 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
             text: std::ptr::null_mut(),
         },
         Some(MediaRequestStatus::Complete(_)) => {
-            if let Some(MediaRequestStatus::Complete(text)) =
-                guard.requests.remove(&request_id)
-            {
+            if let Some(MediaRequestStatus::Complete(text)) = guard.requests.remove(&request_id) {
                 let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
                 PcaiMediaAsyncResult {
                     status: 2,
@@ -909,9 +901,7 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
             }
         }
         Some(MediaRequestStatus::Failed(_)) => {
-            if let Some(MediaRequestStatus::Failed(text)) =
-                guard.requests.remove(&request_id)
-            {
+            if let Some(MediaRequestStatus::Failed(text)) = guard.requests.remove(&request_id) {
                 let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
                 PcaiMediaAsyncResult {
                     status: 3,
@@ -960,9 +950,7 @@ pub extern "C" fn pcai_media_cancel(request_id: i64) -> i32 {
     };
 
     match guard.requests.get_mut(&request_id) {
-        Some(
-            status @ MediaRequestStatus::Pending | status @ MediaRequestStatus::Running,
-        ) => {
+        Some(status @ MediaRequestStatus::Pending | status @ MediaRequestStatus::Running) => {
             *status = MediaRequestStatus::Cancelled;
             0
         }
@@ -1007,7 +995,10 @@ pub extern "C" fn pcai_media_upscale_image(
     let mut pipeline = match crate::upscale::UpscalePipeline::load(model) {
         Ok(p) => p,
         Err(e) => {
-            set_error(&format!("failed to load upscale model: {e:#}"), PcaiMediaErrorCode::IoError);
+            set_error(
+                &format!("failed to load upscale model: {e:#}"),
+                PcaiMediaErrorCode::IoError,
+            );
             return PcaiMediaErrorCode::IoError as i32;
         }
     };
@@ -1029,7 +1020,10 @@ pub extern "C" fn pcai_media_upscale_image(
     };
 
     if let Err(e) = upscaled.save(output) {
-        set_error(&format!("failed to save upscaled image: {e}"), PcaiMediaErrorCode::IoError);
+        set_error(
+            &format!("failed to save upscaled image: {e}"),
+            PcaiMediaErrorCode::IoError,
+        );
         return PcaiMediaErrorCode::IoError as i32;
     }
 
@@ -1226,10 +1220,7 @@ mod tests {
     #[test]
     fn test_c_str_to_str_null_pointer() {
         let result = unsafe { c_str_to_str(std::ptr::null()) };
-        assert!(
-            result.is_err(),
-            "c_str_to_str should return Err for a null pointer"
-        );
+        assert!(result.is_err(), "c_str_to_str should return Err for a null pointer");
         assert_eq!(result.unwrap_err(), PcaiMediaErrorCode::InvalidInput);
     }
 
@@ -1325,33 +1316,17 @@ mod tests {
     #[test]
     fn test_understand_image_null_image_path() {
         let prompt = CString::new("describe this").expect("valid");
-        let result = pcai_media_understand_image(
-            std::ptr::null(),
-            prompt.as_ptr(),
-            128,
-            0.7,
-        );
+        let result = pcai_media_understand_image(std::ptr::null(), prompt.as_ptr(), 128, 0.7);
         assert!(result.is_null(), "null image_path should return null");
-        assert_eq!(
-            pcai_media_last_error_code(),
-            PcaiMediaErrorCode::InvalidInput as i32,
-        );
+        assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
     #[test]
     fn test_understand_image_null_prompt() {
         let path = CString::new("test.png").expect("valid");
-        let result = pcai_media_understand_image(
-            path.as_ptr(),
-            std::ptr::null(),
-            128,
-            0.7,
-        );
+        let result = pcai_media_understand_image(path.as_ptr(), std::ptr::null(), 128, 0.7);
         assert!(result.is_null(), "null prompt should return null");
-        assert_eq!(
-            pcai_media_last_error_code(),
-            PcaiMediaErrorCode::InvalidInput as i32,
-        );
+        assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
     #[test]
@@ -1363,12 +1338,7 @@ mod tests {
 
         let path = CString::new("test.png").expect("valid");
         let prompt = CString::new("describe").expect("valid");
-        let result = pcai_media_understand_image(
-            path.as_ptr(),
-            prompt.as_ptr(),
-            128,
-            0.7,
-        );
+        let result = pcai_media_understand_image(path.as_ptr(), prompt.as_ptr(), 128, 0.7);
         assert!(result.is_null(), "should fail without loaded model");
         // Could be ModelNotLoaded or IoError depending on execution order.
         assert_ne!(pcai_media_last_error_code(), 0);
@@ -1380,13 +1350,8 @@ mod tests {
     fn test_generate_image_bytes_null_out_data() {
         let prompt = CString::new("test").expect("valid");
         let mut len: usize = 0;
-        let result = pcai_media_generate_image_bytes(
-            prompt.as_ptr(),
-            0.0,
-            0.0,
-            std::ptr::null_mut(),
-            &mut len as *mut usize,
-        );
+        let result =
+            pcai_media_generate_image_bytes(prompt.as_ptr(), 0.0, 0.0, std::ptr::null_mut(), &mut len as *mut usize);
         assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
     }
 
@@ -1423,33 +1388,17 @@ mod tests {
     #[test]
     fn test_async_generate_null_prompt() {
         let out = CString::new("out.png").expect("valid");
-        let id = pcai_media_generate_image_async(
-            std::ptr::null(),
-            0.0,
-            0.0,
-            out.as_ptr(),
-        );
+        let id = pcai_media_generate_image_async(std::ptr::null(), 0.0, 0.0, out.as_ptr());
         assert_eq!(id, -1, "null prompt should return -1");
-        assert_eq!(
-            pcai_media_last_error_code(),
-            PcaiMediaErrorCode::InvalidInput as i32,
-        );
+        assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
     #[test]
     fn test_async_generate_null_output_path() {
         let prompt = CString::new("test").expect("valid");
-        let id = pcai_media_generate_image_async(
-            prompt.as_ptr(),
-            0.0,
-            0.0,
-            std::ptr::null(),
-        );
+        let id = pcai_media_generate_image_async(prompt.as_ptr(), 0.0, 0.0, std::ptr::null());
         assert_eq!(id, -1, "null output_path should return -1");
-        assert_eq!(
-            pcai_media_last_error_code(),
-            PcaiMediaErrorCode::InvalidInput as i32,
-        );
+        assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
     #[test]
@@ -1460,12 +1409,7 @@ mod tests {
 
         let prompt = CString::new("test").expect("valid");
         let out = CString::new("out.png").expect("valid");
-        let id = pcai_media_generate_image_async(
-            prompt.as_ptr(),
-            5.0,
-            1.0,
-            out.as_ptr(),
-        );
+        let id = pcai_media_generate_image_async(prompt.as_ptr(), 5.0, 1.0, out.as_ptr());
         assert_eq!(id, -1, "should fail without loaded model");
         assert_ne!(pcai_media_last_error_code(), 0);
     }

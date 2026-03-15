@@ -122,7 +122,10 @@ impl ResBlock {
     /// Weight paths under `vb`: `norm1`, `conv1`, `norm2`, `conv2`,
     /// and optionally `nin_shortcut` for the skip projection.
     pub fn new(vb: VarBuilder, in_channels: usize, out_channels: usize) -> Result<Self> {
-        let pad_cfg = Conv2dConfig { padding: 1, ..Default::default() };
+        let pad_cfg = Conv2dConfig {
+            padding: 1,
+            ..Default::default()
+        };
 
         let norm1 = candle_nn::group_norm(32, in_channels, 1e-6, vb.pp("norm1"))?;
         let conv1 = candle_nn::conv2d(in_channels, out_channels, 3, pad_cfg, vb.pp("conv1"))?;
@@ -131,7 +134,10 @@ impl ResBlock {
         let conv2 = candle_nn::conv2d(out_channels, out_channels, 3, pad_cfg, vb.pp("conv2"))?;
 
         let skip_conv = if in_channels != out_channels {
-            let skip_cfg = Conv2dConfig { padding: 0, ..Default::default() };
+            let skip_cfg = Conv2dConfig {
+                padding: 0,
+                ..Default::default()
+            };
             Some(candle_nn::conv2d(
                 in_channels,
                 out_channels,
@@ -143,7 +149,13 @@ impl ResBlock {
             None
         };
 
-        Ok(Self { norm1, conv1, norm2, conv2, skip_conv })
+        Ok(Self {
+            norm1,
+            conv1,
+            norm2,
+            conv2,
+            skip_conv,
+        })
     }
 }
 
@@ -190,7 +202,10 @@ pub struct AttnBlock {
 impl AttnBlock {
     /// Constructs an [`AttnBlock`] loading weights from `vb`.
     pub fn new(vb: VarBuilder, channels: usize) -> Result<Self> {
-        let cfg = Conv2dConfig { padding: 0, ..Default::default() };
+        let cfg = Conv2dConfig {
+            padding: 0,
+            ..Default::default()
+        };
         Ok(Self {
             norm: candle_nn::group_norm(32, channels, 1e-6, vb.pp("norm"))?,
             q: candle_nn::conv2d(channels, channels, 1, cfg, vb.pp("q"))?,
@@ -248,8 +263,13 @@ pub struct Upsample {
 impl Upsample {
     /// Constructs an [`Upsample`] block that preserves the channel count.
     pub fn new(vb: VarBuilder, channels: usize) -> Result<Self> {
-        let cfg = Conv2dConfig { padding: 1, ..Default::default() };
-        Ok(Self { conv: candle_nn::conv2d(channels, channels, 3, cfg, vb.pp("conv"))? })
+        let cfg = Conv2dConfig {
+            padding: 1,
+            ..Default::default()
+        };
+        Ok(Self {
+            conv: candle_nn::conv2d(channels, channels, 3, cfg, vb.pp("conv"))?,
+        })
     }
 }
 
@@ -336,17 +356,13 @@ impl VqVaeDecoder {
         // ── conv_in ────────────────────────────────────────────────────────
         // Map from z_channels to the widest feature-map dimension.
         // With ch_mult = [1,1,2,2,4] and base = 128, top_ch = 128*4 = 512.
-        let top_ch = cfg.base_channels
-            * cfg.ch_mult.last().copied().unwrap_or(1);
+        let top_ch = cfg.base_channels * cfg.ch_mult.last().copied().unwrap_or(1);
 
-        let conv_in_cfg = Conv2dConfig { padding: 1, ..Default::default() };
-        let conv_in = candle_nn::conv2d(
-            cfg.z_channels,
-            top_ch,
-            3,
-            conv_in_cfg,
-            vb.pp("conv_in"),
-        )?;
+        let conv_in_cfg = Conv2dConfig {
+            padding: 1,
+            ..Default::default()
+        };
+        let conv_in = candle_nn::conv2d(cfg.z_channels, top_ch, 3, conv_in_cfg, vb.pp("conv_in"))?;
 
         // ── mid block ──────────────────────────────────────────────────────
         // Safetensors keys: mid.0.* (ResBlock), mid.1.* (AttnBlock), mid.2.* (ResBlock)
@@ -378,8 +394,7 @@ impl VqVaeDecoder {
             let res_vb = stage_vb.pp("res");
 
             // num_res_blocks + 1 residual blocks per stage
-            let mut blocks: Vec<ResBlock> =
-                Vec::with_capacity(cfg.num_res_blocks + 1);
+            let mut blocks: Vec<ResBlock> = Vec::with_capacity(cfg.num_res_blocks + 1);
             let mut curr_ch = in_ch;
             for j in 0..=cfg.num_res_blocks {
                 let blk_in = if j == 0 { curr_ch } else { out_ch };
@@ -405,7 +420,11 @@ impl VqVaeDecoder {
                 None
             };
 
-            up_stages.push(UpStage { blocks, attns, upsample });
+            up_stages.push(UpStage {
+                blocks,
+                attns,
+                upsample,
+            });
             in_ch = out_ch;
         }
 
@@ -415,14 +434,11 @@ impl VqVaeDecoder {
 
         let norm_out = candle_nn::group_norm(32, final_ch, 1e-6, vb.pp("norm_out"))?;
 
-        let conv_out_cfg = Conv2dConfig { padding: 1, ..Default::default() };
-        let conv_out = candle_nn::conv2d(
-            final_ch,
-            cfg.out_channels,
-            3,
-            conv_out_cfg,
-            vb.pp("conv_out"),
-        )?;
+        let conv_out_cfg = Conv2dConfig {
+            padding: 1,
+            ..Default::default()
+        };
+        let conv_out = candle_nn::conv2d(final_ch, cfg.out_channels, 3, conv_out_cfg, vb.pp("conv_out"))?;
 
         Ok(Self {
             conv_in,
@@ -625,7 +641,10 @@ mod tests {
         assert!(block_same.skip_conv.is_none(), "no skip conv when channels equal");
 
         let block_diff = ResBlock::new(vb.pp("diff"), 32, 64).unwrap();
-        assert!(block_diff.skip_conv.is_some(), "skip conv required when channels differ");
+        assert!(
+            block_diff.skip_conv.is_some(),
+            "skip conv required when channels differ"
+        );
     }
 
     // ── AttnBlock ───────────────────────────────────────────────────────
@@ -652,8 +671,7 @@ mod tests {
         let vb = cpu_vb(&vm);
 
         let attn = AttnBlock::new(vb.pp("attn"), 32).unwrap();
-        let single =
-            Tensor::rand(0.0_f32, 1.0_f32, (1_usize, 32_usize, 4_usize, 4_usize), &dev).unwrap();
+        let single = Tensor::rand(0.0_f32, 1.0_f32, (1_usize, 32_usize, 4_usize, 4_usize), &dev).unwrap();
         // Stack the same input twice to form a batch of 2.
         let batch = Tensor::cat(&[&single, &single], 0).unwrap();
 
@@ -691,8 +709,7 @@ mod tests {
         let decoder = VqVaeDecoder::new(vb, &cfg).unwrap();
 
         // [B=1, z=256, 24, 24] → [1, 3, 384, 384]
-        let z =
-            Tensor::zeros((1_usize, 256_usize, 24_usize, 24_usize), DType::F32, &dev).unwrap();
+        let z = Tensor::zeros((1_usize, 256_usize, 24_usize, 24_usize), DType::F32, &dev).unwrap();
         let img = decoder.decode(&z).unwrap();
         assert_eq!(img.dims(), &[1, 3, 384, 384]);
     }
@@ -706,8 +723,7 @@ mod tests {
 
         let decoder = VqVaeDecoder::new(vb, &cfg).unwrap();
 
-        let z =
-            Tensor::zeros((2_usize, 256_usize, 24_usize, 24_usize), DType::F32, &dev).unwrap();
+        let z = Tensor::zeros((2_usize, 256_usize, 24_usize, 24_usize), DType::F32, &dev).unwrap();
         let img = decoder.decode(&z).unwrap();
         assert_eq!(img.dims(), &[2, 3, 384, 384]);
     }
@@ -747,8 +763,7 @@ mod tests {
         let cb = VqCodebook::new(vb, 16384, cfg.z_channels).unwrap();
 
         // 576 = 24*24 tokens per image, batch size 1
-        let tokens =
-            Tensor::zeros((1_usize, 576_usize), DType::U32, &dev).unwrap();
+        let tokens = Tensor::zeros((1_usize, 576_usize), DType::U32, &dev).unwrap();
         let latent = cb.lookup_grid(&tokens, 24, 24).unwrap();
         assert_eq!(latent.dims(), &[1, 256, 24, 24]);
     }

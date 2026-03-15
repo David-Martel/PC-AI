@@ -212,23 +212,14 @@ async fn generate_image(
     {
         let guard = state.read().await;
         if guard.pipeline.is_none() {
-            return Err((
-                StatusCode::SERVICE_UNAVAILABLE,
-                "model not loaded".to_string(),
-            ));
+            return Err((StatusCode::SERVICE_UNAVAILABLE, "model not loaded".to_string()));
         }
         // Verify the effective config values look reasonable (non-negative).
         if effective_config.guidance_scale < 0.0 {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                "cfg_scale must be non-negative".to_string(),
-            ));
+            return Err((StatusCode::BAD_REQUEST, "cfg_scale must be non-negative".to_string()));
         }
         if effective_config.temperature <= 0.0 {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                "temperature must be positive".to_string(),
-            ));
+            return Err((StatusCode::BAD_REQUEST, "temperature must be positive".to_string()));
         }
     }
 
@@ -244,10 +235,7 @@ async fn generate_image(
         // guard so other readers remain unblocked; writers (there are none
         // at runtime) would simply wait for the generation to finish.
         let guard = state.read().await;
-        let pipeline = guard
-            .pipeline
-            .as_ref()
-            .expect("pipeline presence checked above");
+        let pipeline = guard.pipeline.as_ref().expect("pipeline presence checked above");
 
         tokio::task::block_in_place(|| pipeline.generate(&prompt))
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
@@ -258,12 +246,11 @@ async fn generate_image(
     let height = image.height();
     let raw_pixels = image.into_raw();
 
-    let png_bytes = encode_png(raw_pixels, width, height)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let png_bytes =
+        encode_png(raw_pixels, width, height).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     // Base64-encode the PNG bytes.
-    let image_base64 =
-        base64::engine::general_purpose::STANDARD.encode(&png_bytes);
+    let image_base64 = base64::engine::general_purpose::STANDARD.encode(&png_bytes);
 
     Ok(Json(GenerateResponse {
         image_base64,
@@ -282,16 +269,10 @@ async fn understand_image(
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     // Validate inputs before acquiring any lock.
     if req.temperature <= 0.0 {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            "temperature must be positive".to_string(),
-        ));
+        return Err((StatusCode::BAD_REQUEST, "temperature must be positive".to_string()));
     }
     if req.max_tokens == 0 {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            "max_tokens must be at least 1".to_string(),
-        ));
+        return Err((StatusCode::BAD_REQUEST, "max_tokens must be at least 1".to_string()));
     }
 
     // Decode Base64 → raw bytes.
@@ -307,10 +288,7 @@ async fn understand_image(
     {
         let guard = state.read().await;
         if guard.pipeline.is_none() {
-            return Err((
-                StatusCode::SERVICE_UNAVAILABLE,
-                "model not loaded".to_string(),
-            ));
+            return Err((StatusCode::SERVICE_UNAVAILABLE, "model not loaded".to_string()));
         }
     }
 
@@ -322,10 +300,7 @@ async fn understand_image(
         let temperature = req.temperature as f32;
 
         let guard = state.read().await;
-        let pipeline = guard
-            .pipeline
-            .as_ref()
-            .expect("pipeline presence checked above");
+        let pipeline = guard.pipeline.as_ref().expect("pipeline presence checked above");
 
         tokio::task::block_in_place(|| {
             UnderstandingPipeline::understand(

@@ -114,7 +114,7 @@ pub fn create_causal_mask(size: usize, device: &Device) -> Result<Tensor> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candle_core::{Device, DType};
+    use candle_core::{DType, Device};
 
     /// After `normalize`, all values must be within `[-1.0, 1.0]`.
     #[test]
@@ -131,10 +131,7 @@ mod tests {
         let data: Vec<f32> = norm.to_vec1().unwrap();
 
         for v in &data {
-            assert!(
-                *v >= -1.0 - 1e-5 && *v <= 1.0 + 1e-5,
-                "value {v} out of [-1, 1]"
-            );
+            assert!(*v >= -1.0 - 1e-5 && *v <= 1.0 + 1e-5, "value {v} out of [-1, 1]");
         }
         // 0 → -1.0
         assert!((data[0] - (-1.0_f32)).abs() < 1e-5, "0 maps to -1.0");

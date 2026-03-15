@@ -6,7 +6,10 @@ use hf_hub::{api::sync::Api, Repo, RepoType};
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "model")]
-#[expect(dead_code, reason = "model path resolution helper; exported for the router runtime but not yet called when only the default feature set is active")]
+#[expect(
+    dead_code,
+    reason = "model path resolution helper; exported for the router runtime but not yet called when only the default feature set is active"
+)]
 pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
     let p = PathBuf::from(model_id);
 

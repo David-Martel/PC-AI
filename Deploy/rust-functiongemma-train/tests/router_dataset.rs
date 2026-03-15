@@ -33,7 +33,11 @@ fn builds_router_dataset_and_writes_jsonl() {
             }
         ]
     });
-    fs::write(&tools_path, serde_json::to_string(&tools).expect("serialization should succeed")).expect("write tools");
+    fs::write(
+        &tools_path,
+        serde_json::to_string(&tools).expect("serialization should succeed"),
+    )
+    .expect("write tools");
     fs::write(&diagnose_path, "DIAGNOSE PROMPT").expect("write diagnose");
     fs::write(&chat_path, "CHAT PROMPT").expect("write chat");
     fs::write(

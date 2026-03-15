@@ -151,10 +151,7 @@ impl JanusConfig {
     ///
     /// The `use_flash_attn` flag is forwarded as-is; all other fields are
     /// derived from `self`.
-    pub fn to_llama_config(
-        &self,
-        use_flash_attn: bool,
-    ) -> candle_transformers::models::llama::Config {
+    pub fn to_llama_config(&self, use_flash_attn: bool) -> candle_transformers::models::llama::Config {
         candle_transformers::models::llama::Config {
             hidden_size: self.hidden_size,
             intermediate_size: self.intermediate_size,
@@ -263,49 +260,28 @@ impl JanusConfig {
                 .unwrap_or(default)
         };
 
-        let get_nested_usize =
-            |obj: Option<&serde_json::Value>, key: &str, default: usize| -> usize {
-                obj.and_then(|v| v.get("params"))
-                    .and_then(|p| p.get(key))
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize)
-                    .unwrap_or(default)
-            };
+        let get_nested_usize = |obj: Option<&serde_json::Value>, key: &str, default: usize| -> usize {
+            obj.and_then(|v| v.get("params"))
+                .and_then(|p| p.get(key))
+                .and_then(|v| v.as_u64())
+                .map(|v| v as usize)
+                .unwrap_or(default)
+        };
 
         Ok(Self {
             hidden_size: get_usize(lang, "hidden_size", default_hidden_size()),
             num_hidden_layers: get_usize(lang, "num_hidden_layers", default_num_hidden_layers()),
-            num_attention_heads: get_usize(
-                lang,
-                "num_attention_heads",
-                default_num_attention_heads(),
-            ),
-            num_key_value_heads: get_usize(
-                lang,
-                "num_key_value_heads",
-                default_num_key_value_heads(),
-            ),
+            num_attention_heads: get_usize(lang, "num_attention_heads", default_num_attention_heads()),
+            num_key_value_heads: get_usize(lang, "num_key_value_heads", default_num_key_value_heads()),
             vocab_size: get_usize(lang, "vocab_size", default_vocab_size()),
             intermediate_size: get_usize(lang, "intermediate_size", default_intermediate_size()),
-            image_token_num_tokens: get_nested_usize(
-                gen_vis,
-                "image_token_size",
-                default_image_token_num_tokens(),
-            ),
+            image_token_num_tokens: get_nested_usize(gen_vis, "image_token_size", default_image_token_num_tokens()),
             image_size: get_nested_usize(vis, "image_size", default_image_size()),
             patch_size: default_patch_size(),
             // VQ codebook embedding dim: gen_vision_config.params.n_embed
-            vq_embed_dim: get_nested_usize(
-                gen_vis,
-                "n_embed",
-                default_vq_embed_dim(),
-            ),
+            vq_embed_dim: get_nested_usize(gen_vis, "n_embed", default_vq_embed_dim()),
             // Understanding aligner input dim: aligner_config.params.input_dim
-            understand_input_dim: get_nested_usize(
-                aligner,
-                "input_dim",
-                default_understand_input_dim(),
-            ),
+            understand_input_dim: get_nested_usize(aligner, "input_dim", default_understand_input_dim()),
         })
     }
 }

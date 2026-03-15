@@ -349,10 +349,10 @@ async fn run() -> Result<()> {
             let request_path = arg_value(&args, "--request-file")
                 .map(PathBuf::from)
                 .ok_or_else(|| anyhow!("chat requires --request-file"))?;
-            let request: ChatRequest =
-                serde_json::from_str(&read_json_text(&request_path).with_context(|| {
-                    format!("read chat request file: {}", request_path.display())
-                })?)?;
+            let request: ChatRequest = serde_json::from_str(
+                &read_json_text(&request_path)
+                    .with_context(|| format!("read chat request file: {}", request_path.display()))?,
+            )?;
 
             let response = run_chat(&client, &config, &repo_root, request).await?;
             println!("{}", serde_json::to_string(&response)?);
@@ -384,8 +384,7 @@ fn resolve_config_path(arg: Option<String>) -> Result<PathBuf> {
 
 fn load_config(path: &Path) -> Result<RootConfig> {
     let mut config: RootConfig =
-        serde_json::from_str(&read_json_text(path)?)
-            .with_context(|| format!("parse {}", path.display()))?;
+        serde_json::from_str(&read_json_text(path)?).with_context(|| format!("parse {}", path.display()))?;
     config.ollama.apply_defaults(&config.providers);
     Ok(config)
 }
@@ -398,11 +397,7 @@ fn arg_value(args: &[String], name: &str) -> Option<String> {
 
 fn build_client(base_url: &str) -> Result<Ollama> {
     let parsed = Url::parse(base_url).or_else(|_| Url::parse("http://127.0.0.1:11434"))?;
-    let host = format!(
-        "{}://{}",
-        parsed.scheme(),
-        parsed.host_str().unwrap_or("127.0.0.1")
-    );
+    let host = format!("{}://{}", parsed.scheme(), parsed.host_str().unwrap_or("127.0.0.1"));
     let port = parsed.port().unwrap_or(11434);
     Ok(Ollama::new(host, port))
 }
@@ -474,8 +469,7 @@ async fn run_chat(
     request: ChatRequest,
 ) -> Result<ChatResponse> {
     let local_models = model_names(&client.list_local_models().await?);
-    let resolved_model =
-        resolve_model_name(&config.ollama, &local_models, request.model.as_deref(), true).await?;
+    let resolved_model = resolve_model_name(&config.ollama, &local_models, request.model.as_deref(), true).await?;
     let tools_path = request
         .tools_path
         .as_ref()
@@ -545,13 +539,7 @@ async fn run_chat(
         }
 
         for call in tool_calls {
-            let result = invoke_pcai_tool(
-                repo_root,
-                &tool_invoker_path,
-                &tools_path,
-                &call.name,
-                &call.arguments,
-            )?;
+            let result = invoke_pcai_tool(repo_root, &tool_invoker_path, &tools_path, &call.name, &call.arguments)?;
             executed_tools.push(ExecutedTool {
                 name: call.name.clone(),
                 arguments: call.arguments.clone(),
@@ -674,10 +662,7 @@ fn round_up_to_step(value: u64, step: u64) -> u64 {
     }
 }
 
-fn apply_keep_alive(
-    request: ChatMessageRequest,
-    keep_alive_seconds: i64,
-) -> ChatMessageRequest {
+fn apply_keep_alive(request: ChatMessageRequest, keep_alive_seconds: i64) -> ChatMessageRequest {
     match keep_alive_seconds {
         i64::MIN..=-1 => request.keep_alive(KeepAlive::Indefinitely),
         0 => request.keep_alive(KeepAlive::UnloadOnCompletion),
@@ -690,8 +675,8 @@ fn apply_keep_alive(
 
 fn load_tools(path: &Path) -> Result<Vec<ToolInfo>> {
     let content = read_json_text(path)?;
-    let catalog: Value = serde_json::from_str(&content)
-        .with_context(|| format!("parse tool catalog {}", path.display()))?;
+    let catalog: Value =
+        serde_json::from_str(&content).with_context(|| format!("parse tool catalog {}", path.display()))?;
     let mut tools_value = catalog
         .get("tools")
         .cloned()
@@ -721,8 +706,7 @@ fn invoke_pcai_tool(
         "pcai-tool-{}.json",
         tool_name.replace(|ch: char| !ch.is_ascii_alphanumeric(), "_")
     ));
-    fs::write(&args_file, serde_json::to_vec(arguments)?)
-        .with_context(|| format!("write {}", args_file.display()))?;
+    fs::write(&args_file, serde_json::to_vec(arguments)?).with_context(|| format!("write {}", args_file.display()))?;
 
     let output = Command::new("pwsh")
         .arg("-NoProfile")
@@ -749,13 +733,8 @@ fn invoke_pcai_tool(
         );
     }
 
-    let response: Value =
-        serde_json::from_slice(&output.stdout).context("parse tool invoker response json")?;
-    if response
-        .get("ok")
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
-    {
+    let response: Value = serde_json::from_slice(&output.stdout).context("parse tool invoker response json")?;
+    if response.get("ok").and_then(Value::as_bool).unwrap_or(false) {
         Ok(response
             .get("result")
             .map(|value| {
@@ -770,10 +749,7 @@ fn invoke_pcai_tool(
         bail!(
             "tool '{}' returned error: {}",
             tool_name,
-            response
-                .get("error")
-                .and_then(Value::as_str)
-                .unwrap_or("unknown error")
+            response.get("error").and_then(Value::as_str).unwrap_or("unknown error")
         )
     }
 }

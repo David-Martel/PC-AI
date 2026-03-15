@@ -126,7 +126,9 @@ fn test_backend_switching() {
     use pcai_inference::backends::BackendType;
 
     let llamacpp = BackendType::LlamaCpp.create().expect("backend creation should succeed");
-    let mistralrs = BackendType::MistralRs.create().expect("backend creation should succeed");
+    let mistralrs = BackendType::MistralRs
+        .create()
+        .expect("backend creation should succeed");
 
     assert_eq!(llamacpp.backend_name(), "llama.cpp");
     assert_eq!(mistralrs.backend_name(), "mistral.rs");

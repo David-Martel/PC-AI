@@ -355,7 +355,10 @@ struct Attention {
     head_dim: usize,
     rotary_emb: RotaryEmbedding,
     use_flash_attn: bool,
-    #[expect(dead_code, reason = "sliding window attention config field reserved for Mistral/Gemma variants; not yet wired into the attention kernel")]
+    #[expect(
+        dead_code,
+        reason = "sliding window attention config field reserved for Mistral/Gemma variants; not yet wired into the attention kernel"
+    )]
     sliding_window: Option<usize>,
 }
 

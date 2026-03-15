@@ -3,8 +3,8 @@
 use crate::config::runtime_config;
 use candle_core::Device;
 use rust_functiongemma_core::gpu::{
-    configure_and_log_cuda_mem_pool, log_cuda_snapshot, resolve_device_with_index,
-    CudaMemPoolConfig, DeviceSelectionParams,
+    configure_and_log_cuda_mem_pool, log_cuda_snapshot, resolve_device_with_index, CudaMemPoolConfig,
+    DeviceSelectionParams,
 };
 use rust_functiongemma_core::{normalize_device_label, GpuInfo};
 use std::sync::OnceLock;
@@ -74,10 +74,7 @@ pub(crate) fn device_label() -> String {
         return format!("cuda:{}", gpu);
     }
     if let Some(idx) = auto_cuda_index() {
-        if let Some(info) = query_nvidia_smi()
-            .into_iter()
-            .find(|g| g.runtime_index == idx)
-        {
+        if let Some(info) = query_nvidia_smi().into_iter().find(|g| g.runtime_index == idx) {
             return format!("cuda:{} ({} {} MB)", idx, info.name, info.memory_mb);
         }
         return format!("cuda:{}", idx);

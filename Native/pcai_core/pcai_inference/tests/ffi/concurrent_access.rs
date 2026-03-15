@@ -38,13 +38,13 @@ fn test_concurrent_init_calls() {
             thread::spawn(move || {
                 #[cfg(feature = "llamacpp")]
                 {
-                    let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+                    let backend = CString::new("llamacpp").expect("CString should accept valid test input");
                     let _ = pcai_init(backend.as_ptr());
                 }
 
                 #[cfg(not(feature = "llamacpp"))]
                 {
-                    let backend = CString::new(format!("test_{}", i)).expect("TODO: Verify unwrap");
+                    let backend = CString::new(format!("test_{}", i)).expect("CString should accept formatted test input");
                     let _ = pcai_init(backend.as_ptr());
                 }
             })
@@ -64,7 +64,7 @@ fn test_concurrent_error_access() {
     pcai_shutdown();
 
     // Cause an error
-    let invalid = CString::new("invalid").expect("TODO: Verify unwrap");
+    let invalid = CString::new("invalid").expect("CString should accept valid test input");
     let _ = pcai_init(invalid.as_ptr());
 
     let handles: Vec<_> = (0..10)
@@ -97,7 +97,7 @@ fn test_rapid_init_shutdown_cycling() {
 
                     #[cfg(feature = "llamacpp")]
                     {
-                        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+                        let backend = CString::new("llamacpp").expect("CString should accept valid test input");
                         let _ = pcai_init(backend.as_ptr());
                     }
 
@@ -126,7 +126,7 @@ mod llamacpp_concurrent_tests {
     fn test_concurrent_generate_without_model() {
         pcai_shutdown();
 
-        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+        let backend = CString::new("llamacpp").expect("CString should accept valid test input");
         if pcai_init(backend.as_ptr()) != 0 {
             return; // Skip if init fails
         }
@@ -134,7 +134,7 @@ mod llamacpp_concurrent_tests {
         let handles: Vec<_> = (0..5)
             .map(|i| {
                 thread::spawn(move || {
-                    let prompt = CString::new(format!("Test prompt {}", i)).expect("TODO: Verify unwrap");
+                    let prompt = CString::new(format!("Test prompt {}", i)).expect("CString should accept formatted test input");
                     let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
                     // Should return null (no model loaded) but not crash
                     assert!(result.is_null());

@@ -8,7 +8,9 @@ pub fn generate_arg_sets(parameters: &Map<String, Value>, max_cases: usize) -> V
     if props.is_none() {
         return vec![Map::new()];
     }
-    let props = props.expect("TODO: Verify unwrap");
+    // SAFETY: `props.is_none()` was checked above and returned early; this
+    // branch is only reached when `props` is `Some`.
+    let props = props.expect("properties is Some — checked in the branch above");
 
     let required: HashSet<&str> = parameters
         .get("required")
@@ -66,7 +68,10 @@ pub fn generate_arg_sets(parameters: &Map<String, Value>, max_cases: usize) -> V
     let mut unique = Vec::new();
     for set in arg_sets {
         // Use a stable key for deduplication
-        let key = serde_json::to_string(&set).expect("TODO: Verify unwrap");
+        // A Map<String, Value> is always serialisable; serialisation only fails
+        // for types that contain non-string map keys or non-serialisable values,
+        // neither of which applies here.
+        let key = serde_json::to_string(&set).expect("Map<String, Value> serialisation is infallible");
         if seen.insert(key) {
             unique.push(set);
         }
@@ -103,7 +108,15 @@ fn values_for_param(schema: &Value) -> Vec<Value> {
             } else {
                 values
                     .into_iter()
-                    .map(|v| Value::Number(serde_json::Number::from_f64(v).expect("TODO: Verify unwrap")))
+                    .map(|v| {
+                        // Values come from finite schema bounds (min/max) or
+                        // hardcoded constants; non-finite floats are not
+                        // representable as JSON numbers, so fall back to 0.
+                        Value::Number(
+                            serde_json::Number::from_f64(v)
+                                .unwrap_or_else(|| serde_json::Number::from(0i64)),
+                        )
+                    })
                     .collect()
             }
         }

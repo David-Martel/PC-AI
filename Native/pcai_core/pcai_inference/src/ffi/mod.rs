@@ -1106,7 +1106,7 @@ mod tests {
         assert!(!version_ptr.is_null());
 
         let version_str = unsafe { CStr::from_ptr(version_ptr) };
-        let version = version_str.to_str().expect("TODO: Verify unwrap");
+        let version = version_str.to_str().expect("test: version string from pcai_version must be valid UTF-8");
 
         // Version should be non-empty and match CARGO_PKG_VERSION
         assert!(!version.is_empty());
@@ -1159,7 +1159,7 @@ mod tests {
         // Reset state by calling shutdown
         pcai_shutdown();
 
-        let prompt = CString::new("test").expect("TODO: Verify unwrap");
+        let prompt = CString::new("test").expect("test: CString::new must not fail for a simple ASCII prompt");
         let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
         assert!(result.is_null());
         assert!(!pcai_last_error().is_null());
@@ -1172,7 +1172,7 @@ mod tests {
 
         // Create a prompt larger than 100KB
         let large_prompt = "x".repeat(101 * 1024);
-        let prompt_cstr = CString::new(large_prompt).expect("TODO: Verify unwrap");
+        let prompt_cstr = CString::new(large_prompt).expect("test: CString::new must not fail for a repeated-ASCII oversized prompt");
 
         let result = pcai_generate(prompt_cstr.as_ptr(), 10, 0.7);
         assert!(result.is_null());
@@ -1181,7 +1181,7 @@ mod tests {
         assert!(!err_ptr.is_null());
 
         let err_str = unsafe { CStr::from_ptr(err_ptr) };
-        let err_text = err_str.to_str().expect("TODO: Verify unwrap");
+        let err_text = err_str.to_str().expect("test: error string from pcai_last_error must be valid UTF-8");
 
         // Error should mention prompt size
         assert!(
@@ -1201,7 +1201,7 @@ mod tests {
         // Reset state
         pcai_shutdown();
 
-        let prompt = CString::new("hello").expect("TODO: Verify unwrap");
+        let prompt = CString::new("hello").expect("test: CString::new must not fail for a simple ASCII prompt");
         let id = pcai_generate_async(prompt.as_ptr(), 10, 0.7);
         assert_eq!(id, -1, "Should fail when no backend is initialised");
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
@@ -1217,7 +1217,7 @@ mod tests {
     #[test]
     fn test_async_generate_prompt_too_large() {
         let large = "x".repeat(101 * 1024);
-        let cstr = CString::new(large).expect("TODO: Verify unwrap");
+        let cstr = CString::new(large).expect("test: CString::new must not fail for a repeated-ASCII oversized prompt");
         let id = pcai_generate_async(cstr.as_ptr(), 10, 0.7);
         assert_eq!(id, -1, "Should fail on oversized prompt");
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);

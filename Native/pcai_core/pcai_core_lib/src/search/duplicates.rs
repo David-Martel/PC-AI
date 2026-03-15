@@ -230,7 +230,7 @@ fn find_duplicates_impl(config: &DuplicateConfig) -> DuplicateResult {
 
     files_to_hash.par_iter().for_each(|file_info| {
         if let Ok(hash) = hash_file(&file_info.path) {
-            let mut map = hash_map.lock().expect("TODO: Verify unwrap");
+            let mut map = hash_map.lock().expect("duplicate hash map mutex poisoned");
             map.entry(hash)
                 .or_default()
                 .push((file_info.path.clone(), file_info.size));
@@ -331,18 +331,18 @@ mod tests {
     use tempfile::TempDir;
 
     fn create_test_dir() -> TempDir {
-        let dir = TempDir::new().expect("TODO: Verify unwrap");
+        let dir = TempDir::new().expect("failed to create temp dir");
 
         // Create some duplicate files
-        fs::write(dir.path().join("file1.txt"), "duplicate content").expect("TODO: Verify unwrap");
-        fs::write(dir.path().join("file2.txt"), "duplicate content").expect("TODO: Verify unwrap");
-        fs::write(dir.path().join("unique.txt"), "unique content").expect("TODO: Verify unwrap");
+        fs::write(dir.path().join("file1.txt"), "duplicate content").expect("failed to write file1.txt");
+        fs::write(dir.path().join("file2.txt"), "duplicate content").expect("failed to write file2.txt");
+        fs::write(dir.path().join("unique.txt"), "unique content").expect("failed to write unique.txt");
 
         // Create a subdirectory with more files
         let subdir = dir.path().join("subdir");
-        fs::create_dir(&subdir).expect("TODO: Verify unwrap");
-        fs::write(subdir.join("file3.txt"), "duplicate content").expect("TODO: Verify unwrap");
-        fs::write(subdir.join("other.txt"), "other content").expect("TODO: Verify unwrap");
+        fs::create_dir(&subdir).expect("failed to create subdir");
+        fs::write(subdir.join("file3.txt"), "duplicate content").expect("failed to write file3.txt");
+        fs::write(subdir.join("other.txt"), "other content").expect("failed to write other.txt");
 
         dir
     }
@@ -371,8 +371,8 @@ mod tests {
         let dir = create_test_dir();
 
         // Create a small file
-        fs::write(dir.path().join("tiny.txt"), "x").expect("TODO: Verify unwrap");
-        fs::write(dir.path().join("tiny2.txt"), "x").expect("TODO: Verify unwrap");
+        fs::write(dir.path().join("tiny.txt"), "x").expect("failed to write tiny.txt");
+        fs::write(dir.path().join("tiny2.txt"), "x").expect("failed to write tiny2.txt");
 
         let config = DuplicateConfig {
             root_path: dir.path().to_path_buf(),
@@ -389,11 +389,11 @@ mod tests {
 
     #[test]
     fn test_hash_file() {
-        let dir = TempDir::new().expect("TODO: Verify unwrap");
+        let dir = TempDir::new().expect("failed to create temp dir");
         let path = dir.path().join("test.txt");
-        fs::write(&path, "hello world").expect("TODO: Verify unwrap");
+        fs::write(&path, "hello world").expect("failed to write test.txt");
 
-        let hash = hash_file(&path).expect("TODO: Verify unwrap");
+        let hash = hash_file(&path).expect("failed to hash file");
 
         // Known SHA-256 of "hello world"
         assert_eq!(hash, "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");

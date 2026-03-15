@@ -24,7 +24,7 @@ fn main() {
 }
 
 fn generate_version_info() {
-    let out_dir = env::var_os("OUT_DIR").expect("TODO: Verify unwrap");
+    let out_dir = env::var_os("OUT_DIR").expect("build script: required operation failed");
     let dest_path = Path::new(&out_dir).join("build_info.rs");
 
     // Try to get version from environment (set by Build.ps1)

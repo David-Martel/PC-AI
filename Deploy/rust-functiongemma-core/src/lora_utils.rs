@@ -160,13 +160,14 @@ mod tests {
             "lora_alpha": alpha,
             "lora_dropout": dropout,
         });
-        fs::write(dir.join("adapter_config.json"), serde_json::to_string(&json).unwrap()).expect("TODO: Verify unwrap");
+        fs::write(dir.join("adapter_config.json"), serde_json::to_string(&json).unwrap())
+            .expect("failed to write adapter_config.json in test");
     }
 
     #[test]
     fn read_lora_config_returns_values() {
         let dir = std::env::temp_dir().join("pcai_test_lora_config");
-        fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
+        fs::create_dir_all(&dir).expect("failed to create temp dir for lora config test");
         write_adapter_config(&dir, 16, 32.0, 0.05);
 
         let result = read_lora_config(&dir.join("adapter_config.json"));
@@ -178,9 +179,10 @@ mod tests {
     #[test]
     fn read_lora_config_defaults_alpha_and_dropout() {
         let dir = std::env::temp_dir().join("pcai_test_lora_defaults");
-        fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
+        fs::create_dir_all(&dir).expect("failed to create temp dir for lora defaults test");
         let json = serde_json::json!({ "r": 8 });
-        fs::write(dir.join("adapter_config.json"), serde_json::to_string(&json).unwrap()).expect("TODO: Verify unwrap");
+        fs::write(dir.join("adapter_config.json"), serde_json::to_string(&json).unwrap())
+            .expect("failed to write adapter_config.json in test");
 
         let result = read_lora_config(&dir.join("adapter_config.json"));
         assert_eq!(result, Some((8, 32.0, 0.0)));
@@ -191,9 +193,10 @@ mod tests {
     #[test]
     fn read_lora_config_missing_r_returns_none() {
         let dir = std::env::temp_dir().join("pcai_test_lora_no_r");
-        fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
+        fs::create_dir_all(&dir).expect("failed to create temp dir for lora no-r test");
         let json = serde_json::json!({ "lora_alpha": 16.0 });
-        fs::write(dir.join("adapter_config.json"), serde_json::to_string(&json).unwrap()).expect("TODO: Verify unwrap");
+        fs::write(dir.join("adapter_config.json"), serde_json::to_string(&json).unwrap())
+            .expect("failed to write adapter_config.json in test");
 
         let result = read_lora_config(&dir.join("adapter_config.json"));
         assert_eq!(result, None);

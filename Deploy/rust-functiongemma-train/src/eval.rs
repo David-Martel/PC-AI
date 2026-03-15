@@ -453,7 +453,7 @@ mod tests {
             true,
             false,
         )
-        .expect("TODO: Verify unwrap");
+        .expect("evaluate_sample failed on well-formed input");
 
         assert_eq!(result.expected_label, "test_tool");
         assert_eq!(result.predicted_label, "test_tool");

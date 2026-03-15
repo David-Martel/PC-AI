@@ -19,7 +19,7 @@ use pcai_inference::ffi::{
 fn test_unknown_backend_error() {
     pcai_shutdown();
 
-    let backend = CString::new("unknown_backend_12345").expect("TODO: Verify unwrap");
+    let backend = CString::new("unknown_backend_12345").expect("CString should accept valid test input");
     let result = pcai_init(backend.as_ptr());
 
     assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
@@ -46,7 +46,7 @@ fn test_not_initialized_error() {
     pcai_shutdown();
 
     // Try to load model without init
-    let path = CString::new("/test/model.gguf").expect("TODO: Verify unwrap");
+    let path = CString::new("/test/model.gguf").expect("CString should accept valid test input");
 
     #[cfg(feature = "ffi")]
     {
@@ -79,12 +79,12 @@ mod llamacpp_error_tests {
     fn test_model_not_found_error() {
         pcai_shutdown();
 
-        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+        let backend = CString::new("llamacpp").expect("CString should accept valid test input");
         if pcai_init(backend.as_ptr()) != 0 {
             return; // Skip if llamacpp not available
         }
 
-        let nonexistent = CString::new("/nonexistent/path/to/model.gguf").expect("TODO: Verify unwrap");
+        let nonexistent = CString::new("/nonexistent/path/to/model.gguf").expect("CString should accept valid test input");
         let result = pcai_load_model(nonexistent.as_ptr(), 0);
 
         assert_eq!(result, -1);
@@ -114,12 +114,12 @@ mod llamacpp_error_tests {
     fn test_generate_without_model_error() {
         pcai_shutdown();
 
-        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+        let backend = CString::new("llamacpp").expect("CString should accept valid test input");
         if pcai_init(backend.as_ptr()) != 0 {
             return; // Skip if llamacpp not available
         }
 
-        let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
+        let prompt = CString::new("Test prompt").expect("CString should accept valid test input");
         let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
 
         assert!(result.is_null());
@@ -153,7 +153,7 @@ mod llamacpp_error_tests {
         ];
 
         for (backend_name, _description) in test_cases {
-            let backend = CString::new(backend_name).expect("TODO: Verify unwrap");
+            let backend = CString::new(backend_name).expect("CString should accept valid test input");
             let result = pcai_init(backend.as_ptr());
 
             if result == -1 {
@@ -182,7 +182,7 @@ fn test_success_clears_error() {
     pcai_shutdown();
 
     // First, cause an error
-    let invalid = CString::new("invalid").expect("TODO: Verify unwrap");
+    let invalid = CString::new("invalid").expect("CString should accept valid test input");
     let _ = pcai_init(invalid.as_ptr());
 
     // Verify error is set
@@ -194,7 +194,7 @@ fn test_success_clears_error() {
     // Now do a successful operation (if any backend is available)
     #[cfg(feature = "llamacpp")]
     {
-        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+        let backend = CString::new("llamacpp").expect("CString should accept valid test input");
         let result = pcai_init(backend.as_ptr());
 
         if result == 0 {
@@ -239,7 +239,7 @@ fn test_error_codes() {
     assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
 
     // Test unknown backend error (also InvalidInput)
-    let unknown = CString::new("unknown_backend").expect("TODO: Verify unwrap");
+    let unknown = CString::new("unknown_backend").expect("CString should accept valid test input");
     let result = pcai_init(unknown.as_ptr());
     assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
     assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
@@ -257,7 +257,7 @@ mod error_code_tests {
     fn test_not_initialized_error_code() {
         pcai_shutdown();
 
-        let path = CString::new("/test/model.gguf").expect("TODO: Verify unwrap");
+        let path = CString::new("/test/model.gguf").expect("CString should accept valid test input");
         let result = pcai_load_model(path.as_ptr(), 0);
 
         assert_eq!(result, PcaiErrorCode::NotInitialized as i32);
@@ -269,12 +269,12 @@ mod error_code_tests {
     fn test_model_not_loaded_error_code() {
         pcai_shutdown();
 
-        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+        let backend = CString::new("llamacpp").expect("CString should accept valid test input");
         if pcai_init(backend.as_ptr()) != 0 {
             return; // Skip if llamacpp not available
         }
 
-        let prompt = CString::new("Test").expect("TODO: Verify unwrap");
+        let prompt = CString::new("Test").expect("CString should accept valid test input");
         let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
 
         assert!(result.is_null());
@@ -288,12 +288,12 @@ mod error_code_tests {
     fn test_io_error_code() {
         pcai_shutdown();
 
-        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+        let backend = CString::new("llamacpp").expect("CString should accept valid test input");
         if pcai_init(backend.as_ptr()) != 0 {
             return; // Skip if llamacpp not available
         }
 
-        let nonexistent = CString::new("/nonexistent/path/model.gguf").expect("TODO: Verify unwrap");
+        let nonexistent = CString::new("/nonexistent/path/model.gguf").expect("CString should accept valid test input");
         let result = pcai_load_model(nonexistent.as_ptr(), 0);
 
         assert_ne!(result, 0);
@@ -318,7 +318,7 @@ fn test_prompt_too_large() {
 
     // Create a prompt > 100KB
     let large_prompt = "x".repeat(101 * 1024);
-    let prompt_cstr = CString::new(large_prompt).expect("TODO: Verify unwrap");
+    let prompt_cstr = CString::new(large_prompt).expect("CString should accept valid test input");
 
     let result = pcai_generate(prompt_cstr.as_ptr(), 10, 0.7);
     assert!(result.is_null());

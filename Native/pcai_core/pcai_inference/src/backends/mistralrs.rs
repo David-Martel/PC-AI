@@ -266,7 +266,7 @@ mod tests {
     fn test_parse_gguf_path() {
         let result = MistralRsBackend::parse_gguf_path("/path/to/model.gguf");
         assert!(result.is_ok());
-        let (model_id, filename) = result.expect("TODO: Verify unwrap");
+        let (model_id, filename) = result.expect("test: parse_gguf_path must succeed for a valid absolute GGUF path");
         assert_eq!(filename, "model.gguf");
     }
 

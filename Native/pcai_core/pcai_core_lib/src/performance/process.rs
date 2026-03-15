@@ -341,7 +341,7 @@ mod tests {
         let process = get_process_by_pid(pid);
         assert!(process.is_some());
 
-        let p = process.expect("TODO: Verify unwrap");
+        let p = process.expect("current process should be visible to sysinfo");
         assert_eq!(p.pid, pid);
         assert!(!p.name.is_empty());
     }

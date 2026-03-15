@@ -41,7 +41,7 @@ fn test_finish_reason_serialization() {
     ];
 
     for (reason, expected) in reasons {
-        let json = serde_json::to_string(&reason).expect("TODO: Verify unwrap");
+        let json = serde_json::to_string(&reason).expect("serialization should succeed");
         assert!(json.contains(expected), "Should serialize to {}", expected);
     }
 }
@@ -125,8 +125,8 @@ fn test_backend_trait_object_safety() {
 fn test_backend_switching() {
     use pcai_inference::backends::BackendType;
 
-    let llamacpp = BackendType::LlamaCpp.create().expect("TODO: Verify unwrap");
-    let mistralrs = BackendType::MistralRs.create().expect("TODO: Verify unwrap");
+    let llamacpp = BackendType::LlamaCpp.create().expect("backend creation should succeed");
+    let mistralrs = BackendType::MistralRs.create().expect("backend creation should succeed");
 
     assert_eq!(llamacpp.backend_name(), "llama.cpp");
     assert_eq!(mistralrs.backend_name(), "mistral.rs");

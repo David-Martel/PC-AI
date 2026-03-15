@@ -26,7 +26,7 @@ fn test_error_string_access() {
     pcai_shutdown(); // Clean state
 
     // Cause an error
-    let invalid = CString::new("invalid_backend").expect("TODO: Verify unwrap");
+    let invalid = CString::new("invalid_backend").expect("CString should accept valid test input");
     let _ = pcai_init(invalid.as_ptr());
 
     // Read error
@@ -48,13 +48,13 @@ fn test_repeated_init_shutdown_no_leak() {
 
         #[cfg(feature = "llamacpp")]
         {
-            let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+            let backend = CString::new("llamacpp").expect("CString should accept valid test input");
             let _ = pcai_init(backend.as_ptr());
         }
 
         #[cfg(feature = "mistralrs-backend")]
         {
-            let backend = CString::new("mistralrs").expect("TODO: Verify unwrap");
+            let backend = CString::new("mistralrs").expect("CString should accept valid test input");
             let _ = pcai_init(backend.as_ptr());
         }
 
@@ -67,7 +67,7 @@ fn test_repeated_init_shutdown_no_leak() {
 fn test_init_empty_string() {
     pcai_shutdown();
 
-    let empty = CString::new("").expect("TODO: Verify unwrap");
+    let empty = CString::new("").expect("CString should accept valid test input");
     let result = pcai_init(empty.as_ptr());
 
     // Should fail gracefully, not crash
@@ -85,7 +85,7 @@ fn test_init_long_string() {
     pcai_shutdown();
 
     let long_string: String = "a".repeat(10000);
-    let long = CString::new(long_string).expect("TODO: Verify unwrap");
+    let long = CString::new(long_string).expect("CString should accept valid test input");
     let result = pcai_init(long.as_ptr());
 
     // Should fail gracefully
@@ -100,7 +100,7 @@ fn test_utf8_error_handling() {
     pcai_shutdown();
 
     // Try to init with unicode string
-    let unicode = CString::new("backend_日本語").expect("TODO: Verify unwrap");
+    let unicode = CString::new("backend_日本語").expect("CString should accept valid test input");
     let result = pcai_init(unicode.as_ptr());
 
     assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
@@ -125,7 +125,7 @@ mod llamacpp_memory_tests {
     fn test_generate_null_prompt() {
         pcai_shutdown();
 
-        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+        let backend = CString::new("llamacpp").expect("CString should accept valid test input");
         if pcai_init(backend.as_ptr()) == 0 {
             let result = pcai_generate(ptr::null(), 10, 0.7);
             assert!(result.is_null());
@@ -143,7 +143,7 @@ mod llamacpp_memory_tests {
     fn test_load_model_null_path() {
         pcai_shutdown();
 
-        let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
+        let backend = CString::new("llamacpp").expect("CString should accept valid test input");
         if pcai_init(backend.as_ptr()) == 0 {
             let result = pcai_load_model(ptr::null(), 0);
             assert_eq!(result, -1);

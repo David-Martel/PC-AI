@@ -18,7 +18,7 @@ pub fn estimate_tokens(text: &str) -> usize {
             [^\p{L}\p{N}\s]  # Punctuation/Other
         ",
         )
-        .unwrap_or_else(|_| Regex::new(".").expect("TODO: Verify unwrap")) // Fallback to safe catch-all
+        .unwrap_or_else(|_| Regex::new(".").expect("catch-all regex \".\" is always valid")) // Fallback to safe catch-all
     });
 
     let mut count = 0;

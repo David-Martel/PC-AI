@@ -392,14 +392,14 @@ mod tests {
     #[test]
     fn test_search_logs_with_matches() {
         // Create a temp directory with test log file
-        let dir = tempdir().expect("TODO: Verify unwrap");
+        let dir = tempdir().expect("failed to create temp dir");
         let log_path = dir.path().join("test.log");
-        let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
-        writeln!(file, "Line 1: normal content").expect("TODO: Verify unwrap");
-        writeln!(file, "Line 2: ERROR something failed").expect("TODO: Verify unwrap");
-        writeln!(file, "Line 3: more normal content").expect("TODO: Verify unwrap");
-        writeln!(file, "Line 4: ERROR another failure").expect("TODO: Verify unwrap");
-        writeln!(file, "Line 5: final line").expect("TODO: Verify unwrap");
+        let mut file = File::create(&log_path).expect("failed to create test.log");
+        writeln!(file, "Line 1: normal content").expect("failed to write line 1");
+        writeln!(file, "Line 2: ERROR something failed").expect("failed to write line 2");
+        writeln!(file, "Line 3: more normal content").expect("failed to write line 3");
+        writeln!(file, "Line 4: ERROR another failure").expect("failed to write line 4");
+        writeln!(file, "Line 5: final line").expect("failed to write line 5");
 
         let options = LogSearchOptions {
             pattern: "ERROR".to_string(),
@@ -422,12 +422,12 @@ mod tests {
 
     #[test]
     fn test_search_logs_case_insensitive() {
-        let dir = tempdir().expect("TODO: Verify unwrap");
+        let dir = tempdir().expect("failed to create temp dir");
         let log_path = dir.path().join("test.log");
-        let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
-        writeln!(file, "error lowercase").expect("TODO: Verify unwrap");
-        writeln!(file, "ERROR uppercase").expect("TODO: Verify unwrap");
-        writeln!(file, "Error mixed").expect("TODO: Verify unwrap");
+        let mut file = File::create(&log_path).expect("failed to create test.log");
+        writeln!(file, "error lowercase").expect("failed to write error lowercase line");
+        writeln!(file, "ERROR uppercase").expect("failed to write ERROR uppercase line");
+        writeln!(file, "Error mixed").expect("failed to write Error mixed line");
 
         let options = LogSearchOptions {
             pattern: "error".to_string(),

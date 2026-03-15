@@ -368,7 +368,7 @@ impl ContentSearchVisitor {
             return;
         }
 
-        let mut shared_matches = self.shared.matches.lock().expect("TODO: Verify unwrap");
+        let mut shared_matches = self.shared.matches.lock().expect("content search matches mutex poisoned");
         shared_matches.append(&mut self.local_matches);
     }
 }
@@ -680,20 +680,20 @@ mod tests {
     use tempfile::TempDir;
 
     fn create_test_dir() -> TempDir {
-        let dir = TempDir::new().expect("TODO: Verify unwrap");
+        let dir = TempDir::new().expect("failed to create temp dir");
 
         fs::write(dir.path().join("file1.txt"), "Hello world\nThis is a test\nHello again")
-            .expect("TODO: Verify unwrap");
+            .expect("failed to write file1.txt");
         fs::write(
             dir.path().join("file2.log"),
             "Error: something failed\nWarning: check this\nError: another failure",
         )
-        .expect("TODO: Verify unwrap");
-        fs::write(dir.path().join("data.json"), r#"{"key": "value"}"#).expect("TODO: Verify unwrap");
+        .expect("failed to write file2.log");
+        fs::write(dir.path().join("data.json"), r#"{"key": "value"}"#).expect("failed to write data.json");
 
         let subdir = dir.path().join("subdir");
-        fs::create_dir(&subdir).expect("TODO: Verify unwrap");
-        fs::write(subdir.join("nested.txt"), "Hello from nested").expect("TODO: Verify unwrap");
+        fs::create_dir(&subdir).expect("failed to create subdir");
+        fs::write(subdir.join("nested.txt"), "Hello from nested").expect("failed to write nested.txt");
 
         dir
     }
@@ -702,11 +702,11 @@ mod tests {
     fn test_search_content_basic() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("Hello").expect("TODO: Verify unwrap");
+        let regex = Regex::new("Hello").expect("valid regex");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,
-            bytes_regex: BytesRegex::new("Hello").expect("TODO: Verify unwrap"),
+            bytes_regex: BytesRegex::new("Hello").expect("valid bytes regex"),
             pattern_str: "Hello".to_string(),
             file_matcher: None,
             file_pattern_str: None,
@@ -725,12 +725,12 @@ mod tests {
     fn test_search_content_with_file_pattern() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("Error").expect("TODO: Verify unwrap");
-        let glob = Glob::new("*.log").expect("TODO: Verify unwrap");
+        let regex = Regex::new("Error").expect("valid regex");
+        let glob = Glob::new("*.log").expect("valid glob pattern");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,
-            bytes_regex: BytesRegex::new("Error").expect("TODO: Verify unwrap"),
+            bytes_regex: BytesRegex::new("Error").expect("valid bytes regex"),
             pattern_str: "Error".to_string(),
             file_matcher: Some(glob.compile_matcher()),
             file_pattern_str: Some("*.log".to_string()),
@@ -749,11 +749,11 @@ mod tests {
     fn test_search_content_with_context() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("test").expect("TODO: Verify unwrap");
+        let regex = Regex::new("test").expect("valid regex");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,
-            bytes_regex: BytesRegex::new("test").expect("TODO: Verify unwrap"),
+            bytes_regex: BytesRegex::new("test").expect("valid bytes regex"),
             pattern_str: "test".to_string(),
             file_matcher: None,
             file_pattern_str: None,
@@ -776,11 +776,11 @@ mod tests {
     fn test_search_content_max_results() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("Hello|Error").expect("TODO: Verify unwrap");
+        let regex = Regex::new("Hello|Error").expect("valid regex");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,
-            bytes_regex: BytesRegex::new("Hello|Error").expect("TODO: Verify unwrap"),
+            bytes_regex: BytesRegex::new("Hello|Error").expect("valid bytes regex"),
             pattern_str: "Hello|Error".to_string(),
             file_matcher: None,
             file_pattern_str: None,
@@ -799,11 +799,11 @@ mod tests {
     fn test_search_content_stats() {
         let dir = create_test_dir();
 
-        let regex = Regex::new("Hello").expect("TODO: Verify unwrap");
+        let regex = Regex::new("Hello").expect("valid regex");
         let config = ContentSearchConfig {
             root_path: dir.path().to_path_buf(),
             regex,
-            bytes_regex: BytesRegex::new("Hello").expect("TODO: Verify unwrap"),
+            bytes_regex: BytesRegex::new("Hello").expect("valid bytes regex"),
             pattern_str: "Hello".to_string(),
             file_matcher: None,
             file_pattern_str: None,

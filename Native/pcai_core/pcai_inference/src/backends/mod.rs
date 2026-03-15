@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn test_generate_request_serde_minimal() {
         let json = r#"{"prompt": "Hello"}"#;
-        let req: GenerateRequest = serde_json::from_str(json).expect("TODO: Verify unwrap");
+        let req: GenerateRequest = serde_json::from_str(json).expect("test: minimal GenerateRequest must deserialize from valid JSON");
         assert_eq!(req.prompt, "Hello");
         assert!(req.max_tokens.is_none());
         assert!(req.temperature.is_none());
@@ -139,8 +139,8 @@ mod tests {
             top_p: Some(0.9),
             stop: vec!["END".to_string(), "\n".to_string()],
         };
-        let json = serde_json::to_string(&req).expect("TODO: Verify unwrap");
-        let deserialized: GenerateRequest = serde_json::from_str(&json).expect("TODO: Verify unwrap");
+        let json = serde_json::to_string(&req).expect("test: GenerateRequest must serialize to JSON");
+        let deserialized: GenerateRequest = serde_json::from_str(&json).expect("test: GenerateRequest must roundtrip through JSON");
         assert_eq!(deserialized.prompt, "Test prompt");
         assert_eq!(deserialized.max_tokens, Some(256));
         assert!((deserialized.temperature.unwrap() - 0.8).abs() < f32::EPSILON);
@@ -155,8 +155,8 @@ mod tests {
             tokens_generated: 42,
             finish_reason: FinishReason::Stop,
         };
-        let json = serde_json::to_string(&resp).expect("TODO: Verify unwrap");
-        let deserialized: GenerateResponse = serde_json::from_str(&json).expect("TODO: Verify unwrap");
+        let json = serde_json::to_string(&resp).expect("test: GenerateResponse must serialize to JSON");
+        let deserialized: GenerateResponse = serde_json::from_str(&json).expect("test: GenerateResponse must roundtrip through JSON");
         assert_eq!(deserialized.text, "Generated output");
         assert_eq!(deserialized.tokens_generated, 42);
         assert!(matches!(deserialized.finish_reason, FinishReason::Stop));
@@ -171,17 +171,17 @@ mod tests {
 
     #[test]
     fn test_finish_reason_deserialization() {
-        let stop: FinishReason = serde_json::from_str("\"stop\"").expect("TODO: Verify unwrap");
+        let stop: FinishReason = serde_json::from_str("\"stop\"").expect("test: FinishReason::Stop must deserialize from \"stop\"");
         assert!(matches!(stop, FinishReason::Stop));
-        let length: FinishReason = serde_json::from_str("\"length\"").expect("TODO: Verify unwrap");
+        let length: FinishReason = serde_json::from_str("\"length\"").expect("test: FinishReason::Length must deserialize from \"length\"");
         assert!(matches!(length, FinishReason::Length));
-        let error: FinishReason = serde_json::from_str("\"error\"").expect("TODO: Verify unwrap");
+        let error: FinishReason = serde_json::from_str("\"error\"").expect("test: FinishReason::Error must deserialize from \"error\"");
         assert!(matches!(error, FinishReason::Error));
     }
 
     #[test]
     fn test_generate_request_default_stop_empty() {
-        let req: GenerateRequest = serde_json::from_str(r#"{"prompt": "x"}"#).expect("TODO: Verify unwrap");
+        let req: GenerateRequest = serde_json::from_str(r#"{"prompt": "x"}"#).expect("test: GenerateRequest must deserialize with only prompt field set");
         assert!(req.stop.is_empty());
     }
 

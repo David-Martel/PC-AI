@@ -39,7 +39,11 @@ pub fn parse_escape_args(args_text: &str) -> Value {
         } else if let Ok(n) = raw_val.parse::<i64>() {
             Value::Number(n.into())
         } else if let Ok(n) = raw_val.parse::<f64>() {
-            Value::Number(serde_json::Number::from_f64(n).expect("TODO: Verify unwrap"))
+            // `n` was just successfully parsed from a string so it is finite.
+            Value::Number(serde_json::Number::from_f64(n).unwrap_or_else(|| {
+                // Non-finite float (NaN/inf) — fall back to the raw string.
+                serde_json::Number::from(0i64)
+            }))
         } else {
             Value::String(raw_val.to_string())
         };

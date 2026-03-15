@@ -603,10 +603,10 @@ mod cache_validation_tests {
     fn test_cache_header_roundtrip() {
         let hash = [1u8; 16];
         let mut buf = Vec::new();
-        write_cache_header(&mut buf, &hash).expect("TODO: Verify unwrap");
+        write_cache_header(&mut buf, &hash).expect("write_cache_header failed");
         assert_eq!(buf.len(), CACHE_HEADER_SIZE);
         assert_eq!(&buf[0..4], CACHE_MAGIC);
-        validate_cache_header(&buf, &hash).expect("TODO: Verify unwrap");
+        validate_cache_header(&buf, &hash).expect("validate_cache_header failed on valid header");
     }
 
     // ---- individual failure modes ----
@@ -623,7 +623,7 @@ mod cache_validation_tests {
     fn test_cache_header_version_mismatch() {
         let hash = [0u8; 16];
         let mut buf = Vec::new();
-        write_cache_header(&mut buf, &hash).expect("TODO: Verify unwrap");
+        write_cache_header(&mut buf, &hash).expect("write_cache_header failed");
         // Overwrite version field with 99.
         buf[4..8].copy_from_slice(&99u32.to_le_bytes());
         let err = validate_cache_header(&buf, &hash).unwrap_err();
@@ -635,7 +635,7 @@ mod cache_validation_tests {
         let hash_a = [1u8; 16];
         let hash_b = [2u8; 16];
         let mut buf = Vec::new();
-        write_cache_header(&mut buf, &hash_a).expect("TODO: Verify unwrap");
+        write_cache_header(&mut buf, &hash_a).expect("write_cache_header failed");
         let err = validate_cache_header(&buf, &hash_b).unwrap_err();
         assert!(
             err.to_string().contains("different tokenizer"),
@@ -654,23 +654,23 @@ mod cache_validation_tests {
 
     #[test]
     fn test_compute_tokenizer_hash_deterministic() {
-        let dir = TempDir::new().expect("TODO: Verify unwrap");
+        let dir = TempDir::new().expect("failed to create temp dir");
         let path = dir.path().join("tokenizer.json");
-        std::fs::write(&path, b"test tokenizer content").expect("TODO: Verify unwrap");
-        let hash1 = compute_tokenizer_hash(&path).expect("TODO: Verify unwrap");
-        let hash2 = compute_tokenizer_hash(&path).expect("TODO: Verify unwrap");
+        std::fs::write(&path, b"test tokenizer content").expect("failed to write tokenizer file");
+        let hash1 = compute_tokenizer_hash(&path).expect("compute_tokenizer_hash failed");
+        let hash2 = compute_tokenizer_hash(&path).expect("compute_tokenizer_hash failed");
         assert_eq!(hash1, hash2, "hash must be deterministic for the same file");
     }
 
     #[test]
     fn test_compute_tokenizer_hash_differs_for_different_content() {
-        let dir = TempDir::new().expect("TODO: Verify unwrap");
+        let dir = TempDir::new().expect("failed to create temp dir");
         let path_a = dir.path().join("tok_a.json");
         let path_b = dir.path().join("tok_b.json");
-        std::fs::write(&path_a, b"tokenizer A").expect("TODO: Verify unwrap");
-        std::fs::write(&path_b, b"tokenizer B").expect("TODO: Verify unwrap");
-        let hash_a = compute_tokenizer_hash(&path_a).expect("TODO: Verify unwrap");
-        let hash_b = compute_tokenizer_hash(&path_b).expect("TODO: Verify unwrap");
+        std::fs::write(&path_a, b"tokenizer A").expect("failed to write tok_a.json");
+        std::fs::write(&path_b, b"tokenizer B").expect("failed to write tok_b.json");
+        let hash_a = compute_tokenizer_hash(&path_a).expect("compute_tokenizer_hash failed for tok_a");
+        let hash_b = compute_tokenizer_hash(&path_b).expect("compute_tokenizer_hash failed for tok_b");
         assert_ne!(hash_a, hash_b, "different content must yield different hashes");
     }
 }

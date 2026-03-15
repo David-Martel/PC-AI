@@ -172,7 +172,7 @@ mod tests {
             target_modules: vec!["q_proj".to_string()],
         };
 
-        let lora = LoraLinear::new(768, 768, &config, &device).expect("TODO: Verify unwrap");
+        let lora = LoraLinear::new(768, 768, &config, &device).expect("LoraLinear::new failed on CPU");
         let (lora_a, lora_b) = lora.lora_params();
 
         assert_eq!(lora_a.dims(), &[8, 768]);
@@ -189,7 +189,7 @@ mod tests {
             target_modules: vec!["test".to_string()],
         };
 
-        let lora = LoraLinear::new(512, 256, &config, &device).expect("TODO: Verify unwrap");
+        let lora = LoraLinear::new(512, 256, &config, &device).expect("LoraLinear::new failed on CPU");
         let (lora_a, lora_b) = lora.lora_params();
 
         assert_eq!(lora_a.dims(), &[4, 512]);
@@ -200,7 +200,7 @@ mod tests {
             .sum_all()
             .unwrap()
             .to_scalar::<f32>()
-            .expect("TODO: Verify unwrap");
+            .expect("to_scalar::<f32> failed on lora_b sum");
         assert_eq!(sum, 0.0);
     }
 }

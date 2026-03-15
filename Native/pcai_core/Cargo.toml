@@ -104,6 +104,31 @@ codegen-units = 16 # Parallelize for faster build
 strip = false      # Keep symbols for verification
 panic = "abort"    # Smaller binary, faster panics
 
+[workspace.lints.rust]
+ambiguous_negative_literals = "warn"
+missing_debug_implementations = "warn"
+redundant_imports = "warn"
+redundant_lifetimes = "warn"
+trivial_numeric_casts = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+unused_lifetimes = "warn"
+
+[workspace.lints.clippy]
+cargo = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+correctness = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+allow_attributes_without_reason = "warn"
+clone_on_ref_ptr = "warn"
+empty_drop = "warn"
+map_err_ignore = "warn"
+string_to_string = "warn"
+undocumented_unsafe_blocks = "warn"
+unused_result_ok = "warn"
+
 [patch.crates-io]
 candle-kernels = { path = "vendor/candle-kernels-0.9.2" }
 

@@ -3,6 +3,7 @@ use candle_core::quantized::GgmlDType;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{VarBuilder, VarMap};
 use clap::{Parser, Subcommand};
+use mimalloc::MiMalloc;
 use serde::Deserialize;
 use serde_json::json;
 use std::fs;
@@ -31,6 +32,9 @@ use rust_functiongemma_train::router_dataset::{
 };
 use rust_functiongemma_train::trainer::{Trainer, TrainerConfig};
 use rust_functiongemma_train::{Config, LoraSettings, Model};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]

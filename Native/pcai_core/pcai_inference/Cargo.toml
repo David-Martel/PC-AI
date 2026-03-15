@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["PC_AI Team"]
 description = "Dual-backend LLM inference engine for PC diagnostics (llama.cpp and mistral.rs)"
 license = "MIT"
+lints.workspace = true
 
 [lib]
 name = "pcai_inference_lib"

@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{anyhow, bail, Context, Result};
+use mimalloc::MiMalloc;
 use ollama_rs::generation::chat::request::ChatMessageRequest;
 use ollama_rs::generation::chat::{ChatMessage, MessageRole};
 use ollama_rs::generation::parameters::{KeepAlive, TimeUnit};
@@ -12,6 +13,9 @@ use ollama_rs::Ollama;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Debug, Deserialize, Default)]
 struct RootConfig {

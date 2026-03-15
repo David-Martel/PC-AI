@@ -6,6 +6,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Rust-native PC_AI performance CLI for PowerShell acceleration"
+lints.workspace = true
 
 [dependencies]
 anyhow.workspace = true
@@ -15,3 +16,4 @@ rayon.workspace = true
 sha2.workspace = true
 hex.workspace = true
 pcai_core_lib = { path = "../pcai_core_lib" }
+mimalloc = "0.1"

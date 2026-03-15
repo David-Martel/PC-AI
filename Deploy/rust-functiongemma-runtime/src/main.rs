@@ -1,5 +1,10 @@
 use std::net::SocketAddr;
+
 use clap::Parser;
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Parser)]
 struct Args {

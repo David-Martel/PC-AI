@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Janus-Pro model architecture for PC_AI media agent"
 license = "MIT"
+lints.workspace = true
 
 [dependencies]
 anyhow = "1.0"

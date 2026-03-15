@@ -376,7 +376,7 @@ impl From<Error> for AppError {
 }
 
 impl AppError {
-    #[allow(non_upper_case_globals)]
+    #[expect(non_upper_case_globals, reason = "constant intentionally uses PascalCase to mirror the error variant name for readable call sites")]
     const ModelNotLoaded: Self = AppError(Error::ModelNotLoaded);
 }
 

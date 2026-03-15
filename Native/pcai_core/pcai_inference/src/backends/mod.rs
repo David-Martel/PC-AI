@@ -109,7 +109,7 @@ impl BackendType {
             #[cfg(feature = "mistralrs-backend")]
             BackendType::MistralRs => Ok(Box::new(mistralrs::MistralRsBackend::new())),
 
-            #[allow(unreachable_patterns)]
+            #[expect(unreachable_patterns, reason = "fallthrough guard: reachable when no backend feature (llamacpp or mistralrs-backend) is enabled at compile time")]
             _ => Err(Error::Backend("No backend feature enabled".to_string())),
         }
     }

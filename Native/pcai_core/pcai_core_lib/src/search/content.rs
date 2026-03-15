@@ -601,7 +601,7 @@ fn search_file_streaming(path: &Path, config: &ContentSearchWorkerConfig) -> std
 }
 
 /// Legacy function for backward compatibility in tests.
-#[allow(dead_code)]
+#[expect(dead_code, reason = "legacy compatibility shim retained for test callers; not part of the public API")]
 fn search_file(path: &Path, config: &ContentSearchConfig) -> std::io::Result<Vec<ContentMatch>> {
     let worker_config = ContentSearchWorkerConfig::from_config(config, true);
     Ok(search_file_streaming(path, &worker_config)?.matches)

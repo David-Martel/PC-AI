@@ -46,7 +46,7 @@
 
 use anyhow::{Context, Result};
 use candle_core::{DType, Device, IndexOp, Tensor};
-#[allow(unused_imports)]
+#[expect(unused_imports, reason = "Module trait must be in scope for candle_transformers siglip::VisionModel::forward dispatch to resolve at compile time")]
 use candle_nn::Module; // Required by siglip::VisionModel::forward at runtime
 use candle_transformers::models::siglip;
 use image::{DynamicImage, imageops::FilterType};

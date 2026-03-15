@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Janus-Pro media pipeline with FFI and HTTP support"
 license = "MIT"
+lints.workspace = true
 
 [lib]
 name = "pcai_media"

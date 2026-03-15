@@ -8,7 +8,7 @@ use windows_sys::Win32::Networking::WinSock::{socket, AF_HYPERV, INVALID_SOCKET,
 
 // Define SOCKADDR_HV manually since it might not be in windows-sys's version for networking
 // Reserved for future direct vsock connect support
-#[allow(dead_code)]
+#[expect(dead_code, reason = "reserved for future direct HvSocket connect support; not yet used by health-check paths")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 struct SockAddrHv {
@@ -19,7 +19,7 @@ struct SockAddrHv {
 }
 
 // Well-known Hyper-V GUIDs - reserved for future vsock connect support
-#[allow(dead_code)]
+#[expect(dead_code, reason = "well-known Hyper-V GUID reserved for future vsock connect support")]
 const HV_GUID_PARENT: GUID = GUID {
     data1: 0xa42e7cd,
     data2: 0x5542,
@@ -27,7 +27,7 @@ const HV_GUID_PARENT: GUID = GUID {
     data4: [0xaa, 0x44, 0x89, 0x6e, 0x99, 0xa9, 0x7a, 0x2b],
 };
 
-#[allow(dead_code)]
+#[expect(dead_code, reason = "well-known Hyper-V GUID reserved for future vsock connect support")]
 const HV_GUID_CHILDREN: GUID = GUID {
     data1: 0x9092221,
     data2: 0x2728,
@@ -35,7 +35,7 @@ const HV_GUID_CHILDREN: GUID = GUID {
     data4: [0x91, 0x84, 0x20, 0xfa, 0x1d, 0x20, 0xa2, 0x06],
 };
 
-#[allow(dead_code)]
+#[expect(dead_code, reason = "well-known Hyper-V loopback GUID reserved for future vsock connect support")]
 const HV_GUID_LOOPBACK: GUID = GUID {
     data1: 0xe0e4ca1,
     data2: 0x496a,
@@ -43,7 +43,7 @@ const HV_GUID_LOOPBACK: GUID = GUID {
     data4: [0xac, 0x27, 0x4a, 0x71, 0x90, 0xc4, 0x1b, 0x27],
 };
 
-#[allow(dead_code)]
+#[expect(dead_code, reason = "well-known Hyper-V wildcard GUID reserved for future vsock connect support")]
 const HV_GUID_WILDCARD: GUID = GUID {
     data1: 0x00000000,
     data2: 0x0000,

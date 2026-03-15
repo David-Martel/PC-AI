@@ -4,11 +4,15 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::Path;
 
 use anyhow::{anyhow, bail, Context, Result};
+use mimalloc::MiMalloc;
 use pcai_core_lib::performance::{disk, process};
 use rayon::prelude::*;
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Debug, Serialize)]
 struct ProcessRow {

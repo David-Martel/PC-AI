@@ -6,6 +6,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Config-driven native Ollama runner for PC_AI using ollama-rs"
+lints.workspace = true
 
 [dependencies]
 anyhow.workspace = true
@@ -15,4 +16,5 @@ tokio.workspace = true
 ollama-rs.workspace = true
 schemars.workspace = true
 url.workspace = true
+mimalloc = "0.1"
 

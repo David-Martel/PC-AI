@@ -201,7 +201,7 @@ struct MediaState {
     ///
     /// Retained for future async hub operations (e.g., background downloads).
     /// Not currently used by the synchronous load/generate paths.
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "Tokio runtime retained for future async hub download operations; not yet exercised by synchronous FFI paths")]
     runtime: Runtime,
     /// Loaded generation pipeline (None until `pcai_media_load_model` succeeds).
     pipeline: Option<GenerationPipeline>,

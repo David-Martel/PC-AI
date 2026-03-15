@@ -1,0 +1,112 @@
+name: Rust Guidelines
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - '**.rs'
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+  push:
+    branches: [develop]
+    paths:
+      - '**.rs'
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+
+concurrency:
+  group: rust-guidelines-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  guidelines-check:
+    name: Microsoft Rust Guidelines
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        workspace:
+          - path: Native/pcai_core
+            features: "--no-default-features --features server,ffi"
+          # FunctionGemma workspaces require CUDA bindgen — skip in CI for now
+          # - path: Deploy/rust-functiongemma
+          #   features: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ matrix.workspace.path }}/target
+          key: ${{ runner.os }}-guidelines-${{ matrix.workspace.path }}-${{ hashFiles(format('{0}/**/Cargo.lock', matrix.workspace.path)) }}
+          restore-keys: |
+            ${{ runner.os }}-guidelines-${{ matrix.workspace.path }}-
+
+      - name: Format Check (M-STATIC-VERIFICATION)
+        working-directory: ${{ matrix.workspace.path }}
+        run: cargo fmt --all --check
+
+      - name: Clippy with Guidelines Lints (M-STATIC-VERIFICATION)
+        working-directory: ${{ matrix.workspace.path }}
+        run: cargo clippy --all-targets ${{ matrix.workspace.features }} -- -D warnings
+
+      - name: Unit Tests
+        working-directory: ${{ matrix.workspace.path }}
+        run: cargo test ${{ matrix.workspace.features }} --lib
+
+      - name: Audit Dependencies
+        working-directory: ${{ matrix.workspace.path }}
+        run: |
+          cargo install cargo-audit --locked 2>$null
+          cargo audit
+        continue-on-error: true
+
+      - name: Guidelines Compliance Scan
+        shell: pwsh
+        run: |
+          $violations = @()
+
+          # M-NO-GLOB-REEXPORTS
+          $globs = Get-ChildItem -Path "${{ matrix.workspace.path }}" -Recurse -Filter '*.rs' |
+            Where-Object { $_.FullName -notmatch '(tests|target|vendor|third_party)' } |
+            Select-String -Pattern 'pub use .+::\*;'
+          if ($globs) {
+            $violations += "M-NO-GLOB-REEXPORTS: $($globs.Count) glob re-exports found"
+            $globs | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+          }
+
+          # M-AVOID-STATICS
+          $staticMut = Get-ChildItem -Path "${{ matrix.workspace.path }}" -Recurse -Filter '*.rs' |
+            Where-Object { $_.FullName -notmatch '(tests|target|vendor|third_party)' } |
+            Select-String -Pattern 'static mut '
+          if ($staticMut) {
+            $violations += "M-AVOID-STATICS: $($staticMut.Count) static mut declarations"
+            $staticMut | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+          }
+
+          # M-LINT-OVERRIDE-EXPECT (advisory — warn but don't fail)
+          $allows = Get-ChildItem -Path "${{ matrix.workspace.path }}" -Recurse -Filter '*.rs' |
+            Where-Object { $_.FullName -notmatch '(tests|target|vendor|third_party)' } |
+            Select-String -Pattern '#\[allow\('
+          if ($allows) {
+            Write-Host "M-LINT-OVERRIDE-EXPECT: $($allows.Count) #[allow] found (prefer #[expect])" -ForegroundColor Yellow
+          }
+
+          if ($violations.Count -gt 0) {
+            Write-Host "`nGuidelines violations:" -ForegroundColor Red
+            $violations | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+            exit 1
+          }
+
+          Write-Host "Guidelines compliance scan passed" -ForegroundColor Green

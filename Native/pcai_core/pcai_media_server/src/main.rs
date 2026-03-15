@@ -31,6 +31,7 @@ use axum::{
 use base64::Engine as _;
 use clap::Parser;
 use image::{codecs::png::PngEncoder, ImageEncoder};
+use mimalloc::MiMalloc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
@@ -40,6 +41,9 @@ use tracing_subscriber::EnvFilter;
 use pcai_media::config::PipelineConfig;
 use pcai_media::generate::GenerationPipeline;
 use pcai_media::understand::UnderstandingPipeline;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 // ---------------------------------------------------------------------------
 // CLI args

@@ -216,3 +216,4 @@ gpu_test*.png
 **/gen_test*.png
 .codex-tmp/
 .codex_tmp/
+RealESRGAN_x4.onnx

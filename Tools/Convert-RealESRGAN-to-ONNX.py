@@ -172,6 +172,18 @@ def convert(input_path: str, output_path: str, opset: int = 17) -> None:
             },
         )
 
+    # Torch's dynamo exporter (>= 2.12) may write weights to an external
+    # .onnx.data sidecar.  Merge everything into a single .onnx file.
+    external_data = Path(output_path + ".data")
+    if external_data.exists():
+        print("Merging external weight data into single ONNX file ...")
+        import onnx
+
+        onnx_model = onnx.load(output_path)
+        onnx.load_external_data_for_model(onnx_model, str(Path(output_path).parent))
+        onnx.save_model(onnx_model, output_path, save_as_external_data=False)
+        external_data.unlink()
+
     size_mb = Path(output_path).stat().st_size / (1024 * 1024)
     print(f"Done. ONNX model saved: {output_path} ({size_mb:.1f} MB)")
 

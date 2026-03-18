@@ -636,8 +636,8 @@ Describe "Optimize-VSock" -Tag 'Unit', 'Network', 'Slow', 'RequiresAdmin' {
 
             Mock Test-Path { $true } -ModuleName PC-AI.Network
 
-            Mock Invoke-Expression {
-                # Mock netsh commands
+            # Mock netsh command execution
+            Mock -CommandName netsh -MockWith {
                 return "Ok."
             } -ModuleName PC-AI.Network
 

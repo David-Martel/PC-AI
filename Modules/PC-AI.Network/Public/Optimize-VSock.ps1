@@ -313,29 +313,29 @@ function Optimize-VSock {
 
     $netshCommands = @{
         Balanced = @(
-            @{ Cmd = 'netsh int tcp set global autotuninglevel=normal'; Desc = 'TCP auto-tuning: normal' },
-            @{ Cmd = 'netsh int tcp set global chimney=disabled'; Desc = 'TCP Chimney: disabled' },
-            @{ Cmd = 'netsh int tcp set global rss=enabled'; Desc = 'RSS: enabled' },
-            @{ Cmd = 'netsh int tcp set global timestamps=enabled'; Desc = 'TCP timestamps: enabled' }
+            @{ Args = @('int', 'tcp', 'set', 'global', 'autotuninglevel=normal'); Desc = 'TCP auto-tuning: normal' },
+            @{ Args = @('int', 'tcp', 'set', 'global', 'chimney=disabled'); Desc = 'TCP Chimney: disabled' },
+            @{ Args = @('int', 'tcp', 'set', 'global', 'rss=enabled'); Desc = 'RSS: enabled' },
+            @{ Args = @('int', 'tcp', 'set', 'global', 'timestamps=enabled'); Desc = 'TCP timestamps: enabled' }
         )
         Performance = @(
-            @{ Cmd = 'netsh int tcp set global autotuninglevel=experimental'; Desc = 'TCP auto-tuning: experimental' },
-            @{ Cmd = 'netsh int tcp set global chimney=disabled'; Desc = 'TCP Chimney: disabled' },
-            @{ Cmd = 'netsh int tcp set global rss=enabled'; Desc = 'RSS: enabled' },
-            @{ Cmd = 'netsh int tcp set global timestamps=enabled'; Desc = 'TCP timestamps: enabled' },
-            @{ Cmd = 'netsh int tcp set global ecncapability=enabled'; Desc = 'ECN: enabled' }
+            @{ Args = @('int', 'tcp', 'set', 'global', 'autotuninglevel=experimental'); Desc = 'TCP auto-tuning: experimental' },
+            @{ Args = @('int', 'tcp', 'set', 'global', 'chimney=disabled'); Desc = 'TCP Chimney: disabled' },
+            @{ Args = @('int', 'tcp', 'set', 'global', 'rss=enabled'); Desc = 'RSS: enabled' },
+            @{ Args = @('int', 'tcp', 'set', 'global', 'timestamps=enabled'); Desc = 'TCP timestamps: enabled' },
+            @{ Args = @('int', 'tcp', 'set', 'global', 'ecncapability=enabled'); Desc = 'ECN: enabled' }
         )
         Conservative = @(
-            @{ Cmd = 'netsh int tcp set global autotuninglevel=disabled'; Desc = 'TCP auto-tuning: disabled' },
-            @{ Cmd = 'netsh int tcp set global chimney=disabled'; Desc = 'TCP Chimney: disabled' },
-            @{ Cmd = 'netsh int tcp set global rss=enabled'; Desc = 'RSS: enabled' }
+            @{ Args = @('int', 'tcp', 'set', 'global', 'autotuninglevel=disabled'); Desc = 'TCP auto-tuning: disabled' },
+            @{ Args = @('int', 'tcp', 'set', 'global', 'chimney=disabled'); Desc = 'TCP Chimney: disabled' },
+            @{ Args = @('int', 'tcp', 'set', 'global', 'rss=enabled'); Desc = 'RSS: enabled' }
         )
     }
 
     foreach ($cmd in $netshCommands[$Profile]) {
         if ($PSCmdlet.ShouldProcess($cmd.Desc, 'Apply netsh setting')) {
             try {
-                $output = Invoke-Expression $cmd.Cmd 2>&1
+                $output = & netsh @($cmd.Args) 2>&1
                 if ($LASTEXITCODE -eq 0 -or $output -notmatch 'error|failed') {
                     Write-Host "  [+] $($cmd.Desc)" -ForegroundColor Green
                 }

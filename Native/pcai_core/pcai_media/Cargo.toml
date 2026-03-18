@@ -12,6 +12,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 pcai-media-model = { path = "../pcai_media_model" }
+pcai_core_lib = { path = "../pcai_core_lib", default-features = false, optional = true }
 anyhow = "1.0"
 thiserror = "2.0"
 tokio = { version = "1", features = ["full"] }
@@ -33,7 +34,7 @@ memmap2 = "0.9"
 default = ["ffi"]
 ffi = []
 server = ["dep:axum", "dep:tower-http"]
-cuda = ["candle-core/cuda", "pcai-media-model/cuda"]
+cuda = ["candle-core/cuda", "pcai-media-model/cuda", "dep:pcai_core_lib", "pcai_core_lib/nvml"]
 flash-attn = ["pcai-media-model/flash-attn"]
 upscale = ["dep:ort"]
 

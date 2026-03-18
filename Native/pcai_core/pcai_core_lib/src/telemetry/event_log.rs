@@ -15,7 +15,7 @@ pub struct EventLogEntry {
     pub message: String,
 }
 
-pub fn sample_hardware_events(days: u32, max_events: u32) -> Vec<EventLogEntry> {
+pub fn sample_hardware_events(_days: u32, max_events: u32) -> Vec<EventLogEntry> {
     let mut entries = Vec::new();
 
     unsafe {

@@ -73,23 +73,12 @@ impl Default for MemoryPressureReport {
 // ── Process category data ─────────────────────────────────────────────────────
 
 /// Aggregated statistics for a process category.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Default)]
 pub struct CategoryStats {
     pub count: u32,
     pub working_set_mb: u64,
     pub private_mb: u64,
     pub handle_count: u64,
-}
-
-impl Default for CategoryStats {
-    fn default() -> Self {
-        Self {
-            count: 0,
-            working_set_mb: 0,
-            private_mb: 0,
-            handle_count: 0,
-        }
-    }
 }
 
 /// JSON output for the full process-category breakdown.
@@ -412,7 +401,7 @@ fn get_handle_count(pid: u32) -> u64 {
 
     unsafe {
         let handle = OpenProcess(PROCESS_QUERY_INFORMATION, 0, pid);
-        if handle == std::ptr::null_mut() {
+        if handle.is_null() {
             return 0;
         }
         let mut count: u32 = 0;

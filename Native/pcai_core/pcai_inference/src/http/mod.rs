@@ -9,7 +9,7 @@ use axum::{
 };
 use futures::stream;
 use serde::{Deserialize, Serialize};
-use std::{convert::Infallible, fs, path::PathBuf, sync::Arc, sync::OnceLock};
+use std::{convert::Infallible, sync::Arc, sync::OnceLock};
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;

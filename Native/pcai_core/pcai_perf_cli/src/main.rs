@@ -295,7 +295,7 @@ fn collect_disk_rows(path: &str, top: usize) -> Result<Vec<DiskRow>> {
 }
 
 fn collect_hash_rows(file_paths: &[String], algorithm: &str) -> Result<Vec<HashRow>> {
-    if algorithm.to_ascii_uppercase() != "SHA256" {
+    if !algorithm.eq_ignore_ascii_case("SHA256") {
         bail!("unsupported hash algorithm for pcai-perf hash-list: {algorithm}");
     }
 

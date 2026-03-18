@@ -4183,6 +4183,7 @@ dependencies = [
  "memmap2 0.9.9",
  "ort",
  "pcai-media-model",
+ "pcai_core_lib",
  "rand 0.8.5",
  "safetensors 0.4.5",
  "serde",

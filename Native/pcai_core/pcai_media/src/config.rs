@@ -391,9 +391,7 @@ impl PipelineConfig {
     }
 
     fn candidate_dedupe_key(gpu: &NvidiaSmiGpu) -> String {
-        gpu.uuid
-            .clone()
-            .unwrap_or_else(|| format!("index:{}", gpu.index))
+        gpu.uuid.clone().unwrap_or_else(|| format!("index:{}", gpu.index))
     }
 
     /// Return all GPUs reported by `nvidia-smi`, sorted by memory descending

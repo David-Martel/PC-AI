@@ -29,7 +29,29 @@ function Resolve-SmokeBinarySource {
     return $null
 }
 
+# Import PC-AI.Gpu module for GPU inventory (NVML FFI primary, nvidia-smi fallback).
+# Silently continue so the smoke test still runs when the module is unavailable.
+Import-Module (Join-Path $RepoRoot 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1') -Force -ErrorAction SilentlyContinue
+
 function Get-CudaGpuUsage {
+    # Prefer the module function which uses NVML FFI when pcai_core_lib.dll is present.
+    if (Get-Command Get-NvidiaGpuInventory -ErrorAction SilentlyContinue) {
+        $gpus = Get-NvidiaGpuInventory -ErrorAction SilentlyContinue
+        if ($gpus) {
+            foreach ($gpu in @($gpus)) {
+                [PSCustomObject]@{
+                    Index         = $gpu.Index
+                    Uuid          = $gpu.UUID
+                    Name          = $gpu.Name
+                    MemoryUsedMB  = if ($null -ne $gpu.MemoryUsedMB)  { $gpu.MemoryUsedMB }  else { 0 }
+                    MemoryTotalMB = if ($null -ne $gpu.MemoryTotalMB) { $gpu.MemoryTotalMB } else { 0 }
+                }
+            }
+            return
+        }
+    }
+
+    # Hard fallback: nvidia-smi subprocess (used when module is unavailable).
     $nvidiaSmi = Get-Command nvidia-smi -ErrorAction SilentlyContinue
     if (-not $nvidiaSmi) { return @() }
 
@@ -38,10 +60,10 @@ function Get-CudaGpuUsage {
         $parts = @($row -split ',')
         if ($parts.Count -lt 5) { continue }
         [PSCustomObject]@{
-            Index = [int]($parts[0].Trim())
-            Uuid = $parts[1].Trim()
-            Name = $parts[2].Trim()
-            MemoryUsedMB = [int]($parts[3].Trim())
+            Index         = [int]($parts[0].Trim())
+            Uuid          = $parts[1].Trim()
+            Name          = $parts[2].Trim()
+            MemoryUsedMB  = [int]($parts[3].Trim())
             MemoryTotalMB = [int]($parts[4].Trim())
         }
     }

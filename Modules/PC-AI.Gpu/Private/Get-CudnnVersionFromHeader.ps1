@@ -42,11 +42,20 @@ function Get-CudnnVersionFromHeader {
 
     $includePath = Join-Path $CudnnPath 'include'
 
-    # Priority: cudnn_version.h (cuDNN 8+), then cudnn.h (cuDNN 7 and earlier)
+    # cuDNN 9.x stores headers in version-specific subdirs: include/12.8/cudnn_version.h
+    # cuDNN 8.x stores directly: include/cudnn_version.h
+    # cuDNN 7.x: include/cudnn.h
     $headerCandidates = @(
-        (Join-Path $includePath 'cudnn_version.h'),
+        (Join-Path $includePath 'cudnn_version.h')
         (Join-Path $includePath 'cudnn.h')
     )
+    # Also search version-specific subdirs (cuDNN 9.x pattern)
+    if (Test-Path $includePath) {
+        Get-ChildItem -Path $includePath -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+            $headerCandidates += (Join-Path $_.FullName 'cudnn_version.h')
+            $headerCandidates += (Join-Path $_.FullName 'cudnn.h')
+        }
+    }
 
     $headerPath = $null
     foreach ($candidate in $headerCandidates) {

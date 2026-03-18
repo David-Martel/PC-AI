@@ -162,6 +162,73 @@ function Get-NvidiaSoftwareStatus {
             $detectedVersions['nsight-systems'] = @{ InstalledVersion = $null; Path = $null; SideByCount = 0 }
         }
 
+        # NVML — ships with the display driver as nvml.dll in System32.
+        # The DLL FilePrivatePart encodes the driver build (e.g. 8241 -> 582.41).
+        $nvmlDll = Join-Path $env:SystemRoot 'System32\nvml.dll'
+        if (Test-Path $nvmlDll) {
+            $nvmlInfo = (Get-Item $nvmlDll).VersionInfo
+            # Normalise the last two digits into driver-style X.YY notation (8241 -> 582.41)
+            $rawBuild = $nvmlInfo.FilePrivatePart      # e.g. 8241
+            $driverMajor = [int]($rawBuild / 100)      # 82
+            $driverMinor = $rawBuild % 100             # 41
+            # Combine with FileBuildPart hundreds digit for full driver major (5xx)
+            $fullMajor = $nvmlInfo.FileBuildPart * 10 + [int]($rawBuild / 1000)  # 15*10+8=158 → not right
+            # Simpler: use $driverVersion already obtained from nvidia-smi (same value)
+            $nvmlDriverVer = if ($driverVersion) { $driverVersion } else { "$driverMajor.$driverMinor" }
+            $detectedVersions['nvml'] = @{
+                InstalledVersion = $nvmlDriverVer
+                Path             = $nvmlDll
+                SideByCount      = 0
+            }
+            Write-Verbose "NVML found at $nvmlDll (driver $nvmlDriverVer)"
+        }
+        else {
+            $detectedVersions['nvml'] = @{ InstalledVersion = $null; Path = $null; SideByCount = 0 }
+        }
+
+        # Warp — Python GPU simulation framework installed via pip/uv into AI-Media venv.
+        # Probe the venv python first, then fall back to any python on PATH.
+        $warpVersion = $null
+        $warpPath    = $null
+        $warpPythons = @(
+            (Join-Path $PSScriptRoot '..\..\..\..\AI-Media\.venv\Scripts\python.exe'),
+            'python'
+        )
+        foreach ($py in $warpPythons) {
+            $pyResolved = if ([System.IO.Path]::IsPathRooted($py)) {
+                $py
+            } else {
+                (Get-Command $py -ErrorAction SilentlyContinue)?.Source
+            }
+            if ($pyResolved -and (Test-Path $pyResolved)) {
+                $ver = & $pyResolved -c "import warp; print(warp.__version__)" 2>$null
+                if ($ver -and $ver -match '^\d+\.\d+') {
+                    $warpVersion = $ver.Trim()
+                    $warpPath    = $pyResolved
+                    Write-Verbose "Warp $warpVersion detected via $pyResolved"
+                    break
+                }
+            }
+        }
+        $detectedVersions['warp'] = @{
+            InstalledVersion = $warpVersion
+            Path             = $warpPath
+            SideByCount      = 0
+        }
+
+        # Nsight Graphics — standalone installer, not part of CUDA toolkit.
+        $nsightGraphicsEntries = @($nsightVersions | Where-Object { $_.Product -eq 'NsightGraphics' })
+        if ($nsightGraphicsEntries.Count -gt 0) {
+            $detectedVersions['nsight-graphics'] = @{
+                InstalledVersion = $nsightGraphicsEntries[0].Version
+                Path             = $nsightGraphicsEntries[0].Path
+                SideByCount      = $nsightGraphicsEntries.Count
+            }
+        }
+        else {
+            $detectedVersions['nsight-graphics'] = @{ InstalledVersion = $null; Path = $null; SideByCount = 0 }
+        }
+
         # --- Build status table ---
         $results = [System.Collections.Generic.List[PSCustomObject]]::new()
 

@@ -132,6 +132,7 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
 
     Context 'Get-NvidiaGpuInventory' {
         BeforeAll {
+            Mock -CommandName Resolve-PcaiCoreLibDll -ModuleName 'PC-AI.Gpu' -MockWith { return $null }
             Mock -CommandName Get-Command -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Name -eq 'nvidia-smi.exe' } -MockWith {
                 [pscustomobject]@{ Source = 'nvidia-smi.exe' }
             }
@@ -236,26 +237,34 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
 
     Context 'Private helpers' {
         It 'parses the CUDA version from a toolkit root' {
-            InModuleScope 'PC-AI.Gpu' {
-                Get-CudaVersionFromPath -CudaPath $script:CudaRoot | Should -Be '13.2.0'
+            $cudaPath = $script:CudaRoot
+            InModuleScope 'PC-AI.Gpu' -Parameters @{ CudaPath = $cudaPath } {
+                param($CudaPath)
+                Get-CudaVersionFromPath -CudaPath $CudaPath | Should -Be '13.2.0'
             }
         }
 
         It 'parses the cuDNN version from an install root' {
-            InModuleScope 'PC-AI.Gpu' {
-                Get-CudnnVersionFromHeader -CudnnPath $script:CudnnRoot | Should -Be '9.8.0'
+            $cudnnPath = $script:CudnnRoot
+            InModuleScope 'PC-AI.Gpu' -Parameters @{ CudnnPath = $cudnnPath } {
+                param($CudnnPath)
+                Get-CudnnVersionFromHeader -CudnnPath $CudnnPath | Should -Be '9.8.0'
             }
         }
 
         It 'parses the TensorRT version from an install root' {
-            InModuleScope 'PC-AI.Gpu' {
-                Get-TensorRtVersionFromHeader -TensorRtPath $script:TensorRtRoot | Should -Be '10.9.0'
+            $tensorRtPath = $script:TensorRtRoot
+            InModuleScope 'PC-AI.Gpu' -Parameters @{ TensorRtPath = $tensorRtPath } {
+                param($TensorRtPath)
+                Get-TensorRtVersionFromHeader -TensorRtPath $TensorRtPath | Should -Be '10.9.0'
             }
         }
 
         It 'detects Nsight installs from a supplied search path' {
-            InModuleScope 'PC-AI.Gpu' {
-                $entries = @(Get-NsightVersions -SearchPath $script:NsightBaseDir)
+            $nsightBaseDir = $script:NsightBaseDir
+            InModuleScope 'PC-AI.Gpu' -Parameters @{ NsightBaseDir = $nsightBaseDir } {
+                param($NsightBaseDir)
+                $entries = @(Get-NsightVersions -SearchPath $NsightBaseDir)
                 $entries.Count | Should -Be 2
                 ($entries | Where-Object Product -eq 'NsightSystems').Version | Should -Be '2025.1.2'
                 ($entries | Where-Object Product -eq 'NsightCompute').Version | Should -Be '2025.1.0'

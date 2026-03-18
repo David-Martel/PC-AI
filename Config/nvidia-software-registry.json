@@ -1,7 +1,7 @@
 {
-  "version": "1.2.0",
-  "lastUpdated": "2026-03-18T00:00:00Z",
-  "detectionTimestamp": "2026-03-18T00:00:00Z",
+  "version": "1.3.0",
+  "lastUpdated": "2026-03-18T21:00:00Z",
+  "detectionTimestamp": "2026-03-18T21:00:00Z",
   "trustedSources": [
     {
       "id": "nvidia-drivers",
@@ -106,7 +106,7 @@
       "category": "toolkit",
       "description": "NVIDIA CUDA Toolkit: compiler (nvcc), runtime, libraries (cublas, cufft, cusolver, curand), and samples. Multiple versions installed side-by-side.",
       "detectionMethod": "dir %CUDA_DIR%",
-      "installedVersion": "13.1",
+      "installedVersion": "13.2.0",
       "installedVersions": [
         {
           "version": "12.1",
@@ -196,7 +196,7 @@
       "category": "inference",
       "description": "High-performance deep learning inference optimizer and runtime. Used by pcai-media for potential Janus-Pro inference acceleration.",
       "detectionMethod": "grep NV_TENSORRT_MAJOR %TENSORRT_DIR%\\include\\NvInferVersion.h",
-      "installedVersion": "10.9.0.34",
+      "installedVersion": "10.9.0",
       "latestVersion": "10.9.0",
       "minimumVersion": "8.0",
       "sourceId": "nvidia-tensorrt",
@@ -314,7 +314,7 @@
       "status": "recommended",
       "description": "C library for monitoring and managing NVIDIA GPU state: power, clocks, utilization, memory, temperature. Bundled with the display driver as nvml.dll.",
       "detectionMethod": "dir \"%SystemRoot%\\System32\\nvml.dll\"",
-      "installedVersion": null,
+      "installedVersion": "582.41",
       "latestVersion": null,
       "minimumVersion": null,
       "sourceId": "nvidia-drivers",
@@ -329,16 +329,19 @@
       "id": "warp",
       "name": "NVIDIA Warp (Python)",
       "category": "sdk",
-      "status": "recommended",
+      "status": "installed",
       "description": "Python framework for high-performance GPU simulation and spatial computing. Compiles Python kernels to CUDA at runtime. Useful for physics simulation in AI-Media pipelines.",
       "detectionMethod": "python -c \"import warp; print(warp.__version__)\"",
-      "installedVersion": null,
-      "latestVersion": "1.5.1",
+      "installedVersion": "1.12.0",
+      "latestVersion": "1.12.0",
       "minimumVersion": "1.0",
       "sourceId": "nvidia-drivers",
       "downloadUrl": "https://pypi.org/project/warp-lang/",
-      "installCommand": "pip install warp-lang",
-      "notes": "Not currently installed. Install into AI-Media venv: uv pip install warp-lang. Requires CUDA 11.5+. RTX 5060 Ti SM 120 supported in Warp 1.4+."
+      "installCommand": "uv pip install warp-lang",
+      "paths": {
+        "venv": "C:\\codedev\\PC_AI\\AI-Media\\.venv\\Scripts\\python.exe"
+      },
+      "notes": "Installed 2026-03-18 into AI-Media venv (Python 3.12.11). Version 1.12.0. SM 120 (Blackwell) supported. Install command: uv pip install --python AI-Media\\.venv\\Scripts\\python.exe warp-lang"
     },
     {
       "id": "video-codec-sdk",
@@ -400,12 +403,30 @@
       }
     },
     "currentSystemStatus": {
-      "driver": { "installed": "582.41", "meetsAll": true },
-      "cuda": { "active": "13.1", "meetsAll": true },
-      "cudnn": { "installed": "9.8.0", "meetsAll": true },
-      "tensorrt": { "installed": "10.9.0", "meetsAll": true },
-      "nsightCompute": { "installed": "2026.1.0", "meetsAll": true },
-      "nsightSystems": { "installed": "2025.6.3", "meetsAll": true }
+      "driver": {
+        "installed": "582.41",
+        "meetsAll": true
+      },
+      "cuda": {
+        "active": "13.1",
+        "meetsAll": true
+      },
+      "cudnn": {
+        "installed": "9.8.0",
+        "meetsAll": true
+      },
+      "tensorrt": {
+        "installed": "10.9.0",
+        "meetsAll": true
+      },
+      "nsightCompute": {
+        "installed": "2026.1.0",
+        "meetsAll": true
+      },
+      "nsightSystems": {
+        "installed": "2025.6.3",
+        "meetsAll": true
+      }
     }
   }
 }

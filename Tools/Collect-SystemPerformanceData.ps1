@@ -47,21 +47,46 @@ foreach ($gpu in $gpus) {
     }
 }
 
-# NVIDIA specific
+# NVIDIA specific — use PC-AI.Gpu module (NVML FFI primary, nvidia-smi fallback).
 $nvidiaGpu = @()
-if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
+$gpuModulePath = Join-Path (Split-Path $PSScriptRoot -Parent) 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
+if (Test-Path $gpuModulePath -ErrorAction SilentlyContinue) {
+    Import-Module $gpuModulePath -Force -ErrorAction SilentlyContinue
+}
+
+if (Get-Command Get-NvidiaGpuInventory -ErrorAction SilentlyContinue) {
+    $gpuInventory = Get-NvidiaGpuInventory -ErrorAction SilentlyContinue
+    foreach ($gpu in @($gpuInventory)) {
+        $freeMB = if ($null -ne $gpu.MemoryTotalMB -and $null -ne $gpu.MemoryUsedMB) {
+            $gpu.MemoryTotalMB - $gpu.MemoryUsedMB
+        } else { $null }
+        $nvidiaGpu += @{
+            Name         = $gpu.Name
+            TotalVRAM_MB = $gpu.MemoryTotalMB
+            UsedVRAM_MB  = $gpu.MemoryUsedMB
+            FreeVRAM_MB  = $freeMB
+            GPU_Util_Pct = $gpu.Utilization   # $null on nvml-ffi source (static snapshot)
+            Mem_Util_Pct = $null              # not in GpuInfo static snapshot
+            Temp_C       = $gpu.Temperature
+            Source       = $gpu.Source
+        }
+    }
+}
+elseif (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
+    # Hard fallback: nvidia-smi subprocess when module not available.
     $nvOut = nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free,utilization.gpu,utilization.memory,temperature.gpu --format=csv,noheader,nounits 2>$null
     foreach ($line in $nvOut) {
         $parts = $line -split ',\s*'
         if ($parts.Count -ge 7) {
             $nvidiaGpu += @{
-                Name            = $parts[0]
-                TotalVRAM_MB    = [int]$parts[1]
-                UsedVRAM_MB     = [int]$parts[2]
-                FreeVRAM_MB     = [int]$parts[3]
-                GPU_Util_Pct    = [int]$parts[4]
-                Mem_Util_Pct    = [int]$parts[5]
-                Temp_C          = [int]$parts[6]
+                Name         = $parts[0]
+                TotalVRAM_MB = [int]$parts[1]
+                UsedVRAM_MB  = [int]$parts[2]
+                FreeVRAM_MB  = [int]$parts[3]
+                GPU_Util_Pct = [int]$parts[4]
+                Mem_Util_Pct = [int]$parts[5]
+                Temp_C       = [int]$parts[6]
+                Source       = 'nvidia-smi'
             }
         }
     }

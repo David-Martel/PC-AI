@@ -19,7 +19,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string[]]$PreferredVersions = @('v13.1', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
+    [string[]]$PreferredVersions = @('v13.2', 'v13.1', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
     [string]$CudaPath,
     [switch]$Quiet,
     [switch]$InstallMachineGlobal,
@@ -159,7 +159,7 @@ function Resolve-MsvcCompilerBin {
 function Initialize-CudaEnvironment {
     [CmdletBinding()]
     param(
-        [string[]]$PreferredVersions = @('v13.1', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
+        [string[]]$PreferredVersions = @('v13.2', 'v13.1', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
         [string]$CudaPath,
         [switch]$Quiet,
         [switch]$InstallMachineGlobal,
@@ -350,11 +350,13 @@ function Initialize-CudaEnvironment {
     }
 
     $majorVersion = 0
+    $minorVersion = 0
     if ($result.SelectedVersion -match '^v(?<major>\d+)\.(?<minor>\d+)$') {
         $majorVersion = [int]$Matches.major
+        $minorVersion = [int]$Matches.minor
     }
-    if ($majorVersion -lt 13) {
-        $warn = "CUDA $($result.SelectedVersion) selected as fallback. Preferred default for this repository is CUDA v13.1."
+    if ($majorVersion -lt 13 -or ($majorVersion -eq 13 -and $minorVersion -lt 2)) {
+        $warn = "CUDA $($result.SelectedVersion) selected as fallback. Preferred default for this repository is CUDA v13.2."
         $result.CompatibilityWarning = $warn
         $result.Notes += $warn
         if (-not $Quiet) {

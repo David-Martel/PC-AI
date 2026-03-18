@@ -49,8 +49,9 @@ function Get-NsightVersions {
     }
 
     $nsightPatterns = @(
-        @{ Pattern = 'Nsight Compute*'; Product = 'NsightCompute' },
-        @{ Pattern = 'Nsight Systems*'; Product = 'NsightSystems' }
+        @{ Pattern = 'Nsight Compute*';   Product = 'NsightCompute'   },
+        @{ Pattern = 'Nsight Systems*';   Product = 'NsightSystems'   },
+        @{ Pattern = 'Nsight Graphics*';  Product = 'NsightGraphics'  }
     )
 
     foreach ($entry in $nsightPatterns) {
@@ -70,7 +71,9 @@ function Get-NsightVersions {
                 $exeCandidates = @(
                     (Join-Path $dir.FullName 'ncu.exe'),
                     (Join-Path $dir.FullName 'nsys.exe'),
-                    (Join-Path $dir.FullName 'ncu-ui.exe')
+                    (Join-Path $dir.FullName 'ncu-ui.exe'),
+                    (Join-Path $dir.FullName 'NVIDIA Nsight Graphics.exe'),
+                    (Join-Path $dir.FullName 'ngfx.exe')
                 )
                 foreach ($exe in $exeCandidates) {
                     if (Test-Path $exe) {

@@ -203,13 +203,13 @@ namespace PcaiNativeDummy {
 "@
             Add-Type -TypeDefinition $code -OutputAssembly $dummyDllPath -OutputType Library
             
-            # Use script scope variable so the mock can access it
-            $script:tempDir = $tempDir
-            
+            $localTempDir = $tempDir
+
             try {
-                InModuleScope PcaiMedia {
-                    Mock Get-PcaiProjectRoot { return $script:tempDir }
-                    
+                InModuleScope PcaiMedia -Parameters @{ TestTempDir = $localTempDir } {
+                    param($TestTempDir)
+                    Mock Get-PcaiProjectRoot { return $TestTempDir }
+
                     $result = Initialize-PcaiMediaFFI
                     $result | Should -BeTrue
                 }

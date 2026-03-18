@@ -103,7 +103,7 @@ function Get-NvidiaGpuUtilization {
         )
 
         $rawLines = & $smi @smiArgs 2>&1
-        if ($LASTEXITCODE -ne 0) {
+        if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
             Write-Warning "nvidia-smi utilization query exited with code $LASTEXITCODE."
             return @()
         }

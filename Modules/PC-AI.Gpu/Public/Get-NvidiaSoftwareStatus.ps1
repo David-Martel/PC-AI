@@ -166,15 +166,9 @@ function Get-NvidiaSoftwareStatus {
         # The DLL FilePrivatePart encodes the driver build (e.g. 8241 -> 582.41).
         $nvmlDll = Join-Path $env:SystemRoot 'System32\nvml.dll'
         if (Test-Path $nvmlDll) {
-            $nvmlInfo = (Get-Item $nvmlDll).VersionInfo
-            # Normalise the last two digits into driver-style X.YY notation (8241 -> 582.41)
-            $rawBuild = $nvmlInfo.FilePrivatePart      # e.g. 8241
-            $driverMajor = [int]($rawBuild / 100)      # 82
-            $driverMinor = $rawBuild % 100             # 41
-            # Combine with FileBuildPart hundreds digit for full driver major (5xx)
-            $fullMajor = $nvmlInfo.FileBuildPart * 10 + [int]($rawBuild / 1000)  # 15*10+8=158 → not right
-            # Simpler: use $driverVersion already obtained from nvidia-smi (same value)
-            $nvmlDriverVer = if ($driverVersion) { $driverVersion } else { "$driverMajor.$driverMinor" }
+            # NVML version is coextensive with the display driver; reuse $driverVersion
+            # (already obtained from nvidia-smi) rather than parsing DLL metadata.
+            $nvmlDriverVer = $driverVersion
             $detectedVersions['nvml'] = @{
                 InstalledVersion = $nvmlDriverVer
                 Path             = $nvmlDll
@@ -191,7 +185,8 @@ function Get-NvidiaSoftwareStatus {
         $warpVersion = $null
         $warpPath    = $null
         $warpPythons = @(
-            (Join-Path $PSScriptRoot '..\..\..\..\AI-Media\.venv\Scripts\python.exe'),
+            # From Public\ -> up 3 levels reaches repo root, then AI-Media\.venv
+            (Join-Path $PSScriptRoot '..\..\..\AI-Media\.venv\Scripts\python.exe'),
             'python'
         )
         foreach ($py in $warpPythons) {

@@ -132,7 +132,6 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
 
     Context 'Get-NvidiaGpuInventory' {
         BeforeAll {
-            Mock -CommandName Resolve-PcaiCoreLibDll -ModuleName 'PC-AI.Gpu' -MockWith { return $null }
             Mock -CommandName Get-Command -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Name -eq 'nvidia-smi.exe' } -MockWith {
                 [pscustomobject]@{ Source = 'nvidia-smi.exe' }
             }
@@ -142,13 +141,20 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
         }
 
         It 'parses both GPUs from nvidia-smi output' {
-            $result = @(Get-NvidiaGpuInventory)
-            $result.Count | Should -Be 2
-            $result[0].Index | Should -Be 0
-            $result[0].UUID | Should -Be 'GPU-abc-123'
-            $result[0].MemoryTotalMB | Should -Be 8188
-            $result[1].Name | Should -Match 'RTX 5060 Ti'
-            $result[1].ComputeCapability | Should -Be '12.0'
+            $csvData = $script:NvidiaSmiInventoryCsv
+            InModuleScope 'PC-AI.Gpu' -Parameters @{ CsvData = $csvData } {
+                param($CsvData)
+                Mock Resolve-PcaiCoreLibDll { return $null }
+                Mock Get-Command { [pscustomobject]@{ Source = 'nvidia-smi.exe' } } -ParameterFilter { $Name -eq 'nvidia-smi.exe' }
+                Mock nvidia-smi.exe { $CsvData }
+                $result = @(Get-NvidiaGpuInventory)
+                $result.Count | Should -Be 2
+                $result[0].Index | Should -Be 0
+                $result[0].UUID | Should -Be 'GPU-abc-123'
+                $result[0].MemoryTotalMB | Should -Be 8188
+                $result[1].Name | Should -Match 'RTX 5060 Ti'
+                $result[1].ComputeCapability | Should -Be '12.0'
+            }
         }
     }
 
@@ -215,23 +221,20 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
     }
 
     Context 'Get-NvidiaGpuUtilization' {
-        BeforeAll {
-            Mock -CommandName Get-Command -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Name -eq 'nvidia-smi.exe' } -MockWith {
-                [pscustomobject]@{ Source = 'nvidia-smi.exe' }
-            }
-            Mock -CommandName 'nvidia-smi.exe' -ModuleName 'PC-AI.Gpu' -MockWith {
-                $script:NvidiaSmiUtilizationCsv
-            }
-        }
-
         It 'parses utilization metrics with the current property names' {
-            $result = @(Get-NvidiaGpuUtilization)
-            $result.Count | Should -Be 2
-            $result[0].GpuUtilization | Should -Be 45
-            $result[0].MemoryUsedMB | Should -Be 2048
-            $result[0].MemoryTotalMB | Should -Be 8188
-            $result[0].Temperature | Should -Be 62
-            [decimal]$result[0].PowerDraw | Should -Be 45.5
+            $csvData = $script:NvidiaSmiUtilizationCsv
+            InModuleScope 'PC-AI.Gpu' -Parameters @{ CsvData = $csvData } {
+                param($CsvData)
+                Mock Get-Command { [pscustomobject]@{ Source = 'nvidia-smi.exe' } } -ParameterFilter { $Name -eq 'nvidia-smi.exe' }
+                Mock nvidia-smi.exe { $global:LASTEXITCODE = 0; $CsvData }
+                $result = @(Get-NvidiaGpuUtilization)
+                $result.Count | Should -Be 2
+                $result[0].GpuUtilization | Should -Be 45
+                $result[0].MemoryUsedMB | Should -Be 2048
+                $result[0].MemoryTotalMB | Should -Be 8188
+                $result[0].Temperature | Should -Be 62
+                [decimal]$result[0].PowerDraw | Should -Be 45.5
+            }
         }
     }
 

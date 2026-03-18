@@ -138,6 +138,50 @@ jobs:
           }
           Write-Host "Link check completed" -ForegroundColor Green
 
+      # Run a weekly software-status snapshot so drift between the registry and
+      # the installed versions is surfaced in the maintenance report.
+      # Guarded by module existence so the step is a no-op on forks / clean
+      # checkouts that haven't installed the module yet.
+      - name: NVIDIA Software Status Snapshot
+        shell: pwsh
+        run: |
+          $manifestPath = 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
+          if (-not (Test-Path $manifestPath)) {
+              Write-Host "PC-AI.Gpu module not found at $manifestPath — skipping NVIDIA status snapshot" -ForegroundColor Yellow
+              exit 0
+          }
+
+          Import-Module $manifestPath -Force -ErrorAction Stop
+          Write-Host "=== NVIDIA Software Status (weekly snapshot) ===" -ForegroundColor Cyan
+
+          try {
+              # Get-NvidiaSoftwareStatus returns a structured object; emit it as
+              # formatted text for the step log and as JSON for the artifact.
+              $status = Get-NvidiaSoftwareStatus -ErrorAction Stop
+              $status | Format-List | Out-String | Write-Host
+
+              # Persist to a file so it can be included in the maintenance artifact.
+              New-Item -ItemType Directory -Path Reports -Force | Out-Null
+              $status | ConvertTo-Json -Depth 10 |
+                  Out-File 'Reports\nvidia-status-snapshot.json' -Encoding UTF8
+              Write-Host "Snapshot written to Reports\nvidia-status-snapshot.json" -ForegroundColor Green
+          } catch {
+              # nvidia-smi is not available on GitHub-hosted runners; treat as a
+              # warning rather than a job failure so maintenance still completes.
+              Write-Host "WARNING: Get-NvidiaSoftwareStatus failed (expected on runners without NVIDIA hardware): $_" -ForegroundColor Yellow
+              @{ Timestamp = (Get-Date -Format 'o'); Error = $_.ToString(); Note = 'No NVIDIA hardware on runner' } |
+                  ConvertTo-Json | Out-File 'Reports\nvidia-status-snapshot.json' -Encoding UTF8
+          }
+
+      - name: Upload NVIDIA Status Snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nvidia-status-${{ github.run_number }}
+          path: Reports/nvidia-status-snapshot.json
+          if-no-files-found: ignore
+          retention-days: 90
+
   compatibility:
     name: Compatibility Matrix
     runs-on: windows-latest

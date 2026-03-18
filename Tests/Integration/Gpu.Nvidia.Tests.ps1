@@ -38,7 +38,7 @@ Describe "NVIDIA GPU Hardware Integration" -Tag 'Integration', 'Gpu', 'Nvidia', 
         It "Should return software status for NVIDIA components" {
             $status = Get-NvidiaSoftwareStatus
             $status | Should -Not -BeNullOrEmpty
-            $status.ComponentId | Should -Contain 'driver'
+            $status.ComponentId | Should -Contain 'gpu-driver'
         }
 
         It "Should have valid status values" {

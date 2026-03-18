@@ -1,0 +1,287 @@
+name: NVIDIA Stack Validation
+
+# Triggered only when GPU-related files change, keeping this workflow out of
+# the critical path for unrelated changes and avoiding expensive Rust compiles
+# on every PR.
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'Modules/PC-AI.Gpu/**'
+      - 'Config/nvidia-software-registry.json'
+      - 'Config/driver-registry.json'
+      - 'Native/pcai_core/pcai_core_lib/src/gpu/**'
+      - 'Tools/Sync-NvidiaDriverVersion.ps1'
+      - 'Tools/Initialize-CudaEnvironment.ps1'
+  push:
+    branches: [develop]
+    paths:
+      - 'Modules/PC-AI.Gpu/**'
+      - 'Config/nvidia-software-registry.json'
+      - 'Config/driver-registry.json'
+      - 'Native/pcai_core/pcai_core_lib/src/gpu/**'
+      - 'Tools/Sync-NvidiaDriverVersion.ps1'
+      - 'Tools/Initialize-CudaEnvironment.ps1'
+  # Allow manual triggering for ad-hoc validation (e.g. after registry update).
+  workflow_dispatch:
+
+concurrency:
+  group: nvidia-validation-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 1: PC-AI.Gpu Pester unit tests
+  #
+  # The module mocks nvidia-smi via pre-built CSV fixtures so tests pass on
+  # runners that have no NVIDIA hardware.  All tests must pass; the -CI flag
+  # makes Pester exit non-zero on any failure or incomplete result.
+  # ────────────────────────────────────────────────────────────────────────────
+  powershell-tests:
+    name: PC-AI.Gpu Pester Tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester 5
+        shell: pwsh
+        # Pin to the same minimum version used in ci.yml for consistency.
+        run: Install-Module Pester -MinimumVersion 5.6.1 -Force -Scope CurrentUser
+
+      - name: Import PC-AI.Gpu Module
+        shell: pwsh
+        run: |
+          $manifestPath = 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
+          if (-not (Test-Path $manifestPath)) {
+            Write-Error "Module manifest not found: $manifestPath"
+            exit 1
+          }
+          Import-Module $manifestPath -Force -ErrorAction Stop
+          Write-Host "PC-AI.Gpu imported successfully" -ForegroundColor Green
+
+      - name: Run PC-AI.Gpu Tests
+        shell: pwsh
+        run: |
+          $testFile = 'Tests\Unit\PC-AI.Gpu.Tests.ps1'
+          if (-not (Test-Path $testFile)) {
+            Write-Error "Test file not found: $testFile"
+            exit 1
+          }
+
+          New-Item -ItemType Directory -Path Tests\TestResults -Force | Out-Null
+
+          $config = New-PesterConfiguration
+          $config.Run.Path        = $testFile
+          $config.Run.Exit        = $true
+          $config.Output.Verbosity = 'Detailed'
+          # JaCoCo coverage output for the GPU module only.
+          $config.CodeCoverage.Enabled      = $true
+          $config.CodeCoverage.Path         = @('Modules\PC-AI.Gpu\**\*.ps1', 'Modules\PC-AI.Gpu\**\*.psm1')
+          $config.CodeCoverage.OutputFormat = 'JaCoCo'
+          $config.CodeCoverage.OutputPath   = 'Tests\TestResults\nvidia-gpu-coverage.xml'
+
+          Invoke-Pester -Configuration $config
+
+      - name: Upload GPU Test Coverage
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./Tests/TestResults/nvidia-gpu-coverage.xml
+          flags: powershell-gpu
+          fail_ci_if_error: false
+
+      - name: Upload Test Results Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpu-pester-results-${{ github.sha }}
+          path: Tests/TestResults/nvidia-gpu-coverage.xml
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 2: Rust NVML module compile + clippy
+  #
+  # The `nvml` feature gate is off by default; this job verifies the feature
+  # compiles cleanly and satisfies clippy -D warnings.  No GPU hardware is
+  # required: nvml-wrapper uses dynamic linking (LoadLibrary) so the build
+  # succeeds even without a driver installed.
+  # ────────────────────────────────────────────────────────────────────────────
+  rust-nvml-check:
+    name: Rust NVML Compile + Clippy
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust (stable + clippy)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      # Share the cache key with rust-guidelines.yml where possible.  The
+      # workspace path and feature set differ, so we use a distinct shared-key.
+      - name: Cache Cargo (pcai_core_lib nvml)
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Native/pcai_core
+          shared-key: pcai-core-lib-nvml
+
+      - name: Cargo Check (nvml feature)
+        working-directory: Native/pcai_core
+        shell: pwsh
+        run: |
+          cargo check -p pcai_core_lib --features nvml
+          if ($LASTEXITCODE -ne 0) { throw "cargo check --features nvml failed" }
+
+      - name: Clippy (nvml feature, deny warnings)
+        working-directory: Native/pcai_core
+        shell: pwsh
+        run: |
+          cargo clippy -p pcai_core_lib --features nvml -- -D warnings
+          if ($LASTEXITCODE -ne 0) { throw "clippy --features nvml failed" }
+
+      # M-NO-GLOB-REEXPORTS / M-AVOID-STATICS scan scoped to the gpu module,
+      # mirroring the pattern used in rust-guidelines.yml.
+      - name: Guidelines Scan (gpu module)
+        shell: pwsh
+        run: |
+          $gpuSrc = 'Native\pcai_core\pcai_core_lib\src\gpu'
+          $violations = @()
+
+          $globs = Get-ChildItem -Path $gpuSrc -Recurse -Filter '*.rs' |
+            Select-String -Pattern 'pub use .+::\*;'
+          if ($globs) {
+            $violations += "M-NO-GLOB-REEXPORTS: $($globs.Count) glob re-export(s)"
+            $globs | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+          }
+
+          $staticMut = Get-ChildItem -Path $gpuSrc -Recurse -Filter '*.rs' |
+            Select-String -Pattern 'static mut '
+          if ($staticMut) {
+            $violations += "M-AVOID-STATICS: $($staticMut.Count) static mut declaration(s)"
+            $staticMut | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+          }
+
+          if ($violations.Count -gt 0) {
+            $violations | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "GPU module guidelines scan passed" -ForegroundColor Green
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 3: JSON registry validation
+  #
+  # Validates nvidia-software-registry.json and driver-registry.json for:
+  #   - Well-formed JSON (ConvertFrom-Json throws on parse error)
+  #   - Required top-level fields present
+  #   - Each component entry has the minimum required fields
+  #
+  # This is a cheap (<10s) check that catches truncated or malformed edits
+  # before they reach integration tests.
+  # ────────────────────────────────────────────────────────────────────────────
+  registry-validation:
+    name: Registry JSON Validation
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # All steps use `shell: pwsh` (PowerShell 7) — the ?? null-coalescing
+      # operator used below is not available in Windows PowerShell 5.1.
+      - name: Validate nvidia-software-registry.json
+        shell: pwsh
+        run: |
+          $path = 'Config\nvidia-software-registry.json'
+          Write-Host "Validating $path ..."
+
+          # Parse — ConvertFrom-Json exits the step with a terminating error on
+          # malformed JSON, which GitHub Actions treats as a step failure.
+          $registry = Get-Content $path -Raw | ConvertFrom-Json -ErrorAction Stop
+          Write-Host "  JSON parse: OK" -ForegroundColor Green
+
+          # Required top-level fields.
+          $requiredFields = @('version', 'lastUpdated', 'categories', 'components')
+          foreach ($field in $requiredFields) {
+            if ($null -eq $registry.$field) {
+              Write-Error "Missing required top-level field: '$field'"
+              exit 1
+            }
+          }
+          Write-Host "  Required fields: OK ($($requiredFields -join ', '))" -ForegroundColor Green
+
+          # Each component entry must have id, name, category, and latestVersion.
+          $componentRequired = @('id', 'name', 'category', 'latestVersion')
+          $errors = @()
+          $registry.components | ForEach-Object {
+            $comp = $_
+            foreach ($f in $componentRequired) {
+              if ($null -eq $comp.$f -or [string]::IsNullOrWhiteSpace($comp.$f)) {
+                $errors += "Component '$($comp.id ?? '<unknown>')': missing field '$f'"
+              }
+            }
+          }
+          if ($errors) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "  Components ($($registry.components.Count)): all required fields present" -ForegroundColor Green
+
+          # Version string must be semver-like (x.y.z or x.y.z-suffix).
+          if ($registry.version -notmatch '^\d+\.\d+\.\d+') {
+            Write-Error "Field 'version' does not look like semver: '$($registry.version)'"
+            exit 1
+          }
+          Write-Host "  Version format: OK ($($registry.version))" -ForegroundColor Green
+
+          Write-Host "nvidia-software-registry.json validation passed" -ForegroundColor Green
+
+      - name: Validate driver-registry.json
+        shell: pwsh
+        run: |
+          $path = 'Config\driver-registry.json'
+          Write-Host "Validating $path ..."
+
+          $registry = Get-Content $path -Raw | ConvertFrom-Json -ErrorAction Stop
+          Write-Host "  JSON parse: OK" -ForegroundColor Green
+
+          # Required top-level fields.
+          $requiredFields = @('version', 'lastUpdated')
+          foreach ($field in $requiredFields) {
+            if ($null -eq $registry.$field) {
+              Write-Error "Missing required top-level field: '$field'"
+              exit 1
+            }
+          }
+          Write-Host "  Required fields: OK ($($requiredFields -join ', '))" -ForegroundColor Green
+
+          Write-Host "driver-registry.json validation passed" -ForegroundColor Green
+
+      - name: Cross-Validate GPU Driver Version Consistency
+        shell: pwsh
+        run: |
+          # nvidia-software-registry.json and driver-registry.json may both
+          # record an NVIDIA driver version.  If both are present, warn when
+          # they disagree (not a hard failure — the registries serve different
+          # scopes, but drift is worth surfacing in CI).
+          $nvreg = Get-Content 'Config\nvidia-software-registry.json' -Raw | ConvertFrom-Json
+          $drreg = Get-Content 'Config\driver-registry.json' -Raw | ConvertFrom-Json
+
+          $nvDriverComp = $nvreg.components | Where-Object { $_.id -eq 'gpu-driver' }
+          $drDriverEntry = if ($drreg.PSObject.Properties['devices']) {
+            $drreg.devices | Where-Object { $_.id -match 'nvidia' -or $_.category -match 'gpu' } |
+              Select-Object -First 1
+          }
+
+          if ($nvDriverComp -and $drDriverEntry -and
+              $nvDriverComp.latestVersion -ne $drDriverEntry.latestVersion) {
+            Write-Host "WARNING: Driver version mismatch between registries:" -ForegroundColor Yellow
+            Write-Host "  nvidia-software-registry.json gpu-driver.latestVersion = $($nvDriverComp.latestVersion)"
+            Write-Host "  driver-registry.json '$($drDriverEntry.id)' latestVersion = $($drDriverEntry.latestVersion)"
+            Write-Host "  Update both registries together with Tools\Sync-NvidiaDriverVersion.ps1" -ForegroundColor Yellow
+            # Advisory only — not an exit 1.
+          } else {
+            Write-Host "Driver version cross-validation: OK (or no overlapping entry to compare)" -ForegroundColor Green
+          }

@@ -214,6 +214,55 @@ impl PipelineConfig {
         // ensure_cuda_device_order) is covered by this single lock acquisition.
         let _guard = CUDA_ENV_MUTEX.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
 
+        // Fast path: when NVML is compiled in, ask it for the best GPU and try
+        // to open it immediately.  NVML avoids spawning a subprocess and gives
+        // us live free-memory information (rather than total-memory from
+        // nvidia-smi), so we prefer it.  If NVML fails for any reason — driver
+        // not installed, NVML not available in a container, device open error —
+        // we fall through to the full nvidia-smi candidate loop below.
+        #[cfg(any(feature = "cuda", feature = "nvml"))]
+        {
+            match Self::best_nvml_gpu() {
+                Ok(Some(best)) => {
+                    tracing::info!(
+                        gpu_index = best.index,
+                        gpu_name = %best.name,
+                        memory_total_mb = best.memory_total_mb,
+                        memory_used_mb = best.memory_used_mb,
+                        "NVML: selected best available GPU by free memory"
+                    );
+                    let candidate = Self::candidate_from_nvml_gpu(&best);
+                    match Self::resolve_cuda_candidate_locked(&candidate) {
+                        Ok(device) => {
+                            tracing::info!(
+                                gpu_index = best.index,
+                                gpu_name = %best.name,
+                                "NVML: successfully opened CUDA device"
+                            );
+                            return Ok(device);
+                        }
+                        Err(err) => {
+                            tracing::warn!(
+                                gpu_index = best.index,
+                                gpu_name = %best.name,
+                                error = %err,
+                                "NVML: CUDA device open failed; falling back to nvidia-smi inventory"
+                            );
+                        }
+                    }
+                }
+                Ok(None) => {
+                    tracing::debug!("NVML: no GPUs found; falling back to nvidia-smi inventory");
+                }
+                Err(err) => {
+                    tracing::warn!(
+                        error = %err,
+                        "NVML: GPU query failed; falling back to nvidia-smi inventory"
+                    );
+                }
+            }
+        }
+
         Self::ensure_cuda_device_order_locked();
         // If CUDA_VISIBLE_DEVICES is pre-set, honour it — but fall through to
         // the GPU inventory on failure instead of aborting immediately.
@@ -370,7 +419,7 @@ impl PipelineConfig {
         let mut seen = HashSet::new();
         let mut gpus = Vec::new();
 
-        #[cfg(feature = "cuda")]
+        #[cfg(any(feature = "cuda", feature = "nvml"))]
         {
             if let Ok(Some(best_gpu)) = Self::best_nvml_gpu() {
                 let candidate = Self::candidate_from_nvml_gpu(&best_gpu);
@@ -424,12 +473,12 @@ impl PipelineConfig {
         Ok(gpus)
     }
 
-    #[cfg(feature = "cuda")]
+    #[cfg(any(feature = "cuda", feature = "nvml"))]
     fn best_nvml_gpu() -> Result<Option<pcai_core_lib::gpu::GpuInfo>> {
         pcai_core_lib::gpu::best_available_gpu()
     }
 
-    #[cfg(feature = "cuda")]
+    #[cfg(any(feature = "cuda", feature = "nvml"))]
     fn candidate_from_nvml_gpu(gpu: &pcai_core_lib::gpu::GpuInfo) -> NvidiaSmiGpu {
         NvidiaSmiGpu {
             index: gpu.index as usize,

@@ -34,6 +34,10 @@ memmap2 = "0.9"
 default = ["ffi"]
 ffi = []
 server = ["dep:axum", "dep:tower-http"]
+# Enable NVML-based GPU selection without requiring full CUDA candle support.
+# This allows `cargo check -p pcai-media --features nvml` on machines that
+# have the NVIDIA driver but not the CUDA toolkit.
+nvml = ["dep:pcai_core_lib", "pcai_core_lib/nvml"]
 cuda = ["candle-core/cuda", "pcai-media-model/cuda", "dep:pcai_core_lib", "pcai_core_lib/nvml"]
 flash-attn = ["pcai-media-model/flash-attn"]
 upscale = ["dep:ort"]

@@ -1,213 +1,40 @@
-{
-	"$schema": "https://json-schema.org/draft/2020-12/schema",
-	"version": "2.1.0",
-	"providers": {
-		"pcai-inference": {
-			"enabled": false,
-			"baseUrl": "http://127.0.0.1:18080",
-			"defaultModel": "llama.cpp",
-			"timeout": 120000
-		},
-		"pcai-native": {
-			"enabled": true,
-			"type": "ffi",
-			"backend": "llamacpp",
-			"modelPath": "Models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
-			"gpuLayers": -1,
-			"defaultTemperature": 0.7,
-			"defaultMaxTokens": 2048
-		},
-		"functiongemma": {
-			"enabled": true,
-			"baseUrl": "http://127.0.0.1:8000",
-			"defaultModel": "functiongemma-270m-it",
-			"timeout": 120000
-		},
-		"ollama": {
-			"enabled": true,
-			"baseUrl": "http://127.0.0.1:11434",
-			"defaultModel": "qwen3:14b",
-			"timeout": 90000
-		},
-		"lmstudio": {
-			"enabled": true,
-			"baseUrl": "http://127.0.0.1:1234",
-			"defaultModel": "local-model",
-			"timeout": 120000
-		},
-		"vllm": {
-			"enabled": true,
-			"baseUrl": "http://127.0.0.1:8001",
-			"defaultModel": "vllm-model",
-			"timeout": 120000
-		}
-	},
-	"contextManagement": {
-		"maxContextTokens": 16384,
-		"reservedForResponse": 4096,
-		"systemPromptFile": "DIAGNOSE.md",
-		"localOptimizedPromptFile": "Config/diagnose-local-optimized.md",
-		"decisionTreeFile": "DIAGNOSE_LOGIC.md",
-		"chatPromptFile": "CHAT.md"
-	},
-	"ollama": {
-		"enabled": true,
-		"model": "qwen3:14b",
-		"tool_model": "qwen3:14b",
-		"diagnosticModel": "qwen3:14b",
-		"summary_model": "dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest",
-		"base_url": "http://127.0.0.1:11434",
-		"timeout_ms": 90000,
-		"temperature": 0.2,
-		"num_ctx": 131072,
-		"num_gpu": 40,
-		"num_thread": 8,
-		"num_predict": 2048,
-		"keep_alive_seconds": 900,
-		"adaptive_ctx_enabled": true,
-		"adaptive_ctx_min": 8192,
-		"adaptive_ctx_max": 131072,
-		"adaptive_ctx_chars_per_token": 4,
-		"adaptive_ctx_base_headroom": 1024,
-		"adaptive_ctx_step_tokens": 4096,
-		"top_p": 0.9,
-		"top_k": 40,
-		"repeat_last_n": 128,
-		"repeat_penalty": 1.1,
-		"tfs_z": 1.0,
-		"seed": 42,
-		"auto_detect_models": false,
-		"required_models": [
-			"qwen3:14b",
-			"dwb-qwen2-5-coder-3b-ctx4096-p1-ld0:latest"
-		],
-		"warm_models_on_start": false,
-		"auto_pull_missing_models": false,
-		"strict_model_selection": false,
-		"cliSearchPaths": [
-			"Native/pcai_core/bin/pcai-ollama-rs.exe",
-			"Native/pcai_core/target/release/pcai-ollama-rs.exe",
-			"Native/pcai_core/pcai_ollama_rs/target/release/pcai-ollama-rs.exe"
-		],
-		"toolInvokerPath": "Tools/Invoke-PcaiMappedTool.ps1"
-	},
-	"router": {
-		"enabled": true,
-		"provider": "functiongemma",
-		"baseUrl": "http://127.0.0.1:8000",
-		"model": "functiongemma-270m-it",
-		"toolsPath": "Config/pcai-tools.json",
-		"disable": false,
-		"force": false,
-		"strict": false,
-		"defaultTemperature": 0.2
-	},
-	"prompts": {
-		"diagnosticAnalysis": {
-			"temperature": 0.3,
-			"maxTokens": 4096,
-			"topP": 0.9
-		},
-		"optimization": {
-			"temperature": 0.5,
-			"maxTokens": 2048,
-			"topP": 0.95
-		}
-	},
-	"responseFormat": {
-		"includeReasoningSteps": true,
-		"structuredOutput": true,
-		"markdownFormatting": true
-	},
-	"fallbackOrder": ["ollama", "pcai-inference"],
-	"nativeInference": {
-		"preferNative": true,
-		"dllSearchPaths": [
-			"bin/pcai_inference.dll",
-			"Deploy/pcai-inference/target/release/pcai_inference.dll"
-		],
-		"runtimeBinarySelection": {
-			"enabled": true,
-			"autoDownload": false,
-			"variants": [
-				{
-					"name": "cuda-sm120",
-					"kind": "cuda",
-					"minCompute": 120,
-					"maxCompute": 129,
-					"dllPath": "bin/prebuilt/cuda-sm120/pcai_inference.dll",
-					"url": ""
-				},
-				{
-					"name": "cuda-sm89",
-					"kind": "cuda",
-					"minCompute": 89,
-					"maxCompute": 119,
-					"dllPath": "bin/prebuilt/cuda-sm89/pcai_inference.dll",
-					"url": ""
-				},
-				{
-					"name": "cuda-sm86",
-					"kind": "cuda",
-					"minCompute": 86,
-					"maxCompute": 88,
-					"dllPath": "bin/prebuilt/cuda-sm86/pcai_inference.dll",
-					"url": ""
-				},
-				{
-					"name": "cuda-sm80",
-					"kind": "cuda",
-					"minCompute": 80,
-					"maxCompute": 85,
-					"dllPath": "bin/prebuilt/cuda-sm80/pcai_inference.dll",
-					"url": ""
-				},
-				{
-					"name": "cuda-sm75",
-					"kind": "cuda",
-					"minCompute": 75,
-					"maxCompute": 79,
-					"dllPath": "bin/prebuilt/cuda-sm75/pcai_inference.dll",
-					"url": ""
-				},
-				{
-					"name": "cpu-generic",
-					"kind": "cpu",
-					"dllPath": "bin/pcai_inference.dll",
-					"url": ""
-				}
-			]
-		},
-		"backends": {
-			"mistralrs": {
-				"priority": 1,
-				"description": "Rust mistral.rs backend (optimized for Mistral models)"
-			},
-			"llamacpp": {
-				"priority": 2,
-				"description": "llama-rs compatibility backend (GGML models, optional cuBLAS)",
-				"settings": {
-					"architecture": "llama",
-					"n_ctx": 4096,
-					"n_batch": 512,
-					"n_gpu_layers": -1,
-					"samplers": [
-						"repetition:penalty=1.15:last_n=64",
-						"topk:k=40",
-						"topp:p=0.95",
-						"temperature:0.7"
-					],
-					"seed": 42
-				}
-			}
-		}
-	},
-	"evaluation": {
-		"binSearchPaths": [
-			"bin",
-			".local/bin",
-			"Native/pcai_core/pcai_inference/target/release",
-			"Deploy/pcai-inference/target/release"
-		]
-	}
+﻿{
+  "providers": {
+    "pcai-inference": {
+      "baseUrl": "http://127.0.0.1:18080",
+      "defaultModel": "qwen2.5-coder:3b",
+      "timeout": 180000
+    },
+    "functiongemma": {
+      "baseUrl": "http://127.0.0.1:8000",
+      "defaultModel": "functiongemma-270m-it"
+    },
+    "ollama": {
+      "baseUrl": "http://127.0.0.1:11434",
+      "defaultModel": "qwen2.5-coder:3b",
+      "timeout": 180000
+    },
+    "lmstudio": {
+      "baseUrl": "http://127.0.0.1:1234"
+    },
+    "vllm": {
+      "baseUrl": "http://127.0.0.1:8000",
+      "defaultModel": "functiongemma-270m-it"
+    }
+  },
+  "router": {
+    "baseUrl": "http://127.0.0.1:8000",
+    "model": "functiongemma-270m-it",
+    "toolsPath": "Config/pcai-tools.json"
+  },
+  "ollama": {
+    "base_url": "http://127.0.0.1:11434",
+    "model": "qwen2.5-coder:3b",
+    "timeout_ms": 180000,
+    "toolInvokerPath": "Tools/Invoke-PcaiMappedTool.ps1"
+  },
+  "fallbackOrder": [
+    "ollama",
+    "pcai-inference"
+  ]
 }

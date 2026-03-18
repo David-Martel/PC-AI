@@ -1,145 +1,196 @@
 # API_SIGNATURE_REPORT
 
-Generated: 2026-02-22 13:43:04
+Generated: 2026-03-18 17:23:57
 
-PowerShell functions: 171
-Missing help blocks: 113
-C# DllImports: 46
+PowerShell functions: 230
+Missing help blocks: 167
+C# DllImports: 57
 Missing Rust exports: 0
 
 ## Missing help parameters
-- Compare-ToolPerformance: missing Detailed
+- Compare-ToolPerformance: missing Test, Path, Iterations, Detailed
 - Compare-FileSearchPerformance: missing Path, Iterations
 - Compare-ContentSearchPerformance: missing Path, Iterations
 - Compare-ProcessListPerformance: missing Iterations
 - Compare-HashPerformance: missing Path, Iterations
-- Find-DuplicatesFast: missing MaximumSize, ShowProgress
-- Find-WithFdForDuplicates: missing Path, Include, Exclude, FdPath
-- Find-FilesFast: missing FullPath, NoIgnore, PreferNative
+- Find-DuplicatesFast: missing Path, Recurse, MinimumSize, MaximumSize, Include, Exclude, Algorithm, ThrottleLimit, ShowProgress, DisableNative
+- Invoke-PowerShellDuplicateScan: missing Path, Recurse, MinimumSize, MaximumSize, Include, Exclude, Algorithm, ThrottleLimit, ShowProgress, DisableNative
+- ConvertFrom-PcaiDuplicateResult: missing NativeResult, Algorithm, MaximumSize
+- Find-WithFdForDuplicates: missing Path, Recurse, Include, Exclude, FdPath
+- Find-FilesFast: missing Path, Pattern, Extension, Type, MaxDepth, Hidden, Exclude, FullPath, NoIgnore, PreferNative
 - Find-WithFd: missing Path, Pattern, Extension, Type, MaxDepth, Hidden, Exclude, FullPath, NoIgnore, FdPath
 - Find-WithPcaiNative: missing Path, Pattern, Extension, Type, MaxDepth, Hidden, Exclude, FullPath, NoIgnore, PreferNative
+- Find-WithPcaiNativeManifest: missing Path, Pattern, Extension, Type, MaxDepth, Hidden, Exclude, FullPath, NoIgnore, PreferNative
 - Find-WithGetChildItem: missing Path, Pattern, Extension, Type, MaxDepth, Hidden, Exclude, FullPath, NoIgnore
-- Get-DiskUsageFast: missing ThrottleLimit
+- Get-DiskUsageFast: missing Path, Depth, Top, MinSize, SortBy, ThrottleLimit
+- Get-DiskUsageWithPcaiPerf: missing Path, Top, ToolPath
+- Convert-PcaiNativeDiskRows: missing Rows, Mapper
 - Convert-SizeToBytes: missing Size
 - Get-DiskUsageWithDust: missing Path, Depth, DustPath
 - Get-DiskUsageParallel: missing Path, Depth, ThrottleLimit
 - Format-ByteSize: missing Bytes
 - Sort-DiskUsageResults: missing InputObject, SortBy
 - Select-TopResults: missing InputObject, Top
-- Get-FileHashParallel: missing MinimumSize, MaximumSize
-- Get-ProcessesFast: missing RawOutput
+- Get-FileHashParallel: missing Path, Algorithm, Recurse, Include, ThrottleLimit, MinimumSize, MaximumSize
+- Get-FileHashWithPcaiPerf: missing ToolPath, FilePaths, Algorithm
+- Get-PcaiCapabilities: missing IncludeGpu, IncludeServices
+- Get-ProcessesFast: missing Name, SortBy, Top, Tree, Watch, RawOutput
+- Get-ProcessesWithPcaiPerf: missing Top, SortBy, ToolPath
+- Convert-PcaiNativeProcessRows: missing Rows, Mapper
 - Get-ProcessesWithProcs: missing Name, SortBy, Top, Tree, Watch, RawOutput, ProcsPath
 - Get-ProcessesParallel: missing Name, SortBy, Top, Tree, Watch, RawOutput
+- Get-RustToolStatus: missing Tool
 - Get-AcceleratedFunction: missing Tool
-- Test-RustToolAvailable: missing Tool
 - Get-UnifiedHardwareReportJson: missing Verbosity
+- Measure-CommandPerformance: missing Command, Iterations, Warmup, Name, Shell
 - Measure-WithHyperfine: missing Command, Iterations, Warmup, Name, Shell, HyperfinePath
 - Measure-WithNative: missing Command, Iterations, Warmup, Name
-- Search-ContentFast: missing CaseSensitive, MaxResults, FilesOnly, ThrottleLimit, NoIgnore
+- Search-ContentFast: missing Path, Pattern, LiteralPattern, FilePattern, Context, CaseSensitive, WholeWord, Invert, MaxResults, FilesOnly, ThrottleLimit, NoIgnore
 - Search-WithRipgrepAdvanced: missing Path, Pattern, LiteralPattern, FilePattern, Context, CaseSensitive, WholeWord, Invert, MaxResults, FilesOnly, ThrottleLimit, SearchPattern, RgPath, NoIgnore
 - Search-WithParallelSelectString: missing Path, Pattern, LiteralPattern, FilePattern, Context, CaseSensitive, WholeWord, Invert, MaxResults, FilesOnly, ThrottleLimit, SearchPattern
-- Search-LogsFast: missing CountOnly
+- Search-LogsFast: missing Path, Pattern, Include, Context, CaseSensitive, MaxCount, CountOnly
 - Search-WithRipgrep: missing Path, Pattern, Include, Context, CaseSensitive, MaxCount, CountOnly, RgPath
 - Search-WithSelectString: missing Path, Pattern, Include, Context, CaseSensitive, MaxCount, CountOnly
-- Clear-TempFiles: missing Target, OlderThanDays, IncludePrefetch, IncludeWindowsUpdate, Force
-- Find-DuplicateFiles: missing Path, Recurse, MinimumSize, MaximumSize, Algorithm, Include, Exclude, ShowProgress
-- Get-PathDuplicates: missing Target, IncludeProcess
-- Invoke-NukeNulCleanup: missing Path, ExePath, Force
-- Repair-MachinePath: missing Target, RemoveNonExistent, NormalizeSlashes, Force, BackupPath
+- Format-DuplicateReport: missing Result
+- Get-DuplicateGroup: missing HashTable
+- Get-FileHashGroup: missing FilesToHash, Algorithm, ShowProgress
+- Get-FileCandidateGroup: missing Path, Recurse, MinimumSize, MaximumSize, Include, Exclude
 - Get-PCCommandList: missing ProjectRoot
 - Get-PCCommandMap: missing ProjectRoot
 - Get-PCCommandModules: missing CommandName, ProjectRoot
 - Get-PCCommandSummary: missing ProjectRoot
 - Get-PCModuleHelpEntry: missing Name, Modules, ProjectRoot
 - Get-PCModuleHelpIndex: missing Modules, ProjectRoot
-- Parse-PCArguments: missing InputArgs, Defaults
+- ConvertTo-PCArgumentMap: missing InputArgs, Defaults
 - Resolve-PCArguments: missing InputArgs, Defaults
-- Add-ABTestResult: missing TestName, Variant, Score
+- Resolve-PcaiRepoRoot: missing StartPath
+- Get-PcaiRuntimeConfig: missing ProjectRoot, ConfigPath, ToolsPath
+- Copy-PcaiCacheValue: missing Value
+- Set-PcaiLocalSharedCacheEntry: missing FullKey, Value, DependencyStamp, CreatedUtc, LastAccessedUtc
+- Get-PcaiDependencyStamp: missing InputObject
+- Get-PcaiExternalCacheSignature: missing Config
+- Invoke-PcaiProcessCapture: missing FilePath, Arguments, TimeoutMs
+- Invoke-PcaiRedisCli: missing Config, Arguments, TimeoutMs
+- Get-PcaiExternalCacheKey: missing Config, Namespace, Key
+- ConvertTo-PcaiExternalCachePayload: missing Value, DependencyStamp, CreatedUtc, LastAccessedUtc
+- ConvertFrom-PcaiExternalCachePayload: missing PayloadJson
+- Remove-PcaiExternalCacheEntry: missing Config, Namespace, Key
+- Get-PcaiExternalCacheStatus: missing Refresh
+- Get-PcaiExternalCacheEntryRecord: missing Namespace, Key, TtlSeconds, DependencyStamp
+- Set-PcaiExternalCacheEntry: missing Namespace, Key, Value, DependencyStamp, TtlSeconds
+- Clear-PcaiExternalCache: missing Namespace
+- Get-PcaiSharedCacheEntry: missing Namespace, Key, TtlSeconds, DependencyStamp
+- Set-PcaiSharedCacheEntry: missing Namespace, Key, Value, DependencyStamp, TtlSeconds
+- Clear-PcaiSharedCache: missing Namespace
+- Get-ScriptMetadata: missing Path
+- Import-PcaiAccelerationStack: missing Modules, RepoRoot, Force, RequireAll
+- Compare-DriverVersion: missing Inventory, Registry, IncludeUpToDate, IncludeUnknown
+- Connect-ThunderboltPeer: missing ComputerName, Address, InterfaceAlias, Credential, Password, MicrosoftAccountEmail, ScriptBlock, ReturnSession
+- Find-ThunderboltPeer: missing ComputerNameCandidates, WinRmPort, TcpTimeoutMs, IncludeRaw
+- Get-DriverRegistry: missing RegistryPath, DeviceId, Category
+- Get-DriverReport: missing RegistryPath, Category, OnlyActionable, IncludeUnknown
+- Get-NetworkDiscoverySnapshot: missing ComputerName, Credential, IncludeRawCommands
+- Get-PnpDeviceInventory: missing Class, VidPid, ActiveOnly
+- Get-ThunderboltNetworkStatus: missing InterfaceAlias, ProbeWinRM
+- Install-DriverUpdate: missing DeviceId, RegistryPath, DownloadDir, Force, DownloadOnly
+- Set-ThunderboltNetworkOptimization: missing InterfaceAlias, InterfaceMetric, MtuBytes, IPv4Address, PrefixLength, Apply
+- Update-DriverRegistry: missing DeviceId, Name, Category, Vid, Pid, LatestVersion, DownloadUrl, ReleaseDate, RegistryPath
 - Compare-ResponsePair: missing Question, ResponseA, ResponseB, Context
 - Compare-ResponseSimilarity: missing Response, Expected
-- Evaluate-DiagnosticQuality: missing DiagnosticOutput, DiagnosticInput, Strict
+- Measure-DiagnosticQuality: missing DiagnosticOutput, DiagnosticInput, Strict
 - Export-EvaluationDataset: missing TestCases, Path
-- Get-ABTestAnalysis: missing TestName, Alpha
-- Get-EvaluationDataset: missing Name
 - Get-EvaluationResults: missing Suite, Format
 - Get-PcaiCompiledBinaryPath: missing Backend
 - Get-RegressionReport: missing Suite, BaselineNames
 - Import-EvaluationDataset: missing Path
-- Invoke-EvaluationSuite: missing Suite, Backend, ModelPath, BaseUrl, GpuLayers, Parallel, MaxTokens, Temperature, RunLabel, OutputRoot, ProgressMode, EmitStructuredMessages, HeartbeatSeconds, RequestTimeoutSec, StopSignalPath, RunContext
-- Invoke-LLMJudge: missing Response, Question, Context, ReferenceAnswer, Criteria
+- Invoke-EvaluationSuite: missing GpuLayers, Model, NumCtx, NumThread, TopP, TopK, RepeatLastN, RepeatPenalty, TfsZ, Seed, MaxTokens, Temperature
 - Measure-Coherence: missing Response
 - Measure-Groundedness: missing Response, Context
-- Measure-InferenceLatency: missing Prompt, Iterations, WarmupRuns, MaxTokens
+- Measure-InferenceLatency: missing MaxTokens
 - Measure-MemoryUsage: missing Prompt, MaxTokens
-- Measure-TokenThroughput: missing Prompt, TargetTokens, Iterations
 - Measure-Toxicity: missing Response
-- New-ABTest: missing Name, VariantAName, VariantBName
-- New-BaselineSnapshot: missing Name, Suite, Backend, ModelPath
-- New-EvaluationSuite: missing Name, Description, Metrics, IncludeDefaultMetrics
 - New-EvaluationTestCase: missing Id, Prompt, Category, ExpectedOutput, Context, Tags
 - New-PcaiEvaluationRunContext: missing RunLabel, OutputRoot, SuiteName, Backend
 - New-PcaiServerConfigFile: missing Backend, ModelPath, BaseUrl, GpuLayers, Device
 - Start-PcaiCompiledServer: missing Backend, ModelPath, BaseUrl, GpuLayers, Device, TimeoutSeconds
 - Stop-EvaluationRun: missing StopSignalPath
-- Test-ForRegression: missing BaselineName, Suite, Threshold
+- Get-NvidiaCompatibilityMatrix: missing RegistryPath
+- Initialize-NvmlInteropType: missing DllPath
+- Get-NvidiaGpuInventory: missing Index
+- Get-NvidiaGpuUtilization: missing Index, Continuous, IntervalSeconds
+- Get-NvidiaSoftwareRegistry: missing RegistryPath, ComponentId, Category
+- Get-NvidiaSoftwareStatus: missing RegistryPath, ComponentId
+- Initialize-NvidiaEnvironment: missing Scope, PreferredCudaVersion, SkipBackup, Quiet
+- Install-NvidiaSoftware: missing ComponentId, InstallerPath, DownloadOnly, Force, RegistryPath, TimeoutSeconds
+- Update-NvidiaSoftwareRegistry: missing ComponentId, LatestVersion, DownloadUrl, Sha256, RefreshFromSystem, RegistryPath
+- Get-DeviceErrors: missing IncludeOK, Class
 - Get-HardwarePnpDevicesNative: missing Class
+- Get-DiskHealth: missing IncludePartitions
+- Get-NetworkAdapters: missing IncludeVirtual, OnlyEnabled
+- Get-SystemEvents: missing Days, MaxEvents, IncludeInfo
 - Get-HardwareSystemEventsNative: missing Days, MaxEvents
-- Get-LLMStatus: missing IncludeLMStudio, IncludeVLLM, TestConnection
-- Get-SystemInfoTool: missing Category, Detail
-- Invoke-DocSearch: missing Query, Source
+- Get-UsbStatus: missing OnlyErrors, Filter
+- New-DiagnosticReport: missing OutputPath, Format, IncludeRecommendations
 - Invoke-FunctionGemmaDataset: missing ToolsPath, DiagnosePrompt, ChatPrompt, ScenariosPath, Output, TestVectors, MaxCases, NoToolCoverage, Stream, UseLld, LlmDebug, UseNative, NativeOnly
 - Invoke-FunctionGemmaEval: missing ModelPath, TestData, Adapters, Output, ConfigPath, MaxNewTokens, LoraR, MaxSamples, Quiet, VerboseOutput, FastEval, NoSchemaValidate, UseLld, LlmDebug
 - Invoke-FunctionGemmaChat: missing Messages, Tools, BaseUrl, Model, TimeoutSeconds
-- Invoke-FunctionGemmaReAct: missing Prompt, BaseUrl, Model, ToolsPath, ExecuteTools, ReturnFinal, MaxToolCalls, ResultLimit, TimeoutSeconds, ShowProgress, ShowMetrics, ProgressIntervalSeconds, SkipHealthCheck
 - Invoke-FunctionGemmaTests: missing UseLld, LlmDebug
 - Invoke-FunctionGemmaTokenCache: missing Input, TokenizerPath, OutputDir, UseLld, LlmDebug
 - Invoke-FunctionGemmaTrain: missing ModelPath, TrainData, EvalData, EvalSplit, TokenCache, Output, Epochs, Lr, LoraR, LoraAlpha, LoraDropout, BatchSize, GradAccum, PackSequences, MaxSeqLen, EosTokenId, DisableLora, WarmupSteps, SchedulerType, EarlyStoppingPatience, EarlyStoppingMinDelta, Use4Bit, EvalMaxBatches, MaxGradNorm, Seed, NoShuffle, ProgressInterval, ProgressJson, ConfigPath, TargetDir, UseLld, LlmDebug
-- Invoke-LLMChat: missing Message, Model, System, Temperature, MaxTokens, TimeoutSeconds, Interactive, ToJson, History, Provider, UseRouter, RouterMode, Stream, ShowProgress, ShowMetrics, ProgressIntervalSeconds, ResultLimit
-- Invoke-LLMChatRouted: missing EnforceJson
+- Invoke-LLMChatRouted: missing Message, Mode, Model, Provider, RouterBaseUrl, RouterModel, ToolsPath, ExecuteTools, MaxToolCalls, TimeoutSeconds, Temperature, EnforceJson, BypassRouter
 - Invoke-LLMChatTui: missing Arguments, BuildIfMissing, ProjectRoot
-- Invoke-LogSearch: missing Pattern, RootPath, FilePattern, CaseSensitive, ContextLines, MaxMatches
-- Invoke-NativeSearch: missing FilePattern
+- Invoke-NativeSearch: missing Operation, Path, Pattern, FilePattern, MinimumSize, MaxResults, ContextLines, AsJson
 - Format-DuplicateResultForLLM: missing NativeResult
 - Format-FileSearchResultForLLM: missing NativeResult
 - Format-ContentSearchResultForLLM: missing NativeResult
 - Invoke-PowerShellDuplicates: missing Path, MinimumSize, MaxResults
 - Invoke-PowerShellFileSearch: missing Path, Pattern, MaxResults
 - Invoke-PowerShellContentSearch: missing Path, Pattern, FilePattern, MaxResults, ContextLines
-- Invoke-PCDiagnosis: missing DiagnosticReportPath, ReportText, Model, Temperature, IncludeRawResponse, SaveReport, OutputPath, TimeoutSeconds, UseRouter, RouterBaseUrl, RouterModel, RouterToolsPath, RouterMaxCalls, RouterExecuteTools, EnforceJson
 - Invoke-SmartDiagnosis: missing Path, AnalysisType, Model, SaveReport, OutputPath, SkipLLMAnalysis, OllamaBaseUrl, TimeoutSeconds
 - Build-DiagnosticSummary: missing DiagnosticData
-- Send-OllamaRequest: missing Prompt, Model, System, Temperature, MaxTokens, Stream, TimeoutSeconds, MaxRetries, RetryDelaySeconds
-- Set-LLMConfig: missing DefaultModel, PcaiInferenceApiUrl, OllamaApiUrl, LMStudioApiUrl, OllamaPath, DefaultTimeout, ShowConfig, Reset
+- Send-OllamaRequest: missing NumCtx, NumThread, TopP, TopK, RepeatLastN, RepeatPenalty, TfsZ, Seed, EnableTools
 - Set-LLMProviderOrder: missing Order
-- Get-DiskSpace: missing DriveLetter, ThresholdPercent, IncludeRemovable, IncludeNetwork
-- Get-PcaiDiskUsage: missing Path, Top
+- Get-NetworkDiagnostics: missing IncludeVirtual, TestConnectivity, TestDNS, Detailed
+- Optimize-VSock: missing Profile, BackupPath, RestoreBackup, SkipWSLRestart
+- Test-WSLConnectivity: missing Distribution, TestPorts, DNSTargets, SkipInternetTest, Detailed
+- Watch-VSockPerformance: missing RefreshInterval, Duration, InterfaceFilter, IncludeVirtual, OutputFile, Quiet
+- Get-PcaiMemoryPressure: missing Detailed, AsJson
+- Get-PcaiOptimizationPlan: missing AsJson
+- Get-PcaiProcessCategories: missing AsJson
 - Get-PcaiTopProcess: missing SortBy, Top
-- Get-ProcessPerformance: missing Top, SortBy, IncludeSystemProcesses, ExcludeIdle, MinimumCpuPercent, MinimumMemoryMB
-- Optimize-Disks: missing DriveLetter, Force, Priority, AnalyzeOnly
-- Watch-SystemResources: missing RefreshInterval, Duration, IncludeTopProcesses, TopProcessCount, OutputMode, WarningThreshold, CriticalThreshold
+- Dismount-UsbFromWSL: missing BusId, Unbind
 - Get-UsbDeviceList: missing Filter
+- Invoke-UsbBind: missing BusId, Force
+- Mount-UsbToWSL: missing BusId, Distribution, AutoAttach
+- Backup-WSLConfig: missing Path
+- Enable-WSLSystemd: missing Distribution, RestartWSL
+- Get-DockerStatus: missing IncludeContainers
 - Get-HVSockProxyStatus: missing StatePath
-- Get-PcaiServiceHealth: missing OllamaBaseUrl, vLLMBaseUrl
+- Get-HyperVStatus: missing IncludeVMs
+- Get-PcaiServiceHealth: missing ConfigPath, OllamaBaseUrl, vLLMBaseUrl
+- Get-WSLEnvironmentHealth: missing AutoRecover, Quick, Distribution
 - Test-WSLHealth: missing Distribution, AutoRecover
 - Test-DockerHealth: missing Distribution, AutoRecover
 - Test-VSockBridgeHealth: missing Distribution, AutoRecover
 - Test-RAGRedisHealth: missing AutoRecover, ComposePath
 - Test-WSLNetworkHealth: missing Distribution
 - Get-StatusColor: missing Status
+- Get-WSLStatus: missing Detailed
 - Get-WSLVsockBridgeStatus: missing Distribution
 - Install-HVSockProxy: missing Installer, Force
 - Install-WSLVsockBridge: missing Distribution, BridgeScriptPath, ServiceFilePath, ConfigPath, EnableService, StartService
+- Invoke-PcaiDoctor: missing ConfigPath
 - Invoke-PcaiServiceHost: missing HostPath
 - Start-RustInferenceServer: missing Port, ModelPath, GpuLayers, NativeBackend, ServerArgs, NoWait
 - Start-CSharpServiceHost: missing HostPath, ServerArgs, NoWait
 - Invoke-WSLDockerHealthCheck: missing ScriptPath, AutoRecover, Quick
-- Invoke-WSLNetworkToolkit: missing Mode, Optimize, ApplyConfig, TestNetworkingMode, NetworkingMode, FixDns, RestartWsl, ResetAdapters, ResetWinsock, RestartHns, RestartWslService, DisableVmqOnWsl, Force
+- Invoke-WSLNetworkToolkit: missing ScriptPath, Mode, Distribution, Check, Diagnose, Repair, Full, Optimize, ApplyConfig, TestNetworkingMode, NetworkingMode, FixDns, RestartWsl, ResetAdapters, ResetWinsock, RestartHns, RestartWslService, DisableVmqOnWsl, Force
+- Optimize-ModelHost: missing GpuLimit, Distribution
+- Optimize-WSLConfig: missing Memory, Processors, SwapPath, DryRun, Force
 - Register-HVSockServices: missing ConfigPath, Force
+- Repair-WSLNetworking: missing RestartWSL, Force
 - Set-PCaiServiceState: missing Name, Action
 - Start-HVSockProxy: missing ConfigPath, StatePath, Force, RegisterServices
 - Stop-HVSockProxy: missing StatePath
-
-## Extra help parameters
-- Search-ContentFast: extra IgnoreCase
 
 

@@ -701,14 +701,9 @@ mod tests {
         // Create a 3x2x2 [C, H, W] tensor with known values.
         let data = vec![
             // Channel 0 (R):
-            10u8, 20,
-            30, 40,
-            // Channel 1 (G):
-            50u8, 60,
-            70, 80,
-            // Channel 2 (B):
-            90u8, 100,
-            110, 120,
+            10u8, 20, 30, 40, // Channel 1 (G):
+            50u8, 60, 70, 80, // Channel 2 (B):
+            90u8, 100, 110, 120,
         ];
 
         let tensor = Tensor::from_vec(data, (3_usize, 2_usize, 2_usize), &Device::Cpu).unwrap();

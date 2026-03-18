@@ -37,10 +37,12 @@ dunce.workspace = true
 winreg.workspace = true
 libc.workspace = true
 rust-functiongemma-train = { path = "../../../Deploy/rust-functiongemma-train", optional = true }
+nvml-wrapper = { version = "0.12", optional = true }
 
 [features]
 default = []
 functiongemma = ["dep:rust-functiongemma-train"]
+nvml = ["dep:nvml-wrapper"]
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [

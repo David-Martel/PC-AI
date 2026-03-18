@@ -14,6 +14,8 @@ pub mod error;
 pub mod fs;
 #[cfg(feature = "functiongemma")]
 pub mod functiongemma;
+#[cfg(feature = "nvml")]
+pub mod gpu;
 pub mod hash;
 pub mod json;
 pub mod path;
@@ -231,5 +233,64 @@ pub extern "C" fn pcai_get_pnp_problem_info(code: u32) -> *mut c_char {
             }
         }
         None => std::ptr::null_mut(),
+    }
+}
+
+// ── GPU FFI exports (feature = "nvml") ───────────────────────────────────────
+
+/// Return the number of NVIDIA GPUs detected by NVML.
+///
+/// Returns `0` when NVML is unavailable (no driver installed).
+/// Returns `-1` on an unexpected NVML error after successful initialisation.
+///
+/// # Safety
+///
+/// This function is safe to call from any thread; it does not access
+/// raw pointer arguments.
+#[cfg(feature = "nvml")]
+#[no_mangle]
+pub extern "C" fn pcai_gpu_count() -> i32 {
+    match gpu::gpu_count() {
+        Ok(n) => n as i32,
+        Err(_) => -1,
+    }
+}
+
+/// Return a JSON array describing every NVIDIA GPU in the system.
+///
+/// Each element is a serialised [`gpu::GpuInfo`] object.  Returns an empty
+/// JSON array (`"[]"`) when NVML is unavailable.  Returns a null pointer
+/// when JSON serialisation fails (should never happen in practice).
+///
+/// The caller must free the returned string with [`pcai_free_string`].
+///
+/// # Safety
+///
+/// This function is safe to call from any thread.
+#[cfg(feature = "nvml")]
+#[no_mangle]
+pub extern "C" fn pcai_gpu_info_json() -> *mut c_char {
+    let gpus = gpu::gpu_inventory().unwrap_or_default();
+    match serde_json::to_string(&gpus) {
+        Ok(json) => rust_str_to_c(&json),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Return the installed NVIDIA display driver version as a null-terminated
+/// C string (e.g. `"561.09"`).
+///
+/// Returns a null pointer when NVML is unavailable or the query fails.
+/// The caller must free the returned string with [`pcai_free_string`].
+///
+/// # Safety
+///
+/// This function is safe to call from any thread.
+#[cfg(feature = "nvml")]
+#[no_mangle]
+pub extern "C" fn pcai_driver_version() -> *mut c_char {
+    match gpu::driver_version() {
+        Ok(ver) => rust_str_to_c(&ver),
+        Err(_) => std::ptr::null_mut(),
     }
 }

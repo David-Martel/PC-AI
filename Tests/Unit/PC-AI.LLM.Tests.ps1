@@ -422,11 +422,15 @@ Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast' {
         It 'Should reset config to defaults' {
             $result = Set-LLMConfig -Reset
 
-            # Verify the configuration was reset to defaults
+            # Verify the configuration was reset to production defaults.
+            # Values come from Config/llm-config.json captured in $script:ModuleDefaults at module load:
+            #   DefaultModel   = 'qwen2.5-coder:3b'  (replaces legacy 'pcai-inference' placeholder)
+            #   OllamaApiUrl   = 'http://127.0.0.1:11434'  (standard Ollama port)
+            #   DefaultTimeout = 180 s  (llm-config.json timeout_ms: 180000)
             $result | Should -Not -BeNullOrEmpty
-            $result.DefaultModel | Should -Be 'pcai-inference'
-            $result.OllamaApiUrl | Should -Be 'http://127.0.0.1:8080'
-            $result.DefaultTimeout | Should -Be 120
+            $result.DefaultModel | Should -Be 'qwen2.5-coder:3b'
+            $result.OllamaApiUrl | Should -Be 'http://127.0.0.1:11434'
+            $result.DefaultTimeout | Should -Be 180
         }
     }
 }

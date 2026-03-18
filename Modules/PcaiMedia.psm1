@@ -263,6 +263,20 @@ function Import-PcaiMediaModel {
         throw 'Media pipeline not initialized. Call Initialize-PcaiMedia first.'
     }
 
+    # Validate ModelPath before passing to the native DLL.
+    # The Rust DLL treats any value without a '/' separator as a HuggingFace repo ID and
+    # prepends 'https://huggingface.co/', which breaks absolute local paths.
+    if ([System.IO.Path]::IsPathRooted($ModelPath)) {
+        # Caller supplied an absolute path — confirm it exists locally.
+        if (-not (Test-Path -LiteralPath $ModelPath -PathType Container)) {
+            throw "Model path '$ModelPath' is an absolute path but the directory does not exist on disk."
+        }
+        Write-Verbose "ModelPath is a local directory: $ModelPath"
+    } elseif ($ModelPath -notmatch '/') {
+        # Looks like neither a HuggingFace repo ID (requires 'owner/repo' format) nor a local path.
+        throw "ModelPath '$ModelPath' is not a valid HuggingFace repo ID (expected 'owner/repo' format) and is not a rooted local path."
+    }
+
     Write-Verbose "Loading media model: $ModelPath (GpuLayers=$GpuLayers)"
 
     try {

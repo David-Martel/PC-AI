@@ -31,7 +31,11 @@ function Find-RustTool {
         'C:\codedev\PC_AI\bin'
     ) | Where-Object { $_ }
 
-    $searchPaths = @($dynamicSearchPaths + $script:SearchPaths + 'C:\Program Files\fd') | Select-Object -Unique
+    # Split $env:PATH by ';' to get individual directory candidates.
+    # Never join 'bin\' with the raw PATH string — that produces invalid compound paths.
+    $pathDirs = ($env:PATH -split ';') | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) }
+
+    $searchPaths = @($dynamicSearchPaths + $script:SearchPaths + $pathDirs + 'C:\Program Files\fd') | Select-Object -Unique
 
     foreach ($searchPath in $searchPaths) {
         $exePath = Join-Path $searchPath "$ToolName.exe"

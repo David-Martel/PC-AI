@@ -10,15 +10,32 @@ use windows_sys::Win32::Networking::WinSock::{socket, AF_HYPERV, INVALID_SOCKET,
 
 #[cfg(not(windows))]
 #[derive(Clone, Copy)]
-#[allow(clippy::upper_case_acronyms)]
+#[expect(
+    clippy::upper_case_acronyms,
+    reason = "GUID matches the Windows SDK naming convention used by windows-sys \
+              on the real target; the non-Windows stub must share the same name \
+              so that code that references the type compiles on both platforms"
+)]
 struct GUID {
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "stub field present solely to mirror the Windows SDK GUID layout for cross-platform compilation"
+    )]
     pub data1: u32,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "stub field present solely to mirror the Windows SDK GUID layout for cross-platform compilation"
+    )]
     pub data2: u16,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "stub field present solely to mirror the Windows SDK GUID layout for cross-platform compilation"
+    )]
     pub data3: u16,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "stub field present solely to mirror the Windows SDK GUID layout for cross-platform compilation"
+    )]
     pub data4: [u8; 8],
 }
 

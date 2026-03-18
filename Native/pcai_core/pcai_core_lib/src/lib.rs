@@ -3,9 +3,13 @@
 //! This crate provides FFI entry points for C# P/Invoke interop.
 //! Raw pointer arguments are validated with null checks before dereference.
 
-// Allow raw pointer dereference in non-unsafe FFI functions - this is intentional
-// as all FFI entry points perform null checks before dereferencing.
-#![allow(clippy::not_unsafe_ptr_arg_deref)]
+#![expect(
+    clippy::not_unsafe_ptr_arg_deref,
+    reason = "FFI entry points receive raw pointers from C# P/Invoke; each \
+              function performs an explicit null check before any dereference, \
+              making the dereference safe even though the function is not marked \
+              `unsafe` (matching the `extern \"C\"` calling convention requirement)"
+)]
 
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;

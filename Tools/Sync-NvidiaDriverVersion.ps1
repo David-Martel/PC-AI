@@ -133,13 +133,8 @@ function Write-StatusTable {
         Status          = [Math]::Max(6, ($Rows | ForEach-Object { $_.Status.Length } | Measure-Object -Maximum).Maximum)
     }
 
-    $header = '{0,-{1}} {2,-{3}} {4,-{5}} {6,-{7}} {8,-{9}} {10}' -f `
-        'Index',  $colWidths.GpuIndex, `
-        'GPU Name', $colWidths.GpuName, `
-        'Installed', $colWidths.InstalledDriver, `
-        'Latest', $colWidths.RegistryLatest, `
-        'Status', $colWidths.Status, `
-        'Download URL'
+    $fmt    = "{{0,-$($colWidths.GpuIndex)}} {{1,-$($colWidths.GpuName)}} {{2,-$($colWidths.InstalledDriver)}} {{3,-$($colWidths.RegistryLatest)}} {{4,-$($colWidths.Status)}} {{5}}"
+    $header = $fmt -f 'Index', 'GPU Name', 'Installed', 'Latest', 'Status', 'Download URL'
 
     $separator = '-' * $header.Length
 
@@ -157,12 +152,12 @@ function Write-StatusTable {
             default            { 'White'   }
         }
 
-        $line = '{0,-{1}} {2,-{3}} {4,-{5}} {6,-{7}} {8,-{9}} {10}' -f `
-            $row.GpuIndex,        $colWidths.GpuIndex, `
-            $row.GpuName,         $colWidths.GpuName, `
-            $row.InstalledDriver, $colWidths.InstalledDriver, `
-            $row.RegistryLatest,  $colWidths.RegistryLatest, `
-            $row.Status,          $colWidths.Status, `
+        $line = $fmt -f `
+            $row.GpuIndex, `
+            $row.GpuName, `
+            $row.InstalledDriver, `
+            $row.RegistryLatest, `
+            $row.Status, `
             $row.DownloadUrl
 
         Write-Host $line -ForegroundColor $color

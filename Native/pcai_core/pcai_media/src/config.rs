@@ -11,19 +11,28 @@
 //! ```rust
 //! use pcai_media::config::PipelineConfig;
 //!
-//! // Default configuration — CPU, F32, 7B model.
+//! // Default configuration — CPU, BF16, 1B model.
 //! let cfg = PipelineConfig::default();
-//! assert_eq!(cfg.model, "deepseek-ai/Janus-Pro-7B");
+//! assert_eq!(cfg.model, "deepseek-ai/Janus-Pro-1B");
 //!
 //! let dev = cfg.resolve_device().unwrap();
 //! let dtype = cfg.resolve_dtype();
 //! ```
 
-use std::path::Path;
+use std::{collections::HashSet, path::Path, process::Command, sync::Mutex};
 
 use anyhow::{Context, Result};
 use candle_core::{DType, Device};
 use serde::{Deserialize, Serialize};
+
+/// Serialises all `std::env::set_var` / `remove_var` mutations in this module.
+///
+/// `set_var` and `remove_var` are deprecated since Rust 1.83 and have
+/// undefined behaviour when called concurrently from multiple threads
+/// (the C `setenv(3)` they delegate to is not thread-safe).  By holding this
+/// lock for the entire duration of any env-var mutation + CUDA device open
+/// sequence, we ensure only one thread modifies the environment at a time.
+static CUDA_ENV_MUTEX: Mutex<()> = Mutex::new(());
 
 // ---------------------------------------------------------------------------
 // PipelineConfig
@@ -32,18 +41,18 @@ use serde::{Deserialize, Serialize};
 /// Configuration for the Janus-Pro generation pipeline.
 ///
 /// Serialize / deserialise via [`serde_json`].  All fields have serde defaults
-/// matching the documented 7B model settings.
+/// matching the documented 1B model settings used by the repo's default path.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PipelineConfig {
     /// HuggingFace model ID **or** absolute path to a local model directory.
     ///
-    /// Defaults to `"deepseek-ai/Janus-Pro-7B"`.
+    /// Defaults to `"deepseek-ai/Janus-Pro-1B"`.
     #[serde(default = "default_model")]
     pub model: String,
 
     /// Target compute device.
     ///
-    /// Accepted values: `"cpu"`, `"cuda"`, `"cuda:0"`, `"cuda:1"`, …
+    /// Accepted values: `"cpu"`, `"cuda"`, `"cuda:auto"`, `"cuda:0"`, `"cuda:1"`, …
     /// Defaults to `"cpu"`.
     #[serde(default = "default_device")]
     pub device: String,
@@ -89,7 +98,7 @@ pub struct PipelineConfig {
 // ---------------------------------------------------------------------------
 
 fn default_model() -> String {
-    "deepseek-ai/Janus-Pro-7B".to_string()
+    "deepseek-ai/Janus-Pro-1B".to_string()
 }
 fn default_device() -> String {
     "cpu".to_string()
@@ -138,6 +147,7 @@ impl PipelineConfig {
     /// Supported strings:
     /// - `"cpu"` — returns [`Device::Cpu`].
     /// - `"cuda"` or `"cuda:0"` through `"cuda:N"` — returns a CUDA device.
+    /// - `"cuda:auto"` — prefers the highest-memory GPU reported by `nvidia-smi`.
     ///
     /// # Errors
     ///
@@ -148,6 +158,9 @@ impl PipelineConfig {
         if s == "cpu" {
             return Ok(Device::Cpu);
         }
+        if s == "cuda:auto" {
+            return Self::resolve_auto_cuda_device();
+        }
         // Accept "cuda" or "cuda:N".
         let ordinal: usize = if s == "cuda" {
             0
@@ -157,7 +170,9 @@ impl PipelineConfig {
         } else {
             anyhow::bail!("unrecognised device '{}'; expected 'cpu' or 'cuda[:N]'", self.device);
         };
-        Device::new_cuda(ordinal).with_context(|| format!("failed to open CUDA device {ordinal}"))
+        // Acquire the env-var mutex before calling into the _locked helpers.
+        let _guard = CUDA_ENV_MUTEX.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        Self::resolve_cuda_ordinal_locked(ordinal).with_context(|| format!("failed to open CUDA device {ordinal}"))
     }
 
     /// Resolve the `dtype` string to a [`candle_core::DType`].
@@ -191,6 +206,264 @@ impl PipelineConfig {
             .with_context(|| format!("failed to parse pipeline config from '{}'", path.display()))?;
         Ok(cfg)
     }
+
+    fn resolve_auto_cuda_device() -> Result<Device> {
+        // Hold the env-var mutex for the entire auto-selection routine.
+        // Every branch that calls set_var / remove_var (directly or via
+        // resolve_cuda_candidate / resolve_cuda_with_visible_mapping /
+        // ensure_cuda_device_order) is covered by this single lock acquisition.
+        let _guard = CUDA_ENV_MUTEX.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+
+        Self::ensure_cuda_device_order_locked();
+        // If CUDA_VISIBLE_DEVICES is pre-set, honour it — but fall through to
+        // the GPU inventory on failure instead of aborting immediately.
+        if let Ok(visible_devices) = std::env::var("CUDA_VISIBLE_DEVICES") {
+            if !visible_devices.trim().is_empty() {
+                tracing::info!(
+                    visible_devices = %visible_devices,
+                    "honouring preconfigured CUDA_VISIBLE_DEVICES for cuda:auto"
+                );
+                match Device::new_cuda(0) {
+                    Ok(dev) => return Ok(dev),
+                    Err(err) => {
+                        tracing::warn!(
+                            error = %err,
+                            visible_devices = %visible_devices,
+                            "preconfigured CUDA_VISIBLE_DEVICES failed; clearing and trying GPU inventory"
+                        );
+                        // SAFETY: CUDA_ENV_MUTEX is held; no other thread is
+                        // reading or writing the process environment concurrently
+                        // inside this crate.
+                        unsafe { std::env::remove_var("CUDA_VISIBLE_DEVICES") };
+                    }
+                }
+            }
+        }
+
+        let gpus = Self::all_cuda_candidates()?;
+        if gpus.is_empty() {
+            tracing::warn!("GPU inventory unavailable; falling back to CUDA device 0");
+            return Self::resolve_cuda_ordinal_locked(0);
+        }
+
+        // Try each GPU in descending memory order.  This ensures that if the
+        // highest-VRAM device cannot initialise (e.g. driver/toolkit mismatch,
+        // unsupported compute capability) we gracefully fall back to the next.
+        let mut last_error = None;
+        for gpu in &gpus {
+            tracing::info!(
+                physical_ordinal = gpu.index,
+                gpu_name = %gpu.name,
+                memory_mb = gpu.memory_mb,
+                "attempting CUDA device"
+            );
+            // Clear any prior CUDA_VISIBLE_DEVICES mapping from a failed attempt.
+            // SAFETY: CUDA_ENV_MUTEX is held for the duration of this loop.
+            unsafe { std::env::remove_var("CUDA_VISIBLE_DEVICES") };
+            match Self::resolve_cuda_candidate_locked(gpu) {
+                Ok(device) => {
+                    tracing::info!(
+                        physical_ordinal = gpu.index,
+                        gpu_name = %gpu.name,
+                        gpu_uuid = gpu.uuid.as_deref().unwrap_or(""),
+                        "successfully opened CUDA device"
+                    );
+                    return Ok(device);
+                }
+                Err(err) => {
+                    tracing::warn!(
+                        physical_ordinal = gpu.index,
+                        gpu_name = %gpu.name,
+                        error = %err,
+                        "CUDA device open failed; trying next GPU"
+                    );
+                    last_error = Some(err);
+                }
+            }
+        }
+
+        Err(last_error.unwrap_or_else(|| anyhow::anyhow!("no CUDA devices available")))
+    }
+
+    /// Requires `CUDA_ENV_MUTEX` to be held by the caller.
+    fn resolve_cuda_candidate_locked(gpu: &NvidiaSmiGpu) -> Result<Device> {
+        Self::ensure_cuda_device_order_locked();
+        match Device::new_cuda(gpu.index) {
+            Ok(device) => Ok(device),
+            Err(original_error) => {
+                if let Some(uuid) = gpu.uuid.as_deref() {
+                    tracing::warn!(
+                        physical_ordinal = gpu.index,
+                        gpu_name = %gpu.name,
+                        gpu_uuid = uuid,
+                        error = %original_error,
+                        "direct CUDA ordinal open failed; retrying with UUID-based CUDA_VISIBLE_DEVICES remap"
+                    );
+                    Self::resolve_cuda_with_visible_mapping_locked(uuid, &format!("GPU UUID {uuid}"))
+                } else {
+                    tracing::warn!(
+                        physical_ordinal = gpu.index,
+                        gpu_name = %gpu.name,
+                        error = %original_error,
+                        "GPU UUID unavailable; retrying with ordinal CUDA_VISIBLE_DEVICES remap"
+                    );
+                    Self::resolve_cuda_with_visible_mapping_locked(
+                        &gpu.index.to_string(),
+                        &format!("physical GPU {}", gpu.index),
+                    )
+                }
+            }
+        }
+    }
+
+    /// Requires `CUDA_ENV_MUTEX` to be held by the caller.
+    fn resolve_cuda_ordinal_locked(ordinal: usize) -> Result<Device> {
+        Self::ensure_cuda_device_order_locked();
+        match Device::new_cuda(ordinal) {
+            Ok(device) => Ok(device),
+            Err(original_error) if ordinal > 0 => {
+                tracing::warn!(
+                    physical_ordinal = ordinal,
+                    error = %original_error,
+                    "direct CUDA ordinal open failed; retrying with CUDA_VISIBLE_DEVICES remap"
+                );
+                Self::resolve_cuda_with_visible_mapping_locked(&ordinal.to_string(), &format!("physical GPU {ordinal}"))
+            }
+            Err(error) => Err(error.into()),
+        }
+    }
+
+    /// Set `CUDA_VISIBLE_DEVICES` to `visible_device` and attempt to open
+    /// CUDA device 0.
+    ///
+    /// Requires `CUDA_ENV_MUTEX` to be held by the caller.
+    fn resolve_cuda_with_visible_mapping_locked(visible_device: &str, description: &str) -> Result<Device> {
+        Self::ensure_cuda_device_order_locked();
+        // SAFETY: CUDA_ENV_MUTEX is held by the caller; no other thread in
+        // this crate reads or writes the process environment concurrently.
+        unsafe { std::env::set_var("CUDA_VISIBLE_DEVICES", visible_device) };
+        Device::new_cuda(0).with_context(|| {
+            format!(
+                "failed to open CUDA device 0 after mapping {description} via \
+                 CUDA_VISIBLE_DEVICES={visible_device}"
+            )
+        })
+    }
+
+    /// Set `CUDA_DEVICE_ORDER=PCI_BUS_ID` if it is not already configured.
+    ///
+    /// Requires `CUDA_ENV_MUTEX` to be held by the caller.
+    fn ensure_cuda_device_order_locked() {
+        if std::env::var("CUDA_DEVICE_ORDER")
+            .map(|value| value.trim().is_empty())
+            .unwrap_or(true)
+        {
+            // SAFETY: CUDA_ENV_MUTEX is held by the caller; no other thread in
+            // this crate reads or writes the process environment concurrently.
+            unsafe { std::env::set_var("CUDA_DEVICE_ORDER", "PCI_BUS_ID") };
+        }
+    }
+
+    /// Return all GPU candidates for `cuda:auto`, preferring NVML inventory when
+    /// available and falling back to `nvidia-smi`.
+    fn all_cuda_candidates() -> Result<Vec<NvidiaSmiGpu>> {
+        let mut seen = HashSet::new();
+        let mut gpus = Vec::new();
+
+        #[cfg(feature = "cuda")]
+        {
+            if let Ok(Some(best_gpu)) = Self::best_nvml_gpu() {
+                let candidate = Self::candidate_from_nvml_gpu(&best_gpu);
+                let dedupe_key = Self::candidate_dedupe_key(&candidate);
+                seen.insert(dedupe_key);
+                gpus.push(candidate);
+            }
+        }
+
+        for gpu in Self::all_nvidia_smi_gpus()? {
+            let dedupe_key = Self::candidate_dedupe_key(&gpu);
+            if seen.insert(dedupe_key) {
+                gpus.push(gpu);
+            }
+        }
+
+        Ok(gpus)
+    }
+
+    fn candidate_dedupe_key(gpu: &NvidiaSmiGpu) -> String {
+        gpu.uuid
+            .clone()
+            .unwrap_or_else(|| format!("index:{}", gpu.index))
+    }
+
+    /// Return all GPUs reported by `nvidia-smi`, sorted by memory descending
+    /// (highest-VRAM first).  Returns an empty `Vec` when `nvidia-smi` is
+    /// unavailable or reports no devices.
+    fn all_nvidia_smi_gpus() -> Result<Vec<NvidiaSmiGpu>> {
+        let output = Command::new("nvidia-smi")
+            .args([
+                "--query-gpu=index,uuid,name,memory.total",
+                "--format=csv,noheader,nounits",
+            ])
+            .output();
+
+        let output = match output {
+            Ok(output) if output.status.success() => output,
+            Ok(output) => {
+                tracing::warn!(status = ?output.status.code(), "nvidia-smi query failed");
+                return Ok(Vec::new());
+            }
+            Err(error) => {
+                tracing::warn!(error = %error, "unable to run nvidia-smi for GPU inventory");
+                return Ok(Vec::new());
+            }
+        };
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let mut gpus: Vec<NvidiaSmiGpu> = stdout.lines().filter_map(NvidiaSmiGpu::parse).collect();
+        // Sort by memory descending, then by index ascending (stable tiebreak).
+        gpus.sort_by_key(|gpu| (std::cmp::Reverse(gpu.memory_mb), gpu.index));
+        Ok(gpus)
+    }
+
+    #[cfg(feature = "cuda")]
+    fn best_nvml_gpu() -> Result<Option<pcai_core_lib::gpu::GpuInfo>> {
+        pcai_core_lib::gpu::best_available_gpu()
+    }
+
+    #[cfg(feature = "cuda")]
+    fn candidate_from_nvml_gpu(gpu: &pcai_core_lib::gpu::GpuInfo) -> NvidiaSmiGpu {
+        NvidiaSmiGpu {
+            index: gpu.index as usize,
+            uuid: Some(gpu.uuid.clone()),
+            name: gpu.name.clone(),
+            memory_mb: gpu.memory_total_mb as usize,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct NvidiaSmiGpu {
+    index: usize,
+    uuid: Option<String>,
+    name: String,
+    memory_mb: usize,
+}
+
+impl NvidiaSmiGpu {
+    fn parse(line: &str) -> Option<Self> {
+        let mut parts = line.split(',').map(str::trim);
+        let index = parts.next()?.parse().ok()?;
+        let uuid = parts.next().map(str::to_string).filter(|value| !value.is_empty());
+        let name = parts.next()?.to_string();
+        let memory_mb = parts.next()?.parse().ok()?;
+        Some(Self {
+            index,
+            uuid,
+            name,
+            memory_mb,
+        })
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -206,7 +479,7 @@ mod tests {
     #[test]
     fn test_default_model_id() {
         let cfg = PipelineConfig::default();
-        assert_eq!(cfg.model, "deepseek-ai/Janus-Pro-7B");
+        assert_eq!(cfg.model, "deepseek-ai/Janus-Pro-1B");
         assert_eq!(cfg.device, "cpu");
         assert_eq!(cfg.dtype, "bf16");
         assert!((cfg.guidance_scale - 5.0).abs() < f64::EPSILON);
@@ -219,7 +492,7 @@ mod tests {
     #[test]
     fn test_serde_empty_object() {
         let cfg: PipelineConfig = serde_json::from_str("{}").expect("empty object should be valid");
-        assert_eq!(cfg.model, "deepseek-ai/Janus-Pro-7B");
+        assert_eq!(cfg.model, "deepseek-ai/Janus-Pro-1B");
         assert_eq!(cfg.device, "cpu");
         assert_eq!(cfg.dtype, "bf16");
         assert!((cfg.guidance_scale - 5.0).abs() < f64::EPSILON);
@@ -267,6 +540,17 @@ mod tests {
             ..PipelineConfig::default()
         };
         assert!(cfg.resolve_device().is_err());
+    }
+
+    #[test]
+    fn test_nvidia_smi_gpu_parse() {
+        let parsed =
+            NvidiaSmiGpu::parse("1, GPU-12345678-90ab-cdef-1234-567890abcdef, NVIDIA GeForce RTX 5060 Ti, 16311")
+                .expect("parse gpu line");
+        assert_eq!(parsed.index, 1);
+        assert_eq!(parsed.uuid.as_deref(), Some("GPU-12345678-90ab-cdef-1234-567890abcdef"));
+        assert_eq!(parsed.name, "NVIDIA GeForce RTX 5060 Ti");
+        assert_eq!(parsed.memory_mb, 16_311);
     }
 
     /// `resolve_dtype` must map recognised strings correctly.

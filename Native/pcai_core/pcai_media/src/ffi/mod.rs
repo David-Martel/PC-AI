@@ -539,16 +539,13 @@ pub extern "C" fn pcai_media_understand_image(
     };
 
     // Run understanding pipeline (borrows from GenerationPipeline).
-    let result = UnderstandingPipeline::understand(
-        pipeline.model(),
-        pipeline.tokenizer(),
+    let result = UnderstandingPipeline::understand_with_fallback(
+        pipeline,
         &dyn_image,
+        Some(std::path::Path::new(&path_str)),
         &prompt_str,
         max_tokens,
         temperature,
-        pipeline.device(),
-        pipeline.dtype(),
-        pipeline.siglip(),
     );
 
     match result {

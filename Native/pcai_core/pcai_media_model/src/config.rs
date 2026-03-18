@@ -72,9 +72,9 @@ pub struct JanusConfig {
     #[serde(default = "default_vq_embed_dim")]
     pub vq_embed_dim: usize,
 
-    /// Understanding aligner input dimension (SigLIP feature size).
+    /// Understanding aligner input dimension (Janus vision feature size).
     ///
-    /// Defaults to `1024` (SigLIP large).
+    /// Defaults to `1024` (Janus vision tower width).
     #[serde(default = "default_understand_input_dim")]
     pub understand_input_dim: usize,
 }

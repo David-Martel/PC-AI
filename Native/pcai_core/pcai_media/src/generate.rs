@@ -30,10 +30,15 @@
 use anyhow::{Context, Result};
 use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::{VarBuilder, VarMap};
-use candle_transformers::models::siglip;
 use image::{ImageBuffer, Rgb};
+use std::path::PathBuf;
 
-use pcai_media_model::{config::JanusConfig, janus_llama::KvCache, JanusModel};
+use pcai_media_model::{
+    config::JanusConfig,
+    janus_llama::KvCache,
+    vision::{JanusVisionConfig, JanusVisionTower},
+    JanusModel,
+};
 
 use crate::config::PipelineConfig;
 use crate::hub;
@@ -54,28 +59,68 @@ pub struct GenerationPipeline {
     model_config: JanusConfig,
     device: Device,
     dtype: DType,
-    /// SigLIP vision encoder for image understanding.
+    /// Native Janus vision tower for image understanding.
     /// `None` if vision weights were not found in the safetensors shards.
-    siglip: Option<siglip::VisionModel>,
+    vision_tower: Option<JanusVisionTower>,
+    /// Device on which the vision tower runs.
+    vision_device: Device,
+    /// DType used for vision execution.
+    vision_dtype: DType,
 }
 
 impl GenerationPipeline {
-    /// Build the SigLIP-Large VisionConfig matching the Janus-Pro encoder.
-    ///
-    /// Parameters are taken from the DeepSeek Janus-Pro model card and verified
-    /// against the `vision_model` keys in the published safetensors.
-    fn siglip_config(janus_cfg: &JanusConfig) -> siglip::VisionConfig {
-        siglip::VisionConfig {
-            hidden_size: 1024,
-            intermediate_size: 4096,
-            num_hidden_layers: 24,
-            num_attention_heads: 16,
-            num_channels: 3,
-            image_size: janus_cfg.image_size,
-            patch_size: janus_cfg.patch_size,
-            hidden_act: candle_nn::Activation::GeluPytorchTanh,
-            layer_norm_eps: 1e-6,
+    /// Build the native Janus vision-tower config used for understanding.
+    fn vision_config(janus_cfg: &JanusConfig) -> JanusVisionConfig {
+        JanusVisionConfig::from_janus_config(janus_cfg)
+    }
+
+    /// Load the native Janus vision tower for understanding.
+    fn load_vision_tower(
+        model_config: &JanusConfig,
+        main_device: &Device,
+        main_dtype: DType,
+        shards: &[PathBuf],
+    ) -> Result<(Option<JanusVisionTower>, Device, DType)> {
+        if shards.is_empty() {
+            tracing::warn!("vision tower unavailable because no safetensors shards were found");
+            return Ok((None, Device::Cpu, DType::F32));
         }
+
+        let vision_device = main_device.clone();
+        let vision_dtype = main_dtype;
+        let vision_cfg = Self::vision_config(model_config);
+        let vision_varmap = VarMap::new();
+        let vision_vb =
+            VarBuilder::from_varmap(&vision_varmap, vision_dtype, &vision_device).pp("vision_model.vision_tower");
+        let vision_model = match JanusVisionTower::new(vision_vb, &vision_cfg) {
+            Ok(vm) => vm,
+            Err(e) => {
+                tracing::warn!(error = %e, "native Janus vision tower construction failed");
+                return Ok((None, vision_device, vision_dtype));
+            }
+        };
+
+        let expected = vision_varmap.data().lock().expect("VarMap lock poisoned").len();
+        let loaded = hub::load_weights(&vision_varmap, shards, vision_dtype, &vision_device)
+            .context("failed to load native Janus vision weights from safetensors")?;
+
+        if loaded < expected {
+            tracing::warn!(
+                loaded,
+                expected,
+                "native Janus vision weights are incomplete; understanding will remain unavailable"
+            );
+            return Ok((None, vision_device, vision_dtype));
+        }
+
+        tracing::info!(
+            loaded,
+            expected,
+            device = ?vision_device,
+            dtype = ?vision_dtype,
+            "native Janus vision tower loaded"
+        );
+        Ok((Some(vision_model), vision_device, vision_dtype))
     }
 
     /// Load the Janus-Pro pipeline from the configuration.
@@ -83,11 +128,11 @@ impl GenerationPipeline {
     /// Steps performed:
     /// 1. Resolve [`candle_core::Device`] and [`candle_core::DType`] from `config`.
     /// 2. Resolve the model path (local directory or HuggingFace Hub download).
-    /// 3. Deserialise [`JanusConfig`] from `config.json` (falls back to 7B defaults).
+    /// 3. Deserialise [`JanusConfig`] from `config.json` (falls back to 1B defaults).
     /// 4. Build [`JanusModel`] via [`VarMap`] + [`VarBuilder`].
     /// 5. Load weights from safetensors shards into the [`VarMap`].
     /// 6. Load the tokenizer from `tokenizer.json`.
-    /// 7. Build the SigLIP vision encoder (if `vision_model` weights exist).
+    /// 7. Build the native Janus vision tower (if `vision_model` weights exist).
     ///
     /// # Errors
     ///
@@ -108,20 +153,20 @@ impl GenerationPipeline {
         let model_path = hub::resolve_model_path(&config.model)
             .with_context(|| format!("failed to resolve model path for '{}'", config.model))?;
 
-        // 2. Load JanusConfig from config.json (with 7B fallback).
+        // 2. Load JanusConfig from config.json (with 1B fallback).
         let config_json = model_path.join("config.json");
         let model_config = if config_json.exists() {
             JanusConfig::from_file(&config_json).unwrap_or_else(|err| {
                 tracing::warn!(
                     path = %config_json.display(),
                     error = %err,
-                    "failed to parse config.json; using 7B defaults"
+                    "failed to parse config.json; using 1B defaults"
                 );
-                JanusConfig::janus_pro_7b()
+                JanusConfig::janus_pro_1b()
             })
         } else {
-            tracing::warn!("config.json not found; using 7B defaults");
-            JanusConfig::janus_pro_7b()
+            tracing::warn!("config.json not found; using 1B defaults");
+            JanusConfig::janus_pro_1b()
         };
 
         // 3. Build JanusModel from a VarMap-backed VarBuilder.
@@ -143,49 +188,26 @@ impl GenerationPipeline {
             tracing::info!(shards = shards.len(), tensors_loaded = loaded, "weights loaded");
         }
 
-        // 5. On CUDA, offload wte + lm_head to CPU to free ~800 MB VRAM.
-        //    These are only used during prefill (wte) and text generation
-        //    (lm_head) — not during the 576-step image generation loop.
-        //    Drop VarMap immediately after to release GPU tensor Arc references.
+        // 5. On CUDA, offload the token embedding table to CPU to save VRAM.
+        //    Keep `lm_head` on the main device so image understanding can
+        //    decode text at full speed without CPU vocab projection.
+        //    Drop VarMap immediately after to release old tensor Arc references.
         if matches!(device, Device::Cuda(_)) {
             model
                 .llama
                 .offload_embeddings_to_cpu()
-                .map_err(|e| anyhow::anyhow!("wte/lm_head CPU offload failed: {e}"))?;
-            // Drop VarMap so the old GPU tensors (held by Arc) are freed NOW.
-            // On CUDA we skip SigLIP, so the VarMap is no longer needed.
+                .map_err(|e| anyhow::anyhow!("wte CPU offload failed: {e}"))?;
+            // Drop VarMap so the old GPU tensors (held by Arc) are freed now.
             varmap.take();
-            tracing::info!("Offloaded wte + lm_head to CPU (~800 MB VRAM freed)");
+            tracing::info!("Offloaded wte to CPU for CUDA pipeline");
         }
 
         // 6. Load tokenizer.
         let tokenizer = hub::load_tokenizer(&model_path).context("failed to load tokenizer")?;
 
-        // 7. Optionally build SigLIP vision encoder.
-        //    For generation-only workloads, skip SigLIP to save ~400MB VRAM.
-        //    The Janus-Pro safetensors store SigLIP weights under the
-        //    "vision_model" prefix.
-        let siglip = if matches!(device, Device::Cuda(_)) {
-            tracing::info!("Skipping SigLIP on CUDA to conserve VRAM (generation-only)");
-            None
-        } else {
-            let siglip_cfg = Self::siglip_config(&model_config);
-            let vm_ref = varmap.as_ref().unwrap();
-            let siglip_vb = VarBuilder::from_varmap(vm_ref, dtype, &device).pp("vision_model");
-            match siglip::VisionModel::new(&siglip_cfg, false, siglip_vb) {
-                Ok(vm) => {
-                    tracing::info!("SigLIP vision encoder loaded");
-                    Some(vm)
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        error = %e,
-                        "SigLIP vision encoder construction failed; understanding will use placeholder"
-                    );
-                    None
-                }
-            }
-        };
+        // 7. Build native Janus vision tower for understanding.
+        let (vision_tower, vision_device, vision_dtype) =
+            Self::load_vision_tower(&model_config, &device, dtype, &shards)?;
 
         Ok(Self {
             model,
@@ -194,7 +216,9 @@ impl GenerationPipeline {
             model_config,
             device,
             dtype,
-            siglip,
+            vision_tower,
+            vision_device,
+            vision_dtype,
         })
     }
 
@@ -223,9 +247,19 @@ impl GenerationPipeline {
         self.dtype
     }
 
-    /// Returns the SigLIP vision encoder, if loaded.
-    pub fn siglip(&self) -> Option<&siglip::VisionModel> {
-        self.siglip.as_ref()
+    /// Returns the native Janus vision tower, if loaded.
+    pub fn vision_tower(&self) -> Option<&JanusVisionTower> {
+        self.vision_tower.as_ref()
+    }
+
+    /// Returns the device used by the vision tower.
+    pub fn vision_device(&self) -> &Device {
+        &self.vision_device
+    }
+
+    /// Returns the dtype used by the vision tower.
+    pub fn vision_dtype(&self) -> DType {
+        self.vision_dtype
     }
 
     /// Generate an image from a text prompt.

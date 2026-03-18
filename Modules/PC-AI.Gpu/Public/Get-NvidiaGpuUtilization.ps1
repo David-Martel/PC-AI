@@ -98,7 +98,7 @@ function Get-NvidiaGpuUtilization {
 
         $queryFields = 'index,name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw,fan.speed'
         $smiArgs     = @(
-            '--query-gpu={0}' -f $queryFields,
+            ('--query-gpu={0}' -f $queryFields),
             '--format=csv,noheader,nounits'
         )
 

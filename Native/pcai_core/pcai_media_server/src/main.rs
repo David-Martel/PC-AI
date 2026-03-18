@@ -15,7 +15,7 @@
 //! # Usage
 //!
 //! ```text
-//! pcai-media --model deepseek-ai/Janus-Pro-7B --port 8090 --device cuda:0
+//! pcai-media --model deepseek-ai/Janus-Pro-1B --port 8090 --device cuda:0
 //! ```
 
 use std::sync::Arc;
@@ -54,7 +54,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 #[command(name = "pcai-media", about = "Janus-Pro media inference HTTP server")]
 struct Args {
     /// Model path or HuggingFace repo ID.
-    #[arg(short = 'm', long = "model", default_value = "deepseek-ai/Janus-Pro-7B")]
+    #[arg(short = 'm', long = "model", default_value = "deepseek-ai/Janus-Pro-1B")]
     model: String,
 
     /// Server bind address.
@@ -65,8 +65,8 @@ struct Args {
     #[arg(short = 'p', long = "port", default_value_t = 8090)]
     port: u16,
 
-    /// Target device string, e.g. `cpu`, `cuda`, `cuda:0`.
-    #[arg(short = 'd', long = "device", default_value = "cuda:0")]
+    /// Target device string, e.g. `cpu`, `cuda`, `cuda:auto`, `cuda:0`.
+    #[arg(short = 'd', long = "device", default_value = "cuda:auto")]
     device: String,
 }
 
@@ -303,16 +303,13 @@ async fn understand_image(
         let pipeline = guard.pipeline.as_ref().expect("pipeline presence checked above");
 
         tokio::task::block_in_place(|| {
-            UnderstandingPipeline::understand(
-                pipeline.model(),
-                pipeline.tokenizer(),
+            UnderstandingPipeline::understand_with_fallback(
+                pipeline,
                 &dynamic_image,
+                None,
                 &prompt,
                 max_tokens,
                 temperature,
-                pipeline.device(),
-                pipeline.dtype(),
-                pipeline.siglip(),
             )
         })
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
@@ -554,7 +551,7 @@ mod tests {
     fn test_models_response_serde() {
         let resp = ModelsResponse {
             models: vec![ModelInfo {
-                id: "deepseek-ai/Janus-Pro-7B".to_string(),
+                id: "deepseek-ai/Janus-Pro-1B".to_string(),
                 loaded: true,
             }],
         };
@@ -562,7 +559,7 @@ mod tests {
         let decoded: serde_json::Value = serde_json::from_str(&json).expect("deserialise failed");
         assert!(decoded["models"].is_array());
         assert_eq!(decoded["models"].as_array().unwrap().len(), 1);
-        assert_eq!(decoded["models"][0]["id"], "deepseek-ai/Janus-Pro-7B");
+        assert_eq!(decoded["models"][0]["id"], "deepseek-ai/Janus-Pro-1B");
         assert_eq!(decoded["models"][0]["loaded"], true);
     }
 

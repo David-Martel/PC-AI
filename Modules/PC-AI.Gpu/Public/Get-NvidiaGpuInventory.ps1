@@ -78,7 +78,7 @@ function Get-NvidiaGpuInventory {
         try {
             $queryFields = 'index,uuid,name,driver_version,compute_cap,memory.total,memory.used,temperature.gpu,utilization.gpu'
             $smiArgs     = @(
-                '--query-gpu={0}' -f $queryFields,
+                ('--query-gpu={0}' -f $queryFields),
                 '--format=csv,noheader,nounits'
             )
 

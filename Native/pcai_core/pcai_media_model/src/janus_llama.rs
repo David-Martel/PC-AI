@@ -363,14 +363,27 @@ impl JanusLlama {
         x.i((.., seq_len - 1, ..))?.contiguous()
     }
 
+    /// Project hidden states to vocabulary logits on the `lm_head` device.
+    pub fn project_logits(&self, hidden: &Tensor) -> Result<Tensor> {
+        let weight = self.lm_head.weight();
+        let logits = if matches!(weight.device(), Device::Cpu) {
+            let hidden = hidden.to_device(&Device::Cpu)?.to_dtype(DType::F32)?.contiguous()?;
+            let weight_t = weight.to_dtype(DType::F32)?.t()?.contiguous()?;
+            hidden.matmul(&weight_t)?
+        } else {
+            let hidden = hidden.to_device(weight.device())?.to_dtype(weight.dtype())?;
+            self.lm_head.forward(&hidden)?
+        };
+        logits.to_dtype(DType::F32)
+    }
+
     /// Forward pass returning text-vocabulary logits (includes lm_head).
     ///
     /// Returns shape `[B, vocab_size]` — equivalent to candle's
     /// `Llama::forward_input_embed`.
     pub fn forward_input_embed(&self, input_embed: &Tensor, index_pos: usize, cache: &mut KvCache) -> Result<Tensor> {
         let hidden = self.forward_hidden(input_embed, index_pos, cache)?;
-        let logits = self.lm_head.forward(&hidden)?;
-        logits.to_dtype(DType::F32)
+        self.project_logits(&hidden)
     }
 
     /// Standard forward from token IDs (embed + transformer + lm_head).
@@ -379,11 +392,11 @@ impl JanusLlama {
         self.forward_input_embed(&embeds, index_pos, cache)
     }
 
-    /// Offload `wte` and `lm_head` to CPU to free GPU VRAM.
+    /// Offload `wte` to CPU to free GPU VRAM.
     ///
-    /// During image generation, `wte` is only used once (prefill) and `lm_head`
-    /// is not used at all (we use `gen_head` instead).  Moving them to CPU
-    /// saves ~800 MB VRAM on the 1B model.
+    /// During image generation, `wte` is only used for prompt token lookups.
+    /// We keep `lm_head` on the main device so image understanding can decode
+    /// text without paying a large CPU projection cost on every token.
     ///
     /// After calling this, `embed()` will return CPU tensors — callers must
     /// `.to_device(gpu)` the result before feeding into the transformer.
@@ -392,9 +405,6 @@ impl JanusLlama {
         let cpu_wte_weight = self.wte.embeddings().to_device(&cpu)?;
         let hidden_size = cpu_wte_weight.dim(1)?;
         self.wte = Embedding::new(cpu_wte_weight, hidden_size);
-
-        let cpu_lm_weight = self.lm_head.weight().to_device(&cpu)?;
-        self.lm_head = candle_nn::Linear::new(cpu_lm_weight, None);
         Ok(())
     }
 
@@ -490,6 +500,22 @@ mod tests {
         let logits = llama.forward_input_embed(&embed, 0, &mut cache).unwrap();
 
         assert_eq!(logits.dims(), &[1, 256], "expected [B, vocab_size]");
+    }
+
+    #[test]
+    fn test_project_logits_cpu_offload_uses_f32_matmul() {
+        let vm = VarMap::new();
+        let vb = VarBuilder::from_varmap(&vm, DType::BF16, &Device::Cpu);
+        let mut cfg = tiny_config();
+        cfg.tie_word_embeddings = true;
+        let mut llama = JanusLlama::load(vb, &cfg).expect("construction failed");
+        llama.offload_embeddings_to_cpu().expect("cpu offload failed");
+
+        let hidden = Tensor::zeros((1_usize, cfg.hidden_size), DType::F32, &Device::Cpu).unwrap();
+        let logits = llama.project_logits(&hidden).expect("project logits failed");
+
+        assert_eq!(logits.dims(), &[1, cfg.vocab_size], "expected [B, vocab_size]");
+        assert_eq!(logits.dtype(), DType::F32, "expected f32 logits on cpu");
     }
 
     /// KvCache::memory_bytes should increase after a forward pass.

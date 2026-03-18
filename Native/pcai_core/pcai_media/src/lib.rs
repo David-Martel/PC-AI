@@ -28,6 +28,7 @@
 pub mod config;
 pub mod generate;
 pub mod hub;
+pub mod python_fallback;
 pub mod understand;
 
 #[cfg(feature = "upscale")]

@@ -1,6 +1,6 @@
 {
   "model": "Models/Janus-Pro-1B",
-  "device": "cuda:0",
+  "device": "cuda:auto",
   "dtype": "f16",
   "guidance_scale": 5.0,
   "temperature": 1.0,

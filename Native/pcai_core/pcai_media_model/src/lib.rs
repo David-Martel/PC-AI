@@ -43,6 +43,7 @@ pub mod config;
 pub mod generation_head;
 pub mod janus_llama;
 pub mod tensor_utils;
+pub mod vision;
 pub mod vq_vae;
 
 use candle_core::{Module, Result, Tensor};
@@ -69,7 +70,7 @@ use vq_vae::{VqCodebook, VqVaeConfig, VqVaeDecoder};
 /// | `gen_aligner` | Maps image-token embeddings → LLM input space |
 /// | `vq_codebook` | Discrete codebook: token IDs → latent vectors |
 /// | `vq_decoder` | VQ-GAN decoder: latent grid → RGB pixels |
-/// | `understand_aligner` | Maps SigLIP features (1024-dim) → LLM hidden space |
+/// | `understand_aligner` | Maps Janus vision features (1024-dim) → LLM hidden space |
 /// | `config` | Cloned [`JanusConfig`] for downstream queries |
 ///
 /// # Construction
@@ -95,7 +96,7 @@ pub struct JanusModel {
     pub post_quant_conv: Conv2d,
     /// VQ-GAN decoder: maps latent grids to RGB pixel tensors.
     pub vq_decoder: VqVaeDecoder,
-    /// MLP that maps SigLIP visual features into the LLM hidden space.
+    /// MLP that maps Janus visual features into the LLM hidden space.
     pub understand_aligner: MlpAligner,
     /// Cloned configuration used during construction.
     pub config: JanusConfig,
@@ -172,7 +173,7 @@ impl JanusModel {
         let vq_decoder = VqVaeDecoder::new(vb.pp("gen_vision_model.decoder"), &VqVaeConfig::default())?;
 
         // ── Understanding aligner ─────────────────────────────────────────
-        // SigLIP outputs understand_input_dim-dim vectors; map them to hidden_size.
+        // The Janus vision tower outputs understand_input_dim-dim vectors.
         let understand_aligner = MlpAligner::new(vb.pp("aligner"), config.understand_input_dim, hidden_size)?;
 
         Ok(Self {

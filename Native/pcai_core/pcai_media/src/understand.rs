@@ -6,11 +6,9 @@
 //!    for the 7B model), convert to RGB, build a `[1, 3, H, W]` float tensor,
 //!    and normalise pixel values to `[-1, 1]` with
 //!    [`pcai_media_model::tensor_utils::normalize`].
-//! 2. **SigLIP vision encoding** *(placeholder)* — production code would run
-//!    the SigLIP encoder over the preprocessed image here; for now a zero
-//!    tensor of the correct shape is used so the rest of the pipeline compiles
-//!    and unit-tests can validate shape/normalisation logic without the full
-//!    model weights.
+//! 2. **Janus vision encoding** — runs the native Janus vision tower and
+//!    fails fast if the understanding weights are unavailable instead of
+//!    silently substituting a zero tensor.
 //! 3. **Prompt tokenisation** — wraps the caller's question in the Janus-Pro
 //!    chat template: `"<|User|>: <image>\n{prompt}\n<|Assistant|>:"`.
 //! 4. **Text-embedding prefill** — embeds the token IDs via
@@ -44,22 +42,65 @@
 //! // tokenizer would come from hub::load_tokenizer in production
 //! ```
 
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use anyhow::{Context, Result};
-use candle_core::{DType, Device, IndexOp, Tensor};
-#[expect(
-    unused_imports,
-    reason = "Module trait must be in scope for candle_transformers siglip::VisionModel::forward dispatch to resolve at compile time"
-)]
-use candle_nn::Module; // Required by siglip::VisionModel::forward at runtime
-use candle_transformers::models::siglip;
+use candle_core::{DType, Device, IndexOp, Module, Tensor};
 use image::{imageops::FilterType, DynamicImage};
 
+use crate::generate::GenerationPipeline;
+use crate::python_fallback;
 use pcai_media_model::janus_llama::KvCache;
 use pcai_media_model::tensor_utils::normalize;
+use pcai_media_model::vision::JanusVisionTower;
 use pcai_media_model::JanusModel;
 
 // EOS token id used by the DeepSeek / Janus-Pro vocabulary.
 const EOS_TOKEN_ID: u32 = 2;
+
+fn require_vision_tower(vision_tower: Option<&JanusVisionTower>) -> Result<&JanusVisionTower> {
+    vision_tower.ok_or_else(|| {
+        anyhow::anyhow!(
+            "image understanding requires native Janus vision weights; load a model directory \
+             containing `vision_model` safetensors, or run the pipeline on a device \
+             configuration that loads the vision encoder"
+        )
+    })
+}
+
+pub fn native_understanding_unavailable(err: &anyhow::Error) -> bool {
+    err.chain()
+        .any(|cause| cause.to_string().contains("native Janus vision weights"))
+}
+
+struct TempImagePath {
+    path: PathBuf,
+}
+
+impl TempImagePath {
+    fn new(image: &DynamicImage) -> Result<Self> {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .context("system clock before UNIX_EPOCH")?
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pcai-media-understand-{}-{unique}.png", std::process::id()));
+        image
+            .save(&path)
+            .with_context(|| format!("save temporary fallback image '{}'", path.display()))?;
+        Ok(Self { path })
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for TempImagePath {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
 
 // ---------------------------------------------------------------------------
 // UnderstandingPipeline
@@ -91,6 +132,57 @@ const EOS_TOKEN_ID: u32 = 2;
 pub struct UnderstandingPipeline;
 
 impl UnderstandingPipeline {
+    /// Run native understanding and transparently fall back to the Python Janus
+    /// reference path when the native Janus vision tower is unavailable.
+    pub fn understand_with_fallback(
+        pipeline: &GenerationPipeline,
+        image: &DynamicImage,
+        image_path: Option<&Path>,
+        prompt: &str,
+        max_tokens: u32,
+        temperature: f32,
+    ) -> Result<String> {
+        match Self::understand(
+            pipeline.model(),
+            pipeline.tokenizer(),
+            image,
+            prompt,
+            max_tokens,
+            temperature,
+            pipeline.device(),
+            pipeline.dtype(),
+            pipeline.vision_tower(),
+            pipeline.vision_device(),
+            pipeline.vision_dtype(),
+        ) {
+            Ok(text) => Ok(text),
+            Err(err) if native_understanding_unavailable(&err) && python_fallback::python_fallback_enabled() => {
+                tracing::warn!(
+                    error = %err,
+                    model = %pipeline.config().model,
+                    "native image understanding unavailable; falling back to Python Janus helper"
+                );
+                let owned_temp;
+                let path = if let Some(existing_path) = image_path {
+                    existing_path
+                } else {
+                    owned_temp = TempImagePath::new(image)?;
+                    owned_temp.path()
+                };
+                python_fallback::understand_image(
+                    &pipeline.config().model,
+                    &pipeline.config().device,
+                    path,
+                    prompt,
+                    max_tokens,
+                    temperature,
+                )
+                .with_context(|| format!("python fallback failed after native understanding error: {err}"))
+            }
+            Err(err) => Err(err),
+        }
+    }
+
     /// Run image-to-text understanding on the provided image and prompt.
     ///
     /// # Arguments
@@ -141,38 +233,36 @@ impl UnderstandingPipeline {
         temperature: f32,
         device: &Device,
         dtype: DType,
-        siglip_model: Option<&siglip::VisionModel>,
+        vision_tower: Option<&JanusVisionTower>,
+        vision_device: &Device,
+        vision_dtype: DType,
     ) -> Result<String> {
         // ── 1. Preprocess image ──────────────────────────────────────────────
         let image_tensor =
-            preprocess_image(image, model.config.image_size, device).context("image preprocessing failed")?;
+            preprocess_image(image, model.config.image_size, vision_device).context("image preprocessing failed")?;
 
-        // ── 2. SigLIP vision encoding ────────────────────────────────────────
-        // When a SigLIP VisionModel is available, run the real encoder.
-        // Otherwise, fall back to a zero-tensor placeholder so tests can
-        // exercise the downstream aligner / KV-cache path without weights.
-        let num_image_tokens = model.config.num_image_tokens(); // 576
-        let siglip_dim: usize = 1024;
+        // ── 2. Native Janus vision encoding ──────────────────────────────────
+        // Understanding is only valid when real vision weights are loaded.
+        // Fail fast with an actionable error instead of fabricating features.
+        let vision = require_vision_tower(vision_tower)?;
 
-        let siglip_features = if let Some(vision) = siglip_model {
-            // Cast to the model's expected dtype for the forward pass.
-            let img_input = image_tensor
-                .to_dtype(dtype)
-                .context("cast image tensor to model dtype")?;
-            vision
-                .forward(&img_input)
-                .context("SigLIP vision forward pass failed")?
-        } else {
-            Tensor::zeros((1_usize, num_image_tokens, siglip_dim), dtype, device)
-                .context("failed to create placeholder SigLIP features")?
-        };
+        // Cast to the model's expected dtype for the forward pass.
+        let img_input = image_tensor
+            .to_dtype(vision_dtype)
+            .context("cast image tensor to vision dtype")?;
+        let vision_features = vision
+            .forward(&img_input)
+            .context("native Janus vision forward pass failed")?
+            .to_device(device)
+            .context("move vision features to main pipeline device")?
+            .to_dtype(dtype)
+            .context("cast vision features to main pipeline dtype")?;
 
-        // ── 3. Map SigLIP features into LLM hidden space ─────────────────────
+        // ── 3. Map vision features into LLM hidden space ────────────────────
         // understand_aligner: [1, num_image_tokens, 1024] → [1, num_image_tokens, hidden_size]
-        use candle_core::Module;
         let image_embeds = model
             .understand_aligner
-            .forward(&siglip_features)
+            .forward(&vision_features)
             .map_err(|e| anyhow::anyhow!("understand_aligner forward failed: {e}"))?;
         // image_embeds shape: [1, num_image_tokens, hidden_size]
 
@@ -186,11 +276,18 @@ impl UnderstandingPipeline {
         let seq_len = prompt_ids.len();
 
         // ── 5. Text embeddings via LLM embedding table ────────────────────────
-        let prompt_id_tensor =
-            Tensor::from_slice(prompt_ids, (1_usize, seq_len), device).context("failed to build prompt_ids tensor")?;
+        let embed_device = if matches!(device, Device::Cuda(_)) {
+            &Device::Cpu
+        } else {
+            device
+        };
+        let prompt_id_tensor = Tensor::from_slice(prompt_ids, (1_usize, seq_len), embed_device)
+            .context("failed to build prompt_ids tensor")?;
         let text_embeds = model
             .embed_tokens(&prompt_id_tensor)
-            .map_err(|e| anyhow::anyhow!("embed_tokens failed: {e}"))?;
+            .map_err(|e| anyhow::anyhow!("embed_tokens failed: {e}"))?
+            .to_device(device)
+            .context("move prompt embeddings to main pipeline device")?;
         // text_embeds: [1, seq_len, hidden_size]
 
         // ── 6. Concatenate image + text embeddings ────────────────────────────
@@ -222,11 +319,13 @@ impl UnderstandingPipeline {
 
         for step in 0..max_tokens {
             // A. Embed the current single token → [1, 1, hidden_size]
-            let token_tensor = Tensor::from_slice(&[current_token], (1_usize, 1_usize), device)
+            let token_tensor = Tensor::from_slice(&[current_token], (1_usize, 1_usize), embed_device)
                 .with_context(|| format!("step {step}: failed to build token tensor"))?;
             let token_embed = model
                 .embed_tokens(&token_tensor)
-                .map_err(|e| anyhow::anyhow!("step {step}: embed_tokens failed: {e}"))?;
+                .map_err(|e| anyhow::anyhow!("step {step}: embed_tokens failed: {e}"))?
+                .to_device(device)
+                .with_context(|| format!("step {step}: move token embedding to main pipeline device failed"))?;
 
             // B. LLM forward → logits [1, vocab_size]
             //    forward_input_embed already extracts the last position.
@@ -395,6 +494,21 @@ mod tests {
     use super::*;
     use candle_core::Device;
     use image::{DynamicImage, RgbImage};
+
+    #[test]
+    fn test_require_vision_tower_errors_when_missing() {
+        let err = require_vision_tower(None).expect_err("missing vision tower should fail");
+        assert!(
+            err.to_string().contains("native Janus vision weights"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_native_understanding_unavailable_detects_vision_error() {
+        let err = require_vision_tower(None).expect_err("missing vision tower should fail");
+        assert!(native_understanding_unavailable(&err));
+    }
 
     // ── preprocess_image ──────────────────────────────────────────────────
 

@@ -7,7 +7,7 @@
 //!   dimension onto the image vocabulary (16 384 codebook tokens).
 //! - [`MlpAligner`]: a two-layer MLP that bridges two representation spaces.
 //!   Used both to map image-token embeddings into LLM input space (generation)
-//!   and to map SigLIP visual features into LLM input space (understanding).
+//!   and to map Janus visual features into LLM input space (understanding).
 //!
 //! # Example (offline smoke-test — no weights on disk)
 //!
@@ -133,7 +133,7 @@ impl Module for GenerationHead {
 /// 1. **`gen_aligner`**: maps image-token embeddings (same `hidden_size`) into
 ///    the LLM input space before the transformer blocks.
 /// 2. **`understand_aligner`** (also called `aligner` in the weight file):
-///    maps SigLIP visual features (1 024-dim) into the LLM hidden space.
+///    maps Janus visual features (1 024-dim) into the LLM hidden space.
 ///
 /// Weight indexing follows Python's `nn.Sequential` convention where the GELU
 /// activation occupies index 1 and therefore has no weight:

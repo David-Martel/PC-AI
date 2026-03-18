@@ -1,0 +1,411 @@
+{
+  "version": "1.2.0",
+  "lastUpdated": "2026-03-18T00:00:00Z",
+  "detectionTimestamp": "2026-03-18T00:00:00Z",
+  "trustedSources": [
+    {
+      "id": "nvidia-drivers",
+      "name": "NVIDIA Driver Downloads",
+      "baseUrl": "https://www.nvidia.com/drivers",
+      "type": "vendor"
+    },
+    {
+      "id": "nvidia-cuda",
+      "name": "NVIDIA CUDA Toolkit",
+      "baseUrl": "https://developer.nvidia.com/cuda-downloads",
+      "type": "vendor"
+    },
+    {
+      "id": "nvidia-cudnn",
+      "name": "NVIDIA cuDNN",
+      "baseUrl": "https://developer.nvidia.com/cudnn-downloads",
+      "type": "vendor"
+    },
+    {
+      "id": "nvidia-tensorrt",
+      "name": "NVIDIA TensorRT",
+      "baseUrl": "https://developer.nvidia.com/tensorrt-getting-started",
+      "type": "vendor"
+    },
+    {
+      "id": "nvidia-nsight",
+      "name": "NVIDIA Nsight Developer Tools",
+      "baseUrl": "https://developer.nvidia.com/tools-overview",
+      "type": "vendor"
+    }
+  ],
+  "categories": {
+    "driver": {
+      "displayName": "Display Driver",
+      "description": "NVIDIA display and compute driver"
+    },
+    "toolkit": {
+      "displayName": "CUDA Toolkit",
+      "description": "Core CUDA compiler, libraries, and runtime"
+    },
+    "deep-learning": {
+      "displayName": "Deep Learning Libraries",
+      "description": "cuDNN, TensorRT, and related accelerated libraries"
+    },
+    "inference": {
+      "displayName": "Inference Libraries",
+      "description": "TensorRT and inference-optimized runtimes"
+    },
+    "profiling": {
+      "displayName": "Profiling and Debugging",
+      "description": "Nsight Compute, Nsight Systems, and developer tools"
+    },
+    "sdk": {
+      "displayName": "SDKs and Libraries",
+      "description": "NVML, Warp, Video Codec SDK, CUTLASS, and other developer SDKs"
+    }
+  },
+  "gpus": [
+    {
+      "index": 0,
+      "uuid": "GPU-95e95b2a-d0a0-3048-104a-0822bdb41cd0",
+      "name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+      "memoryMiB": 8188,
+      "computeCapability": "8.9",
+      "smArch": "SM 89",
+      "role": "inference / runtime",
+      "detectedDriverVersion": "582.41"
+    },
+    {
+      "index": 1,
+      "uuid": "GPU-1b300e77-5f80-2c6b-f437-1041db4527ea",
+      "name": "NVIDIA GeForce RTX 5060 Ti",
+      "memoryMiB": 16311,
+      "computeCapability": "12.0",
+      "smArch": "SM 120",
+      "role": "training / QLoRA",
+      "detectedDriverVersion": "582.41"
+    }
+  ],
+  "components": [
+    {
+      "id": "gpu-driver",
+      "name": "NVIDIA Display Driver",
+      "category": "driver",
+      "description": "NVIDIA display and CUDA compute driver for Windows. Required by all NVIDIA compute workloads.",
+      "detectionMethod": "nvidia-smi --query-gpu=driver_version --format=csv,noheader",
+      "installedVersion": "582.41",
+      "latestVersion": "591.55",
+      "minimumVersion": "572.16",
+      "sourceId": "nvidia-drivers",
+      "downloadUrl": "https://www.nvidia.com/drivers",
+      "paths": {
+        "nvidiaSmi": "C:\\Windows\\System32\\nvidia-smi.exe",
+        "nvidiaApp": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App"
+      },
+      "notes": "SM 120 (RTX 5060 Ti / Blackwell) requires driver 572.16 or later. Current: 582.41. Latest: 591.55. Update via NVIDIA App or from nvidia.com/drivers."
+    },
+    {
+      "id": "cuda-toolkit",
+      "name": "CUDA Toolkit",
+      "category": "toolkit",
+      "description": "NVIDIA CUDA Toolkit: compiler (nvcc), runtime, libraries (cublas, cufft, cusolver, curand), and samples. Multiple versions installed side-by-side.",
+      "detectionMethod": "dir %CUDA_DIR%",
+      "installedVersion": "13.1",
+      "installedVersions": [
+        {
+          "version": "12.1",
+          "path": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1",
+          "envVar": "CUDA_PATH_V12_1"
+        },
+        {
+          "version": "12.6",
+          "path": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.6",
+          "envVar": "CUDA_PATH_V12_6"
+        },
+        {
+          "version": "12.8",
+          "path": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8",
+          "envVar": "CUDA_PATH_V12_8"
+        },
+        {
+          "version": "12.9",
+          "path": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.9",
+          "envVar": "CUDA_PATH_V12_9"
+        },
+        {
+          "version": "13.0",
+          "path": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.0",
+          "envVar": "CUDA_PATH_V13_0"
+        },
+        {
+          "version": "13.1",
+          "path": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1",
+          "envVar": "CUDA_PATH_V13_1",
+          "isDefault": true
+        },
+        {
+          "version": "13.2",
+          "path": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.2",
+          "envVar": null,
+          "notes": "Installed on disk but CUDA_PATH_V13_2 env var not yet set"
+        }
+      ],
+      "latestVersion": "13.2",
+      "minimumVersion": "11.0",
+      "sourceId": "nvidia-cuda",
+      "downloadUrl": "https://developer.nvidia.com/cuda-downloads",
+      "paths": {
+        "rootDir": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA",
+        "activeNvcc": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1\\bin\\nvcc.exe"
+      },
+      "envVars": {
+        "CUDA_PATH": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1",
+        "CUDA_HOME": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1",
+        "CUDA_DIR": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA"
+      },
+      "notes": "Active (CUDA_PATH) is 13.1. v13.2 is installed on disk without a versioned env var. pcai-media Rust build targets v13.1 CUDA headers. PyTorch AI-Media venv uses cu128 (v12.8 ABI)."
+    },
+    {
+      "id": "cudnn",
+      "name": "NVIDIA cuDNN",
+      "category": "deep-learning",
+      "description": "GPU-accelerated primitives library for deep neural networks. Required by PyTorch (AI-Media venv), TensorFlow, and mistral.rs flash-attention.",
+      "detectionMethod": "grep CUDNN_MAJOR %CUDNN_PATH%\\include\\<cudaver>\\cudnn_version.h",
+      "installedVersion": "9.8.0",
+      "latestVersion": "9.8.0",
+      "minimumVersion": "8.0",
+      "sourceId": "nvidia-cudnn",
+      "downloadUrl": "https://developer.nvidia.com/cudnn-downloads",
+      "paths": {
+        "root": "C:\\Program Files\\NVIDIA\\CUDNN\\v9.8",
+        "include11": "C:\\Program Files\\NVIDIA\\CUDNN\\v9.8\\include\\11.8",
+        "include12": "C:\\Program Files\\NVIDIA\\CUDNN\\v9.8\\include\\12.8",
+        "bin": "C:\\Program Files\\NVIDIA\\CUDNN\\v9.8\\bin",
+        "versionHeader11": "C:\\Program Files\\NVIDIA\\CUDNN\\v9.8\\include\\11.8\\cudnn_version.h",
+        "versionHeader12": "C:\\Program Files\\NVIDIA\\CUDNN\\v9.8\\include\\12.8\\cudnn_version.h"
+      },
+      "envVars": {
+        "CUDNN_PATH": "not set (bin dir is on PATH directly)"
+      },
+      "detectedFromHeader": {
+        "CUDNN_MAJOR": 9,
+        "CUDNN_MINOR": 8,
+        "CUDNN_PATCHLEVEL": 0
+      },
+      "notes": "cuDNN 9.8.0 is current latest. Dual headers for CUDA 11.8 and 12.8 ABI targets. Bin dir added to PATH by installer: C:\\Program Files\\NVIDIA\\CUDNN\\v9.8\\bin."
+    },
+    {
+      "id": "tensorrt",
+      "name": "NVIDIA TensorRT",
+      "category": "inference",
+      "description": "High-performance deep learning inference optimizer and runtime. Used by pcai-media for potential Janus-Pro inference acceleration.",
+      "detectionMethod": "grep NV_TENSORRT_MAJOR %TENSORRT_DIR%\\include\\NvInferVersion.h",
+      "installedVersion": "10.9.0.34",
+      "latestVersion": "10.9.0",
+      "minimumVersion": "8.0",
+      "sourceId": "nvidia-tensorrt",
+      "downloadUrl": "https://developer.nvidia.com/tensorrt-getting-started",
+      "paths": {
+        "root": "C:\\Program Files\\NVIDIA\\TensorRT",
+        "include": "C:\\Program Files\\NVIDIA\\TensorRT\\include",
+        "lib": "C:\\Program Files\\NVIDIA\\TensorRT\\lib",
+        "bin": "C:\\Program Files\\NVIDIA\\TensorRT\\bin",
+        "versionHeader": "C:\\Program Files\\NVIDIA\\TensorRT\\include\\NvInferVersion.h"
+      },
+      "detectedFromHeader": {
+        "NV_TENSORRT_MAJOR": 10,
+        "NV_TENSORRT_MINOR": 9,
+        "NV_TENSORRT_PATCH": 0,
+        "NV_TENSORRT_BUILD": 34,
+        "NV_TENSORRT_RELEASE_TYPE": "GA"
+      },
+      "keyLibraries": [
+        "nvinfer_10.dll",
+        "nvinfer_builder_resource_10.dll",
+        "nvinfer_dispatch_10.dll"
+      ],
+      "notes": "TensorRT 10.9.0 GA (build 34). TENSORRT_DIR env var not set; set to C:\\Program Files\\NVIDIA\\TensorRT if needed by build scripts."
+    },
+    {
+      "id": "nsight-compute",
+      "name": "Nsight Compute",
+      "category": "profiling",
+      "description": "Interactive kernel profiler for CUDA applications. Used to analyze GPU utilization and memory access patterns in pcai-media and pcai-inference builds.",
+      "detectionMethod": "dir \"%ProgramFiles%\\NVIDIA Corporation\\Nsight Compute*\"",
+      "installedVersion": "2026.1.0",
+      "latestVersion": "2026.1.0",
+      "minimumVersion": "2022.1",
+      "sourceId": "nvidia-nsight",
+      "downloadUrl": "https://developer.nvidia.com/nsight-compute",
+      "paths": {
+        "root": "C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2026.1.0",
+        "ncuCli": "C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2026.1.0\\target\\windows-desktop-win7-x64\\ncu.exe",
+        "ncuUi": "C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2026.1.0\\host\\windows-desktop-win7-x64\\ncu-ui.exe"
+      },
+      "notes": "Nsight Compute 2026.1.0 is installed and on PATH. CLI is ncu.exe (target dir). ncu-ui.exe is the GUI. PATH entry: C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2026.1.0."
+    },
+    {
+      "id": "nsight-systems",
+      "name": "Nsight Systems",
+      "category": "profiling",
+      "description": "System-wide performance analysis tool for CPU+GPU workloads. Useful for profiling end-to-end pcai-media pipeline latency.",
+      "detectionMethod": "dir \"%ProgramFiles%\\NVIDIA Corporation\\Nsight Systems*\"",
+      "installedVersion": "2025.6.3",
+      "latestVersion": "2025.6.3",
+      "minimumVersion": "2021.1",
+      "sourceId": "nvidia-nsight",
+      "downloadUrl": "https://developer.nvidia.com/nsight-systems",
+      "installedVersions": [
+        {
+          "version": "2023.1.2",
+          "path": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2023.1.2"
+        },
+        {
+          "version": "2024.4.2",
+          "path": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2024.4.2"
+        },
+        {
+          "version": "2024.5.1",
+          "path": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2024.5.1"
+        },
+        {
+          "version": "2024.6.2",
+          "path": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2024.6.2"
+        },
+        {
+          "version": "2025.1.3",
+          "path": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2025.1.3"
+        },
+        {
+          "version": "2025.3.2",
+          "path": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2025.3.2"
+        },
+        {
+          "version": "2025.5.2",
+          "path": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2025.5.2"
+        },
+        {
+          "version": "2025.6.3",
+          "path": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2025.6.3",
+          "isLatest": true
+        }
+      ],
+      "paths": {
+        "root": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2025.6.3",
+        "nsysCli": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2025.6.3\\target-windows-x64\\nsys.exe",
+        "nsysUi": "C:\\Program Files\\NVIDIA Corporation\\Nsight Systems 2025.6.3\\host-windows-x64\\nsys-ui.exe"
+      },
+      "notes": "8 versions installed side-by-side (2023.1.2 through 2025.6.3). CLI is nsys.exe (target-windows-x64 dir). GUI is nsys-ui.exe (host-windows-x64 dir). Use 2025.6.3 for SM 120 support."
+    },
+    {
+      "id": "nsight-graphics",
+      "name": "Nsight Graphics",
+      "category": "profiling",
+      "status": "recommended",
+      "description": "Frame-level GPU debugger and profiler for graphics APIs (DX12, Vulkan, OpenGL). Useful for inspecting CUDA-graphics interop in pcai-media pipeline.",
+      "detectionMethod": "dir \"%ProgramFiles%\\NVIDIA Corporation\\Nsight Graphics*\"",
+      "installedVersion": null,
+      "latestVersion": "2025.5",
+      "minimumVersion": "2022.1",
+      "sourceId": "nvidia-nsight",
+      "downloadUrl": "https://developer.nvidia.com/nsight-graphics",
+      "notes": "Not currently installed. Recommended for frame-level GPU analysis. Install via NVIDIA Developer Zone."
+    },
+    {
+      "id": "nvml",
+      "name": "NVIDIA Management Library (NVML)",
+      "category": "sdk",
+      "status": "recommended",
+      "description": "C library for monitoring and managing NVIDIA GPU state: power, clocks, utilization, memory, temperature. Bundled with the display driver as nvml.dll.",
+      "detectionMethod": "dir \"%SystemRoot%\\System32\\nvml.dll\"",
+      "installedVersion": null,
+      "latestVersion": null,
+      "minimumVersion": null,
+      "sourceId": "nvidia-drivers",
+      "downloadUrl": "https://developer.nvidia.com/management-library-nvml",
+      "paths": {
+        "dll": "C:\\Windows\\System32\\nvml.dll",
+        "include": "C:\\Program Files\\NVIDIA Corporation\\NVSMI"
+      },
+      "notes": "Bundled with driver — nvml.dll is present after any NVIDIA driver install. No separate download needed. Use nvidia-smi.exe (C:\\Windows\\System32\\nvidia-smi.exe) for CLI queries. Rust binding: nvml-wrapper crate."
+    },
+    {
+      "id": "warp",
+      "name": "NVIDIA Warp (Python)",
+      "category": "sdk",
+      "status": "recommended",
+      "description": "Python framework for high-performance GPU simulation and spatial computing. Compiles Python kernels to CUDA at runtime. Useful for physics simulation in AI-Media pipelines.",
+      "detectionMethod": "python -c \"import warp; print(warp.__version__)\"",
+      "installedVersion": null,
+      "latestVersion": "1.5.1",
+      "minimumVersion": "1.0",
+      "sourceId": "nvidia-drivers",
+      "downloadUrl": "https://pypi.org/project/warp-lang/",
+      "installCommand": "pip install warp-lang",
+      "notes": "Not currently installed. Install into AI-Media venv: uv pip install warp-lang. Requires CUDA 11.5+. RTX 5060 Ti SM 120 supported in Warp 1.4+."
+    },
+    {
+      "id": "video-codec-sdk",
+      "name": "Video Codec SDK",
+      "category": "sdk",
+      "status": "recommended",
+      "description": "NVIDIA hardware video encode (NVENC) and decode (NVDEC) SDK. Enables GPU-accelerated video processing in pcai-media for future video frame understanding.",
+      "detectionMethod": "dir \"%NVENC_SDK_DIR%\\Interface\"",
+      "installedVersion": null,
+      "latestVersion": "13.0",
+      "minimumVersion": "11.0",
+      "sourceId": "nvidia-drivers",
+      "downloadUrl": "https://developer.nvidia.com/nvidia-video-codec-sdk",
+      "notes": "Not currently installed. Requires NVIDIA developer account. RTX 2000 Ada supports NVENC h264/hevc/av1 (8th gen). RTX 5060 Ti supports NVENC h264/hevc/av1 (10th gen). NVDEC decode on both. Headers only; runtime is driver-provided."
+    },
+    {
+      "id": "cutlass",
+      "name": "CUTLASS",
+      "category": "sdk",
+      "status": "recommended",
+      "description": "NVIDIA CUDA Templates for Linear Algebra Subroutines — header-only C++ template library for high-performance GEMM and related linear algebra on GPU. Used by FlashAttention-2 and custom CUDA kernels.",
+      "detectionMethod": "dir \"%CUTLASS_DIR%\\include\\cutlass\"",
+      "installedVersion": null,
+      "latestVersion": "3.x",
+      "minimumVersion": "2.0",
+      "sourceId": "nvidia-drivers",
+      "downloadUrl": "https://github.com/NVIDIA/cutlass",
+      "installCommand": "git clone https://github.com/NVIDIA/cutlass.git",
+      "notes": "Not currently installed. Header-only — clone and set CUTLASS_DIR env var. CUTLASS v4 Windows support is experimental and broken as of early 2026; use v3.x branch on Windows. SM 120 (Blackwell) support added in CUTLASS 3.7+."
+    }
+  ],
+  "compatibilityMatrix": {
+    "description": "Minimum software versions required for each GPU architecture present in this system.",
+    "architectures": {
+      "SM 8.9": {
+        "gpuName": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+        "gpuArch": "Ada Lovelace",
+        "minimumDriver": "527.41",
+        "minimumCuda": "12.0",
+        "recommendedCuda": "13.1",
+        "minimumCuDNN": "8.6",
+        "minimumTensorRT": "8.5",
+        "nsightComputeMinimum": "2022.3",
+        "nsightSystemsMinimum": "2022.4",
+        "ptxIsaVersion": "8.1"
+      },
+      "SM 12.0": {
+        "gpuName": "NVIDIA GeForce RTX 5060 Ti",
+        "gpuArch": "Blackwell",
+        "minimumDriver": "572.16",
+        "minimumCuda": "12.8",
+        "recommendedCuda": "13.1",
+        "minimumCuDNN": "9.5",
+        "minimumTensorRT": "10.7",
+        "nsightComputeMinimum": "2025.1",
+        "nsightSystemsMinimum": "2025.1",
+        "ptxIsaVersion": "8.7",
+        "notes": "Blackwell requires CUDA 12.8+ for full SM 120 support. Driver 572.16+ mandatory. torch+cu128 required for PyTorch."
+      }
+    },
+    "currentSystemStatus": {
+      "driver": { "installed": "582.41", "meetsAll": true },
+      "cuda": { "active": "13.1", "meetsAll": true },
+      "cudnn": { "installed": "9.8.0", "meetsAll": true },
+      "tensorrt": { "installed": "10.9.0", "meetsAll": true },
+      "nsightCompute": { "installed": "2026.1.0", "meetsAll": true },
+      "nsightSystems": { "installed": "2025.6.3", "meetsAll": true }
+    }
+  }
+}

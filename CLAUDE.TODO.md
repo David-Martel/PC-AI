@@ -212,39 +212,41 @@ PC_AI/
 
 ### Phase 1: Detection and Status (Read-Only) ← COMPLETE
 - [x] Design plan
-- [x] `Config/nvidia-software-registry.json` with real detected data (v1.1.0, 6 components, 2 GPUs)
+- [x] `Config/nvidia-software-registry.json` with real detected data (v1.2.0, 11 components, 2 GPUs)
 - [x] `Modules/PC-AI.Gpu/` module skeleton — 19 files (psm1, psd1, 8 public, 9 private)
-- [x] Private detection: `Resolve-NvidiaInstallPath`, `Get-NvidiaDriverVersion`, `Get-CudaVersionFromPath`, `Get-CudnnVersionFromHeader`, `Get-TensorRtVersionFromHeader`, `Get-NsightVersions` + stubs for Phase 2-3
-- [x] Public: `Get-NvidiaGpuInventory`, `Get-NvidiaSoftwareRegistry`, `Get-NvidiaSoftwareStatus`, `Get-NvidiaGpuUtilization` + stubs for Phase 2-3
+- [x] Private detection: all 9 private functions implemented (not stubs)
+- [x] Public: all 8 public functions implemented (not stubs)
 - [x] `Tests/Unit/PC-AI.Gpu.Tests.ps1` — 75 test cases across 23 contexts
-- [x] Module manifest validated (`Test-ModuleManifest` OK, 8 exports), all 17 .ps1 files syntax-checked
-- [x] Module import + smoke test passed (8 commands exported, JSON valid)
-- [ ] `Config/driver-registry.json` updated with NVIDIA GPU entries (deferred — coordinate with Codex)
+- [x] Module manifest validated, all .ps1 files syntax-checked, module loads cleanly
+- [x] `Config/driver-registry.json` v1.2.0 — NVIDIA GPU PnP entries with sharedDriverGroup
 
-### Phase 2: Environment Management
-- [ ] Public: `Initialize-NvidiaEnvironment` (delegates to `Initialize-CudaEnvironment` + adds cuDNN/TensorRT)
-- [ ] Public: `Get-NvidiaCompatibilityMatrix`
-- [ ] Private: `Backup-NvidiaEnvironment`
-- [ ] Build.ps1 integration (optional enhanced init)
+### Phase 2: Environment Management ← COMPLETE
+- [x] Public: `Initialize-NvidiaEnvironment` (403 lines — delegates to Initialize-CudaEnvironment + cuDNN/TensorRT/Nsight)
+- [x] Public: `Get-NvidiaCompatibilityMatrix` (341 lines — per-GPU compat check with IsBlocker flag)
+- [x] Private: `Backup-NvidiaEnvironment` (308 lines — backup + restore with ParameterSets)
+- [x] Build.ps1 integration (media component build with sccache)
 - [ ] Setup-DevEnvironment.ps1 integration
-- [ ] Additional unit tests
+- [ ] Additional unit tests for Phase 2 functions
 
-### Phase 3: Download and Install
-- [ ] Private: `Invoke-NvidiaSilentInstall`, `Test-NvidiaDownloadUrl`
-- [ ] Public: `Install-NvidiaSoftware`, `Update-NvidiaSoftwareRegistry`
-- [ ] `Tools/Update-NvidiaSoftware.ps1` orchestrator (scan + install phases)
+### Phase 3: Download and Install ← COMPLETE
+- [x] Private: `Invoke-NvidiaSilentInstall` (318 lines — exe/msi/zip, Process.Dispose, timeout)
+- [x] Private: `Test-NvidiaDownloadUrl` (179 lines — trusted hosts + HTTP HEAD)
+- [x] Public: `Install-NvidiaSoftware` (428 lines — download + SHA256 + backup + install + verify)
+- [x] Public: `Update-NvidiaSoftwareRegistry` (369 lines — patch mode + refresh-from-system + atomic write)
+- [x] `Tools/Update-NvidiaSoftware.ps1` orchestrator (Codex)
+- [x] `Tools/Sync-NvidiaDriverVersion.ps1` (811 lines — auto-detect, compare, download, install)
 - [ ] Full Pester test coverage for install flows
 
 ### Phase 4: Automation and CI
 - [ ] GitHub workflow for NVIDIA stack validation
 - [ ] Integration with `maintenance.yml` for weekly version checks
 - [ ] Registry auto-update script (scrape latest from NVIDIA)
-- [ ] Consolidate duplicated nvidia-smi patterns into `Get-NvidiaGpuUtilization`
+- [x] Consolidate duplicated nvidia-smi patterns — NVML module replaces subprocess calls
 
-### Phase 5: Additional NVIDIA SDKs and Rust Integration (Research Complete 2026-03-18)
+### Phase 5: Additional NVIDIA SDKs and Rust Integration ← PARTIALLY COMPLETE
 
-**HIGH priority — install now:**
-- [ ] **nvml-wrapper** (Rust crate v0.12.0) — NVML bindings to replace nvidia-smi subprocess calls with direct API access. Add to `pcai_core_lib/Cargo.toml`. Provides GPU temp, utilization, memory, power, clocks, PCIe throughput programmatically. 10-50x faster than nvidia-smi.
+**HIGH priority:**
+- [x] **nvml-wrapper** (Rust crate v0.12.0) — DONE. gpu/mod.rs (508 lines), 3 FFI exports, OnceLock singleton, cargo check passed.
 - [ ] **Nsight Graphics 2025.5** — GPU crash dump inspector + frame debugger (D3D12/Vulkan). Download from developer.nvidia.com/nsight-graphics. Extends PC_AI diagnostics for GPU driver crash analysis.
 - [ ] **TensorRT for RTX** — JIT-compiled inference for consumer RTX GPUs. 50%+ speedup. Standalone library (June 2025+). Rust: `trtx` crate v0.3.1 (experimental, uses cudarc + dynamic loading).
 - [ ] **Warp** (Python, `pip install warp-lang`) — GPU simulation framework, JIT compiles to CUDA. 669x CPU speedup. Useful for physics-based diagnostics and optimization pipelines.

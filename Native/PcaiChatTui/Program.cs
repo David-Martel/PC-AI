@@ -96,7 +96,7 @@ public static class Program
                 useNative = false;
                 backend = BackendType.Http;
             }
-            else if (!await nativeBackend.CheckAvailabilityAsync())
+            else if (!await nativeBackend.CheckAvailabilityAsync(default))
             {
                 var message = "pcai_inference.dll not available or backend failed to initialize";
                 if (backendExplicit || preferNative)
@@ -584,7 +584,7 @@ public static class Program
             return result;
         }
 
-        result.Ok = await nativeBackend.CheckAvailabilityAsync();
+        result.Ok = await nativeBackend.CheckAvailabilityAsync(default);
         if (!result.Ok)
         {
             result.Error = InferenceModule.GetLastError() ?? "Native backend unavailable";

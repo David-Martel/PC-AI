@@ -695,6 +695,45 @@ mod tests {
         assert!(tensor_to_image(&tensor).is_err());
     }
 
+    /// `tensor_to_image` must preserve pixel values during [C, H, W] to [H, W, C] permutation.
+    #[test]
+    fn test_tensor_to_image_pixel_content() {
+        // Create a 3x2x2 [C, H, W] tensor with known values.
+        let data = vec![
+            // Channel 0 (R):
+            10u8, 20,
+            30, 40,
+            // Channel 1 (G):
+            50u8, 60,
+            70, 80,
+            // Channel 2 (B):
+            90u8, 100,
+            110, 120,
+        ];
+
+        let tensor = Tensor::from_vec(data, (3_usize, 2_usize, 2_usize), &Device::Cpu).unwrap();
+        let img = tensor_to_image(&tensor).expect("tensor_to_image should succeed");
+
+        assert_eq!(img.width(), 2);
+        assert_eq!(img.height(), 2);
+
+        // Verify pixel (x, y) = (0, 0)
+        assert_eq!(img.get_pixel(0, 0).0, [10, 50, 90]);
+        // Verify pixel (x, y) = (1, 0)
+        assert_eq!(img.get_pixel(1, 0).0, [20, 60, 100]);
+        // Verify pixel (x, y) = (0, 1)
+        assert_eq!(img.get_pixel(0, 1).0, [30, 70, 110]);
+        // Verify pixel (x, y) = (1, 1)
+        assert_eq!(img.get_pixel(1, 1).0, [40, 80, 120]);
+    }
+
+    /// `tensor_to_image` must return an error for non-U8 tensors.
+    #[test]
+    fn test_tensor_to_image_wrong_dtype() {
+        let tensor = Tensor::zeros((3_usize, 8_usize, 8_usize), DType::F32, &Device::Cpu).unwrap();
+        assert!(tensor_to_image(&tensor).is_err());
+    }
+
     /// `rand_val` must produce values in `[0, 1)`.
     #[test]
     fn test_rand_val_range() {

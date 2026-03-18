@@ -28,7 +28,7 @@ public interface IInferenceBackend : IAsyncDisposable
     string Name { get; }
 
     /// <summary>Returns <c>true</c> if the backend is reachable and ready to serve requests.</summary>
-    Task<bool> CheckAvailabilityAsync();
+    Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Loads the model at <paramref name="modelPath"/> with the specified GPU layer count.</summary>
     Task<bool> LoadModelAsync(string modelPath, int gpuLayers = -1);
@@ -60,11 +60,11 @@ public static class BackendFactory
     {
         // Try native first, fall back to HTTP
         var native = new NativeBackend("mistralrs");
-        if (await native.CheckAvailabilityAsync())
+        if (await native.CheckAvailabilityAsync(default))
             return native;
 
         native = new NativeBackend("llamacpp");
-        if (await native.CheckAvailabilityAsync())
+        if (await native.CheckAvailabilityAsync(default))
             return native;
 
         return CreateHttpBackend(httpEndpoint);
@@ -89,22 +89,27 @@ public class NativeBackend : IInferenceBackend
     private bool _initialized;
     private bool _disposed;
 
-    /// <summary>Initialises the backend wrapper for the named Rust backend variant.</summary>
-    public NativeBackend(string backendName)
+
+    private readonly INativeInferenceModule _module;
+
+
+        /// <summary>Initialises the backend wrapper for the named Rust backend variant.</summary>
+    public NativeBackend(string backendName, INativeInferenceModule? module = null)
     {
         _backendName = backendName;
+        _module = module ?? new NativeInferenceModuleWrapper();
     }
 
     /// <inheritdoc/>
     public string Name => $"Native ({_backendName})";
 
     /// <inheritdoc/>
-    public Task<bool> CheckAvailabilityAsync()
+    public Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             // Check if DLL exists and can initialize
-            var result = InferenceModule.pcai_init(_backendName);
+            var result = _module.pcai_init(_backendName);
             if (result == 0)
             {
                 _initialized = true;
@@ -127,23 +132,23 @@ public class NativeBackend : IInferenceBackend
     {
         if (!_initialized)
         {
-            var initResult = InferenceModule.pcai_init(_backendName);
+            var initResult = _module.pcai_init(_backendName);
             if (initResult != 0)
                 return Task.FromResult(false);
             _initialized = true;
         }
 
-        var result = InferenceModule.pcai_load_model(modelPath, gpuLayers);
+        var result = _module.pcai_load_model(modelPath, gpuLayers);
         return Task.FromResult(result == 0);
     }
 
     /// <inheritdoc/>
     public Task<string> GenerateAsync(string prompt, int maxTokens = 2048, float temperature = 0.7f)
     {
-        var result = InferenceModule.Generate(prompt, (uint)maxTokens, temperature);
+        var result = _module.Generate(prompt, (uint)maxTokens, temperature);
         if (result == null)
         {
-            var error = InferenceModule.GetLastError() ?? "Unknown error";
+            var error = _module.GetLastError() ?? "Unknown error";
             throw new InvalidOperationException($"Generation failed: {error}");
         }
 
@@ -167,10 +172,10 @@ public class NativeBackend : IInferenceBackend
 
         _ = Task.Run(() =>
         {
-            var result = InferenceModule.pcai_generate_streaming(prompt, (uint)maxTokens, temperature, callback, IntPtr.Zero);
+            var result = _module.pcai_generate_streaming(prompt, (uint)maxTokens, temperature, callback, IntPtr.Zero);
             if (result != 0)
             {
-                var error = InferenceModule.GetLastError() ?? "Unknown error";
+                var error = _module.GetLastError() ?? "Unknown error";
                 channel.Writer.TryComplete(new InvalidOperationException($"Streaming failed: {error}"));
                 return;
             }
@@ -188,7 +193,7 @@ public class NativeBackend : IInferenceBackend
     {
         if (!_disposed && _initialized)
         {
-            InferenceModule.pcai_shutdown();
+            _module.pcai_shutdown();
             _disposed = true;
         }
         return ValueTask.CompletedTask;
@@ -201,6 +206,7 @@ public class HttpBackend : IInferenceBackend
     private readonly HttpClient _client;
     private readonly string _endpoint;
 
+
     /// <summary>Initialises the HTTP backend targeting the given base <paramref name="endpoint"/> URL.</summary>
     public HttpBackend(string endpoint)
     {
@@ -208,15 +214,21 @@ public class HttpBackend : IInferenceBackend
         _client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
     }
 
+    internal HttpBackend(string endpoint, HttpMessageHandler handler)
+    {
+        _endpoint = endpoint.TrimEnd('/');
+        _client = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(5) };
+    }
+
     /// <inheritdoc/>
     public string Name => $"HTTP ({_endpoint})";
 
     /// <inheritdoc/>
-    public async Task<bool> CheckAvailabilityAsync()
+    public async Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await _client.GetAsync($"{_endpoint}/v1/models");
+            var response = await _client.GetAsync($"{_endpoint}/v1/models", cancellationToken);
             return response.IsSuccessStatusCode;
         }
         catch

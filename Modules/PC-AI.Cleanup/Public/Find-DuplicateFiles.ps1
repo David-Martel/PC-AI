@@ -1,3 +1,198 @@
+function Format-DuplicateReport {
+    [CmdletBinding()]
+    param(
+        [PSCustomObject]$Result
+    )
+
+    if ($Result.DuplicateGroups.Count -gt 0) {
+        Write-Host "`nDuplicate File Scan Results" -ForegroundColor Cyan
+        Write-Host "===========================" -ForegroundColor Cyan
+        Write-Host "  Path scanned: $($Result.Path)" -ForegroundColor White
+        Write-Host "  Files scanned: $($Result.TotalFilesScanned)" -ForegroundColor White
+        Write-Host "  Files hashed: $($Result.TotalFilesHashed)" -ForegroundColor White
+        Write-Host "  Duplicate groups: $($Result.DuplicateGroups.Count)" -ForegroundColor Yellow
+        Write-Host "  Total duplicates: $($Result.TotalDuplicates)" -ForegroundColor Yellow
+        Write-Host "  Wasted space: $($Result.WastedSpaceFormatted)" -ForegroundColor Red
+        Write-Host "  Scan duration: $([math]::Round($Result.ScanDuration.TotalSeconds, 2)) seconds" -ForegroundColor Gray
+        Write-Host ""
+    }
+    else {
+        Write-Host "No duplicate files found." -ForegroundColor Green
+    }
+}
+
+function Get-DuplicateGroup {
+    [CmdletBinding()]
+    param(
+        [System.Collections.Hashtable]$HashTable
+    )
+
+    $resultInfo = @{
+        DuplicateGroups = @()
+        TotalDuplicates = 0
+        WastedSpace = 0
+    }
+
+    $duplicateHashes = $HashTable.GetEnumerator() | Where-Object { $_.Value.Count -gt 1 }
+
+    foreach ($group in $duplicateHashes) {
+        $files = $group.Value | Sort-Object -Property LastWriteTime
+        $fileSize = $files[0].Size
+        $duplicateCount = $files.Count - 1
+        $wastedBytes = $fileSize * $duplicateCount
+
+        $duplicateGroup = [PSCustomObject]@{
+            Hash = $group.Key
+            FileCount = $files.Count
+            DuplicateCount = $duplicateCount
+            FileSize = $fileSize
+            FileSizeFormatted = Format-FileSize -Bytes $fileSize
+            WastedSpace = $wastedBytes
+            WastedSpaceFormatted = Format-FileSize -Bytes $wastedBytes
+            Files = $files
+            OldestFile = $files | Sort-Object -Property CreationTime | Select-Object -First 1
+            NewestFile = $files | Sort-Object -Property CreationTime -Descending | Select-Object -First 1
+        }
+
+        $resultInfo.DuplicateGroups += $duplicateGroup
+        $resultInfo.TotalDuplicates += $duplicateCount
+        $resultInfo.WastedSpace += $wastedBytes
+    }
+
+    $resultInfo.DuplicateGroups = $resultInfo.DuplicateGroups | Sort-Object -Property WastedSpace -Descending
+    
+    return $resultInfo
+}
+
+function Get-FileHashGroup {
+    [CmdletBinding()]
+    param(
+        [array]$FilesToHash,
+        [string]$Algorithm,
+        [switch]$ShowProgress
+    )
+
+    $resultInfo = @{
+        TotalFilesHashed = 0
+        Errors = @()
+        HashTable = @{}
+    }
+
+    $hashTable = @{}
+    $processedCount = 0
+    $totalToHash = $FilesToHash.Count
+
+    foreach ($file in $FilesToHash) {
+        $processedCount++
+
+        if ($ShowProgress) {
+            $percentComplete = [math]::Round(($processedCount / $totalToHash) * 100)
+            Write-Progress -Activity "Computing file hashes" -Status "$processedCount of $totalToHash" `
+                -PercentComplete $percentComplete -CurrentOperation $file.Name
+        }
+
+        $hash = Get-FileHashSafe -Path $file.FullName -Algorithm $Algorithm
+
+        if ($hash) {
+            $resultInfo.TotalFilesHashed++
+
+            if (-not $hashTable.ContainsKey($hash)) {
+                $hashTable[$hash] = @()
+            }
+            $hashTable[$hash] += [PSCustomObject]@{
+                FullName = $file.FullName
+                Name = $file.Name
+                Directory = $file.DirectoryName
+                Size = $file.Length
+                SizeFormatted = Format-FileSize -Bytes $file.Length
+                LastWriteTime = $file.LastWriteTime
+                CreationTime = $file.CreationTime
+            }
+        }
+        else {
+            $resultInfo.Errors += "Could not hash: $($file.FullName)"
+        }
+    }
+
+    if ($ShowProgress) {
+        Write-Progress -Activity "Computing file hashes" -Completed
+    }
+
+    $resultInfo.HashTable = $hashTable
+
+    Write-Verbose "Hashed $($resultInfo.TotalFilesHashed) files"
+    return $resultInfo
+}
+
+
+function Get-FileCandidateGroup {
+    [CmdletBinding()]
+    param(
+        [string]$Path,
+        [switch]$Recurse,
+        [long]$MinimumSize,
+        [long]$MaximumSize,
+        [string[]]$Include,
+        [string[]]$Exclude
+    )
+
+    $resultInfo = @{
+        TotalFilesScanned = 0
+        FilesSkipped = 0
+        FilesToHash = @()
+    }
+
+    $getChildParams = @{
+        Path = $Path
+        File = $true
+        ErrorAction = 'SilentlyContinue'
+    }
+
+    if ($Recurse) {
+        $getChildParams['Recurse'] = $true
+    }
+
+    if ($Include -and $Include.Count -gt 0) {
+        $getChildParams['Include'] = $Include
+    }
+
+    if ($Exclude -and $Exclude.Count -gt 0) {
+        $getChildParams['Exclude'] = $Exclude
+    }
+
+    Write-Verbose "Enumerating files..."
+    $allFiles = @(Get-ChildItem @getChildParams)
+    $resultInfo.TotalFilesScanned = $allFiles.Count
+
+    Write-Verbose "Found $($allFiles.Count) files to examine"
+
+    $filteredFiles = $allFiles | Where-Object {
+        $_.Length -ge $MinimumSize -and $_.Length -le $MaximumSize
+    }
+
+    $resultInfo.FilesSkipped = $allFiles.Count - $filteredFiles.Count
+    Write-Verbose "After size filter: $($filteredFiles.Count) files (skipped $($resultInfo.FilesSkipped))"
+
+    if ($filteredFiles.Count -eq 0) {
+        Write-Warning "No files found matching criteria."
+        return $resultInfo
+    }
+
+    Write-Verbose "Grouping files by size..."
+    $sizeGroups = $filteredFiles | Group-Object -Property Length | Where-Object { $_.Count -gt 1 }
+
+    if ($sizeGroups.Count -eq 0) {
+        Write-Verbose "No files with matching sizes found - no duplicates possible."
+        return $resultInfo
+    }
+
+    $filesToHash = @($sizeGroups | ForEach-Object { $_.Group })
+    $resultInfo.FilesToHash = $filesToHash
+    Write-Verbose "Files with matching sizes: $($filesToHash.Count) (potential duplicates)"
+
+    return $resultInfo
+}
+
 #Requires -Version 5.1
 function Find-DuplicateFiles {
     <#
@@ -119,134 +314,31 @@ function Find-DuplicateFiles {
         Errors = @()
     }
 
-    # Build file search parameters
-    $getChildParams = @{
-        Path = $Path
-        File = $true
-        ErrorAction = 'SilentlyContinue'
-    }
 
-    if ($Recurse) {
-        $getChildParams['Recurse'] = $true
-    }
+    # Delegate finding candidates
+    $candidateInfo = Get-FileCandidateGroup -Path $Path -Recurse:$Recurse -MinimumSize $MinimumSize -MaximumSize $MaximumSize -Include $Include -Exclude $Exclude
+    
+    $result.TotalFilesScanned = $candidateInfo.TotalFilesScanned
+    $result.FilesSkipped = $candidateInfo.FilesSkipped
 
-    if ($Include -and $Include.Count -gt 0) {
-        $getChildParams['Include'] = $Include
-    }
-
-    if ($Exclude -and $Exclude.Count -gt 0) {
-        $getChildParams['Exclude'] = $Exclude
-    }
-
-    # Get all files
-    Write-Verbose "Enumerating files..."
-    $allFiles = @(Get-ChildItem @getChildParams)
-    $result.TotalFilesScanned = $allFiles.Count
-
-    Write-Verbose "Found $($allFiles.Count) files to examine"
-
-    # Filter by size
-    $filteredFiles = $allFiles | Where-Object {
-        $_.Length -ge $MinimumSize -and $_.Length -le $MaximumSize
-    }
-
-    $result.FilesSkipped = $allFiles.Count - $filteredFiles.Count
-    Write-Verbose "After size filter: $($filteredFiles.Count) files (skipped $($result.FilesSkipped))"
-
-    if ($filteredFiles.Count -eq 0) {
-        Write-Warning "No files found matching criteria."
+    if ($candidateInfo.FilesToHash.Count -eq 0) {
         $stopwatch.Stop()
         $result.ScanDuration = $stopwatch.Elapsed
         return $result
     }
 
-    # First pass: Group by size (quick filter)
-    Write-Verbose "Grouping files by size..."
-    $sizeGroups = $filteredFiles | Group-Object -Property Length | Where-Object { $_.Count -gt 1 }
+    # Delegate hashing files
+    $hashInfo = Get-FileHashGroup -FilesToHash $candidateInfo.FilesToHash -Algorithm $Algorithm -ShowProgress:$ShowProgress
+    
+    $result.TotalFilesHashed = $hashInfo.TotalFilesHashed
+    $result.Errors += $hashInfo.Errors
 
-    if ($sizeGroups.Count -eq 0) {
-        Write-Verbose "No files with matching sizes found - no duplicates possible."
-        $stopwatch.Stop()
-        $result.ScanDuration = $stopwatch.Elapsed
-        return $result
-    }
+    # Delegate grouping duplicates
+    $duplicateInfo = Get-DuplicateGroup -HashTable $hashInfo.HashTable
 
-    # Get files that need hashing (only those with size matches)
-    $filesToHash = $sizeGroups | ForEach-Object { $_.Group }
-    Write-Verbose "Files with matching sizes: $($filesToHash.Count) (potential duplicates)"
-
-    # Second pass: Hash files and find exact duplicates
-    $hashTable = @{}
-    $processedCount = 0
-    $totalToHash = $filesToHash.Count
-
-    foreach ($file in $filesToHash) {
-        $processedCount++
-
-        if ($ShowProgress) {
-            $percentComplete = [math]::Round(($processedCount / $totalToHash) * 100)
-            Write-Progress -Activity "Computing file hashes" -Status "$processedCount of $totalToHash" `
-                -PercentComplete $percentComplete -CurrentOperation $file.Name
-        }
-
-        $hash = Get-FileHashSafe -Path $file.FullName -Algorithm $Algorithm
-
-        if ($hash) {
-            $result.TotalFilesHashed++
-
-            if (-not $hashTable.ContainsKey($hash)) {
-                $hashTable[$hash] = @()
-            }
-            $hashTable[$hash] += [PSCustomObject]@{
-                FullName = $file.FullName
-                Name = $file.Name
-                Directory = $file.DirectoryName
-                Size = $file.Length
-                SizeFormatted = Format-FileSize -Bytes $file.Length
-                LastWriteTime = $file.LastWriteTime
-                CreationTime = $file.CreationTime
-            }
-        }
-        else {
-            $result.Errors += "Could not hash: $($file.FullName)"
-        }
-    }
-
-    if ($ShowProgress) {
-        Write-Progress -Activity "Computing file hashes" -Completed
-    }
-
-    Write-Verbose "Hashed $($result.TotalFilesHashed) files"
-
-    # Find duplicates (hashes with more than one file)
-    $duplicateHashes = $hashTable.GetEnumerator() | Where-Object { $_.Value.Count -gt 1 }
-
-    foreach ($group in $duplicateHashes) {
-        $files = $group.Value | Sort-Object -Property LastWriteTime
-        $fileSize = $files[0].Size
-        $duplicateCount = $files.Count - 1  # Exclude the "original"
-        $wastedBytes = $fileSize * $duplicateCount
-
-        $duplicateGroup = [PSCustomObject]@{
-            Hash = $group.Key
-            FileCount = $files.Count
-            DuplicateCount = $duplicateCount
-            FileSize = $fileSize
-            FileSizeFormatted = Format-FileSize -Bytes $fileSize
-            WastedSpace = $wastedBytes
-            WastedSpaceFormatted = Format-FileSize -Bytes $wastedBytes
-            Files = $files
-            OldestFile = $files | Sort-Object -Property CreationTime | Select-Object -First 1
-            NewestFile = $files | Sort-Object -Property CreationTime -Descending | Select-Object -First 1
-        }
-
-        $result.DuplicateGroups += $duplicateGroup
-        $result.TotalDuplicates += $duplicateCount
-        $result.WastedSpace += $wastedBytes
-    }
-
-    # Sort groups by wasted space (largest first)
-    $result.DuplicateGroups = $result.DuplicateGroups | Sort-Object -Property WastedSpace -Descending
+    $result.DuplicateGroups = $duplicateInfo.DuplicateGroups
+    $result.TotalDuplicates = $duplicateInfo.TotalDuplicates
+    $result.WastedSpace = $duplicateInfo.WastedSpace
     $result.WastedSpaceFormatted = Format-FileSize -Bytes $result.WastedSpace
 
     $stopwatch.Stop()
@@ -259,21 +351,7 @@ function Find-DuplicateFiles {
     Write-CleanupLog -Message "Duplicate scan complete: $($result.TotalDuplicates) duplicates, $($result.WastedSpaceFormatted) wasted" -Level Info
 
     # Display summary
-    if ($result.DuplicateGroups.Count -gt 0) {
-        Write-Host "`nDuplicate File Scan Results" -ForegroundColor Cyan
-        Write-Host "===========================" -ForegroundColor Cyan
-        Write-Host "  Path scanned: $Path" -ForegroundColor White
-        Write-Host "  Files scanned: $($result.TotalFilesScanned)" -ForegroundColor White
-        Write-Host "  Files hashed: $($result.TotalFilesHashed)" -ForegroundColor White
-        Write-Host "  Duplicate groups: $($result.DuplicateGroups.Count)" -ForegroundColor Yellow
-        Write-Host "  Total duplicates: $($result.TotalDuplicates)" -ForegroundColor Yellow
-        Write-Host "  Wasted space: $($result.WastedSpaceFormatted)" -ForegroundColor Red
-        Write-Host "  Scan duration: $([math]::Round($result.ScanDuration.TotalSeconds, 2)) seconds" -ForegroundColor Gray
-        Write-Host ""
-    }
-    else {
-        Write-Host "No duplicate files found." -ForegroundColor Green
-    }
+    Format-DuplicateReport -Result $result
 
     return $result
 }

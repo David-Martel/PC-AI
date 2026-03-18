@@ -160,6 +160,66 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media' {
     # Initialize-PcaiMedia
     # ===========================================================================
 
+    # ===========================================================================
+    # Initialize-PcaiMediaFFI
+    # ===========================================================================
+
+    Context 'Initialize-PcaiMediaFFI' {
+        
+        It 'Returns $false when PcaiNative.dll does not exist' {
+            InModuleScope PcaiMedia {
+                Mock Test-Path { return $false } -ParameterFilter { $Path -match 'PcaiNative.dll' }
+                Mock Get-PcaiProjectRoot { return '/tmp/FakeRoot' }
+                
+                $result = Initialize-PcaiMediaFFI
+                $result | Should -BeFalse
+            }
+        }
+
+        It 'Returns $false and writes warning when Assembly load fails' {
+            InModuleScope PcaiMedia {
+                Mock Test-Path { return $true } -ParameterFilter { $Path -match 'PcaiNative.dll' }
+                Mock Get-PcaiProjectRoot { return '/tmp/FakeRoot' }
+                Mock Write-Warning { }
+                
+                $result = Initialize-PcaiMediaFFI
+                $result | Should -BeFalse
+                
+                Assert-MockCalled Write-Warning -Times 1 -ParameterFilter { $Message -match 'Failed to load' }
+            }
+        }
+
+        It 'Returns $true when Assembly loads successfully' {
+            $tempDir = Join-Path $env:TEMP "PcaiFfiTest_$(New-Guid)"
+            $binDir = Join-Path $tempDir 'bin'
+            New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+            
+            $dummyDllPath = Join-Path $binDir 'PcaiNative.dll'
+            
+            $code = @"
+namespace PcaiNativeDummy {
+    public class DummyClass { }
+}
+"@
+            Add-Type -TypeDefinition $code -OutputAssembly $dummyDllPath -OutputType Library
+            
+            # Use script scope variable so the mock can access it
+            $script:tempDir = $tempDir
+            
+            try {
+                InModuleScope PcaiMedia {
+                    Mock Get-PcaiProjectRoot { return $script:tempDir }
+                    
+                    $result = Initialize-PcaiMediaFFI
+                    $result | Should -BeTrue
+                }
+            } finally {
+                # Clean up if possible, though loaded assemblies lock the file
+                Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
     Context 'Initialize-PcaiMedia' {
 
         BeforeEach {

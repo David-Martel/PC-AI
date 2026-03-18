@@ -267,12 +267,8 @@ pub fn analyze_path() -> (PathAnalysisStats, PathAnalysisJson) {
 
     // Second pass: identify duplicates
     let mut duplicate_groups = Vec::new();
-    let mut counted_duplicates: HashSet<String> = HashSet::new();
-
     for (normalized, occurrences) in &seen {
-        if occurrences.len() > 1 && !counted_duplicates.contains(normalized) {
-            counted_duplicates.insert(normalized.clone());
-
+        if occurrences.len() > 1 {
             // Count duplicates (occurrences - 1 since first is original)
             stats.duplicate_count += (occurrences.len() - 1) as u32;
 

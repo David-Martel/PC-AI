@@ -8,7 +8,7 @@
 //! ```rust,no_run
 //! use pcai_media::upscale::UpscalePipeline;
 //!
-//! let pipeline = UpscalePipeline::load("Models/RealESRGAN/RealESRGAN_x4.onnx")
+//! let mut pipeline = UpscalePipeline::load("Models/RealESRGAN/RealESRGAN_x4.onnx")
 //!     .expect("failed to load upscale model");
 //! let img = image::open("input.png").unwrap();
 //! let upscaled = pipeline.upscale(&img).expect("upscale failed");

@@ -541,8 +541,8 @@ async fn run_chat(
         for call in tool_calls {
             let result = invoke_pcai_tool(repo_root, &tool_invoker_path, &tools_path, &call.name, &call.arguments)?;
             executed_tools.push(ExecutedTool {
-                name: call.name.clone(),
-                arguments: call.arguments.clone(),
+                name: call.name,
+                arguments: call.arguments,
                 result: result.clone(),
             });
             messages.push(ChatMessage {

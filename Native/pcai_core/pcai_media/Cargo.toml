@@ -27,7 +27,10 @@ safetensors = "0.4"
 tokenizers = "0.20"
 image = "0.25"
 rand = "0.8"
-hf-hub = "0.4"
+# Disable ureq (sync HTTP) to avoid ring crate → rustls → C compilation
+# issues with sccache + MSVC in CUDA build environments. We only use the
+# async tokio path (reqwest + native-tls via Windows SChannel).
+hf-hub = { version = "0.5", default-features = false, features = ["tokio"] }
 memmap2 = "0.9"
 
 [features]

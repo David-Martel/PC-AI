@@ -214,7 +214,11 @@ function Get-NvidiaCompatibilityMatrix {
     # Map of componentId -> human-readable name (from registry components array)
     $componentNames = @{}
     foreach ($comp in $registry.Components) {
-        $componentNames[$comp.ComponentId] = $comp.Name
+        $componentId = $comp.id
+        if (-not $componentId) {
+            continue
+        }
+        $componentNames[$componentId] = $comp.Name
     }
     # Ensure known IDs have a fallback name
     $fallbackNames = @{

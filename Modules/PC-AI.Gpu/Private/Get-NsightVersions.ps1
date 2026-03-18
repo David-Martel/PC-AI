@@ -32,13 +32,17 @@ function Get-NsightVersions {
 #>
     [CmdletBinding()]
     [OutputType([PSCustomObject[]])]
-    param()
+    param(
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [string]$SearchPath = 'C:\Program Files\NVIDIA Corporation'
+    )
 
     $ErrorActionPreference = 'Stop'
 
     $results = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-    $corpRoot = 'C:\Program Files\NVIDIA Corporation'
+    $corpRoot = $SearchPath
     if (-not (Test-Path $corpRoot -PathType Container)) {
         Write-Verbose "NVIDIA Corporation directory not found at: $corpRoot"
         return @()

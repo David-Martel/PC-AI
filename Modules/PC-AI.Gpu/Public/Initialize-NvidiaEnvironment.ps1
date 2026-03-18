@@ -188,8 +188,17 @@ function Initialize-NvidiaEnvironment {
     Write-Verbose 'Resolving NVIDIA component install paths...'
     $installPaths = Resolve-NvidiaInstallPath
 
-    $cudaRootDir  = 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA'
-    $selectedCuda = $null
+    $cudaRootDir       = 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA'
+    $selectedCuda      = $null
+    $registryCudaEntry = $null
+
+    try {
+        $gpuRegistry = Get-NvidiaSoftwareRegistry
+        $registryCudaEntry = @($gpuRegistry.Components | Where-Object { $_.id -eq 'cuda-toolkit' } | Select-Object -First 1)[0]
+    }
+    catch {
+        Write-Verbose "Unable to load NVIDIA software registry for CUDA selection: $($_.Exception.Message)"
+    }
 
     if ($PreferredCudaVersion) {
         # Normalise: accept "12.8", "v12.8", "12.8.0" etc.
@@ -205,6 +214,21 @@ function Initialize-NvidiaEnvironment {
             $msg = "Preferred CUDA version 'v$majorMinor' not found at $candidate — falling back to latest."
             Write-Warning $msg
             $notes.Add($msg)
+        }
+    }
+
+    if (-not $selectedCuda -and $registryCudaEntry) {
+        $defaultInstall = @($registryCudaEntry.installedVersions | Where-Object { $_.isDefault -eq $true } | Select-Object -First 1)[0]
+        if ($defaultInstall -and $defaultInstall.path -and (Test-Path $defaultInstall.path)) {
+            $selectedCuda = $defaultInstall.path
+            Write-Verbose "Registry default CUDA install selected: $selectedCuda"
+        }
+        elseif ($registryCudaEntry.envVars -and $registryCudaEntry.envVars.CUDA_PATH) {
+            $registryCudaPath = $registryCudaEntry.envVars.CUDA_PATH
+            if ($registryCudaPath -and $registryCudaPath -notmatch 'not set' -and (Test-Path $registryCudaPath)) {
+                $selectedCuda = $registryCudaPath
+                Write-Verbose "Registry CUDA_PATH selected: $selectedCuda"
+            }
         }
     }
 

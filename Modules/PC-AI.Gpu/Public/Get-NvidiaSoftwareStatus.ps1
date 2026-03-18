@@ -13,11 +13,10 @@
     nvidia-software-registry.json.
 
     Status values:
-      Current          - Installed version matches or is newer than registry latest.
-      Outdated         - Installed version is older than registry latest.
-      NotInstalled     - Component not found on disk.
-      MultipleVersions - More than one side-by-side installation detected (CUDA only).
-      Unknown          - Installed but registry has no latestVersion to compare.
+      Current      - Installed version matches or is newer than registry latest.
+      Outdated     - Installed version is older than registry latest.
+      NotInstalled - Component not found on disk.
+      Unknown      - Installed but registry has no latestVersion to compare.
 
 .PARAMETER RegistryPath
     Full path to an alternate nvidia-software-registry.json. When omitted the
@@ -32,8 +31,9 @@
       Name              - Human-readable component name
       InstalledVersion  - Detected installed version string, or $null
       LatestVersion     - Registry latest version string, or $null
-      Status            - Current | Outdated | NotInstalled | MultipleVersions | Unknown
+      Status            - Current | Outdated | NotInstalled | Unknown
       Path              - Resolved install path string, or $null
+      SideBySideCount   - Count of parallel installs discovered for that component
 
 .EXAMPLE
     Get-NvidiaSoftwareStatus
@@ -184,10 +184,7 @@ function Get-NvidiaSoftwareStatus {
             $status = 'NotInstalled'
 
             if ($installedVersion) {
-                if ($sideByCount -gt 1) {
-                    $status = 'MultipleVersions'
-                }
-                elseif (-not $latestVersion) {
+                if (-not $latestVersion) {
                     $status = 'Unknown'
                 }
                 else {
@@ -223,6 +220,7 @@ function Get-NvidiaSoftwareStatus {
                 LatestVersion    = $latestVersion
                 Status           = $status
                 Path             = $path
+                SideBySideCount  = $sideByCount
             })
         }
 

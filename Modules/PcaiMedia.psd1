@@ -13,6 +13,8 @@
         'Import-PcaiMediaModel'
         'New-PcaiImage'
         'New-PcaiImageAsync'
+        'Get-PcaiImageAsyncStatus'
+        'Wait-PcaiImageAsync'
         'Get-PcaiImageAnalysis'
         'Invoke-PcaiUpscale'
         'Stop-PcaiMedia'

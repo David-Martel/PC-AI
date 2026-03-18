@@ -11,7 +11,7 @@
     run without a built PcaiNative.dll or pcai_media.dll.
 
     Test categories covered:
-    - Module structure and export surface (8 public functions)
+    - Module structure and export surface (10 public functions)
     - Initialize-PcaiMedia: DLL loading, device validation, success path
     - Import-PcaiMediaModel: pre-condition guard, HF repo ID, local path
     - New-PcaiImage: pre-condition guard, auto output path, directory creation,
@@ -37,14 +37,29 @@ BeforeAll {
     if (-not ([System.Management.Automation.PSTypeName]'PcaiNative.MediaModule').Type) {
         Add-Type -TypeDefinition @'
 namespace PcaiNative {
+    public struct PcaiMediaAsyncResult {
+        public int Status;
+        public System.IntPtr Text;
+    }
+
     public static class MediaModule {
         public static int  pcai_media_init(string device)                                       { return 0; }
         public static void pcai_media_shutdown()                                                 { }
         public static int  pcai_media_load_model(string modelPath, int gpuLayers)               { return 0; }
         public static string GenerateImage(string prompt, string outputPath, float cfg, float t) { return null; }
         public static string UnderstandImage(string imagePath, string question, uint maxTokens, float temperature) { return "stub"; }
-        public static long GenerateImageNativeAsync(string prompt, float cfg, float temperature, string outputPath) { return 1; }
+        public static System.Threading.Tasks.Task<string> GenerateImageNativeAsync(
+            string prompt,
+            string outputPath,
+            float cfg,
+            float temperature,
+            int pollIntervalMs,
+            System.Threading.CancellationToken cancellationToken) {
+            return System.Threading.Tasks.Task.FromResult<string>(null);
+        }
         public static string UpscaleImage(string modelPath, string inputPath, string outputPath) { return null; }
+        public static void pcai_media_free_string(System.IntPtr ptr)                              { }
+        public static int  pcai_media_cancel(long requestId)                                      { return 0; }
         public static string GetLastError()                                                       { return null; }
         public static bool   IsAvailable                                                          { get { return true; } }
     }
@@ -77,9 +92,9 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media' {
             { Import-Module $script:ModulePath -Force -ErrorAction Stop } | Should -Not -Throw
         }
 
-        It 'Module exports exactly 8 functions' {
+        It 'Module exports exactly 10 functions' {
             $exported = (Get-Module PcaiMedia).ExportedFunctions.Keys | Sort-Object
-            $exported.Count | Should -Be 8
+            $exported.Count | Should -Be 10
         }
 
         It 'Module exports Initialize-PcaiMedia' {
@@ -99,6 +114,16 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media' {
 
         It 'Module exports New-PcaiImageAsync' {
             Get-Command -Module PcaiMedia -Name 'New-PcaiImageAsync' -ErrorAction SilentlyContinue |
+                Should -Not -BeNullOrEmpty
+        }
+
+        It 'Module exports Get-PcaiImageAsyncStatus' {
+            Get-Command -Module PcaiMedia -Name 'Get-PcaiImageAsyncStatus' -ErrorAction SilentlyContinue |
+                Should -Not -BeNullOrEmpty
+        }
+
+        It 'Module exports Wait-PcaiImageAsync' {
+            Get-Command -Module PcaiMedia -Name 'Wait-PcaiImageAsync' -ErrorAction SilentlyContinue |
                 Should -Not -BeNullOrEmpty
         }
 
@@ -166,6 +191,14 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media' {
                 function Initialize-PcaiMediaFFI { return $true }
                 $result = Initialize-PcaiMedia -Device 'cuda:0'
                 $result.Device | Should -Be 'cuda:0'
+            }
+        }
+
+        It 'Returns success object when Device is cuda:auto' {
+            InModuleScope PcaiMedia {
+                function Initialize-PcaiMediaFFI { return $true }
+                $result = Initialize-PcaiMedia -Device 'cuda:auto'
+                $result.Device | Should -Be 'cuda:auto'
             }
         }
 
@@ -281,9 +314,11 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media' {
         }
 
         It 'Defaults GpuLayers to -1 (full GPU offload)' {
-            $cmd = Get-Command Import-PcaiMediaModel
-            $defaultGpuLayers = $cmd.Parameters['GpuLayers'].DefaultValue
-            $defaultGpuLayers | Should -Be -1
+            InModuleScope PcaiMedia {
+                $script:Initialized = $true
+                $result = Import-PcaiMediaModel -ModelPath 'deepseek-ai/Janus-Pro-1B'
+                $result.GpuLayers | Should -Be -1
+            }
         }
     }
 
@@ -338,7 +373,7 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media' {
                 $result.Success     | Should -BeTrue
                 $result.Prompt      | Should -Be 'a sunset'
                 $result.CfgScale    | Should -Be 7.0
-                $result.Temperature | Should -Be 0.8
+                [Math]::Abs($result.Temperature - 0.8) | Should -BeLessThan 0.0001
             }
         }
 
@@ -377,6 +412,55 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media' {
     # Get-PcaiImageAnalysis
     # ===========================================================================
 
+    Context 'New-PcaiImageAsync' {
+
+        BeforeEach {
+            InModuleScope PcaiMedia {
+                $script:Initialized  = $true
+                $script:ModelLoaded  = $false
+                $script:CurrentModel = $null
+                Clear-PcaiImageAsyncRequests
+            }
+        }
+
+        It 'Throws when model is not loaded' {
+            { New-PcaiImageAsync -Prompt 'async circuit board' } | Should -Throw '*Model not loaded*'
+        }
+
+        It 'Returns async request metadata with a positive RequestId' {
+            InModuleScope PcaiMedia {
+                $script:ModelLoaded = $true
+                $outPath = Join-Path $env:TEMP 'pcai_async_unit.png'
+                $job = New-PcaiImageAsync -Prompt 'async sunset' -OutputPath $outPath
+                $job.RequestId | Should -BeGreaterThan 0
+                $job.OutputPath | Should -Be $outPath
+                $job.Status | Should -Be 'Completed'
+            }
+        }
+
+        It 'Get-PcaiImageAsyncStatus reports the task state for a queued request' {
+            InModuleScope PcaiMedia {
+                $script:ModelLoaded = $true
+                $job = New-PcaiImageAsync -Prompt 'status test'
+                $status = Get-PcaiImageAsyncStatus -RequestId $job.RequestId
+                $status.RequestId | Should -Be $job.RequestId
+                $status.Status | Should -Be 'Completed'
+                $status.TaskStatus | Should -Not -BeNullOrEmpty
+            }
+        }
+
+        It 'Wait-PcaiImageAsync returns a success object and clears the request registry' {
+            InModuleScope PcaiMedia {
+                $script:ModelLoaded = $true
+                $job = New-PcaiImageAsync -Prompt 'wait test'
+                $result = Wait-PcaiImageAsync -RequestId $job.RequestId
+                $result.Success | Should -BeTrue
+                $result.Status | Should -Be 'Completed'
+                $script:AsyncImageRequests.ContainsKey($job.RequestId) | Should -BeFalse
+            }
+        }
+    }
+
     Context 'Get-PcaiImageAnalysis' {
 
         BeforeEach {
@@ -396,9 +480,17 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media' {
         }
 
         It 'Default Question is Describe this image in detail.' {
-            $cmd = Get-Command Get-PcaiImageAnalysis
-            $defaultQuestion = $cmd.Parameters['Question'].DefaultValue
-            $defaultQuestion | Should -Be 'Describe this image in detail.'
+            InModuleScope PcaiMedia {
+                $script:ModelLoaded = $true
+                $tempImg = Join-Path $env:TEMP 'pcai_unit_test_default_question.png'
+                [System.IO.File]::WriteAllBytes($tempImg, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
+                try {
+                    $result = Get-PcaiImageAnalysis -ImagePath $tempImg
+                    $result.Question | Should -Be 'Describe this image in detail.'
+                } finally {
+                    Remove-Item $tempImg -Force -ErrorAction SilentlyContinue
+                }
+            }
         }
 
         It 'Returns success object with ImagePath, Question, and Response when model loaded' {
@@ -434,13 +526,31 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media' {
         }
 
         It 'Defaults MaxTokens to 512' {
-            $cmd = Get-Command Get-PcaiImageAnalysis
-            $cmd.Parameters['MaxTokens'].DefaultValue | Should -Be 512
+            InModuleScope PcaiMedia {
+                $script:ModelLoaded = $true
+                $tempImg = Join-Path $env:TEMP 'pcai_unit_test_max_tokens.png'
+                [System.IO.File]::WriteAllBytes($tempImg, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
+                try {
+                    $result = Get-PcaiImageAnalysis -ImagePath $tempImg
+                    $result.MaxTokens | Should -Be 512
+                } finally {
+                    Remove-Item $tempImg -Force -ErrorAction SilentlyContinue
+                }
+            }
         }
 
         It 'Defaults Temperature to 0.7' {
-            $cmd = Get-Command Get-PcaiImageAnalysis
-            $cmd.Parameters['Temperature'].DefaultValue | Should -Be 0.7
+            InModuleScope PcaiMedia {
+                $script:ModelLoaded = $true
+                $tempImg = Join-Path $env:TEMP 'pcai_unit_test_temperature.png'
+                [System.IO.File]::WriteAllBytes($tempImg, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
+                try {
+                    $result = Get-PcaiImageAnalysis -ImagePath $tempImg
+                    [Math]::Abs($result.Temperature - 0.7) | Should -BeLessThan 0.0001
+                } finally {
+                    Remove-Item $tempImg -Force -ErrorAction SilentlyContinue
+                }
+            }
         }
     }
 

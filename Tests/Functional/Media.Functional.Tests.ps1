@@ -38,8 +38,17 @@ namespace PcaiNative {
         public static int  pcai_media_load_model(string modelPath, int gpuLayers)                 { return 0; }
         public static string GenerateImage(string p, string o, float c, float t)                  { return null; }
         public static string UnderstandImage(string i, string q, uint m, float t)                 { return "stub"; }
-        public static long GenerateImageNativeAsync(string p, float c, float t, string o)         { return 1; }
+        public static System.Threading.Tasks.Task<string> GenerateImageNativeAsync(
+            string p,
+            string o,
+            float c,
+            float t,
+            int pollIntervalMs,
+            System.Threading.CancellationToken cancellationToken) {
+            return System.Threading.Tasks.Task.FromResult<string>(null);
+        }
         public static string UpscaleImage(string m, string i, string o)                           { return null; }
+        public static int pcai_media_cancel(long requestId)                                        { return 0; }
         public static string GetLastError()                                                        { return null; }
         public static bool   IsAvailable                                                           { get { return true; } }
     }
@@ -100,6 +109,16 @@ Describe 'Functional: Media CLI' -Tag 'Functional', 'Media' {
                 Should -Not -BeNullOrEmpty
         }
 
+        It 'PcaiMedia module exports Get-PcaiImageAsyncStatus' {
+            Get-Command -Module PcaiMedia -Name 'Get-PcaiImageAsyncStatus' -ErrorAction SilentlyContinue |
+                Should -Not -BeNullOrEmpty
+        }
+
+        It 'PcaiMedia module exports Wait-PcaiImageAsync' {
+            Get-Command -Module PcaiMedia -Name 'Wait-PcaiImageAsync' -ErrorAction SilentlyContinue |
+                Should -Not -BeNullOrEmpty
+        }
+
         It 'Get-Help Initialize-PcaiMedia returns a synopsis' {
             $help = Get-Help Initialize-PcaiMedia -ErrorAction SilentlyContinue
             $help.Synopsis | Should -Not -BeNullOrEmpty
@@ -132,6 +151,13 @@ Describe 'Functional: Media CLI' -Tag 'Functional', 'Media' {
             $validateSet = $cmd.Parameters['Device'].Attributes |
                 Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }
             $validateSet.ValidValues | Should -Contain 'cuda:0'
+        }
+
+        It 'Initialize-PcaiMedia -Device parameter accepts cuda:auto' {
+            $cmd = Get-Command Initialize-PcaiMedia
+            $validateSet = $cmd.Parameters['Device'].Attributes |
+                Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }
+            $validateSet.ValidValues | Should -Contain 'cuda:auto'
         }
 
         It 'Initialize-PcaiMedia -Device parameter accepts cuda:1' {
@@ -270,6 +296,46 @@ Describe 'Functional: Media CLI' -Tag 'Functional', 'Media' {
         It 'Initialize-PcaiMedia with invalid device string fails at parameter validation' {
             # ValidateSet should reject unknown device before any code runs
             { Initialize-PcaiMedia -Device 'npu' -ErrorAction Stop } | Should -Throw
+        }
+    }
+
+    Context 'Async Surface' {
+
+        BeforeEach {
+            InModuleScope PcaiMedia {
+                $script:Initialized  = $true
+                $script:ModelLoaded  = $true
+                $script:CurrentModel = 'deepseek-ai/Janus-Pro-1B'
+                Clear-PcaiImageAsyncRequests
+            }
+        }
+
+        It 'New-PcaiImageAsync returns request metadata with task status' {
+            $outPath = Join-Path $env:TEMP 'pcai_functional_async.png'
+            $job = New-PcaiImageAsync -Prompt 'functional async test' -OutputPath $outPath
+            $job.RequestId | Should -BeGreaterThan 0
+            $job.OutputPath | Should -Be $outPath
+            $job.Status | Should -Be 'Completed'
+            $job.TaskStatus | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Get-PcaiImageAsyncStatus returns the exported status object' {
+            $job = New-PcaiImageAsync -Prompt 'functional status test'
+            $status = Get-PcaiImageAsyncStatus -RequestId $job.RequestId
+            $status.RequestId | Should -Be $job.RequestId
+            $status.Status | Should -Be 'Completed'
+        }
+
+        It 'Wait-PcaiImageAsync returns the exported completion object' {
+            $job = New-PcaiImageAsync -Prompt 'functional wait test'
+            $result = Wait-PcaiImageAsync -RequestId $job.RequestId
+            $result.Success | Should -BeTrue
+            $result.Status | Should -Be 'Completed'
+        }
+
+        It 'New-PcaiImageAsync auto-generates a default output path when omitted' {
+            $job = New-PcaiImageAsync -Prompt 'functional default output'
+            $job.OutputPath | Should -Match 'janus-\d{8}-\d{6}\.png$'
         }
     }
 }

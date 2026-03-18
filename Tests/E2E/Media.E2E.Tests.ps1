@@ -105,7 +105,7 @@ BeforeAll {
     $script:TestModelPath   = Get-MediaModelPath
     $script:HasModel        = $null -ne $script:TestModelPath
     $script:HasGpu          = Test-GpuAvailable
-    $script:MediaDevice     = if ($script:HasGpu) { 'cuda:0' } else { 'cpu' }
+    $script:MediaDevice     = if ($script:HasGpu) { 'cuda:auto' } else { 'cpu' }
 
     Write-Verbose "E2E Media: DLLs=$($script:DllsAvailable), Model=$($script:HasModel), GPU=$($script:HasGpu)"
     Write-Verbose "E2E Media: TestModelPath=$($script:TestModelPath)"
@@ -326,6 +326,23 @@ Describe 'E2E: Media Pipeline' -Tag 'E2E', 'Media', 'Model', 'Slow' {
                 return
             }
             $job.OutputPath | Should -Be $outPath
+        }
+
+        It 'Wait-PcaiImageAsync completes the queued request and preserves the output path' -Tag 'Slow' {
+            if (-not $script:DllsAvailable -or -not $script:HasModel -or -not $script:MediaInitialized) {
+                Set-ItResult -Skipped -Because "Prerequisites not met"
+                return
+            }
+            $outPath = Join-Path $script:TestOutputDir 'e2e_async_wait.png'
+            $job = New-PcaiImageAsync -Prompt 'async completion test image' -OutputPath $outPath -ErrorAction SilentlyContinue
+            if ($null -eq $job) {
+                Set-ItResult -Skipped -Because "Async start returned null"
+                return
+            }
+
+            $result = Wait-PcaiImageAsync -RequestId $job.RequestId -TimeoutSeconds 180
+            $result.Success | Should -BeTrue
+            $result.OutputPath | Should -Be $outPath
         }
     }
 

@@ -60,16 +60,71 @@ BeforeAll {
         }
     }
 
+    function Get-CudaGpuInventory {
+        $nvidiaSmi = Get-Command nvidia-smi -ErrorAction SilentlyContinue
+        if (-not $nvidiaSmi) { return @() }
+
+        $rows = & $nvidiaSmi --query-gpu=index,uuid,name,memory.total,memory.used --format=csv,noheader,nounits 2>$null
+        foreach ($row in @($rows)) {
+            $parts = @($row -split ',')
+            if ($parts.Count -lt 5) { continue }
+            [PSCustomObject]@{
+                Index         = [int]($parts[0].Trim())
+                Uuid          = $parts[1].Trim()
+                Name          = $parts[2].Trim()
+                MemoryTotalMB = [int]($parts[3].Trim())
+                MemoryUsedMB  = [int]($parts[4].Trim())
+            }
+        }
+    }
+
+    function Resolve-PreferredCudaDevice {
+        param([object[]]$Inventory)
+
+        $override = if ($env:PCAI_MEDIA_BENCH_DEVICE) { $env:PCAI_MEDIA_BENCH_DEVICE } else { $env:PCAI_MEDIA_DEVICE }
+        if ($override) {
+            return @{
+                Device = $override
+                PreferredGpu = $null
+            }
+        }
+
+        if (-not $Inventory -or $Inventory.Count -eq 0) {
+            return @{
+                Device = 'cpu'
+                PreferredGpu = $null
+            }
+        }
+
+        $preferredGpu = $Inventory |
+            Sort-Object @{ Expression = 'MemoryTotalMB'; Descending = $true }, @{ Expression = 'Index'; Ascending = $true } |
+            Select-Object -First 1
+
+        return @{
+            Device = 'cuda:auto'
+            PreferredGpu = $preferredGpu
+        }
+    }
+
     # -------------------------------------------------------------------------
     # Helper: VRAM usage via nvidia-smi (returns MB used, or -1 if unavailable)
     # -------------------------------------------------------------------------
     function Get-VramUsedMB {
+        param([int]$GpuIndex = 0)
         try {
             $nvsmi = Get-Command nvidia-smi -ErrorAction SilentlyContinue
             if (-not $nvsmi) { return -1 }
-            $output = & nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>&1 |
-                      Select-Object -First 1
-            return [int]$output.Trim()
+            $output = & nvidia-smi --query-gpu=index,memory.used --format=csv,noheader,nounits 2>$null
+            $match = @($output | ForEach-Object {
+                $parts = @($_ -split ',')
+                if ($parts.Count -lt 2) { return }
+                [PSCustomObject]@{
+                    Index = [int]($parts[0].Trim())
+                    MemoryUsedMB = [int]($parts[1].Trim())
+                }
+            } | Where-Object Index -eq $GpuIndex | Select-Object -First 1)
+            if ($match.Count -eq 0) { return -1 }
+            return [int]$match[0].MemoryUsedMB
         } catch {
             return -1
         }
@@ -121,6 +176,7 @@ BeforeAll {
     # System info snapshot
     # -------------------------------------------------------------------------
     $script:GpuInfo     = Get-GpuInfo
+    $script:GpuInventory = @(Get-CudaGpuInventory)
     $script:CpuCount    = [Environment]::ProcessorCount
     $script:DotNetVer   = [System.Runtime.InteropServices.RuntimeEnvironment]::GetSystemVersion()
     $script:PsVersion   = $PSVersionTable.PSVersion.ToString()
@@ -142,10 +198,16 @@ BeforeAll {
         }
         Import-Module $script:MediaModPath -Force -ErrorAction SilentlyContinue
 
-        # Prefer CUDA if available
+        # Prefer the highest-VRAM CUDA device when available.
         $script:HasGpu    = (Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue |
                              Where-Object { $_.AdapterCompatibility -match 'NVIDIA' }) -ne $null
-        $script:DeviceArg = if ($script:HasGpu) { 'cuda:0' } else { 'cpu' }
+        $resolvedDevice = Resolve-PreferredCudaDevice -Inventory $script:GpuInventory
+        $script:DeviceArg = if ($script:HasGpu) { $resolvedDevice.Device } else { 'cpu' }
+        $script:PreferredGpu = $resolvedDevice.PreferredGpu
+        $script:BenchmarkGpuIndex = if ($script:PreferredGpu) { [int]$script:PreferredGpu.Index } else { 0 }
+        if (-not $env:CUDA_DEVICE_ORDER) {
+            $env:CUDA_DEVICE_ORDER = 'PCI_BUS_ID'
+        }
 
         $initResult = Initialize-PcaiMedia -Device $script:DeviceArg -ErrorAction SilentlyContinue
         if ($initResult -and $initResult.Success) {
@@ -202,6 +264,13 @@ AfterAll {
             GpuRamGB     = $script:GpuInfo.AdapterRamGB
             GpuDriver    = $script:GpuInfo.DriverVersion
             Device       = $script:DeviceArg
+            PreferredGpu = if ($script:PreferredGpu) {
+                @{
+                    Index = $script:PreferredGpu.Index
+                    Name = $script:PreferredGpu.Name
+                    MemoryTotalMB = $script:PreferredGpu.MemoryTotalMB
+                }
+            } else { $null }
             ModelPath    = $script:TestModelPath
         }
 
@@ -262,14 +331,14 @@ Describe 'Media Performance Benchmarks' -Tag 'Benchmark', 'Media', 'Slow', 'GPU'
                 return
             }
             $outPath = Join-Path $script:TempDir 'bench_first_token.png'
-            $vramBefore = Get-VramUsedMB
+            $vramBefore = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
 
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
             $result = New-PcaiImage -Prompt 'a single blue dot' -OutputPath $outPath -CfgScale 1.0 -Temperature 0.5 -ErrorAction SilentlyContinue
             $sw.Stop()
 
             if ($null -ne $result -and $result.Success) {
-                $vramAfter = Get-VramUsedMB
+                $vramAfter = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
                 $vramDelta = if ($vramBefore -ge 0 -and $vramAfter -ge 0) { $vramAfter - $vramBefore } else { -1 }
                 Add-BenchmarkResult -Category 'Generation' -Name 'FirstTokenLatencyMs' -ValueMs $sw.Elapsed.TotalMilliseconds -Extra @{ VramDeltaMB = $vramDelta }
                 Write-Host "  First-token latency: $($sw.Elapsed.TotalMilliseconds.ToString('F0')) ms"
@@ -284,7 +353,7 @@ Describe 'Media Performance Benchmarks' -Tag 'Benchmark', 'Media', 'Slow', 'GPU'
                 return
             }
             $outPath = Join-Path $script:TempDir 'bench_gen_384.png'
-            $vramBefore = Get-VramUsedMB
+            $vramBefore = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
 
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
             $result = New-PcaiImage -Prompt 'a glowing circuit board, 8k, detailed' `
@@ -295,7 +364,7 @@ Describe 'Media Performance Benchmarks' -Tag 'Benchmark', 'Media', 'Slow', 'GPU'
             $sw.Stop()
 
             if ($null -ne $result -and $result.Success) {
-                $vramAfter = Get-VramUsedMB
+                $vramAfter = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
                 $vramDelta = if ($vramBefore -ge 0 -and $vramAfter -ge 0) { $vramAfter - $vramBefore } else { -1 }
                 Add-BenchmarkResult -Category 'Generation' -Name 'TotalGenerationMs' -ValueMs $sw.Elapsed.TotalMilliseconds -Extra @{ VramDeltaMB = $vramDelta }
                 Write-Host "  384x384 generation: $($sw.Elapsed.TotalSeconds.ToString('F1')) s  (VRAM delta: $vramDelta MB)"
@@ -308,14 +377,14 @@ Describe 'Media Performance Benchmarks' -Tag 'Benchmark', 'Media', 'Slow', 'GPU'
                 Set-ItResult -Skipped -Because "Media pipeline not initialized"
                 return
             }
-            if ((Get-VramUsedMB) -lt 0) {
+            if ((Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex) -lt 0) {
                 Set-ItResult -Skipped -Because "nvidia-smi not available for VRAM measurement"
                 return
             }
-            $vramBefore = Get-VramUsedMB
+            $vramBefore = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
             $outPath    = Join-Path $script:TempDir 'bench_vram.png'
             $null = New-PcaiImage -Prompt 'test vram' -OutputPath $outPath -ErrorAction SilentlyContinue
-            $vramAfter  = Get-VramUsedMB
+            $vramAfter  = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
 
             $delta = $vramAfter - $vramBefore
             Add-BenchmarkResult -Category 'Generation' -Name 'VramDeltaMB' -ValueMs $delta -Unit 'MB'
@@ -470,14 +539,14 @@ Describe 'Media Performance Benchmarks' -Tag 'Benchmark', 'Media', 'Slow', 'GPU'
             }
 
             $outPath    = Join-Path $script:TempDir 'bench_upscale_1536.png'
-            $vramBefore = Get-VramUsedMB
+            $vramBefore = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
 
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
             $result = Invoke-PcaiUpscale -InputPath $srcImage -OutputPath $outPath -ModelPath $script:OnnxModelPath -ErrorAction SilentlyContinue
             $sw.Stop()
 
             if ($null -ne $result -and $result.Success) {
-                $vramAfter = Get-VramUsedMB
+                $vramAfter = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
                 $vramDelta = if ($vramBefore -ge 0 -and $vramAfter -ge 0) { $vramAfter - $vramBefore } else { -1 }
                 Add-BenchmarkResult -Category 'Upscale' -Name 'UpscaleTimeMs' -ValueMs $sw.Elapsed.TotalMilliseconds `
                     -Extra @{ VramDeltaMB = $vramDelta; InputPath = $srcImage; OutputPath = $outPath }
@@ -491,7 +560,7 @@ Describe 'Media Performance Benchmarks' -Tag 'Benchmark', 'Media', 'Slow', 'GPU'
                 Set-ItResult -Skipped -Because "Prerequisites not met"
                 return
             }
-            if ((Get-VramUsedMB) -lt 0) {
+            if ((Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex) -lt 0) {
                 Set-ItResult -Skipped -Because "nvidia-smi not available"
                 return
             }
@@ -501,9 +570,9 @@ Describe 'Media Performance Benchmarks' -Tag 'Benchmark', 'Media', 'Slow', 'GPU'
                 return
             }
             $outPath    = Join-Path $script:TempDir 'bench_upscale_vram.png'
-            $vramBefore = Get-VramUsedMB
+            $vramBefore = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
             $null = Invoke-PcaiUpscale -InputPath $srcImage -OutputPath $outPath -ModelPath $script:OnnxModelPath -ErrorAction SilentlyContinue
-            $vramAfter  = Get-VramUsedMB
+            $vramAfter  = Get-VramUsedMB -GpuIndex $script:BenchmarkGpuIndex
 
             $delta = $vramAfter - $vramBefore
             Add-BenchmarkResult -Category 'Upscale' -Name 'VramDeltaMB' -ValueMs $delta -Unit 'MB'

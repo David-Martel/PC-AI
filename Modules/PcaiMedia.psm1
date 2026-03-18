@@ -31,7 +31,7 @@
       the Janus-Pro inference pipeline with C ABI exports.
 
     GPU offload:
-      Pass -Device cuda:0 or cuda:1 to Initialize-PcaiMedia.
+      Pass -Device cuda:auto, cuda:0, or cuda:1 to Initialize-PcaiMedia.
       Pass -GpuLayers to Import-PcaiMediaModel (-1 = full GPU, 0 = CPU only).
 
     Dependencies:
@@ -47,11 +47,117 @@ $script:ModulePath = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Par
 $script:Initialized = $false
 $script:ModelLoaded = $false
 $script:CurrentModel = $null
+$script:NextAsyncRequestId = 0
+$script:AsyncImageRequests = [hashtable]::Synchronized(@{})
 #endregion
 
 #region Internal Logic
 function Get-PcaiProjectRoot {
     return (Split-Path $script:ModulePath -Parent)
+}
+
+function New-PcaiAsyncRequestId {
+    $script:NextAsyncRequestId += 1
+    return $script:NextAsyncRequestId
+}
+
+function Get-PcaiImageAsyncRequest {
+    param(
+        [Parameter(Mandatory)]
+        [int]$RequestId
+    )
+
+    if (-not $script:AsyncImageRequests.ContainsKey($RequestId)) {
+        throw "Async image request not found: $RequestId"
+    }
+
+    return $script:AsyncImageRequests[$RequestId]
+}
+
+function Remove-PcaiImageAsyncRequest {
+    param(
+        [Parameter(Mandatory)]
+        [int]$RequestId
+    )
+
+    if ($script:AsyncImageRequests.ContainsKey($RequestId)) {
+        $entry = $script:AsyncImageRequests[$RequestId]
+        try {
+            if ($entry.CancellationTokenSource) {
+                $entry.CancellationTokenSource.Dispose()
+            }
+        } catch {
+            Write-Verbose "Failed to dispose async request token source ${RequestId}: $_"
+        }
+        $null = $script:AsyncImageRequests.Remove($RequestId)
+    }
+}
+
+function Clear-PcaiImageAsyncRequests {
+    foreach ($requestId in @($script:AsyncImageRequests.Keys)) {
+        try {
+            Remove-PcaiImageAsyncRequest -RequestId ([int]$requestId)
+        } catch {
+            Write-Verbose "Failed to clear async request ${requestId}: $_"
+        }
+    }
+}
+
+function Get-PcaiImageAsyncCompletionState {
+    param(
+        [Parameter(Mandatory)]
+        $Task
+    )
+
+    $taskStatus = $Task.Status.ToString()
+
+    if ($Task.IsCanceled) {
+        return [PSCustomObject]@{
+            TaskStatus = $taskStatus
+            Status     = 'Cancelled'
+            Result     = $null
+            Error      = 'Cancelled'
+        }
+    }
+
+    if ($Task.IsFaulted) {
+        $message = $null
+        if ($null -ne $Task.Exception) {
+            $message = $Task.Exception.GetBaseException().Message
+        }
+        return [PSCustomObject]@{
+            TaskStatus = $taskStatus
+            Status     = 'Failed'
+            Result     = $null
+            Error      = $message
+        }
+    }
+
+    if (-not $Task.IsCompleted) {
+        return [PSCustomObject]@{
+            TaskStatus = $taskStatus
+            Status     = 'Running'
+            Result     = $null
+            Error      = $null
+        }
+    }
+
+    $result = $Task.GetAwaiter().GetResult()
+    if ($null -ne $result) {
+        return [PSCustomObject]@{
+            TaskStatus = $taskStatus
+            Status     = 'Failed'
+            Result     = $result
+            Error      = $result
+        }
+    }
+
+    return [PSCustomObject]@{
+        TaskStatus = $taskStatus
+        Status     = 'Completed'
+        Result     = $null
+        Error      = $null
+    }
 }
 
 function Initialize-PcaiMediaFFI {
@@ -86,18 +192,18 @@ function Initialize-PcaiMedia {
         to prepare the media pipeline.  Must be called before Import-PcaiMediaModel
         or any generation/understanding operation.
     .PARAMETER Device
-        Target compute device.  Accepted values: cpu, cuda, cuda:0, cuda:1, etc.
-        Defaults to cuda:0.
+        Target compute device.  Accepted values: cpu, cuda, cuda:auto, cuda:0, cuda:1.
+        Defaults to cuda:auto.
     .EXAMPLE
-        Initialize-PcaiMedia -Device cuda:0
+        Initialize-PcaiMedia -Device cuda:auto
     .EXAMPLE
         Initialize-PcaiMedia -Device cpu
     #>
     [CmdletBinding()]
     param(
         [Parameter(Position = 0)]
-        [ValidateSet('cpu', 'cuda', 'cuda:0', 'cuda:1')]
-        [string]$Device = 'cuda:0'
+        [ValidateSet('cpu', 'cuda', 'cuda:auto', 'cuda:0', 'cuda:1')]
+        [string]$Device = 'cuda:auto'
     )
 
     if (-not (Initialize-PcaiMediaFFI)) {
@@ -351,6 +457,7 @@ function Stop-PcaiMedia {
     if ($script:Initialized) {
         Write-Verbose 'Shutting down media pipeline...'
         try {
+            Clear-PcaiImageAsyncRequests
             [PcaiNative.MediaModule]::pcai_media_shutdown()
             $script:Initialized = $false
             $script:ModelLoaded = $false
@@ -397,6 +504,8 @@ function New-PcaiImageAsync {
         Classifier-Free Guidance scale.  Defaults to 5.0.
     .PARAMETER Temperature
         Sampling temperature.  Defaults to 1.0.
+    .PARAMETER PollIntervalMs
+        Polling interval used by the native C# async wrapper. Defaults to 100ms.
     .EXAMPLE
         $id = New-PcaiImageAsync -Prompt "a sunset" -OutputPath "C:\out.png"
     #>
@@ -414,7 +523,11 @@ function New-PcaiImageAsync {
 
         [Parameter()]
         [ValidateRange(0.01, 2.0)]
-        [float]$Temperature = 1.0
+        [float]$Temperature = 1.0,
+
+        [Parameter()]
+        [ValidateRange(10, 60000)]
+        [int]$PollIntervalMs = 100
     )
 
     if (-not $script:ModelLoaded) {
@@ -434,19 +547,134 @@ function New-PcaiImageAsync {
     Write-Verbose "Starting async image generation: '$Prompt' -> $OutputPath"
 
     try {
-        $requestId = [PcaiNative.MediaModule]::GenerateImageNativeAsync($Prompt, $CfgScale, $Temperature, $OutputPath)
-        if ($requestId -lt 0) {
-            $errorMsg = [PcaiNative.MediaModule]::GetLastError()
+        $requestId = New-PcaiAsyncRequestId
+        $cancellationTokenSource = [System.Threading.CancellationTokenSource]::new()
+        $task = [PcaiNative.MediaModule]::GenerateImageNativeAsync(
+            $Prompt,
+            $OutputPath,
+            $CfgScale,
+            $Temperature,
+            $PollIntervalMs,
+            $cancellationTokenSource.Token
+        )
+
+        $entry = [PSCustomObject]@{
+            RequestId               = $requestId
+            Prompt                  = $Prompt
+            OutputPath              = $OutputPath
+            Task                    = $task
+            CancellationTokenSource = $cancellationTokenSource
+            PollIntervalMs          = $PollIntervalMs
+            StartedAt               = Get-Date
+        }
+        $script:AsyncImageRequests[$requestId] = $entry
+
+        $state = Get-PcaiImageAsyncCompletionState -Task $task
+        if ($state.Status -eq 'Failed') {
+            Remove-PcaiImageAsyncRequest -RequestId $requestId
+            $errorMsg = if ($state.Error) { $state.Error } else { [PcaiNative.MediaModule]::GetLastError() }
             throw "Async image generation failed to start: $errorMsg"
         }
 
         return [PSCustomObject]@{
-            RequestId  = $requestId
-            Prompt     = $Prompt
-            OutputPath = $OutputPath
+            RequestId      = $requestId
+            Prompt         = $Prompt
+            OutputPath     = $OutputPath
+            Status         = $state.Status
+            TaskStatus     = $state.TaskStatus
+            PollIntervalMs = $PollIntervalMs
+            StartedAt      = $entry.StartedAt
         }
     } catch {
         throw "Async image generation error: $_"
+    }
+}
+
+function Get-PcaiImageAsyncStatus {
+    <#
+    .SYNOPSIS
+        Return the current status of an async image generation request.
+    .DESCRIPTION
+        Looks up a request created by New-PcaiImageAsync and reports the
+        underlying C# task status together with the module-side state.
+    .PARAMETER RequestId
+        Identifier returned by New-PcaiImageAsync.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [int]$RequestId
+    )
+
+    $entry = Get-PcaiImageAsyncRequest -RequestId $RequestId
+    $state = Get-PcaiImageAsyncCompletionState -Task $entry.Task
+    return [PSCustomObject]@{
+        RequestId      = $entry.RequestId
+        Prompt         = $entry.Prompt
+        OutputPath     = $entry.OutputPath
+        Status         = $state.Status
+        TaskStatus     = $state.TaskStatus
+        Result         = $state.Result
+        Error          = $state.Error
+        PollIntervalMs = $entry.PollIntervalMs
+        StartedAt      = $entry.StartedAt
+    }
+}
+
+function Wait-PcaiImageAsync {
+    <#
+    .SYNOPSIS
+        Wait for an async image generation request to finish.
+    .DESCRIPTION
+        Blocks until the request completes, then returns a success object or
+        throws if the native async wrapper reported an error.
+    .PARAMETER RequestId
+        Identifier returned by New-PcaiImageAsync.
+    .PARAMETER TimeoutSeconds
+        Optional timeout for the wait operation. Defaults to no timeout.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [int]$RequestId,
+
+        [Parameter()]
+        [ValidateRange(0, 86400)]
+        [int]$TimeoutSeconds = 0
+    )
+
+    $entry = Get-PcaiImageAsyncRequest -RequestId $RequestId
+    $task = $entry.Task
+
+    try {
+        if ($TimeoutSeconds -gt 0) {
+            if (-not $task.Wait([TimeSpan]::FromSeconds($TimeoutSeconds))) {
+                throw "Timed out waiting for async image request $RequestId"
+            }
+        } else {
+            $task.GetAwaiter().GetResult() | Out-Null
+        }
+
+        $state = Get-PcaiImageAsyncCompletionState -Task $task
+        if ($state.Status -ne 'Completed') {
+            $errorMsg = if ($state.Error) { $state.Error } else { 'Async image generation failed' }
+            throw $errorMsg
+        }
+
+        return [PSCustomObject]@{
+            Success        = $true
+            RequestId      = $entry.RequestId
+            Prompt         = $entry.Prompt
+            OutputPath     = $entry.OutputPath
+            Status         = $state.Status
+            TaskStatus     = $state.TaskStatus
+            PollIntervalMs = $entry.PollIntervalMs
+            StartedAt      = $entry.StartedAt
+        }
+    } catch {
+        throw "Async image generation wait failed: $_"
+    } finally {
+        Remove-PcaiImageAsyncRequest -RequestId $RequestId
     }
 }
 
@@ -529,6 +757,7 @@ function Invoke-PcaiUpscale {
 #region Module Cleanup
 if ($MyInvocation.MyCommand.ScriptBlock.Module) {
     $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
+        Clear-PcaiImageAsyncRequests
         if ($script:Initialized) {
             try {
                 [PcaiNative.MediaModule]::pcai_media_shutdown()
@@ -546,6 +775,8 @@ Export-ModuleMember -Function @(
     'Import-PcaiMediaModel',
     'New-PcaiImage',
     'New-PcaiImageAsync',
+    'Get-PcaiImageAsyncStatus',
+    'Wait-PcaiImageAsync',
     'Get-PcaiImageAnalysis',
     'Invoke-PcaiUpscale',
     'Stop-PcaiMedia',

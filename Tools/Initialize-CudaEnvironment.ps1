@@ -287,6 +287,10 @@ function Initialize-CudaEnvironment {
         Remove-Item Env:NVCC_CCBIN -ErrorAction SilentlyContinue
     }
 
+    if (-not $env:CUDA_DEVICE_ORDER) {
+        $env:CUDA_DEVICE_ORDER = 'PCI_BUS_ID'
+    }
+
     # Set CUDA compute capabilities for common architectures
     # 75=Turing, 80=Ampere, 86=GA102, 89=Ada, 90=Hopper, 120=Blackwell
     if (-not $env:CUDAARCHS) {
@@ -364,6 +368,7 @@ function Initialize-CudaEnvironment {
         Write-Host "  cicc:                 $ciccPath" -ForegroundColor DarkGray
         Write-Host "  CMAKE_CUDA_COMPILER:  $nvccPath" -ForegroundColor DarkGray
         Write-Host "  NVCC_CCBIN:           $($env:NVCC_CCBIN)" -ForegroundColor DarkGray
+        Write-Host "  CUDA_DEVICE_ORDER:    $($env:CUDA_DEVICE_ORDER)" -ForegroundColor DarkGray
         Write-Host "  CUDAARCHS:            $($env:CUDAARCHS)" -ForegroundColor DarkGray
     }
 

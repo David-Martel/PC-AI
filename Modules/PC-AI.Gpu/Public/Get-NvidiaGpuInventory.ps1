@@ -245,56 +245,45 @@ function Get-NvidiaGpuInventory {
             Write-Verbose "Querying nvidia-smi: $nvidiaSmi $($smiArgs -join ' ')"
             $rawLines = & $nvidiaSmi @smiArgs 2>&1
 
-            if ($LASTEXITCODE -ne 0) {
+            if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
                 Write-Verbose "nvidia-smi exited with code $LASTEXITCODE — falling back to CIM."
             }
             else {
                 $results = [System.Collections.Generic.List[PSCustomObject]]::new()
+                $headerFields = @('Index', 'UUID', 'Name', 'DriverVersion', 'ComputeCapability', 'MemoryTotal', 'MemoryUsed', 'Temperature', 'Utilization')
 
-                foreach ($line in $rawLines) {
-                    $line = $line.Trim()
-                    if ($line -eq '') { continue }
+                # Filter out empty lines and noise before parsing CSV
+                $sanitizedLines = @($rawLines | Where-Object { $_.Trim() -ne '' })
+                if ($sanitizedLines.Count -eq 0) {
+                    Write-Verbose 'nvidia-smi returned no data lines.'
+                    return @()
+                }
 
-                    $fields = $line -split ',\s*'
-                    if ($fields.Count -lt 9) {
-                        Write-Verbose "Skipping malformed nvidia-smi output line: $line"
-                        continue
-                    }
+                # Use ConvertFrom-Csv to handle commas within fields (e.g. in GPU names)
+                $csvData = $sanitizedLines | ConvertFrom-Csv -Header $headerFields
 
-                    $gpuIndex           = [int]($fields[0].Trim())
-                    $gpuUuid            = $fields[1].Trim()
-                    $gpuName            = $fields[2].Trim()
-                    $driverVersion      = $fields[3].Trim()
-                    $computeCapability  = $fields[4].Trim()
-                    $memTotalRaw        = $fields[5].Trim()
-                    $memUsedRaw         = $fields[6].Trim()
-                    $tempRaw            = $fields[7].Trim()
-                    $utilizationRaw     = $fields[8].Trim()
+                foreach ($row in $csvData) {
+                    $gpuIndex = [int]$row.Index
 
                     # Skip if -Index filter is active and this GPU does not match
                     if ($Index -ge 0 -and $gpuIndex -ne $Index) {
                         continue
                     }
 
-                    # Parse numeric fields; treat "[Not Supported]" as $null
-                    $memTotalMB  = $null
-                    $memUsedMB   = $null
-                    $temperature = $null
-                    $utilization = $null
-
-                    if ($memTotalRaw -match '^\d+$')  { $memTotalMB  = [int]$memTotalRaw }
-                    if ($memUsedRaw  -match '^\d+$')  { $memUsedMB   = [int]$memUsedRaw }
-                    if ($tempRaw     -match '^\d+$')  { $temperature = [int]$tempRaw }
-                    if ($utilizationRaw -match '^\d+$') { $utilization = [int]$utilizationRaw }
+                    # Parse numeric fields; treat "[Not Supported]" and other non-digits as $null
+                    $memTotalMB  = if ($row.MemoryTotal -match '^\d+$')  { [int]$row.MemoryTotal }  else { $null }
+                    $memUsedMB   = if ($row.MemoryUsed  -match '^\d+$')  { [int]$row.MemoryUsed }   else { $null }
+                    $temperature = if ($row.Temperature -match '^\d+$') { [int]$row.Temperature }  else { $null }
+                    $utilization = if ($row.Utilization -match '^\d+$') { [int]$row.Utilization }  else { $null }
 
                     # Normalize compute capability: nvidia-smi returns "8.9" or "8, 9"
-                    $computeCapability = $computeCapability -replace '\s', ''
+                    $computeCapability = $row.ComputeCapability -replace '\s', ''
 
                     $results.Add([PSCustomObject]@{
                         Index             = $gpuIndex
-                        UUID              = $gpuUuid
-                        Name              = $gpuName
-                        DriverVersion     = $driverVersion
+                        UUID              = $row.UUID.Trim()
+                        Name              = $row.Name.Trim()
+                        DriverVersion     = $row.DriverVersion.Trim()
                         ComputeCapability = $computeCapability
                         MemoryTotalMB     = $memTotalMB
                         MemoryUsedMB      = $memUsedMB

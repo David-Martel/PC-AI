@@ -243,7 +243,7 @@ pub fn search_logs(options: &LogSearchOptions) -> (LogSearchStats, LogSearchJson
             };
 
             let reader = BufReader::new(file);
-            let lines: Vec<String> = reader.lines().filter_map(|l| l.ok()).collect();
+            let lines: Vec<String> = reader.lines().map_while(Result::ok).collect();
 
             let mut matches = Vec::new();
             let context = options.context_lines;

@@ -111,40 +111,36 @@ function Get-NvidiaGpuUtilization {
         $snapshots = [System.Collections.Generic.List[PSCustomObject]]::new()
         $timestamp = [datetime]::Now
 
-        foreach ($line in $rawLines) {
-            $line = $line.Trim()
-            if ($line -eq '') { continue }
+        $headerFields = @('Index', 'Name', 'Utilization', 'MemoryUsed', 'MemoryTotal', 'Temperature', 'Power', 'Fan')
 
-            $fields = $line -split ',\s*'
-            if ($fields.Count -lt 8) {
-                Write-Verbose "Skipping malformed nvidia-smi line: $line"
-                continue
-            }
+        # Filter out empty lines and noise before parsing CSV
+        $sanitizedLines = @($rawLines | Where-Object { $_.Trim() -ne '' })
+        if ($sanitizedLines.Count -eq 0) {
+            Write-Verbose 'nvidia-smi returned no data lines.'
+            return @()
+        }
 
-            $gpuIndex        = [int]($fields[0].Trim())
-            $gpuName         = $fields[1].Trim()
-            $utilizationRaw  = $fields[2].Trim()
-            $memUsedRaw      = $fields[3].Trim()
-            $memTotalRaw     = $fields[4].Trim()
-            $tempRaw         = $fields[5].Trim()
-            $powerRaw        = $fields[6].Trim()
-            $fanRaw          = $fields[7].Trim()
+        # Use ConvertFrom-Csv to handle commas within fields (e.g. in GPU names)
+        $csvData = $sanitizedLines | ConvertFrom-Csv -Header $headerFields
+
+        foreach ($row in $csvData) {
+            $gpuIndex = [int]$row.Index
 
             if ($filterIndex -ge 0 -and $gpuIndex -ne $filterIndex) {
                 continue
             }
 
-            # Parse numeric fields; treat "[Not Supported]" and empty strings as $null
-            $gpuUtil  = if ($utilizationRaw -match '^\d+$')   { [int]$utilizationRaw }   else { $null }
-            $memUsed  = if ($memUsedRaw     -match '^\d+$')   { [int]$memUsedRaw }     else { $null }
-            $memTotal = if ($memTotalRaw    -match '^\d+$')   { [int]$memTotalRaw }    else { $null }
-            $temp     = if ($tempRaw        -match '^\d+$')   { [int]$tempRaw }        else { $null }
-            $power    = if ($powerRaw       -match '^\d+(\.\d+)?$') { [decimal]$powerRaw } else { $null }
-            $fan      = if ($fanRaw         -match '^\d+$')   { [int]$fanRaw }         else { $null }
+            # Parse numeric fields; treat "[Not Supported]" and other non-digits as $null
+            $gpuUtil  = if ($row.Utilization -match '^\d+$')   { [int]$row.Utilization }   else { $null }
+            $memUsed  = if ($row.MemoryUsed  -match '^\d+$')   { [int]$row.MemoryUsed }    else { $null }
+            $memTotal = if ($row.MemoryTotal -match '^\d+$')   { [int]$row.MemoryTotal }   else { $null }
+            $temp     = if ($row.Temperature -match '^\d+$')   { [int]$row.Temperature }   else { $null }
+            $power    = if ($row.Power       -match '^\d+(\.\d+)?$') { [decimal]$row.Power } else { $null }
+            $fan      = if ($row.Fan         -match '^\d+$')   { [int]$row.Fan }           else { $null }
 
             $snapshots.Add([PSCustomObject]@{
                 Index          = $gpuIndex
-                Name           = $gpuName
+                Name           = $row.Name.Trim()
                 GpuUtilization = $gpuUtil
                 MemoryUsedMB   = $memUsed
                 MemoryTotalMB  = $memTotal

@@ -69,7 +69,6 @@ where
     WalkerStats {
         files_scanned: stats.files_scanned.load(Ordering::Relaxed).into(),
         errors: stats.errors.load(Ordering::Relaxed).into(),
-        ..Default::default()
     }
 }
 

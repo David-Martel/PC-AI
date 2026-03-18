@@ -150,7 +150,11 @@ function Invoke-NvidiaSilentInstall {
     try {
         switch ($extension) {
             '.exe' {
-                $argList = $SilentArgs -join ' '
+                # Ensure each argument is quoted if it contains spaces
+                $escapedArgs = @($SilentArgs | ForEach-Object {
+                    if ($_ -match ' ') { "`"$_`"" } else { $_ }
+                })
+                $argList = $escapedArgs -join ' '
                 Write-Verbose "Invoke-NvidiaSilentInstall: Launching EXE '$InstallerPath' with args: $argList"
 
                 $psi                        = New-Object System.Diagnostics.ProcessStartInfo

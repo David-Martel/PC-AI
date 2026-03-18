@@ -141,12 +141,12 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
         }
 
         It 'parses both GPUs from nvidia-smi output' {
-            $csvData = $script:NvidiaSmiInventoryCsv
-            InModuleScope 'PC-AI.Gpu' -Parameters @{ CsvData = $csvData } {
-                param($CsvData)
+            $csvLines = $script:NvidiaSmiInventoryCsv -split "`r?`n" | Where-Object { $_ -ne '' }
+            InModuleScope 'PC-AI.Gpu' -Parameters @{ CsvLines = $csvLines } {
+                param($CsvLines)
                 Mock Resolve-PcaiCoreLibDll { return $null }
                 Mock Get-Command { [pscustomobject]@{ Source = 'nvidia-smi.exe' } } -ParameterFilter { $Name -eq 'nvidia-smi.exe' }
-                Mock nvidia-smi.exe { $CsvData }
+                Mock nvidia-smi.exe { $CsvLines }
                 $result = @(Get-NvidiaGpuInventory)
                 $result.Count | Should -Be 2
                 $result[0].Index | Should -Be 0
@@ -222,11 +222,11 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
 
     Context 'Get-NvidiaGpuUtilization' {
         It 'parses utilization metrics with the current property names' {
-            $csvData = $script:NvidiaSmiUtilizationCsv
-            InModuleScope 'PC-AI.Gpu' -Parameters @{ CsvData = $csvData } {
-                param($CsvData)
+            $csvLines = $script:NvidiaSmiUtilizationCsv -split "`r?`n" | Where-Object { $_ -ne '' }
+            InModuleScope 'PC-AI.Gpu' -Parameters @{ CsvLines = $csvLines } {
+                param($CsvLines)
                 Mock Get-Command { [pscustomobject]@{ Source = 'nvidia-smi.exe' } } -ParameterFilter { $Name -eq 'nvidia-smi.exe' }
-                Mock nvidia-smi.exe { $global:LASTEXITCODE = 0; $CsvData }
+                Mock nvidia-smi.exe { $CsvLines }
                 $result = @(Get-NvidiaGpuUtilization)
                 $result.Count | Should -Be 2
                 $result[0].GpuUtilization | Should -Be 45

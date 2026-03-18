@@ -19,6 +19,11 @@ pub use optimizer::MemoryPressureReport;
 pub use process::ProcessStats;
 
 #[no_mangle]
+/// Get disk usage statistics for a directory.
+///
+/// # Safety
+///
+/// `root_path` must be a valid, null-terminated C string.
 pub unsafe extern "C" fn pcai_get_disk_usage(root_path: *const c_char, top_n: u32) -> DiskUsageStats {
     if root_path.is_null() {
         return DiskUsageStats::error(PcaiStatus::NullPointer);
@@ -36,6 +41,11 @@ pub unsafe extern "C" fn pcai_get_disk_usage(root_path: *const c_char, top_n: u3
 }
 
 #[no_mangle]
+/// Get disk usage statistics for a directory as JSON.
+///
+/// # Safety
+///
+/// `root_path` must be a valid, null-terminated C string.
 pub unsafe extern "C" fn pcai_get_disk_usage_json(root_path: *const c_char, top_n: u32) -> PcaiStringBuffer {
     if root_path.is_null() {
         return PcaiStringBuffer::error(PcaiStatus::NullPointer);
@@ -64,6 +74,11 @@ pub unsafe extern "C" fn pcai_get_disk_usage_json(root_path: *const c_char, top_
 }
 
 #[no_mangle]
+/// Get disk usage statistics for a directory as a compact byte buffer.
+///
+/// # Safety
+///
+/// `root_path` must be a valid, null-terminated C string.
 pub unsafe extern "C" fn pcai_get_disk_usage_compact(root_path: *const c_char, top_n: u32) -> PcaiByteBuffer {
     if root_path.is_null() {
         return PcaiByteBuffer::error(PcaiStatus::NullPointer);
@@ -89,6 +104,11 @@ pub extern "C" fn pcai_get_process_stats() -> ProcessStats {
 }
 
 #[no_mangle]
+/// Get top processes by resource usage as JSON.
+///
+/// # Safety
+///
+/// `sort_by` must be a valid, null-terminated C string if not null.
 pub unsafe extern "C" fn pcai_get_top_processes_json(top_n: u32, sort_by: *const c_char) -> PcaiStringBuffer {
     let sort_key = if sort_by.is_null() {
         "memory"
@@ -115,6 +135,11 @@ pub unsafe extern "C" fn pcai_get_top_processes_json(top_n: u32, sort_by: *const
 }
 
 #[no_mangle]
+/// Get top processes by resource usage as a compact byte buffer.
+///
+/// # Safety
+///
+/// `sort_by` must be a valid, null-terminated C string if not null.
 pub unsafe extern "C" fn pcai_get_top_processes_compact(top_n: u32, sort_by: *const c_char) -> PcaiByteBuffer {
     let sort_key = if sort_by.is_null() {
         "memory"

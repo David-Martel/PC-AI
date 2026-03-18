@@ -141,6 +141,11 @@ pub fn rust_str_to_c(s: &str) -> *mut c_char {
     }
 }
 
+/// Convert a C string to a Rust string slice.
+///
+/// # Safety
+///
+/// `ptr` must be a valid, null-terminated C string.
 pub unsafe fn c_str_to_rust<'a>(ptr: *const c_char) -> Option<&'a str> {
     if ptr.is_null() {
         return None;

@@ -3,8 +3,24 @@
 //! Provides health checks for WSL2/Hyper-V host communication.
 //! Some structures and constants are reserved for future direct vsock support.
 
+#[cfg(windows)]
 use windows_sys::core::GUID;
+#[cfg(windows)]
 use windows_sys::Win32::Networking::WinSock::{socket, AF_HYPERV, INVALID_SOCKET, SOCK_STREAM};
+
+#[cfg(not(windows))]
+#[derive(Clone, Copy)]
+#[allow(clippy::upper_case_acronyms)]
+struct GUID {
+    #[allow(dead_code)]
+    pub data1: u32,
+    #[allow(dead_code)]
+    pub data2: u16,
+    #[allow(dead_code)]
+    pub data3: u16,
+    #[allow(dead_code)]
+    pub data4: [u8; 8],
+}
 
 // Define SOCKADDR_HV manually since it might not be in windows-sys's version for networking
 // Reserved for future direct vsock connect support
@@ -75,25 +91,34 @@ pub struct VmmHealth {
 
 /// Performs a direct AF_HYPERV check to see if the WSL/Host bridge is alive.
 pub fn check_vmm_health() -> VmmHealth {
-    let mut health = VmmHealth {
+    #[cfg(windows)]
+    {
+        let mut health = VmmHealth {
+            wsl_host_responding: false,
+            vsock_available: false,
+            bridge_latency_ms: 0,
+        };
+
+        unsafe {
+            let s = socket(AF_HYPERV as i32, SOCK_STREAM, 0);
+            if s != INVALID_SOCKET {
+                health.vsock_available = true;
+                // For now, we just check if we can create the socket.
+                // A full connection test would require a known service ID (port).
+                // We'll mark host as responding if we can at least open the subsystem.
+                health.wsl_host_responding = true;
+
+                // Close the test socket
+                windows_sys::Win32::Networking::WinSock::closesocket(s);
+            }
+        }
+
+        health
+    }
+    #[cfg(not(windows))]
+    VmmHealth {
         wsl_host_responding: false,
         vsock_available: false,
         bridge_latency_ms: 0,
-    };
-
-    unsafe {
-        let s = socket(AF_HYPERV as i32, SOCK_STREAM, 0);
-        if s != INVALID_SOCKET {
-            health.vsock_available = true;
-            // For now, we just check if we can create the socket.
-            // A full connection test would require a known service ID (port).
-            // We'll mark host as responding if we can at least open the subsystem.
-            health.wsl_host_responding = true;
-
-            // Close the test socket
-            windows_sys::Win32::Networking::WinSock::closesocket(s);
-        }
     }
-
-    health
 }

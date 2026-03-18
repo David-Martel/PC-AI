@@ -1,9 +1,15 @@
 pub mod device_codes;
+#[cfg(windows)]
 pub mod disk_health;
+#[cfg(windows)]
 pub mod event_log;
+#[cfg(windows)]
 pub mod network;
+#[cfg(windows)]
 pub mod pnp;
+#[cfg(windows)]
 pub mod process;
+#[cfg(windows)]
 pub mod usb;
 
 use std::sync::Mutex;
@@ -55,7 +61,13 @@ pub fn collect_telemetry() -> SystemTelemetry {
         let name_os = process.name();
         let name = name_os.to_string_lossy();
 
-        if name.ends_with("pwsh.exe") || name.ends_with("powershell.exe") || name == "pwsh" || name == "powershell" {
+        let is_ps = if cfg!(windows) {
+            name.ends_with("pwsh.exe") || name.ends_with("powershell.exe")
+        } else {
+            name == "pwsh" || name == "powershell"
+        };
+
+        if is_ps {
             ps_processes.push(ProcessMetrics {
                 pid: pid.as_u32(),
                 name: name.into_owned(),

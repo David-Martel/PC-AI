@@ -51,10 +51,14 @@ function Get-NvidiaDriverVersion {
         try {
             $smiOutput = & $nvidiaSmi --query-gpu=driver_version --format=csv,noheader,nounits 2>&1
             if ($LASTEXITCODE -eq 0 -and $smiOutput) {
-                $version = ($smiOutput | Select-Object -First 1).Trim()
-                if ($version -and $version -ne '') {
-                    Write-Verbose "Driver version from nvidia-smi: $version"
-                    return $version
+                # Sanitize output by removing empty/noise lines
+                $sanitized = @($smiOutput | Where-Object { $_.Trim() -ne '' })
+                if ($sanitized.Count -gt 0) {
+                    $version = $sanitized[0].Trim()
+                    if ($version -and $version -ne '') {
+                        Write-Verbose "Driver version from nvidia-smi: $version"
+                        return $version
+                    }
                 }
             }
         }

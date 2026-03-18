@@ -34,7 +34,6 @@ thiserror.workspace = true
 parking_lot.workspace = true
 path-slash.workspace = true
 dunce.workspace = true
-winreg.workspace = true
 libc.workspace = true
 rust-functiongemma-train = { path = "../../../Deploy/rust-functiongemma-train", optional = true }
 nvml-wrapper = { version = "0.12", optional = true }
@@ -45,6 +44,7 @@ functiongemma = ["dep:rust-functiongemma-train"]
 nvml = ["dep:nvml-wrapper"]
 
 [target.'cfg(windows)'.dependencies]
+winreg.workspace = true
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_System_SystemInformation",

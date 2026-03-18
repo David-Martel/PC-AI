@@ -85,7 +85,8 @@ pub fn find_duplicates(
     // Phase 2: Parallel hashing of candidates (only for sizes with multiple files)
     let candidates: Vec<(u64, Vec<PathBuf>)> = size_map.into_iter().filter(|(_, paths)| paths.len() > 1).collect();
 
-    let hash_groups: Arc<Mutex<HashMap<(u64, String), Vec<String>>>> = Arc::new(Mutex::new(HashMap::new()));
+    type HashGroups = HashMap<(u64, String), Vec<String>>;
+    let hash_groups: Arc<Mutex<HashGroups>> = Arc::new(Mutex::new(HashMap::new()));
 
     candidates.into_par_iter().for_each(|(size, paths)| {
         paths.into_par_iter().for_each(|path| {

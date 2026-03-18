@@ -125,6 +125,11 @@ pub extern "C" fn pcai_fs_version() -> u32 {
 }
 
 #[no_mangle]
+/// Delete a file or directory.
+///
+/// # Safety
+///
+/// The `path` must be a valid, null-terminated C string.
 pub unsafe extern "C" fn pcai_delete_fs_item(path: *const c_char, recursive: bool) -> PcaiStatus {
     let path_str = match c_str_to_str(path) {
         Ok(s) => s,
@@ -134,6 +139,11 @@ pub unsafe extern "C" fn pcai_delete_fs_item(path: *const c_char, recursive: boo
 }
 
 #[no_mangle]
+/// Replace text in a single file.
+///
+/// # Safety
+///
+/// `file_path`, `pattern`, and `replacement` must be valid, null-terminated C strings.
 pub unsafe extern "C" fn pcai_replace_in_file(
     file_path: *const c_char,
     pattern: *const c_char,
@@ -166,6 +176,11 @@ pub unsafe extern "C" fn pcai_replace_in_file(
 }
 
 #[no_mangle]
+/// Replace text in multiple files matching a pattern.
+///
+/// # Safety
+///
+/// `root_path`, `file_pattern`, `content_pattern`, and `replacement` must be valid, null-terminated C strings.
 pub unsafe extern "C" fn pcai_replace_in_files(
     root_path: *const c_char,
     file_pattern: *const c_char,

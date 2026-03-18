@@ -76,6 +76,52 @@ pub extern "C" fn pcai_string_copy(input: *const c_char) -> *mut c_char {
     }
 }
 
+/// Return real-time utilization metrics for the GPU at `device_index` as JSON.
+///
+/// Returns a null pointer when NVML is unavailable or the index is out of range.
+/// The caller must free the returned string with [`pcai_free_string`].
+///
+/// # Safety
+///
+/// This function is safe to call from any thread.
+#[cfg(feature = "nvml")]
+#[no_mangle]
+pub extern "C" fn pcai_gpu_utilization_json(device_index: u32) -> *mut c_char {
+    match gpu::gpu_utilization(device_index) {
+        Ok(util) => match serde_json::to_string(&util) {
+            Ok(json) => rust_str_to_c(&json),
+            Err(_) => std::ptr::null_mut(),
+        },
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Return the CUDA driver version as a JSON object `{"major": X, "minor": Y}`.
+///
+/// Returns a null pointer when NVML is unavailable.
+/// The caller must free the returned string with [`pcai_free_string`].
+///
+/// # Safety
+///
+/// This function is safe to call from any thread.
+#[cfg(feature = "nvml")]
+#[no_mangle]
+pub extern "C" fn pcai_cuda_driver_version_json() -> *mut c_char {
+    match gpu::cuda_driver_version() {
+        Ok((major, minor)) => {
+            let json = serde_json::json!({
+                "major": major,
+                "minor": minor
+            });
+            match serde_json::to_string(&json) {
+                Ok(s) => rust_str_to_c(&s),
+                Err(_) => std::ptr::null_mut(),
+            }
+        }
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn pcai_cpu_count() -> u32 {
     std::thread::available_parallelism()
@@ -149,62 +195,100 @@ pub extern "C" fn pcai_query_full_context_json() -> *mut c_char {
 
 #[no_mangle]
 pub extern "C" fn pcai_get_usb_deep_diagnostics_json() -> *mut c_char {
-    let devices = telemetry::usb::collect_usb_diagnostics();
-    match serde_json::to_string(&devices) {
-        Ok(json) => rust_str_to_c(&json),
-        Err(_) => std::ptr::null_mut(),
+    #[cfg(windows)]
+    {
+        let devices = telemetry::usb::collect_usb_diagnostics();
+        match serde_json::to_string(&devices) {
+            Ok(json) => rust_str_to_c(&json),
+            Err(_) => std::ptr::null_mut(),
+        }
     }
+    #[cfg(not(windows))]
+    rust_str_to_c("[]")
 }
 
 #[no_mangle]
-pub extern "C" fn pcai_get_pnp_devices_json(class_filter: *const c_char) -> *mut c_char {
-    let filter = if class_filter.is_null() {
-        None
-    } else {
-        unsafe { CStr::from_ptr(class_filter).to_str().ok() }
-    };
+/// Return a JSON array of PNP devices.
+///
+/// # Safety
+///
+/// `class_filter` must be a valid, null-terminated C string if not null.
+pub unsafe extern "C" fn pcai_get_pnp_devices_json(class_filter: *const c_char) -> *mut c_char {
+    let _ = class_filter;
+    #[cfg(windows)]
+    {
+        let filter = if class_filter.is_null() {
+            None
+        } else {
+            unsafe { CStr::from_ptr(class_filter).to_str().ok() }
+        };
 
-    let devices = telemetry::pnp::collect_pnp_devices(filter);
-    match serde_json::to_string(&devices) {
-        Ok(json) => rust_str_to_c(&json),
-        Err(_) => std::ptr::null_mut(),
+        let devices = telemetry::pnp::collect_pnp_devices(filter);
+        match serde_json::to_string(&devices) {
+            Ok(json) => rust_str_to_c(&json),
+            Err(_) => std::ptr::null_mut(),
+        }
     }
+    #[cfg(not(windows))]
+    rust_str_to_c("[]")
 }
 
 #[no_mangle]
 pub extern "C" fn pcai_get_disk_health_json() -> *mut c_char {
-    let health = telemetry::disk_health::collect_disk_health();
-    match serde_json::to_string(&health) {
-        Ok(json) => rust_str_to_c(&json),
-        Err(_) => std::ptr::null_mut(),
+    #[cfg(windows)]
+    {
+        let health = telemetry::disk_health::collect_disk_health();
+        match serde_json::to_string(&health) {
+            Ok(json) => rust_str_to_c(&json),
+            Err(_) => std::ptr::null_mut(),
+        }
     }
+    #[cfg(not(windows))]
+    rust_str_to_c("[]")
 }
 
 #[no_mangle]
 pub extern "C" fn pcai_sample_hardware_events_json(days: u32, max_events: u32) -> *mut c_char {
-    let events = telemetry::event_log::sample_hardware_events(days, max_events);
-    match serde_json::to_string(&events) {
-        Ok(json) => rust_str_to_c(&json),
-        Err(_) => std::ptr::null_mut(),
+    let _ = days;
+    let _ = max_events;
+    #[cfg(windows)]
+    {
+        let events = telemetry::event_log::sample_hardware_events(days, max_events);
+        match serde_json::to_string(&events) {
+            Ok(json) => rust_str_to_c(&json),
+            Err(_) => std::ptr::null_mut(),
+        }
     }
+    #[cfg(not(windows))]
+    rust_str_to_c("[]")
 }
 
 #[no_mangle]
 pub extern "C" fn pcai_get_network_throughput_json() -> *mut c_char {
-    let interfaces = telemetry::network::collect_network_diagnostics();
-    match serde_json::to_string(&interfaces) {
-        Ok(json) => rust_str_to_c(&json),
-        Err(_) => std::ptr::null_mut(),
+    #[cfg(windows)]
+    {
+        let interfaces = telemetry::network::collect_network_diagnostics();
+        match serde_json::to_string(&interfaces) {
+            Ok(json) => rust_str_to_c(&json),
+            Err(_) => std::ptr::null_mut(),
+        }
     }
+    #[cfg(not(windows))]
+    rust_str_to_c("[]")
 }
 
 #[no_mangle]
 pub extern "C" fn pcai_get_process_history_json() -> *mut c_char {
-    let history = telemetry::process::collect_process_telemetry();
-    match serde_json::to_string(&history) {
-        Ok(json) => rust_str_to_c(&json),
-        Err(_) => std::ptr::null_mut(),
+    #[cfg(windows)]
+    {
+        let history = telemetry::process::collect_process_telemetry();
+        match serde_json::to_string(&history) {
+            Ok(json) => rust_str_to_c(&json),
+            Err(_) => std::ptr::null_mut(),
+        }
     }
+    #[cfg(not(windows))]
+    rust_str_to_c("[]")
 }
 
 #[no_mangle]

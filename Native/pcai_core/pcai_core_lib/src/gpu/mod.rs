@@ -189,11 +189,13 @@ pub fn gpu_inventory() -> Result<Vec<GpuInfo>> {
     let mut gpus = Vec::with_capacity(count as usize);
 
     for idx in 0..count {
-        let device = nvml
-            .device_by_index(idx)
-            .with_context(|| format!("Failed to open NVML device at index {idx}"))?;
-
-        gpus.push(query_gpu_info(&device, idx, &driver)?);
+        match nvml.device_by_index(idx) {
+            Ok(device) => match query_gpu_info(&device, idx, &driver) {
+                Ok(info) => gpus.push(info),
+                Err(err) => warn!("Failed to query info for GPU at index {idx}: {err}"),
+            },
+            Err(err) => warn!("Failed to open NVML device at index {idx}: {err}"),
+        }
     }
 
     Ok(gpus)

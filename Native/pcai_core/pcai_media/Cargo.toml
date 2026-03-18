@@ -27,9 +27,10 @@ safetensors = "0.4"
 tokenizers = "0.20"
 image = "0.25"
 rand = "0.8"
-# Disable ureq (sync HTTP) to avoid ring crate → rustls → C compilation
-# issues with sccache + MSVC in CUDA build environments. We only use the
-# async tokio path (reqwest + native-tls via Windows SChannel).
+# Disable ureq (sync HTTP client) to eliminate the ring crate dependency.
+# ring requires MSVC cl.exe at build time, which conflicts with sccache in
+# CUDA build environments. We use the async tokio/reqwest path instead.
+# hub.rs uses hf_hub::api::tokio::ApiBuilder (async, reqwest + native-tls).
 hf-hub = { version = "0.5", default-features = false, features = ["tokio"] }
 memmap2 = "0.9"
 

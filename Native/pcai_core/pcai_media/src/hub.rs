@@ -35,8 +35,8 @@ use candle_nn::VarMap;
 ///
 /// If `model_id` points to an existing local directory it is returned as-is.
 /// Otherwise the function attempts to download the model from HuggingFace Hub
-/// using [`hf_hub::api::sync::Api`], fetching `config.json` and
-/// `tokenizer.json` into the Hub cache directory.
+/// using the async tokio API, fetching `config.json` and `tokenizer.json`
+/// into the Hub cache directory.
 ///
 /// # Errors
 ///
@@ -50,16 +50,47 @@ pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
     }
 
     tracing::info!(model = model_id, "downloading model from HuggingFace Hub");
-    let api = hf_hub::api::sync::Api::new().context("failed to initialise HuggingFace Hub API")?;
+
+    // Use the async tokio API (avoids ureq → rustls → ring build dependency).
+    // Block on the async call since resolve_model_path is sync.
+    let rt = tokio::runtime::Handle::try_current()
+        .map(|h| {
+            // We're already inside a tokio runtime — use spawn_blocking to
+            // avoid blocking the async executor.
+            std::thread::scope(|s| {
+                s.spawn(|| {
+                    let local_rt = tokio::runtime::Runtime::new().expect("tokio runtime");
+                    local_rt.block_on(download_model_async(model_id))
+                })
+                .join()
+                .expect("download thread panicked")
+            })
+        })
+        .unwrap_or_else(|_| {
+            // No runtime — create one and block.
+            let rt = tokio::runtime::Runtime::new().context("failed to create tokio runtime")?;
+            rt.block_on(download_model_async(model_id))
+        })?;
+
+    Ok(rt)
+}
+
+/// Async implementation of model download from HuggingFace Hub.
+async fn download_model_async(model_id: &str) -> Result<PathBuf> {
+    let api = hf_hub::api::tokio::ApiBuilder::new()
+        .build()
+        .context("failed to initialise HuggingFace Hub API")?;
     let repo = api.model(model_id.to_string());
 
     // Fetch config.json — the returned path reveals the local cache directory.
     let config_path = repo
         .get("config.json")
+        .await
         .with_context(|| format!("failed to download config.json for model '{model_id}'"))?;
 
     // Fetch tokenizer.json into the same cache directory.
     repo.get("tokenizer.json")
+        .await
         .with_context(|| format!("failed to download tokenizer.json for model '{model_id}'"))?;
 
     // The parent of config.json is the per-revision snapshot directory.

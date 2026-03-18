@@ -58,8 +58,8 @@ PC_AI/
 │   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
 │   ├── PcaiInference.psm1             # Inference module (load/generate/stream/async)
 │   └── PcaiMedia.psm1                 # Media processing module (Janus-Pro wrapper)
-├── Tools/                             # 51 utility/build scripts
-├── Tests/                             # Pester + Rust test suites (75+ test files)
+├── Tools/                             # 53 utility/build scripts
+├── Tests/                             # Pester + Rust test suites (80+ test files)
 ├── Scripts/                           # Rust analyzer health, CargoTools tests
 ├── Config/
 │   ├── llm-config.json                # Backend + model configuration
@@ -83,6 +83,19 @@ PC_AI/
 3. **Modules/PC-AI.Hardware/** - PowerShell module that collects system data via structured functions
 
 The agent follows a **collect → parse → route → reason → recommend** workflow where diagnostics output is structured into categories, optional tool routing is executed via the FunctionGemma runtime, and the main LLM produces recommendations.
+
+## Quick Start
+
+```powershell
+# Build everything (from repo root)
+.\Build.ps1
+
+# Run Rust unit tests (no GPU needed)
+cd Native\pcai_core && cargo test --no-default-features --features server,ffi --lib
+
+# Run all PowerShell + integration tests
+pwsh Tests\Invoke-AllTests.ps1
+```
 
 ## Documentation Generation
 
@@ -174,6 +187,8 @@ The doc pipeline generates structured reports under `Reports/`:
 ```
 
 Override artifact location: `$env:PCAI_ARTIFACTS_ROOT = 'D:\build'`
+
+**Runtime binaries:** Media builds also sync DLLs to `bin/` and executables to repo root for direct invocation.
 
 ### Version Information
 
@@ -328,7 +343,7 @@ Config: `Config/pcai-tooling-benchmarks.json` — 15 benchmark cases across star
 The diagnostic report contains:
 
 1. **Device Manager Errors** - Devices with ConfigManagerErrorCode != 0
-2. **Disk SMART Status** - Drive health via wmic
+2. **Disk SMART Status** - Drive health via `Get-CimInstance Win32_DiskDrive | Select-Object Model, Status`
 3. **System Event Errors** - Disk/USB errors from last 3 days
 4. **USB Device Status** - USB controllers and device status
 5. **Network Adapter Status** - Physical adapter configuration
@@ -375,23 +390,7 @@ git push origin v1.0.0
 | `changelog.yml` | Push to main — auto-generate CHANGELOG.md via git-cliff |
 | `evaluation-smoke.yml` | Manual — LLM evaluation harness |
 | `tooling-automation.yml` | Manual — doc/FG/LLM tooling |
-
-## Potential Enhancements from Home Directory Scripts
-
-The following scripts from the home directory could potentially enhance PC-AI capabilities:
-
-### Disk Optimization
-
-- `Optimize-Disks.ps1` - Smart TRIM/defrag for SSD/HDD with scheduled task support (consider integrating into PC-AI.Performance)
-
-### Cleanup
-
-- `clean_machine_path.ps1` - Remove duplicate/stale PATH entries (extends PC-AI.Cleanup functionality)
-- `cleanup-duplicates.ps1` - Duplicate file detection and removal (complements PC-AI.Cleanup module)
-
-### Performance
-
-- `wezterm-performance-profiler.ps1` - Terminal startup/memory/render benchmarking (candidate for PC-AI.Performance)
+| `rust-guidelines.yml` | PR/push (Rust files) — format, clippy, test, audit for .rs/Cargo changes |
 
 ## Diagnostic Categories
 
@@ -402,18 +401,6 @@ The following scripts from the home directory could potentially enhance PC-AI ca
 - **Medium**: Performance degradation, missing Defender exclusions, VMQ issues
 - **Low**: Unused adapters, informational warnings
 
-### ConfigManagerErrorCode Reference
-
-| Code | Meaning                           |
-| ---- | --------------------------------- |
-| 1    | Device not configured correctly   |
-| 10   | Device cannot start               |
-| 12   | Cannot find enough free resources |
-| 22   | Device is disabled                |
-| 28   | Drivers not installed             |
-| 31   | Device not working properly       |
-| 43   | Device stopped responding         |
-
 ## Safety Constraints
 
 - **Read-only by default** - Diagnostics collect data without modifications
@@ -423,27 +410,6 @@ The following scripts from the home directory could potentially enhance PC-AI ca
 - **Professional escalation** for suspected hardware failure
 
 ## Integration Points
-
-### Event Log Queries
-
-```powershell
-# Disk/USB errors
-Get-WinEvent -FilterHashtable @{LogName='System'; Level=1,2,3; StartTime=(Get-Date).AddDays(-3)}
-
-```
-
-### WMI/CIM Queries
-
-```powershell
-# Device errors
-Get-CimInstance Win32_PnPEntity | Where-Object { $_.ConfigManagerErrorCode -ne 0 }
-
-# Physical network adapters
-Get-CimInstance Win32_NetworkAdapter | Where-Object { $_.PhysicalAdapter -eq $true }
-
-# Disk status
-wmic diskdrive get model, status
-```
 
 ### FunctionGemma Router
 
@@ -471,30 +437,6 @@ PowerShell wrappers:
 - `Invoke-PcaiGenerateAsync` - Async generation with `-NoWait` for manual polling
 - `Get-PcaiAsyncResult` - Poll or wait for async result completion
 - `Stop-PcaiGeneration` - Cancel ongoing async request
-
-## Expected Output Format
-
-When reporting findings, use this structure:
-
-```
-## Summary
-- [2-4 bullet points of key findings]
-
-## Findings by Category
-### Devices with Errors
-### Disk Health
-### USB Stability
-### Network Adapters
-
-## Priority Issues
-- Critical: [list]
-- High: [list]
-- Medium: [list]
-
-## Recommended Next Steps
-1. [Numbered, safe actions]
-2. [Warnings for risky operations]
-```
 
 ## Development Notes
 
@@ -525,7 +467,7 @@ cargo test --no-default-features --features server,ffi --lib
 | `ffi/mod.rs`          | 17    | FFI edge cases, init/shutdown, error codes               |
 | `version.rs`          | 3     | Build version detection and formatting                   |
 
-**Integration & Functional Tests (75+ test files):**
+**Integration & Functional Tests (80+ test files):**
 
 ```powershell
 # Run all tests
@@ -549,6 +491,10 @@ Get-DeviceErrors
 Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 ```
 
+### Git Hooks (lefthook)
+
+Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. Hooks run `cargo fmt --check` and `cargo clippy` on staged Rust files.
+
 ### PowerShell Requirements
 
 - Requires Administrator for full diagnostics
@@ -565,7 +511,7 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 
 **Optional (for GPU):**
 
-- CUDA Toolkit 13.x (`CUDA_PATH` env var) — 13.1 tested and working
+- CUDA Toolkit 13.2+ (`CUDA_PATH` env var) — 13.2 is latest (March 2026)
 - cuDNN (for mistral.rs flash attention)
 - sccache (for faster rebuilds)
 
@@ -577,6 +523,18 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 
 Config files: `Config/pcai-functiongemma.json` (router_gpu, cuda_visible_devices)
 
+**CUDA Device Selection (`cuda:auto`):**
+
+The media pipeline's `cuda:auto` mode selects the highest-VRAM GPU via `nvidia-smi` and falls back to the next GPU if initialisation fails. This handles cases where Blackwell SM 120 kernels aren't compiled (set `CUDA_COMPUTE_CAPS=89,120` before building to target both GPUs). To force a specific GPU: `--device cuda:0` or `--device cuda:1`.
+
+**Building for Blackwell (SM 120):**
+
+```powershell
+# Set compute capabilities BEFORE cargo build
+$env:CUDA_COMPUTE_CAPS = "89,120"
+cargo build -p pcai-media --features cuda --release
+```
+
 **Common Build Issues:**
 | Issue | Solution |
 |-------|----------|
@@ -585,6 +543,8 @@ Config files: `Config/pcai-functiongemma.json` (router_gpu, cuda_visible_devices
 | "CUDA not found" | Install CUDA Toolkit, verify `$env:CUDA_PATH` |
 | CRT mismatch linker errors | Script auto-forces `/MD`; run with `-Clean` if switching backends |
 | CUDA env override needed | `Tools\Initialize-CudaEnvironment.ps1 -WorkaroundMsvc1944` or `.cargo/config.toml` env vars |
+| SM 120 (Blackwell) not supported | Set `$env:CUDA_COMPUTE_CAPS = "89,120"` before build |
+| `cuda:auto` picks wrong GPU | Use `--device cuda:0` to force specific GPU |
 
 ### Performance Configuration
 
@@ -605,11 +565,3 @@ Config files: `Config/pcai-functiongemma.json` (router_gpu, cuda_visible_devices
   }
 }
 ```
-
-**GPU Layer Offload Guide:**
-| VRAM | Recommended `n_gpu_layers` |
-|------|---------------------------|
-| 4GB | 10-15 |
-| 8GB | 25-30 |
-| 12GB | 35-40 |
-| 24GB | 50+ (full offload) |

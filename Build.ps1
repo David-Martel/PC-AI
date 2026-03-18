@@ -217,6 +217,75 @@ function Resolve-NukeNulProjectRoot {
     return $null
 }
 
+function Initialize-NvidiaBuildEnvironment {
+    [CmdletBinding()]
+    param()
+
+    $result = [ordered]@{
+        UsedGpuModule    = $false
+        CudaInitialized  = $false
+        PreferredGpu     = $null
+        Inventory        = @()
+        Source           = $null
+    }
+
+    $gpuModule = $null
+    if (Get-Command -Name Import-PcaiResolvedModule -ErrorAction SilentlyContinue) {
+        try {
+            $gpuModule = Import-PcaiResolvedModule -ModuleName 'PC-AI.Gpu' -RepoRoot $script:ProjectRoot -Force
+        }
+        catch {
+            Write-BuildStep "PC-AI.Gpu import failed: $($_.Exception.Message)" 'warning'
+        }
+    }
+
+    if ($gpuModule) {
+        $result.UsedGpuModule = $true
+        try {
+            $envResult = Initialize-NvidiaEnvironment -Scope Process -Quiet
+            if ($envResult.CudaPath) {
+                $result.CudaInitialized = $true
+                $result.Source = 'PC-AI.Gpu'
+                Write-BuildStep "NVIDIA environment initialized via PC-AI.Gpu: $($envResult.CudaVersion) ($($envResult.CudaPath))" 'success'
+            }
+        }
+        catch {
+            Write-BuildStep "PC-AI.Gpu environment init failed: $($_.Exception.Message)" 'warning'
+        }
+
+        try {
+            $inventory = @(Get-NvidiaGpuInventory)
+            if ($inventory.Count -gt 0) {
+                $preferredGpu = $inventory |
+                    Sort-Object @{ Expression = { $_.MemoryTotalMB }; Descending = $true }, @{ Expression = { $_.Index } } |
+                    Select-Object -First 1
+                $result.Inventory = $inventory
+                $result.PreferredGpu = $preferredGpu
+                Write-BuildStep "Preferred NVIDIA GPU: [$($preferredGpu.Index)] $($preferredGpu.Name) ($($preferredGpu.MemoryTotalMB) MiB, CC $($preferredGpu.ComputeCapability))" 'success'
+            }
+        }
+        catch {
+            Write-BuildStep "GPU inventory query failed: $($_.Exception.Message)" 'warning'
+        }
+    }
+
+    if (-not $result.CudaInitialized) {
+        $cudaInitScript = Join-Path $script:ProjectRoot 'Tools\\Initialize-CudaEnvironment.ps1'
+        if (Test-Path $cudaInitScript) {
+            $cudaResult = & $cudaInitScript
+            if ($cudaResult.Found) {
+                $result.CudaInitialized = $true
+                $result.Source = 'Initialize-CudaEnvironment.ps1'
+                Write-BuildStep "CUDA environment initialized: $($cudaResult.SelectedVersion) (NVCC_CCBIN=$($cudaResult.NvccCcbin))" 'success'
+            } else {
+                Write-BuildStep 'CUDA not found - GPU build may fail' 'warning'
+            }
+        }
+    }
+
+    return [PSCustomObject]$result
+}
+
 #region Output Formatting
 
 function Write-BuildHeader {
@@ -362,7 +431,49 @@ function Write-BuildSummary {
         Write-Host "  Deploy: $script:BuildDeployDir" -ForegroundColor DarkGray
     }
 
+    Write-BuildAccelerationSummary
+
     Write-Host ''
+}
+
+function Write-BuildAccelerationSummary {
+    if ($script:QuietMode) { return }
+
+    Write-Host "`n  Acceleration:" -ForegroundColor White
+
+    if ($script:CargoToolsEnabled) {
+        Write-Host '    CargoTools: enabled' -ForegroundColor DarkGray
+    } else {
+        Write-Host '    CargoTools: disabled/unavailable' -ForegroundColor DarkGray
+    }
+
+    if ($env:RUSTC_WRAPPER) {
+        Write-Host "    RUSTC_WRAPPER: $($env:RUSTC_WRAPPER)" -ForegroundColor DarkGray
+    }
+    if ($env:CMAKE_GENERATOR) {
+        Write-Host "    CMAKE_GENERATOR: $($env:CMAKE_GENERATOR)" -ForegroundColor DarkGray
+    }
+    if ($env:CMAKE_C_COMPILER_LAUNCHER) {
+        Write-Host "    C launcher: $($env:CMAKE_C_COMPILER_LAUNCHER)" -ForegroundColor DarkGray
+    }
+    if ($env:CMAKE_CXX_COMPILER_LAUNCHER) {
+        Write-Host "    CXX launcher: $($env:CMAKE_CXX_COMPILER_LAUNCHER)" -ForegroundColor DarkGray
+    }
+    if ($env:CMAKE_CUDA_COMPILER_LAUNCHER) {
+        Write-Host "    CUDA launcher: $($env:CMAKE_CUDA_COMPILER_LAUNCHER)" -ForegroundColor DarkGray
+    }
+
+    $usingSccache = $env:RUSTC_WRAPPER -and ($env:RUSTC_WRAPPER -match '(^|[\\/])sccache(?:\.exe)?$|^sccache$')
+    if ($usingSccache -and (Get-Command sccache -ErrorAction SilentlyContinue)) {
+        $stats = & sccache --show-stats 2>$null
+        if ($LASTEXITCODE -eq 0 -and $stats) {
+            foreach ($line in ($stats | Where-Object {
+                        $_ -match '^(Compile requests|Compile requests executed|Cache hits|Cache misses|Cache hits rate|Compilations|Cache location|Use direct/preprocessor mode\?)'
+                    })) {
+                Write-Host "    $line" -ForegroundColor DarkGray
+            }
+        }
+    }
 }
 
 #endregion
@@ -2153,7 +2264,9 @@ function Invoke-MediaBuild {
     )
 
     $componentStart = Get-Date
-    $mediaRoot = Join-Path $script:ProjectRoot 'Native\pcai_core'
+    $mediaWorkspace = Join-Path $script:ProjectRoot 'Native\pcai_core'
+    $mediaLibRoot = Join-Path $mediaWorkspace 'pcai_media'
+    $mediaServerRoot = Join-Path $mediaWorkspace 'pcai_media_server'
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
     $logFile = Join-Path $script:BuildLogsDir "build_media_$timestamp.log"
     $artifactDir = Join-Path $script:BuildArtifactsDir 'pcai-media'
@@ -2164,19 +2277,28 @@ function Invoke-MediaBuild {
 
     Write-BuildStep 'Building pcai-media (Janus-Pro media agent)...' 'running'
     try {
-        $cargoArgs = @('build')
-        if ($Configuration -eq 'Release') { $cargoArgs += '--release' }
-        $cargoArgs += @('--package', 'pcai-media', '--package', 'pcai-media-server')
-
-        $featureList = @('pcai-media/upscale')
-        if ($EnableCuda) {
-            $featureList += 'pcai-media/cuda'
-            $featureList += 'pcai-media/flash-attn'
+        $mediaLibArgs = @('build')
+        $mediaServerArgs = @('build', '--bin', 'pcai-media')
+        if ($Configuration -eq 'Release') {
+            $mediaLibArgs += '--release'
+            $mediaServerArgs += '--release'
         }
-        $cargoArgs += @('--features', ($featureList -join ','))
 
-        $rustOk = Invoke-RustBuildCommand -Path $mediaRoot -CargoArgs $cargoArgs -LogFile $logFile
-        if (-not $rustOk) {
+        $mediaLibFeatures = @('upscale')
+        $mediaServerFeatures = @()
+        if ($EnableCuda) {
+            $mediaLibFeatures += 'cuda'
+            $mediaLibFeatures += 'flash-attn'
+            $mediaServerFeatures += 'pcai-media/cuda'
+            $mediaServerFeatures += 'pcai-media/flash-attn'
+        }
+        $mediaLibArgs += @('--features', ($mediaLibFeatures -join ','))
+        if ($mediaServerFeatures.Count -gt 0) {
+            $mediaServerArgs += @('--features', ($mediaServerFeatures -join ','))
+        }
+
+        $mediaLibOk = Invoke-RustBuildCommand -Path $mediaLibRoot -CargoArgs $mediaLibArgs -LogFile $logFile
+        if (-not $mediaLibOk) {
             return @{
                 Success   = $false
                 Duration  = (Get-Date) - $componentStart
@@ -2185,7 +2307,17 @@ function Invoke-MediaBuild {
             }
         }
 
-        $targetDir = Resolve-CargoOutputDirectory -ProjectDir $mediaRoot -Configuration $Configuration
+        $mediaServerOk = Invoke-RustBuildCommand -Path $mediaServerRoot -CargoArgs $mediaServerArgs -LogFile $logFile
+        if (-not $mediaServerOk) {
+            return @{
+                Success   = $false
+                Duration  = (Get-Date) - $componentStart
+                Artifacts = @()
+                LogFile   = $logFile
+            }
+        }
+
+        $targetDir = Resolve-CargoOutputDirectory -ProjectDir $mediaServerRoot -Configuration $Configuration
         $artifacts = @()
 
         foreach ($file in @('pcai_media.dll', 'pcai_media.dll.lib', 'pcai_media.pdb', 'pcai-media.exe', 'pcai-media.pdb')) {
@@ -2193,6 +2325,25 @@ function Invoke-MediaBuild {
             if (Test-Path $src) {
                 Publish-StagedArtifact -SourcePath $src -DestinationDirectory $artifactDir -DestinationFileName $file -ArtifactKind 'native-rust' | Out-Null
                 $artifacts += $file
+            }
+        }
+
+        $runtimeBinDir = Join-Path $script:ProjectRoot 'bin'
+        if (-not (Test-Path $runtimeBinDir)) {
+            New-Item -ItemType Directory -Path $runtimeBinDir -Force | Out-Null
+        }
+
+        foreach ($runtimeFile in @('pcai_media.dll', 'pcai_media.dll.lib', 'pcai_media.pdb')) {
+            $src = Join-Path $targetDir $runtimeFile
+            if (Test-Path $src) {
+                Copy-Item -Path $src -Destination (Join-Path $runtimeBinDir $runtimeFile) -Force
+            }
+        }
+
+        foreach ($runtimeFile in @('pcai-media.exe', 'pcai-media.pdb')) {
+            $src = Join-Path $targetDir $runtimeFile
+            if (Test-Path $src) {
+                Copy-Item -Path $src -Destination (Join-Path $script:ProjectRoot $runtimeFile) -Force
             }
         }
 
@@ -2452,8 +2603,60 @@ function Invoke-PostBuildTests {
         }
     }
 
+    if ($BuildTargets -contains 'media') {
+        $mediaWorkspace = Join-Path $script:ProjectRoot 'Native\\pcai_core'
+        $mediaLibProject = Join-Path $mediaWorkspace 'pcai_media'
+        $mediaServerProject = Join-Path $mediaWorkspace 'pcai_media_server'
+        $mediaLogFile = Join-Path $script:BuildLogsDir "test_media_rust_$timestamp.log"
+        $mediaLibRustArgs = if (Get-Command cargo-nextest -ErrorAction SilentlyContinue) {
+            @('nextest', 'run')
+        } else {
+            @('test')
+        }
+        $mediaServerRustArgs = if (Get-Command cargo-nextest -ErrorAction SilentlyContinue) {
+            @('nextest', 'run')
+        } else {
+            @('test')
+        }
+
+        Write-BuildStep 'Testing media Rust crates...' 'running'
+        $mediaLibRustOk = Invoke-RustBuildCommand -Path $mediaLibProject -CargoArgs $mediaLibRustArgs -LogFile $mediaLogFile
+        $mediaServerRustOk = Invoke-RustBuildCommand -Path $mediaServerProject -CargoArgs $mediaServerRustArgs -LogFile $mediaLogFile
+        $mediaRustOk = $mediaLibRustOk -and $mediaServerRustOk
+        if (-not $mediaRustOk) {
+            $testFailures += 'media-rust'
+            Write-BuildStep 'Media Rust tests failed' 'error'
+        } else {
+            Write-BuildStep 'Media Rust tests passed' 'success'
+        }
+
+        $mediaPesterLogFile = Join-Path $script:BuildLogsDir "test_media_pester_$timestamp.log"
+        $shellExe = Resolve-PowerShellExecutable
+        $pesterArgs = @(
+            '-NoProfile',
+            '-Command',
+            "Invoke-Pester -Path '.\Tests\Unit\PC-AI.Media.Tests.ps1','.\Tests\Functional\Media.Functional.Tests.ps1' -CI"
+        )
+
+        Write-BuildStep 'Testing media PowerShell module...' 'running'
+        Push-Location $script:ProjectRoot
+        try {
+            & $shellExe @pesterArgs 2>&1 | Tee-Object -FilePath $mediaPesterLogFile | Out-Null
+            $mediaPesterOk = ($LASTEXITCODE -eq 0)
+        } finally {
+            Pop-Location
+        }
+
+        if (-not $mediaPesterOk) {
+            $testFailures += 'media-pester'
+            Write-BuildStep 'Media PowerShell tests failed' 'error'
+        } else {
+            Write-BuildStep 'Media PowerShell tests passed' 'success'
+        }
+    }
+
     return @{
-        Success = ($testFailures.Count -eq 0)
+        Success = (@($testFailures).Count -eq 0)
         Failed  = $testFailures
     }
 }
@@ -2550,19 +2753,12 @@ $versionInfo = Initialize-BuildVersion
 # Initialize CargoTools defaults / wrappers
 Initialize-CargoToolsDefaults | Out-Null
 
-# Initialize CUDA environment when GPU builds are requested.
-# Sets NVCC_CCBIN, INCLUDE, LIB, CUDA_PATH, and PATH so nvcc can find
-# the MSVC host compiler (cl.exe) and system headers.
+# Initialize CUDA / NVIDIA environment when GPU builds are requested.
+# Prefer the curated PC-AI.Gpu module when available so we reuse the repo's
+# NVIDIA registry and environment-selection logic, then fall back to the
+# lower-level CUDA bootstrap script if needed.
 if ($EnableCuda) {
-    $cudaInitScript = Join-Path $script:ProjectRoot 'Tools\Initialize-CudaEnvironment.ps1'
-    if (Test-Path $cudaInitScript) {
-        $cudaResult = & $cudaInitScript
-        if ($cudaResult.Found) {
-            Write-BuildStep "CUDA environment initialized: $($cudaResult.SelectedVersion) (NVCC_CCBIN=$($cudaResult.NvccCcbin))" 'success'
-        } else {
-            Write-BuildStep 'CUDA not found - GPU build may fail' 'warning'
-        }
-    }
+    $gpuInitResult = Initialize-NvidiaBuildEnvironment
 }
 
 # Pre-build quality gate

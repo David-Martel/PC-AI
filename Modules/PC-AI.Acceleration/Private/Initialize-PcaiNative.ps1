@@ -34,6 +34,11 @@ function Get-PcaiNativeCandidatePaths {
         }
 
         $resolvedPath = $resolved.Path
+        if ((Test-Path (Join-Path $resolvedPath 'pcai_core_lib.dll')) -and
+            (Test-Path (Join-Path $resolvedPath 'PcaiNative.dll'))) {
+            $candidates.Add($resolvedPath)
+        }
+
         $bundleRoots = @(
             (Join-Path $resolvedPath 'native-bundles')
             (Join-Path $resolvedPath 'bundles')
@@ -54,11 +59,6 @@ function Get-PcaiNativeCandidatePaths {
                         $candidates.Add($bundlePath)
                     }
                 }
-        }
-
-        if ((Test-Path (Join-Path $resolvedPath 'pcai_core_lib.dll')) -and
-            (Test-Path (Join-Path $resolvedPath 'PcaiNative.dll'))) {
-            $candidates.Add($resolvedPath)
         }
     }
 
@@ -530,4 +530,33 @@ function Get-PcaiTokenEstimate {
     )
 
     return Invoke-PcaiNativeEstimateTokens -Text $Text
+}
+
+function Invoke-PcaiNativeProcessLassoSnapshot {
+    <#
+    .SYNOPSIS
+        Gets a native snapshot of Process Lasso config and recent log activity.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter()]
+        [string]$ConfigPath = 'C:\ProgramData\ProcessLasso\config\prolasso.ini',
+
+        [Parameter()]
+        [string]$LogPath = 'C:\ProgramData\ProcessLasso\logs\processlasso.log',
+
+        [Parameter()]
+        [int]$LookbackMinutes = 60
+    )
+
+    if (-not (Test-PcaiNativeAvailable)) {
+        throw 'PCAI Native tools not available.'
+    }
+
+    if (-not ([System.Management.Automation.PSTypeName]'PcaiNative.ProcessLassoModule').Type) {
+        throw 'PcaiNative.ProcessLassoModule is not loaded.'
+    }
+
+    return [PcaiNative.ProcessLassoModule]::GetSnapshotJson($ConfigPath, $LogPath, [uint32]$LookbackMinutes)
 }

@@ -133,7 +133,7 @@ function Write-StatusTable {
         Status          = [Math]::Max(6, ($Rows | ForEach-Object { $_.Status.Length } | Measure-Object -Maximum).Maximum)
     }
 
-    $fmt    = "{{0,-$($colWidths.GpuIndex)}} {{1,-$($colWidths.GpuName)}} {{2,-$($colWidths.InstalledDriver)}} {{3,-$($colWidths.RegistryLatest)}} {{4,-$($colWidths.Status)}} {{5}}"
+    $fmt    = "{0,-$($colWidths.GpuIndex)} {1,-$($colWidths.GpuName)} {2,-$($colWidths.InstalledDriver)} {3,-$($colWidths.RegistryLatest)} {4,-$($colWidths.Status)} {5}"
     $header = $fmt -f 'Index', 'GPU Name', 'Installed', 'Latest', 'Status', 'Download URL'
 
     $separator = '-' * $header.Length

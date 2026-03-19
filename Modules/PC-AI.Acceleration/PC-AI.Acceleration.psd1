@@ -32,6 +32,8 @@
         'Test-PcaiNativeAvailable'
         'Get-PcaiNativeStatus'
         'Get-PcaiCapabilities'
+        'Get-ProcessLassoSnapshot'
+        'New-ProcessLassoOverlay'
         'Invoke-PcaiNativeDuplicates'
         'Invoke-PcaiNativeFileSearch'
         'Invoke-PcaiNativeContentSearch'
@@ -41,6 +43,7 @@
         'Get-UnifiedHardwareReportJson'
         'Invoke-PcaiNativeUnifiedHardwareReport'
         'Invoke-PcaiNativeEstimateTokens'
+        'Invoke-PcaiNativeProcessLassoSnapshot'
     )
 
     PrivateData = @{

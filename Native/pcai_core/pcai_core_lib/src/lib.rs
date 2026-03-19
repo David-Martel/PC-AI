@@ -24,6 +24,7 @@ pub mod hash;
 pub mod json;
 pub mod path;
 pub mod performance;
+pub mod process_lasso;
 pub mod prompt_engine;
 pub mod result;
 pub mod search;
@@ -171,6 +172,31 @@ pub extern "C" fn pcai_get_vmm_health_json() -> *mut c_char {
     let health = vmm_health::check_vmm_health();
     match serde_json::to_string(&health) {
         Ok(json) => rust_str_to_c(&json),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
+/// Return a Process Lasso snapshot as JSON.
+///
+/// # Safety
+///
+/// `config_path` and `log_path`, when non-null, must be valid null-terminated UTF-8 strings.
+pub unsafe extern "C" fn pcai_get_process_lasso_snapshot_json(
+    config_path: *const c_char,
+    log_path: *const c_char,
+    lookback_minutes: u32,
+) -> *mut c_char {
+    let config_path =
+        unsafe { string::c_str_to_rust(config_path) }.unwrap_or("C:\\ProgramData\\ProcessLasso\\config\\prolasso.ini");
+    let log_path =
+        unsafe { string::c_str_to_rust(log_path) }.unwrap_or("C:\\ProgramData\\ProcessLasso\\logs\\processlasso.log");
+
+    match process_lasso::collect_snapshot(config_path, log_path, lookback_minutes) {
+        Ok(snapshot) => match serde_json::to_string(&snapshot) {
+            Ok(json) => rust_str_to_c(&json),
+            Err(_) => std::ptr::null_mut(),
+        },
         Err(_) => std::ptr::null_mut(),
     }
 }

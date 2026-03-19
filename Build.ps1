@@ -36,6 +36,9 @@
     - format: Run formatting checks only
     - fix: Apply automated formatting/fixes where supported
     - deps: Refresh and validate Rust dependency graph/cache state
+    - media-convert: Run GGUF model conversion via AI-Media Python toolchain
+    - test: Run Rust + PowerShell test suites (unit, functional, GPU unit tests)
+    - benchmark: Run media pipeline benchmarks via Tests/Benchmarks/Benchmarks.Media.ps1
     - native: .NET native toolchain (pcainative + servicehost + tui)
     - all: All components (default)
 
@@ -135,11 +138,35 @@
 .EXAMPLE
     .\Build.ps1 -Component fix -LintProfile all -AutoFix
     Apply automated code/document fixes where toolchains support write mode.
+
+.EXAMPLE
+    .\Build.ps1 -Component media -EnableCuda
+    Build pcai-media DLL + pcai-media-server with full CUDA/cuDNN/flash-attn/nvml features.
+    Detects GPU compute capabilities automatically and sets CUDA_COMPUTE_CAPS.
+    Deploys to bin/ and creates symlinks in ~/bin/.
+
+.EXAMPLE
+    .\Build.ps1 -Component media-convert
+    Run Janus-Pro GGUF model conversion via AI-Media/.venv Python toolchain.
+
+.EXAMPLE
+    .\Build.ps1 -Component test
+    Run Rust unit tests (pcai-media, pcai-media-model, pcai-inference) and
+    PowerShell Pester suites (PC-AI.Gpu.Tests, PC-AI.Media.Tests).
+
+.EXAMPLE
+    .\Build.ps1 -Component benchmark
+    Run media pipeline performance benchmarks via Tests/Benchmarks/Benchmarks.Media.ps1.
+
+.EXAMPLE
+    .\Build.ps1 -Component all -EnableCuda -Configuration Release -Package
+    Full release build with CUDA, RUSTFLAGS="-D warnings", auto-detected compute caps,
+    all features enabled, and packaged ZIP artifacts.
 #>
 
 [CmdletBinding()]
 param(
-    [ValidateSet('inference', 'llamacpp', 'mistralrs', 'functiongemma', 'functiongemma-router-data', 'functiongemma-token-cache', 'functiongemma-train', 'functiongemma-eval', 'media', 'tui', 'pcainative', 'servicehost', 'nukenul', 'lint', 'format', 'fix', 'deps', 'native', 'all')]
+    [ValidateSet('inference', 'llamacpp', 'mistralrs', 'functiongemma', 'functiongemma-router-data', 'functiongemma-token-cache', 'functiongemma-train', 'functiongemma-eval', 'media', 'media-convert', 'tui', 'pcainative', 'servicehost', 'nukenul', 'lint', 'format', 'fix', 'deps', 'native', 'test', 'benchmark', 'all')]
     [string]$Component = 'all',
 
     [ValidateSet('Debug', 'Release')]
@@ -284,6 +311,173 @@ function Initialize-NvidiaBuildEnvironment {
     }
 
     return [PSCustomObject]$result
+}
+
+function Get-CudaComputeCaps {
+    [CmdletBinding()]
+    param(
+        [object[]]$GpuInventory
+    )
+
+    # Build a comma-separated CUDA_COMPUTE_CAPS string from GPU inventory.
+    # Prefers CC reported by the GPU module; falls back to nvidia-smi -q.
+    $caps = [System.Collections.Generic.List[string]]::new()
+
+    if ($GpuInventory -and $GpuInventory.Count -gt 0) {
+        foreach ($gpu in $GpuInventory) {
+            $cc = $gpu.ComputeCapability
+            if ($cc -and $cc -match '^\d+\.\d+$') {
+                $normalized = $cc -replace '\.', ''
+                if (-not $caps.Contains($normalized)) {
+                    $caps.Add($normalized)
+                }
+            }
+        }
+    }
+
+    # Fallback: parse nvidia-smi directly
+    if ($caps.Count -eq 0 -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
+        $smiOut = & nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>$null
+        foreach ($line in $smiOut) {
+            $trimmed = $line.Trim()
+            if ($trimmed -match '^\d+\.\d+$') {
+                $normalized = $trimmed -replace '\.', ''
+                if (-not $caps.Contains($normalized)) {
+                    $caps.Add($normalized)
+                }
+            }
+        }
+    }
+
+    if ($caps.Count -eq 0) { return $null }
+    return ($caps | Sort-Object) -join ','
+}
+
+function Set-ReleaseBuildFlags {
+    [CmdletBinding()]
+    param(
+        [string]$Configuration,
+        [string]$CudaComputeCaps
+    )
+
+    if ($Configuration -eq 'Release') {
+        # Treat warnings as errors for release builds.
+        # Preserve any existing RUSTFLAGS the caller may have set.
+        $existingFlags = $env:RUSTFLAGS
+        if ($existingFlags -and $existingFlags -notmatch '-D\s+warnings') {
+            $env:RUSTFLAGS = "$existingFlags -D warnings"
+        } elseif (-not $existingFlags) {
+            $env:RUSTFLAGS = '-D warnings'
+        }
+        Write-BuildStep "RUSTFLAGS (release): $($env:RUSTFLAGS)" 'success'
+    }
+
+    if ($CudaComputeCaps) {
+        $env:CUDA_COMPUTE_CAPS = $CudaComputeCaps
+        Write-BuildStep "CUDA_COMPUTE_CAPS: $CudaComputeCaps" 'success'
+    }
+}
+
+function Set-BuildAccelerationEnvironment {
+    [CmdletBinding()]
+    param()
+
+    # Ninja: use as CMake generator if available (faster than MSBuild for C/C++)
+    if (-not $env:CMAKE_GENERATOR) {
+        if (Get-Command ninja -ErrorAction SilentlyContinue) {
+            $env:CMAKE_GENERATOR = 'Ninja'
+            Write-BuildStep 'Build acceleration: Ninja generator detected, CMAKE_GENERATOR=Ninja' 'success'
+        } elseif (Get-Command 'ninja.exe' -ErrorAction SilentlyContinue) {
+            $env:CMAKE_GENERATOR = 'Ninja'
+            Write-BuildStep 'Build acceleration: Ninja generator detected, CMAKE_GENERATOR=Ninja' 'success'
+        } else {
+            Write-BuildStep 'Ninja not found; using default CMake generator (install via winget install Ninja-build.Ninja)' 'warning'
+        }
+    } else {
+        Write-BuildStep "CMAKE_GENERATOR already set: $($env:CMAKE_GENERATOR)" 'skip'
+    }
+
+    # ccache: C/C++ compiler launcher for clang/gcc builds (e.g. candle native code)
+    if (-not $env:CMAKE_C_COMPILER_LAUNCHER) {
+        if (Get-Command ccache -ErrorAction SilentlyContinue) {
+            $env:CMAKE_C_COMPILER_LAUNCHER = 'ccache'
+            $env:CMAKE_CXX_COMPILER_LAUNCHER = 'ccache'
+            Write-BuildStep 'Build acceleration: ccache found, CMAKE_C/CXX_COMPILER_LAUNCHER=ccache' 'success'
+        } else {
+            Write-BuildStep 'ccache not found; C/C++ incremental compilation not accelerated' 'warning'
+        }
+    } else {
+        Write-BuildStep "CMAKE_C_COMPILER_LAUNCHER already set: $($env:CMAKE_C_COMPILER_LAUNCHER)" 'skip'
+    }
+
+    # sccache verification (for Rust)
+    if ($env:RUSTC_WRAPPER) {
+        $sccacheRunning = $false
+        if ($env:RUSTC_WRAPPER -match '(^|[\\/])sccache(?:\.exe)?$|^sccache$') {
+            $sccacheRunning = (Get-Command sccache -ErrorAction SilentlyContinue) -ne $null
+        }
+        if ($sccacheRunning) {
+            Write-BuildStep "sccache: active (RUSTC_WRAPPER=$($env:RUSTC_WRAPPER))" 'success'
+        } else {
+            Write-BuildStep "RUSTC_WRAPPER set but sccache not found on PATH: $($env:RUSTC_WRAPPER)" 'warning'
+        }
+    } else {
+        # Try to locate sccache even if not configured
+        if (Get-Command sccache -ErrorAction SilentlyContinue) {
+            $env:RUSTC_WRAPPER = 'sccache'
+            Write-BuildStep 'Build acceleration: sccache found on PATH, RUSTC_WRAPPER=sccache' 'success'
+        } else {
+            Write-BuildStep 'sccache not configured; Rust incremental builds rely on cargo cache only' 'warning'
+        }
+    }
+
+    # lld-link: verify the fast linker is available (configured via .cargo/config.toml)
+    if (Get-Command lld-link -ErrorAction SilentlyContinue) {
+        Write-BuildStep 'Build acceleration: lld-link available (fast linker)' 'success'
+    } elseif (Get-Command 'lld-link.exe' -ErrorAction SilentlyContinue) {
+        Write-BuildStep 'Build acceleration: lld-link.exe available (fast linker)' 'success'
+    } else {
+        Write-BuildStep 'lld-link not found; using default MSVC linker (install LLVM for faster linking)' 'warning'
+    }
+}
+
+function New-HomeBinSymlink {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$TargetPath,
+        [Parameter(Mandatory)]
+        [string]$LinkName
+    )
+
+    $homeBinDir = Join-Path $HOME 'bin'
+    if (-not (Test-Path -LiteralPath $homeBinDir)) {
+        New-Item -ItemType Directory -Path $homeBinDir -Force | Out-Null
+        Write-BuildStep "Created ~/bin directory: $homeBinDir" 'success'
+    }
+
+    $linkPath = Join-Path $homeBinDir $LinkName
+    if (-not (Test-Path -LiteralPath $TargetPath -PathType Leaf)) {
+        Write-BuildStep "Symlink target not found, skipping ~/bin/$LinkName -> $TargetPath" 'warning'
+        return
+    }
+
+    try {
+        if (Test-Path -LiteralPath $linkPath) {
+            Remove-Item -LiteralPath $linkPath -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -ItemType SymbolicLink -Path $linkPath -Target $TargetPath -Force | Out-Null
+        Write-BuildStep "Symlink: ~/bin/$LinkName -> $TargetPath" 'success'
+    } catch {
+        # Symlink creation can fail if not running as admin; fall back to file copy
+        Write-BuildStep "Symlink creation failed (need admin?), copying instead: $($_.Exception.Message)" 'warning'
+        try {
+            Copy-Item -LiteralPath $TargetPath -Destination $linkPath -Force
+            Write-BuildStep "Fallback copy: ~/bin/$LinkName <- $TargetPath" 'success'
+        } catch {
+            Write-BuildStep "Fallback copy also failed: $($_.Exception.Message)" 'error'
+        }
+    }
 }
 
 #region Output Formatting
@@ -2260,7 +2454,10 @@ function Invoke-DotnetComponentBuild {
 function Invoke-MediaBuild {
     param(
         [string]$Configuration,
-        [bool]$EnableCuda
+        [bool]$EnableCuda,
+        # Optional: comma-separated CUDA compute capabilities (e.g. "89,120").
+        # When provided, sets CUDA_COMPUTE_CAPS before compiling CUDA kernels.
+        [string]$CudaComputeCaps
     )
 
     $componentStart = Get-Date
@@ -2275,22 +2472,36 @@ function Invoke-MediaBuild {
         New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
     }
 
+    # Propagate CUDA compute capability overrides for NVCC kernel compilation
+    if ($EnableCuda -and $CudaComputeCaps -and (-not $env:CUDA_COMPUTE_CAPS)) {
+        $env:CUDA_COMPUTE_CAPS = $CudaComputeCaps
+        Write-BuildStep "CUDA_COMPUTE_CAPS: $CudaComputeCaps" 'success'
+    }
+
     Write-BuildStep 'Building pcai-media (Janus-Pro media agent)...' 'running'
     try {
-        $mediaLibArgs = @('build')
+        $mediaLibArgs = @('build', '--package', 'pcai-media')
         $mediaServerArgs = @('build', '--bin', 'pcai-media')
         if ($Configuration -eq 'Release') {
             $mediaLibArgs += '--release'
             $mediaServerArgs += '--release'
         }
 
-        $mediaLibFeatures = @('upscale')
+        # Always include ffi so the cdylib exports the C FFI surface for P/Invoke.
+        # upscale ships the ONNX Runtime-based RealESRGAN upscaler.
+        $mediaLibFeatures = @('ffi', 'upscale')
         $mediaServerFeatures = @()
         if ($EnableCuda) {
+            # Full GPU feature set for release CUDA builds:
+            # cuda      - candle CUDA backend + NVML device selection
+            # cudnn     - cuDNN conv acceleration (forward compat for future fused-attn)
+            # flash-attn - FlashAttention-2 for transformer backbone
+            # nvml      - NVML GPU selection without full CUDA requirement
             $mediaLibFeatures += 'cuda'
             $mediaLibFeatures += 'cudnn'
             $mediaLibFeatures += 'flash-attn'
             $mediaLibFeatures += 'nvml'
+            # cuda-optimized = cuda + cudnn + nvml (composite feature in pcai-media-server)
             $mediaServerFeatures += 'cuda-optimized'
             $mediaServerFeatures += 'flash-attn'
         }
@@ -2299,7 +2510,7 @@ function Invoke-MediaBuild {
             $mediaServerArgs += @('--features', ($mediaServerFeatures -join ','))
         }
 
-        $mediaLibOk = Invoke-RustBuildCommand -Path $mediaLibRoot -CargoArgs $mediaLibArgs -LogFile $logFile
+        $mediaLibOk = Invoke-RustBuildCommand -Path $mediaWorkspace -CargoArgs $mediaLibArgs -LogFile $logFile
         if (-not $mediaLibOk) {
             return @{
                 Success   = $false
@@ -2319,10 +2530,16 @@ function Invoke-MediaBuild {
             }
         }
 
-        $targetDir = Resolve-CargoOutputDirectory -ProjectDir $mediaServerRoot -Configuration $Configuration
+        # Artifact discovery: pcai-media crate outputs come from the workspace target dir.
+        # The server binary is named "pcai-media.exe" by the [[bin]] section in Cargo.toml.
+        # We rename it to "pcai-media-server.exe" in bin/ for clarity.
+        $targetDir = Resolve-CargoOutputDirectory -ProjectDir $mediaWorkspace -Configuration $Configuration
+        $serverTargetDir = Resolve-CargoOutputDirectory -ProjectDir $mediaServerRoot -Configuration $Configuration
+
         $artifacts = @()
 
-        foreach ($file in @('pcai_media.dll', 'pcai_media.dll.lib', 'pcai_media.pdb', 'pcai-media.exe', 'pcai-media.pdb')) {
+        # Stage DLL + import lib + PDB from workspace target
+        foreach ($file in @('pcai_media.dll', 'pcai_media.dll.lib', 'pcai_media.pdb')) {
             $src = Join-Path $targetDir $file
             if (Test-Path $src) {
                 Publish-StagedArtifact -SourcePath $src -DestinationDirectory $artifactDir -DestinationFileName $file -ArtifactKind 'native-rust' | Out-Null
@@ -2330,23 +2547,47 @@ function Invoke-MediaBuild {
             }
         }
 
+        # Stage server binary (rename to pcai-media-server.exe)
+        foreach ($pair in @(@('pcai-media.exe', 'pcai-media-server.exe'), @('pcai-media.pdb', 'pcai-media-server.pdb'))) {
+            $srcName = $pair[0]; $dstName = $pair[1]
+            $src = Join-Path $serverTargetDir $srcName
+            if (-not (Test-Path $src)) { $src = Join-Path $targetDir $srcName }
+            if (Test-Path $src) {
+                Publish-StagedArtifact -SourcePath $src -DestinationDirectory $artifactDir -DestinationFileName $dstName -ArtifactKind 'native-rust' | Out-Null
+                $artifacts += $dstName
+            }
+        }
+
+        # Deploy to bin/ (runtime location used by PowerShell modules and tests)
         $runtimeBinDir = Join-Path $script:ProjectRoot 'bin'
         if (-not (Test-Path $runtimeBinDir)) {
             New-Item -ItemType Directory -Path $runtimeBinDir -Force | Out-Null
         }
 
-        foreach ($runtimeFile in @('pcai_media.dll', 'pcai_media.dll.lib', 'pcai_media.pdb')) {
-            $src = Join-Path $targetDir $runtimeFile
+        foreach ($file in @('pcai_media.dll', 'pcai_media.dll.lib', 'pcai_media.pdb')) {
+            $src = Join-Path $targetDir $file
             if (Test-Path $src) {
-                Copy-Item -Path $src -Destination (Join-Path $runtimeBinDir $runtimeFile) -Force
+                Copy-Item -Path $src -Destination (Join-Path $runtimeBinDir $file) -Force
+                Write-BuildStep "Deployed: bin/$file" 'success'
             }
         }
 
-        foreach ($runtimeFile in @('pcai-media.exe', 'pcai-media.pdb')) {
-            $src = Join-Path $targetDir $runtimeFile
-            if (Test-Path $src) {
-                Copy-Item -Path $src -Destination (Join-Path $script:ProjectRoot $runtimeFile) -Force
-            }
+        # Deploy server exe as pcai-media-server.exe to bin/
+        $serverSrc = Join-Path $serverTargetDir 'pcai-media.exe'
+        if (-not (Test-Path $serverSrc)) { $serverSrc = Join-Path $targetDir 'pcai-media.exe' }
+        if (Test-Path $serverSrc) {
+            $serverDst = Join-Path $runtimeBinDir 'pcai-media-server.exe'
+            Copy-Item -Path $serverSrc -Destination $serverDst -Force
+            Write-BuildStep 'Deployed: bin/pcai-media-server.exe' 'success'
+
+            # Create symlink in ~/bin/ pointing to bin/pcai-media-server.exe
+            New-HomeBinSymlink -TargetPath $serverDst -LinkName 'pcai-media-server.exe'
+        }
+
+        # Also deploy DLL to ~/bin/ so it's on PATH for tools that load it dynamically
+        $dllBinPath = Join-Path $runtimeBinDir 'pcai_media.dll'
+        if (Test-Path $dllBinPath) {
+            New-HomeBinSymlink -TargetPath $dllBinPath -LinkName 'pcai_media.dll'
         }
 
         return @{
@@ -2363,6 +2604,72 @@ function Invoke-MediaBuild {
             Artifacts = @()
             Error     = $_.Exception.Message
         }
+    }
+}
+
+function Invoke-MediaConvertBuild {
+    [CmdletBinding()]
+    param()
+
+    $componentStart = Get-Date
+    $convertScript = Join-Path $script:ProjectRoot 'Tools\Convert-JanusToGGUF.py'
+    $venvPython = Join-Path $script:ProjectRoot 'AI-Media\.venv\Scripts\python.exe'
+    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $logFile = Join-Path $script:BuildLogsDir "media_convert_$timestamp.log"
+
+    Write-BuildPhase 'MediaConvert' 'Running GGUF model conversion for Janus-Pro'
+
+    if (-not (Test-Path $convertScript)) {
+        Write-BuildStep "Convert script not found: $convertScript" 'error'
+        return @{ Success = $false; Duration = (Get-Date) - $componentStart; Artifacts = @() }
+    }
+
+    # Resolve Python interpreter: prefer AI-Media venv, then uv-managed python
+    $pythonExe = $null
+    if (Test-Path $venvPython) {
+        $pythonExe = $venvPython
+        Write-BuildStep "Using AI-Media venv Python: $pythonExe" 'success'
+    } elseif (Get-Command uv -ErrorAction SilentlyContinue) {
+        # uv run python is the canonical way per project conventions
+        Write-BuildStep 'AI-Media venv not found; falling back to uv run python' 'warning'
+    } else {
+        Write-BuildStep 'Neither AI-Media/.venv nor uv found; cannot run model conversion' 'error'
+        return @{ Success = $false; Duration = (Get-Date) - $componentStart; Artifacts = @() }
+    }
+
+    Write-BuildStep "Running model conversion: $convertScript" 'running'
+    Push-Location $script:ProjectRoot
+    try {
+        if ($pythonExe) {
+            & $pythonExe $convertScript 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+        } else {
+            # uv run path
+            & uv run python $convertScript 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+        }
+
+        $success = ($LASTEXITCODE -eq 0)
+        if ($success) {
+            Write-BuildStep 'Model conversion completed successfully' 'success'
+        } else {
+            Write-BuildStep "Model conversion failed (exit $LASTEXITCODE). See: $logFile" 'error'
+        }
+
+        return @{
+            Success   = $success
+            Duration  = (Get-Date) - $componentStart
+            Artifacts = @()
+            LogFile   = $logFile
+        }
+    } catch {
+        Write-BuildStep "Model conversion threw: $($_.Exception.Message)" 'error'
+        return @{
+            Success   = $false
+            Duration  = (Get-Date) - $componentStart
+            Artifacts = @()
+            Error     = $_.Exception.Message
+        }
+    } finally {
+        Pop-Location
     }
 }
 
@@ -2697,6 +3004,148 @@ function New-DeployBundle {
     return $bundleZip
 }
 
+function Invoke-StandaloneTests {
+    [CmdletBinding()]
+    param(
+        [string]$Configuration = 'Release'
+    )
+
+    Write-BuildPhase 'Test' 'Running standalone test suites'
+
+    $failures = [System.Collections.Generic.List[string]]::new()
+    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $shellExe = Resolve-PowerShellExecutable
+    $coreWorkspace = Join-Path $script:ProjectRoot 'Native\pcai_core'
+
+    # --- Rust unit tests ---
+
+    # pcai-media lib tests (no GPU required)
+    $mediaLibProject = Join-Path $coreWorkspace 'pcai_media'
+    if (Test-Path $mediaLibProject) {
+        $logFile = Join-Path $script:BuildLogsDir "test_media_lib_$timestamp.log"
+        $cargoArgs = @('test', '--package', 'pcai-media', '--no-default-features', '--features', 'ffi', '--lib')
+        Write-BuildStep 'Testing pcai-media (ffi, no GPU)...' 'running'
+        $ok = Invoke-RustBuildCommand -Path $coreWorkspace -CargoArgs $cargoArgs -LogFile $logFile
+        if (-not $ok) { $failures.Add('pcai-media:lib') ; Write-BuildStep 'pcai-media lib tests failed' 'error' }
+        else { Write-BuildStep 'pcai-media lib tests passed' 'success' }
+    }
+
+    # pcai-media-model lib tests
+    $mediaModelProject = Join-Path $coreWorkspace 'pcai_media_model'
+    if (Test-Path $mediaModelProject) {
+        $logFile = Join-Path $script:BuildLogsDir "test_media_model_$timestamp.log"
+        $cargoArgs = @('test', '--package', 'pcai-media-model', '--no-default-features', '--lib')
+        Write-BuildStep 'Testing pcai-media-model...' 'running'
+        $ok = Invoke-RustBuildCommand -Path $coreWorkspace -CargoArgs $cargoArgs -LogFile $logFile
+        if (-not $ok) { $failures.Add('pcai-media-model:lib') ; Write-BuildStep 'pcai-media-model tests failed' 'error' }
+        else { Write-BuildStep 'pcai-media-model tests passed' 'success' }
+    }
+
+    # pcai-inference lib tests
+    $inferenceProject = Join-Path $coreWorkspace 'pcai_inference'
+    if (Test-Path $inferenceProject) {
+        $logFile = Join-Path $script:BuildLogsDir "test_inference_$timestamp.log"
+        $cargoArgs = @('test', '--no-default-features', '--features', 'server,ffi', '--lib')
+        Write-BuildStep 'Testing pcai-inference (server,ffi)...' 'running'
+        $ok = Invoke-RustBuildCommand -Path $inferenceProject -CargoArgs $cargoArgs -LogFile $logFile
+        if (-not $ok) { $failures.Add('pcai-inference:lib') ; Write-BuildStep 'pcai-inference tests failed' 'error' }
+        else { Write-BuildStep 'pcai-inference tests passed' 'success' }
+    }
+
+    # --- PowerShell Pester tests ---
+
+    $pesterSuites = @(
+        @{ Name = 'PC-AI.Gpu';   Path = 'Tests\Unit\PC-AI.Gpu.Tests.ps1' },
+        @{ Name = 'PC-AI.Media'; Path = 'Tests\Unit\PC-AI.Media.Tests.ps1' }
+    )
+
+    foreach ($suite in $pesterSuites) {
+        $testPath = Join-Path $script:ProjectRoot $suite.Path
+        if (-not (Test-Path $testPath)) {
+            Write-BuildStep "Test file not found, skipping: $($suite.Path)" 'warning'
+            continue
+        }
+
+        $logFile = Join-Path $script:BuildLogsDir "test_pester_$($suite.Name)_$timestamp.log"
+        $pesterArgs = @(
+            '-NoProfile',
+            '-Command',
+            "Invoke-Pester -Path '$testPath' -CI"
+        )
+
+        Write-BuildStep "Testing $($suite.Name) (Pester)..." 'running'
+        Push-Location $script:ProjectRoot
+        try {
+            & $shellExe @pesterArgs 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                Write-BuildStep "$($suite.Name) Pester tests passed" 'success'
+            } else {
+                $failures.Add("pester:$($suite.Name)")
+                Write-BuildStep "$($suite.Name) Pester tests failed. See: $logFile" 'error'
+            }
+        } finally {
+            Pop-Location
+        }
+    }
+
+    $success = ($failures.Count -eq 0)
+    if ($success) {
+        Write-BuildStep 'All test suites passed' 'success'
+    } else {
+        Write-BuildStep "Failed suites: $($failures -join ', ')" 'error'
+    }
+
+    return @{
+        Success  = $success
+        Failed   = @($failures)
+        Duration = (Get-Date) - $script:StartTime
+    }
+}
+
+function Invoke-StandaloneBenchmarks {
+    [CmdletBinding()]
+    param()
+
+    Write-BuildPhase 'Benchmark' 'Running media pipeline benchmarks'
+
+    $benchmarkScript = Join-Path $script:ProjectRoot 'Tests\Benchmarks\Benchmarks.Media.ps1'
+    if (-not (Test-Path $benchmarkScript)) {
+        Write-BuildStep "Benchmark script not found: $benchmarkScript" 'error'
+        return @{ Success = $false; Duration = [TimeSpan]::Zero }
+    }
+
+    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $logFile = Join-Path $script:BuildLogsDir "benchmark_media_$timestamp.log"
+    $shellExe = Resolve-PowerShellExecutable
+
+    $pesterArgs = @(
+        '-NoProfile',
+        '-Command',
+        "Invoke-Pester -Path '$benchmarkScript' -Tag 'Benchmark','Media' -CI"
+    )
+
+    Write-BuildStep 'Running media benchmarks (Benchmark, Media tags)...' 'running'
+    Push-Location $script:ProjectRoot
+    try {
+        & $shellExe @pesterArgs 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+        $success = ($LASTEXITCODE -eq 0)
+    } finally {
+        Pop-Location
+    }
+
+    if ($success) {
+        Write-BuildStep 'Media benchmarks completed' 'success'
+    } else {
+        Write-BuildStep "Media benchmarks failed or reported errors. See: $logFile" 'error'
+    }
+
+    return @{
+        Success  = $success
+        LogFile  = $logFile
+        Duration = (Get-Date) - $script:StartTime
+    }
+}
+
 #endregion
 
 #region Main Execution
@@ -2749,6 +3198,27 @@ if ($Component -eq 'deps') {
     exit $(if ($depsSuccess) { 0 } else { 1 })
 }
 
+# Standalone test runner (no compilation)
+if ($Component -eq 'test') {
+    $versionInfo = Initialize-BuildVersion
+    Initialize-CargoToolsDefaults | Out-Null
+    $testResult = Invoke-StandaloneTests -Configuration $Configuration
+    exit $(if ($testResult.Success) { 0 } else { 1 })
+}
+
+# Standalone benchmark runner (no compilation)
+if ($Component -eq 'benchmark') {
+    $benchResult = Invoke-StandaloneBenchmarks
+    exit $(if ($benchResult.Success) { 0 } else { 1 })
+}
+
+# Model conversion (Python-only, no Rust compilation)
+if ($Component -eq 'media-convert') {
+    $versionInfo = Initialize-BuildVersion
+    $convertResult = Invoke-MediaConvertBuild
+    exit $(if ($convertResult.Success) { 0 } else { 1 })
+}
+
 # Initialize version information (sets PCAI_* environment variables)
 $versionInfo = Initialize-BuildVersion
 
@@ -2759,9 +3229,26 @@ Initialize-CargoToolsDefaults | Out-Null
 # Prefer the curated PC-AI.Gpu module when available so we reuse the repo's
 # NVIDIA registry and environment-selection logic, then fall back to the
 # lower-level CUDA bootstrap script if needed.
+$script:CudaComputeCaps = $null
 if ($EnableCuda) {
     $gpuInitResult = Initialize-NvidiaBuildEnvironment
+    # Extract compute capabilities from GPU inventory for CUDA kernel targeting
+    if ($gpuInitResult -and $gpuInitResult.Inventory -and $gpuInitResult.Inventory.Count -gt 0) {
+        $script:CudaComputeCaps = Get-CudaComputeCaps -GpuInventory $gpuInitResult.Inventory
+        if ($script:CudaComputeCaps) {
+            Write-BuildStep "Detected CUDA compute capabilities: $($script:CudaComputeCaps)" 'success'
+        }
+    } else {
+        # Fallback: query nvidia-smi directly
+        $script:CudaComputeCaps = Get-CudaComputeCaps -GpuInventory @()
+    }
 }
+
+# Initialize build acceleration (Ninja, ccache, sccache, lld-link)
+Set-BuildAccelerationEnvironment
+
+# Set release-mode flags: RUSTFLAGS="-D warnings" + CUDA_COMPUTE_CAPS
+Set-ReleaseBuildFlags -Configuration $Configuration -CudaComputeCaps $script:CudaComputeCaps
 
 # Pre-build quality gate
 if (-not $SkipQualityGate) {
@@ -2790,11 +3277,14 @@ $buildTargets = switch ($Component) {
     'pcainative' { @('pcainative') }
     'servicehost' { @('servicehost') }
     'media' { @('media') }
+    'media-convert' { @() }
     'nukenul' { @('nukenul') }
     'lint' { @() }
     'format' { @() }
     'fix' { @() }
     'deps' { @() }
+    'test' { @() }
+    'benchmark' { @() }
     'native' { @('pcainative', 'servicehost', 'tui', 'nukenul') }
     'all' { @('llamacpp', 'mistralrs', 'functiongemma', 'media', 'pcainative', 'servicehost', 'tui', 'nukenul') }
 }
@@ -2838,7 +3328,7 @@ foreach ($target in $buildTargets) {
         $results['pcai-servicehost'] = $result
         Write-BuildResult 'pcai-servicehost' $result.Success $result.Duration $result.Artifacts
     } elseif ($target -eq 'media') {
-        $result = Invoke-MediaBuild -Configuration $Configuration -EnableCuda $EnableCuda
+        $result = Invoke-MediaBuild -Configuration $Configuration -EnableCuda $EnableCuda -CudaComputeCaps $script:CudaComputeCaps
         $results['pcai-media'] = $result
         Write-BuildResult 'pcai-media' $result.Success $result.Duration $result.Artifacts
     } elseif ($target -eq 'nukenul') {
@@ -2862,7 +3352,7 @@ if ($SkipTests) {
         }
     }
 } else {
-    Write-BuildStep 'Post-build tests not requested. Use -RunTests to execute component-aligned tests.' 'warning'
+    Write-BuildStep 'Post-build tests not requested. Use -RunTests to execute component-aligned tests, or -Component test for standalone test run.' 'warning'
 }
 
 # Generate manifest

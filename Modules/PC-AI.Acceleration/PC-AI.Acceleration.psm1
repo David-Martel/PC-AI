@@ -226,6 +226,8 @@ Export-ModuleMember -Function @(
     'Compare-ToolPerformance'
     'Get-PcaiCapabilities'
     'Get-UnifiedHardwareReportJson'
+    'Get-ProcessLassoSnapshot'
+    'New-ProcessLassoOverlay'
     'Initialize-PcaiNative'
     'Test-PcaiNativeAvailable'
     'Get-PcaiNativeStatus'
@@ -237,4 +239,5 @@ Export-ModuleMember -Function @(
     'Test-PcaiResourceSafety'
     'Invoke-PcaiNativeUnifiedHardwareReport'
     'Invoke-PcaiNativeEstimateTokens'
+    'Invoke-PcaiNativeProcessLassoSnapshot'
 )

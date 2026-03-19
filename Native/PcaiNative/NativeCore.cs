@@ -165,6 +165,12 @@ internal static partial class NativeCore
     internal static extern IntPtr pcai_get_process_history_json();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern IntPtr pcai_get_process_lasso_snapshot_json(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? configPath,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? logPath,
+        uint lookbackMinutes);
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern IntPtr pcai_get_usb_problem_info(uint code);
 
     // ========================================================================

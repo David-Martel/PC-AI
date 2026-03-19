@@ -119,33 +119,6 @@ function Invoke-PCDiagnosis {
 
     begin {
         Write-Verbose "Initializing PC diagnosis analysis..."
-        $projectRoot = $null
-        if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
-            $projectRoot = Resolve-PcaiPath -PathType 'Root'
-        } else {
-            $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-        }
-
-        $diagnosePromptPath = Join-Path -Path $projectRoot -ChildPath 'DIAGNOSE.md'
-        $diagnoseLogicPath = Join-Path -Path $projectRoot -ChildPath 'DIAGNOSE_LOGIC.md'
-
-        $diagnosePrompt = Get-Content -Path $diagnosePromptPath -Raw -Encoding utf8
-        $diagnoseLogic = Get-Content -Path $diagnoseLogicPath -Raw -Encoding utf8
-
-        $systemPrompt = @"
-$diagnosePrompt
-
-## REASONING FRAMEWORK
-
-$diagnoseLogic
-
-## INSTRUCTIONS
-
-You are analyzing a Windows PC hardware diagnostic report. Follow the reasoning framework above to:
-1. Parse the diagnostic output into structured categories
-2. Identify issues by severity
-3. Provide actionable recommendations
-"@
     }
 
     process {
@@ -159,50 +132,32 @@ You are analyzing a Windows PC hardware diagnostic report. Follow the reasoning 
             throw "Diagnostic report is empty"
         }
 
-        $routerSummary = ''
-        $resolvedRouterUrl = Resolve-PcaiEndpoint -ApiUrl $RouterBaseUrl -ProviderName 'functiongemma'
+        $promptSplat = @{
+            DiagnosticText   = $diagnosticText
+            TimeoutSeconds   = $TimeoutSeconds
+        }
+        
         if ($UseRouter) {
-            $routerPrompt = "Analyze this report and call tools if needed: `n`n $diagnosticText"
-            $routerHealthy = Get-CachedProviderHealth -Provider 'functiongemma' -TimeoutSeconds ([math]::Min($TimeoutSeconds, 10)) -ApiUrl $resolvedRouterUrl
-            if ($routerHealthy) {
-                try {
-                    $routerInvokeSplat = @{
-                        Prompt          = $routerPrompt
-                        BaseUrl         = $resolvedRouterUrl
-                        Model           = $RouterModel
-                        ExecuteTools    = [bool]$RouterExecuteTools
-                        MaxToolCalls    = $RouterMaxCalls
-                        TimeoutSeconds  = $TimeoutSeconds
-                        SkipHealthCheck = $true
-                    }
-                    if (-not [string]::IsNullOrWhiteSpace($RouterToolsPath)) {
-                        $routerInvokeSplat.ToolsPath = $RouterToolsPath
-                    }
-                    $routerResult = Invoke-FunctionGemmaReAct @routerInvokeSplat
-
-                    if ($routerResult -and $routerResult.ToolResults) {
-                        $routerSummary = ($routerResult.ToolResults | ConvertTo-Json -Depth 6)
-                    }
-                } catch {
-                    Write-Warning "FunctionGemma router unavailable, proceeding without tool routing: $_"
-                }
-            } else {
-                Write-Warning "FunctionGemma router health check failed for $resolvedRouterUrl. Proceeding without tool routing."
+            $promptSplat.UseRouter          = $true
+            $promptSplat.RouterBaseUrl      = $RouterBaseUrl
+            $promptSplat.RouterModel        = $RouterModel
+            $promptSplat.RouterMaxCalls     = $RouterMaxCalls
+            $promptSplat.RouterExecuteTools = [bool]$RouterExecuteTools
+            
+            if (-not [string]::IsNullOrWhiteSpace($RouterToolsPath)) {
+                $promptSplat.RouterToolsPath = $RouterToolsPath
             }
         }
 
-        $userPrompt = "Analyze this PC hardware diagnostic report: `n`n $diagnosticText"
-        if ($routerSummary) {
-            $userPrompt += "`n`n[TOOL_RESULTS]`n$routerSummary"
-        }
+        $prompts = Get-PCDiagnosisPrompt @promptSplat
 
         Write-Host "Analyzing diagnostic report with $Model..." -ForegroundColor Cyan
         $startTime = Get-Date
 
         try {
             $messages = @(
-                @{ role = 'system'; content = $systemPrompt }
-                @{ role = 'user'; content = $userPrompt }
+                @{ role = 'system'; content = $prompts.SystemPrompt }
+                @{ role = 'user'; content = $prompts.UserPrompt }
             )
 
             $response = Invoke-LLMChatWithFallback -Messages $messages -Model $Model -Temperature $Temperature -TimeoutSeconds $TimeoutSeconds

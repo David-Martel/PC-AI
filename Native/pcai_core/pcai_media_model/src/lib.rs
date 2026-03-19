@@ -125,8 +125,14 @@ impl LlamaBackend {
         cache: &mut janus_llama::PreAllocKvCache,
     ) -> candle_core::Result<Tensor> {
         match self {
-            Self::Full(m) => m.forward_hidden_prealloc(input_embed, index_pos, cache),
-            Self::Quantized(m) => m.forward_hidden_prealloc(input_embed, index_pos, cache),
+            Self::Full(m) => {
+                eprintln!("[GGUF DISPATCH] forward_hidden_prealloc → Full path");
+                m.forward_hidden_prealloc(input_embed, index_pos, cache)
+            }
+            Self::Quantized(m) => {
+                eprintln!("[GGUF DISPATCH] forward_hidden_prealloc → Quantized path");
+                m.forward_hidden_prealloc(input_embed, index_pos, cache)
+            }
         }
     }
 
@@ -425,7 +431,16 @@ impl JanusModel {
     /// Propagates candle tensor errors from the linear projection.
     pub fn project_to_image_vocab(&self, hidden_states: &Tensor) -> Result<Tensor> {
         use candle_core::Module;
-        self.gen_head.forward(hidden_states)
+        // Try the forward pass; if it fails with a dtype mismatch (common when
+        // the quantized backbone returns F32 but gen_head weights are BF16),
+        // retry with the hidden states cast to BF16.
+        match self.gen_head.forward(hidden_states) {
+            Ok(result) => Ok(result),
+            Err(_) => {
+                let bf16_hidden = hidden_states.to_dtype(candle_core::DType::BF16)?;
+                self.gen_head.forward(&bf16_hidden)
+            }
+        }
     }
 
     /// Decodes discrete image tokens into an RGB pixel tensor.

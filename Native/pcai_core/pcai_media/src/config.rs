@@ -156,6 +156,26 @@ pub struct PipelineConfig {
     /// Defaults to `4`.
     #[serde(default = "default_speculative_lookahead")]
     pub speculative_lookahead: usize,
+
+    /// Optional path to a GGUF file containing quantized LLaMA backbone weights.
+    ///
+    /// When set, the LLaMA backbone (`language_model`) is loaded from this
+    /// GGUF file using [`QuantizedJanusLlama`] instead of from safetensors.
+    /// All other components (generation head, VQ decoder, vision tower, etc.)
+    /// are still loaded from the safetensors shards in the model directory.
+    ///
+    /// Expected speedup at Q4_K: ~4–6× on CPU (bandwidth-limited), ~2–3× on
+    /// GPU.  Model quality is near-lossless for Q4_K and Q8_0.
+    ///
+    /// Set to `null` or omit to use the default full-precision path.
+    ///
+    /// # Example
+    ///
+    /// ```json
+    /// { "gguf_path": "Models/Janus-Pro-1B-Q4_K_M.gguf" }
+    /// ```
+    #[serde(default)]
+    pub gguf_path: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -214,6 +234,7 @@ impl Default for PipelineConfig {
             use_speculative_decoding: default_use_speculative_decoding(),
             speculative_draft_layers: default_speculative_draft_layers(),
             speculative_lookahead: default_speculative_lookahead(),
+            gguf_path: None,
         }
     }
 }
@@ -750,6 +771,7 @@ mod tests {
             use_speculative_decoding: true,
             speculative_draft_layers: 8,
             speculative_lookahead: 4,
+            gguf_path: None,
         };
         let tmp = std::env::temp_dir().join("pcai_media_config_test.json");
         let json = serde_json::to_string_pretty(&original).expect("serialise");

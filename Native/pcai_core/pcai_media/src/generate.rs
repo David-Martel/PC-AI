@@ -136,7 +136,7 @@ impl CacheVariant {
     /// Propagates candle errors from the underlying forward implementation.
     fn forward_hidden(
         &mut self,
-        llama: &pcai_media_model::janus_llama::JanusLlama,
+        llama: &LlamaBackend,
         input_embed: &Tensor,
         index_pos: usize,
     ) -> candle_core::Result<Tensor> {
@@ -273,38 +273,101 @@ impl GenerationPipeline {
             JanusConfig::janus_pro_1b()
         };
 
-        // 3. Build JanusModel from a VarMap-backed VarBuilder.
+        // 3. Collect safetensors shards (needed for both full-precision and GGUF paths).
+        let shards = hub::collect_safetensors(&model_path);
+
+        // 3a. Build JanusModel — dispatch on whether a GGUF file was provided.
         let mut varmap = Some(VarMap::new());
         let vb = VarBuilder::from_varmap(varmap.as_ref().unwrap(), dtype, &device);
-        let mut model =
-            JanusModel::new(vb, &model_config).map_err(|e| anyhow::anyhow!("JanusModel construction failed: {e}"))?;
 
-        // 4. Load safetensors weights into the VarMap.
-        let shards = hub::collect_safetensors(&model_path);
-        if shards.is_empty() {
-            tracing::warn!(
-                path = %model_path.display(),
-                "no safetensors shards found; model will use random weights"
+        let mut model = if let Some(gguf_path_str) = &config.gguf_path {
+            // ── GGUF path: load quantized LLaMA backbone from GGUF file ───────
+            // The VQ decoder, generation head, vision tower etc. are still
+            // loaded from safetensors via the VarMap / VarBuilder path.
+            let gguf_path = std::path::PathBuf::from(gguf_path_str);
+            if !gguf_path.exists() {
+                anyhow::bail!("gguf_path '{}' does not exist on disk", gguf_path.display());
+            }
+
+            tracing::info!(
+                path = %gguf_path.display(),
+                "loading quantized LLaMA backbone from GGUF"
             );
-        } else {
-            let loaded = hub::load_weights(varmap.as_ref().unwrap(), &shards, dtype, &device)
-                .context("failed to load model weights from safetensors")?;
-            tracing::info!(shards = shards.len(), tensors_loaded = loaded, "weights loaded");
-        }
 
-        // 5. On CUDA, offload the token embedding table to CPU to save VRAM.
-        //    Keep `lm_head` on the main device so image understanding can
-        //    decode text at full speed without CPU vocab projection.
-        //    Drop VarMap immediately after to release old tensor Arc references.
-        if matches!(device, Device::Cuda(_)) {
-            model
-                .llama
-                .offload_embeddings_to_cpu()
-                .map_err(|e| anyhow::anyhow!("wte CPU offload failed: {e}"))?;
-            // Drop VarMap so the old GPU tensors (held by Arc) are freed now.
-            varmap.take();
-            tracing::info!("Offloaded wte to CPU for CUDA pipeline");
-        }
+            let llama_cfg = model_config.to_llama_config(false);
+
+            let gguf_file = std::fs::File::open(&gguf_path)
+                .with_context(|| format!("failed to open GGUF file '{}'", gguf_path.display()))?;
+            let mut gguf_reader = std::io::BufReader::new(gguf_file);
+
+            let gguf_content = candle_core::quantized::gguf_file::Content::read(&mut gguf_reader)
+                .map_err(|e| anyhow::anyhow!("failed to parse GGUF header from '{}': {e}", gguf_path.display()))?;
+
+            let mut quantized_llama =
+                QuantizedJanusLlama::from_gguf(gguf_content, &mut gguf_reader, &llama_cfg, &device)
+                    .map_err(|e| anyhow::anyhow!("QuantizedJanusLlama::from_gguf failed: {e}"))?;
+
+            tracing::info!(
+                layers = quantized_llama.num_layers(),
+                "quantized LLaMA backbone loaded from GGUF"
+            );
+
+            // On CUDA, offload the (full-precision) token embedding table
+            // to CPU to save VRAM — same as the standard path.
+            if matches!(device, Device::Cuda(_)) {
+                quantized_llama
+                    .offload_embeddings_to_cpu()
+                    .map_err(|e| anyhow::anyhow!("quantized wte CPU offload failed: {e}"))?;
+                tracing::info!("Offloaded quantized wte to CPU for CUDA pipeline");
+            }
+
+            // Load the non-LLM components (VQ decoder, gen_head, etc.)
+            // from safetensors into the VarMap.
+            if shards.is_empty() {
+                tracing::warn!(
+                    path = %model_path.display(),
+                    "no safetensors shards found; non-LLM components will use random weights"
+                );
+            } else {
+                let loaded = hub::load_weights(varmap.as_ref().unwrap(), &shards, dtype, &device)
+                    .context("failed to load non-LLM weights from safetensors")?;
+                tracing::info!(shards = shards.len(), tensors_loaded = loaded, "non-LLM weights loaded");
+            }
+
+            JanusModel::new_with_quantized_llama(quantized_llama, vb, &model_config)
+                .map_err(|e| anyhow::anyhow!("JanusModel (GGUF) construction failed: {e}"))?
+        } else {
+            // ── Standard path: full-precision LLaMA from safetensors ──────────
+            let mut m = JanusModel::new(vb, &model_config)
+                .map_err(|e| anyhow::anyhow!("JanusModel construction failed: {e}"))?;
+
+            // 4. Load safetensors weights into the VarMap.
+            if shards.is_empty() {
+                tracing::warn!(
+                    path = %model_path.display(),
+                    "no safetensors shards found; model will use random weights"
+                );
+            } else {
+                let loaded = hub::load_weights(varmap.as_ref().unwrap(), &shards, dtype, &device)
+                    .context("failed to load model weights from safetensors")?;
+                tracing::info!(shards = shards.len(), tensors_loaded = loaded, "weights loaded");
+            }
+
+            // 5. On CUDA, offload the token embedding table to CPU to save VRAM.
+            //    Keep `lm_head` on the main device so image understanding can
+            //    decode text at full speed without CPU vocab projection.
+            //    Drop VarMap immediately after to release old tensor Arc references.
+            if matches!(device, Device::Cuda(_)) {
+                m.llama
+                    .offload_embeddings_to_cpu()
+                    .map_err(|e| anyhow::anyhow!("wte CPU offload failed: {e}"))?;
+                // Drop VarMap so the old GPU tensors (held by Arc) are freed now.
+                varmap.take();
+                tracing::info!("Offloaded wte to CPU for CUDA pipeline");
+            }
+
+            m
+        };
 
         // 6. Load tokenizer.
         let tokenizer = hub::load_tokenizer(&model_path).context("failed to load tokenizer")?;
@@ -849,13 +912,16 @@ impl GenerationPipeline {
     ///
     /// 1. **Draft phase** (`draft_layers` blocks): run `lookahead_k` fast
     ///    single-token forward passes to produce `K` candidate token IDs and
-    ///    their embeddings.
+    ///    their embeddings.  Each draft token is sampled stochastically via
+    ///    `sample_from_hidden` with the configured temperature.
     /// 2. **Verify phase** (all blocks): run one batched forward over all `K`
     ///    candidate embeddings to obtain full-depth logits at each position.
     /// 3. **Accept/reject**: keep the longest consecutive prefix where the
-    ///    draft token matches the greedy argmax of the verify logits.  If the
-    ///    first draft token is rejected, resample from the verify logits at
-    ///    that position.
+    ///    draft token matches the verify token (also stochastically sampled via
+    ///    `sample_from_hidden`).  Both sides use the same sampler so that token
+    ///    IDs are drawn from the same distribution.  On rejection at position
+    ///    `j`, the verify token already computed at that position is used
+    ///    directly as the accepted bonus token — no re-sampling occurs.
     ///
     /// The KV cache is shared between draft and verify phases via
     /// [`PreAllocKvCache`].  Draft writes at positions `pos..pos+k`; verify
@@ -899,6 +965,14 @@ impl GenerationPipeline {
         lookahead_k: usize,
         telemetry: &mut TelemetryCollector,
     ) -> Result<Vec<u32>> {
+        // Bug 3 fix: clamp draft_layers to [1, total_layers - 1] so it is
+        // always a valid partial-depth value regardless of what the caller
+        // configured.  Using all layers for drafting would defeat the purpose
+        // (same cost as verify); using zero layers is undefined behaviour in
+        // `forward_hidden_draft`.
+        let total_layers = self.model.llama.num_layers();
+        let draft_layers = draft_layers.min(total_layers.saturating_sub(1)).max(1);
+
         let mut generated: Vec<u32> = Vec::with_capacity(num_image_tokens);
         let mut pos = start_pos;
 
@@ -1009,34 +1083,60 @@ impl GenerationPipeline {
 
             // ── ACCEPT / REJECT ───────────────────────────────────────────────
             //
-            // For each position `j` in [0, K):
-            //   - Compute verify token = greedy argmax of verify logits at position j.
-            //   - If draft_tokens[j] == verify_token → accept, advance.
-            //   - Else → reject; resample from verify logits, stop.
+            // Bug 1 fix: both draft and verify use `sample_from_hidden`
+            // (stochastic multinomial) so that token IDs are drawn from the
+            // same distribution.  The original code compared stochastic draft
+            // tokens against deterministic greedy verify tokens, producing a
+            // near-zero acceptance rate.
+            //
+            // Bug 2 fix: on rejection at position j, the verify token already
+            // sampled at that position is used directly as the bonus token.
+            // The original code re-sampled from `sample_from_hidden` a second
+            // time, wasting the verify computation and introducing a different
+            // random draw.
+            //
+            // Standard speculative decoding algorithm:
+            //   For each position j in [0, K):
+            //     verify_tok = sample(verify_hidden_j)   ← same sampler as draft
+            //     if draft_tokens[j] == verify_tok → accept, advance.
+            //     else → use verify_tok as the accepted bonus token, stop.
             //
             // After accepting j tokens we have `j + 1` verify hidden states
             // (positions 0..=j).  The last accepted verify hidden is saved as
             // `last_hidden` for the next outer step.
             let mut accept_count = 0_usize;
-            let mut resample_hidden: Option<Tensor> = None;
+            // `rejection_token` holds the verify-sampled token at the first
+            // rejected position; it is pushed directly into `generated`.
+            let mut rejection_token: Option<(u32, Tensor)> = None;
 
             'accept_loop: for j in 0..k {
-                // Extract verify hidden at position j: [B, K, H] → [B, 1, H] → [B, H]
+                // Extract verify hidden at position j: [B, K, H] → [B, H]
                 let verify_hidden_j = verify_hidden_batch
                     .i((.., j, ..))
                     .with_context(|| format!("speculative verify: index hidden at j={j}"))?
                     .contiguous()
                     .with_context(|| format!("speculative verify: contiguous at j={j}"))?;
 
-                // Greedy verify token (argmax over image-vocab logits).
-                let verify_tok = self.greedy_from_hidden(&verify_hidden_j, use_cfg, batch_size, guidance_scale)?;
+                // Bug 1 fix: sample (not greedy) verify token so the
+                // comparison against the draft token is fair — both draw from
+                // the same stochastic distribution.
+                let verify_tok = self.sample_from_hidden(
+                    &verify_hidden_j,
+                    use_cfg,
+                    batch_size,
+                    guidance_scale,
+                    temperature,
+                    pos + j,
+                )?;
 
                 if draft_tokens[j] == verify_tok {
                     accept_count += 1;
                     // Keep going — may accept more tokens.
                 } else {
-                    // Rejection at position j: push the verify token and stop.
-                    resample_hidden = Some(verify_hidden_j);
+                    // Bug 2 fix: use the verify token (already computed above)
+                    // as the bonus token.  Do NOT re-sample — that would discard
+                    // the verify computation and introduce a different random draw.
+                    rejection_token = Some((verify_tok, verify_hidden_j));
                     break 'accept_loop;
                 }
             }
@@ -1050,15 +1150,10 @@ impl GenerationPipeline {
                 }
             }
 
-            // On rejection: push the resampled verify token and set last_hidden.
+            // On rejection: push the verify bonus token and set last_hidden.
             if generated.len() < num_image_tokens {
-                if let Some(vh) = resample_hidden {
-                    // The verify hidden at the first rejected position gives us a
-                    // free bonus token (the greedy verify token).  We already
-                    // computed it above; push it via sample_from_hidden to allow
-                    // temperature/CFG to be applied consistently.
-                    let bonus_tok =
-                        self.sample_from_hidden(&vh, use_cfg, batch_size, guidance_scale, temperature, pos)?;
+                if let Some((bonus_tok, vh)) = rejection_token {
+                    // Use the verify-sampled token directly (Bug 2 fix).
                     generated.push(bonus_tok);
                     pos += 1;
 
@@ -1717,5 +1812,52 @@ mod tests {
         let raw: usize = 0;
         let clamped = raw.max(1);
         assert_eq!(clamped, 1, "lookahead 0 should be clamped to 1 by .max(1)");
+    }
+
+    /// Bug 3 fix: `draft_layers` must be clamped to `[1, total_layers - 1]`
+    /// at the start of `speculative_generate_loop`.
+    ///
+    /// Validates the clamping arithmetic added to the loop entry so that the
+    /// draft depth is always a valid partial-depth value at runtime.
+    #[test]
+    fn test_draft_layers_clamped_to_valid_range() {
+        let total_layers: usize = 24; // Janus-Pro-1B has 24 layers.
+
+        // Configured to exactly total_layers (invalid: must be < total).
+        let raw = total_layers;
+        let clamped = raw.min(total_layers.saturating_sub(1)).max(1);
+        assert_eq!(
+            clamped,
+            total_layers - 1,
+            "draft_layers == total must clamp to total - 1"
+        );
+
+        // Configured to total_layers + 5 (also invalid).
+        let raw = total_layers + 5;
+        let clamped = raw.min(total_layers.saturating_sub(1)).max(1);
+        assert_eq!(
+            clamped,
+            total_layers - 1,
+            "draft_layers > total must clamp to total - 1"
+        );
+
+        // Configured to 0 (invalid: at least 1 layer required).
+        let raw: usize = 0;
+        let clamped = raw.min(total_layers.saturating_sub(1)).max(1);
+        assert_eq!(clamped, 1, "draft_layers == 0 must clamp to 1");
+
+        // Configured to 8 (valid: within [1, 23]).
+        let raw: usize = 8;
+        let clamped = raw.min(total_layers.saturating_sub(1)).max(1);
+        assert_eq!(clamped, 8, "valid draft_layers must pass through unchanged");
+
+        // Edge: total_layers == 1 (degenerate model).
+        let total = 1_usize;
+        let raw: usize = 5;
+        let clamped = raw.min(total.saturating_sub(1)).max(1);
+        assert_eq!(
+            clamped, 1,
+            "degenerate 1-layer model: draft_layers must be clamped to 1"
+        );
     }
 }

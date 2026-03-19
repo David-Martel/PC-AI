@@ -250,17 +250,44 @@ def _load_arch_params(model_dir: Path) -> dict:
     if not lc:
         raise ValueError("config.json missing 'language_config' section")
 
-    return {
-        "hidden_size":             lc["hidden_size"],
-        "num_attention_heads":     lc["num_attention_heads"],
-        "num_key_value_heads":     lc["num_key_value_heads"],
+    # Some Janus configs (e.g., 7B) omit detailed architecture params in
+    # language_config — infer them from safetensors tensor shapes if missing.
+    params = {
         "num_hidden_layers":       lc["num_hidden_layers"],
-        "intermediate_size":       lc["intermediate_size"],
         "vocab_size":              lc["vocab_size"],
         "max_position_embeddings": lc["max_position_embeddings"],
         "rope_theta":              lc.get("rope_theta", DEFAULT_ROPE_THETA),
         "rms_norm_eps":            lc.get("rms_norm_eps", DEFAULT_RMS_NORM_EPS),
     }
+
+    if "hidden_size" in lc:
+        params["hidden_size"] = lc["hidden_size"]
+        params["num_attention_heads"] = lc["num_attention_heads"]
+        params["num_key_value_heads"] = lc.get("num_key_value_heads", lc["num_attention_heads"])
+        params["intermediate_size"] = lc["intermediate_size"]
+    else:
+        # Infer from tensor shapes in safetensors
+        shard_paths = sorted(model_dir.glob("*.safetensors"))
+        if not shard_paths:
+            raise ValueError("No safetensors files found to infer architecture from")
+        from safetensors import safe_open  # type: ignore
+        with safe_open(str(shard_paths[0]), framework="pt") as st:
+            embed_shape = st.get_tensor("language_model.model.embed_tokens.weight").shape
+            q_shape = st.get_tensor("language_model.model.layers.0.self_attn.q_proj.weight").shape
+            k_shape = st.get_tensor("language_model.model.layers.0.self_attn.k_proj.weight").shape
+            gate_shape = st.get_tensor("language_model.model.layers.0.mlp.gate_proj.weight").shape
+        hidden_size = embed_shape[1]  # [vocab, hidden]
+        params["hidden_size"] = hidden_size
+        params["num_attention_heads"] = q_shape[0] // (hidden_size // (q_shape[0] // (q_shape[0] // 128 if q_shape[0] > 128 else 1)))
+        # Simpler: head_dim is typically 128, so num_heads = q_proj_out / head_dim
+        head_dim = 128
+        params["num_attention_heads"] = q_shape[0] // head_dim
+        params["num_key_value_heads"] = k_shape[0] // head_dim
+        params["intermediate_size"] = gate_shape[0]
+        print(f"Inferred from tensors: hidden={hidden_size}, heads={params['num_attention_heads']}, "
+              f"kv_heads={params['num_key_value_heads']}, intermediate={params['intermediate_size']}")
+
+    return params
 
 
 # ---------------------------------------------------------------------------
@@ -444,7 +471,9 @@ def main() -> int:
         print(f"ERROR: Model directory not found: {model_dir}", file=sys.stderr)
         return 1
 
-    output_path: Path = args.output or (model_dir / "janus-pro-1b-llama-f16.gguf")
+    # Derive output filename from model directory name
+    model_name = model_dir.name.lower().replace(" ", "-")
+    output_path: Path = args.output or (model_dir / f"{model_name}-llama-f16.gguf")
     output_path = output_path.resolve()
 
     print("=" * 72)

@@ -22,7 +22,7 @@
 ### Path to 200+ tok/s (Janus-Pro-7B on RTX 5060 Ti)
 | Technique | Model Size | Theoretical (448 GB/s) | At 35% eff. | Status |
 |-----------|-----------|----------------------|-------------|--------|
-| BF16 (no quantization) | 14 GB | 32 tok/s | 11 tok/s | Baseline |
+| BF16 (no quantization) | 14 GB | 32 tok/s | **5.8 tok/s** (OOM at VQ decode) | Measured |
 | **GGUF Q8_0** | **7 GB** | **64 tok/s** | **22 tok/s** | **IN PROGRESS** |
 | **GGUF Q4_K_M** | **3.5 GB** | **128 tok/s** | **45 tok/s** | **IN PROGRESS** |
 | Q4_K + CUDA Graphs (+30%) | 3.5 GB | 166 tok/s | 58 tok/s | TODO |

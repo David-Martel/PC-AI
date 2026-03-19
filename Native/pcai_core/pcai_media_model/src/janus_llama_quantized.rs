@@ -80,8 +80,17 @@ use crate::janus_llama::{KvCache, PreAllocKvCache};
 ///
 /// Norm weights are tiny (one scalar per hidden dim) so full-precision
 /// dequantization is always correct and incurs negligible overhead.
-fn rms_norm_from_qtensor(weight: QTensor, eps: f64, device: &Device) -> Result<candle_nn::RmsNorm> {
-    let weight = weight.dequantize(device)?.to_dtype(DType::F32)?;
+fn rms_norm_from_qtensor(
+    weight: QTensor,
+    eps: f64,
+    device: &Device,
+    working_dtype: DType,
+) -> Result<candle_nn::RmsNorm> {
+    // The candle RmsNorm CUDA kernel (CustomOp2) requires the weight tensor
+    // dtype to match the input tensor dtype.  Dequantize to working_dtype
+    // (BF16 on CUDA, F32 on CPU) so the forward pass doesn't trigger
+    // "dtype mismatch in binary op" when the input arrives in working_dtype.
+    let weight = weight.dequantize(device)?.to_dtype(working_dtype)?;
     Ok(candle_nn::RmsNorm::new(weight, eps))
 }
 
@@ -150,7 +159,7 @@ impl QuantizedMlp {
         let gate = candle_nn::ops::silu(&self.gate_proj.forward(x)?.to_dtype(self.working_dtype)?)?;
         let up = self.up_proj.forward(x)?.to_dtype(self.working_dtype)?;
         // Both operands are in working_dtype before the element-wise multiply.
-        self.down_proj.forward(&(gate * up)?)
+        self.down_proj.forward(&(gate * up)?)?.to_dtype(self.working_dtype)
     }
 }
 
@@ -283,7 +292,7 @@ impl QuantizedAttention {
             att.matmul(&v_full.contiguous()?)?
         };
         let y = y.transpose(1, 2)?.reshape(&[b_sz, seq_len, hidden_size])?;
-        self.o_proj.forward(&y)
+        self.o_proj.forward(&y)?.to_dtype(self.working_dtype)
     }
 
     /// Forward pass with [`PreAllocKvCache`] (zero-copy in-place writes).
@@ -356,7 +365,7 @@ impl QuantizedAttention {
             att.matmul(&v_full.contiguous()?)?
         };
         let y = y.transpose(1, 2)?.reshape(&[b_sz, seq_len, hidden_size])?;
-        self.o_proj.forward(&y)
+        self.o_proj.forward(&y)?.to_dtype(self.working_dtype)
     }
 }
 
@@ -415,13 +424,17 @@ impl QuantizedBlock {
         let x = x.to_dtype(self.working_dtype)?;
         let residual = &x;
         let normed = self.input_layernorm.forward(&x)?.to_dtype(self.working_dtype)?;
-        let x = (self.attn.forward_prealloc(&normed, index_pos, block_idx, cache)? + residual)?;
+        let attn_out = self.attn.forward_prealloc(&normed, index_pos, block_idx, cache)?;
+        let attn_out = attn_out.to_dtype(self.working_dtype)?;
+        let x = (attn_out + residual)?;
         let residual = &x;
         let normed = self
             .post_attention_layernorm
             .forward(&x)?
             .to_dtype(self.working_dtype)?;
-        let x = (self.mlp.forward(&normed)? + residual)?;
+        let mlp_out = self.mlp.forward(&normed)?;
+        let mlp_out = mlp_out.to_dtype(self.working_dtype)?;
+        let x = (mlp_out + residual)?;
         Ok(x)
     }
 }
@@ -537,8 +550,8 @@ impl QuantizedJanusLlama {
             // Norm weights — dequantize to F32 (cheap: one scalar per dim).
             let attn_norm_qt = ct.tensor(reader, &format!("{prefix}.attn_norm.weight"), device)?;
             let ffn_norm_qt = ct.tensor(reader, &format!("{prefix}.ffn_norm.weight"), device)?;
-            let input_layernorm = rms_norm_from_qtensor(attn_norm_qt, cfg.rms_norm_eps, device)?;
-            let post_attention_layernorm = rms_norm_from_qtensor(ffn_norm_qt, cfg.rms_norm_eps, device)?;
+            let input_layernorm = rms_norm_from_qtensor(attn_norm_qt, cfg.rms_norm_eps, device, working_dtype)?;
+            let post_attention_layernorm = rms_norm_from_qtensor(ffn_norm_qt, cfg.rms_norm_eps, device, working_dtype)?;
 
             // Attention projections (stay quantized).
             let q_proj = QMatMul::from_qtensor(ct.tensor(reader, &format!("{prefix}.attn_q.weight"), device)?)?;
@@ -577,7 +590,7 @@ impl QuantizedJanusLlama {
 
         // ── Final norm ────────────────────────────────────────────────────
         let ln_f_qt = ct.tensor(reader, "output_norm.weight", device)?;
-        let ln_f = rms_norm_from_qtensor(ln_f_qt, cfg.rms_norm_eps, device)?;
+        let ln_f = rms_norm_from_qtensor(ln_f_qt, cfg.rms_norm_eps, device, working_dtype)?;
 
         // ── LM head ───────────────────────────────────────────────────────
         // Some GGUF files omit `output.weight` and rely on tied embeddings.
@@ -640,7 +653,14 @@ impl QuantizedJanusLlama {
         let (_, seq_len, _) = input_embed.dims3()?;
         let mut x = input_embed.clone();
         for (block_idx, block) in self.blocks.iter().enumerate() {
-            x = block.forward_dynamic(&x, index_pos, block_idx, cache)?;
+            x = block.forward_dynamic(&x, index_pos, block_idx, cache).map_err(|e| {
+                candle_core::Error::Msg(format!(
+                    "block {block_idx}: input dtype={:?} shape={:?}, cache cos dtype={:?}: {e}",
+                    x.dtype(),
+                    x.dims(),
+                    cache.cos.dtype(),
+                ))
+            })?;
         }
         let x = self.ln_f.forward(&x)?;
         x.i((.., seq_len - 1, ..))?.contiguous()

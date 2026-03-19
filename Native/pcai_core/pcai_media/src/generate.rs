@@ -611,9 +611,19 @@ impl GenerationPipeline {
         //   allocating a new growing buffer.  Retained for debugging and for
         //   devices where `scatter_set` is not supported.
         let llama_cfg = self.model_config.to_llama_config(false);
+        // For quantized backends, QMatMul dequantizes to BF16 on CUDA / F32 on
+        // CPU.  The KV cache cos/sin tables and stored K/V tensors must match
+        // this working dtype — NOT the config-level dtype (which may be F16).
+        let cache_dtype = match &self.model.llama {
+            LlamaBackend::Quantized(_) => match &self.device {
+                candle_core::Device::Cuda(_) => DType::BF16,
+                _ => DType::F32,
+            },
+            LlamaBackend::Full(_) => self.dtype,
+        };
         let mut cache = CacheVariant::new(
             self.config.use_prealloc_kv_cache,
-            self.dtype,
+            cache_dtype,
             &llama_cfg,
             batch_size,
             self.model_config.num_image_tokens() + seq_len + 32,

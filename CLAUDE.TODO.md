@@ -33,22 +33,39 @@
 - [ ] FP8 KV cache quantization (50% memory reduction)
 - [ ] AWQ quantization (Marlin kernel, 2.6x vs GPTQ)
 
-### Phase 4: System-Level — IN PROGRESS
-- [x] Pre-allocated KV cache ring buffer implemented (PreAllocKvCache in janus_llama.rs)
-- [ ] Wire PreAllocKvCache into generate.rs loop (agent in progress)
+### Phase 4: System-Level — COMPLETE
+- [x] Pre-allocated KV cache ring buffer (PreAllocKvCache in janus_llama.rs)
+- [x] CacheVariant enum wired into generate.rs (default=prealloc)
+- [x] GPU Gumbel-max sampling (eliminates 16KB/step CPU transfer)
+- [x] True multinomial sampling restored (argmax caused solid-color images)
+- [x] Repetition penalty for understanding pipeline (1.2, prevents loops)
 - [ ] CUDA Graphs (eliminate 20-30% CPU launch overhead)
 - [ ] Memory pinning for faster PCIe transfers
 
-### Phase 5: Advanced — TODO
-- [ ] Continuous batching via candle-vllm (2-4x throughput)
-- [ ] Speculative decoding with draft model (2-3x latency)
-- [ ] Tensor parallelism across both GPUs (TP=2)
-- [ ] Prefix caching for repeated prompts (2-57x cached)
+### Phase 5: Multi-Token Prediction — RESEARCHED
+Priority order (no training required first):
+- [ ] **Jacobi/SJD decoding** — 1.5-2x, training-free, init 576 positions & iterate
+- [ ] **Pre-computed Gumbel noise** — 5-10%, trivial: batch-generate 576 noise vectors
+- [ ] **Self-speculative decoding** — 1.5-2x, use first 8/24 layers as draft model
+- [ ] CUDA Graphs (eliminate 20-30% CPU launch overhead)
 
-### Understanding Pipeline Fix — COMPLETE
-- [x] Root cause identified: `<image>` token vs `<image_placeholder>` in prompt template
-- [x] Fixed in understand.rs: use Janus-Pro chat template with `<image_placeholder>`
-- [x] Vision tower forward pass validated with fail-fast on missing weights
+Requires fine-tuning:
+- [ ] Medusa heads — 2.2-3.6x, 3 lightweight FFN heads (~400MB VRAM)
+- [ ] GSD (Grouped Speculative) — up to 3.7x, VQ codebook grouping (ICCV 2025)
+- [ ] MTP (Meta/DeepSeek style) — 1.5-2x, additional generation heads
+
+### Phase 6: Cross-Codebase Propagation — TODO
+- [ ] FunctionGemma: ring buffer KV cache (uses Tensor::cat at model.rs:669)
+- [ ] FunctionGemma: GPU Gumbel sampling (uses CPU to_scalar at model.rs:1130)
+- [ ] FunctionGemma: remove unused streaming/block_len fields
+- [ ] pcai-inference: propagate any applicable optimizations
+
+### Understanding Pipeline — COMPLETE
+- [x] Fixed `<image>` vs `<image_placeholder>` token in prompt template
+- [x] Vision embedding splice matches Python reference (before|image|after)
+- [x] Prefill logits used directly (no double-processing)
+- [x] Repetition penalty prevents text loops
+- [x] Quality: correctly describes generated images
 
 ---
 

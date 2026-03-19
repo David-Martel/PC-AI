@@ -54,7 +54,7 @@ pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
     // Use the async tokio API (avoids ureq → rustls → ring build dependency).
     // Block on the async call since resolve_model_path is sync.
     let rt = tokio::runtime::Handle::try_current()
-        .map(|h| {
+        .map(|_h| {
             // We're already inside a tokio runtime — use spawn_blocking to
             // avoid blocking the async executor.
             std::thread::scope(|s| {

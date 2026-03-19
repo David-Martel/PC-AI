@@ -9,10 +9,15 @@
 //! us full control over the KV cache for future memory optimizations (INT8 KV
 //! cache, layer offloading, etc.).
 
-use candle_core::{DType, Device, IndexOp, Result, Tensor, D};
+use candle_core::{DType, Device, IndexOp, Result, Tensor};
 use candle_nn::{embedding, linear_no_bias, Embedding, Module, VarBuilder};
 use candle_transformers::models::llama::Config;
 use std::collections::HashMap;
+
+#[cfg(feature = "flash-attn")]
+use candle_core::D;
+#[cfg(feature = "flash-attn")]
+use candle_flash_attn;
 
 // ---------------------------------------------------------------------------
 // KV Cache
@@ -106,6 +111,17 @@ struct CausalSelfAttention {
     num_key_value_heads: usize,
     head_dim: usize,
     max_position_embeddings: usize,
+    /// Use flash attention kernel when available.
+    ///
+    /// Enabled when the `flash-attn` feature is active AND the model config
+    /// requests it.  Falls back to the naive SDPA path otherwise.
+    ///
+    /// The field is stored unconditionally so the struct layout and `load`
+    /// function are consistent regardless of the active feature set.  The
+    /// compiler will dead-code-warn without the `flash-attn` feature; we
+    /// suppress that with the conditional `allow` below.
+    #[cfg_attr(not(feature = "flash-attn"), allow(dead_code))]
+    use_flash_attn: bool,
 }
 
 impl CausalSelfAttention {
@@ -150,23 +166,26 @@ impl CausalSelfAttention {
 
         if cache.use_kv_cache {
             if let Some((cache_k, cache_v)) = &cache.kvs[block_idx] {
-                k = Tensor::cat(&[cache_k, &k], 2)?.contiguous()?;
-                v = Tensor::cat(&[cache_v, &v], 2)?.contiguous()?;
-                let k_seq_len = k.dims()[1];
+                // Fix 4: cat on CUDA produces a contiguous result already; the
+                // extra .contiguous() call was issuing 576×24×2 = 27,648
+                // redundant device-copy kernels per generation pass.
+                k = Tensor::cat(&[cache_k, &k], 2)?;
+                v = Tensor::cat(&[cache_v, &v], 2)?;
+                let k_seq_len = k.dims()[2];
                 if k_seq_len > self.max_position_embeddings {
                     k = k
                         .narrow(
-                            D::Minus1,
+                            2,
                             k_seq_len - self.max_position_embeddings,
                             self.max_position_embeddings,
                         )?
                         .contiguous()?;
                 }
-                let v_seq_len = v.dims()[1];
+                let v_seq_len = v.dims()[2];
                 if v_seq_len > 2 * self.max_position_embeddings {
                     v = v
                         .narrow(
-                            D::Minus1,
+                            2,
                             v_seq_len - self.max_position_embeddings,
                             self.max_position_embeddings,
                         )?
@@ -180,25 +199,57 @@ impl CausalSelfAttention {
             cache.kvs[block_idx] = Some((k.detach(), v.detach()));
         }
 
-        let k = self.repeat_kv(k)?;
-        let v = self.repeat_kv(v)?;
+        let k_full = self.repeat_kv(k)?;
+        let v_full = self.repeat_kv(v)?;
 
-        // Standard scaled dot-product attention.
+        // Fix 1: Flash attention path — 2-3× faster than naive SDPA on CUDA.
+        //
+        // flash_attn expects [B, S, H, D] layout (sequence dimension second)
+        // rather than the [B, H, S, D] layout we use internally.  Transpose
+        // before the kernel and back after.
+        //
+        // The causal mask is only needed for prefill (seq_len > 1). For
+        // single-token decode the mask is a no-op and can be skipped.
+        #[cfg(feature = "flash-attn")]
+        if self.use_flash_attn {
+            // flash-attn requires BF16 or F16; cast if we are in F32/F64.
+            let in_dtype = q.dtype();
+            let fa_dtype = match in_dtype {
+                DType::BF16 | DType::F16 => in_dtype,
+                _ => DType::BF16,
+            };
+            // Transpose [B, H, S, D] → [B, S, H, D] and ensure contiguous.
+            let q_fa = q.transpose(1, 2)?.to_dtype(fa_dtype)?.contiguous()?;
+            let k_fa = k_full.transpose(1, 2)?.to_dtype(fa_dtype)?.contiguous()?;
+            let v_fa = v_full.transpose(1, 2)?.to_dtype(fa_dtype)?.contiguous()?;
+            let softmax_scale = 1.0_f32 / (self.head_dim as f32).sqrt();
+            // Apply causal mask only during prefill (seq_len > 1).
+            let causal = seq_len > 1;
+            let y_fa = candle_flash_attn::flash_attn(&q_fa, &k_fa, &v_fa, softmax_scale, causal)?;
+            // Transpose back [B, S, H, D] → [B, H, S, D], then flatten to [B, S, hidden].
+            let y = y_fa
+                .transpose(1, 2)?
+                .reshape((b_sz, seq_len, hidden_size))?
+                .to_dtype(in_dtype)?;
+            return self.o_proj.forward(&y);
+        }
+
+        // Fix 1 (fallback): Standard scaled dot-product attention.
         // On CUDA with BF16/F16, compute in native dtype to avoid F32 copies
         // that fragment the CUDA memory pool (KV cache grows each step).
         // On CPU with F32, no cast is needed either.
         let in_dtype = q.dtype();
         let use_f32_attn = matches!(in_dtype, DType::F64); // only upcast for F64
-        let (q, k, v) = if use_f32_attn {
+        let (q, k_full, v_full) = if use_f32_attn {
             (
                 q.to_dtype(DType::F32)?,
-                k.to_dtype(DType::F32)?,
-                v.to_dtype(DType::F32)?,
+                k_full.to_dtype(DType::F32)?,
+                v_full.to_dtype(DType::F32)?,
             )
         } else {
-            (q, k, v)
+            (q, k_full, v_full)
         };
-        let att = (q.matmul(&k.t()?)? / (self.head_dim as f64).sqrt())?;
+        let att = (q.matmul(&k_full.t()?)? / (self.head_dim as f64).sqrt())?;
         let att = if seq_len == 1 {
             att
         } else {
@@ -206,16 +257,16 @@ impl CausalSelfAttention {
             let neg_inf = if use_f32_attn {
                 f32::NEG_INFINITY
             } else {
-                // For BF16/F16, use a large negative value instead of infinity
+                // For BF16/F16, use a large negative value instead of infinity.
                 -65504.0_f32
             };
             masked_fill(&att, &mask, neg_inf)?
         };
         let att = candle_nn::ops::softmax_last_dim(&att)?;
         let y = if use_f32_attn {
-            att.matmul(&v.contiguous()?)?.to_dtype(in_dtype)?
+            att.matmul(&v_full.contiguous()?)?.to_dtype(in_dtype)?
         } else {
-            att.matmul(&v.contiguous()?)?
+            att.matmul(&v_full.contiguous()?)?
         };
         let y = y.transpose(1, 2)?.reshape(&[b_sz, seq_len, hidden_size])?;
         self.o_proj.forward(&y)
@@ -229,6 +280,10 @@ impl CausalSelfAttention {
         let k_proj = linear_no_bias(size_in, size_kv, vb.pp("k_proj"))?;
         let v_proj = linear_no_bias(size_in, size_kv, vb.pp("v_proj"))?;
         let o_proj = linear_no_bias(size_q, size_in, vb.pp("o_proj"))?;
+        // The flash-attn path is only active when both the feature flag and the
+        // model's use_flash_attn config field are set.  On CPU or when the
+        // feature is disabled the naive SDPA path is used instead.
+        let use_flash_attn = cfg.use_flash_attn;
         Ok(Self {
             q_proj,
             k_proj,
@@ -238,6 +293,7 @@ impl CausalSelfAttention {
             num_key_value_heads: cfg.num_key_value_heads,
             head_dim: cfg.hidden_size / cfg.num_attention_heads,
             max_position_embeddings: cfg.max_position_embeddings,
+            use_flash_attn,
         })
     }
 }

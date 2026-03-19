@@ -46,7 +46,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
-use candle_core::{DType, Device, IndexOp, Module, Tensor};
+use candle_core::{DType, Device, IndexOp, Module, Tensor, D};
 use image::{imageops::FilterType, DynamicImage};
 
 use crate::generate::GenerationPipeline;
@@ -430,22 +430,21 @@ pub fn preprocess_image(image: &DynamicImage, target_size: usize, device: &Devic
 ///
 /// `logits` must have shape `[1, vocab_size]` (or `[B, vocab_size]` where we
 /// sample only row 0).
+///
+/// Fix 2: Use GPU `argmax` instead of transferring the full vocabulary to the
+/// host and walking it in Rust.  For the text-understanding path the
+/// vocabulary is 102 400 tokens; the old implementation transferred 400 KB
+/// per decode step.  `argmax(D::Minus1)` keeps the comparison on-device and
+/// only transfers a single scalar index.
 fn greedy_argmax(logits: &Tensor) -> Result<u32> {
-    // logits: [1, vocab_size]
-    let row = logits.i(0_usize).context("greedy_argmax: failed to index row 0")?;
-    // to_vec1 → [vocab_size] f32 values
-    let values: Vec<f32> = row
-        .to_dtype(DType::F32)
-        .context("greedy_argmax: dtype cast to F32")?
-        .to_vec1::<f32>()
-        .context("greedy_argmax: to_vec1 failed")?;
-
+    // logits: [1, vocab_size] → argmax over last dim → [1] with the hot index.
+    let idx = logits.argmax(D::Minus1).context("greedy_argmax: argmax failed")?;
+    // Transfer only the single u32 index, not the entire vocabulary.
+    let values = idx.to_vec1::<u32>().context("greedy_argmax: to_vec1 failed")?;
     values
-        .iter()
-        .enumerate()
-        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        .map(|(i, _)| i as u32)
-        .ok_or_else(|| anyhow::anyhow!("greedy_argmax: empty logit vector"))
+        .into_iter()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("greedy_argmax: empty result from argmax"))
 }
 
 /// Temperature-scaled multinomial sampling from logit row 0.

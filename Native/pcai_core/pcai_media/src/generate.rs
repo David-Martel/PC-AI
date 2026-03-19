@@ -32,6 +32,7 @@ use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::{VarBuilder, VarMap};
 use image::{ImageBuffer, Rgb};
 use std::path::PathBuf;
+use std::time::Instant;
 
 use pcai_media_model::{
     config::JanusConfig,
@@ -42,6 +43,7 @@ use pcai_media_model::{
 
 use crate::config::PipelineConfig;
 use crate::hub;
+use crate::telemetry::{GenerationTelemetry, TelemetryCollector};
 
 // ---------------------------------------------------------------------------
 // CacheVariant — unified KV cache dispatch
@@ -386,6 +388,53 @@ impl GenerationPipeline {
         self.generate_with_overrides(prompt, None, None)
     }
 
+    /// Generate an image and return structured telemetry alongside it.
+    ///
+    /// This is the instrumented variant of [`generate`].  It collects
+    /// per-step timing, running token throughput, KV-cache type, and
+    /// (when speculative decoding is active) acceptance-rate statistics.
+    ///
+    /// Use [`generate`] for production paths where telemetry is not needed;
+    /// use this method for monitoring, benchmarking, or diagnostic endpoints.
+    ///
+    /// # Arguments
+    ///
+    /// * `prompt`      — text description of the image to generate.
+    /// * `cfg_scale`   — optional override for the CFG guidance scale.
+    /// * `temperature` — optional override for the sampling temperature.
+    ///
+    /// # Returns
+    ///
+    /// A tuple of `(image, telemetry)` where `image` is the generated
+    /// [`ImageBuffer<Rgb<u8>>`] and `telemetry` is a [`GenerationTelemetry`]
+    /// snapshot covering the completed generation call.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on any tensor operation failure or tokenization error.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use pcai_media::config::PipelineConfig;
+    /// use pcai_media::generate::GenerationPipeline;
+    ///
+    /// let pipeline = GenerationPipeline::load(PipelineConfig::default()).unwrap();
+    /// let (image, telemetry) = pipeline
+    ///     .generate_with_telemetry("a glowing circuit board", None, None)
+    ///     .unwrap();
+    /// println!("Generated {} tokens at {:.1} tok/s", telemetry.total_tokens, telemetry.tokens_per_second);
+    /// image.save("output.png").unwrap();
+    /// ```
+    pub fn generate_with_telemetry(
+        &self,
+        prompt: &str,
+        cfg_scale: Option<f64>,
+        temperature: Option<f64>,
+    ) -> Result<(ImageBuffer<Rgb<u8>, Vec<u8>>, GenerationTelemetry)> {
+        self.generate_inner(prompt, cfg_scale, temperature)
+    }
+
     /// Generate an image with optional per-call parameter overrides.
     ///
     /// When `cfg_scale` or `temperature` is `Some`, the provided value
@@ -404,6 +453,21 @@ impl GenerationPipeline {
         cfg_scale: Option<f64>,
         temperature: Option<f64>,
     ) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+        let (image, _telemetry) = self.generate_inner(prompt, cfg_scale, temperature)?;
+        Ok(image)
+    }
+
+    /// Core generation implementation shared by [`generate_with_overrides`] and
+    /// [`generate_with_telemetry`].
+    ///
+    /// Returns both the generated image and a [`GenerationTelemetry`] snapshot.
+    /// Callers that do not need telemetry discard the second element.
+    fn generate_inner(
+        &self,
+        prompt: &str,
+        cfg_scale: Option<f64>,
+        temperature: Option<f64>,
+    ) -> Result<(ImageBuffer<Rgb<u8>, Vec<u8>>, GenerationTelemetry)> {
         let guidance_scale = cfg_scale.unwrap_or(self.config.guidance_scale);
         let temperature_val = temperature.unwrap_or(self.config.temperature);
         let parallel_size = self.config.parallel_size;
@@ -526,6 +590,15 @@ impl GenerationPipeline {
         // the standard autoregressive loop if the cache is `Dynamic`.
         let use_spec = self.config.use_speculative_decoding && self.config.use_prealloc_kv_cache;
 
+        // ── Telemetry collector ───────────────────────────────────────────────
+        let mut telemetry = TelemetryCollector::new(num_image_tokens);
+        telemetry.set_kv_cache_type(self.config.use_prealloc_kv_cache);
+        if use_spec {
+            telemetry.enable_speculative();
+        }
+        // Prefill has just completed: mark its end.
+        telemetry.record_prefill_end();
+
         let generated_tokens: Vec<u32> = if use_spec {
             // Extract the pre-allocated cache from the CacheVariant.
             let prealloc_cache = match &mut cache {
@@ -552,6 +625,7 @@ impl GenerationPipeline {
                 temperature_val,
                 draft_layers,
                 lookahead_k,
+                &mut telemetry,
             )?
         } else {
             // ── Standard autoregressive loop ────────────────────────────────
@@ -568,6 +642,9 @@ impl GenerationPipeline {
             let mut prefill_hidden_opt = Some(prefill_hidden);
 
             for step in 0..num_image_tokens {
+                // ── Telemetry: start of forward phase ─────────────────────
+                let forward_start = Instant::now();
+
                 // A. Get hidden states for this step.
                 //    Step 0: use the prefill hidden state from <begin_of_image>.
                 //    Steps 1+: embed the previously sampled image token via
@@ -602,6 +679,9 @@ impl GenerationPipeline {
                     .map_err(|e| anyhow::anyhow!("step {step}: project_to_image_vocab failed: {e}"))?
                     .squeeze(1)
                     .map_err(|e| anyhow::anyhow!("step {step}: squeeze failed: {e}"))?;
+
+                // ── Telemetry: start of sampling phase ────────────────────
+                let sampling_start = Instant::now();
 
                 // E. Apply CFG (if enabled) or use logits directly.
                 let logits_for_sampling = if use_cfg {
@@ -669,6 +749,10 @@ impl GenerationPipeline {
                 let first_token = next_tokens[0];
                 tokens.push(first_token);
 
+                // ── Telemetry: record completed step ──────────────────────
+                let step_end = Instant::now();
+                telemetry.record_step(step, forward_start, sampling_start, step_end, first_token);
+
                 // H. Prepare next-step input: replicate sampled token across
                 //    batch dimension [batch_size, 1].
                 let mut next_ids_flat = Vec::with_capacity(batch_size);
@@ -693,6 +777,7 @@ impl GenerationPipeline {
                         step,
                         total = num_image_tokens,
                         token = first_token,
+                        tps = telemetry.running_tps(),
                         "generation progress"
                     );
                 }
@@ -739,7 +824,22 @@ impl GenerationPipeline {
             .i(0)
             .map_err(|e| anyhow::anyhow!("image batch slice failed: {e}"))?;
 
-        tensor_to_image(&first_image).context("tensor_to_image conversion failed")
+        let image = tensor_to_image(&first_image).context("tensor_to_image conversion failed")?;
+
+        // Finalise telemetry and emit a structured log at INFO level.
+        let telemetry_snapshot = telemetry.finish();
+        tracing::info!(
+            total_tokens = telemetry_snapshot.total_tokens,
+            total_duration_ms = telemetry_snapshot.total_duration_ms,
+            tokens_per_second = telemetry_snapshot.tokens_per_second,
+            prefill_ms = telemetry_snapshot.prefill_ms,
+            decode_ms = telemetry_snapshot.decode_ms,
+            sampling_ms = telemetry_snapshot.sampling_ms,
+            kv_cache_type = %telemetry_snapshot.kv_cache_type,
+            "generation complete"
+        );
+
+        Ok((image, telemetry_snapshot))
     }
 
     /// Self-speculative decoding loop for image token generation.
@@ -776,6 +876,7 @@ impl GenerationPipeline {
     /// * `temperature`    — Sampling temperature.
     /// * `draft_layers`   — Number of transformer blocks for the draft phase.
     /// * `lookahead_k`    — Number of draft tokens to speculate per outer step.
+    /// * `telemetry`      — Mutable telemetry collector (records speculative stats).
     ///
     /// # Errors
     ///
@@ -796,6 +897,7 @@ impl GenerationPipeline {
         temperature: f64,
         draft_layers: usize,
         lookahead_k: usize,
+        telemetry: &mut TelemetryCollector,
     ) -> Result<Vec<u32>> {
         let mut generated: Vec<u32> = Vec::with_capacity(num_image_tokens);
         let mut pos = start_pos;
@@ -979,11 +1081,16 @@ impl GenerationPipeline {
                 }
             }
 
+            // Record speculative-step outcome in the telemetry collector.
+            // `k` draft tokens were evaluated; `accept_count` were accepted.
+            telemetry.record_speculative_step(k, accept_count);
+
             tracing::debug!(
                 generated = generated.len(),
                 total = num_image_tokens,
                 accept_count,
                 k,
+                tps = telemetry.running_tps(),
                 "speculative step"
             );
         }

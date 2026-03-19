@@ -68,6 +68,14 @@ struct Args {
     /// Target device string, e.g. `cpu`, `cuda`, `cuda:auto`, `cuda:0`.
     #[arg(short = 'd', long = "device", default_value = "cuda:auto")]
     device: String,
+
+    /// Enable self-speculative decoding (draft 8/24 layers + verify K tokens).
+    #[arg(long = "speculative", default_value_t = false)]
+    speculative: bool,
+
+    /// Number of draft tokens per speculative step (K).
+    #[arg(long = "spec-lookahead", default_value_t = 4)]
+    spec_lookahead: usize,
 }
 
 // ---------------------------------------------------------------------------
@@ -376,6 +384,9 @@ async fn main() -> Result<()> {
     let config = PipelineConfig {
         model: args.model.clone(),
         device: args.device.clone(),
+        use_prealloc_kv_cache: true,
+        use_speculative_decoding: args.speculative,
+        speculative_lookahead: args.spec_lookahead,
         ..PipelineConfig::default()
     };
 

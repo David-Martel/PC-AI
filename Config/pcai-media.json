@@ -6,6 +6,10 @@
   "temperature": 1.0,
   "parallel_size": 1,
   "gpu_layers": -1,
+  "use_prealloc_kv_cache": true,
+  "use_speculative_decoding": true,
+  "speculative_draft_layers": 8,
+  "speculative_lookahead": 4,
   "upscale": {
     "enabled": true,
     "model_path": "Models/RealESRGAN/RealESRGAN_x4plus.pth",

@@ -16,13 +16,19 @@
 - **Target: 200+ tok/s** via speculative decoding + GGUF quantization + CUDA Graphs
 
 ### Path to 200+ tok/s
-| Technique | Expected | Cumulative | Status |
-|-----------|----------|------------|--------|
-| Current baseline | 36 tok/s | 36 | Done |
-| Self-speculative (8/24 layers draft) | 1.5x | 54 | In progress |
-| GGUF Q4_K quantization (4x bandwidth) | 2-3x | 108-162 | Research |
-| CUDA Graphs (kernel launch amortization) | 1.2x | 130-194 | TODO |
-| Batch-4 token prediction | 1.5x | 195-291 | TODO |
+| Technique | Expected | Actual | Status |
+|-----------|----------|--------|--------|
+| Current baseline (BF16) | — | **36 tok/s** | Done |
+| Self-speculative (K=4, 8/24 draft) | 1.5x | **24 tok/s (0.67x)** | Done — SLOWER for 1B model |
+| RTX 5060 Ti (SM 120, 448 GB/s) | 2x | **24.8 tok/s (0.69x)** | Done — candle not optimized |
+| **GGUF Q4_K quantization** | **3-4x** | TBD | **NEXT** — theoretical ceiling 400 tok/s |
+| CUDA Graphs | 1.2x | TBD | TODO |
+| Inference telemetry | — | — | In progress (agent) |
+
+**Key insight**: At 1B params, the model is already small enough that per-step overhead
+(kernel launches, KV cache ops, sampling) dominates. The path to 200+ tok/s requires
+reducing memory bandwidth via quantization, NOT algorithmic improvements like speculative
+decoding which help large models (7B+).
 
 ### Phase 1: Code-Level Fixes — COMPLETE (1.67x achieved)
 - [x] Flash attention code path (`#[cfg(feature = "flash-attn")]`)

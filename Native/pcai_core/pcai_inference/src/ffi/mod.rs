@@ -918,6 +918,10 @@ pub extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: u32, te
             }
         }
 
+        // Estimate prompt tokens before sending to backend (outside the lock
+        // block so the value is available when storing the terminal status).
+        let prompt_tokens_est = estimate_prompt_tokens(&prompt_str);
+
         // Build the request and run inference while holding the lock so that
         // the borrow checker can split `runtime` and `backend` simultaneously.
         let result = {
@@ -937,9 +941,6 @@ pub extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: u32, te
             if matches!(guard.requests.get(&id), Some(RequestStatus::Cancelled)) {
                 return;
             }
-
-            // Estimate prompt tokens before sending to backend
-            let prompt_tokens_est = estimate_prompt_tokens(&prompt_str);
 
             let req = GenerateRequest {
                 prompt: prompt_str,
@@ -1299,11 +1300,13 @@ mod tests {
     #[test]
     fn test_async_result_repr_c() {
         // Ensure PcaiAsyncResult has the expected field layout for FFI callers.
-        // repr(C) on 64-bit: i32 (4 bytes) + 4 bytes padding + pointer (8 bytes) = 16 bytes.
+        // repr(C) on 64-bit:
+        //   i32 status (4) + 4 padding + *mut c_char text (8) +
+        //   u32 tokens_generated (4) + u32 prompt_tokens_estimated (4) = 24 bytes.
         let expected_size = if std::mem::size_of::<*mut c_char>() == 8 {
-            16 // 64-bit: 4 + 4 padding + 8
+            24 // 64-bit: 4 + 4 padding + 8 + 4 + 4
         } else {
-            8 // 32-bit: 4 + 4
+            16 // 32-bit: 4 + 4 + 4 + 4
         };
         assert_eq!(
             std::mem::size_of::<PcaiAsyncResult>(),

@@ -19,7 +19,7 @@ candle-flash-attn = { version = "0.9.2", optional = true }
 tracing = "0.1"
 
 [features]
-default = ["cuda"]
+default = ["cuda", "flash-attn"]
 cuda = [
   "candle-core/cuda",
   "candle-nn/cuda",

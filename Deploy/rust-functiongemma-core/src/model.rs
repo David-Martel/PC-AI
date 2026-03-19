@@ -1134,7 +1134,7 @@ impl Model {
                 break;
             }
 
-            let next_tensor = Tensor::new(&[next_id], device)?.unsqueeze(0)?;
+            let next_tensor = Tensor::from_slice(&[next_id], (1, 1), device)?;
             let logits = self.forward_with_cache(&next_tensor, &mut cache)?;
             last_logits = Some(logits);
         }
@@ -1159,7 +1159,7 @@ impl Model {
                 break;
             }
 
-            let next_tensor = Tensor::new(&[next_id], device)?.unsqueeze(0)?;
+            let next_tensor = Tensor::from_slice(&[next_id], (1, 1), device)?;
             current_ids = Tensor::cat(&[&current_ids, &next_tensor], 1)?;
         }
         Ok(generated)

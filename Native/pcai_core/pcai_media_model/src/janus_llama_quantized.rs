@@ -128,6 +128,11 @@ fn apply_rotary_emb(x: &Tensor, index_pos: usize, cos: &Tensor, sin: &Tensor) ->
 // ---------------------------------------------------------------------------
 
 /// SwiGLU MLP with quantized weight matrices.
+///
+/// `working_dtype` is the dtype used for all intermediate tensors: BF16 on
+/// CUDA (where `QMatMul::forward` dequantizes to BF16) or F32 on CPU.
+/// All QMatMul outputs and element-wise operands are cast to `working_dtype`
+/// before binary operations to prevent "dtype mismatch in binary op" errors.
 #[derive(Debug, Clone)]
 struct QuantizedMlp {
     /// Gate projection — W_gate: hidden → intermediate.
@@ -136,12 +141,15 @@ struct QuantizedMlp {
     up_proj: QMatMul,
     /// Down projection — W_down: intermediate → hidden.
     down_proj: QMatMul,
+    /// Working dtype for all intermediate tensors (BF16 on CUDA, F32 on CPU).
+    working_dtype: DType,
 }
 
 impl QuantizedMlp {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
-        let gate = candle_nn::ops::silu(&self.gate_proj.forward(x)?)?;
-        let up = self.up_proj.forward(x)?;
+        let gate = candle_nn::ops::silu(&self.gate_proj.forward(x)?.to_dtype(self.working_dtype)?)?;
+        let up = self.up_proj.forward(x)?.to_dtype(self.working_dtype)?;
+        // Both operands are in working_dtype before the element-wise multiply.
         self.down_proj.forward(&(gate * up)?)
     }
 }
@@ -155,6 +163,12 @@ impl QuantizedMlp {
 /// Supports grouped-query attention (GQA) via [`repeat_kv`].
 /// RoPE embeddings are computed in the dtype of the KvCache cos/sin tables;
 /// see [`apply_rotary_emb`] for the dtype-alignment logic.
+///
+/// `working_dtype` governs all intermediate float tensors.  On CUDA,
+/// `QMatMul::forward` dequantizes to BF16; on CPU it dequantizes to F32.
+/// Every QMatMul output is cast to `working_dtype` immediately after the
+/// matmul, ensuring that subsequent operations (matmul, add, softmax) always
+/// receive operands of the same dtype.
 #[derive(Debug, Clone)]
 struct QuantizedAttention {
     q_proj: QMatMul,
@@ -165,6 +179,8 @@ struct QuantizedAttention {
     num_key_value_heads: usize,
     head_dim: usize,
     max_position_embeddings: usize,
+    /// Working dtype for all intermediate tensors (BF16 on CUDA, F32 on CPU).
+    working_dtype: DType,
 }
 
 impl QuantizedAttention {
@@ -184,10 +200,14 @@ impl QuantizedAttention {
         let (b_sz, seq_len, hidden_size) = x.dims3()?;
 
         // Q / K / V projections (quantized matmul).
-        // QMatMul::forward dequantizes on the fly and produces a float output.
-        let q = self.q_proj.forward(x)?;
-        let k = self.k_proj.forward(x)?;
-        let v = self.v_proj.forward(x)?;
+        // Cast immediately to working_dtype so that all subsequent operations
+        // (reshape, transpose, RoPE, matmul, add) receive the same dtype.
+        // On CUDA, QMatMul dequantizes to BF16; on CPU it produces F32.
+        // Without this cast the residual addition `attn_output + residual` can
+        // fail with "dtype mismatch in binary op" when the two sides differ.
+        let q = self.q_proj.forward(x)?.to_dtype(self.working_dtype)?;
+        let k = self.k_proj.forward(x)?.to_dtype(self.working_dtype)?;
+        let v = self.v_proj.forward(x)?.to_dtype(self.working_dtype)?;
 
         // Reshape to [B, heads, S, head_dim] for RoPE + attention.
         let q = q
@@ -276,9 +296,10 @@ impl QuantizedAttention {
     ) -> Result<Tensor> {
         let (b_sz, seq_len, hidden_size) = x.dims3()?;
 
-        let q = self.q_proj.forward(x)?;
-        let k = self.k_proj.forward(x)?;
-        let v = self.v_proj.forward(x)?;
+        // Cast to working_dtype immediately — see forward_dynamic for rationale.
+        let q = self.q_proj.forward(x)?.to_dtype(self.working_dtype)?;
+        let k = self.k_proj.forward(x)?.to_dtype(self.working_dtype)?;
+        let v = self.v_proj.forward(x)?.to_dtype(self.working_dtype)?;
 
         let q = q
             .reshape((b_sz, seq_len, self.num_attention_heads, self.head_dim))?
@@ -344,21 +365,43 @@ impl QuantizedAttention {
 // ---------------------------------------------------------------------------
 
 /// Single transformer block (attention + MLP) with quantized weight matrices.
+///
+/// `working_dtype` is BF16 on CUDA or F32 on CPU.  Every tensor entering a
+/// binary operation (residual add) is cast to `working_dtype` to avoid
+/// "dtype mismatch in binary op" errors that arise because:
+/// - `RmsNorm::forward` always returns F32 (norm weights stored in F32).
+/// - `QMatMul::forward` dequantizes to BF16 on CUDA, F32 on CPU.
+/// - The incoming `x` from `wte.forward` is always F32 (embedding stored F32).
+///
+/// By casting every side of each binary op to `working_dtype`, the block is
+/// self-consistent regardless of which component produced the tensor.
 #[derive(Debug, Clone)]
 struct QuantizedBlock {
     input_layernorm: candle_nn::RmsNorm,
     attn: QuantizedAttention,
     post_attention_layernorm: candle_nn::RmsNorm,
     mlp: QuantizedMlp,
+    /// Working dtype for all intermediate tensors (BF16 on CUDA, F32 on CPU).
+    working_dtype: DType,
 }
 
 impl QuantizedBlock {
     fn forward_dynamic(&self, x: &Tensor, index_pos: usize, block_idx: usize, cache: &mut KvCache) -> Result<Tensor> {
-        let residual = x;
-        let x = self.input_layernorm.forward(x)?;
-        let x = (self.attn.forward_dynamic(&x, index_pos, block_idx, cache)? + residual)?;
+        // Cast incoming tensor to working_dtype.  On the first block this
+        // converts the F32 wte embedding to BF16 (CUDA) or keeps it F32 (CPU).
+        let x = x.to_dtype(self.working_dtype)?;
         let residual = &x;
-        let x = (self.mlp.forward(&self.post_attention_layernorm.forward(&x)?)? + residual)?;
+        // RmsNorm returns F32; cast back to working_dtype before attention.
+        let normed = self.input_layernorm.forward(&x)?.to_dtype(self.working_dtype)?;
+        // attn output is in working_dtype (cast done inside forward_dynamic).
+        let x = (self.attn.forward_dynamic(&normed, index_pos, block_idx, cache)? + residual)?;
+        let residual = &x;
+        // Post-attention norm: same F32→working_dtype cast required.
+        let normed = self
+            .post_attention_layernorm
+            .forward(&x)?
+            .to_dtype(self.working_dtype)?;
+        let x = (self.mlp.forward(&normed)? + residual)?;
         Ok(x)
     }
 
@@ -369,11 +412,16 @@ impl QuantizedBlock {
         block_idx: usize,
         cache: &mut PreAllocKvCache,
     ) -> Result<Tensor> {
-        let residual = x;
-        let x = self.input_layernorm.forward(x)?;
-        let x = (self.attn.forward_prealloc(&x, index_pos, block_idx, cache)? + residual)?;
+        let x = x.to_dtype(self.working_dtype)?;
         let residual = &x;
-        let x = (self.mlp.forward(&self.post_attention_layernorm.forward(&x)?)? + residual)?;
+        let normed = self.input_layernorm.forward(&x)?.to_dtype(self.working_dtype)?;
+        let x = (self.attn.forward_prealloc(&normed, index_pos, block_idx, cache)? + residual)?;
+        let residual = &x;
+        let normed = self
+            .post_attention_layernorm
+            .forward(&x)?
+            .to_dtype(self.working_dtype)?;
+        let x = (self.mlp.forward(&normed)? + residual)?;
         Ok(x)
     }
 }
@@ -418,6 +466,9 @@ pub struct QuantizedJanusLlama {
     lm_head: QMatMul,
     // Config fields needed for project_logits CPU-offload path.
     vocab_size: usize,
+    /// Working dtype for all forward-pass intermediate tensors.
+    /// BF16 on CUDA (native QMatMul dequant dtype), F32 on CPU.
+    working_dtype: DType,
 }
 
 impl QuantizedJanusLlama {
@@ -463,6 +514,16 @@ impl QuantizedJanusLlama {
     ) -> Result<Self> {
         let head_dim = cfg.hidden_size / cfg.num_attention_heads;
 
+        // ── Working dtype ──────────────────────────────────────────────────
+        // On CUDA, QMatMul::forward dequantizes to BF16; on CPU it produces
+        // F32.  All intermediate tensors (QMatMul outputs, residuals, RmsNorm
+        // outputs fed into the next matmul) must share this dtype.  Using the
+        // wrong dtype in a binary op yields "dtype mismatch in binary op".
+        let working_dtype = match device {
+            Device::Cuda(_) => DType::BF16,
+            _ => DType::F32,
+        };
+
         // ── Token embedding (dequantize → full precision for CPU offload) ──
         let wte_qtensor = ct.tensor(reader, "token_embd.weight", device)?;
         let wte_weight = wte_qtensor.dequantize(device)?.to_dtype(DType::F32)?;
@@ -501,13 +562,16 @@ impl QuantizedJanusLlama {
                     num_key_value_heads: cfg.num_key_value_heads,
                     head_dim,
                     max_position_embeddings: cfg.max_position_embeddings,
+                    working_dtype,
                 },
                 post_attention_layernorm,
                 mlp: QuantizedMlp {
                     gate_proj,
                     up_proj,
                     down_proj,
+                    working_dtype,
                 },
+                working_dtype,
             });
         }
 
@@ -536,6 +600,7 @@ impl QuantizedJanusLlama {
             ln_f,
             lm_head,
             vocab_size: cfg.vocab_size,
+            working_dtype,
         })
     }
 
@@ -745,6 +810,14 @@ impl QuantizedJanusLlama {
     pub fn vocab_size(&self) -> usize {
         self.vocab_size
     }
+
+    /// Returns the working dtype used for all intermediate forward-pass tensors.
+    ///
+    /// BF16 on CUDA, F32 on CPU.  Callers that feed external embeddings into
+    /// [`forward_hidden`] may cast to this dtype for compatibility.
+    pub fn working_dtype(&self) -> DType {
+        self.working_dtype
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -814,6 +887,7 @@ mod tests {
             gate_proj: QMatMul::Tensor(gate_w),
             up_proj: QMatMul::Tensor(up_w),
             down_proj: QMatMul::Tensor(down_w),
+            working_dtype: DType::F32,
         };
         let x = Tensor::zeros((1_usize, 3_usize, h), DType::F32, &dev).unwrap();
         let out = mlp.forward(&x).expect("mlp forward failed");
@@ -845,6 +919,7 @@ mod tests {
             num_key_value_heads: cfg.num_key_value_heads,
             head_dim,
             max_position_embeddings: cfg.max_position_embeddings,
+            working_dtype: DType::F32,
         };
 
         let llama_cfg_for_cache = cfg.clone();
@@ -876,6 +951,7 @@ mod tests {
             ln_f: candle_nn::RmsNorm::new(Tensor::ones(h, DType::F32, &dev).unwrap(), 1e-6),
             lm_head: QMatMul::Tensor(lm_head_w),
             vocab_size: vocab,
+            working_dtype: DType::F32,
         };
 
         let hidden = Tensor::zeros((1_usize, h), DType::F32, &dev).unwrap();
@@ -899,6 +975,7 @@ mod tests {
             ln_f: candle_nn::RmsNorm::new(Tensor::ones(h, DType::F32, &dev).unwrap(), 1e-6),
             lm_head: QMatMul::Tensor(lm_head_w),
             vocab_size: vocab,
+            working_dtype: DType::F32,
         };
 
         model.offload_embeddings_to_cpu().expect("offload failed");
@@ -929,13 +1006,16 @@ mod tests {
                 num_key_value_heads: cfg.num_key_value_heads,
                 head_dim,
                 max_position_embeddings: cfg.max_position_embeddings,
+                working_dtype: DType::F32,
             },
             post_attention_layernorm: candle_nn::RmsNorm::new(Tensor::ones(h, DType::F32, &dev).unwrap(), 1e-6),
             mlp: QuantizedMlp {
                 gate_proj: QMatMul::Tensor(Tensor::zeros((i, h), DType::F32, &dev).unwrap()),
                 up_proj: QMatMul::Tensor(Tensor::zeros((i, h), DType::F32, &dev).unwrap()),
                 down_proj: QMatMul::Tensor(Tensor::zeros((h, i), DType::F32, &dev).unwrap()),
+                working_dtype: DType::F32,
             },
+            working_dtype: DType::F32,
         };
 
         let mut cache = KvCache::new(true, DType::F32, &cfg, &dev).unwrap();

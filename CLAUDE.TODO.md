@@ -8,12 +8,21 @@
 ## LLM Inference Optimization (Priority: HIGH)
 
 ### Current Performance
-- Janus-Pro-1B: **36 tok/s** on RTX 2000 Ada (was 17.9 baseline, **2.0x** improvement)
-- Previous: 30 tok/s (Phase 1), 36 tok/s (Phases 1-4 with correct multinomial sampling)
-- Note: 43.8 tok/s was measured with broken argmax sampling (solid-color images)
+- Janus-Pro-1B: **36 tok/s** on RTX 2000 Ada SM 89 (was 17.9 baseline, **2.0x**)
+- RTX 5060 Ti SM 120: **24.8 tok/s** (slower — candle CUDA kernels not optimized for Blackwell)
 - Quality: 4/5 prompts produce excellent photorealistic images
-- Understanding: correctly describes generated images (repetition penalty needed)
-- Target: **50+ tok/s** with GPU Gumbel sampling, **100+ tok/s** with multi-token prediction
+- Understanding: correctly describes images with repetition penalty
+- Bandwidth efficiency: 35% on Ada (theoretical ceiling: 102 tok/s at 224 GB/s)
+- **Target: 200+ tok/s** via speculative decoding + GGUF quantization + CUDA Graphs
+
+### Path to 200+ tok/s
+| Technique | Expected | Cumulative | Status |
+|-----------|----------|------------|--------|
+| Current baseline | 36 tok/s | 36 | Done |
+| Self-speculative (8/24 layers draft) | 1.5x | 54 | In progress |
+| GGUF Q4_K quantization (4x bandwidth) | 2-3x | 108-162 | Research |
+| CUDA Graphs (kernel launch amortization) | 1.2x | 130-194 | TODO |
+| Batch-4 token prediction | 1.5x | 195-291 | TODO |
 
 ### Phase 1: Code-Level Fixes — COMPLETE (1.67x achieved)
 - [x] Flash attention code path (`#[cfg(feature = "flash-attn")]`)

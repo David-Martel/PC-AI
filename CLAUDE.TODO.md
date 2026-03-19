@@ -8,27 +8,37 @@
 ## LLM Inference Optimization (Priority: HIGH)
 
 ### Current Performance
-- Janus-Pro-1B: **36 tok/s** on RTX 2000 Ada SM 89 (was 17.9 baseline, **2.0x**)
-- RTX 5060 Ti SM 120: **24.8 tok/s** (slower — candle CUDA kernels not optimized for Blackwell)
-- Quality: 4/5 prompts produce excellent photorealistic images
-- Understanding: correctly describes images with repetition penalty
-- Bandwidth efficiency: 35% on Ada (theoretical ceiling: 102 tok/s at 224 GB/s)
-- **Target: 200+ tok/s** via speculative decoding + GGUF quantization + CUDA Graphs
+- **Janus-Pro-1B**: 36 tok/s on RTX 2000 Ada SM 89 (2.0x vs baseline)
+- **Janus-Pro-7B**: TBD — model available (14 GB safetensors, fits in 16 GB RTX 5060 Ti)
+- **Primary GPU**: RTX 5060 Ti (SM 120, 16 GB GDDR7, 448 GB/s, Thunderbolt 4 eGPU)
+- Quality: 4/5 photorealistic images, understanding with repetition penalty
+- **Target: 200+ tok/s** via GGUF quantization on 7B model
 
-### Path to 200+ tok/s
-| Technique | Expected | Actual | Status |
-|-----------|----------|--------|--------|
-| Current baseline (BF16) | — | **36 tok/s** | Done |
-| Self-speculative (K=4, 8/24 draft) | 1.5x | **24 tok/s (0.67x)** | Done — SLOWER for 1B model |
-| RTX 5060 Ti (SM 120, 448 GB/s) | 2x | **24.8 tok/s (0.69x)** | Done — candle not optimized |
-| **GGUF Q4_K quantization** | **3-4x** | TBD | **NEXT** — theoretical ceiling 400 tok/s |
-| CUDA Graphs | 1.2x | TBD | TODO |
-| Inference telemetry | — | — | In progress (agent) |
+### GPU Configuration
+- **RTX 5060 Ti** (cuda:1): Primary inference GPU. Connected via Thunderbolt 4 (40 Gbps = 5 GB/s).
+  TB4 only affects model loading (~3s for 14 GB); inference runs at full 448 GB/s VRAM bandwidth.
+- **RTX 2000 Ada** (cuda:0): Secondary. Used for display, Ollama, smaller models.
 
-**Key insight**: At 1B params, the model is already small enough that per-step overhead
-(kernel launches, KV cache ops, sampling) dominates. The path to 200+ tok/s requires
-reducing memory bandwidth via quantization, NOT algorithmic improvements like speculative
-decoding which help large models (7B+).
+### Path to 200+ tok/s (Janus-Pro-7B on RTX 5060 Ti)
+| Technique | Model Size | Theoretical (448 GB/s) | At 35% eff. | Status |
+|-----------|-----------|----------------------|-------------|--------|
+| BF16 (no quantization) | 14 GB | 32 tok/s | 11 tok/s | Baseline |
+| **GGUF Q8_0** | **7 GB** | **64 tok/s** | **22 tok/s** | **IN PROGRESS** |
+| **GGUF Q4_K_M** | **3.5 GB** | **128 tok/s** | **45 tok/s** | **IN PROGRESS** |
+| Q4_K + CUDA Graphs (+30%) | 3.5 GB | 166 tok/s | 58 tok/s | TODO |
+| Q4_K + improved efficiency (50%) | 3.5 GB | 128 tok/s | **64 tok/s** | TODO |
+| Speculative decoding (7B draft=12/32) | 3.5 GB | +1.5x | **96 tok/s** | TODO |
+| Q4_K + spec decode + CUDA Graphs | 3.5 GB | — | **~120-150 tok/s** | TODO |
+
+**Note**: 200 tok/s on 7B may require FP8 quantization (hardware-supported on SM 120)
+or NVFP4 (4-bit tensor cores on Blackwell). These need custom CUTLASS kernels.
+
+### Thunderbolt 4 Optimization Notes
+- TB4 bandwidth: 40 Gbps = ~5 GB/s (vs PCIe x16: ~32 GB/s)
+- Model loading: 14 GB / 5 GB/s = ~3s (acceptable one-time cost)
+- KV cache: must stay in GPU VRAM (no CPU offload — TB4 too slow)
+- Activations: all computation on-GPU, only final output transfers to CPU
+- Minimize host<->device transfers: use GPU-side sampling (Gumbel-max for 100K+ vocab)
 
 ### Phase 1: Code-Level Fixes — COMPLETE (1.67x achieved)
 - [x] Flash attention code path (`#[cfg(feature = "flash-attn")]`)

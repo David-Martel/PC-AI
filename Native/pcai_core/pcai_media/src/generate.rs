@@ -517,13 +517,18 @@ impl GenerationPipeline {
         let mut current_token_ids = Tensor::zeros((batch_size, 1_usize), DType::U32, &self.device)
             .context("failed to build initial token tensor")?;
 
+        // Consume prefill_hidden at step 0 without cloning.  The Option is
+        // taken once and never replenished, saving a full tensor clone
+        // (~batch_size × hidden_size × dtype_size bytes on GPU).
+        let mut prefill_hidden = Some(prefill_hidden);
+
         for step in 0..num_image_tokens {
             // A. Get hidden states for this step.
             //    Step 0: use the prefill hidden state from <begin_of_image>.
             //    Steps 1+: embed the previously sampled image token via
             //              gen_embed → gen_aligner → LLM forward_hidden.
-            let hidden = if step == 0 {
-                prefill_hidden.clone()
+            let hidden = if let Some(ph) = prefill_hidden.take() {
+                ph
             } else {
                 let embeds = {
                     use candle_core::Module;

@@ -42,6 +42,7 @@
 pub mod config;
 pub mod generation_head;
 pub mod janus_llama;
+pub mod janus_llama_quantized;
 pub mod tensor_utils;
 pub mod vision;
 pub mod vq_vae;
@@ -52,7 +53,141 @@ use candle_nn::{Conv2d, Conv2dConfig, VarBuilder};
 use config::JanusConfig;
 use generation_head::{GenerationHead, MlpAligner};
 use janus_llama::JanusLlama;
+pub use janus_llama_quantized::QuantizedJanusLlama;
 use vq_vae::{VqCodebook, VqVaeConfig, VqVaeDecoder};
+
+// ---------------------------------------------------------------------------
+// LlamaBackend — unified dispatch for full-precision and quantized backbones
+// ---------------------------------------------------------------------------
+
+/// Unified backbone dispatch: routes calls to either the full-precision
+/// [`JanusLlama`] or the GGUF-quantized [`QuantizedJanusLlama`] backend.
+///
+/// Used by [`crate::generate::GenerationPipeline`] so that generation code
+/// is written once and works with both backends transparently.
+pub enum LlamaBackend {
+    /// Full-precision FP32/BF16/FP16 backbone loaded from safetensors.
+    Full(JanusLlama),
+    /// GGUF-quantized backbone loaded from a `.gguf` file.
+    Quantized(QuantizedJanusLlama),
+}
+
+impl LlamaBackend {
+    /// Embeds token IDs into the LLM input space.
+    pub fn embed(&self, x: &Tensor) -> candle_core::Result<Tensor> {
+        match self {
+            Self::Full(m) => m.embed(x),
+            Self::Quantized(m) => m.embed(x),
+        }
+    }
+
+    /// Full forward pass from token IDs: embed → transformer → lm_head logits.
+    pub fn forward(
+        &self,
+        x: &Tensor,
+        index_pos: usize,
+        cache: &mut janus_llama::KvCache,
+    ) -> candle_core::Result<Tensor> {
+        match self {
+            Self::Full(m) => m.forward(x, index_pos, cache),
+            Self::Quantized(m) => m.forward(x, index_pos, cache),
+        }
+    }
+
+    /// Returns the number of transformer layers.
+    pub fn num_layers(&self) -> usize {
+        match self {
+            Self::Full(m) => m.num_layers(),
+            Self::Quantized(m) => m.num_layers(),
+        }
+    }
+
+    /// Forward through all transformer layers and return last-position hidden
+    /// states `[B, hidden_size]` (dynamic KV cache path).
+    pub fn forward_hidden(
+        &self,
+        input_embed: &Tensor,
+        index_pos: usize,
+        cache: &mut janus_llama::KvCache,
+    ) -> candle_core::Result<Tensor> {
+        match self {
+            Self::Full(m) => m.forward_hidden(input_embed, index_pos, cache),
+            Self::Quantized(m) => m.forward_hidden(input_embed, index_pos, cache),
+        }
+    }
+
+    /// Forward through all transformer layers and return last-position hidden
+    /// states `[B, hidden_size]` (pre-allocated KV cache path).
+    pub fn forward_hidden_prealloc(
+        &self,
+        input_embed: &Tensor,
+        index_pos: usize,
+        cache: &mut janus_llama::PreAllocKvCache,
+    ) -> candle_core::Result<Tensor> {
+        match self {
+            Self::Full(m) => m.forward_hidden_prealloc(input_embed, index_pos, cache),
+            Self::Quantized(m) => m.forward_hidden_prealloc(input_embed, index_pos, cache),
+        }
+    }
+
+    /// Forward through all transformer layers + RMS norm + `lm_head`, returning
+    /// text-vocabulary logits for the last sequence position.
+    ///
+    /// This is the primary entry point for autoregressive text decoding in the
+    /// understanding pipeline (image-to-text).
+    pub fn forward_input_embed(
+        &self,
+        input_embed: &Tensor,
+        index_pos: usize,
+        cache: &mut janus_llama::KvCache,
+    ) -> candle_core::Result<Tensor> {
+        match self {
+            Self::Full(m) => m.forward_input_embed(input_embed, index_pos, cache),
+            Self::Quantized(m) => m.forward_input_embed(input_embed, index_pos, cache),
+        }
+    }
+
+    /// Speculative-decoding **draft** forward (shallow, `draft_layers` only).
+    ///
+    /// Only available for the full-precision backend.  Returns a candle error
+    /// if called on a quantized backend (speculative decoding requires
+    /// per-layer early exit which is not currently implemented for GGUF).
+    pub fn forward_hidden_draft(
+        &self,
+        input_embed: &Tensor,
+        index_pos: usize,
+        cache: &mut janus_llama::PreAllocKvCache,
+        draft_layers: usize,
+    ) -> candle_core::Result<Tensor> {
+        match self {
+            Self::Full(m) => m.forward_hidden_draft(input_embed, index_pos, cache, draft_layers),
+            Self::Quantized(_) => Err(candle_core::Error::Msg(
+                "speculative draft forward is not supported for GGUF-quantized backbones".into(),
+            )),
+        }
+    }
+
+    /// Speculative-decoding **verify** batched forward (all layers, K tokens).
+    pub fn forward_hidden_verify_batch(
+        &self,
+        input_embed: &Tensor,
+        index_pos: usize,
+        cache: &mut janus_llama::PreAllocKvCache,
+    ) -> candle_core::Result<Tensor> {
+        match self {
+            Self::Full(m) => m.forward_hidden_verify_batch(input_embed, index_pos, cache),
+            Self::Quantized(m) => m.forward_hidden_verify_batch(input_embed, index_pos, cache),
+        }
+    }
+
+    /// Offload the token embedding table (`wte`) to CPU to save VRAM.
+    pub fn offload_embeddings_to_cpu(&mut self) -> candle_core::Result<()> {
+        match self {
+            Self::Full(m) => m.offload_embeddings_to_cpu(),
+            Self::Quantized(m) => m.offload_embeddings_to_cpu(),
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // JanusModel
@@ -80,9 +215,9 @@ use vq_vae::{VqCodebook, VqVaeConfig, VqVaeDecoder};
 /// (unit tests), construct a `VarMap`-backed builder which auto-initialises
 /// all tensors to zero.
 pub struct JanusModel {
-    /// LLM backbone (DeepSeek / Llama architecture).
-    /// Uses our custom [`JanusLlama`] which exposes pre-lm_head hidden states.
-    pub llama: JanusLlama,
+    /// LLM backbone — either full-precision [`JanusLlama`] or GGUF-quantized
+    /// [`QuantizedJanusLlama`], unified behind the [`LlamaBackend`] enum.
+    pub llama: LlamaBackend,
     /// Linear projection from hidden states to image vocabulary.
     pub gen_head: GenerationHead,
     /// MLP that maps image-token embeddings into LLM input space.
@@ -135,7 +270,7 @@ impl JanusModel {
         // needed for the image generation head.
         let use_flash_attn = cfg!(feature = "flash-attn");
         let llama_cfg = config.to_llama_config(use_flash_attn);
-        let llama = JanusLlama::load(vb.pp("language_model"), &llama_cfg)?;
+        let llama = LlamaBackend::Full(JanusLlama::load(vb.pp("language_model"), &llama_cfg)?);
 
         // ── Generation head ───────────────────────────────────────────────
         // hidden_size → image_vocab_size (no bias).
@@ -178,6 +313,51 @@ impl JanusModel {
 
         Ok(Self {
             llama,
+            gen_head,
+            gen_aligner,
+            gen_embed,
+            vq_codebook,
+            post_quant_conv,
+            vq_decoder,
+            understand_aligner,
+            config: config.clone(),
+        })
+    }
+
+    /// Constructs the Janus-Pro model with a pre-loaded GGUF-quantized LLaMA
+    /// backbone.
+    ///
+    /// The non-LLM components (VQ decoder, generation head, aligners) are
+    /// loaded from safetensors via the provided [`VarBuilder`].  The LLaMA
+    /// backbone is supplied directly as a [`QuantizedJanusLlama`] already
+    /// loaded from a `.gguf` file.
+    ///
+    /// # Errors
+    ///
+    /// Returns a candle error if any non-LLM weight tensor is missing or
+    /// misshapen.
+    pub fn new_with_quantized_llama(llama: QuantizedJanusLlama, vb: VarBuilder, config: &JanusConfig) -> Result<Self> {
+        let hidden_size = config.hidden_size;
+        let image_vocab_size = config.image_token_num_tokens;
+        let vq_dim = config.vq_embed_dim;
+
+        let gen_head = GenerationHead::new(vb.pp("gen_head"), hidden_size, image_vocab_size)?;
+        let gen_embed = candle_nn::embedding(image_vocab_size, vq_dim, vb.pp("gen_embed"))?;
+        let gen_aligner = MlpAligner::new(vb.pp("gen_aligner"), vq_dim, hidden_size)?;
+        let vq_codebook = VqCodebook::new(vb.pp("gen_vision_model.quantize.embedding"), image_vocab_size, vq_dim)?;
+        let decoder_z_channels = VqVaeConfig::default().z_channels;
+        let post_quant_conv = candle_nn::conv2d(
+            vq_dim,
+            decoder_z_channels,
+            1,
+            Conv2dConfig::default(),
+            vb.pp("gen_vision_model.post_quant_conv"),
+        )?;
+        let vq_decoder = VqVaeDecoder::new(vb.pp("gen_vision_model.decoder"), &VqVaeConfig::default())?;
+        let understand_aligner = MlpAligner::new(vb.pp("aligner"), config.understand_input_dim, hidden_size)?;
+
+        Ok(Self {
+            llama: LlamaBackend::Quantized(llama),
             gen_head,
             gen_aligner,
             gen_embed,

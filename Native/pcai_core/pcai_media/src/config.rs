@@ -682,6 +682,7 @@ mod tests {
             use_speculative_decoding: true,
             speculative_draft_layers: 8,
             speculative_lookahead: 4,
+            gguf_path: Some("test.gguf".to_string()),
         };
         let json = serde_json::to_string(&original).expect("serialise failed");
         let decoded: PipelineConfig = serde_json::from_str(&json).expect("deserialise failed");

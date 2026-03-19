@@ -38,7 +38,7 @@ use pcai_media_model::{
     config::JanusConfig,
     janus_llama::{KvCache, PreAllocKvCache},
     vision::{JanusVisionConfig, JanusVisionTower},
-    JanusModel,
+    JanusModel, LlamaBackend, QuantizedJanusLlama,
 };
 
 use crate::config::PipelineConfig;
@@ -280,7 +280,7 @@ impl GenerationPipeline {
         let mut varmap = Some(VarMap::new());
         let vb = VarBuilder::from_varmap(varmap.as_ref().unwrap(), dtype, &device);
 
-        let mut model = if let Some(gguf_path_str) = &config.gguf_path {
+        let model = if let Some(gguf_path_str) = &config.gguf_path {
             // ── GGUF path: load quantized LLaMA backbone from GGUF file ───────
             // The VQ decoder, generation head, vision tower etc. are still
             // loaded from safetensors via the VarMap / VarBuilder path.

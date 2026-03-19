@@ -1,7 +1,17 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-20260319-llm-optimization",
+  "latest": "ctx-pcai-20260319-llm-optimization-v2",
   "contexts": [
+    {
+      "id": "ctx-pcai-20260319-llm-optimization-v2",
+      "file": "pcai-context-20260319-llm-optimization-v2.md",
+      "created": "2026-03-19T07:40:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "Explore", "general-purpose"],
+      "summary": "LLM optimization Phase 2: 36 tok/s (2.0x), critical quality fix (argmax→multinomial), PreAllocKvCache wired, GPU Gumbel sampling, repetition penalty, understanding pipeline fixed, multi-token research complete (Jacobi 1.5-2x next), 235 tests pass, CUDA binaries deployed.",
+      "supersedes": ["ctx-pcai-20260319-llm-optimization"],
+      "commit": "98f2009"
+    },
     {
       "id": "ctx-pcai-20260319-llm-optimization",
       "file": "pcai-context-20260319-llm-optimization.md",
@@ -470,7 +480,7 @@
     "pcai-inference": {
       "status": "clean",
       "warnings": 0,
-      "tests": 65,
+      "tests": 61,
       "features": ["ffi", "llamacpp", "mistralrs-backend", "server"],
       "backends": {
         "llamacpp": "available (requires CUDA+MSVC toolchain, artifact dir empty)",
@@ -490,7 +500,7 @@
     "pcai-media": {
       "status": "clean",
       "warnings": 0,
-      "tests": 59,
+      "tests": 75,
       "features": ["upscale"],
       "ffi_exports": 16,
       "last_verified": "2026-03-03T12:00:00Z"
@@ -498,9 +508,9 @@
     "pcai-media-model": {
       "status": "clean",
       "warnings": 0,
-      "tests": 31,
-      "notes": "29 pass + 2 ignored",
-      "last_verified": "2026-03-03T12:00:00Z"
+      "tests": 47,
+      "notes": "13 janus_llama + 34 other (2 vision tower overflow in debug)",
+      "last_verified": "2026-03-19T07:00:00Z"
     },
     "pcai-media-server": {
       "status": "clean",
@@ -528,17 +538,17 @@
       "cuda_enabled": true,
       "last_verified": "2026-01-30T16:00:00Z"
     },
-    "total_tests": 197
+    "total_tests": 235
   },
   "cuda_status": {
-    "toolkit_version": "v13.1",
-    "build_cuda": "13.1",
-    "driver_version": "576.57",
-    "driver_max_cuda": "12.9",
-    "driver_mismatch": true,
+    "toolkit_version": "v13.2",
+    "build_cuda": "13.2",
+    "driver_version": "582.41",
+    "driver_max_cuda": "13.2",
+    "driver_mismatch": false,
     "gpus": [
-      {"name": "Quadro RTX 4000", "vram": "8GB", "compute": "7.5", "sm": "sm_75", "arch": "Turing", "role": "inference/runtime (GPU 0)"},
-      {"name": "RTX 5060 Ti", "vram": "16GB", "compute": "12.0", "sm": "sm_120", "arch": "Blackwell", "role": "training/QLoRA (GPU 1)"}
+      {"name": "NVIDIA RTX 2000 Ada", "vram": "8GB", "compute": "8.9", "sm": "sm_89", "arch": "Ada Lovelace", "role": "inference/runtime (GPU 0)"},
+      {"name": "NVIDIA GeForce RTX 5060 Ti", "vram": "16GB", "compute": "12.0", "sm": "sm_120", "arch": "Blackwell", "role": "training/QLoRA (GPU 1)"}
     ],
     "device_detected": true,
     "tensor_ops_verified": true,

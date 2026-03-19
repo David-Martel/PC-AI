@@ -1,5 +1,6 @@
 {
   "model": "Models/Janus-Pro-7B",
+  "gguf_path": "Models/Janus-Pro-7B/janus-pro-7b-llama-q4_k_m.gguf",
   "device": "cuda:1",
   "dtype": "f16",
   "guidance_scale": 5.0,

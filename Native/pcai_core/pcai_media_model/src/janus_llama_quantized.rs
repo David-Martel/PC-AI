@@ -41,7 +41,10 @@
 //! types as [`JanusLlama`], so all higher-level pipeline code in `generate.rs`
 //! works without modification.
 //!
-//! RoPE is computed in F32 regardless of quantization level.
+//! RoPE is computed in the dtype of the KvCache cos/sin tables.  The helper
+//! [`apply_rotary_emb`] casts Q/K to that dtype if needed and casts back
+//! afterwards, eliminating the "unsupported dtype" error when QMatMul produces
+//! BF16 hidden states but the cache holds F32 cos/sin tables (or vice-versa).
 //!
 //! # Example (offline smoke-test)
 //!
@@ -83,14 +86,41 @@ fn rms_norm_from_qtensor(weight: QTensor, eps: f64, device: &Device) -> Result<c
 }
 
 // ---------------------------------------------------------------------------
-// RoPE helper (identical to janus_llama, operating on F32)
+// RoPE helper — dtype-safe wrapper
 // ---------------------------------------------------------------------------
 
+/// Apply rotary position embeddings to `x`, handling dtype mismatches.
+///
+/// `candle_nn::rotary_emb::rope` requires `x`, `cos`, and `sin` to share the
+/// same dtype.  In the quantized path, `QMatMul::forward` dequantizes weights
+/// to the *working* dtype (BF16 on CUDA, F32 on CPU), while the `KvCache`
+/// cos/sin tables are constructed in whatever dtype the caller supplied to
+/// `KvCache::new`.  When these differ (e.g. BF16 hidden states but F32
+/// cos/sin tables, or vice-versa) the RoPE kernel returns an
+/// "unsupported dtype" error.
+///
+/// This wrapper casts `x` to the dtype of the cos/sin tables before calling
+/// `rope`, then casts the result back to the original dtype of `x`.  The
+/// round-trip cast is numerically equivalent to computing RoPE in the
+/// cos/sin dtype: the additional cast is essentially free on CUDA (BF16↔F32
+/// is a bitwise reinterpretation plus zero-pad/truncation of the mantissa).
 fn apply_rotary_emb(x: &Tensor, index_pos: usize, cos: &Tensor, sin: &Tensor) -> Result<Tensor> {
     let (_b_sz, _, seq_len, _) = x.dims4()?;
     let cos = cos.narrow(0, index_pos, seq_len)?;
     let sin = sin.narrow(0, index_pos, seq_len)?;
-    candle_nn::rotary_emb::rope(x, &cos, &sin)
+
+    // Align the query/key tensor dtype with the cos/sin tables so that the
+    // RoPE kernel receives three tensors of the same dtype.  This handles the
+    // case where QMatMul dequantizes to BF16 (CUDA) but the KvCache was
+    // constructed with DType::F32 (or the reverse).
+    let x_dtype = x.dtype();
+    let rope_dtype = cos.dtype();
+    if x_dtype == rope_dtype {
+        candle_nn::rotary_emb::rope(x, &cos, &sin)
+    } else {
+        let x_cast = x.to_dtype(rope_dtype)?;
+        candle_nn::rotary_emb::rope(&x_cast, &cos, &sin)?.to_dtype(x_dtype)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -123,7 +153,8 @@ impl QuantizedMlp {
 /// Causal self-attention with quantized Q/K/V/O projections.
 ///
 /// Supports grouped-query attention (GQA) via [`repeat_kv`].
-/// RoPE embeddings are computed in F32 for numerical stability.
+/// RoPE embeddings are computed in the dtype of the KvCache cos/sin tables;
+/// see [`apply_rotary_emb`] for the dtype-alignment logic.
 #[derive(Debug, Clone)]
 struct QuantizedAttention {
     q_proj: QMatMul,
@@ -913,5 +944,68 @@ mod tests {
             .forward_dynamic(&x, 0, 0, &mut cache)
             .expect("block forward failed");
         assert_eq!(out.dims(), &[1, 4, h]);
+    }
+
+    /// Regression test for the RoPE dtype mismatch bug.
+    ///
+    /// Reproduces the error:
+    /// `prefill forward_hidden failed: unsupported dtype for rope F32 BF16 BF16`
+    ///
+    /// The quantized attention forward receives BF16 Q/K tensors (from
+    /// `QMatMul` dequantization on GPU) while the `KvCache` cos/sin tables
+    /// may be in F32 (or the inverse), causing `candle_nn::rotary_emb::rope`
+    /// to reject the mixed-dtype inputs.
+    ///
+    /// This test constructs a `KvCache` with F32 cos/sin but feeds a BF16
+    /// input tensor (simulating CUDA QMatMul output), and verifies that
+    /// `apply_rotary_emb` completes without error and returns a BF16 result.
+    #[test]
+    fn test_apply_rotary_emb_dtype_mismatch_bf16_input_f32_cache() {
+        let dev = Device::Cpu;
+        let cfg = tiny_llama_cfg();
+        let head_dim = cfg.hidden_size / cfg.num_attention_heads;
+
+        // Cache created with F32 cos/sin (the pre-fix default on CPU).
+        let cache = KvCache::new(true, DType::F32, &cfg, &dev).unwrap();
+        assert_eq!(cache.cos.dtype(), DType::F32, "cos should be F32");
+
+        // Simulate BF16 Q tensor from QMatMul dequantization on CUDA.
+        // Shape: [B=1, n_heads=4, seq=1, head_dim=16].
+        let q_bf16 = Tensor::zeros((1_usize, cfg.num_attention_heads, 1_usize, head_dim), DType::BF16, &dev).unwrap();
+        assert_eq!(q_bf16.dtype(), DType::BF16);
+
+        // Before the fix this would panic with "unsupported dtype for rope F32 BF16 BF16"
+        // (x=BF16, cos=F32, sin=F32).  After the fix it should succeed.
+        let out = apply_rotary_emb(&q_bf16, 0, &cache.cos, &cache.sin)
+            .expect("apply_rotary_emb should succeed despite dtype mismatch");
+
+        // Output dtype must match the *input* tensor (BF16), not the cos/sin tables.
+        assert_eq!(out.dtype(), DType::BF16, "output dtype should match input tensor dtype");
+        assert_eq!(out.dims(), q_bf16.dims(), "output shape must be unchanged");
+    }
+
+    /// Symmetric case: F32 input with BF16 cos/sin tables (CUDA-created cache).
+    ///
+    /// On CUDA, `KvCache::new` is called with `DType::BF16` so cos/sin are BF16.
+    /// If a caller feeds an F32 tensor (e.g., CPU fallback in a mixed-device
+    /// setup) the same mismatch occurs in the opposite direction.
+    #[test]
+    fn test_apply_rotary_emb_dtype_mismatch_f32_input_bf16_cache() {
+        let dev = Device::Cpu;
+        let cfg = tiny_llama_cfg();
+        let head_dim = cfg.hidden_size / cfg.num_attention_heads;
+
+        // Cache created with BF16 cos/sin (CUDA path).
+        let cache = KvCache::new(true, DType::BF16, &cfg, &dev).unwrap();
+        assert_eq!(cache.cos.dtype(), DType::BF16);
+
+        // F32 input tensor.
+        let q_f32 = Tensor::zeros((1_usize, cfg.num_attention_heads, 1_usize, head_dim), DType::F32, &dev).unwrap();
+
+        let out = apply_rotary_emb(&q_f32, 0, &cache.cos, &cache.sin)
+            .expect("apply_rotary_emb should handle F32 input with BF16 cache");
+
+        assert_eq!(out.dtype(), DType::F32, "output dtype must match input");
+        assert_eq!(out.dims(), q_f32.dims());
     }
 }

@@ -76,6 +76,11 @@ struct Args {
     /// Number of draft tokens per speculative step (K).
     #[arg(long = "spec-lookahead", default_value_t = 4)]
     spec_lookahead: usize,
+
+    /// Path to GGUF quantized weights for the LLM backbone.
+    /// When set, loads quantized weights from this file instead of full-precision safetensors.
+    #[arg(long = "gguf")]
+    gguf: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -387,6 +392,7 @@ async fn main() -> Result<()> {
         use_prealloc_kv_cache: true,
         use_speculative_decoding: args.speculative,
         speculative_lookahead: args.spec_lookahead,
+        gguf_path: args.gguf.clone(),
         ..PipelineConfig::default()
     };
 

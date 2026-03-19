@@ -663,7 +663,9 @@ impl QuantizedJanusLlama {
             })?;
         }
         let x = self.ln_f.forward(&x)?;
-        x.i((.., seq_len - 1, ..))?.contiguous()
+        // Return F32 hidden states for compatibility with the full-precision
+        // gen_head and lm_head that expect F32 inputs.
+        x.i((.., seq_len - 1, ..))?.contiguous()?.to_dtype(DType::F32)
     }
 
     /// Forward pass returning **hidden states** using the pre-allocated KV cache.
@@ -692,7 +694,7 @@ impl QuantizedJanusLlama {
             x = block.forward_prealloc(&x, index_pos, block_idx, cache)?;
         }
         let x = self.ln_f.forward(&x)?;
-        x.i((.., seq_len - 1, ..))?.contiguous()
+        x.i((.., seq_len - 1, ..))?.contiguous()?.to_dtype(DType::F32)
     }
 
     /// Project hidden states through the quantized LM head.
@@ -806,7 +808,7 @@ impl QuantizedJanusLlama {
         for (block_idx, block) in self.blocks.iter().enumerate() {
             x = block.forward_prealloc(&x, start_pos, block_idx, cache)?;
         }
-        self.ln_f.forward(&x)
+        self.ln_f.forward(&x)?.to_dtype(DType::F32)
     }
 
     /// Offload `wte` (token embedding table) to CPU to free GPU VRAM.

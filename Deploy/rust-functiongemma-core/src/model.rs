@@ -600,11 +600,7 @@ impl Attention {
         kv_quant: KvCacheQuant,
         kv_max_len: Option<usize>,
         kv_store_on_cpu: bool,
-        kv_streaming: bool,
-        kv_block_len: usize,
     ) -> Result<Tensor> {
-        let _ = kv_streaming;
-        let _ = kv_block_len;
         let (b_sz, seq_len, _hidden_size) = x.dims3()?;
         if seq_len != 1 {
             return self.forward(x);
@@ -666,6 +662,8 @@ impl Attention {
                     )
                 }
             };
+            // O(seq_len) copy per decode step. Acceptable for FunctionGemma's short
+            // routing sequences (typically < 100 tokens); no ring-buffer needed here.
             let k = Tensor::cat(&[&cached_k, &k], 2)?;
             let v = Tensor::cat(&[&cached_v, &v], 2)?;
             (k, v)
@@ -860,21 +858,12 @@ impl DecoderLayer {
         kv_quant: KvCacheQuant,
         kv_max_len: Option<usize>,
         kv_store_on_cpu: bool,
-        kv_streaming: bool,
-        kv_block_len: usize,
     ) -> Result<Tensor> {
         let residual = x.clone();
         let x = self.input_layernorm.forward(x)?;
-        let x = self.self_attn.forward_with_cache(
-            &x,
-            cache,
-            past_len,
-            kv_quant,
-            kv_max_len,
-            kv_store_on_cpu,
-            kv_streaming,
-            kv_block_len,
-        )?;
+        let x = self
+            .self_attn
+            .forward_with_cache(&x, cache, past_len, kv_quant, kv_max_len, kv_store_on_cpu)?;
         let x = (x + residual)?;
         let x = self.post_attention_layernorm.forward(&x)?;
 
@@ -947,27 +936,16 @@ pub struct KvCache {
     pub quant: KvCacheQuant,
     pub max_len: Option<usize>,
     pub store_on_cpu: bool,
-    pub streaming: bool,
-    pub block_len: usize,
 }
 
 impl KvCache {
-    pub fn new(
-        num_layers: usize,
-        quant: KvCacheQuant,
-        max_len: Option<usize>,
-        store_on_cpu: bool,
-        streaming: bool,
-        block_len: usize,
-    ) -> Self {
+    pub fn new(num_layers: usize, quant: KvCacheQuant, max_len: Option<usize>, store_on_cpu: bool) -> Self {
         Self {
             past_len: 0,
             layers: vec![None; num_layers],
             quant,
             max_len,
             store_on_cpu,
-            streaming,
-            block_len,
         }
     }
 }
@@ -1082,8 +1060,6 @@ impl Model {
                 cache.quant,
                 cache.max_len,
                 cache.store_on_cpu,
-                cache.streaming,
-                cache.block_len,
             )?;
         }
         let x = self.norm.forward(&x)?;
@@ -1100,18 +1076,9 @@ impl Model {
         kv_quant: KvCacheQuant,
         kv_max_len: Option<usize>,
         kv_store_on_cpu: bool,
-        kv_streaming: bool,
-        kv_block_len: usize,
     ) -> Result<Vec<u32>> {
         let mut generated = Vec::new();
-        let mut cache = KvCache::new(
-            self.layers.len(),
-            kv_quant,
-            kv_max_len,
-            kv_store_on_cpu,
-            kv_streaming,
-            kv_block_len,
-        );
+        let mut cache = KvCache::new(self.layers.len(), kv_quant, kv_max_len, kv_store_on_cpu);
 
         let (_b, seq_len) = input_ids.dims2()?;
         let mut last_logits = None;
@@ -1127,7 +1094,9 @@ impl Model {
                 None => self.forward(input_ids)?,
             };
             let last_logits_tensor = logits.squeeze(0)?.squeeze(0)?;
-            let next_id = last_logits_tensor.argmax(0)?.to_scalar::<u32>()?;
+            // Use to_vec1 + index instead of to_scalar to avoid a GPU→CPU scalar
+            // transfer that stalls the pipeline; to_vec1 batches the copy.
+            let next_id = last_logits_tensor.argmax(0)?.to_vec1::<u32>()?[0];
             generated.push(next_id);
 
             if next_id == 1 || next_id == 107 || next_id == 106 {
@@ -1150,8 +1119,9 @@ impl Model {
             let (_b, s, _v) = logits.dims3()?;
             let last_logits = logits.narrow(1, s - 1, 1)?.squeeze(0)?.squeeze(0)?;
 
-            // Greedy sampling
-            let next_id = last_logits.argmax(0)?.to_scalar::<u32>()?;
+            // Greedy sampling — use to_vec1 + index instead of to_scalar so a
+            // single batched copy services the GPU→CPU transfer.
+            let next_id = last_logits.argmax(0)?.to_vec1::<u32>()?[0];
             generated.push(next_id);
 
             // Check for EOS (special ID for Gemma) - typically 1 or 107

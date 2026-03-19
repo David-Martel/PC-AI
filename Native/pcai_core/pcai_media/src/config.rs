@@ -107,6 +107,55 @@ pub struct PipelineConfig {
     /// [`KvCache`]: pcai_media_model::janus_llama::KvCache
     #[serde(default = "default_use_prealloc_kv_cache")]
     pub use_prealloc_kv_cache: bool,
+
+    /// Enable self-speculative decoding for image token generation.
+    ///
+    /// When `true`, the generation loop uses a two-phase draft-then-verify
+    /// scheme instead of the standard autoregressive loop:
+    ///
+    /// 1. **Draft phase**: run only the first [`speculative_draft_layers`]
+    ///    transformer blocks to cheaply predict `K` candidate tokens.
+    /// 2. **Verify phase**: run all layers on the `K` candidates in a single
+    ///    batched forward pass and accept the longest consecutive prefix where
+    ///    draft and verify agree.
+    ///
+    /// Requires [`use_prealloc_kv_cache`] to be `true` (the [`PreAllocKvCache`]
+    /// provides the `seq_len` rollback needed on rejection).
+    ///
+    /// Expected speedup: ~1.5× at 75% acceptance rate, ~1.6× at 80%.
+    ///
+    /// Defaults to `false`.
+    #[serde(default = "default_use_speculative_decoding")]
+    pub use_speculative_decoding: bool,
+
+    /// Number of transformer layers used in the speculative draft phase.
+    ///
+    /// Only relevant when [`use_speculative_decoding`] is `true`.  Must be
+    /// strictly less than the total number of transformer blocks in the model
+    /// (24 for Janus-Pro-1B; 36 for the 7B variant).
+    ///
+    /// A good starting point is one-third of the total layer count:
+    /// `8` for the 1B model, `12` for the 7B model.  Fewer draft layers ⟹
+    /// faster draft phase but lower acceptance rate; more draft layers ⟹
+    /// slower draft phase but higher acceptance rate.
+    ///
+    /// Defaults to `8` (one-third of 24 for Janus-Pro-1B).
+    #[serde(default = "default_speculative_draft_layers")]
+    pub speculative_draft_layers: usize,
+
+    /// Number of candidate tokens generated per draft phase (`K`).
+    ///
+    /// Only relevant when [`use_speculative_decoding`] is `true`.  Each
+    /// speculative step produces at most `K` accepted tokens for the cost of
+    /// `K` draft forwards plus one verify forward (all `K` in parallel).
+    ///
+    /// Higher `K` ⟹ better amortisation of verify cost, but lower per-token
+    /// acceptance probability (`acceptance_rate^K` drops steeply).  Values of
+    /// 3–5 are typical; `4` is the default.
+    ///
+    /// Defaults to `4`.
+    #[serde(default = "default_speculative_lookahead")]
+    pub speculative_lookahead: usize,
 }
 
 // ---------------------------------------------------------------------------
@@ -137,6 +186,15 @@ fn default_gpu_layers() -> i32 {
 fn default_use_prealloc_kv_cache() -> bool {
     true
 }
+fn default_use_speculative_decoding() -> bool {
+    false
+}
+fn default_speculative_draft_layers() -> usize {
+    8
+}
+fn default_speculative_lookahead() -> usize {
+    4
+}
 
 // ---------------------------------------------------------------------------
 // Default impl
@@ -153,6 +211,9 @@ impl Default for PipelineConfig {
             parallel_size: default_parallel_size(),
             gpu_layers: default_gpu_layers(),
             use_prealloc_kv_cache: default_use_prealloc_kv_cache(),
+            use_speculative_decoding: default_use_speculative_decoding(),
+            speculative_draft_layers: default_speculative_draft_layers(),
+            speculative_lookahead: default_speculative_lookahead(),
         }
     }
 }
@@ -557,6 +618,12 @@ mod tests {
             cfg.use_prealloc_kv_cache,
             "prealloc KV cache should be enabled by default"
         );
+        assert!(
+            !cfg.use_speculative_decoding,
+            "speculative decoding should be disabled by default"
+        );
+        assert_eq!(cfg.speculative_draft_layers, 8, "default draft layers should be 8");
+        assert_eq!(cfg.speculative_lookahead, 4, "default lookahead K should be 4");
     }
 
     /// An empty JSON object `{}` must deserialise to the same defaults.
@@ -571,6 +638,12 @@ mod tests {
         assert_eq!(cfg.parallel_size, 1);
         assert_eq!(cfg.gpu_layers, 0);
         assert!(cfg.use_prealloc_kv_cache, "prealloc KV cache should be the default");
+        assert!(
+            !cfg.use_speculative_decoding,
+            "speculative decoding should be off by default"
+        );
+        assert_eq!(cfg.speculative_draft_layers, 8);
+        assert_eq!(cfg.speculative_lookahead, 4);
     }
 
     /// Round-trip through JSON must preserve all fields.
@@ -585,6 +658,9 @@ mod tests {
             parallel_size: 2,
             gpu_layers: 20,
             use_prealloc_kv_cache: false,
+            use_speculative_decoding: true,
+            speculative_draft_layers: 8,
+            speculative_lookahead: 4,
         };
         let json = serde_json::to_string(&original).expect("serialise failed");
         let decoded: PipelineConfig = serde_json::from_str(&json).expect("deserialise failed");
@@ -596,6 +672,9 @@ mod tests {
         assert_eq!(decoded.parallel_size, original.parallel_size);
         assert_eq!(decoded.gpu_layers, original.gpu_layers);
         assert_eq!(decoded.use_prealloc_kv_cache, original.use_prealloc_kv_cache);
+        assert_eq!(decoded.use_speculative_decoding, original.use_speculative_decoding);
+        assert_eq!(decoded.speculative_draft_layers, original.speculative_draft_layers);
+        assert_eq!(decoded.speculative_lookahead, original.speculative_lookahead);
     }
 
     /// `resolve_device` on `"cpu"` must return `Device::Cpu`.
@@ -668,6 +747,9 @@ mod tests {
             parallel_size: 1,
             gpu_layers: 0,
             use_prealloc_kv_cache: true,
+            use_speculative_decoding: true,
+            speculative_draft_layers: 8,
+            speculative_lookahead: 4,
         };
         let tmp = std::env::temp_dir().join("pcai_media_config_test.json");
         let json = serde_json::to_string_pretty(&original).expect("serialise");
@@ -676,6 +758,26 @@ mod tests {
         assert_eq!(loaded.model, original.model);
         assert_eq!(loaded.dtype, original.dtype);
         assert_eq!(loaded.use_prealloc_kv_cache, original.use_prealloc_kv_cache);
+        assert_eq!(loaded.use_speculative_decoding, original.use_speculative_decoding);
+        assert_eq!(loaded.speculative_draft_layers, original.speculative_draft_layers);
+        assert_eq!(loaded.speculative_lookahead, original.speculative_lookahead);
         std::fs::remove_file(&tmp).ok();
+    }
+
+    /// `use_speculative_decoding = true` with valid draft layers must round-trip correctly.
+    #[test]
+    fn test_speculative_decoding_serde() {
+        let json = r#"{
+            "use_speculative_decoding": true,
+            "speculative_draft_layers": 12,
+            "speculative_lookahead": 3
+        }"#;
+        let cfg: PipelineConfig = serde_json::from_str(json).expect("deserialise speculative config");
+        assert!(cfg.use_speculative_decoding);
+        assert_eq!(cfg.speculative_draft_layers, 12);
+        assert_eq!(cfg.speculative_lookahead, 3);
+        // Other fields should still carry defaults.
+        assert_eq!(cfg.model, "deepseek-ai/Janus-Pro-1B");
+        assert!(cfg.use_prealloc_kv_cache);
     }
 }

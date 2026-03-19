@@ -776,12 +776,11 @@ fn main() -> Result<()> {
                 .as_deref()
                 .map(|v| v.eq_ignore_ascii_case("cpu"))
                 .unwrap_or(false);
-            let kv_streaming = if kv_cache_streaming {
-                true
-            } else {
-                train_config().kv_cache_streaming.unwrap_or(false)
-            };
-            let kv_block_len = kv_cache_block_len.or(train_config().kv_cache_block_len).unwrap_or(0);
+            // kv_cache_streaming / kv_cache_block_len are accepted as CLI flags for
+            // future use; the streaming KV eviction path is not yet implemented in
+            // the attention kernel, so these values are intentionally unused here.
+            let _ = kv_cache_streaming;
+            let _ = kv_cache_block_len;
 
             let mut correct = 0;
             let mut metrics = EvaluationMetrics::default();
@@ -831,8 +830,6 @@ fn main() -> Result<()> {
                     kv_quant,
                     kv_max_len,
                     kv_store_on_cpu,
-                    kv_streaming,
-                    kv_block_len,
                 )?;
                 let output_text = tokenizer.decode(&output_ids, true).map_err(anyhow::Error::msg)?;
                 if is_degenerate_output(&output_text) {

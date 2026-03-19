@@ -194,8 +194,6 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
     let kv_quant = KvCacheQuant::from_str(runtime_config().router_kv_cache_quant.as_deref());
     let kv_max_len = runtime_config().router_kv_cache_max_len;
     let kv_store_on_cpu = runtime_config().router_kv_cache_store.eq_ignore_ascii_case("cpu");
-    let kv_streaming = runtime_config().router_kv_cache_streaming;
-    let kv_block_len = runtime_config().router_kv_cache_block_len;
     maybe_log_cuda_snapshot("before_generate", device_index);
     let output_ids = if use_kv_cache() {
         cache.model.generate_with_cache(
@@ -205,8 +203,6 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
             kv_quant,
             kv_max_len,
             kv_store_on_cpu,
-            kv_streaming,
-            kv_block_len,
         )?
     } else {
         cache.model.generate(&input_tensor, max_tokens, &device)?

@@ -55,7 +55,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
-use candle_core::{DType, Device, IndexOp, Module, Tensor, D};
+use candle_core::{DType, Device, Module, Tensor, D};
 use image::{imageops::FilterType, DynamicImage};
 
 use crate::generate::GenerationPipeline;

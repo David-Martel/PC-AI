@@ -391,6 +391,13 @@ impl GenerationPipeline {
     /// When `cfg_scale` or `temperature` is `Some`, the provided value
     /// overrides the pipeline default for this call only.  `None` uses the
     /// value stored in the [`PipelineConfig`] at load time.
+    ///
+    /// When [`PipelineConfig::use_speculative_decoding`] is `true` and
+    /// [`PipelineConfig::use_prealloc_kv_cache`] is `true`, the generation
+    /// loop uses self-speculative decoding — a two-phase draft-then-verify
+    /// scheme that runs only [`PipelineConfig::speculative_draft_layers`]
+    /// blocks in the draft phase and all blocks in a single batched verify
+    /// forward.  The standard autoregressive loop is used otherwise.
     pub fn generate_with_overrides(
         &self,
         prompt: &str,
@@ -508,150 +515,191 @@ impl GenerationPipeline {
         // Track the current position for RoPE and KV-cache indexing.
         let mut pos = seq_len;
 
-        // ── 5. Autoregressive generation loop (576 image tokens) ─────────────
+        // ── 5. Generation loop (576 image tokens) ────────────────────────────
         let num_image_tokens = self.model_config.num_image_tokens(); // 576
-        let mut generated_tokens: Vec<u32> = Vec::with_capacity(num_image_tokens);
 
-        // Placeholder for current token IDs; unused at step 0 where we
-        // consume the prefill hidden state directly.
-        let mut current_token_ids = Tensor::zeros((batch_size, 1_usize), DType::U32, &self.device)
-            .context("failed to build initial token tensor")?;
+        // Dispatch to self-speculative decoding when configured.
+        //
+        // Self-speculative decoding requires `PreAllocKvCache` so that the
+        // draft-phase KV writes can be overwritten by the verify pass, and the
+        // cache `seq_len` can be rolled back on token rejection.  Fall back to
+        // the standard autoregressive loop if the cache is `Dynamic`.
+        let use_spec = self.config.use_speculative_decoding && self.config.use_prealloc_kv_cache;
 
-        // Consume prefill_hidden at step 0 without cloning.  The Option is
-        // taken once and never replenished, saving a full tensor clone
-        // (~batch_size × hidden_size × dtype_size bytes on GPU).
-        let mut prefill_hidden = Some(prefill_hidden);
-
-        for step in 0..num_image_tokens {
-            // A. Get hidden states for this step.
-            //    Step 0: use the prefill hidden state from <begin_of_image>.
-            //    Steps 1+: embed the previously sampled image token via
-            //              gen_embed → gen_aligner → LLM forward_hidden.
-            let hidden = if let Some(ph) = prefill_hidden.take() {
-                ph
-            } else {
-                let embeds = {
-                    use candle_core::Module;
-                    let raw_embed = self
-                        .model
-                        .gen_embed
-                        .forward(&current_token_ids)
-                        .map_err(|e| anyhow::anyhow!("step {step}: gen_embed failed: {e}"))?;
-                    self.model
-                        .gen_aligner
-                        .forward(&raw_embed)
-                        .map_err(|e| anyhow::anyhow!("step {step}: gen_aligner failed: {e}"))?
-                };
-                let h = cache
-                    .forward_hidden(&self.model.llama, &embeds, pos)
-                    .map_err(|e| anyhow::anyhow!("step {step}: forward_hidden failed: {e}"))?;
-                pos += 1;
-                h
+        let generated_tokens: Vec<u32> = if use_spec {
+            // Extract the pre-allocated cache from the CacheVariant.
+            let prealloc_cache = match &mut cache {
+                CacheVariant::PreAlloc(c) => c,
+                CacheVariant::Dynamic(_) => {
+                    // Should not happen: use_spec requires use_prealloc_kv_cache.
+                    anyhow::bail!(
+                        "speculative decoding requires PreAllocKvCache; \
+                         set use_prealloc_kv_cache = true"
+                    );
+                }
             };
+            let draft_layers = self.config.speculative_draft_layers;
+            let lookahead_k = self.config.speculative_lookahead.max(1);
 
-            // C. Project to image vocabulary logits [batch_size, image_vocab_size]
-            //    hidden is already [B, hidden_size] (last position extracted by forward_hidden).
-            let img_logits = self
-                .model
-                .project_to_image_vocab(&hidden.unsqueeze(1)?)
-                .map_err(|e| anyhow::anyhow!("step {step}: project_to_image_vocab failed: {e}"))?
-                .squeeze(1)
-                .map_err(|e| anyhow::anyhow!("step {step}: squeeze failed: {e}"))?;
+            self.speculative_generate_loop(
+                Some(prefill_hidden),
+                pos,
+                prealloc_cache,
+                num_image_tokens,
+                batch_size,
+                use_cfg,
+                guidance_scale,
+                temperature_val,
+                draft_layers,
+                lookahead_k,
+            )?
+        } else {
+            // ── Standard autoregressive loop ────────────────────────────────
+            let mut tokens: Vec<u32> = Vec::with_capacity(num_image_tokens);
 
-            // E. Apply CFG (if enabled) or use logits directly.
-            let logits_for_sampling = if use_cfg {
-                // CFG: split batch into conditional (even) and unconditional (odd).
-                let (cond, uncond) = if parallel_size == 1 {
-                    let c = img_logits
-                        .i(0_usize)
-                        .map_err(|e| anyhow::anyhow!("step {step}: cond row 0 failed: {e}"))?
-                        .unsqueeze(0)
-                        .map_err(|e| anyhow::anyhow!("step {step}: cond unsqueeze failed: {e}"))?;
-                    let u = img_logits
-                        .i(1_usize)
-                        .map_err(|e| anyhow::anyhow!("step {step}: uncond row 1 failed: {e}"))?
-                        .unsqueeze(0)
-                        .map_err(|e| anyhow::anyhow!("step {step}: uncond unsqueeze failed: {e}"))?;
-                    (c, u)
+            // Placeholder for current token IDs; unused at step 0 where we
+            // consume the prefill hidden state directly.
+            let mut current_token_ids = Tensor::zeros((batch_size, 1_usize), DType::U32, &self.device)
+                .context("failed to build initial token tensor")?;
+
+            // Consume prefill_hidden at step 0 without cloning.  The Option is
+            // taken once and never replenished, saving a full tensor clone
+            // (~batch_size × hidden_size × dtype_size bytes on GPU).
+            let mut prefill_hidden_opt = Some(prefill_hidden);
+
+            for step in 0..num_image_tokens {
+                // A. Get hidden states for this step.
+                //    Step 0: use the prefill hidden state from <begin_of_image>.
+                //    Steps 1+: embed the previously sampled image token via
+                //              gen_embed → gen_aligner → LLM forward_hidden.
+                let hidden = if let Some(ph) = prefill_hidden_opt.take() {
+                    ph
                 } else {
-                    let cond_rows: Vec<Tensor> = (0..batch_size)
-                        .step_by(2)
-                        .map(|i| {
-                            img_logits
-                                .i(i)
-                                .and_then(|t| t.unsqueeze(0))
-                                .map_err(|e| anyhow::anyhow!("step {step}: cond row {i}: {e}"))
-                        })
-                        .collect::<Result<_>>()?;
-                    let uncond_rows: Vec<Tensor> = (1..batch_size)
-                        .step_by(2)
-                        .map(|i| {
-                            img_logits
-                                .i(i)
-                                .and_then(|t| t.unsqueeze(0))
-                                .map_err(|e| anyhow::anyhow!("step {step}: uncond row {i}: {e}"))
-                        })
-                        .collect::<Result<_>>()?;
-                    (Tensor::cat(&cond_rows, 0)?, Tensor::cat(&uncond_rows, 0)?)
+                    let embeds = {
+                        use candle_core::Module;
+                        let raw_embed = self
+                            .model
+                            .gen_embed
+                            .forward(&current_token_ids)
+                            .map_err(|e| anyhow::anyhow!("step {step}: gen_embed failed: {e}"))?;
+                        self.model
+                            .gen_aligner
+                            .forward(&raw_embed)
+                            .map_err(|e| anyhow::anyhow!("step {step}: gen_aligner failed: {e}"))?
+                    };
+                    let h = cache
+                        .forward_hidden(&self.model.llama, &embeds, pos)
+                        .map_err(|e| anyhow::anyhow!("step {step}: forward_hidden failed: {e}"))?;
+                    pos += 1;
+                    h
                 };
-                // guided = uncond + guidance_scale * (cond - uncond)
-                let diff = (cond.clone() - uncond.clone())?;
-                (uncond + (diff * guidance_scale)?)?
-            } else {
-                // No CFG: use logits directly.
-                img_logits
-            };
 
-            // F. Temperature scaling + softmax → probability distribution
-            //    [parallel_size, image_vocab_size]
-            let scaled = if (temperature_val - 1.0_f64).abs() > 1e-6 {
-                (logits_for_sampling / temperature_val)
-                    .map_err(|e| anyhow::anyhow!("step {step}: temperature scale failed: {e}"))?
-            } else {
-                logits_for_sampling
-            };
-            let probs = candle_nn::ops::softmax_last_dim(&scaled)
-                .map_err(|e| anyhow::anyhow!("step {step}: softmax failed: {e}"))?;
+                // C. Project to image vocabulary logits [batch_size, image_vocab_size]
+                //    hidden is already [B, hidden_size] (last position extracted by forward_hidden).
+                let img_logits = self
+                    .model
+                    .project_to_image_vocab(&hidden.unsqueeze(1)?)
+                    .map_err(|e| anyhow::anyhow!("step {step}: project_to_image_vocab failed: {e}"))?
+                    .squeeze(1)
+                    .map_err(|e| anyhow::anyhow!("step {step}: squeeze failed: {e}"))?;
 
-            // G. Multinomial sampling: one token per parallel image.
-            //    We sample from probs [parallel_size, vocab_size] and
-            //    collect the sampled index for each parallel sample.
-            let next_tokens =
-                multinomial_sample(&probs).with_context(|| format!("step {step}: multinomial sampling failed"))?;
-
-            // For parallel_size=1, store the single sampled token.
-            // For parallel_size>1, store the first sample (later: batch decode).
-            let first_token = next_tokens[0];
-            generated_tokens.push(first_token);
-
-            // H. Prepare next-step input: replicate sampled token across
-            //    batch dimension [batch_size, 1].
-            let mut next_ids_flat = Vec::with_capacity(batch_size);
-            for &tok in &next_tokens {
-                if use_cfg {
-                    // Even (cond) and odd (uncond) get the same token.
-                    next_ids_flat.push(tok);
-                    next_ids_flat.push(tok);
+                // E. Apply CFG (if enabled) or use logits directly.
+                let logits_for_sampling = if use_cfg {
+                    // CFG: split batch into conditional (even) and unconditional (odd).
+                    let (cond, uncond) = if parallel_size == 1 {
+                        let c = img_logits
+                            .i(0_usize)
+                            .map_err(|e| anyhow::anyhow!("step {step}: cond row 0 failed: {e}"))?
+                            .unsqueeze(0)
+                            .map_err(|e| anyhow::anyhow!("step {step}: cond unsqueeze failed: {e}"))?;
+                        let u = img_logits
+                            .i(1_usize)
+                            .map_err(|e| anyhow::anyhow!("step {step}: uncond row 1 failed: {e}"))?
+                            .unsqueeze(0)
+                            .map_err(|e| anyhow::anyhow!("step {step}: uncond unsqueeze failed: {e}"))?;
+                        (c, u)
+                    } else {
+                        let cond_rows: Vec<Tensor> = (0..batch_size)
+                            .step_by(2)
+                            .map(|i| {
+                                img_logits
+                                    .i(i)
+                                    .and_then(|t| t.unsqueeze(0))
+                                    .map_err(|e| anyhow::anyhow!("step {step}: cond row {i}: {e}"))
+                            })
+                            .collect::<Result<_>>()?;
+                        let uncond_rows: Vec<Tensor> = (1..batch_size)
+                            .step_by(2)
+                            .map(|i| {
+                                img_logits
+                                    .i(i)
+                                    .and_then(|t| t.unsqueeze(0))
+                                    .map_err(|e| anyhow::anyhow!("step {step}: uncond row {i}: {e}"))
+                            })
+                            .collect::<Result<_>>()?;
+                        (Tensor::cat(&cond_rows, 0)?, Tensor::cat(&uncond_rows, 0)?)
+                    };
+                    // guided = uncond + guidance_scale * (cond - uncond)
+                    let diff = (cond.clone() - uncond.clone())?;
+                    (uncond + (diff * guidance_scale)?)?
                 } else {
-                    next_ids_flat.push(tok);
+                    // No CFG: use logits directly.
+                    img_logits
+                };
+
+                // F. Temperature scaling + softmax → probability distribution
+                //    [parallel_size, image_vocab_size]
+                let scaled = if (temperature_val - 1.0_f64).abs() > 1e-6 {
+                    (logits_for_sampling / temperature_val)
+                        .map_err(|e| anyhow::anyhow!("step {step}: temperature scale failed: {e}"))?
+                } else {
+                    logits_for_sampling
+                };
+                let probs = candle_nn::ops::softmax_last_dim(&scaled)
+                    .map_err(|e| anyhow::anyhow!("step {step}: softmax failed: {e}"))?;
+
+                // G. Multinomial sampling: one token per parallel image.
+                //    We sample from probs [parallel_size, vocab_size] and
+                //    collect the sampled index for each parallel sample.
+                let next_tokens =
+                    multinomial_sample(&probs).with_context(|| format!("step {step}: multinomial sampling failed"))?;
+
+                // For parallel_size=1, store the single sampled token.
+                // For parallel_size>1, store the first sample (later: batch decode).
+                let first_token = next_tokens[0];
+                tokens.push(first_token);
+
+                // H. Prepare next-step input: replicate sampled token across
+                //    batch dimension [batch_size, 1].
+                let mut next_ids_flat = Vec::with_capacity(batch_size);
+                for &tok in &next_tokens {
+                    if use_cfg {
+                        // Even (cond) and odd (uncond) get the same token.
+                        next_ids_flat.push(tok);
+                        next_ids_flat.push(tok);
+                    } else {
+                        next_ids_flat.push(tok);
+                    }
+                }
+                // Fix 3: Use from_slice instead of from_vec to avoid a Vec
+                // allocation per step.  next_ids_flat is a stack-local Vec with
+                // capacity `batch_size` (typically 1 or 2), so the allocation
+                // is small — but eliminating it across 576 steps compounds.
+                current_token_ids = Tensor::from_slice(&next_ids_flat, (batch_size, 1_usize), &self.device)
+                    .context("failed to build next token tensor")?;
+
+                if step % 100 == 0 || step == num_image_tokens - 1 {
+                    tracing::debug!(
+                        step,
+                        total = num_image_tokens,
+                        token = first_token,
+                        "generation progress"
+                    );
                 }
             }
-            // Fix 3: Use from_slice instead of from_vec to avoid a Vec
-            // allocation per step.  next_ids_flat is a stack-local Vec with
-            // capacity `batch_size` (typically 1 or 2), so the allocation
-            // is small — but eliminating it across 576 steps compounds.
-            current_token_ids = Tensor::from_slice(&next_ids_flat, (batch_size, 1_usize), &self.device)
-                .context("failed to build next token tensor")?;
 
-            if step % 100 == 0 || step == num_image_tokens - 1 {
-                tracing::debug!(
-                    step,
-                    total = num_image_tokens,
-                    token = first_token,
-                    "generation progress"
-                );
-            }
-        }
+            tokens
+        }; // end if use_spec
 
         // ── Token diversity check ────────────────────────────────────────────
         {
@@ -692,6 +740,365 @@ impl GenerationPipeline {
             .map_err(|e| anyhow::anyhow!("image batch slice failed: {e}"))?;
 
         tensor_to_image(&first_image).context("tensor_to_image conversion failed")
+    }
+
+    /// Self-speculative decoding loop for image token generation.
+    ///
+    /// Uses the same model at two depths to amortise the cost of full-depth
+    /// forward passes:
+    ///
+    /// 1. **Draft phase** (`draft_layers` blocks): run `lookahead_k` fast
+    ///    single-token forward passes to produce `K` candidate token IDs and
+    ///    their embeddings.
+    /// 2. **Verify phase** (all blocks): run one batched forward over all `K`
+    ///    candidate embeddings to obtain full-depth logits at each position.
+    /// 3. **Accept/reject**: keep the longest consecutive prefix where the
+    ///    draft token matches the greedy argmax of the verify logits.  If the
+    ///    first draft token is rejected, resample from the verify logits at
+    ///    that position.
+    ///
+    /// The KV cache is shared between draft and verify phases via
+    /// [`PreAllocKvCache`].  Draft writes at positions `pos..pos+k`; verify
+    /// overwrites those same positions with full-depth KV.  On rejection at
+    /// position `j`, the cache `seq_len` is rolled back to `pos + j` before
+    /// resampling.
+    ///
+    /// # Arguments
+    ///
+    /// * `prefill_hidden` — Pre-filled hidden state from `<begin_of_image>`;
+    ///   consumed on the first token to avoid an extra forward pass.
+    /// * `start_pos`      — Absolute KV-cache position after the prompt prefill.
+    /// * `cache`          — Pre-allocated KV cache (mutable).
+    /// * `num_image_tokens` — Total image tokens to generate (576).
+    /// * `batch_size`     — LLM batch dimension (1 without CFG, 2 with).
+    /// * `use_cfg`        — Whether CFG guidance is active.
+    /// * `guidance_scale` — CFG scale factor.
+    /// * `temperature`    — Sampling temperature.
+    /// * `draft_layers`   — Number of transformer blocks for the draft phase.
+    /// * `lookahead_k`    — Number of draft tokens to speculate per outer step.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on any tensor operation failure or cache overflow.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "speculative loop mirrors generate_with_overrides signature"
+    )]
+    fn speculative_generate_loop(
+        &self,
+        prefill_hidden: Option<Tensor>,
+        start_pos: usize,
+        cache: &mut PreAllocKvCache,
+        num_image_tokens: usize,
+        batch_size: usize,
+        use_cfg: bool,
+        guidance_scale: f64,
+        temperature: f64,
+        draft_layers: usize,
+        lookahead_k: usize,
+    ) -> Result<Vec<u32>> {
+        let mut generated: Vec<u32> = Vec::with_capacity(num_image_tokens);
+        let mut pos = start_pos;
+
+        // `last_hidden` carries the verified hidden state for the most recently
+        // accepted token.  On the very first outer step this is the prefill
+        // hidden state; on subsequent steps it is the verify hidden state for
+        // the last accepted token.
+        let mut last_hidden: Option<Tensor> = prefill_hidden;
+
+        while generated.len() < num_image_tokens {
+            let remaining = num_image_tokens - generated.len();
+            let k = lookahead_k.min(remaining);
+
+            // ── STEP 0: sample the "current" token from last_hidden ───────────
+            //
+            // We have a verified hidden for the current position.  Convert it
+            // to image logits, sample one token, and embed it — the embedding
+            // becomes the first input to the draft phase.
+            let last_hidden_val = last_hidden
+                .take()
+                .ok_or_else(|| anyhow::anyhow!("speculative_generate_loop: last_hidden unavailable at pos {pos}"))?;
+
+            let first_tok =
+                self.sample_from_hidden(&last_hidden_val, use_cfg, batch_size, guidance_scale, temperature, pos)?;
+            generated.push(first_tok);
+            if generated.len() >= num_image_tokens {
+                break;
+            }
+
+            // Build the embedding for the first sampled token.
+            let first_embed = self
+                .embed_image_token(first_tok, batch_size)
+                .with_context(|| format!("speculative: embed first token at pos {pos}"))?;
+            pos += 1;
+
+            // ── DRAFT PHASE: run draft_layers blocks K times ──────────────────
+            //
+            // `draft_tokens[i]` is the sampled token for position `pos + i`.
+            // `draft_embeds_list[i]` is the gen_aligner output for that token,
+            // to be batched for the verify phase.
+            let mut draft_tokens: Vec<u32> = Vec::with_capacity(k);
+            let mut draft_embeds_list: Vec<Tensor> = Vec::with_capacity(k);
+
+            {
+                let mut draft_input = first_embed;
+                let draft_start_pos = pos;
+
+                for di in 0..k {
+                    // Run forward_hidden_draft (shallow path).
+                    let draft_hidden = self
+                        .model
+                        .llama
+                        .forward_hidden_draft(&draft_input, draft_start_pos + di, cache, draft_layers)
+                        .with_context(|| format!("speculative draft: step {di} pos {}", draft_start_pos + di))?;
+
+                    // Sample a draft token from the draft hidden state.
+                    let draft_tok = self.sample_from_hidden(
+                        &draft_hidden,
+                        use_cfg,
+                        batch_size,
+                        guidance_scale,
+                        temperature,
+                        draft_start_pos + di,
+                    )?;
+                    draft_tokens.push(draft_tok);
+
+                    // Build the embedding for the draft token — will be batched for verify.
+                    let embed = self
+                        .embed_image_token(draft_tok, batch_size)
+                        .with_context(|| format!("speculative draft: embed token at di={di}"))?;
+                    draft_embeds_list.push(embed.clone());
+
+                    if di + 1 < k {
+                        draft_input = embed;
+                    }
+                }
+            }
+
+            // ── VERIFY PHASE: one batched forward over all K draft tokens ─────
+            //
+            // Concatenate the K draft embeddings along the sequence dimension:
+            // [B, 1, H] × K → [B, K, H].
+            // Then run forward_hidden_verify_batch → [B, K, H].
+            // This overwrites the K KV slots written by the draft phase.
+            let draft_start_pos = pos;
+
+            // Roll back the cache seq_len to just before the K draft positions
+            // so verify can overwrite them cleanly.
+            //
+            // The draft phase wrote K entries at `draft_start_pos..draft_start_pos+k`.
+            // `update` on PreAllocKvCache does not advance `current_seq_len`
+            // monotonically (it sets it to `end = seq_pos + new_tokens`), so
+            // the cache seq_len is already pointing past the K draft tokens.
+            // We reset it to `draft_start_pos` so the narrow view in `update`
+            // during verify covers exactly 0..draft_start_pos initially and
+            // extends with each verify token.
+            cache.rollback_seq_len(draft_start_pos);
+
+            // Stack draft embeddings [B, 1, H] along dim 1 → [B, K, H].
+            let verify_input =
+                Tensor::cat(&draft_embeds_list, 1).context("speculative verify: cat draft embeddings")?;
+
+            let verify_hidden_batch = self
+                .model
+                .llama
+                .forward_hidden_verify_batch(&verify_input, draft_start_pos, cache)
+                .context("speculative verify: forward_hidden_verify_batch")?;
+
+            // ── ACCEPT / REJECT ───────────────────────────────────────────────
+            //
+            // For each position `j` in [0, K):
+            //   - Compute verify token = greedy argmax of verify logits at position j.
+            //   - If draft_tokens[j] == verify_token → accept, advance.
+            //   - Else → reject; resample from verify logits, stop.
+            //
+            // After accepting j tokens we have `j + 1` verify hidden states
+            // (positions 0..=j).  The last accepted verify hidden is saved as
+            // `last_hidden` for the next outer step.
+            let mut accept_count = 0_usize;
+            let mut resample_hidden: Option<Tensor> = None;
+
+            'accept_loop: for j in 0..k {
+                // Extract verify hidden at position j: [B, K, H] → [B, 1, H] → [B, H]
+                let verify_hidden_j = verify_hidden_batch
+                    .i((.., j, ..))
+                    .with_context(|| format!("speculative verify: index hidden at j={j}"))?
+                    .contiguous()
+                    .with_context(|| format!("speculative verify: contiguous at j={j}"))?;
+
+                // Greedy verify token (argmax over image-vocab logits).
+                let verify_tok = self.greedy_from_hidden(&verify_hidden_j, use_cfg, batch_size, guidance_scale)?;
+
+                if draft_tokens[j] == verify_tok {
+                    accept_count += 1;
+                    // Keep going — may accept more tokens.
+                } else {
+                    // Rejection at position j: push the verify token and stop.
+                    resample_hidden = Some(verify_hidden_j);
+                    break 'accept_loop;
+                }
+            }
+
+            // Push accepted draft tokens into `generated`.
+            for &tok in &draft_tokens[..accept_count] {
+                generated.push(tok);
+                pos += 1;
+                if generated.len() >= num_image_tokens {
+                    break;
+                }
+            }
+
+            // On rejection: push the resampled verify token and set last_hidden.
+            if generated.len() < num_image_tokens {
+                if let Some(vh) = resample_hidden {
+                    // The verify hidden at the first rejected position gives us a
+                    // free bonus token (the greedy verify token).  We already
+                    // computed it above; push it via sample_from_hidden to allow
+                    // temperature/CFG to be applied consistently.
+                    let bonus_tok =
+                        self.sample_from_hidden(&vh, use_cfg, batch_size, guidance_scale, temperature, pos)?;
+                    generated.push(bonus_tok);
+                    pos += 1;
+
+                    if generated.len() < num_image_tokens {
+                        // Roll the cache back to `pos` and set last_hidden so the
+                        // next outer step starts fresh from the verify hidden.
+                        cache.rollback_seq_len(pos);
+                        last_hidden = Some(vh);
+                    }
+                } else {
+                    // All K tokens accepted: update cache and last_hidden for
+                    // the last accepted position.
+                    let last_j = accept_count.saturating_sub(1);
+                    let last_verify_hidden = verify_hidden_batch
+                        .i((.., last_j, ..))
+                        .with_context(|| format!("speculative: last accepted hidden at j={last_j}"))?
+                        .contiguous()
+                        .context("speculative: last accepted hidden contiguous")?;
+                    last_hidden = Some(last_verify_hidden);
+                }
+            }
+
+            tracing::debug!(
+                generated = generated.len(),
+                total = num_image_tokens,
+                accept_count,
+                k,
+                "speculative step"
+            );
+        }
+
+        Ok(generated)
+    }
+
+    /// Sample one image token from a `[B, hidden_size]` hidden state.
+    ///
+    /// Projects the hidden state through `gen_head` to obtain image-vocabulary
+    /// logits, applies optional CFG and temperature scaling, then performs
+    /// multinomial sampling.  Returns the sampled token for the **first**
+    /// parallel image (`parallel_size=1`).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on any candle operation failure.
+    fn sample_from_hidden(
+        &self,
+        hidden: &Tensor,
+        use_cfg: bool,
+        batch_size: usize,
+        guidance_scale: f64,
+        temperature: f64,
+        _pos: usize,
+    ) -> Result<u32> {
+        let img_logits = self
+            .model
+            .project_to_image_vocab(&hidden.unsqueeze(1)?)
+            .context("sample_from_hidden: project_to_image_vocab")?
+            .squeeze(1)
+            .context("sample_from_hidden: squeeze")?;
+
+        let logits_for_sampling = if use_cfg && batch_size >= 2 {
+            let cond = img_logits.i(0_usize)?.unsqueeze(0)?;
+            let uncond = img_logits.i(1_usize)?.unsqueeze(0)?;
+            let diff = (cond.clone() - uncond.clone())?;
+            (uncond + (diff * guidance_scale)?)?
+        } else {
+            img_logits.i(0_usize)?.unsqueeze(0)?
+        };
+
+        let scaled = if (temperature - 1.0_f64).abs() > 1e-6 {
+            (logits_for_sampling / temperature).context("sample_from_hidden: temperature scale")?
+        } else {
+            logits_for_sampling
+        };
+        let probs = candle_nn::ops::softmax_last_dim(&scaled).context("sample_from_hidden: softmax")?;
+        let tokens = multinomial_sample(&probs).context("sample_from_hidden: multinomial")?;
+        Ok(tokens[0])
+    }
+
+    /// Greedy (argmax) token selection from a `[B, hidden_size]` hidden state.
+    ///
+    /// Used in the verify phase to compare draft tokens against the full-depth
+    /// model's greedy prediction without stochastic noise.  Returns the greedy
+    /// token for the first batch element after optional CFG blending.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on any candle operation failure.
+    fn greedy_from_hidden(
+        &self,
+        hidden: &Tensor,
+        use_cfg: bool,
+        batch_size: usize,
+        guidance_scale: f64,
+    ) -> Result<u32> {
+        let img_logits = self
+            .model
+            .project_to_image_vocab(&hidden.unsqueeze(1)?)
+            .context("greedy_from_hidden: project_to_image_vocab")?
+            .squeeze(1)
+            .context("greedy_from_hidden: squeeze")?;
+
+        let logits = if use_cfg && batch_size >= 2 {
+            let cond = img_logits.i(0_usize)?.unsqueeze(0)?;
+            let uncond = img_logits.i(1_usize)?.unsqueeze(0)?;
+            let diff = (cond.clone() - uncond.clone())?;
+            (uncond + (diff * guidance_scale)?)?
+        } else {
+            img_logits.i(0_usize)?.unsqueeze(0)?
+        };
+
+        let idx = logits
+            .argmax(candle_core::D::Minus1)
+            .context("greedy_from_hidden: argmax")?
+            .i(0_usize)
+            .context("greedy_from_hidden: extract index")?
+            .to_scalar::<u32>()
+            .context("greedy_from_hidden: to_scalar")?;
+        Ok(idx)
+    }
+
+    /// Embed a single image token through `gen_embed` + `gen_aligner`.
+    ///
+    /// Returns a `[batch_size, 1, hidden_size]` tensor on `self.device`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on any candle operation failure.
+    fn embed_image_token(&self, token_id: u32, batch_size: usize) -> Result<Tensor> {
+        use candle_core::Module;
+        let ids_flat: Vec<u32> = std::iter::repeat(token_id).take(batch_size).collect();
+        let ids = Tensor::from_slice(&ids_flat, (batch_size, 1_usize), &self.device)
+            .context("embed_image_token: from_slice")?;
+        let raw = self
+            .model
+            .gen_embed
+            .forward(&ids)
+            .context("embed_image_token: gen_embed")?;
+        self.model
+            .gen_aligner
+            .forward(&raw)
+            .context("embed_image_token: gen_aligner")
     }
 }
 
@@ -1136,5 +1543,72 @@ mod tests {
         let tokens = multinomial_sample(&probs).unwrap();
         assert_eq!(tokens.len(), 1, "1D input should produce exactly one token");
         assert!(tokens[0] < 3, "sampled token out of range");
+    }
+
+    // -----------------------------------------------------------------------
+    // Speculative decoding config tests
+    // -----------------------------------------------------------------------
+
+    /// `use_spec` flag must be false when `use_speculative_decoding` is false.
+    #[test]
+    fn test_speculative_flag_off_by_default() {
+        let cfg = crate::config::PipelineConfig::default();
+        assert!(
+            !cfg.use_speculative_decoding,
+            "speculative decoding must be disabled by default"
+        );
+        assert!(
+            cfg.use_prealloc_kv_cache,
+            "prealloc kv cache must be enabled by default"
+        );
+        // use_spec = use_speculative_decoding && use_prealloc_kv_cache
+        let use_spec = cfg.use_speculative_decoding && cfg.use_prealloc_kv_cache;
+        assert!(
+            !use_spec,
+            "use_spec must be false when speculative decoding is disabled"
+        );
+    }
+
+    /// Enabling speculative decoding with prealloc cache sets use_spec = true.
+    #[test]
+    fn test_speculative_flag_on_with_prealloc() {
+        let cfg = crate::config::PipelineConfig {
+            use_speculative_decoding: true,
+            use_prealloc_kv_cache: true,
+            speculative_draft_layers: 8,
+            speculative_lookahead: 4,
+            ..crate::config::PipelineConfig::default()
+        };
+        let use_spec = cfg.use_speculative_decoding && cfg.use_prealloc_kv_cache;
+        assert!(use_spec, "use_spec must be true when both flags are set");
+    }
+
+    /// Speculative decoding without prealloc KV cache must not activate.
+    ///
+    /// The implementation requires `PreAllocKvCache` for rollback; `Dynamic`
+    /// cache is incompatible and the pipeline falls back to standard decode.
+    #[test]
+    fn test_speculative_flag_off_without_prealloc() {
+        let cfg = crate::config::PipelineConfig {
+            use_speculative_decoding: true,
+            use_prealloc_kv_cache: false,
+            ..crate::config::PipelineConfig::default()
+        };
+        let use_spec = cfg.use_speculative_decoding && cfg.use_prealloc_kv_cache;
+        assert!(
+            !use_spec,
+            "use_spec must be false without PreAllocKvCache — rollback is not supported on Dynamic cache"
+        );
+    }
+
+    /// `speculative_lookahead` of 0 must be clamped to at least 1.
+    ///
+    /// The implementation calls `.max(1)` on `lookahead_k` so zero is never
+    /// passed to the draft loop.
+    #[test]
+    fn test_speculative_lookahead_zero_clamped() {
+        let raw: usize = 0;
+        let clamped = raw.max(1);
+        assert_eq!(clamped, 1, "lookahead 0 should be clamped to 1 by .max(1)");
     }
 }

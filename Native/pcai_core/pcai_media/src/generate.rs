@@ -35,13 +35,115 @@ use std::path::PathBuf;
 
 use pcai_media_model::{
     config::JanusConfig,
-    janus_llama::KvCache,
+    janus_llama::{KvCache, PreAllocKvCache},
     vision::{JanusVisionConfig, JanusVisionTower},
     JanusModel,
 };
 
 use crate::config::PipelineConfig;
 use crate::hub;
+
+// ---------------------------------------------------------------------------
+// CacheVariant — unified KV cache dispatch
+// ---------------------------------------------------------------------------
+
+/// Unified KV cache that dispatches to either [`PreAllocKvCache`] or [`KvCache`].
+///
+/// Use [`CacheVariant::new`] to construct based on the pipeline config flag
+/// `use_prealloc_kv_cache`.  Call [`CacheVariant::forward_hidden`] instead of
+/// invoking [`JanusLlama::forward_hidden`] or
+/// [`JanusLlama::forward_hidden_prealloc`] directly — this ensures the correct
+/// implementation is selected at runtime based on which cache is active.
+///
+/// # Performance
+///
+/// The `PreAllocKvCache` variant eliminates ≈95 GB of GPU bandwidth waste from
+/// `Tensor::cat` across 576 autoregressive image-generation steps.  The
+/// `KvCache` variant is retained as a fallback for debugging or for devices
+/// where `scatter_set` is not supported.
+enum CacheVariant {
+    /// Pre-allocated ring-buffer cache — zero `Tensor::cat` cost.
+    PreAlloc(PreAllocKvCache),
+    /// Original dynamic cache — appends via `Tensor::cat` each step.
+    Dynamic(KvCache),
+}
+
+impl CacheVariant {
+    /// Construct a [`CacheVariant`] based on `use_prealloc`.
+    ///
+    /// When `use_prealloc` is `true`, a [`PreAllocKvCache`] is built with
+    /// `max_seq_len` pre-allocated slots.  When `false`, a standard [`KvCache`]
+    /// is built.
+    ///
+    /// # Arguments
+    ///
+    /// * `use_prealloc` — select the pre-allocated variant.
+    /// * `dtype`        — tensor dtype matching the pipeline.
+    /// * `cfg`          — Llama config (layer count, head dims, etc.).
+    /// * `batch_size`   — batch size for the pre-allocated buffers (`1` for
+    ///   Janus image generation without CFG; `2` with CFG).
+    /// * `max_seq_len`  — maximum sequence length for the pre-allocated cache.
+    ///   Ignored when `use_prealloc` is `false`.  For Janus image generation,
+    ///   `num_image_tokens + prompt_len + margin` (e.g. `576 + seq_len + 32`).
+    /// * `device`       — target device.
+    ///
+    /// # Errors
+    ///
+    /// Propagates candle errors from the underlying cache constructors.
+    fn new(
+        use_prealloc: bool,
+        dtype: DType,
+        cfg: &candle_transformers::models::llama::Config,
+        batch_size: usize,
+        max_seq_len: usize,
+        device: &Device,
+    ) -> candle_core::Result<Self> {
+        if use_prealloc {
+            tracing::info!(
+                batch_size,
+                max_seq_len,
+                "using PreAllocKvCache (eliminates ~95 GB Tensor::cat bandwidth)"
+            );
+            let cache = PreAllocKvCache::new(dtype, cfg, batch_size, max_seq_len, device)?;
+            Ok(Self::PreAlloc(cache))
+        } else {
+            tracing::info!("using dynamic KvCache (fallback path)");
+            let cache = KvCache::new(true, dtype, cfg, device)?;
+            Ok(Self::Dynamic(cache))
+        }
+    }
+
+    /// Forward the LLM backbone and return last-position hidden states.
+    ///
+    /// Dispatches to [`JanusLlama::forward_hidden_prealloc`] for the
+    /// `PreAlloc` variant and [`JanusLlama::forward_hidden`] for the
+    /// `Dynamic` variant.
+    ///
+    /// # Arguments
+    ///
+    /// * `llama`       — reference to the [`JanusLlama`] backbone.
+    /// * `input_embed` — float tensor `[B, S, hidden_size]`.
+    /// * `index_pos`   — absolute position of the first token (for RoPE).
+    ///
+    /// # Returns
+    ///
+    /// Float tensor `[B, hidden_size]` — last-position hidden state.
+    ///
+    /// # Errors
+    ///
+    /// Propagates candle errors from the underlying forward implementation.
+    fn forward_hidden(
+        &mut self,
+        llama: &pcai_media_model::janus_llama::JanusLlama,
+        input_embed: &Tensor,
+        index_pos: usize,
+    ) -> candle_core::Result<Tensor> {
+        match self {
+            Self::PreAlloc(cache) => llama.forward_hidden_prealloc(input_embed, index_pos, cache),
+            Self::Dynamic(cache) => llama.forward_hidden(input_embed, index_pos, cache),
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // GenerationPipeline
@@ -362,9 +464,28 @@ impl GenerationPipeline {
             .context("failed to build input_ids tensor")?;
 
         // ── 3. Build KV cache ────────────────────────────────────────────────
+        // Two implementations are available:
+        //
+        // - `PreAllocKvCache` (default, `use_prealloc_kv_cache = true`):
+        //   Allocates one fixed-size `[B, n_kv_heads, max_seq_len, head_dim]`
+        //   buffer per layer up front.  New KV pairs are written in-place via
+        //   `scatter_set` and read back as zero-copy `narrow` views, eliminating
+        //   the ≈95 GB of GPU bandwidth wasted by `Tensor::cat` across 576 steps.
+        //
+        // - `KvCache` (fallback, `use_prealloc_kv_cache = false`):
+        //   The original dynamic cache.  Each step appends via `Tensor::cat`,
+        //   allocating a new growing buffer.  Retained for debugging and for
+        //   devices where `scatter_set` is not supported.
         let llama_cfg = self.model_config.to_llama_config(false);
-        let mut cache = KvCache::new(true, self.dtype, &llama_cfg, &self.device)
-            .map_err(|e| anyhow::anyhow!("KvCache construction failed: {e}"))?;
+        let mut cache = CacheVariant::new(
+            self.config.use_prealloc_kv_cache,
+            self.dtype,
+            &llama_cfg,
+            batch_size,
+            self.model_config.num_image_tokens() + seq_len + 32,
+            &self.device,
+        )
+        .map_err(|e| anyhow::anyhow!("KV cache construction failed: {e}"))?;
 
         // ── 4. Pre-fill: embed the prompt tokens ─────────────────────────────
         // Shape: [batch_size, seq_len, hidden_size]
@@ -380,10 +501,8 @@ impl GenerationPipeline {
         // through the LLM backbone.  The hidden state at the last position
         // (<begin_of_image>) carries the context for predicting the first
         // image token — we use it at step 0 instead of a dummy embedding.
-        let prefill_hidden = self
-            .model
-            .llama
-            .forward_hidden(&prompt_embeds, 0, &mut cache)
+        let prefill_hidden = cache
+            .forward_hidden(&self.model.llama, &prompt_embeds, 0)
             .map_err(|e| anyhow::anyhow!("prefill forward_hidden failed: {e}"))?;
 
         // Track the current position for RoPE and KV-cache indexing.
@@ -418,10 +537,8 @@ impl GenerationPipeline {
                         .forward(&raw_embed)
                         .map_err(|e| anyhow::anyhow!("step {step}: gen_aligner failed: {e}"))?
                 };
-                let h = self
-                    .model
-                    .llama
-                    .forward_hidden(&embeds, pos, &mut cache)
+                let h = cache
+                    .forward_hidden(&self.model.llama, &embeds, pos)
                     .map_err(|e| anyhow::anyhow!("step {step}: forward_hidden failed: {e}"))?;
                 pos += 1;
                 h

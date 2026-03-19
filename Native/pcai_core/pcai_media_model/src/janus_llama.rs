@@ -444,7 +444,6 @@ impl CausalSelfAttention {
     /// Called by [`CausalSelfAttention::forward_prealloc`] on each step of
     /// the pre-allocated KV-cache path via `Block::forward_prealloc` →
     /// [`JanusLlama::forward_hidden_prealloc`].
-    #[expect(dead_code, reason = "called via Block::forward_prealloc")]
     fn apply_rotary_emb_prealloc(&self, x: &Tensor, index_pos: usize, cache: &PreAllocKvCache) -> Result<Tensor> {
         let (_b_sz, _, seq_len, _hidden_size) = x.dims4()?;
         let cos = cache.cos.narrow(0, index_pos, seq_len)?;
@@ -602,7 +601,6 @@ impl CausalSelfAttention {
     /// Detach is not needed: `scatter_set` is in-place on a pre-allocated
     /// buffer that lives outside the autograd graph (created with `zeros`).
     ///
-    #[expect(dead_code, reason = "called via Block::forward_prealloc")]
     fn forward_prealloc(
         &self,
         x: &Tensor,
@@ -783,7 +781,6 @@ impl Block {
         Ok(x)
     }
 
-    #[expect(dead_code, reason = "called via JanusLlama::forward_hidden_prealloc")]
     fn forward_prealloc(
         &self,
         x: &Tensor,

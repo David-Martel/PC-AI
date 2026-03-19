@@ -91,6 +91,22 @@ pub struct PipelineConfig {
     /// Defaults to `0`.
     #[serde(default = "default_gpu_layers")]
     pub gpu_layers: i32,
+
+    /// Use the pre-allocated ring-buffer KV cache for image generation.
+    ///
+    /// When `true` (the default), [`PreAllocKvCache`] is used instead of the
+    /// dynamic [`KvCache`].  The pre-allocated cache eliminates the ≈95 GB of
+    /// GPU bandwidth waste from `Tensor::cat` across the 576 image-generation
+    /// steps by writing each new KV pair in-place via `scatter_set` and reading
+    /// accumulated history with zero-copy `narrow` views.
+    ///
+    /// Set to `false` to fall back to the original dynamic cache (useful for
+    /// debugging or for devices where `scatter_set` is not supported).
+    ///
+    /// [`PreAllocKvCache`]: pcai_media_model::janus_llama::PreAllocKvCache
+    /// [`KvCache`]: pcai_media_model::janus_llama::KvCache
+    #[serde(default = "default_use_prealloc_kv_cache")]
+    pub use_prealloc_kv_cache: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -118,6 +134,9 @@ fn default_parallel_size() -> usize {
 fn default_gpu_layers() -> i32 {
     0
 }
+fn default_use_prealloc_kv_cache() -> bool {
+    true
+}
 
 // ---------------------------------------------------------------------------
 // Default impl
@@ -133,6 +152,7 @@ impl Default for PipelineConfig {
             temperature: default_temperature(),
             parallel_size: default_parallel_size(),
             gpu_layers: default_gpu_layers(),
+            use_prealloc_kv_cache: default_use_prealloc_kv_cache(),
         }
     }
 }
@@ -533,6 +553,10 @@ mod tests {
         assert!((cfg.temperature - 1.0).abs() < f64::EPSILON);
         assert_eq!(cfg.parallel_size, 1);
         assert_eq!(cfg.gpu_layers, 0);
+        assert!(
+            cfg.use_prealloc_kv_cache,
+            "prealloc KV cache should be enabled by default"
+        );
     }
 
     /// An empty JSON object `{}` must deserialise to the same defaults.
@@ -546,6 +570,7 @@ mod tests {
         assert!((cfg.temperature - 1.0).abs() < f64::EPSILON);
         assert_eq!(cfg.parallel_size, 1);
         assert_eq!(cfg.gpu_layers, 0);
+        assert!(cfg.use_prealloc_kv_cache, "prealloc KV cache should be the default");
     }
 
     /// Round-trip through JSON must preserve all fields.
@@ -559,6 +584,7 @@ mod tests {
             temperature: 0.8,
             parallel_size: 2,
             gpu_layers: 20,
+            use_prealloc_kv_cache: false,
         };
         let json = serde_json::to_string(&original).expect("serialise failed");
         let decoded: PipelineConfig = serde_json::from_str(&json).expect("deserialise failed");
@@ -569,6 +595,7 @@ mod tests {
         assert!((decoded.temperature - original.temperature).abs() < f64::EPSILON);
         assert_eq!(decoded.parallel_size, original.parallel_size);
         assert_eq!(decoded.gpu_layers, original.gpu_layers);
+        assert_eq!(decoded.use_prealloc_kv_cache, original.use_prealloc_kv_cache);
     }
 
     /// `resolve_device` on `"cpu"` must return `Device::Cpu`.
@@ -640,6 +667,7 @@ mod tests {
             temperature: 0.5,
             parallel_size: 1,
             gpu_layers: 0,
+            use_prealloc_kv_cache: true,
         };
         let tmp = std::env::temp_dir().join("pcai_media_config_test.json");
         let json = serde_json::to_string_pretty(&original).expect("serialise");
@@ -647,6 +675,7 @@ mod tests {
         let loaded = PipelineConfig::from_file(&tmp).expect("from_file");
         assert_eq!(loaded.model, original.model);
         assert_eq!(loaded.dtype, original.dtype);
+        assert_eq!(loaded.use_prealloc_kv_cache, original.use_prealloc_kv_cache);
         std::fs::remove_file(&tmp).ok();
     }
 }

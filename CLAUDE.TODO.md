@@ -19,18 +19,19 @@
 - [x] KV cache axis bug fixed (narrow was using wrong dimension)
 - [x] FunctionGemma flash-attn enabled as default feature
 
-### Phase 2: cuDNN Integration — IN PROGRESS
-- [ ] Fix cuDNN build error (candle-core/cudnn feature)
-- [ ] Benchmark cuDNN SDPA vs naive attention
-- [ ] Note: flash-attn does NOT compile on Windows (Linux-only)
+### Phase 2: cuDNN Integration — RESOLVED (no-op for Janus)
+- [x] Investigated cuDNN build — cudarc 0.19.3 cuDNN only has conv/softmax/pooling
+- [x] Documented as forward-compat feature (no SDPA acceleration available)
+- [x] flash-attn confirmed Linux-only (candle-flash-attn build.rs requires CUDA kernels)
 
 ### Phase 3: Quantization — TODO
 - [ ] NVFP4 weight quantization (native on RTX 5060 Ti Blackwell)
 - [ ] FP8 KV cache quantization (50% memory reduction)
 - [ ] AWQ quantization (Marlin kernel, 2.6x vs GPTQ)
 
-### Phase 4: System-Level — TODO
-- [ ] Pre-allocated KV cache ring buffer (eliminate 95GB bandwidth waste)
+### Phase 4: System-Level — IN PROGRESS
+- [x] Pre-allocated KV cache ring buffer implemented (PreAllocKvCache in janus_llama.rs)
+- [ ] Wire PreAllocKvCache into generate.rs loop (agent in progress)
 - [ ] CUDA Graphs (eliminate 20-30% CPU launch overhead)
 - [ ] Memory pinning for faster PCIe transfers
 
@@ -40,10 +41,10 @@
 - [ ] Tensor parallelism across both GPUs (TP=2)
 - [ ] Prefix caching for repeated prompts (2-57x cached)
 
-### Understanding Pipeline Fix — TODO
-- [ ] Understanding outputs `<image>` VQ tokens instead of text
-- [ ] Root cause: `<begin_of_image>` injection in understand mode
-- [ ] Fix prompt template in understand.rs
+### Understanding Pipeline Fix — COMPLETE
+- [x] Root cause identified: `<image>` token vs `<image_placeholder>` in prompt template
+- [x] Fixed in understand.rs: use Janus-Pro chat template with `<image_placeholder>`
+- [x] Vision tower forward pass validated with fail-fast on missing weights
 
 ---
 

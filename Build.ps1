@@ -2288,9 +2288,11 @@ function Invoke-MediaBuild {
         $mediaServerFeatures = @()
         if ($EnableCuda) {
             $mediaLibFeatures += 'cuda'
+            $mediaLibFeatures += 'cudnn'
             $mediaLibFeatures += 'flash-attn'
-            $mediaServerFeatures += 'pcai-media/cuda'
-            $mediaServerFeatures += 'pcai-media/flash-attn'
+            $mediaLibFeatures += 'nvml'
+            $mediaServerFeatures += 'cuda-optimized'
+            $mediaServerFeatures += 'flash-attn'
         }
         $mediaLibArgs += @('--features', ($mediaLibFeatures -join ','))
         if ($mediaServerFeatures.Count -gt 0) {

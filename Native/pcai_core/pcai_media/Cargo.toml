@@ -43,6 +43,9 @@ server = ["dep:axum", "dep:tower-http"]
 # have the NVIDIA driver but not the CUDA toolkit.
 nvml = ["dep:pcai_core_lib", "pcai_core_lib/nvml"]
 cuda = ["candle-core/cuda", "pcai-media-model/cuda", "dep:pcai_core_lib", "pcai_core_lib/nvml"]
+# cuDNN-accelerated attention (uses NVIDIA cuDNN v9 fused kernels).
+# More portable than flash-attn on Windows — no custom CUDA kernel compilation needed.
+cudnn = ["cuda", "candle-core/cudnn", "pcai-media-model/cudnn"]
 flash-attn = ["pcai-media-model/flash-attn"]
 upscale = ["dep:ort"]
 

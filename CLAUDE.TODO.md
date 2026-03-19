@@ -67,19 +67,34 @@ or NVFP4 (4-bit tensor cores on Blackwell). These need custom CUTLASS kernels.
 - [ ] CUDA Graphs (eliminate 20-30% CPU launch overhead)
 - [ ] Memory pinning for faster PCIe transfers
 
-### Phase 5: Multi-Token Prediction — RESEARCHED
-Priority order (no training required first):
-- [ ] **Jacobi/SJD decoding** — 1.5-2x, training-free, init 576 positions & iterate
-- [ ] **Pre-computed Gumbel noise** — 5-10%, trivial: batch-generate 576 noise vectors
-- [ ] **Self-speculative decoding** — 1.5-2x, use first 8/24 layers as draft model
-- [ ] CUDA Graphs (eliminate 20-30% CPU launch overhead)
+### Phase 5: GGUF Quantized Inference — IN PROGRESS
+- [x] QuantizedJanusLlama implemented (QMatMul, 600 lines, 7 tests)
+- [x] GGUF conversion tool (Convert-JanusToGGUF.py, 219-tensor mapping)
+- [x] Q4_K_M model created: 1B (984 MB), 7B (4.0 GB)
+- [x] RmsNorm dtype fix (weight must match input: BF16 on CUDA)
+- [x] KV cache dtype fix (use working_dtype for quantized backend)
+- [x] F32 output fix (forward_hidden returns F32 for gen_head/lm_head)
+- [ ] **VQ decode stage fails after token generation** — tokens generate at ~41 tok/s but
+      decode_image_tokens fails. Need to investigate VQ codebook interaction with quantized
+      hidden states.
+- [ ] Benchmark Q4_K_M end-to-end once VQ decode is fixed
 
-Requires fine-tuning:
-- [ ] Medusa heads — 2.2-3.6x, 3 lightweight FFN heads (~400MB VRAM)
-- [ ] GSD (Grouped Speculative) — up to 3.7x, VQ codebook grouping (ICCV 2025)
-- [ ] MTP (Meta/DeepSeek style) — 1.5-2x, additional generation heads
+### Phase 6: Build Acceleration — COMPLETE
+- [x] sccache: 100 GB cache, 100 MB max frame, 2h idle timeout
+- [x] ccache: 50 GB cache for CUDA/C++ compilation
+- [x] ninja: CMake generator for faster C++ builds
+- [x] Build.ps1: -Component media, media-convert, test, benchmark
+- [x] Dynamic CUDA_COMPUTE_CAP from detected GPUs
 
-### Phase 6: Cross-Codebase Propagation — TODO
+### Phase 7: Multi-Token Prediction — RESEARCHED
+Priority (no training required):
+- [x] Self-speculative decoding — IMPLEMENTED but slower for 1B (24 tok/s vs 36)
+- [ ] Jacobi/SJD decoding — 1.5-2x for 7B model
+- [ ] CUDA Graphs — 20-30% kernel launch overhead elimination
+
+### Phase 8: Cross-Codebase Propagation — PARTIAL
+- [x] FunctionGemma: removed dead streaming/block_len fields
+- [x] FunctionGemma: to_vec1 replaces to_scalar
 - [ ] FunctionGemma: ring buffer KV cache (uses Tensor::cat at model.rs:669)
 - [ ] FunctionGemma: GPU Gumbel sampling (uses CPU to_scalar at model.rs:1130)
 - [ ] FunctionGemma: remove unused streaming/block_len fields

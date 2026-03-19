@@ -10,6 +10,11 @@ lints.workspace = true
 name = "pcai-media"
 path = "src/main.rs"
 
+[features]
+default = []
+cuda = ["pcai-media/cuda"]
+nvml = ["pcai-media/nvml"]
+
 [dependencies]
 pcai-media = { path = "../pcai_media", default-features = false, features = ["server"] }
 pcai-media-model = { path = "../pcai_media_model" }

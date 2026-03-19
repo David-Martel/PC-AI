@@ -1,0 +1,549 @@
+{
+  "schema_version": "2.0",
+  "latest": "ctx-pcai-20260319-llm-optimization",
+  "contexts": [
+    {
+      "id": "ctx-pcai-20260319-llm-optimization",
+      "file": "pcai-context-20260319-llm-optimization.md",
+      "created": "2026-03-19T03:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "search-specialist", "powershell-pro", "deployment-engineer", "Explore", "Jules"],
+      "summary": "LLM inference optimization: 17.9 → 30 tok/s (1.67x), flash-attn Windows research (Linux-only), cuDNN SDPA as alternative, FunctionGemma flash-attn enabled, Build.ps1 cuda-optimized defaults, ring crate eliminated, 36 commits pushed.",
+      "supersedes": ["ctx-pcai-20260318-nvidia-complete"],
+      "commit": "1576f7b"
+    },
+    {
+      "id": "ctx-pcai-20260318-nvidia-complete",
+      "file": "pcai-context-20260318-nvidia-complete.md",
+      "created": "2026-03-18T20:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["powershell-pro", "rust-pro", "search-specialist", "team-reviewer", "Explore", "Jules"],
+      "summary": "NVIDIA framework complete: PC-AI.Gpu module (19 files, Phases 1-3), NVML Rust GPU monitoring (508 lines), CUDA device fallback, driver auto-discovery, 50 Jules sessions completed via API, RealESRGAN ONNX conversion, PcaiChatTui.Tests, 28 review findings fixed. 15 commits pushed, local/remote synced at 77b0cc7.",
+      "supersedes": ["ctx-pcai-20260318-media-pipeline"],
+      "commit": "77b0cc7"
+    },
+    {
+      "id": "ctx-pcai-20260318-media-pipeline",
+      "file": "pcai-context-20260318-media-pipeline.md",
+      "created": "2026-03-18T00:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "powershell-pro", "test-automator"],
+      "summary": "Media pipeline WIP: 23 modified files across pcai_media/pcai_media_model/pcai_media_server Rust crates + PcaiMedia PowerShell module + 4 test files. Janus-Pro GPU generation (~34 tok/s, ~17s on RTX 2000 Ada). Rust Guidelines enforcement (lefthook, 76 ast-grep rules). Token counting FFI added.",
+      "supersedes": ["ctx-pcai-20260311-driver-framework"],
+      "commit": "pending"
+    },
+    {
+      "id": "ctx-pcai-20260311-driver-framework",
+      "file": "pcai-context-20260311-driver-framework.md",
+      "created": "2026-03-11T04:45:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "csharp-pro", "powershell-pro", "debugger", "architect-reviewer"],
+      "summary": "Driver update framework: PC-AI.Drivers module, driver-registry.json, Rust PnP driver metadata, pnputil INF installer (Install-InfDriver.ps1), Realtek RTL8156/8157 updated to 1156.21.20.1110/1157.21.20.1110, 5-agent code review with 13 critical/high fixes",
+      "supersedes": ["ctx-pcai-20260309-rust-toolchain"],
+      "commit": "pending"
+    },
+    {
+      "id": "ctx-pcai-20260309-rust-toolchain",
+      "file": "pcai-context-20260309-rust-toolchain-optimization.md",
+      "created": "2026-03-09T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["powershell-pro", "rust-pro"],
+      "summary": "CargoTools v0.10.0: lspmux integration (5 new functions), maturin/PyO3 binding optimization, ConfigFiles bug fixes, stale toolchain cleanup, nightly 1.96.0",
+      "supersedes": ["ctx-pcai-20260307-commit-cluster-analysis"],
+      "commit": "pending",
+      "cross_repo": {"repo": "CargoTools", "path": "C:\\Users\\david\\AppData\\Local\\PowerShell\\Modules\\CargoTools"}
+    },
+    {
+      "id": "ctx-pcai-20260307-commit-cluster-analysis",
+      "file": "pcai-context-20260307-commit-cluster-analysis.md",
+      "created": "2026-03-07T18:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["claude-md-improver", "commit-cluster", "Explore"],
+      "summary": "294-file commit-cluster batch (14 commits to 69f987e), git-cluster-analyzer perf analysis (20 optimizations in optimization.TODO.md committed to git-cluster as 5ea7492), CLAUDE.md audit with 6 targeted edits",
+      "supersedes": ["ctx-pcai-20260307-claude-md-audit"],
+      "commit": "69f987e",
+      "cross_repo": {"repo": "git-cluster", "commit": "5ea7492", "file": "optimization.TODO.md"}
+    },
+    {
+      "id": "ctx-pcai-20260307-claude-md-audit",
+      "file": "pcai-context-20260307-claude-md-audit.md",
+      "created": "2026-03-07T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["claude-md-improver"],
+      "summary": "CLAUDE.md audit and update: architecture tree updated with 6 Rust crates, AI-Media, PcaiMedia module; Build.ps1 20 components documented; test counts fixed (65+); 22 integration test files; 9 CI workflows; SM 120 Blackwell CUDA target added",
+      "supersedes": ["ctx-pcai-20260303-toolchain"],
+      "status": "superseded"
+    },
+    {
+      "id": "ctx-pcai-20260303-toolchain",
+      "file": "pcai-context-20260303-toolchain-integration.md",
+      "created": "2026-03-03T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["Claude-opus"],
+      "summary": "CUDA/LLVM toolchain integration: CargoTools GPU/CUDA/MSVC/LLVM/SDK auto-detection, lld-link preferred linker, .cargo/config.toml gitignored with templates, pcai-media pipeline hardened (rand RNG, SigLIP vision, async FFI, RealESRGAN upscale), NativeResolver.cs centralized DLL resolution, 26-file commit a8c2d00",
+      "supersedes": ["ctx-pcai-20260222b-tdd-cleanup"],
+      "commit": "a8c2d00"
+    },
+    {
+      "id": "ctx-pcai-20260222b-tdd-cleanup",
+      "file": "pcai-context-20260222-tdd-and-cleanup.md",
+      "created": "2026-02-22T18:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["Claude-opus"],
+      "summary": "42 Rust unit tests (TDD plan complete), CUDA 13.1 now works with updated crate deps, .gitignore/.rgignore updated for alternate target dirs and training checkpoints",
+      "supersedes": ["ctx-pcai-20260222-ffi-torture"],
+      "commit": "bcfceb4",
+      "status": "superseded"
+    },
+    {
+      "id": "ctx-pcai-20260222-ffi-torture",
+      "file": "pcai-context-20260222-ffi-torture-test.md",
+      "created": "2026-02-22T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "csharp-pro", "test-automator", "Claude-opus"],
+      "summary": "4-phase completion: CUDA fix, FunctionGemma build+train+eval, C# TUI ReAct mode, FFI torture tests (49 tests, 43 pass, 0 fail, 6 skip)",
+      "supersedes": ["ctx-pcai-20260221-consolidation"],
+      "commit": "0b9e9ce"
+    },
+    {
+      "id": "ctx-pcai-20260221-consolidation",
+      "file": "pcai-context-20260221-functiongemma-consolidation.md",
+      "created": "2026-02-21T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "Explore", "Claude-opus"],
+      "summary": "FunctionGemma cross-crate consolidation complete - 42 tasks, 700+ lines eliminated, unified RuntimeConfig, shared GPU/safetensors/LoRA/prompt utilities in core",
+      "supersedes": ["ctx-pcai-20260131-ffi"],
+      "commit": "pending"
+    },
+    {
+      "id": "ctx-pcai-20260131-ffi",
+      "file": "pcai-context-2026-01-31.md",
+      "created": "2026-01-31T12:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["Claude", "Explore"],
+      "summary": "Native inference FFI integration - 22MB mistralrs DLL, C# bindings, PowerShell module fixes, command routing tools",
+      "supersedes": ["ctx-pcai-20260130-cuda"],
+      "commit": "pending"
+    },
+    {
+      "id": "ctx-pcai-20260130-cuda",
+      "file": "pcai-inference-cuda-build-2026-01-30.md",
+      "created": "2026-01-30T22:30:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["Claude"],
+      "summary": "CUDA-enabled llamacpp backend build - CMake/MSVC toolchain fixes, API compatibility (token_to_str), CUDA 12.9 integration",
+      "supersedes": ["ctx-pcai-20260130-s3"],
+      "commit": "pending",
+      "status": "superseded"
+    },
+    {
+      "id": "ctx-pcai-20260130-s3",
+      "file": "pcai-context-2026-01-30.md",
+      "created": "2026-01-30T19:30:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "powershell-pro", "test-automator"],
+      "summary": "Native Rust inference backend (pcai-inference) with llama-cpp-2/mistral.rs dual-backend, CMake/MSVC toolchain, Virtualization module updates",
+      "supersedes": ["ctx-pcai-20260130-s2"],
+      "commit": "ec2b5e1",
+      "status": "superseded"
+    },
+    {
+      "id": "ctx-pcai-20260130-s2",
+      "file": "pcai-context-20260130-session2.md",
+      "created": "2026-01-30T16:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": [],
+      "summary": "CUDA environment integration for Rust ML training - device detection verified",
+      "supersedes": ["ctx-pcai-20260130-s1"],
+      "commit": "pending",
+      "status": "superseded"
+    },
+    {
+      "id": "ctx-pcai-20260130-s1",
+      "file": "pcai-context-20260130-session1.md",
+      "created": "2026-01-30T14:30:00Z",
+      "project": "PC_AI",
+      "agents_involved": [],
+      "summary": "Rust compilation fixes, unused import cleanup, 5-group commit clustering",
+      "supersedes": ["ctx-pcai-20260128-s4"],
+      "commit": "e7f815c",
+      "status": "superseded"
+    },
+    {
+      "id": "ctx-pcai-20260128-s4",
+      "file": "pcai-context-20260128-session4.md",
+      "created": "2026-01-29T00:55:49Z",
+      "project": "PC_AI",
+      "agents_involved": ["Explore", "rust-pro"],
+      "summary": "FunctionGemma runtime OpenAI API compatibility - error handling, validation, usage stats",
+      "supersedes": ["ctx-pcai-20260128-s3"],
+      "commit": "95f9b5e",
+      "status": "superseded"
+    },
+    {
+      "id": "ctx-pcai-20260128-s3",
+      "file": "pcai-context-20260128-session3.md",
+      "created": "2026-01-28T17:30:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["Explore", "code-reviewer"],
+      "summary": "Documentation accuracy fixes - 80.1% pollution eliminated",
+      "supersedes": ["ctx-pcai-20260128-s2"],
+      "status": "archived"
+    },
+    {
+      "id": "ctx-pcai-20260128-s2",
+      "file": "pcai-context-20260128-session2.md",
+      "created": "2026-01-28T19:30:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro", "powershell-pro", "architect-reviewer", "api-documenter"],
+      "summary": "CargoTools critical fixes - mutex, TOCTOU, paths",
+      "status": "archived"
+    },
+    {
+      "id": "ctx-pcai-20260128",
+      "file": "pcai-context-20260128.md",
+      "created": "2026-01-28T00:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["rust-pro"],
+      "summary": "Rust FunctionGemma workspace setup",
+      "status": "archived"
+    },
+    {
+      "id": "ctx-pcai-20260127",
+      "file": "pcai-context-20260127.md",
+      "created": "2026-01-27T00:00:00Z",
+      "project": "PC_AI",
+      "agents_involved": [],
+      "summary": "Initial context setup",
+      "status": "archived"
+    }
+  ],
+  "completed_goals": [
+    {
+      "goal": "Driver update framework: PC-AI.Drivers module, driver-registry.json, Install-InfDriver.ps1",
+      "completed": "2026-03-11",
+      "context": "ctx-pcai-20260311-driver-framework",
+      "commit": "pending",
+      "outputs": ["Modules/PC-AI.Drivers/ (11 files)", "Config/driver-registry.json", "Tools/Install-InfDriver.ps1", "Tools/Update-Drivers.ps1"]
+    },
+    {
+      "goal": "Realtek RTL8156/RTL8157 drivers updated to 1156.21.20.1110/1157.21.20.1110 via pnputil INF install",
+      "completed": "2026-03-11",
+      "context": "ctx-pcai-20260311-driver-framework",
+      "commit": "N/A (system change, not code)"
+    },
+    {
+      "goal": "Rust PnP driver metadata: driver_version, driver_date, driver_provider via SetupDi registry API",
+      "completed": "2026-03-11",
+      "context": "ctx-pcai-20260311-driver-framework",
+      "commit": "pending",
+      "outputs": ["pnp.rs (get_driver_metadata, read_reg_sz)", "HardwareModule.cs (updated P/Invoke)"]
+    },
+    {
+      "goal": "5-agent code review: 13 critical/high fixes applied (PS, Rust, C#, data, architecture)",
+      "completed": "2026-03-11",
+      "context": "ctx-pcai-20260311-driver-framework",
+      "commit": "pending"
+    },
+    {
+      "goal": "Commit-cluster 294 files into 14 semantic commits + git-cluster optimization analysis",
+      "completed": "2026-03-07",
+      "context": "ctx-pcai-20260307-commit-cluster-analysis",
+      "commit": "69f987e",
+      "outputs": ["optimization.TODO.md (git-cluster repo, 5ea7492)", "14 semantic commits (a7b5dda..69f987e)"]
+    },
+    {
+      "goal": "CLAUDE.md audit: architecture tree, build components, test counts, CI workflows, CUDA targets",
+      "completed": "2026-03-07",
+      "context": "ctx-pcai-20260307-claude-md-audit",
+      "commit": "f5e271f"
+    },
+    {
+      "goal": "CargoTools GPU/CUDA/MSVC/LLVM/SDK auto-detection (5 new functions)",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00"
+    },
+    {
+      "goal": "Initialize-ProjectCargoConfig dynamic .cargo/config.toml generation",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00"
+    },
+    {
+      "goal": "LLVM lld-link as preferred linker with auto LIB env setup",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00"
+    },
+    {
+      "goal": "pcai-media pipeline hardened: rand RNG, SigLIP, async FFI, RealESRGAN upscale",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00",
+      "outputs": ["upscale.rs", "NativeResolver.cs", "Install-LlvmFromSource.ps1", ".cargo/config.toml.template (x2)"]
+    },
+    {
+      "goal": "Centralized NativeResolver.cs for DLL path resolution",
+      "completed": "2026-03-03",
+      "context": "ctx-pcai-20260303-toolchain",
+      "commit": "a8c2d00"
+    },
+    {
+      "goal": "Fix CUDA 13.1 nvcc compatibility using CUDA 12.6 env overrides",
+      "completed": "2026-02-22",
+      "context": "ctx-pcai-20260222-ffi-torture",
+      "commit": "pending"
+    },
+    {
+      "goal": "Build FunctionGemma crates, train LoRA adapter, run eval on GPU",
+      "completed": "2026-02-22",
+      "context": "ctx-pcai-20260222-ffi-torture",
+      "commit": "pending"
+    },
+    {
+      "goal": "Rebuild pcai_inference.dll with 15 FFI exports, pass 49 torture tests",
+      "completed": "2026-02-22",
+      "context": "ctx-pcai-20260222-ffi-torture",
+      "commit": "pending"
+    },
+    {
+      "goal": "Integrate native FFI inference with command routing pipeline",
+      "completed": "2026-01-31",
+      "context": "ctx-pcai-20260131-ffi",
+      "commit": "pending",
+      "outputs": ["pcai_inference.dll (22MB)", "PcaiInference.psm1", "PcaiInterop.cs"]
+    },
+    {
+      "goal": "Add native inference tools to FunctionGemma routing",
+      "completed": "2026-01-31",
+      "context": "ctx-pcai-20260131-ffi",
+      "commit": "pending"
+    },
+    {
+      "goal": "Fix PowerShell module $PSScriptRoot null issue",
+      "completed": "2026-01-31",
+      "context": "ctx-pcai-20260131-ffi",
+      "commit": "pending"
+    },
+    {
+      "goal": "Add NativeLibrary DLL resolver to C# bindings",
+      "completed": "2026-01-31",
+      "context": "ctx-pcai-20260131-ffi",
+      "commit": "pending"
+    },
+    {
+      "goal": "Build pcai-inference with CUDA-enabled llama.cpp backend",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-cuda",
+      "commit": "pending",
+      "outputs": ["pcai_inference.dll", "ggml-cuda.dll", "llama.dll"]
+    },
+    {
+      "goal": "Fix llama-cpp-2 API compatibility (token_to_str)",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-cuda",
+      "commit": "pending"
+    },
+    {
+      "goal": "Implement pcai-inference Rust dual-backend crate",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s3",
+      "commit": "ec2b5e1"
+    },
+    {
+      "goal": "Create CMake/MSVC toolchain for llama.cpp",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s3",
+      "commit": "e9467f7"
+    },
+    {
+      "goal": "Update Virtualization module for Rust backend",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s3",
+      "commit": "6e84e0c"
+    },
+    {
+      "goal": "Add comprehensive inference tests",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s3",
+      "commit": "ec2b5e1"
+    },
+    {
+      "goal": "Enable CUDA support for rust-functiongemma-train",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s2",
+      "commit": "pending"
+    },
+    {
+      "goal": "Configure CUDA environment in build scripts",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s2",
+      "commit": "pending"
+    },
+    {
+      "goal": "Verify CUDA device detection and tensor operations",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s2",
+      "commit": "pending"
+    },
+    {
+      "goal": "Fix Rust compilation issues in rust-functiongemma-train",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s1",
+      "commit": "3f2e066"
+    },
+    {
+      "goal": "Clean unused imports and warnings",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s1",
+      "commit": "63ec504"
+    },
+    {
+      "goal": "Cluster and commit all outstanding changes",
+      "completed": "2026-01-30",
+      "context": "ctx-pcai-20260130-s1",
+      "commit": "e7f815c"
+    },
+    {
+      "goal": "Enhance FunctionGemma runtime with OpenAI API compatibility",
+      "completed": "2026-01-28",
+      "context": "ctx-pcai-20260128-s4",
+      "commit": "95f9b5e"
+    },
+    {
+      "goal": "Fix Rust clippy errors",
+      "completed": "2026-01-28",
+      "context": "ctx-pcai-20260128-s2",
+      "commit": "c32d6cb"
+    },
+    {
+      "goal": "Create unified doc-to-training pipeline",
+      "completed": "2026-01-28",
+      "context": "ctx-pcai-20260128-s3"
+    },
+    {
+      "goal": "Fix DOC_STATUS self-recursion bug",
+      "completed": "2026-01-28",
+      "context": "ctx-pcai-20260128-s3"
+    },
+    {
+      "goal": "Fix CargoTools mutex/TOCTOU bugs",
+      "completed": "2026-01-28",
+      "context": "ctx-pcai-20260128-s2"
+    }
+  ],
+  "active_blockers": [
+    {
+      "blocker": "cuda:auto GPU fallback — RTX 5060 Ti (Blackwell SM 120) init fails",
+      "severity": "medium",
+      "status": "fix in progress",
+      "notes": "Driver updated to 582.41, toolkit 12.9. cudarc/candle cannot open RTX 5060 Ti; resolve_auto_cuda_device now falls back to next GPU. RTX 2000 Ada (SM 89) works fine.",
+      "added": "2026-03-18"
+    },
+    {
+      "blocker": "Dependabot Alert #1 - protobuf CVE",
+      "severity": "high",
+      "status": "monitoring",
+      "notes": "No patch available yet"
+    },
+    {
+      "blocker": "bindgen_cuda panic in mistral.rs on Windows",
+      "severity": "medium",
+      "status": "workaround available",
+      "notes": "Using mistralrs CPU-only build (22MB), llamacpp+CUDA available separately"
+    },
+    {
+      "blocker": "llamacpp MSVC headers missing in default build",
+      "severity": "medium",
+      "status": "workaround available",
+      "notes": "Use --no-default-features to avoid pulling llama-cpp-sys-2; CUDA build requires separate toolchain"
+    },
+    {
+      "blocker": "sccache + ring crate incompatibility",
+      "severity": "low",
+      "status": "workaround available",
+      "notes": "Disable sccache or build without model feature for runtime"
+    }
+  ],
+  "rust_status": {
+    "pcai-inference": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 65,
+      "features": ["ffi", "llamacpp", "mistralrs-backend", "server"],
+      "backends": {
+        "llamacpp": "available (requires CUDA+MSVC toolchain, artifact dir empty)",
+        "mistralrs": "working (deployed, 84MB)"
+      },
+      "build_outputs": {
+        "pcai_inference.dll (ffi-only)": "289KB",
+        "pcai_inference.dll (mistralrs)": "22MB",
+        "ggml-cuda.dll": "46MB (optional)",
+        "llama.dll": "2MB (optional)"
+      },
+      "ffi_exports": 15,
+      "deployed_to": ["bin/", ".pcai/build/artifacts/pcai-inference-ffi/"],
+      "torture_tests": {"total": 49, "pass": 43, "fail": 0, "skip": 6},
+      "last_verified": "2026-03-03T12:00:00Z"
+    },
+    "pcai-media": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 59,
+      "features": ["upscale"],
+      "ffi_exports": 16,
+      "last_verified": "2026-03-03T12:00:00Z"
+    },
+    "pcai-media-model": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 31,
+      "notes": "29 pass + 2 ignored",
+      "last_verified": "2026-03-03T12:00:00Z"
+    },
+    "pcai-media-server": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 13,
+      "last_verified": "2026-03-03T12:00:00Z"
+    },
+    "pcai_core_lib": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 50,
+      "last_verified": "2026-03-03T12:00:00Z"
+    },
+    "rust-functiongemma-train": {
+      "status": "clean",
+      "warnings": 0,
+      "tests": 48,
+      "cuda_enabled": true,
+      "last_verified": "2026-01-30T16:00:00Z"
+    },
+    "rust-functiongemma-runtime": {
+      "status": "clean",
+      "warnings": 1,
+      "tests": 0,
+      "cuda_enabled": true,
+      "last_verified": "2026-01-30T16:00:00Z"
+    },
+    "total_tests": 197
+  },
+  "cuda_status": {
+    "toolkit_version": "v13.1",
+    "build_cuda": "13.1",
+    "driver_version": "576.57",
+    "driver_max_cuda": "12.9",
+    "driver_mismatch": true,
+    "gpus": [
+      {"name": "Quadro RTX 4000", "vram": "8GB", "compute": "7.5", "sm": "sm_75", "arch": "Turing", "role": "inference/runtime (GPU 0)"},
+      {"name": "RTX 5060 Ti", "vram": "16GB", "compute": "12.0", "sm": "sm_120", "arch": "Blackwell", "role": "training/QLoRA (GPU 1)"}
+    ],
+    "device_detected": true,
+    "tensor_ops_verified": true,
+    "llamacpp_cuda_verified": true,
+    "linker": "lld-link.exe (LLVM, preferred)",
+    "config_generation": "CargoTools Initialize-ProjectCargoConfig"
+  }
+}

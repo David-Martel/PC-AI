@@ -28,7 +28,7 @@
 //! image-vocabulary logits `[B, S, image_vocab_size]`.
 
 use anyhow::{Context, Result};
-use candle_core::{DType, Device, IndexOp, Tensor, D};
+use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::{VarBuilder, VarMap};
 use image::{ImageBuffer, Rgb};
 use std::path::PathBuf;
@@ -757,12 +757,52 @@ pub fn tensor_to_image(tensor: &Tensor) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>>
 ///
 /// Returns an error on any candle tensor operation failure.
 fn multinomial_sample(probs: &Tensor) -> Result<Vec<u32>> {
-    // Fix 2: Use GPU argmax — stays on device, avoids transferring the full
-    // [batch × vocab_size] probability tensor to the host every step.
+    // True multinomial sampling via CPU-side inverse CDF walk.
     //
-    // `argmax(D::Minus1)` returns shape [batch] with dtype U32.
-    let indices = probs.argmax(D::Minus1).context("argmax over vocab dim failed")?;
-    let tokens = indices.to_vec1::<u32>().context("argmax to_vec1 failed")?;
+    // Image generation REQUIRES stochastic sampling — greedy argmax causes
+    // the VQ codebook to collapse to a single repeated token, producing
+    // solid-color images.  The probability transfer cost (~16 KB per step
+    // for the 16384-token VQ vocab) is acceptable for the 576-step loop.
+
+    // Handle both 1D [vocab] and 2D [batch, vocab] tensors.
+    let probs_2d = if probs.dims().len() == 1 {
+        probs.unsqueeze(0).context("unsqueeze 1D probs to 2D")?
+    } else {
+        probs.clone()
+    };
+    let (batch_size, vocab) = probs_2d.dims2().with_context(|| {
+        format!(
+            "probs must be 1D or 2D, got shape {:?} dtype {:?}",
+            probs.dims(),
+            probs.dtype()
+        )
+    })?;
+
+    // Transfer probabilities to CPU for CDF walk.
+    let probs_cpu = probs_2d.to_dtype(DType::F32).context("cast to f32")?;
+    let probs_vec: Vec<f32> = probs_cpu
+        .flatten_all()
+        .context("flatten failed")?
+        .to_vec1::<f32>()
+        .context("to_vec1 failed")?;
+
+    let mut tokens = Vec::with_capacity(batch_size);
+
+    for b in 0..batch_size {
+        let row = &probs_vec[b * vocab..(b + 1) * vocab];
+        let u = rand_val();
+        let mut cumsum = 0.0_f64;
+        let mut sampled = (vocab - 1) as u32;
+        for (i, &p) in row.iter().enumerate() {
+            cumsum += p as f64;
+            if u < cumsum {
+                sampled = i as u32;
+                break;
+            }
+        }
+        tokens.push(sampled);
+    }
+
     Ok(tokens)
 }
 

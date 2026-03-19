@@ -10,16 +10,25 @@
 //!    fails fast if the understanding weights are unavailable instead of
 //!    silently substituting a zero tensor.
 //! 3. **Prompt tokenisation** — wraps the caller's question in the Janus-Pro
-//!    chat template: `"<|User|>: <image>\n{prompt}\n<|Assistant|>:"`.
-//! 4. **Text-embedding prefill** — embeds the token IDs via
-//!    [`JanusModel::embed_tokens`] and forwards the full prompt through the
-//!    LLM backbone to seed the KV cache.
-//! 5. **Autoregressive text generation** — decodes up to `max_tokens` new
+//!    chat template: `"<|User|>: <image_placeholder>\n{prompt}\n<|Assistant|>:"`.
+//!    The `<image_placeholder>` special token marks where vision embeddings are
+//!    spliced in.  Using `<image>` here is incorrect — it tokenises as plain
+//!    text and causes the LLM to produce VQ image tokens instead of text.
+//! 4. **Embedding splice** — the token sequence is split at `<image_placeholder>`;
+//!    the vision embeddings from the `understand_aligner` are inserted at that
+//!    position to form `[text_before | vision_embeds | text_after]`.  This
+//!    matches what `VLChatProcessor.prepare_inputs_embeds` does in the Python
+//!    Janus reference implementation.
+//! 5. **Prefill** — the combined embedding sequence is forwarded through the
+//!    LLM backbone (all transformer layers + RMS norm + `lm_head`) to populate
+//!    the KV cache.  The resulting logits are used to sample the first generated
+//!    token — they are **not** discarded.
+//! 6. **Autoregressive text generation** — decodes up to `max_tokens` new
 //!    text tokens one at a time using greedy argmax (when `temperature` ≤ 0.01)
 //!    or multinomial sampling via [`super::generate::rand_val`].
-//! 6. **EOS stop** — terminates immediately when the EOS token (`id = 2`) is
+//! 7. **EOS stop** — terminates immediately when the EOS token (`id = 2`) is
 //!    sampled.
-//! 7. **Token decoding** — converts the collected token IDs back to a UTF-8
+//! 8. **Token decoding** — converts the collected token IDs back to a UTF-8
 //!    [`String`] via the HuggingFace tokenizer.
 //!
 //! # Example (offline, random weights)
@@ -267,34 +276,113 @@ impl UnderstandingPipeline {
         // image_embeds shape: [1, num_image_tokens, hidden_size]
 
         // ── 4. Tokenise prompt with Janus-Pro understanding template ─────────
-        // Template: "<|User|>: <image>\n{prompt}\n<|Assistant|>:"
-        let templated = format!("<|User|>: <image>\n{prompt}\n<|Assistant|>:");
+        //
+        // The Janus-Pro VLChatProcessor uses "<image_placeholder>" as the
+        // special token whose embedding position is replaced by the vision
+        // features.  The token "<image>" is NOT a special token in the Janus
+        // vocabulary and tokenises as plain text, which causes the model to
+        // output <image> VQ tokens instead of natural language.
+        //
+        // Correct template (matches VLChatProcessor.apply_sft_template_for_multi_turn_prompts):
+        //   "<|User|>: <image_placeholder>\n{prompt}\n<|Assistant|>:"
+        //
+        // The processor then calls prepare_inputs_embeds which:
+        //   1. Finds the <image_placeholder> token in the sequence.
+        //   2. Replaces that single token with the `num_image_tokens` vision
+        //      feature vectors produced by the vision tower + understand_aligner.
+        //
+        // We replicate that behaviour manually below.
+        let image_placeholder_token = "<image_placeholder>";
+        let placeholder_id: u32 = tokenizer.token_to_id(image_placeholder_token).ok_or_else(|| {
+            anyhow::anyhow!(
+                "tokenizer does not contain '{}'; \
+                 the tokenizer.json may not match the Janus-Pro model",
+                image_placeholder_token
+            )
+        })?;
+
+        let templated = format!("<|User|>: {image_placeholder_token}\n{prompt}\n<|Assistant|>:");
         let encoding = tokenizer
             .encode(templated, true)
             .map_err(|e| anyhow::anyhow!("tokenizer encode failed: {e}"))?;
-        let prompt_ids: &[u32] = encoding.get_ids();
-        let seq_len = prompt_ids.len();
+        let prompt_ids: Vec<u32> = encoding.get_ids().to_vec();
 
-        // ── 5. Text embeddings via LLM embedding table ────────────────────────
+        // ── 5. Locate <image_placeholder> and split the token sequence ────────
+        //
+        // Find the position of the placeholder token so we can insert the
+        // vision embeddings at that position rather than prepending them.
+        //
+        // Layout expected by the model:
+        //   [tokens_before | <num_image_tokens> vision vectors | tokens_after]
+        //
+        // where tokens_before is everything before <image_placeholder> and
+        // tokens_after is everything after it (the placeholder itself is
+        // removed and replaced by the vision embeddings).
+        let placeholder_pos = prompt_ids.iter().position(|&id| id == placeholder_id).ok_or_else(|| {
+            anyhow::anyhow!(
+                "tokenizer encoded the prompt but '{}' (id={}) was not found in the \
+                 token sequence; check that the tokenizer adds_special_tokens correctly",
+                image_placeholder_token,
+                placeholder_id
+            )
+        })?;
+
         let embed_device = if matches!(device, Device::Cuda(_)) {
             &Device::Cpu
         } else {
             device
         };
-        let prompt_id_tensor = Tensor::from_slice(prompt_ids, (1_usize, seq_len), embed_device)
-            .context("failed to build prompt_ids tensor")?;
-        let text_embeds = model
-            .embed_tokens(&prompt_id_tensor)
-            .map_err(|e| anyhow::anyhow!("embed_tokens failed: {e}"))?
-            .to_device(device)
-            .context("move prompt embeddings to main pipeline device")?;
-        // text_embeds: [1, seq_len, hidden_size]
 
-        // ── 6. Concatenate image + text embeddings ────────────────────────────
-        // Layout: [image tokens | text tokens]
-        // shape:  [1, num_image_tokens + seq_len, hidden_size]
-        let combined_embeds = Tensor::cat(&[&image_embeds, &text_embeds], 1)
-            .context("failed to concatenate image and text embeddings")?;
+        // Embed the prefix (tokens before <image_placeholder>).
+        let before_ids = &prompt_ids[..placeholder_pos];
+        let after_ids = &prompt_ids[placeholder_pos + 1..]; // skip the placeholder itself
+
+        // ── 6. Build the combined embedding sequence ──────────────────────────
+        //
+        // Correct Janus-Pro understanding embedding layout:
+        //   [text_before_embeds | image_embeds | text_after_embeds]
+        //
+        // The previous code used [image_embeds | text_embeds] (image first,
+        // text second) which caused the LLM to attend to image features in the
+        // wrong context and produce image VQ tokens instead of text.
+        let combined_embeds = {
+            // Embed prefix — may be empty if placeholder is the first token.
+            let after_embeds = if after_ids.is_empty() {
+                None
+            } else {
+                let after_tensor = Tensor::from_slice(after_ids, (1_usize, after_ids.len()), embed_device)
+                    .context("failed to build after-placeholder ids tensor")?;
+                Some(
+                    model
+                        .embed_tokens(&after_tensor)
+                        .map_err(|e| anyhow::anyhow!("embed_tokens (after) failed: {e}"))?
+                        .to_device(device)
+                        .context("move after-placeholder embeddings to main pipeline device")?,
+                )
+            };
+
+            if before_ids.is_empty() {
+                // No prefix: [image | after]
+                match after_embeds {
+                    Some(a) => Tensor::cat(&[&image_embeds, &a], 1).context("cat [image | after] failed")?,
+                    None => image_embeds.clone(),
+                }
+            } else {
+                let before_tensor = Tensor::from_slice(before_ids, (1_usize, before_ids.len()), embed_device)
+                    .context("failed to build before-placeholder ids tensor")?;
+                let before_embeds = model
+                    .embed_tokens(&before_tensor)
+                    .map_err(|e| anyhow::anyhow!("embed_tokens (before) failed: {e}"))?
+                    .to_device(device)
+                    .context("move before-placeholder embeddings to main pipeline device")?;
+
+                match after_embeds {
+                    Some(a) => Tensor::cat(&[&before_embeds, &image_embeds, &a], 1)
+                        .context("cat [before | image | after] failed")?,
+                    None => Tensor::cat(&[&before_embeds, &image_embeds], 1).context("cat [before | image] failed")?,
+                }
+            }
+        };
         let combined_len = combined_embeds.dim(1)?;
 
         // ── 7. KV cache construction ──────────────────────────────────────────
@@ -303,22 +391,52 @@ impl UnderstandingPipeline {
             .map_err(|e| anyhow::anyhow!("KvCache construction failed: {e}"))?;
 
         // ── 8. Prefill: forward combined embeddings to seed the KV cache ──────
-        let _prefill_hidden = model
+        //
+        // `forward_input_embed` runs all transformer layers, applies the final
+        // RMS norm, and projects through `lm_head` to produce text-vocabulary
+        // logits for the last sequence position.  Shape: [1, vocab_size].
+        //
+        // These logits represent the model's prediction for the first generated
+        // token and MUST NOT be discarded.  The previous code discarded them
+        // (_prefill_hidden) and then re-embedded the last prompt token at
+        // step 0 — this caused a double-processing of the final prompt token
+        // and corrupted the KV cache sequence positions.
+        let prefill_logits = model
             .llama
             .forward_input_embed(&combined_embeds, 0, &mut cache)
             .map_err(|e| anyhow::anyhow!("prefill forward_input_embed failed: {e}"))?;
+        // prefill_logits: [1, vocab_size]
 
         let mut pos = combined_len;
 
         // ── 9. Autoregressive text generation ────────────────────────────────
+        //
+        // Correct decode loop for understanding:
+        //   - Step 0: sample the first token from the prefill logits (no extra
+        //             forward pass; the KV cache is already populated).
+        //   - Steps 1+: embed the previously sampled token, run one forward
+        //               pass at position `pos`, sample the next token.
+        //
+        // This matches the standard causal-LM decode pattern used by
+        // `model.language_model.generate()` in the Python Janus reference.
         let mut generated_ids: Vec<u32> = Vec::with_capacity(max_tokens as usize);
 
-        // Start with the last token of the prompt as the first auto-regressive
-        // input so the first generated token conditions on the full context.
-        let mut current_token: u32 = *prompt_ids.last().unwrap_or(&0);
+        // Sample the first token from the prefill logits.
+        let first_token = if temperature <= 0.01 {
+            greedy_argmax(&prefill_logits).context("prefill greedy_argmax failed")?
+        } else {
+            temperature_sample(&prefill_logits, temperature as f64).context("prefill temperature_sample failed")?
+        };
 
-        for step in 0..max_tokens {
-            // A. Embed the current single token → [1, 1, hidden_size]
+        if first_token == EOS_TOKEN_ID {
+            tracing::debug!("EOS token at prefill; returning empty response");
+            return Ok(String::new());
+        }
+        generated_ids.push(first_token);
+        let mut current_token = first_token;
+
+        for step in 1..max_tokens {
+            // A. Embed the previously sampled token → [1, 1, hidden_size]
             let token_tensor = Tensor::from_slice(&[current_token], (1_usize, 1_usize), embed_device)
                 .with_context(|| format!("step {step}: failed to build token tensor"))?;
             let token_embed = model
@@ -327,15 +445,15 @@ impl UnderstandingPipeline {
                 .to_device(device)
                 .with_context(|| format!("step {step}: move token embedding to main pipeline device failed"))?;
 
-            // B. LLM forward → logits [1, vocab_size]
-            //    forward_input_embed already extracts the last position.
+            // B. LLM forward → text-vocabulary logits [1, vocab_size].
+            //    `forward_input_embed` = transformer layers + RMS norm + lm_head.
             let logits_last = model
                 .llama
                 .forward_input_embed(&token_embed, pos, &mut cache)
                 .map_err(|e| anyhow::anyhow!("step {step}: forward_input_embed failed: {e}"))?;
             pos += 1;
 
-            // D. Sample next token (greedy or temperature)
+            // C. Sample next token (greedy or temperature).
             let next_token = if temperature <= 0.01 {
                 greedy_argmax(&logits_last).with_context(|| format!("step {step}: greedy_argmax failed"))?
             } else {
@@ -343,7 +461,7 @@ impl UnderstandingPipeline {
                     .with_context(|| format!("step {step}: temperature_sample failed"))?
             };
 
-            // E. Stop on EOS
+            // D. Stop on EOS.
             if next_token == EOS_TOKEN_ID {
                 tracing::debug!(step, "EOS token reached; stopping generation");
                 break;

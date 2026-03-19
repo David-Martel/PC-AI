@@ -17,7 +17,13 @@ serde_json = "1.0"
 
 [features]
 default = []
-# Enable CUDA and cuDNN acceleration.  Requires CUDA Toolkit (nvcc) at build time.
+# Enable CUDA acceleration.  Requires CUDA Toolkit (nvcc) at build time.
 cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
+# Enable cuDNN v9 for conv1d/conv2d ops.
+#
+# In candle-core 0.9.x `cudnn` only accelerates convolutions — NOT attention.
+# Janus-Pro's transformer uses matmul-based SDPA, so this feature does not
+# improve performance for this model.  Kept for forward compatibility with
+# future candle releases that may add cuDNN-fused attention.
 cudnn = ["cuda", "candle-core/cudnn"]
 flash-attn = ["dep:candle-flash-attn"]

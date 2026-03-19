@@ -26,8 +26,9 @@ pre-commit:
       fail_text: "PowerShell module manifest validation failed."
 
     # --- No TODO expects in Rust ---
+    # Fail if any staged .rs file contains generic TODO expects.
+    # grep returns 0 on match, 1 on no match. We want to fail on match.
     rust-no-todo-expect:
       glob: "*.rs"
-      run: |
-        grep -rn 'expect("TODO: Verify unwrap")' {staged_files} | head -5
+      run: "if grep -rn 'TODO: Verify unwrap' {staged_files} 2>/dev/null; then exit 1; else exit 0; fi"
       fail_text: "Generic TODO expects found. Use descriptive expect messages."

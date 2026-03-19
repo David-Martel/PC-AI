@@ -43,8 +43,17 @@ server = ["dep:axum", "dep:tower-http"]
 # have the NVIDIA driver but not the CUDA toolkit.
 nvml = ["dep:pcai_core_lib", "pcai_core_lib/nvml"]
 cuda = ["candle-core/cuda", "pcai-media-model/cuda", "dep:pcai_core_lib", "pcai_core_lib/nvml"]
-# cuDNN-accelerated attention (uses NVIDIA cuDNN v9 fused kernels).
-# More portable than flash-attn on Windows — no custom CUDA kernel compilation needed.
+# Enable cuDNN acceleration for conv1d/conv2d ops via NVIDIA cuDNN v9.
+#
+# In candle-core 0.9.x the `cudnn` feature gates only convolution operations
+# (not fused attention/SDPA).  Janus-Pro uses matmul-based SDPA, so cuDNN
+# provides no speedup for the transformer backbone at this version.  The
+# feature is kept for forward compatibility: if candle gains cuDNN fused-
+# attention support in a future release, enabling this flag will opt in
+# automatically.  Use `flash-attn` instead for attention acceleration today.
+#
+# Building with `cudnn` requires the cuDNN runtime DLL (cudnn64_9.dll) to be
+# present in PATH at link time on Windows; nvcc must be available at build time.
 cudnn = ["cuda", "candle-core/cudnn", "pcai-media-model/cudnn"]
 flash-attn = ["pcai-media-model/flash-attn"]
 upscale = ["dep:ort"]

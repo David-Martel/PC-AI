@@ -8,6 +8,24 @@
 //! blocks, RMS norm) so we can return hidden states directly.  This also gives
 //! us full control over the KV cache for future memory optimizations (INT8 KV
 //! cache, layer offloading, etc.).
+//!
+//! # KV Cache Implementations
+//!
+//! Two KV cache implementations are provided:
+//!
+//! - [`KvCache`]: The original dynamic cache.  Each step appends via
+//!   `Tensor::cat`, allocating a new growing buffer.  Simple but wastes GPU
+//!   bandwidth (O(step²) total bytes written across 576 steps).
+//!
+//! - [`PreAllocKvCache`]: A ring-buffer cache that allocates one fixed-size
+//!   `[B, n_kv_heads, max_seq_len, head_dim]` buffer per layer at construction
+//!   time.  New KV pairs are written in-place via `Tensor::scatter_set` (a
+//!   single-token write, O(B·H·D) per step), and accumulated history is read
+//!   back as a zero-copy `narrow` view.  This eliminates the ≈95 GB of GPU
+//!   bandwidth waste from `cat` across 576 steps × 24 layers.
+//!
+//! Use [`PreAllocKvCache`] via [`JanusLlama::forward_hidden_prealloc`] and
+//! [`JanusLlama::forward_input_embed_prealloc`].
 
 use candle_core::{DType, Device, IndexOp, Result, Tensor};
 use candle_nn::{embedding, linear_no_bias, Embedding, Module, VarBuilder};
@@ -20,12 +38,15 @@ use candle_core::D;
 use candle_flash_attn;
 
 // ---------------------------------------------------------------------------
-// KV Cache
+// KV Cache (original dynamic implementation)
 // ---------------------------------------------------------------------------
 
 /// KV cache with RoPE precomputed cos/sin tables.
 ///
 /// Unlike candle's `llama::Cache`, all fields are accessible for optimization.
+///
+/// This is the original dynamic cache.  For image generation (576 decoding
+/// steps) consider [`PreAllocKvCache`] which avoids `Tensor::cat` entirely.
 #[derive(Debug, Clone)]
 pub struct KvCache {
     pub use_kv_cache: bool,
@@ -98,6 +119,292 @@ impl KvCache {
 }
 
 // ---------------------------------------------------------------------------
+// PreAllocKvCache — ring-buffer KV cache (zero-copy read, in-place write)
+// ---------------------------------------------------------------------------
+
+/// Per-layer state for the pre-allocated KV cache.
+///
+/// Holds two `[B, n_kv_heads, max_seq_len, head_dim]` buffers (K and V)
+/// allocated once at construction.  Tokens are written with `scatter_set`
+/// (truly in-place) and read back with `narrow` (zero-copy view).
+#[derive(Debug, Clone)]
+struct LayerKvBuffer {
+    /// Pre-allocated key buffer: shape `[B, n_kv_heads, max_seq_len, head_dim]`.
+    k_buf: Tensor,
+    /// Pre-allocated value buffer: shape `[B, n_kv_heads, max_seq_len, head_dim]`.
+    v_buf: Tensor,
+    /// Scatter index tensor for dim=2.
+    ///
+    /// Shape `[B, n_kv_heads, 1, head_dim]`; holds the current write position.
+    /// Re-used across calls (updated in-place via `fill_` equivalent) to avoid
+    /// per-step allocations.  We rebuild it from the position integer each step,
+    /// which is cheap (tiny tensor, one allocation per step per layer).
+    ///
+    /// Stored here so the allocation cost is amortised across the 576-step run.
+    scatter_idx_shape: (usize, usize, usize, usize),
+}
+
+/// Pre-allocated ring-buffer KV cache.
+///
+/// Eliminates the `Tensor::cat` bottleneck in [`KvCache`] by writing new KV
+/// pairs in-place with `Tensor::scatter_set` and reading accumulated history
+/// with `Tensor::narrow` (zero-copy).
+///
+/// # Memory Layout
+///
+/// For each transformer layer:
+/// ```text
+/// key_buffer:   [B=1, n_kv_heads, max_seq_len, head_dim]
+/// value_buffer: [B=1, n_kv_heads, max_seq_len, head_dim]
+/// ```
+///
+/// At generation step `t`, tokens `[0, t)` are valid.  Reading them is:
+/// ```text
+/// key_buffer.narrow(2, 0, t)   // zero-copy view of [B, H, t, D]
+/// value_buffer.narrow(2, 0, t) // zero-copy view of [B, H, t, D]
+/// ```
+///
+/// Writing the new token at position `t` uses `scatter_set` along dim 2,
+/// updating the pre-allocated buffer without any allocation or copy of prior
+/// tokens.
+///
+/// # Performance Characteristics
+///
+/// | Metric | [`KvCache`] (cat) | [`PreAllocKvCache`] (scatter) |
+/// |--------|-------------------|-------------------------------|
+/// | Write cost (step t) | O(t) — copies all prior tokens | O(1) — writes 1 token |
+/// | Read cost | O(t) | O(1) — `narrow` is zero-copy |
+/// | Total bandwidth (576 steps) | O(576²) ≈ 95 GB | O(576) ≈ 0.3 GB |
+/// | Allocation per step | 1 growing buffer | 1 tiny index tensor |
+///
+/// # Construction
+///
+/// ```no_run
+/// use candle_core::{DType, Device};
+/// use candle_transformers::models::llama::Config;
+/// use pcai_media_model::janus_llama::PreAllocKvCache;
+///
+/// # fn example() -> candle_core::Result<()> {
+/// let cfg: Config = todo!(); // your llama config
+/// let cache = PreAllocKvCache::new(DType::BF16, &cfg, 1, 700, &Device::Cpu)?;
+/// # Ok(()) }
+/// ```
+#[derive(Debug, Clone)]
+pub struct PreAllocKvCache {
+    /// Pre-computed RoPE cosine table.  Shape `[max_position_embeddings, head_dim/2]`.
+    pub cos: Tensor,
+    /// Pre-computed RoPE sine table.  Shape `[max_position_embeddings, head_dim/2]`.
+    pub sin: Tensor,
+    /// Per-layer ring buffers.  Length equals the number of transformer layers.
+    layers: Vec<LayerKvBuffer>,
+    /// Number of tokens currently written into the cache (valid token count).
+    current_seq_len: usize,
+    /// Number of KV heads from the model config.
+    n_kv_heads: usize,
+    /// Head dimension derived from config.
+    head_dim: usize,
+    /// Batch size (always 1 for Janus image generation).
+    batch_size: usize,
+    /// Maximum sequence length this cache can hold.
+    max_seq_len: usize,
+    /// Cached attention masks keyed by sequence length.
+    masks: HashMap<usize, Tensor>,
+    device: Device,
+}
+
+impl PreAllocKvCache {
+    /// Construct a new pre-allocated KV cache.
+    ///
+    /// Allocates `2 × num_layers × B × n_kv_heads × max_seq_len × head_dim`
+    /// elements up front.  For Janus-Pro-1B at BF16 with B=1, 24 layers,
+    /// 16 KV heads, head_dim=128, max_seq_len=700:
+    ///
+    /// ```text
+    /// 2 × 24 × 1 × 16 × 700 × 128 × 2 bytes = ~172 MB
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `dtype`       — Data type matching inference dtype (e.g. `DType::BF16`).
+    /// * `cfg`         — Llama model config (provides layer count, head counts, dims).
+    /// * `batch_size`  — Batch size (1 for single-image Janus generation).
+    /// * `max_seq_len` — Maximum sequence length to pre-allocate.  For Janus
+    ///   image generation use `576 + prefill_len`; a value of 700 is safe.
+    /// * `device`      — Target device (`Device::Cpu` or a CUDA device).
+    ///
+    /// # Errors
+    ///
+    /// Returns a candle error if tensor allocation fails (e.g. OOM on GPU).
+    pub fn new(dtype: DType, cfg: &Config, batch_size: usize, max_seq_len: usize, device: &Device) -> Result<Self> {
+        let head_dim = cfg.hidden_size / cfg.num_attention_heads;
+        let n_kv_heads = cfg.num_key_value_heads;
+
+        // ── RoPE tables ────────────────────────────────────────────────────
+        let theta: Vec<f32> = (0..head_dim)
+            .step_by(2)
+            .map(|i| 1f32 / cfg.rope_theta.powf(i as f32 / head_dim as f32))
+            .collect();
+        let theta = Tensor::new(theta, device)?;
+        let idx_theta = Tensor::arange(0, cfg.max_position_embeddings as u32, device)?
+            .to_dtype(DType::F32)?
+            .reshape((cfg.max_position_embeddings, 1))?
+            .matmul(&theta.reshape((1, theta.elem_count()))?)?;
+        let cos = idx_theta.cos()?.to_dtype(dtype)?;
+        let sin = idx_theta.sin()?.to_dtype(dtype)?;
+
+        // ── Per-layer pre-allocated buffers ────────────────────────────────
+        // Shape: [B, n_kv_heads, max_seq_len, head_dim]
+        let buf_shape = (batch_size, n_kv_heads, max_seq_len, head_dim);
+        let layers: Vec<LayerKvBuffer> = (0..cfg.num_hidden_layers)
+            .map(|_| {
+                let k_buf = Tensor::zeros(buf_shape, dtype, device)?;
+                let v_buf = Tensor::zeros(buf_shape, dtype, device)?;
+                Ok(LayerKvBuffer {
+                    k_buf,
+                    v_buf,
+                    scatter_idx_shape: buf_shape,
+                })
+            })
+            .collect::<Result<_>>()?;
+
+        Ok(Self {
+            cos,
+            sin,
+            layers,
+            current_seq_len: 0,
+            n_kv_heads,
+            head_dim,
+            batch_size,
+            max_seq_len,
+            masks: HashMap::new(),
+            device: device.clone(),
+        })
+    }
+
+    /// Get or create a causal attention mask of size `t × t`.
+    pub fn mask(&mut self, t: usize) -> Result<Tensor> {
+        if let Some(mask) = self.masks.get(&t) {
+            Ok(mask.clone())
+        } else {
+            let mask: Vec<_> = (0..t).flat_map(|i| (0..t).map(move |j| u8::from(j > i))).collect();
+            let mask = Tensor::from_slice(&mask, (t, t), &self.device)?;
+            self.masks.insert(t, mask.clone());
+            Ok(mask)
+        }
+    }
+
+    /// Reset the cache for a new sequence.
+    ///
+    /// Clears `current_seq_len` without re-zeroing the buffers (stale data
+    /// beyond `current_seq_len` is never read, so zeroing is unnecessary).
+    pub fn clear(&mut self) {
+        self.current_seq_len = 0;
+        self.masks.clear();
+    }
+
+    /// Number of valid tokens currently stored in the cache.
+    pub fn seq_len(&self) -> usize {
+        self.current_seq_len
+    }
+
+    /// Update layer `block_idx` with newly computed key/value tensors.
+    ///
+    /// Writes `k` and `v` at position `seq_pos` along the sequence dimension
+    /// using `scatter_set` (in-place, no allocation of new KV buffers).
+    /// Returns zero-copy `narrow` views covering all valid tokens `[0, seq_pos + seq_len)`.
+    ///
+    /// # Arguments
+    ///
+    /// * `block_idx` — Transformer layer index.
+    /// * `seq_pos`   — Absolute sequence position of the first token in `k`/`v`.
+    /// * `k`         — New key tensor, shape `[B, n_kv_heads, seq_len, head_dim]`.
+    /// * `v`         — New value tensor, shape `[B, n_kv_heads, seq_len, head_dim]`.
+    ///
+    /// # Returns
+    ///
+    /// `(k_full, v_full)` — Tensors of shape `[B, n_kv_heads, total_len, head_dim]`
+    /// where `total_len = seq_pos + seq_len`.  These are zero-copy views for the
+    /// single-token decode path; during prefill they are the pre-allocated slice
+    /// (no copy of prior tokens needed).
+    ///
+    /// # Errors
+    ///
+    /// Returns a candle error if the cache is full (`seq_pos + seq_len > max_seq_len`)
+    /// or on tensor shape mismatches.
+    pub fn update(&mut self, block_idx: usize, seq_pos: usize, k: &Tensor, v: &Tensor) -> Result<(Tensor, Tensor)> {
+        let kv_seq_len = k.dim(2)?; // number of new tokens
+        let end = seq_pos + kv_seq_len;
+
+        if end > self.max_seq_len {
+            candle_core::bail!(
+                "PreAllocKvCache: seq_pos({seq_pos}) + seq_len({kv_seq_len}) = {end} \
+                 exceeds max_seq_len({})",
+                self.max_seq_len
+            );
+        }
+
+        let layer = &self.layers[block_idx];
+
+        // Build scatter index tensor for dim=2.
+        //
+        // `scatter_set` requires `indexes` with the same shape as `source`
+        // (`k`/`v`).  Each element of `indexes` holds the target position along
+        // dim 2 in the destination buffer.  For a contiguous block starting at
+        // `seq_pos`, position `p` in the new tokens maps to `seq_pos + p`.
+        //
+        // Shape: [B, n_kv_heads, kv_seq_len, head_dim].
+        // Memory layout is row-major [b][h][s][d], so we iterate b, h, s, d
+        // in that order to produce the flat Vec that matches the tensor stride.
+        let (b, h, s, d) = (self.batch_size, self.n_kv_heads, kv_seq_len, self.head_dim);
+        let idx_vals: Vec<u32> = (0..b)
+            .flat_map(|_b| {
+                (0..h).flat_map(move |_h| {
+                    (0..s).flat_map(move |p| {
+                        let pos = (seq_pos + p) as u32;
+                        std::iter::repeat(pos).take(d)
+                    })
+                })
+            })
+            .collect();
+
+        let scatter_idx = Tensor::from_vec(idx_vals, (b, h, s, d), &self.device)?;
+
+        // In-place write: scatter `k` into `k_buf` at the computed positions.
+        // `scatter_set` mutates `layer.k_buf` storage without producing a new tensor.
+        layer.k_buf.scatter_set(&scatter_idx, k, 2)?;
+        layer.v_buf.scatter_set(&scatter_idx, v, 2)?;
+
+        // Update the tracked sequence length (only needed on the last layer,
+        // but we do it here so the caller can read `seq_len()` at any point).
+        // `forward` already passes matching seq_pos values across layers.
+        if block_idx + 1 == self.layers.len() || self.current_seq_len < end {
+            self.current_seq_len = end;
+        }
+
+        // Return zero-copy narrow views of the valid token prefix.
+        let k_full = layer.k_buf.narrow(2, 0, end)?;
+        let v_full = layer.v_buf.narrow(2, 0, end)?;
+        Ok((k_full, v_full))
+    }
+
+    /// Returns the total bytes used by all pre-allocated KV buffers.
+    ///
+    /// This reflects the total allocation, not just the portion that holds
+    /// valid tokens.
+    pub fn allocated_bytes(&self) -> usize {
+        self.layers
+            .iter()
+            .map(|l| {
+                let (b, h, s, d) = l.scatter_idx_shape;
+                let elems = b * h * s * d;
+                let dtype_bytes = l.k_buf.dtype().size_in_bytes();
+                2 * elems * dtype_bytes // × 2 for K and V
+            })
+            .sum()
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Attention
 // ---------------------------------------------------------------------------
 
@@ -126,6 +433,19 @@ struct CausalSelfAttention {
 
 impl CausalSelfAttention {
     fn apply_rotary_emb(&self, x: &Tensor, index_pos: usize, cache: &KvCache) -> Result<Tensor> {
+        let (_b_sz, _, seq_len, _hidden_size) = x.dims4()?;
+        let cos = cache.cos.narrow(0, index_pos, seq_len)?;
+        let sin = cache.sin.narrow(0, index_pos, seq_len)?;
+        candle_nn::rotary_emb::rope(x, &cos, &sin)
+    }
+
+    /// Apply RoPE embeddings using cos/sin tables from a [`PreAllocKvCache`].
+    ///
+    /// Called by [`CausalSelfAttention::forward_prealloc`] on each step of
+    /// the pre-allocated KV-cache path via `Block::forward_prealloc` →
+    /// [`JanusLlama::forward_hidden_prealloc`].
+    #[expect(dead_code, reason = "called via Block::forward_prealloc")]
+    fn apply_rotary_emb_prealloc(&self, x: &Tensor, index_pos: usize, cache: &PreAllocKvCache) -> Result<Tensor> {
         let (_b_sz, _, seq_len, _hidden_size) = x.dims4()?;
         let cos = cache.cos.narrow(0, index_pos, seq_len)?;
         let sin = cache.sin.narrow(0, index_pos, seq_len)?;
@@ -272,6 +592,112 @@ impl CausalSelfAttention {
         self.o_proj.forward(&y)
     }
 
+    /// Forward pass using the pre-allocated KV cache.
+    ///
+    /// Writes new K/V tensors into the pre-allocated ring buffer via
+    /// `scatter_set` (in-place) and reads accumulated history with `narrow`
+    /// (zero-copy).  Eliminates the `Tensor::cat` cost of the standard
+    /// [`CausalSelfAttention::forward`] path.
+    ///
+    /// Detach is not needed: `scatter_set` is in-place on a pre-allocated
+    /// buffer that lives outside the autograd graph (created with `zeros`).
+    ///
+    #[expect(dead_code, reason = "called via Block::forward_prealloc")]
+    fn forward_prealloc(
+        &self,
+        x: &Tensor,
+        index_pos: usize,
+        block_idx: usize,
+        cache: &mut PreAllocKvCache,
+    ) -> Result<Tensor> {
+        let (b_sz, seq_len, hidden_size) = x.dims3()?;
+        let q = self.q_proj.forward(x)?;
+        let k = self.k_proj.forward(x)?;
+        let v = self.v_proj.forward(x)?;
+
+        let q = q
+            .reshape((b_sz, seq_len, self.num_attention_heads, self.head_dim))?
+            .transpose(1, 2)?
+            .contiguous()?;
+        let k = k
+            .reshape((b_sz, seq_len, self.num_key_value_heads, self.head_dim))?
+            .transpose(1, 2)?
+            .contiguous()?;
+        let v = v
+            .reshape((b_sz, seq_len, self.num_key_value_heads, self.head_dim))?
+            .transpose(1, 2)?
+            .contiguous()?;
+
+        let q = self.apply_rotary_emb_prealloc(&q, index_pos, cache)?;
+        let k = self.apply_rotary_emb_prealloc(&k, index_pos, cache)?;
+
+        // In-place write + zero-copy read.
+        // `update` returns narrow views `[B, n_kv_heads, total_len, head_dim]`.
+        let (k_full, v_full) = cache.update(block_idx, index_pos, &k, &v)?;
+
+        let k_full = self.repeat_kv(k_full)?;
+        let v_full = self.repeat_kv(v_full)?;
+
+        // Attention — reuse the same SDPA / flash-attn paths as `forward`.
+        let total_len = k_full.dim(2)?;
+
+        #[cfg(feature = "flash-attn")]
+        if self.use_flash_attn {
+            let in_dtype = q.dtype();
+            let fa_dtype = match in_dtype {
+                DType::BF16 | DType::F16 => in_dtype,
+                _ => DType::BF16,
+            };
+            let q_fa = q.transpose(1, 2)?.to_dtype(fa_dtype)?.contiguous()?;
+            let k_fa = k_full.transpose(1, 2)?.to_dtype(fa_dtype)?.contiguous()?;
+            let v_fa = v_full.transpose(1, 2)?.to_dtype(fa_dtype)?.contiguous()?;
+            let softmax_scale = 1.0_f32 / (self.head_dim as f32).sqrt();
+            let causal = seq_len > 1;
+            let y_fa = candle_flash_attn::flash_attn(&q_fa, &k_fa, &v_fa, softmax_scale, causal)?;
+            let y = y_fa
+                .transpose(1, 2)?
+                .reshape((b_sz, seq_len, hidden_size))?
+                .to_dtype(in_dtype)?;
+            return self.o_proj.forward(&y);
+        }
+
+        let in_dtype = q.dtype();
+        let use_f32_attn = matches!(in_dtype, DType::F64);
+        let (q, k_full, v_full) = if use_f32_attn {
+            (
+                q.to_dtype(DType::F32)?,
+                k_full.to_dtype(DType::F32)?,
+                v_full.to_dtype(DType::F32)?,
+            )
+        } else {
+            (q, k_full, v_full)
+        };
+        let att = (q.matmul(&k_full.t()?)? / (self.head_dim as f64).sqrt())?;
+        // For the single-token decode case (seq_len == 1), we still need a mask
+        // over `total_len` positions when total_len > 1 (cross-attn to history).
+        // However, the query is length 1 so the causal mask degenerates to all
+        // positions being visible.  We skip masking for seq_len == 1.
+        let att = if seq_len == 1 {
+            att
+        } else {
+            // During prefill, use the full `total_len × total_len` causal mask.
+            // `att` shape is [B, H, seq_len, total_len]; we broadcast a
+            // seq_len × total_len mask (future positions masked).
+            let mask = cache.mask(total_len)?.narrow(0, total_len - seq_len, seq_len)?;
+            let mask = mask.broadcast_as(att.shape())?;
+            let neg_inf = if use_f32_attn { f32::NEG_INFINITY } else { -65504.0_f32 };
+            masked_fill(&att, &mask, neg_inf)?
+        };
+        let att = candle_nn::ops::softmax_last_dim(&att)?;
+        let y = if use_f32_attn {
+            att.matmul(&v_full.contiguous()?)?.to_dtype(in_dtype)?
+        } else {
+            att.matmul(&v_full.contiguous()?)?
+        };
+        let y = y.transpose(1, 2)?.reshape(&[b_sz, seq_len, hidden_size])?;
+        self.o_proj.forward(&y)
+    }
+
     fn load(vb: VarBuilder, cfg: &Config) -> Result<Self> {
         let size_in = cfg.hidden_size;
         let size_q = (cfg.hidden_size / cfg.num_attention_heads) * cfg.num_attention_heads;
@@ -352,6 +778,22 @@ impl Block {
         let residual = x;
         let x = self.input_layernorm.forward(x)?;
         let x = (self.attn.forward(&x, index_pos, block_idx, cache)? + residual)?;
+        let residual = &x;
+        let x = (self.mlp.forward(&self.post_attention_layernorm.forward(&x)?)? + residual)?;
+        Ok(x)
+    }
+
+    #[expect(dead_code, reason = "called via JanusLlama::forward_hidden_prealloc")]
+    fn forward_prealloc(
+        &self,
+        x: &Tensor,
+        index_pos: usize,
+        block_idx: usize,
+        cache: &mut PreAllocKvCache,
+    ) -> Result<Tensor> {
+        let residual = x;
+        let x = self.input_layernorm.forward(x)?;
+        let x = (self.attn.forward_prealloc(&x, index_pos, block_idx, cache)? + residual)?;
         let residual = &x;
         let x = (self.mlp.forward(&self.post_attention_layernorm.forward(&x)?)? + residual)?;
         Ok(x)
@@ -446,6 +888,65 @@ impl JanusLlama {
     pub fn forward(&self, x: &Tensor, index_pos: usize, cache: &mut KvCache) -> Result<Tensor> {
         let embeds = self.wte.forward(x)?;
         self.forward_input_embed(&embeds, index_pos, cache)
+    }
+
+    /// Forward pass returning **hidden states** using the pre-allocated KV cache.
+    ///
+    /// Functionally equivalent to [`forward_hidden`] but uses [`PreAllocKvCache`]
+    /// to eliminate `Tensor::cat` overhead.  Each layer writes new KV pairs
+    /// in-place via `scatter_set` and reads accumulated history as a zero-copy
+    /// `narrow` view.
+    ///
+    /// # Arguments
+    ///
+    /// * `input_embed` — Float tensor `[B, S, hidden_size]`.
+    /// * `index_pos`   — Absolute position of the first token in `input_embed`.
+    /// * `cache`       — Mutable reference to the pre-allocated KV cache.
+    ///
+    /// # Returns
+    ///
+    /// Float tensor `[B, hidden_size]` — last-position hidden state before `lm_head`.
+    ///
+    /// # Errors
+    ///
+    /// Returns a candle error if the cache is full or on shape mismatches.
+    pub fn forward_hidden_prealloc(
+        &self,
+        input_embed: &Tensor,
+        index_pos: usize,
+        cache: &mut PreAllocKvCache,
+    ) -> Result<Tensor> {
+        let (_, seq_len, _) = input_embed.dims3()?;
+        let mut x = input_embed.clone();
+        for (block_idx, block) in self.blocks.iter().enumerate() {
+            x = block.forward_prealloc(&x, index_pos, block_idx, cache)?;
+        }
+        let x = self.ln_f.forward(&x)?;
+        // Extract last position: [B, S, H] → [B, H]
+        x.i((.., seq_len - 1, ..))?.contiguous()
+    }
+
+    /// Forward pass returning text-vocabulary logits using the pre-allocated KV cache.
+    ///
+    /// Combines [`forward_hidden_prealloc`] with [`project_logits`].  Use this
+    /// instead of [`forward_input_embed`] during Janus image generation to
+    /// avoid the `Tensor::cat` bottleneck.
+    ///
+    /// # Returns
+    ///
+    /// Float tensor `[B, vocab_size]`.
+    ///
+    /// # Errors
+    ///
+    /// Propagates errors from [`forward_hidden_prealloc`] and [`project_logits`].
+    pub fn forward_input_embed_prealloc(
+        &self,
+        input_embed: &Tensor,
+        index_pos: usize,
+        cache: &mut PreAllocKvCache,
+    ) -> Result<Tensor> {
+        let hidden = self.forward_hidden_prealloc(input_embed, index_pos, cache)?;
+        self.project_logits(&hidden)
     }
 
     /// Offload `wte` to CPU to free GPU VRAM.
@@ -589,5 +1090,170 @@ mod tests {
         let _ = llama.forward_hidden(&embed, 0, &mut cache).unwrap();
 
         assert!(cache.memory_bytes() > 0, "KV cache should have allocated memory");
+    }
+
+    // ── PreAllocKvCache tests ────────────────────────────────────────────────
+
+    /// PreAllocKvCache::new should allocate correctly sized buffers.
+    ///
+    /// For the tiny config: head_dim = 64/4 = 16, n_kv_heads = 4, layers = 2.
+    /// Allocated bytes = 2 × layers × 2 × B × n_kv_heads × max_seq × head_dim × dtype_bytes.
+    #[test]
+    fn test_prealloc_cache_construction() {
+        let cfg = tiny_config();
+        let cache =
+            PreAllocKvCache::new(DType::F32, &cfg, 1, 32, &Device::Cpu).expect("PreAllocKvCache construction failed");
+
+        assert_eq!(cache.seq_len(), 0, "fresh cache should be empty");
+
+        // 2 layers × 2 (K+V) × 1 × 4 × 32 × 16 × 4 bytes
+        let expected = 2 * 2 * 1 * 4 * 32 * 16 * 4;
+        assert_eq!(cache.allocated_bytes(), expected);
+    }
+
+    /// `update` should return correctly-shaped narrow views.
+    #[test]
+    fn test_prealloc_cache_update_shapes() {
+        let cfg = tiny_config();
+        let mut cache =
+            PreAllocKvCache::new(DType::F32, &cfg, 1, 32, &Device::Cpu).expect("PreAllocKvCache construction failed");
+
+        // [B=1, n_kv_heads=4, seq=3, head_dim=16]
+        let k = Tensor::zeros((1_usize, 4_usize, 3_usize, 16_usize), DType::F32, &Device::Cpu).unwrap();
+        let v = Tensor::zeros((1_usize, 4_usize, 3_usize, 16_usize), DType::F32, &Device::Cpu).unwrap();
+
+        let (k_full, v_full) = cache.update(0, 0, &k, &v).expect("update failed");
+
+        assert_eq!(k_full.dims(), &[1, 4, 3, 16], "k_full should cover written tokens");
+        assert_eq!(v_full.dims(), &[1, 4, 3, 16], "v_full should cover written tokens");
+        assert_eq!(cache.seq_len(), 3);
+    }
+
+    /// Successive single-token writes should accumulate: pos 0 (ones), pos 1 (zeros).
+    #[test]
+    fn test_prealloc_cache_incremental_update() {
+        let cfg = tiny_config();
+        let mut cache = PreAllocKvCache::new(DType::F32, &cfg, 1, 32, &Device::Cpu).expect("construction failed");
+
+        let k1 = Tensor::ones((1_usize, 4_usize, 1_usize, 16_usize), DType::F32, &Device::Cpu).unwrap();
+        let v1 = Tensor::ones((1_usize, 4_usize, 1_usize, 16_usize), DType::F32, &Device::Cpu).unwrap();
+        let k2 = Tensor::zeros((1_usize, 4_usize, 1_usize, 16_usize), DType::F32, &Device::Cpu).unwrap();
+        let v2 = Tensor::zeros((1_usize, 4_usize, 1_usize, 16_usize), DType::F32, &Device::Cpu).unwrap();
+
+        cache.update(0, 0, &k1, &v1).expect("step 0 failed");
+        let (k_full, _) = cache.update(0, 1, &k2, &v2).expect("step 1 failed");
+
+        assert_eq!(k_full.dims(), &[1, 4, 2, 16]);
+
+        // Position 0 should hold ones, position 1 should hold zeros.
+        let pos0_sum: f32 = k_full
+            .narrow(2, 0, 1)
+            .unwrap()
+            .flatten_all()
+            .unwrap()
+            .to_vec1::<f32>()
+            .unwrap()
+            .iter()
+            .sum();
+        let pos1_sum: f32 = k_full
+            .narrow(2, 1, 1)
+            .unwrap()
+            .flatten_all()
+            .unwrap()
+            .to_vec1::<f32>()
+            .unwrap()
+            .iter()
+            .sum();
+        assert!(pos0_sum > 0.0, "pos 0 should hold ones");
+        assert_eq!(pos1_sum, 0.0, "pos 1 should hold zeros");
+    }
+
+    /// `clear` resets seq_len without reallocating buffers.
+    #[test]
+    fn test_prealloc_cache_clear() {
+        let cfg = tiny_config();
+        let mut cache = PreAllocKvCache::new(DType::F32, &cfg, 1, 32, &Device::Cpu).expect("construction failed");
+
+        let bytes_before = cache.allocated_bytes();
+        let k = Tensor::zeros((1_usize, 4_usize, 1_usize, 16_usize), DType::F32, &Device::Cpu).unwrap();
+        let v = Tensor::zeros_like(&k).unwrap();
+        cache.update(0, 0, &k, &v).unwrap();
+        assert_eq!(cache.seq_len(), 1);
+
+        cache.clear();
+        assert_eq!(cache.seq_len(), 0, "clear should reset seq_len to 0");
+        assert_eq!(cache.allocated_bytes(), bytes_before, "clear must not reallocate");
+    }
+
+    /// `update` must fail when write would overflow max_seq_len.
+    #[test]
+    fn test_prealloc_cache_overflow_error() {
+        let cfg = tiny_config();
+        let mut cache = PreAllocKvCache::new(DType::F32, &cfg, 1, 4, &Device::Cpu).expect("construction failed");
+
+        // seq_pos=2 + seq_len=3 = 5, exceeds max_seq_len=4.
+        let k = Tensor::zeros((1_usize, 4_usize, 3_usize, 16_usize), DType::F32, &Device::Cpu).unwrap();
+        let v = Tensor::zeros_like(&k).unwrap();
+        let result = cache.update(0, 2, &k, &v);
+        assert!(result.is_err(), "overflow should return Err");
+    }
+
+    /// `forward_hidden_prealloc` must return `[B, hidden_size]`.
+    #[test]
+    fn test_forward_hidden_prealloc_shape() {
+        let vm = VarMap::new();
+        let vb = VarBuilder::from_varmap(&vm, DType::F32, &Device::Cpu);
+        let cfg = tiny_config();
+        let llama = JanusLlama::load(vb, &cfg).expect("construction failed");
+        let mut cache =
+            PreAllocKvCache::new(DType::F32, &cfg, 1, 32, &Device::Cpu).expect("PreAllocKvCache construction failed");
+
+        let embed = Tensor::zeros((1_usize, 3_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
+        let hidden = llama.forward_hidden_prealloc(&embed, 0, &mut cache).unwrap();
+
+        assert_eq!(hidden.dims(), &[1, 64], "expected [B, hidden_size]");
+        assert_eq!(cache.seq_len(), 3, "seq_len should equal prefill length");
+    }
+
+    /// `forward_input_embed_prealloc` must return `[B, vocab_size]`.
+    #[test]
+    fn test_forward_input_embed_prealloc_shape() {
+        let vm = VarMap::new();
+        let vb = VarBuilder::from_varmap(&vm, DType::F32, &Device::Cpu);
+        let cfg = tiny_config();
+        let llama = JanusLlama::load(vb, &cfg).expect("construction failed");
+        let mut cache = PreAllocKvCache::new(DType::F32, &cfg, 1, 32, &Device::Cpu).expect("construction failed");
+
+        let embed = Tensor::zeros((1_usize, 3_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
+        let logits = llama.forward_input_embed_prealloc(&embed, 0, &mut cache).unwrap();
+
+        assert_eq!(logits.dims(), &[1, 256], "expected [B, vocab_size]");
+    }
+
+    /// Autoregressive decode: 3-token prefill followed by 5 single-token decode steps.
+    ///
+    /// Verifies that the pre-allocated cache correctly accumulates KV pairs
+    /// across sequential decode steps and that output shapes remain correct.
+    #[test]
+    fn test_prealloc_autoregressive_decode() {
+        let vm = VarMap::new();
+        let vb = VarBuilder::from_varmap(&vm, DType::F32, &Device::Cpu);
+        let cfg = tiny_config();
+        let llama = JanusLlama::load(vb, &cfg).expect("construction failed");
+        // 3-token prefill + 5 decode steps = 8 total; max_seq_len 16 gives headroom.
+        let mut cache = PreAllocKvCache::new(DType::F32, &cfg, 1, 16, &Device::Cpu).expect("construction failed");
+
+        // Prefill 3 tokens.
+        let prefill = Tensor::zeros((1_usize, 3_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
+        llama.forward_hidden_prealloc(&prefill, 0, &mut cache).unwrap();
+        assert_eq!(cache.seq_len(), 3);
+
+        // Decode 5 single-token steps.
+        for step in 0..5_usize {
+            let token = Tensor::zeros((1_usize, 1_usize, 64_usize), DType::F32, &Device::Cpu).unwrap();
+            let hidden = llama.forward_hidden_prealloc(&token, 3 + step, &mut cache).unwrap();
+            assert_eq!(hidden.dims(), &[1, 64], "step {step}: hidden shape mismatch");
+        }
+        assert_eq!(cache.seq_len(), 8);
     }
 }

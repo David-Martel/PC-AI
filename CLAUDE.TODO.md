@@ -1,6 +1,78 @@
+# PC_AI Development TODO
+
+> **Updated:** 2026-03-19 | **Status:** Active Development
+> **Coordinating agents:** Claude, Codex, Jules (53 sessions complete)
+
+---
+
+## LLM Inference Optimization (Priority: HIGH)
+
+### Current Performance
+- Janus-Pro-1B: **30 tok/s** on RTX 2000 Ada (was 17.9, 1.67x improvement)
+- Target: **100+ tok/s** single-request, **250+ tok/s** with all optimizations
+
+### Phase 1: Code-Level Fixes — COMPLETE (1.67x achieved)
+- [x] Flash attention code path (`#[cfg(feature = "flash-attn")]`)
+- [x] Remove .contiguous() after KV cache cat (27,648 GPU copies eliminated)
+- [x] GPU-side argmax (576 PCIe sync stalls eliminated)
+- [x] from_slice instead of from_vec (cudaMalloc pressure reduced)
+- [x] KV cache axis bug fixed (narrow was using wrong dimension)
+- [x] FunctionGemma flash-attn enabled as default feature
+
+### Phase 2: cuDNN Integration — IN PROGRESS
+- [ ] Fix cuDNN build error (candle-core/cudnn feature)
+- [ ] Benchmark cuDNN SDPA vs naive attention
+- [ ] Note: flash-attn does NOT compile on Windows (Linux-only)
+
+### Phase 3: Quantization — TODO
+- [ ] NVFP4 weight quantization (native on RTX 5060 Ti Blackwell)
+- [ ] FP8 KV cache quantization (50% memory reduction)
+- [ ] AWQ quantization (Marlin kernel, 2.6x vs GPTQ)
+
+### Phase 4: System-Level — TODO
+- [ ] Pre-allocated KV cache ring buffer (eliminate 95GB bandwidth waste)
+- [ ] CUDA Graphs (eliminate 20-30% CPU launch overhead)
+- [ ] Memory pinning for faster PCIe transfers
+
+### Phase 5: Advanced — TODO
+- [ ] Continuous batching via candle-vllm (2-4x throughput)
+- [ ] Speculative decoding with draft model (2-3x latency)
+- [ ] Tensor parallelism across both GPUs (TP=2)
+- [ ] Prefix caching for repeated prompts (2-57x cached)
+
+### Understanding Pipeline Fix — TODO
+- [ ] Understanding outputs `<image>` VQ tokens instead of text
+- [ ] Root cause: `<begin_of_image>` injection in understand mode
+- [ ] Fix prompt template in understand.rs
+
+---
+
+## Architectural Enhancements — TODO
+
+### Build System
+- [x] Build.ps1 defaults: cuda + cudnn + flash-attn + nvml + upscale
+- [x] cuda-optimized meta-feature for pcai-media-server
+- [x] ring crate eliminated (hf-hub 0.5 async-only)
+- [ ] Fix cuDNN build integration
+- [ ] Add CUDA build caching to CI
+
+### Driver & SDK Management
+- [ ] GPU driver update (582.41 → 591.55)
+- [ ] Nsight Graphics 2025.5 installation
+- [ ] nvCOMP installation (GPU compression)
+
+### Testing & Validation
+- [x] 468/638 Pester tests passing (0 regressions)
+- [x] 73/73 Rust NVML tests passing
+- [x] 37/37 Rust media model tests passing
+- [ ] Pester test mock for native exe (Windows limitation)
+- [ ] Full Pester test coverage for install flows
+
+---
+
 # NVIDIA Software Installer Framework — Implementation Plan
 
-> **Created:** 2026-03-18 | **Status:** Phase 1 In Progress
+> **Created:** 2026-03-18 | **Status:** Phases 1-3 COMPLETE
 > **Coordinating agents:** Claude (module + config), Codex (Build.ps1 + smoke tests)
 
 ## Overview

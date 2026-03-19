@@ -453,15 +453,21 @@ impl UnderstandingPipeline {
                 .map_err(|e| anyhow::anyhow!("step {step}: forward_input_embed failed: {e}"))?;
             pos += 1;
 
-            // C. Sample next token (greedy or temperature).
+            // C. Apply repetition penalty: reduce logits for previously generated tokens.
+            //    This prevents the model from falling into repetition loops (e.g.,
+            //    "Apple Apple Apple...") that are common with small 1B models.
+            let logits_penalized = apply_repetition_penalty(&logits_last, &generated_ids, 1.2)
+                .with_context(|| format!("step {step}: repetition penalty failed"))?;
+
+            // D. Sample next token (greedy or temperature).
             let next_token = if temperature <= 0.01 {
-                greedy_argmax(&logits_last).with_context(|| format!("step {step}: greedy_argmax failed"))?
+                greedy_argmax(&logits_penalized).with_context(|| format!("step {step}: greedy_argmax failed"))?
             } else {
-                temperature_sample(&logits_last, temperature as f64)
+                temperature_sample(&logits_penalized, temperature as f64)
                     .with_context(|| format!("step {step}: temperature_sample failed"))?
             };
 
-            // D. Stop on EOS.
+            // E. Stop on EOS.
             if next_token == EOS_TOKEN_ID {
                 tracing::debug!(step, "EOS token reached; stopping generation");
                 break;
@@ -539,6 +545,49 @@ pub fn preprocess_image(image: &DynamicImage, target_size: usize, device: &Devic
 // ---------------------------------------------------------------------------
 // Sampling helpers
 // ---------------------------------------------------------------------------
+
+/// Apply a multiplicative repetition penalty to logits for previously generated tokens.
+///
+/// For each token ID in `generated_ids`, divides the corresponding logit by
+/// `penalty` (if positive) or multiplies by `penalty` (if negative).  Standard
+/// value is 1.2 (from Keskar et al. "CTRL").
+///
+/// `logits` shape: `[1, vocab_size]`.  Modifies on CPU to avoid launching
+/// per-element CUDA kernels.
+fn apply_repetition_penalty(logits: &Tensor, generated_ids: &[u32], penalty: f64) -> Result<Tensor> {
+    if generated_ids.is_empty() || (penalty - 1.0).abs() < 1e-6 {
+        return Ok(logits.clone());
+    }
+
+    // Transfer logits to CPU for scalar modification, then move back.
+    let device = logits.device().clone();
+    let mut logits_vec: Vec<f32> = logits
+        .to_dtype(DType::F32)
+        .context("repetition_penalty: dtype cast")?
+        .flatten_all()
+        .context("repetition_penalty: flatten")?
+        .to_vec1::<f32>()
+        .context("repetition_penalty: to_vec1")?;
+
+    let vocab_size = logits_vec.len();
+    // Collect unique token IDs to penalise.
+    let unique_ids: std::collections::HashSet<u32> = generated_ids.iter().copied().collect();
+
+    for &token_id in &unique_ids {
+        let idx = token_id as usize;
+        if idx >= vocab_size {
+            continue;
+        }
+        // Divide positive logits, multiply negative logits (preserves ordering).
+        if logits_vec[idx] > 0.0 {
+            logits_vec[idx] /= penalty as f32;
+        } else {
+            logits_vec[idx] *= penalty as f32;
+        }
+    }
+
+    Tensor::from_slice(&logits_vec, logits.dims(), &device).context("repetition_penalty: rebuild tensor")
+}
 
 /// Greedy argmax: return the index of the maximum logit in the first row.
 ///

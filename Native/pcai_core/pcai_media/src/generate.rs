@@ -736,19 +736,15 @@ pub fn tensor_to_image(tensor: &Tensor) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>>
 
 /// Sample one token index per row from a probability matrix.
 ///
-/// `probs` must have shape `[batch, vocab_size]` with values in `[0, 1]`
-/// summing (approximately) to 1 per row.
+/// `probs` must have shape `[batch, vocab_size]` or `[vocab_size]` with
+/// values in `[0, 1]` summing (approximately) to 1 per row.
 ///
-/// Fix 2: GPU-side sampling.  The image generation pipeline uses a fixed
-/// temperature (`self.config.temperature`) that is almost always 1.0 and
-/// uses the full probability distribution.  Since `candle-flash-attn` targets
-/// the decode-only path we use GPU argmax for the greedy / near-greedy case
-/// (temperature ≤ 0.01) and keep the stochastic CDF walk for higher
-/// temperatures — but we collapse it to a single `Tensor::argmax` call on
-/// the image generation loop which always runs with temperature = 1.0 and
-/// does not require a true multinomial draw (the VQ codebook distribution is
-/// already well-calibrated).  This eliminates the full-vocabulary `to_vec1`
-/// copy (16 384 f32 values) and the CDF walk from every one of the 576 steps.
+/// Dispatch strategy:
+/// - **CUDA device**: delegates to [`gpu_multinomial_sample`], which uses the
+///   Gumbel-max trick entirely on-device and only transfers one `u32` index
+///   per batch row back to the host (~4 bytes vs ~16 KB for the full vocab).
+/// - **CPU / other**: falls back to [`cpu_multinomial_sample`], the original
+///   inverse-CDF walk.
 ///
 /// Returns a `Vec<u32>` of length `batch` containing the sampled token for
 /// each row.
@@ -757,37 +753,146 @@ pub fn tensor_to_image(tensor: &Tensor) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>>
 ///
 /// Returns an error on any candle tensor operation failure.
 fn multinomial_sample(probs: &Tensor) -> Result<Vec<u32>> {
-    // True multinomial sampling via CPU-side inverse CDF walk.
-    //
-    // Image generation REQUIRES stochastic sampling — greedy argmax causes
-    // the VQ codebook to collapse to a single repeated token, producing
-    // solid-color images.  The probability transfer cost (~16 KB per step
-    // for the 16384-token VQ vocab) is acceptable for the 576-step loop.
-
-    // Handle both 1D [vocab] and 2D [batch, vocab] tensors.
+    // Normalise to 2D [batch, vocab] regardless of input rank.
     let probs_2d = if probs.dims().len() == 1 {
         probs.unsqueeze(0).context("unsqueeze 1D probs to 2D")?
     } else {
         probs.clone()
     };
+
+    // Route to GPU path on CUDA; fall back to CPU CDF walk elsewhere.
+    match probs_2d.device() {
+        Device::Cuda(_) => gpu_multinomial_sample(&probs_2d),
+        _ => cpu_multinomial_sample(&probs_2d),
+    }
+}
+
+/// GPU-side multinomial sampling via the Gumbel-max trick.
+///
+/// Avoids transferring the full probability distribution (≈16 KB per step for
+/// the 16 384-token VQ vocab) from GPU to CPU.  Instead, the entire sampling
+/// computation runs on-device and only the argmax index (4 bytes per batch
+/// row) is transferred back.
+///
+/// # Algorithm — Gumbel-max trick
+///
+/// For each batch row the following is computed entirely on GPU:
+///
+/// ```text
+/// u  ~ Uniform(0, 1)          // candle Tensor::rand on CUDA
+/// g  = -ln(-ln(u))            // standard Gumbel noise
+/// x  = ln(probs) + g          // perturbed log-probabilities
+/// k  = argmax(x)              // sampled token
+/// ```
+///
+/// This is mathematically equivalent to drawing `k ~ Categorical(probs)`.
+///
+/// # Arguments
+///
+/// * `probs_2d` — float tensor `[batch, vocab_size]` on a CUDA device,
+///   values in `[0, 1]` approximately summing to 1 per row.  Must be 2D.
+///
+/// # Returns
+///
+/// `Vec<u32>` of length `batch` — one sampled token index per row.
+///
+/// # Errors
+///
+/// Returns an error on any candle operation failure (log, rand, argmax, etc.).
+fn gpu_multinomial_sample(probs_2d: &Tensor) -> Result<Vec<u32>> {
+    let shape = probs_2d.dims();
+    let device = probs_2d.device();
+
+    // 1. log(probs): clamp to avoid -inf from exact zero probabilities.
+    //    Epsilon = 1e-10 in F32 keeps the log finite without biasing the
+    //    distribution meaningfully — any token with p < 1e-10 is essentially
+    //    never sampled.
+    let log_probs = probs_2d
+        .to_dtype(DType::F32)
+        .context("gpu_multinomial_sample: cast to f32")?
+        .clamp(1e-10_f64, 1.0_f64)
+        .context("gpu_multinomial_sample: clamp probs")?
+        .log()
+        .context("gpu_multinomial_sample: log(probs)")?;
+
+    // 2. u ~ Uniform(0, 1) on the same device as probs.
+    //    Tensor::rand(lo, hi, shape, device) is available in candle-core 0.9.
+    let u = Tensor::rand(0.0_f32, 1.0_f32, shape, device).context("gpu_multinomial_sample: Tensor::rand failed")?;
+
+    // 3. Gumbel noise: g = -ln(-ln(u)).
+    //    Clamp u away from 0 and 1 before log to avoid ±inf.
+    let eps = 1e-10_f64;
+    let g = u
+        .clamp(eps, 1.0 - eps)
+        .context("gpu_multinomial_sample: clamp u")?
+        .log()
+        .context("gpu_multinomial_sample: log(u)")?
+        .neg()
+        .context("gpu_multinomial_sample: neg inner log")?
+        .clamp(eps, f64::MAX)
+        .context("gpu_multinomial_sample: clamp -log(u)")?
+        .log()
+        .context("gpu_multinomial_sample: log(-log(u))")?
+        .neg()
+        .context("gpu_multinomial_sample: neg outer log")?;
+
+    // 4. Perturbed log-probabilities: x = log_probs + g.
+    let perturbed = (log_probs + g).context("gpu_multinomial_sample: log_probs + g")?;
+
+    // 5. argmax along vocab dim — still on GPU.
+    let indices = perturbed
+        .argmax(candle_core::D::Minus1)
+        .context("gpu_multinomial_sample: argmax")?;
+
+    // 6. Transfer only the index tensor to CPU (4 bytes × batch_size).
+    let indices_cpu = indices
+        .to_device(&Device::Cpu)
+        .context("gpu_multinomial_sample: index to CPU")?;
+
+    let batch_size = shape[0];
+    let mut tokens = Vec::with_capacity(batch_size);
+    for b in 0..batch_size {
+        let idx = indices_cpu
+            .i(b)
+            .context("gpu_multinomial_sample: index into result")?
+            .to_scalar::<u32>()
+            .context("gpu_multinomial_sample: scalar extraction")?;
+        tokens.push(idx);
+    }
+
+    Ok(tokens)
+}
+
+/// CPU-side multinomial sampling via inverse-CDF walk.
+///
+/// Transfers the full probability distribution from the tensor device to CPU
+/// and performs a single linear scan per batch row.  Used as a fallback when
+/// the tensor is not on CUDA.
+///
+/// # Arguments
+///
+/// * `probs_2d` — float tensor `[batch, vocab_size]`, values in `[0, 1]`.
+///
+/// # Errors
+///
+/// Returns an error on any candle tensor operation failure.
+fn cpu_multinomial_sample(probs_2d: &Tensor) -> Result<Vec<u32>> {
     let (batch_size, vocab) = probs_2d.dims2().with_context(|| {
         format!(
-            "probs must be 1D or 2D, got shape {:?} dtype {:?}",
-            probs.dims(),
-            probs.dtype()
+            "cpu_multinomial_sample: expected 2D tensor, got shape {:?}",
+            probs_2d.dims()
         )
     })?;
 
-    // Transfer probabilities to CPU for CDF walk.
-    let probs_cpu = probs_2d.to_dtype(DType::F32).context("cast to f32")?;
-    let probs_vec: Vec<f32> = probs_cpu
+    let probs_vec: Vec<f32> = probs_2d
+        .to_dtype(DType::F32)
+        .context("cpu_multinomial_sample: cast to f32")?
         .flatten_all()
-        .context("flatten failed")?
+        .context("cpu_multinomial_sample: flatten")?
         .to_vec1::<f32>()
-        .context("to_vec1 failed")?;
+        .context("cpu_multinomial_sample: to_vec1")?;
 
     let mut tokens = Vec::with_capacity(batch_size);
-
     for b in 0..batch_size {
         let row = &probs_vec[b * vocab..(b + 1) * vocab];
         let u = rand_val();
@@ -925,5 +1030,111 @@ mod tests {
         let probs = Tensor::from_vec(data, (2_usize, 2_usize), &Device::Cpu).unwrap();
         let tokens = multinomial_sample(&probs).unwrap();
         assert_eq!(tokens.len(), 2, "expected one token per batch row");
+    }
+
+    // -----------------------------------------------------------------------
+    // gpu_multinomial_sample / cpu_multinomial_sample tests
+    // -----------------------------------------------------------------------
+
+    /// `cpu_multinomial_sample` on a one-hot distribution must always return
+    /// the hot index.
+    #[test]
+    fn test_cpu_multinomial_one_hot() {
+        let data: Vec<f32> = vec![0.0, 0.0, 1.0, 0.0];
+        let probs = Tensor::from_vec(data, (1_usize, 4_usize), &Device::Cpu).unwrap();
+        for _ in 0..20 {
+            let tokens = cpu_multinomial_sample(&probs).unwrap();
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0], 2, "one-hot cpu sample must return index 2");
+        }
+    }
+
+    /// `cpu_multinomial_sample` must return one token per batch row and each
+    /// token must be a valid vocabulary index.
+    #[test]
+    fn test_cpu_multinomial_batch() {
+        // 3 rows, 5 vocab elements — uniform distribution.
+        let data: Vec<f32> = vec![0.2_f32, 0.2, 0.2, 0.2, 0.2].repeat(3);
+        let probs = Tensor::from_vec(data, (3_usize, 5_usize), &Device::Cpu).unwrap();
+        let tokens = cpu_multinomial_sample(&probs).unwrap();
+        assert_eq!(tokens.len(), 3);
+        for &t in &tokens {
+            assert!(t < 5, "sampled token {t} out of vocab range 0..5");
+        }
+    }
+
+    /// `gpu_multinomial_sample` on a CPU-backed tensor (no CUDA device needed)
+    /// must return the sole non-zero index from a one-hot distribution.
+    ///
+    /// log(1.0) = 0 dominates log(~0) ≈ −∞ even after Gumbel perturbation.
+    #[test]
+    fn test_gpu_multinomial_one_hot_cpu_device() {
+        let data: Vec<f32> = vec![1.0, 0.0, 0.0, 0.0];
+        let probs = Tensor::from_vec(data, (1_usize, 4_usize), &Device::Cpu).unwrap();
+        for _ in 0..30 {
+            let tokens = gpu_multinomial_sample(&probs).unwrap();
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(
+                tokens[0], 0,
+                "Gumbel-max on one-hot must select the sole non-zero index"
+            );
+        }
+    }
+
+    /// `gpu_multinomial_sample` must return one index per batch row within the
+    /// valid vocab range.
+    #[test]
+    fn test_gpu_multinomial_batch_range() {
+        let vocab = 8_usize;
+        let batch = 4_usize;
+        // Build a simple normalised distribution: each row sums to 1.
+        let row: Vec<f32> = (1..=vocab as u32)
+            .map(|i| i as f32 / (vocab * (vocab + 1) / 2) as f32)
+            .collect();
+        let data: Vec<f32> = row.iter().copied().cycle().take(batch * vocab).collect();
+        let probs = Tensor::from_vec(data, (batch, vocab), &Device::Cpu).unwrap();
+        let tokens = gpu_multinomial_sample(&probs).unwrap();
+        assert_eq!(tokens.len(), batch);
+        for &t in &tokens {
+            assert!((t as usize) < vocab, "sampled token {t} out of vocab range 0..{vocab}");
+        }
+    }
+
+    /// `gpu_multinomial_sample` must produce varying results from a uniform
+    /// distribution — Gumbel perturbation must introduce variance.
+    #[test]
+    fn test_gpu_multinomial_stochastic() {
+        // p(all 50 draws identical from 8-token uniform) ≈ 8 * (1/8)^50 ≈ 0.
+        let data: Vec<f32> = vec![0.125_f32; 8];
+        let probs = Tensor::from_vec(data, (1_usize, 8_usize), &Device::Cpu).unwrap();
+        let results: Vec<u32> = (0..50).map(|_| gpu_multinomial_sample(&probs).unwrap()[0]).collect();
+        let unique: std::collections::HashSet<u32> = results.iter().copied().collect();
+        assert!(
+            unique.len() > 1,
+            "gpu_multinomial_sample produced identical tokens from a uniform distribution"
+        );
+    }
+
+    /// `multinomial_sample` dispatches to CPU path on a CPU tensor and returns
+    /// a valid result for a one-hot input.
+    #[test]
+    fn test_multinomial_sample_dispatch_cpu() {
+        let data: Vec<f32> = vec![0.0, 0.0, 0.0, 0.0, 1.0];
+        let probs = Tensor::from_vec(data, (1_usize, 5_usize), &Device::Cpu).unwrap();
+        for _ in 0..10 {
+            let tokens = multinomial_sample(&probs).unwrap();
+            assert_eq!(tokens[0], 4, "one-hot dispatch must return index 4");
+        }
+    }
+
+    /// `multinomial_sample` on a 1D tensor must be normalised to 2D internally
+    /// without panicking and return exactly one token.
+    #[test]
+    fn test_multinomial_sample_1d_input() {
+        let data: Vec<f32> = vec![0.1, 0.5, 0.4];
+        let probs = Tensor::from_vec(data, (3_usize,), &Device::Cpu).unwrap();
+        let tokens = multinomial_sample(&probs).unwrap();
+        assert_eq!(tokens.len(), 1, "1D input should produce exactly one token");
+        assert!(tokens[0] < 3, "sampled token out of range");
     }
 }

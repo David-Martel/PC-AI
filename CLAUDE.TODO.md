@@ -8,10 +8,12 @@
 ## LLM Inference Optimization (Priority: HIGH)
 
 ### Current Performance
-- Janus-Pro-1B: **43.8 tok/s** on RTX 2000 Ada (was 17.9 baseline, **2.45x** improvement)
-- Previous: 30 tok/s (Phase 1 only), now 43.8 tok/s (Phases 1-4)
-- Benchmark: 4 runs = 42.5, 46.7, 41.0, 45.2 tok/s (std 2.6)
-- Target: **60+ tok/s** with CUDA Graphs, **100+ tok/s** with quantization
+- Janus-Pro-1B: **36 tok/s** on RTX 2000 Ada (was 17.9 baseline, **2.0x** improvement)
+- Previous: 30 tok/s (Phase 1), 36 tok/s (Phases 1-4 with correct multinomial sampling)
+- Note: 43.8 tok/s was measured with broken argmax sampling (solid-color images)
+- Quality: 4/5 prompts produce excellent photorealistic images
+- Understanding: correctly describes generated images (repetition penalty needed)
+- Target: **50+ tok/s** with GPU Gumbel sampling, **100+ tok/s** with multi-token prediction
 
 ### Phase 1: Code-Level Fixes — COMPLETE (1.67x achieved)
 - [x] Flash attention code path (`#[cfg(feature = "flash-attn")]`)

@@ -57,12 +57,3 @@ ffi = []
 [build-dependencies]
 chrono = "0.4"
 
-[[bin]]
-name = "pcai-llamacpp"
-path = "src/bin/llamacpp.rs"
-required-features = ["llamacpp", "server"]
-
-[[bin]]
-name = "pcai-mistralrs"
-path = "src/bin/mistralrs.rs"
-required-features = ["mistralrs-backend", "server"]

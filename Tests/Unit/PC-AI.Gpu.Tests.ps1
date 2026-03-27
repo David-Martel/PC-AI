@@ -198,10 +198,10 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
             Mock -CommandName Get-TensorRtVersionFromHeader -ModuleName 'PC-AI.Gpu' -MockWith { '10.9.0' }
             Mock -CommandName Get-ChildItem -ModuleName 'PC-AI.Gpu' -MockWith {
                 @(
-                    [pscustomobject]@{ Name = 'v13.1'; PSIsContainer = $true },
-                    [pscustomobject]@{ Name = 'v13.2'; PSIsContainer = $true }
+                    [pscustomobject]@{ Name = 'v13.1' },
+                    [pscustomobject]@{ Name = 'v13.2' }
                 )
-            } -ParameterFilter { $Path -eq 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA' -and $Directory }
+            } -ParameterFilter { $Path -match 'CUDA' }
         }
 
         It 'reports Current for the active CUDA install even with side-by-side versions present' {

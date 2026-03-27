@@ -40,7 +40,7 @@ mistralrs-core = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile = "3.27"
-dirs = "5.0"
+dirs = "6.0"
 
 [features]
 default = ["server"]

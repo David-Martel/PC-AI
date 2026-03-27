@@ -790,11 +790,16 @@ impl GenerationPipeline {
                                     .map_err(|e| anyhow::anyhow!("step {step}: uncond row {i}: {e}"))
                             })
                             .collect::<Result<_>>()?;
-                        (Tensor::cat(&cond_rows, 0)?, Tensor::cat(&uncond_rows, 0)?)
+                            (
+                                Tensor::cat(&cond_rows, 0).with_context(|| format!("step {step}: concat cond_rows"))?,
+                                Tensor::cat(&uncond_rows, 0).with_context(|| format!("step {step}: concat uncond_rows"))?,
+                            )
                     };
                     // guided = uncond + guidance_scale * (cond - uncond)
-                    let diff = (cond.clone() - uncond.clone())?;
-                    (uncond + (diff * guidance_scale)?)?
+                    let diff = (&cond - &uncond)
+                        .with_context(|| format!("step {step}: CFG subtract failed"))?;
+                    (&uncond + (diff * guidance_scale).with_context(|| format!("step {step}: CFG scale failed"))?)
+                        .with_context(|| format!("step {step}: CFG add failed"))?
                 } else {
                     // No CFG: use logits directly.
                     img_logits
@@ -885,9 +890,10 @@ impl GenerationPipeline {
 
         // ── 7. Denormalise from [-1, 1] to [0, 255] U8 ───────────────────────
         // formula: pixel = (x / 2.0 + 0.5) * 255, clamped to [0, 255]
-        let pixel_tensor = ((pixel_tensor / 2.0_f64)? + 0.5_f64)?;
-        let pixel_tensor = (pixel_tensor * 255.0_f64)?
-            .clamp(0.0_f64, 255.0_f64)?
+        let pixel_tensor = ((pixel_tensor / 2.0_f64).context("divide by 2.0 failed")? + 0.5_f64).context("add 0.5 failed")?;
+        let pixel_tensor = (pixel_tensor * 255.0_f64).context("multiply by 255.0 failed")?
+            .clamp(0.0_f64, 255.0_f64).context("clamp failed")?
+            .round().context("round failed")?
             .to_dtype(DType::U8)
             .context("dtype conversion to U8 failed")?;
 
@@ -1053,10 +1059,12 @@ impl GenerationPipeline {
                     let embed = self
                         .embed_image_token(draft_tok, batch_size)
                         .with_context(|| format!("speculative draft: embed token at di={di}"))?;
-                    draft_embeds_list.push(embed.clone());
 
                     if di + 1 < k {
+                        draft_embeds_list.push(embed.clone());
                         draft_input = embed;
+                    } else {
+                        draft_embeds_list.push(embed);
                     }
                 }
             }
@@ -1224,18 +1232,32 @@ impl GenerationPipeline {
     ) -> Result<u32> {
         let img_logits = self
             .model
-            .project_to_image_vocab(&hidden.unsqueeze(1)?)
+            .project_to_image_vocab(&hidden.unsqueeze(1).context("sample_from_hidden: unsqueeze failed")?)
             .context("sample_from_hidden: project_to_image_vocab")?
             .squeeze(1)
             .context("sample_from_hidden: squeeze")?;
 
         let logits_for_sampling = if use_cfg && batch_size >= 2 {
-            let cond = img_logits.i(0_usize)?.unsqueeze(0)?;
-            let uncond = img_logits.i(1_usize)?.unsqueeze(0)?;
-            let diff = (cond.clone() - uncond.clone())?;
-            (uncond + (diff * guidance_scale)?)?
+            let cond = img_logits
+                .i(0_usize)
+                .context("sample_from_hidden: cond slice")?
+                .unsqueeze(0)
+                .context("sample_from_hidden: cond unsqueeze")?;
+            let uncond = img_logits
+                .i(1_usize)
+                .context("sample_from_hidden: uncond slice")?
+                .unsqueeze(0)
+                .context("sample_from_hidden: uncond unsqueeze")?;
+            let diff = (&cond - &uncond)
+                .context("sample_from_hidden: CFG subtract failed")?;
+            (&uncond + (diff * guidance_scale).context("sample_from_hidden: CFG scale failed")?)
+                .context("sample_from_hidden: CFG add failed")?
         } else {
-            img_logits.i(0_usize)?.unsqueeze(0)?
+            img_logits
+                .i(0_usize)
+                .context("sample_from_hidden: img_logits slice")?
+                .unsqueeze(0)
+                .context("sample_from_hidden: img_logits unsqueeze")?
         };
 
         let scaled = if (temperature - 1.0_f64).abs() > 1e-6 {
@@ -1266,18 +1288,32 @@ impl GenerationPipeline {
     ) -> Result<u32> {
         let img_logits = self
             .model
-            .project_to_image_vocab(&hidden.unsqueeze(1)?)
+            .project_to_image_vocab(&hidden.unsqueeze(1).context("greedy_from_hidden: unsqueeze failed")?)
             .context("greedy_from_hidden: project_to_image_vocab")?
             .squeeze(1)
             .context("greedy_from_hidden: squeeze")?;
 
         let logits = if use_cfg && batch_size >= 2 {
-            let cond = img_logits.i(0_usize)?.unsqueeze(0)?;
-            let uncond = img_logits.i(1_usize)?.unsqueeze(0)?;
-            let diff = (cond.clone() - uncond.clone())?;
-            (uncond + (diff * guidance_scale)?)?
+            let cond = img_logits
+                .i(0_usize)
+                .context("greedy_from_hidden: cond slice")?
+                .unsqueeze(0)
+                .context("greedy_from_hidden: cond unsqueeze")?;
+            let uncond = img_logits
+                .i(1_usize)
+                .context("greedy_from_hidden: uncond slice")?
+                .unsqueeze(0)
+                .context("greedy_from_hidden: uncond unsqueeze")?;
+            let diff = (&cond - &uncond)
+                .context("greedy_from_hidden: CFG subtract failed")?;
+            (&uncond + (diff * guidance_scale).context("greedy_from_hidden: CFG scale failed")?)
+                .context("greedy_from_hidden: CFG add failed")?
         } else {
-            img_logits.i(0_usize)?.unsqueeze(0)?
+            img_logits
+                .i(0_usize)
+                .context("greedy_from_hidden: img_logits slice")?
+                .unsqueeze(0)
+                .context("greedy_from_hidden: img_logits unsqueeze")?
         };
 
         let idx = logits
@@ -1373,16 +1409,18 @@ pub fn tensor_to_image(tensor: &Tensor) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>>
 /// Returns an error on any candle tensor operation failure.
 fn multinomial_sample(probs: &Tensor) -> Result<Vec<u32>> {
     // Normalise to 2D [batch, vocab] regardless of input rank.
+    let probs_2d_owned;
     let probs_2d = if probs.dims().len() == 1 {
-        probs.unsqueeze(0).context("unsqueeze 1D probs to 2D")?
+        probs_2d_owned = probs.unsqueeze(0).context("unsqueeze 1D probs to 2D")?;
+        &probs_2d_owned
     } else {
-        probs.clone()
+        probs
     };
 
     // Route to GPU path on CUDA; fall back to CPU CDF walk elsewhere.
     match probs_2d.device() {
-        Device::Cuda(_) => gpu_multinomial_sample(&probs_2d),
-        _ => cpu_multinomial_sample(&probs_2d),
+        Device::Cuda(_) => gpu_multinomial_sample(probs_2d),
+        _ => cpu_multinomial_sample(probs_2d),
     }
 }
 
@@ -1755,6 +1793,36 @@ mod tests {
         let tokens = multinomial_sample(&probs).unwrap();
         assert_eq!(tokens.len(), 1, "1D input should produce exactly one token");
         assert!(tokens[0] < 3, "sampled token out of range");
+    }
+
+    // -----------------------------------------------------------------------
+    // GGUF quantization path routing tests
+    // -----------------------------------------------------------------------
+
+    /// `GenerationPipeline::load` must route correctly to `QuantizedJanusLlama`
+    /// when `gguf_path` is specified in the config, and appropriately fail with
+    /// a parsing error on a non-GGUF dummy file.
+    #[test]
+    fn test_gguf_quantization_path_routing() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let gguf_path = temp_dir.path().join("dummy.gguf");
+        std::fs::write(&gguf_path, "not a valid gguf file").unwrap();
+
+        let cfg = crate::config::PipelineConfig {
+            model: temp_dir.path().to_string_lossy().to_string(),
+            gguf_path: Some(gguf_path.to_string_lossy().to_string()),
+            ..crate::config::PipelineConfig::default()
+        };
+
+        let result = GenerationPipeline::load(cfg);
+        assert!(result.is_err(), "Expected load to fail with invalid GGUF");
+        let err_msg = result.err().unwrap().to_string();
+
+        assert!(
+            err_msg.contains("failed to parse GGUF header"),
+            "Expected GGUF parsing error, but got: {}",
+            err_msg
+        );
     }
 
     // -----------------------------------------------------------------------

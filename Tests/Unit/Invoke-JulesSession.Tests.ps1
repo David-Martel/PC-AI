@@ -40,28 +40,28 @@ Describe 'New-JulesSessionBody' {
 
 Describe 'Get-JulesApiKey' {
     It 'returns env var when set' {
-        $saved = $env:JULES_API_KEY
+        $saved = [Environment]::GetEnvironmentVariable('JULES_API_KEY')
         try {
-            $env:JULES_API_KEY = 'test-key-abc'
+            [Environment]::SetEnvironmentVariable('JULES_API_KEY', 'test-key-abc')
             Get-JulesApiKey | Should -Be 'test-key-abc'
-        } finally { $env:JULES_API_KEY = $saved }
+        } finally { [Environment]::SetEnvironmentVariable('JULES_API_KEY', $saved) }
     }
     It 'returns null when nothing available' {
-        $saved = $env:JULES_API_KEY
+        $saved = [Environment]::GetEnvironmentVariable('JULES_API_KEY')
         try {
             Remove-Item env:JULES_API_KEY -ErrorAction SilentlyContinue
             Get-JulesApiKey | Should -BeNullOrEmpty
-        } finally { if ($saved) { $env:JULES_API_KEY = $saved } }
+        } finally { if ($saved) { [Environment]::SetEnvironmentVariable('JULES_API_KEY', $saved) } }
     }
 }
 
 Describe 'Get-RequiredApiKey' {
     It 'throws when key is missing' {
-        $saved = $env:JULES_API_KEY
+        $saved = [Environment]::GetEnvironmentVariable('JULES_API_KEY')
         try {
             Remove-Item env:JULES_API_KEY -ErrorAction SilentlyContinue
             { Get-RequiredApiKey -ForAction Test } | Should -Throw '*JULES_API_KEY*'
-        } finally { if ($saved) { $env:JULES_API_KEY = $saved } }
+        } finally { if ($saved) { [Environment]::SetEnvironmentVariable('JULES_API_KEY', $saved) } }
     }
 }
 

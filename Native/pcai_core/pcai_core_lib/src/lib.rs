@@ -24,6 +24,7 @@ pub mod hash;
 pub mod json;
 pub mod path;
 pub mod performance;
+pub mod process_lasso;
 pub mod prompt_engine;
 pub mod result;
 pub mod search;

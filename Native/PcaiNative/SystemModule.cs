@@ -192,6 +192,25 @@ namespace PcaiNative
         // Utility Functions
         // ====================================================================
 
+        /// <summary>
+        /// Normalizes a path string for cross-platform compatibility natively.
+        /// </summary>
+        public static string? NormalizePath(string path, uint style = 0)
+        {
+            if (!IsAvailable) return null;
+
+            var buffer = NativeCore.pcai_normalize_path(path, style);
+            try
+            {
+                var json = buffer.ToManagedString();
+                if (string.IsNullOrEmpty(json)) return null;
+                return json;
+            }
+            finally
+            {
+                NativeCore.pcai_free_string_buffer(ref buffer);
+            }
+        }
 
         /// <summary>
         /// Get the system module version.
@@ -218,16 +237,8 @@ namespace PcaiNative
         public static string? GetSystemTelemetryJson()
         {
             if (!IsAvailable) return null;
-            var ptr = NativeCore.pcai_get_system_telemetry_json();
-            if (ptr == IntPtr.Zero) return null;
-            try
-            {
-                return Marshal.PtrToStringUTF8(ptr);
-            }
-            finally
-            {
-                NativeCore.pcai_free_string(ptr);
-            }
+            using var ptr = NativeCore.pcai_get_system_telemetry_json();
+            return ptr.ToManagedString();
         }
 
         /// <summary>
@@ -236,16 +247,8 @@ namespace PcaiNative
         public static string? GetVmmHealthJson()
         {
             if (!IsAvailable) return null;
-            var ptr = NativeCore.pcai_get_vmm_health_json();
-            if (ptr == IntPtr.Zero) return null;
-            try
-            {
-                return Marshal.PtrToStringUTF8(ptr);
-            }
-            finally
-            {
-                NativeCore.pcai_free_string(ptr);
-            }
+            using var ptr = NativeCore.pcai_get_vmm_health_json();
+            return ptr.ToManagedString();
         }
 
         /// <summary>

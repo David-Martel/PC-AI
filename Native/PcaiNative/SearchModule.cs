@@ -388,8 +388,8 @@ public static class PcaiSearch
     {
         try
         {
-            var version = NativeCore.pcai_core_version();
-            return version != IntPtr.Zero;
+            using var version = NativeCore.pcai_core_version();
+            return !version.IsInvalid;
         }
         catch
         {
@@ -402,8 +402,8 @@ public static class PcaiSearch
     {
         try
         {
-            var ptr = NativeCore.pcai_core_version();
-            return Marshal.PtrToStringUTF8(ptr) ?? "unknown";
+            using var ptr = NativeCore.pcai_core_version();
+            return ptr.ToManagedString() ?? "unknown";
         }
         catch
         {
@@ -823,7 +823,9 @@ public static class PcaiSearch
     public static string GetDiagnostics()
     {
         if (!IsAvailable) return "Search module not available.";
-        return $"Search Module: Functional, Root: {NativeCore.pcai_fs_version()}";
+        using var versionPtr = NativeCore.pcai_search_version();
+        var versionStr = versionPtr.ToManagedString() ?? "unknown";
+        return $"Search Module: Functional, Root: {NativeCore.pcai_fs_version()}, Version: {versionStr}";
     }
 
     public static string? FindFilesJson(string? rootPath, string pattern, uint maxResults = 0)

@@ -15,10 +15,13 @@ internal static partial class NativeCore
     // ========================================================================
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_core_version();
+    internal static extern SafeRustStringHandle pcai_core_version();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern uint pcai_core_test();
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern SafeRustStringHandle pcai_search_version();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void pcai_free_string(IntPtr buffer);
@@ -33,17 +36,17 @@ internal static partial class NativeCore
     internal static extern uint pcai_cpu_count();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_status_description(PcaiStatus status);
+    internal static extern SafeRustStringHandle pcai_status_description(PcaiStatus status);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_string_copy([MarshalAs(UnmanagedType.LPUTF8Str)] string input);
+    internal static extern SafeRustStringHandle pcai_string_copy([MarshalAs(UnmanagedType.LPUTF8Str)] string input);
 
     // ========================================================================
     // JSON & Utilities
     // ========================================================================
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_extract_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? input);
+    internal static extern SafeRustStringHandle pcai_extract_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? input);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern bool pcai_is_valid_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? input);
@@ -126,6 +129,21 @@ internal static partial class NativeCore
     // ========================================================================
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern SafeRustStringHandle pcai_gpu_utilization_json(uint deviceIndex);
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern SafeRustStringHandle pcai_cuda_driver_version_json();
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int pcai_gpu_count();
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern SafeRustStringHandle pcai_gpu_info_json();
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern SafeRustStringHandle pcai_driver_version();
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern PcaiStringBuffer pcai_query_system_info();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
@@ -135,47 +153,52 @@ internal static partial class NativeCore
     internal static extern int pcai_check_resource_safety(float gpuLimit);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_system_telemetry_json();
+    internal static extern SafeRustStringHandle pcai_get_system_telemetry_json();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_vmm_health_json();
+    internal static extern SafeRustStringHandle pcai_get_vmm_health_json();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_query_full_context_json();
+    internal static extern SafeRustStringHandle pcai_query_full_context_json();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_usb_deep_diagnostics_json();
+    internal static extern SafeRustStringHandle pcai_get_usb_deep_diagnostics_json();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_pnp_devices_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? classFilter);
+    internal static extern SafeRustStringHandle pcai_get_pnp_devices_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? classFilter);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_pnp_problem_info(uint code);
+    internal static extern SafeRustStringHandle pcai_get_pnp_problem_info(uint code);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_disk_health_json();
+    internal static extern SafeRustStringHandle pcai_get_disk_health_json();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_sample_hardware_events_json(uint days, uint maxEvents);
+    internal static extern SafeRustStringHandle pcai_sample_hardware_events_json(uint days, uint maxEvents);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_network_throughput_json();
+    internal static extern SafeRustStringHandle pcai_get_network_throughput_json();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_process_history_json();
+    internal static extern SafeRustStringHandle pcai_get_process_history_json();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_process_lasso_snapshot_json(
+    internal static extern SafeRustStringHandle pcai_get_process_lasso_snapshot_json(
         [MarshalAs(UnmanagedType.LPUTF8Str)] string? configPath,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string? logPath,
         uint lookbackMinutes);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_get_usb_problem_info(uint code);
+    internal static extern SafeRustStringHandle pcai_get_usb_problem_info(uint code);
 
     // ========================================================================
     // System Analysis
     // ========================================================================
+
+    [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern PcaiStringBuffer pcai_normalize_path(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string? path,
+        uint style);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern PathAnalysisStats pcai_analyze_path();

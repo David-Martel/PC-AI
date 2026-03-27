@@ -31,16 +31,8 @@ namespace PcaiNative
         public static string? GetPnpDevicesJson(string? classFilter = null)
         {
             if (!IsAvailable) return null;
-            var ptr = NativeCore.pcai_get_pnp_devices_json(classFilter);
-            if (ptr == IntPtr.Zero) return null;
-            try
-            {
-                return Marshal.PtrToStringUTF8(ptr);
-            }
-            finally
-            {
-                NativeCore.pcai_free_string(ptr);
-            }
+            using var ptr = NativeCore.pcai_get_pnp_devices_json(classFilter);
+            return ptr.ToManagedString();
         }
 
         /// <summary>
@@ -49,16 +41,8 @@ namespace PcaiNative
         public static string? GetPnpProblemInfo(uint code)
         {
             if (!IsAvailable) return null;
-            var ptr = NativeCore.pcai_get_pnp_problem_info(code);
-            if (ptr == IntPtr.Zero) return null;
-            try
-            {
-                return Marshal.PtrToStringUTF8(ptr);
-            }
-            finally
-            {
-                NativeCore.pcai_free_string(ptr);
-            }
+            using var ptr = NativeCore.pcai_get_pnp_problem_info(code);
+            return ptr.ToManagedString();
         }
 
         /// <summary>
@@ -67,16 +51,8 @@ namespace PcaiNative
         public static string? GetDiskHealthJson()
         {
             if (!IsAvailable) return null;
-            var ptr = NativeCore.pcai_get_disk_health_json();
-            if (ptr == IntPtr.Zero) return null;
-            try
-            {
-                return Marshal.PtrToStringUTF8(ptr);
-            }
-            finally
-            {
-                NativeCore.pcai_free_string(ptr);
-            }
+            using var ptr = NativeCore.pcai_get_disk_health_json();
+            return ptr.ToManagedString();
         }
 
         /// <summary>
@@ -85,16 +61,67 @@ namespace PcaiNative
         public static string? SampleHardwareEventsJson(uint days = 3, uint maxEvents = 50)
         {
             if (!IsAvailable) return null;
-            var ptr = NativeCore.pcai_sample_hardware_events_json(days, maxEvents);
-            if (ptr == IntPtr.Zero) return null;
-            try
-            {
-                return Marshal.PtrToStringUTF8(ptr);
-            }
-            finally
-            {
-                NativeCore.pcai_free_string(ptr);
-            }
+            using var ptr = NativeCore.pcai_sample_hardware_events_json(days, maxEvents);
+            return ptr.ToManagedString();
+        }
+
+        /// <summary>
+        /// Gets GPU utilization for a given device index natively.
+        /// </summary>
+        public static string? GetGpuUtilizationJson(uint deviceIndex)
+        {
+            if (!IsAvailable) return null;
+            using var ptr = NativeCore.pcai_gpu_utilization_json(deviceIndex);
+            return ptr.ToManagedString();
+        }
+
+        /// <summary>
+        /// Gets CUDA driver version natively.
+        /// </summary>
+        public static string? GetCudaDriverVersionJson()
+        {
+            if (!IsAvailable) return null;
+            using var ptr = NativeCore.pcai_cuda_driver_version_json();
+            return ptr.ToManagedString();
+        }
+
+        /// <summary>
+        /// Gets the total number of GPUs natively.
+        /// </summary>
+        public static int GetGpuCount()
+        {
+            if (!IsAvailable) return 0;
+            return NativeCore.pcai_gpu_count();
+        }
+
+        /// <summary>
+        /// Gets detailed inventory information of all GPUs natively.
+        /// </summary>
+        public static string? GetGpuInfoJson()
+        {
+            if (!IsAvailable) return null;
+            using var ptr = NativeCore.pcai_gpu_info_json();
+            return ptr.ToManagedString();
+        }
+
+        /// <summary>
+        /// Gets the GPU driver version natively.
+        /// </summary>
+        public static string? GetDriverVersion()
+        {
+            if (!IsAvailable) return null;
+            using var ptr = NativeCore.pcai_driver_version();
+            return ptr.ToManagedString();
+        }
+
+        /// <summary>
+        /// Gets Process Lasso snapshot as JSON.
+        /// </summary>
+        public static string? GetProcessLassoSnapshotJson(string? configPath = null, string? logPath = null, uint lookbackMinutes = 60)
+        {
+            if (!IsAvailable) return null;
+            using var ptr = NativeCore.pcai_get_process_lasso_snapshot_json(configPath, logPath, lookbackMinutes);
+            return ptr.ToManagedString();
         }
     }
 }

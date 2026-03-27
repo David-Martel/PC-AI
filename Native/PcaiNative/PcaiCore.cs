@@ -33,8 +33,8 @@ public static class PcaiCore
     {
         try
         {
-            var ptr = NativeCore.pcai_core_version();
-            return Marshal.PtrToStringUTF8(ptr) ?? "unknown";
+            using var ptr = NativeCore.pcai_core_version();
+            return ptr.ToManagedString() ?? "unknown";
         }
         catch
         {
@@ -77,8 +77,8 @@ public static class PcaiCore
     {
         try
         {
-            var ptr = NativeCore.pcai_status_description(status);
-            return Marshal.PtrToStringUTF8(ptr) ?? status.ToString();
+            using var ptr = NativeCore.pcai_status_description(status);
+            return ptr.ToManagedString() ?? status.ToString();
         }
         catch
         {
@@ -93,17 +93,8 @@ public static class PcaiCore
     {
         if (!IsAvailable) return null;
 
-        var ptr = NativeCore.pcai_string_copy(input);
-        if (ptr == IntPtr.Zero) return null;
-
-        try
-        {
-            return Marshal.PtrToStringUTF8(ptr);
-        }
-        finally
-        {
-            NativeCore.pcai_free_string(ptr);
-        }
+        using var ptr = NativeCore.pcai_string_copy(input);
+        return ptr.ToManagedString();
     }
 
     /// <summary>
@@ -113,17 +104,8 @@ public static class PcaiCore
     {
         if (!IsAvailable) return null;
 
-        var ptr = NativeCore.pcai_extract_json(input);
-        if (ptr == IntPtr.Zero) return null;
-
-        try
-        {
-            return Marshal.PtrToStringUTF8(ptr);
-        }
-        finally
-        {
-            NativeCore.pcai_free_string(ptr);
-        }
+        using var ptr = NativeCore.pcai_extract_json(input);
+        return ptr.ToManagedString();
     }
 
     /// <summary>
@@ -250,10 +232,8 @@ public static class PcaiCore
     public static string? QueryFullContextJson()
     {
         if (!IsAvailable) return null;
-        var ptr = NativeCore.pcai_query_full_context_json();
-        if (ptr == IntPtr.Zero) return null;
-        try { return Marshal.PtrToStringUTF8(ptr); }
-        finally { NativeCore.pcai_free_string(ptr); }
+        using var ptr = NativeCore.pcai_query_full_context_json();
+        return ptr.ToManagedString();
     }
 
     /// <summary>
@@ -349,10 +329,8 @@ public static class PcaiCore
     public static string? GetUsbDeepDiagnostics()
     {
         if (!IsAvailable) return null;
-        var ptr = NativeCore.pcai_get_usb_deep_diagnostics_json();
-        if (ptr == IntPtr.Zero) return null;
-        try { return Marshal.PtrToStringUTF8(ptr); }
-        finally { NativeCore.pcai_free_string(ptr); }
+        using var ptr = NativeCore.pcai_get_usb_deep_diagnostics_json();
+        return ptr.ToManagedString();
     }
 
     /// <summary>
@@ -385,22 +363,17 @@ public static class PcaiCore
     public static CmProblemInfo? GetUsbProblemInfo(uint code)
     {
         if (!IsAvailable) return null;
-        var ptr = NativeCore.pcai_get_usb_problem_info(code);
-        if (ptr == IntPtr.Zero) return null;
+        using var ptr = NativeCore.pcai_get_usb_problem_info(code);
 
         try
         {
-            var json = Marshal.PtrToStringUTF8(ptr);
+            var json = ptr.ToManagedString();
             if (string.IsNullOrEmpty(json)) return null;
             return JsonSerializer.Deserialize<CmProblemInfo>(json);
         }
         catch
         {
             return null;
-        }
-        finally
-        {
-            NativeCore.pcai_free_string(ptr);
         }
     }
 

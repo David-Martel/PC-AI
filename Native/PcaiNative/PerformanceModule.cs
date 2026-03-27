@@ -605,16 +605,8 @@ namespace PcaiNative
         public static string? GetNetworkThroughput()
         {
             if (!IsAvailable) return null;
-            var ptr = NativeCore.pcai_get_network_throughput_json();
-            if (ptr == IntPtr.Zero) return null;
-            try
-            {
-                return Marshal.PtrToStringUTF8(ptr);
-            }
-            finally
-            {
-                NativeCore.pcai_free_string(ptr);
-            }
+            using var ptr = NativeCore.pcai_get_network_throughput_json();
+            return ptr.ToManagedString();
         }
 
         /// <summary>
@@ -623,16 +615,8 @@ namespace PcaiNative
         public static string? GetProcessHistory()
         {
             if (!IsAvailable) return null;
-            var ptr = NativeCore.pcai_get_process_history_json();
-            if (ptr == IntPtr.Zero) return null;
-            try
-            {
-                return Marshal.PtrToStringUTF8(ptr);
-            }
-            finally
-            {
-                NativeCore.pcai_free_string(ptr);
-            }
+            using var ptr = NativeCore.pcai_get_process_history_json();
+            return ptr.ToManagedString();
         }
 
         /// <summary>

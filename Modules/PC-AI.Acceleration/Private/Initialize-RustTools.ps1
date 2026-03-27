@@ -28,7 +28,7 @@ function Find-RustTool {
 
     $dynamicSearchPaths = @(
         $(if ($env:PCAI_ROOT) { Join-Path $env:PCAI_ROOT 'bin' })
-        'C:\codedev\PC_AI\bin'
+        (Join-Path $env:USERPROFILE 'PC_AI\bin')
     ) | Where-Object { $_ }
 
     # Split $env:PATH by ';' to get individual directory candidates.

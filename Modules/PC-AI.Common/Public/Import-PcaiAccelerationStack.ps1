@@ -27,7 +27,7 @@ function Import-PcaiAccelerationStack {
 
         foreach ($candidate in @(
             $env:PCAI_ROOT,
-            'C:\codedev\PC_AI',
+            (Join-Path $env:USERPROFILE 'PC_AI'),
             (Join-Path $HOME 'PC_AI'),
             (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
         )) {

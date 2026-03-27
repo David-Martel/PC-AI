@@ -440,7 +440,7 @@ function Test-VSockBridgeHealth {
 function Test-RAGRedisHealth {
     param(
         [switch]$AutoRecover,
-        [string]$ComposePath = "C:\codedev\llm\rag-redis\docker-compose.yml"
+        [string]$ComposePath = $(if ($env:RAG_REDIS_COMPOSE_PATH) { $env:RAG_REDIS_COMPOSE_PATH } else { Join-Path $env:USERPROFILE 'rag-redis\docker-compose.yml' })
     )
 
     $health = [PSCustomObject]@{

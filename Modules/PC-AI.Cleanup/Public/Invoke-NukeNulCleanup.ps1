@@ -39,7 +39,7 @@ function Invoke-NukeNulCleanup {
     $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     $nativeRoot = @(
         $env:NUKENUL_ROOT,
-        'C:\codedev\nukenul',
+        (Join-Path $env:USERPROFILE 'source\nukenul'),
         (Join-Path $repoRoot 'Native\NukeNul')
     ) | Where-Object { $_ -and (Test-Path (Join-Path $_ 'NukeNul.csproj')) } | Select-Object -First 1
 

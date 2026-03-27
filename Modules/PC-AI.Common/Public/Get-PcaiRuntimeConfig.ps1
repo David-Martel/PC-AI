@@ -193,7 +193,8 @@ function Resolve-PcaiRepoRoot {
     }
 
     $commonCandidates = @(
-        'C:\codedev\PC_AI'
+        (Join-Path $env:USERPROFILE 'PC_AI'),
+        (Join-Path $HOME 'PC_AI')
     ) | Select-Object -Unique
 
     foreach ($candidate in $commonCandidates) {

@@ -136,7 +136,7 @@ function Get-PcaiAccelerationProbe {
     if (-not $repoRoot) {
         $repoRootCandidates = Get-PcaiNonEmptyCandidates -Candidates @(
             $env:PCAI_ROOT,
-            'C:\codedev\PC_AI',
+            (Join-Path $env:USERPROFILE 'PC_AI'),
             (Join-Path $HOME 'PC_AI')
         )
         if ($repoRootCandidates.Count -gt 0) {

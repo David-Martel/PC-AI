@@ -103,7 +103,7 @@ function Initialize-PcaiNative {
         } catch {}
     }
     if (-not $repoRoot) {
-        foreach ($candidate in @('C:\codedev\PC_AI', (Join-Path $HOME 'PC_AI')) | Select-Object -Unique) {
+        foreach ($candidate in @((Join-Path $env:USERPROFILE 'PC_AI'), (Join-Path $HOME 'PC_AI')) | Select-Object -Unique) {
             if (-not $candidate -or -not (Test-Path $candidate)) {
                 continue
             }

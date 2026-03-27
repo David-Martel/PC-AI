@@ -8,7 +8,7 @@ function Get-PcaiPerfToolPath {
     $candidates = @(
         (Join-Path $moduleRoot 'bin\pcai-perf.exe')
         $(if ($env:PCAI_ROOT) { Join-Path $env:PCAI_ROOT 'bin\pcai-perf.exe' })
-        'C:\codedev\PC_AI\bin\pcai-perf.exe'
+        (Join-Path $env:USERPROFILE 'PC_AI\bin\pcai-perf.exe')
         (Get-RustToolPath -ToolName 'pcai-perf')
     ) | Where-Object { $_ } | Select-Object -Unique
 

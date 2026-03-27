@@ -30,7 +30,7 @@ param(
     [string]$MicrosoftAccountEmail = 'davidmartel07@gmail.com',
 
     [Parameter()]
-    [System.Security.SecureString]$Password,
+    [string]$Password,
 
     [Parameter()]
     [int]$InterfaceMetric = 15,
@@ -60,7 +60,7 @@ Import-Module $driversManifest -Force
 
 $securePassword = $null
 if ($Password) {
-    $securePassword = $Password
+    $securePassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
 }
 
 switch ($Mode) {

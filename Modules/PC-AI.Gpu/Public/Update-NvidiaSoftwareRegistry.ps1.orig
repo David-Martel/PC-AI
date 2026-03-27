@@ -161,20 +161,11 @@ function Update-NvidiaSoftwareRegistry {
     # -------------------------------------------------------------------------
     Write-Verbose "Update-NvidiaSoftwareRegistry: Loading registry from '$RegistryPath'..."
     $rawJson  = [System.IO.File]::ReadAllText($RegistryPath)
-    try {
-        $registry = $rawJson | ConvertFrom-Json
-    } catch {
-        Write-Error "Registry file is not valid JSON: $RegistryPath"
-        return $result
-    }
+    $registry = $rawJson | ConvertFrom-Json
 
-    if ($null -eq $registry -or -not $registry.PSObject.Properties.Match('components').Count) {
+    if (-not $registry.components) {
         Write-Error "Registry file is missing the 'components' array: $RegistryPath"
         return $result
-    }
-
-    if ($registry.components -isnot [array]) {
-        $registry.components = @($registry.components)
     }
 
     # Work with a mutable copy of the components array

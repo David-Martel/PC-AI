@@ -84,9 +84,21 @@ function Get-NvidiaCompatibilityMatrix {
     function Compare-VersionStrings {
         param([string]$A, [string]$B)
         if (-not $A -or -not $B) { return 0 }
+
+        # Helper to normalize version strings for [System.Version]
+        # (e.g. "565.90.07" -> "565.90.0.7" or "13.1" -> "13.1")
+        # [System.Version] requires 2-4 numeric components.
+        $toVersion = {
+            param($v)
+            $v = $v -replace '[^0-9.]' # Remove non-numeric/non-dot chars
+            $parts = @($v.Split('.') | Where-Object { $_ -ne '' })
+            if ($parts.Count -lt 2) { $parts += '0' }
+            [System.Version]::new(($parts | Select-Object -First 4) -join '.')
+        }
+
         try {
-            $va = [System.Version]::new($A)
-            $vb = [System.Version]::new($B)
+            $va = &$toVersion $A
+            $vb = &$toVersion $B
             return $va.CompareTo($vb)
         }
         catch {

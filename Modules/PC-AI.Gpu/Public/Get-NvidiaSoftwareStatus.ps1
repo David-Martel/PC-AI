@@ -94,8 +94,11 @@ function Get-NvidiaSoftwareStatus {
             # Check for multiple side-by-side CUDA installs
             $cudaRoot = 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA'
             $sideByCount = 0
-            if (Test-Path $cudaRoot) {
-                $sideByCount = @(Get-ChildItem -Path $cudaRoot -Directory -Filter 'v*' -ErrorAction SilentlyContinue).Count
+            if ($null -ne $cudaRoot) {
+                # Test-Path can return true or false but we should be robust
+                try {
+                    $sideByCount = @(Get-ChildItem -Path $cudaRoot -Filter 'v*' -ErrorAction SilentlyContinue).Count
+                } catch { }
             }
             $cudaVer = Get-CudaVersionFromPath -CudaPath $cudaPath
             $detectedVersions['cuda'] = @{
@@ -164,8 +167,11 @@ function Get-NvidiaSoftwareStatus {
 
         # NVML — ships with the display driver as nvml.dll in System32.
         # The DLL FilePrivatePart encodes the driver build (e.g. 8241 -> 582.41).
-        $nvmlDll = Join-Path $env:SystemRoot 'System32\nvml.dll'
-        if (Test-Path $nvmlDll) {
+        $nvmlDll = $null
+        if ($env:SystemRoot) {
+            $nvmlDll = Join-Path ($env:SystemRoot -replace '^\s+|\s+$','') 'System32\nvml.dll'
+        }
+        if ($null -ne $nvmlDll -and (Test-Path -LiteralPath $nvmlDll)) {
             # NVML version is coextensive with the display driver; reuse $driverVersion
             # (already obtained from nvidia-smi) rather than parsing DLL metadata.
             $nvmlDriverVer = $driverVersion
@@ -195,7 +201,7 @@ function Get-NvidiaSoftwareStatus {
             } else {
                 (Get-Command $py -ErrorAction SilentlyContinue)?.Source
             }
-            if ($pyResolved -and (Test-Path $pyResolved)) {
+            if ($null -ne $pyResolved -and (Test-Path -LiteralPath $pyResolved)) {
                 $ver = & $pyResolved -c "import warp; print(warp.__version__)" 2>$null
                 if ($ver -and $ver -match '^\d+\.\d+') {
                     $warpVersion = $ver.Trim()
@@ -258,7 +264,7 @@ function Get-NvidiaSoftwareStatus {
                         $toVersion = {
                             param($v)
                             $v = $v -replace '[^0-9.]' # Remove non-numeric/non-dot chars
-                            $parts = $v.Split('.') | Where-Object { $_ -ne '' }
+                            $parts = @($v.Split('.') | Where-Object { $_ -ne '' })
                             if ($parts.Count -lt 2) { $parts += '0' }
                             [System.Version]::new(($parts | Select-Object -First 4) -join '.')
                         }

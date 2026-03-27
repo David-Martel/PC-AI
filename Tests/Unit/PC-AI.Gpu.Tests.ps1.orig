@@ -195,7 +195,7 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
             Mock -CommandName Get-CudaVersionFromPath -ModuleName 'PC-AI.Gpu' -MockWith { '13.2.0' }
             Mock -CommandName Get-CudnnVersionFromHeader -ModuleName 'PC-AI.Gpu' -MockWith { '9.8.0' }
             Mock -CommandName Get-TensorRtVersionFromHeader -ModuleName 'PC-AI.Gpu' -MockWith { '10.9.0' }
-            Mock -CommandName Get-ChildItem -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Path -like '*CUDA*' } -MockWith {
+            Mock -CommandName Get-ChildItem -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Path -eq 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA' -or $Path -eq 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\' } -MockWith {
                 @(
                     [pscustomobject]@{ Name = 'v13.1' },
                     [pscustomobject]@{ Name = 'v13.2' }

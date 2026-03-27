@@ -84,20 +84,11 @@ function Get-NvidiaSoftwareRegistry {
         }
 
         $raw      = [System.IO.File]::ReadAllText($RegistryPath)
-        try {
-            $registry = $raw | ConvertFrom-Json
-        } catch {
-            Write-Error "Registry file is not valid JSON: $RegistryPath"
-            return $null
-        }
+        $registry = $raw | ConvertFrom-Json
 
-        if ($null -eq $registry -or -not $registry.PSObject.Properties.Match('components').Count) {
+        if (-not $registry.components) {
             Write-Error "Registry file is missing the 'components' array: $RegistryPath"
             return $null
-        }
-
-        if ($registry.components -isnot [array]) {
-            $registry.components = @($registry.components)
         }
 
         # --- Apply filters to .components ---

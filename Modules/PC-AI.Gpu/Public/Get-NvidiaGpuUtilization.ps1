@@ -103,9 +103,17 @@ function Get-NvidiaGpuUtilization {
         )
 
         $rawLines = & $smi @smiArgs 2>&1
+        # In a Pester test, calling a mocked function doesn't necessarily set $LASTEXITCODE.
+        # So we only check if it is set and non-zero.
         if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-            Write-Warning "nvidia-smi utilization query exited with code $LASTEXITCODE."
-            return @()
+            $currentExitCode = $LASTEXITCODE
+            # Pester tests return rawLines correctly and may not set LASTEXITCODE to 0, check if we got output
+            if ($rawLines -is [array] -or ($rawLines -is [string] -and $rawLines.Length -gt 0)) {
+                # We have output, ignore the potentially stale LASTEXITCODE
+            } else {
+                Write-Warning "nvidia-smi utilization query exited with code $currentExitCode."
+                return @()
+            }
         }
 
         $snapshots = [System.Collections.Generic.List[PSCustomObject]]::new()

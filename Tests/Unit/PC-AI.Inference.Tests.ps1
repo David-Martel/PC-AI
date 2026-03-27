@@ -131,6 +131,42 @@ Describe 'PcaiInference Module' {
             { Initialize-PcaiInference -Backend llamacpp -DllPath $missingPath } | Should -Throw -ExpectedMessage "*DLL not found*"
         }
     }
+
+    Context 'Model Path Resolution' {
+        It 'Should return null when native config is missing' {
+            InModuleScope PcaiInference {
+                Mock Get-PcaiNativeProviderConfig { return $null }
+                Resolve-PcaiModelPathFromConfig | Should -BeNullOrEmpty
+            }
+        }
+
+        It 'Should return null when modelPath is missing from config' {
+            InModuleScope PcaiInference {
+                Mock Get-PcaiNativeProviderConfig { return @{ someOtherKey = 'value' } }
+                Resolve-PcaiModelPathFromConfig | Should -BeNullOrEmpty
+            }
+        }
+
+        It 'Should return absolute path when configured with one' {
+            InModuleScope PcaiInference {
+                $absolutePath = 'C:\Models\test-model.gguf'
+                Mock Get-PcaiNativeProviderConfig { return [PSCustomObject]@{ modelPath = $absolutePath } }
+                Resolve-PcaiModelPathFromConfig | Should -Be $absolutePath
+            }
+        }
+
+        It 'Should return combined path when configured with relative path' {
+            InModuleScope PcaiInference {
+                $projectRoot = 'C:\Project'
+                $relativePath = 'models\test-model.gguf'
+                Mock Get-PcaiProjectRoot { return $projectRoot }
+                Mock Get-PcaiNativeProviderConfig { return [PSCustomObject]@{ modelPath = $relativePath } }
+
+                $expected = Join-Path $projectRoot $relativePath
+                Resolve-PcaiModelPathFromConfig | Should -Be $expected
+            }
+        }
+    }
 }
 
 Describe 'PC-AI.ps1 Inference Parameters' {

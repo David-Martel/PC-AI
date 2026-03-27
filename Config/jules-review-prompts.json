@@ -1,0 +1,210 @@
+{
+  "$schema": "https://raw.githubusercontent.com/David-Martel/PC-AI/main/Config/jules-review-prompts.schema.json",
+  "version": "1.0.0",
+  "description": "Per-module Jules AI code review prompt templates. Consumed by Tools/Invoke-JulesBatchReview.ps1.",
+  "modules": {
+    "pcai_inference": {
+      "priority": "high",
+      "tags": ["rust", "inference", "ffi", "http", "llamacpp", "mistralrs"],
+      "files": [
+        "Native/pcai_core/pcai_inference/src/lib.rs",
+        "Native/pcai_core/pcai_inference/src/config.rs",
+        "Native/pcai_core/pcai_inference/src/version.rs",
+        "Native/pcai_core/pcai_inference/src/backends/",
+        "Native/pcai_core/pcai_inference/src/ffi/",
+        "Native/pcai_core/pcai_inference/src/http/"
+      ],
+      "prompt": "Review the pcai_inference Rust crate — the core LLM inference engine. Focus on: (1) FFI safety in src/ffi/mod.rs: all extern C functions must handle null pointers, panics must never unwind across the FFI boundary (use catch_unwind), and every return code must be documented. (2) Error handling: verify that all Result paths propagate via thiserror-derived types, no unwrap/expect in non-test code, and terminating errors return well-defined FFI error codes. (3) HTTP layer in src/http/: confirm StopTracker logic is race-free, streaming chunk assembly is complete, and the OpenAI-compatible endpoints return correct status codes on error. (4) Backend abstraction in src/backends/: llamacpp and mistralrs backends must implement the same trait contract without leaking backend-specific types into the public API. (5) Run tests with: cd Native/pcai_core && cargo test --no-default-features --features server,ffi --lib -p pcai-inference. Verify all 65+ unit tests pass. (6) Check that feature flags (llamacpp, mistralrs-backend, cuda-llamacpp, ffi, server) are additive and do not produce conflicting symbols. Follow AGENTS.md conventions.",
+      "test_command": "cd Native/pcai_core && cargo test --no-default-features --features server,ffi --lib -p pcai-inference"
+    },
+    "pcai_media": {
+      "priority": "high",
+      "tags": ["rust", "media", "janus", "cuda", "ffi", "generation"],
+      "files": [
+        "Native/pcai_core/pcai_media/src/lib.rs",
+        "Native/pcai_core/pcai_media/src/config.rs",
+        "Native/pcai_core/pcai_media/src/ffi/",
+        "Native/pcai_core/pcai_media/src/generate.rs",
+        "Native/pcai_core/pcai_media/src/hub.rs",
+        "Native/pcai_core/pcai_media/src/python_fallback.rs",
+        "Native/pcai_core/pcai_media/src/telemetry.rs",
+        "Native/pcai_core/pcai_media/src/understand.rs",
+        "Native/pcai_core/pcai_media/src/upscale.rs"
+      ],
+      "prompt": "Review the pcai_media Rust crate — the Janus-Pro media generation FFI DLL. Focus on: (1) GPU memory safety in generate.rs: confirm KV cache tensors are detached each step to prevent BackpropOp chain leaks, embedding offload logic runs correctly on CPU, and VarMap is dropped after weight loading. (2) CUDA device selection in config.rs: cuda:auto fallback logic must handle Blackwell SM 120 init failures gracefully by retrying on the next available GPU. (3) Python fallback path in python_fallback.rs: subprocess management must not leak handles; errors must surface as typed Rust errors, not panics. (4) FFI boundary in ffi/: all exported C functions must use catch_unwind and return i32 error codes; no Rust types may cross the boundary. (5) Telemetry in telemetry.rs: confirm structured logging does not block the generation loop. (6) Build and test: cd Native/pcai_core && cargo test --no-default-features --features ffi --lib -p pcai-media. Also verify CUDA build: CUDA_COMPUTE_CAPS=89,120 cargo build -p pcai-media --features cuda --release. Follow AGENTS.md conventions.",
+      "test_command": "cd Native/pcai_core && cargo test --no-default-features --features ffi --lib -p pcai-media"
+    },
+    "pcai_core_lib": {
+      "priority": "medium",
+      "tags": ["rust", "shared-library", "fs", "search", "performance", "windows-api"],
+      "files": [
+        "Native/pcai_core/pcai_core_lib/src/lib.rs",
+        "Native/pcai_core/pcai_core_lib/src/error.rs",
+        "Native/pcai_core/pcai_core_lib/src/fs/",
+        "Native/pcai_core/pcai_core_lib/src/search/",
+        "Native/pcai_core/pcai_core_lib/src/performance/",
+        "Native/pcai_core/pcai_core_lib/src/system/",
+        "Native/pcai_core/pcai_core_lib/src/telemetry/",
+        "Native/pcai_core/pcai_core_lib/src/hash.rs",
+        "Native/pcai_core/pcai_core_lib/src/json.rs",
+        "Native/pcai_core/pcai_core_lib/src/path.rs",
+        "Native/pcai_core/pcai_core_lib/src/string.rs",
+        "Native/pcai_core/pcai_core_lib/src/tokenizer.rs",
+        "Native/pcai_core/pcai_core_lib/src/vmm_health.rs",
+        "Native/pcai_core/pcai_core_lib/src/process_lasso.rs"
+      ],
+      "prompt": "Review the pcai_core_lib shared Rust library. Focus on: (1) Public API surface: all public types must implement Debug and, where appropriate, Display; avoid exposing Arc/Box directly per M-AVOID-WRAPPERS. (2) Error hierarchy in error.rs: every error variant must carry enough context for downstream callers; use #[error(...)] attributes that are self-describing without requiring callers to inspect inner fields. (3) Filesystem utilities in fs/: path operations must use PathBuf parameters (not &str) per M-STRONG-TYPES; avoid synchronous blocking calls inside async contexts. (4) Search module in search/: compiled Regex instances must be cached (not recompiled per call); benchmark against the 143x speedup baseline in Config/pcai-tooling-benchmarks.json. (5) Performance module in performance/optimizer.rs: verify the 8 unit tests cover the OptimizerModule P/Invoke contract. (6) Run: cd Native/pcai_core && cargo test --lib -p pcai-core-lib. Check for unused public exports with cargo machete. Follow AGENTS.md conventions.",
+      "test_command": "cd Native/pcai_core && cargo test --lib -p pcai-core-lib"
+    },
+    "pcai_media_model": {
+      "priority": "medium",
+      "tags": ["rust", "media", "model", "janus", "quantization", "tensors"],
+      "files": [
+        "Native/pcai_core/pcai_media_model/src/lib.rs",
+        "Native/pcai_core/pcai_media_model/src/config.rs",
+        "Native/pcai_core/pcai_media_model/src/generation_head.rs",
+        "Native/pcai_core/pcai_media_model/src/janus_llama.rs",
+        "Native/pcai_core/pcai_media_model/src/janus_llama_quantized.rs",
+        "Native/pcai_core/pcai_media_model/src/tensor_utils.rs",
+        "Native/pcai_core/pcai_media_model/src/vision.rs",
+        "Native/pcai_core/pcai_media_model/src/vq_vae.rs"
+      ],
+      "prompt": "Review the pcai_media_model Rust crate — Janus-Pro model definitions and inference logic. Focus on: (1) Quantized forward path in janus_llama_quantized.rs: GGUF quantized weight dtypes must match the input tensor dtype at every RmsNorm call; hidden state outputs from quantized forward methods must return F32; verify the dtype chain is consistent end-to-end. (2) VQ-VAE decode in vq_vae.rs: codebook lookup must be bounds-checked; the 576-token (24x24) image token grid must decode to exactly 384px; verify no off-by-one in token indexing. (3) Tensor utilities in tensor_utils.rs: all reshape/transpose operations must carry explicit shape assertions in debug builds. (4) Vision encoder in vision.rs: siglip_vit forward pass must not rely on transformers meta tensor init; confirm weights are eagerly loaded. (5) Generation head in generation_head.rs: CFG scale application must correctly batch conditional and unconditional logits. (6) Run: cd Native/pcai_core && cargo test --lib -p pcai-media-model. Follow AGENTS.md conventions.",
+      "test_command": "cd Native/pcai_core && cargo test --lib -p pcai-media-model"
+    },
+    "pcai_media_server": {
+      "priority": "medium",
+      "tags": ["rust", "media", "axum", "http-server", "api"],
+      "files": [
+        "Native/pcai_core/pcai_media_server/src/main.rs"
+      ],
+      "prompt": "Review the pcai_media_server Rust binary — the axum-based HTTP server for media generation. Focus on: (1) Request validation: all incoming JSON bodies must be deserialized into strongly-typed structs with serde validation; reject malformed requests with 400 before spawning any GPU work. (2) Error responses: all handler errors must be mapped to consistent JSON error bodies with HTTP status codes; avoid leaking internal error messages (file paths, tensor shapes) in 5xx responses. (3) Graceful shutdown: the axum server must drain in-flight generation tasks on SIGTERM/Ctrl-C before exiting; confirm tokio::signal handling is wired up. (4) Concurrency: if multiple generation requests can arrive simultaneously, verify the GPU resource is properly serialized (mutex or channel) to avoid VRAM exhaustion. (5) Health and metrics endpoints: confirm /health returns 200 with a well-formed JSON body even when the model is not yet loaded. (6) Run: cd Native/pcai_core && cargo test --lib -p pcai-media-server && cargo clippy -p pcai-media-server -- -D warnings. Follow AGENTS.md conventions.",
+      "test_command": "cd Native/pcai_core && cargo test --lib -p pcai-media-server && cargo clippy -p pcai-media-server -- -D warnings"
+    },
+    "pcai_perf_cli": {
+      "priority": "low",
+      "tags": ["rust", "cli", "performance", "powershell-acceleration"],
+      "files": [
+        "Native/pcai_core/pcai_perf_cli/src/main.rs"
+      ],
+      "prompt": "Review the pcai_perf_cli Rust binary — the performance CLI tool that provides native acceleration for PowerShell. Focus on: (1) CLI argument parsing: all subcommands must have --help text; required arguments must produce clear error messages on missing input. (2) Output format: stdout must emit machine-parseable output (JSON or TSV) for PowerShell pipeline consumption; stderr must be used exclusively for human-readable diagnostics. (3) Exit codes: 0 for success, non-zero for each distinct failure mode; document exit codes in the binary's --help output. (4) Benchmark parity: verify that content-search and file-search operations achieve the documented 143x and 68x speedups over PowerShell baselines (see Config/pcai-tooling-benchmarks.json). (5) Error handling: no unwrap/expect outside tests; all I/O errors must propagate with file path context. (6) Run: cd Native/pcai_core && cargo test --lib -p pcai-perf-cli && cargo clippy -p pcai-perf-cli -- -D warnings. Follow AGENTS.md conventions.",
+      "test_command": "cd Native/pcai_core && cargo test --lib -p pcai-perf-cli && cargo clippy -p pcai-perf-cli -- -D warnings"
+    },
+    "pcai_ollama_rs": {
+      "priority": "low",
+      "tags": ["rust", "ollama", "benchmark", "http-client"],
+      "files": [
+        "Native/pcai_core/pcai_ollama_rs/src/main.rs"
+      ],
+      "prompt": "Review the pcai_ollama_rs Rust binary — the Ollama benchmark and integration tool. Focus on: (1) HTTP client robustness: all requests to the Ollama API must have explicit timeouts (connect + read); connection errors must be retried with exponential backoff up to a configurable limit. (2) Benchmark output: timing measurements must use Instant::now() consistently; report wall-clock and tokens-per-second in structured JSON matching the schema in Config/pcai-ollama-benchmark.json. (3) Configuration: model path, endpoint URL, and generation parameters must come from Config/pcai-ollama-benchmark.json via serde; hard-coded URLs are not acceptable. (4) Error reporting: distinguish between Ollama server unavailable, model not loaded, and request failure — each must produce a distinct, actionable error message. (5) Resource cleanup: HTTP connections must be properly closed after each benchmark run; avoid socket exhaustion on long benchmark suites. (6) Run: cd Native/pcai_core && cargo test --lib -p pcai-ollama-rs && cargo clippy -p pcai-ollama-rs -- -D warnings. Follow AGENTS.md conventions.",
+      "test_command": "cd Native/pcai_core && cargo test --lib -p pcai-ollama-rs && cargo clippy -p pcai-ollama-rs -- -D warnings"
+    },
+    "PC-AI.Gpu": {
+      "priority": "high",
+      "tags": ["powershell", "gpu", "nvidia", "cuda", "driver-management"],
+      "files": [
+        "Modules/PC-AI.Gpu/Public/Get-NvidiaCompatibilityMatrix.ps1",
+        "Modules/PC-AI.Gpu/Public/Get-NvidiaGpuInventory.ps1",
+        "Modules/PC-AI.Gpu/Public/Get-NvidiaGpuUtilization.ps1",
+        "Modules/PC-AI.Gpu/Public/Get-NvidiaSoftwareRegistry.ps1",
+        "Modules/PC-AI.Gpu/Public/Get-NvidiaSoftwareStatus.ps1",
+        "Modules/PC-AI.Gpu/Public/Initialize-NvidiaEnvironment.ps1",
+        "Modules/PC-AI.Gpu/Public/Install-NvidiaSoftware.ps1",
+        "Modules/PC-AI.Gpu/Public/Update-NvidiaSoftwareRegistry.ps1"
+      ],
+      "prompt": "Review the PC-AI.Gpu PowerShell module — 8 public functions managing NVIDIA GPU inventory, utilization, driver compatibility, and software installation. Focus on: (1) Approved verb compliance: all 8 exported functions must use verbs from Get-Verb output; flag any unapproved verb. (2) Error handling: use try/catch with $_.Exception.Message in all functions that invoke nvidia-smi or PnP queries; non-terminating errors must use Write-Error, not Write-Host; terminating errors must use throw or $PSCmdlet.ThrowTerminatingError. (3) Output objects: Get-NvidiaGpuInventory and Get-NvidiaGpuUtilization must return PSCustomObjects with consistent property names across RTX 2000 Ada (GPU 0, SM 89) and RTX 5060 Ti (GPU 1, SM 120). (4) Initialize-NvidiaEnvironment: verify it sets CUDA_COMPUTE_CAPS, CUDA_PATH, and CUDA_VISIBLE_DEVICES correctly; must be idempotent (safe to call multiple times). (5) Install-NvidiaSoftware: must support -WhatIf and -Confirm; never install without explicit confirmation; validate against nvidia-software-registry.json before downloading. (6) Run Pester tests: Invoke-Pester Tests/ -TagFilter Gpu -Output Detailed. Follow AGENTS.md conventions.",
+      "test_command": "Invoke-Pester Tests/ -TagFilter Gpu -Output Detailed"
+    },
+    "PC-AI.Hardware": {
+      "priority": "medium",
+      "tags": ["powershell", "hardware", "diagnostics", "cim", "event-log"],
+      "files": [
+        "Modules/PC-AI.Hardware/Public/Get-DeviceErrors.ps1",
+        "Modules/PC-AI.Hardware/Public/Get-DiskHealth.ps1",
+        "Modules/PC-AI.Hardware/Public/Get-NetworkAdapters.ps1",
+        "Modules/PC-AI.Hardware/Public/Get-SystemEvents.ps1",
+        "Modules/PC-AI.Hardware/Public/Get-UsbStatus.ps1",
+        "Modules/PC-AI.Hardware/Public/New-DiagnosticReport.ps1"
+      ],
+      "prompt": "Review the PC-AI.Hardware PowerShell module — 6 public diagnostic functions. Focus on: (1) CIM correctness: all functions must use Get-CimInstance (never deprecated Get-WmiObject); CIM queries must specify -ClassName explicitly rather than relying on positional parameters. (2) Administrator guard: functions that require elevation (Get-DiskHealth, Get-SystemEvents) must detect and report lack of administrator rights as a terminating error with a clear remediation message, not silently return empty results. (3) Output consistency: all functions must return PSCustomObjects with a 'Severity' property valued Critical, High, Medium, or Low (matching the priority classification in CLAUDE.md); New-DiagnosticReport must aggregate all categories. (4) Error resilience: a missing or failing CIM provider on one category must not abort the entire diagnostic run; use Write-Warning and continue. (5) Performance: Get-SystemEvents -Days parameter must apply a WQL time filter, not post-filter in PowerShell, to avoid loading all events. (6) Run Pester tests: Invoke-Pester Tests/ -TagFilter Hardware -Output Detailed. Follow AGENTS.md conventions.",
+      "test_command": "Invoke-Pester Tests/ -TagFilter Hardware -Output Detailed"
+    },
+    "PC-AI.Drivers": {
+      "priority": "medium",
+      "tags": ["powershell", "drivers", "thunderbolt", "usb4", "networking", "pnp"],
+      "files": [
+        "Modules/PC-AI.Drivers/Public/Compare-DriverVersion.ps1",
+        "Modules/PC-AI.Drivers/Public/Connect-ThunderboltPeer.ps1",
+        "Modules/PC-AI.Drivers/Public/Find-ThunderboltPeer.ps1",
+        "Modules/PC-AI.Drivers/Public/Get-DriverRegistry.ps1",
+        "Modules/PC-AI.Drivers/Public/Get-DriverReport.ps1",
+        "Modules/PC-AI.Drivers/Public/Get-NetworkDiscoverySnapshot.ps1",
+        "Modules/PC-AI.Drivers/Public/Get-PnpDeviceInventory.ps1",
+        "Modules/PC-AI.Drivers/Public/Get-ThunderboltNetworkStatus.ps1",
+        "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1",
+        "Modules/PC-AI.Drivers/Public/Set-ThunderboltNetworkOptimization.ps1",
+        "Modules/PC-AI.Drivers/Public/Update-DriverRegistry.ps1",
+        "Modules/PC-AI.Drivers/PC-AI.Drivers.psd1",
+        "Modules/PC-AI.Drivers/PC-AI.Drivers.psm1",
+        "Config/driver-registry.json"
+      ],
+      "prompt": "Review the PC-AI.Drivers PowerShell module — 11 public functions for driver inventory, version comparison, Thunderbolt/USB4 peer networking, and driver installation. Focus on: (1) driver-registry.json consumption: Get-DriverRegistry must validate the JSON schema (VID/PID match rules, trusted sources, update metadata) before returning objects; invalid entries must produce Write-Warning, not terminate. (2) Compare-DriverVersion: must handle semantic versioning (major.minor.patch.build) and correctly report upgrades, downgrades, and parity; include edge cases for partial version strings. (3) Install-DriverUpdate: must support -WhatIf and -Confirm on all code paths; must verify the driver signature and source against driver-registry.json trusted sources before executing; never bypass signature verification. (4) Thunderbolt networking functions: Find-ThunderboltPeer must set a timeout on ARP/DNS/WinRM probes; Connect-ThunderboltPeer must validate the peer IP is on a USB4 adapter subnet before attempting WinRM. (5) Module manifest: verify PC-AI.Drivers.psd1 exports exactly the 11 public functions, has correct RootModule, and passes Test-ModuleManifest. (6) Run Pester tests: Invoke-Pester Tests/ -TagFilter Drivers -Output Detailed. Follow AGENTS.md conventions.",
+      "test_command": "Invoke-Pester Tests/ -TagFilter Drivers -Output Detailed"
+    },
+    "PcaiNative": {
+      "priority": "medium",
+      "tags": ["csharp", "dotnet", "pinvoke", "ffi", "powershell-interop"],
+      "files": [
+        "Native/PcaiNative/NativeCore.cs",
+        "Native/PcaiNative/NativeResolver.cs",
+        "Native/PcaiNative/InferenceModule.cs",
+        "Native/PcaiNative/MediaModule.cs",
+        "Native/PcaiNative/FsModule.cs",
+        "Native/PcaiNative/SearchModule.cs",
+        "Native/PcaiNative/HardwareModule.cs",
+        "Native/PcaiNative/PerformanceModule.cs",
+        "Native/PcaiNative/OptimizerModule.cs",
+        "Native/PcaiNative/FunctionGemmaModule.cs",
+        "Native/PcaiNative/SystemModule.cs",
+        "Native/PcaiNative/ProcessLassoModule.cs",
+        "Native/PcaiNative/SafetyInterlock.cs",
+        "Native/PcaiNative/ToolExecutor.cs",
+        "Native/PcaiNative/LlmClients.cs",
+        "Native/PcaiNative/Models.cs",
+        "Native/PcaiNative/HelpExtractor.cs",
+        "Native/PcaiNative/PowerShellHost.cs",
+        "Native/PcaiNative/PcaiCore.cs",
+        "Native/PcaiNative/PcaiDiagnostics.cs",
+        "Native/PcaiNative/PcaiNative.csproj"
+      ],
+      "prompt": "Review the PcaiNative C# project — 20 modules providing P/Invoke wrappers bridging the Rust FFI layer to PowerShell. Focus on: (1) P/Invoke safety in NativeCore.cs and NativeResolver.cs: all DllImport declarations must use SafeHandle or IntPtr with explicit Marshal.FreeHGlobal/CoTaskMemFree; verify no raw IntPtr is returned to callers without a SafeHandle wrapper. (2) DLL resolution in NativeResolver.cs: must locate pcai_inference.dll and pcai_core_lib.dll using a deterministic search order (bin/ relative to assembly, then PCAI_ARTIFACTS_ROOT env var); must not rely on PATH. (3) Error propagation: all P/Invoke calls must check the returned i32 error code and throw a typed exception (not Exception) with the error code and context message; SafetyInterlock.cs must verify all interlock conditions before any inference call. (4) Disposal: all modules that acquire native resources must implement IDisposable with proper finalizer patterns. (5) Thread safety: InferenceModule and MediaModule may be called from PowerShell runspaces — confirm static state is protected by locks or is immutable. (6) Build and test: dotnet build Native/PcaiNative/PcaiNative.csproj --configuration Release && Invoke-Pester Tests/ -TagFilter FFI -Output Detailed. Follow AGENTS.md conventions.",
+      "test_command": "dotnet build Native/PcaiNative/PcaiNative.csproj --configuration Release && Invoke-Pester Tests/ -TagFilter FFI -Output Detailed"
+    },
+    "functiongemma": {
+      "priority": "low",
+      "tags": ["rust", "router", "axum", "functiongemma", "lora", "training"],
+      "files": [
+        "Deploy/rust-functiongemma-core/src/chat_template.rs",
+        "Deploy/rust-functiongemma-core/src/config.rs",
+        "Deploy/rust-functiongemma-core/src/error.rs",
+        "Deploy/rust-functiongemma-core/src/gpu.rs",
+        "Deploy/rust-functiongemma-core/src/lib.rs",
+        "Deploy/rust-functiongemma-core/src/lora_utils.rs",
+        "Deploy/rust-functiongemma-core/src/model.rs",
+        "Deploy/rust-functiongemma-core/src/prompt.rs",
+        "Deploy/rust-functiongemma-core/src/safetensors_utils.rs",
+        "Deploy/rust-functiongemma-runtime/src/auth.rs",
+        "Deploy/rust-functiongemma-runtime/src/config.rs",
+        "Deploy/rust-functiongemma-runtime/src/error.rs",
+        "Deploy/rust-functiongemma-runtime/src/handlers.rs",
+        "Deploy/rust-functiongemma-runtime/src/main.rs",
+        "Deploy/rust-functiongemma-runtime/src/metrics.rs",
+        "Deploy/rust-functiongemma-runtime/src/model_support.rs",
+        "Deploy/rust-functiongemma-runtime/src/routing.rs",
+        "Deploy/rust-functiongemma-runtime/src/types.rs"
+      ],
+      "prompt": "Review the FunctionGemma router — rust-functiongemma-core (shared model library) and rust-functiongemma-runtime (axum HTTP router on port 8000). Focus on: (1) LoRA weight loading in lora_utils.rs: rank decomposition must be validated against the base model architecture before application; mismatched ranks must produce a typed error, not a panic. (2) Safetensors parsing in safetensors_utils.rs: metadata validation must reject tensors with unexpected dtypes or shapes before any GPU allocation. (3) Router logic in routing.rs: tool-call routing decisions must be logged at Debug level with the matched tool name and confidence score; routing errors must return HTTP 422 with a JSON body describing the failure. (4) Auth in auth.rs: bearer token validation must use constant-time comparison to prevent timing attacks. (5) GPU config in gpu.rs: CUDA device selection must respect Config/pcai-functiongemma.json router_gpu and cuda_visible_devices settings; verify RTX 2000 Ada is used as the inference GPU (GPU 0). (6) Run: cd Deploy/rust-functiongemma && cargo test --lib && cargo clippy --all-targets -- -D warnings. Follow AGENTS.md conventions.",
+      "test_command": "cd Deploy/rust-functiongemma && cargo test --lib && cargo clippy --all-targets -- -D warnings"
+    }
+  }
+}

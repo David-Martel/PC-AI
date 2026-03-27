@@ -251,3 +251,44 @@ These themes should be treated as live backlog, not stale notes:
 Keep docs aligned with the real scripts, benchmarks, and active backlog. If the
 repo gains a new benchmark, fixture suite, or native capability, update this
 file along with the relevant README or module docs.
+
+## Jules agent guidance
+
+Jules runs in a short-lived Ubuntu VM. Adapt accordingly:
+
+### Environment constraints
+- Use `pwsh` (not `powershell`) for PowerShell commands
+- Windows-only CIM/WMI cmdlets (`Get-CimInstance`, `Get-PnpDevice`) will fail — skip integration tests that require them
+- Rust builds work natively; C# builds require `dotnet` (pre-installed)
+- CUDA is not available in the VM — use `--no-default-features` for Rust crates that default to CUDA
+- The `bin/pcai_inference.dll` FFI DLL is Windows-only — skip FFI integration tests
+
+### What Jules should focus on
+- Rust code quality: clippy compliance, Microsoft Pragmatic Rust Guidelines, error handling
+- Unit test coverage: Rust `#[test]` and PowerShell Pester tests that don't require hardware
+- Code review: dead code, unnecessary clones, unsafe blocks, missing docs
+- Security: hardcoded values, Invoke-Expression usage, credential exposure
+- Performance: unnecessary allocations in hot paths, benchmark suggestions
+
+### What Jules should avoid
+- Modifying CUDA/GPU-specific code without understanding SM 89/120 constraints
+- Running full integration test suites (require Windows + GPU hardware)
+- Changing FFI function signatures (breaks C# P/Invoke + PowerShell bindings)
+- Refactoring the media pipeline tensor operations without benchmark data
+
+### Plan approval expectations
+All Jules sessions on this repo use `requirePlanApproval: true`. Plans are reviewed by an LLM orchestrator (Claude/Codex) against:
+1. Does the plan modify files consistent with its stated goal?
+2. Does it add or update tests?
+3. Does it follow the benchmark-first principle (AGENTS.md section 1)?
+4. Are file modifications scoped (no unnecessary drive-by refactors)?
+
+### Code conventions
+- Rust: edition 2021, `cargo fmt` + `cargo clippy -- -D warnings`, see `[lints]` in Cargo.toml
+- PowerShell: `PSScriptAnalyzerSettings.psd1` in repo root
+- C#: .NET 8, nullable reference types enabled
+- Commit messages: Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `chore:`)
+- PR titles: under 70 characters, imperative mood
+
+### File ownership (parallel sessions)
+When multiple Jules sessions run in parallel, each session owns specific files. Do not modify files outside your assigned scope. The orchestrator manages the File Ownership Matrix.

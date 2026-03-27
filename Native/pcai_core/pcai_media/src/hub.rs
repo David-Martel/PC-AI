@@ -390,4 +390,74 @@ mod tests {
         let result = load_tokenizer(tmp.path());
         assert!(result.is_err());
     }
+
+    /// `open_safetensors` successfully maps a single valid file.
+    #[test]
+    fn test_open_safetensors_single_file() {
+        use safetensors::tensor::{Dtype, TensorView};
+        use std::collections::HashMap;
+
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let file_path = tmp.path().join("model.safetensors");
+
+        let data: Vec<u8> = vec![0; 16]; // 4 floats
+        let tensor = TensorView::new(Dtype::F32, vec![4], &data).unwrap();
+        let mut tensors = HashMap::new();
+        tensors.insert("dummy_tensor".to_string(), tensor);
+
+        safetensors::serialize_to_file(&tensors, &None, &file_path).expect("serialize");
+
+        let archive = open_safetensors(&[file_path]).expect("open_safetensors");
+        assert!(archive.tensors().iter().any(|(name, _)| name == "dummy_tensor"));
+    }
+
+    /// `open_safetensors` successfully maps multiple shards.
+    #[test]
+    fn test_open_safetensors_multiple_files() {
+        use safetensors::tensor::{Dtype, TensorView};
+        use std::collections::HashMap;
+
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path1 = tmp.path().join("model-00001-of-00002.safetensors");
+        let path2 = tmp.path().join("model-00002-of-00002.safetensors");
+
+        let data1: Vec<u8> = vec![0; 16];
+        let tensor1 = TensorView::new(Dtype::F32, vec![4], &data1).unwrap();
+        let mut tensors1 = HashMap::new();
+        tensors1.insert("tensor_part_1".to_string(), tensor1);
+        safetensors::serialize_to_file(&tensors1, &None, &path1).expect("serialize path1");
+
+        let data2: Vec<u8> = vec![1; 16];
+        let tensor2 = TensorView::new(Dtype::F32, vec![4], &data2).unwrap();
+        let mut tensors2 = HashMap::new();
+        tensors2.insert("tensor_part_2".to_string(), tensor2);
+        safetensors::serialize_to_file(&tensors2, &None, &path2).expect("serialize path2");
+
+        let archive = open_safetensors(&[path1, path2]).expect("open_safetensors multi");
+
+        let mut found_1 = false;
+        let mut found_2 = false;
+        for (name, _) in archive.tensors() {
+            if name == "tensor_part_1" {
+                found_1 = true;
+            }
+            if name == "tensor_part_2" {
+                found_2 = true;
+            }
+        }
+        assert!(found_1 && found_2, "Must find both tensors from multi archive");
+    }
+
+    /// `open_safetensors` returns an error when the file is invalid (e.g., empty or bad format).
+    #[test]
+    fn test_open_safetensors_invalid_file() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let file_path = tmp.path().join("invalid.safetensors");
+
+        // Write random invalid data
+        std::fs::write(&file_path, b"not a safetensor archive").expect("write invalid data");
+
+        let result = open_safetensors(&[file_path]);
+        assert!(result.is_err(), "expected error for invalid file");
+    }
 }

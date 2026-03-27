@@ -43,7 +43,9 @@ function Start-HVSockProxy {
     }
 
     $entries = [System.Collections.Generic.List[PSObject]]::new()
-    $lines = Get-Content $ConfigPath | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }
+    $content = Get-Content -Path $ConfigPath -Raw
+    $lines = if ([string]::IsNullOrWhiteSpace($content)) { @() }
+             else { $content.Split("`n").ForEach({ $_.Trim() }).Where({ $_ -and -not $_.StartsWith('#') }) }
 
     foreach ($line in $lines) {
         $parts = $line.Split(':')

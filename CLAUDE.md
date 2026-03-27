@@ -31,7 +31,7 @@ PC_AI/
 │   ├── pcai_media_model/              # Media model definitions and config
 │   ├── pcai_media_server/             # Media HTTP server (axum)
 │   └── pcai_perf_cli/                 # Performance CLI for PowerShell acceleration
-├── Native/PcaiNative/                 # C# P/Invoke wrapper for PowerShell
+├── Native/PcaiNative/                 # C# P/Invoke wrapper (20 modules: inference, media, fs, search, optimizer, diagnostics, safety, etc.)
 ├── Native/PcaiChatTui/                # C# interactive chat TUI (async backends)
 ├── Native/PcaiServiceHost/            # C# Windows service host for inference
 ├── External: C:\codedev\nukenul\      # Standalone Rust/C# utility for null-file removal
@@ -55,10 +55,11 @@ PC_AI/
 │   ├── PC-AI.Performance/             # Native perf metrics (Rust FFI)
 │   ├── PC-AI.USB/                     # USB device management
 │   ├── PC-AI.Drivers/                 # Driver inventory, Thunderbolt/USB4 networking
+│   ├── PC-AI.Gpu/                     # NVIDIA GPU inventory, compatibility, software management
 │   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
 │   ├── PcaiInference.psm1             # Inference module (load/generate/stream/async)
 │   └── PcaiMedia.psm1                 # Media processing module (Janus-Pro wrapper)
-├── Tools/                             # 53 utility/build scripts
+├── Tools/                             # 69 utility/build scripts
 ├── Tests/                             # Pester + Rust test suites (80+ test files)
 ├── Scripts/                           # Rust analyzer health, CargoTools tests
 ├── Config/
@@ -69,7 +70,10 @@ PC_AI/
 │   ├── pcai-inference-server.json     # Inference server settings
 │   ├── pcai-ollama-benchmark.json     # Ollama benchmark config
 │   ├── pcai-tooling-benchmarks.json   # Tooling benchmark suite definitions
-│   └── driver-registry.json           # Curated driver version + update registry
+│   ├── driver-registry.json           # Curated driver version + update registry
+│   ├── nvidia-software-registry.json  # NVIDIA software versions + update sources
+│   ├── diagnostic-thresholds.json     # Threshold values for diagnostic severity
+│   └── vsock-bridges.conf             # VSock bridge configuration
 ├── Notebooks/                         # Evaluation Jupyter notebooks
 ├── Reports/                           # Auto-generated doc pipeline reports
 ├── .litho/litho.toml                  # Litho (deepwiki-rs) documentation config
@@ -311,6 +315,26 @@ Set-ThunderboltNetworkOptimization   # Tune link parameters
 
 Config: `Config/driver-registry.json` — curated device entries with match rules (VID/PID, friendly name, PCI class), trusted sources, and update metadata.
 
+### GPU Management (NVIDIA)
+
+```powershell
+Import-Module PC-AI.Gpu
+
+# GPU inventory and utilization
+Get-NvidiaGpuInventory                # Enumerate GPUs with VRAM, compute capability
+Get-NvidiaGpuUtilization              # Live GPU/VRAM utilization metrics
+
+# Software stack management
+Get-NvidiaSoftwareRegistry            # Load nvidia-software-registry.json
+Get-NvidiaSoftwareStatus              # Installed vs latest version comparison
+Get-NvidiaCompatibilityMatrix         # GPU × software compatibility grid
+Initialize-NvidiaEnvironment          # Set CUDA_PATH, driver env vars
+Install-NvidiaSoftware                # Install/update NVIDIA components
+Update-NvidiaSoftwareRegistry         # Refresh registry from remote sources
+```
+
+Config: `Config/nvidia-software-registry.json` — NVIDIA software versions, download sources, and compatibility data. Validated by `nvidia-validation.yml` workflow on PR.
+
 ### Tooling Benchmarks
 
 ```powershell
@@ -391,6 +415,7 @@ git push origin v1.0.0
 | `evaluation-smoke.yml` | Manual — LLM evaluation harness |
 | `tooling-automation.yml` | Manual — doc/FG/LLM tooling |
 | `rust-guidelines.yml` | PR/push (Rust files) — format, clippy, test, audit for .rs/Cargo changes |
+| `nvidia-validation.yml` | PR/push (GPU files) — NVIDIA stack validation for PC-AI.Gpu changes |
 
 ## Diagnostic Categories
 

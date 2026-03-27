@@ -717,6 +717,47 @@ mod tests {
         assert!(cfg.resolve_device().is_err());
     }
 
+    /// `resolve_device` on `"cuda"` or `"cuda:0"` must attempt CUDA device 0.
+    #[test]
+    #[cfg(feature = "cuda")]
+    fn test_resolve_device_cuda_default() {
+        for dev_str in ["cuda", "cuda:0", " CUDA ", "cUDa:0"] {
+            let cfg = PipelineConfig {
+                device: dev_str.to_string(),
+                ..PipelineConfig::default()
+            };
+            let dev = cfg.resolve_device().unwrap_or_else(|e| {
+                panic!("failed to resolve device '{dev_str}': {e}");
+            });
+            assert!(matches!(dev, Device::Cuda(_)));
+        }
+    }
+
+    /// `resolve_device` on `"cuda:1"` must attempt CUDA device 1.
+    #[test]
+    #[cfg(feature = "cuda")]
+    fn test_resolve_device_cuda_ordinal() {
+        let cfg = PipelineConfig {
+            device: "cuda:1".to_string(),
+            ..PipelineConfig::default()
+        };
+        match cfg.resolve_device() {
+            Ok(Device::Cuda(_)) => {}
+            Err(e) if e.to_string().contains("failed to open CUDA device 1") => {}
+            other => panic!("expected Device::Cuda or ordinal error, got {other:?}"),
+        }
+    }
+
+    /// Invalid CUDA ordinals must return an error.
+    #[test]
+    fn test_resolve_device_cuda_invalid_ordinal() {
+        let cfg = PipelineConfig {
+            device: "cuda:auto".to_string(),
+            ..PipelineConfig::default()
+        };
+        assert!(cfg.resolve_device().is_err());
+    }
+
     #[test]
     fn test_nvidia_smi_gpu_parse() {
         let parsed =
@@ -737,6 +778,8 @@ mod tests {
             ("bf16", DType::BF16),
             ("F32", DType::F32),
             ("BF16", DType::BF16),
+            (" f16 ", DType::F16),     // whitespace test
+            ("\tbf16\n", DType::BF16), // whitespace test
         ];
         for (input, expected) in cases {
             let cfg = PipelineConfig {

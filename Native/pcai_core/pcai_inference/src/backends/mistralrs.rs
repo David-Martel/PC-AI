@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use std::path::Path;
 use std::sync::Arc;
 
-use mistralrs::{best_device, GgufModelBuilder, Model, TextMessageRole, TextMessages, TextModelBuilder};
+use mistralrs::{best_device, GgufModelBuilder, Model, RequestBuilder, TextMessageRole, TextModelBuilder};
 use mistralrs_core::ChatCompletionResponse;
 
 use super::{FinishReason, GenerateRequest, GenerateResponse, InferenceBackend};
@@ -210,19 +210,23 @@ impl InferenceBackend for MistralRsBackend {
         tracing::debug!("Generating response for prompt (length: {})", request.prompt.len());
 
         // Build messages - treat prompt as user message
-        // Future enhancement: Parse system/user messages from prompt
-        let messages = TextMessages::new().add_message(TextMessageRole::User, &request.prompt);
+        let mut builder = RequestBuilder::new().add_message(TextMessageRole::User, &request.prompt);
 
-        // NOTE: Advanced sampling parameters (temperature, top_p, max_tokens, stop sequences)
-        // are currently not supported with the simple TextMessages API.
-        // TextMessages uses deterministic sampling by default.
-        //
-        // TODO: Implement a custom RequestLike to support full sampling control.
-        // For now, we ignore the request parameters and use deterministic sampling.
+        if let Some(t) = request.temperature {
+            builder = builder.set_sampler_temperature(t as f64);
+        }
+        if let Some(p) = request.top_p {
+            builder = builder.set_sampler_topp(p as f64);
+        }
+        if let Some(max_tokens) = request.max_tokens {
+            builder = builder.set_sampler_max_len(max_tokens);
+        }
+        if !request.stop.is_empty() {
+            builder = builder.set_sampler_stop_toks(mistralrs_core::StopTokens::Seqs(request.stop.clone()));
+        }
 
-        // Send chat request with deterministic sampling
         let response = model
-            .send_chat_request(messages)
+            .send_chat_request(builder)
             .await
             .map_err(|e| Error::Backend(format!("Generation failed: {}", e)))?;
 

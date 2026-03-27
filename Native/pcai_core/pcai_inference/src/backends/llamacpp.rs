@@ -238,11 +238,22 @@ impl LlamaCppBackend {
         }
     }
 
-    fn stop_match_index(text: &str, stops: &[String]) -> Option<usize> {
+    fn stop_match_index(text: &str, stops: &[String], prev_len: usize) -> Option<usize> {
         stops
             .iter()
             .filter(|s| !s.is_empty())
-            .filter_map(|s| text.find(s))
+            .filter_map(|s| {
+                // To find a match that was just completed, we only need to look at the suffix
+                // of the string that includes the newly added token and enough context for
+                // the longest possible match.
+                let search_start = prev_len.saturating_sub(s.len().saturating_sub(1));
+                let mut search_start = search_start;
+                // Ensure we start at a valid char boundary.
+                while !text.is_char_boundary(search_start) {
+                    search_start -= 1;
+                }
+                text[search_start..].find(s).map(|idx| idx + search_start)
+            })
             .min()
     }
 
@@ -313,22 +324,21 @@ impl LlamaCppBackend {
                             return Ok(InferenceFeedback::Continue);
                         }
 
-                        let mut candidate = generated_text.clone();
-                        candidate.push_str(&token);
+                        let prev_len = generated_text.len();
+                        generated_text.push_str(&token);
 
-                        if let Some(stop_idx) = Self::stop_match_index(&candidate, &stop_sequences) {
-                            if stop_idx > generated_text.len() {
-                                let safe_suffix = &candidate[generated_text.len()..stop_idx];
+                        if let Some(stop_idx) = Self::stop_match_index(&generated_text, &stop_sequences, prev_len) {
+                            if stop_idx > prev_len {
+                                let safe_suffix = &generated_text[prev_len..stop_idx];
                                 if !safe_suffix.is_empty() {
                                     callback(safe_suffix.to_string());
                                 }
                             }
-                            generated_text = candidate[..stop_idx].to_string();
+                            generated_text.truncate(stop_idx);
                             finish_reason = FinishReason::Stop;
                             return Ok(InferenceFeedback::Halt);
                         }
 
-                        generated_text = candidate;
                         if !token.is_empty() {
                             callback(token);
                         }
@@ -438,5 +448,34 @@ mod tests {
         assert_eq!(backend.n_gpu_layers, 32);
         assert_eq!(backend.n_ctx, 4096);
         assert_eq!(backend.n_batch, 512);
+    }
+
+    #[test]
+    fn test_stop_match_index() {
+        let stops = vec!["###".to_string(), "END".to_string()];
+
+        // No match
+        assert_eq!(LlamaCppBackend::stop_match_index("Hello world", &stops, 5), None);
+
+        // Match at end
+        let text = "Hello###";
+        assert_eq!(LlamaCppBackend::stop_match_index(text, &stops, 5), Some(5));
+
+        // Match that spans across the new token
+        let text_pre = "Hello EN";
+        let prev_len = text_pre.len();
+        let text_full = "Hello END";
+        assert_eq!(LlamaCppBackend::stop_match_index(text_full, &stops, prev_len), Some(6));
+
+        // Another spanning match
+        let text_full = "Hello END";
+        assert_eq!(LlamaCppBackend::stop_match_index(text_full, &stops, 6), Some(6));
+
+        // Empty string to start
+        assert_eq!(LlamaCppBackend::stop_match_index("END", &stops, 0), Some(0));
+
+        // Empty stop sequence should be ignored
+        let stops_with_empty = vec!["".to_string(), "END".to_string()];
+        assert_eq!(LlamaCppBackend::stop_match_index("END", &stops_with_empty, 0), Some(0));
     }
 }

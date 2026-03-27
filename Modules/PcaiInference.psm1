@@ -184,6 +184,28 @@ function Resolve-PcaiRuntimeVariantDll {
                 if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
                 Write-Verbose "Downloading precompiled runtime variant: $($selected.url)"
                 Invoke-WebRequest -Uri ([string]$selected.url) -OutFile $path -UseBasicParsing -TimeoutSec 600
+
+                if ($selected.sha256) {
+                    Write-Verbose "Verifying SHA256 hash against expected: $($selected.sha256)"
+                    $sha = [System.Security.Cryptography.SHA256]::Create()
+                    $stream = $null
+                    try {
+                        $stream = [System.IO.File]::OpenRead($path)
+                        $hashBytes = $sha.ComputeHash($stream)
+                        $computedHash = [BitConverter]::ToString($hashBytes).Replace('-', '').ToLowerInvariant()
+                        $expectedHash = [string]$selected.sha256.ToLowerInvariant()
+                        if ($computedHash -ne $expectedHash) {
+                            $stream.Dispose()
+                            Remove-Item -Path $path -Force -ErrorAction SilentlyContinue
+                            throw "SHA256 hash mismatch! Expected: $expectedHash, Computed: $computedHash"
+                        }
+                    } finally {
+                        if ($stream) { $stream.Dispose() }
+                        if ($sha) { $sha.Dispose() }
+                    }
+                } else {
+                    Write-Warning "No sha256 hash provided for variant '$($selected.name)'. Download proceeding without verification."
+                }
             } catch {
                 Write-Warning "Failed to download runtime variant from $($selected.url): $_"
             }

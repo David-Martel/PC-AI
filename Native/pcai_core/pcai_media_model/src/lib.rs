@@ -431,14 +431,21 @@ impl JanusModel {
     /// Propagates candle tensor errors from the linear projection.
     pub fn project_to_image_vocab(&self, hidden_states: &Tensor) -> Result<Tensor> {
         use candle_core::Module;
-        // Try the forward pass; if it fails with a dtype mismatch (common when
-        // the quantized backbone returns F32 but gen_head weights are BF16),
-        // retry with the hidden states cast to BF16.
+        // Try forward first. If dtype mismatch (quantized backbone returns F32
+        // but gen_head weights are BF16/F16), retry with cascading dtype casts.
         match self.gen_head.forward(hidden_states) {
             Ok(result) => Ok(result),
             Err(_) => {
-                let bf16_hidden = hidden_states.to_dtype(candle_core::DType::BF16)?;
-                self.gen_head.forward(&bf16_hidden)
+                // Try BF16 (CUDA GGUF path — non-LLM weights loaded as BF16)
+                let bf16 = hidden_states.to_dtype(candle_core::DType::BF16)?;
+                match self.gen_head.forward(&bf16) {
+                    Ok(result) => Ok(result),
+                    Err(_) => {
+                        // Try F32 (CPU GGUF path)
+                        let f32 = hidden_states.to_dtype(candle_core::DType::F32)?;
+                        self.gen_head.forward(&f32)
+                    }
+                }
             }
         }
     }

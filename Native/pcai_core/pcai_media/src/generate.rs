@@ -374,8 +374,22 @@ impl GenerationPipeline {
         let shards = hub::collect_safetensors(&model_path);
 
         // 4. Build JanusModel via the shared helper that handles GGUF vs. safetensors.
+        //
+        // For the GGUF quantized path, non-LLM components (VQ decoder, gen_head,
+        // gen_aligner, gen_embed, post_quant_conv) must be loaded in BF16 (CUDA)
+        // or F32 (CPU) — NOT F16. Candle's GroupNorm and Conv2d ops do not support
+        // F16, and forward_hidden always returns F32 from the quantized backbone.
+        let non_llm_dtype = if config.gguf_path.is_some() {
+            match &device {
+                Device::Cuda(_) => DType::BF16,
+                _ => DType::F32,
+            }
+        } else {
+            dtype // full-precision path: use the configured dtype as-is
+        };
+
         let mut varmap = Some(VarMap::new());
-        let vb = VarBuilder::from_varmap(varmap.as_ref().unwrap(), dtype, &device);
+        let vb = VarBuilder::from_varmap(varmap.as_ref().unwrap(), non_llm_dtype, &device);
         let model = Self::build_janus_model(
             config.gguf_path.as_deref(),
             &mut varmap,
@@ -384,7 +398,7 @@ impl GenerationPipeline {
             &shards,
             &model_path,
             &device,
-            dtype,
+            non_llm_dtype,
         )?;
 
         // 5. Load tokenizer.

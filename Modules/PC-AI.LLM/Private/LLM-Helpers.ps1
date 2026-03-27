@@ -786,7 +786,7 @@ function Invoke-OpenAIChatWithProgress {
     $uri = "$ApiUrl/v1/chat/completions"
     $job = Start-Job -ScriptBlock {
         param($u, $body, $hdrs, $timeout)
-        Invoke-RestMethod -Uri $u -Method Post -Body $body -Headers $hdrs -ContentType 'application/json' -TimeoutSec $timeout
+        try { Invoke-RestMethod -Uri $u -Method Post -Body $body -Headers $hdrs -ContentType 'application/json' -TimeoutSec $timeout -ErrorAction Stop } catch { throw $_ }
     } -ArgumentList $uri, $jsonBody, $headers, $TimeoutSeconds
 
     $modelInfo = Get-VLLMModelInfo -ApiUrl $ApiUrl -ModelName $Model

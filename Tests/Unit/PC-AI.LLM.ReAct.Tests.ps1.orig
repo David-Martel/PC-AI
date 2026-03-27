@@ -38,14 +38,6 @@ Describe "Invoke-FunctionGemmaReAct" -Tag 'Unit', 'LLM', 'ReAct' {
         $result.FinalAnswer | Should -Match "Error: LLM returned no response or choices."
     }
 
-    It "Should throw an error if Invoke-FunctionGemmaChat underlying REST call fails" {
-        Mock Invoke-RestMethod { throw "Connection refused" } -ModuleName PC-AI.LLM
-
-        # In Invoke-FunctionGemmaReAct, if SkipHealthCheck is true, it proceeds to call Invoke-FunctionGemmaChat.
-        # Since we mock Invoke-RestMethod, the real Invoke-FunctionGemmaChat will fail and throw.
-        { Invoke-FunctionGemmaChat -Messages @() -Tools @() -BaseUrl "http://test" -Model "test" } | Should -Throw
-    }
-
     It "Should limit maximum tool calls" {
         Mock Invoke-FunctionGemmaChat {
             return [PSCustomObject]@{

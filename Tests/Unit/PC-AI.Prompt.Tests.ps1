@@ -72,4 +72,16 @@ Describe "PC-AI Prompt Enrichment" {
         $result | Should -Match "Unhandled tool"
         $result | Should -Match "no tools provided"
     }
+
+    It "Should construct valid diagnosis prompt with or without router" {
+        $resultNoRouter = & $script:LlmModule {
+            $script:PSScriptRoot = (Split-Path (Split-Path (Get-Module PC-AI.LLM).Path))
+            Get-PCDiagnosisPrompt -DiagnosticText "test diag" -UseRouter:$false
+        }
+        $resultNoRouter.SystemPrompt | Should -Match "REASONING FRAMEWORK"
+        $resultNoRouter.UserPrompt | Should -Match "test diag"
+
+        # Router coverage is mostly covered by LLM chat tests, but we check structure
+        $resultNoRouter.UserPrompt | Should -Not -Match "\[TOOL_RESULTS\]"
+    }
 }

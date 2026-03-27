@@ -43,7 +43,7 @@ function Invoke-FunctionGemmaChat {
         }
     }
 
-    return Invoke-RestMethod -Method Post -Uri $uri -Body $jsonBytes -ContentType 'application/json; charset=utf-8' -TimeoutSec $TimeoutSeconds
+    try { return Invoke-RestMethod -Method Post -Uri $uri -Body $jsonBytes -ContentType 'application/json; charset=utf-8' -TimeoutSec $TimeoutSeconds -ErrorAction Stop } catch { throw "FunctionGemma chat request failed: $_" }
 }
 
 

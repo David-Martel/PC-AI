@@ -1,5 +1,5 @@
---- PC-AI.Prompt.Tests.ps1
-+++ PC-AI.Prompt.Tests.ps1
+--- Tests/Unit/PC-AI.Prompt.Tests.ps1
++++ Tests/Unit/PC-AI.Prompt.Tests.ps1
 @@ -58,4 +58,16 @@
          $result | Should -Match "Unhandled tool"
          $result | Should -Match "no tools provided"

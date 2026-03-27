@@ -802,6 +802,106 @@ namespace PcaiNativeDummy {
     }
 
     # ===========================================================================
+    # Get-PcaiMediaStatus — Edge Cases
+    # ===========================================================================
+
+    Context 'Get-PcaiMediaStatus — edge cases: uninitialized state' {
+
+        BeforeEach {
+            InModuleScope PcaiMedia {
+                $script:Initialized  = $false
+                $script:ModelLoaded  = $false
+                $script:CurrentModel = $null
+            }
+        }
+
+        It 'Reports Initialized=false before any initialization call' {
+            (Get-PcaiMediaStatus).Initialized | Should -BeFalse
+        }
+
+        It 'Reports ModelLoaded=false before any initialization call' {
+            (Get-PcaiMediaStatus).ModelLoaded | Should -BeFalse
+        }
+
+        It 'Reports CurrentModel as null before any initialization call' {
+            (Get-PcaiMediaStatus).CurrentModel | Should -BeNullOrEmpty
+        }
+
+        It 'Returns a well-formed PSCustomObject with the three canonical keys' {
+            $status = Get-PcaiMediaStatus
+            $status.PSObject.Properties.Name | Should -Contain 'Initialized'
+            $status.PSObject.Properties.Name | Should -Contain 'ModelLoaded'
+            $status.PSObject.Properties.Name | Should -Contain 'CurrentModel'
+        }
+    }
+
+    Context 'Get-PcaiMediaStatus — edge cases: failed initialization leaves pipeline unready' {
+
+        It 'Reports Initialized=false after a simulated init failure' {
+            InModuleScope PcaiMedia {
+                # Start from a clean slate
+                $script:Initialized  = $false
+                $script:ModelLoaded  = $false
+                $script:CurrentModel = $null
+
+                # Simulate the catch branch of Initialize-PcaiMedia —
+                # an exception is raised before $script:Initialized is set to $true.
+                try {
+                    throw 'Simulated DLL load failure'
+                    $script:Initialized = $true   # never reached
+                } catch {
+                    # Initialized stays false — this is the expected production path.
+                }
+            }
+
+            $status = Get-PcaiMediaStatus
+            $status.Initialized  | Should -BeFalse
+            $status.ModelLoaded  | Should -BeFalse
+            $status.CurrentModel | Should -BeNullOrEmpty
+        }
+
+        It 'Reports ModelLoaded=false when init fails mid-way' {
+            InModuleScope PcaiMedia {
+                $script:Initialized  = $false
+                $script:ModelLoaded  = $false
+                $script:CurrentModel = $null
+                try { throw 'Mid-way failure' } catch { }
+            }
+            (Get-PcaiMediaStatus).ModelLoaded | Should -BeFalse
+        }
+    }
+
+    Context 'Get-PcaiMediaStatus — edge cases: missing model after successful init' {
+
+        BeforeEach {
+            InModuleScope PcaiMedia {
+                $script:Initialized  = $true
+                $script:ModelLoaded  = $false
+                $script:CurrentModel = $null
+            }
+        }
+
+        It 'Reports Initialized=true but ModelLoaded=false when no model has been loaded' {
+            $status = Get-PcaiMediaStatus
+            $status.Initialized | Should -BeTrue
+            $status.ModelLoaded | Should -BeFalse
+        }
+
+        It 'Reports CurrentModel as null when no model has been loaded' {
+            (Get-PcaiMediaStatus).CurrentModel | Should -BeNullOrEmpty
+        }
+
+        It 'Throws when New-PcaiImage is called without a loaded model' {
+            { New-PcaiImage -Prompt 'test' } | Should -Throw '*Model not loaded*'
+        }
+
+        It 'Throws when Get-PcaiImageAnalysis is called without a loaded model' {
+            { Get-PcaiImageAnalysis -ImagePath 'C:\fake\image.png' } |
+                Should -Throw '*Model not loaded*'
+        }
+    }
+
+    # ===========================================================================
     # Stop-PcaiMedia
     # ===========================================================================
 

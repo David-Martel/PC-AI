@@ -7,10 +7,13 @@ use rust_functiongemma_train::{
 };
 use tempfile::TempDir;
 
-#[test]
-fn test_full_training_config_integration() {
-    // Verify all components can be configured together
-    let trainer_cfg = TrainerConfig {
+/// Build a baseline [`TrainerConfig`] used across multiple integration tests.
+///
+/// Centralising the construction here ensures that all tests start from the
+/// same consistent baseline and that adding a new required field to
+/// `TrainerConfig` only requires a single update.
+fn base_trainer_config() -> TrainerConfig {
+    TrainerConfig {
         lr: 1e-4,
         epochs: 3,
         batch_size: 4,
@@ -26,7 +29,14 @@ fn test_full_training_config_integration() {
         scheduler_type: "cosine".to_string(),
         early_stopping: None,
         use_4bit: false,
-    };
+        ..TrainerConfig::default()
+    }
+}
+
+#[test]
+fn test_full_training_config_integration() {
+    // Verify all components can be configured together
+    let trainer_cfg = base_trainer_config();
 
     // Verify LoRA config can be derived
     let lora_cfg = LoraConfig {
@@ -137,12 +147,9 @@ fn test_lora_config_derivation() {
         lora_dropout: 0.1,
         pack_sequences: true,
         max_seq_len: Some(1024),
-        eos_token_id: 2,
-        use_lora: true,
         warmup_steps: 200,
         scheduler_type: "linear".to_string(),
-        early_stopping: None,
-        use_4bit: false,
+        ..TrainerConfig::default()
     };
 
     // Derive LoRA config from trainer config

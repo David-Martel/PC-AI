@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 
-Describe 'Sync-PowerShellModuleRelease' -Tag 'Unit', 'Fast' {
+Describe 'Sync-PowerShellModuleRelease' -Tag 'Unit', 'Fast', 'Portable' {
     It 'mirrors a promoted release bundle into requested module roots' {
         $tempRoot = Join-Path $env:TEMP ('pcai-release-sync-' + [guid]::NewGuid().ToString('N'))
         $repoRoot = Join-Path $tempRoot 'repo'

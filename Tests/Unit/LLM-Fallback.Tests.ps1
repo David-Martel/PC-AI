@@ -4,7 +4,7 @@ BeforeAll {
     Import-Module $ModulePath -Force -ErrorAction Stop
 }
 
-Describe 'Invoke-LLMChatWithFallback' -Tag 'Unit', 'LLM', 'Fallback' {
+Describe 'Invoke-LLMChatWithFallback' -Tag 'Unit', 'LLM', 'Fallback', 'Portable' {
     It 'Falls back to the next provider when the first is unhealthy' {
         Mock Get-CachedProviderHealth {
             param([string]$Provider, [int]$TimeoutSeconds, [string]$ApiUrl)

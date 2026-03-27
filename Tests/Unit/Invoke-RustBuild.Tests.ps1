@@ -7,7 +7,7 @@ if (-not (Get-Variable -Name CargoVersionOutput -Scope Script -ErrorAction Silen
     $script:CargoVersionOutput = $null
 }
 
-Describe 'Invoke-RustBuild' {
+Describe 'Invoke-RustBuild' -Tag 'Unit', 'Portable' {
     BeforeAll {
         $script:RustBuildPath = Join-Path $PSScriptRoot '..\..\Tools\Invoke-RustBuild.ps1'
     }

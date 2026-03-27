@@ -7,7 +7,7 @@ BeforeAll {
     . $script:ScriptPath -Action '__test_load__'
 }
 
-Describe 'Get-JulesApiUrl' {
+Describe 'Get-JulesApiUrl' -Tag 'Unit', 'Portable' {
     It 'sessions base'        { Get-JulesApiUrl -Endpoint sessions | Should -Be 'https://jules.googleapis.com/v1alpha/sessions' }
     It 'session by id'        { Get-JulesApiUrl -Endpoint sessions -Id s1 | Should -Be 'https://jules.googleapis.com/v1alpha/sessions/s1' }
     It 'activities sub'       { Get-JulesApiUrl -Endpoint sessions -Id s1 -Sub activities | Should -Be 'https://jules.googleapis.com/v1alpha/sessions/s1/activities' }
@@ -17,7 +17,7 @@ Describe 'Get-JulesApiUrl' {
     It 'source by id'         { Get-JulesApiUrl -Endpoint sources -Id src1 | Should -Be 'https://jules.googleapis.com/v1alpha/sources/src1' }
 }
 
-Describe 'New-JulesSessionBody' {
+Describe 'New-JulesSessionBody' -Tag 'Unit', 'Portable' {
     It 'builds minimal body' {
         $b = New-JulesSessionBody -PromptText 'Fix bug' -SourceName 'sources/github/o/r' -BranchName main
         $b.prompt | Should -Be 'Fix bug'
@@ -38,7 +38,7 @@ Describe 'New-JulesSessionBody' {
     }
 }
 
-Describe 'Get-JulesApiKey' {
+Describe 'Get-JulesApiKey' -Tag 'Unit', 'Portable' {
     It 'returns env var when set' {
         $saved = $env:JULES_API_KEY
         try {
@@ -55,7 +55,7 @@ Describe 'Get-JulesApiKey' {
     }
 }
 
-Describe 'Get-RequiredApiKey' {
+Describe 'Get-RequiredApiKey' -Tag 'Unit', 'Portable' {
     It 'throws when key is missing' {
         $saved = $env:JULES_API_KEY
         try {
@@ -65,7 +65,7 @@ Describe 'Get-RequiredApiKey' {
     }
 }
 
-Describe 'Format-JulesSessionTable' {
+Describe 'Format-JulesSessionTable' -Tag 'Unit', 'Portable' {
     It 'extracts session fields' {
         $session = [PSCustomObject]@{
             name       = 'sessions/abc'
@@ -81,7 +81,7 @@ Describe 'Format-JulesSessionTable' {
     }
 }
 
-Describe 'Parameter validation' {
+Describe 'Parameter validation' -Tag 'Unit', 'Portable' {
     It 'rejects missing Action'    { { & $script:ScriptPath } | Should -Throw }
     It 'rejects New without Prompt' { { & $script:ScriptPath -Action New } | Should -Throw '*Prompt*' }
     It 'rejects Status without SessionId' { { & $script:ScriptPath -Action Status } | Should -Throw '*SessionId*' }

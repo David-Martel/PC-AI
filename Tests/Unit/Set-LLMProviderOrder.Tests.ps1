@@ -11,7 +11,7 @@ BeforeAll {
     Import-Module $ModulePath -Force -ErrorAction Stop
 }
 
-Describe "Set-LLMProviderOrder" -Tag 'Unit', 'LLM', 'Fast' {
+Describe "Set-LLMProviderOrder" -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
     Context "When updating provider order" {
         BeforeEach {
             Mock Invoke-PcaiServiceHost {

@@ -5,7 +5,7 @@
     Unit tests for native inference fallback behavior in PC-AI.ps1
 #>
 
-Describe 'Initialize-InferenceBackend fallback behavior' -Tag 'Unit', 'Inference', 'Fallback' {
+Describe 'Initialize-InferenceBackend fallback behavior' -Tag 'Unit', 'Inference', 'Fallback', 'Portable' {
     BeforeAll {
         $ScriptPath = Join-Path $PSScriptRoot '..\..\PC-AI.ps1'
         . $ScriptPath -Command 'help' | Out-Null

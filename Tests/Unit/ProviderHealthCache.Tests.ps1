@@ -4,7 +4,7 @@ BeforeAll {
     . (Join-Path $ModuleRoot 'Private\ProviderHealthCache.ps1')
 }
 
-Describe 'ProviderHealthCache' {
+Describe 'ProviderHealthCache' -Tag 'Unit', 'Portable' {
     BeforeEach {
         Reset-ProviderHealthCache
     }

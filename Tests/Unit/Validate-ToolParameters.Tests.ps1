@@ -13,7 +13,7 @@ BeforeAll {
     . (Join-Path $ModuleRoot 'Private\Validate-ToolParameters.ps1')
 }
 
-Describe "Confirm-ToolParameters" -Tag 'Unit', 'Validation', 'Fast' {
+Describe "Confirm-ToolParameters" -Tag 'Unit', 'Validation', 'Fast', 'Portable' {
 
     Context "When validating required parameters" {
         BeforeAll {

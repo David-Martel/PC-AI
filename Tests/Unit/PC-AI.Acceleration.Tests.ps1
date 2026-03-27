@@ -8,7 +8,7 @@ BeforeAll {
     Import-Module $ModulePath -Force -ErrorAction Stop
 }
 
-Describe "Get-UnifiedHardwareReportJson" -Tag 'Unit', 'Acceleration', 'Fast' {
+Describe "Get-UnifiedHardwareReportJson" -Tag 'Unit', 'Acceleration', 'Fast', 'Portable' {
     Context "When native diagnostics are unavailable" {
         BeforeEach {
             Mock Test-PcaiNativeAvailable { $false } -ModuleName PC-AI.Acceleration

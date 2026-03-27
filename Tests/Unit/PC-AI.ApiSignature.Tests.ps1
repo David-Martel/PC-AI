@@ -22,7 +22,7 @@ BeforeAll {
     }
 }
 
-Describe 'API Signature Alignment' -Tag 'Unit', 'API', 'Help' {
+Describe 'API Signature Alignment' -Tag 'Unit', 'API', 'Help', Portable, 'Portable' {
     It 'should generate the API signature report' {
         $script:Report | Should -Not -BeNullOrEmpty
     }

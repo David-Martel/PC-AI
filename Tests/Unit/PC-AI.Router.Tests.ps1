@@ -8,7 +8,7 @@ BeforeAll {
     Import-Module $ModulePath -Force -ErrorAction Stop
 }
 
-Describe "Invoke-LLMChatRouted" -Tag 'Unit', 'LLM', 'Router' {
+Describe "Invoke-LLMChatRouted" -Tag 'Unit', 'LLM', 'Router', 'Portable' {
     BeforeEach {
         Mock Invoke-FunctionGemmaReAct {
             [PSCustomObject]@{

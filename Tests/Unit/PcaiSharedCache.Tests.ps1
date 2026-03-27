@@ -56,7 +56,7 @@ AfterAll {
     }
 }
 
-Describe 'PcaiSharedCache' -Tag 'Unit', 'Cache', 'Acceleration' {
+Describe 'PcaiSharedCache' -Tag 'Unit', 'Cache', 'Acceleration', Portable, 'Portable' {
     BeforeEach {
         foreach ($entry in $script:OriginalCacheEnv.GetEnumerator()) {
             [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process')

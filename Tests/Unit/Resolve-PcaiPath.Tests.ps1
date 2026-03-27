@@ -4,7 +4,7 @@ BeforeAll {
     . (Join-Path $ModuleRoot 'Private\Resolve-PcaiPath.ps1')
 }
 
-Describe 'Resolve-PcaiPath' {
+Describe 'Resolve-PcaiPath' -Tag 'Unit', 'Portable' {
     Context 'Default resolution' {
         It 'Should resolve project root from module location' {
             $root = Resolve-PcaiPath -PathType 'Root'

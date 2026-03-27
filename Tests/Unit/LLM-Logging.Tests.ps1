@@ -27,7 +27,7 @@ AfterAll {
     }
 }
 
-Describe "LLM-Logging Module" {
+Describe "LLM-Logging Module" -Tag 'Unit', 'Portable' {
     BeforeEach {
         # Reset log level to default and clear log file before each test
         & $script:LlmModule { Set-LLMLogLevel -Level 'Info' }

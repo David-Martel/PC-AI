@@ -59,7 +59,7 @@ AfterAll {
     Remove-Module PcaiMedia -Force -ErrorAction SilentlyContinue
 }
 
-Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI' {
+Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Windows' {
 
     # Reset module state between every test
     BeforeEach {

@@ -26,7 +26,7 @@ BeforeAll {
     } -ModuleName PC-AI.Cleanup
 }
 
-Describe "Get-PathDuplicates" -Tag 'Unit', 'Cleanup', 'Fast' {
+Describe "Get-PathDuplicates" -Tag 'Unit', 'Cleanup', 'Fast', 'Portable' {
     Context "When PATH has duplicate entries" {
         # Note: This test uses real PATH data since Get-PathDuplicates
         # calls [Environment]::GetEnvironmentVariable() which cannot be easily mocked
@@ -78,7 +78,7 @@ Describe "Get-PathDuplicates" -Tag 'Unit', 'Cleanup', 'Fast' {
     }
 }
 
-Describe "Repair-MachinePath" -Tag 'Unit', 'Cleanup', 'Slow', 'RequiresAdmin' {
+Describe "Repair-MachinePath" -Tag 'Unit', 'Cleanup', 'Slow', 'RequiresAdmin', 'Portable' {
     BeforeAll {
         # Mock helper functions used by the module
         Mock Backup-EnvironmentVariable { "C:\backup\path.bak" } -ModuleName PC-AI.Cleanup
@@ -142,7 +142,7 @@ Describe "Repair-MachinePath" -Tag 'Unit', 'Cleanup', 'Slow', 'RequiresAdmin' {
     }
 }
 
-Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow' {
+Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow', 'Portable' {
     Context "When scanning for duplicate files" {
         BeforeAll {
             Mock Get-ChildItem {
@@ -278,7 +278,7 @@ Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow' {
     }
 }
 
-Describe "Clear-TempFiles" -Tag 'Unit', 'Cleanup', 'Slow' {
+Describe "Clear-TempFiles" -Tag 'Unit', 'Cleanup', 'Slow', 'Portable' {
     BeforeAll {
         # Mock helper functions used by Clear-TempFiles
         Mock Test-IsAdministrator { $false } -ModuleName PC-AI.Cleanup

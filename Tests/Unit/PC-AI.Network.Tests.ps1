@@ -28,7 +28,7 @@ BeforeAll {
     $script:IsAdmin = Test-IsAdmin
 }
 
-Describe "Get-NetworkDiagnostics" -Tag 'Unit', 'Network', 'Fast' {
+Describe "Get-NetworkDiagnostics" -Tag 'Unit', 'Network', 'Fast', 'Portable' {
     Context "When gathering network diagnostics" {
         BeforeAll {
             Mock Get-NetAdapter {
@@ -269,7 +269,7 @@ Describe "Get-NetworkDiagnostics" -Tag 'Unit', 'Network', 'Fast' {
     }
 }
 
-Describe "Test-WSLConnectivity" -Tag 'Unit', 'Network', 'Slow' {
+Describe "Test-WSLConnectivity" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
     Context "When testing WSL network connectivity" {
         BeforeAll {
             Mock Get-WSLDistributions {
@@ -429,7 +429,7 @@ Describe "Test-WSLConnectivity" -Tag 'Unit', 'Network', 'Slow' {
     }
 }
 
-Describe "Watch-VSockPerformance" -Tag 'Unit', 'Network', 'Slow' {
+Describe "Watch-VSockPerformance" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
     Context "When monitoring VSock performance" {
         BeforeAll {
             Mock Get-NetAdapter {
@@ -614,7 +614,7 @@ Describe "Watch-VSockPerformance" -Tag 'Unit', 'Network', 'Slow' {
     }
 }
 
-Describe "Optimize-VSock" -Tag 'Unit', 'Network', 'Slow', 'RequiresAdmin' {
+Describe "Optimize-VSock" -Tag 'Unit', 'Network', 'Slow', 'RequiresAdmin', 'Portable' {
     Context "When optimizing VSock configuration" {
         BeforeAll {
             # Mock admin check to return true for tests
@@ -749,7 +749,7 @@ Describe "Optimize-VSock" -Tag 'Unit', 'Network', 'Slow', 'RequiresAdmin' {
     }
 }
 
-Describe "Network-Helpers (Private Functions)" -Tag 'Unit', 'Network', 'Fast' {
+Describe "Network-Helpers (Private Functions)" -Tag 'Unit', 'Network', 'Fast', 'Portable' {
     Context "When using helper functions" {
         BeforeAll {
             Mock Get-NetAdapter {

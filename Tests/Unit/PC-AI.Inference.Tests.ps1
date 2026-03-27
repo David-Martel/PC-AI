@@ -9,7 +9,7 @@
     without requiring actual model loading.
 #>
 
-Describe 'PcaiInference Module' {
+Describe 'PcaiInference Module' -Tag 'Unit', 'Windows' {
     BeforeAll {
         $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PcaiInference.psm1'
         if (Test-Path $ModulePath) {
@@ -169,7 +169,7 @@ Describe 'PcaiInference Module' {
     }
 }
 
-Describe 'PC-AI.ps1 Inference Parameters' {
+Describe 'PC-AI.ps1 Inference Parameters' -Tag 'Unit', 'Windows' {
     BeforeAll {
         $ScriptPath = Join-Path $PSScriptRoot '..\..\PC-AI.ps1'
     }
@@ -219,7 +219,7 @@ Describe 'PC-AI.ps1 Inference Parameters' {
     }
 }
 
-Describe 'Build Configuration' {
+Describe 'Build Configuration' -Tag 'Unit', 'Windows' {
     BeforeAll {
         $ConfigPath = Join-Path $PSScriptRoot '..\..\Native\pcai_core\pcai_inference\build-config.json'
     }
@@ -255,7 +255,7 @@ Describe 'Build Configuration' {
     }
 }
 
-Describe 'CMake Configuration' {
+Describe 'CMake Configuration' -Tag 'Unit', 'Windows' {
     BeforeAll {
         $ToolchainPath = Join-Path $PSScriptRoot '..\..\Native\pcai_core\pcai_inference\cmake\toolchain-msvc.cmake'
         $PresetsPath = Join-Path $PSScriptRoot '..\..\Native\pcai_core\pcai_inference\CMakePresets.json'

@@ -28,7 +28,7 @@ BeforeAll {
     $script:IsAdmin = Test-IsAdmin
 }
 
-Describe "Get-WSLStatus" -Tag 'Unit', 'Virtualization', 'Fast' {
+Describe "Get-WSLStatus" -Tag 'Unit', 'Virtualization', 'Fast', 'Portable' {
     Context "When WSL is installed and running" {
         BeforeAll {
             Mock Get-Command {
@@ -78,7 +78,7 @@ Describe "Get-WSLStatus" -Tag 'Unit', 'Virtualization', 'Fast' {
     }
 }
 
-Describe "Get-HyperVStatus" -Tag 'Unit', 'Virtualization', 'Fast' {
+Describe "Get-HyperVStatus" -Tag 'Unit', 'Virtualization', 'Fast', 'Portable' {
     Context "When Hyper-V is enabled" {
         BeforeAll {
             Mock Get-WindowsOptionalFeature {
@@ -153,7 +153,7 @@ Describe "Get-HyperVStatus" -Tag 'Unit', 'Virtualization', 'Fast' {
     }
 }
 
-Describe "Get-DockerStatus" -Tag 'Unit', 'Virtualization', 'Fast' {
+Describe "Get-DockerStatus" -Tag 'Unit', 'Virtualization', 'Fast', 'Portable' {
     Context "When Docker Desktop is running" {
         BeforeAll {
             Mock Get-Process {
@@ -210,7 +210,7 @@ Describe "Get-DockerStatus" -Tag 'Unit', 'Virtualization', 'Fast' {
     }
 }
 
-Describe "Optimize-WSLConfig" -Tag 'Unit', 'Virtualization', 'Slow' {
+Describe "Optimize-WSLConfig" -Tag 'Unit', 'Virtualization', 'Slow', 'Portable' {
     BeforeAll {
         # Mock CIM query for system info
         Mock Get-CimInstance {
@@ -267,7 +267,7 @@ Describe "Optimize-WSLConfig" -Tag 'Unit', 'Virtualization', 'Slow' {
     }
 }
 
-Describe "Set-WSLDefenderExclusions" -Tag 'Unit', 'Virtualization', 'Slow', 'RequiresAdmin' {
+Describe "Set-WSLDefenderExclusions" -Tag 'Unit', 'Virtualization', 'Slow', 'RequiresAdmin', 'Portable' {
     BeforeAll {
         Mock Add-MpPreference {} -ModuleName PC-AI.Virtualization
     }
@@ -304,7 +304,7 @@ Describe "Set-WSLDefenderExclusions" -Tag 'Unit', 'Virtualization', 'Slow', 'Req
     }
 }
 
-Describe "Repair-WSLNetworking" -Tag 'Unit', 'Virtualization', 'Slow', 'RequiresAdmin' {
+Describe "Repair-WSLNetworking" -Tag 'Unit', 'Virtualization', 'Slow', 'RequiresAdmin', 'Portable' {
     BeforeAll {
         Mock Get-VMSwitch {
             [PSCustomObject]@{
@@ -362,7 +362,7 @@ Describe "Repair-WSLNetworking" -Tag 'Unit', 'Virtualization', 'Slow', 'Requires
     }
 }
 
-Describe "Backup-WSLConfig" -Tag 'Unit', 'Virtualization', 'Fast' {
+Describe "Backup-WSLConfig" -Tag 'Unit', 'Virtualization', 'Fast', 'Portable' {
     Context "When .wslconfig exists" {
         BeforeAll {
             Mock Test-Path { $true } -ModuleName PC-AI.Virtualization

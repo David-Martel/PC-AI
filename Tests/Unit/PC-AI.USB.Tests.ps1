@@ -16,7 +16,7 @@ BeforeAll {
     Import-Module $MockDataPath -Force -ErrorAction Stop
 }
 
-Describe "Get-UsbDeviceList" -Tag 'Unit', 'USB', 'Fast' {
+Describe "Get-UsbDeviceList" -Tag 'Unit', 'USB', 'Fast', 'Windows' {
     Context "When usbipd is available" {
         BeforeAll {
             # Mock the private helper function that checks for usbipd
@@ -114,7 +114,7 @@ Describe "Get-UsbDeviceList" -Tag 'Unit', 'USB', 'Fast' {
     }
 }
 
-Describe "Mount-UsbToWSL" -Tag 'Unit', 'USB', 'Slow' {
+Describe "Mount-UsbToWSL" -Tag 'Unit', 'USB', 'Slow', 'Windows' {
     Context "When mounting USB device to WSL" {
         BeforeAll {
             # Mock prerequisites
@@ -165,7 +165,7 @@ Describe "Mount-UsbToWSL" -Tag 'Unit', 'USB', 'Slow' {
     }
 }
 
-Describe "Dismount-UsbFromWSL" -Tag 'Unit', 'USB', 'Slow' {
+Describe "Dismount-UsbFromWSL" -Tag 'Unit', 'USB', 'Slow', 'Windows' {
     Context "When dismounting USB device from WSL" {
         BeforeAll {
             Mock Get-Command {
@@ -204,7 +204,7 @@ Describe "Dismount-UsbFromWSL" -Tag 'Unit', 'USB', 'Slow' {
     }
 }
 
-Describe "Get-UsbWSLStatus" -Tag 'Unit', 'USB', 'Fast' {
+Describe "Get-UsbWSLStatus" -Tag 'Unit', 'USB', 'Fast', 'Windows' {
     Context "When checking USB/WSL status" {
         BeforeAll {
             Mock Get-Command {
@@ -245,7 +245,7 @@ Describe "Get-UsbWSLStatus" -Tag 'Unit', 'USB', 'Fast' {
     }
 }
 
-Describe "Invoke-UsbBind" -Tag 'Unit', 'USB', 'Slow', 'RequiresAdmin' {
+Describe "Invoke-UsbBind" -Tag 'Unit', 'USB', 'Slow', 'RequiresAdmin', 'Windows' {
     Context "When binding USB device" {
         BeforeAll {
             Mock Get-Command {
@@ -309,7 +309,7 @@ Describe "Invoke-UsbBind" -Tag 'Unit', 'USB', 'Slow', 'RequiresAdmin' {
     }
 }
 
-Describe "Test-UsbIpdInstalled (Private Function)" -Tag 'Unit', 'USB', 'Fast' {
+Describe "Test-UsbIpdInstalled (Private Function)" -Tag 'Unit', 'USB', 'Fast', 'Windows' {
     Context "When checking usbipd availability" {
         BeforeAll {
             Mock Get-Command {

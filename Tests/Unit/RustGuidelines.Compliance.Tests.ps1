@@ -43,7 +43,7 @@ BeforeAll {
 
 # ─── M-STATIC-VERIFICATION: Cargo.toml has [lints.clippy] ────────────────────
 
-Describe "M-STATIC-VERIFICATION: Clippy lints configured" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "M-STATIC-VERIFICATION: Clippy lints configured" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     It "Native workspace Cargo.toml should have [workspace.lints.clippy]" {
         $cargoToml = Get-Content -Path (Join-Path $script:NativeRoot 'Cargo.toml') -Raw
         $cargoToml | Should -Match '\[workspace\.lints\.clippy\]'
@@ -62,7 +62,7 @@ Describe "M-STATIC-VERIFICATION: Clippy lints configured" -Tag 'Unit', 'RustGuid
 
 # ─── M-LINT-OVERRIDE-EXPECT: #[expect] over #[allow] ─────────────────────────
 
-Describe "M-LINT-OVERRIDE-EXPECT: Prefer #[expect] over #[allow]" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "M-LINT-OVERRIDE-EXPECT: Prefer #[expect] over #[allow]" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     It "Should have few #[allow(...)] without reason in Native src/" {
         $files = Get-RustSourceFiles -Root $script:NativeRoot -ExcludeTests -ExcludeVendor
         $allows = @($files | Select-String -Pattern '#\[allow\(' |
@@ -74,7 +74,7 @@ Describe "M-LINT-OVERRIDE-EXPECT: Prefer #[expect] over #[allow]" -Tag 'Unit', '
 
 # ─── M-AVOID-STATICS: No static mut ──────────────────────────────────────────
 
-Describe "M-AVOID-STATICS: No static mut in production code" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "M-AVOID-STATICS: No static mut in production code" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     It "Should have zero 'static mut' declarations in Native src/" {
         $files = Get-RustSourceFiles -Root $script:NativeRoot -ExcludeTests -ExcludeVendor
         $staticMut = @($files | Select-String -Pattern 'static\s+mut\s+' |
@@ -93,7 +93,7 @@ Describe "M-AVOID-STATICS: No static mut in production code" -Tag 'Unit', 'RustG
 
 # ─── M-NO-GLOB-REEXPORTS: No pub use ::* ─────────────────────────────────────
 
-Describe "M-NO-GLOB-REEXPORTS: No glob re-exports" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "M-NO-GLOB-REEXPORTS: No glob re-exports" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     It "Should have zero 'pub use ...::*' in Native src/" {
         $files = Get-RustSourceFiles -Root $script:NativeRoot -ExcludeTests -ExcludeVendor
         $globs = @($files | Select-String -Pattern 'pub\s+use\s+.*::\*\s*;' |
@@ -104,7 +104,7 @@ Describe "M-NO-GLOB-REEXPORTS: No glob re-exports" -Tag 'Unit', 'RustGuidelines'
 
 # ─── M-MIMALLOC-APPS: Binary crates use mimalloc ─────────────────────────────
 
-Describe "M-MIMALLOC-APPS: Binary crates use mimalloc" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "M-MIMALLOC-APPS: Binary crates use mimalloc" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     BeforeAll {
         $script:BinaryCrates = @(
             @{ Name = 'pcai_media_server'; Main = Join-Path $script:NativeRoot 'pcai_media_server\src\main.rs' },
@@ -126,7 +126,7 @@ Describe "M-MIMALLOC-APPS: Binary crates use mimalloc" -Tag 'Unit', 'RustGuideli
 
 # ─── Tech Debt: No expect("TODO") markers ────────────────────────────────────
 
-Describe "Tech Debt: No TODO expect markers" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "Tech Debt: No TODO expect markers" -Tag 'Unit', 'RustGuidelines', 'Fast', Portable, 'Portable' {
     It "Should have zero expect('TODO: Verify unwrap') in all Rust files" {
         $allRs = Get-ChildItem -Path $script:RepoRoot -Recurse -Filter '*.rs' -File |
             Where-Object { $_.FullName -notmatch '[\\/](target|vendor|third_party)[\\/]' }
@@ -137,7 +137,7 @@ Describe "Tech Debt: No TODO expect markers" -Tag 'Unit', 'RustGuidelines', 'Fas
 
 # ─── M-MODULE-DOCS: Library crates have module documentation ─────────────────
 
-Describe "M-MODULE-DOCS: Library crates have module docs" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "M-MODULE-DOCS: Library crates have module docs" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     It "pcai_inference lib.rs should have //! module documentation" {
         $libRs = Join-Path $script:NativeRoot 'pcai_inference\src\lib.rs'
         if (-not (Test-Path $libRs)) { Set-ItResult -Skipped; return }
@@ -155,7 +155,7 @@ Describe "M-MODULE-DOCS: Library crates have module docs" -Tag 'Unit', 'RustGuid
 
 # ─── M-FEATURES-ADDITIVE: Feature flags don't subtract ───────────────────────
 
-Describe "M-FEATURES-ADDITIVE: Features are additive" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "M-FEATURES-ADDITIVE: Features are additive" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     It "pcai_inference features should all be additive" {
         $cargoToml = Get-Content -Path (Join-Path $script:NativeRoot 'pcai_inference\Cargo.toml') -Raw
         # Check for cfg(not(feature = ...)) patterns that would indicate subtractive features
@@ -168,7 +168,7 @@ Describe "M-FEATURES-ADDITIVE: Features are additive" -Tag 'Unit', 'RustGuidelin
 
 # ─── M-STRONG-TYPES: Path parameters use Path types ──────────────────────────
 
-Describe "M-STRONG-TYPES: Path parameters use proper types" -Tag 'Unit', 'RustGuidelines', 'Advisory' {
+Describe "M-STRONG-TYPES: Path parameters use proper types" -Tag 'Unit', 'RustGuidelines', 'Advisory', 'Portable' {
     It "Should not have excessive String path parameters in production code" {
         $files = Get-RustSourceFiles -Root $script:NativeRoot -ExcludeTests -ExcludeVendor
         # Look for fn signatures with path/file/dir parameters typed as &str or String
@@ -181,7 +181,7 @@ Describe "M-STRONG-TYPES: Path parameters use proper types" -Tag 'Unit', 'RustGu
 
 # ─── CI/CD: Guidelines workflow exists ────────────────────────────────────────
 
-Describe "CI/CD: Rust guidelines workflow configured" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "CI/CD: Rust guidelines workflow configured" -Tag 'Unit', 'RustGuidelines', 'Fast', Portable, 'Portable' {
     It "Should have rust-guidelines.yml workflow" {
         Test-Path (Join-Path $script:RepoRoot '.github\workflows\rust-guidelines.yml') | Should -Be $true
     }
@@ -195,7 +195,7 @@ Describe "CI/CD: Rust guidelines workflow configured" -Tag 'Unit', 'RustGuidelin
 
 # ─── Module Export Completeness ───────────────────────────────────────────────
 
-Describe "PC-AI Framework: All modules load correctly" -Tag 'Unit', 'RustGuidelines', 'Fast' {
+Describe "PC-AI Framework: All modules load correctly" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     It "PC-AI.Drivers should import without errors" {
         $manifest = Join-Path $script:RepoRoot 'Modules\PC-AI.Drivers\PC-AI.Drivers.psd1'
         { Import-Module $manifest -Force -ErrorAction Stop } | Should -Not -Throw

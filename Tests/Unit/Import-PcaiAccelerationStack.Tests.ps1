@@ -7,7 +7,7 @@ BeforeAll {
     Import-Module $script:CommonModulePath -Force | Out-Null
 }
 
-Describe 'Import-PcaiAccelerationStack' -Tag 'Unit', 'Acceleration', 'Bootstrap' {
+Describe 'Import-PcaiAccelerationStack' -Tag 'Unit', 'Acceleration', 'Bootstrap', 'Portable' {
     It 'imports repo-local acceleration modules through the shared bootstrap' {
         $status = Import-PcaiAccelerationStack -Modules @('PC-AI.Acceleration') -RepoRoot $script:ProjectRoot
 

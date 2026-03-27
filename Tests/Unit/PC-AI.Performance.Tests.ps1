@@ -16,7 +16,7 @@ BeforeAll {
     Import-Module $MockDataPath -Force -ErrorAction Stop
 }
 
-Describe "Get-DiskSpace" -Tag 'Unit', 'Performance', 'Fast' {
+Describe "Get-DiskSpace" -Tag 'Unit', 'Performance', 'Fast', 'Windows' {
     Context "When checking disk space with healthy drives" {
         BeforeAll {
             Mock Get-CimInstance {
@@ -145,7 +145,7 @@ Describe "Get-DiskSpace" -Tag 'Unit', 'Performance', 'Fast' {
     }
 }
 
-Describe "Get-ProcessPerformance" -Tag 'Unit', 'Performance', 'Fast' {
+Describe "Get-ProcessPerformance" -Tag 'Unit', 'Performance', 'Fast', 'Windows' {
     Context "When monitoring process performance" {
         BeforeAll {
             Mock Get-Process {
@@ -309,7 +309,7 @@ Describe "Get-ProcessPerformance" -Tag 'Unit', 'Performance', 'Fast' {
     }
 }
 
-Describe "Watch-SystemResources" -Tag 'Unit', 'Performance', 'Slow' {
+Describe "Watch-SystemResources" -Tag 'Unit', 'Performance', 'Slow', 'Windows' {
     Context "When monitoring system resources" {
         BeforeAll {
             # Mock Get-Counter for CPU counter
@@ -414,7 +414,7 @@ Describe "Watch-SystemResources" -Tag 'Unit', 'Performance', 'Slow' {
     }
 }
 
-Describe "Optimize-Disks" -Tag 'Unit', 'Performance', 'Slow', 'RequiresAdmin' {
+Describe "Optimize-Disks" -Tag 'Unit', 'Performance', 'Slow', 'RequiresAdmin', 'Windows' {
     Context "When optimizing SSD drives" {
         BeforeAll {
             Mock Test-IsAdmin { $true } -ModuleName PC-AI.Performance

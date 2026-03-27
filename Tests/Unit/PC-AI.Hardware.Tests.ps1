@@ -16,7 +16,7 @@ BeforeAll {
     Import-Module $MockDataPath -Force -ErrorAction Stop
 }
 
-Describe "Get-DeviceErrors" -Tag 'Unit', 'Hardware', 'Fast' {
+Describe "Get-DeviceErrors" -Tag 'Unit', 'Hardware', 'Fast', 'Windows' {
     Context "When devices have errors" {
         BeforeAll {
             Mock Get-CimInstance { Get-MockDevicesWithErrors } -ModuleName PC-AI.Hardware
@@ -67,7 +67,7 @@ Describe "Get-DeviceErrors" -Tag 'Unit', 'Hardware', 'Fast' {
     }
 }
 
-Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast' {
+Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Windows' {
     Context "When all disks are healthy" {
         BeforeAll {
             Mock Get-CimInstance {
@@ -188,7 +188,7 @@ Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast' {
     }
 }
 
-Describe "Get-UsbStatus" -Tag 'Unit', 'Hardware', 'Fast' {
+Describe "Get-UsbStatus" -Tag 'Unit', 'Hardware', 'Fast', 'Windows' {
     Context "When USB devices are present" {
         BeforeAll {
             Mock Get-CimInstance {
@@ -230,7 +230,7 @@ Describe "Get-UsbStatus" -Tag 'Unit', 'Hardware', 'Fast' {
     }
 }
 
-Describe "Get-NetworkAdapters" -Tag 'Unit', 'Hardware', 'Fast' {
+Describe "Get-NetworkAdapters" -Tag 'Unit', 'Hardware', 'Fast', 'Windows' {
     Context "When physical adapters are present" {
         BeforeAll {
             Mock Get-CimInstance { Get-MockNetworkAdapters } -ModuleName PC-AI.Hardware
@@ -276,7 +276,7 @@ Describe "Get-NetworkAdapters" -Tag 'Unit', 'Hardware', 'Fast' {
     }
 }
 
-Describe "Get-SystemEvents" -Tag 'Unit', 'Hardware', 'Slow' {
+Describe "Get-SystemEvents" -Tag 'Unit', 'Hardware', 'Slow', 'Windows' {
     Context "When disk and USB errors exist" {
         BeforeAll {
             Mock Get-WinEvent { Get-MockDiskUsbEvents -ErrorType Mixed } -ModuleName PC-AI.Hardware
@@ -330,7 +330,7 @@ Describe "Get-SystemEvents" -Tag 'Unit', 'Hardware', 'Slow' {
     }
 }
 
-Describe "New-DiagnosticReport" -Tag 'Unit', 'Hardware', 'Integration' {
+Describe "New-DiagnosticReport" -Tag 'Unit', 'Hardware', 'Integration', 'Windows' {
     BeforeAll {
         # Mock all dependent functions
         Mock Get-DeviceErrors { Get-MockDevicesWithErrors } -ModuleName PC-AI.Hardware

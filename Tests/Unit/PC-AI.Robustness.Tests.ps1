@@ -8,7 +8,7 @@ BeforeAll {
     Import-Module (Join-Path $PcaiRoot 'Modules\PC-AI.LLM\PC-AI.LLM.psd1') -Force -ErrorAction Stop
 }
 
-Describe "PC-AI Robustness" -Tag 'Unit', 'Robustness' {
+Describe "PC-AI Robustness" -Tag 'Unit', 'Robustness', 'Portable' {
 
     It "Should enforce content size limit (5MB)" {
         InModuleScope PC-AI.LLM {

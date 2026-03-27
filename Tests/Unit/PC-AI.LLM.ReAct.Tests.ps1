@@ -14,7 +14,7 @@ BeforeAll {
     $script:ToolsPath = Join-Path $PcaiRoot 'Config\pcai-tools.json'
 }
 
-Describe "Invoke-FunctionGemmaReAct" -Tag 'Unit', 'LLM', 'ReAct' {
+Describe "Invoke-FunctionGemmaReAct" -Tag 'Unit', 'LLM', 'ReAct', 'Portable' {
     BeforeEach {
         Mock Invoke-FunctionGemmaChat {
             return [PSCustomObject]@{

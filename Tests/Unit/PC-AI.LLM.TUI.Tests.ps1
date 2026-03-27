@@ -9,7 +9,7 @@ BeforeAll {
     $script:PrimaryTuiCandidate = 'C:\__pcai_mock\PcaiChatTui.exe'
 }
 
-Describe "Invoke-LLMChatTui" -Tag 'Unit', 'LLM', 'TUI' {
+Describe "Invoke-LLMChatTui" -Tag 'Unit', 'LLM', 'TUI', 'Portable' {
     AfterEach {
         Remove-Item -Path "Function:global:$script:PrimaryTuiCandidate" -ErrorAction SilentlyContinue
         Remove-Item Env:PCAI_TUI_EXE -ErrorAction SilentlyContinue

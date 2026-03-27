@@ -6,7 +6,7 @@ BeforeAll {
     $script:BenchmarkScript = Join-Path $script:ProjectRoot 'Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1'
 }
 
-Describe "Invoke-PcaiToolingBenchmarks" -Tag 'Unit', 'Benchmarks', 'Acceleration' {
+Describe "Invoke-PcaiToolingBenchmarks" -Tag 'Unit', 'Benchmarks', 'Acceleration', 'Portable' {
     It "uses the repo-imported acceleration module instead of a shadowed session function" {
         function global:Measure-CommandPerformance {
             param()

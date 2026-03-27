@@ -20,7 +20,7 @@ BeforeAll {
     $script:LlmModule = Get-Module PC-AI.LLM
 }
 
-Describe "PC-AI Prompt Enrichment" {
+Describe "PC-AI Prompt Enrichment" -Tag 'Unit', 'Portable' {
     It "Should load and enrich CHAT.md with telemetry" {
         $prompt = & $script:LlmModule { Get-EnrichedSystemPrompt -Mode 'chat' }
         $prompt | Should -Not -BeNullOrEmpty

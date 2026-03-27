@@ -5,7 +5,7 @@ BeforeAll {
     Import-Module $ModulePath -Force
 }
 
-Describe 'Invoke-LLMChatRouted - Graceful Degradation' {
+Describe 'Invoke-LLMChatRouted - Graceful Degradation' -Tag 'Unit', 'Portable' {
     BeforeAll {
         # Mock dependencies
         Mock -ModuleName PC-AI.LLM Get-EnrichedSystemPrompt {

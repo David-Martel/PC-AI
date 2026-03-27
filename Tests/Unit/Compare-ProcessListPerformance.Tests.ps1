@@ -23,7 +23,7 @@ AfterAll {
     Remove-Module 'PC-AI.Acceleration' -Force -ErrorAction SilentlyContinue
 }
 
-Describe 'Compare-ProcessListPerformance' -Tag 'Unit', 'Acceleration', 'Benchmark' {
+Describe 'Compare-ProcessListPerformance' -Tag 'Unit', 'Acceleration', 'Benchmark', 'Portable' {
 
     Context 'When procs (Rust tool) is not available' {
 

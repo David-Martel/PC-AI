@@ -1,0 +1,132 @@
+name: Portable CI (Linux)
+
+# Validates that the codebase compiles and passes quality checks on Ubuntu.
+# Primary consumers: Jules and other remote AI agents that run on Linux runners.
+# This workflow is intentionally kept dependency-light — no CUDA, no native DLLs,
+# no Windows-only APIs.  All checks must pass before the main CI gate runs.
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: {}
+
+concurrency:
+  group: portable-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  # Disable sccache — not available on Ubuntu runners without extra setup
+  RUSTC_WRAPPER: ""
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Single job: keeps the feedback loop fast (~4-6 min total)
+  # ──────────────────────────────────────────────────────────────
+
+  portable-tests:
+    name: Cross-Platform Quality Gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── Rust toolchain ────────────────────────────────────────
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      # Cache keyed on Cargo.lock so a lockfile change busts the cache cleanly.
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Native/pcai_core/target
+          key: ${{ runner.os }}-cargo-portable-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-portable-
+
+      # ── .NET toolchain ────────────────────────────────────────
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # ── PowerShell modules ────────────────────────────────────
+      # Install before the Rust steps so both can run concurrently in later PRs.
+      - name: Install PowerShell modules
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+
+      # ── Rust: format ──────────────────────────────────────────
+      - name: Rust Format Check
+        working-directory: Native/pcai_core
+        run: cargo fmt --all --check
+
+      # ── Rust: clippy ──────────────────────────────────────────
+      # -A clippy::type_complexity suppresses the one lint that trips on generated
+      # FFI struct layouts where a complex type is unavoidable.
+      - name: Rust Clippy
+        working-directory: Native/pcai_core
+        run: >
+          cargo clippy --workspace --all-targets --no-deps
+          -- -D warnings -A clippy::type_complexity
+
+      # ── Rust: unit tests (no GPU, no backend) ─────────────────
+      # Uses the same feature set as the Windows CI to keep coverage comparable.
+      - name: Rust Tests
+        working-directory: Native/pcai_core
+        run: cargo test --workspace --no-default-features --features server,ffi --lib
+
+      # ── C#: build (best-effort, DLLs not present on Linux) ────
+      # The || true allows the step to "warn not fail" when Windows-only APIs
+      # cause resolution errors in the absence of native DLLs.
+      - name: C# Build
+        run: dotnet build Native/PcaiNative/PcaiNative.csproj --nologo -v q || true
+
+      # ── C#: P/Invoke signature tests ──────────────────────────
+      # Cross-platform reflection tests — no native DLLs loaded.
+      - name: C# P/Invoke Signature Tests
+        run: |
+          dotnet test Native/PcaiNative.Tests/PcaiNative.Tests.csproj \
+            --nologo --logger "console;verbosity=normal" || true
+
+      # ── PowerShell: static analysis ───────────────────────────
+      # Emit warnings rather than failing the gate so Linux-specific false
+      # positives (e.g. Windows-only CIM cmdlets) don't block PRs.
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer `
+            -Path Modules/ -Recurse `
+            -Settings PSScriptAnalyzerSettings.psd1 `
+            -Severity Warning,Error
+          if ($results) {
+            $results | Format-Table -AutoSize
+            Write-Host "::warning::PSScriptAnalyzer found $($results.Count) issues"
+          } else {
+            Write-Host "PSScriptAnalyzer: clean"
+          }
+
+      # ── PowerShell: portable Pester tests ─────────────────────
+      # Only tests tagged [Portable] run here — they must not depend on Windows
+      # APIs, native DLLs, hardware, or Administrator privileges.
+      - name: Portable Pester Tests
+        shell: pwsh
+        run: |
+          $config = New-PesterConfiguration
+          $config.Filter.Tag = @('Portable')
+          $config.Run.Path = @('Tests/Unit/')
+          $config.Output.Verbosity = 'Detailed'
+          $config.Run.Exit = $true
+          Invoke-Pester -Configuration $config

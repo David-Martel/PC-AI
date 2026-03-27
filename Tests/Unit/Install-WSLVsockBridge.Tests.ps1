@@ -58,7 +58,7 @@ function New-TempBridgeFiles {
     }
 }
 
-Describe 'Install-WSLVsockBridge' -Tag 'Unit', 'Virtualization', 'VSock' {
+Describe 'Install-WSLVsockBridge' -Tag 'Unit', 'Virtualization', 'VSock', 'Portable' {
 
     # -----------------------------------------------------------------------
     # Missing source files

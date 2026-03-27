@@ -16,7 +16,7 @@ BeforeAll {
     . $PrivatePath
 }
 
-Describe "Get-LLMErrorCategory" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Fast' {
+Describe "Get-LLMErrorCategory" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Fast', 'Portable' {
     Context "When detecting connectivity errors" {
         It "Should classify connection refused as Connectivity" {
             $ex = New-Object System.Net.WebException("Connection refused", [System.Net.WebExceptionStatus]::ConnectFailure)
@@ -122,7 +122,7 @@ Describe "Get-LLMErrorCategory" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Fast' {
     }
 }
 
-Describe "Invoke-WithRetry" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Slow' {
+Describe "Invoke-WithRetry" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Slow', 'Portable' {
     Context "When operation succeeds on first try" {
         It "Should return result without retry" {
             $script:callCount = 0
@@ -297,7 +297,7 @@ Describe "Invoke-WithRetry" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Slow' {
     }
 }
 
-Describe "New-LLMErrorReport" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Fast' {
+Describe "New-LLMErrorReport" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Fast', 'Portable' {
     Context "When creating error report from exception" {
         It "Should include exception details" {
             $ex = New-Object System.Exception("Test error message")

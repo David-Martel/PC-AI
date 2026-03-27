@@ -16,7 +16,7 @@ BeforeAll {
     Import-Module $MockDataPath -Force -ErrorAction Stop
 }
 
-Describe 'Get-LLMStatus' -Tag 'Unit', 'LLM', 'Fast' {
+Describe 'Get-LLMStatus' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
     Context 'When pcai-inference is running and accessible' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $true } -ModuleName PC-AI.LLM
@@ -72,7 +72,7 @@ Describe 'Get-LLMStatus' -Tag 'Unit', 'LLM', 'Fast' {
     }
 }
 
-Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow' {
+Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
     Context 'When sending a successful request' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $true } -ModuleName PC-AI.LLM
@@ -197,7 +197,7 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow' {
     }
 }
 
-Describe 'Invoke-LLMChat' -Tag 'Unit', 'LLM', 'Slow' {
+Describe 'Invoke-LLMChat' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
     Context 'When starting an interactive chat' {
         BeforeAll {
             Mock Invoke-LLMChatWithFallback {
@@ -265,7 +265,7 @@ Describe 'Invoke-LLMChat' -Tag 'Unit', 'LLM', 'Slow' {
     }
 }
 
-Describe 'Invoke-PCDiagnosis' -Tag 'Unit', 'LLM', 'Integration' {
+Describe 'Invoke-PCDiagnosis' -Tag 'Unit', 'LLM', 'Integration', 'Portable' {
     Context 'When analyzing diagnostic data' {
         BeforeAll {
             Mock Get-Content {
@@ -372,7 +372,7 @@ WDC HDD: Pred Fail
     }
 }
 
-Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast' {
+Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
     Context 'When configuring LLM settings' {
         BeforeAll {
             Mock Test-Path { $false } -ModuleName PC-AI.LLM -ParameterFilter { $Path -match 'config' }

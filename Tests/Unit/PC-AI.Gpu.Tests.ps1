@@ -98,7 +98,7 @@ AfterAll {
     }
 }
 
-Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
+Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast', 'Portable' {
     Context 'Module Loading' {
         It 'imports without error' {
             { Import-Module $script:ModulePath -Force -ErrorAction Stop } | Should -Not -Throw

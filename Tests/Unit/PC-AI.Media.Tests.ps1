@@ -80,7 +80,7 @@ AfterAll {
 # Module Structure
 # ==============================================================================
 
-Describe 'PcaiMedia Module' -Tag 'Unit', 'Media', 'Gpu' {
+Describe 'PcaiMedia Module' -Tag 'Unit', 'Media', 'Portable' {
 
     Context 'Module Structure' {
 

@@ -85,7 +85,7 @@ BeforeAll {
 
 # ─── Get-DriverRegistry ──────────────────────────────────────────────────────
 
-Describe "Get-DriverRegistry" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
+Describe "Get-DriverRegistry" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     BeforeAll {
         $script:TempRegistryPath = Join-Path $TestDrive 'driver-registry.json'
         $script:MockRegistryJson | Set-Content -Path $script:TempRegistryPath -Encoding UTF8
@@ -148,7 +148,7 @@ Describe "Get-DriverRegistry" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
 
 # ─── Compare-DriverVersion ───────────────────────────────────────────────────
 
-Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
+Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     BeforeAll {
         $script:TempRegistryPath = Join-Path $TestDrive 'driver-registry.json'
         $script:MockRegistryJson | Set-Content -Path $script:TempRegistryPath -Encoding UTF8
@@ -286,7 +286,7 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
 
 # ─── Get-PnpDeviceInventory ──────────────────────────────────────────────────
 
-Describe "Get-PnpDeviceInventory" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
+Describe "Get-PnpDeviceInventory" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     Context "Function interface" {
         It "Should be exported from the module" {
             Get-Command Get-PnpDeviceInventory -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
@@ -338,7 +338,7 @@ Describe "Get-PnpDeviceInventory" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
 
 # ─── Get-DriverReport ────────────────────────────────────────────────────────
 
-Describe "Get-DriverReport" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
+Describe "Get-DriverReport" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     Context "Function interface" {
         It "Should be exported from the module" {
             Get-Command Get-DriverReport -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
@@ -382,7 +382,7 @@ Describe "Get-DriverReport" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
 
 # ─── Install-DriverUpdate ────────────────────────────────────────────────────
 
-Describe "Install-DriverUpdate" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
+Describe "Install-DriverUpdate" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     BeforeAll {
         $script:TempRegistryPath = Join-Path $TestDrive 'driver-registry.json'
         $script:MockRegistryJson | Set-Content -Path $script:TempRegistryPath -Encoding UTF8
@@ -405,7 +405,7 @@ Describe "Install-DriverUpdate" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
 
 # ─── Update-DriverRegistry ───────────────────────────────────────────────────
 
-Describe "Update-DriverRegistry" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
+Describe "Update-DriverRegistry" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     Context "Update a single device entry" {
         BeforeAll {
             $script:TempRegistryPath = Join-Path $TestDrive 'update-registry.json'
@@ -423,7 +423,7 @@ Describe "Update-DriverRegistry" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
 
 # ─── Get-ThunderboltNetworkStatus ────────────────────────────────────────────
 
-Describe "Get-ThunderboltNetworkStatus" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Windows' {
+Describe "Get-ThunderboltNetworkStatus" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Portable' {
     Context "When no Thunderbolt adapters are present" {
         BeforeAll {
             Mock Get-CimInstance {
@@ -528,7 +528,7 @@ Describe "Get-ThunderboltNetworkStatus" -Tag 'Unit', 'Drivers', 'Thunderbolt', '
 
 # ─── Get-NetworkDiscoverySnapshot ────────────────────────────────────────────
 
-Describe "Get-NetworkDiscoverySnapshot" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Windows' {
+Describe "Get-NetworkDiscoverySnapshot" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Portable' {
     Context "Function interface" {
         It "Should be exported from the module" {
             Get-Command Get-NetworkDiscoverySnapshot -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
@@ -598,7 +598,7 @@ Describe "Get-NetworkDiscoverySnapshot" -Tag 'Unit', 'Drivers', 'Thunderbolt', '
 
 # ─── Find-ThunderboltPeer ────────────────────────────────────────────────────
 
-Describe "Find-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Windows' {
+Describe "Find-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Portable' {
     Context "Function exists and has expected parameters" {
         It "Should be exported from the module" {
             Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
@@ -618,7 +618,7 @@ Describe "Find-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Windows'
 
 # ─── Connect-ThunderboltPeer ─────────────────────────────────────────────────
 
-Describe "Connect-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Windows' {
+Describe "Connect-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Portable' {
     Context "Function interface" {
         It "Should be exported from the module" {
             Get-Command Connect-ThunderboltPeer -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
@@ -634,7 +634,7 @@ Describe "Connect-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Windo
 
 # ─── Set-ThunderboltNetworkOptimization ──────────────────────────────────────
 
-Describe "Set-ThunderboltNetworkOptimization" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Windows' {
+Describe "Set-ThunderboltNetworkOptimization" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Portable' {
     Context "Function interface" {
         It "Should be exported from the module" {
             Get-Command Set-ThunderboltNetworkOptimization -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
@@ -654,7 +654,7 @@ Describe "Set-ThunderboltNetworkOptimization" -Tag 'Unit', 'Drivers', 'Thunderbo
 
 # ─── Module Export Completeness ──────────────────────────────────────────────
 
-Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Windows' {
+Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     It "Should export all 11 declared functions" {
         $mod = Get-Module PC-AI.Drivers
         $expected = @(

@@ -8,7 +8,7 @@ BeforeAll {
     }
 }
 
-Describe 'Virtualization external script fallback' -Tag 'Unit', 'Virtualization', Portable, 'Portable' {
+Describe 'Virtualization external script fallback' -Tag 'Unit', 'Virtualization', 'Portable' {
     Context 'Invoke-WSLDockerHealthCheck fallback' {
         It 'falls back to Get-WSLEnvironmentHealth when script missing' {
             Mock -CommandName Get-WSLEnvironmentHealth -ModuleName PC-AI.Virtualization -MockWith { @{ Status = 'OK' } }

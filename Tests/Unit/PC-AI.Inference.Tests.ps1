@@ -9,7 +9,7 @@
     without requiring actual model loading.
 #>
 
-Describe 'PcaiInference Module' -Tag 'Unit', 'Windows' {
+Describe 'PcaiInference Module' -Tag 'Unit', 'Portable' {
     BeforeAll {
         $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PcaiInference.psm1'
         if (Test-Path $ModulePath) {
@@ -169,7 +169,7 @@ Describe 'PcaiInference Module' -Tag 'Unit', 'Windows' {
     }
 }
 
-Describe 'PC-AI.ps1 Inference Parameters' -Tag 'Unit', 'Windows' {
+Describe 'PC-AI.ps1 Inference Parameters' -Tag 'Unit', 'Portable' {
     BeforeAll {
         $ScriptPath = Join-Path $PSScriptRoot '..\..\PC-AI.ps1'
     }
@@ -219,7 +219,7 @@ Describe 'PC-AI.ps1 Inference Parameters' -Tag 'Unit', 'Windows' {
     }
 }
 
-Describe 'Build Configuration' -Tag 'Unit', 'Windows' {
+Describe 'Build Configuration' -Tag 'Unit', 'Portable' {
     BeforeAll {
         $ConfigPath = Join-Path $PSScriptRoot '..\..\Native\pcai_core\pcai_inference\build-config.json'
     }
@@ -255,7 +255,7 @@ Describe 'Build Configuration' -Tag 'Unit', 'Windows' {
     }
 }
 
-Describe 'CMake Configuration' -Tag 'Unit', 'Windows' {
+Describe 'CMake Configuration' -Tag 'Unit', 'Portable' {
     BeforeAll {
         $ToolchainPath = Join-Path $PSScriptRoot '..\..\Native\pcai_core\pcai_inference\cmake\toolchain-msvc.cmake'
         $PresetsPath = Join-Path $PSScriptRoot '..\..\Native\pcai_core\pcai_inference\CMakePresets.json'

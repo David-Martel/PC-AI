@@ -126,7 +126,7 @@ Describe "M-MIMALLOC-APPS: Binary crates use mimalloc" -Tag 'Unit', 'RustGuideli
 
 # ─── Tech Debt: No expect("TODO") markers ────────────────────────────────────
 
-Describe "Tech Debt: No TODO expect markers" -Tag 'Unit', 'RustGuidelines', 'Fast', Portable, 'Portable' {
+Describe "Tech Debt: No TODO expect markers" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     It "Should have zero expect('TODO: Verify unwrap') in all Rust files" {
         $allRs = Get-ChildItem -Path $script:RepoRoot -Recurse -Filter '*.rs' -File |
             Where-Object { $_.FullName -notmatch '[\\/](target|vendor|third_party)[\\/]' }
@@ -181,7 +181,7 @@ Describe "M-STRONG-TYPES: Path parameters use proper types" -Tag 'Unit', 'RustGu
 
 # ─── CI/CD: Guidelines workflow exists ────────────────────────────────────────
 
-Describe "CI/CD: Rust guidelines workflow configured" -Tag 'Unit', 'RustGuidelines', 'Fast', Portable, 'Portable' {
+Describe "CI/CD: Rust guidelines workflow configured" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
     It "Should have rust-guidelines.yml workflow" {
         Test-Path (Join-Path $script:RepoRoot '.github\workflows\rust-guidelines.yml') | Should -Be $true
     }

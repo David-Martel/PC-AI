@@ -44,7 +44,7 @@ function New-MockProcess {
     }
 }
 
-Describe 'Get-ProcessPerformance -ExcludeIdle' -Tag 'Unit', 'Performance', 'ExcludeIdle', 'Windows' {
+Describe 'Get-ProcessPerformance -ExcludeIdle' -Tag 'Unit', 'Performance', 'ExcludeIdle', 'Portable' {
 
     # ------------------------------------------------------------------
     # Context: process list contains the Idle process

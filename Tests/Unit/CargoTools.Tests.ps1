@@ -30,7 +30,7 @@ if (-not (Get-Variable -Name hasInit -Scope Script -ErrorAction SilentlyContinue
     $script:hasInit = $false
 }
 
-Describe 'CargoTools Module' -Tag 'Unit', 'CargoTools', 'Fast', Portable, 'Portable' {
+Describe 'CargoTools Module' -Tag 'Unit', 'CargoTools', 'Fast', 'Portable' {
     Context 'Module Availability' {
         It 'Should be discoverable in module path' -Skip:(-not $script:cargoToolsAvailable) {
             $script:cargoToolsAvailable | Should -Not -BeNullOrEmpty
@@ -95,7 +95,7 @@ Describe 'CargoTools Module' -Tag 'Unit', 'CargoTools', 'Fast', Portable, 'Porta
     }
 }
 
-Describe 'Cargo Command Availability' -Tag 'Unit', 'Cargo', 'Fast', Portable, 'Portable' {
+Describe 'Cargo Command Availability' -Tag 'Unit', 'Cargo', 'Fast', 'Portable' {
     Context 'Cargo Installation' {
         It 'Should have cargo command in PATH' -Skip:(-not $script:cargoAvailable) {
             Get-Command cargo -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
@@ -153,7 +153,7 @@ Describe 'Cargo Command Availability' -Tag 'Unit', 'Cargo', 'Fast', Portable, 'P
     }
 }
 
-Describe 'CargoTools Integration with PC_AI' -Tag 'Unit', 'Integration', 'Fast', Portable, 'Portable' {
+Describe 'CargoTools Integration with PC_AI' -Tag 'Unit', 'Integration', 'Fast', 'Portable' {
     Context 'Module Compatibility' -Skip:(-not $script:cargoToolsAvailable) {
         It 'Should not conflict with other PC_AI modules' {
             $pcaiModules = Get-Module -Name 'PC-AI.*'
@@ -178,7 +178,7 @@ Describe 'CargoTools Integration with PC_AI' -Tag 'Unit', 'Integration', 'Fast',
     }
 }
 
-Describe 'CargoTools Test Prerequisites' -Tag 'Meta', 'Fast', Portable, 'Portable' {
+Describe 'CargoTools Test Prerequisites' -Tag 'Meta', 'Fast', 'Portable' {
     Context 'Test Environment Checks' {
         It 'Should detect if CargoTools is installed' {
             # This test always runs to show module availability status

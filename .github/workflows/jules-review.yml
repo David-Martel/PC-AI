@@ -1,0 +1,70 @@
+name: Jules Review
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6am UTC
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Jules task prompt'
+        required: true
+        type: string
+      module:
+        description: 'Target module (e.g., pcai_inference, PC-AI.Gpu)'
+        required: false
+        type: string
+
+permissions:
+  issues: read
+  pull-requests: write
+  contents: read
+
+jobs:
+  jules-issue:
+    name: Jules Issue Fix
+    if: github.event_name == 'issues' && github.event.label.name == 'jules'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-labs-code/jules-invoke@v1
+        with:
+          prompt: |
+            Fix the issue described in #${{ github.event.issue.number }}.
+            Title: ${{ github.event.issue.title }}
+            Body: ${{ github.event.issue.body }}
+            Follow AGENTS.md conventions. Add tests. Use Conventional Commits.
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: main
+
+  jules-manual:
+    name: Jules Manual Task
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-labs-code/jules-invoke@v1
+        with:
+          prompt: ${{ inputs.prompt }}
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: main
+
+  jules-weekly:
+    name: Jules Weekly Review (${{ matrix.target.name }})
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - name: pcai_inference
+            prompt: "Review Native/pcai_core/pcai_inference/src/ for code quality, test gaps, and clippy compliance. Focus on error handling and unsafe blocks. Follow AGENTS.md conventions."
+          - name: pcai_media
+            prompt: "Review Native/pcai_core/pcai_media/src/ for unnecessary allocations, missing error context, and test coverage gaps. Follow AGENTS.md conventions."
+          - name: pcai_core_lib
+            prompt: "Review Native/pcai_core/pcai_core_lib/src/ for dead code, missing docs on public items, and potential panics. Follow AGENTS.md conventions."
+      max-parallel: 3
+    steps:
+      - uses: google-labs-code/jules-invoke@v1
+        with:
+          prompt: ${{ matrix.target.prompt }}
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: main

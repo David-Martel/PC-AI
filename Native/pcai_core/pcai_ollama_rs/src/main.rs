@@ -2,6 +2,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Resolve the Ollama API base URL from environment or well-known default.
+fn default_ollama_url() -> String {
+    std::env::var("OLLAMA_HOST").unwrap_or_else(|_| {
+        // Ollama's documented default; overridden via OLLAMA_HOST env var or --base-url flag.
+        format!("http://{}:{}", "127.0.0.1", 11434)
+    })
+}
+
 use anyhow::{anyhow, bail, Context, Result};
 use mimalloc::MiMalloc;
 use ollama_rs::generation::chat::request::ChatMessageRequest;
@@ -123,7 +131,7 @@ impl OllamaConfig {
             self.base_url = if !providers.ollama_provider.base_url.trim().is_empty() {
                 providers.ollama_provider.base_url.clone()
             } else {
-                "http://127.0.0.1:11434".to_string()
+                default_ollama_url()
             };
         }
         if self.model.trim().is_empty() {
@@ -396,7 +404,7 @@ fn arg_value(args: &[String], name: &str) -> Option<String> {
 }
 
 fn build_client(base_url: &str) -> Result<Ollama> {
-    let parsed = Url::parse(base_url).or_else(|_| Url::parse("http://127.0.0.1:11434"))?;
+    let parsed = Url::parse(base_url).or_else(|_| Url::parse(&default_ollama_url()))?;
     let host = format!("{}://{}", parsed.scheme(), parsed.host_str().unwrap_or("127.0.0.1"));
     let port = parsed.port().unwrap_or(11434);
     Ok(Ollama::new(host, port))
@@ -506,7 +514,6 @@ async fn run_chat(
             .send_chat_messages(chat_request)
             .await
             .context("ollama-rs chat request failed")?;
-        let content = response.message.content.clone();
         let tool_calls = response
             .message
             .tool_calls
@@ -522,21 +529,26 @@ async fn run_chat(
             eval_count: data.eval_count,
             eval_duration_ns: data.eval_duration,
         });
+        let msg = response.message;
 
-        messages.push(response.message.clone());
-
+        // Return early when no more tool rounds are needed.  Move `content`
+        // out of `msg` instead of cloning — `messages` is not updated on this
+        // path since the loop is exiting anyway.
         if tool_calls.is_empty() || tools.is_empty() || round + 1 >= max_tool_rounds {
             return Ok(ChatResponse {
                 ok: true,
                 provider: "ollama",
                 model: resolved_model,
-                content,
+                content: msg.content,
                 tool_calls,
                 executed_tools,
                 timing,
                 error: None,
             });
         }
+
+        // Only push the assistant turn when the loop continues with tool calls.
+        messages.push(msg);
 
         for call in tool_calls {
             let result = invoke_pcai_tool(repo_root, &tool_invoker_path, &tools_path, &call.name, &call.arguments)?;

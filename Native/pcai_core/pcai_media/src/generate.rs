@@ -227,16 +227,113 @@ impl GenerationPipeline {
         Ok((Some(vision_model), vision_device, vision_dtype))
     }
 
+    /// Build a [`JanusModel`] from either a GGUF quantized backbone or full-precision
+    /// safetensors weights.
+    ///
+    /// Both paths share the same [`VarMap`] / [`VarBuilder`] for the non-LLM
+    /// components (VQ decoder, generation head, etc.).  On the GGUF path the
+    /// LLaMA backbone is loaded separately; on the standard path all weights come
+    /// from safetensors.
+    ///
+    /// The caller passes `varmap` as `&mut Option<VarMap>` so that the standard
+    /// CUDA path can call `varmap.take()` to eagerly release the old tensor Arc
+    /// references after the embedding table has been offloaded to CPU.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any I/O, GGUF parsing, or weight-loading step fails.
+    fn build_janus_model(
+        gguf_path_opt: Option<&str>,
+        varmap: &mut Option<VarMap>,
+        vb: VarBuilder,
+        model_config: &JanusConfig,
+        shards: &[PathBuf],
+        model_path: &std::path::Path,
+        device: &Device,
+        dtype: DType,
+    ) -> Result<JanusModel> {
+        if let Some(gguf_path_str) = gguf_path_opt {
+            // ── GGUF path: load quantized LLaMA backbone from GGUF file ───────
+            // Non-LLM components (VQ decoder, gen_head, etc.) are still loaded
+            // from safetensors via the VarMap / VarBuilder path.
+            let gguf_path = std::path::PathBuf::from(gguf_path_str);
+            if !gguf_path.exists() {
+                anyhow::bail!("gguf_path '{}' does not exist on disk", gguf_path.display());
+            }
+
+            tracing::info!(path = %gguf_path.display(), "loading quantized LLaMA backbone from GGUF");
+
+            let llama_cfg = model_config.to_llama_config(false);
+            let gguf_file = std::fs::File::open(&gguf_path)
+                .with_context(|| format!("failed to open GGUF file '{}'", gguf_path.display()))?;
+            let mut gguf_reader = std::io::BufReader::new(gguf_file);
+            let gguf_content = candle_core::quantized::gguf_file::Content::read(&mut gguf_reader)
+                .map_err(|e| anyhow::anyhow!("failed to parse GGUF header from '{}': {e}", gguf_path.display()))?;
+
+            let mut quantized_llama =
+                QuantizedJanusLlama::from_gguf(gguf_content, &mut gguf_reader, &llama_cfg, device)
+                    .map_err(|e| anyhow::anyhow!("QuantizedJanusLlama::from_gguf failed: {e}"))?;
+
+            tracing::info!(
+                layers = quantized_llama.num_layers(),
+                "quantized LLaMA backbone loaded from GGUF"
+            );
+
+            // On CUDA, offload the (full-precision) token embedding table to CPU to save VRAM.
+            if matches!(device, Device::Cuda(_)) {
+                quantized_llama
+                    .offload_embeddings_to_cpu()
+                    .map_err(|e| anyhow::anyhow!("quantized wte CPU offload failed: {e}"))?;
+                tracing::info!("Offloaded quantized wte to CPU for CUDA pipeline");
+            }
+
+            // Load non-LLM weights (VQ decoder, gen_head, etc.) from safetensors.
+            if shards.is_empty() {
+                tracing::warn!(path = %model_path.display(), "no safetensors shards found; non-LLM components will use random weights");
+            } else {
+                let loaded = hub::load_weights(varmap.as_ref().unwrap(), shards, dtype, device)
+                    .context("failed to load non-LLM weights from safetensors")?;
+                tracing::info!(shards = shards.len(), tensors_loaded = loaded, "non-LLM weights loaded");
+            }
+
+            JanusModel::new_with_quantized_llama(quantized_llama, vb, model_config)
+                .map_err(|e| anyhow::anyhow!("JanusModel (GGUF) construction failed: {e}"))
+        } else {
+            // ── Standard path: full-precision LLaMA from safetensors ──────────
+            let mut m = JanusModel::new(vb, model_config)
+                .map_err(|e| anyhow::anyhow!("JanusModel construction failed: {e}"))?;
+
+            if shards.is_empty() {
+                tracing::warn!(path = %model_path.display(), "no safetensors shards found; model will use random weights");
+            } else {
+                let loaded = hub::load_weights(varmap.as_ref().unwrap(), shards, dtype, device)
+                    .context("failed to load model weights from safetensors")?;
+                tracing::info!(shards = shards.len(), tensors_loaded = loaded, "weights loaded");
+            }
+
+            // On CUDA, offload the token embedding table to CPU to save VRAM, then
+            // eagerly drop VarMap to release old GPU tensor Arc references.
+            if matches!(device, Device::Cuda(_)) {
+                m.llama
+                    .offload_embeddings_to_cpu()
+                    .map_err(|e| anyhow::anyhow!("wte CPU offload failed: {e}"))?;
+                varmap.take();
+                tracing::info!("Offloaded wte to CPU for CUDA pipeline");
+            }
+
+            Ok(m)
+        }
+    }
+
     /// Load the Janus-Pro pipeline from the configuration.
     ///
     /// Steps performed:
     /// 1. Resolve [`candle_core::Device`] and [`candle_core::DType`] from `config`.
     /// 2. Resolve the model path (local directory or HuggingFace Hub download).
     /// 3. Deserialise [`JanusConfig`] from `config.json` (falls back to 1B defaults).
-    /// 4. Build [`JanusModel`] via [`VarMap`] + [`VarBuilder`].
-    /// 5. Load weights from safetensors shards into the [`VarMap`].
-    /// 6. Load the tokenizer from `tokenizer.json`.
-    /// 7. Build the native Janus vision tower (if `vision_model` weights exist).
+    /// 4. Build [`JanusModel`] via [`build_janus_model`].
+    /// 5. Load the tokenizer from `tokenizer.json`.
+    /// 6. Build the native Janus vision tower (if `vision_model` weights exist).
     ///
     /// # Errors
     ///
@@ -276,103 +373,24 @@ impl GenerationPipeline {
         // 3. Collect safetensors shards (needed for both full-precision and GGUF paths).
         let shards = hub::collect_safetensors(&model_path);
 
-        // 3a. Build JanusModel — dispatch on whether a GGUF file was provided.
+        // 4. Build JanusModel via the shared helper that handles GGUF vs. safetensors.
         let mut varmap = Some(VarMap::new());
         let vb = VarBuilder::from_varmap(varmap.as_ref().unwrap(), dtype, &device);
+        let model = Self::build_janus_model(
+            config.gguf_path.as_deref(),
+            &mut varmap,
+            vb,
+            &model_config,
+            &shards,
+            &model_path,
+            &device,
+            dtype,
+        )?;
 
-        let model = if let Some(gguf_path_str) = &config.gguf_path {
-            // ── GGUF path: load quantized LLaMA backbone from GGUF file ───────
-            // The VQ decoder, generation head, vision tower etc. are still
-            // loaded from safetensors via the VarMap / VarBuilder path.
-            let gguf_path = std::path::PathBuf::from(gguf_path_str);
-            if !gguf_path.exists() {
-                anyhow::bail!("gguf_path '{}' does not exist on disk", gguf_path.display());
-            }
-
-            tracing::info!(
-                path = %gguf_path.display(),
-                "loading quantized LLaMA backbone from GGUF"
-            );
-
-            let llama_cfg = model_config.to_llama_config(false);
-
-            let gguf_file = std::fs::File::open(&gguf_path)
-                .with_context(|| format!("failed to open GGUF file '{}'", gguf_path.display()))?;
-            let mut gguf_reader = std::io::BufReader::new(gguf_file);
-
-            let gguf_content = candle_core::quantized::gguf_file::Content::read(&mut gguf_reader)
-                .map_err(|e| anyhow::anyhow!("failed to parse GGUF header from '{}': {e}", gguf_path.display()))?;
-
-            let mut quantized_llama =
-                QuantizedJanusLlama::from_gguf(gguf_content, &mut gguf_reader, &llama_cfg, &device)
-                    .map_err(|e| anyhow::anyhow!("QuantizedJanusLlama::from_gguf failed: {e}"))?;
-
-            tracing::info!(
-                layers = quantized_llama.num_layers(),
-                "quantized LLaMA backbone loaded from GGUF"
-            );
-
-            // On CUDA, offload the (full-precision) token embedding table
-            // to CPU to save VRAM — same as the standard path.
-            if matches!(device, Device::Cuda(_)) {
-                quantized_llama
-                    .offload_embeddings_to_cpu()
-                    .map_err(|e| anyhow::anyhow!("quantized wte CPU offload failed: {e}"))?;
-                tracing::info!("Offloaded quantized wte to CPU for CUDA pipeline");
-            }
-
-            // Load the non-LLM components (VQ decoder, gen_head, etc.)
-            // from safetensors into the VarMap.
-            if shards.is_empty() {
-                tracing::warn!(
-                    path = %model_path.display(),
-                    "no safetensors shards found; non-LLM components will use random weights"
-                );
-            } else {
-                let loaded = hub::load_weights(varmap.as_ref().unwrap(), &shards, dtype, &device)
-                    .context("failed to load non-LLM weights from safetensors")?;
-                tracing::info!(shards = shards.len(), tensors_loaded = loaded, "non-LLM weights loaded");
-            }
-
-            JanusModel::new_with_quantized_llama(quantized_llama, vb, &model_config)
-                .map_err(|e| anyhow::anyhow!("JanusModel (GGUF) construction failed: {e}"))?
-        } else {
-            // ── Standard path: full-precision LLaMA from safetensors ──────────
-            let mut m = JanusModel::new(vb, &model_config)
-                .map_err(|e| anyhow::anyhow!("JanusModel construction failed: {e}"))?;
-
-            // 4. Load safetensors weights into the VarMap.
-            if shards.is_empty() {
-                tracing::warn!(
-                    path = %model_path.display(),
-                    "no safetensors shards found; model will use random weights"
-                );
-            } else {
-                let loaded = hub::load_weights(varmap.as_ref().unwrap(), &shards, dtype, &device)
-                    .context("failed to load model weights from safetensors")?;
-                tracing::info!(shards = shards.len(), tensors_loaded = loaded, "weights loaded");
-            }
-
-            // 5. On CUDA, offload the token embedding table to CPU to save VRAM.
-            //    Keep `lm_head` on the main device so image understanding can
-            //    decode text at full speed without CPU vocab projection.
-            //    Drop VarMap immediately after to release old tensor Arc references.
-            if matches!(device, Device::Cuda(_)) {
-                m.llama
-                    .offload_embeddings_to_cpu()
-                    .map_err(|e| anyhow::anyhow!("wte CPU offload failed: {e}"))?;
-                // Drop VarMap so the old GPU tensors (held by Arc) are freed now.
-                varmap.take();
-                tracing::info!("Offloaded wte to CPU for CUDA pipeline");
-            }
-
-            m
-        };
-
-        // 6. Load tokenizer.
+        // 5. Load tokenizer.
         let tokenizer = hub::load_tokenizer(&model_path).context("failed to load tokenizer")?;
 
-        // 7. Build native Janus vision tower for understanding.
+        // 6. Build native Janus vision tower for understanding.
         let (vision_tower, vision_device, vision_dtype) =
             Self::load_vision_tower(&model_config, &device, dtype, &shards)?;
 

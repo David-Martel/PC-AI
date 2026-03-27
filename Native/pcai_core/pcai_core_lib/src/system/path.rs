@@ -212,8 +212,9 @@ pub fn analyze_path() -> (PathAnalysisStats, PathAnalysisJson) {
             "Unknown"
         };
 
-        // Track for duplicate detection
-        seen.entry(normalized.clone())
+        // Track for duplicate detection — move `normalized` into the map key (no clone needed
+        // here because `normalized` is not used after this point in the loop body).
+        seen.entry(normalized)
             .or_default()
             .push((idx, entry_str.clone(), source.to_string()));
 

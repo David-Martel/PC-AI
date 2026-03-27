@@ -30,7 +30,8 @@ function Get-DiskHealth {
     )
 
     try {
-        $results = @()
+        # Use a List to avoid O(N^2) array reallocation from += in loops
+        $resultList = [System.Collections.Generic.List[PSCustomObject]]::new()
         $nativeAvailable = $false
 
         # Attempt to use Native Core if available
@@ -38,7 +39,7 @@ function Get-DiskHealth {
         if ($json) {
             $nativeDisks = $json | ConvertFrom-Json
             foreach ($disk in $nativeDisks) {
-                $results += [PSCustomObject]@{
+                $resultList.Add([PSCustomObject]@{
                     Model          = $disk.model
                     Status         = $disk.status
                     MediaType      = 'Fixed hard disk media' # Native focuses on physical drives
@@ -50,7 +51,7 @@ function Get-DiskHealth {
                     SerialNumber   = $disk.serial_number
                     IsSmartOK      = $disk.smart_status_ok
                     IsSmartCapable = $disk.smart_capable
-                }
+                })
             }
             $nativeAvailable = $true
         }
@@ -60,7 +61,7 @@ function Get-DiskHealth {
 
         if ($nativeAvailable) {
             # Supplement native results with CIM metadata (Size, Partitions, etc.)
-            foreach ($res in $results) {
+            foreach ($res in $resultList) {
                 $cimDisk = $cimDisks | Where-Object { $_.DeviceID -eq $res.DeviceID -or $_.Model -eq $res.Model }
                 if ($cimDisk) {
                     $res.SizeGB = if ($cimDisk.Size) { [math]::Round($cimDisk.Size / 1GB, 2) } else { 0 }
@@ -95,7 +96,7 @@ function Get-DiskHealth {
                     default { 'OK' }
                 }
 
-                $results += [PSCustomObject]@{
+                $resultList.Add([PSCustomObject]@{
                     Model         = $disk.Model
                     Status        = $status
                     MediaType     = $disk.MediaType
@@ -105,19 +106,23 @@ function Get-DiskHealth {
                     Severity      = $severity
                     DeviceID      = $disk.DeviceID
                     SerialNumber  = $disk.SerialNumber
-                }
+                })
             }
         }
 
         if ($IncludePartitions) {
-            foreach ($res in $results) {
+            # Hoist the partition query outside the loop; filter by DiskIndex in memory
+            $allPartitions = Get-CimInstance -ClassName Win32_DiskPartition -ErrorAction SilentlyContinue
+            foreach ($res in $resultList) {
                 if ($res.DeviceID -match 'PhysicalDrive(\d+)') {
-                    $index = $matches[1]
-                    $partitions = Get-CimInstance -ClassName Win32_DiskPartition -Filter "DiskIndex=$index" -ErrorAction SilentlyContinue
+                    $index = [int]$matches[1]
+                    $partitions = $allPartitions | Where-Object { $_.DiskIndex -eq $index }
                     $res | Add-Member -NotePropertyName 'PartitionDetails' -NotePropertyValue $partitions
                 }
             }
         }
+
+        $results = $resultList
 
         return $results | Sort-Object -Property @{Expression = 'Severity'; Descending = $true }, Model
 

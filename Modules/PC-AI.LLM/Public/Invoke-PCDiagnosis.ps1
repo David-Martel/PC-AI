@@ -1,5 +1,60 @@
 #Requires -PSEdition Core
 
+# Private helper: validate and parse JSON from LLM diagnosis response.
+# Returns a hashtable with keys: AnalysisJson, JsonValid, JsonError.
+function script:ConvertFrom-DiagnosisResponse {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Content,
+
+        [Parameter()]
+        [bool]$EnforceJson
+    )
+
+    $result = @{
+        AnalysisJson = $null
+        JsonValid    = $false
+        JsonError    = $null
+    }
+
+    try {
+        $result.AnalysisJson = ConvertFrom-LLMJson -Content $Content -Strict
+        $result.JsonValid    = $true
+    } catch {
+        $result.JsonError = $_.Exception.Message
+        if ($EnforceJson) {
+            throw "Diagnose mode requires valid JSON output. $($result.JsonError)"
+        }
+    }
+
+    return $result
+}
+
+# Private helper: persist analysis text to disk and emit a status message.
+# Returns the resolved output path, or $null when -SaveReport is not requested.
+function script:Save-DiagnosisReport {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Content,
+
+        [Parameter(Mandatory)]
+        [bool]$ShouldSave,
+
+        [Parameter(Mandatory)]
+        [string]$OutputPath
+    )
+
+    if (-not $ShouldSave) {
+        return $null
+    }
+
+    Set-Content -Path $OutputPath -Value $Content -Encoding utf8
+    Write-Host "Report saved to: $OutputPath" -ForegroundColor Cyan
+    return $OutputPath
+}
+
 function Invoke-PCDiagnosis {
     <#
     .SYNOPSIS
@@ -170,34 +225,17 @@ function Invoke-PCDiagnosis {
                 $EnforceJson = $true
             }
 
-            $analysisJson = $null
-            $jsonValid = $false
-            $jsonError = $null
-            try {
-                $analysisJson = ConvertFrom-LLMJson -Content $analysisText -Strict
-                $jsonValid = $true
-            } catch {
-                $jsonError = $_.Exception.Message
-                if ($EnforceJson) {
-                    throw "Diagnose mode requires valid JSON output. $jsonError"
-                }
-            }
+            $jsonResult = ConvertFrom-DiagnosisResponse -Content $analysisText -EnforceJson ([bool]$EnforceJson)
 
             $result = [PSCustomObject]@{
-                Analysis = $analysisText
-                AnalysisJson = $analysisJson
-                JsonValid = $jsonValid
-                JsonError = $jsonError
-                Model = $Model
+                Analysis                = $analysisText
+                AnalysisJson            = $jsonResult.AnalysisJson
+                JsonValid               = $jsonResult.JsonValid
+                JsonError               = $jsonResult.JsonError
+                Model                   = $Model
                 AnalysisDurationSeconds = [math]::Round($duration, 2)
-                Timestamp = $startTime
-                ReportSavedTo = $null
-            }
-
-            if ($SaveReport) {
-                Set-Content -Path $OutputPath -Value $analysisText -Encoding utf8
-                Write-Host "Report saved to: $OutputPath" -ForegroundColor Cyan
-                $result.ReportSavedTo = $OutputPath
+                Timestamp               = $startTime
+                ReportSavedTo           = (Save-DiagnosisReport -Content $analysisText -ShouldSave ([bool]$SaveReport) -OutputPath $OutputPath)
             }
 
             Write-Host $analysisText

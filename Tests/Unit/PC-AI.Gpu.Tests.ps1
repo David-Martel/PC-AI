@@ -97,6 +97,7 @@ AfterAll {
     if ($null -ne $script:TempDir -and (Test-Path $script:TempDir)) {
         Remove-Item -Path $script:TempDir -Recurse -Force -ErrorAction SilentlyContinue
     }
+    Remove-Item Function:\global:nvidia-smi.exe -ErrorAction SilentlyContinue
 }
 
 Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
@@ -133,7 +134,7 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
 
     Context 'Get-NvidiaGpuInventory' {
         BeforeAll {
-            function global:nvidia-smi.exe { }
+            function global:nvidia-smi.exe { $global:LASTEXITCODE = 0 }
             Mock -CommandName Get-Command -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Name -eq 'nvidia-smi.exe' } -MockWith {
                 [pscustomobject]@{ Source = 'nvidia-smi.exe' }
             }
@@ -195,12 +196,12 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
             Mock -CommandName Get-CudaVersionFromPath -ModuleName 'PC-AI.Gpu' -MockWith { '13.2.0' }
             Mock -CommandName Get-CudnnVersionFromHeader -ModuleName 'PC-AI.Gpu' -MockWith { '9.8.0' }
             Mock -CommandName Get-TensorRtVersionFromHeader -ModuleName 'PC-AI.Gpu' -MockWith { '10.9.0' }
-            Mock -CommandName Get-ChildItem -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Path -like '*CUDA*' } -MockWith {
+            Mock -CommandName Get-ChildItem -ModuleName 'PC-AI.Gpu' -MockWith {
                 @(
-                    [pscustomobject]@{ Name = 'v13.1' },
-                    [pscustomobject]@{ Name = 'v13.2' }
+                    [pscustomobject]@{ Name = 'v13.1'; PSIsContainer = $true },
+                    [pscustomobject]@{ Name = 'v13.2'; PSIsContainer = $true }
                 )
-            }
+            } -ParameterFilter { $Path -eq 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA' -and $Directory }
         }
 
         It 'reports Current for the active CUDA install even with side-by-side versions present' {
@@ -224,7 +225,7 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast' {
 
     Context 'Get-NvidiaGpuUtilization' {
         It 'parses utilization metrics with the current property names' {
-            function global:nvidia-smi.exe { }
+            function global:nvidia-smi.exe { $global:LASTEXITCODE = 0 }
             $csvLines = $script:NvidiaSmiUtilizationCsv -split "`r?`n" | Where-Object { $_ -ne '' }
             InModuleScope 'PC-AI.Gpu' -Parameters @{ CsvLines = $csvLines } {
                 param($CsvLines)

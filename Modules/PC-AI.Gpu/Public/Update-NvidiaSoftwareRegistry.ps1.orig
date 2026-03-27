@@ -131,8 +131,9 @@ function Update-NvidiaSoftwareRegistry {
     $refreshMode = $RefreshFromSystem.IsPresent
 
     if (-not $patchMode -and -not $refreshMode) {
-        Write-Error ("Update-NvidiaSoftwareRegistry: Nothing to do. Provide -ComponentId with " +
-            "at least one of -LatestVersion, -DownloadUrl, -Sha256, or supply -RefreshFromSystem.")
+        $msg = "Update-NvidiaSoftwareRegistry: Nothing to do. Provide -ComponentId with " +
+            "at least one of -LatestVersion, -DownloadUrl, -Sha256, or supply -RefreshFromSystem."
+        $PSCmdlet.WriteError((New-Object System.Management.Automation.ErrorRecord (New-Object System.ArgumentException $msg), "MissingParameters", [System.Management.Automation.ErrorCategory]::InvalidArgument, $null))
         return $result
     }
 
@@ -161,11 +162,20 @@ function Update-NvidiaSoftwareRegistry {
     # -------------------------------------------------------------------------
     Write-Verbose "Update-NvidiaSoftwareRegistry: Loading registry from '$RegistryPath'..."
     $rawJson  = [System.IO.File]::ReadAllText($RegistryPath)
-    $registry = $rawJson | ConvertFrom-Json
+    try {
+        $registry = $rawJson | ConvertFrom-Json
+    } catch {
+        Write-Error "Registry file is not valid JSON: $RegistryPath"
+        return $result
+    }
 
-    if (-not $registry.components) {
+    if ($null -eq $registry -or -not $registry.PSObject.Properties.Match('components').Count) {
         Write-Error "Registry file is missing the 'components' array: $RegistryPath"
         return $result
+    }
+
+    if ($registry.components -isnot [array]) {
+        $registry.components = @($registry.components)
     }
 
     # Work with a mutable copy of the components array

@@ -131,8 +131,9 @@ function Update-NvidiaSoftwareRegistry {
     $refreshMode = $RefreshFromSystem.IsPresent
 
     if (-not $patchMode -and -not $refreshMode) {
-        Write-Error ("Update-NvidiaSoftwareRegistry: Nothing to do. Provide -ComponentId with " +
-            "at least one of -LatestVersion, -DownloadUrl, -Sha256, or supply -RefreshFromSystem.")
+        $msg = "Update-NvidiaSoftwareRegistry: Nothing to do. Provide -ComponentId with " +
+            "at least one of -LatestVersion, -DownloadUrl, -Sha256, or supply -RefreshFromSystem."
+        $PSCmdlet.WriteError((New-Object System.Management.Automation.ErrorRecord (New-Object System.ArgumentException $msg), "MissingParameters", [System.Management.Automation.ErrorCategory]::InvalidArgument, $null))
         return $result
     }
 
@@ -152,7 +153,8 @@ function Update-NvidiaSoftwareRegistry {
     $result.RegistryPath = $RegistryPath
 
     if (-not (Test-Path -LiteralPath $RegistryPath)) {
-        Write-Error "Registry file not found: $RegistryPath"
+        $msg = "Registry file not found: $RegistryPath"
+        $PSCmdlet.WriteError((New-Object System.Management.Automation.ErrorRecord (New-Object System.IO.FileNotFoundException $msg), "RegistryNotFound", [System.Management.Automation.ErrorCategory]::ObjectNotFound, $RegistryPath))
         return $result
     }
 
@@ -164,12 +166,14 @@ function Update-NvidiaSoftwareRegistry {
     try {
         $registry = $rawJson | ConvertFrom-Json
     } catch {
-        Write-Error "Registry file is not valid JSON: $RegistryPath"
+        $msg = "Registry file is not valid JSON: $RegistryPath"
+        $PSCmdlet.WriteError((New-Object System.Management.Automation.ErrorRecord $_.Exception, "JsonParseError", [System.Management.Automation.ErrorCategory]::ParserError, $RegistryPath))
         return $result
     }
 
     if ($null -eq $registry -or -not $registry.PSObject.Properties.Match('components').Count) {
-        Write-Error "Registry file is missing the 'components' array: $RegistryPath"
+        $msg = "Registry file is missing the 'components' array: $RegistryPath"
+        $PSCmdlet.WriteError((New-Object System.Management.Automation.ErrorRecord (New-Object System.Exception $msg), "MissingComponentsArray", [System.Management.Automation.ErrorCategory]::InvalidData, $RegistryPath))
         return $result
     }
 
@@ -193,7 +197,8 @@ function Update-NvidiaSoftwareRegistry {
         }
 
         if (-not $target) {
-            Write-Error "Component '$ComponentId' was not found in the registry."
+            $msg = "Component '$ComponentId' was not found in the registry."
+            $PSCmdlet.WriteError((New-Object System.Management.Automation.ErrorRecord (New-Object System.Exception $msg), "ComponentNotFound", [System.Management.Automation.ErrorCategory]::ObjectNotFound, $ComponentId))
             return $result
         }
 
@@ -326,7 +331,8 @@ function Update-NvidiaSoftwareRegistry {
         }
     }
     catch {
-        Write-Error "Update-NvidiaSoftwareRegistry: JSON validation failed — registry NOT written: $($_.Exception.Message)"
+        $msg = "Update-NvidiaSoftwareRegistry: JSON validation failed — registry NOT written: $($_.Exception.Message)"
+        $PSCmdlet.WriteError((New-Object System.Management.Automation.ErrorRecord $_.Exception, "JsonValidationFailed", [System.Management.Automation.ErrorCategory]::InvalidData, $RegistryPath))
         return $result
     }
 

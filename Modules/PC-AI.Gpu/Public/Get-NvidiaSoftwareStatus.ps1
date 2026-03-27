@@ -89,15 +89,15 @@ function Get-NvidiaSoftwareStatus {
         $detectedVersions = @{}
 
         # CUDA
+        # CUDA
         $cudaPath = $installPaths['CUDA']
         if ($cudaPath) {
             # Check for multiple side-by-side CUDA installs
             $cudaRoot = 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA'
             $sideByCount = 0
             if ($null -ne $cudaRoot) {
-                # Test-Path can return true or false but we should be robust
                 try {
-                    $sideByCount = @(Get-ChildItem -Path $cudaRoot -Filter 'v*' -ErrorAction SilentlyContinue).Count
+                    $sideByCount = @(Get-ChildItem -Path $cudaRoot -Directory -Filter 'v*' -ErrorAction SilentlyContinue).Count
                 } catch { }
             }
             $cudaVer = Get-CudaVersionFromPath -CudaPath $cudaPath

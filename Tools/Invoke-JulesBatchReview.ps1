@@ -82,13 +82,17 @@ foreach ($entry in $queue) {
         try {
             $params = @{ Action = 'New'; Prompt = $mod.prompt; AutomationMode = 'AutoCreatePR'; Format = 'Json' }
             if ($RequirePlanApproval) { $params['RequirePlanApproval'] = $true }
-            $parsed = & $sessionPs1 @params | ConvertFrom-Json -ErrorAction SilentlyContinue
-            $r.SessionId = $parsed.name ?? $parsed.sessionId ?? $parsed.id
+            $raw = & $sessionPs1 @params 2>&1
+            $rawStr = ($raw | Out-String).Trim()
+            $parsed = $rawStr | ConvertFrom-Json -ErrorAction Stop
+            $sid = if ($parsed.name) { ($parsed.name -split '/')[-1] } elseif ($parsed.sessionId) { $parsed.sessionId } else { $parsed.id }
+            $r.SessionId = $sid
             $r.Status    = 'Dispatched'
         } catch {
             $r.Status = 'Failed'
-            $r.Error  = $_.Exception.Message
-            Write-Warning "Jules dispatch failed for '$($entry.Name)': $($_.Exception.Message)"
+            $errMsg = if ($_.Exception) { $_.Exception.Message } else { "$_" }
+            $r.Error  = $errMsg
+            Write-Warning "Jules dispatch failed for '$($entry.Name)': $errMsg"
         }
     }
 

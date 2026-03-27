@@ -790,14 +790,13 @@ impl GenerationPipeline {
                                     .map_err(|e| anyhow::anyhow!("step {step}: uncond row {i}: {e}"))
                             })
                             .collect::<Result<_>>()?;
-                            (
-                                Tensor::cat(&cond_rows, 0).with_context(|| format!("step {step}: concat cond_rows"))?,
-                                Tensor::cat(&uncond_rows, 0).with_context(|| format!("step {step}: concat uncond_rows"))?,
-                            )
+                        (
+                            Tensor::cat(&cond_rows, 0).with_context(|| format!("step {step}: concat cond_rows"))?,
+                            Tensor::cat(&uncond_rows, 0).with_context(|| format!("step {step}: concat uncond_rows"))?,
+                        )
                     };
                     // guided = uncond + guidance_scale * (cond - uncond)
-                    let diff = (&cond - &uncond)
-                        .with_context(|| format!("step {step}: CFG subtract failed"))?;
+                    let diff = (&cond - &uncond).with_context(|| format!("step {step}: CFG subtract failed"))?;
                     (&uncond + (diff * guidance_scale).with_context(|| format!("step {step}: CFG scale failed"))?)
                         .with_context(|| format!("step {step}: CFG add failed"))?
                 } else {
@@ -890,10 +889,14 @@ impl GenerationPipeline {
 
         // ── 7. Denormalise from [-1, 1] to [0, 255] U8 ───────────────────────
         // formula: pixel = (x / 2.0 + 0.5) * 255, clamped to [0, 255]
-        let pixel_tensor = ((pixel_tensor / 2.0_f64).context("divide by 2.0 failed")? + 0.5_f64).context("add 0.5 failed")?;
-        let pixel_tensor = (pixel_tensor * 255.0_f64).context("multiply by 255.0 failed")?
-            .clamp(0.0_f64, 255.0_f64).context("clamp failed")?
-            .round().context("round failed")?
+        let pixel_tensor =
+            ((pixel_tensor / 2.0_f64).context("divide by 2.0 failed")? + 0.5_f64).context("add 0.5 failed")?;
+        let pixel_tensor = (pixel_tensor * 255.0_f64)
+            .context("multiply by 255.0 failed")?
+            .clamp(0.0_f64, 255.0_f64)
+            .context("clamp failed")?
+            .round()
+            .context("round failed")?
             .to_dtype(DType::U8)
             .context("dtype conversion to U8 failed")?;
 
@@ -1248,8 +1251,7 @@ impl GenerationPipeline {
                 .context("sample_from_hidden: uncond slice")?
                 .unsqueeze(0)
                 .context("sample_from_hidden: uncond unsqueeze")?;
-            let diff = (&cond - &uncond)
-                .context("sample_from_hidden: CFG subtract failed")?;
+            let diff = (&cond - &uncond).context("sample_from_hidden: CFG subtract failed")?;
             (&uncond + (diff * guidance_scale).context("sample_from_hidden: CFG scale failed")?)
                 .context("sample_from_hidden: CFG add failed")?
         } else {
@@ -1304,8 +1306,7 @@ impl GenerationPipeline {
                 .context("greedy_from_hidden: uncond slice")?
                 .unsqueeze(0)
                 .context("greedy_from_hidden: uncond unsqueeze")?;
-            let diff = (&cond - &uncond)
-                .context("greedy_from_hidden: CFG subtract failed")?;
+            let diff = (&cond - &uncond).context("greedy_from_hidden: CFG subtract failed")?;
             (&uncond + (diff * guidance_scale).context("greedy_from_hidden: CFG scale failed")?)
                 .context("greedy_from_hidden: CFG add failed")?
         } else {

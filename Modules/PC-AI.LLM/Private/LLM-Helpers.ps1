@@ -875,6 +875,7 @@ function Invoke-OllamaGenerate {
         [int]$MaxTokens,
 
         [Parameter()]
+        [ValidateRange(1024, 1048576)]
         [int]$NumCtx,
 
         [Parameter()]
@@ -918,7 +919,23 @@ function Invoke-OllamaGenerate {
     }
     $messages += @{ role = 'user'; content = $Prompt }
 
-    return Invoke-OllamaNativeChat -Messages $messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -NumCtx $NumCtx -NumThread $NumThread -TopP $TopP -TopK $TopK -RepeatLastN $RepeatLastN -RepeatPenalty $RepeatPenalty -TfsZ $TfsZ -Seed $Seed -EnableTools:$EnableTools
+    $chatParams = @{
+        Messages        = $messages
+        Model           = $Model
+        Temperature     = $Temperature
+        TimeoutSeconds  = $TimeoutSeconds
+        EnableTools     = $EnableTools
+    }
+    if ($MaxTokens)    { $chatParams['MaxTokens']    = $MaxTokens }
+    if ($NumCtx)       { $chatParams['NumCtx']       = $NumCtx }
+    if ($NumThread)    { $chatParams['NumThread']     = $NumThread }
+    if ($TopP)         { $chatParams['TopP']          = $TopP }
+    if ($TopK)         { $chatParams['TopK']          = $TopK }
+    if ($RepeatLastN)  { $chatParams['RepeatLastN']   = $RepeatLastN }
+    if ($RepeatPenalty){ $chatParams['RepeatPenalty']  = $RepeatPenalty }
+    if ($TfsZ)         { $chatParams['TfsZ']          = $TfsZ }
+    if ($Seed)         { $chatParams['Seed']          = $Seed }
+    return Invoke-OllamaNativeChat @chatParams
 }
 
 function Invoke-OllamaChat {

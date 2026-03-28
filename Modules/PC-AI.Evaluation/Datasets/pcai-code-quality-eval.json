@@ -1,0 +1,151 @@
+[
+  {
+    "id": "cq-security-001",
+    "category": "security",
+    "prompt": "Review this PowerShell function for security issues:\n\nfunction Get-UserData {\n    param([string]$Username)\n    $query = \"SELECT * FROM Users WHERE name = '$Username'\"\n    Invoke-SqlCommand -Query $query\n}",
+    "expected": "SECURITY ISSUE - SQL Injection (High severity): The $Username parameter is interpolated directly into the SQL string without sanitisation. An attacker can pass a value like `' OR '1'='1` to extract all rows, or `'; DROP TABLE Users; --` to destroy data. Fix: use parameterised queries with SqlCommand.Parameters.AddWithValue('@name', $Username) and never build SQL by string concatenation. Additional issue: no input validation on $Username; add [ValidateNotNullOrEmpty()] and consider length/character restrictions.",
+    "context": {
+      "type": "security",
+      "severity": "high",
+      "language": "powershell",
+      "issue_type": "sql-injection",
+      "expected_severity_rating": "high",
+      "line_of_interest": 3
+    },
+    "tags": ["code-quality", "security", "powershell", "sql-injection", "input-validation"]
+  },
+  {
+    "id": "cq-security-002",
+    "category": "security",
+    "prompt": "Review this PowerShell snippet for security problems:\n\n$apiKey = \"sk-prod-a3f9c2b1d8e74f6a9b2c3d4e5f6a7b8c\"\n$headers = @{ Authorization = \"Bearer $apiKey\" }\nInvoke-RestMethod -Uri \"https://api.example.com/data\" -Headers $headers",
+    "expected": "SECURITY ISSUE - Hardcoded Credential (Critical severity): The API key is stored as a plaintext string literal in source code. This will be committed to version control, visible in logs via transcript/Set-PSDebug, and exposed if the file is shared. Fix: load from environment variable ($env:API_KEY), Windows Credential Manager (Get-StoredCredential), or a secrets vault (Get-Secret from Microsoft.PowerShell.SecretManagement). Also consider using [securestring] for the key in memory and clearing it with [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR() after use.",
+    "context": {
+      "type": "security",
+      "severity": "critical",
+      "language": "powershell",
+      "issue_type": "hardcoded-credential",
+      "expected_severity_rating": "critical",
+      "line_of_interest": 1
+    },
+    "tags": ["code-quality", "security", "powershell", "hardcoded-secret", "credential-management"]
+  },
+  {
+    "id": "cq-security-003",
+    "category": "security",
+    "prompt": "Review this C# snippet for security vulnerabilities:\n\npublic string GetConfig(string key)\n{\n    var process = new Process();\n    process.StartInfo.FileName = \"cmd.exe\";\n    process.StartInfo.Arguments = $\"/c config-tool --key {key}\";\n    process.StartInfo.RedirectStandardOutput = true;\n    process.Start();\n    return process.StandardOutput.ReadToEnd();\n}",
+    "expected": "SECURITY ISSUE - Command Injection (High severity): The key parameter is interpolated directly into the shell command arguments. An attacker can pass `foo --inject & del C:\\important.txt` or `foo && powershell -Command malicious` to execute arbitrary commands. Fix: avoid shell invocation entirely and use a proper config API or file-based config. If shell invocation is unavoidable, escape all arguments using ProcessStartInfo with UseShellExecute = false and pass arguments as an array rather than a string, or at minimum sanitise key to [A-Za-z0-9_-] only. Additional issue: no timeout or cancellation token; process.WaitForExit() should include a timeout parameter.",
+    "context": {
+      "type": "security",
+      "severity": "high",
+      "language": "csharp",
+      "issue_type": "command-injection",
+      "expected_severity_rating": "high",
+      "line_of_interest": 4
+    },
+    "tags": ["code-quality", "security", "csharp", "command-injection", "process-start"]
+  },
+  {
+    "id": "cq-performance-001",
+    "category": "performance",
+    "prompt": "Identify the performance problem in this PowerShell script:\n\n$results = @()\nGet-ChildItem C:\\Logs -Recurse -Filter *.log | ForEach-Object {\n    $content = Get-Content $_.FullName\n    foreach ($line in $content) {\n        if ($line -match 'ERROR') {\n            $results += $line\n        }\n    }\n}\n$results",
+    "expected": "PERFORMANCE ISSUE - Array concatenation with += (Medium severity): Each $results += $line copies the entire array to create a new one, making this O(n^2) in time and memory. For 10,000 error lines, this allocates hundreds of temporary arrays. Fix: replace $results = @() with $results = [System.Collections.Generic.List[string]]::new() and change $results += $line to $results.Add($line). Additional issue: Get-Content reads the entire file into memory per call; for large log files use [System.IO.File]::ReadLines($_.FullName) for streaming line-by-line reads. Also, the -match operator inside a tight loop compiles the regex each iteration; consider [regex]::new('ERROR', 'Compiled') for repeated matching.",
+    "context": {
+      "type": "performance",
+      "severity": "medium",
+      "language": "powershell",
+      "issue_type": "array-concatenation",
+      "expected_severity_rating": "medium",
+      "line_of_interest": 5
+    },
+    "tags": ["code-quality", "performance", "powershell", "array-growth", "memory"]
+  },
+  {
+    "id": "cq-performance-002",
+    "category": "performance",
+    "prompt": "Find the performance issue in this Rust code:\n\nfn process_items(items: &[String]) -> Vec<String> {\n    let mut results = Vec::new();\n    for item in items {\n        let processed = item.to_uppercase();\n        results.push(processed.clone());\n    }\n    results\n}",
+    "expected": "PERFORMANCE ISSUE - Unnecessary clone in hot loop (Low severity): processed.clone() creates a redundant heap allocation on every iteration. Since processed is a locally-owned String that is immediately moved or consumed, push(processed) moves it without cloning. Fix: change results.push(processed.clone()) to results.push(processed). Additionally, results should be pre-allocated with Vec::with_capacity(items.len()) to avoid incremental reallocation as the vector grows, halving allocations for large inputs. The function signature is already efficient (borrows the input slice, returns owned Vec).",
+    "context": {
+      "type": "performance",
+      "severity": "low",
+      "language": "rust",
+      "issue_type": "unnecessary-clone",
+      "expected_severity_rating": "low",
+      "line_of_interest": 5
+    },
+    "tags": ["code-quality", "performance", "rust", "unnecessary-clone", "vec-allocation"]
+  },
+  {
+    "id": "cq-performance-003",
+    "category": "performance",
+    "prompt": "Review this C# method for performance problems:\n\npublic string BuildReport(List<string> lines)\n{\n    string report = \"\";\n    foreach (var line in lines)\n    {\n        report += line + \"\\n\";\n    }\n    return report;\n}",
+    "expected": "PERFORMANCE ISSUE - String concatenation in loop (Medium severity): The += operator creates a new string object on every iteration because strings are immutable in C#. For 10,000 lines this allocates 10,000 temporary strings and copies O(n^2) total bytes. Fix: replace the body with StringBuilder: var sb = new StringBuilder(lines.Count * 80); foreach (var line in lines) { sb.Append(line); sb.AppendLine(); } return sb.ToString();. For better initial capacity, pass an estimated size to the constructor. If lines is guaranteed non-empty, string.Join(\"\\n\", lines) is an even more concise one-liner with equivalent performance.",
+    "context": {
+      "type": "performance",
+      "severity": "medium",
+      "language": "csharp",
+      "issue_type": "string-concatenation-loop",
+      "expected_severity_rating": "medium",
+      "line_of_interest": 5
+    },
+    "tags": ["code-quality", "performance", "csharp", "string-builder", "heap-allocation"]
+  },
+  {
+    "id": "cq-correctness-001",
+    "category": "correctness",
+    "prompt": "Identify the bug in this PowerShell function:\n\nfunction Test-IsAdmin {\n    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()\n    $principal = [Security.Principal.WindowsPrincipal]$identity\n    if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {\n        return $true\n    }\n    return $false\n}",
+    "expected": "No functional bug — the logic is correct and will accurately detect whether the current process token has the Administrator role. The code is idiomatic. Minor style improvement: the if/return pattern is redundant; it can be simplified to return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) in a single line. Note: this checks the process token, not the user account; under UAC a user in the Administrators group will return $false from a non-elevated process. If elevation detection is the goal this is correct behaviour. Severity: Low (style only, no bug).",
+    "context": {
+      "type": "correctness",
+      "severity": "low",
+      "language": "powershell",
+      "issue_type": "style-only",
+      "expected_severity_rating": "low",
+      "is_actually_correct": true
+    },
+    "tags": ["code-quality", "correctness", "powershell", "security-principal", "uac", "no-bug"]
+  },
+  {
+    "id": "cq-correctness-002",
+    "category": "correctness",
+    "prompt": "Find the bug in this Rust error handling code:\n\nuse std::fs;\n\nfn read_config(path: &str) -> String {\n    let content = fs::read_to_string(path).unwrap();\n    content\n}",
+    "expected": "CORRECTNESS ISSUE - Panic on file read failure (High severity): .unwrap() will panic if the file does not exist, is not readable, or contains invalid UTF-8. In a production diagnostic tool this would crash the calling thread. Fix: change the return type to Result<String, std::io::Error> and propagate the error with the ? operator: fn read_config(path: &str) -> Result<String, std::io::Error> { let content = fs::read_to_string(path)?; Ok(content) }. The caller can then handle the Err case with match or .unwrap_or_default(). According to Microsoft Pragmatic Rust Guidelines (M-APP-ERROR), use anyhow::Context to add context: fs::read_to_string(path).context(format!(\"Failed to read config: {path}\")). Severity: High — crashes the process on any missing config file.",
+    "context": {
+      "type": "correctness",
+      "severity": "high",
+      "language": "rust",
+      "issue_type": "unwrap-panic",
+      "expected_severity_rating": "high",
+      "line_of_interest": 4
+    },
+    "tags": ["code-quality", "correctness", "rust", "error-handling", "unwrap", "panic"]
+  },
+  {
+    "id": "cq-style-001",
+    "category": "style",
+    "prompt": "Review this PowerShell module function for style and best-practice issues:\n\nfunction getdiskinfo {\n    $disks = Get-WmiObject Win32_DiskDrive\n    Write-Host \"Found $($disks.Count) disks\"\n    foreach ($d in $disks) {\n        Write-Host $d.Model\n    }\n}",
+    "expected": "STYLE ISSUES (Medium severity, multiple): 1) Unapproved verb - function name getdiskinfo does not use an approved verb; rename to Get-DiskInfo to comply with PowerShell naming conventions (Get-Verb). 2) Deprecated CIM class - Get-WmiObject is deprecated in PowerShell 6+; replace with Get-CimInstance Win32_DiskDrive for cross-version compatibility. 3) Write-Host anti-pattern - Write-Host produces host output that cannot be captured by callers or redirected; replace with Write-Output or return objects from the pipeline so callers can process or format the data. 4) Missing comment-based help - public functions require .SYNOPSIS, .PARAMETER, and .EXAMPLE blocks. 5) No export in module manifest - ensure Get-DiskInfo is listed in FunctionsToExport in the .psd1. Severity: Medium — the function works but violates multiple PowerShell module standards.",
+    "context": {
+      "type": "style",
+      "severity": "medium",
+      "language": "powershell",
+      "issue_type": "multiple-style-violations",
+      "expected_severity_rating": "medium"
+    },
+    "tags": ["code-quality", "style", "powershell", "approved-verbs", "wmi-deprecated", "write-host"]
+  },
+  {
+    "id": "cq-security-004",
+    "category": "security",
+    "prompt": "Review this Rust FFI function for safety issues:\n\n#[no_mangle]\npub unsafe extern \"C\" fn pcai_process_buffer(ptr: *mut u8, len: usize) -> i32 {\n    let slice = std::slice::from_raw_parts_mut(ptr, len);\n    for byte in slice.iter_mut() {\n        *byte = byte.wrapping_add(1);\n    }\n    0\n}",
+    "expected": "SAFETY ISSUE - Missing null pointer check (High severity): If the caller passes ptr = null, std::slice::from_raw_parts_mut will produce undefined behaviour (UB) even before the loop executes. Fix: add a null check before constructing the slice: if ptr.is_null() { return -1; }. Additionally, if len = 0 is a valid caller state, ensure the slice construction is guarded (from_raw_parts_mut with a non-null but zero-length pointer is technically sound per Rust docs, but defensive checks prevent caller errors). Per Microsoft Pragmatic Rust Guidelines (M-UNSAFE), all unsafe blocks must document the invariants that must hold; add a Safety doc comment explaining the caller's obligations: ptr must be non-null, valid for reads and writes of len bytes, and properly aligned for u8. Severity: High — null dereference from a C caller would crash the PowerShell host process.",
+    "context": {
+      "type": "security",
+      "severity": "high",
+      "language": "rust",
+      "issue_type": "unsafe-null-deref",
+      "expected_severity_rating": "high",
+      "line_of_interest": 3
+    },
+    "tags": ["code-quality", "security", "rust", "ffi", "unsafe", "null-pointer", "invariant"]
+  }
+]

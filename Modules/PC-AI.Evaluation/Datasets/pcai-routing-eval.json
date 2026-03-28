@@ -1,0 +1,582 @@
+[
+  {
+    "id": "route-diag-001",
+    "category": "diagnostic",
+    "prompt": "Are there any hardware errors showing in Device Manager right now?",
+    "expected": "I'll check Device Manager for hardware errors.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_device_errors",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "diagnostic", "device-manager", "hardware"]
+  },
+  {
+    "id": "route-diag-002",
+    "category": "diagnostic",
+    "prompt": "Check the SMART status of all my drives.",
+    "expected": "I'll query the disk health and SMART status now.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_disk_status",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "diagnostic", "disk", "smart"]
+  },
+  {
+    "id": "route-diag-003",
+    "category": "diagnostic",
+    "prompt": "Show me the critical system events from the last 7 days.",
+    "expected": "I'll retrieve system events from the past 7 days.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_system_events",
+      "expected_params": {"days": 7},
+      "should_route": true
+    },
+    "tags": ["routing", "diagnostic", "events", "system-log"]
+  },
+  {
+    "id": "route-diag-004",
+    "category": "diagnostic",
+    "prompt": "List only the USB devices that are currently showing errors.",
+    "expected": "I'll query USB device status and filter for errors only.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_usb_status",
+      "expected_params": {"errors_only": true},
+      "should_route": true
+    },
+    "tags": ["routing", "diagnostic", "usb", "errors-only"]
+  },
+  {
+    "id": "route-diag-005",
+    "category": "diagnostic",
+    "prompt": "Show me all my USB devices including the ones working fine.",
+    "expected": "I'll retrieve the full USB device and controller status.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_usb_status",
+      "expected_params": {"errors_only": false},
+      "should_route": true
+    },
+    "tags": ["routing", "diagnostic", "usb", "full-status"]
+  },
+  {
+    "id": "route-network-001",
+    "category": "network",
+    "prompt": "What is the status of my network adapters?",
+    "expected": "I'll check the physical network adapter status now.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_network_status",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "network", "adapters"]
+  },
+  {
+    "id": "route-network-002",
+    "category": "network",
+    "prompt": "Run a full WSL network diagnostic.",
+    "expected": "I'll run the WSL network toolkit in full mode.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_run_wsl_network_tool",
+      "expected_params": {"mode": "full"},
+      "should_route": true
+    },
+    "tags": ["routing", "network", "wsl", "diagnostic"]
+  },
+  {
+    "id": "route-network-003",
+    "category": "network",
+    "prompt": "Just check if the WSL networking is functioning, no repairs.",
+    "expected": "I'll run the WSL network toolkit in check mode.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_run_wsl_network_tool",
+      "expected_params": {"mode": "check"},
+      "should_route": true
+    },
+    "tags": ["routing", "network", "wsl", "check-only"]
+  },
+  {
+    "id": "route-disk-001",
+    "category": "disk",
+    "prompt": "How much space is being used under C:\\Users?",
+    "expected": "I'll analyze disk usage for that path.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_disk_usage",
+      "expected_params": {"path": "C:\\Users", "top": 10},
+      "should_route": true
+    },
+    "tags": ["routing", "disk", "usage", "path"]
+  },
+  {
+    "id": "route-disk-002",
+    "category": "disk",
+    "prompt": "Find the top 20 directories consuming the most space on D:\\.",
+    "expected": "I'll scan D:\\ for the largest directories.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_disk_usage",
+      "expected_params": {"path": "D:\\", "top": 20},
+      "should_route": true
+    },
+    "tags": ["routing", "disk", "usage", "top-n"]
+  },
+  {
+    "id": "route-gpu-001",
+    "category": "gpu",
+    "prompt": "What GPU and driver is currently active for inference?",
+    "expected": "I'll check the system info for GPU and driver details.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "GetSystemInfo",
+      "expected_params": {"category": "GPU", "detail": "DriverVersion"},
+      "should_route": true
+    },
+    "tags": ["routing", "gpu", "driver", "system-info"]
+  },
+  {
+    "id": "route-gpu-002",
+    "category": "gpu",
+    "prompt": "Tune the GPU resource allocation for the model host to use at most 80% of the GPU.",
+    "expected": "I'll optimize the model host with an 80% GPU limit.",
+    "context": {
+      "type": "routing",
+      "severity": "medium",
+      "expected_tool": "pcai_optimize_model_host",
+      "expected_params": {"gpu_limit": 0.8},
+      "should_route": true
+    },
+    "tags": ["routing", "gpu", "optimization", "resource-limit"]
+  },
+  {
+    "id": "route-system-001",
+    "category": "system",
+    "prompt": "What processes are using the most memory right now?",
+    "expected": "I'll get the top memory-consuming processes.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_top_processes",
+      "expected_params": {"sort_by": "memory", "top": 10},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "memory", "processes"]
+  },
+  {
+    "id": "route-system-002",
+    "category": "system",
+    "prompt": "Show me the top 5 processes by CPU usage.",
+    "expected": "I'll retrieve the top 5 CPU-consuming processes.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_top_processes",
+      "expected_params": {"sort_by": "cpu", "top": 5},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "cpu", "processes"]
+  },
+  {
+    "id": "route-system-003",
+    "category": "system",
+    "prompt": "Get the current memory statistics for this machine.",
+    "expected": "I'll retrieve system memory statistics now.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_memory_stats",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "memory", "stats"]
+  },
+  {
+    "id": "route-system-004",
+    "category": "system",
+    "prompt": "What is the current WSL distribution status and version?",
+    "expected": "I'll check the WSL status and distributions.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_wsl_status",
+      "expected_params": {"detailed": false},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "wsl", "status"]
+  },
+  {
+    "id": "route-system-005",
+    "category": "system",
+    "prompt": "Show me WSL details including the .wslconfig limits.",
+    "expected": "I'll retrieve detailed WSL status including configuration.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_wsl_status",
+      "expected_params": {"detailed": true},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "wsl", "detailed-config"]
+  },
+  {
+    "id": "route-system-006",
+    "category": "system",
+    "prompt": "Is Docker Desktop running and healthy?",
+    "expected": "I'll check Docker Desktop health and runtime status.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_docker_status",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "docker", "health"]
+  },
+  {
+    "id": "route-system-007",
+    "category": "system",
+    "prompt": "Run the WSL and Docker health check with auto-recovery enabled.",
+    "expected": "I'll run the WSL/Docker health check with auto-recovery.",
+    "context": {
+      "type": "routing",
+      "severity": "medium",
+      "expected_tool": "pcai_run_wsl_docker_health_check",
+      "expected_params": {"auto_recover": true, "quick": false, "verbose": false},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "wsl", "docker", "auto-recovery"]
+  },
+  {
+    "id": "route-system-008",
+    "category": "system",
+    "prompt": "Run a quick WSL and Docker health check without auto-recovery.",
+    "expected": "I'll run a quick WSL/Docker health check.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_run_wsl_docker_health_check",
+      "expected_params": {"auto_recover": false, "quick": true, "verbose": false},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "wsl", "docker", "quick-check"]
+  },
+  {
+    "id": "route-system-009",
+    "category": "system",
+    "prompt": "Get the overall WSL and Docker environment health summary.",
+    "expected": "I'll collect the WSL and Docker environment health summary.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_wsl_health",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "wsl", "docker", "health-summary"]
+  },
+  {
+    "id": "route-system-010",
+    "category": "system",
+    "prompt": "Check the status of the local LLM inference endpoints.",
+    "expected": "I'll query the status of all local LLM providers.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_llm_status",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "llm", "inference", "status"]
+  },
+  {
+    "id": "route-system-011",
+    "category": "system",
+    "prompt": "Check whether pcai-inference and FunctionGemma are healthy.",
+    "expected": "I'll check the service health for pcai-inference and FunctionGemma.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_get_service_health",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "service-health", "inference", "functiongemma"]
+  },
+  {
+    "id": "route-system-012",
+    "category": "system",
+    "prompt": "Switch the inference backend to mistral.rs.",
+    "expected": "I'll switch the native inference backend to mistralrs.",
+    "context": {
+      "type": "routing",
+      "severity": "medium",
+      "expected_tool": "pcai_switch_inference_backend",
+      "expected_params": {"backend": "mistralrs"},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "inference", "backend-switch"]
+  },
+  {
+    "id": "route-system-013",
+    "category": "system",
+    "prompt": "Load the model at C:\\Models\\llama-3.2-1b.Q4_K_M.gguf with full GPU offload.",
+    "expected": "I'll load that model with all layers offloaded to GPU.",
+    "context": {
+      "type": "routing",
+      "severity": "medium",
+      "expected_tool": "pcai_load_model",
+      "expected_params": {"model_path": "C:\\Models\\llama-3.2-1b.Q4_K_M.gguf", "gpu_layers": -1},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "inference", "model-load", "gpu-offload"]
+  },
+  {
+    "id": "route-system-014",
+    "category": "system",
+    "prompt": "Change the LLM provider fallback order to use native inference first, then Ollama.",
+    "expected": "I'll update the LLM provider order to native,ollama.",
+    "context": {
+      "type": "routing",
+      "severity": "medium",
+      "expected_tool": "pcai_set_provider_order",
+      "expected_params": {"order": "native,ollama"},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "llm", "provider-order"]
+  },
+  {
+    "id": "route-system-015",
+    "category": "system",
+    "prompt": "Start the PC_AI-HVSockProxy service.",
+    "expected": "I'll start the PC_AI-HVSockProxy service.",
+    "context": {
+      "type": "routing",
+      "severity": "medium",
+      "expected_tool": "pcai_start_service",
+      "expected_params": {"service": "PC_AI-HVSockProxy"},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "service", "start", "hvsock"]
+  },
+  {
+    "id": "route-system-016",
+    "category": "system",
+    "prompt": "Restart the PC_AI-VLLM service.",
+    "expected": "I'll restart the PC_AI-VLLM service.",
+    "context": {
+      "type": "routing",
+      "severity": "medium",
+      "expected_tool": "pcai_restart_service",
+      "expected_params": {"service": "PC_AI-VLLM"},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "service", "restart", "vllm"]
+  },
+  {
+    "id": "route-system-017",
+    "category": "system",
+    "prompt": "Analyze this Device Manager screenshot and extract any error codes.",
+    "expected": "I'll analyze the image using the Janus-Pro vision model.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_analyze_image",
+      "expected_params": {"image_path": "<user_provided>", "question": "Extract all device error codes and device names shown."},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "media", "vision", "image-analysis"]
+  },
+  {
+    "id": "route-system-018",
+    "category": "system",
+    "prompt": "What is the status of the media pipeline?",
+    "expected": "I'll check the current media pipeline status.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_media_status",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "media", "status"]
+  },
+  {
+    "id": "route-system-019",
+    "category": "system",
+    "prompt": "Get the native inference backend status.",
+    "expected": "I'll retrieve the native inference backend status.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_native_inference_status",
+      "expected_params": {},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "inference", "native", "status"]
+  },
+  {
+    "id": "route-system-020",
+    "category": "system",
+    "prompt": "Search the Microsoft documentation for ConfigManagerErrorCode 43.",
+    "expected": "I'll search Microsoft documentation for that error code.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "SearchDocs",
+      "expected_params": {"query": "ConfigManagerErrorCode 43", "source": "Microsoft"},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "docs-search", "error-code", "microsoft"]
+  },
+  {
+    "id": "route-system-021",
+    "category": "system",
+    "prompt": "Search the application log files under C:\\ProgramData\\PCAI\\Logs for any lines containing 'CUDA OOM'.",
+    "expected": "I'll search the log files for CUDA OOM errors.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "SearchLogs",
+      "expected_params": {"pattern": "CUDA OOM", "rootPath": "C:\\ProgramData\\PCAI\\Logs", "filePattern": "*.log"},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "log-search", "cuda", "oom"]
+  },
+  {
+    "id": "route-system-022",
+    "category": "system",
+    "prompt": "Generate a diagram image of the PC-AI architecture with the text 'PC-AI System Architecture Diagram'.",
+    "expected": "I'll generate that image using the Janus-Pro model.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_generate_image",
+      "expected_params": {"prompt": "PC-AI System Architecture Diagram"},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "media", "image-generation", "janus-pro"]
+  },
+  {
+    "id": "route-system-023",
+    "category": "system",
+    "prompt": "Restart WSL to reinitialize the virtual network.",
+    "expected": "I'll shut down and restart WSL.",
+    "context": {
+      "type": "routing",
+      "severity": "medium",
+      "expected_tool": "pcai_restart_wsl",
+      "expected_params": {},
+      "should_route": true,
+      "is_destructive": true
+    },
+    "tags": ["routing", "system", "wsl", "restart", "destructive"]
+  },
+  {
+    "id": "route-system-024",
+    "category": "system",
+    "prompt": "Stop the PC_AI-VLLM service.",
+    "expected": "I'll stop the PC_AI-VLLM service.",
+    "context": {
+      "type": "routing",
+      "severity": "medium",
+      "expected_tool": "pcai_stop_service",
+      "expected_params": {"service": "PC_AI-VLLM"},
+      "should_route": true,
+      "is_destructive": true
+    },
+    "tags": ["routing", "system", "service", "stop", "vllm", "destructive"]
+  },
+  {
+    "id": "route-system-025",
+    "category": "system",
+    "prompt": "Run the diagnostic evaluation suite against the llamacpp backend.",
+    "expected": "I'll run the diagnostic evaluation suite.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": "pcai_run_evaluation",
+      "expected_params": {"suite_name": "diagnostic", "dataset": "diagnostic", "metrics": "latency,throughput,similarity"},
+      "should_route": true
+    },
+    "tags": ["routing", "system", "evaluation", "llamacpp"]
+  },
+  {
+    "id": "route-negative-001",
+    "category": "negative",
+    "prompt": "Can you explain how neural networks learn through backpropagation?",
+    "expected": "Neural networks learn through backpropagation by computing the gradient of the loss function with respect to each weight using the chain rule, then updating weights in the direction that reduces loss.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": null,
+      "expected_params": null,
+      "should_route": false,
+      "reason": "General ML education question with no actionable PC diagnostic or tool invocation required."
+    },
+    "tags": ["routing", "negative", "no-tool", "education", "ml"]
+  },
+  {
+    "id": "route-negative-002",
+    "category": "negative",
+    "prompt": "What year was Windows 11 released?",
+    "expected": "Windows 11 was released on October 5, 2021.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": null,
+      "expected_params": null,
+      "should_route": false,
+      "reason": "Static factual question answerable from model knowledge; no system state query required."
+    },
+    "tags": ["routing", "negative", "no-tool", "factual"]
+  },
+  {
+    "id": "route-negative-003",
+    "category": "negative",
+    "prompt": "Explain the difference between TCP and UDP protocols.",
+    "expected": "TCP provides reliable, ordered, connection-oriented delivery with acknowledgements and retransmission. UDP provides fast, connectionless delivery with no guarantees, suited for real-time applications like streaming.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": null,
+      "expected_params": null,
+      "should_route": false,
+      "reason": "Networking concept explanation; no system diagnostics or tool invocation needed."
+    },
+    "tags": ["routing", "negative", "no-tool", "networking", "education"]
+  },
+  {
+    "id": "route-negative-004",
+    "category": "negative",
+    "prompt": "Thank you, that fixed the issue!",
+    "expected": "You're welcome! Let me know if you need any further diagnostics.",
+    "context": {
+      "type": "routing",
+      "severity": "low",
+      "expected_tool": null,
+      "expected_params": null,
+      "should_route": false,
+      "reason": "Acknowledgement with no diagnostic intent; routing here would be a spurious tool invocation."
+    },
+    "tags": ["routing", "negative", "no-tool", "conversational"]
+  }
+]

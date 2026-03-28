@@ -1,0 +1,227 @@
+[
+  {
+    "id": "perf-latency-001",
+    "category": "latency",
+    "prompt": "What is 2+2?",
+    "expected": "4",
+    "context": {
+      "type": "latency",
+      "severity": "low",
+      "expected_latency_ms": 500,
+      "expected_tok_s": 15,
+      "prompt_tokens": 7,
+      "notes": "Minimal single-token math prompt; measures cold-path FFI overhead and TTFT."
+    },
+    "tags": ["performance", "latency", "short-prompt", "ttft"]
+  },
+  {
+    "id": "perf-latency-002",
+    "category": "latency",
+    "prompt": "Is the system healthy?",
+    "expected": "Based on the available information, I would need diagnostic data to answer that.",
+    "context": {
+      "type": "latency",
+      "severity": "low",
+      "expected_latency_ms": 600,
+      "expected_tok_s": 15,
+      "prompt_tokens": 6,
+      "notes": "Short open-ended query; validates sub-700ms TTFT on warm model."
+    },
+    "tags": ["performance", "latency", "short-prompt"]
+  },
+  {
+    "id": "perf-latency-003",
+    "category": "latency",
+    "prompt": "List three common causes of high CPU usage.",
+    "expected": "Three common causes of high CPU usage are: 1) Runaway processes consuming excessive cycles, 2) Malware or crypto-mining software, 3) Poorly optimized application loops or busy-waits.",
+    "context": {
+      "type": "latency",
+      "severity": "low",
+      "expected_latency_ms": 1200,
+      "expected_tok_s": 20,
+      "prompt_tokens": 12,
+      "notes": "Short factual prompt requiring a structured list response; tests generation throughput on low-token output."
+    },
+    "tags": ["performance", "latency", "short-prompt", "cpu"]
+  },
+  {
+    "id": "perf-throughput-001",
+    "category": "throughput",
+    "prompt": "Analyze the following system event log and summarize the top three issues:\n\nEvent 1: Source=Disk, ID=11, Message=The driver detected a controller error on \\Device\\Harddisk1\\DR1 (repeated x47 in 1 hour)\nEvent 2: Source=NTFS, ID=55, Message=The file system structure on volume C: is corrupt\nEvent 3: Source=Srv, ID=2017, Message=The server was unable to allocate memory for the nonpaged pool\nEvent 4: Source=WinLogon, ID=6005, Message=The Event log service was started\nEvent 5: Source=WHEA-Logger, ID=18, Message=A corrected hardware error has occurred on processor 0",
+    "expected": "Top three issues identified: 1) CRITICAL - Disk controller errors (47 occurrences on Harddisk1) combined with NTFS filesystem corruption indicate imminent drive failure requiring immediate backup. 2) HIGH - Nonpaged pool exhaustion (Srv event 2017) indicates severe memory pressure causing kernel resource starvation. 3) MEDIUM - Corrected hardware error on CPU 0 (WHEA event 18) may indicate thermal or voltage instability requiring temperature and stress testing.",
+    "context": {
+      "type": "throughput",
+      "severity": "high",
+      "expected_latency_ms": 4000,
+      "expected_tok_s": 18,
+      "prompt_tokens": 118,
+      "notes": "Medium-length prompt with structured log data; tests sustained decode throughput across ~150 output tokens."
+    },
+    "tags": ["performance", "throughput", "medium-prompt", "disk", "memory"]
+  },
+  {
+    "id": "perf-throughput-002",
+    "category": "throughput",
+    "prompt": "Explain the steps to diagnose and resolve a network adapter that shows as connected but has no internet access. Include checks for DNS, IP configuration, and gateway reachability.",
+    "expected": "To diagnose a connected-but-no-internet adapter: 1) Check IP config with ipconfig /all - look for APIPA 169.254.x.x address indicating DHCP failure. 2) Ping the default gateway (e.g., 192.168.1.1) to test local LAN connectivity. 3) If gateway responds, test DNS with nslookup google.com - failure indicates DNS misconfiguration. 4) Try alternate DNS (8.8.8.8, 1.1.1.1) to isolate ISP DNS issues. 5) Run netsh winsock reset and netsh int ip reset if TCP/IP stack is corrupted. 6) Flush DNS cache with ipconfig /flushdns. 7) Check Windows Firewall and security software blocking outbound traffic. 8) Verify NIC driver is current in Device Manager.",
+    "context": {
+      "type": "throughput",
+      "severity": "medium",
+      "expected_latency_ms": 5000,
+      "expected_tok_s": 18,
+      "prompt_tokens": 45,
+      "notes": "Medium prompt requiring a multi-step procedural response; benchmarks sustained throughput across ~180 output tokens."
+    },
+    "tags": ["performance", "throughput", "medium-prompt", "network", "dns"]
+  },
+  {
+    "id": "perf-throughput-003",
+    "category": "throughput",
+    "prompt": "A developer reports that their Windows 11 machine is randomly freezing for 5-10 seconds every few minutes. Device Manager shows no errors. Describe your diagnostic approach.",
+    "expected": "Systematic freeze diagnosis approach: 1) Check Event Viewer System log for Critical and Error events during freeze windows - look for disk timeouts, WHEA errors, or driver crashes. 2) Run Resource Monitor during freeze to identify CPU, disk, network, or memory spikes. 3) Check SMART disk health - intermittent freezes commonly indicate drive latency spikes from worn media. 4) Disable power management on all devices (especially NIC and USB hub) in Device Manager. 5) Check for scheduled tasks firing every few minutes (Windows Defender scans, indexing). 6) Run Windows Memory Diagnostic or MemTest86 to rule out RAM errors. 7) Monitor disk queue length with Performance Monitor - values above 2 during freeze confirm disk I/O bottleneck. 8) Check for thermal throttling with HWiNFO64 - CPU/GPU TjMax hits will trigger brief stalls.",
+    "context": {
+      "type": "throughput",
+      "severity": "medium",
+      "expected_latency_ms": 6000,
+      "expected_tok_s": 18,
+      "prompt_tokens": 52,
+      "notes": "Medium-complexity open diagnostic scenario; measures coherence and throughput under ~200 output tokens."
+    },
+    "tags": ["performance", "throughput", "medium-prompt", "freeze", "diagnostic"]
+  },
+  {
+    "id": "perf-context-001",
+    "category": "context-length",
+    "prompt": "You are analyzing a full PC diagnostic report. Based on ALL the data below, provide a prioritized action plan:\n\n=== SMART STATUS ===\nDisk 0 (Samsung 980 Pro 1TB NVMe): GOOD - Power On Hours: 4,200\nDisk 1 (WD Blue 4TB HDD): CAUTION - Reallocated Sectors: 23, Pending Sectors: 1, Power On Hours: 31,500\nDisk 2 (Crucial MX500 2TB SSD): GOOD - Power On Hours: 8,100\n\n=== DEVICE MANAGER ===\nBroadcom Wi-Fi Adapter: Code 10 (device cannot start)\nUSB Mass Storage Device: Code 43 (device reported a problem)\nAll other devices: No errors\n\n=== SYSTEM EVENTS (last 3 days) ===\nDisk: Controller error on Harddisk1 (x12)\nServiceControlManager: Service PC-AI-Inference failed to start (x3)\nKernel-Power: System has resumed from sleep with error 0x00000000 (x6)\nSecurityCenter: Windows Defender disabled (x1)\n\n=== NETWORK ===\nEthernet (Intel I225-V): Connected 2.5 Gbps\nWi-Fi (Broadcom): Error - see Device Manager\nDNS: 192.168.1.1 responding 2ms\nInternet: Connected via Ethernet\n\n=== MEMORY ===\nTotal: 32 GB DDR4-3200\nAvailable: 14.2 GB\nCommit: 22.1 GB / 36 GB\nPage file: 2.3 GB used\n\n=== GPU ===\nNVIDIA RTX 4070: Driver 552.22 (current)\nCUDA 12.8 available\nVRAM: 2.1 GB / 12 GB used\nTemp: 41C\n\n=== CPU ===\nIntel Core i9-13900K: 8% utilization\nTemp: 52C (idle)\nFrequency: 800 MHz (power-save mode)\n\n=== DISK USAGE ===\nC: 847 GB / 1000 GB (84.7% full)\nD: 1.2 TB / 4 TB (30% full)\nE: 890 GB / 2 TB (44.5% full)",
+    "expected": "Prioritized action plan: 1) CRITICAL - C: drive at 84.7% capacity; free at least 150 GB to prevent performance degradation and filesystem errors. 2) HIGH - WD Blue HDD shows early failure signs (23 reallocated sectors, disk controller errors); back up D: drive contents immediately and plan replacement. 3) HIGH - Windows Defender disabled; re-enable immediately as security baseline. 4) HIGH - Broadcom Wi-Fi adapter Code 10; reinstall driver or replace adapter (Ethernet is working as fallback). 5) MEDIUM - PC-AI-Inference service failing to start; check service configuration and DLL dependencies. 6) MEDIUM - USB Mass Storage Code 43; try different port or replace device. 7) LOW - Sleep resume errors suggest power management issue; update chipset drivers and check BIOS power settings.",
+    "context": {
+      "type": "context-length",
+      "severity": "high",
+      "expected_latency_ms": 10000,
+      "expected_tok_s": 16,
+      "prompt_tokens": 385,
+      "notes": "Long structured multi-section prompt (~400 tokens); tests context window handling and coherent synthesis across all data sections."
+    },
+    "tags": ["performance", "context-length", "long-prompt", "multi-section", "synthesis"]
+  },
+  {
+    "id": "perf-context-002",
+    "category": "context-length",
+    "prompt": "Review this extended PowerShell transcript and identify all commands that could be optimized:\n\nPS C:\\> Get-Process | Where-Object {$_.CPU -gt 10} | ForEach-Object { Get-Process -Id $_.Id }\nPS C:\\> $files = @(); Get-ChildItem C:\\Logs -Recurse | ForEach-Object { $files += $_ }\nPS C:\\> $content = ''; Get-Content C:\\large-file.txt | ForEach-Object { $content += $_ }\nPS C:\\> 1..1000 | ForEach-Object { Write-Host \"Item $_\" }\nPS C:\\> Get-EventLog -LogName System -Newest 100 | Where-Object {$_.EntryType -eq 'Error'}\nPS C:\\> $procs = Get-Process; foreach ($p in $procs) { if ($p.WorkingSet64 -gt 1GB) { Write-Host $p.Name } }\nPS C:\\> $results = @(); for ($i = 0; $i -lt 500; $i++) { $results += [PSCustomObject]@{Index=$i; Value=$i*2} }\nPS C:\\> Get-ChildItem C:\\Windows\\System32 -Filter *.dll | ForEach-Object { [System.IO.File]::ReadAllBytes($_.FullName) | Measure-Object -Sum | Select-Object -ExpandProperty Sum }\nPS C:\\> Import-Csv C:\\data.csv | Where-Object {$_.Status -eq 'Active'} | Export-Csv C:\\active.csv\nPS C:\\> Get-WmiObject Win32_Process | Where-Object {$_.CommandLine -like '*chrome*'}",
+    "expected": "Optimizations identified: 1) Redundant pipeline - first command calls Get-Process twice; use the existing piped object directly. 2) Array concatenation with += in loop - lines 2 and 7 use += on @() which causes O(n^2) copying; replace with [System.Collections.Generic.List[object]]::new() and .Add(). 3) String concatenation with += - line 3 builds string in loop causing O(n^2) allocation; use [System.Text.StringBuilder] or Get-Content -Raw. 4) Write-Host in tight loop - line 4 serializes 1000 output calls; use -join or Out-String for bulk output. 5) Get-EventLog is deprecated in PowerShell 7+; replace with Get-WinEvent -LogName System -MaxEvents 100. 6) Line 6 duplicates Get-Process call; reference $procs directly from the earlier assignment. 7) ReadAllBytes in Get-ChildItem pipeline - line 8 loads entire DLL into memory per file; use [System.IO.FileInfo].Length property instead of reading content. 8) Get-WmiObject is deprecated; replace with Get-CimInstance Win32_Process.",
+    "context": {
+      "type": "context-length",
+      "severity": "medium",
+      "expected_latency_ms": 9000,
+      "expected_tok_s": 16,
+      "prompt_tokens": 290,
+      "notes": "Long code-review prompt with 10 PS transcript lines; tests line-by-line analysis quality across extended context."
+    },
+    "tags": ["performance", "context-length", "long-prompt", "powershell", "code-review"]
+  },
+  {
+    "id": "perf-context-003",
+    "category": "context-length",
+    "prompt": "Here is a complete driver inventory for a system. Identify which drivers are outdated and prioritize updates:\n\nDevice: Intel(R) Wi-Fi 6 AX201 160MHz\n  Driver: 22.130.0.5 | Date: 2022-08-14 | Vendor: Intel\n  Latest: 23.60.2.2 (2024-11-12)\n\nDevice: NVIDIA GeForce RTX 4070\n  Driver: 546.01 | Date: 2023-10-16 | Vendor: NVIDIA\n  Latest: 566.14 (2024-11-07)\n\nDevice: Realtek PCIe GbE Family Controller\n  Driver: 10.57.0614.2023 | Date: 2023-06-14 | Vendor: Realtek\n  Latest: 10.66.1122.2024 (2024-11-22)\n\nDevice: Intel(R) I225-V Ethernet Controller\n  Driver: 1.1.3.33 | Date: 2021-04-15 | Vendor: Intel\n  Latest: 28.2 (2024-09-30)\n\nDevice: AMD High Definition Audio Device\n  Driver: 10.0.19041.1 | Date: 2021-06-21 | Vendor: Microsoft\n  Latest: 10.0.19041.1 (unchanged)\n\nDevice: USB xHCI Compliant Host Controller\n  Driver: 10.0.22621.2428 | Date: 2023-10-10 | Vendor: Microsoft\n  Latest: 10.0.26100.1150 (2024-06-18)\n\nDevice: Intel(R) Management Engine Interface\n  Driver: 2127.15.0.2867 | Date: 2023-01-12 | Vendor: Intel\n  Latest: 2422.6.0.0 (2024-10-01)\n\nDevice: HID-compliant mouse\n  Driver: 10.0.22621.1 | Date: 2022-09-20 | Vendor: Microsoft\n  Latest: 10.0.22621.1 (unchanged)\n\nDevice: Generic Bluetooth Adapter\n  Driver: 22.30.0.0 | Date: 2022-12-01 | Vendor: Broadcom\n  Latest: 22.40.2.0 (2024-03-15)",
+    "expected": "Driver update priority: 1) HIGH - Intel I225-V Ethernet (1.1.3.33 from 2021 vs 28.2 from 2024) - major version gap of 3+ years; update first as network stability is critical. 2) HIGH - Intel Management Engine Interface (2127 vs 2422) - ME firmware updates contain security patches; update promptly. 3) MEDIUM - NVIDIA RTX 4070 (546.01 vs 566.14) - newer driver adds game-ready updates and CUDA improvements; recommended for GPU compute workloads. 4) MEDIUM - Intel Wi-Fi 6 AX201 (22.130 vs 23.60) - 18+ months old; update for stability and WPA3 improvements. 5) LOW - Realtek GbE (10.57 vs 10.66) - minor version gap; update if experiencing network issues. 6) LOW - Generic Bluetooth (22.30 vs 22.40) - minor update; low risk, low benefit. 7) SKIP - USB xHCI Controller - Microsoft inbox driver updated by Windows Update automatically. 8) SKIP - AMD Audio, HID Mouse - both current.",
+    "context": {
+      "type": "context-length",
+      "severity": "medium",
+      "expected_latency_ms": 10000,
+      "expected_tok_s": 16,
+      "prompt_tokens": 320,
+      "notes": "Long structured data prompt covering 9 devices; tests prioritization logic and version comparison across full context."
+    },
+    "tags": ["performance", "context-length", "long-prompt", "drivers", "prioritization"]
+  },
+  {
+    "id": "perf-batch-001",
+    "category": "batch-efficiency",
+    "prompt": "Define: latency",
+    "expected": "Latency is the time elapsed between initiating a request and receiving the first response token.",
+    "context": {
+      "type": "batch-efficiency",
+      "severity": "low",
+      "expected_latency_ms": 400,
+      "expected_tok_s": 20,
+      "prompt_tokens": 3,
+      "notes": "Minimal single-word definition prompt; represents the fastest expected case in a batch scenario for baseline normalization."
+    },
+    "tags": ["performance", "batch-efficiency", "minimal-prompt", "baseline"]
+  },
+  {
+    "id": "perf-batch-002",
+    "category": "batch-efficiency",
+    "prompt": "Summarize in one sentence: disk health monitoring.",
+    "expected": "Disk health monitoring tracks SMART attributes like reallocated sectors and pending sectors to predict drive failure before data loss occurs.",
+    "context": {
+      "type": "batch-efficiency",
+      "severity": "low",
+      "expected_latency_ms": 800,
+      "expected_tok_s": 20,
+      "prompt_tokens": 11,
+      "notes": "Very short summarization prompt; second item in a simulated concurrent batch to measure inter-request scheduling overhead."
+    },
+    "tags": ["performance", "batch-efficiency", "short-prompt", "disk"]
+  },
+  {
+    "id": "perf-batch-003",
+    "category": "batch-efficiency",
+    "prompt": "In one sentence, what does a GPU temperature of 95C indicate?",
+    "expected": "A GPU temperature of 95C indicates the device is near or at thermal throttle limits, risking performance degradation and potential hardware damage.",
+    "context": {
+      "type": "batch-efficiency",
+      "severity": "low",
+      "expected_latency_ms": 700,
+      "expected_tok_s": 20,
+      "prompt_tokens": 18,
+      "notes": "Short factual question for batch scheduling; third in a simulated concurrent batch testing parallel slot utilization."
+    },
+    "tags": ["performance", "batch-efficiency", "short-prompt", "gpu", "thermal"]
+  },
+  {
+    "id": "perf-throughput-004",
+    "category": "throughput",
+    "prompt": "Describe the difference between a hard fault (page fault requiring disk read) and a soft fault (page fault satisfied from RAM) and explain when each becomes a performance problem.",
+    "expected": "A hard fault occurs when a requested memory page must be loaded from the pagefile on disk, incurring disk I/O latency (1-10ms for SSD, 5-15ms for HDD). A soft fault is satisfied from standby memory already in RAM with no disk I/O, costing only microseconds. Hard faults become a performance problem when the working set of active processes exceeds available physical RAM, forcing frequent pagefile access and causing visible stuttering. Soft faults are rarely a problem unless the rate exceeds millions per second indicating a poorly tuned memory allocator. On Windows, monitor with Resource Monitor (hard faults/sec column) or Performance Monitor counter Memory\\Page Faults/sec versus Memory\\Page Reads/sec.",
+    "context": {
+      "type": "throughput",
+      "severity": "medium",
+      "expected_latency_ms": 7000,
+      "expected_tok_s": 17,
+      "prompt_tokens": 42,
+      "notes": "Technical explanation prompt requiring accurate OS memory management knowledge; tests factual grounding over ~200 output tokens."
+    },
+    "tags": ["performance", "throughput", "medium-prompt", "memory", "technical"]
+  },
+  {
+    "id": "perf-latency-004",
+    "category": "latency",
+    "prompt": "What does SMART stand for?",
+    "expected": "SMART stands for Self-Monitoring, Analysis, and Reporting Technology.",
+    "context": {
+      "type": "latency",
+      "severity": "low",
+      "expected_latency_ms": 450,
+      "expected_tok_s": 20,
+      "prompt_tokens": 7,
+      "notes": "Single-fact lookup prompt; measures raw TTFT without context retrieval. Should complete under 500ms on warmed GPU backend."
+    },
+    "tags": ["performance", "latency", "short-prompt", "disk", "smart"]
+  },
+  {
+    "id": "perf-context-004",
+    "category": "context-length",
+    "prompt": "Analyze this pcai-inference HTTP server log for anomalies and summarize findings:\n\n[2026-03-27T08:00:01Z] INFO  Listening on [server-host]:8080 (llamacpp backend)\n[2026-03-27T08:00:02Z] INFO  Model loaded: tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf (4 layers GPU)\n[2026-03-27T08:00:15Z] INFO  POST /v1/completions 200 412ms tok/s=23.1\n[2026-03-27T08:00:28Z] INFO  POST /v1/completions 200 388ms tok/s=24.5\n[2026-03-27T08:01:03Z] WARN  GPU memory pressure: 7.8 GB / 8.0 GB VRAM used\n[2026-03-27T08:01:05Z] INFO  POST /v1/completions 200 1847ms tok/s=6.2\n[2026-03-27T08:01:23Z] INFO  POST /v1/completions 200 1921ms tok/s=5.9\n[2026-03-27T08:01:40Z] ERROR POST /v1/completions 500 timeout after 30s\n[2026-03-27T08:01:42Z] ERROR POST /v1/completions 500 timeout after 30s\n[2026-03-27T08:02:00Z] INFO  CUDA OOM recovery: offloading 2 layers to CPU\n[2026-03-27T08:02:01Z] INFO  POST /v1/completions 200 2310ms tok/s=4.1\n[2026-03-27T08:02:15Z] INFO  POST /v1/completions 200 2280ms tok/s=4.3\n[2026-03-27T08:05:00Z] INFO  POST /v1/completions 200 401ms tok/s=22.8\n[2026-03-27T08:05:14Z] INFO  POST /v1/completions 200 395ms tok/s=23.6",
+    "expected": "Anomalies identified: 1) CRITICAL - CUDA Out of Memory at 08:01:03 (7.8/8.0 GB VRAM) caused 3x throughput degradation (23 tok/s to 6 tok/s) followed by 2 hard timeouts (500 errors). 2) HIGH - Automatic OOM recovery at 08:02:00 offloaded 2 GPU layers to CPU, dropping throughput further to 4 tok/s - model is too large for GPU VRAM at current layer count. 3) MEDIUM - Recovery to baseline performance at 08:05:00 suggests memory was reclaimed after earlier requests completed, but the VRAM margin is critically thin. Recommendations: reduce n_gpu_layers in llm-config.json, quantize to Q3_K_M, or upgrade VRAM.",
+    "context": {
+      "type": "context-length",
+      "severity": "high",
+      "expected_latency_ms": 9000,
+      "expected_tok_s": 16,
+      "prompt_tokens": 310,
+      "notes": "Log analysis requiring temporal reasoning and anomaly correlation; tests multi-event synthesis over ~300 token input."
+    },
+    "tags": ["performance", "context-length", "long-prompt", "inference", "gpu", "oom", "log-analysis"]
+  }
+]

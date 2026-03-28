@@ -15,13 +15,13 @@ internal static partial class NativeCore
     // ========================================================================
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern SafeRustStringHandle pcai_core_version();
+    internal static extern IntPtr pcai_core_version();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern uint pcai_core_test();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern SafeRustStringHandle pcai_search_version();
+    internal static extern IntPtr pcai_search_version();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void pcai_free_string(IntPtr buffer);
@@ -36,7 +36,7 @@ internal static partial class NativeCore
     internal static extern uint pcai_cpu_count();
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern SafeRustStringHandle pcai_status_description(PcaiStatus status);
+    internal static extern IntPtr pcai_status_description(PcaiStatus status);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern SafeRustStringHandle pcai_string_copy([MarshalAs(UnmanagedType.LPUTF8Str)] string input);

@@ -33,8 +33,8 @@ public static class PcaiCore
     {
         try
         {
-            using var ptr = NativeCore.pcai_core_version();
-            return ptr.ToManagedString() ?? "unknown";
+            var ptr = NativeCore.pcai_core_version();
+            return ptr == IntPtr.Zero ? "unknown" : Marshal.PtrToStringUTF8(ptr) ?? "unknown";
         }
         catch
         {
@@ -77,8 +77,8 @@ public static class PcaiCore
     {
         try
         {
-            using var ptr = NativeCore.pcai_status_description(status);
-            return ptr.ToManagedString() ?? status.ToString();
+            var ptr = NativeCore.pcai_status_description(status);
+            return ptr == IntPtr.Zero ? status.ToString() : Marshal.PtrToStringUTF8(ptr) ?? status.ToString();
         }
         catch
         {

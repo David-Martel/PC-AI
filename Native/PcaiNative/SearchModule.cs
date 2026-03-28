@@ -388,8 +388,8 @@ public static class PcaiSearch
     {
         try
         {
-            using var version = NativeCore.pcai_core_version();
-            return !version.IsInvalid;
+            var version = NativeCore.pcai_core_version();
+            return version != IntPtr.Zero;
         }
         catch
         {
@@ -402,8 +402,8 @@ public static class PcaiSearch
     {
         try
         {
-            using var ptr = NativeCore.pcai_core_version();
-            return ptr.ToManagedString() ?? "unknown";
+            var ptr = NativeCore.pcai_core_version();
+            return ptr == IntPtr.Zero ? "unknown" : Marshal.PtrToStringUTF8(ptr) ?? "unknown";
         }
         catch
         {
@@ -823,8 +823,8 @@ public static class PcaiSearch
     public static string GetDiagnostics()
     {
         if (!IsAvailable) return "Search module not available.";
-        using var versionPtr = NativeCore.pcai_search_version();
-        var versionStr = versionPtr.ToManagedString() ?? "unknown";
+        var versionPtr = NativeCore.pcai_search_version();
+        var versionStr = versionPtr == IntPtr.Zero ? "unknown" : Marshal.PtrToStringUTF8(versionPtr) ?? "unknown";
         return $"Search Module: Functional, Root: {NativeCore.pcai_fs_version()}, Version: {versionStr}";
     }
 

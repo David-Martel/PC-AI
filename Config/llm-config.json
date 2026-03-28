@@ -30,10 +30,13 @@
   "ollama": {
     "base_url": "http://127.0.0.1:11434",
     "model": "qwen2.5-coder:3b",
-    "timeout_ms": 180000,
-    "toolInvokerPath": "Tools/Invoke-PcaiMappedTool.ps1"
+    "timeout_ms": 300000,
+    "toolInvokerPath": "Tools/Invoke-PcaiMappedTool.ps1",
+    "num_ctx": 32768,
+    "num_predict": 16384
   },
   "fallbackOrder": [
+    "ollama",
     "invalid"
   ]
 }

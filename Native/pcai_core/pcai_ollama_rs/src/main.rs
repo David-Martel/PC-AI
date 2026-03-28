@@ -152,12 +152,13 @@ impl OllamaConfig {
             self.temperature = 0.15;
         }
         if self.num_ctx == 0 {
-            // Default to 8192 — large enough for most prompts without OOM.
-            // Override via config file or --num-ctx flag for larger contexts.
-            self.num_ctx = 8192;
+            // Default context window. Ollama manages GPU memory — let it use
+            // the model's full context if possible, fall back if OOM.
+            self.num_ctx = 32768;
         }
         if self.num_predict == 0 {
-            self.num_predict = 2048;
+            // Allow substantial output by default. -1 = unlimited (until EOS).
+            self.num_predict = 16384;
         }
         if self.keep_alive_seconds == 0 {
             self.keep_alive_seconds = 1800;

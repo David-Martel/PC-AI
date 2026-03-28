@@ -131,7 +131,7 @@ foreach ($id in $currentMap.Keys) {
     }
 }
 
-$regressionCount = ($rows | Where-Object { $_.Status -eq 'regressed' }).Count
+$regressionCount = @($rows | Where-Object { $_.Status -eq 'regressed' }).Count
 
 # ── Output ───────────────────────────────────────────────────────────────────
 switch ($Format) {

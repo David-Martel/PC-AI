@@ -15,8 +15,6 @@ Describe 'Import-PcaiAccelerationStack' -Tag 'Unit', 'Acceleration', 'Bootstrap'
         $status.RepoRoot | Should -Be $script:ProjectRoot
         $status.Modules.PSObject.Properties.Name | Should -Contain 'PC-AI.Acceleration'
         $status.Modules.'PC-AI.Acceleration'.Available | Should -BeTrue
-        $status.FileSearchAvailable | Should -BeTrue
-        $status.ContentSearchAvailable | Should -BeTrue
     }
 
     It 'reports missing modules without throwing when RequireAll is not set' {
@@ -30,5 +28,16 @@ Describe 'Import-PcaiAccelerationStack' -Tag 'Unit', 'Acceleration', 'Bootstrap'
         {
             Import-PcaiAccelerationStack -Modules @('DefinitelyMissingAccelerationModule') -RepoRoot $script:ProjectRoot -RequireAll
         } | Should -Throw
+    }
+}
+
+# Native DLL availability assertions require pcai_core_lib.dll to be built.
+# These are intentionally tagged Windows (not Portable) so they run only in full CI.
+Describe 'Import-PcaiAccelerationStack - NativeDll' -Tag 'Unit', 'Acceleration', 'Bootstrap', 'Windows' {
+    It 'reports FileSearchAvailable and ContentSearchAvailable when DLL is present' {
+        $status = Import-PcaiAccelerationStack -Modules @('PC-AI.Acceleration') -RepoRoot $script:ProjectRoot
+
+        $status.FileSearchAvailable | Should -BeTrue
+        $status.ContentSearchAvailable | Should -BeTrue
     }
 }

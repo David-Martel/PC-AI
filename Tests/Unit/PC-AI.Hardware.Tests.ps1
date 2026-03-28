@@ -70,6 +70,8 @@ Describe "Get-DeviceErrors" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
     Context "When all disks are healthy" {
         BeforeAll {
+            # Suppress native DLL path so CIM fallback is always exercised
+            Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
             Mock Get-CimInstance {
                 @(
                     [PSCustomObject]@{
@@ -124,6 +126,7 @@ Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When disks have warnings" {
         BeforeAll {
+            Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
             Mock Get-CimInstance {
                 @(
                     [PSCustomObject]@{
@@ -154,6 +157,7 @@ Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When disks have failures" {
         BeforeAll {
+            Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
             Mock Get-CimInstance {
                 @(
                     [PSCustomObject]@{
@@ -179,6 +183,7 @@ Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When Get-CimInstance fails" {
         BeforeAll {
+            Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
             Mock Get-CimInstance { throw "Access denied" } -ModuleName PC-AI.Hardware
         }
 

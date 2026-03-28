@@ -134,7 +134,7 @@ if ($RunSections -contains 'RustClippy' -and -not $AnyFail) {
         try {
             $output = & cargo clippy --workspace --all-targets --no-deps `
                 -- -D warnings -A clippy::type_complexity 2>&1
-            $warnCount = ($output | Select-String '^warning:').Count
+            $warnCount = @@($output | Select-String '^warning:').Count
             if ($LASTEXITCODE -eq 0) {
                 New-SectionResult 'RustClippy' 'PASS' '' @{ warnings = $warnCount }
             } else {
@@ -188,7 +188,7 @@ if ($RunSections -contains 'CSharp' -and -not $AnyFail) {
             return New-SectionResult 'CSharp' 'SKIP' "Project not found: $csproj"
         }
         $buildOut  = & dotnet build $csproj --nologo -v q 2>&1
-        $warnCount = ($buildOut | Select-String ': warning ').Count
+        $warnCount = @($buildOut | Select-String ': warning ').Count
         if ($LASTEXITCODE -ne 0) {
             return New-SectionResult 'CSharp' 'FAIL' ($buildOut | Select-Object -Last 10 | Out-String).Trim() @{ warnings = $warnCount }
         }
@@ -249,8 +249,8 @@ if ($RunSections -contains 'Lint' -and -not $AnyFail) {
         }
         if (Test-Path $PssaSettings) { $pssaArgs['Settings'] = $PssaSettings }
         $findings  = Invoke-ScriptAnalyzer @pssaArgs
-        $errors    = ($findings | Where-Object Severity -eq 'Error').Count
-        $warnings  = ($findings | Where-Object Severity -eq 'Warning').Count
+        $errors    = @($findings | Where-Object Severity -eq 'Error').Count
+        $warnings  = @($findings | Where-Object Severity -eq 'Warning').Count
         $status    = if ($errors -gt 0) { 'FAIL' } else { 'PASS' }
         $detail    = if ($errors -gt 0) {
             ($findings | Where-Object Severity -eq 'Error' |
@@ -266,7 +266,7 @@ if ($RunSections -contains 'Lint' -and -not $AnyFail) {
 
 # --- Summarise ---
 $GlobalStart.Stop()
-$overallStatus = if (($Results.Values | Where-Object status -eq 'FAIL').Count -gt 0) { 'FAIL' } else { 'PASS' }
+$overallStatus = if (@($Results.Values | Where-Object status -eq 'FAIL').Count -gt 0) { 'FAIL' } else { 'PASS' }
 
 $sectionsDict = [ordered]@{}
 foreach ($key in $Results.Keys) {

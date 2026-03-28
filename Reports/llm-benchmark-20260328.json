@@ -1,0 +1,140 @@
+{
+  "timestamp": "2026-03-28T00:41:17Z",
+  "results": [
+    {
+      "model": "qwen2.5-coder:3b",
+      "label": "3B coder",
+      "prompt": "short",
+      "tokens": 2,
+      "tok_s": 148.0,
+      "total_s": 3.2,
+      "chars": 1
+    },
+    {
+      "model": "qwen2.5-coder:3b",
+      "label": "3B coder",
+      "prompt": "medium",
+      "tokens": 698,
+      "tok_s": 121.4,
+      "total_s": 6.5,
+      "chars": 2678
+    },
+    {
+      "model": "qwen2.5-coder:3b",
+      "label": "3B coder",
+      "prompt": "long",
+      "tokens": 1434,
+      "tok_s": 116.6,
+      "total_s": 17.1,
+      "chars": 6527
+    },
+    {
+      "model": "qwen2.5-coder:7b",
+      "label": "7B coder",
+      "prompt": "short",
+      "tokens": 2,
+      "tok_s": 107.0,
+      "total_s": 4.4,
+      "chars": 1
+    },
+    {
+      "model": "qwen2.5-coder:7b",
+      "label": "7B coder",
+      "prompt": "medium",
+      "tokens": 625,
+      "tok_s": 66.7,
+      "total_s": 10.1,
+      "chars": 2273
+    },
+    {
+      "model": "qwen2.5-coder:7b",
+      "label": "7B coder",
+      "prompt": "long",
+      "tokens": 1215,
+      "tok_s": 62.0,
+      "total_s": 25.5,
+      "chars": 5920
+    },
+    {
+      "model": "gemma3:4b",
+      "label": "4B general",
+      "prompt": "short",
+      "tokens": 3,
+      "tok_s": 115.2,
+      "total_s": 4.8,
+      "chars": 2
+    },
+    {
+      "model": "gemma3:4b",
+      "label": "4B general",
+      "prompt": "medium",
+      "tokens": 1043,
+      "tok_s": 79.1,
+      "total_s": 45.7,
+      "chars": 3656
+    },
+    {
+      "model": "gemma3:4b",
+      "label": "4B general",
+      "prompt": "long",
+      "tokens": 1916,
+      "tok_s": 76.1,
+      "total_s": 31.2,
+      "chars": 7022
+    },
+    {
+      "model": "deepseek-r1:7b",
+      "label": "7B reasoning",
+      "prompt": "short",
+      "tokens": 189,
+      "tok_s": 68.6,
+      "total_s": 12.1,
+      "chars": 604
+    },
+    {
+      "model": "deepseek-r1:7b",
+      "label": "7B reasoning",
+      "prompt": "medium",
+      "tokens": 1000,
+      "tok_s": 60.8,
+      "total_s": 17.6,
+      "chars": 4019
+    },
+    {
+      "model": "deepseek-r1:7b",
+      "label": "7B reasoning",
+      "prompt": "long",
+      "tokens": 2236,
+      "tok_s": 54.4,
+      "total_s": 47.2,
+      "chars": 10267
+    },
+    {
+      "model": "qwen3:14b",
+      "label": "14B latest",
+      "prompt": "short",
+      "tokens": 201,
+      "tok_s": 33.2,
+      "total_s": 16.5,
+      "chars": 1
+    },
+    {
+      "model": "qwen3:14b",
+      "label": "14B latest",
+      "prompt": "medium",
+      "tokens": 2048,
+      "tok_s": 32.5,
+      "total_s": 64.2,
+      "chars": 903
+    },
+    {
+      "model": "qwen3:14b",
+      "label": "14B latest",
+      "prompt": "long",
+      "tokens": 8192,
+      "tok_s": 31.1,
+      "total_s": 276.6,
+      "chars": 8951
+    }
+  ]
+}

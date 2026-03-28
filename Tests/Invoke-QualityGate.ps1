@@ -43,7 +43,7 @@ function Measure-ClippyWarnings {
     try {
         $out = & cargo clippy --workspace --all-targets --no-deps --message-format=json `
             -- -D warnings -A clippy::type_complexity 2>&1
-        ($out | Where-Object { $_ -match '"level":"warning"' }).Count
+        @($out | Where-Object { $_ -match '"level":"warning"' }).Count
     } finally { Pop-Location }
 }
 
@@ -74,7 +74,7 @@ function Measure-PesterTests {
 
 function Measure-ScriptAnalyzer {
     if (-not (Get-Module -ListAvailable PSScriptAnalyzer) -or -not (Test-Path $ModulesPath)) { return 0 }
-    (Invoke-ScriptAnalyzer -Path $ModulesPath -Recurse -Severity Warning, Error).Count
+    @(Invoke-ScriptAnalyzer -Path $ModulesPath -Recurse -Severity Warning, Error).Count
 }
 
 function Invoke-Metrics {

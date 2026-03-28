@@ -1,8 +1,8 @@
 {
-  "Generated": "2026-03-18 17:23:57",
+  "Generated": "2026-03-27 20:22:57",
   "PowerShell": {
-    "FunctionCount": 230,
-    "MissingHelpCount": 167,
+    "FunctionCount": 234,
+    "MissingHelpCount": 171,
     "MissingHelpParameters": [
       {
         "Name": "Compare-ToolPerformance",
@@ -702,6 +702,25 @@
         "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.Acceleration\\Public\\Get-ProcessesFast.ps1"
       },
       {
+        "Name": "Get-ProcessLassoSnapshot",
+        "Synopsis": "",
+        "Description": "",
+        "Parameters": [
+          "ConfigPath",
+          "LogPath",
+          "LookbackMinutes"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "ConfigPath",
+          "LogPath",
+          "LookbackMinutes"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.Acceleration\\Public\\Get-ProcessLassoSnapshot.ps1"
+      },
+      {
         "Name": "Get-RustToolStatus",
         "Synopsis": "",
         "Description": "",
@@ -814,6 +833,25 @@
         ],
         "ExtraHelpParameters": [],
         "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.Acceleration\\Public\\Measure-CommandPerformance.ps1"
+      },
+      {
+        "Name": "New-ProcessLassoOverlay",
+        "Synopsis": "",
+        "Description": "",
+        "Parameters": [
+          "ProfilePath",
+          "OutputPath",
+          "PassThru"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "ProfilePath",
+          "OutputPath",
+          "PassThru"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.Acceleration\\Public\\New-ProcessLassoOverlay.ps1"
       },
       {
         "Name": "Search-ContentFast",
@@ -1825,7 +1863,7 @@
           "Name",
           "Category",
           "Vid",
-          "Pid",
+          "ProductId",
           "LatestVersion",
           "DownloadUrl",
           "ReleaseDate",
@@ -1838,7 +1876,7 @@
           "Name",
           "Category",
           "Vid",
-          "Pid",
+          "ProductId",
           "LatestVersion",
           "DownloadUrl",
           "ReleaseDate",
@@ -2965,6 +3003,42 @@
         "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-NativeSearch.ps1"
       },
       {
+        "Name": "script:ConvertFrom-DiagnosisResponse",
+        "Synopsis": "",
+        "Description": "",
+        "Parameters": [
+          "Content",
+          "EnforceJson"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Content",
+          "EnforceJson"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-PCDiagnosis.ps1"
+      },
+      {
+        "Name": "script:Save-DiagnosisReport",
+        "Synopsis": "",
+        "Description": "",
+        "Parameters": [
+          "Content",
+          "ShouldSave",
+          "OutputPath"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "Content",
+          "ShouldSave",
+          "OutputPath"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.LLM\\Public\\Invoke-PCDiagnosis.ps1"
+      },
+      {
         "Name": "Invoke-SmartDiagnosis",
         "Synopsis": "",
         "Description": "",
@@ -3890,7 +3964,7 @@
     "ExtraHelpParameters": []
   },
   "CSharp": {
-    "DllImportCount": 57,
+    "DllImportCount": 58,
     "MissingRustExports": []
   },
   "PowerShellToCSharp": {

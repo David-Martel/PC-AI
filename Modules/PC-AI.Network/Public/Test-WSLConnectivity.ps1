@@ -302,7 +302,7 @@ function Test-WSLConnectivity {
             $wslIP = ($wslIPLine -split '\s+')[0]
 
             if ($wslIP -match '\d+\.\d+\.\d+\.\d+') {
-                $portTest = Test-PortConnectivity -Host $wslIP -Port $port -TimeoutMs 2000
+                $portTest = Test-PortConnectivity -HostName $wslIP -Port $port -TimeoutMs 2000
 
                 $result.PortTests += [PSCustomObject]@{
                     Port = $port

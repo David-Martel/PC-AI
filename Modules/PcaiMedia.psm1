@@ -749,9 +749,9 @@ function Invoke-PcaiUpscale {
     Write-Verbose "Upscaling image: $InputPath -> $OutputPath (model: $ModelPath)"
 
     try {
-        $error = [PcaiNative.MediaModule]::UpscaleImage($ModelPath, $InputPath, $OutputPath)
-        if ($null -ne $error) {
-            throw "Image upscaling failed: $error"
+        $nativeError = [PcaiNative.MediaModule]::UpscaleImage($ModelPath, $InputPath, $OutputPath)
+        if ($null -ne $nativeError) {
+            throw "Image upscaling failed: $nativeError"
         }
 
         Write-Verbose "Upscaled image saved to: $OutputPath"

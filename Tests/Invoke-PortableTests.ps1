@@ -108,12 +108,15 @@ if ($RunSections -contains 'RustFmt') {
         if (-not (Test-CommandAvailable 'cargo')) {
             return New-SectionResult 'RustFmt' 'SKIP' 'cargo not on PATH'
         }
-        $output = & cargo fmt --all --check 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            New-SectionResult 'RustFmt' 'PASS'
-        } else {
-            New-SectionResult 'RustFmt' 'FAIL' ($output -join "`n")
-        }
+        Push-Location $RustRoot
+        try {
+            $output = & cargo fmt --all --check 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                New-SectionResult 'RustFmt' 'PASS'
+            } else {
+                New-SectionResult 'RustFmt' 'FAIL' ($output -join "`n")
+            }
+        } finally { Pop-Location }
     }
     $Results['RustFmt'] = $r
     Write-Verbose "RustFmt: $($r.status)"
@@ -127,14 +130,17 @@ if ($RunSections -contains 'RustClippy' -and -not $AnyFail) {
             return New-SectionResult 'RustClippy' 'SKIP' 'cargo not on PATH'
         }
         $env:RUSTC_WRAPPER = ''
-        $output = & cargo clippy --workspace --all-targets --no-deps `
-            -- -D warnings -A clippy::type_complexity 2>&1
-        $warnCount = ($output | Select-String '^warning:').Count
-        if ($LASTEXITCODE -eq 0) {
-            New-SectionResult 'RustClippy' 'PASS' '' @{ warnings = $warnCount }
-        } else {
-            New-SectionResult 'RustClippy' 'FAIL' ($output | Select-Object -Last 20 | Out-String).Trim() @{ warnings = $warnCount }
-        }
+        Push-Location $RustRoot
+        try {
+            $output = & cargo clippy --workspace --all-targets --no-deps `
+                -- -D warnings -A clippy::type_complexity 2>&1
+            $warnCount = ($output | Select-String '^warning:').Count
+            if ($LASTEXITCODE -eq 0) {
+                New-SectionResult 'RustClippy' 'PASS' '' @{ warnings = $warnCount }
+            } else {
+                New-SectionResult 'RustClippy' 'FAIL' ($output | Select-Object -Last 20 | Out-String).Trim() @{ warnings = $warnCount }
+            }
+        } finally { Pop-Location }
     }
     $Results['RustClippy'] = $r
     Write-Verbose "RustClippy: $($r.status)"
@@ -148,20 +154,23 @@ if ($RunSections -contains 'Rust' -and -not $AnyFail) {
             return New-SectionResult 'Rust' 'SKIP' 'cargo not on PATH'
         }
         $env:RUSTC_WRAPPER = ''
-        $output = & cargo test --workspace --no-default-features --features server,ffi 2>&1
-        $passed  = 0; $failed = 0; $ignored = 0
-        foreach ($line in $output) {
-            if ($line -match 'test result: \w+\.\s+(\d+) passed; (\d+) failed; (\d+) ignored') {
-                $passed  += [int]$Matches[1]
-                $failed  += [int]$Matches[2]
-                $ignored += [int]$Matches[3]
+        Push-Location $RustRoot
+        try {
+            $output = & cargo test --workspace --no-default-features --features server,ffi 2>&1
+            $passed  = 0; $failed = 0; $ignored = 0
+            foreach ($line in $output) {
+                if ($line -match 'test result: \w+\.\s+(\d+) passed; (\d+) failed; (\d+) ignored') {
+                    $passed  += [int]$Matches[1]
+                    $failed  += [int]$Matches[2]
+                    $ignored += [int]$Matches[3]
+                }
             }
-        }
-        $status = if ($LASTEXITCODE -eq 0) { 'PASS' } else { 'FAIL' }
-        $detail = if ($status -eq 'FAIL') {
-            ($output | Select-String 'FAILED|error\[' | Select-Object -First 20 | Out-String).Trim()
-        } else { '' }
-        New-SectionResult 'Rust' $status $detail @{ passed = $passed; failed = $failed; ignored = $ignored }
+            $status = if ($LASTEXITCODE -eq 0) { 'PASS' } else { 'FAIL' }
+            $detail = if ($status -eq 'FAIL') {
+                ($output | Select-String 'FAILED|error\[' | Select-Object -First 20 | Out-String).Trim()
+            } else { '' }
+            New-SectionResult 'Rust' $status $detail @{ passed = $passed; failed = $failed; ignored = $ignored }
+        } finally { Pop-Location }
     }
     $Results['Rust'] = $r
     Write-Verbose "Rust: $($r.status) (passed=$($r.counts.passed) failed=$($r.counts.failed))"

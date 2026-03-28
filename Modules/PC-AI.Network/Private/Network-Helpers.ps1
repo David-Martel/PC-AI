@@ -261,7 +261,7 @@ function Test-PortConnectivity {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [string]$Host,
+        [string]$HostName,
 
         [Parameter(Mandatory)]
         [int]$Port,
@@ -272,14 +272,14 @@ function Test-PortConnectivity {
 
     try {
         $tcpClient = New-Object System.Net.Sockets.TcpClient
-        $connect = $tcpClient.BeginConnect($Host, $Port, $null, $null)
+        $connect = $tcpClient.BeginConnect($HostName, $Port, $null, $null)
         $wait = $connect.AsyncWaitHandle.WaitOne($TimeoutMs, $false)
 
         if ($wait) {
             try {
                 $tcpClient.EndConnect($connect)
                 $result = [PSCustomObject]@{
-                    Host = $Host
+                    Host = $HostName
                     Port = $Port
                     Success = $true
                     Message = 'Connected'
@@ -287,7 +287,7 @@ function Test-PortConnectivity {
             }
             catch {
                 $result = [PSCustomObject]@{
-                    Host = $Host
+                    Host = $HostName
                     Port = $Port
                     Success = $false
                     Message = $_.Exception.Message
@@ -296,7 +296,7 @@ function Test-PortConnectivity {
         }
         else {
             $result = [PSCustomObject]@{
-                Host = $Host
+                Host = $HostName
                 Port = $Port
                 Success = $false
                 Message = 'Connection timeout'
@@ -308,7 +308,7 @@ function Test-PortConnectivity {
     }
     catch {
         return [PSCustomObject]@{
-            Host = $Host
+            Host = $HostName
             Port = $Port
             Success = $false
             Message = $_.Exception.Message

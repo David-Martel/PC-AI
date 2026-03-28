@@ -376,8 +376,8 @@ function Initialize-PcaiInference {
     try {
         $result = [PcaiNative.InferenceModule]::pcai_init($backendName)
         if ($result -ne 0) {
-            $error = [PcaiNative.InferenceModule]::GetLastError()
-            throw "Failed to initialize backend '$backendName': $error"
+            $nativeError = [PcaiNative.InferenceModule]::GetLastError()
+            throw "Failed to initialize backend '$backendName': $nativeError"
         }
 
         $script:BackendInitialized = $true
@@ -431,8 +431,8 @@ function Import-PcaiModel {
     try {
         $result = [PcaiNative.InferenceModule]::pcai_load_model($ModelPath, $GpuLayers)
         if ($result -ne 0) {
-            $error = [PcaiNative.InferenceModule]::GetLastError()
-            throw "Failed to load model: $error"
+            $nativeError = [PcaiNative.InferenceModule]::GetLastError()
+            throw "Failed to load model: $nativeError"
         }
 
         $script:ModelLoaded = $true
@@ -478,8 +478,8 @@ function Invoke-PcaiInference {
     try {
         $result = [PcaiNative.InferenceModule]::Generate($Prompt, $MaxTokens, $Temperature)
         if ($null -eq $result) {
-            $error = [PcaiNative.InferenceModule]::GetLastError()
-            throw "Generation failed: $error"
+            $nativeError = [PcaiNative.InferenceModule]::GetLastError()
+            throw "Generation failed: $nativeError"
         }
         return $result
     } catch {
@@ -570,8 +570,8 @@ function Invoke-PcaiGenerateAsync {
     try {
         $requestId = [PcaiNative.InferenceModule]::pcai_generate_async($Prompt, $MaxTokens, $Temperature)
         if ($requestId -lt 0) {
-            $error = [PcaiNative.InferenceModule]::GetLastError()
-            throw "Failed to start async generation: $error"
+            $nativeError = [PcaiNative.InferenceModule]::GetLastError()
+            throw "Failed to start async generation: $nativeError"
         }
 
         if ($NoWait) {

@@ -23,7 +23,7 @@
 .PARAMETER Vid
     Vendor ID (4 hex chars, e.g. '0BDA').
 
-.PARAMETER Pid
+.PARAMETER ProductId
     Product ID (4 hex chars, e.g. '8156').
 
 .PARAMETER LatestVersion
@@ -45,7 +45,7 @@
 
 .EXAMPLE
     Update-DriverRegistry -DeviceId 'new-device' -Name 'My Device' -Category 'network' `
-        -Vid '1234' -Pid 'ABCD'
+        -Vid '1234' -ProductId 'ABCD'
     Creates a new minimal entry.
 
 .OUTPUTS
@@ -68,7 +68,7 @@ function Update-DriverRegistry {
         [string]$Vid,
 
         [Parameter()]
-        [string]$Pid,
+        [string]$ProductId,
 
         [Parameter()]
         [string]$LatestVersion,
@@ -134,8 +134,8 @@ function Update-DriverRegistry {
             }
 
             # Seed matchRules from VID/PID if provided
-            if ($Vid -and $Pid) {
-                $rule = [PSCustomObject]@{ type = 'vid_pid'; vid = $Vid.ToUpper(); pid = $Pid.ToUpper() }
+            if ($Vid -and $ProductId) {
+                $rule = [PSCustomObject]@{ type = 'vid_pid'; vid = $Vid.ToUpper(); pid = $ProductId.ToUpper() }
                 $entry.matchRules = @($rule)
             }
             elseif ($Vid) {
@@ -154,11 +154,11 @@ function Update-DriverRegistry {
         # Update VID/PID match rules on existing entries only when explicitly supplied
         # (avoids destroying existing multi-rule entries on a partial update).
         if (-not $isNew) {
-            if ($Vid -and $Pid) {
+            if ($Vid -and $ProductId) {
                 # Replace any existing vid_pid rule that matches this VID to keep
                 # things tidy; leave other rule types (friendly_name, etc.) intact.
                 $otherRules = @($entry.matchRules | Where-Object { $_.type -ne 'vid_pid' })
-                $vidPidRule = [PSCustomObject]@{ type = 'vid_pid'; vid = $Vid.ToUpper(); pid = $Pid.ToUpper() }
+                $vidPidRule = [PSCustomObject]@{ type = 'vid_pid'; vid = $Vid.ToUpper(); pid = $ProductId.ToUpper() }
                 $entry.matchRules = @($otherRules) + @($vidPidRule)
             }
         }

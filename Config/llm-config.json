@@ -34,7 +34,6 @@
     "toolInvokerPath": "Tools/Invoke-PcaiMappedTool.ps1"
   },
   "fallbackOrder": [
-    "ollama",
-    "pcai-inference"
+    "invalid"
   ]
 }

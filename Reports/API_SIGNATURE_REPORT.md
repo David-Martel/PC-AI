@@ -1,10 +1,10 @@
 # API_SIGNATURE_REPORT
 
-Generated: 2026-03-18 17:23:57
+Generated: 2026-03-27 20:22:57
 
-PowerShell functions: 230
-Missing help blocks: 167
-C# DllImports: 57
+PowerShell functions: 234
+Missing help blocks: 171
+C# DllImports: 58
 Missing Rust exports: 0
 
 ## Missing help parameters
@@ -39,12 +39,14 @@ Missing Rust exports: 0
 - Convert-PcaiNativeProcessRows: missing Rows, Mapper
 - Get-ProcessesWithProcs: missing Name, SortBy, Top, Tree, Watch, RawOutput, ProcsPath
 - Get-ProcessesParallel: missing Name, SortBy, Top, Tree, Watch, RawOutput
+- Get-ProcessLassoSnapshot: missing ConfigPath, LogPath, LookbackMinutes
 - Get-RustToolStatus: missing Tool
 - Get-AcceleratedFunction: missing Tool
 - Get-UnifiedHardwareReportJson: missing Verbosity
 - Measure-CommandPerformance: missing Command, Iterations, Warmup, Name, Shell
 - Measure-WithHyperfine: missing Command, Iterations, Warmup, Name, Shell, HyperfinePath
 - Measure-WithNative: missing Command, Iterations, Warmup, Name
+- New-ProcessLassoOverlay: missing ProfilePath, OutputPath, PassThru
 - Search-ContentFast: missing Path, Pattern, LiteralPattern, FilePattern, Context, CaseSensitive, WholeWord, Invert, MaxResults, FilesOnly, ThrottleLimit, NoIgnore
 - Search-WithRipgrepAdvanced: missing Path, Pattern, LiteralPattern, FilePattern, Context, CaseSensitive, WholeWord, Invert, MaxResults, FilesOnly, ThrottleLimit, SearchPattern, RgPath, NoIgnore
 - Search-WithParallelSelectString: missing Path, Pattern, LiteralPattern, FilePattern, Context, CaseSensitive, WholeWord, Invert, MaxResults, FilesOnly, ThrottleLimit, SearchPattern
@@ -94,7 +96,7 @@ Missing Rust exports: 0
 - Get-ThunderboltNetworkStatus: missing InterfaceAlias, ProbeWinRM
 - Install-DriverUpdate: missing DeviceId, RegistryPath, DownloadDir, Force, DownloadOnly
 - Set-ThunderboltNetworkOptimization: missing InterfaceAlias, InterfaceMetric, MtuBytes, IPv4Address, PrefixLength, Apply
-- Update-DriverRegistry: missing DeviceId, Name, Category, Vid, Pid, LatestVersion, DownloadUrl, ReleaseDate, RegistryPath
+- Update-DriverRegistry: missing DeviceId, Name, Category, Vid, ProductId, LatestVersion, DownloadUrl, ReleaseDate, RegistryPath
 - Compare-ResponsePair: missing Question, ResponseA, ResponseB, Context
 - Compare-ResponseSimilarity: missing Response, Expected
 - Measure-DiagnosticQuality: missing DiagnosticOutput, DiagnosticInput, Strict
@@ -146,6 +148,8 @@ Missing Rust exports: 0
 - Invoke-PowerShellDuplicates: missing Path, MinimumSize, MaxResults
 - Invoke-PowerShellFileSearch: missing Path, Pattern, MaxResults
 - Invoke-PowerShellContentSearch: missing Path, Pattern, FilePattern, MaxResults, ContextLines
+- script:ConvertFrom-DiagnosisResponse: missing Content, EnforceJson
+- script:Save-DiagnosisReport: missing Content, ShouldSave, OutputPath
 - Invoke-SmartDiagnosis: missing Path, AnalysisType, Model, SaveReport, OutputPath, SkipLLMAnalysis, OllamaBaseUrl, TimeoutSeconds
 - Build-DiagnosticSummary: missing DiagnosticData
 - Send-OllamaRequest: missing NumCtx, NumThread, TopP, TopK, RepeatLastN, RepeatPenalty, TfsZ, Seed, EnableTools

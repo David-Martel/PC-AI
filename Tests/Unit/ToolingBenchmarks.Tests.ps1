@@ -48,7 +48,11 @@ Describe "Invoke-PcaiToolingBenchmarks" -Tag 'Unit', 'Benchmarks', 'Acceleration
             Remove-Item -Path Function:\global:Measure-CommandPerformance -ErrorAction SilentlyContinue
         }
     }
+}
 
+# These benchmark cases invoke the native pcai_core_lib.dll (direct-core-probe, content-search).
+# Intentionally tagged Windows (not Portable) — require a built DLL to run.
+Describe "Invoke-PcaiToolingBenchmarks - NativeDll" -Tag 'Unit', 'Benchmarks', 'Acceleration', 'Windows' {
     It "records memory metrics for the direct Rust probe case" {
         $result = & $script:BenchmarkScript -CaseId 'direct-core-probe' -SkipCapabilities -PassThru
         $report = Get-Content -Path $result.JsonReportPath -Raw -Encoding UTF8 | ConvertFrom-Json

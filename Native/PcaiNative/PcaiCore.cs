@@ -93,17 +93,9 @@ public static class PcaiCore
     {
         if (!IsAvailable) return null;
 
-        var ptr = NativeCore.pcai_string_copy(input);
-        if (ptr == IntPtr.Zero) return null;
-
-        try
-        {
-            return Marshal.PtrToStringUTF8(ptr);
-        }
-        finally
-        {
-            NativeCore.pcai_free_string(ptr);
-        }
+        using var handle = NativeCore.pcai_string_copy(input);
+        if (handle.IsInvalid) return null;
+        return handle.ToString();
     }
 
     /// <summary>
@@ -113,17 +105,9 @@ public static class PcaiCore
     {
         if (!IsAvailable) return null;
 
-        var ptr = NativeCore.pcai_extract_json(input);
-        if (ptr == IntPtr.Zero) return null;
-
-        try
-        {
-            return Marshal.PtrToStringUTF8(ptr);
-        }
-        finally
-        {
-            NativeCore.pcai_free_string(ptr);
-        }
+        using var handle = NativeCore.pcai_extract_json(input);
+        if (handle.IsInvalid) return null;
+        return handle.ToString();
     }
 
     /// <summary>

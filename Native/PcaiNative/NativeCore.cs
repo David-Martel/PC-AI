@@ -35,15 +35,26 @@ internal static partial class NativeCore
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern IntPtr pcai_status_description(PcaiStatus status);
 
+    /// <summary>
+    /// Allocates a heap copy of <paramref name="input"/> and returns a pointer to it.
+    /// The caller owns the returned memory and must free it via <see cref="pcai_free_string"/>.
+    /// Use <see cref="SafeRustStringHandle"/> as the return type to guarantee automatic freeing.
+    /// </summary>
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_string_copy([MarshalAs(UnmanagedType.LPUTF8Str)] string input);
+    internal static extern SafeRustStringHandle pcai_string_copy([MarshalAs(UnmanagedType.LPUTF8Str)] string input);
 
     // ========================================================================
     // JSON & Utilities
     // ========================================================================
 
+    /// <summary>
+    /// Extracts JSON content from a markdown-formatted string and returns a heap-allocated pointer.
+    /// The caller owns the returned memory and must free it via <see cref="pcai_free_string"/>.
+    /// Use <see cref="SafeRustStringHandle"/> as the return type to guarantee automatic freeing.
+    /// Returns a null/zero handle if no JSON was found or the input was null.
+    /// </summary>
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr pcai_extract_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? input);
+    internal static extern SafeRustStringHandle pcai_extract_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? input);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
     internal static extern bool pcai_is_valid_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? input);

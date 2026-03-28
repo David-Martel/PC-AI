@@ -975,7 +975,14 @@ function Invoke-OllamaChat {
         Write-Warning 'Native Ollama requests currently return the final response after completion; token streaming is not yet exposed through the PowerShell wrapper.'
     }
 
-    return Invoke-OllamaNativeChat -Messages $Messages -Model $Model -Temperature $Temperature -MaxTokens $MaxTokens -TimeoutSeconds $TimeoutSeconds -EnableTools
+    $chatParams = @{
+        Messages       = $Messages
+        Model          = $Model
+        Temperature    = $Temperature
+        TimeoutSeconds = $TimeoutSeconds
+    }
+    if ($MaxTokens) { $chatParams['MaxTokens'] = $MaxTokens }
+    return Invoke-OllamaNativeChat @chatParams
 }
 
 function Invoke-OllamaChatStream {

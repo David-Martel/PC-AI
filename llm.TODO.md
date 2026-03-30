@@ -53,16 +53,28 @@
 
 ## FunctionGemma Training Remaining (from Deploy/rust-functiongemma-train/TODO.md)
 
-- [ ] QLoRA NF4 quantization evaluation (qlora-rs path)
+- [x] QLoRA NF4 quantization evaluation — fully implemented, overkill for 270M (Reports/QLORA_NF4_EVALUATION.md)
 - [ ] Match FunctionGemma chat template behavior in runtime
-- [ ] Deterministic generation settings for routing
+- [x] Deterministic generation settings — argmax already deterministic, router_seed=42 added
 - [ ] Port Python unit tests for dataset/schema handling
-- [ ] Router eval harness against local runtime
+- [x] Router eval harness — `Invoke-FunctionGemmaEval.ps1` with tool/arg/NO_TOOL accuracy + latency
 - [x] Pre-allocated KV cache ring buffer (O(seq_len) → O(1) per decode token, auto-selected for non-int8)
+- [ ] Checkpoint resume CLI flag (`--resume`) + optimizer state serialization
 - [ ] KV cache offload to CPU/disk
 - [ ] Chunked softmax attention for large-context prefill
 - [ ] CUDA memory pool evaluation (candle-cuda-vmm)
 - [ ] GPUDirect Storage via cudarc for direct GPU<->disk transfer
+
+## All-Backend Optimizations (done)
+
+- [x] Preflight VRAM check in PcaiInference.psm1 (2GB min before pcai_load_model)
+- [x] Preflight VRAM check in PcaiMedia.psm1 (4GB min before media model load)
+- [x] OOM error enrichment in pcai_inference FFI (nvidia-smi GPU state appended)
+- [x] Ollama config optimization (num_gpu:-1, num_ctx:4096, adaptive context, env docs)
+- [x] pcai-inference-server.json performance notes + roofline expectations
+- [x] Optimize-InferenceConfig.ps1 — GPU-aware config advisor
+- [x] Invoke-LlmPerfBenchmark.ps1 — unified benchmark runner (quick/standard/full)
+- [x] Deterministic benchmark config (seed:42, warmup, iterations)
 
 ## Notes
 

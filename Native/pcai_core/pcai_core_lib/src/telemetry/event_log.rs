@@ -47,8 +47,7 @@ pub fn sample_hardware_events(_days: u32, max_events: u32) -> Vec<EventLogEntry>
             &mut events_returned,
         ) != 0
         {
-            for i in 0..events_returned as usize {
-                let h_event = h_events[i];
+            for &h_event in &h_events[..events_returned as usize] {
 
                 entries.push(EventLogEntry {
                     time_created: "2026-01-31".to_string(),

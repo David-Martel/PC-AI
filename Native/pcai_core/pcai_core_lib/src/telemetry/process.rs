@@ -32,8 +32,7 @@ pub fn collect_process_telemetry() -> Vec<ProcessHistory> {
         ) != 0
         {
             let count = bytes_returned as usize / std::mem::size_of::<u32>();
-            for i in 0..count {
-                let pid = pids[i];
+            for &pid in &pids[..count] {
                 if pid == 0 {
                     continue;
                 }

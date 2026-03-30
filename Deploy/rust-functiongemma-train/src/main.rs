@@ -679,7 +679,7 @@ fn main() -> Result<()> {
             };
             let mut trainer = Trainer::new(model, &config, t_cfg, device, cuda_index, varmap);
 
-            trainer.train(&dataset, tokenizer.as_ref(), eval_dataset.as_ref())?;
+            let run_metrics = trainer.train(&dataset, tokenizer.as_ref(), eval_dataset.as_ref())?;
 
             let output_path = PathBuf::from(&output);
             trainer.save_adapters(&output_path)?;
@@ -695,6 +695,16 @@ fn main() -> Result<()> {
 
             trainer.save_peft_adapter(&output_dir, Some(&model_path))?;
             write_tokenizer_metadata(&model_dir, &output_dir)?;
+
+            // Write full training metrics to JSON file alongside adapters
+            let metrics_path = output_dir.join("training_metrics.json");
+            if let Ok(metrics_json) = serde_json::to_string_pretty(&run_metrics) {
+                if let Err(e) = std::fs::write(&metrics_path, metrics_json) {
+                    eprintln!("Warning: Failed to write training metrics to {:?}: {}", metrics_path, e);
+                } else {
+                    println!("Training metrics saved to {:?}", metrics_path);
+                }
+            }
         }
         Commands::Eval {
             model_path,

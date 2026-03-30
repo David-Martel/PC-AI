@@ -11,6 +11,7 @@ pub mod schema_utils;
 pub mod trainer;
 
 pub use rust_functiongemma_core::model::{Config, LoraSettings, Model};
+pub use trainer::{TrainingRunMetrics, TrainingStepMetrics};
 
 #[cfg(test)]
 mod tests {

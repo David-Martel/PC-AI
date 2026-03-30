@@ -49,7 +49,7 @@
 - [x] **PERF-3**: Bandwidth efficiency metrics (actual tok/s ÷ theoretical ceiling) — 51-55% measured
 - [x] **PERF-4**: CI performance regression detection — `Invoke-PerfRegression.ps1` + 5-model baseline
 - [x] **PERF-5**: Wire preflight into eval harnesses (Invoke-InferenceEvaluation + Invoke-OllamaBenchmarkSweep)
-- [ ] **PERF-6**: FunctionGemma training metrics — gradient computation time, loss convergence velocity
+- [x] **PERF-6**: FunctionGemma training metrics — per-step fwd/bwd/opt timing, tok/s, GPU memory, convergence rate, training_metrics.json output
 
 ## FunctionGemma Training Remaining (from Deploy/rust-functiongemma-train/TODO.md)
 

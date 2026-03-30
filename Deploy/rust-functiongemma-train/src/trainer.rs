@@ -11,7 +11,38 @@ use rust_functiongemma_core::gpu::cuda_mem_snapshot;
 use rust_functiongemma_core::model::{Config, Model};
 use std::io::{self, Write};
 use std::path::PathBuf;
+use std::time::Instant;
 use tokenizers::Tokenizer;
+
+/// Per-step performance metrics for training analytics.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TrainingStepMetrics {
+    pub step: usize,
+    pub loss: f64,
+    pub learning_rate: f64,
+    pub forward_ms: f64,
+    pub backward_ms: f64,
+    pub optimizer_ms: f64,
+    pub total_step_ms: f64,
+    pub tokens_per_second: f64,
+    pub gpu_mem_used_mb: Option<u64>,
+    pub gpu_mem_free_mb: Option<u64>,
+}
+
+/// Aggregated training run metrics.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TrainingRunMetrics {
+    pub total_steps: usize,
+    pub total_tokens: usize,
+    pub total_time_sec: f64,
+    pub avg_tokens_per_second: f64,
+    pub avg_step_ms: f64,
+    pub final_loss: f64,
+    pub best_loss: f64,
+    /// Loss reduction per 100 steps (negative means loss is decreasing, which is good).
+    pub loss_convergence_rate: f64,
+    pub steps: Vec<TrainingStepMetrics>,
+}
 
 pub struct TrainerConfig {
     pub lr: f64,
@@ -199,7 +230,7 @@ impl<'a> Trainer<'a> {
         dataset: &Dataset,
         tokenizer: Option<&Tokenizer>,
         eval_dataset: Option<&Dataset>,
-    ) -> Result<()> {
+    ) -> Result<TrainingRunMetrics> {
         if self.trainer_cfg.use_4bit {
             println!("QLoRA 4-bit enabled.");
         }
@@ -251,6 +282,11 @@ impl<'a> Trainer<'a> {
         let mut early_stopper = self.trainer_cfg.early_stopping.clone().map(EarlyStopping::new);
         let mut last_epoch = 0usize;
 
+        // Performance metrics collection
+        let run_start = Instant::now();
+        let mut all_step_metrics: Vec<TrainingStepMetrics> = Vec::new();
+        let mut total_tokens_processed: usize = 0;
+
         for epoch in 0..self.trainer_cfg.epochs {
             if self.trainer_cfg.progress_json {
                 println!(
@@ -278,11 +314,22 @@ impl<'a> Trainer<'a> {
             let mut grad_accum_store: Option<candle_core::backprop::GradStore> = None;
             let mut current_lr = self.scheduler.get_lr(self.global_step);
 
+            // Per-update-step timing accumulators (reset at each accumulation boundary)
+            let mut accum_fwd_ms: f64 = 0.0;
+            let mut accum_bwd_ms: f64 = 0.0;
+            let mut accum_step_start: Option<Instant> = None;
+            let mut accum_batch_tokens: usize = 0;
+
             for i in 0..num_batches {
                 let accum_index = i % grad_accum;
                 if accum_index == 0 {
                     current_lr = self.scheduler.get_lr(self.global_step);
                     optimizer.set_lr(current_lr);
+                    // Reset per-update-step accumulators
+                    accum_fwd_ms = 0.0;
+                    accum_bwd_ms = 0.0;
+                    accum_step_start = Some(Instant::now());
+                    accum_batch_tokens = 0;
                 }
 
                 let start_idx = i * self.trainer_cfg.batch_size;
@@ -301,8 +348,17 @@ impl<'a> Trainer<'a> {
                         self.trainer_cfg.eos_token_id,
                     )?;
 
+                    // Count tokens in this micro-batch for throughput calculation
+                    let micro_batch_tokens = inputs.dims().iter().product::<usize>();
+                    accum_batch_tokens += micro_batch_tokens;
+
+                    // Forward pass timing (model forward + loss computation)
+                    let fwd_start = Instant::now();
                     let logits = self.model.forward(&inputs)?;
                     let (loss, loss_val, mask_sum) = self.compute_loss(&logits, &targets, &loss_mask)?;
+                    let fwd_ms = fwd_start.elapsed().as_secs_f64() * 1000.0;
+                    accum_fwd_ms += fwd_ms;
+
                     if mask_sum == 0.0 {
                         return Err(anyhow::anyhow!(
                             "Loss mask sum is zero; check dataset/tokenization alignment."
@@ -312,9 +368,13 @@ impl<'a> Trainer<'a> {
                     epoch_loss += loss_val;
                     batch_count += 1;
 
-                    // Scale loss for gradient accumulation
+                    // Backward pass timing (gradient computation)
+                    let bwd_start = Instant::now();
                     let scaled_loss = loss.affine(1.0 / (grad_accum as f64), 0.0)?;
                     let grads = scaled_loss.backward()?;
+                    let bwd_ms = bwd_start.elapsed().as_secs_f64() * 1000.0;
+                    accum_bwd_ms += bwd_ms;
+
                     if let Some(accum) = grad_accum_store.as_mut() {
                         for var in trainable_vars.iter() {
                             let tensor = var.as_tensor();
@@ -344,12 +404,65 @@ impl<'a> Trainer<'a> {
 
                 let is_accum_end = accum_index == grad_accum - 1 || i + 1 == num_batches;
                 if is_accum_end {
+                    // Optimizer step timing
+                    let opt_start = Instant::now();
                     if let Some(mut accum) = grad_accum_store.take() {
                         self.clip_gradients(&mut accum, &trainable_vars)?;
                         optimizer.step(&accum)?;
                     }
+                    let opt_ms = opt_start.elapsed().as_secs_f64() * 1000.0;
+
+                    let total_step_ms = accum_step_start
+                        .map(|s| s.elapsed().as_secs_f64() * 1000.0)
+                        .unwrap_or(0.0);
+                    let tokens_per_sec = if total_step_ms > 0.0 {
+                        accum_batch_tokens as f64 / (total_step_ms / 1000.0)
+                    } else {
+                        0.0
+                    };
+                    total_tokens_processed += accum_batch_tokens;
+
                     self.global_step += 1;
                     update_step += 1;
+
+                    // Collect GPU memory snapshot
+                    let gpu_snapshot = if self.trainer_cfg.gpu_mem_snapshot {
+                        cuda_mem_snapshot(self.cuda_index)
+                    } else {
+                        None
+                    };
+
+                    // Record step metrics
+                    let step_metrics = TrainingStepMetrics {
+                        step: self.global_step,
+                        loss: loss_val,
+                        learning_rate: current_lr,
+                        forward_ms: accum_fwd_ms,
+                        backward_ms: accum_bwd_ms,
+                        optimizer_ms: opt_ms,
+                        total_step_ms,
+                        tokens_per_second: tokens_per_sec,
+                        gpu_mem_used_mb: gpu_snapshot.map(|s| s.used_mb()),
+                        gpu_mem_free_mb: gpu_snapshot.map(|s| s.free_mb()),
+                    };
+                    all_step_metrics.push(step_metrics);
+
+                    // Emit structured performance log line (JSON mode)
+                    if self.trainer_cfg.progress_json {
+                        println!(
+                            "{{\"event\":\"train_step\",\"step\":{},\"loss\":{:.6},\"lr\":{:.6e},\"fwd_ms\":{:.2},\"bwd_ms\":{:.2},\"opt_ms\":{:.2},\"total_ms\":{:.2},\"tok_s\":{:.1},\"gpu_used_mb\":{},\"gpu_free_mb\":{}}}",
+                            self.global_step,
+                            loss_val,
+                            current_lr,
+                            accum_fwd_ms,
+                            accum_bwd_ms,
+                            opt_ms,
+                            total_step_ms,
+                            tokens_per_sec,
+                            gpu_snapshot.map(|s| s.used_mb().to_string()).unwrap_or_else(|| "null".to_string()),
+                            gpu_snapshot.map(|s| s.free_mb().to_string()).unwrap_or_else(|| "null".to_string()),
+                        );
+                    }
 
                     // Save checkpoint periodically
                     if self.global_step % self.checkpoint_config.save_every_n_steps == 0 {
@@ -409,13 +522,76 @@ impl<'a> Trainer<'a> {
 
         // Save final checkpoint
         self.save_checkpoint(last_epoch, best_loss)?;
+
+        // Compute aggregated training run metrics
+        let total_time_sec = run_start.elapsed().as_secs_f64();
+        let total_steps = all_step_metrics.len();
+        let final_loss = all_step_metrics.last().map(|m| m.loss).unwrap_or(0.0);
+        let avg_step_ms = if total_steps > 0 {
+            all_step_metrics.iter().map(|m| m.total_step_ms).sum::<f64>() / total_steps as f64
+        } else {
+            0.0
+        };
+        let avg_tokens_per_second = if total_time_sec > 0.0 {
+            total_tokens_processed as f64 / total_time_sec
+        } else {
+            0.0
+        };
+
+        // Loss convergence rate: loss reduction per 100 steps
+        // Computed via linear regression slope scaled to 100 steps
+        let loss_convergence_rate = if total_steps >= 2 {
+            let first_loss = all_step_metrics[0].loss;
+            let last_loss = final_loss;
+            let step_span = (total_steps - 1) as f64;
+            if step_span > 0.0 {
+                ((last_loss - first_loss) / step_span) * 100.0
+            } else {
+                0.0
+            }
+        } else {
+            0.0
+        };
+
+        let run_metrics = TrainingRunMetrics {
+            total_steps,
+            total_tokens: total_tokens_processed,
+            total_time_sec,
+            avg_tokens_per_second,
+            avg_step_ms,
+            final_loss,
+            best_loss,
+            loss_convergence_rate,
+            steps: all_step_metrics,
+        };
+
         if self.trainer_cfg.progress_json {
-            println!("{{\"event\":\"train_complete\",\"best_loss\":{:.6}}}", best_loss);
+            // Emit summary without the per-step array (too large for log line)
+            println!(
+                "{{\"event\":\"train_complete\",\"best_loss\":{:.6},\"final_loss\":{:.6},\"total_steps\":{},\"total_tokens\":{},\"total_time_sec\":{:.2},\"avg_tok_s\":{:.1},\"avg_step_ms\":{:.2},\"convergence_rate_per_100\":{:.6}}}",
+                run_metrics.best_loss,
+                run_metrics.final_loss,
+                run_metrics.total_steps,
+                run_metrics.total_tokens,
+                run_metrics.total_time_sec,
+                run_metrics.avg_tokens_per_second,
+                run_metrics.avg_step_ms,
+                run_metrics.loss_convergence_rate,
+            );
         } else {
             println!("Training completed. Best loss: {:.4}", best_loss);
+            println!(
+                "  Steps: {} | Tokens: {} | Time: {:.1}s | Avg tok/s: {:.1} | Avg step: {:.1}ms | Convergence: {:.4}/100 steps",
+                run_metrics.total_steps,
+                run_metrics.total_tokens,
+                run_metrics.total_time_sec,
+                run_metrics.avg_tokens_per_second,
+                run_metrics.avg_step_ms,
+                run_metrics.loss_convergence_rate,
+            );
         }
 
-        Ok(())
+        Ok(run_metrics)
     }
 
     fn compute_loss(

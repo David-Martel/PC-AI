@@ -279,6 +279,25 @@ function Import-PcaiMediaModel {
 
     Write-Verbose "Loading media model: $ModelPath (GpuLayers=$GpuLayers)"
 
+    # ── Preflight GPU readiness check ───────────────────────────────────────
+    if (Get-Command Test-PcaiGpuReadiness -ErrorAction SilentlyContinue) {
+        try {
+            $preflight = Test-PcaiGpuReadiness -RequiredMB 4000
+            if ($preflight.Verdict -eq 'fail') {
+                Write-Warning "GPU preflight failed: $($preflight.Reason)"
+                foreach ($gpu in $preflight.Gpus) {
+                    Write-Warning "  GPU$($gpu.index) ($($gpu.name)): $($gpu.free_mb)MB free"
+                }
+            } elseif ($preflight.Verdict -eq 'warn') {
+                Write-Warning "GPU preflight warning: $($preflight.Reason)"
+            } else {
+                Write-Verbose "GPU preflight passed: $($preflight.Reason)"
+            }
+        } catch {
+            Write-Verbose "GPU preflight check skipped (error): $_"
+        }
+    }
+
     try {
         $result = [PcaiNative.MediaModule]::pcai_media_load_model($ModelPath, $GpuLayers)
         if ($result -ne 0) {

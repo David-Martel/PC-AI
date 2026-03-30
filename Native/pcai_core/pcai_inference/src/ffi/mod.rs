@@ -201,6 +201,40 @@ unsafe fn c_str_from_ptr<'a>(ptr: *const c_char) -> Result<&'a str, Error> {
         .map_err(|e| Error::InvalidInput(format!("Invalid UTF-8: {}", e)))
 }
 
+/// Enrich an error message with GPU VRAM state when the error looks like an OOM
+/// or CUDA failure.  Calls `nvidia-smi` as a subprocess to avoid adding a
+/// dependency on `pcai_core_lib`.  Returns the original error unchanged when
+/// the keywords don't match or when `nvidia-smi` is unavailable.
+fn enrich_with_gpu_state(error: &str) -> String {
+    let lower = error.to_lowercase();
+    let is_gpu_related = lower.contains("out of memory")
+        || lower.contains("oom")
+        || lower.contains("cuda")
+        || lower.contains("alloc");
+
+    if !is_gpu_related {
+        return error.to_string();
+    }
+
+    match std::process::Command::new("nvidia-smi")
+        .args([
+            "--query-gpu=index,name,memory.free,memory.total",
+            "--format=csv,noheader,nounits",
+        ])
+        .output()
+    {
+        Ok(output) if output.status.success() => {
+            let gpu_info = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if gpu_info.is_empty() {
+                error.to_string()
+            } else {
+                format!("{} | GPU state: {}", error, gpu_info)
+            }
+        }
+        _ => error.to_string(),
+    }
+}
+
 /// Estimate prompt token count using a heuristic (max of chars/4 and word count).
 /// This matches the HTTP server's `estimate_tokens` function.
 fn estimate_prompt_tokens(text: &str) -> u32 {
@@ -379,6 +413,7 @@ pub extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) ->
             }
             Err(e) => {
                 // Classify error type
+                let error_msg = format!("Failed to load model: {}", e);
                 let error_code = if e.to_string().contains("not found")
                     || e.to_string().contains("No such file")
                     || e.to_string().contains("cannot open")
@@ -387,7 +422,8 @@ pub extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) ->
                 } else {
                     PcaiErrorCode::BackendError
                 };
-                set_last_error_with_code(format!("Failed to load model: {}", e), error_code);
+                let enriched = enrich_with_gpu_state(&error_msg);
+                set_last_error_with_code(enriched, error_code);
                 error_code as i32
             }
         }
@@ -499,7 +535,9 @@ pub extern "C" fn pcai_generate(prompt: *const c_char, max_tokens: u32, temperat
             }
         }
         Err(e) => {
-            set_last_error_with_code(format!("Generation failed: {}", e), PcaiErrorCode::BackendError);
+            let error_msg = format!("Generation failed: {}", e);
+            let enriched = enrich_with_gpu_state(&error_msg);
+            set_last_error_with_code(enriched, PcaiErrorCode::BackendError);
             std::ptr::null_mut()
         }
     }
@@ -637,10 +675,9 @@ pub extern "C" fn pcai_generate_streaming(
             PcaiErrorCode::Success as i32
         }
         Err(e) => {
-            set_last_error_with_code(
-                format!("Streaming generation failed: {}", e),
-                PcaiErrorCode::BackendError,
-            );
+            let error_msg = format!("Streaming generation failed: {}", e);
+            let enriched = enrich_with_gpu_state(&error_msg);
+            set_last_error_with_code(enriched, PcaiErrorCode::BackendError);
             PcaiErrorCode::BackendError as i32
         }
     }
@@ -980,7 +1017,9 @@ pub extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: u32, te
                     );
                 }
                 Err(e) => {
-                    g.requests.insert(id, RequestStatus::Failed(format!("{}", e)));
+                    let error_msg = format!("{}", e);
+                    let enriched = enrich_with_gpu_state(&error_msg);
+                    g.requests.insert(id, RequestStatus::Failed(enriched));
                 }
             }
         }

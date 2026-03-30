@@ -47,6 +47,13 @@
       "expectedLocal": true
     }
   ],
+  "performance": {
+    "deterministic": true,
+    "seed": 42,
+    "warmup_requests": 1,
+    "iterations": 3,
+    "roofline_enabled": true
+  },
   "profiles": [
     {
       "name": "fast",

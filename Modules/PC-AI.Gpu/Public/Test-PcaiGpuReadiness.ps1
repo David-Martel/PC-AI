@@ -110,7 +110,7 @@ public static class $($script:PreflightInteropTypeName) {
     // required_mb: minimum VRAM required (0 = no threshold).
     [DllImport(@"$escapedPath", CallingConvention = CallingConvention.Cdecl)]
     public static extern IntPtr pcai_gpu_preflight_json(
-        [MarshalAs(UnmanagedType.LPUTF8Str)] string modelPath,
+        IntPtr modelPath,
         ulong contextLength,
         ulong requiredMb);
 
@@ -127,6 +127,16 @@ public static class $($script:PreflightInteropTypeName) {
         } finally {
             pcai_free_string(ptr);
         }
+    }
+
+    // Converts a managed string to a UTF-8 IntPtr, or returns IntPtr.Zero
+    // for null/empty strings.  Caller must free with Marshal.FreeHGlobal().
+    public static IntPtr StringToUtf8Ptr(string s) {
+        if (string.IsNullOrEmpty(s)) return IntPtr.Zero;
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(s + "\0");
+        IntPtr ptr = Marshal.AllocHGlobal(bytes.Length);
+        Marshal.Copy(bytes, 0, ptr, bytes.Length);
+        return ptr;
     }
 }
 "@
@@ -170,11 +180,18 @@ function Test-PcaiGpuReadiness {
             $t = Initialize-PreflightInteropType -DllPath $coreDll
             Write-Verbose "Preflight FFI: using $coreDll"
 
-            $jsonPtr = $t::pcai_gpu_preflight_json(
-                $modelArg,
-                [uint64]$ContextLength,
-                [uint64]$RequiredMB
-            )
+            $modelPtr = $t::StringToUtf8Ptr($modelArg)
+            try {
+                $jsonPtr = $t::pcai_gpu_preflight_json(
+                    $modelPtr,
+                    [uint64]$ContextLength,
+                    [uint64]$RequiredMB
+                )
+            } finally {
+                if ($modelPtr -ne [IntPtr]::Zero) {
+                    [System.Runtime.InteropServices.Marshal]::FreeHGlobal($modelPtr)
+                }
+            }
             $json = $t::MarshalAndFree($jsonPtr)
 
             if ($json) {

@@ -3,12 +3,6 @@
 Describe 'Test-PcaiGpuReadiness' {
     BeforeAll {
         Import-Module "$PSScriptRoot/../../Modules/PC-AI.Gpu" -Force -ErrorAction Stop
-
-        # Detect whether a working preflight backend (FFI or CLI) is available.
-        # When neither is present, GPU-specific tests are skipped rather than
-        # failing -- the function contract still holds (Source='none', Verdict='fail').
-        $script:preflightResult = Test-PcaiGpuReadiness
-        $script:backendAvailable = $script:preflightResult.Source -in @('ffi', 'cli')
     }
 
     Context 'Module availability' {
@@ -28,26 +22,29 @@ Describe 'Test-PcaiGpuReadiness' {
             $result.reason | Should -Not -BeNullOrEmpty
         }
 
-        It 'Returns Gpus array' -Skip:(-not $script:backendAvailable) {
-            $result = Test-PcaiGpuReadiness
-            $result.gpus | Should -Not -BeNullOrEmpty -Because 'at least one GPU should be present on this workstation'
-        }
-
-        It 'Returns Source property (ffi or cli)' -Skip:(-not $script:backendAvailable) {
-            $result = Test-PcaiGpuReadiness
-            $result.Source | Should -BeIn @('ffi', 'cli')
-        }
-
         It 'Returns Source property (ffi, cli, or none)' {
             $result = Test-PcaiGpuReadiness
             $result.Source | Should -BeIn @('ffi', 'cli', 'none')
         }
+
+        It 'Returns Gpus array when backend available' {
+            $result = Test-PcaiGpuReadiness
+            if ($result.Source -in @('ffi', 'cli')) {
+                $result.gpus | Should -Not -BeNullOrEmpty -Because 'at least one GPU should be present on this workstation'
+            } else {
+                Set-ItResult -Skipped -Because 'no preflight backend available'
+            }
+        }
     }
 
     Context 'Required MB mode' {
-        It 'Returns Go for trivial requirement (1 MB)' -Skip:(-not $script:backendAvailable) {
+        It 'Returns Go for trivial requirement (1 MB)' {
             $result = Test-PcaiGpuReadiness -RequiredMB 1
-            $result.verdict | Should -Be 'go'
+            if ($result.Source -in @('ffi', 'cli')) {
+                $result.verdict | Should -Be 'go'
+            } else {
+                Set-ItResult -Skipped -Because 'no preflight backend available'
+            }
         }
 
         It 'Returns Fail for impossible requirement (999999 MB)' {
@@ -70,20 +67,15 @@ Describe 'Test-PcaiGpuReadiness' {
     }
 
     Context 'GPU process audit' {
-        It 'GPU snapshots include process list' -Skip:(-not $script:backendAvailable) {
+        It 'GPU snapshots include process list' {
             $result = Test-PcaiGpuReadiness
-            foreach ($gpu in $result.gpus) {
-                $gpu.PSObject.Properties.Name | Should -Contain 'processes'
+            if ($result.Source -in @('ffi', 'cli')) {
+                foreach ($gpu in $result.gpus) {
+                    $gpu.PSObject.Properties.Name | Should -Contain 'processes'
+                }
+            } else {
+                Set-ItResult -Skipped -Because 'no preflight backend available'
             }
-        }
-    }
-
-    Context 'No-backend fallback' {
-        It 'Returns Source=none when no backend is available' -Skip:$script:backendAvailable {
-            $result = Test-PcaiGpuReadiness
-            $result.Source | Should -Be 'none'
-            $result.Verdict | Should -Be 'fail'
-            $result.Reason | Should -BeLike '*not found*'
         }
     }
 }

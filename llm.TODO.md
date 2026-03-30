@@ -58,6 +58,7 @@
 - [ ] Deterministic generation settings for routing
 - [ ] Port Python unit tests for dataset/schema handling
 - [ ] Router eval harness against local runtime
+- [x] Pre-allocated KV cache ring buffer (O(seq_len) → O(1) per decode token, auto-selected for non-int8)
 - [ ] KV cache offload to CPU/disk
 - [ ] Chunked softmax attention for large-context prefill
 - [ ] CUDA memory pool evaluation (candle-cuda-vmm)

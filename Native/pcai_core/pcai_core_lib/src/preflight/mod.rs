@@ -75,7 +75,6 @@ pub struct PreflightResult {
 pub fn check_readiness(model_path: &str, context_length: u64) -> Result<PreflightResult> {
     let path = Path::new(model_path);
 
-    // Step 1: Parse GGUF header
     let meta = gguf::read_gguf_meta(path)?;
     let ctx = if context_length > 0 {
         context_length
@@ -83,11 +82,8 @@ pub fn check_readiness(model_path: &str, context_length: u64) -> Result<Prefligh
         meta.context_length
     };
     let model_estimate_mb = gguf::estimate_model_memory_mb(&meta, ctx);
-
-    // Step 2: Query live VRAM state
     let gpus = vram_audit::vram_snapshot_all()?;
 
-    // Step 3: Compute verdict
     let mut result = compute_verdict(&gpus, model_estimate_mb);
     result.model_estimate_mb = model_estimate_mb;
     result.gpus = gpus;

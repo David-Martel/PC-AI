@@ -201,18 +201,17 @@ unsafe fn c_str_from_ptr<'a>(ptr: *const c_char) -> Result<&'a str, Error> {
         .map_err(|e| Error::InvalidInput(format!("Invalid UTF-8: {}", e)))
 }
 
-/// Enrich an error message with GPU VRAM state when the error looks like an OOM
-/// or CUDA failure.  Calls `nvidia-smi` as a subprocess to avoid adding a
-/// dependency on `pcai_core_lib`.  Returns the original error unchanged when
-/// the keywords don't match or when `nvidia-smi` is unavailable.
+/// Enrich an error message with GPU VRAM state when the error is specifically
+/// an out-of-memory failure.  Calls `nvidia-smi` as a subprocess (avoids
+/// adding a dependency on `pcai_core_lib`).  Returns the original error
+/// unchanged when the keywords don't match or `nvidia-smi` is unavailable.
+///
+/// Only triggers on explicit OOM keywords to avoid ~800ms subprocess overhead
+/// on routine CUDA errors.
 fn enrich_with_gpu_state(error: &str) -> String {
     let lower = error.to_lowercase();
-    let is_gpu_related = lower.contains("out of memory")
-        || lower.contains("oom")
-        || lower.contains("cuda")
-        || lower.contains("alloc");
-
-    if !is_gpu_related {
+    // Narrow filter: only actual OOM, not every CUDA or allocation error
+    if !lower.contains("out of memory") && !lower.contains("oom") {
         return error.to_string();
     }
 

@@ -18,7 +18,7 @@
 //!     .expect("known GPU");
 //! let analysis = analyze_roofline(&specs, 7.0, 4.5, 4096, Some(62.0));
 //! assert!(analysis.theoretical_max_toks > 100.0);
-//! assert_eq!(analysis.bottleneck, "memory_bandwidth");
+//! assert_eq!(analysis.bottleneck, Bottleneck::MemoryBandwidth);
 //! ```
 
 use serde::Serialize;
@@ -81,8 +81,18 @@ pub struct RooflineAnalysis {
     pub bandwidth_efficiency_pct: Option<f64>,
     /// `actual / compute_ceiling * 100` -- compute utilization.
     pub compute_efficiency_pct: Option<f64>,
-    /// Dominant bottleneck: `"memory_bandwidth"` | `"compute"` | `"pcie"` | `"unknown"`.
-    pub bottleneck: String,
+    /// Dominant bottleneck for the decode phase.
+    pub bottleneck: Bottleneck,
+}
+
+/// Dominant performance bottleneck identified by roofline analysis.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Bottleneck {
+    /// Decode is limited by GPU memory bandwidth (typical for autoregressive LLM).
+    MemoryBandwidth,
+    /// Prefill/batch is limited by GPU compute (FLOPs).
+    Compute,
 }
 
 // ── Spec lookup ───────────────────────────────────────────────────────────────
@@ -223,9 +233,9 @@ pub fn analyze_roofline(
     });
 
     let bottleneck = if theoretical_max_toks < compute_ceiling_toks {
-        "memory_bandwidth"
+        Bottleneck::MemoryBandwidth
     } else {
-        "compute"
+        Bottleneck::Compute
     };
 
     RooflineAnalysis {
@@ -240,7 +250,7 @@ pub fn analyze_roofline(
         actual_toks,
         bandwidth_efficiency_pct: bandwidth_efficiency,
         compute_efficiency_pct: compute_efficiency,
-        bottleneck: bottleneck.to_owned(),
+        bottleneck,
     }
 }
 
@@ -328,7 +338,8 @@ mod tests {
         let analysis = analyze_roofline(&specs, 7.0, 4.5, 4096, None);
 
         assert_eq!(
-            analysis.bottleneck, "memory_bandwidth",
+            analysis.bottleneck,
+            Bottleneck::MemoryBandwidth,
             "7B Q4 decode should be memory-bandwidth-bound"
         );
         assert!(

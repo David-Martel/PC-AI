@@ -45,6 +45,27 @@ fn get_nvml() -> Option<&'static nvml_wrapper::Nvml> {
 }
 
 // ---------------------------------------------------------------------------
+// GPU scoring heuristic (shared between NVML and nvidia-smi paths)
+// ---------------------------------------------------------------------------
+
+/// Score a GPU by VRAM size with bonuses for known high-performance models.
+/// Higher score = preferred device for `auto_cuda_index`.
+fn score_gpu(name: &str, memory_mb: u64) -> i64 {
+    let mut score = memory_mb as i64;
+    let name_lower = name.to_lowercase();
+    if name_lower.contains("5060") {
+        score += 1_000_000;
+    }
+    if name_lower.contains("rtx") && name_lower.contains("2000") {
+        score += 500_000;
+    }
+    if name_lower.contains("ada") {
+        score += 50_000;
+    }
+    score
+}
+
+// ---------------------------------------------------------------------------
 // NVML GPU discovery (~1ms vs ~800ms for nvidia-smi)
 // ---------------------------------------------------------------------------
 
@@ -80,10 +101,7 @@ pub fn query_gpus_nvml(min_vram_mb: Option<u64>, visible_devices: &[usize]) -> V
 
         let name = device.name().unwrap_or_else(|_| format!("GPU {idx}"));
 
-        let memory_mb = device
-            .memory_info()
-            .map(|mi| mi.total / (1024 * 1024))
-            .unwrap_or(0);
+        let memory_mb = device.memory_info().map(|mi| mi.total / (1024 * 1024)).unwrap_or(0);
 
         if let Some(min) = min_vram_mb {
             if memory_mb < min {
@@ -91,18 +109,7 @@ pub fn query_gpus_nvml(min_vram_mb: Option<u64>, visible_devices: &[usize]) -> V
             }
         }
 
-        // Apply the same scoring heuristic as the nvidia-smi path.
-        let mut score = memory_mb as i64;
-        let name_lower = name.to_lowercase();
-        if name_lower.contains("5060") {
-            score += 1_000_000;
-        }
-        if name_lower.contains("rtx") && name_lower.contains("2000") {
-            score += 500_000;
-        }
-        if name_lower.contains("ada") {
-            score += 50_000;
-        }
+        let score = score_gpu(&name, memory_mb);
 
         let runtime_index = if !visible_devices.is_empty() {
             visible_devices.iter().position(|v| *v == idx).unwrap_or(0)
@@ -200,17 +207,7 @@ pub fn query_nvidia_smi(min_vram_mb: Option<u64>, visible_devices: &[usize]) -> 
                 continue;
             }
         }
-        let mut score = memory_mb as i64;
-        let name_lower = name.to_lowercase();
-        if name_lower.contains("5060") {
-            score += 1_000_000;
-        }
-        if name_lower.contains("rtx") && name_lower.contains("2000") {
-            score += 500_000;
-        }
-        if name_lower.contains("ada") {
-            score += 50_000;
-        }
+        let score = score_gpu(&name, memory_mb);
         let runtime_index = if !visible_devices.is_empty() {
             visible_devices.iter().position(|v| *v == idx).unwrap_or(0)
         } else {

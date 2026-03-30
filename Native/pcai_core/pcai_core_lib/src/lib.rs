@@ -476,3 +476,53 @@ pub extern "C" fn pcai_gpu_preflight_json(
         Err(_) => std::ptr::null_mut(),
     }
 }
+
+/// Run a roofline performance analysis for all detected GPUs and return a
+/// JSON array of [`gpu::roofline::RooflineAnalysis`] results.
+///
+/// # Parameters
+///
+/// * `model_params_billions` -- Model size in billions of parameters (e.g. 7.0).
+/// * `quant_bits` -- Quantization bit-width per parameter (e.g. 4.5 for Q4_K_M).
+/// * `context_length` -- Context length for the analysis (e.g. 4096).
+/// * `actual_toks` -- Measured decode tok/s.  Pass `0.0` or negative for
+///   "no measurement" (efficiency fields will be null in JSON).
+///
+/// # Returns
+///
+/// A heap-allocated JSON string.  Caller must free with [`pcai_free_string`].
+/// Returns null only if JSON serialisation fails or no GPUs have known specs.
+///
+/// # Safety
+///
+/// This function is safe to call from any thread; it does not accept pointer
+/// arguments.
+#[cfg(feature = "nvml")]
+#[no_mangle]
+pub extern "C" fn pcai_gpu_roofline_json(
+    model_params_billions: f64,
+    quant_bits: f64,
+    context_length: u64,
+    actual_toks: f64,
+) -> *mut c_char {
+    let gpus = gpu::gpu_inventory().unwrap_or_default();
+    let actual = if actual_toks > 0.0 { Some(actual_toks) } else { None };
+
+    let mut analyses = Vec::new();
+    for g in &gpus {
+        if let Some(specs) = gpu::roofline::GpuSpecs::from_compute_capability(&g.compute_capability, &g.name) {
+            analyses.push(gpu::roofline::analyze_roofline(
+                &specs,
+                model_params_billions,
+                quant_bits,
+                context_length,
+                actual,
+            ));
+        }
+    }
+
+    match serde_json::to_string(&analyses) {
+        Ok(json) => rust_str_to_c(&json),
+        Err(_) => std::ptr::null_mut(),
+    }
+}

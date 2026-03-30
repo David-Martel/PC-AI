@@ -106,8 +106,9 @@ fn run() -> Result<()> {
         "disk" => run_disk(&args[2..]),
         "hash-list" => run_hash_list(&args[2..]),
         "preflight" => run_preflight(&args[2..]),
+        "roofline" => run_roofline(&args[2..]),
         "worker" => run_worker(),
-        _ => bail!("usage: pcai-perf <processes|disk|hash-list|preflight|worker> [options]"),
+        _ => bail!("usage: pcai-perf <processes|disk|hash-list|preflight|roofline|worker> [options]"),
     }
 }
 
@@ -171,6 +172,51 @@ fn run_preflight(args: &[String]) -> Result<()> {
         pcai_core_lib::preflight::Verdict::Warn => std::process::exit(1),
         pcai_core_lib::preflight::Verdict::Fail => std::process::exit(2),
     }
+}
+
+fn run_roofline(args: &[String]) -> Result<()> {
+    use pcai_core_lib::gpu::roofline::{analyze_roofline, GpuSpecs};
+
+    let model_params = parse_f64_flag(args, "--model-params")?;
+    let quant_bits = parse_f64_flag(args, "--quant-bits")?;
+    let actual_toks = parse_f64_flag(args, "--actual-toks")?;
+    let context_length = parse_usize_flag(args, "--ctx")?.unwrap_or(4096) as u64;
+
+    let gpus = pcai_core_lib::gpu::gpu_inventory().unwrap_or_default();
+
+    // If no model params given, print specs for all detected GPUs.
+    if model_params.is_none() {
+        let mut specs_list: Vec<GpuSpecs> = Vec::new();
+        for gpu in &gpus {
+            if let Some(specs) = GpuSpecs::from_compute_capability(&gpu.compute_capability, &gpu.name) {
+                specs_list.push(specs);
+            }
+        }
+        if specs_list.is_empty() {
+            bail!("no GPUs with known roofline specs detected; pass --model-params to analyse manually");
+        }
+        println!("{}", serde_json::to_string(&specs_list)?);
+        return Ok(());
+    }
+
+    let params_b = model_params.expect("checked above");
+    let bits = quant_bits.unwrap_or(4.5);
+    // Treat 0.0 as "no measurement" for the actual_toks parameter.
+    let actual = actual_toks.filter(|&v| v > 0.0);
+
+    let mut analyses: Vec<pcai_core_lib::gpu::roofline::RooflineAnalysis> = Vec::new();
+    for gpu in &gpus {
+        if let Some(specs) = GpuSpecs::from_compute_capability(&gpu.compute_capability, &gpu.name) {
+            analyses.push(analyze_roofline(&specs, params_b, bits, context_length, actual));
+        }
+    }
+
+    if analyses.is_empty() {
+        bail!("no GPUs with known roofline specs detected");
+    }
+
+    println!("{}", serde_json::to_string(&analyses)?);
+    Ok(())
 }
 
 fn run_worker() -> Result<()> {
@@ -257,6 +303,26 @@ fn handle_worker_request(raw: &str) -> Result<Value> {
             };
 
             Ok(serde_json::to_value(result)?)
+        }
+        "roofline" => {
+            use pcai_core_lib::gpu::roofline::{analyze_roofline, GpuSpecs};
+
+            let model_params = request
+                .get("model_params")
+                .and_then(Value::as_f64)
+                .ok_or_else(|| anyhow!("roofline request missing model_params"))?;
+            let quant_bits = request.get("quant_bits").and_then(Value::as_f64).unwrap_or(4.5);
+            let ctx = request.get("ctx").and_then(Value::as_u64).unwrap_or(4096);
+            let actual_toks = request.get("actual_toks").and_then(Value::as_f64).filter(|&v| v > 0.0);
+
+            let gpus = pcai_core_lib::gpu::gpu_inventory().unwrap_or_default();
+            let mut analyses = Vec::new();
+            for gpu in &gpus {
+                if let Some(specs) = GpuSpecs::from_compute_capability(&gpu.compute_capability, &gpu.name) {
+                    analyses.push(analyze_roofline(&specs, model_params, quant_bits, ctx, actual_toks));
+                }
+            }
+            Ok(serde_json::to_value(analyses)?)
         }
         other => bail!("unsupported worker command: {other}"),
     }
@@ -406,6 +472,15 @@ fn parse_usize_flag(args: &[String], name: &str) -> Result<Option<usize>> {
             value
                 .parse::<usize>()
                 .with_context(|| format!("parse {name} as usize"))?,
+        )),
+        None => Ok(None),
+    }
+}
+
+fn parse_f64_flag(args: &[String], name: &str) -> Result<Option<f64>> {
+    match parse_string_flag(args, name) {
+        Some(value) => Ok(Some(
+            value.parse::<f64>().with_context(|| format!("parse {name} as f64"))?,
         )),
         None => Ok(None),
     }

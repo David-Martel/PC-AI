@@ -29,6 +29,8 @@
 //! # }
 //! ```
 
+pub mod roofline;
+
 use std::sync::OnceLock;
 
 use anyhow::{Context, Result};

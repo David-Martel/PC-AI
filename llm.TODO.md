@@ -34,6 +34,35 @@
 - [x] **FG-3**: Test preflight CLI against FunctionGemma model paths
 - [x] **FG-4**: Full CUDA 13.2 build validated — cudarc 0.19.4, patched candle-kernels/flash-attn with /Zc:preprocessor, SM 89+120
 
+## Infrastructure Quick Wins (done this session)
+
+- [x] Fix clippy errors in telemetry/process.rs and event_log.rs (needless_range_loop)
+- [x] Pre-commit hook: scope ast-grep to staged files only (was scanning entire repo)
+- [x] Activate sccache + lld-link via CargoTools Initialize-ProjectCargoConfig
+- [x] Restart sccache (was unhealthy, 78% cache hit rate)
+- [x] Update Cargo.lock: cudarc 0.19.3 → 0.19.4
+
+## Performance Analytics (in progress)
+
+- [ ] **PERF-1**: GPU roofline model — theoretical decode/prefill ceilings per GPU+model combo
+- [ ] **PERF-2**: `pcai-perf roofline` CLI subcommand + `pcai_gpu_roofline_json` FFI
+- [ ] **PERF-3**: Bandwidth efficiency metrics (actual tok/s ÷ theoretical ceiling)
+- [ ] **PERF-4**: CI performance regression detection in benchmark sweep
+- [ ] **PERF-5**: Wire preflight into pcai_inference `pcai_load_model()` and pcai_media backends
+- [ ] **PERF-6**: FunctionGemma training metrics — gradient computation time, loss convergence velocity
+
+## FunctionGemma Training Remaining (from Deploy/rust-functiongemma-train/TODO.md)
+
+- [ ] QLoRA NF4 quantization evaluation (qlora-rs path)
+- [ ] Match FunctionGemma chat template behavior in runtime
+- [ ] Deterministic generation settings for routing
+- [ ] Port Python unit tests for dataset/schema handling
+- [ ] Router eval harness against local runtime
+- [ ] KV cache offload to CPU/disk
+- [ ] Chunked softmax attention for large-context prefill
+- [ ] CUDA memory pool evaluation (candle-cuda-vmm)
+- [ ] GPUDirect Storage via cudarc for direct GPU<->disk transfer
+
 ## Notes
 
 - No new Cargo dependencies needed (nvml-wrapper, sysinfo, memmap2 already in workspace)

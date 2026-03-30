@@ -116,7 +116,7 @@ static NVML: OnceLock<Option<nvml_wrapper::Nvml>> = OnceLock::new();
 ///
 /// Returns `None` (after logging a warning) if NVML is unavailable — e.g. no
 /// NVIDIA driver is installed or the library is not present in the container.
-fn get_nvml() -> Option<&'static nvml_wrapper::Nvml> {
+pub(crate) fn get_nvml() -> Option<&'static nvml_wrapper::Nvml> {
     NVML.get_or_init(|| match nvml_wrapper::Nvml::init() {
         Ok(nvml) => Some(nvml),
         Err(err) => {

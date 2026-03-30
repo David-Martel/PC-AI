@@ -14,7 +14,8 @@
         'Get-NvidiaCompatibilityMatrix',
         'Initialize-NvidiaEnvironment',
         'Install-NvidiaSoftware',
-        'Update-NvidiaSoftwareRegistry'
+        'Update-NvidiaSoftwareRegistry',
+        'Test-PcaiGpuReadiness'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

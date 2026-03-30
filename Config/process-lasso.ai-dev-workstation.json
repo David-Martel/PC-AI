@@ -1,0 +1,124 @@
+{
+  "$schema": "./process-lasso.schema.json",
+  "version": "1.0.0",
+  "profileName": "ai-dev-workstation",
+  "machineHints": {
+    "cpu": "Intel Core Ultra 7 155H",
+    "logicalProcessors": 22,
+    "memoryGB": 64,
+    "primaryWorkloads": [
+      "interactive-browser",
+      "powershell-automation",
+      "rust-compilation",
+      "local-llm",
+      "docker-wsl"
+    ]
+  },
+  "analysis": {
+    "lookbackMinutes": 120,
+    "counterThresholds": {
+      "commitUsageWarningPercent": 70,
+      "commitUsageCriticalPercent": 85,
+      "pagesPerSecondWarning": 200,
+      "pagesPerSecondCritical": 1000,
+      "processorUtilityWarning": 80
+    },
+    "ruleNoiseThresholds": {
+      "maxRepeatedEventsPerHour": 120,
+      "maxNoOpRulesPerScan": 5
+    }
+  },
+  "processClasses": {
+    "critical_shell": {
+      "match": [
+        "audiodg.exe",
+        "bitsumsessionagent.exe",
+        "dwm.exe",
+        "explorer.exe"
+      ],
+      "intent": {
+        "protectInteractivity": true,
+        "excludeFromProBalance": true,
+        "notes": "Keep exclusions minimal and limited to shell, compositor, and audio-critical components."
+      }
+    },
+    "interactive": {
+      "match": [
+        "chrome.exe",
+        "brave.exe",
+        "pwsh.exe",
+        "windowsterminal.exe",
+        "codex.exe",
+        "code.exe",
+        "explorer.exe",
+        "dwm.exe",
+        "zoom.exe"
+      ],
+      "intent": {
+        "protectInteractivity": true,
+        "disableEfficiencyMode": true,
+        "notes": "Rely on foreground protection first; avoid broad ProBalance exclusions for all interactive apps."
+      }
+    },
+    "build": {
+      "match": [
+        "cargo.exe",
+        "rustc.exe",
+        "cl.exe",
+        "link.exe",
+        "cmake.exe",
+        "ninja.exe",
+        "dotnet.exe"
+      ],
+      "intent": {
+        "allowThroughput": true,
+        "containWhenPaging": true,
+        "notes": "Allow high throughput, but do not grant permanent immunity under paging pressure."
+      }
+    },
+    "ai_inference": {
+      "match": [
+        "claude.exe",
+        "ollama.exe",
+        "python.exe",
+        "pcai_",
+        "llama"
+      ],
+      "intent": {
+        "allowThroughput": true,
+        "containWhenPaging": true,
+        "notes": "Background AI jobs may consume large private memory; correlate with paging and interactivity loss."
+      }
+    },
+    "virtualization": {
+      "match": [
+        "vmmemWSL",
+        "wslservice.exe",
+        "com.docker.backend.exe",
+        "Docker Desktop.exe"
+      ],
+      "intent": {
+        "containWhenPaging": true,
+        "notes": "Do not let backend services force permanent performance mode."
+      }
+    },
+    "services": {
+      "match": [
+        "nvcontainer.exe",
+        "NVDisplay.Container.exe",
+        "OneDrive.exe"
+      ],
+      "intent": {
+        "defaultPriority": "below normal",
+        "notes": "Keep service overhead visible and bounded."
+      }
+    }
+  },
+  "compiler": {
+    "preserveUnknownKeys": true,
+    "backupLiveConfig": true,
+    "emitOverlayPath": "Reports/process-lasso/generated/process-lasso.ai-dev-workstation.overlay.ini",
+    "liveConfigPath": "C:/ProgramData/ProcessLasso/config/prolasso.ini",
+    "logPath": "C:/ProgramData/ProcessLasso/logs/processlasso.log"
+  }
+}

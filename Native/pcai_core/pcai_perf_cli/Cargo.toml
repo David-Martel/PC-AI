@@ -15,5 +15,5 @@ serde_json.workspace = true
 rayon.workspace = true
 sha2.workspace = true
 hex.workspace = true
-pcai_core_lib = { path = "../pcai_core_lib" }
+pcai_core_lib = { path = "../pcai_core_lib", features = ["nvml"] }
 mimalloc = "0.1"

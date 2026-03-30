@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pc-ai.local/schema/process-lasso.schema.json",
+  "title": "PC-AI Process Lasso Policy",
+  "type": "object",
+  "required": [
+    "version",
+    "profileName",
+    "machineHints",
+    "analysis",
+    "processClasses",
+    "compiler"
+  ],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "profileName": {
+      "type": "string"
+    },
+    "machineHints": {
+      "type": "object",
+      "required": [
+        "cpu",
+        "logicalProcessors",
+        "memoryGB",
+        "primaryWorkloads"
+      ],
+      "properties": {
+        "cpu": {
+          "type": "string"
+        },
+        "logicalProcessors": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memoryGB": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "primaryWorkloads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "properties": {
+        "lookbackMinutes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "counterThresholds": {
+          "type": "object",
+          "properties": {
+            "commitUsageWarningPercent": {
+              "type": "number"
+            },
+            "commitUsageCriticalPercent": {
+              "type": "number"
+            },
+            "pagesPerSecondWarning": {
+              "type": "number"
+            },
+            "pagesPerSecondCritical": {
+              "type": "number"
+            },
+            "processorUtilityWarning": {
+              "type": "number"
+            }
+          }
+        },
+        "ruleNoiseThresholds": {
+          "type": "object",
+          "properties": {
+            "maxRepeatedEventsPerHour": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxNoOpRulesPerScan": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "processClasses": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "match",
+          "intent"
+        ],
+        "properties": {
+          "match": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "intent": {
+            "type": "object",
+            "properties": {
+              "protectInteractivity": {
+                "type": "boolean"
+              },
+              "allowThroughput": {
+                "type": "boolean"
+              },
+              "containWhenPaging": {
+                "type": "boolean"
+              },
+              "excludeFromProBalance": {
+                "type": "boolean"
+              },
+              "disableEfficiencyMode": {
+                "type": "boolean"
+              },
+              "defaultPriority": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "compiler": {
+      "type": "object",
+      "required": [
+        "preserveUnknownKeys",
+        "backupLiveConfig",
+        "emitOverlayPath"
+      ],
+      "properties": {
+        "preserveUnknownKeys": {
+          "type": "boolean"
+        },
+        "backupLiveConfig": {
+          "type": "boolean"
+        },
+        "emitOverlayPath": {
+          "type": "string"
+        },
+        "liveConfigPath": {
+          "type": "string"
+        },
+        "logPath": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

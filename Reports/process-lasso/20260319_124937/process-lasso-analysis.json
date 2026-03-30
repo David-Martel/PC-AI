@@ -1,0 +1,142 @@
+{
+  "generated_at": "2026-03-19T12:49:40.0368206-04:00",
+  "profile_path": "C:\\codedev\\PC_AI\\Config\\process-lasso.ai-dev-workstation.json",
+  "counters": {
+    "\\\\dtm-p1gen7\\memory\\pages/sec": 41.39,
+    "\\\\dtm-p1gen7\\memory\\% committed bytes in use": 79.96,
+    "\\\\dtm-p1gen7\\processor information(_total)\\% processor utility": 94.57
+  },
+  "snapshot": {
+    "generated_at": "2026-03-19T12:49:38.162522-04:00",
+    "config_path": "C:\\ProgramData\\ProcessLasso\\config\\prolasso.ini",
+    "log_path": "C:\\ProgramData\\ProcessLasso\\logs\\processlasso.log",
+    "summary": {
+      "start_with_power_plan": null,
+      "gaming_mode_enabled": null,
+      "target_power_plan": null,
+      "ooc_exclusions": [],
+      "smart_trim_exclusions": [],
+      "efficiency_mode_off": [],
+      "default_priorities": {},
+      "log_efficiency_mode": null,
+      "log_cpu_sets": null
+    },
+    "log_summary": {
+      "lookback_minutes": 120,
+      "total_events": 0,
+      "efficiency_mode_events": 0,
+      "cpu_set_events": 0,
+      "smart_trim_events": 0,
+      "power_profile_events": 0,
+      "actions": {},
+      "processes": {}
+    }
+  },
+  "top_memory": [
+    {
+      "ProcessName": "claude",
+      "Id": 49004,
+      "PriorityClass": 32,
+      "PrivateMB": 21190.0,
+      "WorkingSetMB": 1581.2
+    },
+    {
+      "ProcessName": "pcai-media-server-sm120",
+      "Id": 88460,
+      "PriorityClass": 32,
+      "PrivateMB": 17313.0,
+      "WorkingSetMB": 1694.9
+    },
+    {
+      "ProcessName": "claude",
+      "Id": 62816,
+      "PriorityClass": 32,
+      "PrivateMB": 12669.5,
+      "WorkingSetMB": 1822.6
+    },
+    {
+      "ProcessName": "vmmemWSL",
+      "Id": 51000,
+      "PriorityClass": 32,
+      "PrivateMB": 6554.7,
+      "WorkingSetMB": 1060.5
+    },
+    {
+      "ProcessName": "dwm",
+      "Id": 3188,
+      "PriorityClass": 128,
+      "PrivateMB": 1768.5,
+      "WorkingSetMB": 889.9
+    },
+    {
+      "ProcessName": "nvcontainer",
+      "Id": 38544,
+      "PriorityClass": 16384,
+      "PrivateMB": 1450.5,
+      "WorkingSetMB": 7.6
+    },
+    {
+      "ProcessName": "com.docker.backend",
+      "Id": 38052,
+      "PriorityClass": 32,
+      "PrivateMB": 1347.8,
+      "WorkingSetMB": 681.3
+    },
+    {
+      "ProcessName": "vmmemCmZygote",
+      "Id": 30584,
+      "PriorityClass": 32,
+      "PrivateMB": 917.1,
+      "WorkingSetMB": 0.0
+    },
+    {
+      "ProcessName": "WindowsTerminal",
+      "Id": 43928,
+      "PriorityClass": 32,
+      "PrivateMB": 633.3,
+      "WorkingSetMB": 491.3
+    },
+    {
+      "ProcessName": "chrome",
+      "Id": 55940,
+      "PriorityClass": 32768,
+      "PrivateMB": 515.2,
+      "WorkingSetMB": 507.2
+    },
+    {
+      "ProcessName": "MsMpEng",
+      "Id": 18976,
+      "PriorityClass": null,
+      "PrivateMB": 509.1,
+      "WorkingSetMB": 516.3
+    },
+    {
+      "ProcessName": "chrome",
+      "Id": 38060,
+      "PriorityClass": 32,
+      "PrivateMB": 497.1,
+      "WorkingSetMB": 590.4
+    },
+    {
+      "ProcessName": "OneDrive",
+      "Id": 35632,
+      "PriorityClass": 32,
+      "PrivateMB": 469.1,
+      "WorkingSetMB": 364.5
+    },
+    {
+      "ProcessName": "explorer",
+      "Id": 20936,
+      "PriorityClass": 32,
+      "PrivateMB": 395.2,
+      "WorkingSetMB": 225.4
+    },
+    {
+      "ProcessName": "chrome",
+      "Id": 77288,
+      "PriorityClass": 64,
+      "PrivateMB": 379.1,
+      "WorkingSetMB": 450.2
+    }
+  ]
+}

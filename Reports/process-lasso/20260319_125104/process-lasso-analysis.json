@@ -1,0 +1,360 @@
+{
+  "generated_at": "2026-03-19T12:51:06.9350741-04:00",
+  "profile_path": "C:\\codedev\\PC_AI\\Config\\process-lasso.ai-dev-workstation.json",
+  "counters": {
+    "\\\\dtm-p1gen7\\memory\\pages/sec": 46.59,
+    "\\\\dtm-p1gen7\\processor information(_total)\\% processor utility": 84.85,
+    "\\\\dtm-p1gen7\\memory\\% committed bytes in use": 80.1
+  },
+  "snapshot": {
+    "generated_at": "2026-03-19T12:51:04.9956481-04:00",
+    "config_path": "C:\\ProgramData\\ProcessLasso\\config\\prolasso.ini",
+    "log_path": "C:\\ProgramData\\ProcessLasso\\logs\\processlasso.log",
+    "sections": {
+      "Logging": {
+        "LogEfficiencyMode": "false",
+        "LogProBalanceParkingChanges": "true",
+        "LogCPULimiter": "true",
+        "LogDefaultAffinityAdjustments": "true",
+        "LogCPUSets": "false",
+        "LogDefaultPriorityAdjustments": "true",
+        "IncludeCommandLines": "false",
+        "LogPowerProfileChanges": "true",
+        "LogInstanceLimitTerminations": "true",
+        "LogProcessesDisallowed": "true",
+        "LogGroupExtender": "true",
+        "LogProBalanceEnd": "true",
+        "LogProBalanceBegin": "true",
+        "LogSmartTrim": "true",
+        "LogDisable": "false",
+        "LogProcessExecutions": "false",
+        "LogProcessTerminations": "false"
+      },
+      "GUI": {
+        "ShowGraphResponsiveness": "true",
+        "ShowPowerProfile": "true",
+        "ShowGraphGPU": "true",
+        "ShowGraphSelectedProcessesCPUHistory": "true",
+        "GraphShowTooltips": "true",
+        "ShowGraphLicenseName": "false",
+        "ShowGraphLegend": "true",
+        "ShowCPUUtilityAsPrimary": "true",
+        "ShowGraphCPU": "true",
+        "ShowGraphMemoryLoad": "true",
+        "ProBalanceCountersOnGraph": "true",
+        "ClearLogAtExit": "false",
+        "ShowGraphProBalanceEvents": "true",
+        "ShowCPUCoreUtilGraphs": "true"
+      },
+      "global": {},
+      "SystemTrayIcon": {
+        "ShowResponsivnessInTrayInsteadOfProcessorUsage": "false",
+        "UseStaticIcon": "false"
+      },
+      "MemoryManagement": {
+        "ClearStandbyFreeRAMThresholdMB": "1024",
+        "ClearStandbyOnlyInPerfMode": "true",
+        "SmartTrimExclusions": "bitwarden.exe,brave.exe,chrome.exe,codex.exe,pwsh.exe,signal.exe,windowsterminal.exe,zoom.exe",
+        "SmartTrimWorkingSetTrims": "true",
+        "SmartTrimAutoMinimumRAMLoad": "80",
+        "SmartTrimIsEnabled": "true",
+        "SmartTrimIntervalMins": "3",
+        "SmartTrimClearStandbyList": "false",
+        "MinimumProcessWSSInMb": "256",
+        "SmartTrimClearFileCache": "false"
+      },
+      "PowerManagement": {
+        "StartWithPowerPlan": "Balanced",
+        "Display": "",
+        "PC": ""
+      },
+      "ProcessDefaults": {
+        "MatchOnCommandLine": "false",
+        "MatchWildcardsToPathnames": "true",
+        "KeepRunningProcessesEx": "",
+        "NamedAffinities": "",
+        "DefaultMemoryPriorities": "",
+        "DefaultAffinitiesEx": "rust-analyzer.exe,0,2-9;20-21",
+        "DefaultPriorities": "googledrivefs.exe,below normal,nvcontainer.exe,below normal,nvdisplay.container.exe,below normal",
+        "ThreadPriorityBoosts": "",
+        "DefaultGPUPriorities": "chrome.exe,3,brave.exe,3,zoom.exe,3",
+        "DefaultIOPriorities": "chrome.exe,3,brave.exe,3,zoom.exe,3,audiodg.exe,3",
+        "CPUSets": ""
+      },
+      "GamingMode": {
+        "GamingModeEngageForSteam": "false",
+        "AutomaticGamingModeProcessPaths": "",
+        "TargetPowerPlan": "Bitsum Highest Performance",
+        "GamingModeEnabled": "false",
+        "AutomaticGamingModeUserExclusions": "",
+        "GamingChangePowerPlan": "true"
+      },
+      "PowerSaver": {
+        "EnergySaverForceActivePowerProfile": "false",
+        "PowerSaver_IdleTime": "300",
+        "EnergySaverEnabled": "false",
+        "EnergySaverUseCPUThreshold": "false",
+        "EnergySaverUpPowerProfileName": "",
+        "EnergySaverEvents": "true",
+        "PowerSaver_Exclusions": "",
+        "DisableEnergySaverDuringGamingMode": "true",
+        "EnergySaverCPUThreshold": "5.00"
+      },
+      "ForegroundBoosting": {
+        "ForegroundBoostGPU": "-1",
+        "ForegroundBoostPriorityClass": "0x8000",
+        "ForegroundBoostExclusions": "",
+        "BoostOnlyNormal": "true",
+        "BoostOnlyNormalGPU": "true",
+        "BoostForegroundProcess": "false"
+      },
+      "AdvancedRules": {
+        "ProcessorGroupExtended": "",
+        "ProhibitInternetExplorerExceptWhenAny": "",
+        "DivideCPUPercentThresholdsBySystemCPUCount": "false",
+        "WatchdogRules2": ""
+      },
+      "SysTrayBalloons": {
+        "ShowBalloonsForOocPriorityRestoration": "false",
+        "EnableSystemTrayNotification": "false",
+        "BalloonTipDuration": "10000"
+      },
+      "Advanced": {
+        "AutomaticUpdate": "false"
+      },
+      "Performance": {
+        "RecentlyTerminatedViewExclusions": "conhost.exe,dllhost.exe,runtimebroker.exe,sppsvc.exe,svchost.exe,taskhostw.exe",
+        "IsConfigWritable": "true",
+        "IgnoreProblematicProcesses": "false",
+        "SetTimerResolutionAtStartup": "0",
+        "IgnoreSuspendedProcesses": "false",
+        "AllowBlacklistedProcesses": "false",
+        "DefaultsLevel": "327942",
+        "GracefulWaitTimeInMs": "5000",
+        "ForcedMode": "false",
+        "UpdateSpeedGUI": "1000",
+        "SoundsOff": "true",
+        "ManageOnlyCurrentUser": "false",
+        "UpdateSpeedCore": "1000",
+        "ExitOnCloseWindow": "false"
+      },
+      "ProcessAllowances": {
+        "InstanceManagedCPUAffinities": "",
+        "ApplyInstanceCountLimitsToAllUsers": "false",
+        "InstanceLimitedProcesses": "",
+        "ProcessThrottles": "",
+        "DisallowedProcesses": "",
+        "CPULimitRules": "",
+        "OneTimeProcessThrottles": "",
+        "EfficiencyMode": "bitwarden.exe,0,brave.exe,0,chrome.exe,0,codex.exe,0,pwsh.exe,0,windowsterminal.exe,0,zoom.exe,0",
+        "AllowedProcesses": ""
+      },
+      "Sampling": {
+        "SamplingEnabled": "false",
+        "SamplingOutputPath": "",
+        "SamplingIntervalSeconds": "900",
+        "SamplingExcludePattern": "",
+        "SamplingIncludePattern": "*"
+      },
+      "Administration": {
+        "ConfigPasswordMD5": "",
+        "Version": "6540200"
+      },
+      "OutOfControlProcessRestraint": {
+        "ChangeTrayIconOnRestraint": "true",
+        "RestraintAffinity": "",
+        "PlaySoundOnRestore": "false",
+        "MaximumTimeOfRestraint": "0",
+        "OocDisableCoreParkingWhileIn": "false",
+        "ExcludeChildrenOfForeground": "true",
+        "MinimumTimeOfRestraint": "1500",
+        "OocOn": "true",
+        "PlaySoundOnRestraint": "false",
+        "PerProcessUsageForRestore": "3",
+        "LowerIOPriorityDuringRestraint": "false",
+        "DoNotLowerPriorityClass": "false",
+        "ProBalanceDropOneRandomCore": "false",
+        "UseEfficiencyMode": "false",
+        "DisableProBalanceIfSysIdleThisManyMS": "30000",
+        "RestrainByAffinity": "false",
+        "ExcludeForegroundProcesses2": "true",
+        "DoNotAdjustAffinityIfCustomized": "true",
+        "ExcludeServices": "true",
+        "PlayOnRestore": "C:\\WINDOWS\\media\\Windows Feed Discovered.wav",
+        "MatchExclusionsByPathnameToo": "false",
+        "TameOnlyNormal": "true",
+        "TotalProcessorUsageBeforeRestraint": "65",
+        "OocHardCodedExclusionOverrides": "",
+        "OocExclusions": "audiodg.exe,bitsumsessionagent.exe,dwm.exe,explorer.exe",
+        "TimeOverQuotaBeforeRestraint": "2000",
+        "DisableProBalanceWhenSysIdle": "false",
+        "PerProcessUsageBeforeRestraint": "10",
+        "PlayOnRestraint": "C:\\WINDOWS\\media\\Windows Pop-up Blocked.wav",
+        "LowerToIdleInsteadOfBelowNormal": "false"
+      }
+    },
+    "summary": {
+      "start_with_power_plan": "Balanced",
+      "gaming_mode_enabled": "false",
+      "target_power_plan": "Bitsum Highest Performance",
+      "ooc_exclusions": [
+        "audiodg.exe",
+        "bitsumsessionagent.exe",
+        "dwm.exe",
+        "explorer.exe"
+      ],
+      "smart_trim_exclusions": [
+        "bitwarden.exe",
+        "brave.exe",
+        "chrome.exe",
+        "codex.exe",
+        "pwsh.exe",
+        "signal.exe",
+        "windowsterminal.exe",
+        "zoom.exe"
+      ],
+      "efficiency_mode_off": [
+        "bitwarden.exe",
+        "brave.exe",
+        "chrome.exe",
+        "codex.exe",
+        "pwsh.exe",
+        "windowsterminal.exe",
+        "zoom.exe"
+      ],
+      "default_priorities": {
+        "googledrivefs.exe": "below normal",
+        "nvdisplay.container.exe": "below normal",
+        "nvcontainer.exe": "below normal"
+      },
+      "log_efficiency_mode": "false",
+      "log_cpu_sets": "false"
+    },
+    "log_summary": {
+      "lookback_minutes": 120,
+      "total_events": 31,
+      "efficiency_mode_events": 0,
+      "cpu_set_events": 0,
+      "smart_trim_events": 1,
+      "power_profile_events": 0,
+      "actions": {
+        "(0x54) SmartTrim No Action": 1,
+        "(0x38) GPU priority changed": 15,
+        "(0x36) I/O priority changed": 14,
+        "(0x20) ProBalance restraint ended": 1
+      },
+      "processes": {
+        "vmmemwsl": 1,
+        "processgovernor.exe": 1,
+        "chrome.exe": 29
+      }
+    }
+  },
+  "top_memory": [
+    {
+      "ProcessName": "claude",
+      "Id": 49004,
+      "PriorityClass": 32,
+      "PrivateMB": 21431.3,
+      "WorkingSetMB": 1706.7
+    },
+    {
+      "ProcessName": "pcai-media-server-sm120",
+      "Id": 88460,
+      "PriorityClass": 32,
+      "PrivateMB": 17313.5,
+      "WorkingSetMB": 1695.0
+    },
+    {
+      "ProcessName": "claude",
+      "Id": 62816,
+      "PriorityClass": 32,
+      "PrivateMB": 12734.9,
+      "WorkingSetMB": 1841.8
+    },
+    {
+      "ProcessName": "vmmemWSL",
+      "Id": 51000,
+      "PriorityClass": 32,
+      "PrivateMB": 6551.8,
+      "WorkingSetMB": 1062.4
+    },
+    {
+      "ProcessName": "dwm",
+      "Id": 3188,
+      "PriorityClass": 128,
+      "PrivateMB": 1763.5,
+      "WorkingSetMB": 870.5
+    },
+    {
+      "ProcessName": "nvcontainer",
+      "Id": 38544,
+      "PriorityClass": 16384,
+      "PrivateMB": 1450.5,
+      "WorkingSetMB": 7.6
+    },
+    {
+      "ProcessName": "com.docker.backend",
+      "Id": 38052,
+      "PriorityClass": 32,
+      "PrivateMB": 1347.8,
+      "WorkingSetMB": 681.3
+    },
+    {
+      "ProcessName": "vmmemCmZygote",
+      "Id": 30584,
+      "PriorityClass": 32,
+      "PrivateMB": 917.1,
+      "WorkingSetMB": 0.0
+    },
+    {
+      "ProcessName": "WindowsTerminal",
+      "Id": 43928,
+      "PriorityClass": 32,
+      "PrivateMB": 633.5,
+      "WorkingSetMB": 493.0
+    },
+    {
+      "ProcessName": "chrome",
+      "Id": 55940,
+      "PriorityClass": 32768,
+      "PrivateMB": 515.1,
+      "WorkingSetMB": 507.1
+    },
+    {
+      "ProcessName": "MsMpEng",
+      "Id": 18976,
+      "PriorityClass": null,
+      "PrivateMB": 505.1,
+      "WorkingSetMB": 510.2
+    },
+    {
+      "ProcessName": "chrome",
+      "Id": 38060,
+      "PriorityClass": 32,
+      "PrivateMB": 497.3,
+      "WorkingSetMB": 590.7
+    },
+    {
+      "ProcessName": "OneDrive",
+      "Id": 35632,
+      "PriorityClass": 32,
+      "PrivateMB": 469.1,
+      "WorkingSetMB": 364.5
+    },
+    {
+      "ProcessName": "explorer",
+      "Id": 20936,
+      "PriorityClass": 32,
+      "PrivateMB": 395.9,
+      "WorkingSetMB": 226.6
+    },
+    {
+      "ProcessName": "chrome",
+      "Id": 77288,
+      "PriorityClass": 64,
+      "PrivateMB": 379.4,
+      "WorkingSetMB": 450.1
+    }
+  ]
+}

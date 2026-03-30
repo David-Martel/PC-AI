@@ -24,6 +24,8 @@ pub mod hash;
 pub mod json;
 pub mod path;
 pub mod performance;
+#[cfg(feature = "nvml")]
+pub mod preflight;
 pub mod process_lasso;
 pub mod prompt_engine;
 pub mod result;
@@ -405,6 +407,72 @@ pub extern "C" fn pcai_gpu_info_json() -> *mut c_char {
 pub extern "C" fn pcai_driver_version() -> *mut c_char {
     match gpu::driver_version() {
         Ok(ver) => rust_str_to_c(&ver),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Run a GPU preflight readiness check and return the result as a JSON string.
+///
+/// # Parameters
+///
+/// * `model_path` -- Path to a GGUF model file (null for VRAM-only inventory).
+/// * `context_length` -- Context length override (0 = use model default).
+/// * `required_mb` -- Minimum VRAM required in MB (used when `model_path` is null).
+///
+/// # Returns
+///
+/// A heap-allocated JSON string.  Caller must free with [`pcai_free_string`].
+/// Returns null only if JSON serialisation fails (should never happen).
+///
+/// JSON schema:
+/// ```json
+/// {
+///   "verdict": "go | warn | fail",
+///   "reason": "human-readable explanation",
+///   "model_estimate_mb": 5800,
+///   "best_gpu_index": 1,
+///   "gpus": [{ "index": 0, "name": "...", "total_mb": 8192, ... }]
+/// }
+/// ```
+///
+/// # Safety
+///
+/// `model_path` must be null or a valid null-terminated UTF-8 C string.
+#[cfg(feature = "nvml")]
+#[no_mangle]
+pub extern "C" fn pcai_gpu_preflight_json(
+    model_path: *const c_char,
+    context_length: u64,
+    required_mb: u64,
+) -> *mut c_char {
+    let result = if model_path.is_null() {
+        preflight::check_vram_state(required_mb)
+    } else {
+        match unsafe { CStr::from_ptr(model_path) }.to_str() {
+            Ok(path_str) => preflight::check_readiness(path_str, context_length),
+            Err(_) => Ok(preflight::PreflightResult {
+                verdict: preflight::Verdict::Fail,
+                reason: "Invalid UTF-8 in model path".to_owned(),
+                model_estimate_mb: 0,
+                best_gpu_index: None,
+                gpus: Vec::new(),
+            }),
+        }
+    };
+
+    let preflight_result = match result {
+        Ok(r) => r,
+        Err(e) => preflight::PreflightResult {
+            verdict: preflight::Verdict::Fail,
+            reason: format!("Preflight error: {e}"),
+            model_estimate_mb: 0,
+            best_gpu_index: None,
+            gpus: Vec::new(),
+        },
+    };
+
+    match serde_json::to_string(&preflight_result) {
+        Ok(json) => rust_str_to_c(&json),
         Err(_) => std::ptr::null_mut(),
     }
 }

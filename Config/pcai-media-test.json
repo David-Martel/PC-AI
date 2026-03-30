@@ -1,0 +1,19 @@
+{
+  "model": "Models/Janus-Pro-7B",
+  "gguf_path": "Models/Janus-Pro-7B/janus-pro-7b-llama-q4_k_m.gguf",
+  "device": "cuda:1",
+  "dtype": "f16",
+  "guidance_scale": 5.0,
+  "temperature": 1.0,
+  "parallel_size": 1,
+  "gpu_layers": -1,
+  "use_prealloc_kv_cache": false,
+  "use_speculative_decoding": false,
+  "speculative_draft_layers": 8,
+  "speculative_lookahead": 4,
+  "upscale": {
+    "enabled": true,
+    "model_path": "Models/RealESRGAN/RealESRGAN_x4plus.pth",
+    "scale_factor": 4
+  }
+}

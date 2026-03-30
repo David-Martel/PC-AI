@@ -105,8 +105,9 @@ fn run() -> Result<()> {
         "processes" => run_processes(&args[2..]),
         "disk" => run_disk(&args[2..]),
         "hash-list" => run_hash_list(&args[2..]),
+        "preflight" => run_preflight(&args[2..]),
         "worker" => run_worker(),
-        _ => bail!("usage: pcai-perf <processes|disk|hash-list|worker> [options]"),
+        _ => bail!("usage: pcai-perf <processes|disk|hash-list|preflight|worker> [options]"),
     }
 }
 
@@ -149,6 +150,27 @@ fn run_hash_list(args: &[String]) -> Result<()> {
 
     println!("{}", serde_json::to_string(&rows)?);
     Ok(())
+}
+
+fn run_preflight(args: &[String]) -> Result<()> {
+    let model_path = parse_string_flag(args, "--model");
+    let context_length = parse_usize_flag(args, "--ctx")?.unwrap_or(0) as u64;
+    let required_mb = parse_usize_flag(args, "--required-mb")?.unwrap_or(0) as u64;
+
+    let result = if let Some(path) = model_path {
+        pcai_core_lib::preflight::check_readiness(&path, context_length)?
+    } else {
+        pcai_core_lib::preflight::check_vram_state(required_mb)?
+    };
+
+    println!("{}", serde_json::to_string(&result)?);
+
+    // Exit code matches verdict: 0=go, 1=warn, 2=fail
+    match result.verdict {
+        pcai_core_lib::preflight::Verdict::Go => Ok(()),
+        pcai_core_lib::preflight::Verdict::Warn => std::process::exit(1),
+        pcai_core_lib::preflight::Verdict::Fail => std::process::exit(2),
+    }
 }
 
 fn run_worker() -> Result<()> {
@@ -222,6 +244,19 @@ fn handle_worker_request(raw: &str) -> Result<Value> {
                 .ok_or_else(|| anyhow!("disk request missing path"))?;
             let top = request.get("top").and_then(Value::as_u64).unwrap_or(10) as usize;
             Ok(serde_json::to_value(collect_disk_rows(path, top)?)?)
+        }
+        "preflight" => {
+            let model_path = request.get("model").and_then(Value::as_str);
+            let ctx = request.get("ctx").and_then(Value::as_u64).unwrap_or(0);
+            let required_mb = request.get("required_mb").and_then(Value::as_u64).unwrap_or(0);
+
+            let result = if let Some(path) = model_path {
+                pcai_core_lib::preflight::check_readiness(path, ctx)?
+            } else {
+                pcai_core_lib::preflight::check_vram_state(required_mb)?
+            };
+
+            Ok(serde_json::to_value(result)?)
         }
         other => bail!("unsupported worker command: {other}"),
     }

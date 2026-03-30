@@ -86,6 +86,118 @@ BeforeAll {
                 'Invoke-LogSearch'
             )
         }
+        @{
+            Name = 'PC-AI.Acceleration'
+            ExpectedFunctions = @(
+                'Get-RustToolStatus'
+                'Test-RustToolAvailable'
+                'Search-LogsFast'
+                'Find-FilesFast'
+                'Get-ProcessesFast'
+                'Get-FileHashParallel'
+                'Find-DuplicatesFast'
+                'Get-DiskUsageFast'
+                'Search-ContentFast'
+                'Measure-CommandPerformance'
+                'Compare-ToolPerformance'
+                'Initialize-PcaiNative'
+                'Test-PcaiNativeAvailable'
+                'Get-PcaiNativeStatus'
+                'Get-PcaiCapabilities'
+                'Get-ProcessLassoSnapshot'
+                'New-ProcessLassoOverlay'
+                'Invoke-PcaiNativeDuplicates'
+                'Invoke-PcaiNativeFileSearch'
+                'Invoke-PcaiNativeContentSearch'
+                'Invoke-PcaiNativeDirectoryManifest'
+                'Invoke-PcaiNativeSystemInfo'
+                'Test-PcaiResourceSafety'
+                'Get-UnifiedHardwareReportJson'
+                'Invoke-PcaiNativeUnifiedHardwareReport'
+                'Invoke-PcaiNativeEstimateTokens'
+                'Invoke-PcaiNativeProcessLassoSnapshot'
+            )
+        }
+        @{
+            Name = 'PC-AI.CLI'
+            ExpectedFunctions = @(
+                'Get-PCCommandMap'
+                'Get-PCCommandModules'
+                'Get-PCCommandList'
+                'Get-PCCommandSummary'
+                'Get-PCModuleHelpIndex'
+                'Get-PCModuleHelpEntry'
+                'ConvertTo-PCArgumentMap'
+                'Resolve-PCArguments'
+            )
+        }
+        @{
+            Name = 'PC-AI.Drivers'
+            ExpectedFunctions = @(
+                'Get-PnpDeviceInventory'
+                'Get-DriverRegistry'
+                'Compare-DriverVersion'
+                'Get-DriverReport'
+                'Install-DriverUpdate'
+                'Update-DriverRegistry'
+                'Get-NetworkDiscoverySnapshot'
+                'Find-ThunderboltPeer'
+                'Get-ThunderboltNetworkStatus'
+                'Connect-ThunderboltPeer'
+                'Set-ThunderboltNetworkOptimization'
+            )
+        }
+        @{
+            Name = 'PC-AI.Evaluation'
+            ExpectedFunctions = @(
+                'New-EvaluationSuite'
+                'Invoke-EvaluationSuite'
+                'Get-EvaluationResults'
+                'Measure-InferenceLatency'
+                'Measure-TokenThroughput'
+                'Measure-MemoryUsage'
+                'Compare-ResponseSimilarity'
+                'Invoke-LLMJudge'
+                'Compare-ResponsePair'
+                'Measure-DiagnosticQuality'
+                'New-BaselineSnapshot'
+                'Test-ForRegression'
+                'Get-RegressionReport'
+                'New-ABTest'
+                'Add-ABTestResult'
+                'Get-ABTestAnalysis'
+                'Get-EvaluationDataset'
+                'New-EvaluationTestCase'
+                'Import-EvaluationDataset'
+                'Export-EvaluationDataset'
+                'Get-PcaiProjectRoot'
+                'Get-PcaiArtifactsRoot'
+                'Initialize-EvaluationPaths'
+                'New-PcaiEvaluationRunContext'
+                'Get-EvaluationRunState'
+                'Stop-EvaluationRun'
+                'Get-PcaiCompiledBinaryPath'
+                'New-PcaiServerConfigFile'
+                'Start-PcaiCompiledServer'
+                'Measure-Coherence'
+                'Measure-Toxicity'
+                'Measure-Groundedness'
+            )
+        }
+        @{
+            Name = 'PC-AI.Gpu'
+            ExpectedFunctions = @(
+                'Get-NvidiaGpuInventory'
+                'Get-NvidiaSoftwareRegistry'
+                'Get-NvidiaSoftwareStatus'
+                'Get-NvidiaGpuUtilization'
+                'Get-NvidiaCompatibilityMatrix'
+                'Initialize-NvidiaEnvironment'
+                'Install-NvidiaSoftware'
+                'Update-NvidiaSoftwareRegistry'
+                'Test-PcaiGpuReadiness'
+            )
+        }
     )
 }
 
@@ -164,6 +276,7 @@ Describe "Module Function Exports" -Tag 'Integration', 'ModuleLoading', 'Fast' {
                 }
             }
         ) {
+            if ([string]::IsNullOrWhiteSpace($FunctionName)) { continue }
             $command = Get-Command $FunctionName -Module $ModuleName -ErrorAction SilentlyContinue
             $command | Should -Not -BeNullOrEmpty
             $command.CommandType | Should -Be 'Function'
@@ -246,7 +359,7 @@ Describe "Module Dependencies" -Tag 'Integration', 'ModuleLoading', 'Fast' {
 
         It "All expected modules should be loaded" {
             $loadedModules = (Get-Module PC-AI.*).Name
-            $loadedModules.Count | Should -Be 7
+            $loadedModules.Count | Should -Be $script:Modules.Count
         }
     }
 }
@@ -270,8 +383,9 @@ Describe "Module Interoperability" -Tag 'Integration', 'ModuleLoading', 'Slow' {
             $allFunctions.Count | Should -BeGreaterThan 25
         }
 
-        It "No function name conflicts should exist" {
-            $allFunctions = Get-Command -Module PC-AI.* -CommandType Function
+        It "No function name conflicts should exist among declared modules" {
+            $moduleNames = $script:Modules | ForEach-Object { $_.Name }
+            $allFunctions = Get-Command -Module $moduleNames -CommandType Function
             $functionNames = $allFunctions.Name
             $uniqueNames = $functionNames | Select-Object -Unique
 

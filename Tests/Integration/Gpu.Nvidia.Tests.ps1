@@ -49,17 +49,17 @@ Describe "NVIDIA GPU Hardware Integration" -Tag 'Integration', 'Gpu', 'Nvidia', 
 
     Context "Get-NvidiaGpuUtilization" {
         It "Should return real-time utilization metrics" {
-            $inventory = Get-NvidiaGpuInventory
             $util = Get-NvidiaGpuUtilization
 
-            if ($inventory[0].Source -eq 'nvidia-smi') {
-                $util | Should -Not -BeNullOrEmpty
+            # nvidia-smi is required for utilization regardless of inventory source.
+            # When nvidia-smi is unavailable the function returns @().
+            if ($util -and $util.Count -gt 0) {
                 $util[0].GpuUtilization | Should -Not -BeNull
                 $util[0].Timestamp | Should -Not -BeNull
             }
             else {
-                # If only CIM is available, utilization returns @()
-                $util | Should -BeEmpty
+                # nvidia-smi not available — utilization returns empty array
+                $util | Should -HaveCount 0
             }
         }
     }

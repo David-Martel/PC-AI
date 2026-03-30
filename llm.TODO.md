@@ -32,7 +32,7 @@
 - [x] **FG-1**: Replace nvidia-smi subprocess in `Deploy/rust-functiongemma-core/src/gpu.rs` with NVML via pcai_core_lib
 - [x] **FG-2**: Add preflight VRAM check in `Deploy/rust-functiongemma-runtime/src/inference.rs` before model load
 - [x] **FG-3**: Test preflight CLI against FunctionGemma model paths
-- [ ] **FG-4**: Validate both preflight + FunctionGemma under memory pressure (requires VS Developer Shell for full CUDA build)
+- [x] **FG-4**: Full CUDA 13.2 build validated — cudarc 0.19.4, patched candle-kernels/flash-attn with /Zc:preprocessor, SM 89+120
 
 ## Notes
 

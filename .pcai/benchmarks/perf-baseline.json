@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-03-28T00:41:17Z",
+  "git_hash": "99bb6dc",
+  "gpu": "NVIDIA GeForce RTX 5060 Ti",
+  "gpu_memory_bandwidth_gbps": 448.0,
+  "source": "Reports/llm-benchmark-20260328.json",
+  "notes": "Baseline from medium+long prompt averages. Roofline assumes Q4_K_M (4.5 bits) on RTX 5060 Ti (448 GB/s).",
+  "models": {
+    "qwen2.5-coder:3b": {
+      "toks": 119.0,
+      "params_b": 3.0,
+      "quant_bits": 4.5,
+      "theoretical_ceiling": 265.5,
+      "efficiency_pct": 44.8
+    },
+    "qwen2.5-coder:7b": {
+      "toks": 64.4,
+      "params_b": 7.0,
+      "quant_bits": 4.5,
+      "theoretical_ceiling": 113.8,
+      "efficiency_pct": 56.6
+    },
+    "gemma3:4b": {
+      "toks": 77.6,
+      "params_b": 4.0,
+      "quant_bits": 4.5,
+      "theoretical_ceiling": 199.1,
+      "efficiency_pct": 39.0
+    },
+    "deepseek-r1:7b": {
+      "toks": 57.6,
+      "params_b": 7.0,
+      "quant_bits": 4.5,
+      "theoretical_ceiling": 113.8,
+      "efficiency_pct": 50.6
+    },
+    "qwen3:14b": {
+      "toks": 31.8,
+      "params_b": 14.0,
+      "quant_bits": 4.5,
+      "theoretical_ceiling": 56.9,
+      "efficiency_pct": 55.9
+    }
+  }
+}

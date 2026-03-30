@@ -44,11 +44,11 @@
 
 ## Performance Analytics (in progress)
 
-- [ ] **PERF-1**: GPU roofline model — theoretical decode/prefill ceilings per GPU+model combo
-- [ ] **PERF-2**: `pcai-perf roofline` CLI subcommand + `pcai_gpu_roofline_json` FFI
-- [ ] **PERF-3**: Bandwidth efficiency metrics (actual tok/s ÷ theoretical ceiling)
-- [ ] **PERF-4**: CI performance regression detection in benchmark sweep
-- [ ] **PERF-5**: Wire preflight into pcai_inference `pcai_load_model()` and pcai_media backends
+- [x] **PERF-1**: GPU roofline model — theoretical decode/prefill ceilings per GPU+model combo
+- [x] **PERF-2**: `pcai-perf roofline` CLI subcommand + `pcai_gpu_roofline_json` FFI
+- [x] **PERF-3**: Bandwidth efficiency metrics (actual tok/s ÷ theoretical ceiling) — 51-55% measured
+- [x] **PERF-4**: CI performance regression detection — `Invoke-PerfRegression.ps1` + 5-model baseline
+- [x] **PERF-5**: Wire preflight into eval harnesses (Invoke-InferenceEvaluation + Invoke-OllamaBenchmarkSweep)
 - [ ] **PERF-6**: FunctionGemma training metrics — gradient computation time, loss convergence velocity
 
 ## FunctionGemma Training Remaining (from Deploy/rust-functiongemma-train/TODO.md)

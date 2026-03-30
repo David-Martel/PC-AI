@@ -177,6 +177,51 @@ if (-not $OutputPath) {
 Write-Host "Output Root: $OutputRoot" -ForegroundColor DarkGray
 Write-Host "Summary Output: $OutputPath" -ForegroundColor DarkGray
 
+#region Preflight GPU Readiness Check
+
+$script:PreflightResult = $null
+if (Get-Command Test-PcaiGpuReadiness -ErrorAction SilentlyContinue) {
+    $script:PreflightResult = Test-PcaiGpuReadiness -RequiredMB 2000  # 2GB minimum for any inference
+    Write-Host "[Preflight] GPU: $($script:PreflightResult.Verdict) — $($script:PreflightResult.Reason)"
+    if ($script:PreflightResult.Verdict -eq 'fail') {
+        Write-Warning "Preflight VRAM check failed. Inference may OOM."
+        if ($script:PreflightResult.Gpus) {
+            foreach ($gpu in $script:PreflightResult.Gpus) {
+                Write-Warning "  GPU$($gpu.index) ($($gpu.name)): $($gpu.free_mb)MB free / $($gpu.total_mb)MB total"
+                foreach ($proc in $gpu.processes | Select-Object -First 3) {
+                    Write-Warning "    $($proc.name) ($($proc.pid)): $($proc.used_mb)MB"
+                }
+            }
+        }
+    }
+
+    # Emit preflight event to structured event log
+    if ($EmitStructuredMessages) {
+        $preflightEvent = [ordered]@{
+            ts    = (Get-Date).ToUniversalTime().ToString('o')
+            type  = 'preflight'
+            level = if ($script:PreflightResult.Verdict -eq 'fail') { 'warn' } else { 'info' }
+            message = "GPU readiness: $($script:PreflightResult.Verdict)"
+            data  = @{
+                verdict = $script:PreflightResult.Verdict
+                reason  = $script:PreflightResult.Reason
+                gpus    = $script:PreflightResult.Gpus
+            }
+        }
+        $preflightJson = $preflightEvent | ConvertTo-Json -Compress -Depth 5
+        $eventsLogPath = if ($batchContext) { $batchContext.EventsLogPath } else { $null }
+        if ($eventsLogPath) {
+            $eventsDir = Split-Path -Parent $eventsLogPath
+            if ($eventsDir -and -not (Test-Path $eventsDir)) {
+                New-Item -ItemType Directory -Path $eventsDir -Force | Out-Null
+            }
+            Add-Content -Path $eventsLogPath -Value $preflightJson
+        }
+    }
+}
+
+#endregion
+
 #region Helper Functions
 
 function Write-Section {

@@ -111,6 +111,37 @@ Import-Module (Join-Path $repoRoot 'Modules\PC-AI.LLM\PC-AI.LLM.psd1') -Force
 $status = Get-LLMStatus
 $availableOllamaModels = @($status.Ollama.AvailableModels | ForEach-Object { $_.Name })
 
+#region Preflight GPU Readiness Check
+
+$script:PreflightResult = $null
+if (Get-Command Test-PcaiGpuReadiness -ErrorAction SilentlyContinue) {
+    $script:PreflightResult = Test-PcaiGpuReadiness -RequiredMB 2000  # 2GB minimum for any inference
+    Write-Host "[Preflight] GPU: $($script:PreflightResult.Verdict) — $($script:PreflightResult.Reason)"
+    if ($script:PreflightResult.Verdict -eq 'fail') {
+        Write-Warning "Preflight VRAM check failed. Inference may OOM."
+        if ($script:PreflightResult.Gpus) {
+            foreach ($gpu in $script:PreflightResult.Gpus) {
+                Write-Warning "  GPU$($gpu.index) ($($gpu.name)): $($gpu.free_mb)MB free / $($gpu.total_mb)MB total"
+                foreach ($proc in $gpu.processes | Select-Object -First 3) {
+                    Write-Warning "    $($proc.name) ($($proc.pid)): $($proc.used_mb)MB"
+                }
+            }
+        }
+    }
+
+    # Write preflight result to run output
+    $preflightPath = Join-Path $runRoot 'preflight.json'
+    $preflightPayload = [ordered]@{
+        timestamp = (Get-Date).ToUniversalTime().ToString('o')
+        verdict   = $script:PreflightResult.Verdict
+        reason    = $script:PreflightResult.Reason
+        gpus      = $script:PreflightResult.Gpus
+    }
+    $preflightPayload | ConvertTo-Json -Depth 5 | Set-Content -Path $preflightPath -Encoding UTF8
+}
+
+#endregion
+
 $candidateModels = @($benchmarkConfig['candidateModels'])
 if ($Models -and $Models.Count -gt 0) {
     $candidateModels = @($candidateModels | Where-Object { (Get-ObjectValue -Object $_ -Name 'name') -in $Models })

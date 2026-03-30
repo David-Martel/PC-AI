@@ -53,6 +53,10 @@ Describe "Invoke-FunctionGemmaReAct tool execution" -Tag 'Integration', 'Router'
     }
 
     It "Should execute docker status tool call from FunctionGemma" {
+        # Skip when FunctionGemma router is not running
+        $fgUp = try { $null = Invoke-RestMethod -Uri 'http://127.0.0.1:8000/health' -TimeoutSec 2; $true } catch { $false }
+        if (-not $fgUp) { Set-ItResult -Skipped -Because 'FunctionGemma router not running at localhost:8000'; return }
+
         $result = Invoke-FunctionGemmaReAct -Prompt "Check Docker status" -ExecuteTools -ToolsPath $script:ToolsPath -MaxToolCalls 1
 
         $result.ToolCalls.Count | Should -Be 1

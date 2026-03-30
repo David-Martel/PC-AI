@@ -4,7 +4,6 @@ pub mod data_gen;
 pub mod dataset;
 pub mod early_stopping;
 pub mod eval;
-pub mod lora;
 pub mod router_dataset;
 pub mod scheduler;
 pub mod schema_utils;

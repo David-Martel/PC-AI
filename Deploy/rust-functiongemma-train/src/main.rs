@@ -287,6 +287,9 @@ enum Commands {
         progress_json: bool,
         #[arg(long)]
         optimizer: Option<String>,
+        /// Resume training from a checkpoint directory
+        #[arg(long)]
+        resume: Option<String>,
     },
     /// Evaluate a trained model or adapter
     Eval {
@@ -518,6 +521,7 @@ fn main() -> Result<()> {
             progress_interval,
             progress_json,
             optimizer,
+            resume,
         } => {
             if train_config().cuda_launch_blocking.unwrap_or(false) {
                 // SAFETY: Called on the main thread before any other threads are
@@ -685,6 +689,11 @@ fn main() -> Result<()> {
             };
             let mut trainer = Trainer::new(model, &config, t_cfg, device, cuda_index, varmap);
 
+            if let Some(ref checkpoint_path) = resume {
+                trainer.resume_from_checkpoint(std::path::Path::new(checkpoint_path))?;
+                println!("Resumed from checkpoint: {}", checkpoint_path);
+            }
+
             let run_metrics = trainer.train(&dataset, tokenizer.as_ref(), eval_dataset.as_ref())?;
 
             let output_path = PathBuf::from(&output);
@@ -809,7 +818,7 @@ fn main() -> Result<()> {
                 let item = &dataset.items[i];
                 // For eval, we want to prompt with all messages EXCEPT the last model response
                 let mut eval_item = item.clone();
-                if let Some(last) = eval_item.messages.last_mut() {
+                if let Some(last) = eval_item.messages.last() {
                     if last.role == "assistant" || last.role == "model" {
                         eval_item.messages.pop();
                     }

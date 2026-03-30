@@ -104,6 +104,29 @@ impl Default for TrainerConfig {
     }
 }
 
+/// Compute the slope of the ordinary least-squares regression line for the
+/// given `(x, y)` points.
+///
+/// Formula: slope = sum((xi - x_mean) * (yi - y_mean)) / sum((xi - x_mean)^2)
+///
+/// Returns `0.0` when there are fewer than 2 data points or the denominator is
+/// effectively zero (all x values are identical).
+fn linear_regression_slope(points: &[(f64, f64)]) -> f64 {
+    if points.len() < 2 {
+        return 0.0;
+    }
+    let n = points.len() as f64;
+    let x_mean = points.iter().map(|(x, _)| x).sum::<f64>() / n;
+    let y_mean = points.iter().map(|(_, y)| y).sum::<f64>() / n;
+    let numerator: f64 = points.iter().map(|(x, y)| (x - x_mean) * (y - y_mean)).sum();
+    let denominator: f64 = points.iter().map(|(x, _)| (x - x_mean).powi(2)).sum();
+    if denominator.abs() < f64::EPSILON {
+        0.0
+    } else {
+        numerator / denominator
+    }
+}
+
 pub struct Trainer<'a> {
     pub model: Model,
     pub config: &'a Config,
@@ -287,6 +310,9 @@ impl<'a> Trainer<'a> {
         let mut all_step_metrics: Vec<TrainingStepMetrics> = Vec::new();
         let mut total_tokens_processed: usize = 0;
 
+        // Enable training mode so LoRA dropout is applied during forward passes
+        self.model.set_training(true);
+
         for epoch in 0..self.trainer_cfg.epochs {
             if self.trainer_cfg.progress_json {
                 println!(
@@ -384,22 +410,36 @@ impl<'a> Trainer<'a> {
                     let bwd_ms = bwd_start.elapsed().as_secs_f64() * 1000.0;
                     accum_bwd_ms += bwd_ms;
 
-                    if let Some(accum) = grad_accum_store.as_mut() {
-                        for var in trainable_vars.iter() {
-                            let tensor = var.as_tensor();
-                            if let Some(g) = grads.get(&tensor) {
-                                if let Some(existing) = accum.get(&tensor) {
-                                    let merged = existing.add(g)?;
-                                    accum.insert(&tensor, merged);
-                                } else {
-                                    accum.insert(&tensor, g.clone());
-                                }
+                    // Accumulate only trainable (LoRA) parameter gradients.
+                    // backward() returns gradients for every tensor in the
+                    // computation graph; storing all of them in the accumulator
+                    // wastes VRAM on frozen base-model weights.  By always
+                    // extracting only trainable_vars we keep memory proportional
+                    // to the LoRA adapter size, not the full model.
+                    if grad_accum_store.is_none() {
+                        // First micro-batch: create an empty GradStore.
+                        // GradStore::new() is private in candle, so we obtain
+                        // one via backward() on a detached zero scalar (cheap).
+                        let seed = candle_core::Var::from_tensor(
+                            &candle_core::Tensor::new(&[0.0f32], &self.device)?,
+                        )?;
+                        let mut empty = seed.as_tensor().backward()?;
+                        empty.remove(seed.as_tensor());
+                        grad_accum_store = Some(empty);
+                    }
+                    let accum = grad_accum_store.as_mut().expect("initialized above");
+                    for var in trainable_vars.iter() {
+                        let tensor = var.as_tensor();
+                        if let Some(g) = grads.get(&tensor) {
+                            if let Some(existing) = accum.get(&tensor) {
+                                let merged = existing.add(g)?;
+                                accum.insert(&tensor, merged);
+                            } else {
+                                accum.insert(&tensor, g.clone());
                             }
                         }
-                        drop(grads);
-                    } else {
-                        grad_accum_store = Some(grads);
                     }
+                    drop(grads);
 
                     // Drop intermediates to avoid graph creep and reduce peak memory.
                     drop(logits);
@@ -499,6 +539,8 @@ impl<'a> Trainer<'a> {
 
             let mut metric_loss = avg_epoch_loss;
             if let Some(eval_ds) = eval_dataset {
+                // Disable training mode (turns off LoRA dropout) for evaluation
+                self.model.set_training(false);
                 match self.evaluate_loss(eval_ds, tokenizer) {
                     Ok(eval_loss) => {
                         metric_loss = eval_loss;
@@ -508,6 +550,8 @@ impl<'a> Trainer<'a> {
                         println!("Eval failed: {:?}", err);
                     }
                 }
+                // Re-enable training mode for subsequent epochs
+                self.model.set_training(true);
             }
 
             // Update best loss
@@ -529,6 +573,9 @@ impl<'a> Trainer<'a> {
             }
         }
 
+        // Disable training mode now that training is complete
+        self.model.set_training(false);
+
         // Save final checkpoint
         self.save_checkpoint(last_epoch, best_loss)?;
 
@@ -547,17 +594,17 @@ impl<'a> Trainer<'a> {
             0.0
         };
 
-        // Loss convergence rate: loss reduction per 100 steps
-        // Computed via linear regression slope scaled to 100 steps
+        // Loss convergence rate: loss reduction per 100 steps, computed via
+        // ordinary least-squares linear regression over all step losses.
+        // A negative value means the loss is decreasing (good).
         let loss_convergence_rate = if total_steps >= 2 {
-            let first_loss = all_step_metrics[0].loss;
-            let last_loss = final_loss;
-            let step_span = (total_steps - 1) as f64;
-            if step_span > 0.0 {
-                ((last_loss - first_loss) / step_span) * 100.0
-            } else {
-                0.0
-            }
+            let slope = linear_regression_slope(
+                &all_step_metrics
+                    .iter()
+                    .map(|m| (m.step as f64, m.loss))
+                    .collect::<Vec<_>>(),
+            );
+            slope * 100.0
         } else {
             0.0
         };
@@ -925,12 +972,19 @@ impl<'a> Trainer<'a> {
         candle_core::safetensors::save(&lora_vars, &weights_path)?;
 
         // Create checkpoint metadata
+        // NOTE: Optimizer state (Adam moments) and RNG state are not yet serialized.
+        // On resume, the optimizer reinitializes from scratch and shuffling order
+        // may differ. This can cause a brief loss spike after resuming.
+        eprintln!(
+            "Warning: Checkpoint does not include optimizer state or RNG state. \
+             On resume, optimizer moments will reinitialize and training shuffle order may differ."
+        );
         let checkpoint = Checkpoint {
             epoch,
             global_step: self.global_step,
             best_loss,
-            optimizer_state: vec![], // TODO: Save optimizer state if needed
-            rng_state: None,         // TODO: Save RNG state for reproducibility
+            optimizer_state: vec![],
+            rng_state: None,
         };
 
         checkpoint.save(&checkpoint_dir)?;
@@ -947,6 +1001,20 @@ impl<'a> Trainer<'a> {
 
         println!("Resuming from checkpoint at step {}", self.global_step);
         println!("Previous best loss: {:.4}", checkpoint.best_loss);
+
+        if checkpoint.optimizer_state.is_empty() {
+            eprintln!(
+                "Warning: Checkpoint has no saved optimizer state. \
+                 Optimizer moments (Adam beta1/beta2) will reinitialize from scratch, \
+                 which may cause a brief loss spike."
+            );
+        }
+        if checkpoint.rng_state.is_none() {
+            eprintln!(
+                "Warning: Checkpoint has no saved RNG state. \
+                 Data shuffling order will differ from the original run."
+            );
+        }
 
         // Load model weights
         let weights_path = checkpoint_path.join("adapter_model.safetensors");

@@ -4,6 +4,7 @@ use candle_core::{DType, Device, Module, Result, Tensor};
 use candle_nn::{Activation, Linear, VarBuilder};
 use qlora_rs::{dequantize_nf4, QLoraConfig, QLoraLayer, QuantizedLinear};
 use serde::Deserialize;
+use std::cell::Cell;
 
 #[cfg(feature = "flash-attn")]
 use candle_flash_attn as flash_attn_backend;
@@ -51,6 +52,8 @@ pub struct LoraLinear {
     lora_a: Option<Tensor>,
     lora_b: Option<Tensor>,
     scale: f64,
+    dropout: f64,
+    training: Cell<bool>,
     qlora: Option<QuantizedLinear>,
     qmatmul: Option<QMatMul>,
 }
@@ -63,6 +66,8 @@ impl std::fmt::Debug for LoraLinear {
             .field("has_qlora", &self.qlora.is_some())
             .field("has_qmatmul", &self.qmatmul.is_some())
             .field("scale", &self.scale)
+            .field("dropout", &self.dropout)
+            .field("training", &self.training.get())
             .finish()
     }
 }
@@ -90,6 +95,8 @@ impl LoraLinear {
                 lora_a: None,
                 lora_b: None,
                 scale: qlora_cfg.scale(),
+                dropout: settings.dropout,
+                training: Cell::new(false),
                 qlora: Some(qlora),
                 qmatmul: None,
             });
@@ -123,6 +130,8 @@ impl LoraLinear {
             lora_a,
             lora_b,
             scale: settings.scale(),
+            dropout: settings.dropout,
+            training: Cell::new(false),
             qlora: None,
             qmatmul,
         })
@@ -175,6 +184,14 @@ impl LoraLinear {
         }
         Ok(())
     }
+
+    /// Set training mode. When `true`, LoRA dropout is applied during the
+    /// forward pass.  Uses interior mutability (`Cell`) so this works through
+    /// shared references, which is required because `Module::forward` takes
+    /// `&self`.
+    pub fn set_training(&self, training: bool) {
+        self.training.set(training);
+    }
 }
 
 impl Module for LoraLinear {
@@ -218,7 +235,14 @@ impl Module for LoraLinear {
             let x_flat = x.reshape((b_sz * seq_len, hidden_dim))?;
             let lora_out = x_flat.matmul(&a.t()?)?.matmul(&b.t()?)?;
             let lora_out = lora_out.reshape((b_sz, seq_len, ()))?;
-            Ok(base_out.add(&(lora_out.affine(self.scale, 0.0)?))?)
+            let lora_out = lora_out.affine(self.scale, 0.0)?;
+            // Apply dropout to the LoRA output when in training mode
+            let lora_out = if self.dropout > 0.0 && self.training.get() {
+                candle_nn::ops::dropout(&lora_out, self.dropout as f32)?
+            } else {
+                lora_out
+            };
+            Ok(base_out.add(&lora_out)?)
         } else {
             Ok(base_out)
         }
@@ -268,6 +292,12 @@ impl Mlp {
             down_proj,
             act: Activation::Gelu,
         })
+    }
+
+    fn set_training(&self, training: bool) {
+        self.gate_proj.set_training(training);
+        self.up_proj.set_training(training);
+        self.down_proj.set_training(training);
     }
 }
 
@@ -849,6 +879,13 @@ impl Attention {
             x.reshape((b, n_kv_head * n_rep, seq_len, head_dim))
         }
     }
+
+    fn set_training(&self, training: bool) {
+        self.q_proj.set_training(training);
+        self.k_proj.set_training(training);
+        self.v_proj.set_training(training);
+        self.o_proj.set_training(training);
+    }
 }
 
 #[derive(Debug)]
@@ -1000,6 +1037,11 @@ impl DecoderLayer {
         let x = self.mlp.forward(&x)?;
         let x = (x + residual)?;
         self.post_feedforward_layernorm.forward(&x)
+    }
+
+    fn set_training(&self, training: bool) {
+        self.self_attn.set_training(training);
+        self.mlp.set_training(training);
     }
 }
 
@@ -1519,6 +1561,17 @@ impl Model {
             current_ids = Tensor::cat(&[&current_ids, &next_tensor], 1)?;
         }
         Ok(generated)
+    }
+
+    /// Enable or disable training mode for all LoRA layers in the model.
+    ///
+    /// When training mode is active, LoRA dropout is applied during the forward
+    /// pass.  Call `set_training(false)` before evaluation or inference to
+    /// disable dropout.
+    pub fn set_training(&self, training: bool) {
+        for layer in &self.layers {
+            layer.set_training(training);
+        }
     }
 
     pub fn merge_adapters(&mut self) -> Result<()> {

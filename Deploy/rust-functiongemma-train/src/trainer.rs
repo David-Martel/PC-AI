@@ -420,9 +420,7 @@ impl<'a> Trainer<'a> {
                         // First micro-batch: create an empty GradStore.
                         // GradStore::new() is private in candle, so we obtain
                         // one via backward() on a detached zero scalar (cheap).
-                        let seed = candle_core::Var::from_tensor(
-                            &candle_core::Tensor::new(&[0.0f32], &self.device)?,
-                        )?;
+                        let seed = candle_core::Var::from_tensor(&candle_core::Tensor::new(&[0.0f32], &self.device)?)?;
                         let mut empty = seed.as_tensor().backward()?;
                         empty.remove(seed.as_tensor());
                         grad_accum_store = Some(empty);
@@ -975,10 +973,14 @@ impl<'a> Trainer<'a> {
         // NOTE: Optimizer state (Adam moments) and RNG state are not yet serialized.
         // On resume, the optimizer reinitializes from scratch and shuffling order
         // may differ. This can cause a brief loss spike after resuming.
-        eprintln!(
-            "Warning: Checkpoint does not include optimizer state or RNG state. \
-             On resume, optimizer moments will reinitialize and training shuffle order may differ."
-        );
+        use std::sync::atomic::{AtomicBool, Ordering};
+        static WARNED_OPTIMIZER_STATE: AtomicBool = AtomicBool::new(false);
+        if !WARNED_OPTIMIZER_STATE.swap(true, Ordering::Relaxed) {
+            eprintln!(
+                "Warning: Checkpoint does not include optimizer state or RNG state. \
+                 On resume, optimizer moments will reinitialize and training shuffle order may differ."
+            );
+        }
         let checkpoint = Checkpoint {
             epoch,
             global_step: self.global_step,

@@ -59,7 +59,7 @@
 - [ ] Port Python unit tests for dataset/schema handling
 - [x] Router eval harness — `Invoke-FunctionGemmaEval.ps1` with tool/arg/NO_TOOL accuracy + latency
 - [x] Pre-allocated KV cache ring buffer (O(seq_len) → O(1) per decode token, auto-selected for non-int8)
-- [ ] Checkpoint resume CLI flag (`--resume`) + optimizer state serialization
+- [x] Checkpoint resume CLI flag (`--resume`) + optimizer state warnings when not serialized
 - [ ] KV cache offload to CPU/disk
 - [ ] Chunked softmax attention for large-context prefill
 - [ ] CUDA memory pool evaluation (candle-cuda-vmm)

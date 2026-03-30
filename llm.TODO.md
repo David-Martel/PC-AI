@@ -27,6 +27,13 @@
 - **Task 8** (2026-03-30): `FFI.Preflight.Tests.ps1` — 8 passed, 4 skipped (need compiled nvml DLL). Auto-activate when DLL available.
 - **Task 9** (2026-03-30): Final verification — 26/26 Rust tests pass. Format clean. Zero clippy errors in preflight (2 pre-existing in telemetry/). CLI smoke: both GPUs visible, verdicts correct, exit codes working.
 
+## FunctionGemma Integration (next phase)
+
+- [x] **FG-1**: Replace nvidia-smi subprocess in `Deploy/rust-functiongemma-core/src/gpu.rs` with NVML via pcai_core_lib
+- [x] **FG-2**: Add preflight VRAM check in `Deploy/rust-functiongemma-runtime/src/inference.rs` before model load
+- [x] **FG-3**: Test preflight CLI against FunctionGemma model paths
+- [ ] **FG-4**: Validate both preflight + FunctionGemma under memory pressure (requires VS Developer Shell for full CUDA build)
+
 ## Notes
 
 - No new Cargo dependencies needed (nvml-wrapper, sysinfo, memmap2 already in workspace)

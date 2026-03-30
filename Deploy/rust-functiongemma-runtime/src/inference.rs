@@ -90,6 +90,32 @@ fn load_model_cache() -> anyhow::Result<ModelCache> {
     maybe_configure_cuda_mem_pool(device_index);
     maybe_log_cuda_snapshot("before_model_load", device_index);
 
+    // Preflight VRAM check: verify sufficient free memory before loading weights.
+    // This turns opaque CUDA OOM crashes into actionable error messages.
+    if let Some(idx) = device_index {
+        if let Some(snapshot) = rust_functiongemma_core::gpu::cuda_mem_snapshot(Some(idx)) {
+            let free_mb = snapshot.free_mb();
+            let min_mb = runtime_config().min_vram_mb.unwrap_or(0);
+            tracing::info!(
+                gpu = idx,
+                free_mb = free_mb,
+                total_mb = snapshot.total_mb(),
+                used_mb = snapshot.used_mb(),
+                min_vram_mb = min_mb,
+                "preflight VRAM check"
+            );
+            if min_mb > 0 && free_mb < min_mb {
+                return Err(anyhow::anyhow!(
+                    "Preflight VRAM check failed: GPU{} has {}MB free but {}MB required. \
+                     Unload other models or reduce min_vram_mb in config.",
+                    idx,
+                    free_mb,
+                    min_mb
+                ));
+            }
+        }
+    }
+
     let model_files = collect_model_safetensors(&model_path);
     if model_files.is_empty() {
         return Err(anyhow::anyhow!(

@@ -3,6 +3,142 @@ use candle_core::quantized::GgmlDType;
 use candle_core::{DType, Device};
 use std::ffi::c_void;
 use std::process::Command;
+#[cfg(feature = "nvml")]
+use std::sync::OnceLock;
+
+// ---------------------------------------------------------------------------
+// NVML singleton (feature-gated)
+// ---------------------------------------------------------------------------
+
+/// Process-wide NVML singleton.
+///
+/// NVML must not be initialised and torn down on every call — the library
+/// loads the kernel driver on `Nvml::init()` and unloads it on `Drop`.
+/// Repeated init/drop cycles waste time and can cause driver-level reference
+/// counting issues on some platforms.
+///
+/// `OnceLock` guarantees that `Nvml::init()` is called exactly once across all
+/// threads; subsequent calls return a reference to the already-initialised
+/// instance.  The `Option` encodes permanent initialisation failure so callers
+/// can fall back without retrying.
+#[cfg(feature = "nvml")]
+static NVML: OnceLock<Option<nvml_wrapper::Nvml>> = OnceLock::new();
+
+/// Return a reference to the process-wide NVML singleton, initialising it on
+/// the first call.
+///
+/// Returns `None` (after logging via tracing) if NVML is unavailable — e.g. no
+/// NVIDIA driver is installed or the library is not present.
+#[cfg(feature = "nvml")]
+fn get_nvml() -> Option<&'static nvml_wrapper::Nvml> {
+    NVML.get_or_init(|| match nvml_wrapper::Nvml::init() {
+        Ok(nvml) => Some(nvml),
+        Err(err) => {
+            tracing::warn!(
+                "NVML initialisation failed (no NVIDIA driver or NVML not \
+                 available): {err}"
+            );
+            None
+        }
+    })
+    .as_ref()
+}
+
+// ---------------------------------------------------------------------------
+// NVML GPU discovery (~1ms vs ~800ms for nvidia-smi)
+// ---------------------------------------------------------------------------
+
+/// Query GPUs via NVML, applying the same filtering and scoring as
+/// [`query_nvidia_smi`].  Returns an empty `Vec` if NVML is unavailable.
+///
+/// This is ~800x faster than spawning an nvidia-smi subprocess because NVML
+/// uses direct driver ioctls rather than process creation + CSV parsing.
+#[cfg(feature = "nvml")]
+pub fn query_gpus_nvml(min_vram_mb: Option<u64>, visible_devices: &[usize]) -> Vec<GpuInfo> {
+    let nvml = match get_nvml() {
+        Some(n) => n,
+        None => return Vec::new(),
+    };
+
+    let count = match nvml.device_count() {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+
+    let mut gpus = Vec::new();
+    for raw_idx in 0..count {
+        let idx = raw_idx as usize;
+
+        if !visible_devices.is_empty() && !visible_devices.contains(&idx) {
+            continue;
+        }
+
+        let device = match nvml.device_by_index(raw_idx) {
+            Ok(d) => d,
+            Err(_) => continue,
+        };
+
+        let name = device.name().unwrap_or_else(|_| format!("GPU {idx}"));
+
+        let memory_mb = device
+            .memory_info()
+            .map(|mi| mi.total / (1024 * 1024))
+            .unwrap_or(0);
+
+        if let Some(min) = min_vram_mb {
+            if memory_mb < min {
+                continue;
+            }
+        }
+
+        // Apply the same scoring heuristic as the nvidia-smi path.
+        let mut score = memory_mb as i64;
+        let name_lower = name.to_lowercase();
+        if name_lower.contains("5060") {
+            score += 1_000_000;
+        }
+        if name_lower.contains("rtx") && name_lower.contains("2000") {
+            score += 500_000;
+        }
+        if name_lower.contains("ada") {
+            score += 50_000;
+        }
+
+        let runtime_index = if !visible_devices.is_empty() {
+            visible_devices.iter().position(|v| *v == idx).unwrap_or(0)
+        } else {
+            idx
+        };
+
+        gpus.push(GpuInfo {
+            physical_index: idx,
+            runtime_index,
+            name,
+            memory_mb,
+            score,
+        });
+    }
+
+    gpus
+}
+
+/// Query CUDA memory usage via NVML instead of cudarc.
+///
+/// This is useful for preflight-style diagnostics where cudarc may not be
+/// initialised yet.  Returns `None` if NVML is unavailable or the device
+/// index is out of range.
+#[cfg(feature = "nvml")]
+pub fn cuda_mem_snapshot_nvml(device_index: u32) -> Option<CudaMemSnapshot> {
+    let nvml = get_nvml()?;
+    let device = nvml.device_by_index(device_index).ok()?;
+    let mem = device.memory_info().ok()?;
+    let used = mem.total.saturating_sub(mem.free);
+    Some(CudaMemSnapshot {
+        free_bytes: mem.free,
+        total_bytes: mem.total,
+        used_bytes: used,
+    })
+}
 
 // ---------------------------------------------------------------------------
 // GPU discovery (nvidia-smi)
@@ -20,9 +156,22 @@ pub struct GpuInfo {
 
 /// Query nvidia-smi for available GPUs, filtered by `min_vram_mb` and
 /// `visible_devices`.  Pass an empty slice for `visible_devices` to consider
-/// all GPUs.  This function spawns a subprocess every time it is called;
-/// callers should cache the result when appropriate.
+/// all GPUs.
+///
+/// When the `nvml` feature is enabled, this function first attempts a direct
+/// NVML query (~1 ms) and only falls back to spawning the nvidia-smi
+/// subprocess (~800 ms) when NVML is unavailable.
 pub fn query_nvidia_smi(min_vram_mb: Option<u64>, visible_devices: &[usize]) -> Vec<GpuInfo> {
+    // Fast path: try NVML first when available.
+    #[cfg(feature = "nvml")]
+    {
+        let result = query_gpus_nvml(min_vram_mb, visible_devices);
+        if !result.is_empty() {
+            return result;
+        }
+    }
+
+    // Slow path: spawn nvidia-smi subprocess.
     let output = Command::new("nvidia-smi")
         .args(["--query-gpu=index,name,memory.total", "--format=csv,noheader,nounits"])
         .output();

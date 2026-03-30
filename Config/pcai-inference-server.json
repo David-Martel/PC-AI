@@ -2,7 +2,11 @@
 	"backend": {
 		"type": "llama_cpp",
 		"n_gpu_layers": -1,
-		"n_ctx": 4096
+		"n_ctx": 4096,
+		"flash_attention": true,
+		"_comment_gpu_layers": "n_gpu_layers=-1 offloads all transformer layers to GPU. Set to 0 for CPU-only, or a positive integer for partial offload (e.g. 20 for ~60% of a 7B model). Each layer costs ~120-200MB VRAM depending on model architecture and quantization.",
+		"_comment_ctx": "n_ctx=4096 is the safe default for single-GPU 8GB (RTX 2000 Ada). For 16GB GPU (RTX 5060 Ti), can go up to 8192-16384 with 7B Q4_K_M. Context VRAM cost: ~2MB per 1K tokens for 7B models. 128K context on 7B requires ~25GB — will OOM on consumer cards.",
+		"_comment_flash_attn": "flash_attention=true reduces KV cache VRAM by ~50% and improves throughput at long contexts. Requires SM>=80 (Ampere+). Both RTX 2000 Ada (SM89) and RTX 5060 Ti (SM120) support this."
 	},
 	"model": {
 		"path": "Models/linked/Qwen2.5-0.5B-Instruct-Q8_0.gguf.gguf",
@@ -18,5 +22,37 @@
 		"host": "127.0.0.1",
 		"port": 8085,
 		"cors": true
+	},
+	"_performance_notes": {
+		"roofline_model": {
+			"description": "Expected tok/s by model size and quantization on this hardware",
+			"RTX_2000_Ada_8GB": {
+				"0.5B_Q8": "~180 tok/s (fully compute-bound)",
+				"3B_Q4_K_M": "~80-100 tok/s (compute-bound, fits in VRAM)",
+				"7B_Q4_K_M": "~40-60 tok/s (memory-bandwidth-bound at 8GB)",
+				"7B_Q8": "Does not fit — requires >8GB VRAM"
+			},
+			"RTX_5060_Ti_16GB": {
+				"0.5B_Q8": "~250 tok/s",
+				"3B_Q4_K_M": "~120-150 tok/s",
+				"7B_Q4_K_M": "~60-90 tok/s (fits fully, compute-bound)",
+				"14B_Q4_K_M": "~30-45 tok/s (memory-bandwidth-bound)",
+				"30B_Q4_K_M": "Does not fit — requires >16GB VRAM"
+			}
+		},
+		"context_vram_cost": {
+			"description": "Approximate additional VRAM per 1K context tokens (KV cache)",
+			"7B_model": "~2 MB/1K tokens (with flash attention), ~4 MB/1K tokens (without)",
+			"3B_model": "~1 MB/1K tokens (with flash attention)"
+		},
+		"optimization_checklist": [
+			"Set n_gpu_layers=-1 for full GPU offload (verify with nvidia-smi that model fits)",
+			"Enable flash_attention=true on SM>=80 GPUs to halve KV cache VRAM",
+			"Keep n_ctx as small as your workload allows — VRAM scales linearly with context",
+			"Use Q4_K_M quantization as the default quality/speed tradeoff",
+			"For dual-GPU: set OLLAMA_SCHED_SPREAD=true to distribute layers",
+			"For single-user: set OLLAMA_NUM_PARALLEL=1 and OLLAMA_MAX_LOADED_MODELS=1",
+			"Run Test-PcaiGpuReadiness -ModelPath <gguf> to verify model fits before loading"
+		]
 	}
 }

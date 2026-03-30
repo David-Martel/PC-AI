@@ -78,7 +78,7 @@ struct OllamaConfig {
     #[serde(default, rename = "num_ctx")]
     num_ctx: u64,
     #[serde(default, rename = "num_gpu")]
-    num_gpu: u32,
+    num_gpu: i32,
     #[serde(default, rename = "num_thread")]
     num_thread: u32,
     #[serde(default, rename = "num_predict")]
@@ -613,8 +613,17 @@ fn build_options(config: &RootConfig, request: &ChatRequest, prompt_chars: usize
     let max_tokens = request.max_tokens.unwrap_or(config.ollama.num_predict);
     options = options.num_predict(max_tokens);
 
-    if config.ollama.num_gpu > 0 {
-        options = options.num_gpu(config.ollama.num_gpu);
+    // num_gpu: -1 = all layers on GPU (Ollama convention), 0 = omit (Ollama
+    // defaults to full offload), >0 = explicit layer count.  The ollama-rs
+    // ModelOptions::num_gpu takes u32, so map -1 to 999 (Ollama caps at the
+    // actual layer count).
+    if config.ollama.num_gpu != 0 {
+        let gpu_layers = if config.ollama.num_gpu < 0 {
+            999_u32
+        } else {
+            config.ollama.num_gpu as u32
+        };
+        options = options.num_gpu(gpu_layers);
     }
     let num_thread = request.num_thread.unwrap_or(config.ollama.num_thread);
     if num_thread > 0 {

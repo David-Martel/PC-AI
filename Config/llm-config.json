@@ -30,10 +30,44 @@
   "ollama": {
     "base_url": "http://127.0.0.1:11434",
     "model": "qwen2.5-coder:3b",
+    "tool_model": "qwen3:14b",
+    "summary_model": "qwen2.5-coder:3b",
     "timeout_ms": 180000,
     "toolInvokerPath": "Tools/Invoke-PcaiMappedTool.ps1",
-    "num_ctx": 32768,
-    "num_predict": 16384
+    "enabled": true,
+
+    "_comment_gpu": "num_gpu=-1 offloads all layers to GPU; use 0 for CPU-only",
+    "num_gpu": -1,
+    "num_thread": 8,
+    "num_ctx": 4096,
+    "num_predict": 512,
+    "temperature": 0.15,
+
+    "_comment_sampling": "Sampling parameters tuned for deterministic diagnostic output",
+    "top_p": 0.9,
+    "top_k": 40,
+    "repeat_last_n": 64,
+    "repeat_penalty": 1.1,
+    "tfs_z": 1.0,
+    "seed": 0,
+
+    "_comment_adaptive_ctx": "Adaptive context scales num_ctx based on prompt length to save VRAM",
+    "adaptive_ctx_enabled": true,
+    "adaptive_ctx_min": 2048,
+    "adaptive_ctx_max": 32768,
+    "adaptive_ctx_chars_per_token": 4,
+    "adaptive_ctx_base_headroom": 1024,
+    "adaptive_ctx_step_tokens": 4096,
+
+    "_comment_model_management": "Model lifecycle: keep warm 30min, auto-pull if missing",
+    "keep_alive_seconds": 1800,
+    "auto_detect_models": true,
+    "required_models": ["qwen2.5-coder:3b"],
+    "warm_models_on_start": false,
+    "auto_pull_missing_models": true,
+    "strict_model_selection": false,
+
+    "_comment_env_tuning": "Set these Ollama env vars for optimal single-user performance: OLLAMA_NUM_PARALLEL=1 (single-user, no request queuing overhead), OLLAMA_SCHED_SPREAD=true (spread layers across dual GPUs for higher throughput), OLLAMA_MAX_LOADED_MODELS=1 (free VRAM from idle models), OLLAMA_FLASH_ATTENTION=1 (enable flash attention for reduced VRAM at long contexts)"
   },
   "fallbackOrder": [
     "ollama",

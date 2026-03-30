@@ -208,6 +208,22 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
         None
     };
 
+    // Resolve the effective seed: per-request seed takes priority, then the
+    // config-level default.  With greedy (argmax) decoding the seed does not
+    // affect output, but we log it for traceability.
+    let effective_seed: Option<u64> = req
+        .seed
+        .map(|s| s as u64)
+        .or(runtime_config().router_seed);
+    let effective_temp = req
+        .temperature
+        .unwrap_or(runtime_config().router_default_temperature);
+    tracing::debug!(
+        seed = ?effective_seed,
+        temperature = effective_temp,
+        "deterministic generation settings"
+    );
+
     let encoding = cache.tokenizer.encode(prompt, true).map_err(anyhow::Error::msg)?;
     let mut input_ids = encoding.get_ids().to_vec();
     if let Some(max_len) = runtime_config().router_max_seq_len {

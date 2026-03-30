@@ -13,6 +13,7 @@
     "router_kv_cache_block_len": 0,
     "router_default_max_tokens": 64,
     "router_default_temperature": 0.1,
+    "router_seed": 42,
     "router_max_seq_len": 4096,
     "router_flash_attn": true,
     "router_candle_qmatmul": true,

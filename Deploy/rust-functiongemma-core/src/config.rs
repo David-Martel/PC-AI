@@ -92,6 +92,16 @@ pub struct RuntimeConfig {
     /// Default sampling temperature.
     pub router_default_temperature: f64,
 
+    /// Optional seed for deterministic generation.
+    ///
+    /// When set, the runtime uses this seed as the default for requests that do
+    /// not supply their own `seed` parameter.  With greedy decoding (argmax)
+    /// the output is already deterministic regardless of seed, but recording a
+    /// seed ensures reproducibility if temperature-based sampling is enabled in
+    /// the future.
+    #[serde(default)]
+    pub router_seed: Option<u64>,
+
     /// Maximum sequence length accepted by the model.
     pub router_max_seq_len: Option<usize>,
 
@@ -165,6 +175,7 @@ impl Default for RuntimeConfig {
             router_kv_cache_block_len: 0,
             router_default_max_tokens: 64,
             router_default_temperature: 0.1,
+            router_seed: None,
             router_max_seq_len: None,
             router_flash_attn: false,
             router_candle_qmatmul: false,

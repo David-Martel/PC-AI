@@ -30,7 +30,7 @@ Describe "NVIDIA GPU Hardware Integration" -Tag 'Integration', 'Gpu', 'Nvidia', 
             $inventory = Get-NvidiaGpuInventory | Select-Object -First 1
             $inventory.Name | Should -Not -BeNullOrEmpty
             $inventory.DriverVersion | Should -Not -BeNullOrEmpty
-            $inventory.Source | Should -Match 'nvidia-smi|cim'
+            $inventory.Source | Should -Match 'nvml-ffi|nvidia-smi|cim'
         }
     }
 

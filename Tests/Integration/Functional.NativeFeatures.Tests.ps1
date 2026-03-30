@@ -1,7 +1,12 @@
-. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
-
 Describe "PC-AI Native Integration & Utilization (Phase 7)" {
     BeforeAll {
+        $helperDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'Helpers'
+        $resolveHelper = Join-Path $helperDir 'Resolve-TestRepoRoot.ps1'
+        if (Test-Path $resolveHelper) {
+            . $resolveHelper
+        } else {
+            throw "Cannot find test helper: $resolveHelper"
+        }
         $script:PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
         Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1") -Force
         Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.USB\PC-AI.USB.psd1") -Force

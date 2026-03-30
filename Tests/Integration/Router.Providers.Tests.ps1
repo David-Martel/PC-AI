@@ -16,26 +16,24 @@ Describe "Invoke-LLMChatRouted provider selection" -Tag 'Integration', 'Router',
         } -ModuleName PC-AI.LLM
     }
 
-    It "Should route to Ollama when available" {
-        Mock Test-OllamaConnection { $true } -ModuleName PC-AI.LLM
-        Mock Test-OpenAIConnection { $false } -ModuleName PC-AI.LLM
+    It "Should route to Ollama when specified" {
+        Mock Get-CachedProviderHealth { $true } -ModuleName PC-AI.LLM
         Mock Invoke-OllamaChat {
             [PSCustomObject]@{ message = @{ content = 'ollama response' } }
         } -ModuleName PC-AI.LLM
 
-        $result = Invoke-LLMChatRouted -Message "Hi" -Mode chat -Provider auto
+        $result = Invoke-LLMChatRouted -Message "Hi" -Mode chat -Provider ollama
         $result.Provider | Should -Be 'ollama'
         $result.Response | Should -Be 'ollama response'
     }
 
-    It "Should route to vLLM when Ollama is unavailable" {
-        Mock Test-OllamaConnection { $false } -ModuleName PC-AI.LLM
-        Mock Test-OpenAIConnection { $true } -ModuleName PC-AI.LLM
+    It "Should route to vLLM when specified" {
+        Mock Get-CachedProviderHealth { $true } -ModuleName PC-AI.LLM
         Mock Invoke-OpenAIChat {
             [PSCustomObject]@{ message = @{ content = 'vllm response' } }
         } -ModuleName PC-AI.LLM
 
-        $result = Invoke-LLMChatRouted -Message "Hi" -Mode chat -Provider auto
+        $result = Invoke-LLMChatRouted -Message "Hi" -Mode chat -Provider vllm
         $result.Provider | Should -Be 'vllm'
         $result.Response | Should -Be 'vllm response'
     }

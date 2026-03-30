@@ -1,30 +1,31 @@
 #Requires -Version 5.1
 #Requires -Modules Pester
 
-. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
-
 Describe "PC-AI USB High-Fidelity Diagnostics (Phase 6)" {
     BeforeAll {
+        $helperDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'Helpers'
+        $resolveHelper = Join-Path $helperDir 'Resolve-TestRepoRoot.ps1'
+        if (Test-Path $resolveHelper) {
+            . $resolveHelper
+        } else {
+            throw "Cannot find test helper: $resolveHelper"
+        }
         $PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
         Import-Module (Join-Path $PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1") -Force
         Import-Module (Join-Path $PcaiRoot "Modules\PC-AI.USB\PC-AI.USB.psd1") -Force
     }
 
     Context "Native Device Enumeration (Mocked for testing enrichment)" {
-        # Global mock to ensure it's hit
-        Mock Get-PcaiNativeUsbDiagnostics {
-            return '[{"name":"Broken Mock Device","hardware_id":"USB\\VID_1234&PID_5678\\GARY_BROKEN","status":"Error","config_error_code":43,"error_summary":"CM_PROB_DEVICE_REPORTED_FAILURE","help_url":"https://example.com"}]'
-        }
-
         It "Should retrieve USB devices and enrich with native core" {
+            # Mock must target the module that calls the function internally.
+            # Also mock Test-PcaiNativeAvailable inside PC-AI.USB to ensure the native path is taken.
+            Mock Get-PcaiNativeUsbDiagnostics {
+                return '[{"name":"Broken Mock Device","hardware_id":"USB\\VID_1234&PID_5678\\GARY_BROKEN","status":"Error","config_error_code":43,"error_summary":"CM_PROB_DEVICE_REPORTED_FAILURE","help_url":"https://example.com"}]'
+            } -ModuleName 'PC-AI.USB'
+            Mock Test-PcaiNativeAvailable { return $true } -ModuleName 'PC-AI.USB'
+
             $results = Get-UsbDeviceList
             $broken = $results | Where-Object { $_.DeviceID -match 'GARY_BROKEN' }
-
-            # If still null, let's try calling the helper directly to see if the mock is hit
-            if ($null -eq $broken) {
-                $raw = Get-PcaiNativeUsbDiagnostics
-                Write-Warning "RAW MOCK OUTPUT: $raw"
-            }
 
             $broken | Should -Not -BeNullOrEmpty
             $broken.NativeStatus.Code | Should -Be 43

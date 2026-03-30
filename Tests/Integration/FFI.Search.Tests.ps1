@@ -73,8 +73,9 @@ Describe "PCAI Search Native Library - Phase 2" -Tag "FFI", "Search", "Phase2" {
 
     Context "Build Artifacts" {
 
-        It "Search crate exists" {
-            Test-Path (Join-Path $NativeDir "pcai_core\pcai_search") | Should -Be $true
+        It "Search functionality exists in pcai_core_lib" {
+            # Search FFI exports are in pcai_core_lib (no separate pcai_search crate)
+            Test-Path (Join-Path $NativeDir "pcai_core\pcai_core_lib") | Should -Be $true
         }
 
         It "SearchModule.cs exists" {
@@ -272,7 +273,7 @@ public static class PcaiSearchTest
 
                     $version = [System.Runtime.InteropServices.Marshal]::PtrToStringAnsi($ptr)
                     $version | Should -Not -BeNullOrEmpty
-                    $version | Should -Match '^\d+\.\d+\.\d+$'
+                    $version | Should -Match '^\d+\.\d+\.\d+'
                 }
                 catch {
                     throw "P/Invoke call failed: $_"

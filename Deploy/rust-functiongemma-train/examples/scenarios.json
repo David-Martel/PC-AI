@@ -145,6 +145,84 @@
       "tool_arguments": {"category": "GPU", "detail": "DriverVersion"}
     },
     {
+      "mode": "diagnose",
+      "user_content": "What is the current LLM backend status?",
+      "tool_name": "pcai_get_llm_status",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Check the health of pcai-inference, FunctionGemma, and GPU services.",
+      "tool_name": "pcai_get_service_health",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Show me the current WSL configuration and distro list.",
+      "tool_name": "pcai_get_wsl_status",
+      "tool_arguments": {"detailed": true}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Run the WSL and Docker health check with auto-recovery.",
+      "tool_name": "pcai_run_wsl_docker_health_check",
+      "tool_arguments": {"auto_recover": true}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Show me disk usage for C:\\Users sorted by size.",
+      "tool_name": "pcai_get_disk_usage",
+      "tool_arguments": {"path": "C:\\Users", "top": 10}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "What is the current system memory usage?",
+      "tool_name": "pcai_get_memory_stats",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Is the native inference backend running?",
+      "tool_name": "pcai_native_inference_status",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Switch native inference to the mistralrs backend.",
+      "tool_name": "pcai_switch_inference_backend",
+      "tool_arguments": {"backend": "mistralrs"}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Load the TinyLlama GGUF model with full GPU offload.",
+      "tool_name": "pcai_load_model",
+      "tool_arguments": {"model_path": "C:\\Models\\tinyllama.gguf", "gpu_layers": -1}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Analyze this screenshot of Device Manager for errors.",
+      "tool_name": "pcai_analyze_image",
+      "tool_arguments": {"image_path": "C:\\Screenshots\\devmgr.png", "question": "List any error codes visible"}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Generate a test image of a red apple on a white background.",
+      "tool_name": "pcai_generate_image",
+      "tool_arguments": {"prompt": "a red apple on a white background"}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Is the media pipeline initialized and what GPU is it using?",
+      "tool_name": "pcai_media_status",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "Run a latency benchmark against the inference backend.",
+      "tool_name": "pcai_run_evaluation",
+      "tool_arguments": {"suite_name": "latency-check", "metrics": "latency,throughput"}
+    },
+    {
       "mode": "chat",
       "user_content": "Explain what WSL is and when to use it.",
       "assistant_content": "NO_TOOL"

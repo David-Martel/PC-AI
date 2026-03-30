@@ -495,15 +495,14 @@ Describe "PcaiInference Module Integration" -Tag "Module", "Integration" {
             }
         }
 
-        It "Import-PcaiModel has mandatory ModelPath parameter" {
+        It "Import-PcaiModel has ModelPath parameter" {
             $cmd = Get-Command Import-PcaiModel -ErrorAction SilentlyContinue
             if (-not $cmd) {
                 Set-ItResult -Skipped -Because "Module not loaded"
             } else {
                 $cmd.Parameters.ContainsKey('ModelPath') | Should -BeTrue
-                $paramAttr = $cmd.Parameters['ModelPath'].Attributes |
-                    Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
-                $paramAttr.Mandatory | Should -BeTrue
+                # ModelPath is optional (resolves from Config\llm-config.json if not provided)
+                $cmd.Parameters['ModelPath'].ParameterType.Name | Should -Be 'String'
             }
         }
 

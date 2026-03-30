@@ -1,10 +1,15 @@
 #Requires -Version 5.1
 #Requires -Modules Pester
 
-. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
-
 Describe "PC-AI Smart Diagnosis E2E" {
     BeforeAll {
+        $helperDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'Helpers'
+        $resolveHelper = Join-Path $helperDir 'Resolve-TestRepoRoot.ps1'
+        if (Test-Path $resolveHelper) {
+            . $resolveHelper
+        } else {
+            throw "Cannot find test helper: $resolveHelper"
+        }
         $script:PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
 
         # Load necessary modules

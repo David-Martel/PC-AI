@@ -1,7 +1,12 @@
-. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
-
 Describe "PC-AI Agentic Verification (Phase 6)" {
     BeforeAll {
+        $helperDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'Helpers'
+        $resolveHelper = Join-Path $helperDir 'Resolve-TestRepoRoot.ps1'
+        if (Test-Path $resolveHelper) {
+            . $resolveHelper
+        } else {
+            throw "Cannot find test helper: $resolveHelper"
+        }
         $script:PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
         $script:ModulePath = Join-Path $script:PcaiRoot "Modules\PC-AI.LLM\PC-AI.LLM.psd1"
 
@@ -13,6 +18,21 @@ Describe "PC-AI Agentic Verification (Phase 6)" {
 
     Context "Diagnostic Triage" {
         It "Should invoke Triage mode when report is oversized" {
+            # This test requires the FunctionGemma router to be running.
+            # The code does a health check before routing; if the router is down,
+            # routing is skipped and mocks are never called.
+            $routerAvailable = $false
+            try {
+                $response = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -TimeoutSec 2 -ErrorAction Stop
+                $routerAvailable = ($response.StatusCode -eq 200)
+            } catch {
+                $routerAvailable = $false
+            }
+            if (-not $routerAvailable) {
+                Set-ItResult -Skipped -Because "FunctionGemma router not running at http://127.0.0.1:8000"
+                return
+            }
+
             $script:capturedMessages = $null
 
             Mock Invoke-FunctionGemmaReAct {

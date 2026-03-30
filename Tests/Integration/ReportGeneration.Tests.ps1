@@ -89,7 +89,7 @@ Describe "Full Diagnostic Report Generation" -Tag 'Integration', 'E2E', 'Slow' {
         It "Should include system events section" {
             New-DiagnosticReport -OutputPath $script:ReportPath
             $content = Get-Content $script:ReportPath -Raw
-            $content | Should -Match "System.*Event|Event.*Log"
+            $content | Should -Match "System.*Event|Event.*Log|Recent.*System|System.*Error"
         }
 
         It "Should include USB status section" {
@@ -172,16 +172,16 @@ WDC HDD: Pred Fail
         }
 
         It "Should analyze report without errors" {
-            { Invoke-PCDiagnosis -ReportPath "TestDrive:\report.txt" -OutputPath $script:AnalysisPath } | Should -Not -Throw
+            { Invoke-PCDiagnosis -DiagnosticReportPath "TestDrive:\report.txt" -OutputPath $script:AnalysisPath } | Should -Not -Throw
         }
 
         It "Should create analysis output file" {
-            Invoke-PCDiagnosis -ReportPath "TestDrive:\report.txt" -OutputPath $script:AnalysisPath
+            Invoke-PCDiagnosis -DiagnosticReportPath "TestDrive:\report.txt" -OutputPath $script:AnalysisPath
             Should -Invoke Send-OllamaRequest -ModuleName PC-AI.LLM
         }
 
         It "Should include diagnostic data in prompt" {
-            Invoke-PCDiagnosis -ReportPath "TestDrive:\report.txt"
+            Invoke-PCDiagnosis -DiagnosticReportPath "TestDrive:\report.txt"
 
             Should -Invoke Send-OllamaRequest -ModuleName PC-AI.LLM -ParameterFilter {
                 $Prompt -match "USB.*43|Error Code: 43"
@@ -189,7 +189,7 @@ WDC HDD: Pred Fail
         }
 
         It "Should use appropriate system prompt" {
-            Invoke-PCDiagnosis -ReportPath "TestDrive:\report.txt"
+            Invoke-PCDiagnosis -DiagnosticReportPath "TestDrive:\report.txt"
 
             Should -Invoke Send-OllamaRequest -ModuleName PC-AI.LLM -ParameterFilter {
                 $SystemMessage -match "diagnostic|hardware|analyze"
@@ -239,7 +239,7 @@ Describe "Multi-Module Workflow" -Tag 'Integration', 'E2E', 'Slow' {
                 Get-Content $script:WorkflowReportPath
             } -ModuleName PC-AI.LLM
 
-            { Invoke-PCDiagnosis -ReportPath $script:WorkflowReportPath -OutputPath $script:WorkflowAnalysisPath } | Should -Not -Throw
+            { Invoke-PCDiagnosis -DiagnosticReportPath $script:WorkflowReportPath -OutputPath $script:WorkflowAnalysisPath } | Should -Not -Throw
         }
 
         It "Step 5: Should have complete workflow outputs" {

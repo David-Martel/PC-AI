@@ -1,0 +1,364 @@
+{
+  "Timestamp": "2026-03-30T10:41:48.0111207-04:00",
+  "Suite": "quick",
+  "Iterations": 3,
+  "Gpu": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+  "Hostname": "DTM-P1GEN7",
+  "Categories": {
+    "GPU Operations": [
+      {
+        "Name": "Test-PcaiGpuReadiness",
+        "TimeMs": {
+          "Mean": 30.8743,
+          "Median": 30.7698,
+          "StdDev": 1.3939,
+          "P95": 32.3175,
+          "Min": 29.5356,
+          "Max": 32.3175,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 322258.6667,
+          "Median": 295008.0,
+          "StdDev": 47206.4676,
+          "P95": 376768.0,
+          "Min": 295000.0,
+          "Max": 376768.0
+        }
+      },
+      {
+        "Name": "Test-PcaiGpuReadiness -4GB",
+        "TimeMs": {
+          "Mean": 29.2585,
+          "Median": 31.4139,
+          "StdDev": 4.3591,
+          "P95": 32.1201,
+          "Min": 24.2416,
+          "Max": 32.1201,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 293533.3333,
+          "Median": 290800.0,
+          "StdDev": 4741.2021,
+          "P95": 299008.0,
+          "Min": 290792.0,
+          "Max": 299008.0
+        }
+      },
+      {
+        "Name": "Get-NvidiaGpuInventory",
+        "TimeMs": {
+          "Mean": 202.2304,
+          "Median": 4.2015,
+          "StdDev": 344.35,
+          "P95": 599.8505,
+          "Min": 2.6391,
+          "Max": 599.8505,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 301504.0,
+          "Median": 304232.0,
+          "StdDev": 4738.8978,
+          "P95": 304248.0,
+          "Min": 296032.0,
+          "Max": 304248.0
+        }
+      },
+      {
+        "Name": "Get-NvidiaGpuUtilization -Index 0",
+        "TimeMs": {
+          "Mean": 214.3831,
+          "Median": 265.1026,
+          "StdDev": 99.5171,
+          "P95": 278.3224,
+          "Min": 99.7244,
+          "Max": 278.3224,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 288978.6667,
+          "Median": 288984.0,
+          "StdDev": 8232.0013,
+          "P95": 297208.0,
+          "Min": 280744.0,
+          "Max": 297208.0
+        }
+      },
+      {
+        "Name": "pcai-perf preflight (CLI)",
+        "TimeMs": {
+          "Mean": 313.4191,
+          "Median": 403.2288,
+          "StdDev": 165.503,
+          "P95": 414.6029,
+          "Min": 122.4256,
+          "Max": 414.6029,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 172365.3333,
+          "Median": 115000.0,
+          "StdDev": 106370.1896,
+          "P95": 295104.0,
+          "Min": 106992.0,
+          "Max": 295104.0
+        }
+      },
+      {
+        "Name": "pcai-perf roofline (specs)",
+        "TimeMs": {
+          "Mean": 77.4762,
+          "Median": 74.0709,
+          "StdDev": 7.8396,
+          "P95": 86.4427,
+          "Min": 71.9151,
+          "Max": 86.4427,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 104034.6667,
+          "Median": 106776.0,
+          "StdDev": 12562.3675,
+          "P95": 115000.0,
+          "Min": 90328.0,
+          "Max": 115000.0
+        }
+      },
+      {
+        "Name": "pcai-perf roofline (7B/Q4.5)",
+        "TimeMs": {
+          "Mean": 94.4353,
+          "Median": 93.7865,
+          "StdDev": 2.3755,
+          "P95": 97.0678,
+          "Min": 92.4515,
+          "Max": 97.0678,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 102901.3333,
+          "Median": 100160.0,
+          "StdDev": 4748.1286,
+          "P95": 108384.0,
+          "Min": 100160.0,
+          "Max": 108384.0
+        }
+      }
+    ],
+    "Native FFI Operations": [
+      {
+        "Name": "pcai-perf processes --top 10",
+        "TimeMs": {
+          "Mean": 1068.0315,
+          "Median": 1049.7393,
+          "StdDev": 34.2794,
+          "P95": 1107.577,
+          "Min": 1046.7781,
+          "Max": 1107.577,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 116930.6667,
+          "Median": 116168.0,
+          "StdDev": 8178.7132,
+          "P95": 125464.0,
+          "Min": 109160.0,
+          "Max": 125464.0
+        }
+      },
+      {
+        "Name": "pcai-perf disk --top 5",
+        "TimeMs": {
+          "Mean": 769.8825,
+          "Median": 766.4157,
+          "StdDev": 19.1059,
+          "P95": 790.4844,
+          "Min": 752.7474,
+          "Max": 790.4844,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 105490.6667,
+          "Median": 108232.0,
+          "StdDev": 4748.1286,
+          "P95": 108232.0,
+          "Min": 100008.0,
+          "Max": 108232.0
+        }
+      },
+      {
+        "Name": "pcai-perf hash-list (small file)",
+        "TimeMs": {
+          "Mean": 54.7091,
+          "Median": 53.535,
+          "StdDev": 9.6208,
+          "P95": 64.8631,
+          "Min": 45.7293,
+          "Max": 64.8631,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 98688.0,
+          "Median": 98688.0,
+          "StdDev": 0.0,
+          "P95": 98688.0,
+          "Min": 98688.0,
+          "Max": 98688.0
+        }
+      }
+    ],
+    "Module Loading": [
+      {
+        "Name": "Import-Module PC-AI.Gpu",
+        "TimeMs": {
+          "Mean": 322.0993,
+          "Median": 320.7106,
+          "StdDev": 32.6132,
+          "P95": 355.3846,
+          "Min": 290.2026,
+          "Max": 355.3846,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 1791741.3333,
+          "Median": 1785784.0,
+          "StdDev": 30874.1148,
+          "P95": 1825160.0,
+          "Min": 1764280.0,
+          "Max": 1825160.0
+        }
+      },
+      {
+        "Name": "Import-Module PC-AI.Hardware",
+        "TimeMs": {
+          "Mean": 368.5474,
+          "Median": 395.5929,
+          "StdDev": 118.7625,
+          "P95": 471.4547,
+          "Min": 238.5947,
+          "Max": 471.4547,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 860034.6667,
+          "Median": 858056.0,
+          "StdDev": 5437.0894,
+          "P95": 866184.0,
+          "Min": 855864.0,
+          "Max": 866184.0
+        }
+      },
+      {
+        "Name": "Import-Module PC-AI.Acceleration",
+        "TimeMs": {
+          "Mean": 373.3326,
+          "Median": 388.0892,
+          "StdDev": 48.1993,
+          "P95": 412.4285,
+          "Min": 319.4801,
+          "Max": 412.4285,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 1949688.0,
+          "Median": 1945176.0,
+          "StdDev": 9105.0966,
+          "P95": 1960168.0,
+          "Min": 1943720.0,
+          "Max": 1960168.0
+        }
+      },
+      {
+        "Name": "Import-Module PC-AI.Evaluation",
+        "TimeMs": {
+          "Mean": 1098.1536,
+          "Median": 1136.3046,
+          "StdDev": 119.4191,
+          "P95": 1193.8356,
+          "Min": 964.3205,
+          "Max": 1193.8356,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 5681269.3333,
+          "Median": 5617544.0,
+          "StdDev": 164648.5468,
+          "P95": 5868256.0,
+          "Min": 5558008.0,
+          "Max": 5868256.0
+        }
+      }
+    ],
+    "GGUF Parsing": [
+      {
+        "Name": "pcai-perf preflight 1B",
+        "TimeMs": {
+          "Mean": 324.957,
+          "Median": 317.1877,
+          "StdDev": 27.4106,
+          "P95": 355.4136,
+          "Min": 302.2697,
+          "Max": 355.4136,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 93653.3333,
+          "Median": 90912.0,
+          "StdDev": 4748.1286,
+          "P95": 99136.0,
+          "Min": 90912.0,
+          "Max": 99136.0
+        }
+      },
+      {
+        "Name": "pcai-perf preflight 7B",
+        "TimeMs": {
+          "Mean": 259.1248,
+          "Median": 288.9564,
+          "StdDev": 148.724,
+          "P95": 390.6719,
+          "Min": 97.7461,
+          "Max": 390.6719,
+          "N": 3
+        },
+        "MemoryDeltaBytes": {
+          "Mean": 189837.3333,
+          "Median": 106808.0,
+          "StdDev": 150504.0641,
+          "P95": 363568.0,
+          "Min": 99136.0,
+          "Max": 363568.0
+        }
+      }
+    ]
+  },
+  "Bottlenecks": [
+    {
+      "Rank": 1,
+      "Name": "Import-Module PC-AI.Evaluation",
+      "MeanMs": 1098.1536
+    },
+    {
+      "Rank": 2,
+      "Name": "pcai-perf processes --top 10",
+      "MeanMs": 1068.0315
+    },
+    {
+      "Rank": 3,
+      "Name": "pcai-perf disk --top 5",
+      "MeanMs": 769.8825
+    },
+    {
+      "Rank": 4,
+      "Name": "Import-Module PC-AI.Acceleration",
+      "MeanMs": 373.3326
+    },
+    {
+      "Rank": 5,
+      "Name": "Import-Module PC-AI.Hardware",
+      "MeanMs": 368.5474
+    }
+  ]
+}

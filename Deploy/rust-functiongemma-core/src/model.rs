@@ -732,6 +732,99 @@ impl Attention {
         self.o_proj.forward(&attn_output)
     }
 
+    /// Attention forward pass using a pre-allocated ring-buffer KV cache.
+    ///
+    /// Instead of `Tensor::cat` to grow the cache, this writes the new K/V
+    /// directly into the pre-allocated buffer via `slice_set` (zero-alloc,
+    /// zero-copy of existing cache).
+    fn forward_with_prealloc_cache(
+        &self,
+        x: &Tensor,
+        cache: &mut PreAllocKvCache,
+        layer_idx: usize,
+    ) -> Result<Tensor> {
+        let (b_sz, seq_len, _hidden_size) = x.dims3()?;
+        if seq_len != 1 {
+            return self.forward(x);
+        }
+
+        let device = x.device();
+        let q = self.q_proj.forward(x)?;
+        let k = self.k_proj.forward(x)?;
+        let v = self.v_proj.forward(x)?;
+
+        // Reshape to [batch, heads, 1, head_dim]
+        let q = q
+            .reshape((b_sz, seq_len, self.num_heads, self.head_dim))?
+            .transpose(1, 2)?
+            .contiguous()?;
+        let k = k
+            .reshape((b_sz, seq_len, self.num_kv_heads, self.head_dim))?
+            .transpose(1, 2)?
+            .contiguous()?;
+        let v = v
+            .reshape((b_sz, seq_len, self.num_kv_heads, self.head_dim))?
+            .transpose(1, 2)?
+            .contiguous()?;
+
+        let q = if let Some(norm) = &self.q_norm {
+            norm.forward(&q)?
+        } else {
+            q
+        };
+        let k = if let Some(norm) = &self.k_norm {
+            norm.forward(&k)?
+        } else {
+            k
+        };
+
+        // RoPE uses absolute position (not ring position)
+        let rope_offset = cache.rope_offset();
+        let (cos, sin) = self.rotary_emb.forward(&q, rope_offset + 1)?;
+        let cos = cos.narrow(0, rope_offset, 1)?;
+        let sin = sin.narrow(0, rope_offset, 1)?;
+
+        let q = apply_rotary_emb(&q, &cos, &sin)?;
+        let k = apply_rotary_emb(&k, &cos, &sin)?;
+
+        // Ensure contiguous and matching dtype before slice_set (required by candle).
+        // The pre-allocated buffer may be BF16 while projections output F32.
+        let buf_dtype = cache.layers[layer_idx].k.dtype();
+        let k = k.to_dtype(buf_dtype)?.contiguous()?;
+        let v = v.to_dtype(buf_dtype)?.contiguous()?;
+
+        // Write into pre-allocated buffer — zero allocation, zero copy
+        cache.write_and_advance(layer_idx, &k, &v)?;
+
+        // Read back the valid portion of the cache for attention.
+        // Cast back to the query dtype for the matmul.
+        let q_dtype = q.dtype();
+        let k = cache.k_valid(layer_idx)?.to_dtype(q_dtype)?.to_device(device)?;
+        let v = cache.v_valid(layer_idx)?.to_dtype(q_dtype)?.to_device(device)?;
+
+        let k = self.repeat_kv(k)?;
+        let v = self.repeat_kv(v)?;
+
+        let scale = 1.0 / (self.head_dim as f64).sqrt();
+        let attn_output = if self.use_flash_attn && x.device().is_cuda() {
+            let q_flash = q.transpose(1, 2)?.contiguous()?;
+            let k_flash = k.transpose(1, 2)?.contiguous()?;
+            let v_flash = v.transpose(1, 2)?.contiguous()?;
+            let out = flash_attn(&q_flash, &k_flash, &v_flash, scale as f32, true)?;
+            out.transpose(1, 2)?
+        } else {
+            let attn_weights = q.matmul(&k.transpose(2, 3)?)?.affine(scale, 0.0)?;
+            let attn_weights = candle_nn::ops::softmax(&attn_weights, candle_core::D::Minus1)?;
+            attn_weights.matmul(&v)?
+        };
+
+        let attn_output = attn_output
+            .transpose(1, 2)?
+            .reshape((b_sz, seq_len, self.num_heads * self.head_dim))?;
+
+        self.o_proj.forward(&attn_output)
+    }
+
     fn repeat_kv(&self, x: Tensor) -> Result<Tensor> {
         let n_rep = self.num_heads / self.num_kv_heads;
         if n_rep == 1 {
@@ -873,6 +966,27 @@ impl DecoderLayer {
         let x = (x + residual)?;
         self.post_feedforward_layernorm.forward(&x)
     }
+
+    fn forward_with_prealloc_cache(
+        &self,
+        x: &Tensor,
+        cache: &mut PreAllocKvCache,
+        layer_idx: usize,
+    ) -> Result<Tensor> {
+        let residual = x.clone();
+        let x = self.input_layernorm.forward(x)?;
+        let x = self
+            .self_attn
+            .forward_with_prealloc_cache(&x, cache, layer_idx)?;
+        let x = (x + residual)?;
+        let x = self.post_attention_layernorm.forward(&x)?;
+
+        let residual = x.clone();
+        let x = self.pre_feedforward_layernorm.forward(&x)?;
+        let x = self.mlp.forward(&x)?;
+        let x = (x + residual)?;
+        self.post_feedforward_layernorm.forward(&x)
+    }
 }
 
 impl Module for DecoderLayer {
@@ -947,6 +1061,172 @@ impl KvCache {
             max_len,
             store_on_cpu,
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Pre-allocated ring-buffer KV cache
+// ---------------------------------------------------------------------------
+
+/// Per-layer pre-allocated K and V tensors with a write cursor.
+///
+/// Instead of growing via `Tensor::cat` each decode step, we pre-allocate the
+/// full `[batch, num_kv_heads, max_seq_len, head_dim]` buffer once and write
+/// into it via `Tensor::slice_set` (in-place, zero-allocation).
+#[derive(Debug)]
+pub struct PreAllocKvLayer {
+    /// Shape: `[batch, num_kv_heads, max_seq_len, head_dim]`
+    pub k: Tensor,
+    /// Shape: `[batch, num_kv_heads, max_seq_len, head_dim]`
+    pub v: Tensor,
+}
+
+/// A pre-allocated, fixed-size KV cache that eliminates per-token allocation.
+///
+/// The cache pre-allocates K and V tensors for every layer at construction
+/// time.  During generation each new K/V slice is written directly into the
+/// pre-allocated buffer via `Tensor::slice_set` on the sequence dimension
+/// (dim 2).  A `write_cursor` tracks the next write position and wraps
+/// around when `max_seq_len` is reached (ring-buffer semantics).
+///
+/// # Benefits over `KvCache`
+///
+/// * **Zero allocation per token** — no `Tensor::cat` means no new buffer
+///   allocation on every decode step.
+/// * **Zero copy of existing cache** — `cat` copies the entire accumulated
+///   cache; `slice_set` only writes the new slice.
+/// * **No VRAM fragmentation** — a single contiguous allocation per layer.
+/// * **Deterministic memory usage** — VRAM is bounded at init time.
+///
+/// # Limitations
+///
+/// * Does **not** support int8 quantised storage (the existing `KvCacheQuant::Int8`
+///   path requires per-step re-quantisation with a changing scale factor that is
+///   incompatible with a fixed pre-allocated buffer).  Falls back to the original
+///   `KvCache` if int8 is requested.
+/// * Requires contiguous tensors (enforced by `slice_set`).
+/// * The ring-buffer wrap-around means that once `max_seq_len` is exceeded,
+///   the oldest positions are silently overwritten.  For FunctionGemma routing
+///   (typically < 100 tokens), this never triggers.
+#[derive(Debug)]
+pub struct PreAllocKvCache {
+    /// Per-layer pre-allocated buffers.
+    pub layers: Vec<PreAllocKvLayer>,
+    /// Next write position in the sequence dimension (dim 2).
+    pub write_cursor: usize,
+    /// Number of valid (written) positions.  May be less than `write_cursor`
+    /// only on the first pass before wrap-around.
+    pub valid_len: usize,
+    /// Maximum sequence length (the size of the pre-allocated seq dimension).
+    pub max_seq_len: usize,
+}
+
+impl PreAllocKvCache {
+    /// Pre-allocate K and V buffers for all layers.
+    ///
+    /// * `num_layers` — number of transformer layers
+    /// * `batch` — batch size (typically 1)
+    /// * `num_kv_heads` — number of key/value heads (from `Config`)
+    /// * `head_dim` — per-head dimension (from `Config`)
+    /// * `max_seq_len` — maximum sequence length to pre-allocate
+    /// * `dtype` — element type (e.g. `DType::BF16` or `DType::F32`)
+    /// * `device` — target device (CPU or CUDA)
+    pub fn new(
+        num_layers: usize,
+        batch: usize,
+        num_kv_heads: usize,
+        head_dim: usize,
+        max_seq_len: usize,
+        dtype: DType,
+        device: &Device,
+    ) -> Result<Self> {
+        let mut layers = Vec::with_capacity(num_layers);
+        for _ in 0..num_layers {
+            let k = Tensor::zeros((batch, num_kv_heads, max_seq_len, head_dim), dtype, device)?;
+            let v = Tensor::zeros((batch, num_kv_heads, max_seq_len, head_dim), dtype, device)?;
+            layers.push(PreAllocKvLayer { k, v });
+        }
+        Ok(Self {
+            layers,
+            write_cursor: 0,
+            valid_len: 0,
+            max_seq_len,
+        })
+    }
+
+    /// Reset the cache for a new request without deallocating.
+    ///
+    /// The underlying tensors keep their device allocation; only the cursors
+    /// are zeroed.  This is O(1).
+    pub fn reset(&mut self) {
+        self.write_cursor = 0;
+        self.valid_len = 0;
+    }
+
+    /// Write a new K/V pair into layer `layer_idx` at the current cursor and
+    /// advance.  Returns the valid sequence length after the write (for
+    /// constructing the attention mask / RoPE offset).
+    ///
+    /// `new_k` and `new_v` have shape `[batch, num_kv_heads, 1, head_dim]`
+    /// (a single new token).
+    pub fn write_and_advance(
+        &mut self,
+        layer_idx: usize,
+        new_k: &Tensor,
+        new_v: &Tensor,
+    ) -> Result<usize> {
+        let pos = self.write_cursor % self.max_seq_len;
+        let layer = &self.layers[layer_idx];
+
+        // slice_set writes into dim=2 (sequence dimension) at offset `pos`.
+        // Both self.k and new_k must be contiguous — guaranteed by our
+        // construction (zeros) and the caller (.contiguous() after projection).
+        layer.k.slice_set(new_k, 2, pos)?;
+        layer.v.slice_set(new_v, 2, pos)?;
+
+        // Only advance cursor after last layer to keep layers in sync.
+        // The caller (Model::forward_with_prealloc_cache) advances once
+        // after iterating all layers by calling `advance_cursor()`.
+        Ok(self.valid_len.min(self.max_seq_len))
+    }
+
+    /// Advance the write cursor by one position.  Call once per decode step
+    /// after all layers have been written.
+    pub fn advance_cursor(&mut self) {
+        self.write_cursor += 1;
+        self.valid_len = self.write_cursor.min(self.max_seq_len);
+    }
+
+    /// Return the K tensor for a layer, narrowed to the valid region.
+    ///
+    /// If the buffer has not wrapped (`valid_len < max_seq_len`), returns
+    /// `k[:, :, 0..valid_len, :]`.  After wrap-around, returns the full
+    /// buffer (all positions are valid).
+    pub fn k_valid(&self, layer_idx: usize) -> Result<Tensor> {
+        let layer = &self.layers[layer_idx];
+        if self.valid_len < self.max_seq_len {
+            layer.k.narrow(2, 0, self.valid_len)
+        } else {
+            Ok(layer.k.clone())
+        }
+    }
+
+    /// Return the V tensor for a layer, narrowed to the valid region.
+    pub fn v_valid(&self, layer_idx: usize) -> Result<Tensor> {
+        let layer = &self.layers[layer_idx];
+        if self.valid_len < self.max_seq_len {
+            layer.v.narrow(2, 0, self.valid_len)
+        } else {
+            Ok(layer.v.clone())
+        }
+    }
+
+    /// The RoPE position offset for the next token (used for positional
+    /// embeddings).  Equals the total number of tokens written so far,
+    /// even after wrap-around — RoPE uses absolute position, not ring
+    /// position.
+    pub fn rope_offset(&self) -> usize {
+        self.write_cursor
     }
 }
 
@@ -1110,6 +1390,98 @@ impl Model {
         Ok(generated)
     }
 
+    /// Forward pass using the pre-allocated ring-buffer KV cache.
+    ///
+    /// Like `forward_with_cache`, this only processes single-token inputs
+    /// (seq_len == 1).  For the prompt prefill (seq_len > 1), falls back to
+    /// `forward()`.
+    pub fn forward_with_prealloc_cache(
+        &self,
+        input_ids: &Tensor,
+        cache: &mut PreAllocKvCache,
+    ) -> Result<Tensor> {
+        let (_b, seq_len) = input_ids.dims2()?;
+        if seq_len != 1 {
+            return self.forward(input_ids);
+        }
+
+        let mut x = self.embed_tokens.forward(input_ids)?;
+        for (idx, layer) in self.layers.iter().enumerate() {
+            x = layer.forward_with_prealloc_cache(&x, cache, idx)?;
+        }
+        // Advance cursor once after all layers have written their K/V
+        cache.advance_cursor();
+
+        let x = self.norm.forward(&x)?;
+        self.lm_head.forward(&x)
+    }
+
+    /// Generate tokens using the pre-allocated ring-buffer KV cache.
+    ///
+    /// This is the zero-allocation alternative to `generate_with_cache`.
+    /// The KV cache is pre-allocated once and reused across all decode steps.
+    ///
+    /// # Arguments
+    ///
+    /// * `input_ids` — prompt token IDs, shape `[1, seq_len]`
+    /// * `max_len` — maximum number of tokens to generate
+    /// * `device` — target device
+    /// * `cfg` — model config (needed for `num_kv_heads`, `head_dim`)
+    /// * `kv_max_len` — pre-allocation size for the ring buffer
+    pub fn generate_with_prealloc_cache(
+        &self,
+        input_ids: &Tensor,
+        max_len: usize,
+        device: &Device,
+        cfg: &Config,
+        kv_max_len: usize,
+    ) -> Result<Vec<u32>> {
+        // Use the embedding weight dtype as the cache dtype — this matches
+        // what the K/V projections will produce.  Falls back to F32 on CPU.
+        let dtype = self.embed_tokens.embeddings().dtype();
+        let mut cache = PreAllocKvCache::new(
+            self.layers.len(),
+            1, // batch = 1
+            cfg.num_key_value_heads,
+            cfg.head_dim,
+            kv_max_len,
+            dtype,
+            device,
+        )?;
+
+        let mut generated = Vec::new();
+        let (_b, seq_len) = input_ids.dims2()?;
+
+        // Prefill: feed each prompt token through the model one at a time
+        // to populate the KV cache.
+        let mut last_logits = None;
+        for idx in 0..seq_len {
+            let token = input_ids.narrow(1, idx, 1)?;
+            let logits = self.forward_with_prealloc_cache(&token, &mut cache)?;
+            last_logits = Some(logits);
+        }
+
+        // Decode: generate tokens autoregressively.
+        for _ in 0..max_len {
+            let logits = match &last_logits {
+                Some(t) => t.clone(),
+                None => self.forward(input_ids)?,
+            };
+            let last_logits_tensor = logits.squeeze(0)?.squeeze(0)?;
+            let next_id = last_logits_tensor.argmax(0)?.to_vec1::<u32>()?[0];
+            generated.push(next_id);
+
+            if next_id == 1 || next_id == 107 || next_id == 106 {
+                break;
+            }
+
+            let next_tensor = Tensor::from_slice(&[next_id], (1, 1), device)?;
+            let logits = self.forward_with_prealloc_cache(&next_tensor, &mut cache)?;
+            last_logits = Some(logits);
+        }
+        Ok(generated)
+    }
+
     pub fn generate(&self, input_ids: &Tensor, max_len: usize, device: &Device) -> Result<Vec<u32>> {
         let mut generated = Vec::new();
         let mut current_ids = input_ids.clone();
@@ -1165,6 +1537,139 @@ mod tests {
         let x = Tensor::ones((1, 10, 64), DType::F32, &device)?;
         let y = norm.forward(&x)?;
         assert_eq!(y.dims(), &[1, 10, 64]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_prealloc_kv_cache_new() -> Result<()> {
+        let device = Device::Cpu;
+        let cache = PreAllocKvCache::new(4, 1, 2, 64, 128, DType::F32, &device)?;
+        assert_eq!(cache.layers.len(), 4);
+        assert_eq!(cache.write_cursor, 0);
+        assert_eq!(cache.valid_len, 0);
+        assert_eq!(cache.max_seq_len, 128);
+        // Verify pre-allocated shapes
+        for layer in &cache.layers {
+            assert_eq!(layer.k.dims(), &[1, 2, 128, 64]);
+            assert_eq!(layer.v.dims(), &[1, 2, 128, 64]);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_prealloc_kv_cache_write_and_read() -> Result<()> {
+        let device = Device::Cpu;
+        let mut cache = PreAllocKvCache::new(2, 1, 2, 4, 8, DType::F32, &device)?;
+
+        // Write 3 tokens into layer 0
+        for i in 0..3 {
+            let val = (i + 1) as f32;
+            let k = Tensor::full(val, (1, 2, 1, 4), &device)?;
+            let v = Tensor::full(val * 10.0, (1, 2, 1, 4), &device)?;
+            cache.write_and_advance(0, &k, &v)?;
+            cache.write_and_advance(1, &k, &v)?;
+            cache.advance_cursor();
+        }
+
+        assert_eq!(cache.write_cursor, 3);
+        assert_eq!(cache.valid_len, 3);
+
+        // Read back valid K for layer 0
+        let k_valid = cache.k_valid(0)?;
+        assert_eq!(k_valid.dims(), &[1, 2, 3, 4]);
+
+        // Verify the first position has value 1.0
+        let k_first = k_valid.narrow(2, 0, 1)?.squeeze(2)?;
+        let vals: Vec<f32> = k_first.flatten_all()?.to_vec1()?;
+        assert!((vals[0] - 1.0).abs() < 1e-6);
+
+        // Verify the third position has value 3.0
+        let k_third = k_valid.narrow(2, 2, 1)?.squeeze(2)?;
+        let vals: Vec<f32> = k_third.flatten_all()?.to_vec1()?;
+        assert!((vals[0] - 3.0).abs() < 1e-6);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_prealloc_kv_cache_reset() -> Result<()> {
+        let device = Device::Cpu;
+        let mut cache = PreAllocKvCache::new(2, 1, 2, 4, 8, DType::F32, &device)?;
+
+        // Write a token
+        let k = Tensor::ones((1, 2, 1, 4), DType::F32, &device)?;
+        let v = Tensor::ones((1, 2, 1, 4), DType::F32, &device)?;
+        cache.write_and_advance(0, &k, &v)?;
+        cache.write_and_advance(1, &k, &v)?;
+        cache.advance_cursor();
+        assert_eq!(cache.valid_len, 1);
+
+        // Reset
+        cache.reset();
+        assert_eq!(cache.write_cursor, 0);
+        assert_eq!(cache.valid_len, 0);
+
+        // Buffer still exists (no deallocation)
+        assert_eq!(cache.layers[0].k.dims(), &[1, 2, 8, 4]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_prealloc_kv_cache_wrap_around() -> Result<()> {
+        let device = Device::Cpu;
+        // Small max_seq_len of 4 to test wrap-around
+        let mut cache = PreAllocKvCache::new(1, 1, 1, 2, 4, DType::F32, &device)?;
+
+        // Write 6 tokens (exceeding max_seq_len of 4)
+        for i in 0..6 {
+            let val = (i + 1) as f32;
+            let k = Tensor::full(val, (1, 1, 1, 2), &device)?;
+            let v = Tensor::full(val, (1, 1, 1, 2), &device)?;
+            cache.write_and_advance(0, &k, &v)?;
+            cache.advance_cursor();
+        }
+
+        // After 6 writes into a buffer of 4, valid_len should be 4
+        assert_eq!(cache.valid_len, 4);
+        assert_eq!(cache.write_cursor, 6);
+
+        // The full buffer should be returned (all 4 positions valid)
+        let k_valid = cache.k_valid(0)?;
+        assert_eq!(k_valid.dims(), &[1, 1, 4, 2]);
+
+        // Position 0 should have token 5 (wrap: 4 % 4 = 0, value 5.0)
+        // Position 1 should have token 6 (wrap: 5 % 4 = 1, value 6.0)
+        // Position 2 should have token 3 (not overwritten, value 3.0)
+        // Position 3 should have token 4 (not overwritten, value 4.0)
+        let vals: Vec<f32> = k_valid.flatten_all()?.to_vec1()?;
+        assert!((vals[0] - 5.0).abs() < 1e-6, "pos 0: expected 5.0, got {}", vals[0]);
+        assert!((vals[2] - 6.0).abs() < 1e-6, "pos 1: expected 6.0, got {}", vals[2]);
+        assert!((vals[4] - 3.0).abs() < 1e-6, "pos 2: expected 3.0, got {}", vals[4]);
+        assert!((vals[6] - 4.0).abs() < 1e-6, "pos 3: expected 4.0, got {}", vals[6]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_prealloc_kv_cache_rope_offset() -> Result<()> {
+        let device = Device::Cpu;
+        let mut cache = PreAllocKvCache::new(1, 1, 1, 2, 4, DType::F32, &device)?;
+
+        assert_eq!(cache.rope_offset(), 0);
+
+        let k = Tensor::ones((1, 1, 1, 2), DType::F32, &device)?;
+        let v = Tensor::ones((1, 1, 1, 2), DType::F32, &device)?;
+        cache.write_and_advance(0, &k, &v)?;
+        cache.advance_cursor();
+        assert_eq!(cache.rope_offset(), 1);
+
+        // After wrap-around, rope_offset continues to increase
+        for _ in 0..5 {
+            cache.write_and_advance(0, &k, &v)?;
+            cache.advance_cursor();
+        }
+        assert_eq!(cache.rope_offset(), 6);
+
         Ok(())
     }
 }

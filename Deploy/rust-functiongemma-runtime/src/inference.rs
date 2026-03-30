@@ -14,7 +14,7 @@ use rust_functiongemma_core::lora_utils::resolve_lora_from_path;
 use rust_functiongemma_core::prompt::parse_function_call;
 use rust_functiongemma_core::{
     collect_model_safetensors, custom_load, detect_tie_embeddings, is_degenerate_output, open_mmaped_safetensors,
-    parse_ggml_dtype, trim_input_ids, Config, KvCacheQuant, LoraInfo, LoraSettings, Model,
+    parse_ggml_dtype, trim_input_ids, Config, KvCacheQuant, LoraInfo, LoraSettings, Model, PreAllocKvCache,
 };
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -222,14 +222,29 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
     let kv_store_on_cpu = runtime_config().router_kv_cache_store.eq_ignore_ascii_case("cpu");
     maybe_log_cuda_snapshot("before_generate", device_index);
     let output_ids = if use_kv_cache() {
-        cache.model.generate_with_cache(
-            &input_tensor,
-            max_tokens,
-            &device,
-            kv_quant,
-            kv_max_len,
-            kv_store_on_cpu,
-        )?
+        // Use the pre-allocated ring-buffer KV cache when int8 quantisation
+        // is not requested (int8 requires per-step re-quantisation with a
+        // varying scale factor, which is incompatible with the fixed buffer).
+        let use_prealloc = !matches!(kv_quant, KvCacheQuant::Int8) && !kv_store_on_cpu;
+        if use_prealloc {
+            let prealloc_max = kv_max_len.unwrap_or(cache.config.num_hidden_layers.max(4096));
+            cache.model.generate_with_prealloc_cache(
+                &input_tensor,
+                max_tokens,
+                &device,
+                &cache.config,
+                prealloc_max,
+            )?
+        } else {
+            cache.model.generate_with_cache(
+                &input_tensor,
+                max_tokens,
+                &device,
+                kv_quant,
+                kv_max_len,
+                kv_store_on_cpu,
+            )?
+        }
     } else {
         cache.model.generate(&input_tensor, max_tokens, &device)?
     };

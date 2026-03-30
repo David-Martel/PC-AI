@@ -365,6 +365,15 @@ impl<'a> Trainer<'a> {
                         ));
                     }
 
+                    if !loss_val.is_finite() {
+                        return Err(anyhow::anyhow!(
+                            "Training diverged: loss is {} at step {}. \
+                             Check learning rate and data.",
+                            loss_val,
+                            update_step,
+                        ));
+                    }
+
                     epoch_loss += loss_val;
                     batch_count += 1;
 

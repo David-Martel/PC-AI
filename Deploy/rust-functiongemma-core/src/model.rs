@@ -581,6 +581,20 @@ impl Attention {
             out.transpose(1, 2)?
         } else {
             let attn_weights = q.matmul(&k.transpose(2, 3)?)?.affine(scale, 0.0)?;
+            // Apply causal mask: prevent attending to future tokens.
+            // tril2 produces a lower-triangular matrix of ones; positions above the
+            // diagonal are zero.  We use where_cond to replace those positions with
+            // -inf so that softmax drives them to zero probability.
+            let attn_weights = if seq_len > 1 {
+                let mask = Tensor::tril2(seq_len, attn_weights.dtype(), attn_weights.device())?
+                    .broadcast_as(attn_weights.shape())?;
+                let neg_inf = Tensor::new(f32::NEG_INFINITY, attn_weights.device())?
+                    .to_dtype(attn_weights.dtype())?
+                    .broadcast_as(attn_weights.shape())?;
+                mask.where_cond(&attn_weights, &neg_inf)?
+            } else {
+                attn_weights
+            };
             let attn_weights = candle_nn::ops::softmax(&attn_weights, candle_core::D::Minus1)?;
             attn_weights.matmul(&v)?
         };

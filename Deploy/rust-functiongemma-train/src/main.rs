@@ -520,7 +520,13 @@ fn main() -> Result<()> {
             optimizer,
         } => {
             if train_config().cuda_launch_blocking.unwrap_or(false) {
-                std::env::set_var("CUDA_LAUNCH_BLOCKING", "1");
+                // SAFETY: Called on the main thread before any other threads are
+                // spawned (no tokio runtime, no rayon pool yet).  set_var is
+                // unsafe since Rust 1.83 because concurrent reads from other
+                // threads would be a data race; that cannot happen here.
+                unsafe {
+                    std::env::set_var("CUDA_LAUNCH_BLOCKING", "1");
+                }
             }
 
             let use_4bit = use_4bit || train_config().use_4bit;

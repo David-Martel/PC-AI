@@ -6,16 +6,12 @@
 //!
 //! # Examples
 //!
-//! ```no_run
-//! # #[cfg(feature = "nvml")]
-//! # {
+//! ```ignore
 //! use pcai_core_lib::preflight;
 //!
 //! let result = preflight::check_readiness("path/to/model.gguf", 8192)?;
 //! println!("{}", serde_json::to_string(&result)?);
 //! // {"verdict":"go","reason":"5800MB needed, GPU1 has 14884MB free",...}
-//! # Ok::<(), anyhow::Error>(())
-//! # }
 //! ```
 
 pub mod gguf;

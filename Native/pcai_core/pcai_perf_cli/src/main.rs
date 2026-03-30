@@ -199,7 +199,10 @@ fn run_roofline(args: &[String]) -> Result<()> {
         return Ok(());
     }
 
-    let params_b = model_params.expect("checked above");
+    // Safety: model_params.is_none() returned early above on line 188.
+    let Some(params_b) = model_params else {
+        unreachable!()
+    };
     let bits = quant_bits.unwrap_or(4.5);
     // Treat 0.0 as "no measurement" for the actual_toks parameter.
     let actual = actual_toks.filter(|&v| v > 0.0);

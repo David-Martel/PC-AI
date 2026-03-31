@@ -67,7 +67,7 @@ tokio = { version = "1.50", features = ["full"] }
 reqwest = { version = "0.12", features = ["json", "blocking"] }
 base64 = "0.22"
 hex = "0.4"
-memmap2 = "0.9.5"
+memmap2 = "0.9.10"
 num_cpus = "1.16"
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"

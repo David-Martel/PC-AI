@@ -30,6 +30,7 @@
     FunctionsToExport = @(
         'Get-PathDuplicates',
         'Repair-MachinePath',
+        'Optimize-PathCompression',
         'Find-DuplicateFiles',
         'Clear-TempFiles'
     )

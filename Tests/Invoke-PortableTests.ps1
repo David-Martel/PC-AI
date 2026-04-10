@@ -134,7 +134,7 @@ if ($RunSections -contains 'RustClippy' -and -not $AnyFail) {
         try {
             $output = & cargo clippy --workspace --all-targets --no-deps `
                 -- -D warnings -A clippy::type_complexity 2>&1
-            $warnCount = @@($output | Select-String '^warning:').Count
+            $warnCount = @($output | Select-String '^warning:').Count
             if ($LASTEXITCODE -eq 0) {
                 New-SectionResult 'RustClippy' 'PASS' '' @{ warnings = $warnCount }
             } else {

@@ -781,12 +781,7 @@ impl Attention {
     /// Instead of `Tensor::cat` to grow the cache, this writes the new K/V
     /// directly into the pre-allocated buffer via `slice_set` (zero-alloc,
     /// zero-copy of existing cache).
-    fn forward_with_prealloc_cache(
-        &self,
-        x: &Tensor,
-        cache: &mut PreAllocKvCache,
-        layer_idx: usize,
-    ) -> Result<Tensor> {
+    fn forward_with_prealloc_cache(&self, x: &Tensor, cache: &mut PreAllocKvCache, layer_idx: usize) -> Result<Tensor> {
         let (b_sz, seq_len, _hidden_size) = x.dims3()?;
         if seq_len != 1 {
             return self.forward(x);
@@ -1018,17 +1013,10 @@ impl DecoderLayer {
         self.post_feedforward_layernorm.forward(&x)
     }
 
-    fn forward_with_prealloc_cache(
-        &self,
-        x: &Tensor,
-        cache: &mut PreAllocKvCache,
-        layer_idx: usize,
-    ) -> Result<Tensor> {
+    fn forward_with_prealloc_cache(&self, x: &Tensor, cache: &mut PreAllocKvCache, layer_idx: usize) -> Result<Tensor> {
         let residual = x.clone();
         let x = self.input_layernorm.forward(x)?;
-        let x = self
-            .self_attn
-            .forward_with_prealloc_cache(&x, cache, layer_idx)?;
+        let x = self.self_attn.forward_with_prealloc_cache(&x, cache, layer_idx)?;
         let x = (x + residual)?;
         let x = self.post_attention_layernorm.forward(&x)?;
 
@@ -1225,12 +1213,7 @@ impl PreAllocKvCache {
     ///
     /// `new_k` and `new_v` have shape `[batch, num_kv_heads, 1, head_dim]`
     /// (a single new token).
-    pub fn write_and_advance(
-        &mut self,
-        layer_idx: usize,
-        new_k: &Tensor,
-        new_v: &Tensor,
-    ) -> Result<usize> {
+    pub fn write_and_advance(&mut self, layer_idx: usize, new_k: &Tensor, new_v: &Tensor) -> Result<usize> {
         let pos = self.write_cursor % self.max_seq_len;
         let layer = &self.layers[layer_idx];
 
@@ -1451,11 +1434,7 @@ impl Model {
     /// Like `forward_with_cache`, this only processes single-token inputs
     /// (seq_len == 1).  For the prompt prefill (seq_len > 1), falls back to
     /// `forward()`.
-    pub fn forward_with_prealloc_cache(
-        &self,
-        input_ids: &Tensor,
-        cache: &mut PreAllocKvCache,
-    ) -> Result<Tensor> {
+    pub fn forward_with_prealloc_cache(&self, input_ids: &Tensor, cache: &mut PreAllocKvCache) -> Result<Tensor> {
         let (_b, seq_len) = input_ids.dims2()?;
         if seq_len != 1 {
             return self.forward(input_ids);

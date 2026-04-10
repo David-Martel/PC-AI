@@ -211,13 +211,8 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
     // Resolve the effective seed: per-request seed takes priority, then the
     // config-level default.  With greedy (argmax) decoding the seed does not
     // affect output, but we log it for traceability.
-    let effective_seed: Option<u64> = req
-        .seed
-        .map(|s| s as u64)
-        .or(runtime_config().router_seed);
-    let effective_temp = req
-        .temperature
-        .unwrap_or(runtime_config().router_default_temperature);
+    let effective_seed: Option<u64> = req.seed.map(|s| s as u64).or(runtime_config().router_seed);
+    let effective_temp = req.temperature.unwrap_or(runtime_config().router_default_temperature);
     tracing::debug!(
         seed = ?effective_seed,
         temperature = effective_temp,
@@ -244,13 +239,9 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
         let use_prealloc = !matches!(kv_quant, KvCacheQuant::Int8) && !kv_store_on_cpu;
         if use_prealloc {
             let prealloc_max = kv_max_len.unwrap_or(cache.config.num_hidden_layers.max(4096));
-            cache.model.generate_with_prealloc_cache(
-                &input_tensor,
-                max_tokens,
-                &device,
-                &cache.config,
-                prealloc_max,
-            )?
+            cache
+                .model
+                .generate_with_prealloc_cache(&input_tensor, max_tokens, &device, &cache.config, prealloc_max)?
         } else {
             cache.model.generate_with_cache(
                 &input_tensor,

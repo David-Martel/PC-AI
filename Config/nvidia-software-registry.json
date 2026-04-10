@@ -322,7 +322,7 @@
       "description": "C library for monitoring and managing NVIDIA GPU state: power, clocks, utilization, memory, temperature. Bundled with the display driver as nvml.dll.",
       "detectionMethod": "dir \"%SystemRoot%\\System32\\nvml.dll\"",
       "installedVersion": "582.41",
-      "latestVersion": null,
+      "latestVersion": "591.86",
       "minimumVersion": null,
       "sourceId": "nvidia-drivers",
       "downloadUrl": "https://developer.nvidia.com/management-library-nvml",

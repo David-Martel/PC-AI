@@ -29,13 +29,13 @@ jobs:
         shell: pwsh
         run: |
           $patterns = @(
-              'password\s*=\s*["\'][^"\']+["\']',
-              'api[_-]?key\s*=\s*["\'][^"\']+["\']',
-              'secret\s*=\s*["\'][^"\']+["\']',
-              'token\s*=\s*["\'][^"\']+["\']',
+              'password\s*=\s*[''"][^''"]+[''"]',
+              'api[_-]?key\s*=\s*[''"][^''"]+[''"]',
+              'secret\s*=\s*[''"][^''"]+[''"]',
+              'token\s*=\s*[''"][^''"]+[''"]',
               'ConvertTo-SecureString.*-AsPlainText',
               'PSCredential.*@\(',
-              'APIKey\s*=\s*["\'][A-Za-z0-9]{20,}["\']'
+              'APIKey\s*=\s*[''"][A-Za-z0-9]{20,}[''"]'
           )
           $findings = @()
           Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 | ForEach-Object {

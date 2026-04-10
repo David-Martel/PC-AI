@@ -167,18 +167,27 @@ function Get-PathDuplicates {
 
                 $issue = $issues | Where-Object { $_.path -eq $path -and $_.source -eq $source }
 
+                # NOTE: PS 5.1 compatibility — this file declares #Requires -Version 5.1
+                # so the PowerShell 7+ ternary operator `? :` cannot be used here. All
+                # conditional values below use if/else expressions instead.
+                $existsValue = if ($issue -and $issue.issue_type -eq 'NonExistent') { $false } else { $true }
+                $duplicateOfValue = if ($issue -and $issue.duplicate_of) { $issue.duplicate_of } else { $null }
+                $issueTypeValue = if ($issue) { $issue.issue_type } else { 'None' }
+                $severityValue = if ($issue) { $issue.severity } else { 'None' }
+                $descriptionValue = if ($issue) { $issue.description } else { 'OK' }
+
                 return [PSCustomObject]@{
                     Index            = $index + 1 # Convert to 1-based for PS consistency
                     OriginalValue    = $path
                     NormalizedValue  = $path.Trim().TrimEnd('\', '/').ToLowerInvariant()
                     ExpandedValue    = [Environment]::ExpandEnvironmentVariables($path)
-                    Exists           = ($issue -and $issue.issue_type -eq 'NonExistent') ? $false : $true
+                    Exists           = $existsValue
                     HasTrailingSlash = ($issue -and $issue.issue_type -eq 'TrailingSlash')
                     IsDuplicate      = ($issue -and ($issue.issue_type -eq 'Duplicate' -or $issue.issue_type -eq 'CrossDuplicate'))
-                    DuplicateOf      = ($issue -and $issue.duplicate_of) ? $issue.duplicate_of : $null
-                    IssueType        = $issue ? $issue.issue_type : 'None'
-                    Severity         = $issue ? $issue.severity : 'None'
-                    Description      = $issue ? $issue.description : 'OK'
+                    DuplicateOf      = $duplicateOfValue
+                    IssueType        = $issueTypeValue
+                    Severity         = $severityValue
+                    Description      = $descriptionValue
                 }
             }
 

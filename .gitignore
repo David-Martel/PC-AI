@@ -55,10 +55,23 @@ PSGetModuleInfo.xml
 .env
 .env.local
 
-# Build artifacts (root only — do NOT ignore src/bin/ directories in Rust crates)
+# Build artifacts
+# Use explicit paths + a whitelist so .NET build output (Native/Pcai*/bin, obj)
+# stays ignored while Rust crate source directories (Native/pcai_core/*/src/bin/)
+# remain tracked. Anonymous "bin/" at the repo root would also swallow Rust
+# src/bin/ — hence the explicit !whitelist line.
 /bin/
 obj/
+Native/PcaiChatTui/bin/
+Native/PcaiNative/bin/
+Native/PcaiServiceHost/bin/
+Native/PcaiChatTui/obj/
+Native/PcaiNative/obj/
+Native/PcaiServiceHost/obj/
 !Native/pcai_core/pcai_inference/src/bin/
+
+# Claude Code local settings (per-machine, not shared)
+.claude/settings.local.json
 *.dll
 *.exe
 *.pdb

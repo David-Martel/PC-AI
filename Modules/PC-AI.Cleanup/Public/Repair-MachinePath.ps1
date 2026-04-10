@@ -75,6 +75,13 @@ function Repair-MachinePath {
         [string]$BackupPath
     )
 
+    # Honor Force by suppressing the high-impact confirmation — but NOT by
+    # bypassing ShouldProcess. This mirrors the pattern in Optimize-PathCompression
+    # so -WhatIf always works, even when combined with -Force.
+    if ($Force) {
+        $ConfirmPreference = 'None'
+    }
+
     $result = [PSCustomObject]@{
         Success = $false
         Target = $Target
@@ -222,11 +229,23 @@ PATH Repair Summary for $Target`:
 
     $confirmMessage = "Apply $($result.EntriesRemoved) changes to $Target PATH?"
 
-    if ($Force -or $PSCmdlet.ShouldProcess($Target, "Remove $($result.EntriesRemoved) entries from PATH")) {
+    # ShouldProcess handles both -WhatIf and -Confirm; -Force no longer bypasses it
+    # (instead we set $ConfirmPreference='None' above to suppress the prompt).
+    if ($PSCmdlet.ShouldProcess($Target, "Remove $($result.EntriesRemoved) entries from PATH")) {
         try {
-            [Environment]::SetEnvironmentVariable('PATH', $newPath, $Target)
+            # Preserve REG_EXPAND_SZ when the existing value used it. Writing via
+            # [Environment]::SetEnvironmentVariable silently downgrades the registry
+            # kind to REG_SZ, which breaks %VAR% substitution. Write directly via
+            # Set-ItemProperty to preserve the kind.
+            $regPath = if ($Target -eq 'Machine') {
+                'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+            } else {
+                'Registry::HKEY_CURRENT_USER\Environment'
+            }
+            $originalKind = try { (Get-Item $regPath).GetValueKind('Path').ToString() } catch { 'ExpandString' }
+            Set-ItemProperty -LiteralPath $regPath -Name 'Path' -Value $newPath -Type $originalKind -ErrorAction Stop
 
-            Write-CleanupLog -Message "PATH repaired successfully. Removed $($result.EntriesRemoved) entries." -Level Info
+            Write-CleanupLog -Message "PATH repaired successfully. Removed $($result.EntriesRemoved) entries (kind: $originalKind)." -Level Info
             Write-Host "PATH repaired successfully!" -ForegroundColor Green
             Write-Host "  Removed $($result.EntriesRemoved) entries" -ForegroundColor Yellow
             Write-Host "  Backup saved to: $($result.BackupPath)" -ForegroundColor Cyan

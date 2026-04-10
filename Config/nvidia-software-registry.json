@@ -65,21 +65,25 @@
       "index": 0,
       "uuid": "GPU-95e95b2a-d0a0-3048-104a-0822bdb41cd0",
       "name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+      "pnpId": "PCI\\VEN_10DE&DEV_28B8",
       "memoryMiB": 8188,
       "computeCapability": "8.9",
       "smArch": "SM 89",
       "role": "inference / runtime",
-      "detectedDriverVersion": "582.41"
+      "detectedDriverVersion": "582.41",
+      "deviceStatus": "Error",
+      "deviceStatusNote": "Orphaned 2026-04-10: 591.86 install stripped the Lenovo-signed INF; current nv_dispig.inf does not list DEV_28B8."
     },
     {
       "index": 1,
       "uuid": "GPU-1b300e77-5f80-2c6b-f437-1041db4527ea",
       "name": "NVIDIA GeForce RTX 5060 Ti",
+      "pnpId": "PCI\\VEN_10DE&DEV_2D04",
       "memoryMiB": 16311,
       "computeCapability": "12.0",
       "smArch": "SM 120",
       "role": "training / QLoRA",
-      "detectedDriverVersion": "582.41"
+      "detectedDriverVersion": "591.86"
     }
   ],
   "components": [
@@ -89,16 +93,19 @@
       "category": "driver",
       "description": "NVIDIA display and CUDA compute driver for Windows. Required by all NVIDIA compute workloads.",
       "detectionMethod": "nvidia-smi --query-gpu=driver_version --format=csv,noheader",
-      "installedVersion": "582.41",
-      "latestVersion": "591.55",
+      "installedVersion": "591.86",
+      "installedVersionNotes": "591.86 is bound to the RTX 5060 Ti (DEV_2D04). The RTX 2000 Ada Laptop (DEV_28B8) is currently orphaned — its 582.41 INF was removed by the 591.86 installer, and 591.86's nv_dispig.inf does not list DEV_28B8.",
+      "latestVersion": "591.86",
+      "latestVersionNotes": "591.86 is the newest driver actually installed on this system. NVIDIA App has staged 595.97 (Lenovo OEM, 2026-03-17) at C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\224337314adfbc25ca5e95bff03ee45f\\ but that package only supports DEV_28B8 — installing it would break the 5060 Ti.",
+      "unifiedDriverRequirement": "A driver package that lists BOTH DEV_2D04 AND DEV_28B8 in a single INF (`nv_disp*.inf`). Must be verified with grep before install. Neither 591.86 nor 595.97 satisfies this.",
       "minimumVersion": "572.16",
       "sourceId": "nvidia-drivers",
-      "downloadUrl": "https://www.nvidia.com/drivers",
+      "downloadUrl": "https://www.nvidia.com/en-us/drivers/details/",
       "paths": {
         "nvidiaSmi": "C:\\Windows\\System32\\nvidia-smi.exe",
         "nvidiaApp": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App"
       },
-      "notes": "SM 120 (RTX 5060 Ti / Blackwell) requires driver 572.16 or later. Current: 582.41. Latest: 591.55. Update via NVIDIA App or from nvidia.com/drivers."
+      "notes": "SM 120 (RTX 5060 Ti / Blackwell) requires driver >=572.16. SM 89 (RTX 2000 Ada Laptop) requires >=527.41. A unified driver covering both PnP IDs must be downloaded manually from nvidia.com/en-us/drivers after selecting RTX 5060 Ti + Windows 11 64-bit DCH. Automated fetch is blocked by NVIDIA's JS-gated site; direct CDN URL scraping returns 404. Before installing, extract the .exe with 7-Zip and grep Display.Driver\\*.inf for 'DEV_2D04' and 'DEV_28B8' — both must be present. Then install via: `Tools\\Install-InfDriver.ps1 -ArchivePath <exe> -InfFilter 'nv*'` to use pnputil rather than the full setup.exe which may strip other NVIDIA drivers."
     },
     {
       "id": "cuda-toolkit",

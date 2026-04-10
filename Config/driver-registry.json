@@ -291,18 +291,21 @@
       "category": "gpu",
       "matchRules": [
         { "type": "friendly_name", "pattern": "*GeForce RTX 5060 Ti*" },
-        { "type": "pci_class", "pattern": "Display*" }
+        { "type": "pci_class", "pattern": "Display*" },
+        { "type": "pnp_id", "pattern": "PCI\\VEN_10DE&DEV_2D04*" }
       ],
       "sharedDriverGroup": "nvidia-gpu-driver",
+      "requiredPnpIds": ["DEV_2D04", "DEV_28B8"],
       "driver": {
         "sourceId": "nvidia-drivers",
-        "latestVersion": "591.55",
+        "latestVersion": "591.86",
+        "installedVersion": "591.86",
         "downloadUrl": "https://www.nvidia.com/download/index.aspx",
         "installerType": "exe-silent",
         "silentArgs": "-s -noreboot",
         "sha256": null,
-        "releaseDate": "2026-03-01",
-        "notes": "Blackwell SM 120. Use Studio or Game Ready driver. Compatible with RTX 2000 Ada (shared driver)."
+        "releaseDate": "2026-01-27",
+        "notes": "Blackwell SM 120. 591.86 INF (nv_dispig.inf) supports DEV_2D04 only — does NOT cover the Ada Laptop DEV_28B8. A truly unified driver package (supporting BOTH DEV_2D04 and DEV_28B8 in one INF) is required to resolve the current ERROR state on the 2000 Ada. Automated fetch from nvidia.com is blocked by JS-gating; use NVIDIA App or manual download from https://www.nvidia.com/en-us/drivers/details/ and verify INF contains both PnP IDs before install."
       }
     },
     {
@@ -311,18 +314,22 @@
       "category": "gpu",
       "matchRules": [
         { "type": "friendly_name", "pattern": "*RTX 2000 Ada*" },
-        { "type": "pci_class", "pattern": "Display*" }
+        { "type": "pci_class", "pattern": "Display*" },
+        { "type": "pnp_id", "pattern": "PCI\\VEN_10DE&DEV_28B8*" }
       ],
       "sharedDriverGroup": "nvidia-gpu-driver",
+      "requiredPnpIds": ["DEV_2D04", "DEV_28B8"],
       "driver": {
         "sourceId": "nvidia-drivers",
-        "latestVersion": "591.55",
+        "latestVersion": "591.86",
+        "installedVersion": "582.41",
+        "deviceStatus": "Error",
         "downloadUrl": "https://www.nvidia.com/download/index.aspx",
         "installerType": "exe-silent",
         "silentArgs": "-s -noreboot",
         "sha256": null,
-        "releaseDate": "2026-03-01",
-        "notes": "Ada Lovelace SM 89. Shares driver package with RTX 5060 Ti via sharedDriverGroup."
+        "releaseDate": "2026-01-27",
+        "notes": "Ada Lovelace SM 89, internal Lenovo ThinkPad GPU (SUBSYS_223417AA). Currently in Device Manager ERROR state because 591.86 (installed for 5060 Ti) stripped the Lenovo-signed 582.41 INF and replaced it with nv_dispig.inf which does NOT include DEV_28B8. Staged NVIDIA App update 595.97 at C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\224337314adfbc25ca5e95bff03ee45f\\ covers DEV_28B8 only — installing it would break the 5060 Ti. A unified driver covering BOTH DEV_2D04 and DEV_28B8 must be obtained from nvidia.com manually."
       }
     }
   ]

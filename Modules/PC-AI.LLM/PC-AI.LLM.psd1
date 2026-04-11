@@ -8,6 +8,9 @@
     Copyright = '(c) 2026 PC-AI Project. All rights reserved.'
     Description = 'PowerShell module for integrating pcai-inference LLM with PC diagnostics and analysis'
 
+    # CompatiblePSEditions requires PowerShellVersion >= 5.1 per PowerShell docs;
+    # Test-ModuleManifest fails on older PS without this pairing.
+    PowerShellVersion = '5.1'
     CompatiblePSEditions = @('Core')
 
     # Functions to export

@@ -46,7 +46,19 @@
         # PC-AI has many declare-only variables used as markers or returned in
         # PSCustomObject constructors; the analyzer's reachability analysis misses
         # these for conditional/exploratory code paths.
-        'PSUseDeclaredVarsMoreThanAssignments'
+        'PSUseDeclaredVarsMoreThanAssignments',
+        # PC-AI modules use $global: vars for cross-module communication
+        # (logger state, cached configuration, native FFI handle). Each use is
+        # intentional and documented; replacing with $script:/$env: would
+        # require re-architecting module coupling.
+        'PSAvoidGlobalVars',
+        # A handful of PS functions use non-approved verbs by convention
+        # (Normalize-Path, Analyze-PathVariable, Map-NativeEntry — these are
+        # internal helpers in module Private/ dirs, not exported cmdlets).
+        # Approved-verb renames would cascade through every caller without
+        # external-API benefit. Real issue for exported functions only — will
+        # be addressed in a follow-up PR that targets only exported cmdlets.
+        'PSUseApprovedVerbs'
     )
 
     Rules = @{

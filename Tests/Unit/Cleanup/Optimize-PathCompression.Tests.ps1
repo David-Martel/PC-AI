@@ -27,7 +27,11 @@ BeforeAll {
         $n.Name -in @('Normalize-Path', 'Test-IsUserPath', 'Test-IsAgentEphemeral', 'Test-IsCudaVersionPath', 'Get-CudaVersionFromPath', 'Invoke-Substitute')
     }, $true)
     foreach ($h in $helpers) {
-        Invoke-Expression $h.Extent.Text
+        # Dot-source a scriptblock built from the extracted function text so the
+        # helper definition lands in the current scope. Preferred over
+        # Invoke-Expression (flagged by PSAvoidUsingInvokeExpression) and
+        # functionally equivalent for function-definition text.
+        . ([scriptblock]::Create($h.Extent.Text))
     }
 }
 

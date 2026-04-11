@@ -11,6 +11,10 @@
       - Connect  : connect to a Windows peer over WinRM
       - Optimize : build or apply a conservative tuning plan
 #>
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'Password',
+    Justification = 'Operator CLI tool; accepts plain password from interactive invocation and wraps into SecureString for the WinRM call immediately. No persistence.')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '',
+    Justification = 'Operator CLI bridge: user passes -Password on the command line, we wrap to SecureString for the downstream cmdlet call only. Refactoring to a SecureString param would require an interactive Read-Host -AsSecureString fallback which blocks automated use.')]
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter()]

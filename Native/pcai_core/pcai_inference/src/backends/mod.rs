@@ -109,9 +109,16 @@ impl BackendType {
             #[cfg(feature = "mistralrs-backend")]
             BackendType::MistralRs => Ok(Box::new(mistralrs::MistralRsBackend::new())),
 
-            #[expect(
-                unreachable_patterns,
-                reason = "fallthrough guard: reachable when no backend feature (llamacpp or mistralrs-backend) is enabled at compile time"
+            // The catch-all arm is a fallthrough guard for builds compiled without
+            // any backend feature — without at least one `#[cfg(feature="...")]`
+            // arm matching, the match is non-exhaustive. When `llamacpp` or
+            // `mistralrs-backend` IS enabled, clippy's exhaustiveness check
+            // considers the `_` pattern unreachable; when BOTH are disabled, it's
+            // the only arm. Use `#[cfg_attr]` to silence `unreachable_patterns`
+            // only in the configurations where it actually triggers.
+            #[cfg_attr(
+                any(feature = "llamacpp", feature = "mistralrs-backend"),
+                allow(unreachable_patterns)
             )]
             _ => Err(Error::Backend("No backend feature enabled".to_string())),
         }

@@ -998,10 +998,11 @@ impl GenerationPipeline {
     /// # Errors
     ///
     /// Returns an error on any tensor operation failure or cache overflow.
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "speculative loop mirrors generate_with_overrides signature"
-    )]
+    // `#[allow]` rather than `#[expect]` because the refactor that reduced the
+    // parameter count no longer trips clippy's `too_many_arguments` threshold,
+    // and `#[expect]` is unfulfilled under `-D warnings`. Keeping `#[allow]` so
+    // a future refactor that re-grows the signature doesn't fail the build.
+    #[allow(clippy::too_many_arguments)]
     fn speculative_generate_loop(
         &self,
         prefill_hidden: Option<Tensor>,

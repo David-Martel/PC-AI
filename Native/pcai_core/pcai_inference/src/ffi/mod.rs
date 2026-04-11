@@ -573,10 +573,12 @@ pub type TokenCallback = extern "C" fn(token: *const c_char, user_data: *mut c_v
 /// * Callback must not call back into pcai functions
 /// * Must call pcai_load_model first
 #[no_mangle]
-#[expect(
-    unused_variables,
-    reason = "FFI boundary parameters required by the C ABI contract; some are unused when the llamacpp feature is disabled"
-)]
+// FFI boundary parameters are required by the C ABI contract even when the
+// `llamacpp` feature is disabled and the function body can't use them.
+// `#[cfg_attr]` so the allow only applies in the feature-disabled build where
+// unused_variables actually triggers; with the feature on, the params are used
+// and `#[expect]`/`#[allow]` would be unfulfilled under `-D warnings`.
+#[cfg_attr(not(feature = "llamacpp"), allow(unused_variables))]
 pub extern "C" fn pcai_generate_streaming(
     prompt: *const c_char,
     max_tokens: u32,

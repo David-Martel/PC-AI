@@ -23,7 +23,7 @@ tracing = "0.1"
 candle-core = { version = "0.9" }
 candle-nn = "0.9"
 candle-transformers = "0.9"
-safetensors = "0.4"
+safetensors = "0.7"
 tokenizers = "0.22"
 image = "0.25"
 rand = "0.8"

@@ -59,7 +59,7 @@ flash-attn = ["pcai-media-model/flash-attn"]
 upscale = ["dep:ort"]
 
 [dependencies.axum]
-version = "0.7"
+version = "0.8"
 optional = true
 
 [dependencies.tower-http]

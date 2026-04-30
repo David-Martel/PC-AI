@@ -19,6 +19,7 @@ PC-AI is a modular PowerShell framework that diagnoses hardware issues, analyzes
 ## Key Features
 
 - **Hardware Diagnostics** -- Device errors, SMART disk health, USB controllers, network adapters
+- **Boot And Sync Reliability** -- VHD startup, Task Scheduler, Filter Manager, Process Lasso, and cloud-sync health tooling
 - **Native Acceleration** -- Rust + C# hybrid engine delivering 5-40x speedups over pure PowerShell
 - **Local LLM Analysis** -- AI-powered diagnostic interpretation via pcai-inference (llama.cpp / mistral.rs backends)
 - **Tool-Calling Router** -- FunctionGemma selects and executes the right diagnostic tool before LLM analysis
@@ -171,6 +172,43 @@ pwsh Tests\Evaluation\Invoke-InferenceEvaluation.ps1 `
 pwsh Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick
 ```
 
+## Workstation Reliability Tooling
+
+Recent 2026-04 workstation work added maintained scripts and evidence capture
+for boot, mount, sync-provider, registry-risk, and UI-responsiveness debugging.
+The current ledger is [boot.TODO.md](boot.TODO.md), with primary evidence under
+`Reports\boot-diagnostics\`, `Reports\drive-performance-sync-risk\`,
+`Reports\processlasso-*`, and `Reports\onedrive-repair\`.
+
+Common entrypoints:
+
+```powershell
+# Boot, VHD, Filter Manager, scheduler, and sync-provider capture
+pwsh .\Tools\Collect-BootDiagnostics.ps1 -SinceMinutes 120 -PostRebootVerify
+
+# Focused validators
+pwsh .\Tools\Test-BootMountHealth.ps1 -SinceMinutes 60 -PassThru
+pwsh .\Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru
+pwsh .\Tools\Test-ProcessLassoBootSafety.ps1
+
+# Process Lasso and OneDrive repair tooling
+pwsh .\Tools\Apply-ProcessLassoUiSyncTuning.ps1 -DryRun
+pwsh .\Tools\Repair-OneDriveSync.ps1 -DryRun
+pwsh .\Tools\Collect-DrivePerformanceSyncRisk.ps1 -SinceMinutes 240
+
+# Repo-owned Task Scheduler and workstation script migration
+pwsh .\Tools\Migrate-SystemScriptsIntoRepo.ps1 -DryRun
+```
+
+Write-capable session scripts are expected to expose `-h`, `--help`, and
+non-mutating `-DryRun` behavior before being used from Task Scheduler or logon
+automation.
+
+Task Scheduler and selected system-modification scripts that used to live under
+`C:\Scripts`, `~\.machine`, `~\.local\bin`, `~\bin`, OneDrive PowerShell
+script folders, and `unifi_api` startup folders now live under
+`Tools\SystemScripts`; see `Tools\SystemScripts\README.md`.
+
 ## Build System
 
 The unified `Build.ps1` orchestrator supports 20+ components:
@@ -194,14 +232,13 @@ pwsh Tests\Invoke-AllTests.ps1 -Suite All
 
 # Rust unit tests
 cargo test --manifest-path Native\pcai_core\Cargo.toml
+
+# Boot/session tooling contracts
+pwsh -NoProfile -Command "Invoke-Pester -Path .\Tests\Boot\PersistentVHDX.Tests.ps1,.\Tests\Boot\BootValidationTools.Tests.ps1"
 ```
 
-| Suite | Tests | Status |
-|-------|-------|--------|
-| Rust (pcai_core + inference) | 197 | Passing |
-| Pester (PowerShell) | 37 | Passing |
-| Module validation | 199 | Passing |
-| **Total** | **433** | **All passing** |
+The exact test count changes as native and workstation tooling grows. Prefer
+current command output and report artifacts over static README counts.
 
 ## Project Structure
 
@@ -229,7 +266,7 @@ PC-AI/
 |   +-- rag-database/            # RAG pipeline (PostgreSQL + pgvector)
 +-- Config/                      # Runtime configuration
 +-- Tests/                       # Pester + Rust test suites
-+-- Tools/                       # 33 utility scripts
++-- Tools/                       # 89 utility scripts
 ```
 
 ## Requirements
@@ -250,7 +287,8 @@ No WSL or Docker required for core functionality.
 - **Read-only by default** -- diagnostics collect data without modifications
 - **Explicit consent** -- destructive operations require confirmation
 - **Backup prompts** -- disk repair and BIOS operations warn first
-- **Dry-run support** -- preview changes before execution (`--dry-run`)
+- **Dry-run support** -- preview changes before execution (`--dry-run`, `-DryRun`, or tool-specific preview modes)
+- **Recoverable automation** -- Task Scheduler and registry helpers should emit JSON, transcripts, and event-log evidence
 - **Professional escalation** -- recommends expert help for suspected hardware failure
 
 ## Contributing

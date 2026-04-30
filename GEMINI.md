@@ -10,6 +10,9 @@ This repo supports local LLM routing and diagnostics. When interacting with the 
 - Use `CHAT.md` for general assistance.
 - Prefer the FunctionGemma runtime for tool selection (`Invoke-LLMChatRouted`).
 - **Use Native Acceleration**: Prefer Rust-accelerated modules (`PC-AI.Acceleration`) over standard PowerShell file tools when parsing or searching on the host.
+- **Preserve workstation evidence**: For boot, sync, registry, Process Lasso,
+  OneDrive, or touchpad/UI responsiveness work, consult `boot.TODO.md` and
+  preserve dated artifacts under `Reports\` before changing live settings.
 
 ## Tool schema and routing
 
@@ -92,6 +95,22 @@ pwsh .\Tests\Evaluation\Invoke-InferenceEvaluation.ps1 `
   -ProgressMode stream `
   -RunLabel local-smoke
 ```
+
+## Boot, Sync, And UI Responsiveness
+
+Use these repo-local tools for the April 2026 workstation reliability surface:
+
+```powershell
+pwsh .\Tools\Collect-BootDiagnostics.ps1 -SinceMinutes 120 -PostRebootVerify
+pwsh .\Tools\Test-BootMountHealth.ps1 -SinceMinutes 60 -PassThru
+pwsh .\Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru
+pwsh .\Tools\Test-ProcessLassoBootSafety.ps1
+pwsh .\Tools\Collect-DrivePerformanceSyncRisk.ps1 -SinceMinutes 240
+```
+
+Write-capable session scripts should provide `-h`, `--help`, and `-DryRun`
+behavior and should fail loudly with JSON/transcript/event evidence when used
+from Task Scheduler or logon workflows.
 
 ## CI/CD Releases
 

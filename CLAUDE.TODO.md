@@ -1,7 +1,13 @@
 # PC_AI Development TODO
 
-> **Updated:** 2026-03-27 | **Status:** Active Development
+> **Updated:** 2026-04-30 | **Status:** Historical Claude planning plus active LLM/media notes
 > **Coordinating agents:** Claude, Codex, Jules (53 sessions complete, API wrapper + orchestrator active)
+
+This file preserves the detailed Claude-originated LLM/media optimization plan.
+For the current reconciled high-level backlog, use [TODO.md](TODO.md). For
+remaining LLM/runtime work, use [llm.TODO.md](llm.TODO.md). For boot, OneDrive,
+Process Lasso, VHD, registry, and touchpad/UI responsiveness work, use
+[boot.TODO.md](boot.TODO.md).
 
 ---
 

@@ -206,6 +206,16 @@ scan_results.json
 # Machine-specific development scripts (contain local paths)
 Scripts/
 
+# Repo-owned migrated workstation scripts are intentionally tracked. Keep this
+# after the broad Scripts/ and secret-name ignores above so scheduled-task and
+# UDM helper scripts under Tools/SystemScripts are not hidden from git.
+!Tools/SystemScripts/
+!Tools/SystemScripts/**
+Tools/SystemScripts/**/*.log
+Tools/SystemScripts/**/*.log.*
+Tools/SystemScripts/**/*.bak
+Tools/SystemScripts/**/nppBackup/
+
 # Auto-generated model index (contains local paths)
 MODELS.md
 

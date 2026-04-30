@@ -10,7 +10,7 @@ Last updated: 2026-04-30 after post-reboot validation on boot time
 2026-04-30 12:50:02 America/New_York, UDM startup disablement, OneDrive
 registry/file-notification review, conservative registry rollback, Process
 Lasso watchdog deployment, `~\bin` script risk review, and OneDrive
-install/reset repair.
+install/reset repair. Reconciled into high-level project docs on 2026-04-30.
 
 ## Completed In This Pass
 
@@ -294,6 +294,37 @@ install/reset repair.
   - Repair report:
     `Reports\onedrive-repair-20260430.md`.
 
+- [x] Reconcile boot/sync/session tooling into high-level project docs.
+  - Updated: `README.md`, `TODO.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+    `Config\PROJECT_CONTEXT.md`, `llm.TODO.md`, and `CLAUDE.TODO.md`.
+  - Result: high-level docs now point to this file as the live operational
+    ledger and no longer leave completed boot/session contract work as active
+    top-level TODO noise.
+
+- [x] Centralize Task Scheduler and workstation system-modification scripts.
+  - Migration tool: `Tools\Migrate-SystemScriptsIntoRepo.ps1`.
+  - New script home: `Tools\SystemScripts`.
+  - Repointed Task Scheduler actions:
+    `\BW-Auto-Unlock`, `\Bitwarden\Initialize-MachineSecrets`,
+    `\DevEnvironmentStartup`, `\Gemini-CLI-Update-stable`, `\LspmuxServer`,
+    `\PowerShell\ProfileLogSync`, `\UDP Socket Monitor`, and
+    `\UnifiUdmDriveStackStartup`.
+  - Moved relevant scripts from `C:\Scripts`, `~\.machine`, `~\.local\bin`,
+    `~\bin`, OneDrive PowerShell script folders, and UDM startup helper
+    folders into repo-owned locations.
+  - Cleaned up empty source folders after migration. The UDM Windows script
+    source folder was held open by an old `rclone.exe` process using that path
+    as its working directory; that stale UDM rclone mount process was stopped
+    after confirming `UnifiUdmDriveStackStartup` was disabled, and the empty
+    source folder was removed.
+  - Validation:
+    `Reports\task-scheduler-after-systemscript-migration.xml`,
+    `Reports\system-script-migration-20260430-164416.json`, and
+    `Reports\system-script-migration-20260430-165552.json`.
+  - Notes: log files, cache files, secret material, and ignored backup files
+    were not force-added to git. Secret modules and caches under `~\.machine`
+    intentionally remain outside this repo.
+
 ## Remaining Active Issues After 2026-04-30 Reboot
 
 - [ ] Monitor OneDrive after install/reset repair.
@@ -444,6 +475,16 @@ install/reset repair.
   - Next capture should be taken immediately after a touchpad glitch and should
     include OneDrive process I/O, Process Lasso log lines, HID/I2C/Kernel-PnP
     events, top disk I/O, and current sync-provider state.
+
+- [ ] Finish hardening newly migrated `Tools\SystemScripts` utilities before
+  enabling any additional startup/logon usage.
+  - Preserve current Task Scheduler repoints, but do not enable new migrated
+    scripts until each write-capable script has help text, `-DryRun`,
+    idempotent behavior, structured logs or clear console output, and loud
+    nonzero failures.
+  - Prioritize `UserBin` DNS, RAG Redis, sccache, Docker/MCP, and developer
+    environment scripts because those can change services, PATH, network
+    behavior, caches, or startup state.
 
 - [ ] Decide whether NVIDIA Broadcast and FrameView/PresentMon should run at
   logon.

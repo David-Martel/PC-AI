@@ -1,0 +1,407 @@
+{
+  "generated_at": "2026-04-30T16:44:30.3864144-04:00",
+  "repo_root": "C:\\codedev\\PC_AI",
+  "destination_root": "C:\\codedev\\PC_AI\\Tools\\SystemScripts",
+  "apply": true,
+  "dry_run": false,
+  "moved_items": [
+    {
+      "source": "C:\\Scripts",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\C-Scripts",
+      "kind": "Directory",
+      "reason": "Legacy WSL/Docker/VHD/startup system-modification scripts",
+      "exists": false,
+      "action": "missing"
+    },
+    {
+      "source": "C:\\Users\\david\\OneDrive\\Documents\\PowerShell\\Scripts",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\TaskScheduler\\PowerShellScripts",
+      "kind": "Directory",
+      "reason": "DevEnvironmentStartup task and companion startup scripts",
+      "exists": false,
+      "action": "missing"
+    },
+    {
+      "source": "C:\\Users\\david\\unifi_api\\scripts\\windows",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\unifi_api\\scripts\\windows",
+      "kind": "Directory",
+      "reason": "UnifiUdmDriveStackStartup task and companion registrar",
+      "exists": true,
+      "action": "move-failed",
+      "error": "The process cannot access the file because it is being used by another process."
+    },
+    {
+      "source": "C:\\Users\\david\\unifi_api\\scripts\\udm_boot",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\unifi_api\\scripts\\udm_boot",
+      "kind": "Directory",
+      "reason": "UDM drive stack helper scripts referenced by moved startup script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\scripts\\home-root-archive",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\HomeRootArchive",
+      "kind": "Directory",
+      "reason": "Archived registry/network/cloud-sync/system modification scripts",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.machine\\Unlock-BwVault.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Unlock-BwVault.ps1",
+      "kind": "File",
+      "reason": "BW-Auto-Unlock scheduled task",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.machine\\Register-BwAutoUnlockTask.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Register-BwAutoUnlockTask.ps1",
+      "kind": "File",
+      "reason": "Companion registrar for BW-Auto-Unlock",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.machine\\Initialize-SecretsAtBoot.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Initialize-SecretsAtBoot.ps1",
+      "kind": "File",
+      "reason": "Bitwarden\\Initialize-MachineSecrets scheduled task",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.machine\\Register-SecretsBootTask.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Register-SecretsBootTask.ps1",
+      "kind": "File",
+      "reason": "Companion registrar for Bitwarden secret initialization",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.machine\\Monitor-UDPSockets.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Monitor-UDPSockets.ps1",
+      "kind": "File",
+      "reason": "UDP Socket Monitor scheduled task",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.machine\\Sync-ProfileLogs.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Sync-ProfileLogs.ps1",
+      "kind": "File",
+      "reason": "PowerShell\\ProfileLogSync scheduled task",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.machine\\Install-ProfileLogSyncTask.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Install-ProfileLogSyncTask.ps1",
+      "kind": "File",
+      "reason": "Companion registrar for PowerShell\\ProfileLogSync",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.machine\\Migrate-ProfileLogs.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Migrate-ProfileLogs.ps1",
+      "kind": "File",
+      "reason": "Profile-log migration companion utility",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.local\\bin\\Start-LspmuxServer.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\LocalBin\\Start-LspmuxServer.ps1",
+      "kind": "File",
+      "reason": "LspmuxServer scheduled task",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.local\\bin\\ensure-everything.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\LocalBin\\ensure-everything.ps1",
+      "kind": "File",
+      "reason": "Local environment bootstrap script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.local\\bin\\setup-rustflags.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\LocalBin\\setup-rustflags.ps1",
+      "kind": "File",
+      "reason": "Rust build environment mutation script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.local\\bin\\setup-sccache-env.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\LocalBin\\setup-sccache-env.ps1",
+      "kind": "File",
+      "reason": "sccache environment mutation script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\.local\\bin\\wsl-usb.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\LocalBin\\wsl-usb.ps1",
+      "kind": "File",
+      "reason": "USB/WSL system integration script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Setup-RAGRedisAutoStart.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Setup-RAGRedisAutoStart.ps1",
+      "kind": "File",
+      "reason": "RAG Redis startup task creator",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Start-RAGRedisNative.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Start-RAGRedisNative.ps1",
+      "kind": "File",
+      "reason": "RAG Redis startup/system modification script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Test-RAGRedisHealth.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Test-RAGRedisHealth.ps1",
+      "kind": "File",
+      "reason": "RAG Redis health/fix script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\tests\\Test-RAGRedisHealth.Tests.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\tests\\Test-RAGRedisHealth.Tests.ps1",
+      "kind": "File",
+      "reason": "RAG Redis script tests",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\LocalDNSProxy.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\LocalDNSProxy.ps1",
+      "kind": "File",
+      "reason": "DNS proxy service/network mutation script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Install-AcrylicDNS.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Install-AcrylicDNS.ps1",
+      "kind": "File",
+      "reason": "Acrylic DNS installer/network mutation script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\dns-proxy.bat",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\dns-proxy.bat",
+      "kind": "File",
+      "reason": "DNS proxy service wrapper",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\setup-dns-env.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\setup-dns-env.ps1",
+      "kind": "File",
+      "reason": "DNS environment mutation script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\test-dns-setup.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\test-dns-setup.ps1",
+      "kind": "File",
+      "reason": "DNS setup validator",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\sccache-manager.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\sccache-manager.ps1",
+      "kind": "File",
+      "reason": "sccache service/cache manager",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Diagnose-Sccache.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Diagnose-Sccache.ps1",
+      "kind": "File",
+      "reason": "sccache diagnostic script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Setup-BuildEnvironment.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Setup-BuildEnvironment.ps1",
+      "kind": "File",
+      "reason": "developer environment mutation script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Manage-DevTools.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Manage-DevTools.ps1",
+      "kind": "File",
+      "reason": "developer tool install/update script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Update-DevUtilities.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Update-DevUtilities.ps1",
+      "kind": "File",
+      "reason": "developer utility update script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Fix-Winget.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Fix-Winget.ps1",
+      "kind": "File",
+      "reason": "winget/package repair script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Fix-NPM-Issues.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Fix-NPM-Issues.ps1",
+      "kind": "File",
+      "reason": "npm repair script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Install-CoreUtils.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Install-CoreUtils.ps1",
+      "kind": "File",
+      "reason": "coreutils install script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\Install-CoreUtils-Direct.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\Install-CoreUtils-Direct.ps1",
+      "kind": "File",
+      "reason": "coreutils direct install script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\List-InstalledUtils.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\List-InstalledUtils.ps1",
+      "kind": "File",
+      "reason": "coreutils inventory companion",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\docker-health.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\docker-health.ps1",
+      "kind": "File",
+      "reason": "Docker health/startup diagnostic script",
+      "exists": true,
+      "action": "moved"
+    },
+    {
+      "source": "C:\\Users\\david\\bin\\mcp-health.ps1",
+      "destination": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\UserBin\\mcp-health.ps1",
+      "kind": "File",
+      "reason": "MCP health/startup diagnostic script",
+      "exists": true,
+      "action": "moved"
+    }
+  ],
+  "scheduled_task_repoints": [
+    {
+      "task_name": "BW-Auto-Unlock",
+      "task_path": "\\",
+      "old_path": "C:\\Users\\david\\.machine\\Unlock-BwVault.ps1",
+      "new_path": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Unlock-BwVault.ps1",
+      "found": true,
+      "action": "repointed"
+    },
+    {
+      "task_name": "DevEnvironmentStartup",
+      "task_path": "\\",
+      "old_path": "C:\\Users\\david\\OneDrive\\Documents\\PowerShell\\Scripts\\Start-DevEnvironment.ps1",
+      "new_path": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\TaskScheduler\\PowerShellScripts\\Start-DevEnvironment.ps1",
+      "found": true,
+      "action": "repointed"
+    },
+    {
+      "task_name": "LspmuxServer",
+      "task_path": "\\",
+      "old_path": "C:/Users/david\\.local\\bin\\Start-LspmuxServer.ps1",
+      "new_path": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\LocalBin\\Start-LspmuxServer.ps1",
+      "found": true,
+      "action": "repointed"
+    },
+    {
+      "task_name": "UDP Socket Monitor",
+      "task_path": "\\",
+      "old_path": "C:\\Users\\david\\.machine\\Monitor-UDPSockets.ps1",
+      "new_path": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Monitor-UDPSockets.ps1",
+      "found": true,
+      "action": "repointed"
+    },
+    {
+      "task_name": "UnifiUdmDriveStackStartup",
+      "task_path": "\\",
+      "old_path": "C:\\Users\\david\\unifi_api\\scripts\\windows\\Start-UDMDriveStack.ps1",
+      "new_path": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\unifi_api\\scripts\\windows\\Start-UDMDriveStack.ps1",
+      "found": true,
+      "action": "repointed"
+    },
+    {
+      "task_name": "Initialize-MachineSecrets",
+      "task_path": "\\Bitwarden\\",
+      "old_path": "C:\\Users\\david\\.machine\\Initialize-SecretsAtBoot.ps1",
+      "new_path": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Initialize-SecretsAtBoot.ps1",
+      "found": true,
+      "action": "repointed"
+    },
+    {
+      "task_name": "ProfileLogSync",
+      "task_path": "\\PowerShell\\",
+      "old_path": "C:\\Users\\david\\.machine\\Sync-ProfileLogs.ps1",
+      "new_path": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Sync-ProfileLogs.ps1",
+      "found": true,
+      "action": "repointed"
+    }
+  ],
+  "empty_directory_cleanup": [
+    {
+      "path": "C:\\Scripts",
+      "exists": false,
+      "action": "missing"
+    },
+    {
+      "path": "C:\\Users\\david\\OneDrive\\Documents\\PowerShell\\Scripts",
+      "exists": false,
+      "action": "missing"
+    },
+    {
+      "path": "C:\\Users\\david\\unifi_api\\scripts\\windows",
+      "exists": true,
+      "action": "not-empty"
+    },
+    {
+      "path": "C:\\Users\\david\\unifi_api\\scripts\\udm_boot",
+      "exists": false,
+      "action": "missing"
+    },
+    {
+      "path": "C:\\Users\\david\\bin\\scripts\\home-root-archive",
+      "exists": false,
+      "action": "missing"
+    }
+  ]
+}

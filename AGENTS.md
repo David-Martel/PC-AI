@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Current agent guidance for `PC_AI` as of March 2026.
+Current agent guidance for `PC_AI` as of April 30, 2026.
 
 ## Mission
 
@@ -12,6 +12,8 @@ active PowerShell + Rust/C# platform for:
 - local LLM inference, routing, and evaluation
 - benchmark-driven performance work
 - an emerging multimodal/media stack built around Janus-style models
+- boot/logon, VHD, sync-provider, Process Lasso, and UI-responsiveness
+  reliability work for this Windows workstation
 
 Agents working in this repo should optimize for measurable improvement, not
 just feature addition.
@@ -85,6 +87,51 @@ The media backlog currently includes both fixture expansion and performance
 cleanup. If you optimize media routines, add or update tests and document how to
 reproduce the measurement.
 
+### 4. Workstation boot, sync, and UI responsiveness hardening
+
+The 2026-04-30 workstation investigation produced maintained tooling for VHD
+startup, Filter Manager visibility, Process Lasso policy, OneDrive repair,
+risky registry-script rollback, and `~\bin` script risk review. Treat this as a
+first-class diagnostics surface, not scratch work.
+
+Primary entrypoints:
+
+- `boot.TODO.md`
+- `Tools\Collect-BootDiagnostics.ps1`
+- `Tools\Test-BootMountHealth.ps1`
+- `Tools\Test-SyncProviderHealth.ps1`
+- `Tools\Test-ProcessLassoBootSafety.ps1`
+- `Tools\Apply-ProcessLassoUiSyncTuning.ps1`
+- `Tools\Collect-DrivePerformanceSyncRisk.ps1`
+- `Tools\Repair-OneDriveSync.ps1`
+- `Tools\Migrate-SystemScriptsIntoRepo.ps1`
+- `Tools\SystemScripts\README.md`
+- `Tests\Boot\PersistentVHDX.Tests.ps1`
+- `Tests\Boot\BootValidationTools.Tests.ps1`
+- `Reports\boot-diagnostics\`
+- `Reports\drive-performance-sync-risk\`
+- `Reports\onedrive-repair-20260430.md`
+- `Reports\bin-script-risk-review-20260430.md`
+
+Operational rules:
+
+- Preserve OneDrive, Filter Manager, Task Scheduler, VHD, and Process Lasso
+  evidence before changing startup or registry policy.
+- Keep Task Scheduler scripts and other workstation-mutating helpers under
+  `Tools\SystemScripts` rather than scattered through `C:\Scripts`,
+  `~\.machine`, `~\.local\bin`, `~\bin`, or OneDrive script folders.
+- Write-capable session scripts must expose `-h`, `--help`, and non-mutating
+  `-DryRun` behavior, and their tests must prove dry-run suppresses side
+  effects including file writes, event-log writes, Task Scheduler mutation, and
+  mount operations where applicable.
+- Keep the UDM SMB auto-launch disabled until OneDrive has a clean sync-health
+  window, unless the user explicitly asks to re-enable it.
+- Do not add broad Explorer remote-change-notification or filesystem/cache
+  registry tweaks as OneDrive fixes without Microsoft-supported rationale,
+  rollback artifacts, and before/after metrics.
+- Treat Process Lasso as a prioritization aid around user-mode contention. It
+  cannot directly reprioritize kernel HID/I2C interrupt handling.
+
 ## Architecture quick map
 
 - `PC-AI.ps1`: unified CLI entry point
@@ -102,6 +149,13 @@ reproduce the measurement.
   - `pcai_media_server`: server wrapper for media APIs
 - `AI-Media/`: older standalone/prototype multimodal workspace
 - `Tests/`: Pester, evaluation, benchmark, and integration automation
+- `Tools/`: repo-local diagnostics, repair, benchmarking, and workstation
+  hardening scripts
+- `Tools/SystemScripts/`: repo-owned Task Scheduler and workstation
+  system-modification scripts migrated from local bin, machine, OneDrive, and
+  UDM script folders
+- `Reports/`: evidence snapshots and generated diagnostics; preserve dated
+  artifacts that explain workstation or benchmark decisions
 
 ## Prompt and routing contracts
 
@@ -209,9 +263,11 @@ At minimum, choose the narrowest relevant validation path:
 
 Important active testing gaps:
 
-- more native DLL availability and fallback coverage across surfaces
+- more native DLL availability and fallback coverage as new surfaces are added
 - benchmark-backed regression tests for acceleration hot paths
 - stronger fixture coverage for the media agent and multimodal routines
+- clean post-reboot validation windows for OneDrive, VHD mount health, Process
+  Lasso governor presence, and touchpad/UI glitch correlation
 
 ## Runtime diagnostics
 
@@ -221,6 +277,14 @@ Useful commands when the LLM or native stack is unhealthy:
 - `Get-PcaiServiceHealth`
 - `Get-PcaiNativeStatus`
 - `Get-PcaiCapabilities`
+
+Useful commands when boot, sync, or UI responsiveness is unhealthy:
+
+- `Tools\Collect-BootDiagnostics.ps1 -SinceMinutes 120 -PostRebootVerify`
+- `Tools\Test-BootMountHealth.ps1 -SinceMinutes 60 -PassThru`
+- `Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru`
+- `Tools\Test-ProcessLassoBootSafety.ps1`
+- `Tools\Collect-DrivePerformanceSyncRisk.ps1 -SinceMinutes 240`
 
 Service endpoints:
 
@@ -240,6 +304,8 @@ These themes should be treated as live backlog, not stale notes:
 - media-agent fixture growth and performance tuning
 - continued consolidation away from PowerShell-only implementations when the
   native path is clearly better
+- OneDrive post-repair monitoring, stale task triage, cloud-root-on-VHD startup
+  ordering, and `~\bin` script hardening from `boot.TODO.md`
 
 ## Documentation and automation
 
@@ -251,6 +317,10 @@ These themes should be treated as live backlog, not stale notes:
 Keep docs aligned with the real scripts, benchmarks, and active backlog. If the
 repo gains a new benchmark, fixture suite, or native capability, update this
 file along with the relevant README or module docs.
+
+For workstation hardening changes, update `boot.TODO.md`, the relevant
+`Reports\*.md` evidence summary, and any script comment-based help or Pester
+coverage in the same workstream.
 
 ## Jules agent guidance
 

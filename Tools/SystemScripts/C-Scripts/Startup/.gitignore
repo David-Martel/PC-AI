@@ -1,0 +1,22 @@
+# Logs
+*.log
+*.log.*
+
+# Backup files
+*.OLD-*
+*.bak
+*.backup
+
+# Windows artifacts
+Thumbs.db
+desktop.ini
+
+# Test results (generated)
+Tests/TestResults/
+Tests/*.xml
+
+# IDE
+.vs/
+.vscode/
+*.suo
+*.user

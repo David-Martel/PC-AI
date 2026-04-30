@@ -11,6 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Propose optimizations for disk, network, and system performance
 - Clean up duplicates, PATH entries, and unnecessary system artifacts
 - Route tool execution via FunctionGemma runtime before final LLM analysis
+- Harden boot/logon automation, VHD mounts, sync providers, Process Lasso
+  policy, and UI-responsiveness diagnostics on the Windows workstation
 
 The agent operates on **Windows 10/11** with native-first inference via **pcai-inference**. WSL/Docker are optional and not required for the LLM stack.
 
@@ -59,7 +61,7 @@ PC_AI/
 │   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
 │   ├── PcaiInference.psm1             # Inference module (load/generate/stream/async)
 │   └── PcaiMedia.psm1                 # Media processing module (Janus-Pro wrapper)
-├── Tools/                             # 69 utility/build scripts
+├── Tools/                             # 89 utility/build/diagnostic scripts
 ├── Tests/                             # Pester + Rust test suites (80+ test files)
 ├── Scripts/                           # Rust analyzer health, CargoTools tests
 ├── Config/
@@ -75,7 +77,7 @@ PC_AI/
 │   ├── diagnostic-thresholds.json     # Threshold values for diagnostic severity
 │   └── vsock-bridges.conf             # VSock bridge configuration
 ├── Notebooks/                         # Evaluation Jupyter notebooks
-├── Reports/                           # Auto-generated doc pipeline reports
+├── Reports/                           # Auto-generated docs, benchmarks, and workstation evidence
 ├── .litho/litho.toml                  # Litho (deepwiki-rs) documentation config
 └── CLAUDE.md                          # This file
 ```
@@ -88,6 +90,21 @@ PC_AI/
 
 The agent follows a **collect → parse → route → reason → recommend** workflow where diagnostics output is structured into categories, optional tool routing is executed via the FunctionGemma runtime, and the main LLM produces recommendations.
 
+### Workstation Reliability Surface
+
+The April 2026 boot/sync investigation added maintained tooling for:
+
+- VHD startup wrappers and Task Scheduler registration
+- Filter Manager, VHD, disk, Task Scheduler, and sync-provider evidence capture
+- Process Lasso UI/sync responsiveness policy and governor validation
+- OneDrive installer/reset repair and post-repair health checks
+- Drive-performance and registry-risk review with rollback artifacts
+- `~\bin` script risk review for startup, DNS, RAG Redis, archive, and cloud-sync impact
+
+Use [boot.TODO.md](boot.TODO.md) as the live ledger for this surface. Do not
+change startup tasks, registry policy, Process Lasso rules, or cloud-sync
+startup behavior without preserving evidence under `Reports\`.
+
 ## Quick Start
 
 ```powershell
@@ -99,6 +116,9 @@ cd Native\pcai_core && cargo test --no-default-features --features server,ffi --
 
 # Run all PowerShell + integration tests
 pwsh Tests\Invoke-AllTests.ps1
+
+# Validate boot/session script contracts
+pwsh -NoProfile -Command "Invoke-Pester -Path .\Tests\Boot\PersistentVHDX.Tests.ps1,.\Tests\Boot\BootValidationTools.Tests.ps1"
 ```
 
 ## Documentation Generation

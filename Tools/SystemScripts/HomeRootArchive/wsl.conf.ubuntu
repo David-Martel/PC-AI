@@ -1,0 +1,29 @@
+# /etc/wsl.conf - Configuration file for Ubuntu WSL distribution
+# This file should be placed at /etc/wsl.conf inside your WSL Ubuntu instance
+
+[boot]
+# Enable systemd for proper service management
+systemd=true
+
+[network]
+# Generate /etc/hosts file for network resolution
+generateHosts=true
+generateResolvConf=true
+
+[interop]
+# Enable Windows interoperability
+enabled=true
+appendWindowsPath=true
+
+[user]
+# Set default user (optional)
+default=david
+
+[automount]
+# Configure drive mounting
+enabled=true
+root=/mnt/
+options="metadata,umask=22,fmask=11"
+
+# Mount Windows drives with better permissions for development
+mountFsTab=true

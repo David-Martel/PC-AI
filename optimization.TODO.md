@@ -3,6 +3,13 @@
 This backlog is based on real measurements taken while optimizing the Codex
 context toolkit against `PC-AI.Acceleration` on March 6, 2026.
 
+Last reconciled: 2026-04-30. Boot/sync/OneDrive/Process Lasso reliability work
+now lives in [boot.TODO.md](boot.TODO.md); this file remains focused on
+measured acceleration, startup-cost, native search, media, and toolchain
+optimization work. Do not treat OneDrive-backed module-path notes below as
+OneDrive repair guidance; use the boot ledger and reports for live workstation
+state.
+
 ## 2026-03-07 Windows + Intel Optimization Program
 
 ### Completed In This Pass

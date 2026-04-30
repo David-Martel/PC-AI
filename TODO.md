@@ -1,58 +1,129 @@
 # TODO
 
-## Now (stability + parity)
-- [x] Replace external script references in prompts with module cmdlets
-- [x] Add module fallback when external scripts are missing
-- [x] Align tool schema with module cmdlets (SearchDocs/GetSystemInfo/SearchLogs vs pcai-tools.json)
-- [x] Enforce JSON-only diagnose output in routed/diagnose flows
-- [x] Enforce JSON-only diagnose output in UI/TUI rendering paths
-- [x] Rust FunctionGemma runtime: add /health + /v1/models metadata (version/model/tools)
-- [x] Rust FunctionGemma runtime: deterministic tool routing defaults for tool_choice=required
-- [x] Rust FunctionGemma runtime: optional GPU selection + LoRA adapter load when available
-- [ ] oLLM parity: explore large-context offload ideas for pcai_inference (llama.cpp/mistralrs) including KV cache offload and streaming prefill
+This is the active high-level backlog for `PC_AI`. Completed historical work
+should be recorded in the relevant report, context snapshot, or specialized
+ledger instead of left here as active work.
 
-## Architecture alignments (C#/Rust backend as primary engine)
-- [ ] Replace PowerShell-only diagnostics with Rust/C# native backends where feasible (logs, inventory, health checks)
-  - Native-first log/content search now wired in Acceleration module
-  - Native disk usage + top process listing wired in Acceleration module
-- [ ] Define a versioned C ABI contract for all Rust DLL exports (error codes, result structs, memory ownership)
-- [ ] Create a unified C# service layer that exposes Rust capabilities to PowerShell and TUI
-- [x] Consolidate pcai_fs exports into pcai_core_lib and route FsModule to the core DLL
-- [ ] Standardize JSON schemas for native outputs (shared schema folder + version pinning)
-- [x] Add a capability registry (DLL presence, feature flags, CPU/GPU support) surfaced to PowerShell UI
-- [ ] Centralize error translation (Rust error -> C# status -> PowerShell error record)
-- [ ] Provide cancellation/timeouts across PowerShell -> C# -> Rust (Ctrl+C propagation)
-- [ ] Add structured logging + metrics from native layer (ETW or JSON log file)
+Last reconciled: 2026-04-30, after the boot/sync/Process Lasso/OneDrive tooling
+pass and Dependabot/security cleanup.
 
-## Agentic interface robustness
-- [x] Ensure tool outputs are deterministic and bounded in size (truncate, summarize, or compress)
-- [x] Add retry/timeout policy per tool invocation (with per-tool max runtime)
-- [x] Add health gates for LLM providers (ollama/vllm/lmstudio) before tool routing
-- [x] Normalize tool result envelopes (Success/ExitCode/Warnings/Evidence)
-- [x] Expand diagnostic coverage to match DIAGNOSE_LOGIC.md expectations
+## Recently Reconciled
 
-## Memory + RAG integrations
-- [ ] Integrate rag-redis (W:\dropbox-local\rag-redis) with Redis endpoints 6379/6380 for tool memory + retrieval.
-- [ ] Evaluate simsimd (or similar SIMD distance kernels) for faster vector similarity in local RAG flows.
-- [ ] Add optional Postgres 18/MS SQL backed memory store for long-term tool history.
+- Prompt/tool-schema parity, module fallbacks, routed JSON enforcement, and
+  bounded deterministic tool envelopes are complete.
+- FunctionGemma health/model metadata, deterministic required-tool routing,
+  GPU selection, and LoRA adapter load support are complete.
+- Native `pcai_fs` consolidation, the capability registry, and native DLL
+  availability/graceful fallback tests are complete.
+- Boot/session tooling now has maintained VHD wrappers, Task Scheduler
+  registration, Process Lasso policy/validation, OneDrive repair tooling,
+  `-h`/`--help`, and `-DryRun` contract tests. The operational ledger is
+  [boot.TODO.md](boot.TODO.md).
+- Task Scheduler and selected system-modifying scripts from `C:\Scripts`,
+  `~\.machine`, `~\.local\bin`, `~\bin`, OneDrive PowerShell script folders,
+  and UDM startup folders are centralized under `Tools\SystemScripts`.
+- Recent dependency-security work is merged to `main`; no open Dependabot PRs
+  or alerts were present at the last validation.
 
-## UI/TUI usability
-- [x] Add a unified status command (LLM/Native DLL status)
-- [x] Extend unified status command to include GPU checks
-- [ ] Provide progress + streaming updates for long native operations
-- [x] Implement a one-command "doctor" flow for common runtime failures
-- [x] Add a concise summary view for JSON diagnose output (human-readable view)
-- [x] Document common workflows in README (diagnose, repair, analyze, optimize)
+## Active Priorities
 
-## LLM endpoint integration
-- [x] Ensure router base URL and hvsock mappings are consistent with actual services
-- [x] Add automatic detection of local endpoints (host vs runtime)
+### 1. OneDrive, Boot, And UI Responsiveness
 
-## Testing + QA
-- [x] Add tests for module fallbacks when external scripts are missing
-- [ ] Add tests for native DLL availability and graceful fallbacks
-  - [x] DLL availability tests
-  - [x] Graceful fallback tests
-- [x] Add integration tests for router tool schema coverage and JSON output compliance
-- [x] Add unit tests for routed JSON enforcement and TUI wrapper failures
-- [x] Add integration tests for router tool execution with mock tool outputs
+- [ ] Monitor OneDrive after installer repair and reset until at least one clean
+  60 minute `Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru` run
+  shows no new OneDrive/FileSyncHelper WER events.
+- [ ] Validate registry rollback after a clean reboot using
+  `Tools\Collect-DrivePerformanceSyncRisk.ps1`, `Tools\Test-BootMountHealth.ps1`,
+  `Tools\Test-SyncProviderHealth.ps1`, and
+  `Tools\Test-ProcessLassoBootSafety.ps1`.
+- [ ] Decode and triage stale/non-primary OneDrive scheduled task results,
+  especially `0x8004EE04` and `267011`, before deleting or rewriting tasks.
+- [ ] Decide whether Dropbox/Proton/other nonessential cloud providers should
+  start after VHD mount health rather than during logon.
+- [ ] Keep `UnifiUdmDriveStackStartup` disabled until OneDrive has a clean
+  health window; then choose SMB+Rclone repair or an explicit rclone-only mode.
+- [ ] Capture the next touchpad glitch immediately with OneDrive I/O, Process
+  Lasso log lines, HID/I2C/Kernel-PnP events, top disk I/O, and sync-provider
+  state.
+- [ ] Harden or quarantine high-risk `~\bin` startup/network/archive/RAG scripts
+  before any new boot/logon use; migrated copies now live under
+  `Tools\SystemScripts`; see `Reports\bin-script-risk-review-20260430.md`.
+
+### 2. Native-First Architecture
+
+- [ ] Replace remaining PowerShell-only diagnostics with Rust/C# native backends
+  where measurements justify the migration, starting with logs, inventory, and
+  health checks.
+- [ ] Define a versioned C ABI contract for all Rust DLL exports, including
+  error codes, result structs, memory ownership, and free functions.
+- [ ] Standardize native output schemas in a shared schema folder with explicit
+  version pins.
+- [ ] Centralize error translation across Rust, C#, and PowerShell so native
+  failures become predictable PowerShell error records.
+- [ ] Provide cancellation and timeout propagation across PowerShell, C#, Rust,
+  HTTP servers, and long-running native operations.
+- [ ] Add structured native logging and metrics, preferably ETW or append-only
+  JSON lines with stable event names.
+
+### 3. Acceleration And Startup Cost
+
+- [ ] Update status/reporting and agent-facing tooling to use
+  `Get-PcaiAccelerationProbe`, `Get-PcaiDirectCoreProbe`, or
+  `Get-PcaiDirectTokenEstimate` when they only need scalar/status data.
+- [ ] Split `PC-AI.Acceleration` into a thin loader plus nested command groups
+  so import cost is not paid for every command surface.
+- [ ] Benchmark import costs by file and command group, then add import-phase
+  timing hooks for regression debugging.
+- [ ] Extend compact/binary native result transport to full-context and
+  telemetry entrypoints.
+- [ ] Add true batched native file-search and directory-manifest APIs for
+  multi-pattern/project-discovery workloads.
+- [ ] Benchmark native search against `fd`, `rg`, and PowerShell by workload
+  shape before changing preferred backend heuristics.
+
+### 4. LLM, Evaluation, And Large Context
+
+- [ ] Explore large-context offload for `pcai_inference` and FunctionGemma:
+  KV-cache offload, chunked softmax attention, CUDA memory pool behavior, and
+  GPUDirect Storage where hardware and drivers support it.
+- [ ] Match FunctionGemma runtime chat-template behavior to training/evaluation
+  assumptions.
+- [ ] Port Python dataset/schema unit coverage into the Rust FunctionGemma
+  training/runtime surface.
+- [ ] Preserve evaluation baselines when prompts, routing, model defaults, or
+  inference providers change.
+
+### 5. Memory And RAG Integrations
+
+- [ ] Integrate `rag-redis` from `W:\dropbox-local\rag-redis` with Redis
+  endpoints `6379`/`6380` for tool memory and retrieval.
+- [ ] Convert RAG Redis startup tooling to loud, delayed, recoverable automation
+  before considering any logon/startup re-enablement.
+- [ ] Evaluate SIMD distance kernels such as `simsimd` for local vector
+  similarity.
+- [ ] Add optional Postgres/MS SQL backed memory storage for long-term tool
+  history.
+
+### 6. UI, TUI, And Media
+
+- [ ] Provide progress and streaming updates for long native operations.
+- [ ] Expand fixtures for `AI-Media`, `pcai_media_model`, `pcai_media`,
+  `PcaiNative.MediaModule`, and `Modules/PcaiMedia.psm1`.
+- [ ] Add reproducible benchmarks for media decode, tensor transforms,
+  attention, preprocessing, and async request lifecycle paths.
+- [ ] Consolidate useful prototype-only `AI-Media/` behavior into the canonical
+  native `pcai_media*` crates.
+
+## Validation Anchors
+
+- Boot/session tooling:
+  `Invoke-Pester -Path .\Tests\Boot\PersistentVHDX.Tests.ps1,.\Tests\Boot\BootValidationTools.Tests.ps1`
+- Native/Rust:
+  `Import-Module CargoTools -Force; Test-BuildEnvironment -Detailed`
+  followed by `Invoke-CargoWrapper check --llm-output`
+- C# bridge:
+  `dotnet build .\Native\PcaiNative\PcaiNative.csproj --no-restore`
+- Tooling benchmarks:
+  `pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick`
+- LLM evaluation:
+  `pwsh .\Tests\Evaluation\Invoke-InferenceEvaluation.ps1 -Backend llamacpp-bin -Dataset diagnostic`

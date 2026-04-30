@@ -1,0 +1,514 @@
+{
+  "Status": "Pass",
+  "GeneratedAt": "2026-04-28T18:35:25.5824559-04:00",
+  "LastBootTime": "2026-04-28T14:35:12.5-04:00",
+  "EventStartTime": "2026-04-28T17:35:22.2940488-04:00",
+  "Providers": [
+    {
+      "Name": "OneDrive",
+      "Required": true,
+      "Processes": [
+        {
+          "Id": 4236,
+          "ProcessName": "FileSyncHelper",
+          "Responding": true,
+          "StartTime": "2026-04-28T14:40:06.9229538-04:00",
+          "Path": "C:\\Program Files\\Microsoft OneDrive\\26.062.0402.0002\\FileSyncHelper.exe"
+        },
+        {
+          "Id": 33844,
+          "ProcessName": "OneDrive",
+          "Responding": true,
+          "StartTime": "2026-04-28T14:40:01.847621-04:00",
+          "Path": "C:\\Program Files\\Microsoft OneDrive\\OneDrive.exe"
+        },
+        {
+          "Id": 37168,
+          "ProcessName": "OneDrive.Sync.Service",
+          "Responding": true,
+          "StartTime": "2026-04-28T14:40:43.117474-04:00",
+          "Path": "C:\\Program Files\\Microsoft OneDrive\\26.062.0402.0002\\OneDrive.Sync.Service.exe"
+        }
+      ],
+      "SyncRoots": [
+        {
+          "ProviderId": "OneDrive",
+          "DisplayName": "OneDrive",
+          "UserSyncRoot": "C:\\Users\\david\\OneDrive",
+          "Source": "Filesystem"
+        }
+      ]
+    },
+    {
+      "Name": "GoogleDrive",
+      "Required": false,
+      "Processes": [
+        {
+          "Id": 17012,
+          "ProcessName": "GoogleDriveFS",
+          "Responding": true,
+          "StartTime": "2026-04-28T14:40:18.5760577-04:00",
+          "Path": "C:\\Program Files\\Google\\Drive File Stream\\123.0.1.0\\GoogleDriveFS.exe"
+        },
+        {
+          "Id": 41472,
+          "ProcessName": "GoogleDriveFS",
+          "Responding": true,
+          "StartTime": "2026-04-28T14:40:18.3535446-04:00",
+          "Path": "C:\\Program Files\\Google\\Drive File Stream\\123.0.1.0\\GoogleDriveFS.exe"
+        }
+      ],
+      "SyncRoots": []
+    },
+    {
+      "Name": "Dropbox",
+      "Required": false,
+      "Processes": [],
+      "SyncRoots": []
+    },
+    {
+      "Name": "iCloud",
+      "Required": false,
+      "Processes": [
+        {
+          "Id": 6204,
+          "ProcessName": "ApplePhotoStreams",
+          "Responding": true,
+          "StartTime": "2026-04-28T15:58:18.4330912-04:00",
+          "Path": "C:\\Program Files\\WindowsApps\\AppleInc.iCloud_15.7.56.0_x64__nzyj5cx40ttqa\\iCloud\\ApplePhotoStreams.exe"
+        },
+        {
+          "Id": 58824,
+          "ProcessName": "iCloudDrive",
+          "Responding": true,
+          "StartTime": "2026-04-28T15:57:19.0053256-04:00",
+          "Path": "C:\\Program Files\\WindowsApps\\AppleInc.iCloud_15.7.56.0_x64__nzyj5cx40ttqa\\iCloud\\iCloudDrive.exe"
+        }
+      ],
+      "SyncRoots": [
+        {
+          "ProviderId": "iCloudDrive",
+          "DisplayName": "iCloudDrive",
+          "UserSyncRoot": "C:\\Users\\david\\iCloudDrive",
+          "Source": "Filesystem"
+        }
+      ]
+    },
+    {
+      "Name": "ProtonDrive",
+      "Required": false,
+      "Processes": [],
+      "SyncRoots": []
+    }
+  ],
+  "SyncRoots": [
+    {
+      "ProviderId": "OneDrive",
+      "DisplayName": "OneDrive",
+      "UserSyncRoot": "C:\\Users\\david\\OneDrive",
+      "Source": "Filesystem"
+    },
+    {
+      "ProviderId": "iCloudDrive",
+      "DisplayName": "iCloudDrive",
+      "UserSyncRoot": "C:\\Users\\david\\iCloudDrive",
+      "Source": "Filesystem"
+    }
+  ],
+  "ShellOverlayHandlers": [
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive1",
+      "Clsid": "{BBACC218-34EA-4666-9D7A-C78F2274A524}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive2",
+      "Clsid": "{5AB7172C-9C11-405C-8DD5-AF20F3606282}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive3",
+      "Clsid": "{A78ED123-AB77-406B-9962-2A5D9D2F7F30}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive4",
+      "Clsid": "{F241C880-6982-4CE5-8CF7-7085BA96DA5A}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive5",
+      "Clsid": "{A0396A93-DC06-4AEF-BEE9-95FFCCAEF20E}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive6",
+      "Clsid": "{9AA2F32D-362A-42D9-9328-24A483E2CCC3}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive7",
+      "Clsid": "{C5FF006E-2AE9-408C-B85B-2DFDD5449D9C}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveCloudOverlayIconHandler",
+      "Clsid": "{A8E52322-8734-481D-A7E2-27B309EF8D56}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveMirrorBlacklistedOverlayIconHandler",
+      "Clsid": "{51EF1569-67EE-4AD6-9646-E726C3FFC8A2}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDrivePinnedOverlayIconHandler",
+      "Clsid": "{CFE8B367-77A7-41D7-9C90-75D16D7DC6B6}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveProgressOverlayIconHandler",
+      "Clsid": "{C973DA94-CBDF-4E77-81D1-E5B794FBD146}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   AccExtIco1",
+      "Clsid": "{AB9CF9F8-8A96-4F9D-BF21-CE85714C3A47}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   AccExtIco2",
+      "Clsid": "{853B7E05-C47D-4985-909A-D0DC5C6D7303}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   AccExtIco3",
+      "Clsid": "{42D38F2E-98E9-4382-B546-E24E4D6D04BB}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt01",
+      "Clsid": "{FB314ED9-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt02",
+      "Clsid": "{FB314EDF-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt03",
+      "Clsid": "{FB314EE1-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt04",
+      "Clsid": "{FB314EDB-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt05",
+      "Clsid": "{FB314EDA-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt06",
+      "Clsid": "{FB314EDC-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt07",
+      "Clsid": "{FB314EDD-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt08",
+      "Clsid": "{FB314EE0-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt09",
+      "Clsid": "{FB314EE2-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt10",
+      "Clsid": "{FB314EDE-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "EnhancedStorageShell",
+      "Clsid": "{D9144DCD-E998-4ECA-AB6A-DCD83CCBA16D}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "Offline Files",
+      "Clsid": "{4E77131D-3629-431c-9818-C5679DC83E81}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive1",
+      "Clsid": "{BBACC218-34EA-4666-9D7A-C78F2274A524}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive2",
+      "Clsid": "{5AB7172C-9C11-405C-8DD5-AF20F3606282}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive3",
+      "Clsid": "{A78ED123-AB77-406B-9962-2A5D9D2F7F30}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive4",
+      "Clsid": "{F241C880-6982-4CE5-8CF7-7085BA96DA5A}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive5",
+      "Clsid": "{A0396A93-DC06-4AEF-BEE9-95FFCCAEF20E}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive6",
+      "Clsid": "{9AA2F32D-362A-42D9-9328-24A483E2CCC3}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive7",
+      "Clsid": "{C5FF006E-2AE9-408C-B85B-2DFDD5449D9C}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveCloudOverlayIconHandler",
+      "Clsid": "{A8E52322-8734-481D-A7E2-27B309EF8D56}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveMirrorBlacklistedOverlayIconHandler",
+      "Clsid": "{51EF1569-67EE-4AD6-9646-E726C3FFC8A2}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDrivePinnedOverlayIconHandler",
+      "Clsid": "{CFE8B367-77A7-41D7-9C90-75D16D7DC6B6}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveProgressOverlayIconHandler",
+      "Clsid": "{C973DA94-CBDF-4E77-81D1-E5B794FBD146}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt01",
+      "Clsid": "{FB314ED9-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt02",
+      "Clsid": "{FB314EDF-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt03",
+      "Clsid": "{FB314EE1-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt04",
+      "Clsid": "{FB314EDB-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt05",
+      "Clsid": "{FB314EDA-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt06",
+      "Clsid": "{FB314EDC-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt07",
+      "Clsid": "{FB314EDD-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt08",
+      "Clsid": "{FB314EE0-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt09",
+      "Clsid": "{FB314EE2-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt10",
+      "Clsid": "{FB314EDE-A251-47B7-93E1-CDD82E34AF8B}"
+    }
+  ],
+  "ScheduledTasks": [
+    {
+      "TaskPath": "\\",
+      "TaskName": "DevEnvironmentStartup",
+      "State": "Disabled",
+      "LastRunTime": "2026-01-25T21:58:13-05:00",
+      "LastTaskResult": 0,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Per-Machine Standalone Update Task",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": "2026-04-29T17:09:48-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1001",
+      "State": "Ready",
+      "LastRunTime": "2026-04-28T15:20:47-04:00",
+      "LastTaskResult": 0,
+      "NextRunTime": "2026-04-29T15:20:46-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1002",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": "2026-04-29T14:01:41-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1003",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": "2026-04-29T15:20:47-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1007",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": "2026-04-29T15:20:47-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1009",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": "2026-04-29T15:20:47-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1001",
+      "State": "Ready",
+      "LastRunTime": "2026-04-28T14:46:05-04:00",
+      "LastTaskResult": 0,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1003",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1007",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1009",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\DropboxSystem\\DropboxUpdater\\",
+      "TaskName": "DropboxUpdaterTaskSystem123.0.6299.144{668B0EA2-DE99-431B-9215-10877E09E7CB}",
+      "State": "Ready",
+      "LastRunTime": "2026-04-28T18:19:48-04:00",
+      "LastTaskResult": 0,
+      "NextRunTime": "2026-04-28T19:19:47-04:00"
+    }
+  ],
+  "WerEvents": [],
+  "OneDriveSyncDiagnostics": {
+    "Path": "C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncDiagnostics.log",
+    "Exists": true,
+    "LastWriteTime": "2026-04-28T16:22:29.3957172-04:00",
+    "FreshSinceBoot": true,
+    "Tail": [
+      "scanStateStallDetected = 0",
+      "",
+      "seOfficeFiles = 0",
+      "",
+      "seOfficeFilesToDownload = 0",
+      "",
+      "seOfficeFilesToUpload = 0",
+      "",
+      "successfulBytesDownloadedTotal = 0",
+      "",
+      "successfulBytesUploadedTotal = 0",
+      "",
+      "syncProgressState = 65536",
+      "",
+      "syncStallDetected = 0",
+      "",
+      "sync_progress_id = e77fe735-a462-4618-a19a-55b7f593b814",
+      "",
+      "threadCount = 71",
+      "",
+      "timeUtc = 2026-04-28T20:22:29.0000000Z",
+      "",
+      "totalDoScanWorkCpuTimeInMs = 5960355",
+      "",
+      "totalDuration = -1",
+      "",
+      "totalInvalidatedScanCpuTimeInMs = 99612417835179177",
+      "",
+      "totalProcessCpuTime = -1",
+      "",
+      "totalScanCpuTimeInMs = 0",
+      "",
+      "totalSizeOfDiskDrive = 3991508701184",
+      "",
+      "totalSubScopes = 2",
+      "",
+      "uptimeSecs = 6147",
+      "",
+      "userOverriddenConcurrentUploads = 0",
+      "",
+      "username = *****",
+      "",
+      "vaultState = 2",
+      "",
+      "version = 505",
+      "",
+      "wasFileDBReset = 0",
+      "",
+      "",
+      ""
+    ]
+  },
+  "Failures": [],
+  "Warnings": []
+}

@@ -1,0 +1,19 @@
+Dos Name                        Volume Name                              FileSystem   Status
+------------------------------  ---------------------------------------  ----------  --------
+                                \Device\Mup                              Remote      
+C:                              \Device\HarddiskVolume5                  NTFS        
+T:                              \Device\HarddiskVolume2                  ReFS        
+                                \Device\NamedPipe                        NamedPipe   
+                                \Device\Mailslot                         Mailslot    
+                                \Device\HarddiskVolumeShadowCopy3        NTFS        
+                                \Device\HarddiskVolume6                  NTFS        
+                                \Device\HarddiskVolumeShadowCopy6        NTFS        
+                                \Device\HarddiskVolume3                  FAT         
+W:                              \Device\HarddiskVolume10                 NTFS        
+F:                              \Device\HarddiskVolume12                 NTFS        
+                                \Device\Volume{a2b40f60-44b4-11f1-8552-6c2f808e809a}  <Unknown>   
+G:                              \Device\Volume{f5ae2bcb-da01-3bf2-8935-408102040811}  <Unknown>   
+T:\cloud-cache\google           \Device\Volume{11e4119d-6465-390f-a17c-8c183061c386}  <Unknown>   
+H:                              \Device\Volume{f5ae2bcb-da03-3bf2-8935-408102040811}  <Unknown>   
+                                \Device\HarddiskVolumeShadowCopy7        NTFS        
+                                \Device\HarddiskVolumeShadowCopy8        NTFS        

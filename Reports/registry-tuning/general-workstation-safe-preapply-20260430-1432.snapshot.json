@@ -1,0 +1,30 @@
+[
+  {
+    "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+    "Name": "LongPathsEnabled",
+    "Existed": true,
+    "Value": 1,
+    "CapturedAt": "2026-04-30T14:32:37.8957291-04:00"
+  },
+  {
+    "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+    "Name": "NtfsMemoryUsage",
+    "Existed": true,
+    "Value": 2,
+    "CapturedAt": "2026-04-30T14:32:37.8985380-04:00"
+  },
+  {
+    "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+    "Name": "LargeSystemCache",
+    "Existed": true,
+    "Value": 1,
+    "CapturedAt": "2026-04-30T14:32:37.9017958-04:00"
+  },
+  {
+    "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+    "Name": "DisablePagingExecutive",
+    "Existed": true,
+    "Value": 1,
+    "CapturedAt": "2026-04-30T14:32:37.9050175-04:00"
+  }
+]

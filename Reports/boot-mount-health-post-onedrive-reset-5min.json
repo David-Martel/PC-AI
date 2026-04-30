@@ -1,0 +1,93 @@
+{
+  "Status": "Pass",
+  "DryRun": false,
+  "GeneratedAt": "2026-04-30T15:38:08.8510352-04:00",
+  "LastBootTime": "2026-04-30T12:50:02.5-04:00",
+  "EventStartTime": "2026-04-30T15:33:02.8495666-04:00",
+  "Vhds": [
+    {
+      "Name": "cloud-cache-disk",
+      "Path": "T:\\vm\\cloud-cache-disk.vhdx",
+      "Exists": true,
+      "ExpectedDriveLetter": "F",
+      "ExpectedState": "mounted-volume",
+      "Attached": true,
+      "DiskNumber": 5,
+      "DiskOperationalStatus": "Online",
+      "Volumes": [
+        {
+          "DriveLetter": "F",
+          "FileSystemLabel": "cloud-cache-disk",
+          "FileSystem": "NTFS",
+          "HealthStatus": "Healthy",
+          "OperationalStatus": "OK",
+          "Path": "\\\\?\\Volume{626e741f-8c88-425c-bd45-c03c0063d6ca}\\"
+        }
+      ],
+      "Error": null
+    },
+    {
+      "Name": "share-ext4",
+      "Path": "T:\\vm\\share-ext4.vhdx",
+      "Exists": true,
+      "ExpectedDriveLetter": null,
+      "ExpectedState": "attached-disk-only",
+      "Attached": true,
+      "DiskNumber": 6,
+      "DiskOperationalStatus": "Online",
+      "Volumes": [],
+      "Error": null
+    },
+    {
+      "Name": "shared-dev",
+      "Path": "T:\\vm\\shared-dev.vhdx",
+      "Exists": true,
+      "ExpectedDriveLetter": "W",
+      "ExpectedState": "mounted-volume",
+      "Attached": true,
+      "DiskNumber": 4,
+      "DiskOperationalStatus": "Online",
+      "Volumes": [
+        {
+          "DriveLetter": "W",
+          "FileSystemLabel": "WSL-Shared-Dev",
+          "FileSystem": "NTFS",
+          "HealthStatus": "Healthy",
+          "OperationalStatus": "OK",
+          "Path": "\\\\?\\Volume{15fbecd4-e393-4c4f-90c0-4154acfee482}\\"
+        }
+      ],
+      "Error": null
+    }
+  ],
+  "Tasks": [
+    {
+      "TaskPath": "\\",
+      "TaskName": "AutoMount_VHDX_cloud-cache-disk",
+      "State": "Ready",
+      "LastRunTime": "2026-04-30T12:51:04-04:00",
+      "LastTaskResult": 0,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "AutoMount_VHDX_share-ext4",
+      "State": "Ready",
+      "LastRunTime": "2026-04-30T12:52:04-04:00",
+      "LastTaskResult": 0,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "AutoMount_VHDX_shared-dev",
+      "State": "Ready",
+      "LastRunTime": "2026-04-30T12:51:34-04:00",
+      "LastTaskResult": 0,
+      "NextRunTime": null
+    }
+  ],
+  "FilterManagerEventId3": [],
+  "LatestBootDiagnosticsReport": "C:\\codedev\\PC_AI\\Reports\\boot-diagnostics\\20260430-150703",
+  "Failures": [],
+  "Warnings": []
+}

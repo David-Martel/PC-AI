@@ -1,0 +1,161 @@
+ERROR: The system was unable to find the specified registry key or value.
+ERROR: The system was unable to find the specified registry key or value.
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\Dropbox!S-1-5-21-357761096-1057752491-2136275046-1001!dbid:AABHeh-2kG-hga-JGbe4eMdgCmPGjuK3KpE
+    NamespaceCLSID    REG_SZ    {AD67EC01-D4E6-48DB-99B3-9BFFCC4D712F}
+    DisplayNameResource    REG_EXPAND_SZ    Auricle Dropbox
+    IconResource    REG_EXPAND_SZ    C:\Program Files (x86)\Dropbox\Client\Dropbox.exe,-6001
+    Flags    REG_DWORD    0x102
+    RecycleBinUrl    REG_SZ    https://www.dropbox.com/deleted_files
+    AUMID    REG_SZ    DropboxInc.Dropbox_wkt425jdc3sga!Dropbox
+    CopyHook    REG_SZ    {19F019BC-DF27-48C0-B4FF-DC13D7F97540}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\Dropbox!S-1-5-21-357761096-1057752491-2136275046-1001!dbid:AABHeh-2kG-hga-JGbe4eMdgCmPGjuK3KpE\UserSyncRoots
+    S-1-5-21-357761096-1057752491-2136275046-1001    REG_SZ    F:\Auricle Dropbox
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\iCloudDrive!S-1-5-21-357761096-1057752491-2136275046-1001!Personal
+    NamespaceCLSID    REG_SZ    {E99B3AF1-BC04-48D3-904B-B4887E38ADDD}
+    DisplayNameResource    REG_EXPAND_SZ    iCloud Drive
+    IconResource    REG_EXPAND_SZ    C:\Program Files\WindowsApps\AppleInc.iCloud_15.7.56.0_x64__nzyj5cx40ttqa\iCloud\iCloudDrive.exe,-134
+    Flags    REG_DWORD    0x22
+    AUMID    REG_SZ    AppleInc.iCloud_nzyj5cx40ttqa!iCloudDrive
+    MenuVerbHandler_0    REG_SZ    {85527100-19D0-45AF-9F09-DAB4E711C35E}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\iCloudDrive!S-1-5-21-357761096-1057752491-2136275046-1001!Personal\CustomStates
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\iCloudDrive!S-1-5-21-357761096-1057752491-2136275046-1001!Personal\CustomStates\1
+    DisplayName    REG_SZ    Sharing
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\iCloudDrive!S-1-5-21-357761096-1057752491-2136275046-1001!Personal\UserSyncRoots
+    S-1-5-21-357761096-1057752491-2136275046-1001    REG_SZ    C:\Users\david\iCloudDrive
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\OneDrive!S-1-5-21-357761096-1057752491-2136275046-1001!Personal|76f76637faf34514befe90220cb0c5e7
+    DisplayNameResource    REG_SZ    OneDrive - Personal
+    IconResource    REG_SZ    C:\Program Files\Microsoft OneDrive\OneDrive.exe,-501
+    Flags    REG_DWORD    0x422
+    Handler    REG_SZ    {71DCE5D6-4B57-496B-AC21-CD5B54EB93FD}
+    BannerNotificationHandler    REG_SZ    {2e7c0a19-0438-41e9-81e3-3ad3d64f55ba}
+    CustomStateHandler    REG_SZ    {389510b7-9e58-40d7-98bf-60b911cb0ea9}
+    ThumbnailProvider    REG_SZ    {021E4F06-9DCC-49AD-88CF-ECC2DA314C8A}
+    UriHandler    REG_SZ    {9489FEB2-1925-4D01-B788-6D912C70F7F2}
+    ShareHandler    REG_SZ    {20894375-46AE-46E2-BAFD-CB38975CDCE6}
+    StorageProviderStatusUISourceFactory    REG_SZ    {0827D883-485C-4D62-BA2C-A332DBF3D4B0}
+    CopyHook    REG_SZ    {F37369D9-1C22-40A0-A997-0B4D5F7B6637}
+    SearchHandlerFactory    REG_SZ    {1F80F4F0-5D28-40D3-A252-4D3662D5E4BA}
+    ProtectionMode    REG_SZ    Personal
+    Cid    REG_SZ    8d77a48e98fdb6dc
+    AUMID    REG_SZ    Microsoft.OneDriveSync_8wekyb3d8bbwe!OneDrive
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\OneDrive!S-1-5-21-357761096-1057752491-2136275046-1001!Personal|76f76637faf34514befe90220cb0c5e7\UserSyncRoots
+    S-1-5-21-357761096-1057752491-2136275046-1001    REG_SZ    C:\Users\david\OneDrive
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\ProtonDrive!S-1-5-21-357761096-1057752491-2136275046-1001!8bkUjHTX6QGBJYGwR5pfAGDS1RMpBTl0kWqhsu1iMFEc1nrMIK3muRLwWr79S4DK1-zYs2gR3qumiBfijXl4iA==!2
+    NamespaceCLSID    REG_SZ    {C0A0BDC9-5B0C-46D3-87B0-09F4179A60F3}
+    DisplayNameResource    REG_EXPAND_SZ    Proton Drive - My files
+    IconResource    REG_EXPAND_SZ    C:\Users\david\AppData\Local\Programs\Proton\Drive\ProtonDrive.exe
+    Flags    REG_DWORD    0x222
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager\ProtonDrive!S-1-5-21-357761096-1057752491-2136275046-1001!8bkUjHTX6QGBJYGwR5pfAGDS1RMpBTl0kWqhsu1iMFEc1nrMIK3muRLwWr79S4DK1-zYs2gR3qumiBfijXl4iA==!2\UserSyncRoots
+    S-1-5-21-357761096-1057752491-2136275046-1001    REG_SZ    F:\Proton-Drive\My files
+
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\     OneDrive1
+    (Default)    REG_SZ    {BBACC218-34EA-4666-9D7A-C78F2274A524}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\     OneDrive2
+    (Default)    REG_SZ    {5AB7172C-9C11-405C-8DD5-AF20F3606282}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\     OneDrive3
+    (Default)    REG_SZ    {A78ED123-AB77-406B-9962-2A5D9D2F7F30}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\     OneDrive4
+    (Default)    REG_SZ    {F241C880-6982-4CE5-8CF7-7085BA96DA5A}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\     OneDrive5
+    (Default)    REG_SZ    {A0396A93-DC06-4AEF-BEE9-95FFCCAEF20E}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\     OneDrive6
+    (Default)    REG_SZ    {9AA2F32D-362A-42D9-9328-24A483E2CCC3}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\     OneDrive7
+    (Default)    REG_SZ    {C5FF006E-2AE9-408C-B85B-2DFDD5449D9C}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\    GoogleDriveCloudOverlayIconHandler
+    (Default)    REG_SZ    {A8E52322-8734-481D-A7E2-27B309EF8D56}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\    GoogleDriveMirrorBlacklistedOverlayIconHandler
+    (Default)    REG_SZ    {51EF1569-67EE-4AD6-9646-E726C3FFC8A2}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\    GoogleDrivePinnedOverlayIconHandler
+    (Default)    REG_SZ    {CFE8B367-77A7-41D7-9C90-75D16D7DC6B6}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\    GoogleDriveProgressOverlayIconHandler
+    (Default)    REG_SZ    {C973DA94-CBDF-4E77-81D1-E5B794FBD146}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   AccExtIco1
+    (Default)    REG_SZ    {AB9CF9F8-8A96-4F9D-BF21-CE85714C3A47}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   AccExtIco2
+    (Default)    REG_SZ    {853B7E05-C47D-4985-909A-D0DC5C6D7303}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   AccExtIco3
+    (Default)    REG_SZ    {42D38F2E-98E9-4382-B546-E24E4D6D04BB}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt01
+    (Default)    REG_SZ    {FB314ED9-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt02
+    (Default)    REG_SZ    {FB314EDF-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt03
+    (Default)    REG_SZ    {FB314EE1-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt04
+    (Default)    REG_SZ    {FB314EDB-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt05
+    (Default)    REG_SZ    {FB314EDA-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt06
+    (Default)    REG_SZ    {FB314EDC-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt07
+    (Default)    REG_SZ    {FB314EDD-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt08
+    (Default)    REG_SZ    {FB314EE0-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt09
+    (Default)    REG_SZ    {FB314EE2-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\   DropboxExt10
+    (Default)    REG_SZ    {FB314EDE-A251-47B7-93E1-CDD82E34AF8B}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\EnhancedStorageShell
+    (Default)    REG_SZ    {D9144DCD-E998-4ECA-AB6A-DCD83CCBA16D}
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\Offline Files
+    (Default)    REG_SZ    {4E77131D-3629-431c-9818-C5679DC83E81}
+
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CldFlt
+    DependOnService    REG_MULTI_SZ    FltMgr
+    DisplayName    REG_SZ    Windows Cloud Files Filter Driver
+    ErrorControl    REG_DWORD    0x1
+    Group    REG_SZ    FSFilter HSM
+    ImagePath    REG_EXPAND_SZ    system32\drivers\cldflt.sys
+    Start    REG_DWORD    0x2
+    SupportedFeatures    REG_DWORD    0xf
+    Tag    REG_DWORD    0x1
+    Type    REG_DWORD    0x2
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CldFlt\Instances
+    DefaultInstance    REG_SZ    CldFlt
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CldFlt\Instances\CldFlt
+    Altitude    REG_SZ    180451
+    Flags    REG_DWORD    0x0
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\CldFlt\Parameters
+    USMsgTimeoutMillis    REG_DWORD    0x3e8
+

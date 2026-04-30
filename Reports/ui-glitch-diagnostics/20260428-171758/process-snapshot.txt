@@ -1,0 +1,118 @@
+
+Id           : 38052
+ProcessName  : bitsumsessionagent
+Responding   : True
+StartTime    : 4/28/2026 3:51:33 PM
+CPU          : 0.53125
+WorkingSet64 : 7925760
+Handles      : 93
+Path         : C:\Program Files\Process Lasso\bitsumsessionagent.exe
+
+Id           : 2416
+ProcessName  : dwm
+Responding   : True
+StartTime    : 4/28/2026 2:35:56 PM
+CPU          : 3621.953125
+WorkingSet64 : 1068814336
+Handles      : 2260
+Path         : C:\WINDOWS\system32\dwm.exe
+
+Id           : 24248
+ProcessName  : explorer
+Responding   : True
+StartTime    : 4/28/2026 2:36:05 PM
+CPU          : 991.96875
+WorkingSet64 : 623267840
+Handles      : 7581
+Path         : C:\WINDOWS\Explorer.EXE
+
+Id           : 55492
+ProcessName  : explorer
+Responding   : True
+StartTime    : 4/28/2026 4:00:46 PM
+CPU          : 273.765625
+WorkingSet64 : 324886528
+Handles      : 2173
+Path         : C:\WINDOWS\explorer.exe
+
+Id           : 4236
+ProcessName  : FileSyncHelper
+Responding   : True
+StartTime    : 4/28/2026 2:40:06 PM
+CPU          : 0.390625
+WorkingSet64 : 29245440
+Handles      : 482
+Path         : C:\Program Files\Microsoft OneDrive\26.062.0402.0002\FileSyncHelper.exe
+
+Id           : 7584
+ProcessName  : Lenovo.Modern.ImController
+Responding   : True
+StartTime    : 4/28/2026 2:35:58 PM
+CPU          : 26.140625
+WorkingSet64 : 66478080
+Handles      : 883
+Path         : C:\WINDOWS\Lenovo\ImController\Service\Lenovo.Modern.ImController.exe
+
+Id           : 7496
+ProcessName  : LenovoVantageService
+Responding   : True
+StartTime    : 4/28/2026 2:35:58 PM
+CPU          : 22.703125
+WorkingSet64 : 58142720
+Handles      : 2772
+Path         : C:\Program Files (x86)\Lenovo\VantageService\4.2601.21.0\LenovoVantageService.exe
+
+Id           : 33844
+ProcessName  : OneDrive
+Responding   : True
+StartTime    : 4/28/2026 2:40:01 PM
+CPU          : 7035.140625
+WorkingSet64 : 454332416
+Handles      : 14410
+Path         : C:\Program Files\Microsoft OneDrive\OneDrive.exe
+
+Id           : 37168
+ProcessName  : OneDrive.Sync.Service
+Responding   : True
+StartTime    : 4/28/2026 2:40:43 PM
+CPU          : 359.34375
+WorkingSet64 : 270643200
+Handles      : 798
+Path         : C:\Program Files\Microsoft OneDrive\26.062.0402.0002\OneDrive.Sync.Service.exe
+
+Id           : 17768
+ProcessName  : ProcessGovernor
+Responding   : True
+StartTime    : 4/28/2026 5:08:58 PM
+CPU          : 18.078125
+WorkingSet64 : 27746304
+Handles      : 954
+Path         : C:\Program Files\Process Lasso\ProcessGovernor.exe
+
+Id           : 31536
+ProcessName  : ProcessLasso
+Responding   : True
+StartTime    : 4/28/2026 3:51:33 PM
+CPU          : 1049.34375
+WorkingSet64 : 89079808
+Handles      : 2051
+Path         : C:\Program Files\Process Lasso\processlasso.exe
+
+Id           : 19444
+ProcessName  : SynRpcServer
+Responding   : True
+StartTime    : 4/28/2026 2:36:04 PM
+CPU          : 0
+WorkingSet64 : 5660672
+Handles      : 97
+Path         : C:\WINDOWS\System32\DriverStore\FileRepository\synawudfbiousbuwp.inf_amd64_1bdc1fe7c5930d7a\SynRpcServer.exe
+
+Id           : 34288
+ProcessName  : TextInputHost
+Responding   : True
+StartTime    : 4/28/2026 2:36:22 PM
+CPU          : 6.78125
+WorkingSet64 : 118124544
+Handles      : 931
+Path         : C:\WINDOWS\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe
+

@@ -1,0 +1,23 @@
+
+Check                  Ok Detail
+-----                  -- ------
+GovernorRunning      True  17768
+GovernorResponding   True   True
+ProBalanceExclusions True     ok
+SmartTrimExclusions  True     ok
+LoggingFlags         True       
+RecentLogLines       True     80
+
+
+Ok                    : True
+GeneratedAt           : 2026-04-28T18:38:20.5831854-04:00
+ConfigPath            : C:\ProgramData\ProcessLasso\config\prolasso.ini
+LogPath               : C:\ProgramData\ProcessLasso\logs\processlasso.log
+LookbackMinutes       : 240
+Governor              : @{Running=True; Id=17768; Responding=True; StartTime=4/28/2026 5:08:58 PM; Path=C:\Program Files\Process Lasso\ProcessGovernor.exe}
+MissingOocExclusions  : {}
+MissingSmartTrimItems : {}
+Logging               : {@{Key=IncludeCommandLines; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessExecutions; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessTerminations; Expected=true; Actual=true; Ok=True}, @{Key=LogEfficiencyMode; Expected=true; Actual=true; Ok=True}…}
+RecentLogLines        : {"134218894768936370","2026-04-28 18:37:56","DTM-P1GEN7","david","53504","bash.exe","78","(0x4e) Process has terminated","Ran for 7 secs. Average CPU use 0.36%.","c:\program files\git\bin\..\usr\bin\bash.exe","""C:\Program Files\Git\bin\..\usr\bin\bash.exe"" -c ""source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''ls -la CargoTools-dtm-p1gen7.psd1 Private/Environment-dtm-p1gen7.ps1 .claude/_run-full-tests.ps1 2>&1; echo \""---\""; head -5 CargoTools-dtm-p1gen7.psd1 2>&1; echo \""---\""; git diff HEAD -- Private/Environment-dtm-p1gen7.ps1 | head -10'' < /dev/null && pwd -P >| /c/Users/david/AppData/Local/Temp/claude-1582-cwd""", "134218894768936370","2026-04-28 18:37:56","DTM-P1GEN7","david","52616","conhost.exe","78","(0x4e) Process has terminated","Ran for 7 secs. Average CPU use 0.11%.","c:\windows\system32\conhost.exe","\??\C:\WINDOWS\system32\conhost.exe 0x4", "134218894779239032","2026-04-28 18:37:57","DTM-P1GEN7","david","68308","docker.exe","1","(0x1) Process launched","Parent docker desktop.exe (27288)","C:\Program Files\Docker\Docker\resources\bin\docker.exe","""C:\Program Files\Docker\Docker\resources\bin\docker.exe"" stats --all --no-trunc --no-stream --format ""{{ json .}}""", "134218894779239032","2026-04-28 18:37:57","DTM-P1GEN7","david","16720","conhost.exe","1","(0x1) Process launched","Parent docker.exe (68308)","C:\WINDOWS\system32\conhost.exe","\??\C:\WINDOWS\system32\conhost.exe 0x4"…}
+Failures              : {}
+

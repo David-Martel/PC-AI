@@ -1,0 +1,26 @@
+{
+  "Ok": true,
+  "DryRun": false,
+  "GeneratedAt": "2026-04-30T14:32:57.7061374-04:00",
+  "StartedAt": "2026-04-30T14:32:55.9845368-04:00",
+  "GovernorPath": "C:\\Program Files\\Process Lasso\\ProcessGovernor.exe",
+  "EventSource": "PC-AI-ProcessLasso",
+  "EventSourceReady": true,
+  "Status": "ok",
+  "Before": {
+    "Id": 58624,
+    "StartTime": "2026-04-30T13:44:14.4228031-04:00",
+    "Responding": true,
+    "Path": "C:\\Program Files\\Process Lasso\\ProcessGovernor.exe"
+  },
+  "After": {
+    "Id": 58624,
+    "StartTime": "2026-04-30T13:44:14.4228031-04:00",
+    "Responding": true,
+    "Path": "C:\\Program Files\\Process Lasso\\ProcessGovernor.exe"
+  },
+  "Actions": [
+    "ProcessGovernor.exe already running (PID 58624)."
+  ],
+  "Failures": []
+}

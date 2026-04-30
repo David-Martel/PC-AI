@@ -1,0 +1,193 @@
+
+OperationalStatus     : OK
+HealthStatus          : Healthy
+DriveType             : Fixed
+FileSystemType        : NTFS
+DedupMode             : NotAvailable
+ReFSDedupMode         : NotAvailable
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:VO:\\?\Volume{15fbecd4-e393-4c4f-90c0-4154acfee482}\"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : \\?\Volume{15fbecd4-e393-4c4f-90c0-4154acfee482}\
+AllocationUnitSize    : 4096
+DriveLetter           : W
+FileSystem            : NTFS
+FileSystemLabel       : WSL-Shared-Dev
+Path                  : \\?\Volume{15fbecd4-e393-4c4f-90c0-4154acfee482}\
+Size                  : 549739016192
+SizeRemaining         : 260927610880
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Volume
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+OperationalStatus     : OK
+HealthStatus          : Healthy
+DriveType             : Fixed
+FileSystemType        : NTFS
+DedupMode             : NotAvailable
+ReFSDedupMode         : NotAvailable
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:VO:\\?\Volume{626e741f-8c88-425c-bd45-c03c0063d6ca}\"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : \\?\Volume{626e741f-8c88-425c-bd45-c03c0063d6ca}\
+AllocationUnitSize    : 4096
+DriveLetter           : F
+FileSystem            : NTFS
+FileSystemLabel       : cloud-cache-disk
+Path                  : \\?\Volume{626e741f-8c88-425c-bd45-c03c0063d6ca}\
+Size                  : 1342160482304
+SizeRemaining         : 229196152832
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Volume
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+OperationalStatus     : OK
+HealthStatus          : Healthy
+DriveType             : Fixed
+FileSystemType        : FAT32
+DedupMode             : NotAvailable
+ReFSDedupMode         : NotAvailable
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:VO:\\?\Volume{6a87a111-6359-11ef-8035-6c2f808e809a}\"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : \\?\Volume{6a87a111-6359-11ef-8035-6c2f808e809a}\
+AllocationUnitSize    : 4096
+DriveLetter           : 
+FileSystem            : FAT32
+FileSystemLabel       : SYSTEM
+Path                  : \\?\Volume{6a87a111-6359-11ef-8035-6c2f808e809a}\
+Size                  : 1059225600
+SizeRemaining         : 1018310656
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Volume
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+OperationalStatus     : OK
+HealthStatus          : Healthy
+DriveType             : Fixed
+FileSystemType        : NTFS
+DedupMode             : NotAvailable
+ReFSDedupMode         : NotAvailable
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:VO:\\?\Volume{6a87a13f-6359-11ef-8035-6c2f808e809a}\"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : \\?\Volume{6a87a13f-6359-11ef-8035-6c2f808e809a}\
+AllocationUnitSize    : 4096
+DriveLetter           : C
+FileSystem            : NTFS
+FileSystemLabel       : Windows
+Path                  : \\?\Volume{6a87a13f-6359-11ef-8035-6c2f808e809a}\
+Size                  : 3991508701184
+SizeRemaining         : 740766187520
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Volume
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+OperationalStatus     : OK
+HealthStatus          : Healthy
+DriveType             : Fixed
+FileSystemType        : NTFS
+DedupMode             : NotAvailable
+ReFSDedupMode         : NotAvailable
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:VO:\\?\Volume{6a87a152-6359-11ef-8035-6c2f808e809a}\"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : \\?\Volume{6a87a152-6359-11ef-8035-6c2f808e809a}\
+AllocationUnitSize    : 4096
+DriveLetter           : 
+FileSystem            : NTFS
+FileSystemLabel       : WinRE_DRV
+Path                  : \\?\Volume{6a87a152-6359-11ef-8035-6c2f808e809a}\
+Size                  : 8190947328
+SizeRemaining         : 7066394624
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Volume
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+OperationalStatus     : OK
+HealthStatus          : Healthy
+DriveType             : Fixed
+FileSystemType        : ReFS
+DedupMode             : NotAvailable
+ReFSDedupMode         : Disabled
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:VO:\\?\Volume{b9f25542-491b-4718-8556-4cbe67e599b8}\"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : \\?\Volume{b9f25542-491b-4718-8556-4cbe67e599b8}\
+AllocationUnitSize    : 65536
+DriveLetter           : T
+FileSystem            : ReFS
+FileSystemLabel       : dev-drive
+Path                  : \\?\Volume{b9f25542-491b-4718-8556-4cbe67e599b8}\
+Size                  : 4000762036224
+SizeRemaining         : 852346273792
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Volume
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+OperationalStatus     : Unknown
+HealthStatus          : Healthy
+DriveType             : Removable
+FileSystemType        : Unknown
+DedupMode             : Disabled
+ReFSDedupMode         : Disabled
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:VO:\\?\Volume{e3673140-5aa4-11ef-8023-806e6f6e6963}\"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : \\?\Volume{e3673140-5aa4-11ef-8023-806e6f6e6963}\
+AllocationUnitSize    : 0
+DriveLetter           : D
+FileSystem            : 
+FileSystemLabel       : 
+Path                  : \\?\Volume{e3673140-5aa4-11ef-8023-806e6f6e6963}\
+Size                  : 0
+SizeRemaining         : 0
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Volume
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+OperationalStatus     : Unknown
+HealthStatus          : Healthy
+DriveType             : Removable
+FileSystemType        : Unknown
+DedupMode             : Disabled
+ReFSDedupMode         : Disabled
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:VO:\\?\Volume{e3673141-5aa4-11ef-8023-806e6f6e6963}\"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : \\?\Volume{e3673141-5aa4-11ef-8023-806e6f6e6963}\
+AllocationUnitSize    : 0
+DriveLetter           : K
+FileSystem            : 
+FileSystemLabel       : 
+Path                  : \\?\Volume{e3673141-5aa4-11ef-8023-806e6f6e6963}\
+Size                  : 0
+SizeRemaining         : 0
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Volume
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+

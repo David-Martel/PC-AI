@@ -1,0 +1,2186 @@
+ <!DOCTYPE html>
+		<html
+			class="layout layout-holy-grail   show-table-of-contents conceptual show-breadcrumb default-focus"
+			lang="en-us"
+			dir="ltr"
+			data-authenticated="false"
+			data-auth-status-determined="false"
+			data-target="docs"
+			x-ms-format-detection="none"
+		>
+			
+		<head>
+			<title>IT Admins - Use OneDrive policies to control sync settings - SharePoint in Microsoft 365 | Microsoft Learn</title>
+			<meta charset="utf-8" />
+			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+			<meta name="color-scheme" content="light dark" />
+
+			<meta name="description" content="Learn how admins can use OneDrive policies to configure the OneDrive sync app settings by using Group Policy." />
+			<link rel="canonical" href="https://learn.microsoft.com/en-us/sharepoint/use-group-policy" /> 
+
+			<!-- Non-customizable open graph and sharing-related metadata -->
+			<meta name="twitter:card" content="summary_large_image" />
+			<meta name="twitter:site" content="@MicrosoftLearn" />
+			<meta property="og:type" content="website" />
+			<meta property="og:image:alt" content="Microsoft Learn" />
+			<meta property="og:image" content="https://learn.microsoft.com/en-us/media/open-graph-image.png" />
+			<!-- Page specific open graph and sharing-related metadata -->
+			<meta property="og:title" content="IT Admins - Use OneDrive policies to control sync settings - SharePoint in Microsoft 365" />
+			<meta property="og:url" content="https://learn.microsoft.com/en-us/sharepoint/use-group-policy" />
+			<meta property="og:description" content="Learn how admins can use OneDrive policies to configure the OneDrive sync app settings by using Group Policy." />
+			<meta name="platform_id" content="81a9227c-615b-4ec7-724d-45489b99fdb3" /> <meta name="scope" content="SharePoint in Microsoft 365" />
+			<meta name="locale" content="en-us" />
+			 
+			<meta name="uhfHeaderId" content="MSDocsHeader-SharePoint" />
+
+			<meta name="page_type" content="conceptual" />
+
+			<!--page specific meta tags-->
+			
+
+			<!-- custom meta tags -->
+			
+		<meta name="breadcrumb_path" content="/sharepoint/breadcrumb/toc.json" />
+	
+		<meta name="feedback_system" content="Standard" />
+	
+		<meta name="feedback_product_url" content="https://feedbackportal.microsoft.com/feedback/forum/06735c62-321c-ec11-b6e7-0022481f8472" />
+	
+		<meta name="recommendations" content="true" />
+	
+		<meta name="ms.date" content="2025-04-05T00:00:00Z" />
+	
+		<meta name="ms.reviewer" content="prbalasu" />
+	
+		<meta name="ms.author" content="cagreen" />
+	
+		<meta name="author" content="cartergreen" />
+	
+		<meta name="manager" content="gacarini" />
+	
+		<meta name="audience" content="Admin" />
+	
+		<meta name="f1.keywords" content="NOCSH" />
+	
+		<meta name="ms.topic" content="how-to" />
+	
+		<meta name="ms.service" content="onedrive" />
+	
+		<meta name="ms.localizationpriority" content="medium" />
+	
+		<meta name="ms.collection" content="Strat_OD_admin" />
+	
+		<meta name="ms.collection" content="M365-collaboration" />
+	
+		<meta name="ms.collection" content="Essentials-manage" />
+	
+		<meta name="ms.custom" content="seo-marvel-apr2020" />
+	
+		<meta name="ms.custom" content="onedrive-toc" />
+	
+		<meta name="search.appverid" content="ODB160" />
+	
+		<meta name="search.appverid" content="MOE150" />
+	
+		<meta name="search.appverid" content="MED150" />
+	
+		<meta name="search.appverid" content="MBS150" />
+	
+		<meta name="search.appverid" content="ODB150" />
+	
+		<meta name="search.appverid" content="MET150" />
+	
+		<meta name="ms.assetid" content="0ecb2cf5-8882-42b3-a6e9-be6bda30899c" />
+	
+		<meta name="document_id" content="34f99f40-4400-1726-ad6b-a285d8cb8b9f" />
+	
+		<meta name="document_version_independent_id" content="49f1c421-03b0-480d-1d82-d8ccdf664bd3" />
+	
+		<meta name="updated_at" content="2026-03-27T20:45:00Z" />
+	
+		<meta name="original_content_git_url" content="https://github.com/MicrosoftDocs/OfficeDocs-SharePoint-pr/blob/live/SharePoint/SharePointOnline/use-group-policy.md" />
+	
+		<meta name="gitcommit" content="https://github.com/MicrosoftDocs/OfficeDocs-SharePoint-pr/blob/5cf94c2d58b8144754fbfc6aa1f95ecddf3d621e/SharePoint/SharePointOnline/use-group-policy.md" />
+	
+		<meta name="git_commit_id" content="5cf94c2d58b8144754fbfc6aa1f95ecddf3d621e" />
+	
+		<meta name="site_name" content="Docs" />
+	
+		<meta name="depot_name" content="office.OfficeDocs-SharePoint" />
+	
+		<meta name="schema" content="Conceptual" />
+	
+		<meta name="toc_rel" content="toc.json" />
+	
+		<meta name="pdf_url_template" content="https://learn.microsoft.com/pdfstore/en-us/office.OfficeDocs-SharePoint/{branchName}{pdfName}" />
+	
+		<meta name="feedback_help_link_type" content="" />
+	
+		<meta name="feedback_help_link_url" content="" />
+	
+		<meta name="word_count" content="9186" />
+	
+		<meta name="asset_id" content="use-group-policy" />
+	
+		<meta name="moniker_range_name" content="" />
+	
+		<meta name="item_type" content="Content" />
+	
+		<meta name="source_path" content="SharePoint/SharePointOnline/use-group-policy.md" />
+	
+		<meta name="previous_tlsh_hash" content="6E3F3953864D8310BFE2ED17A41F71A061F4D98C7EFC7955052A55A2E4152D3317645CF7626772066F330292627AAA0F5B97E738A0BE13F3262428B9618C118BADCB3BBDE3" />
+	
+		<meta name="github_feedback_content_git_url" content="https://github.com/MicrosoftDocs/OfficeDocs-SharePoint/blob/public/SharePoint/SharePointOnline/use-group-policy.md" />
+	
+		<meta name="markdown_url" content="https://learn.microsoft.com/en-us/sharepoint/use-group-policy?accept=text/markdown" />
+	 
+		<meta name="cmProducts" content="https://authoring-docs-microsoft.poolparty.biz/devrel/7428317a-e6c2-4461-ad3e-8a8ad3608734" data-source="generated" />
+	
+		<meta name="cmProducts" content="https://authoring-docs-microsoft.poolparty.biz/devrel/bcbcbad5-4208-4783-8035-8481272c98b8" data-source="generated" />
+	
+		<meta name="spProducts" content="https://authoring-docs-microsoft.poolparty.biz/devrel/e4f59707-f107-48f2-8d75-0afd91868cd7" data-source="generated" />
+	
+		<meta name="spProducts" content="https://authoring-docs-microsoft.poolparty.biz/devrel/43b2e5aa-8a6d-4de2-a252-692232e5edc8" data-source="generated" />
+	
+
+			<!-- assets and js globals -->
+			
+			<link rel="stylesheet" href="/static/assets/0.4.03404.7779-1c4c073b/styles/site.css" />
+			
+			<script src="https://wcpstatic.microsoft.com/mscc/lib/v2/wcp-consent.js"></script>
+			<script src="https://js.monitor.azure.com/scripts/c/ms.jsll-4.min.js"></script>
+			<script src="/_themes/docs.theme/master/en-us/_themes/global/deprecation.js"></script>
+
+			<!-- msdocs global object -->
+			<script id="msdocs-script">
+		var msDocs = {
+  "environment": {
+    "accessLevel": "online",
+    "azurePortalHostname": "portal.azure.com",
+    "reviewFeatures": false,
+    "supportLevel": "production",
+    "systemContent": true,
+    "siteName": "learn",
+    "legacyHosting": false
+  },
+  "data": {
+    "contentLocale": "en-us",
+    "contentDir": "ltr",
+    "userLocale": "en-us",
+    "userDir": "ltr",
+    "pageTemplate": "Conceptual",
+    "brand": "",
+    "context": {},
+    "standardFeedback": true,
+    "showFeedbackReport": false,
+    "feedbackHelpLinkType": "",
+    "feedbackHelpLinkUrl": "",
+    "feedbackSystem": "Standard",
+    "feedbackGitHubRepo": "",
+    "feedbackProductUrl": "https://feedbackportal.microsoft.com/feedback/forum/06735c62-321c-ec11-b6e7-0022481f8472",
+    "extendBreadcrumb": false,
+    "isEditDisplayable": false,
+    "isPrivateUnauthorized": false,
+    "hideViewSource": false,
+    "isPermissioned": false,
+    "hasRecommendations": true,
+    "contributors": [
+      {
+        "name": "cartergreen",
+        "url": "https://github.com/cartergreen"
+      },
+      {
+        "name": "kaylangan",
+        "url": "https://github.com/kaylangan"
+      },
+      {
+        "name": "NirupamaMeesala",
+        "url": "https://github.com/NirupamaMeesala"
+      },
+      {
+        "name": "jacktremper",
+        "url": "https://github.com/jacktremper"
+      },
+      {
+        "name": "joroarMSFT",
+        "url": "https://github.com/joroarMSFT"
+      },
+      {
+        "name": "MachelleTranMSFT",
+        "url": "https://github.com/MachelleTranMSFT"
+      },
+      {
+        "name": "PramodBalusu",
+        "url": "https://github.com/PramodBalusu"
+      },
+      {
+        "name": "meganbradley",
+        "url": "https://github.com/meganbradley"
+      },
+      {
+        "name": "hdonaldMSFT",
+        "url": "https://github.com/hdonaldMSFT"
+      },
+      {
+        "name": "kafeaver",
+        "url": "https://github.com/kafeaver"
+      },
+      {
+        "name": "MikePlumleyMSFT",
+        "url": "https://github.com/MikePlumleyMSFT"
+      },
+      {
+        "name": "siddutwriter",
+        "url": "https://github.com/siddutwriter"
+      },
+      {
+        "name": "alexbuckgit",
+        "url": "https://github.com/alexbuckgit"
+      },
+      {
+        "name": "MicrosoftHeidi",
+        "url": "https://github.com/MicrosoftHeidi"
+      },
+      {
+        "name": "get-itips",
+        "url": "https://github.com/get-itips"
+      },
+      {
+        "name": "felpsey",
+        "url": "https://github.com/felpsey"
+      },
+      {
+        "name": "v-stsavell",
+        "url": "https://github.com/v-stsavell"
+      },
+      {
+        "name": "Benny-54",
+        "url": "https://github.com/Benny-54"
+      },
+      {
+        "name": "Ashok-Lobo",
+        "url": "https://github.com/Ashok-Lobo"
+      },
+      {
+        "name": "tiburd",
+        "url": "https://github.com/tiburd"
+      }
+    ]
+  },
+  "functions": {}
+};;
+	</script>
+
+			<!-- base scripts, msdocs global should be before this -->
+			<script src="/static/assets/0.4.03404.7779-1c4c073b/scripts/en-us/index-docs.js"></script>
+			
+
+			<!-- json-ld -->
+			
+		</head>
+	
+			<body
+				id="body"
+				data-bi-name="body"
+				class="layout-body "
+				lang="en-us"
+				dir="ltr"
+			>
+				<header class="layout-body-header">
+		<div class="header-holder has-default-focus">
+			
+		<a
+			href="#main"
+			
+			style="z-index: 1070"
+			class="outline-color-text visually-hidden-until-focused position-fixed inner-focus focus-visible top-0 left-0 right-0 padding-xs text-align-center background-color-body"
+			
+		>
+			Skip to main content
+		</a>
+	
+		<a
+			href="#"
+			data-skip-to-ask-learn
+			style="z-index: 1070"
+			class="outline-color-text visually-hidden-until-focused position-fixed inner-focus focus-visible top-0 left-0 right-0 padding-xs text-align-center background-color-body"
+			hidden
+		>
+			Skip to Ask Learn chat experience
+		</a>
+	
+
+			<div hidden id="cookie-consent-holder" data-test-id="cookie-consent-container"></div>
+			<!-- Unsupported browser warning -->
+			<div
+				id="unsupported-browser"
+				style="background-color: white; color: black; padding: 16px; border-bottom: 1px solid grey;"
+				hidden
+			>
+				<div style="max-width: 800px; margin: 0 auto;">
+					<p style="font-size: 24px">This browser is no longer supported.</p>
+					<p style="font-size: 16px; margin-top: 16px;">
+						Upgrade to Microsoft Edge to take advantage of the latest features, security updates, and technical support.
+					</p>
+					<div style="margin-top: 12px;">
+						<a
+							href="https://go.microsoft.com/fwlink/p/?LinkID=2092881 "
+							style="background-color: #0078d4; border: 1px solid #0078d4; color: white; padding: 6px 12px; border-radius: 2px; display: inline-block;"
+						>
+							Download Microsoft Edge
+						</a>
+						<a
+							href="https://learn.microsoft.com/en-us/lifecycle/faq/internet-explorer-microsoft-edge"
+							style="background-color: white; padding: 6px 12px; border: 1px solid #505050; color: #171717; border-radius: 2px; display: inline-block;"
+						>
+							More info about Internet Explorer and Microsoft Edge
+						</a>
+					</div>
+				</div>
+			</div>
+			<!-- site header -->
+			<div
+				id="ms--site-header"
+				data-test-id="site-header-wrapper"
+				itemscope="itemscope"
+				itemtype="http://schema.org/Organization"
+			>
+				<div
+					id="ms--mobile-nav"
+					class="site-header display-none-tablet padding-inline-none gap-none"
+					data-bi-name="mobile-header"
+					data-test-id="mobile-header"
+				></div>
+				<div
+					id="ms--primary-nav"
+					class="site-header display-none display-flex-tablet"
+					data-bi-name="L1-header"
+					data-test-id="primary-header"
+				></div>
+				<div
+					id="ms--secondary-nav"
+					class="site-header display-none display-flex-tablet"
+					data-bi-name="L2-header"
+					data-test-id="secondary-header"
+					
+				></div>
+			</div>
+			
+		<!-- banner -->
+		<div data-banner>
+			<div id="disclaimer-holder"></div>
+			
+		</div>
+		<!-- banner end -->
+	
+		</div>
+	</header>
+				 <section
+					id="layout-body-menu"
+					class="layout-body-menu border-right display-flex"
+					data-bi-name="menu"
+			  >
+					
+		<div
+			id="left-container"
+			class="left-container display-none padding-none display-block-tablet width-full"
+			data-toc-container="true"
+		>
+			<div
+				id="ms--toc-content"
+				class="padding-left-sm padding-right-none padding-bottom-sm height-full"
+			>
+				<nav
+					id="affixed-left-container"
+					class="margin-top-xxs-tablet position-sticky display-flex flex-direction-column width-full"
+					aria-label="Primary"
+					data-bi-name="left-toc"
+					role="navigation"
+				>
+					<div
+						id="ms--collapsible-toc-header"
+						class="display-flex flex-direction-row-reverse justify-content-center align-items-center margin-bottom-xxs margin-right-xxs"
+					>
+						<button
+							type="button"
+							class="button button-clear inner-focus"
+							data-collapsible-toc-toggle
+							aria-expanded="true"
+							aria-controls="ms--toc-content"
+							aria-label="Table of contents"
+						>
+							<span class="icon font-size-md" aria-hidden="true">
+								<span class="docon docon-panel-left-contract"></span>
+							</span>
+						</button>
+						<div id="ms--collapsible-toc-moniker-slot" class="flex-grow-1"></div>
+					</div>
+				</nav>
+			</div>
+		</div>
+	
+			  </section>
+
+				<main
+					id="main"
+					role="main"
+					class="layout-body-main "
+					data-bi-name="content"
+					lang="en-us"
+					dir="ltr"
+				>
+					
+			<div
+		id="ms--content-header"
+		class="content-header default-focus border-bottom-none"
+		data-bi-name="content-header"
+	>
+		<div class="content-header-controls margin-xxs margin-inline-sm-tablet">
+			<button
+				type="button"
+				class="contents-button button button-sm margin-right-xxs"
+				data-bi-name="contents-expand"
+				aria-haspopup="true"
+				data-contents-button
+			>
+				<span class="icon" aria-hidden="true"><span class="docon docon-menu"></span></span>
+				<span class="contents-expand-title"> Table of contents </span>
+			</button>
+			<button
+				type="button"
+				class="ap-collapse-behavior ap-expanded button button-sm"
+				data-bi-name="ap-collapse"
+				aria-controls="action-panel"
+			>
+				<span class="icon" aria-hidden="true"><span class="docon docon-exit-mode"></span></span>
+				<span>Exit editor mode</span>
+			</button>
+		</div>
+	</div>
+			<div
+				data-main-column
+				class="reading-width margin-inline-auto layout-padding padding-top-none padding-top-sm-tablet padding-bottom-sm"
+			>
+				<div>
+					
+		<div id="article-header" class="background-color-body margin-bottom-xs display-none-print">
+			<div class="display-flex align-items-center justify-content-space-between">
+				
+		<details
+			id="article-header-breadcrumbs-overflow-popover"
+			class="popover"
+			data-for="article-header-breadcrumbs"
+		>
+			<summary
+				class="button button-clear button-primary button-sm inner-focus"
+				aria-label="All breadcrumbs"
+			>
+				<span class="icon" aria-hidden="true">
+					<span class="docon docon-more"></span>
+				</span>
+			</summary>
+			<div id="article-header-breadcrumbs-overflow" class="popover-content padding-none"></div>
+		</details>
+
+		<bread-crumbs
+			id="article-header-breadcrumbs"
+			role="group"
+			aria-label="Breadcrumbs"
+			data-test-id="article-header-breadcrumbs"
+			class="overflow-hidden flex-grow-1 margin-right-sm margin-right-md-tablet margin-right-lg-desktop margin-left-negative-xxs padding-left-xxs"
+		></bread-crumbs>
+	 
+		<div
+			id="article-header-page-actions"
+			class="opacity-none margin-left-auto display-flex flex-wrap-no-wrap align-items-stretch"
+		>
+			
+		<button
+			class="button button-sm border-none inner-focus display-none-tablet flex-shrink-0 "
+			data-bi-name="ask-learn-assistant-entry"
+			data-test-id="ask-learn-assistant-modal-entry-mobile"
+			data-ask-learn-modal-entry
+			
+			type="button"
+			style="min-width: max-content;"
+			aria-expanded="false"
+			aria-label="Ask Learn"
+			hidden
+		>
+			<span class="icon font-size-lg" aria-hidden="true">
+				<span class="docon docon-chat-sparkle-fill gradient-ask-learn-logo"></span>
+			</span>
+		</button>
+		<button
+			class="button button-sm display-none display-inline-flex-tablet display-none-desktop flex-shrink-0 margin-right-xxs border-color-ask-learn "
+			data-bi-name="ask-learn-assistant-entry"
+			
+			data-test-id="ask-learn-assistant-modal-entry-tablet"
+			data-ask-learn-modal-entry
+			type="button"
+			style="min-width: max-content;"
+			aria-expanded="false"
+			hidden
+		>
+			<span class="icon font-size-lg" aria-hidden="true">
+				<span class="docon docon-chat-sparkle-fill gradient-ask-learn-logo"></span>
+			</span>
+			<span>Ask Learn</span>
+		</button>
+		<button
+			class="button button-sm display-none flex-shrink-0 display-inline-flex-desktop margin-right-xxs border-color-ask-learn "
+			data-bi-name="ask-learn-assistant-entry"
+			
+			data-test-id="ask-learn-assistant-flyout-entry"
+			data-ask-learn-flyout-entry
+			data-flyout-button="toggle"
+			type="button"
+			style="min-width: max-content;"
+			aria-expanded="false"
+			aria-controls="ask-learn-flyout"
+			hidden
+		>
+			<span class="icon font-size-lg" aria-hidden="true">
+				<span class="docon docon-chat-sparkle-fill gradient-ask-learn-logo"></span>
+			</span>
+			<span>Ask Learn</span>
+		</button>
+	 
+
+			<details class="popover popover-right" id="article-header-page-actions-overflow">
+				<summary
+					class="justify-content-flex-start button button-clear button-sm button-primary inner-focus"
+					aria-label="More actions"
+					title="More actions"
+				>
+					<span class="icon" aria-hidden="true">
+						<span class="docon docon-more-vertical"></span>
+					</span>
+				</summary>
+				<div class="popover-content">
+					
+		<button
+			type="button"
+			id="ms--focus-mode-button"
+			data-focus-mode
+			data-bi-name="focus-mode-entry"
+			data-page-action-item="overflow-all"
+			data-popover-close
+			class="button button-clear button-sm button-block justify-content-flex-start text-align-left inner-focus display-none display-inline-flex-tablet"
+		>
+			<span class="icon" aria-hidden="true">
+				<span class="docon docon-glasses"></span>
+			</span>
+			<span>Reading mode</span>
+		</button>
+	 
+		<button
+			data-page-action-item="overflow-mobile"
+			type="button"
+			class="button-block button-sm inner-focus button button-clear display-none-tablet justify-content-flex-start text-align-left"
+			data-bi-name="contents-expand"
+			data-contents-button
+			data-popover-close
+		>
+			<span class="icon" aria-hidden="true"
+				><span class="docon docon-editor-list-bullet"></span
+			></span>
+			<span class="contents-expand-title">Table of contents</span>
+		</button>
+	 
+		<a
+			id="lang-link-overflow"
+			class="button-sm inner-focus button button-clear button-block justify-content-flex-start text-align-left"
+			data-bi-name="language-toggle"
+			data-page-action-item="overflow-all"
+			data-check-hidden="true"
+			data-read-in-link
+			href="#"
+			hidden
+		>
+			<span class="icon" aria-hidden="true" data-read-in-link-icon>
+				<span class="docon docon-locale-globe"></span>
+			</span>
+			<span data-read-in-link-text>Read in English</span>
+		</a>
+	
+					
+		<button
+			type="button"
+			class="collection button button-clear button-sm button-block justify-content-flex-start text-align-left inner-focus"
+			data-list-type="collection"
+			data-bi-name="collection"
+			data-page-action-item="overflow-all"
+			data-check-hidden="true"
+			data-popover-close
+		>
+			<span class="icon" aria-hidden="true">
+				<span class="docon docon-circle-addition"></span>
+			</span>
+			<span class="collection-status">Add</span>
+		</button>
+	 
+		<button
+			type="button"
+			class="collection button button-block button-clear button-sm justify-content-flex-start text-align-left inner-focus"
+			data-list-type="plan"
+			data-bi-name="plan"
+			data-page-action-item="overflow-all"
+			data-check-hidden="true"
+			data-popover-close
+			hidden
+		>
+			<span class="icon" aria-hidden="true">
+				<span class="docon docon-circle-addition"></span>
+			</span>
+			<span class="plan-status">Add to plan</span>
+		</button>
+	 
+					
+		<a
+			data-contenteditbtn
+			class="button button-clear button-block button-sm inner-focus justify-content-flex-start text-align-left text-decoration-none"
+			data-bi-name="edit"
+			data-page-action-item="overflow-all"
+			data-check-hidden="true"
+			hidden
+			href="https://github.com/MicrosoftDocs/OfficeDocs-SharePoint/blob/public/SharePoint/SharePointOnline/use-group-policy.md"
+			data-original_content_git_url="https://github.com/MicrosoftDocs/OfficeDocs-SharePoint-pr/blob/live/SharePoint/SharePointOnline/use-group-policy.md"
+			data-original_content_git_url_template="{repo}/blob/{branch}/SharePoint/SharePointOnline/use-group-policy.md"
+			data-pr_repo=""
+			data-pr_branch=""
+		>
+			<span class="icon" aria-hidden="true">
+				<span class="docon docon-edit-outline"></span>
+			</span>
+			<span>Edit</span>
+		</a>
+	  
+		<hr class="margin-block-xxs" />
+		
+				<button
+					class="button button-block button-clear button-sm justify-content-flex-start text-align-left inner-focus"
+					type="button"
+					data-bi-name="copy-markdown"
+					data-page-action-item="overflow-all"
+					data-copy-markdown
+					data-copy-state="idle"
+					data-check-hidden="true"
+				>
+					<span class="icon color-primary" aria-hidden="true">
+						<span data-show-when="idle" class="docon docon-code-lang"></span>
+						<span data-show-when="loading" class="loader" hidden></span>
+						<span data-show-when="success" class="docon docon-check-mark" hidden></span>
+					</span>
+					<span>Copy Markdown</span>
+				</button>
+		   
+				<button
+					class="button button-block button-clear button-sm justify-content-flex-start text-align-left inner-focus"
+					type="button"
+					data-bi-name="print"
+					data-page-action-item="overflow-all"
+					data-popover-close
+					data-print-page
+					data-check-hidden="true"
+				>
+					<span class="icon color-primary" aria-hidden="true">
+						<span class="docon docon-print"></span>
+					</span>
+					<span>Print</span>
+				</button>
+		  
+	
+				</div>
+			</details>
+		</div>
+	
+			</div>
+		</div>
+	  
+		<!-- privateUnauthorizedTemplate is hidden by default -->
+		<div unauthorized-private-section data-bi-name="permission-content-unauthorized-private" hidden>
+			<hr class="hr margin-top-xs margin-bottom-sm" />
+			<div class="notification notification-info">
+				<div class="notification-content">
+					<p class="margin-top-none notification-title">
+						<span class="icon" aria-hidden="true"
+							><span class="docon docon-exclamation-circle-solid"></span
+						></span>
+						<span>Note</span>
+					</p>
+					<p class="margin-top-none authentication-determined not-authenticated">
+						Access to this page requires authorization. You can try <a class="docs-sign-in" href="#" data-bi-name="permission-content-sign-in">signing in</a> or <a  class="docs-change-directory" data-bi-name="permisson-content-change-directory">changing directories</a>.
+					</p>
+					<p class="margin-top-none authentication-determined authenticated">
+						Access to this page requires authorization. You can try <a class="docs-change-directory" data-bi-name="permisson-content-change-directory">changing directories</a>.
+					</p>
+				</div>
+			</div>
+		</div>
+	
+					<div class="content"><h1 id="it-admins---use-onedrive-policies-to-control-sync-settings">IT Admins - Use OneDrive policies to control sync settings</h1></div>
+					
+		<div
+			id="article-metadata"
+			data-bi-name="article-metadata"
+			data-test-id="article-metadata"
+			class="page-metadata-container display-flex gap-xxs justify-content-space-between align-items-center flex-wrap-wrap"
+		>
+			 
+				<div
+					id="user-feedback"
+					class="margin-block-xxs display-none display-none-print"
+					hidden
+					data-hide-on-archived
+				>
+					
+		<button
+			id="user-feedback-button"
+			data-test-id="conceptual-feedback-button"
+			class="button button-sm button-clear button-primary display-none"
+			type="button"
+			data-bi-name="user-feedback-button"
+			data-user-feedback-button
+			hidden
+		>
+			<span class="icon" aria-hidden="true">
+				<span class="docon docon-like"></span>
+			</span>
+			<span>Feedback</span>
+		</button>
+	
+				</div>
+		  
+		</div>
+	 
+		<div data-id="ai-summary" class="display-none-print">
+			<div id="ms--ai-summary-cta" class="margin-top-xs display-flex align-items-center">
+				<span class="icon" aria-hidden="true">
+					<span class="docon docon-sparkle-fill gradient-text-vivid"></span>
+				</span>
+				<button
+					id="ms--ai-summary"
+					type="button"
+					class="tag tag-sm tag-suggestion margin-left-xxs"
+					data-test-id="ai-summary-cta"
+					data-bi-name="ai-summary-cta"
+					data-an="ai-summary"
+				>
+					<span class="ai-summary-cta-text">
+						Summarize this article for me
+					</span>
+				</button>
+			</div>
+			<!-- Slot where the client will render the summary card after the user clicks the CTA -->
+			<div id="ms--ai-summary-header" class="margin-top-xs"></div>
+		</div>
+	 
+		<nav
+			id="center-doc-outline"
+			class="doc-outline display-none-desktop display-none-print margin-bottom-sm"
+			data-bi-name="intopic toc"
+			aria-label="In this article"
+		>
+			<h2 id="ms--in-this-article" class="title is-6 margin-block-xs">
+				In this article
+			</h2>
+		</nav>
+	
+					<div class="content"><p>This article describes the OneDrive Group Policy objects (GPOs) that administrators can configure by using Group Policy or by using <a href="configure-sync-intune" data-linktype="relative-path">administrative templates in Microsoft Intune</a>. You can use the registry key information in this article to confirm that a setting is enabled.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>If you're not an IT administrator, see <a href="https://support.office.com/article/615391c4-2bd3-4aae-a42a-858262e42a49" data-linktype="external">Sync files with the new OneDrive sync app in Windows</a> for information about OneDrive sync settings.</p>
+</div>
+<div class="embeddedvideo"><iframe src="https://learn-video.azurefd.net/vod/player?id=9732f86a-fd9f-48e9-bd2d-216432a36549" frameborder="0" allowfullscreen="true" data-linktype="external"></iframe></div>
+<h2 id="manage-onedrive-using-group-policy">Manage OneDrive using Group Policy</h2>
+<ol>
+<li><p>Install the OneDrive sync app for Windows. (For information on the builds that are being released, and on the download builds, see <a href="https://support.office.com/article/845dcf18-f921-435e-bf28-4e24b95e5fc0?" data-linktype="external">release notes</a>.) Installing the sync app downloads the .adml and .admx files.</p>
+</li>
+<li><p>Browse to <code>%localappdata%\Microsoft\OneDrive\\*BuildNumber*\adm\</code> (for <a href="per-machine-installation" data-linktype="relative-path">per-machine sync app</a> browse to <code>%ProgramFiles(x86)%\Microsoft OneDrive\BuildNumber\adm\</code> or <code>%ProgramFiles%\Microsoft OneDrive\BuildNumber\adm\</code> (depending on the OS architecture)) to the subfolder for your language, as necessary (where <em>BuildNumber</em> is the number displayed in sync app settings under the <strong>About</strong> tab).</p>
+<p><img src="sharepointonline/media/85e0fe3f-84eb-4a29-877f-c706dda4d075.png" alt="The ADM folder in the OneDrive installation directory" data-linktype="relative-path"></p>
+</li>
+<li><p>Copy the .adml and .admx files.</p>
+</li>
+<li><p>Paste the .admx file in your domain's Central Store, <code>\\\\*domain*\sysvol\domain\Policies\PolicyDefinitions</code> (where <em>domain</em> is your domain name, such as corp.contoso.com), and the .adml file in the appropriate language subfolder, such as en-us. If the PolicyDefinitions folder doesn't exist, see <a href="https://support.microsoft.com/help/3087759" data-linktype="external">How to create and manage the Central Store for Group Policy Administrative Templates in Windows</a>, or use your local policy store under <code>%windir%\policydefinitions</code>.</p>
+</li>
+<li><p>Configure settings from the domain controller or on a Windows computer by running the <a href="/en-us/windows-server/remote/remote-server-administration-tools" data-linktype="absolute-path">Remote Server Administration Tools</a>.</p>
+</li>
+<li><p>Link the GPOs to an Active Directory container (a site, domain, or an organizational unit). For more information, see <a href="/en-us/previous-versions/windows/desktop/Policy/linking-gpos-to-active-directory-containers" data-linktype="absolute-path">Link Group Policy objects to Active Directory containers</a>.</p>
+</li>
+<li><p>Use security filtering to narrow the scope of a setting. By default, a setting is applied to all user and computer objects within the container to which it's linked, but you can use security filtering to narrow the scope of the policy's application to a subset of users or computers. For more information, see <a href="/en-us/previous-versions/windows/desktop/Policy/filtering-the-scope-of-a-gpo" data-linktype="absolute-path">Filtering the scope of a GPO</a>.</p>
+<p>The OneDrive GPOs work by setting registry keys on the computers in your domain.</p>
+<ul>
+<li><p>When you enable or disable a setting, the corresponding registry key is updated on computers in your domain. If you later change the setting back to <strong>Not configured</strong>, the corresponding registry key isn't modified, and the change doesn't take effect. After you configure a setting, set it to <strong>Enabled</strong> or <strong>Disabled</strong>, going forward.</p>
+<ul>
+<li>The location where registry keys are written has been updated. When you use the latest files, you might delete registry keys that you set previously.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<div class="NOTE">
+<p>Note</p>
+<p>For information about storage, see <a href="https://support.office.com/article/de5faa9a-6108-4be1-87a6-d90688d08a48" data-linktype="external">OneDrive Files On-Demand and Storage Sense for Windows 10</a> and <a href="/en-us/windows/client-management/mdm/policy-csp-storage" data-linktype="absolute-path">Policy CSP - Storage</a>.</p>
+</div>
+<h2 id="list-of-policies-by-string-id">List of policies by string ID</h2>
+<ul>
+<li><p>(AddedFolderHardDeleteOnUnmount) <a href="#hard-delete-the-contents-of-an-added-folder-when-unmounted" data-linktype="self-bookmark">Hard-delete the contents of an added folder when unmounted</a></p>
+</li>
+<li><p>(AddedFolderUnmountOnPermissionsLoss) <a href="#hard-delete-the-contents-of-an-added-folder-when-user-loses-permissions-to-the-folder" data-linktype="self-bookmark">Hard-delete contents of an added folder when user loses permissions to the folder</a></p>
+</li>
+<li><p>(AllowTenantList) <a href="use-group-policy#allow-syncing-onedrive-accounts-for-only-specific-organizations" data-linktype="relative-path">Allow syncing OneDrive accounts for only specific organizations</a></p>
+</li>
+<li><p>(AutomaticUploadBandwidthPercentage) <a href="use-group-policy#limit-the-sync-app-upload-rate-to-a-percentage-of-throughput" data-linktype="relative-path">Limit the sync app upload rate to a percentage of throughput</a></p>
+</li>
+<li><p>(AutoMountTeamSites) <a href="use-group-policy#configure-team-site-libraries-to-sync-automatically" data-linktype="relative-path">Configure team site libraries to sync automatically</a></p>
+</li>
+<li><p>(BlockExternalListSync) This setting controls Lists sync and is listed here for convenience. For more information, see <a href="/en-us/sharepoint/lists-sync-policies#prevent-users-from-syncing-lists-shared-from-other-organizations" data-linktype="absolute-path">Prevent users from syncing lists shared from other organizations</a>.</p>
+</li>
+<li><p>(BlockExternalSync) <a href="use-group-policy#prevent-users-from-syncing-libraries-and-folders-shared-from-other-organizations" data-linktype="relative-path">Prevent users from syncing libraries and folders shared from other organizations</a></p>
+</li>
+<li><p>(BlockKnownFolderMove) <a href="use-group-policy#prevent-users-from-moving-their-windows-known-folders-to-onedrive" data-linktype="relative-path">Prevent users from moving their Windows known folders to OneDrive</a></p>
+</li>
+<li><p>(BlockTenantList) <a href="use-group-policy#block-syncing-onedrive-accounts-for-specific-organizations" data-linktype="relative-path">Block syncing OneDrive accounts for specific organizations</a></p>
+</li>
+<li><p>(CustomSyncRootFolderName) <a href="use-group-policy#set-a-custom-name-for-the-onedrive-folder" data-linktype="relative-path">Set a custom name for the OneDrive folder</a></p>
+</li>
+<li><p>(DefaultRootDir) <a href="use-group-policy#set-the-default-location-for-the-onedrive-folder" data-linktype="relative-path">Set the default location for the OneDrive folder</a></p>
+</li>
+<li><p>(DehydrateSyncedTeamSites) <a href="use-group-policy#convert-synced-team-site-files-to-online-only-files" data-linktype="relative-path">Convert synced team site files to online-only files</a></p>
+</li>
+<li><p>(DisableAutoConfig) <a href="use-group-policy#prevent-the-sync-app-from-automatically-signing-in-users-with-existing-credentials" data-linktype="relative-path">Prevent the sync app from automatically signing in users with existing credentials</a></p>
+</li>
+<li><p>(DisableCustomRoot) <a href="use-group-policy#prevent-users-from-changing-the-location-of-their-onedrive-folder" data-linktype="relative-path">Prevent users from changing the location of their OneDrive folder</a></p>
+</li>
+<li><p>(DisableFirstDeleteDialog) <a href="use-group-policy#hide-the-deleted-files-are-removed-everywhere-reminder" data-linktype="relative-path">Hide the "Deleted files are removed everywhere" reminder</a></p>
+</li>
+<li><p>(DisableFREAnimation) <a href="use-group-policy#disable-animation-that-appears-during-onedrive-setup" data-linktype="relative-path">Disable animation that appears during OneDrive Setup</a></p>
+</li>
+<li><p>(DisableFRETutorial) <a href="use-group-policy#disable-the-tutorial-that-appears-at-the-end-of-onedrive-setup" data-linktype="relative-path">Disable the tutorial that appears at the end of OneDrive Setup</a></p>
+</li>
+<li><p>(DisableListSync) This setting controls Lists sync and is listed here for convenience. For more information, see <a href="/en-us/sharepoint/lists-sync-policies#prevent-lists-sync-from-running-on-the-device" data-linktype="absolute-path">Prevent Lists sync from running on the device</a>.</p>
+</li>
+<li><p>(DisableListSyncSilentConfig) <a href="lists-sync-policies#prevent-users-from-getting-silently-signed-in-to-offline-experiences-on-the-web" data-linktype="relative-path">Prevent users from getting silently signed in to offline experiences on the web</a>.</p>
+</li>
+<li><p>(DisableNewAccountDetection) <a href="use-group-policy#hide-toast-and-activity-center-notifications-that-prompt-users-to-sign-in-to-the-onedrive-sync-app-with-existing-credentials" data-linktype="relative-path">Hide toast and activity center notifications that prompt users to sign in to the OneDrive sync app with existing credentials</a></p>
+</li>
+<li><p>(DisableOfflineMode) <a href="#prevent-users-at-your-organization-from-enabling-offline-mode-in-onedrive-on-the-web" data-linktype="self-bookmark">Prevent users at your organization from enabling offline mode in OneDrive on the web</a></p>
+</li>
+<li><p>(DisableOfflineModeForExternalLibraries) <a href="#prevent-users-at-your-organization-from-enabling-offline-mode-in-onedrive-on-the-web-for-libraries-and-folders-that-are-shared-from-other-organizations" data-linktype="self-bookmark">Prevent users at your organization from enabling offline mode in OneDrive on the web for libraries and folders that are shared from other organizations</a></p>
+</li>
+<li><p>(DisablePauseOnBatterySaver) <a href="use-group-policy#continue-syncing-when-devices-have-battery-saver-mode-turned-on" data-linktype="relative-path">Continue syncing when devices have battery saver mode turned on</a></p>
+</li>
+<li><p>(DisablePauseOnMeteredNetwork) <a href="use-group-policy#continue-syncing-on-metered-networks" data-linktype="relative-path">Continue syncing on metered networks</a></p>
+</li>
+<li><p>(DisablePersonalSync) <a href="use-group-policy#prevent-users-from-syncing-personal-onedrive-accounts" data-linktype="relative-path">Prevent users from syncing personal OneDrive accounts</a></p>
+</li>
+<li><p>(DiskSpaceCheckThresholdMB) <a href="use-group-policy#set-the-maximum-size-of-a-users-onedrive-that-can-download-automatically" data-linktype="relative-path">Set the maximum size of a user's OneDrive that can download automatically</a></p>
+</li>
+<li><p>(DownloadBandwidthLimit) <a href="use-group-policy#limit-the-sync-app-download-speed-to-a-fixed-rate" data-linktype="relative-path">Limit the sync app download speed to a fixed rate</a></p>
+</li>
+<li><p>(EnableAutomaticUploadBandwidthManagement) <a href="use-group-policy#enable-automatic-upload-bandwidth-management-for-onedrive" data-linktype="relative-path">Enable automatic upload bandwidth management for OneDrive</a></p>
+</li>
+<li><p>(EnableAutoStart) <a href="use-group-policy#start-onedrive-automatically-when-signing-in-to-windows" data-linktype="relative-path">Start OneDrive automatically when signing in to Windows</a></p>
+</li>
+<li><p>(EnableFeedbackAndSupport) <a href="use-group-policy#allow-users-to-contact-microsoft-for-feedback-and-support" data-linktype="relative-path">Allow users to contact Microsoft for feedback and support</a></p>
+</li>
+<li><p>(EnableODIgnoreListFromGPO) <a href="use-group-policy#exclude-specific-kinds-of-files-from-being-uploaded" data-linktype="relative-path">Exclude specific kinds of files from being uploaded</a></p>
+</li>
+<li><p>(EnableSyncAdminReports) <a href="use-group-policy#enable-sync-health-reporting-for-onedrive" data-linktype="relative-path">Enable sync health reporting for OneDrive</a></p>
+</li>
+<li><p>(FilesOnDemandEnabled) <a href="use-group-policy#use-onedrive-files-on-demand" data-linktype="relative-path">Use OneDrive Files On-Demand</a></p>
+</li>
+<li><p>(ForcedLocalMassDeleteDetection) <a href="use-group-policy#require-users-to-confirm-large-delete-operations" data-linktype="relative-path">Require users to confirm large delete operations</a></p>
+</li>
+<li><p>(GPOSetUpdateRing) <a href="use-group-policy#set-the-sync-app-update-ring" data-linktype="relative-path">Set the sync app update ring</a></p>
+</li>
+<li><p>(IgnoreWebProxy) <a href="use-group-policy#configure-the-sync-client-to-bypass-web-proxy-detection" data-linktype="relative-path">Configure the sync client to bypass web proxy detection</a></p>
+</li>
+<li><p>(KFMBlockOptOut) <a href="use-group-policy#prevent-users-from-redirecting-their-windows-known-folders-to-their-pc" data-linktype="relative-path">Prevent users from redirecting their Windows known folders to their PC</a></p>
+</li>
+<li><p>(KFMForceWindowsDisplayLanguage) <a href="use-group-policy#always-use-the-users-windows-display-language-when-provisioning-known-folders-in-onedrive" data-linktype="relative-path">Always use the user's Windows display language when provisioning known folders in OneDrive</a></p>
+</li>
+<li><p>(KFMOptInNoWizard) <a href="use-group-policy#silently-move-windows-known-folders-to-onedrive" data-linktype="relative-path">Silently move Windows known folders to OneDrive</a></p>
+</li>
+<li><p>(KFMOptInWithWizard) <a href="use-group-policy#prompt-users-to-move-windows-known-folders-to-onedrive" data-linktype="relative-path">Prompt users to move Windows known folders to OneDrive</a></p>
+</li>
+<li><p>(LocalMassDeleteFileDeleteThreshold) <a href="use-group-policy#prompt-users-when-they-delete-multiple-onedrive-files-on-their-local-computer" data-linktype="relative-path">Prompt users when they delete multiple OneDrive files on their local computer</a></p>
+</li>
+<li><p>(MinDiskSpaceLimitInMB) <a href="use-group-policy#block-file-downloads-when-users-are-low-on-disk-space" data-linktype="relative-path">Block file downloads when users are low on disk space</a></p>
+</li>
+<li><p>(PermitDisablePermissionInheritance) <a href="use-group-policy#allow-onedrive-to-disable-windows-permission-inheritance-in-folders-synced-read-only" data-linktype="relative-path">Allow OneDrive to disable Windows permission inheritance in folders synced read-only</a></p>
+</li>
+<li><p>(PreventNetworkTrafficPreUserSignIn) <a href="use-group-policy#prevent-the-sync-app-from-generating-network-traffic-until-users-sign-in" data-linktype="relative-path">Prevent the sync app from generating network traffic until users sign in</a></p>
+</li>
+<li><p>(SharedContentDeleteConfirmation) <a href="use-group-policy#prompt-users-to-confirm-when-they-delete-shared-content" data-linktype="relative-path">Prompt users to confirm when they delete shared content</a></p>
+</li>
+<li><p>(SharePointOnPremApplicationIdUri) <a href="use-group-policy#specify-the-application-id-uri-for-your-entra-application-for-oidc" data-linktype="relative-path">Specify the Application ID URI for your Entra application for OIDC</a></p>
+</li>
+<li><p>(SharePointOnPremFrontDoorUrl) Specify SharePoint Server URL and organization name. This setting is for customers who have SharePoint Server 2019. For information about using the new OneDrive sync app with SharePoint Server 2019, see <a href="/en-us/SharePoint/install/configure-syncing-with-the-onedrive-sync-app/" data-linktype="absolute-path">Configure syncing with the new OneDrive sync app</a>.</p>
+</li>
+<li><p>(SharePointOnPremOIDC) <a href="use-group-policy#enable-openid-connect-oidc-authentication-for-syncing-content-from-an-on-prem-sharepoint-server-using-the-onedrive-sync-app" data-linktype="relative-path">Enable OpenID Connect (OIDC) authentication for syncing content from an on-prem SharePoint Server using the OneDrive sync app</a></p>
+</li>
+<li><p>(SharePointOnPremPrioritization) Specify the OneDrive location in a hybrid environment. This setting is for customers who have SharePoint Server 2019. For information about using the new OneDrive sync app with SharePoint Server 2019, see <a href="/en-us/SharePoint/install/configure-syncing-with-the-onedrive-sync-app/" data-linktype="absolute-path">Configure syncing with the new OneDrive sync app</a>.</p>
+</li>
+<li><p>(SilentAccountConfig) <a href="use-group-policy#silently-sign-in-users-to-the-onedrive-sync-app-with-their-windows-credentials" data-linktype="relative-path">Silently sign in users to the OneDrive sync app with their Windows credentials</a></p>
+</li>
+<li><p>(UploadBandwidthLimit) <a href="use-group-policy#limit-the-sync-app-upload-speed-to-a-fixed-rate" data-linktype="relative-path">Limit the sync app upload speed to a fixed rate</a></p>
+</li>
+<li><p>(WarningMinDiskSpaceLimitInMB) <a href="use-group-policy#warn-users-who-are-low-on-disk-space" data-linktype="relative-path">Warn users who are low on disk space</a></p>
+</li>
+</ul>
+<h2 id="computer-configuration-policies">Computer Configuration policies</h2>
+<p>Under Computer Configuration\Policies\Administrative Templates\OneDrive, navigate to <strong>Computer Configuration &gt; Policies</strong>.</p>
+<p><img src="sharepointonline/media/07b81d35-9ccc-4c61-8a86-52d9bcff7ddb.png" alt="Computer Configuration policies in the Group Policy Management Editor" data-linktype="relative-path"></p>
+<h3 id="allow-onedrive-to-disable-windows-permission-inheritance-in-folders-synced-read-only">Allow OneDrive to disable Windows permission inheritance in folders synced read-only</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets the OneDrive sync app remove all inherited permissions within read-only folders syncing on a user's PC. This removal of inherited permissions improves the performance of the sync app when syncing folders that the user has read-only permission to.</p>
+<p>Enabling this setting for a user doesn't change their permissions to view or edit content in SharePoint.</p>
+<p>We don't recommend setting this policy for users not syncing read-only content.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"PermitDisablePermissionInheritance"=dword:00000001</code></p>
+<h3 id="allow-syncing-onedrive-accounts-for-only-specific-organizations">Allow syncing OneDrive accounts for only specific organizations</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you prevent users from easily uploading files to other organizations by specifying a list of allowed tenant IDs.</p>
+<p>If you enable this setting, users get an error if they attempt to add an account from an organization that isn't allowed. If a user has already added the account, the files stop syncing.</p>
+<p>To enter a tenant ID, in the <strong>Options</strong> box, select <strong>Show</strong>.</p>
+<p>This policy sets the following registry key:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive\AllowTenantList] "1111-2222-3333-4444"</code></p>
+<p>where "1111-2222-3333-4444" is the <a href="find-your-office-365-tenant-id" data-linktype="relative-path">tenant ID</a>.</p>
+<p>This setting takes priority over <a href="use-group-policy#block-syncing-onedrive-accounts-for-specific-organizations" data-linktype="relative-path">Block syncing OneDrive accounts for specific organizations</a>. Don't enable both settings at the same time.</p>
+<h3 id="allow-users-to-contact-microsoft-for-feedback-and-support">Allow users to contact Microsoft for feedback and support</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting specifies whether users can contact Microsoft through user experiences in the app.</p>
+<p>If you enable or do not configure this setting, users can use the experiences in the OneDrive app to contact Microsoft directly for feedback and support.</p>
+<p>If you disable this setting, users will be unable to contact Microsoft for support, feedback, or suggestions within the app. Users will still have access to help content and self-help tools.</p>
+<p>Enabling this policy sets the following registry key values:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"EnableSendFeedback"=dword:00000001</code></p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"EnableSurveyCampaigns"=dword:00000001</code></p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"EnableContactSupport"=dword:00000001</code></p>
+<p>Set any value to 0 to disable that specific feature.</p>
+<h3 id="always-use-the-users-windows-display-language-when-provisioning-known-folders-in-onedrive">Always use the user's Windows display language when provisioning known folders in OneDrive</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<div class="NOTE">
+<p>Note</p>
+<p>This policy can also be configured under User Configuration.</p>
+</div>
+<p>When you move Windows known folders to OneDrive, they are provisioned in the user's Windows display language by default, unless the user sets a different preferred language. This setting lets you override the user's preferred language setting. It works with both Known Folder Move settings (<a href="#silently-move-windows-known-folders-to-onedrive" data-linktype="self-bookmark">Silently move Windows known folders to OneDrive</a> and <a href="#prompt-users-to-move-windows-known-folders-to-onedrive" data-linktype="self-bookmark">Prompt users to move Windows known folders to OneDrive</a>).</p>
+<p>If you enable this setting, known folders are provisioned using the user's Windows display language, even if the user sets a different preferred language.</p>
+<p>If you disable or do not configure this setting, and the user set a preferred language, their known folders are provisioned in OneDrive using that language.</p>
+<p>This policy can be deployed under Computer Configuration (HKLM) or User Configuration (HKCU). The setting applies from whichever location it is configured. Enabling this policy sets the following registry key values to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KfmForceWindowsDisplayLanguage"=dword:00000001</code></p>
+<p><code>[HKCU\SOFTWARE\Policies\Microsoft\OneDrive]"KfmForceWindowsDisplayLanguage"=dword:00000001</code></p>
+<h3 id="block-file-downloads-when-users-are-low-on-disk-space">Block file downloads when users are low on disk space</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you specify a minimum amount of available disk space and block the OneDrive sync app (OneDrive.exe) from downloading files when users have less than this amount.</p>
+<p>Users are prompted with options to help free up space.</p>
+<p>Enabling this policy sets the following registry key value to a number from 0 through 10240000:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive] "MinDiskSpaceLimitInMB"=dword:00000000</code></p>
+<h3 id="block-syncing-onedrive-accounts-for-specific-organizations">Block syncing OneDrive accounts for specific organizations</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you prevent users from uploading files to another organization by specifying a list of blocked tenant IDs.</p>
+<p>If you enable this setting, users get an error if they attempt to add an account from an organization that's blocked. If a user has already added the account, the files stop syncing.</p>
+<p>To enter the tenant ID, in the <strong>Options</strong> box, select <strong>Show</strong>.</p>
+<p>This policy sets the following registry key:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive\BlockTenantList] "1111-2222-3333-4444"</code></p>
+<p>where "1111-2222-3333-4444" is the <a href="find-your-office-365-tenant-id" data-linktype="relative-path">tenant ID</a>.</p>
+<p>This setting does NOT work if you enable the <a href="use-group-policy#allow-syncing-onedrive-accounts-for-only-specific-organizations" data-linktype="relative-path">Allow syncing OneDrive accounts for only specific organizations</a> setting. Don't enable both settings at the same time.</p>
+<h3 id="configure-the-sync-client-to-bypass-web-proxy-detection">Configure the sync client to bypass web proxy detection</h3>
+<p><em>Applies to: Group Policy</em></p>
+<p>This setting controls whether the OneDrive sync client performs web proxy detection.</p>
+<p>If you enable this setting, the sync client won't perform web proxy detection and will attempt direct connections to the internet web endpoints it needs to communicate with. This is equivalent to having no web proxy settings configured and no automatic proxy script.</p>
+<p>If you disable or don't configure this setting, the sync client will detect if a web proxy is configured on your network and use it if so.</p>
+<p>For more information, see <a href="/en-us/troubleshoot/windows-server/networking/configure-proxy-server-settings" data-linktype="absolute-path">Configure proxy server settings in Windows</a>.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"IgnoreWebProxy"=dword:00000001</code></p>
+<h3 id="convert-synced-team-site-files-to-online-only-files">Convert synced team site files to online-only files</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you convert synced SharePoint files to online-only files when you enable <strong>OneDrive Files On-Demand</strong>. If you have many PCs syncing the same team site, enabling this setting helps you minimize network traffic and local storage usage.</p>
+<p>If you enable this setting, files in currently syncing team sites are changed to online-only files, by default. Files later added or updated in the team site are also downloaded as online-only files. To use this setting, the computer must be running Windows 10 Fall Creators Update (version 1709) or later, and you must enable <strong>OneDrive Files On-Demand</strong>.
+This feature isn't enabled for on-premises SharePoint sites.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"DehydrateSyncedTeamSites"=dword:00000001</code></p>
+<p>For information about querying and setting file and folder states, see <a href="files-on-demand-mac" data-linktype="relative-path">Query and set Files On-Demand states</a>.</p>
+<h3 id="enable-automatic-upload-bandwidth-management-for-onedrive">Enable automatic upload bandwidth management for OneDrive</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets the OneDrive sync app (OneDrive.exe) upload data in the background only when unused bandwidth is available. It prevents the sync app from interfering with other apps that are using the network. This setting is powered by the Windows LEDBAT (Low Extra Delay Background Transport) protocol. When LEDBAT detects increased latency that indicates other TCP connections are consuming bandwidth, the sync app reduces its own consumption to prevent interference. When network latency decreases again and bandwidth is freed up, the sync app increases the upload rate and consume the unused bandwidth.</p>
+<p>If you enable this setting, the sync app upload rate is set to <strong>Adjust automatically</strong> based on bandwidth availability, and users won't be able to change it.</p>
+<p>If you don't configure this setting, users can choose to limit the upload rate to a fixed value (in KB/second), or set it to <strong>Adjust automatically</strong>.</p>
+<div class="IMPORTANT">
+<p>Important</p>
+<p>If you enable or disable this setting, and then change it back to <strong>Not Configured</strong>, the last configuration will remain in effect. We recommend enabling this setting instead of <strong>Limit the sync app upload speed to a fixed rate</strong>. You shouldn't enable both settings at the same time. This setting will override <strong>Limit the sync app upload rate to a percentage of throughput</strong> if both are enabled on the same device.</p>
+</div>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\Software\Policies\Microsoft\OneDrive]"EnableAutomaticUploadBandwidthManagement"=dword:00000001</code></p>
+<h3 id="enable-openid-connect-oidc-authentication-for-syncing-content-from-an-on-prem-sharepoint-server-using-the-onedrive-sync-app">Enable OpenID Connect (OIDC) authentication for syncing content from an on-prem SharePoint Server using the OneDrive sync app</h3>
+<p><em>Applies to: Group Policy</em></p>
+<p>This setting lets the OneDrive sync app (OneDrive.exe) authenticate requests to an on-premises SharePoint Server using OpenID Connect (OIDC) authentication, if supported by the server. To use this setting, you must also enable <a href="use-group-policy#specify-sharepoint-server-url-and-organization-name" data-linktype="relative-path">Specify SharePoint Server URL and organization name</a>. This setting affects only OneDrive for Business sync functionality. It does not impact syncing team sites in SharePoint Online.</p>
+<p>If you enable this setting, you can select one of two options:</p>
+<ul>
+<li><strong>Disable OIDC Authentication</strong>: The sync app will not attempt to use OIDC authentication, even if the server supports it.</li>
+<li><strong>Enable OIDC Authentication</strong>: The sync app will attempt to use OIDC authentication if the server supports it.</li>
+</ul>
+<p>If you disable or do not configure this setting, the sync app will attempt to use legacy network authentication schemes that the server supports.</p>
+<p>Enabling this policy sets the following registry key:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"SharePointOnPremOIDC"=dword:00000001</code></p>
+<h3 id="enable-sync-health-reporting-for-onedrive">Enable sync health reporting for OneDrive</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This policy lets the OneDrive sync app report sync device and health data included in administrative sync reports.</p>
+<p>If you enable this setting, the OneDrive sync app reports device and health data to include in administrative sync reports. You must enable this setting on the devices you want to get reports from.</p>
+<p>If you disable or don't configure this setting, OneDrive sync app device and health data won't appear in the admin reports.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"EnableSyncAdminReports"=dword:00000001</code></p>
+<h3 id="exclude-specific-kinds-of-files-from-being-uploaded">Exclude specific kinds of files from being uploaded</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you enter keywords to prevent the OneDrive sync app (OneDrive.exe) from uploading certain files to OneDrive or SharePoint. You can enter complete names, such as "setup.exe", or use the asterisk (*) as a wildcard character to represent a series of characters, such as *.pst. Keywords aren't case-sensitive.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>The OneDrive sync app doesn't sync .tmp and .ini files.</p>
+</div>
+<p>If you enable this setting, the sync app doesn't upload new files that match the keywords you specified. No errors appear for the skipped files, and the files remain in the local OneDrive folder.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>This setting will only block files that match your specification. It won't apply to existing files that are renamed to match the specified keywords. Additionally, new files that are created inside the synced folder and named to match the specified keywords will also not be blocked.</p>
+</div>
+<p>In File Explorer, the files appear with an "Excluded from sync" icon in the <strong>Status</strong> column. The OneDrive sync app must be restarted after this setting is enabled, for the setting to take effect.</p>
+<p><img src="sharepointonline/media/excluded-from-sync.png" alt="The &quot;Excluded from sync&quot; icon in File Explorer" data-linktype="relative-path"></p>
+<p>Users will also see a message in the OneDrive activity center that explains why the files aren't syncing.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>Users can still browse to their OneDrive in a web browser to upload a file that has been excluded from their local OneDrive folder. We recommend that users remove the local file after doing this upload because having a file with the same name in the same folder will result in a sync conflict with the skipped file.</p>
+</div>
+<p>If you disable or don't configure this setting, all supported files in all synced folders will be uploaded.</p>
+<p>Enabling this policy creates a list of strings under the following path:</p>
+<p><code>HKLM\SOFTWARE\Policies\Microsoft\OneDrive\EnableODIgnoreListFromGPO</code></p>
+<div class="NOTE">
+<p>Note</p>
+<p>This setting gives you more flexibility than the <a href="block-file-types" data-linktype="relative-path">Block syncing of specific file types setting</a> in the admin center. Also, with this setting, users don't see errors for the excluded files. This setting doesn't support upload of Office files that are being excluded. All other file types are supported.</p>
+</div>
+<h3 id="hard-delete-the-contents-of-an-added-folder-when-unmounted">Hard-delete the contents of an added folder when unmounted</h3>
+<p><em>Applies to: Group Policy</em></p>
+<p>If you enable this setting, when an unmount of an Added Folder is received, the Sync client will hard-delete all the contents of the folder.</p>
+<p>If admins disable or do not configure this setting, Sync will by default move the contents of the unmounted folder to the recycle-bin.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"AddedFolderHardDeleteOnUnmount"=dword:00000001</code></p>
+<h3 id="hard-delete-the-contents-of-an-added-folder-when-user-loses-permissions-to-the-folder">Hard-delete the contents of an added folder when user loses permissions to the folder</h3>
+<p><em>Applies to: Group Policy</em></p>
+<p>If you enable this setting, when the Sync client detects that the user lost permissions to an Added Folder, the Sync client will hard-delete all the contents of the folder and the folder itself.</p>
+<p>If admins disable or do not configure this setting, Sync will by default mark the folder in error and prompt the user to remove it. When the user confirms the removals, the contents of the folder are moved to the recycle-bin.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"AddedFolderUnmountOnPermissionsLoss"=dword:00000001</code></p>
+<h3 id="hide-the-deleted-files-are-removed-everywhere-reminder">Hide the "Deleted files are removed everywhere" reminder</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>When a user deletes local files from a synced location, a warning message appears that the files will no longer be available across all the devices of the user and on the web. This setting lets you hide the warning message.</p>
+<p><img src="sharepointonline/media/deleted-files-removed-everywhere.png" alt="The &quot;Deleted files are removed everywhere&quot; warning message" data-linktype="relative-path"></p>
+<p>If you enable this setting, users won't see the <strong>Deleted files are removed everywhere</strong> reminder when they delete files locally. (This reminder is called "Deleted files are removed for everyone" when a user deletes files from a synced team site.)</p>
+<p>If you disable or don't configure this setting, the reminder appears until users select <strong>Don't show this reminder again</strong>.</p>
+<p>Enabling this policy sets the following registry key value to 1:
+<code>HKLM\SOFTWARE\Policies\Microsoft\OneDrive\DisableFirstDeleteDialog =dword:00000001</code></p>
+<h3 id="hide-toast-and-activity-center-notifications-that-prompt-users-to-sign-in-to-the-onedrive-sync-app-with-existing-credentials">Hide toast and activity center notifications that prompt users to sign in to the OneDrive sync app with existing credentials</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting determines whether a user will be prompted to sync their Consumer files when a Microsoft Account (MSA) is detected on the device.</p>
+<p>If you enable this setting, users will not be prompted to sign in with their MSA and sync their Consumer files. Users can still manually configure their Consumer accounts to sync their OneDrive Consumer files. Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"DisableNewAccountDetection"=dword:00000001</code></p>
+<p>If you disable this setting or do not configure it, users will be prompted to sign in with their MSA and sync their Consumer files.</p>
+<h3 id="limit-the-sync-app-upload-rate-to-a-percentage-of-throughput">Limit the sync app upload rate to a percentage of throughput</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you balance the performance of different upload tasks on a computer by specifying the percentage of the computer's upload throughput that the OneDrive sync app (OneDrive.exe) can use to upload files. Setting this throughput as a percentage lets the sync app respond to both increases and decreases in throughput. The lower the percentage you set, the slower the files get uploaded. We recommend a value of 50% or higher. The sync app periodically uploads without restriction for one minute and then slows down to the upload percentage you set. This pattern lets small files upload quickly while preventing large uploads from dominating the computer's upload throughput. We recommend enabling this setting temporarily when you roll out <a href="use-group-policy#silently-move-windows-known-folders-to-onedrive" data-linktype="relative-path">Silently move Windows known folders to OneDrive</a>, or <a href="use-group-policy#prompt-users-to-move-windows-known-folders-to-onedrive" data-linktype="relative-path">Prompt users to move Windows known folders to OneDrive</a> to control the network impact of uploading known folder contents.</p>
+<p><img src="sharepointonline/media/limit-upload-rate-percentage-throughput.png" alt="Upload Throughput Calculation" data-linktype="relative-path"></p>
+<div class="NOTE">
+<p>Note</p>
+<p>The maximum throughput value detected by the sync app can sometimes be higher or lower than expected because of the different traffic-throttling mechanisms that your Internet Service Provider (ISP) might use. For information about estimating the network bandwidth you need for a sync, see <a href="network-utilization-planning" data-linktype="relative-path">Network utilization planning for the OneDrive sync app</a>.</p>
+</div>
+<p>If you enable this setting and enter a percentage (from 10 to 99) in the <strong>Bandwidth</strong> box, computers use the percentage of upload throughput that you specify when uploading files to OneDrive, and users can't change it.</p>
+<p>Enabling this policy sets the following registry key to a value described in the following example:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"AutomaticUploadBandwidthPercentage"=dword:00000032</code></p>
+<p>The previous registry key sets the upload throughput percentage to 50, using the hexadecimal value for 50, which is 00000032.</p>
+<p>If you disable or don't configure this setting, users can choose to limit the upload rate to a fixed value (in KB/second), or set it to <strong>Adjust automatically</strong>, which sets the upload rate to 70% of throughput. For information about the end-user experience, see <a href="https://support.office.com/article/71cc69da-2371-4981-8cc8-b4558bdda56e" data-linktype="external">Change the OneDrive sync app upload or download rate</a>.</p>
+<div class="IMPORTANT">
+<p>Important</p>
+<p>If you enable or disable this setting, and then change it back to <strong>Not Configured</strong>, the last configuration remains in effect. We recommend enabling this setting instead of <strong>Limit the sync app upload speed to a fixed rate</strong> to limit the upload rate. You shouldn't enable both settings at the same time.</p>
+</div>
+<h3 id="prevent-the-sync-app-from-automatically-signing-in-users-with-existing-credentials">Prevent the sync app from automatically signing in users with existing credentials</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting determines whether or not the Sync client can automatically sign in.</p>
+<p>If you enable this setting, it prevents Sync from automatically signing in with an existing Microsoft Entra credential that is made available to Microsoft applications.</p>
+<p>If you disable or don't configure this setting, Sync will automatically sign in.</p>
+<p>Enabling this policy sets the following registry key:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"DisableAutoConfig"=dword:value</code></p>
+<p>Where the value is a bitmask:</p>
+<ul>
+<li><code>1</code> = Prevent automatic sign-in with Microsoft Entra ID (AAD) credentials</li>
+<li><code>2</code> = Prevent automatic sign-in with Microsoft account (MSA) credentials</li>
+<li><code>3</code> = Prevent automatic sign-in with both AAD and MSA credentials</li>
+</ul>
+<h3 id="prevent-the-sync-app-from-generating-network-traffic-until-users-sign-in">Prevent the sync app from generating network traffic until users sign in</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you block the OneDrive sync app (OneDrive.exe) from generating network traffic (checking for updates) until users sign in to OneDrive or start syncing files on their computer.</p>
+<p>If you enable this setting, users must sign in to the OneDrive sync app on their computer, or select to sync OneDrive or SharePoint files on the computer, for the sync app to start automatically.</p>
+<p>If you disable or don't configure this setting, the OneDrive sync app starts automatically when users sign in to Windows.</p>
+<div class="IMPORTANT">
+<p>Important</p>
+<p>If you enable or disable this setting, and then change it back to <strong>Not Configured</strong>, the last configuration remains in effect.</p>
+</div>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"PreventNetworkTrafficPreUserSignIn"=dword:00000001</code></p>
+<h3 id="prevent-users-at-your-organization-from-enabling-offline-mode-in-onedrive-on-the-web">Prevent users at your organization from enabling offline mode in OneDrive on the web</h3>
+<p><em>Applies to: Group Policy</em></p>
+<p>By default, offline mode is turned on for users of OneDrive on the web. If you enable this policy, offline mode in OneDrive on the web will be disabled for all the users on the device.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"DisableOfflineMode"="dword:1"</code></p>
+<p>To re-enable offline mode in OneDrive on the web for users at your organization, set the following registry key value to 0:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"DisableOfflineMode"="dword:0"</code></p>
+<h3 id="prevent-users-at-your-organization-from-enabling-offline-mode-in-onedrive-on-the-web-for-libraries-and-folders-that-are-shared-from-other-organizations">Prevent users at your organization from enabling offline mode in OneDrive on the web for libraries and folders that are shared from other organizations</h3>
+<p><em>Applies to: Group Policy</em></p>
+<p>Enabling this setting prevents users at your organization from enabling offline mode for libraries and folders that are shared from other organizations. After the setting is enabled (by entering value <strong>1</strong>) on a computer, libraries and folders shared by other organizations won't have the option of enabling offline mode when working with them in OneDrive on the web. Disable the setting (by entering the value <strong>0</strong>) to allow your users to enable or disable offline mode in OneDrive on the web when working with libraries and folders that are shared from other organizations.</p>
+<p>Prevent users at your organization from enabling offline mode in OneDrive on the web for libraries and folders that are shared from other organizations with:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"DisableOfflineModeForExternalLibraries"="dword:1"</code></p>
+<p>Re-enable offline mode in OneDrive on the web for libraries and folders that are shared from other organizations with:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"DisableOfflineModeForExternalLibraries"="dword:0"</code></p>
+<h3 id="prevent-users-from-fetching-files-remotely">Prevent users from fetching files remotely</h3>
+<div class="NOTE">
+<p>Note</p>
+<p>This setting has been removed from the OneDrive administrative template files (ADMX/ADML) because the Fetch files feature was deprecated on July 31, 2020.</p>
+</div>
+<h3 id="prevent-users-from-moving-their-windows-known-folders-to-onedrive">Prevent users from moving their Windows known folders to OneDrive</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting prevents users from moving their Documents, Pictures, and Desktop folders to any OneDrive account.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>Moving known folders to personal OneDrive accounts is already blocked on domain-joined PCs.</p>
+</div>
+<p>If you enable this setting, users aren't prompted with a window to protect their important folders, and the <em>Manage backup</em> command is disabled. If the users have already moved their known folders, the files in those folders remain in OneDrive. To redirect the known folders back to the user's device, select <strong>No</strong>. This setting doesn't take effect if you've enabled <strong>Prompt users to move Windows known folders to OneDrive</strong> or <strong>Silently move Windows known folders to OneDrive</strong>.</p>
+<p>If you disable or don't configure this setting, users can choose to move their known folders.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KFMBlockOptIn"=dword:00000001</code></p>
+<p>To redirect the known folders back to the user's device and enable this policy, set the following registry key value to 2:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KFMBlockOptIn"=dword:00000002</code></p>
+<div class="NOTE">
+<p>Note</p>
+<p>This policy's registry value name (KFMBlockOptIn) differs from the policy name (BlockKnownFolderMove). When verifying this policy is applied, look for <code>KFMBlockOptIn</code> in the registry.</p>
+</div>
+<h3 id="prevent-users-from-redirecting-their-windows-known-folders-to-their-pc">Prevent users from redirecting their Windows known folders to their PC</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting forces users to keep their Documents, Pictures, and Desktop folders directed to OneDrive.</p>
+<p>If you enable this setting, the <strong>Stop protecting</strong> button in the <strong>Set up protection of important folders</strong> window is disabled, and users receive an error if they try to stop syncing a known folder.</p>
+<p>If you disable or don't configure this setting, users can choose to redirect their known folders back to their PC.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KFMBlockOptOut"=dword:00000001</code></p>
+<h3 id="prevent-users-from-syncing-libraries-and-folders-shared-from-other-organizations">Prevent users from syncing libraries and folders shared from other organizations</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>The B2B Sync feature of the OneDrive sync app lets users at an organization to sync OneDrive and SharePoint libraries and folders shared with them from another organization. For more information, see <a href="b2b-sync" data-linktype="relative-path">B2B Sync</a>.</p>
+<p>Enabling this setting prevents users at your organization from being able to use B2B Sync. After the setting is enabled (by entering value 1) on a computer, the sync app doesn't sync libraries and folders shared from other organizations. Modify the setting to the disabled state (by entering value 0) to restore B2B Sync capability for your users.</p>
+<p>Prevent B2B Sync with:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive] "BlockExternalSync"=dword:1</code></p>
+<p>Restore B2B Sync with:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive] "BlockExternalSync"=dword:0</code></p>
+<h3 id="prompt-users-to-confirm-when-they-delete-shared-content">Prompt users to confirm when they delete shared content</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>When local synced files, which multiple users have access to, are deleted, a dialog appears informing the user that other users will no longer have access to that content and asking them to confirm the action before OneDrive completes the deletes online. After confirming, deletes of other shared content, for a short period of time, do not trigger additional confirmations. Other content will continue to sync. Enable this setting to prevent users from hiding the confirmation dialog. Each time the user deletes shared content, their confirmation is required before the item is deleted for everyone online. Disable this setting to not show the delete confirmation message. Deletes will immediately be made in the cloud.</p>
+<p>Enabling this policy sets the following registry key to the value shown in the following example:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"SharedContentDeleteConfirmation"=dword:1</code></p>
+<h3 id="prompt-users-to-move-windows-known-folders-to-onedrive">Prompt users to move Windows known folders to OneDrive</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting shows a window that prompts users to move their Documents, Pictures, and Desktop folders to OneDrive.</p>
+<p>If you enable this setting and provide your tenant ID, users who are syncing their OneDrive see the previous window when they're signed in. If they close the window, a reminder notification appears in the Activity Center until they move all their known folders. If users have already redirected their known folders to a different OneDrive account, they're prompted to direct the folders to the account for your organization (leaving existing files behind).</p>
+<p>If you disable or don't configure this setting, the window that prompts users to protect their important folders doesn't appear.</p>
+<p>Enabling this policy sets the following registry key to the value shown in the following example:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KFMOptInWithWizard"="1111-2222-3333-4444"</code></p>
+<p>where "1111-2222-3333-4444" is the <a href="find-your-office-365-tenant-id" data-linktype="relative-path">tenant ID</a>.</p>
+<p>For information and recommendations, see <a href="redirect-known-folders" data-linktype="relative-path">Redirect and move Windows known folders to OneDrive</a>.</p>
+<h3 id="prompt-users-when-they-delete-multiple-onedrive-files-on-their-local-computer">Prompt users when they delete multiple OneDrive files on their local computer</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This policy sets the threshold for how many files a user can delete from a local OneDrive folder before the user is notified that the files will also be deleted from the cloud.</p>
+<p>If you enable this policy, users see a notification if they delete more than the specified number of files from OneDrive on their local computer. The user is given the option to continue to remove the cloud files, or restore the local files.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>Even if you enable this policy, users won't receive notifications if they've checked the <strong>Always remove files</strong> checkbox on a previous notification, or if they've cleared the <strong>Notify me when many files are deleted in the cloud</strong> checkbox in OneDrive sync app settings.</p>
+</div>
+<p>If you disable this policy, users won't receive a notification when they delete numerous OneDrive files on their local computer.</p>
+<p>If you don't configure this policy, users will see a notification when they delete more than 200 files within a short period of time.</p>
+<p>Enabling this policy sets the following registry key value to a number from 0 through 100000:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"LocalMassDeleteFileDeleteThreshold"</code></p>
+<h3 id="require-users-to-confirm-large-delete-operations">Require users to confirm large delete operations</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting makes users confirm that they want to delete files in the cloud when they delete a large number of synced files.</p>
+<p>If you enable this setting, a warning always appears when users delete a large number of synced files. If a user doesn't confirm a delete operation within seven days, the files aren't deleted.</p>
+<p>If you disable or don't configure this setting, users can choose to hide the warning, and always delete files in the cloud.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"ForcedLocalMassDeleteDetection"=dword:00000001</code></p>
+<h3 id="set-a-custom-name-for-the-onedrive-folder">Set a custom name for the OneDrive folder</h3>
+<p><em>Applies to: Group Policy</em></p>
+<p>This setting lets you customize the local OneDrive sync root folder name on users' computers. By default, the folder name is <em>OneDrive - {organization name}</em>.&nbsp; Shortening this name increases the available path length for nested folders and files.</p>
+<p>If you enable this setting and provide a custom folder name, OneDrive will use that name when creating the sync root folder for new users. Users who are already syncing will need to unlink and relink their account for the change to take effect.&nbsp;&nbsp;</p>
+<p>If you disable this setting, the folder name will revert to <em>OneDrive - {organization name}</em>. Users who were using a custom folder name will need to <a href="https://support.microsoft.com/en-us/office/unlink-and-re-link-onedrive-3c4680bf-cc36-4204-9ca5-e7b24cdd23ea" data-linktype="external">unlink and relink their account</a> for the change to take effect.</p>
+<p>If you do not configure this setting, the default folder name will be used.</p>
+<p>To configure the setting, in the <strong>Options</strong> box, select <strong>Show</strong>, enter your tenant ID in the <strong>Value Name</strong> field, and then enter the custom folder name in the <strong>Value</strong> field.</p>
+<p>Enabling this policy sets the following registry key to the value shown in the following example:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive\CustomSyncRootFolderName] "TenantID"="CustomFolderName"</code></p>
+<p><strong>Best practices</strong></p>
+<ul>
+<li><p>For new users, change&nbsp;sync root folder name before&nbsp;setting up OneDrive, so the users don't need to unlink and relink their accounts.&nbsp;</p>
+</li>
+<li><p>For existing users, users will need to <a href="https://support.microsoft.com/en-us/office/unlink-and-re-link-onedrive-3c4680bf-cc36-4204-9ca5-e7b24cdd23ea" data-linktype="external">unlink and relink their account</a>. To avoid file duplications, users should follow the steps below.</p>
+<ul>
+<li><p>Go to <strong>OneDrive</strong> <strong>settings</strong> and click on <strong>Manage backup</strong> button. Click on <strong>Stop backup and choose where to keep files.</strong> Choose <strong>Only in OneDrive</strong> option**.**</p>
+</li>
+<li><p>The users must then unlink their OneDrive account before the new local OneDrive sync root folder name is set.&nbsp;</p>
+</li>
+<li><p>After the new local OneDrive sync root folder name is set, users must relink their account, and they can start backup when they sign back into their OneDrive account.&nbsp;</p>
+</li>
+</ul>
+</li>
+<li><p>Use as few characters as possible to&nbsp;minimize&nbsp;the likelihood of hitting max path errors.&nbsp;&nbsp;</p>
+</li>
+<li><p>To further reduce the&nbsp;local&nbsp;path length,&nbsp;customize the default location for the OneDrive folder: <a href="use-group-policy#set-the-default-location-for-the-onedrive-folder" data-linktype="relative-path">Set the default location for the OneDrive folder</a>.</p>
+</li>
+</ul>
+<div class="IMPORTANT">
+<p>Important</p>
+<ul>
+<li>You must provide at least one character for the custom folder name.</li>
+<li>The custom folder name cannot be "OneDrive".&nbsp;</li>
+<li>The full OneDrive sync root folder path (for example, <code>C:\Users\{alias}\OneDrive - {organization name}</code>) cannot exceed 120 characters.</li>
+<li>Custom folder names cannot contain characters that are invalid for Windows folders. For a list of unsupported characters, see <a href="https://support.microsoft.com/en-us/office/restrictions-and-limitations-in-onedrive-and-sharepoint-64883a5d-228e-48f5-b3d2-eb39e07630fa#invalidcharacters" data-linktype="external">Invalid characters</a>.</li>
+</ul>
+</div>
+<h3 id="set-the-maximum-size-of-a-users-onedrive-that-can-download-automatically">Set the maximum size of a user's OneDrive that can download automatically</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting is used with <a href="use-group-policy#silently-sign-in-users-to-the-onedrive-sync-app-with-their-windows-credentials" data-linktype="relative-path">Silently sign in users to the OneDrive sync app with their Windows credentials</a> on devices that don't have <strong>OneDrive Files On-Demand</strong> enabled. Any user who has a OneDrive that's larger than the specified threshold (in MB) is prompted to choose the folders they want to sync before the OneDrive sync app (OneDrive.exe) downloads the files.</p>
+<p>To enter the tenant ID and the maximum size in MB (from 0 to 4294967295), in the <strong>Options</strong> box, select <strong>Show</strong>. The default value is <strong>500</strong>.</p>
+<p>Enabling this policy sets the following registry key:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive\DiskSpaceCheckThresholdMB]"1111-2222-3333-4444"=dword:0005000</code></p>
+<p>where "1111-2222-3333-4444" is the <a href="find-your-office-365-tenant-id" data-linktype="relative-path">tenant ID</a> and "0005000" sets a threshold of "5000 MB".</p>
+<h3 id="set-the-sync-app-update-ring">Set the sync app update ring</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>We release OneDrive sync app (OneDrive.exe) updates to the public through three rings - first to Insiders, then Production, and finally Deferred. This setting lets you specify the ring for users in your organization. When you enable this setting and select a ring, users can't change it.</p>
+<p>"Insiders ring" users receive builds that let them preview new features coming to OneDrive.</p>
+<p>"Production ring" users get the latest features as they become available. This ring is the default one.</p>
+<p>"Deferred ring" users get new features, then bug fixes, and performance improvements last. This ring lets you deploy updates from an internal network location, and control the timing of the deployment (within a 60-day window).</p>
+<div class="IMPORTANT">
+<p>Important</p>
+<p>We recommend selecting several people in your IT department as early adopters to join the "Insiders ring" and receive features early. We recommend leaving everyone else in the organization in the default "Production ring" to ensure they receive bug fixes and new features in a timely fashion. <a href="ideal-state-configuration" data-linktype="relative-path">See all our recommendations for configuring the sync app.</a></p>
+</div>
+<p>If you disable or don't configure this setting, users can join the <a href="https://insider.windows.com/" data-linktype="external">Windows Insider program</a> or the <a href="https://products.office.com/office-insider" data-linktype="external">Office Insider program</a> to get updates on the "Insiders ring".</p>
+<p>Enabling this policy sets the following registry key:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"GPOSetUpdateRing"=dword:0000000X</code></p>
+<p>Set the value <strong>4</strong> for Insider, <strong>5</strong> for Production, or <strong>0</strong> for Deferred. When you configure this setting to <strong>5</strong> for Production, or <strong>0</strong> for Deferred, the <strong>Get OneDrive Insider preview updates before release</strong> checkbox in the sync app doesn't appear on the <strong>Settings &gt; About</strong> tab.</p>
+<p>For more information on the builds currently available in each ring, see the <a href="https://support.office.com/article/845dcf18-f921-435e-bf28-4e24b95e5fc0?" data-linktype="external">release notes</a>. For more information about the update rings and how the sync app checks for updates, see <a href="sync-client-update-process" data-linktype="relative-path">The OneDrive sync app update process</a>.</p>
+<h3 id="silently-move-windows-known-folders-to-onedrive">Silently move Windows known folders to OneDrive</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>Use this setting to redirect and move your users' Documents, Pictures, and/or Desktop folders to OneDrive without any user interaction.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>We recommend deploying the silent policy for existing devices and new devices while limiting the deployment of existing devices to 1,000 devices a day and not exceeding 4,000 devices a week. We also recommend using this setting together with <a href="use-group-policy#prompt-users-to-move-windows-known-folders-to-onedrive" data-linktype="relative-path">Prompt users to move Windows known folders to OneDrive</a>. If moving the known folders silently doesn't succeed, users will be prompted to correct the error and continue. <a href="ideal-state-configuration" data-linktype="relative-path">See all our recommendations for configuring the sync app.</a></p>
+</div>
+<p>You can move all folders at once or select the folders you want to move. After a folder is moved, this policy won't affect that folder again, even if you clear the checkbox for the folder.</p>
+<p>If you enable this setting and provide your tenant ID, you can choose whether to display a notification to users after their folders have been redirected. If you disable or don't configure this setting, your users' known folders aren't silently redirected to OneDrive.</p>
+<p>Enabling this policy sets the following registry keys:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KFMSilentOptIn"="1111-2222-3333-4444"</code></p>
+<p>where "1111-2222-3333-4444" is a string value representing the <a href="find-your-office-365-tenant-id" data-linktype="relative-path">tenant ID</a>.</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KFMSilentOptInWithNotification"=dword:00000001</code></p>
+<p>Setting this value to <strong>1</strong> shows a notification after a successful redirection.</p>
+<p>If you don't set any of the following policies, then the default policy will move all the folders (Desktop, Documents, and Pictures) into OneDrive. If you want to specify the folders to move, then you can set any combination of the following policies:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KFMSilentOptInDesktop"=dword:00000001</code>: Setting this value to <strong>1</strong> will move the Desktop folder.</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KFMSilentOptInDocuments"=dword:00000001</code>: Setting this value to <strong>1</strong> will move the Documents folder.</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"KFMSilentOptInPictures"=dword:00000001</code>: Setting this value to <strong>1</strong> will move the Pictures folder.</p>
+<div class="IMPORTANT">
+<p>Important</p>
+<p>The Group Policy object <strong>User Configuration</strong> &gt; <strong>Administrative Templates</strong> &gt; <strong>Desktop</strong> &gt; <strong>Prohibit User from manually redirecting Profile Folders</strong> must be set to <strong>Disabled</strong> or <strong>Not configured</strong>. Folders will not move to OneDrive if set to <strong>Enabled</strong>.</p>
+</div>
+<p>For more information, see <a href="redirect-known-folders" data-linktype="relative-path">Redirect and move Windows known folders to OneDrive</a>.</p>
+<h3 id="silently-sign-in-users-to-the-onedrive-sync-app-with-their-windows-credentials">Silently sign in users to the OneDrive sync app with their Windows credentials</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<div class="IMPORTANT">
+<p>Important</p>
+<p><a href="/en-us/azure/active-directory/develop/msal-overview" data-linktype="absolute-path">Microsoft Authentication Library</a> (MSAL) is enabled automatically when the sync user is provisioned via <code>SilentAccountConfig</code>; so you don't have to enable it separately.</p>
+<p>The <em>Silently sign in users to the OneDrive sync app with their Windows credentials</em> feature works for computers that are joined to Microsoft Entra ID.</p>
+</div>
+<p>If you enable this setting, users who are signed in on a PC that's joined to Microsoft Entra ID can set up the sync app without entering their account credentials. Users will still be shown OneDrive Setup so that they can select folders to sync and change the location of their OneDrive folder. If a user is using the previous OneDrive for Business sync app (Groove.exe), the new sync app attempts to take over syncing the user's OneDrive from the previous app, and preserves the user's sync settings. This setting is frequently used together with <a href="use-group-policy#set-the-maximum-size-of-a-users-onedrive-that-can-download-automatically" data-linktype="relative-path">Set the maximum size of a user's OneDrive that can download automatically</a> on PCs that don't have <strong>OneDrive Files On-Demand</strong> but have <a href="use-group-policy#set-the-default-location-for-the-onedrive-folder" data-linktype="relative-path">Set the default location for the OneDrive folder</a>.</p>
+<div class="IMPORTANT">
+<p>Important</p>
+<p>We recommend enabling silent account configuration when you configure the sync app. <a href="ideal-state-configuration" data-linktype="relative-path">See all our recommendations for configuring the sync app.</a></p>
+</div>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"SilentAccountConfig"=dword:00000001</code></p>
+<p>For more information about this feature, including troubleshooting steps, see <a href="use-silent-account-configuration" data-linktype="relative-path">Silently configure user accounts</a>.
+Let us know if you have feedback on this feature or encounter any issues. Right-click the OneDrive icon in the notification area and select <strong>Report a problem</strong>. Tag any feedback with "SilentConfig" so that your feedback is sent directly to engineers working on this feature.</p>
+<h3 id="specify-sharepoint-server-url-and-organization-name">Specify SharePoint Server URL and organization name</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting is for customers who have SharePoint Server 2019. For information about using the new OneDrive sync app with SharePoint Server 2019, see <a href="/en-us/SharePoint/install/configure-syncing-with-the-onedrive-sync-app/" data-linktype="absolute-path">Configure syncing with the new OneDrive sync app</a>.</p>
+<h3 id="specify-the-application-id-uri-for-your-entra-application-for-oidc">Specify the Application ID URI for your Entra application for OIDC</h3>
+<p><em>Applies to: Group Policy</em></p>
+<p>This setting allows you to specify an Application ID URI for your Entra application for OIDC if it is different from your SharePoint Server URL. To use this setting, you must also enable <a href="use-group-policy#enable-openid-connect-oidc-authentication-for-syncing-content-from-an-on-prem-sharepoint-server-using-the-onedrive-sync-app" data-linktype="relative-path">Enable OpenID Connect (OIDC) authentication for syncing content from an on-prem SharePoint Server using the OneDrive sync app</a>. This setting affects only OneDrive for Business sync functionality. It does not impact syncing team sites in SharePoint Online.</p>
+<p>If you enable this setting and provide the Application ID URI, this value will be used for requests to the SharePoint Server.</p>
+<p>If you disable or do not configure this setting, the SharePoint Server URL will be used as the Application ID URI instead.</p>
+<p>Enabling this policy sets the following registry key:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"SharePointOnPremApplicationIdUri"="your-application-id-uri"</code></p>
+<h3 id="specify-the-onedrive-location-in-a-hybrid-environment">Specify the OneDrive location in a hybrid environment</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting is for customers who have SharePoint Server 2019. For information about using the new OneDrive sync app with SharePoint Server 2019, see <a href="/en-us/SharePoint/install/configure-syncing-with-the-onedrive-sync-app/" data-linktype="absolute-path">Configure syncing with the new OneDrive sync app</a>.</p>
+<h3 id="use-onedrive-files-on-demand">Use OneDrive Files On-Demand</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you control whether <strong>OneDrive Files On-Demand</strong> is enabled for your organization. <strong>OneDrive Files On-Demand</strong> helps you save storage space on your users' computers, and minimize the network impact of a sync. The feature is available to users running Windows 10 Fall Creators update (version 1709 or later). For more information, see <a href="https://support.office.com/article/0e6860d3-d9f3-4971-b321-7092438fb38e" data-linktype="external">Save disk space with OneDrive Files On-Demand for Windows 10</a>.</p>
+<div class="IMPORTANT">
+<p>Important</p>
+<p>We recommend keeping <strong>OneDrive Files On-Demand</strong> enabled. <a href="ideal-state-configuration" data-linktype="relative-path">See all our recommendations for configuring the sync app.</a></p>
+</div>
+<p>If you enable this setting, new users who set up the sync app see online-only files in File Explorer, by default. File contents don't download until a file is opened. If you disable this setting, Windows 10 users have the same sync behavior as users of previous versions of Windows, and aren't able to turn on <strong>OneDrive Files On-Demand</strong>. If you don't configure this setting, users can turn on or off the <strong>OneDrive Files On-Demand</strong> option.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive]"FilesOnDemandEnabled"=dword:00000001</code></p>
+<p>Meet Windows and OneDrive sync app requirements and still can't see <strong>OneDrive Files On-Demand</strong> option available at "Settings"? Ensure the service "Windows Cloud Files Filter Driver" start type is set to <strong>2</strong> (AUTO_START). Enabling this feature sets the following registry key value to 2:</p>
+<p><code>[HKLM\SYSTEM\CurrentControlSet\Services\CldFlt]"Start"=dword:00000002</code></p>
+<h3 id="warn-users-who-are-low-on-disk-space">Warn users who are low on disk space</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you specify a minimum amount of available disk space, and warn users when the OneDrive sync app (OneDrive.exe) downloads a file that causes them to have less than this amount. Users are prompted with options to help free up space.</p>
+<p>Enabling this policy sets the following registry key value to a number from 0 through 10240000:</p>
+<p><code>[HKLM\SOFTWARE\Policies\Microsoft\OneDrive] "WarningMinDiskSpaceLimitInMB"=dword:00000000</code></p>
+<h2 id="user-configuration-policies">User Configuration policies</h2>
+<p>Find <em>User Configuration policies</em> under User Configuration\Policies\Administrative Templates\OneDrive.</p>
+<p><img src="sharepointonline/media/8e121823-b5bf-440c-999d-c2a9ada4705d.png" alt="OneDrive settings in Group Policy Management Editor" data-linktype="relative-path"></p>
+<h3 id="configure-team-site-libraries-to-sync-automatically">Configure team site libraries to sync automatically</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<div class="NOTE">
+<p>Note</p>
+<p>This policy can also be configured under Computer Configuration.</p>
+</div>
+<p>This setting lets you specify SharePoint team site libraries to sync automatically the next time users sign in to the OneDrive sync app (OneDrive.exe), within an eight-hour window, to help distribute network load. To use this setting, the computer must be running Windows 10 Fall Creators Update (version 1709) or later, and you must enable <strong>OneDrive Files On-Demand</strong>.
+This feature isn't enabled for on-premises SharePoint sites.</p>
+<div class="IMPORTANT">
+<p>Important</p>
+<p>For performance reasons, we recommend not enabling this setting to libraries with more than 5,000 files or folders.
+Don't enable this setting to the same library with more than 1,000 devices.</p>
+</div>
+<p>If you enable this setting, the OneDrive sync app automatically syncs the contents of the libraries you specified as online-only files the next time the user signs in. The user isn't able to stop syncing the libraries.</p>
+<p>If you disable this setting, team site libraries that you've specified aren't automatically synced for new users. Existing users can choose to stop syncing the libraries, but the libraries won't stop syncing automatically.</p>
+<p>To configure the setting, in the <strong>Options</strong> box, select <strong>Show</strong>, enter a friendly name to identify the library in the <strong>Value Name</strong> field, and then enter the entire library ID (tenantId=xxx&amp;siteId=xxx&amp;webId=xxx&amp;listId=xxx&amp;webUrl=httpsxxx&amp;version=1) in the <strong>Value</strong> field.</p>
+<p>To find the library ID, sign in as a global or SharePoint administrator in Microsoft 365, browse to the library, and select <strong>Sync</strong>. In the <strong>Starting sync</strong> dialog, select the <strong>Copy library ID</strong> link.</p>
+<p><img src="sharepointonline/media/copy-library-id.png" alt="The Getting ready to sync dialog" data-linktype="relative-path"></p>
+<p>The special characters in this copied string are in Unicode and must be converted to ASCII according to the following table.</p>
+<table>
+<thead>
+<tr>
+<th>Find</th>
+<th>Replace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>%2D</td>
+<td>-</td>
+</tr>
+<tr>
+<td>%7B</td>
+<td>{</td>
+</tr>
+<tr>
+<td>%7D</td>
+<td>}</td>
+</tr>
+<tr>
+<td>%3A</td>
+<td>:</td>
+</tr>
+<tr>
+<td>%2F</td>
+<td>/</td>
+</tr>
+<tr>
+<td>%2E</td>
+<td>.</td>
+</tr>
+</tbody>
+</table>
+<p>Alternatively, you can run the following command in PowerShell, replacing "Copied String" with the library ID:</p>
+<pre><code class="lang-powershell">[uri]::UnescapeDataString("Copied String")
+</code></pre>
+<p>Enabling this policy sets the following registry key, using the entire URL from the library ID you copied:</p>
+<p><code>[HKCU\Software\Policies\Microsoft\OneDrive\TenantAutoMount]"LibraryName"="LibraryID"</code></p>
+<h3 id="continue-syncing-on-metered-networks">Continue syncing on metered networks</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you turn off the auto-pause feature when devices connect to metered networks.</p>
+<p>If you enable this setting, syncing continues when devices are on a metered network. OneDrive doesn't automatically pause syncing.</p>
+<p>If you disable or don't configure this setting, syncing pauses automatically when a metered network is detected, and a notification appears. To not pause, in the notification, select <strong>Sync Anyway</strong>. When syncing is paused, to resume syncing, in the notification area of the taskbar, select the OneDrive cloud icon, and at the top of the Activity Center, select the alert.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKCU\SOFTWARE\Policies\Microsoft\OneDrive] "DisablePauseOnMeteredNetwork"=dword:00000001</code></p>
+<h3 id="continue-syncing-when-devices-have-battery-saver-mode-turned-on">Continue syncing when devices have battery saver mode turned on</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you turn off the auto-pause feature for devices that have battery saver mode turned on.</p>
+<p>If you enable this setting, syncing continues when users turn on battery saver mode. OneDrive doesn't automatically pause syncing.</p>
+<p>If you disable or don't configure this setting, syncing pauses automatically when battery saver mode is detected, and a notification appears. To not pause, in the notification, select <strong>Sync Anyway</strong>. When syncing is paused, to resume syncing, in the notification area of the taskbar, select the OneDrive cloud icon, and at the top of the Activity Center, select the alert.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKCU\SOFTWARE\Policies\Microsoft\OneDrive] "DisablePauseOnBatterySaver"=dword:00000001</code></p>
+<h3 id="deploy-restrict-known-folder-move-from-office-group-policy">Deploy Restrict Known Folder Move from Office Group Policy</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>The Restrict Known Folder Move from Office (Restrict KFM from Office) Group Policy allows administrators to control whether Office apps display prompts encouraging users to back up their files to Microsoft OneDrive.</p>
+<p>When this policy is enabled and deployed, Office apps won’t display the message bar, even if users are eligible for the Known Folder Move (KFM) feature. This policy applies only to Office apps and does not affect other OneDrive or KFM configurations. It is available in the <a href="https://www.microsoft.com/download/details.aspx?id=49030" data-linktype="external">Administrative Template files for Microsoft Office</a> (version 5497.1000 or newer).</p>
+<p>See <a href="restrict-known-folder-move-office-group-policy" data-linktype="relative-path">Deploy Restrict Known Folder Move from Office Group Policy</a> for more information on how to enable and deploy this policy.</p>
+<h3 id="disable-animation-that-appears-during-onedrive-setup">Disable animation that appears during OneDrive Setup</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you prevent the animation from showing during OneDrive Setup.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>HKCU\SOFTWARE\Policies\Microsoft\OneDrive\DisableFREAnimation =dword:00000001</code></p>
+<h3 id="disable-the-tutorial-that-appears-at-the-end-of-onedrive-setup">Disable the tutorial that appears at the end of OneDrive Setup</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you prevent the tutorial from showing at the end of OneDrive Setup.</p>
+<p>If you enable this setting, users don't see the tutorial after they complete OneDrive Setup.</p>
+<p>If you disable or do not configure this setting, the tutorial will appear at the end of OneDrive Setup.</p>
+<h3 id="limit-the-sync-app-download-speed-to-a-fixed-rate">Limit the sync app download speed to a fixed rate</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you configure the maximum speed at which the OneDrive sync app (OneDrive.exe) can download files. This rate is a fixed value in kilobytes per second, and applies only to syncing, not to downloading updates. The lower the rate, the slower the files download.</p>
+<p>We recommend that you use this setting in cases where <strong>OneDrive Files On-Demand</strong> is NOT enabled, and where strict traffic restrictions are required, such as when you initially deploy the sync app in your organization or enable syncing of team sites. We don't recommend that you use this setting on an ongoing basis because it decreases sync app performance and negatively impacts the user experience. After the initial sync, users typically sync only a few files at a time, and it doesn't have a significant effect on network performance. If you enable this setting, computers use the maximum download rate that you specify, and users can't change it.</p>
+<p>If you enable this setting, enter the rate (from 1 to 100000) in the <strong>Bandwidth</strong> box. The maximum rate is 100000 KB/s. Any input lower than 50 KB/s sets the limit to 50 KB/s, even if the UI shows a lower value.</p>
+<p>If you disable or don't configure this setting, the download rate is unlimited, and users can choose to limit it in OneDrive sync app settings. For information about the end-user experience, see <a href="https://support.office.com/article/71cc69da-2371-4981-8cc8-b4558bdda56e" data-linktype="external">Change the OneDrive sync app upload or download rate</a>.</p>
+<p>Enabling this policy sets the following registry key value to a number from 50 through 100,000:</p>
+<p><code>[HKCU\SOFTWARE\Policies\Microsoft\OneDrive] "DownloadBandwidthLimit"=dword:00000032</code></p>
+<p>The previous registry key sets the download throughput rate limit to 50 KB, using the hexadecimal value for 50, which is 00000032.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>OneDrive.exe must be restarted on users' computers to apply this setting.</p>
+</div>
+<p>For information about estimating the network bandwidth you need for a sync, see <a href="network-utilization-planning" data-linktype="relative-path">Network utilization planning for the OneDrive sync app</a>.</p>
+<h3 id="limit-the-sync-app-upload-speed-to-a-fixed-rate">Limit the sync app upload speed to a fixed rate</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you configure the maximum speed at which the OneDrive sync app (OneDrive.exe) can upload files. This rate is a fixed value in kilobytes per second. The lower the rate, the slower the computer uploads files.</p>
+<p>If you enable this setting and enter the rate (from 1 to 100000) in the <strong>Bandwidth</strong> box, computers use the maximum upload rate that you specify, and users can't change it in OneDrive settings. The maximum rate is 100000 KB/s. Any input lower than 50 KB/s sets the limit to 50 KB/s, even if the UI shows a lower value.</p>
+<p>If you disable or don't configure this setting, users can choose to limit the upload rate to a fixed value (in KB/second), or set it to <strong>Adjust automatically</strong> which sets the upload rate to 70% of throughput. For information about the end-user experience, see <a href="https://support.office.com/article/71cc69da-2371-4981-8cc8-b4558bdda56e" data-linktype="external">Change the OneDrive sync app upload or download rate</a>.</p>
+<p>We recommend that you use this setting only in cases where strict traffic restrictions are required. In scenarios where you need to limit the upload rate (such as when you roll out Known Folder Move), we recommend enabling <a href="use-group-policy#limit-the-sync-app-upload-rate-to-a-percentage-of-throughput" data-linktype="relative-path">Limit the sync app upload rate to a percentage of throughput</a> to set a limit that adjusts to changing conditions. You shouldn't enable both settings at the same time.</p>
+<p>Enabling this policy sets the following registry key value to a number from 50 through 100,000:</p>
+<p><code>[HKCU\SOFTWARE\Policies\Microsoft\OneDrive]"UploadBandwidthLimit"=dword:00000032</code></p>
+<p>The previous registry key sets the upload throughput rate limit to 50 KB, using the hexadecimal value for 50, which is 00000032.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>OneDrive.exe must be restarted on users' computers to apply this setting.</p>
+</div>
+<p>For information about estimating the network bandwidth you need for a sync, see <a href="network-utilization-planning" data-linktype="relative-path">Network utilization planning for the OneDrive sync app</a>.</p>
+<h3 id="prevent-users-from-changing-the-location-of-their-onedrive-folder">Prevent users from changing the location of their OneDrive folder</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you block users from changing the location of the OneDrive folder on their computer.</p>
+<p>To use this setting, in the <strong>Options</strong> box, select <strong>Show</strong>, and enter your <a href="find-your-office-365-tenant-id" data-linktype="relative-path">tenant ID</a>. To enable the setting, enter <strong>1</strong>; to disable it, enter <strong>0</strong>.</p>
+<p>If you enable this setting, the <strong>Change location</strong> link is hidden in OneDrive Setup. The OneDrive folder is created in the default location, or in the custom location you specified if you enabled <a href="use-group-policy#set-the-default-location-for-the-onedrive-folder" data-linktype="relative-path">Set the default location for the OneDrive folder</a>.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKCU\Software\Policies\Microsoft\OneDrive\DisableCustomRoot] "1111-2222-3333-4444"=dword:00000001</code></p>
+<p>where "1111-2222-3333-4444" is the tenant ID.</p>
+<p>If you disable this setting, users can change the location of their sync folder in OneDrive Setup.</p>
+<h3 id="prevent-users-from-syncing-personal-onedrive-accounts">Prevent users from syncing personal OneDrive accounts</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you block users from signing in with a Microsoft account to sync their personal OneDrive files. By default, users are allowed to sync personal OneDrive accounts.</p>
+<p>If you enable this setting, users are prevented from setting up a sync relationship for their personal OneDrive account. Users who are already syncing their personal OneDrive when you enable this setting can't continue syncing (they receive a message that syncing has stopped), but any files synced to the computer remain on the computer.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKCU\SOFTWARE\Policies\Microsoft\OneDrive]"DisablePersonalSync"=dword:00000001</code></p>
+<div class="NOTE">
+<p>Note</p>
+<p>Mac operating system (MacOS) clients should either sign out and restart OneDrive or restart the client machine to apply this setting.</p>
+</div>
+<h3 id="set-the-default-location-for-the-onedrive-folder">Set the default location for the OneDrive folder</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This setting lets you set a specific path as the default location of the OneDrive folder on users' computers. By default, the path is under %userprofile%.</p>
+<p>If you enable this setting, the default location of the <em>OneDrive - {organization name}</em> folder is the path that you specify. To specify your tenant ID and the path, in the <strong>Options</strong> box, select <strong>Show</strong>.</p>
+<p>This policy sets the following registry key to a string that specifies the file path:</p>
+<p><code>[HKCU\SOFTWARE\Policies\Microsoft\OneDrive\DefaultRootDir] "1111-2222-3333-4444"="{User path}"</code></p>
+<p>where "1111-2222-3333-4444" is the tenant ID.</p>
+<p>If you disable this setting, the local  <em>OneDrive - {organization name}</em>  folder location defaults to %userprofile%.</p>
+<div class="NOTE">
+<p>Note</p>
+<p>The %logonuser% environment variable won't work through Group Policy. We recommend you use %username% instead.</p>
+</div>
+<h3 id="start-onedrive-automatically-when-signing-in-to-windows">Start OneDrive automatically when signing in to Windows</h3>
+<p><em>Applies to: Group Policy, Intune</em></p>
+<p>This policy overrides the user's choice, ensuring OneDrive will automatically start every time they sign in to Windows.</p>
+<p>Enabling this policy sets the following registry key value to 1:</p>
+<p><code>[HKCU\Software\Policies\Microsoft\OneDrive]"EnableAutoStart"=dword:00000001</code></p>
+<h2 id="see-also">See also</h2>
+<p><a href="deploy-on-windows" data-linktype="relative-path">Deploy the new OneDrive sync app in an enterprise environment</a></p>
+<p><a href="prevent-installation" data-linktype="relative-path">Prevent users from installing the sync app</a></p>
+<p><a href="allow-syncing-only-on-specific-domains" data-linktype="relative-path">Allow syncing only on computers joined to specific domains</a></p>
+<p><a href="block-file-types" data-linktype="relative-path">Block syncing of specific file types</a></p>
+<p><a href="deploy-and-configure-on-macos" data-linktype="relative-path">Deploy and configure the new OneDrive sync app for Mac</a></p>
+<p><a href="/en-us/sharepoint/lists-sync-policies" data-linktype="absolute-path">Lists sync policies</a></p>
+</div>
+					
+		<div
+			id="ms--inline-notifications"
+			class="margin-block-xs"
+			data-bi-name="inline-notification"
+		></div>
+	 
+		<div
+			id="assertive-live-region"
+			role="alert"
+			aria-live="assertive"
+			class="visually-hidden"
+			aria-relevant="additions"
+			aria-atomic="true"
+		></div>
+		<div
+			id="polite-live-region"
+			role="status"
+			aria-live="polite"
+			class="visually-hidden"
+			aria-relevant="additions"
+			aria-atomic="true"
+		></div>
+	
+					
+		<!-- feedback section -->
+		<section
+			id="site-user-feedback-footer"
+			class="font-size-sm margin-top-md display-none-print display-none-desktop"
+			data-test-id="site-user-feedback-footer"
+			data-bi-name="site-feedback-section"
+		>
+			<hr class="hr" />
+			<h2 id="ms--feedback" class="title is-3">Feedback</h2>
+			<div class="display-flex flex-wrap-wrap align-items-center">
+				<p class="font-weight-semibold margin-xxs margin-left-none">
+					Was this page helpful?
+				</p>
+				<div class="buttons">
+					<button
+						class="thumb-rating-button like button button-primary button-sm"
+						data-test-id="footer-rating-yes"
+						data-binary-rating-response="rating-yes"
+						type="button"
+						title="This article is helpful"
+						data-bi-name="button-rating-yes"
+						aria-pressed="false"
+					>
+						<span class="icon" aria-hidden="true">
+							<span class="docon docon-like"></span>
+						</span>
+						<span>Yes</span>
+					</button>
+					<button
+						class="thumb-rating-button dislike button button-primary button-sm"
+						id="standard-rating-no-button"
+						hidden
+						data-test-id="footer-rating-no"
+						data-binary-rating-response="rating-no"
+						type="button"
+						title="This article is not helpful"
+						data-bi-name="button-rating-no"
+						aria-pressed="false"
+					>
+						<span class="icon" aria-hidden="true">
+							<span class="docon docon-dislike"></span>
+						</span>
+						<span>No</span>
+					</button>
+					<details
+						class="popover popover-top"
+						id="mobile-help-popover"
+						data-test-id="footer-feedback-popover"
+					>
+						<summary
+							class="thumb-rating-button dislike button button-primary button-sm"
+							data-test-id="details-footer-rating-no"
+							data-binary-rating-response="rating-no"
+							title="This article is not helpful"
+							data-bi-name="button-rating-no"
+							aria-pressed="false"
+							data-bi-an="feedback-unhelpful-popover"
+						>
+							<span class="icon" aria-hidden="true">
+								<span class="docon docon-dislike"></span>
+							</span>
+							<span>No</span>
+						</summary>
+						<div
+							class="popover-content width-200 width-300-tablet"
+							role="dialog"
+							aria-labelledby="popover-heading"
+							aria-describedby="popover-description"
+						>
+							<p id="popover-heading" class="font-size-lg margin-bottom-xxs font-weight-semibold">
+								Need help with this topic?
+							</p>
+							<p id="popover-description" class="font-size-sm margin-bottom-xs">
+								Want to try using Ask Learn to clarify or guide you through this topic?
+							</p>
+							
+		<div class="buttons flex-direction-row flex-wrap justify-content-center gap-xxs">
+			<div>
+		<button
+			class="button button-sm border inner-focus display-none margin-right-xxs"
+			data-bi-name="ask-learn-assistant-entry-troubleshoot"
+			data-test-id="ask-learn-assistant-modal-entry-mobile-feedback"
+			data-ask-learn-modal-entry-feedback
+			data-bi-an=feedback-unhelpful-popover
+			type="button"
+			style="min-width: max-content;"
+			aria-expanded="false"
+			aria-label="Ask Learn"
+			hidden
+		>
+			<span class="icon font-size-lg" aria-hidden="true">
+				<span class="docon docon-chat-sparkle-fill gradient-ask-learn-logo"></span>
+			</span>
+		</button>
+		<button
+			class="button button-sm display-inline-flex display-none-desktop flex-shrink-0 margin-right-xxs border-color-ask-learn margin-right-xxs"
+			data-bi-name="ask-learn-assistant-entry-troubleshoot"
+			data-bi-an=feedback-unhelpful-popover
+			data-test-id="ask-learn-assistant-modal-entry-tablet-feedback"
+			data-ask-learn-modal-entry-feedback
+			type="button"
+			style="min-width: max-content;"
+			aria-expanded="false"
+			hidden
+		>
+			<span class="icon font-size-lg" aria-hidden="true">
+				<span class="docon docon-chat-sparkle-fill gradient-ask-learn-logo"></span>
+			</span>
+			<span>Ask Learn</span>
+		</button>
+		<button
+			class="button button-sm display-none flex-shrink-0 display-inline-flex-desktop margin-right-xxs border-color-ask-learn margin-right-xxs"
+			data-bi-name="ask-learn-assistant-entry-troubleshoot"
+			data-bi-an=feedback-unhelpful-popover
+			data-test-id="ask-learn-assistant-flyout-entry-feedback"
+			data-ask-learn-flyout-entry-show-only
+			data-flyout-button="toggle"
+			type="button"
+			style="min-width: max-content;"
+			aria-expanded="false"
+			aria-controls="ask-learn-flyout"
+			hidden
+		>
+			<span class="icon font-size-lg" aria-hidden="true">
+				<span class="docon docon-chat-sparkle-fill gradient-ask-learn-logo"></span>
+			</span>
+			<span>Ask Learn</span>
+		</button>
+	</div>
+			<button
+				type="button"
+				class="button button-sm margin-right-xxs"
+				data-help-option="suggest-fix"
+				data-bi-name="feedback-suggest"
+				data-bi-an="feedback-unhelpful-popover"
+				data-test-id="suggest-fix"
+			>
+				<span class="icon" aria-hidden="true">
+					<span class="docon docon-feedback"></span>
+				</span>
+				<span> Suggest a fix? </span>
+			</button>
+		</div>
+	
+						</div>
+					</details>
+				</div>
+			</div>
+		</section>
+		<!-- end feedback section -->
+	
+				</div>
+				
+		<div id="ms--additional-resources-mobile" class="display-none-print">
+			<hr class="hr" hidden />
+			<h2 id="ms--additional-resources-mobile-heading" class="title is-3" hidden>
+				Additional resources
+			</h2>
+			
+		<section
+			id="right-rail-recommendations-mobile"
+			class=""
+			data-bi-name="recommendations"
+			hidden
+		></section>
+	 
+		<section
+			id="right-rail-training-mobile"
+			class=""
+			data-bi-name="learning-resource-card"
+			hidden
+		></section>
+	 
+		<section
+			id="right-rail-events-mobile"
+			class=""
+			data-bi-name="events-card"
+			hidden
+		></section>
+	
+		</div>
+	 
+		<div
+			id="article-metadata-footer"
+			data-bi-name="article-metadata-footer"
+			data-test-id="article-metadata-footer"
+			class="page-metadata-container"
+		>
+			<hr class="hr" />
+			<ul class="metadata page-metadata" data-bi-name="page info" lang="en-us" dir="ltr">
+				<li class="visibility-hidden-visual-diff">
+			<span class="badge badge-sm text-wrap-pretty">
+				<span>Last updated on <local-time format="twoDigitNumeric"
+		datetime="2026-03-27T20:45:00.000Z"
+		data-article-date-source="calculated"
+		class="is-invisible"
+	>
+		2026-03-27
+	</local-time></span>
+			</span>
+		</li>
+			</ul>
+		</div>
+	
+			</div>
+			
+		<div
+			id="action-panel"
+			role="region"
+			aria-label="Action Panel"
+			class="action-panel"
+			tabindex="-1"
+		></div>
+	
+		
+				</main>
+				<aside
+					id="layout-body-aside"
+					class="layout-body-aside  "
+					data-bi-name="aside"
+					aria-label="Additional resources"
+			  >
+					
+		<div
+			id="ms--additional-resources"
+			class="right-container padding-sm display-none display-block-desktop height-full"
+			data-bi-name="pageactions"
+		>
+			<div id="affixed-right-container" data-bi-name="right-column">
+				
+		<nav
+			id="side-doc-outline"
+			class="doc-outline border-bottom padding-bottom-xs margin-bottom-xs"
+			data-bi-name="intopic toc"
+			aria-label="In this article"
+		>
+			<h3>In this article</h3>
+		</nav>
+	
+				<!-- Feedback -->
+				
+		<section
+			id="ms--site-user-feedback-right-rail"
+			class="font-size-sm display-none-print"
+			data-test-id="site-user-feedback-right-rail"
+			data-bi-name="site-feedback-right-rail"
+		>
+			<p class="font-weight-semibold margin-bottom-xs">Was this page helpful?</p>
+			<div class="buttons">
+				<button
+					class="thumb-rating-button like button button-primary button-sm"
+					data-test-id="right-rail-rating-yes"
+					data-binary-rating-response="rating-yes"
+					type="button"
+					title="This article is helpful"
+					data-bi-name="button-rating-yes"
+					aria-pressed="false"
+				>
+					<span class="icon" aria-hidden="true">
+						<span class="docon docon-like"></span>
+					</span>
+					<span>Yes</span>
+				</button>
+				<button
+					class="thumb-rating-button dislike button button-primary button-sm"
+					id="right-rail-no-button"
+					hidden
+					data-test-id="right-rail-rating-no"
+					data-binary-rating-response="rating-no"
+					type="button"
+					title="This article is not helpful"
+					data-bi-name="button-rating-no"
+					aria-pressed="false"
+				>
+					<span class="icon" aria-hidden="true">
+						<span class="docon docon-dislike"></span>
+					</span>
+					<span>No</span>
+				</button>
+				<details class="popover popover-right" id="help-popover" data-test-id="feedback-popover">
+					<summary
+						tabindex="0"
+						class="thumb-rating-button dislike button button-primary button-sm"
+						data-test-id="details-right-rail-rating-no"
+						data-binary-rating-response="rating-no"
+						title="This article is not helpful"
+						data-bi-name="button-rating-no"
+						aria-pressed="false"
+						data-bi-an="feedback-unhelpful-popover"
+					>
+						<span class="icon" aria-hidden="true">
+							<span class="docon docon-dislike"></span>
+						</span>
+						<span>No</span>
+					</summary>
+					<div
+						class="popover-content width-200 width-300-tablet"
+						role="dialog"
+						aria-labelledby="popover-heading"
+						aria-describedby="popover-description"
+					>
+						<p
+							id="popover-heading-right-rail"
+							class="font-size-lg margin-bottom-xxs font-weight-semibold"
+						>
+							Need help with this topic?
+						</p>
+						<p id="popover-description-right-rail" class="font-size-sm margin-bottom-xs">
+							Want to try using Ask Learn to clarify or guide you through this topic?
+						</p>
+						
+		<div class="buttons flex-direction-row flex-wrap justify-content-center gap-xxs">
+			<div>
+		<button
+			class="button button-sm border inner-focus display-none margin-right-xxs"
+			data-bi-name="ask-learn-assistant-entry-troubleshoot"
+			data-test-id="ask-learn-assistant-modal-entry-mobile-feedback"
+			data-ask-learn-modal-entry-feedback
+			data-bi-an=feedback-unhelpful-popover
+			type="button"
+			style="min-width: max-content;"
+			aria-expanded="false"
+			aria-label="Ask Learn"
+			hidden
+		>
+			<span class="icon font-size-lg" aria-hidden="true">
+				<span class="docon docon-chat-sparkle-fill gradient-ask-learn-logo"></span>
+			</span>
+		</button>
+		<button
+			class="button button-sm display-inline-flex display-none-desktop flex-shrink-0 margin-right-xxs border-color-ask-learn margin-right-xxs"
+			data-bi-name="ask-learn-assistant-entry-troubleshoot"
+			data-bi-an=feedback-unhelpful-popover
+			data-test-id="ask-learn-assistant-modal-entry-tablet-feedback"
+			data-ask-learn-modal-entry-feedback
+			type="button"
+			style="min-width: max-content;"
+			aria-expanded="false"
+			hidden
+		>
+			<span class="icon font-size-lg" aria-hidden="true">
+				<span class="docon docon-chat-sparkle-fill gradient-ask-learn-logo"></span>
+			</span>
+			<span>Ask Learn</span>
+		</button>
+		<button
+			class="button button-sm display-none flex-shrink-0 display-inline-flex-desktop margin-right-xxs border-color-ask-learn margin-right-xxs"
+			data-bi-name="ask-learn-assistant-entry-troubleshoot"
+			data-bi-an=feedback-unhelpful-popover
+			data-test-id="ask-learn-assistant-flyout-entry-feedback"
+			data-ask-learn-flyout-entry-show-only
+			data-flyout-button="toggle"
+			type="button"
+			style="min-width: max-content;"
+			aria-expanded="false"
+			aria-controls="ask-learn-flyout"
+			hidden
+		>
+			<span class="icon font-size-lg" aria-hidden="true">
+				<span class="docon docon-chat-sparkle-fill gradient-ask-learn-logo"></span>
+			</span>
+			<span>Ask Learn</span>
+		</button>
+	</div>
+			<button
+				type="button"
+				class="button button-sm margin-right-xxs"
+				data-help-option="suggest-fix"
+				data-bi-name="feedback-suggest"
+				data-bi-an="feedback-unhelpful-popover"
+				data-test-id="suggest-fix"
+			>
+				<span class="icon" aria-hidden="true">
+					<span class="docon docon-feedback"></span>
+				</span>
+				<span> Suggest a fix? </span>
+			</button>
+		</div>
+	
+					</div>
+				</details>
+			</div>
+		</section>
+	
+			</div>
+		</div>
+	
+			  </aside> <section
+					id="layout-body-flyout"
+					class="layout-body-flyout "
+					data-bi-name="flyout"
+			  >
+					 <div
+	class="height-full border-left background-color-body-medium"
+	id="ask-learn-flyout"
+></div>
+			  </section> <div class="layout-body-footer " data-bi-name="layout-footer">
+		<footer
+			id="footer"
+			data-test-id="footer"
+			data-bi-name="footer"
+			class="footer-layout padding-xs padding-sm-desktop has-default-focus border-top"
+			role="contentinfo"
+		>
+			<div class="display-flex gap-xs flex-wrap-wrap is-full-height padding-right-lg-desktop">
+				
+		<a
+			data-mscc-ic="false"
+			href="#"
+			data-bi-name="select-locale"
+			class="locale-selector-link flex-shrink-0 button button-sm button-clear external-link-indicator"
+			id=""
+			title=""
+			><span class="icon" aria-hidden="true"
+				><span class="docon docon-world"></span></span
+			><span class="local-selector-link-text">en-us</span></a
+		>
+	 <div class="ccpa-privacy-link" data-ccpa-privacy-link hidden>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://aka.ms/yourcaliforniaprivacychoices"
+			data-bi-name="your-privacy-choices"
+			class="button button-sm button-clear flex-shrink-0 external-link-indicator"
+			id=""
+			title=""
+			>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 30 14"
+			xml:space="preserve"
+			height="16"
+			width="43"
+			aria-hidden="true"
+			focusable="false"
+		>
+			<path
+				d="M7.4 12.8h6.8l3.1-11.6H7.4C4.2 1.2 1.6 3.8 1.6 7s2.6 5.8 5.8 5.8z"
+				style="fill-rule:evenodd;clip-rule:evenodd;fill:#fff"
+			></path>
+			<path
+				d="M22.6 0H7.4c-3.9 0-7 3.1-7 7s3.1 7 7 7h15.2c3.9 0 7-3.1 7-7s-3.2-7-7-7zm-21 7c0-3.2 2.6-5.8 5.8-5.8h9.9l-3.1 11.6H7.4c-3.2 0-5.8-2.6-5.8-5.8z"
+				style="fill-rule:evenodd;clip-rule:evenodd;fill:#06f"
+			></path>
+			<path
+				d="M24.6 4c.2.2.2.6 0 .8L22.5 7l2.2 2.2c.2.2.2.6 0 .8-.2.2-.6.2-.8 0l-2.2-2.2-2.2 2.2c-.2.2-.6.2-.8 0-.2-.2-.2-.6 0-.8L20.8 7l-2.2-2.2c-.2-.2-.2-.6 0-.8.2-.2.6-.2.8 0l2.2 2.2L23.8 4c.2-.2.6-.2.8 0z"
+				style="fill:#fff"
+			></path>
+			<path
+				d="M12.7 4.1c.2.2.3.6.1.8L8.6 9.8c-.1.1-.2.2-.3.2-.2.1-.5.1-.7-.1L5.4 7.7c-.2-.2-.2-.6 0-.8.2-.2.6-.2.8 0L8 8.6l3.8-4.5c.2-.2.6-.2.9 0z"
+				style="fill:#06f"
+			></path>
+		</svg>
+	
+			<span>Your Privacy Choices</span></a
+		>
+	
+	</div>
+				<div class="flex-shrink-0">
+		<div class="dropdown has-caret-up">
+			<button
+				data-test-id="theme-selector-button"
+				class="dropdown-trigger button button-clear button-sm inner-focus theme-dropdown-trigger"
+				aria-controls="{{ themeMenuId }}"
+				aria-expanded="false"
+				title="Theme"
+				data-bi-name="theme"
+			>
+				<span class="icon" aria-hidden="true"><span class="docon docon-sun"></span></span>
+				<span>Theme</span>
+				<span class="icon expanded-indicator" aria-hidden="true">
+					<span class="docon docon-chevron-down-light"></span>
+				</span>
+			</button>
+			<div class="dropdown-menu" id="{{ themeMenuId }}" role="menu">
+				<ul class="theme-selector padding-xxs" data-test-id="theme-dropdown-menu">
+					<li class="theme display-block">
+						<button
+							class="button button-clear button-sm theme-control button-block justify-content-flex-start text-align-left"
+							data-theme-to="light"
+						>
+							<span class="theme-light margin-right-xxs">
+								<span
+									class="theme-selector-icon border display-inline-block has-body-background"
+									aria-hidden="true"
+								>
+									<svg class="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 14">
+										<rect width="22" height="14" class="has-fill-body-background" />
+										<rect x="5" y="5" width="12" height="4" class="has-fill-secondary" />
+										<rect x="5" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="8" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="11" y="2" width="3" height="1" class="has-fill-secondary" />
+										<rect x="1" y="1" width="2" height="2" class="has-fill-secondary" />
+										<rect x="5" y="10" width="7" height="2" rx="0.3" class="has-fill-primary" />
+										<rect x="19" y="1" width="2" height="2" rx="1" class="has-fill-secondary" />
+									</svg>
+								</span>
+							</span>
+							<span role="menuitem"> Light </span>
+						</button>
+					</li>
+					<li class="theme display-block">
+						<button
+							class="button button-clear button-sm theme-control button-block justify-content-flex-start text-align-left"
+							data-theme-to="dark"
+						>
+							<span class="theme-dark margin-right-xxs">
+								<span
+									class="border theme-selector-icon display-inline-block has-body-background"
+									aria-hidden="true"
+								>
+									<svg class="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 14">
+										<rect width="22" height="14" class="has-fill-body-background" />
+										<rect x="5" y="5" width="12" height="4" class="has-fill-secondary" />
+										<rect x="5" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="8" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="11" y="2" width="3" height="1" class="has-fill-secondary" />
+										<rect x="1" y="1" width="2" height="2" class="has-fill-secondary" />
+										<rect x="5" y="10" width="7" height="2" rx="0.3" class="has-fill-primary" />
+										<rect x="19" y="1" width="2" height="2" rx="1" class="has-fill-secondary" />
+									</svg>
+								</span>
+							</span>
+							<span role="menuitem"> Dark </span>
+						</button>
+					</li>
+					<li class="theme display-block">
+						<button
+							class="button button-clear button-sm theme-control button-block justify-content-flex-start text-align-left"
+							data-theme-to="high-contrast"
+						>
+							<span class="theme-high-contrast margin-right-xxs">
+								<span
+									class="border theme-selector-icon display-inline-block has-body-background"
+									aria-hidden="true"
+								>
+									<svg class="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 14">
+										<rect width="22" height="14" class="has-fill-body-background" />
+										<rect x="5" y="5" width="12" height="4" class="has-fill-secondary" />
+										<rect x="5" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="8" y="2" width="2" height="1" class="has-fill-secondary" />
+										<rect x="11" y="2" width="3" height="1" class="has-fill-secondary" />
+										<rect x="1" y="1" width="2" height="2" class="has-fill-secondary" />
+										<rect x="5" y="10" width="7" height="2" rx="0.3" class="has-fill-primary" />
+										<rect x="19" y="1" width="2" height="2" rx="1" class="has-fill-secondary" />
+									</svg>
+								</span>
+							</span>
+							<span role="menuitem"> High contrast </span>
+						</button>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+			</div>
+			<ul class="links" data-bi-name="footerlinks">
+				<li class="manage-cookies-holder" hidden=""></li>
+				<li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://learn.microsoft.com/en-us/principles-for-ai-generated-content"
+			data-bi-name="aiDisclaimer"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>AI Disclaimer</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://learn.microsoft.com/en-us/previous-versions/"
+			data-bi-name="archivelink"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Previous Versions</a
+		>
+	
+	</li> <li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://techcommunity.microsoft.com/t5/microsoft-learn-blog/bg-p/MicrosoftLearnBlog"
+			data-bi-name="bloglink"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Blog</a
+		>
+	
+	</li> <li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://learn.microsoft.com/en-us/contribute"
+			data-bi-name="contributorGuide"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Contribute</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://go.microsoft.com/fwlink/?LinkId=521839"
+			data-bi-name="privacy"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Privacy</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://go.microsoft.com/fwlink/?linkid=2259814"
+			data-bi-name="consumer-health-privacy"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Consumer Health Privacy</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://learn.microsoft.com/en-us/legal/termsofuse"
+			data-bi-name="termsofuse"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Terms of Use</a
+		>
+	
+	</li><li>
+		
+		<a
+			data-mscc-ic="false"
+			href="https://www.microsoft.com/legal/intellectualproperty/Trademarks/"
+			data-bi-name="trademarks"
+			class=" external-link-indicator"
+			id=""
+			title=""
+			>Trademarks</a
+		>
+	
+	</li>
+				<li>&copy; Microsoft 2026</li>
+			</ul>
+		</footer>
+	</footer>
+			</body>
+		</html>

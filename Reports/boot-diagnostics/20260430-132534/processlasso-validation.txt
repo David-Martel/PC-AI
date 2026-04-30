@@ -1,0 +1,24 @@
+
+Check                  Ok Detail
+-----                  -- ------
+GovernorRunning      True  25568
+GovernorResponding   True   True
+ProBalanceExclusions True     ok
+SmartTrimExclusions  True     ok
+LoggingFlags         True       
+RecentLogLines       True     80
+
+
+Ok                    : True
+DryRun                : False
+GeneratedAt           : 2026-04-30T13:25:46.0418106-04:00
+ConfigPath            : C:\ProgramData\ProcessLasso\config\prolasso.ini
+LogPath               : C:\ProgramData\ProcessLasso\logs\processlasso.log
+LookbackMinutes       : 240
+Governor              : @{Running=True; Id=25568; Responding=True; StartTime=4/30/2026 12:50:54 PM; Path=C:\Program Files\Process Lasso\processgovernor.exe}
+MissingOocExclusions  : {}
+MissingSmartTrimItems : {}
+Logging               : {@{Key=IncludeCommandLines; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessExecutions; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessTerminations; Expected=true; Actual=true; Ok=True}, @{Key=LogEfficiencyMode; Expected=true; Actual=true; Ok=True}…}
+RecentLogLines        : {"134220435319617838","2026-04-30 13:25:31","DTM-P1GEN7","david","22724","pwsh.exe","1","(0x1) Process launched","Parent codex.exe (47704)","C:\Users\david\.local\bin\pwsh.exe","""C:\Users\david\.local\bin\pwsh.exe"" -Command ""[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;, Get-CimInstance Win32_OperatingSystem | Select-Object LastBootUpTime\,LocalDateTime\,CSName | Format-List""", "134220435319627919","2026-04-30 13:25:31","DTM-P1GEN7","david","68036","pwsh.exe","1","(0x1) Process launched","Parent pwsh.exe (48320)","C:\Program Files\PowerShell\7\pwsh.exe","""C:\Program Files\PowerShell\7\pwsh.exe"" -Command ""[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;, pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File Tools\Collect-BootDiagnostics.ps1 -SinceMinutes 360 -PostRebootVerify"""…}
+Failures              : {}
+

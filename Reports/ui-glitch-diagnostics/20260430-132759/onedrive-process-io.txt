@@ -1,0 +1,28 @@
+
+Name                : OneDrive.exe
+ProcessId           : 9228
+WorkingSetSize      : 370262016
+ReadOperationCount  : 1396251
+WriteOperationCount : 611620
+ReadTransferCount   : 5697214761
+WriteTransferCount  : 301826660
+CommandLine         : "C:\Program Files\Microsoft OneDrive\OneDrive.exe" /background
+
+Name                : FileSyncHelper.exe
+ProcessId           : 15260
+WorkingSetSize      : 29110272
+ReadOperationCount  : 1553
+WriteOperationCount : 30
+ReadTransferCount   : 5451599
+WriteTransferCount  : 31737
+CommandLine         : "C:\Program Files\Microsoft OneDrive\26.062.0402.0002\FileSyncHelper.exe"
+
+Name                : OneDrive.Sync.Service.exe
+ProcessId           : 19116
+WorkingSetSize      : 248352768
+ReadOperationCount  : 286210
+WriteOperationCount : 50129
+ReadTransferCount   : 1198786332
+WriteTransferCount  : 99210664
+CommandLine         : "C:\Program Files\Microsoft OneDrive\26.062.0402.0002\OneDrive.Sync.Service.exe" 
+

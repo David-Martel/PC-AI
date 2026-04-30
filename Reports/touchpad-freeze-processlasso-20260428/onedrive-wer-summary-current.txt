@@ -1,0 +1,4590 @@
+Event[0]
+  Date: 2026-04-28T16:19:07.4500000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 5fac567d-889c-45e5-92a2-40524db42d97
+Event[1]
+  Date: 2026-04-28T16:18:48.4850000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: b0618aa6-beb4-4b22-851c-17f1961a8a04
+Event[2]
+  Date: 2026-04-28T16:18:05.0280000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 0ef89919-c5f1-4ab6-996e-d4aae672c3b0
+Event[3]
+  Date: 2026-04-28T16:17:36.5090000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3488a9de-9411-44fb-8117-0d95e3619afe
+Event[4]
+  Date: 2026-04-28T16:16:51.4360000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[5]
+  Date: 2026-04-28T16:16:28.7730000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[6]
+  Date: 2026-04-28T16:15:55.8010000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[7]
+  Date: 2026-04-28T16:15:42.8730000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[8]
+  Date: 2026-04-28T16:15:25.4500000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[9]
+  Date: 2026-04-28T16:15:14.8790000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[10]
+  Date: 2026-04-28T16:14:51.7920000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[11]
+  Date: 2026-04-28T16:14:42.0850000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[12]
+  Date: 2026-04-28T16:14:05.9730000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[13]
+  Date: 2026-04-28T16:13:58.8080000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[14]
+  Date: 2026-04-28T16:13:50.1230000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[15]
+  Date: 2026-04-28T16:13:44.7600000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[16]
+  Date: 2026-04-28T16:13:41.6850000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[17]
+  Date: 2026-04-28T16:13:27.0140000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[18]
+  Date: 2026-04-28T16:13:22.7830000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[19]
+  Date: 2026-04-28T16:13:18.5330000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[20]
+  Date: 2026-04-28T16:13:13.8680000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[21]
+  Date: 2026-04-28T16:13:12.8810000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[22]
+  Date: 2026-04-28T16:13:10.2740000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[23]
+  Date: 2026-04-28T16:13:07.6690000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[24]
+  Date: 2026-04-28T16:13:05.9270000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[25]
+  Date: 2026-04-28T16:13:03.9450000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[26]
+  Date: 2026-04-28T16:13:00.7590000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[27]
+  Date: 2026-04-28T16:12:59.1510000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[28]
+  Date: 2026-04-28T16:12:58.5900000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[29]
+  Date: 2026-04-28T16:12:56.6930000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[30]
+  Date: 2026-04-28T16:12:55.6850000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[31]
+  Date: 2026-04-28T16:12:54.8460000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[32]
+  Date: 2026-04-28T16:12:54.6150000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[33]
+  Date: 2026-04-28T16:12:54.3820000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[34]
+  Date: 2026-04-28T16:12:54.1310000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[35]
+  Date: 2026-04-28T16:12:53.9070000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[36]
+  Date: 2026-04-28T16:12:53.7210000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[37]
+  Date: 2026-04-28T14:44:19.3820000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 5fac567d-889c-45e5-92a2-40524db42d97
+Event[38]
+  Date: 2026-04-28T14:44:19.2790000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: b0618aa6-beb4-4b22-851c-17f1961a8a04
+Event[39]
+  Date: 2026-04-28T14:44:19.1560000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 0ef89919-c5f1-4ab6-996e-d4aae672c3b0
+Event[40]
+  Date: 2026-04-28T14:44:19.0440000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3488a9de-9411-44fb-8117-0d95e3619afe
+Event[41]
+  Date: 2026-04-28T14:44:18.9490000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[42]
+  Date: 2026-04-28T14:44:18.8590000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[43]
+  Date: 2026-04-28T14:44:18.7680000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[44]
+  Date: 2026-04-28T14:44:18.6480000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[45]
+  Date: 2026-04-28T14:44:18.4800000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[46]
+  Date: 2026-04-28T14:44:18.3680000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[47]
+  Date: 2026-04-28T14:44:18.2480000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[48]
+  Date: 2026-04-28T14:44:18.0770000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[49]
+  Date: 2026-04-28T14:44:17.9470000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[50]
+  Date: 2026-04-28T14:44:17.7840000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[51]
+  Date: 2026-04-28T14:44:17.6220000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[52]
+  Date: 2026-04-28T14:44:17.5290000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[53]
+  Date: 2026-04-28T14:44:17.0620000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[54]
+  Date: 2026-04-28T14:44:16.9220000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[55]
+  Date: 2026-04-28T14:44:16.7760000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[56]
+  Date: 2026-04-28T14:44:16.6510000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[57]
+  Date: 2026-04-28T14:44:16.5280000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[58]
+  Date: 2026-04-28T14:44:16.4170000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[59]
+  Date: 2026-04-28T14:44:16.2910000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[60]
+  Date: 2026-04-28T14:44:16.0990000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[61]
+  Date: 2026-04-28T14:44:15.9510000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[62]
+  Date: 2026-04-28T14:44:15.8140000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[63]
+  Date: 2026-04-28T14:44:15.6950000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[64]
+  Date: 2026-04-28T14:44:15.5530000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[65]
+  Date: 2026-04-28T14:44:15.4070000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[66]
+  Date: 2026-04-28T14:44:15.2850000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[67]
+  Date: 2026-04-28T14:44:15.1490000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[68]
+  Date: 2026-04-28T14:44:15.0230000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[69]
+  Date: 2026-04-28T14:44:14.9080000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[70]
+  Date: 2026-04-28T14:44:14.7840000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[71]
+  Date: 2026-04-28T14:44:14.6540000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[72]
+  Date: 2026-04-28T14:44:14.5320000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[73]
+  Date: 2026-04-28T14:44:14.3810000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[74]
+  Date: 2026-04-28T14:44:13.9240000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: b0618aa6-beb4-4b22-851c-17f1961a8a04
+Event[75]
+  Date: 2026-04-28T14:44:13.8250000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 0ef89919-c5f1-4ab6-996e-d4aae672c3b0
+Event[76]
+  Date: 2026-04-28T14:44:13.7110000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3488a9de-9411-44fb-8117-0d95e3619afe
+Event[77]
+  Date: 2026-04-28T14:44:13.6090000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[78]
+  Date: 2026-04-28T14:44:13.5170000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[79]
+  Date: 2026-04-28T14:44:13.4240000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[80]
+  Date: 2026-04-28T14:44:13.3150000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[81]
+  Date: 2026-04-28T14:44:13.2330000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[82]
+  Date: 2026-04-28T14:44:13.1260000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[83]
+  Date: 2026-04-28T14:44:13.0230000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[84]
+  Date: 2026-04-28T14:44:12.9320000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[85]
+  Date: 2026-04-28T14:44:12.8440000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[86]
+  Date: 2026-04-28T14:44:12.7420000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[87]
+  Date: 2026-04-28T14:44:12.6500000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[88]
+  Date: 2026-04-28T14:44:12.5580000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[89]
+  Date: 2026-04-28T14:44:12.1220000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[90]
+  Date: 2026-04-28T14:44:11.9880000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[91]
+  Date: 2026-04-28T14:44:11.8620000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[92]
+  Date: 2026-04-28T14:44:11.7150000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[93]
+  Date: 2026-04-28T14:44:11.5930000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[94]
+  Date: 2026-04-28T14:44:11.4600000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[95]
+  Date: 2026-04-28T14:44:11.2840000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[96]
+  Date: 2026-04-28T14:44:11.1280000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[97]
+  Date: 2026-04-28T14:44:10.9820000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[98]
+  Date: 2026-04-28T14:44:10.8290000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[99]
+  Date: 2026-04-28T14:44:10.6870000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[100]
+  Date: 2026-04-28T14:44:10.6220000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 5fac567d-889c-45e5-92a2-40524db42d97
+Event[101]
+  Date: 2026-04-28T14:44:10.5170000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[102]
+  Date: 2026-04-28T14:44:10.2360000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[103]
+  Date: 2026-04-28T14:44:09.8950000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[104]
+  Date: 2026-04-28T14:44:09.6520000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[105]
+  Date: 2026-04-28T14:44:09.4240000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[106]
+  Date: 2026-04-28T14:44:09.0470000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[107]
+  Date: 2026-04-28T14:44:08.8050000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[108]
+  Date: 2026-04-28T14:44:08.5770000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[109]
+  Date: 2026-04-28T14:44:08.3270000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[110]
+  Date: 2026-04-28T14:44:08.0960000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[111]
+  Date: 2026-04-28T14:44:06.4750000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: b0618aa6-beb4-4b22-851c-17f1961a8a04
+Event[112]
+  Date: 2026-04-28T14:39:03.3000000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 0ef89919-c5f1-4ab6-996e-d4aae672c3b0
+Event[113]
+  Date: 2026-04-28T14:39:03.2260000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3488a9de-9411-44fb-8117-0d95e3619afe
+Event[114]
+  Date: 2026-04-28T14:39:03.1380000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[115]
+  Date: 2026-04-28T14:39:03.0320000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[116]
+  Date: 2026-04-28T14:39:02.9220000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[117]
+  Date: 2026-04-28T14:39:02.8320000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[118]
+  Date: 2026-04-28T14:39:02.6130000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[119]
+  Date: 2026-04-28T14:39:02.4950000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[120]
+  Date: 2026-04-28T14:39:02.3800000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[121]
+  Date: 2026-04-28T14:39:02.2610000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[122]
+  Date: 2026-04-28T14:39:02.1480000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[123]
+  Date: 2026-04-28T14:39:01.9850000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[124]
+  Date: 2026-04-28T14:39:01.8510000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[125]
+  Date: 2026-04-28T14:39:01.7240000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[126]
+  Date: 2026-04-28T14:39:01.2010000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[127]
+  Date: 2026-04-28T14:39:01.0590000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[128]
+  Date: 2026-04-28T14:39:00.9080000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[129]
+  Date: 2026-04-28T14:39:00.7620000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[130]
+  Date: 2026-04-28T14:39:00.6290000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[131]
+  Date: 2026-04-28T14:39:00.4890000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[132]
+  Date: 2026-04-28T14:39:00.3460000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[133]
+  Date: 2026-04-28T14:39:00.2000000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[134]
+  Date: 2026-04-28T14:39:00.0650000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[135]
+  Date: 2026-04-28T14:38:59.9120000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[136]
+  Date: 2026-04-28T14:38:59.7750000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[137]
+  Date: 2026-04-28T14:38:59.6020000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[138]
+  Date: 2026-04-28T14:38:59.4340000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[139]
+  Date: 2026-04-28T14:38:59.2700000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[140]
+  Date: 2026-04-28T14:38:59.0920000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[141]
+  Date: 2026-04-28T14:38:58.9470000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[142]
+  Date: 2026-04-28T14:38:58.7940000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[143]
+  Date: 2026-04-28T14:38:58.6340000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[144]
+  Date: 2026-04-28T14:38:58.4740000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[145]
+  Date: 2026-04-28T14:38:58.1940000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[146]
+  Date: 2026-04-28T14:38:57.9770000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[147]
+  Date: 2026-04-28T14:37:39.4540000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 0ef89919-c5f1-4ab6-996e-d4aae672c3b0
+Event[148]
+  Date: 2026-04-28T14:37:39.2680000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3488a9de-9411-44fb-8117-0d95e3619afe
+Event[149]
+  Date: 2026-04-28T14:37:39.0810000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[150]
+  Date: 2026-04-28T14:37:38.8760000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[151]
+  Date: 2026-04-28T14:37:38.6860000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[152]
+  Date: 2026-04-28T14:37:38.4140000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[153]
+  Date: 2026-04-28T14:37:38.2460000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[154]
+  Date: 2026-04-28T14:37:38.0340000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[155]
+  Date: 2026-04-28T14:37:37.5600000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[156]
+  Date: 2026-04-28T14:37:37.3240000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[157]
+  Date: 2026-04-28T14:37:37.0410000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[158]
+  Date: 2026-04-28T14:37:36.7400000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[159]
+  Date: 2026-04-28T14:37:36.4600000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[160]
+  Date: 2026-04-28T14:37:36.3290000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[161]
+  Date: 2026-04-28T14:37:35.7130000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[162]
+  Date: 2026-04-28T14:37:35.5610000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[163]
+  Date: 2026-04-28T14:37:35.4180000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[164]
+  Date: 2026-04-28T14:37:35.2770000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[165]
+  Date: 2026-04-28T14:37:35.1490000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[166]
+  Date: 2026-04-28T14:37:34.9260000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[167]
+  Date: 2026-04-28T14:37:34.3920000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[168]
+  Date: 2026-04-28T14:37:34.2600000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[169]
+  Date: 2026-04-28T14:37:34.1070000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[170]
+  Date: 2026-04-28T14:37:33.9680000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[171]
+  Date: 2026-04-28T14:37:33.7910000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[172]
+  Date: 2026-04-28T14:37:33.6440000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[173]
+  Date: 2026-04-28T14:37:33.4900000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[174]
+  Date: 2026-04-28T14:37:33.3470000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[175]
+  Date: 2026-04-28T14:37:33.1890000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[176]
+  Date: 2026-04-28T14:37:33.0520000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[177]
+  Date: 2026-04-28T14:37:32.8890000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[178]
+  Date: 2026-04-28T14:37:32.7240000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[179]
+  Date: 2026-04-28T14:37:32.5720000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[180]
+  Date: 2026-04-28T14:37:32.4240000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[181]
+  Date: 2026-04-28T14:37:32.2530000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[182]
+  Date: 2026-04-28T14:37:18.9500000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 0ef89919-c5f1-4ab6-996e-d4aae672c3b0
+Event[183]
+  Date: 2026-04-28T14:37:18.6540000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3488a9de-9411-44fb-8117-0d95e3619afe
+Event[184]
+  Date: 2026-04-28T14:37:18.4360000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[185]
+  Date: 2026-04-28T14:37:18.2190000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[186]
+  Date: 2026-04-28T14:37:17.7560000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[187]
+  Date: 2026-04-28T14:37:17.4020000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[188]
+  Date: 2026-04-28T14:37:17.1250000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[189]
+  Date: 2026-04-28T14:37:16.8550000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[190]
+  Date: 2026-04-28T14:37:16.5920000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[191]
+  Date: 2026-04-28T14:37:16.4550000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[192]
+  Date: 2026-04-28T14:37:15.9800000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[193]
+  Date: 2026-04-28T14:37:15.4670000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[194]
+  Date: 2026-04-28T14:37:14.9130000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[195]
+  Date: 2026-04-28T14:37:14.6470000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[196]
+  Date: 2026-04-28T14:37:12.8220000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[197]
+  Date: 2026-04-28T14:37:12.4840000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[198]
+  Date: 2026-04-28T14:37:08.7810000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[199]
+  Date: 2026-04-28T14:37:01.2240000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[200]
+  Date: 2026-04-28T14:37:00.0290000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[201]
+  Date: 2026-04-28T14:36:57.0220000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[202]
+  Date: 2026-04-28T14:36:55.2060000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[203]
+  Date: 2026-04-28T14:36:54.0840000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[204]
+  Date: 2026-04-28T14:36:53.6660000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[205]
+  Date: 2026-04-28T14:36:53.2500000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[206]
+  Date: 2026-04-28T14:36:52.7950000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[207]
+  Date: 2026-04-28T14:36:51.8820000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[208]
+  Date: 2026-04-28T14:36:51.1800000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[209]
+  Date: 2026-04-28T14:36:50.3800000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[210]
+  Date: 2026-04-28T14:36:49.9160000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[211]
+  Date: 2026-04-28T14:36:47.9500000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[212]
+  Date: 2026-04-28T14:36:46.6440000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[213]
+  Date: 2026-04-28T14:36:45.9880000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[214]
+  Date: 2026-04-28T14:36:44.3710000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[215]
+  Date: 2026-04-28T14:36:43.6560000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[216]
+  Date: 2026-04-28T14:36:28.9280000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[217]
+  Date: 2026-04-28T14:36:18.2480000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 0ef89919-c5f1-4ab6-996e-d4aae672c3b0
+Event[218]
+  Date: 2026-04-28T14:36:13.9440000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 0ef89919-c5f1-4ab6-996e-d4aae672c3b0
+Event[219]
+  Date: 2026-04-28T14:34:11.1550000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3488a9de-9411-44fb-8117-0d95e3619afe
+Event[220]
+  Date: 2026-04-28T14:19:06.7740000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[221]
+  Date: 2026-04-28T14:19:06.6030000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[222]
+  Date: 2026-04-28T14:19:06.4880000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[223]
+  Date: 2026-04-28T14:19:06.3650000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[224]
+  Date: 2026-04-28T14:19:06.2640000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[225]
+  Date: 2026-04-28T14:19:06.1030000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[226]
+  Date: 2026-04-28T14:19:05.9880000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[227]
+  Date: 2026-04-28T14:19:05.8720000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[228]
+  Date: 2026-04-28T14:19:05.7670000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[229]
+  Date: 2026-04-28T14:19:05.6180000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[230]
+  Date: 2026-04-28T14:19:05.4950000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[231]
+  Date: 2026-04-28T14:19:05.3770000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[232]
+  Date: 2026-04-28T14:19:04.9060000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[233]
+  Date: 2026-04-28T14:19:04.7310000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[234]
+  Date: 2026-04-28T14:19:04.5720000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[235]
+  Date: 2026-04-28T14:19:04.4180000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[236]
+  Date: 2026-04-28T14:19:04.2640000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[237]
+  Date: 2026-04-28T14:19:04.0910000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[238]
+  Date: 2026-04-28T14:19:03.9170000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[239]
+  Date: 2026-04-28T14:19:03.7610000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[240]
+  Date: 2026-04-28T14:19:03.5980000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[241]
+  Date: 2026-04-28T14:19:03.4360000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[242]
+  Date: 2026-04-28T14:19:03.2390000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[243]
+  Date: 2026-04-28T14:19:03.0720000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[244]
+  Date: 2026-04-28T14:19:02.6960000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[245]
+  Date: 2026-04-28T14:19:02.5280000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[246]
+  Date: 2026-04-28T14:19:02.3220000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[247]
+  Date: 2026-04-28T14:19:02.1270000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[248]
+  Date: 2026-04-28T14:19:01.9620000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[249]
+  Date: 2026-04-28T14:19:01.8000000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[250]
+  Date: 2026-04-28T14:19:01.5040000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[251]
+  Date: 2026-04-28T14:19:01.0450000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[252]
+  Date: 2026-04-28T14:19:00.5870000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[253]
+  Date: 2026-04-28T14:16:31.2870000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[254]
+  Date: 2026-04-28T14:16:31.2040000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[255]
+  Date: 2026-04-28T14:16:31.1250000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[256]
+  Date: 2026-04-28T14:16:30.9910000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[257]
+  Date: 2026-04-28T14:16:30.9050000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[258]
+  Date: 2026-04-28T14:16:30.7740000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[259]
+  Date: 2026-04-28T14:16:30.6800000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[260]
+  Date: 2026-04-28T14:16:30.5820000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[261]
+  Date: 2026-04-28T14:16:30.4970000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[262]
+  Date: 2026-04-28T14:16:30.3810000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[263]
+  Date: 2026-04-28T14:16:30.3070000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[264]
+  Date: 2026-04-28T14:16:30.2210000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[265]
+  Date: 2026-04-28T14:16:29.8110000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[266]
+  Date: 2026-04-28T14:16:29.7100000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[267]
+  Date: 2026-04-28T14:16:29.6150000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[268]
+  Date: 2026-04-28T14:16:29.5220000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[269]
+  Date: 2026-04-28T14:16:29.4200000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[270]
+  Date: 2026-04-28T14:16:29.1620000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[271]
+  Date: 2026-04-28T14:16:29.0430000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[272]
+  Date: 2026-04-28T14:16:28.9270000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[273]
+  Date: 2026-04-28T14:16:28.7520000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[274]
+  Date: 2026-04-28T14:16:28.6010000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[275]
+  Date: 2026-04-28T14:16:28.3060000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[276]
+  Date: 2026-04-28T14:16:27.9920000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[277]
+  Date: 2026-04-28T14:16:27.9020000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[278]
+  Date: 2026-04-28T14:16:27.8210000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[279]
+  Date: 2026-04-28T14:16:27.6700000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[280]
+  Date: 2026-04-28T14:16:27.5520000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[281]
+  Date: 2026-04-28T14:16:27.4530000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[282]
+  Date: 2026-04-28T14:16:27.3560000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[283]
+  Date: 2026-04-28T14:16:27.2660000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[284]
+  Date: 2026-04-28T14:16:27.1410000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[285]
+  Date: 2026-04-28T14:16:27.0200000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[286]
+  Date: 2026-04-28T14:16:26.7350000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[287]
+  Date: 2026-04-28T14:16:26.6440000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[288]
+  Date: 2026-04-28T14:16:26.5480000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[289]
+  Date: 2026-04-28T14:16:26.4810000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[290]
+  Date: 2026-04-28T14:16:26.4140000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[291]
+  Date: 2026-04-28T14:16:26.3410000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[292]
+  Date: 2026-04-28T14:16:26.2710000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[293]
+  Date: 2026-04-28T14:16:26.2040000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[294]
+  Date: 2026-04-28T14:16:26.1280000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[295]
+  Date: 2026-04-28T14:16:26.0480000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[296]
+  Date: 2026-04-28T14:16:25.9630000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[297]
+  Date: 2026-04-28T14:16:25.8540000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[298]
+  Date: 2026-04-28T14:16:25.2060000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[299]
+  Date: 2026-04-28T14:16:25.1040000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[300]
+  Date: 2026-04-28T14:16:24.9520000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[301]
+  Date: 2026-04-28T14:16:24.8260000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[302]
+  Date: 2026-04-28T14:16:24.7030000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[303]
+  Date: 2026-04-28T14:16:24.6080000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[304]
+  Date: 2026-04-28T14:16:24.4210000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[305]
+  Date: 2026-04-28T14:16:24.3140000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[306]
+  Date: 2026-04-28T14:16:24.1900000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[307]
+  Date: 2026-04-28T14:16:24.0740000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[308]
+  Date: 2026-04-28T14:16:23.9430000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[309]
+  Date: 2026-04-28T14:16:23.8280000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[310]
+  Date: 2026-04-28T14:16:23.6810000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[311]
+  Date: 2026-04-28T14:16:23.4540000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[312]
+  Date: 2026-04-28T14:16:23.2360000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[313]
+  Date: 2026-04-28T14:16:23.1420000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[314]
+  Date: 2026-04-28T14:16:23.0450000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[315]
+  Date: 2026-04-28T14:16:22.9580000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[316]
+  Date: 2026-04-28T14:16:22.7950000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[317]
+  Date: 2026-04-28T14:16:22.6070000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[318]
+  Date: 2026-04-28T14:16:22.4010000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[319]
+  Date: 2026-04-28T14:16:21.4360000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[320]
+  Date: 2026-04-28T14:16:21.4060000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[321]
+  Date: 2026-04-28T14:16:21.3720000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[322]
+  Date: 2026-04-28T14:16:21.3380000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[323]
+  Date: 2026-04-28T14:16:21.3090000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[324]
+  Date: 2026-04-28T14:16:21.2710000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[325]
+  Date: 2026-04-28T14:16:21.2410000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[326]
+  Date: 2026-04-28T14:16:21.2110000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[327]
+  Date: 2026-04-28T14:16:21.1660000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[328]
+  Date: 2026-04-28T14:16:21.1350000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[329]
+  Date: 2026-04-28T14:16:21.1070000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[330]
+  Date: 2026-04-28T14:16:20.9710000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[331]
+  Date: 2026-04-28T14:16:20.9290000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[332]
+  Date: 2026-04-28T14:16:20.8890000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[333]
+  Date: 2026-04-28T14:16:20.8500000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[334]
+  Date: 2026-04-28T14:16:20.8060000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[335]
+  Date: 2026-04-28T14:16:20.7590000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[336]
+  Date: 2026-04-28T14:16:20.7180000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[337]
+  Date: 2026-04-28T14:16:20.6700000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[338]
+  Date: 2026-04-28T14:16:20.6200000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[339]
+  Date: 2026-04-28T14:16:20.5720000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[340]
+  Date: 2026-04-28T14:16:20.5310000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[341]
+  Date: 2026-04-28T14:16:20.4890000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[342]
+  Date: 2026-04-28T14:16:20.4480000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[343]
+  Date: 2026-04-28T14:16:20.4050000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[344]
+  Date: 2026-04-28T14:16:20.3570000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[345]
+  Date: 2026-04-28T14:16:20.3100000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[346]
+  Date: 2026-04-28T14:16:20.2630000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[347]
+  Date: 2026-04-28T14:16:20.2120000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[348]
+  Date: 2026-04-28T14:16:20.1580000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[349]
+  Date: 2026-04-28T14:16:20.1530000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[350]
+  Date: 2026-04-28T14:16:20.0960000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[351]
+  Date: 2026-04-28T14:16:20.0060000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[352]
+  Date: 2026-04-28T14:16:10.9630000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: db4bffb8-f4d4-4c81-be8c-5ef31920cb2e
+Event[353]
+  Date: 2026-04-28T14:11:33.3300000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[354]
+  Date: 2026-04-28T14:11:33.2190000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[355]
+  Date: 2026-04-28T14:11:33.1130000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[356]
+  Date: 2026-04-28T14:11:32.9850000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[357]
+  Date: 2026-04-28T14:11:32.8770000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[358]
+  Date: 2026-04-28T14:11:32.7680000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[359]
+  Date: 2026-04-28T14:11:32.6270000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[360]
+  Date: 2026-04-28T14:11:32.5170000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[361]
+  Date: 2026-04-28T14:11:32.3980000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[362]
+  Date: 2026-04-28T14:11:32.2780000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[363]
+  Date: 2026-04-28T14:11:32.1520000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[364]
+  Date: 2026-04-28T14:11:31.7930000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[365]
+  Date: 2026-04-28T14:11:31.6600000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[366]
+  Date: 2026-04-28T14:11:31.5290000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[367]
+  Date: 2026-04-28T14:11:31.3820000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[368]
+  Date: 2026-04-28T14:11:31.1960000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[369]
+  Date: 2026-04-28T14:11:31.0080000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[370]
+  Date: 2026-04-28T14:11:30.8830000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[371]
+  Date: 2026-04-28T14:11:30.7440000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[372]
+  Date: 2026-04-28T14:11:30.5960000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[373]
+  Date: 2026-04-28T14:11:30.4530000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[374]
+  Date: 2026-04-28T14:11:30.2800000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[375]
+  Date: 2026-04-28T14:11:30.1110000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[376]
+  Date: 2026-04-28T14:11:29.9810000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[377]
+  Date: 2026-04-28T14:11:29.7630000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[378]
+  Date: 2026-04-28T14:11:29.5830000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[379]
+  Date: 2026-04-28T14:11:29.4090000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[380]
+  Date: 2026-04-28T14:11:29.2060000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[381]
+  Date: 2026-04-28T14:11:29.0640000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[382]
+  Date: 2026-04-28T14:11:28.9080000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[383]
+  Date: 2026-04-28T14:11:28.7280000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[384]
+  Date: 2026-04-28T14:11:28.4900000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[385]
+  Date: 2026-04-28T14:09:53.1720000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[386]
+  Date: 2026-04-28T14:09:53.0640000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[387]
+  Date: 2026-04-28T14:09:52.9280000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[388]
+  Date: 2026-04-28T14:09:52.7830000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[389]
+  Date: 2026-04-28T14:09:52.6090000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[390]
+  Date: 2026-04-28T14:09:52.4660000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[391]
+  Date: 2026-04-28T14:09:52.2790000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[392]
+  Date: 2026-04-28T14:09:52.0620000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[393]
+  Date: 2026-04-28T14:09:51.8670000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[394]
+  Date: 2026-04-28T14:09:51.4830000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[395]
+  Date: 2026-04-28T14:09:51.2210000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[396]
+  Date: 2026-04-28T14:09:50.6290000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[397]
+  Date: 2026-04-28T14:09:50.0150000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[398]
+  Date: 2026-04-28T14:09:46.6940000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[399]
+  Date: 2026-04-28T14:09:42.3670000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[400]
+  Date: 2026-04-28T14:09:41.7580000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[401]
+  Date: 2026-04-28T14:09:41.1210000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[402]
+  Date: 2026-04-28T14:09:40.8630000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[403]
+  Date: 2026-04-28T14:09:40.5670000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[404]
+  Date: 2026-04-28T14:09:39.9930000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[405]
+  Date: 2026-04-28T14:09:39.0600000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[406]
+  Date: 2026-04-28T14:09:33.9720000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[407]
+  Date: 2026-04-28T14:09:11.6070000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[408]
+  Date: 2026-04-28T14:09:10.5330000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[409]
+  Date: 2026-04-28T14:09:09.1380000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[410]
+  Date: 2026-04-28T14:09:08.4670000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[411]
+  Date: 2026-04-28T14:09:07.4160000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[412]
+  Date: 2026-04-28T14:09:06.8470000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[413]
+  Date: 2026-04-28T14:09:06.4250000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[414]
+  Date: 2026-04-28T14:09:04.8910000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[415]
+  Date: 2026-04-28T14:09:03.9360000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[416]
+  Date: 2026-04-28T14:09:02.2850000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[417]
+  Date: 2026-04-24T20:21:00.8520000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 76db868b-c445-49f9-8235-c0ec8ea590b3
+Event[418]
+  Date: 2026-04-24T16:34:51.5520000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[419]
+  Date: 2026-04-24T16:34:51.4870000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[420]
+  Date: 2026-04-24T16:34:51.4140000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[421]
+  Date: 2026-04-24T16:34:51.3450000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[422]
+  Date: 2026-04-24T16:34:51.2770000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[423]
+  Date: 2026-04-24T16:34:51.2040000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[424]
+  Date: 2026-04-24T16:34:51.1390000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[425]
+  Date: 2026-04-24T16:34:51.0640000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[426]
+  Date: 2026-04-24T16:34:50.9810000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[427]
+  Date: 2026-04-24T16:34:50.9020000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[428]
+  Date: 2026-04-24T16:34:50.6340000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[429]
+  Date: 2026-04-24T16:34:50.5400000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[430]
+  Date: 2026-04-24T16:34:50.4430000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[431]
+  Date: 2026-04-24T16:34:50.3530000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[432]
+  Date: 2026-04-24T16:34:50.2590000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[433]
+  Date: 2026-04-24T16:34:50.1680000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[434]
+  Date: 2026-04-24T16:34:50.0690000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[435]
+  Date: 2026-04-24T16:34:49.9670000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[436]
+  Date: 2026-04-24T16:34:49.8790000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[437]
+  Date: 2026-04-24T16:34:49.7760000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[438]
+  Date: 2026-04-24T16:34:49.6830000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[439]
+  Date: 2026-04-24T16:34:49.5600000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[440]
+  Date: 2026-04-24T16:34:49.4500000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[441]
+  Date: 2026-04-24T16:34:49.3450000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[442]
+  Date: 2026-04-24T16:34:49.2460000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[443]
+  Date: 2026-04-24T16:34:49.1560000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[444]
+  Date: 2026-04-24T16:34:49.0730000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[445]
+  Date: 2026-04-24T16:34:48.9860000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[446]
+  Date: 2026-04-24T16:34:48.8840000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[447]
+  Date: 2026-04-24T16:34:48.7760000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[448]
+  Date: 2026-04-24T16:34:48.6640000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[449]
+  Date: 2026-04-24T12:20:04.3400000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[450]
+  Date: 2026-04-24T12:20:04.2710000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[451]
+  Date: 2026-04-24T12:20:04.1660000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[452]
+  Date: 2026-04-24T12:20:04.0750000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[453]
+  Date: 2026-04-24T12:20:03.9900000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[454]
+  Date: 2026-04-24T12:20:03.9120000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[455]
+  Date: 2026-04-24T12:20:03.8320000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[456]
+  Date: 2026-04-24T12:20:03.7510000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[457]
+  Date: 2026-04-24T12:20:03.6810000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[458]
+  Date: 2026-04-24T12:20:03.6070000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[459]
+  Date: 2026-04-24T12:20:03.3570000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[460]
+  Date: 2026-04-24T12:20:03.2610000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[461]
+  Date: 2026-04-24T12:20:03.1590000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[462]
+  Date: 2026-04-24T12:20:03.0620000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[463]
+  Date: 2026-04-24T12:20:02.9600000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[464]
+  Date: 2026-04-24T12:20:02.8650000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[465]
+  Date: 2026-04-24T12:20:02.7680000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[466]
+  Date: 2026-04-24T12:20:02.6620000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[467]
+  Date: 2026-04-24T12:20:02.5410000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[468]
+  Date: 2026-04-24T12:20:02.4290000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba
+Event[469]
+  Date: 2026-04-24T12:20:02.3140000Z
+P1: LenovoAccessoriesAndDisplayControlCenterService.exe
+P2: 3.0.10111.0
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c00000fd
+P9: 
+Report Id: 3be03120-1f04-4df4-800d-e85b9943e457
+Event[470]
+  Date: 2026-04-24T12:20:02.1980000Z
+P1: warp-svc.exe
+P2: 2026.1.0.0
+P4: warp-svc.exe
+P5: 2026.1.0.0
+P7: 00000000022e99a7
+P9: 0000000000000007
+Report Id: 15afb633-95df-4e52-8fbe-218568c161cd
+Event[471]
+  Date: 2026-04-24T12:20:02.0860000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 76b2b778-1424-4d0a-9288-6795aea160ce
+Event[472]
+  Date: 2026-04-24T12:20:01.9720000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 112d80dd-1b39-40bd-8293-b8f93fa044be
+Event[473]
+  Date: 2026-04-24T12:20:01.8430000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: f90a531d-82c8-4a27-b126-3c2329ddddc4
+Event[474]
+  Date: 2026-04-24T12:20:01.6720000Z
+P1: invcol.exe
+P2: 13.8.0.155
+P4: icsvc.dll
+P5: 13.8.0.155
+P7: c0000005
+P9: 
+Report Id: 3eb0218b-3d06-499d-b2de-812f2aca790e
+Event[475]
+  Date: 2026-04-24T12:20:01.5540000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 7fbaf278-fd45-47f9-8420-cc6a6d9d824d
+Event[476]
+  Date: 2026-04-24T12:20:01.4430000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 673d2631-ca27-4f30-bff2-d42ac3aa0013
+Event[477]
+  Date: 2026-04-24T12:20:01.3330000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: 4f0c337e-2e7f-48c6-9ba0-5bb9788ed811
+Event[478]
+  Date: 2026-04-24T12:20:01.2230000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: f4d521bd-f7f6-4ab5-89c8-a6b4c3d4feb8
+Event[479]
+  Date: 2026-04-24T12:20:01.1090000Z
+P1: claude.exe
+P2: 0.0.0.0
+P4: claude.exe
+P5: 0.0.0.0
+P7: c0000005
+P9: 
+Report Id: d838b908-8ab9-42c2-aa1b-c4e3c1fb316e
+Event[480]
+  Date: 2026-04-24T12:05:54.5450000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 3edc3749-f116-435f-ac51-2b0b204ab50b
+Event[481]
+  Date: 2026-04-24T12:05:54.4560000Z
+P1: Update;MoUpdateOrchestratorDeviceScan-MoUsoCoreWorker-SearchForAllUpdatesWithUpdateOptionsAsync
+P2: 80073d02
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: 0db64bd0-d20e-4708-821a-7c7551df339e
+Event[482]
+  Date: 2026-04-24T12:05:54.3660000Z
+P1: Update;
+P2: 80240438
+P4: 8246
+P5: Windows.Desktop
+P7: 
+P9: 
+Report Id: f1f739ab-cf60-41d1-bced-b8d8593f2a79
+Event[483]
+  Date: 2026-04-24T12:05:54.2730000Z
+P1: pwsh.exe
+P2: 7.6.0.500
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 284d3b2a-15ce-47e5-a0f7-2df58be170b9
+Event[484]
+  Date: 2026-04-24T12:05:54.1850000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 6b498f24-a80c-4c64-be0d-e69afbd37c98
+Event[485]
+  Date: 2026-04-24T12:05:54.0960000Z
+P1: NVIDIA Broadcast.exe
+P2: 2.1.0.9044
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: 000000000006f6ef
+P9: 0000000000000000
+Report Id: 55e83235-1fdb-4f1a-964e-5448fb906a85
+Event[486]
+  Date: 2026-04-24T12:05:54.0160000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 08696c38-33b3-4968-a005-7288d4ae1cd0
+Event[487]
+  Date: 2026-04-24T12:05:53.9200000Z
+P1: Dell.TechHub.Instrumentation.SubAgent.exe
+P2: 3.7.10.9147
+P4: KERNELBASE.dll
+P5: 10.0.26100.8246
+P7: e0434352
+P9: 
+Report Id: 4bb3a28b-f785-4567-873b-315c65c8ab5c
+Event[488]
+  Date: 2026-04-24T12:05:53.8270000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 56474008-d2ab-4076-9235-d3a3f3db7c9d
+Event[489]
+  Date: 2026-04-24T12:05:53.7360000Z
+P1: 
+P2: 
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 4568eabf-c0b7-4391-8596-1b9acac88e5c
+Event[490]
+  Date: 2026-04-24T12:05:53.4110000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 5c79
+P5: 2048
+P7: 
+P9: 
+Report Id: 07e75f04-c0b7-4740-a97f-a69b7a6c9662
+Event[491]
+  Date: 2026-04-24T12:05:53.2980000Z
+P1: HostProblem2
+P2: HostTimeout
+P4: 2.35.0
+P5: 103
+P7: 11b04
+P9: ipf_umdf2.dll
+Report Id: 29288d95-e4a7-4a78-b70c-fa0415c54a1b
+Event[492]
+  Date: 2026-04-24T12:05:53.1740000Z
+P1: svchost.exe_Audiosrv
+P2: 10.0.26100.7705
+P4: 6bae
+P5: 64
+P7: 10.0.26100.8246
+P9: 
+Report Id: 6cfa6778-5da7-4f38-85e6-585a8c2f907f
+Event[493]
+  Date: 2026-04-24T12:05:53.0500000Z
+P1: AD2F1837.HPPrinterDriver_2603.1.4135.0_x64__v10z8vjag6ke6
+P2: praid:AD2F1837.HPPrinterDriver
+P4: 5bc61463
+P5: HpVibhutiUwp.dll
+P7: 69d641c0
+P9: 000000000015e9d7
+Report Id: 5baf4779-4cfe-4511-a050-45880718b195
+Event[494]
+  Date: 2026-04-24T12:05:52.9340000Z
+P1: drvinst.exe
+P2: 10.0.26100.8115
+P4: c18e
+P5: 0
+P7: 
+P9: 
+Report Id: 04b168c6-6c87-49f5-8f7b-ef4c28a349da
+Event[495]
+  Date: 2026-04-24T12:05:52.8220000Z
+P1: unknown
+P2: InitializeMediaCaptureFailed
+P4: 
+P5: 
+P7: 
+P9: 
+Report Id: 64d053e4-d5dc-4820-b55c-2c50fbabebc3
+Event[496]
+  Date: 2026-04-24T12:05:52.6900000Z
+P1: NVDisplay.Container.exe
+P2: 1.48.3660.2504
+P4: ntdll.dll
+P5: 10.0.26100.8246
+P7: c0000005
+P9: 
+Report Id: ed4c2e61-bbae-44d5-ad6b-f0c96a46768a
+Event[497]
+  Date: 2026-04-24T12:05:52.5640000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e
+Report Id: 176fec7e-56d6-42f0-81cb-651e024e414d
+Event[498]
+  Date: 2026-04-24T12:05:52.4330000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc
+Report Id: c956e554-eb7b-4d75-8122-359a4637bbcc
+Event[499]
+  Date: 2026-04-24T12:05:52.3220000Z
+P1: OneDrive.exe
+P2: 26.55.323.4
+P4: ucrtbase.dll
+P5: 10.0.26100.8246
+P7: 00000000000a4aee
+P9: 0000000000000007
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\memory.hdmp
+\\?\C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f
+Report Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba

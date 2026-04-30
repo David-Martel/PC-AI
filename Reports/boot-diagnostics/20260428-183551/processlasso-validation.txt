@@ -1,0 +1,23 @@
+
+Check                  Ok Detail
+-----                  -- ------
+GovernorRunning      True  17768
+GovernorResponding   True   True
+ProBalanceExclusions True     ok
+SmartTrimExclusions  True     ok
+LoggingFlags         True       
+RecentLogLines       True     80
+
+
+Ok                    : True
+GeneratedAt           : 2026-04-28T18:36:02.5470743-04:00
+ConfigPath            : C:\ProgramData\ProcessLasso\config\prolasso.ini
+LogPath               : C:\ProgramData\ProcessLasso\logs\processlasso.log
+LookbackMinutes       : 240
+Governor              : @{Running=True; Id=17768; Responding=True; StartTime=4/28/2026 5:08:58 PM; Path=C:\Program Files\Process Lasso\ProcessGovernor.exe}
+MissingOocExclusions  : {}
+MissingSmartTrimItems : {}
+Logging               : {@{Key=IncludeCommandLines; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessExecutions; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessTerminations; Expected=true; Actual=true; Ok=True}, @{Key=LogEfficiencyMode; Expected=true; Actual=true; Ok=True}…}
+RecentLogLines        : {"134218893503604807","2026-04-28 18:35:50","DTM-P1GEN7","david","63028","docker.exe","78","(0x4e) Process has terminated","Ran for 2 secs. Average CPU use 0.13%.","c:\program files\docker\docker\resources\bin\docker.exe","""C:\Program Files\Docker\Docker\resources\bin\docker.exe"" stats --all --no-trunc --no-stream --format ""{{ json .}}""", "134218893503726277","2026-04-28 18:35:50","DTM-P1GEN7","david","10400","pwsh.exe","110","(0x6e) Set Efficiency Mode","Efficiency Mode OFF","c:\program files\powershell\7\pwsh.exe","""C:\Program Files\PowerShell\7\pwsh.exe"" -Command ""[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;, pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File Tools\Collect-BootDiagnostics.ps1 -SinceMinutes 60 -PostRebootVerify""", "134218893503788261","2026-04-28 18:35:50","DTM-P1GEN7","david","8284","bash.exe","78","(0x4e) Process has terminated","Ran for 0 secs. Average CPU use 2.95%.","c:\program files\git\bin\..\usr\bin\bash.exe","""C:\Program Files\Git\bin\..\usr\bin\bash.exe"" -c ""source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''echo \""=== rules INDEX path validity ===\""; grep -oE ''\""''\""''C:\\Users\\david\\\.claude\\rules\\[a-zA-Z/_\\.-]+\.(yml|md|toml)''\""''\""'' .claude/rules/INDEX.md | sort -u | while read p; do …}
+Failures              : {}
+

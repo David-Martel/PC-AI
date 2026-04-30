@@ -1,0 +1,309 @@
+
+DiskNumber            : 5
+PartitionStyle        : GPT
+ProvisioningType      : Thin
+OperationalStatus     : Online
+HealthStatus          : Healthy
+BusType               : File Backed Virtual
+UniqueIdFormat        : FCPH Name
+OfflineReason         : 
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Disk.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:DI:\\?\scsi#disk&ven_msft&prod_virtual_disk#2&1f4adffe&0&000002#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : 60022480B34F7D6EE33CFB977E128EE4
+AdapterSerialNumber   : 
+AllocatedSize         : 549755813888
+BootFromDisk          : False
+FirmwareVersion       : 1.0 
+FriendlyName          : Msft Virtual Disk
+Guid                  : {04018d35-372f-4db0-848c-16e3704aae2f}
+IsBoot                : False
+IsClustered           : False
+IsHighlyAvailable     : False
+IsOffline             : False
+IsReadOnly            : False
+IsScaleOut            : False
+IsSystem              : False
+LargestFreeExtent     : 0
+Location              : T:\vm\shared-dev.vhdx
+LogicalSectorSize     : 512
+Manufacturer          : Msft    
+Model                 : Virtual Disk    
+Number                : 5
+NumberOfPartitions    : 2
+Path                  : \\?\scsi#disk&ven_msft&prod_virtual_disk#2&1f4adffe&0&000002#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}
+PhysicalSectorSize    : 4096
+SerialNumber          : 
+Signature             : 
+Size                  : 549755813888
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Disk
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+DiskNumber            : 6
+PartitionStyle        : GPT
+ProvisioningType      : Thin
+OperationalStatus     : Online
+HealthStatus          : Healthy
+BusType               : File Backed Virtual
+UniqueIdFormat        : FCPH Name
+OfflineReason         : 
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Disk.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:DI:\\?\scsi#disk&ven_msft&prod_virtual_disk#2&1f4adffe&0&000003#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : 600224806E307DD2FCD02643B19A5B35
+AdapterSerialNumber   : 
+AllocatedSize         : 17825792
+BootFromDisk          : False
+FirmwareVersion       : 1.0 
+FriendlyName          : Msft Virtual Disk
+Guid                  : {1c54bb48-30f8-49f4-b69e-98f376f81425}
+IsBoot                : False
+IsClustered           : False
+IsHighlyAvailable     : False
+IsOffline             : False
+IsReadOnly            : False
+IsScaleOut            : False
+IsSystem              : False
+LargestFreeExtent     : 274860081152
+Location              : T:\vm\share-ext4.vhdx
+LogicalSectorSize     : 512
+Manufacturer          : Msft    
+Model                 : Virtual Disk    
+Number                : 6
+NumberOfPartitions    : 1
+Path                  : \\?\scsi#disk&ven_msft&prod_virtual_disk#2&1f4adffe&0&000003#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}
+PhysicalSectorSize    : 4096
+SerialNumber          : 
+Signature             : 
+Size                  : 274877906944
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Disk
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+DiskNumber            : 7
+PartitionStyle        : GPT
+ProvisioningType      : Thin
+OperationalStatus     : Online
+HealthStatus          : Healthy
+BusType               : File Backed Virtual
+UniqueIdFormat        : FCPH Name
+OfflineReason         : 
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Disk.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:DI:\\?\scsi#disk&ven_msft&prod_virtual_disk#2&1f4adffe&0&000004#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : 600224804C2EBA7D26D4F767A21FF8F7
+AdapterSerialNumber   : 
+AllocatedSize         : 1342177280000
+BootFromDisk          : False
+FirmwareVersion       : 1.0 
+FriendlyName          : Msft Virtual Disk
+Guid                  : {3e956561-8c2a-451b-8b9c-df73ff1397ed}
+IsBoot                : False
+IsClustered           : False
+IsHighlyAvailable     : False
+IsOffline             : False
+IsReadOnly            : False
+IsScaleOut            : False
+IsSystem              : False
+LargestFreeExtent     : 0
+Location              : T:\vm\cloud-cache-disk.vhdx
+LogicalSectorSize     : 512
+Manufacturer          : Msft    
+Model                 : Virtual Disk    
+Number                : 7
+NumberOfPartitions    : 2
+Path                  : \\?\scsi#disk&ven_msft&prod_virtual_disk#2&1f4adffe&0&000004#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}
+PhysicalSectorSize    : 4096
+SerialNumber          : 
+Signature             : 
+Size                  : 1342177280000
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Disk
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+DiskNumber            : 0
+PartitionStyle        : GPT
+ProvisioningType      : Fixed
+OperationalStatus     : Online
+HealthStatus          : Healthy
+BusType               : NVMe
+UniqueIdFormat        : SCSI Name String
+OfflineReason         : 
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Disk.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:DI:\\?\scsi#disk&ven_nvme&prod_wd_black_sn850x#5&3a12b61f&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : eui.E8238FA6BF530001001B448B4DFD57F1
+AdapterSerialNumber   : 25166T800673        _2020
+AllocatedSize         : 4000787030016
+BootFromDisk          : False
+FirmwareVersion       : 624361WD
+FriendlyName          : WD_BLACK SN850X 4000GB
+Guid                  : {bca8cbb7-239f-413f-bbeb-fc25dfab66ad}
+IsBoot                : False
+IsClustered           : False
+IsHighlyAvailable     : False
+IsOffline             : False
+IsReadOnly            : False
+IsScaleOut            : False
+IsSystem              : False
+LargestFreeExtent     : 0
+Location              : PCI Slot 8 : Bus 4 : Device 0 : Function 0 : Adapter 0
+LogicalSectorSize     : 512
+Manufacturer          : 
+Model                 : WD_BLACK SN850X 4000GB
+Number                : 0
+NumberOfPartitions    : 2
+Path                  : \\?\scsi#disk&ven_nvme&prod_wd_black_sn850x#5&3a12b61f&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}
+PhysicalSectorSize    : 4096
+SerialNumber          : E823_8FA6_BF53_0001_001B_448B_4DFD_57F1.
+Signature             : 
+Size                  : 4000787030016
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Disk
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+DiskNumber            : 1
+PartitionStyle        : GPT
+ProvisioningType      : Fixed
+OperationalStatus     : Online
+HealthStatus          : Healthy
+BusType               : NVMe
+UniqueIdFormat        : SCSI Name String
+OfflineReason         : 
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Disk.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:DI:\\?\scsi#disk&ven_nvme&prod_wd_black_sn850x#5&d6d194&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : eui.E8238FA6BF530001001B448B476D1892
+AdapterSerialNumber   : 24035E801250        _2020
+AllocatedSize         : 4000784932864
+BootFromDisk          : True
+FirmwareVersion       : 624361WD
+FriendlyName          : WD_BLACK SN850X 4000GB
+Guid                  : {5ed3557c-26e8-4896-8c75-0b8f585a335e}
+IsBoot                : True
+IsClustered           : False
+IsHighlyAvailable     : False
+IsOffline             : False
+IsReadOnly            : False
+IsScaleOut            : False
+IsSystem              : True
+LargestFreeExtent     : 2097152
+Location              : PCI Slot 10 : Bus 5 : Device 0 : Function 0 : Adapter 1
+LogicalSectorSize     : 512
+Manufacturer          : 
+Model                 : WD_BLACK SN850X 4000GB
+Number                : 1
+NumberOfPartitions    : 4
+Path                  : \\?\scsi#disk&ven_nvme&prod_wd_black_sn850x#5&d6d194&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}
+PhysicalSectorSize    : 4096
+SerialNumber          : E823_8FA6_BF53_0001_001B_448B_476D_1892.
+Signature             : 
+Size                  : 4000787030016
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Disk
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+DiskNumber            : 2
+PartitionStyle        : RAW
+ProvisioningType      : Fixed
+OperationalStatus     : No Media
+HealthStatus          : Healthy
+BusType               : USB
+UniqueIdFormat        : Vendor Specific
+OfflineReason         : 
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Disk.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:DI:\\?\usbstor#disk&ven_generic&prod_massstorageclass&rev_2959#000000002959&0#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : USBSTOR\DISK&VEN_GENERIC&PROD_MASSSTORAGECLASS&REV_2959\000000002959&0:dtm-p1gen7
+AdapterSerialNumber   : 
+AllocatedSize         : 0
+BootFromDisk          : False
+FirmwareVersion       : 2959
+FriendlyName          : Generic MassStorageClass
+Guid                  : 
+IsBoot                : False
+IsClustered           : False
+IsHighlyAvailable     : False
+IsOffline             : True
+IsReadOnly            : False
+IsScaleOut            : False
+IsSystem              : False
+LargestFreeExtent     : 0
+Location              : Integrated : Bus 0 : Device 0 : Function 2 : Adapter 0 : Port 0
+LogicalSectorSize     : 0
+Manufacturer          : Generic 
+Model                 : MassStorageClass
+Number                : 2
+NumberOfPartitions    : 0
+Path                  : \\?\usbstor#disk&ven_generic&prod_massstorageclass&rev_2959#000000002959&0#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}
+PhysicalSectorSize    : 0
+SerialNumber          : 000000002959
+Signature             : 
+Size                  : 0
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Disk
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+DiskNumber            : 3
+PartitionStyle        : RAW
+ProvisioningType      : Fixed
+OperationalStatus     : No Media
+HealthStatus          : Healthy
+BusType               : USB
+UniqueIdFormat        : Vendor Specific
+OfflineReason         : 
+ObjectId              : {1}\\DTM-P1GEN7\root/Microsoft/Windows/Storage/Providers_v2\WSP_Disk.ObjectId="{ce7ffea5-30da-11ef-8015-806e6f6e6963}:DI:\\?\usbstor#disk&ven_generic&prod_massstorageclass&rev_2959#000000002959&1#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : USBSTOR\DISK&VEN_GENERIC&PROD_MASSSTORAGECLASS&REV_2959\000000002959&1:dtm-p1gen7
+AdapterSerialNumber   : 
+AllocatedSize         : 0
+BootFromDisk          : False
+FirmwareVersion       : 2959
+FriendlyName          : Generic MassStorageClass
+Guid                  : 
+IsBoot                : False
+IsClustered           : False
+IsHighlyAvailable     : False
+IsOffline             : True
+IsReadOnly            : False
+IsScaleOut            : False
+IsSystem              : False
+LargestFreeExtent     : 0
+Location              : Integrated : Bus 0 : Device 0 : Function 2 : Adapter 0 : Port 0
+LogicalSectorSize     : 0
+Manufacturer          : Generic 
+Model                 : MassStorageClass
+Number                : 3
+NumberOfPartitions    : 0
+Path                  : \\?\usbstor#disk&ven_generic&prod_massstorageclass&rev_2959#000000002959&1#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}
+PhysicalSectorSize    : 0
+SerialNumber          : 000000002959
+Signature             : 
+Size                  : 0
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Disk
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+

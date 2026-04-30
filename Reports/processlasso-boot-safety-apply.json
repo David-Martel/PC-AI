@@ -1,0 +1,165 @@
+{
+  "ConfigPath": "C:\\ProgramData\\ProcessLasso\\config\\prolasso.ini",
+  "BackupPath": "C:\\ProgramData\\ProcessLasso\\config\\prolasso.ini.bak-20260428-183044-boot-safety",
+  "DryRun": false,
+  "Changed": true,
+  "GeneratedAt": "2026-04-28T18:30:44.8464312-04:00",
+  "ExpectedExclusions": [
+    "audiodg.exe",
+    "bitsumsessionagent.exe",
+    "ctfmon.exe",
+    "dwm.exe",
+    "explorer.exe",
+    "fontdrvhost.exe",
+    "Lenovo.Modern.ImController.exe",
+    "LenovoAccessoriesAndDisplayControlCenterService.exe",
+    "LenovoGoCentral1.exe",
+    "LenovoVantageService.exe",
+    "LenovoVantage-(GenericMessagingAddin).exe",
+    "LenovoVantage-(LenovoServiceBridgeAddin).exe",
+    "LenovoVantage-(VantageCoreAddin).exe",
+    "LockApp.exe",
+    "RuntimeBroker.exe",
+    "SearchHost.exe",
+    "ShellExperienceHost.exe",
+    "sihost.exe",
+    "StartMenuExperienceHost.exe",
+    "SynRpcServer.exe",
+    "TabTip.exe",
+    "taskhostw.exe",
+    "TextInputHost.exe",
+    "UserOOBEBroker.exe",
+    "winlogon.exe",
+    "WinStore.App.exe",
+    "powershell.exe",
+    "pwsh.exe",
+    "rclone.exe",
+    "wsl.exe",
+    "wslhost.exe",
+    "vmmemWSL",
+    "Docker Desktop.exe",
+    "GoogleDriveFS.exe",
+    "OneDrive*",
+    "OneDrive.exe",
+    "OneDrive.Sync.Service.exe",
+    "FileSyncHelper.exe",
+    "ProcessGovernor.exe",
+    "ProcessLasso.exe",
+    "ProcessLassoLauncher.exe",
+    "ProcessLassoService.exe"
+  ],
+  "LoggingFlags": {
+    "IncludeCommandLines": "true",
+    "LogProcessExecutions": "true",
+    "LogProcessTerminations": "true",
+    "LogEfficiencyMode": "true",
+    "LogCPUSets": "true",
+    "LogDefaultPriorityAdjustments": "true",
+    "LogDefaultAffinityAdjustments": "true",
+    "LogProBalanceBegin": "true",
+    "LogProBalanceEnd": "true",
+    "LogPowerProfileChanges": "true",
+    "LogSmartTrim": "true",
+    "LogCPULimiter": "true"
+  },
+  "VerificationChanges": [
+    {
+      "Section": "OutOfControlProcessRestraint",
+      "Key": "OocExclusions",
+      "Changed": true,
+      "Before": "audiodg.exe,bitsumsessionagent.exe,dwm.exe,explorer.exe,setup.exe,ctfmon.exe,fontdrvhost.exe,Lenovo.Modern.ImController.exe,LenovoAccessoriesAndDisplayControlCenterService.exe,LenovoGoCentral1.exe,LenovoVantageService.exe,LenovoVantage-(GenericMessagingAddin).exe,LenovoVantage-(LenovoServiceBridgeAddin).exe,LenovoVantage-(VantageCoreAddin).exe,LockApp.exe,RuntimeBroker.exe,SearchHost.exe,ShellExperienceHost.exe,sihost.exe,StartMenuExperienceHost.exe,SynRpcServer.exe,TabTip.exe,taskhostw.exe,TextInputHost.exe,UserOOBEBroker.exe,winlogon.exe,WinStore.App.exe,OneDrive.exe,OneDrive.Sync.Service.exe,FileSyncHelper.exe",
+      "After": "audiodg.exe,bitsumsessionagent.exe,dwm.exe,explorer.exe,setup.exe,ctfmon.exe,fontdrvhost.exe,Lenovo.Modern.ImController.exe,LenovoAccessoriesAndDisplayControlCenterService.exe,LenovoGoCentral1.exe,LenovoVantageService.exe,LenovoVantage-(GenericMessagingAddin).exe,LenovoVantage-(LenovoServiceBridgeAddin).exe,LenovoVantage-(VantageCoreAddin).exe,LockApp.exe,RuntimeBroker.exe,SearchHost.exe,ShellExperienceHost.exe,sihost.exe,StartMenuExperienceHost.exe,SynRpcServer.exe,TabTip.exe,taskhostw.exe,TextInputHost.exe,UserOOBEBroker.exe,winlogon.exe,WinStore.App.exe,OneDrive.exe,OneDrive.Sync.Service.exe,FileSyncHelper.exe,powershell.exe,pwsh.exe,rclone.exe,wsl.exe,wslhost.exe,vmmemWSL,Docker Desktop.exe,GoogleDriveFS.exe,OneDrive*,ProcessGovernor.exe,ProcessLasso.exe,ProcessLassoLauncher.exe,ProcessLassoService.exe"
+    },
+    {
+      "Section": "MemoryManagement",
+      "Key": "SmartTrimExclusions",
+      "Changed": true,
+      "Before": "bitwarden.exe,brave.exe,chrome.exe,codex.exe,pwsh.exe,signal.exe,windowsterminal.exe,zoom.exe,audiodg.exe,bitsumsessionagent.exe,ctfmon.exe,dwm.exe,explorer.exe,fontdrvhost.exe,Lenovo.Modern.ImController.exe,LenovoAccessoriesAndDisplayControlCenterService.exe,LenovoGoCentral1.exe,LenovoVantageService.exe,LenovoVantage-(GenericMessagingAddin).exe,LenovoVantage-(LenovoServiceBridgeAddin).exe,LenovoVantage-(VantageCoreAddin).exe,LockApp.exe,RuntimeBroker.exe,SearchHost.exe,ShellExperienceHost.exe,sihost.exe,StartMenuExperienceHost.exe,SynRpcServer.exe,TabTip.exe,taskhostw.exe,TextInputHost.exe,UserOOBEBroker.exe,winlogon.exe,WinStore.App.exe,OneDrive.exe,OneDrive.Sync.Service.exe,FileSyncHelper.exe,chatgpt.exe,claude.exe,code.exe",
+      "After": "bitwarden.exe,brave.exe,chrome.exe,codex.exe,pwsh.exe,signal.exe,windowsterminal.exe,zoom.exe,audiodg.exe,bitsumsessionagent.exe,ctfmon.exe,dwm.exe,explorer.exe,fontdrvhost.exe,Lenovo.Modern.ImController.exe,LenovoAccessoriesAndDisplayControlCenterService.exe,LenovoGoCentral1.exe,LenovoVantageService.exe,LenovoVantage-(GenericMessagingAddin).exe,LenovoVantage-(LenovoServiceBridgeAddin).exe,LenovoVantage-(VantageCoreAddin).exe,LockApp.exe,RuntimeBroker.exe,SearchHost.exe,ShellExperienceHost.exe,sihost.exe,StartMenuExperienceHost.exe,SynRpcServer.exe,TabTip.exe,taskhostw.exe,TextInputHost.exe,UserOOBEBroker.exe,winlogon.exe,WinStore.App.exe,OneDrive.exe,OneDrive.Sync.Service.exe,FileSyncHelper.exe,chatgpt.exe,claude.exe,code.exe,powershell.exe,rclone.exe,wsl.exe,wslhost.exe,vmmemWSL,Docker Desktop.exe,GoogleDriveFS.exe,OneDrive*,ProcessGovernor.exe,ProcessLasso.exe,ProcessLassoLauncher.exe,ProcessLassoService.exe"
+    },
+    {
+      "Section": "Logging",
+      "Key": "IncludeCommandLines",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogProcessExecutions",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogProcessTerminations",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogEfficiencyMode",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogCPUSets",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogDefaultPriorityAdjustments",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogDefaultAffinityAdjustments",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogProBalanceBegin",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogProBalanceEnd",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogPowerProfileChanges",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogSmartTrim",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    },
+    {
+      "Section": "Logging",
+      "Key": "LogCPULimiter",
+      "Changed": false,
+      "Before": "true",
+      "After": "true"
+    }
+  ]
+}

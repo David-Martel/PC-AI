@@ -1,0 +1,250 @@
+
+
+================================================================================
+
+Diagnostic Report
+
+UtcNow: 2026-04-28T20:22:29.0000000Z
+
+
+
+BytesDownloaded = 0
+
+BytesToDownload = 0
+
+BytesToUpload = 0
+
+BytesUploaded = 0
+
+ChangesToProcess = 0
+
+ChangesToSend = 0
+
+DownloadSpeedBytesPerSec = 0
+
+EstTimeRemainingInSec = 0
+
+FilesToDownload = 0
+
+FilesToUpload = 0
+
+OfficeSyncActive = 0
+
+OfficeSyncEnabled = 0
+
+SymLinkCount = 2
+
+UploadSpeedBytesPerSec = 0
+
+activeHydrations = 0
+
+appId = 77
+
+bytesAvailableOnDiskDrive = 848964014080
+
+cid = 8d77a48e98fdb6dc
+
+clientType = Win32
+
+clientVersion = 26.062.0402.0002
+
+conflictsFailed = 0
+
+conflictsHandled = 0
+
+cpuPercentage = -1
+
+cpuTimeSecs = 702
+
+currentPrivateWorkingSetKB = 565920
+
+dailyCogsImpact = v1|EnumChanges:102,DownloadBlock:1,ProvisionFolder:14,GetQuotaInfo:36,GetClientPolicy:42,GetCanonicalFolderInfo:8,CreateSubscription:2|u:0|d:1306|dur:604801
+
+datVersion = Deprecated
+
+dehydrations = 0
+
+device = *****
+
+deviceID = cbf7fb38-d8d4-91fa-a3ca-8de29cbf4a21
+
+diskFlushOpsDelta = -1
+
+diskReadBytesDelta = -1
+
+diskReadOpsDelta = -1
+
+diskWriteBytesDelta = -1
+
+diskWriteOpsDelta = -1
+
+driveChangesToSend = 0
+
+driveSentChanges = 0
+
+drivesChangeEnumPending = 0
+
+drivesConnected = 1
+
+drivesScanRequested = 1
+
+drivesWaitingForInitialSync = 0
+
+env = Production
+
+errorFromGetDiskSizeAPICall = 0
+
+failedBytesDownloadedTotal = 0
+
+failedBytesUploadedTotal = 0
+
+files = 148425
+
+filesToDownload = 0
+
+flavor = ship
+
+folders = 16131
+
+fullScanCount = 19
+
+instanceID = d2dc50eb-9215-464c-b65a-4d8696a3252c
+
+invalidatedScanCount = 19
+
+isMsftInternal = 0
+
+numAbortedMissingServerChanges = 0
+
+numAbortedNoLongerIdle = 0
+
+numAbortedReSyncNeeded = 0
+
+numAbortedUnexpectedHttpStatus = 0
+
+numAbortedWatcherEtagDifference = 0
+
+numDeleteConvToUnmap = 0
+
+numDownloadErrorsReported = 0
+
+numDrives = 1
+
+numDrivesNeedingEventualScan = 0
+
+numExternalFileUploads = 0
+
+numFileDownloads = 0
+
+numFileFailedDownloads = 0
+
+numFileFailedUploads = 0
+
+numFileInWarning = 0
+
+numFileUploads = 0
+
+numHashMismatchErrorsReported = 0
+
+numLcChangeFile = 0
+
+numLcChangeFolder = 0
+
+numLcCreateFile = 0
+
+numLcCreateFolder = 0
+
+numLcDeleteFile = 0
+
+numLcDeleteFolder = 0
+
+numLcMoveFile = 0
+
+numLcMoveFolder = 0
+
+numLocalChanges = 248
+
+numProcessors = 22
+
+numRealizerErrorsReported = 0
+
+numResyncs = 0
+
+numSelSyncDrives = 0
+
+numUploadErrorsReported = 0
+
+officeVersion = 16.0.19929.20090
+
+officeVersionDot = 0
+
+originator = be08a276-e3a7-4234-80bd-7c79beb975cb
+
+passiveHydrations = 0
+
+pid = 33844
+
+placeholdersEnabled = 1
+
+preciseScanCount = 0
+
+privateWorkingSetKB = 565920
+
+privateWorkingSetKBIncreaseDuringSyncVerification = 0
+
+processPrivateCommitKB = -1
+
+processVirtualMemoryUsedKB = -1
+
+scanState = 1
+
+scanStateStallDetected = 0
+
+seOfficeFiles = 0
+
+seOfficeFilesToDownload = 0
+
+seOfficeFilesToUpload = 0
+
+successfulBytesDownloadedTotal = 0
+
+successfulBytesUploadedTotal = 0
+
+syncProgressState = 65536
+
+syncStallDetected = 0
+
+sync_progress_id = e77fe735-a462-4618-a19a-55b7f593b814
+
+threadCount = 71
+
+timeUtc = 2026-04-28T20:22:29.0000000Z
+
+totalDoScanWorkCpuTimeInMs = 5960355
+
+totalDuration = -1
+
+totalInvalidatedScanCpuTimeInMs = 99612417835179177
+
+totalProcessCpuTime = -1
+
+totalScanCpuTimeInMs = 0
+
+totalSizeOfDiskDrive = 3991508701184
+
+totalSubScopes = 2
+
+uptimeSecs = 6147
+
+userOverriddenConcurrentUploads = 0
+
+username = *****
+
+vaultState = 2
+
+version = 505
+
+wasFileDBReset = 0
+
+
+

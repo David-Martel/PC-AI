@@ -1,0 +1,173 @@
+{
+  "Ok": true,
+  "GeneratedAt": "2026-04-28T18:35:21.7048620-04:00",
+  "ConfigPath": "C:\\ProgramData\\ProcessLasso\\config\\prolasso.ini",
+  "LogPath": "C:\\ProgramData\\ProcessLasso\\logs\\processlasso.log",
+  "LookbackMinutes": 240,
+  "Governor": {
+    "Running": true,
+    "Id": 17768,
+    "Responding": true,
+    "StartTime": "2026-04-28T17:08:58.6657983-04:00",
+    "Path": "C:\\Program Files\\Process Lasso\\ProcessGovernor.exe"
+  },
+  "MissingOocExclusions": [],
+  "MissingSmartTrimItems": [],
+  "Logging": [
+    {
+      "Key": "IncludeCommandLines",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogProcessExecutions",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogProcessTerminations",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogEfficiencyMode",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogCPUSets",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogDefaultPriorityAdjustments",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogDefaultAffinityAdjustments",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogProBalanceBegin",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogProBalanceEnd",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogPowerProfileChanges",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogSmartTrim",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogCPULimiter",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    }
+  ],
+  "RecentLogLines": [
+    "\"134218893136391637\",\"2026-04-28 18:35:13\",\"DTM-P1GEN7\",\"david\",\"64176\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (52352)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Invoke-Pester -Path Documents\\PowerShell\\Modules\\CargoTools\\Tests\\Integration.Tests.ps1\\,Documents\\PowerShell\\Modules\\CargoTools\\Tests\\Wrappers.Tests.ps1\\,OneDrive\\Documents\\PowerShell\\Modules\\CargoTools\\Tests\\Integration.Tests.ps1 -Output Detailed\"\"\"",
+    "\"134218893136401663\",\"2026-04-28 18:35:13\",\"DTM-P1GEN7\",\"david\",\"26856\",\"msiexec.exe\",\"1\",\"(0x1) Process launched\",\"Parent msiexec.exe (21824)\",\"C:\\Windows\\System32\\MsiExec.exe\",\"C:\\Windows\\System32\\MsiExec.exe -Embedding C94AF0639F5FC0C906E5FA7C657AB863\"",
+    "\"134218893136486929\",\"2026-04-28 18:35:13\",\"DTM-P1GEN7\",\"david\",\"19216\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\rust-analyzer-wrapper.ps1 --help\"",
+    "\"134218893136757486\",\"2026-04-28 18:35:13\",\"DTM-P1GEN7\",\"david\",\"52352\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Invoke-Pester -Path Documents\\PowerShell\\Modules\\CargoTools\\Tests\\Integration.Tests.ps1\\,Documents\\PowerShell\\Modules\\CargoTools\\Tests\\Wrappers.Tests.ps1\\,OneDrive\\Documents\\PowerShell\\Modules\\CargoTools\\Tests\\Integration.Tests.ps1 -Output Detailed\"\"\"",
+    "\"134218893136777479\",\"2026-04-28 18:35:13\",\"DTM-P1GEN7\",\"david\",\"64176\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Invoke-Pester -Path Documents\\PowerShell\\Modules\\CargoTools\\Tests\\Integration.Tests.ps1\\,Documents\\PowerShell\\Modules\\CargoTools\\Tests\\Wrappers.Tests.ps1\\,OneDrive\\Documents\\PowerShell\\Modules\\CargoTools\\Tests\\Integration.Tests.ps1 -Output Detailed\"\"\"",
+    "\"134218893136992808\",\"2026-04-28 18:35:13\",\"DTM-P1GEN7\",\"david\",\"66492\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 1 secs. Average CPU use 2.46%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\rust-analyzer.ps1 --help\"",
+    "\"134218893136992808\",\"2026-04-28 18:35:13\",\"DTM-P1GEN7\",\"david\",\"70392\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "rg -n \\\"\"4226|4300|Module version is 0\\.8\\.0|ModuleVersion = ''0\\.8\\.0''|current: 0\\.8\\.0\\\"\" .claude\\hooks\\rust-hooks .claude\\skills .claude\\templates .claude\\shared-utils .claude\\docs\\reference .agents .codex\\AGENTS.md .codex\\SKILLS.md .codex\\tools\\context-kit .gemini\\GEMINI.md Documents\\PowerShell\\Modules\\CargoTools OneDrive\\Documents\\PowerShell\\Modules\\CargoTools AGENTS.md -g ''!archive/**'' -g ''!plans/**'' -g ''!*.jsonl'' -g ''!CHANGELOG.md'' -g ''!*.lock'' -g ''!*.metadata.json''\"\"\"",
+    "\"134218893136992808\",\"2026-04-28 18:35:13\",\"DTM-P1GEN7\",\"david\",\"58016\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "rg -n \"\"\"\"4226|4300|Module version is 0\\.8\\.0|ModuleVersion = ''0\\.8\\.0''|current: 0\\.8\\.0\"\"\"\" .claude\\hooks\\rust-hooks .claude\\skills .claude\\templates .claude\\shared-utils .claude\\docs\\reference .agents .codex\\AGENTS.md .codex\\SKILLS.md .codex\\tools\\context-kit .gemini\\GEMINI.md Documents\\PowerShell\\Modules\\CargoTools OneDrive\\Documents\\PowerShell\\Modules\\CargoTools AGENTS.md -g ''!archive/**'' -g ''!plans/**'' -g ''!*.jsonl'' -g ''!CHANGELOG.md'' -g ''!*.lock'' -g ''!*.metadata.json''\"\"\"",
+    "\"134218893147297137\",\"2026-04-28 18:35:14\",\"DTM-P1GEN7\",\"david\",\"70208\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (11864)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo.ps1 --list-wrappers\"",
+    "\"134218893147309852\",\"2026-04-28 18:35:14\",\"DTM-P1GEN7\",\"david\",\"71572\",\"git.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (27076)\",\"C:\\Program Files\\Git\\cmd\\git.exe\",\"\"\"git\"\" -C C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools hash-object -- Public\\Invoke-CargoWrapper.ps1\"",
+    "\"134218893147315563\",\"2026-04-28 18:35:14\",\"DTM-P1GEN7\",\"david\",\"43908\",\"git.exe\",\"1\",\"(0x1) Process launched\",\"Parent git.exe (71572)\",\"C:\\Program Files\\Git\\mingw64\\bin\\git.exe\",\"git.exe -C C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools hash-object -- Public\\Invoke-CargoWrapper.ps1\"",
+    "\"134218893147411526\",\"2026-04-28 18:35:14\",\"DTM-P1GEN7\",\"david\",\"19216\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 2 secs. Average CPU use 2.58%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\rust-analyzer-wrapper.ps1 --help\"",
+    "\"134218893147710659\",\"2026-04-28 18:35:14\",\"DTM-P1GEN7\",\"david\",\"43908\",\"git.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 0 secs. Average CPU use 8.25%.\",\"c:\\program files\\git\\mingw64\\bin\\git.exe\",\"git.exe -C C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools hash-object -- Public\\Invoke-CargoWrapper.ps1\"",
+    "\"134218893147819015\",\"2026-04-28 18:35:14\",\"DTM-P1GEN7\",\"david\",\"70392\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 1 secs. Average CPU use 0.03%.\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "rg -n \\\"\"4226|4300|Module version is 0\\.8\\.0|ModuleVersion = ''0\\.8\\.0''|current: 0\\.8\\.0\\\"\" .claude\\hooks\\rust-hooks .claude\\skills .claude\\templates .claude\\shared-utils .claude\\docs\\reference .agents .codex\\AGENTS.md .codex\\SKILLS.md .codex\\tools\\context-kit .gemini\\GEMINI.md Documents\\PowerShell\\Modules\\CargoTools OneDrive\\Documents\\PowerShell\\Modules\\CargoTools AGENTS.md -g ''!archive/**'' -g ''!plans/**'' -g ''!*.jsonl'' -g ''!CHANGELOG.md'' -g ''!*.lock'' -g ''!*.metadata.json''\"\"\"",
+    "\"134218893147819015\",\"2026-04-28 18:35:14\",\"DTM-P1GEN7\",\"david\",\"58016\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 1 secs. Average CPU use 4.58%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "rg -n \"\"\"\"4226|4300|Module version is 0\\.8\\.0|ModuleVersion = ''0\\.8\\.0''|current: 0\\.8\\.0\"\"\"\" .claude\\hooks\\rust-hooks .claude\\skills .claude\\templates .claude\\shared-utils .claude\\docs\\reference .agents .codex\\AGENTS.md .codex\\SKILLS.md .codex\\tools\\context-kit .gemini\\GEMINI.md Documents\\PowerShell\\Modules\\CargoTools OneDrive\\Documents\\PowerShell\\Modules\\CargoTools AGENTS.md -g ''!archive/**'' -g ''!plans/**'' -g ''!*.jsonl'' -g ''!CHANGELOG.md'' -g ''!*.lock'' -g ''!*.metadata.json''\"\"\"",
+    "\"134218893147824626\",\"2026-04-28 18:35:14\",\"DTM-P1GEN7\",\"david\",\"70208\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo.ps1 --list-wrappers\"",
+    "\"134218893147824626\",\"2026-04-28 18:35:14\",\"DTM-P1GEN7\",\"david\",\"71572\",\"git.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 0 secs. Average CPU use 1.20%.\",\"c:\\program files\\git\\cmd\\git.exe\",\"\"\"git\"\" -C C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools hash-object -- Public\\Invoke-CargoWrapper.ps1\"",
+    "\"134218893158101980\",\"2026-04-28 18:35:15\",\"DTM-P1GEN7\",\"david\",\"69712\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (11864)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-wrapper.ps1 --list-wrappers\"",
+    "\"134218893158488249\",\"2026-04-28 18:35:15\",\"DTM-P1GEN7\",\"david\",\"69712\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-wrapper.ps1 --list-wrappers\"",
+    "\"134218893158638391\",\"2026-04-28 18:35:15\",\"DTM-P1GEN7\",\"david\",\"70208\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 1 secs. Average CPU use 5.69%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo.ps1 --list-wrappers\"",
+    "\"134218893168930605\",\"2026-04-28 18:35:16\",\"DTM-P1GEN7\",\"david\",\"66084\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (11864)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-wsl.ps1 --list-wrappers\"",
+    "\"134218893169461317\",\"2026-04-28 18:35:16\",\"DTM-P1GEN7\",\"david\",\"69712\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 0 secs. Average CPU use 5.45%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-wrapper.ps1 --list-wrappers\"",
+    "\"134218893169571314\",\"2026-04-28 18:35:16\",\"DTM-P1GEN7\",\"david\",\"66084\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-wsl.ps1 --list-wrappers\"",
+    "\"134218893179857358\",\"2026-04-28 18:35:17\",\"DTM-P1GEN7\",\"david\",\"19792\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (11864)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-docker.ps1 --list-wrappers\"",
+    "\"134218893179862799\",\"2026-04-28 18:35:17\",\"DTM-P1GEN7\",\"david\",\"63728\",\"docker.exe\",\"1\",\"(0x1) Process launched\",\"Parent docker desktop.exe (27288)\",\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\",\"\"\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\"\" stats --all --no-trunc --no-stream --format \"\"{{ json .}}\"\"\"",
+    "\"134218893179868387\",\"2026-04-28 18:35:17\",\"DTM-P1GEN7\",\"david\",\"60648\",\"conhost.exe\",\"1\",\"(0x1) Process launched\",\"Parent docker.exe (63728)\",\"C:\\WINDOWS\\system32\\conhost.exe\",\"\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4\"",
+    "\"134218893179873688\",\"2026-04-28 18:35:17\",\"DTM-P1GEN7\",\"david\",\"68776\",\"backgroundtaskhost.exe\",\"1\",\"(0x1) Process launched\",\"Parent svchost.exe (dcomlaunch -p) (2064)\",\"C:\\WINDOWS\\system32\\backgroundTaskHost.exe\",\"\"\"C:\\WINDOWS\\system32\\backgroundTaskHost.exe\"\" -ServerName:App.AppXmtcan0h2tfbfy7k9kn8hbxb6dmzz1zh0.mca\"",
+    "\"134218893180334032\",\"2026-04-28 18:35:18\",\"DTM-P1GEN7\",\"david\",\"66084\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 0 secs. Average CPU use 6.23%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-wsl.ps1 --list-wrappers\"",
+    "\"134218893180374178\",\"2026-04-28 18:35:18\",\"DTM-P1GEN7\",\"david\",\"19792\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-docker.ps1 --list-wrappers\"",
+    "\"134218893190687869\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"47352\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (11864)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-macos.ps1 --list-wrappers\"",
+    "\"134218893190700326\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"63584\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-ScheduledTask -TaskName AutoMount_VHDX_* | Select-Object TaskName\\,TaskPath\\,State\\,@{Name=''Execute'';Expression={$_.Actions[0].Execute}}\\,@{Name=''Arguments'';Expression={$_.Actions[0].Arguments}}\\,@{Name=''Delay'';Expression={$_.Triggers[0].Delay}}\\,@{Name=''MultipleInstances'';Expression={$_.Settings.MultipleInstances}}\\,@{Name=''ExecutionTimeLimit'';Expression={$_.Settings.ExecutionTimeLimit}} | Format-List\"\"\"",
+    "\"134218893190711603\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"69316\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-ScheduledTask -TaskName UnifiUdmDriveStackStartup | Select-Object TaskName\\,TaskPath\\,State\\,@{Name=''Execute'';Expression={$_.Actions[0].Execute}}\\,@{Name=''Arguments'';Expression={$_.Actions[0].Arguments}}\\,@{Name=''WorkingDirectory'';Expression={$_.Actions[0].WorkingDirectory}}\\,@{Name=''Delay'';Expression={$_.Triggers[0].Delay}}\\,@{Name=''MultipleInstances'';Expression={$_.Settings.MultipleInstances}}\\,@{Name=''ExecutionTimeLimit'';Expression={$_.Settings.ExecutionTimeLimit}} | Format-List\"\"\"",
+    "\"134218893190717349\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"68604\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (63584)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-ScheduledTask -TaskName AutoMount_VHDX_* | Select-Object TaskName\\,TaskPath\\,State\\,@{Name=''Execute'';Expression={`$_.Actions[0].Execute}}\\,@{Name=''Arguments'';Expression={`$_.Actions[0].Arguments}}\\,@{Name=''Delay'';Expression={`$_.Triggers[0].Delay}}\\,@{Name=''MultipleInstances'';Expression={`$_.Settings.MultipleInstances}}\\,@{Name=''ExecutionTimeLimit'';Expression={`$_.Settings.ExecutionTimeLimit}} | Format-List\"\"\"",
+    "\"134218893190723708\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"58644\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-ProcessLassoBootSafety.ps1 -ReportPath Reports\\processlasso-boot-safety-post-register.json | Format-List\"\"\"",
+    "\"134218893190738949\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"43516\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (69316)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-ScheduledTask -TaskName UnifiUdmDriveStackStartup | Select-Object TaskName\\,TaskPath\\,State\\,@{Name=''Execute'';Expression={`$_.Actions[0].Execute}}\\,@{Name=''Arguments'';Expression={`$_.Actions[0].Arguments}}\\,@{Name=''WorkingDirectory'';Expression={`$_.Actions[0].WorkingDirectory}}\\,@{Name=''Delay'';Expression={`$_.Triggers[0].Delay}}\\,@{Name=''MultipleInstances'';Expression={`$_.Settings.MultipleInstances}}\\,@{Name=''ExecutionTimeLimit'';Expression={`$_.Settings.ExecutionTimeLimit}} | Format-List\"\"\"",
+    "\"134218893190744534\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"17400\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-BootMountHealth.ps1 -SinceMinutes 60 -OutputJson Reports\\boot-mount-health-post-register.json | Format-List\"\"\"",
+    "\"134218893190756840\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"71232\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (58644)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-ProcessLassoBootSafety.ps1 -ReportPath Reports\\processlasso-boot-safety-post-register.json | Format-List\"\"\"",
+    "\"134218893190765500\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"4580\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -OutputJson Reports\\sync-provider-health-post-register.json | Format-List\"\"\"",
+    "\"134218893190771160\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"25244\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (17400)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-BootMountHealth.ps1 -SinceMinutes 60 -OutputJson Reports\\boot-mount-health-post-register.json | Format-List\"\"\"",
+    "\"134218893190777997\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"63520\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (4580)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -OutputJson Reports\\sync-provider-health-post-register.json | Format-List\"\"\"",
+    "\"134218893190796878\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"69316\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-ScheduledTask -TaskName UnifiUdmDriveStackStartup | Select-Object TaskName\\,TaskPath\\,State\\,@{Name=''Execute'';Expression={$_.Actions[0].Execute}}\\,@{Name=''Arguments'';Expression={$_.Actions[0].Arguments}}\\,@{Name=''WorkingDirectory'';Expression={$_.Actions[0].WorkingDirectory}}\\,@{Name=''Delay'';Expression={$_.Triggers[0].Delay}}\\,@{Name=''MultipleInstances'';Expression={$_.Settings.MultipleInstances}}\\,@{Name=''ExecutionTimeLimit'';Expression={$_.Settings.ExecutionTimeLimit}} | Format-List\"\"\"",
+    "\"134218893190832263\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"58644\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-ProcessLassoBootSafety.ps1 -ReportPath Reports\\processlasso-boot-safety-post-register.json | Format-List\"\"\"",
+    "\"134218893190936974\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"47352\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-macos.ps1 --list-wrappers\"",
+    "\"134218893190979752\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"68604\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-ScheduledTask -TaskName AutoMount_VHDX_* | Select-Object TaskName\\,TaskPath\\,State\\,@{Name=''Execute'';Expression={`$_.Actions[0].Execute}}\\,@{Name=''Arguments'';Expression={`$_.Actions[0].Arguments}}\\,@{Name=''Delay'';Expression={`$_.Triggers[0].Delay}}\\,@{Name=''MultipleInstances'';Expression={`$_.Settings.MultipleInstances}}\\,@{Name=''ExecutionTimeLimit'';Expression={`$_.Settings.ExecutionTimeLimit}} | Format-List\"\"\"",
+    "\"134218893191015533\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"63584\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-ScheduledTask -TaskName AutoMount_VHDX_* | Select-Object TaskName\\,TaskPath\\,State\\,@{Name=''Execute'';Expression={$_.Actions[0].Execute}}\\,@{Name=''Arguments'';Expression={$_.Actions[0].Arguments}}\\,@{Name=''Delay'';Expression={$_.Triggers[0].Delay}}\\,@{Name=''MultipleInstances'';Expression={$_.Settings.MultipleInstances}}\\,@{Name=''ExecutionTimeLimit'';Expression={$_.Settings.ExecutionTimeLimit}} | Format-List\"\"\"",
+    "\"134218893191057617\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"17400\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-BootMountHealth.ps1 -SinceMinutes 60 -OutputJson Reports\\boot-mount-health-post-register.json | Format-List\"\"\"",
+    "\"134218893191275957\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"63520\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -OutputJson Reports\\sync-provider-health-post-register.json | Format-List\"\"\"",
+    "\"134218893191311156\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"19792\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 1 secs. Average CPU use 2.31%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -NoProfile -NonInteractive -File C:\\Users\\david\\Documents\\PowerShell\\Modules\\CargoTools\\wrappers\\cargo-docker.ps1 --list-wrappers\"",
+    "\"134218893191326246\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"68776\",\"backgroundtaskhost.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 1 secs. Average CPU use 0.31%.\",\"c:\\windows\\system32\\backgroundtaskhost.exe\",\"\"\"C:\\WINDOWS\\system32\\backgroundTaskHost.exe\"\" -ServerName:App.AppXmtcan0h2tfbfy7k9kn8hbxb6dmzz1zh0.mca\"",
+    "\"134218893191326246\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"43516\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-ScheduledTask -TaskName UnifiUdmDriveStackStartup | Select-Object TaskName\\,TaskPath\\,State\\,@{Name=''Execute'';Expression={`$_.Actions[0].Execute}}\\,@{Name=''Arguments'';Expression={`$_.Actions[0].Arguments}}\\,@{Name=''WorkingDirectory'';Expression={`$_.Actions[0].WorkingDirectory}}\\,@{Name=''Delay'';Expression={`$_.Triggers[0].Delay}}\\,@{Name=''MultipleInstances'';Expression={`$_.Settings.MultipleInstances}}\\,@{Name=''ExecutionTimeLimit'';Expression={`$_.Settings.ExecutionTimeLimit}} | Format-List\"\"\"",
+    "\"134218893191326246\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"71232\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-ProcessLassoBootSafety.ps1 -ReportPath Reports\\processlasso-boot-safety-post-register.json | Format-List\"\"\"",
+    "\"134218893191326246\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"4580\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -OutputJson Reports\\sync-provider-health-post-register.json | Format-List\"\"\"",
+    "\"134218893191326246\",\"2026-04-28 18:35:19\",\"DTM-P1GEN7\",\"david\",\"25244\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-BootMountHealth.ps1 -SinceMinutes 60 -OutputJson Reports\\boot-mount-health-post-register.json | Format-List\"\"\""
+  ],
+  "Failures": []
+}

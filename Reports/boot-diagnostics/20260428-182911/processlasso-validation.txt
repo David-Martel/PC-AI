@@ -1,0 +1,39 @@
+Write-Error: C:\codedev\PC_AI\Tools\Test-ProcessLassoBootSafety.ps1:189
+Line |
+ 189 |      Add-Failure -Failures $failures -Message "Missing ProBalance excl …
+     |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Missing ProBalance exclusions: powershell.exe, pwsh.exe, rclone.exe, wsl.exe, wslhost.exe, vmmemWSL, Docker
+     | Desktop.exe, GoogleDriveFS.exe, OneDrive*, ProcessGovernor.exe, ProcessLasso.exe, ProcessLassoLauncher.exe,
+     | ProcessLassoService.exe
+
+Write-Error: C:\codedev\PC_AI\Tools\Test-ProcessLassoBootSafety.ps1:192
+Line |
+ 192 |      Add-Failure -Failures $failures -Message "Missing SmartTrim exclu …
+     |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Missing SmartTrim exclusions: powershell.exe, rclone.exe, wsl.exe, wslhost.exe, vmmemWSL, Docker Desktop.exe,
+     | GoogleDriveFS.exe, OneDrive*, ProcessGovernor.exe, ProcessLasso.exe, ProcessLassoLauncher.exe,
+     | ProcessLassoService.exe
+
+
+Check                   Ok                                                                                        Detail
+-----                   --                                                                                        ------
+GovernorRunning       True                                                                                         17768
+GovernorResponding    True                                                                                          True
+ProBalanceExclusions False …e*, ProcessGovernor.exe, ProcessLasso.exe, ProcessLassoLauncher.exe, ProcessLassoService.exe
+SmartTrimExclusions  False …e*, ProcessGovernor.exe, ProcessLasso.exe, ProcessLassoLauncher.exe, ProcessLassoService.exe
+LoggingFlags          True                                                                                              
+RecentLogLines        True                                                                                            80
+
+
+Ok                    : False
+GeneratedAt           : 2026-04-28T18:29:26.2567802-04:00
+ConfigPath            : C:\ProgramData\ProcessLasso\config\prolasso.ini
+LogPath               : C:\ProgramData\ProcessLasso\logs\processlasso.log
+LookbackMinutes       : 240
+Governor              : @{Running=True; Id=17768; Responding=True; StartTime=4/28/2026 5:08:58 PM; Path=C:\Program Files\Process Lasso\ProcessGovernor.exe}
+MissingOocExclusions  : {powershell.exe, pwsh.exe, rclone.exe, wsl.exe…}
+MissingSmartTrimItems : {powershell.exe, rclone.exe, wsl.exe, wslhost.exe…}
+Logging               : {@{Key=IncludeCommandLines; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessExecutions; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessTerminations; Expected=true; Actual=true; Ok=True}, @{Key=LogEfficiencyMode; Expected=true; Actual=true; Ok=True}…}
+RecentLogLines        : {"134218889562218876","2026-04-28 18:29:16","DTM-P1GEN7","david","17276","pwsh.exe","78","(0x4e) Process has terminated","Ran for 7 secs. Average CPU use 1.10%.","c:\program files\powershell\7\pwsh.exe","""C:\Program Files\PowerShell\7\pwsh.exe"" -Command ""[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;, pwsh -NoLogo -NoProfile -Command """"Invoke-Pester -Path Tests\Boot\BootValidationTools.Tests.ps1 -Output Detailed""""""", "134218889572532586","2026-04-28 18:29:17","DTM-P1GEN7","david","65260","pwsh.exe","1","(0x1) Process launched","Parent codex.exe (53080)","C:\Users\david\.local\bin\pwsh.exe","""C:\Users\david\.local\bin\pwsh.exe"" -Command ""[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;, powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Users\david\unifi_api\scripts\windows\Start-UDMDriveStack.ps1 -TargetHost 192.0.2.1 -NetworkTimeoutMs 50 -RetryCount 1 -LogRoot C:\Users\david\unifi_api\logs\udm-drive-stack-validation"""…}
+Failures              : {Missing ProBalance exclusions: powershell.exe, pwsh.exe, rclone.exe, wsl.exe, wslhost.exe, vmmemWSL, Docker Desktop.exe, GoogleDriveFS.exe, OneDrive*, ProcessGovernor.exe, ProcessLasso.exe, ProcessLassoLauncher.exe, ProcessLassoService.exe, Missing SmartTrim exclusions: powershell.exe, rclone.exe, wsl.exe, wslhost.exe, vmmemWSL, Docker Desktop.exe, GoogleDriveFS.exe, OneDrive*, ProcessGovernor.exe, ProcessLasso.exe, ProcessLassoLauncher.exe, ProcessLassoService.exe}
+

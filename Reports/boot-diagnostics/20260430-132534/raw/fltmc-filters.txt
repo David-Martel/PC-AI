@@ -1,0 +1,18 @@
+
+Filter Name                     Num Instances    Altitude    Frame
+------------------------------  -------------  ------------  -----
+bindflt                                 1       409800         0
+FsDepends                              14       407000         0
+UCPD                                   14       385250.5       0
+WdFilter                               15       328010         0
+storqosflt                              1       244000         0
+wcifs                                   2       189900         0
+PrjFlt                                  0       189800         0
+CldFlt                                  4       180451         0
+bfs                                    16       150000         0
+FileCrypt                               0       141100         0
+luafv                                   1       135000         0
+UnionFS                                 0       130850         0
+npsvctrig                               1        46000         0
+Wof                                     8        40700         0
+FileInfo                               14        40500         0

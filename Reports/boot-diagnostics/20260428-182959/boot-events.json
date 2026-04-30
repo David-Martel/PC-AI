@@ -1,0 +1,32 @@
+[
+  {
+    "Profile": "ReFS",
+    "LogName": "System",
+    "ProviderName": "ReFS",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "There is not an event provider on the localhost computer that matches \"ReFS\"."
+  },
+  {
+    "Profile": "VHDMP",
+    "LogName": "System",
+    "ProviderName": "VHDMP",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "There is not an event provider on the localhost computer that matches \"VHDMP\"."
+  },
+  {
+    "Profile": "ProcessLasso",
+    "LogName": "Application",
+    "ProviderName": "Process Lasso",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "There is not an event provider on the localhost computer that matches \"Process Lasso\"."
+  }
+]

@@ -1,0 +1,203 @@
+{
+  "Ok": false,
+  "GeneratedAt": "2026-04-28T18:30:36.0993420-04:00",
+  "ConfigPath": "C:\\ProgramData\\ProcessLasso\\config\\prolasso.ini",
+  "LogPath": "C:\\ProgramData\\ProcessLasso\\logs\\processlasso.log",
+  "LookbackMinutes": 240,
+  "Governor": {
+    "Running": true,
+    "Id": 17768,
+    "Responding": true,
+    "StartTime": "2026-04-28T17:08:58.6657983-04:00",
+    "Path": "C:\\Program Files\\Process Lasso\\ProcessGovernor.exe"
+  },
+  "MissingOocExclusions": [
+    "powershell.exe",
+    "pwsh.exe",
+    "rclone.exe",
+    "wsl.exe",
+    "wslhost.exe",
+    "vmmemWSL",
+    "Docker Desktop.exe",
+    "GoogleDriveFS.exe",
+    "OneDrive*",
+    "ProcessGovernor.exe",
+    "ProcessLasso.exe",
+    "ProcessLassoLauncher.exe",
+    "ProcessLassoService.exe"
+  ],
+  "MissingSmartTrimItems": [
+    "powershell.exe",
+    "rclone.exe",
+    "wsl.exe",
+    "wslhost.exe",
+    "vmmemWSL",
+    "Docker Desktop.exe",
+    "GoogleDriveFS.exe",
+    "OneDrive*",
+    "ProcessGovernor.exe",
+    "ProcessLasso.exe",
+    "ProcessLassoLauncher.exe",
+    "ProcessLassoService.exe"
+  ],
+  "Logging": [
+    {
+      "Key": "IncludeCommandLines",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogProcessExecutions",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogProcessTerminations",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogEfficiencyMode",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogCPUSets",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogDefaultPriorityAdjustments",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogDefaultAffinityAdjustments",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogProBalanceBegin",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogProBalanceEnd",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogPowerProfileChanges",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogSmartTrim",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    },
+    {
+      "Key": "LogCPULimiter",
+      "Expected": "true",
+      "Actual": "true",
+      "Ok": true
+    }
+  ],
+  "RecentLogLines": [
+    "\"134218890260695047\",\"2026-04-28 18:30:26\",\"DTM-P1GEN7\",\"david\",\"69356\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 secs. Average CPU use 0.01%.\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "git status --short -- Tools\\Apply-ProcessLassoUiSyncTuning.ps1 Tools\\Test-ProcessLassoBootSafety.ps1\"\"\"",
+    "\"134218890261155676\",\"2026-04-28 18:30:26\",\"DTM-P1GEN7\",\"david\",\"25012\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 secs. Average CPU use 0.01%.\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-Content .\\Tools\\Test-ProcessLassoBootSafety.ps1 -TotalCount 120\"\"\"",
+    "\"134218890261165697\",\"2026-04-28 18:30:26\",\"DTM-P1GEN7\",\"david\",\"67816\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 2 secs. Average CPU use 4.86%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-Content .\\Tools\\Test-ProcessLassoBootSafety.ps1 -TotalCount 120\"\"\"",
+    "\"134218890271493188\",\"2026-04-28 18:30:27\",\"DTM-P1GEN7\",\"david\",\"69832\",\"backgroundtaskhost.exe\",\"1\",\"(0x1) Process launched\",\"Parent svchost.exe (dcomlaunch -p) (2064)\",\"C:\\WINDOWS\\system32\\backgroundTaskHost.exe\",\"\"\"C:\\WINDOWS\\system32\\backgroundTaskHost.exe\"\" -ServerName:App.AppXmtcan0h2tfbfy7k9kn8hbxb6dmzz1zh0.mca\"",
+    "\"134218890272101021\",\"2026-04-28 18:30:27\",\"DTM-P1GEN7\",\"david\",\"69136\",\"bash.exe\",\"1\",\"(0x1) Process launched\",\"Parent bash.exe (57564)\",\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\",\"\"\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\"\" -c \"\"source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''grep -nE \\\"\"Invoke-WrapperDoctor|Write-Output|Write-Host.*json|\\[Console\\]::Out\\\"\" wrappers/_WrapperHelpers.psm1 | head -25; echo \\\"\"---\\\"\"; grep -n \\\"\"Show-WrapperList\\|Write-Output\\\"\" Tests/Wrappers.Tests.ps1 | head -10'' < /dev/null && pwd -P >| /c/Users/david/AppData/Local/Temp/claude-e7c0-cwd\"\"\"",
+    "\"134218890272516872\",\"2026-04-28 18:30:27\",\"DTM-P1GEN7\",\"david\",\"69136\",\"bash.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 0 secs. Average CPU use 1.96%.\",\"c:\\program files\\git\\bin\\..\\usr\\bin\\bash.exe\",\"\"\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\"\" -c \"\"source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''grep -nE \\\"\"Invoke-WrapperDoctor|Write-Output|Write-Host.*json|\\[Console\\]::Out\\\"\" wrappers/_WrapperHelpers.psm1 | head -25; echo \\\"\"---\\\"\"; grep -n \\\"\"Show-WrapperList\\|Write-Output\\\"\" Tests/Wrappers.Tests.ps1 | head -10'' < /dev/null && pwd -P >| /c/Users/david/AppData/Local/Temp/claude-e7c0-cwd\"\"\"",
+    "\"134218890282903647\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"63220\",\"docker.exe\",\"1\",\"(0x1) Process launched\",\"Parent docker desktop.exe (27288)\",\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\",\"\"\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\"\" stats --all --no-trunc --no-stream --format \"\"{{ json .}}\"\"\"",
+    "\"134218890282918743\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"60800\",\"conhost.exe\",\"1\",\"(0x1) Process launched\",\"Parent docker.exe (63220)\",\"C:\\WINDOWS\\system32\\conhost.exe\",\"\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4\"",
+    "\"134218890282928789\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"69628\",\"bash.exe\",\"1\",\"(0x1) Process launched\",\"Parent bash.exe (57564)\",\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\",\"\"\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\"\" -c \"\"source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''grep -nE \\\"\"Invoke-WrapperDoctor|Write-Output|Write-Host.*json|\\[Console\\]::Out\\\"\" wrappers/_WrapperHelpers.psm1 | head -25; echo \\\"\"---\\\"\"; grep -n \\\"\"Show-WrapperList\\|Write-Output\\\"\" Tests/Wrappers.Tests.ps1 | head -10'' < /dev/null && pwd -P >| /c/Users/david/AppData/Local/Temp/claude-e7c0-cwd\"\"\"",
+    "\"134218890282938821\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"25488\",\"bash.exe\",\"1\",\"(0x1) Process launched\",\"Parent bash.exe (69628)\",\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\",\"\"\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\"\" -c \"\"source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''grep -nE \\\"\"Invoke-WrapperDoctor|Write-Output|Write-Host.*json|\\[Console\\]::Out\\\"\" wrappers/_WrapperHelpers.psm1 | head -25; echo \\\"\"---\\\"\"; grep -n \\\"\"Show-WrapperList\\|Write-Output\\\"\" Tests/Wrappers.Tests.ps1 | head -10'' < /dev/null && pwd -P >| /c/Users/david/AppData/Local/Temp/claude-e7c0-cwd\"\"\"",
+    "\"134218890283276886\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"69832\",\"backgroundtaskhost.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 1 secs. Average CPU use 0.11%.\",\"c:\\windows\\system32\\backgroundtaskhost.exe\",\"\"\"C:\\WINDOWS\\system32\\backgroundTaskHost.exe\"\" -ServerName:App.AppXmtcan0h2tfbfy7k9kn8hbxb6dmzz1zh0.mca\"",
+    "\"134218890283276886\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"69676\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 mins 23 secs. Average CPU use 1.60%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Invoke-Pester -Path Documents\\PowerShell\\Modules\\CargoTools\\Tests -Output Detailed\"\"\"",
+    "\"134218890283356877\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"69220\",\"powershell.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 1 mins 24 secs. Average CPU use 0.13%.\",\"c:\\windows\\system32\\windowspowershell\\v1.0\\powershell.exe\",\"\"\"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"\" -Version 5.1 -s -NoLogo -NoProfile\"",
+    "\"134218890283482071\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"48100\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 mins 23 secs. Average CPU use 0.00%.\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Invoke-Pester -Path Documents\\PowerShell\\Modules\\CargoTools\\Tests -Output Detailed\"\"\"",
+    "\"134218890283482071\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"70348\",\"conhost.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 1 mins 24 secs. Average CPU use 0.00%.\",\"c:\\windows\\system32\\conhost.exe\",\"\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4\"",
+    "\"134218890283492069\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"69628\",\"bash.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 0 secs. Average CPU use 0.61%.\",\"c:\\program files\\git\\bin\\..\\usr\\bin\\bash.exe\",\"\"\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\"\" -c \"\"source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''grep -nE \\\"\"Invoke-WrapperDoctor|Write-Output|Write-Host.*json|\\[Console\\]::Out\\\"\" wrappers/_WrapperHelpers.psm1 | head -25; echo \\\"\"---\\\"\"; grep -n \\\"\"Show-WrapperList\\|Write-Output\\\"\" Tests/Wrappers.Tests.ps1 | head -10'' < /dev/null && pwd -P >| /c/Users/david/AppData/Local/Temp/claude-e7c0-cwd\"\"\"",
+    "\"134218890283492069\",\"2026-04-28 18:30:28\",\"DTM-P1GEN7\",\"david\",\"25488\",\"bash.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 0 secs. Average CPU use 0.00%.\",\"c:\\program files\\git\\bin\\..\\usr\\bin\\bash.exe\",\"\"\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\"\" -c \"\"source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''grep -nE \\\"\"Invoke-WrapperDoctor|Write-Output|Write-Host.*json|\\[Console\\]::Out\\\"\" wrappers/_WrapperHelpers.psm1 | head -25; echo \\\"\"---\\\"\"; grep -n \\\"\"Show-WrapperList\\|Write-Output\\\"\" Tests/Wrappers.Tests.ps1 | head -10'' < /dev/null && pwd -P >| /c/Users/david/AppData/Local/Temp/claude-e7c0-cwd\"\"\"",
+    "\"134218890293766265\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"46868\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "git status --short -- Tools Tests/Boot Reports/boot-diagnostics\"\"\"",
+    "\"134218890299021686\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"2768\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-Content -Path Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.md -TotalCount 80\"\"\"",
+    "\"134218890299031690\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"64636\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (46868)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "git status --short -- Tools Tests/Boot Reports/boot-diagnostics\"\"\"",
+    "\"134218890299041689\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"66532\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -Command \\\"\"$r=Get-Content -Raw Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.json | ConvertFrom-Json; $r.ProcessLassoValidation | ConvertTo-Json -Depth 4\\\"\"\"\"\"",
+    "\"134218890299051765\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"53176\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (2768)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-Content -Path Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.md -TotalCount 80\"\"\"",
+    "\"134218890299061762\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"54580\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (66532)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -Command \"\"\"\"`$r=Get-Content -Raw Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.json | ConvertFrom-Json; `$r.ProcessLassoValidation | ConvertTo-Json -Depth 4\"\"\"\"\"\"\"",
+    "\"134218890299111781\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"46868\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "git status --short -- Tools Tests/Boot Reports/boot-diagnostics\"\"\"",
+    "\"134218890299518414\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"53176\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-Content -Path Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.md -TotalCount 80\"\"\"",
+    "\"134218890299614197\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"54580\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -Command \"\"\"\"`$r=Get-Content -Raw Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.json | ConvertFrom-Json; `$r.ProcessLassoValidation | ConvertTo-Json -Depth 4\"\"\"\"\"\"\"",
+    "\"134218890299654401\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"2768\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-Content -Path Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.md -TotalCount 80\"\"\"",
+    "\"134218890299654401\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"64636\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "git status --short -- Tools Tests/Boot Reports/boot-diagnostics\"\"\"",
+    "\"134218890299654401\",\"2026-04-28 18:30:29\",\"DTM-P1GEN7\",\"david\",\"66532\",\"pwsh.exe\",\"110\",\"(0x6e) Set Efficiency Mode\",\"Efficiency Mode OFF\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -Command \\\"\"$r=Get-Content -Raw Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.json | ConvertFrom-Json; $r.ProcessLassoValidation | ConvertTo-Json -Depth 4\\\"\"\"\"\"",
+    "\"134218890309968184\",\"2026-04-28 18:30:30\",\"DTM-P1GEN7\",\"SYSTEM\",\"68480\",\"msiexec.exe\",\"1\",\"(0x1) Process launched\",\"Parent msiexec.exe (21824)\",\"C:\\Windows\\syswow64\\MsiExec.exe\",\"C:\\Windows\\syswow64\\MsiExec.exe -Embedding C18EA37CE19FA716E97367032EB1BDEC M Global\\MSI0000\"",
+    "\"134218890322009528\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"46868\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 secs. Average CPU use 0.02%.\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "git status --short -- Tools Tests/Boot Reports/boot-diagnostics\"\"\"",
+    "\"134218890322259418\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"60800\",\"conhost.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 4 secs. Average CPU use 0.01%.\",\"c:\\windows\\system32\\conhost.exe\",\"\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4\"",
+    "\"134218890322299645\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"53176\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 secs. Average CPU use 1.68%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-Content -Path Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.md -TotalCount 80\"\"\"",
+    "\"134218890322369605\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"SYSTEM\",\"68480\",\"msiexec.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 2 secs. Average CPU use 1.49%.\",\"c:\\windows\\syswow64\\msiexec.exe\",\"C:\\Windows\\syswow64\\MsiExec.exe -Embedding C18EA37CE19FA716E97367032EB1BDEC M Global\\MSI0000\"",
+    "\"134218890322400197\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"54580\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 secs. Average CPU use 1.77%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -Command \"\"\"\"`$r=Get-Content -Raw Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.json | ConvertFrom-Json; `$r.ProcessLassoValidation | ConvertTo-Json -Depth 4\"\"\"\"\"\"\"",
+    "\"134218890322440270\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"18420\",\"bash.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 8 secs. Average CPU use 0.01%.\",\"c:\\program files\\git\\bin\\bash.exe\",\"\"\"C:\\Program Files\\Git\\bin\\bash.exe\"\" -c \"\"source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''grep -nE \\\"\"Invoke-WrapperDoctor|Write-Output|Write-Host.*json|\\[Console\\]::Out\\\"\" wrappers/_WrapperHelpers.psm1 | head -25; echo \\\"\"---\\\"\"; grep -n \\\"\"Show-WrapperList\\|Write-Output\\\"\" Tests/Wrappers.Tests.ps1 | head -10'' < /dev/null && pwd -P >| /c/Users/david/AppData/Local/Temp/claude-e7c0-cwd\"\"\"",
+    "\"134218890322440270\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"57564\",\"bash.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 8 secs. Average CPU use 0.34%.\",\"c:\\program files\\git\\bin\\..\\usr\\bin\\bash.exe\",\"\"\"C:\\Program Files\\Git\\bin\\..\\usr\\bin\\bash.exe\"\" -c \"\"source /c/Users/david/.claude/shell-snapshots/snapshot-bash-1777411582103-fz7g1d.sh 2>/dev/null || true && shopt -u extglob 2>/dev/null || true && eval ''grep -nE \\\"\"Invoke-WrapperDoctor|Write-Output|Write-Host.*json|\\[Console\\]::Out\\\"\" wrappers/_WrapperHelpers.psm1 | head -25; echo \\\"\"---\\\"\"; grep -n \\\"\"Show-WrapperList\\|Write-Output\\\"\" Tests/Wrappers.Tests.ps1 | head -10'' < /dev/null && pwd -P >| /c/Users/david/AppData/Local/Temp/claude-e7c0-cwd\"\"\"",
+    "\"134218890322440270\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"66080\",\"conhost.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 8 secs. Average CPU use 0.08%.\",\"c:\\windows\\system32\\conhost.exe\",\"\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4\"",
+    "\"134218890322440270\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"63220\",\"docker.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 4 secs. Average CPU use 0.14%.\",\"c:\\program files\\docker\\docker\\resources\\bin\\docker.exe\",\"\"\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\"\" stats --all --no-trunc --no-stream --format \"\"{{ json .}}\"\"\"",
+    "\"134218890322450277\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"2768\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 secs. Average CPU use 0.02%.\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Get-Content -Path Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.md -TotalCount 80\"\"\"",
+    "\"134218890322450277\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"64636\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 secs. Average CPU use 1.78%.\",\"c:\\program files\\powershell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "git status --short -- Tools Tests/Boot Reports/boot-diagnostics\"\"\"",
+    "\"134218890322450277\",\"2026-04-28 18:30:32\",\"DTM-P1GEN7\",\"david\",\"66532\",\"pwsh.exe\",\"78\",\"(0x4e) Process has terminated\",\"Ran for 3 secs. Average CPU use 0.02%.\",\"c:\\users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -Command \\\"\"$r=Get-Content -Raw Reports\\boot-diagnostics\\20260428-182959\\startup-inventory.json | ConvertFrom-Json; $r.ProcessLassoValidation | ConvertTo-Json -Depth 4\\\"\"\"\"\"",
+    "\"134218890332762272\",\"2026-04-28 18:30:33\",\"DTM-P1GEN7\",\"david\",\"59420\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-ProcessLassoBootSafety.ps1 -ReportPath Reports\\processlasso-boot-safety-before.json | Format-List\"\"\"",
+    "\"134218890336344705\",\"2026-04-28 18:30:33\",\"DTM-P1GEN7\",\"david\",\"17768\",\"processgovernor.exe\",\"84\",\"(0x54) SmartTrim No Action\",\"No action was taken per configuration.\",\"\",\"\"",
+    "\"134218890344632055\",\"2026-04-28 18:30:34\",\"DTM-P1GEN7\",\"david\",\"66252\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Apply-ProcessLassoUiSyncTuning.ps1 -DryRun -ReportPath Reports\\processlasso-boot-safety-dryrun.json | Format-List\"\"\"",
+    "\"134218890351088404\",\"2026-04-28 18:30:35\",\"DTM-P1GEN7\",\"david\",\"66380\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (59420)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Test-ProcessLassoBootSafety.ps1 -ReportPath Reports\\processlasso-boot-safety-before.json | Format-List\"\"\"",
+    "\"134218890351098402\",\"2026-04-28 18:30:35\",\"DTM-P1GEN7\",\"david\",\"4052\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent pwsh.exe (66252)\",\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\",\"\"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\Tools\\Apply-ProcessLassoUiSyncTuning.ps1 -DryRun -ReportPath Reports\\processlasso-boot-safety-dryrun.json | Format-List\"\"\"",
+    "\"134218890351108390\",\"2026-04-28 18:30:35\",\"DTM-P1GEN7\",\"david\",\"56096\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -Command \\\"\". .\\Tools\\Mount-PersistentVHDX.ps1; . .\\Tools\\Register-PersistentVHDXTasks.ps1; ''scripts dot-source OK''\\\"\"\"\"\"",
+    "\"134218890351118377\",\"2026-04-28 18:30:35\",\"DTM-P1GEN7\",\"david\",\"70368\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "Invoke-Pester -Path .\\Tests\\Boot\\PersistentVHDX.Tests.ps1 -Output Detailed -PassThru\"\"\"",
+    "\"134218890351128375\",\"2026-04-28 18:30:35\",\"DTM-P1GEN7\",\"david\",\"68264\",\"pwsh.exe\",\"1\",\"(0x1) Process launched\",\"Parent codex.exe (53080)\",\"C:\\Users\\david\\.local\\bin\\pwsh.exe\",\"\"\"C:\\Users\\david\\.local\\bin\\pwsh.exe\"\" -Command \"\"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;",
+    "pwsh -NoLogo -NoProfile -File .\\Tools\\Register-PersistentVHDXTasks.ps1 -PassThru | Select-Object TaskName\\,Delay\\,ExpectedState\\,RestartCount\\,ExecutionTimeLimit | Format-Table -AutoSize\"\"\""
+  ],
+  "Failures": [
+    "Missing ProBalance exclusions: powershell.exe, pwsh.exe, rclone.exe, wsl.exe, wslhost.exe, vmmemWSL, Docker Desktop.exe, GoogleDriveFS.exe, OneDrive*, ProcessGovernor.exe, ProcessLasso.exe, ProcessLassoLauncher.exe, ProcessLassoService.exe",
+    "Missing SmartTrim exclusions: powershell.exe, rclone.exe, wsl.exe, wslhost.exe, vmmemWSL, Docker Desktop.exe, GoogleDriveFS.exe, OneDrive*, ProcessGovernor.exe, ProcessLasso.exe, ProcessLassoLauncher.exe, ProcessLassoService.exe"
+  ]
+}

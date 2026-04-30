@@ -1,0 +1,37 @@
+
+Filter Name                     Num Instances    Altitude    Frame
+------------------------------  -------------  ------------  -----
+bindflt                                 1       409800         0
+FsDepends                              11       407000         0
+UCPD                                   12       385250.5       0
+WdFilter                               13       328010         0
+storqosflt                              1       244000         0
+wcifs                                   2       189900         0
+PrjFlt                                  0       189800         0
+CldFlt                                  3       180451         0
+bfs                                    14       150000         0
+FileCrypt                               0       141100         0
+luafv                                   1       135000         0
+UnionFS                                 0       130850         0
+npsvctrig                               1        46000         0
+Wof                                     6        40700         0
+FileInfo                               12        40500         0
+
+Dos Name                        Volume Name                              FileSystem   Status
+------------------------------  ---------------------------------------  ----------  --------
+                                \Device\Mup                              Remote      
+C:                              \Device\HarddiskVolume5                  NTFS        
+T:                              \Device\HarddiskVolume2                  ReFS        
+                                \Device\NamedPipe                        NamedPipe   
+                                \Device\Mailslot                         Mailslot    
+                                \Device\HarddiskVolumeShadowCopy5        NTFS        
+                                \Device\HarddiskVolume6                  NTFS        
+                                \Device\HarddiskVolumeShadowCopy10       NTFS        
+                                \Device\HarddiskVolume3                  FAT         
+W:                              \Device\HarddiskVolume12                 NTFS        
+F:                              \Device\HarddiskVolume15                 NTFS        
+G:                              \Device\Volume{f5ae2bcb-da01-3bf2-8935-408102040811}  <Unknown>   
+T:\cloud-cache\google           \Device\Volume{11e4119d-6465-390f-a17c-8c183061c386}  <Unknown>   
+H:                              \Device\Volume{f5ae2bcb-da03-3bf2-8935-408102040811}  <Unknown>   
+                                \Device\Harddisk2\DR2                    Raw         
+K:                              \Device\HarddiskVolume8                  Raw         

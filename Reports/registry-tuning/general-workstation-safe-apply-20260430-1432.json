@@ -1,0 +1,110 @@
+{
+  "Script": "C:\\Users\\david\\bin\\scripts\\home-root-archive\\optimize-registry-derp.ps1",
+  "GeneratedAt": "2026-04-30T14:32:37.8813428-04:00",
+  "Profile": "GeneralWorkstationSafe",
+  "Apply": true,
+  "DryRun": false,
+  "SnapshotPath": "C:\\codedev\\PC_AI\\Reports\\registry-tuning\\general-workstation-safe-preapply-20260430-1432.snapshot.json",
+  "RestoreFromSnapshot": false,
+  "ForceCloudSyncRisk": true,
+  "CloudSync": {
+    "RunningProcesses": [
+      {
+        "ProcessName": "FileSyncHelper",
+        "Id": 15260,
+        "Path": "C:\\Program Files\\Microsoft OneDrive\\26.062.0402.0002\\FileSyncHelper.exe"
+      },
+      {
+        "ProcessName": "GoogleDriveFS",
+        "Id": 7060,
+        "Path": "C:\\Program Files\\Google\\Drive File Stream\\124.0.3.0\\GoogleDriveFS.exe"
+      },
+      {
+        "ProcessName": "GoogleDriveFS",
+        "Id": 20788,
+        "Path": "C:\\Program Files\\Google\\Drive File Stream\\124.0.3.0\\GoogleDriveFS.exe"
+      },
+      {
+        "ProcessName": "OneDrive",
+        "Id": 9228,
+        "Path": "C:\\Program Files\\Microsoft OneDrive\\OneDrive.exe"
+      },
+      {
+        "ProcessName": "OneDrive.Sync.Service",
+        "Id": 19116,
+        "Path": "C:\\Program Files\\Microsoft OneDrive\\26.062.0402.0002\\OneDrive.Sync.Service.exe"
+      }
+    ],
+    "SyncRoots": [
+      {
+        "Provider": "Dropbox!S-1-5-21-357761096-1057752491-2136275046-1001!dbid:AABHeh-2kG-hga-JGbe4eMdgCmPGjuK3KpE",
+        "Sid": "S-1-5-21-357761096-1057752491-2136275046-1001",
+        "Path": "F:\\Auricle Dropbox"
+      },
+      {
+        "Provider": "iCloudDrive!S-1-5-21-357761096-1057752491-2136275046-1001!Personal",
+        "Sid": "S-1-5-21-357761096-1057752491-2136275046-1001",
+        "Path": "C:\\Users\\david\\iCloudDrive"
+      },
+      {
+        "Provider": "OneDrive!S-1-5-21-357761096-1057752491-2136275046-1001!Personal|76f76637faf34514befe90220cb0c5e7",
+        "Sid": "S-1-5-21-357761096-1057752491-2136275046-1001",
+        "Path": "C:\\Users\\david\\OneDrive"
+      },
+      {
+        "Provider": "ProtonDrive!S-1-5-21-357761096-1057752491-2136275046-1001!8bkUjHTX6QGBJYGwR5pfAGDS1RMpBTl0kWqhsu1iMFEc1nrMIK3muRLwWr79S4DK1-zYs2gR3qumiBfijXl4iA==!2",
+        "Sid": "S-1-5-21-357761096-1057752491-2136275046-1001",
+        "Path": "F:\\Proton-Drive\\My files"
+      }
+    ],
+    "HasRisk": true
+  },
+  "Changes": [
+    {
+      "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+      "Name": "LongPathsEnabled",
+      "CurrentValue": 1,
+      "CurrentExists": true,
+      "TargetValue": 1,
+      "WouldChange": false,
+      "Risk": "Low",
+      "Rationale": "Supported workstation compatibility setting."
+    },
+    {
+      "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+      "Name": "NtfsMemoryUsage",
+      "CurrentValue": 2,
+      "CurrentExists": true,
+      "TargetValue": 1,
+      "WouldChange": true,
+      "Risk": "Medium",
+      "Rationale": "Conservative NTFS cache behavior for cloud-sync stability."
+    },
+    {
+      "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+      "Name": "LargeSystemCache",
+      "CurrentValue": 1,
+      "CurrentExists": true,
+      "TargetValue": 0,
+      "WouldChange": true,
+      "Risk": "Medium",
+      "Rationale": "Workstation/application bias rather than server-style file cache."
+    },
+    {
+      "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+      "Name": "DisablePagingExecutive",
+      "CurrentValue": 1,
+      "CurrentExists": true,
+      "TargetValue": 0,
+      "WouldChange": true,
+      "Risk": "Medium",
+      "Rationale": "Avoid broad kernel memory residency tuning during sync debugging."
+    }
+  ],
+  "Warnings": [
+    "Cloud-sync providers or registered sync roots are present."
+  ],
+  "Actions": [
+    "Planned registry changes: 3"
+  ]
+}

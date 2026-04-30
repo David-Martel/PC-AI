@@ -1,0 +1,63 @@
+
+Number                  : 5
+ComputerName            : DTM-P1GEN7
+Path                    : T:\vm\cloud-cache-disk.vhdx
+VhdFormat               : VHDX
+VhdType                 : Dynamic
+FileSize                : 1116897017856
+Size                    : 1342177280000
+MinimumSize             : 1342177280000
+LogicalSectorSize       : 512
+PhysicalSectorSize      : 4096
+BlockSize               : 33554432
+ParentPath              : 
+DiskIdentifier          : 7DBA2E4C-D426-4EB1-BE5C-F767A21FF8F7
+FragmentationPercentage : 3
+Alignment               : 1
+Attached                : True
+DiskNumber              : 5
+IsPMEMCompatible        : False
+AddressAbstractionType  : None
+
+
+Number                  : 6
+ComputerName            : DTM-P1GEN7
+Path                    : T:\vm\share-ext4.vhdx
+VhdFormat               : VHDX
+VhdType                 : Dynamic
+FileSize                : 87031808
+Size                    : 274877906944
+MinimumSize             : 16794112
+LogicalSectorSize       : 512
+PhysicalSectorSize      : 4096
+BlockSize               : 1048576
+ParentPath              : 
+DiskIdentifier          : D27D306E-D0FC-49F1-AF90-2643B19A5B35
+FragmentationPercentage : 35
+Alignment               : 1
+Attached                : True
+DiskNumber              : 6
+IsPMEMCompatible        : False
+AddressAbstractionType  : None
+
+
+Number                  : 4
+ComputerName            : DTM-P1GEN7
+Path                    : T:\vm\shared-dev.vhdx
+VhdFormat               : VHDX
+VhdType                 : Fixed
+FileSize                : 549760008192
+Size                    : 549755813888
+MinimumSize             : 549755813888
+LogicalSectorSize       : 512
+PhysicalSectorSize      : 4096
+BlockSize               : 0
+ParentPath              : 
+DiskIdentifier          : 6E7D4FB3-3CE3-41EF-B157-FB977E128EE4
+FragmentationPercentage : 0
+Alignment               : 1
+Attached                : True
+DiskNumber              : 4
+IsPMEMCompatible        : False
+AddressAbstractionType  : None
+

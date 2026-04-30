@@ -1,0 +1,112 @@
+[
+  {
+    "Profile": "FilterManager",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-FilterManager",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "No events were found that match the specified selection criteria."
+  },
+  {
+    "Profile": "Kernel-PnP",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "No events were found that match the specified selection criteria."
+  },
+  {
+    "Profile": "disk",
+    "LogName": "System",
+    "ProviderName": "disk",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "No events were found that match the specified selection criteria."
+  },
+  {
+    "Profile": "volmgr",
+    "LogName": "System",
+    "ProviderName": "volmgr",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "No events were found that match the specified selection criteria."
+  },
+  {
+    "Profile": "Ntfs",
+    "LogName": "System",
+    "ProviderName": "Ntfs",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "No events were found that match the specified selection criteria."
+  },
+  {
+    "Profile": "ReFS",
+    "LogName": "System",
+    "ProviderName": "ReFS",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "There is not an event provider on the localhost computer that matches \"ReFS\"."
+  },
+  {
+    "Profile": "VHDMP",
+    "LogName": "System",
+    "ProviderName": "VHDMP",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "There is not an event provider on the localhost computer that matches \"VHDMP\"."
+  },
+  {
+    "Profile": "TaskScheduler",
+    "LogName": "Microsoft-Windows-TaskScheduler/Operational",
+    "ProviderName": "Microsoft-Windows-TaskScheduler",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "No events were found that match the specified selection criteria."
+  },
+  {
+    "Profile": "WER",
+    "LogName": "Application",
+    "ProviderName": "Windows Error Reporting",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "No events were found that match the specified selection criteria."
+  },
+  {
+    "Profile": "ApplicationError",
+    "LogName": "Application",
+    "ProviderName": "Application Error",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "No events were found that match the specified selection criteria."
+  },
+  {
+    "Profile": "ProcessLasso",
+    "LogName": "Application",
+    "ProviderName": "Process Lasso",
+    "Id": null,
+    "LevelDisplayName": "QueryError",
+    "TimeCreated": null,
+    "TimeCreatedUtc": null,
+    "Message": "There is not an event provider on the localhost computer that matches \"Process Lasso\"."
+  }
+]

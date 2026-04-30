@@ -1,0 +1,1051 @@
+{
+  "Status": "Fail",
+  "DryRun": false,
+  "GeneratedAt": "2026-04-30T15:36:33.4815564-04:00",
+  "LastBootTime": "2026-04-30T12:50:02.5-04:00",
+  "EventStartTime": "2026-04-30T11:36:30.5052234-04:00",
+  "Providers": [
+    {
+      "Name": "OneDrive",
+      "Required": true,
+      "Processes": [
+        {
+          "Id": 67432,
+          "ProcessName": "FileSyncHelper",
+          "Responding": true,
+          "StartTime": "2026-04-30T15:27:05.728672-04:00",
+          "Path": "C:\\Program Files\\Microsoft OneDrive\\26.062.0402.0002\\FileSyncHelper.exe"
+        },
+        {
+          "Id": 42548,
+          "ProcessName": "OneDrive",
+          "Responding": true,
+          "StartTime": "2026-04-30T15:31:56.5991809-04:00",
+          "Path": "C:\\Program Files\\Microsoft OneDrive\\OneDrive.exe"
+        }
+      ],
+      "SyncRoots": [
+        {
+          "ProviderId": "OneDrive",
+          "DisplayName": "OneDrive",
+          "UserSyncRoot": "C:\\Users\\david\\OneDrive",
+          "Source": "Filesystem"
+        }
+      ]
+    },
+    {
+      "Name": "GoogleDrive",
+      "Required": false,
+      "Processes": [
+        {
+          "Id": 7060,
+          "ProcessName": "GoogleDriveFS",
+          "Responding": true,
+          "StartTime": "2026-04-30T12:54:22.3258449-04:00",
+          "Path": "C:\\Program Files\\Google\\Drive File Stream\\124.0.3.0\\GoogleDriveFS.exe"
+        },
+        {
+          "Id": 20788,
+          "ProcessName": "GoogleDriveFS",
+          "Responding": true,
+          "StartTime": "2026-04-30T12:54:22.1588164-04:00",
+          "Path": "C:\\Program Files\\Google\\Drive File Stream\\124.0.3.0\\GoogleDriveFS.exe"
+        }
+      ],
+      "SyncRoots": []
+    },
+    {
+      "Name": "Dropbox",
+      "Required": false,
+      "Processes": [],
+      "SyncRoots": []
+    },
+    {
+      "Name": "iCloud",
+      "Required": false,
+      "Processes": [],
+      "SyncRoots": [
+        {
+          "ProviderId": "iCloudDrive",
+          "DisplayName": "iCloudDrive",
+          "UserSyncRoot": "C:\\Users\\david\\iCloudDrive",
+          "Source": "Filesystem"
+        }
+      ]
+    },
+    {
+      "Name": "ProtonDrive",
+      "Required": false,
+      "Processes": [],
+      "SyncRoots": []
+    }
+  ],
+  "SyncRoots": [
+    {
+      "ProviderId": "OneDrive",
+      "DisplayName": "OneDrive",
+      "UserSyncRoot": "C:\\Users\\david\\OneDrive",
+      "Source": "Filesystem"
+    },
+    {
+      "ProviderId": "iCloudDrive",
+      "DisplayName": "iCloudDrive",
+      "UserSyncRoot": "C:\\Users\\david\\iCloudDrive",
+      "Source": "Filesystem"
+    }
+  ],
+  "ShellOverlayHandlers": [
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive1",
+      "Clsid": "{BBACC218-34EA-4666-9D7A-C78F2274A524}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive2",
+      "Clsid": "{5AB7172C-9C11-405C-8DD5-AF20F3606282}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive3",
+      "Clsid": "{A78ED123-AB77-406B-9962-2A5D9D2F7F30}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive4",
+      "Clsid": "{F241C880-6982-4CE5-8CF7-7085BA96DA5A}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive5",
+      "Clsid": "{A0396A93-DC06-4AEF-BEE9-95FFCCAEF20E}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive6",
+      "Clsid": "{9AA2F32D-362A-42D9-9328-24A483E2CCC3}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive7",
+      "Clsid": "{C5FF006E-2AE9-408C-B85B-2DFDD5449D9C}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveCloudOverlayIconHandler",
+      "Clsid": "{A8E52322-8734-481D-A7E2-27B309EF8D56}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveMirrorBlacklistedOverlayIconHandler",
+      "Clsid": "{51EF1569-67EE-4AD6-9646-E726C3FFC8A2}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDrivePinnedOverlayIconHandler",
+      "Clsid": "{CFE8B367-77A7-41D7-9C90-75D16D7DC6B6}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveProgressOverlayIconHandler",
+      "Clsid": "{C973DA94-CBDF-4E77-81D1-E5B794FBD146}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   AccExtIco1",
+      "Clsid": "{AB9CF9F8-8A96-4F9D-BF21-CE85714C3A47}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   AccExtIco2",
+      "Clsid": "{853B7E05-C47D-4985-909A-D0DC5C6D7303}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   AccExtIco3",
+      "Clsid": "{42D38F2E-98E9-4382-B546-E24E4D6D04BB}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt01",
+      "Clsid": "{FB314ED9-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt02",
+      "Clsid": "{FB314EDF-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt03",
+      "Clsid": "{FB314EE1-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt04",
+      "Clsid": "{FB314EDB-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt05",
+      "Clsid": "{FB314EDA-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt06",
+      "Clsid": "{FB314EDC-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt07",
+      "Clsid": "{FB314EDD-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt08",
+      "Clsid": "{FB314EE0-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt09",
+      "Clsid": "{FB314EE2-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt10",
+      "Clsid": "{FB314EDE-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "EnhancedStorageShell",
+      "Clsid": "{D9144DCD-E998-4ECA-AB6A-DCD83CCBA16D}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "Offline Files",
+      "Clsid": "{4E77131D-3629-431c-9818-C5679DC83E81}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive1",
+      "Clsid": "{BBACC218-34EA-4666-9D7A-C78F2274A524}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive2",
+      "Clsid": "{5AB7172C-9C11-405C-8DD5-AF20F3606282}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive3",
+      "Clsid": "{A78ED123-AB77-406B-9962-2A5D9D2F7F30}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive4",
+      "Clsid": "{F241C880-6982-4CE5-8CF7-7085BA96DA5A}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive5",
+      "Clsid": "{A0396A93-DC06-4AEF-BEE9-95FFCCAEF20E}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive6",
+      "Clsid": "{9AA2F32D-362A-42D9-9328-24A483E2CCC3}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "     OneDrive7",
+      "Clsid": "{C5FF006E-2AE9-408C-B85B-2DFDD5449D9C}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveCloudOverlayIconHandler",
+      "Clsid": "{A8E52322-8734-481D-A7E2-27B309EF8D56}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveMirrorBlacklistedOverlayIconHandler",
+      "Clsid": "{51EF1569-67EE-4AD6-9646-E726C3FFC8A2}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDrivePinnedOverlayIconHandler",
+      "Clsid": "{CFE8B367-77A7-41D7-9C90-75D16D7DC6B6}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "    GoogleDriveProgressOverlayIconHandler",
+      "Clsid": "{C973DA94-CBDF-4E77-81D1-E5B794FBD146}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt01",
+      "Clsid": "{FB314ED9-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt02",
+      "Clsid": "{FB314EDF-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt03",
+      "Clsid": "{FB314EE1-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt04",
+      "Clsid": "{FB314EDB-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt05",
+      "Clsid": "{FB314EDA-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt06",
+      "Clsid": "{FB314EDC-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt07",
+      "Clsid": "{FB314EDD-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt08",
+      "Clsid": "{FB314EE0-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt09",
+      "Clsid": "{FB314EE2-A251-47B7-93E1-CDD82E34AF8B}"
+    },
+    {
+      "Scope": "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers",
+      "Name": "   DropboxExt10",
+      "Clsid": "{FB314EDE-A251-47B7-93E1-CDD82E34AF8B}"
+    }
+  ],
+  "ScheduledTasks": [
+    {
+      "TaskPath": "\\",
+      "TaskName": "DevEnvironmentStartup",
+      "State": "Disabled",
+      "LastRunTime": "2026-01-25T21:58:13-05:00",
+      "LastTaskResult": 0,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Per-Machine Standalone Update Task",
+      "State": "Ready",
+      "LastRunTime": "2026-04-30T14:15:20-04:00",
+      "LastTaskResult": 2147806724,
+      "NextRunTime": "2026-05-01T15:03:05-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1001",
+      "State": "Ready",
+      "LastRunTime": "2026-04-30T15:20:47-04:00",
+      "LastTaskResult": 0,
+      "NextRunTime": "2026-05-01T15:20:46-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1002",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": "2026-05-01T14:01:41-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1003",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": "2026-05-01T15:20:47-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1007",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": "2026-05-01T15:20:47-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1009",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": "2026-05-01T15:20:47-04:00"
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1001",
+      "State": "Ready",
+      "LastRunTime": "2026-04-30T15:27:03-04:00",
+      "LastTaskResult": 0,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1003",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1007",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\",
+      "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1009",
+      "State": "Ready",
+      "LastRunTime": "1999-11-30T00:00:00-05:00",
+      "LastTaskResult": 267011,
+      "NextRunTime": null
+    },
+    {
+      "TaskPath": "\\DropboxSystem\\DropboxUpdater\\",
+      "TaskName": "DropboxUpdaterTaskSystem123.0.6299.144{668B0EA2-DE99-431B-9215-10877E09E7CB}",
+      "State": "Ready",
+      "LastRunTime": "2026-04-30T15:19:47-04:00",
+      "LastTaskResult": 0,
+      "NextRunTime": "2026-04-30T16:19:47-04:00"
+    }
+  ],
+  "WerEvents": [
+    {
+      "TimeCreated": "2026-04-30T15:32:00.4036926-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: SkyDriveClientError\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.062.0402.0002\r\nP3: OneDrive.exe\r\nP4: 26.062.0402.0002\r\nP5: 0x80004005\r\nP6: WatsonFaultCategory::Client\r\nP7: CoreApi.cpp\r\nP8: 1832\r\nP9: \r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.9bb7269d-0b45-452a-986a-e69c284b5c91.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.fa5bb766-3a5a-4512-bd1b-45aa746a93cf.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.3008a5b2-594c-4e09-9370-db32d9836cfb.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.3ffcd19d-e5dc-420d-aa40-2ac74989ac2b.tmp.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\NonCritical_OneDrive.exe_5a7f3108119b915c72fe69e75bfdf8fc5ed3415_00000000_cab_df6bb94b-3c78-4f93-bf73-7596b9a711d1\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: df6bb94b-3c78-4f93-bf73-7596b9a711d1\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T15:31:59.285435-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T15:31:56.2183158-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T15:31:56.1338842-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T15:31:56.0463387-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T15:31:55.249109-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: SkyDriveClientError\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.062.0402.0002\r\nP3: OneDrive.exe\r\nP4: 26.062.0402.0002\r\nP5: 0x80004005\r\nP6: WatsonFaultCategory::Client\r\nP7: CoreApi.cpp\r\nP8: 1832\r\nP9: \r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.9bb7269d-0b45-452a-986a-e69c284b5c91.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.fa5bb766-3a5a-4512-bd1b-45aa746a93cf.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.3008a5b2-594c-4e09-9370-db32d9836cfb.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.3ffcd19d-e5dc-420d-aa40-2ac74989ac2b.tmp.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\NonCritical_OneDrive.exe_5a7f3108119b915c72fe69e75bfdf8fc5ed3415_00000000_cab_df6bb94b-3c78-4f93-bf73-7596b9a711d1\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: df6bb94b-3c78-4f93-bf73-7596b9a711d1\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T15:31:54.0445079-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: SkyDriveClientError\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.062.0402.0002\r\nP3: OneDrive.exe\r\nP4: 26.062.0402.0002\r\nP5: 0x80004005\r\nP6: WatsonFaultCategory::Client\r\nP7: CoreApi.cpp\r\nP8: 1832\r\nP9: \r\nP10: \r\n\r\nAttached files:\r\n\r\nThese files may be available here:\r\nNULL\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: df6bb94b-3c78-4f93-bf73-7596b9a711d1\r\nReport Status: 1074003968\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:54:16.5408844-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:54:13.6764873-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:54:13.5740302-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:54:13.4779905-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:52:44.2449042-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:52:41.4937526-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:52:41.3913003-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:52:41.2761161-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:51:12.0063827-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:51:09.3123041-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:51:09.2078409-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:51:09.115776-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:49:33.5388205-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:49:30.5829534-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:49:30.4614858-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:49:30.3374828-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:48:29.3496041-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:48:25.6095231-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:48:25.4687079-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:48:25.3495046-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:27:19.2067636-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:27:16.0138862-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:27:15.8909679-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T14:27:15.7696635-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:34:18.1071061-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:34:14.8877872-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:34:14.7658543-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:34:14.6282394-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:15:42.9099471-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:15:39.6590804-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:15:39.5317159-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:15:39.4024789-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:15:36.9549384-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:15:33.5368635-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:15:33.4180714-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T13:15:33.2866587-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:53:39.8867435-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:53:36.5999611-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:53:36.4698455-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:53:36.3524311-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:51:58.4954451-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:51:52.6729551-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:51:52.4985299-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:51:52.3456543-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:51:50.2959471-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:51:46.4664603-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:51:46.3424075-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:51:46.2137779-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:51:13.0324935-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:50:52.5096411-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:50:52.391436-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:50:52.232669-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:46:48.4342374-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:46:44.8559142-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:46:44.726663-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:46:44.6066852-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:45:38.0857576-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:45:34.4732121-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:45:34.3429686-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:45:34.2119406-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:44:08.1787683-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:44:01.3575598-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:44:01.2200673-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:44:01.0870255-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:43:59.0487414-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:43:55.1680402-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:43:55.0213755-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:43:54.8873998-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:43:46.1398115-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.62.402.2\r\nP3: c1341795\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-29.2042.4024.22173.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b706034e-0a28-41c7-b8ee-dc3710471421.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.84bb108e-70b7-4329-b5ff-aed60e186e67.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.dfe6d354-f222-4d5b-afa2-48b5aaa5401e.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4650e086-0c42-42cb-8d5d-422cef0d6052.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8f673fd4-9015-47c3-97c8-6a0e5a274231.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4b99269f-9197-436a-ab8c-22a0c4286e2b.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7435860a-39eb-4627-91eb-cef49c52dc8c.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.f28b3659-3022-4a19-8461-4fecfcd6b48b.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_9d3983afa4ffe39ae0c01d55da1a55976b5b119_f8c2e028_cab_b4faf415-cb99-4fc4-bc14-649ac2bed94d\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 28d9bbed-f2aa-40cd-a972-9c9884987cf6\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:43:19.9094558-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.f1509d75-23d2-4205-b512-89da25386046.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_851be96b-c3be-49fb-aaa6-31de1f59692e\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 176fec7e-56d6-42f0-81cb-651e024e414d\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:43:19.2327248-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6639145e-890b-4612-b179-073dca2e8d63.tmp.WERInternalMetadata.xml\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_feb64d0e-f8a0-4479-b57e-b4178f663adc\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: c956e554-eb7b-4d75-8122-359a4637bbcc\r\nReport Status: 4196\r\nHashed bucket: \r\nCab Guid: 0"
+    },
+    {
+      "TimeCreated": "2026-04-30T12:43:18.779805-04:00",
+      "Id": 1001,
+      "ProviderName": "Windows Error Reporting",
+      "LevelDisplayName": "Information",
+      "Message": "Fault bucket , type 0\r\nEvent Name: BEX64\r\nResponse: Not available\r\nCab Id: 0\r\n\r\nProblem signature:\r\nP1: OneDrive.exe\r\nP2: 26.55.323.4\r\nP3: 18946e77\r\nP4: ucrtbase.dll\r\nP5: 10.0.26100.8246\r\nP6: 4eb988a2\r\nP7: 00000000000a4aee\r\nP8: c0000409\r\nP9: 0000000000000007\r\nP10: \r\n\r\nAttached files:\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncEngine-2026-04-22.1429.13368.10.aodl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.54e87dc5-2a78-4b25-a0b6-3b4ad528675e.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.1fbc1eab-de84-40e7-9aa8-fa4d6b1d0497.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260213_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.add57082-e69c-461e-bbad-c514fd56fb36.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.068bfb06-d835-4380-af41-8b4bef5b78d9.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.7262c9f3-62d0-4418-8db0-9d53e5d1617b.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.630de414-e437-4bea-b676-03d83d7621dc.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cbd89d1f-14b7-4b4d-bc24-89736e7cf83f.tmp.xml\r\n\\\\?\\C:\\Users\\david\\AppData\\Local\\Temp\\WER.ad9d7a84-eda2-417f-84e1-e774e4db9683.tmp.appcompat.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\\memory.hdmp\r\n\r\nThese files may be available here:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_OneDrive.exe_4429b17495c69ad6f18bd2abc64944e5393982_5cab0dac_cab_57e5068d-df18-47b0-81c0-835af3d72d9f\r\n\r\nAnalysis symbol: \r\nRechecking for solution: 0\r\nReport Id: 50618781-2193-4ef4-b6d2-01fc2d0477ba\r\nReport Status: 100\r\nHashed bucket: \r\nCab Guid: 0"
+    }
+  ],
+  "OneDriveSyncDiagnostics": {
+    "Path": "C:\\Users\\david\\AppData\\Local\\Microsoft\\OneDrive\\logs\\Personal\\SyncDiagnostics.log",
+    "Exists": true,
+    "LastWriteTime": "2026-04-30T15:28:39.9610648-04:00",
+    "FreshSinceBoot": true,
+    "Tail": [
+      "scanStateStallDetected = 0",
+      "",
+      "seOfficeFiles = 0",
+      "",
+      "seOfficeFilesToDownload = 0",
+      "",
+      "seOfficeFilesToUpload = 0",
+      "",
+      "successfulBytesDownloadedTotal = 0",
+      "",
+      "successfulBytesUploadedTotal = 0",
+      "",
+      "syncProgressState = 1027",
+      "",
+      "syncStallDetected = 0",
+      "",
+      "sync_progress_id = b706bada-8807-48e5-9694-8339b653e8b7",
+      "",
+      "threadCount = 50",
+      "",
+      "timeUtc = 2026-04-30T19:28:30.0000000Z",
+      "",
+      "totalDoScanWorkCpuTimeInMs = 86128",
+      "",
+      "totalDuration = -1",
+      "",
+      "totalInvalidatedScanCpuTimeInMs = 0",
+      "",
+      "totalProcessCpuTime = -1",
+      "",
+      "totalScanCpuTimeInMs = 0",
+      "",
+      "totalSizeOfDiskDrive = 3991508701184",
+      "",
+      "totalSubScopes = 2",
+      "",
+      "uptimeSecs = 86",
+      "",
+      "userOverriddenConcurrentUploads = 0",
+      "",
+      "username = *****",
+      "",
+      "vaultState = 2",
+      "",
+      "version = 505",
+      "",
+      "wasFileDBReset = 0",
+      "",
+      "",
+      ""
+    ]
+  },
+  "Failures": [
+    "OneDrive/FileSyncHelper WER events occurred after 2026-04-30T11:36:30.5052234-04:00"
+  ],
+  "Warnings": [
+    "Sync root exists but provider process is not running: iCloud"
+  ]
+}

@@ -70,8 +70,7 @@ Native/PcaiNative/obj/
 Native/PcaiServiceHost/obj/
 !Native/pcai_core/pcai_inference/src/bin/
 
-# Claude Code local settings (per-machine, not shared)
-.claude/settings.local.json
+# Claude project context is intentionally tracked for agent handoff.
 *.dll
 *.exe
 *.pdb
@@ -204,10 +203,6 @@ docs/auto/deepwiki_litho_docs/
 # ast-grep scan output
 scan_results.json
 
-# Internal development context (session-specific)
-.claude/context/
-.claude/plans/
-
 # Machine-specific development scripts (contain local paths)
 Scripts/
 
@@ -231,3 +226,7 @@ gpu_test*.png
 .codex-tmp/
 .codex_tmp/
 RealESRGAN_x4.onnx
+
+# Track Claude project context, plans, logs, and settings for agent handoff.
+!.claude/
+!.claude/**

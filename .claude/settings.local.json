@@ -1,0 +1,10 @@
+{
+  "enabledMcpjsonServers": [
+    "Microsoft Learn",
+    "Context7",
+    "Serena",
+    "GitHub",
+    "Playwright"
+  ],
+  "enableAllProjectMcpServers": true
+}

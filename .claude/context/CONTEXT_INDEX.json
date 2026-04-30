@@ -1,7 +1,17 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-20260319-llm-optimization-v2",
+  "latest": "ctx-pcai-20260410-nvidia-option-b",
   "contexts": [
+    {
+      "id": "ctx-pcai-20260410-nvidia-option-b",
+      "file": "pcai-context-20260410-nvidia-option-b.md",
+      "created": "2026-04-10T23:38:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["general-purpose"],
+      "summary": "NVIDIA Option B (filtered staged 595.97 Lenovo Enterprise install for DEV_28B8) executed via Tools/Install-InfDriver.ps1 loop. 6 INFs (nvltwi/nvblwi/nvdmwi/nvfmwi/nvmiwi/nvmsowi) installed cleanly, RTX 2000 Ada Code 31 RESOLVED (now OK on 32.0.15.9597, nvidia-smi visible). REGRESSION: RTX 5060 Ti flipped to Code 31 — same WDDM kernel-mismatch pattern, cards swapped. Local recovery exhausted (no GRD on disk newer than 591.86 oem387). Decision pending: reboot, Option C (manual nvidia.com download), or rollback.",
+      "tags": ["nvidia", "drivers", "pnputil", "WDDM", "split-driver", "decision-pending"],
+      "commit": "5e7d591"
+    },
     {
       "id": "ctx-pcai-20260319-llm-optimization-v2",
       "file": "pcai-context-20260319-llm-optimization-v2.md",

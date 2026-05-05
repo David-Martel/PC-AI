@@ -21,7 +21,7 @@ serde_json = "1.0"
 tracing = "0.1"
 
 candle-core = { version = "0.9" }
-candle-nn = "0.9"
+candle-nn = "0.10"
 candle-transformers = "0.9"
 safetensors = "0.7"
 tokenizers = "0.22"

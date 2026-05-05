@@ -9,7 +9,7 @@ lints.workspace = true
 [dependencies]
 anyhow = "1.0"
 candle-core = { version = "0.9" }
-candle-nn = "0.9"
+candle-nn = "0.10"
 candle-transformers = "0.9"
 candle-flash-attn = { version = "0.9", optional = true }
 serde = { version = "1.0", features = ["derive"] }

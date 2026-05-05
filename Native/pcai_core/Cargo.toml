@@ -92,7 +92,7 @@ tower-http = { version = "0.6", features = ["trace", "cors"] }
 llm = { git = "https://github.com/rustformers/llama-rs.git", rev = "b11ffb14fde039f068c808df8dcbd1257a01b8db", default-features = false, features = ["models"] }
 mistralrs = "0.7"
 mistralrs-core = "0.7"
-rand = "0.8.5"
+rand = "0.9.3"
 ollama-rs = { version = "0.3.4", features = ["stream"] }
 schemars = "0.8.22"
 url = "2.5"

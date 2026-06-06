@@ -1,0 +1,30 @@
+06-06 16:55 | Result=0x8018000B | \Microsoft\Windows\EnterpriseMgmt\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\Schedule created by dm client for dual enrollment to Mmpc | State=Ready
+06-06 16:47 | Result=0x80070002 | \PowerShell\ProfileLogSync | State=Ready
+06-06 16:10 | Result=0x8007042B | \Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem | State=Ready
+06-06 16:10 | Result=0x8007042B | \Microsoft\Windows\DiskCleanup\SilentCleanup | State=Ready
+06-06 16:10 | Result=0x80040154 | \Microsoft\Windows\DiskFootprint\StorageSense | State=Ready
+06-06 16:10 | Result=0x800700B7 | \Microsoft\Windows\Shell\ThemesSyncedImageDownload | State=Ready
+06-06 16:10 | Result=0x00000420 | \Microsoft\Windows\Time Synchronization\SynchronizeTime | State=Ready
+06-06 16:10 | Result=0x80070002 | \RNIdle Task | State=Ready
+06-06 16:10 | Result=0x800710E0 | \Microsoft\Windows\MemoryDiagnostic\ProcessMemoryDiagnosticEvents | State=Ready
+06-06 16:10 | Result=0x8007042B | \Lenovo\Vantage\Schedule\VantageCoreAddinIdleScheduleTask | State=Ready
+06-06 12:29 | Result=0x80070002 | \Microsoft\Windows\Location\Notifications | State=Ready
+06-06 10:14 | Result=0x00041301 | \Microsoft\Windows\WDI\ResolutionHost | State=Running
+06-06 10:10 | Result=0x00041301 | \Lenovo\ITS\Lenovo ITS WM Task | State=Running
+06-06 10:10 | Result=0x00041301 | \Lenovo\ITS\Lenovo ITS ADM Task | State=Running
+06-06 09:39 | Result=0x80070002 | \Microsoft\Windows\UpdateOrchestrator\USO_UxBroker | State=Ready
+06-06 09:30 | Result=0xFFFFFF95 | \Lenovo\TrackPointQuickMenu\Schedule\ActivationDailyScheduleTask | State=Ready
+06-06 09:09 | Result=0x800706D9 | \Microsoft\Windows\PI\Secure-Boot-Update | State=Ready
+06-06 08:06 | Result=0xFFFFFFF8 | \Microsoft\Office\Office Startup Maintenance | State=Ready
+06-05 21:19 | Result=0x00000420 | \Lenovo\Vantage\Lenovo.Vantage.ServiceMaintainance | State=Ready
+06-05 21:19 | Result=0x00000420 | \Lenovo\ImController\Lenovo iM Controller Scheduled Maintenance | State=Ready
+06-05 21:07 | Result=0x80070002 | \Bitwarden\Initialize-MachineSecrets | State=Ready
+06-05 21:04 | Result=0x00041301 | \RtkAudUService64_BG | State=Running
+06-05 21:04 | Result=0xFFFFFFFF | \Lenovo\UDC\Lenovo UDC Monitor | State=Ready
+06-05 21:04 | Result=0x40010004 | \Session agent for Process Lasso | State=Ready
+06-05 21:04 | Result=0x00041301 | \Lenovo\Lenovo Professional Ultraslim Wireless Combo Gen2 OSD task | State=Running
+06-05 21:04 | Result=0x80070002 | \Lenovo\Vantage\StartupFixPlan | State=Ready
+06-05 21:04 | Result=0x00041301 | \Process Lasso Core Engine Only | State=Running
+06-05 21:04 | Result=0x00041301 | \Microsoft\Windows\Multimedia\SystemSoundsService | State=Running
+06-05 21:04 | Result=0x00041301 | \Lenovo\Power Manager\Background monitor | State=Running
+06-05 21:04 | Result=0x80070002 | \NIUpdateServiceStartupTask | State=Ready

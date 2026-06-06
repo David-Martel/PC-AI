@@ -1,0 +1,26 @@
+06-05 18:31 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+06-05 18:31 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+06-05 18:31 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+06-05 18:31 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+06-05 18:31 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+06-05 18:31 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+06-05 18:31 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+06-05 18:31 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+06-05 18:31 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+06-05 18:31 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+06-05 18:31 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+06-05 18:31 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+06-04 19:39 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+06-04 19:39 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+06-04 19:39 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+06-04 19:39 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+06-03 10:43 | ID=8194 | Successfully created restore point (Process = C:\WINDOWS\system32\svchost.exe -k netsvcs -p -s wuauserv; Description = Windows Update).
+05-30 23:54 | ID=8194 | Successfully created restore point (Process = C:\WINDOWS\system32\msiexec.exe /V; Description = Removed Aventa 3.8.).
+05-30 22:49 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+05-29 20:57 | ID=8194 | Successfully created restore point (Process = C:\WINDOWS\system32\svchost.exe -k netsvcs -p -s wuauserv; Description = Windows Update).
+05-26 14:59 | ID=8194 | Successfully created restore point (Process = C:\WINDOWS\system32\svchost.exe -k netsvcs -p -s wuauserv; Description = Windows Update).
+05-25 01:35 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+05-25 01:35 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+05-25 01:35 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 
+05-25 01:35 | ID=8193 | Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . 
+05-25 01:35 | ID=13 | Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] 

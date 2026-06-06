@@ -1,0 +1,46 @@
+# hid-deep-06-input-services -- TabletInputService, TextInput, ctfmon, Win32k events
+# Collected: 2026-06-06T16:58:01.5174511-04:00  Elevated: True
+
+## 1. Input-related service states
+  TabletInputService -- NOT FOUND
+  TextInputManagementService: Status=Running StartType=Automatic DisplayName=Text Input Management Service
+  hidserv: Status=Running StartType=Manual DisplayName=Human Interface Device Service
+  i8042prt: Status=Running StartType=Manual DisplayName=i8042 Keyboard and PS/2 Mouse Port Driver
+  kbdhid: Status=Running StartType=Manual DisplayName=Keyboard HID Driver
+  mouhid: Status=Running StartType=Manual DisplayName=Mouse HID Driver
+  kbdclass: Status=Running StartType=Manual DisplayName=Keyboard Class Driver
+  mouclass: Status=Running StartType=Manual DisplayName=Mouse Class Driver
+  hidi2c: Status=Running StartType=Manual DisplayName=Microsoft I2C HID Miniport Driver
+  iaLPSS2_I2C_MTL: Status=Running StartType=Manual DisplayName=Intel(R) Serial IO I2C Driver v2
+  ctfmon -- NOT FOUND
+  InputService -- NOT FOUND
+  SenselHapticTouchpad -- NOT FOUND
+  WacomTouchHID -- NOT FOUND
+## 2. Win32k System events (30d)
+  Win32k events: The specified providers do not write events to any of the specified logs.
+## 3. DWM crashes -- Application log (30d)
+  DWM crash/fault events: 62
+  Date: 2026-05-23 -- 7 events
+  Date: 2026-05-24 -- 25 events
+  Date: 2026-05-25 -- 22 events
+  Date: 2026-05-26 -- 8 events
+  2026-05-26 09:18:00 Fault bucket 1247395880758060261, type 4 Event Name: APPCRASH Response: Not available Cab Id: 1771559863389594384  Problem signature: P1: dwm.exe P2: 10.0.26100.8328 P3: 59f31718 P4: dwmcore.dll P5: 10.0.26100.8457 P6: 737b25be P7: c00001ad P8: 000000000019f614 P9:  P10:   Attached files: \\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.8466cce7-5b3e-4f78-935e-bede9a07ec10.tmp.m
+  2026-05-26 04:48:36 Fault bucket , type 0 Event Name: APPCRASH Response: Not available Cab Id: 0  Problem signature: P1: dwm.exe P2: 10.0.26100.8328 P3: 59f31718 P4: dwmcore.dll P5: 10.0.26100.8457 P6: 737b25be P7: c00001ad P8: 000000000019f614 P9:  P10:   Attached files: \\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.8466cce7-5b3e-4f78-935e-bede9a07ec10.tmp.mdmp \\?\C:\ProgramData\Microsoft\Win
+  2026-05-26 03:43:20 Fault bucket , type 0 Event Name: APPCRASH Response: Not available Cab Id: 0  Problem signature: P1: dwm.exe P2: 10.0.26100.8328 P3: 59f31718 P4: dwmcore.dll P5: 10.0.26100.8457 P6: 737b25be P7: c00001ad P8: 000000000019f614 P9:  P10:   Attached files: \\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.8466cce7-5b3e-4f78-935e-bede9a07ec10.tmp.mdmp \\?\C:\ProgramData\Microsoft\Win
+## 4. Camera/FrameServer crashes -- Application log (30d)
+  Camera events: 422
+  2026-06-01 09:42:07 Fault bucket 1784196026808717095, type 4 Event Name: APPCRASH Response: Not available Cab Id: 0  Problem signature: P1: svchost.exe_FrameServer P2: 10.0.26100.8521 P3: 6588a4b7 P4: frameserve
+  2026-06-01 09:42:06 Fault bucket 1299622977730586660, type 4 Event Name: APPCRASH Response: Not available Cab Id: 0  Problem signature: P1: svchost.exe_FrameServer P2: 10.0.26100.8521 P3: 6588a4b7 P4: ntdll.dll
+  2026-06-01 09:42:05 Fault bucket 1299622977730586660, type 4 Event Name: APPCRASH Response: Not available Cab Id: 0  Problem signature: P1: svchost.exe_FrameServer P2: 10.0.26100.8521 P3: 6588a4b7 P4: ntdll.dll
+  2026-06-01 09:41:26 Fault bucket , type 0 Event Name: APPCRASH Response: Not available Cab Id: 0  Problem signature: P1: svchost.exe_FrameServer P2: 10.0.26100.8521 P3: 6588a4b7 P4: frameserver.dll P5: 10.0.261
+  2026-06-01 09:41:24 Fault bucket , type 0 Event Name: APPCRASH Response: Not available Cab Id: 0  Problem signature: P1: svchost.exe_FrameServer P2: 10.0.26100.8521 P3: 6588a4b7 P4: ntdll.dll P5: 10.0.26100.852
+## 5. TabletInputService / TextServices events -- Application log (30d)
+  No TIS/CTF events found
+## 6. Running input-adjacent processes (hooks, TIP, etc.)
+  RUNNING: Microsoft.CmdPal.Ext.PowerToys PID=13228 Path=C:\Users\david\AppData\Local\PowerToys\WinUI3Apps\Microsoft.CmdPal.Ext.PowerToys.exe
+  RUNNING: PowerToys.EnvironmentVariables PID=62972 Path=C:\Users\david\AppData\Local\PowerToys\WinUI3Apps\PowerToys.EnvironmentVariables.exe
+  RUNNING: logioptionsplus_agent PID=23328 Path=C:\Program Files\LogiOptionsPlus\logioptionsplus_agent.exe
+  RUNNING: logioptionsplus_updater PID=14764 Path=C:\Program Files\LogiOptionsPlus\logioptionsplus_updater.exe
+  RUNNING: TextInputHost PID=23604 Path=C:\WINDOWS\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe
+  RUNNING: ctfmon PID=30676 Path=C:\WINDOWS\system32\ctfmon.exe
+

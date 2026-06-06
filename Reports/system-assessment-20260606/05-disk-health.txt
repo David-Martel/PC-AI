@@ -1,0 +1,11 @@
+
+Number FriendlyName           SerialNumber                             MediaType   CanPool OperationalStatus HealthStatu
+                                                                                                             s
+------ ------------           ------------                             ---------   ------- ----------------- -----------
+5      Msft Virtual Disk                                               SSD         False   OK                Healthy    
+4      Msft Virtual Disk                                               SSD         False   OK                Healthy    
+0      WD_BLACK SN850X 4000GB E823_8FA6_BF53_0001_001B_448B_4DFD_57F1. SSD         False   OK                Healthy    
+6      Msft Virtual Disk                                               SSD         True    OK                Healthy    
+1      WD_BLACK SN850X 4000GB E823_8FA6_BF53_0001_001B_448B_476D_1892. SSD         False   OK                Healthy    
+7      General UDisk                                                   Unspecified False   OK                Healthy    
+

@@ -1,0 +1,408 @@
+[
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 4:00:00 PM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 3:00:00 PM",
+      "SystemStabilityIndex = 5.237",
+      "TimeGenerated = 6/6/2026 3:00:00 PM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T16:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T15:00:00-04:00",
+    "SystemStabilityIndex": 5.237,
+    "TimeGenerated": "2026-06-06T15:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 3:00:00 PM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 2:00:00 PM",
+      "SystemStabilityIndex = 5.21",
+      "TimeGenerated = 6/6/2026 2:00:00 PM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T15:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T14:00:00-04:00",
+    "SystemStabilityIndex": 5.21,
+    "TimeGenerated": "2026-06-06T14:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 2:00:00 PM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 1:00:00 PM",
+      "SystemStabilityIndex = 5.184",
+      "TimeGenerated = 6/6/2026 1:00:00 PM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T14:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T13:00:00-04:00",
+    "SystemStabilityIndex": 5.184,
+    "TimeGenerated": "2026-06-06T13:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 1:00:00 PM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 12:00:00 PM",
+      "SystemStabilityIndex = 5.157",
+      "TimeGenerated = 6/6/2026 12:00:00 PM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T13:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T12:00:00-04:00",
+    "SystemStabilityIndex": 5.157,
+    "TimeGenerated": "2026-06-06T12:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 12:00:00 PM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 11:00:00 AM",
+      "SystemStabilityIndex = 5.131",
+      "TimeGenerated = 6/6/2026 11:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T12:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T11:00:00-04:00",
+    "SystemStabilityIndex": 5.131,
+    "TimeGenerated": "2026-06-06T11:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 11:00:00 AM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 10:00:00 AM",
+      "SystemStabilityIndex = 5.104",
+      "TimeGenerated = 6/6/2026 10:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T11:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T10:00:00-04:00",
+    "SystemStabilityIndex": 5.104,
+    "TimeGenerated": "2026-06-06T10:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 10:00:00 AM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 9:00:00 AM",
+      "SystemStabilityIndex = 5.077",
+      "TimeGenerated = 6/6/2026 9:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T10:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T09:00:00-04:00",
+    "SystemStabilityIndex": 5.077,
+    "TimeGenerated": "2026-06-06T09:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 9:00:00 AM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 8:00:00 AM",
+      "SystemStabilityIndex = 5.05",
+      "TimeGenerated = 6/6/2026 8:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T09:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T08:00:00-04:00",
+    "SystemStabilityIndex": 5.05,
+    "TimeGenerated": "2026-06-06T08:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 8:00:00 AM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 7:00:00 AM",
+      "SystemStabilityIndex = 5.023",
+      "TimeGenerated = 6/6/2026 7:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T08:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T07:00:00-04:00",
+    "SystemStabilityIndex": 5.023,
+    "TimeGenerated": "2026-06-06T07:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 7:00:00 AM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 6:00:00 AM",
+      "SystemStabilityIndex = 4.996",
+      "TimeGenerated = 6/6/2026 6:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T07:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T06:00:00-04:00",
+    "SystemStabilityIndex": 4.996,
+    "TimeGenerated": "2026-06-06T06:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 6:00:00 AM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 5:00:00 AM",
+      "SystemStabilityIndex = 4.969",
+      "TimeGenerated = 6/6/2026 5:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T06:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T05:00:00-04:00",
+    "SystemStabilityIndex": 4.969,
+    "TimeGenerated": "2026-06-06T05:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 5:00:00 AM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 4:00:00 AM",
+      "SystemStabilityIndex = 4.941",
+      "TimeGenerated = 6/6/2026 4:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T05:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T04:00:00-04:00",
+    "SystemStabilityIndex": 4.941,
+    "TimeGenerated": "2026-06-06T04:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 4:00:00 AM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 3:00:00 AM",
+      "SystemStabilityIndex = 4.914",
+      "TimeGenerated = 6/6/2026 3:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T04:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T03:00:00-04:00",
+    "SystemStabilityIndex": 4.914,
+    "TimeGenerated": "2026-06-06T03:00:00-04:00",
+    "PSComputerName": null
+  },
+  {
+    "CimClass": {
+      "CimSuperClassName": "Win32_Reliability",
+      "CimSuperClass": "ROOT/cimv2:Win32_Reliability",
+      "CimClassProperties": "EndMeasurementDate RelID StartMeasurementDate SystemStabilityIndex TimeGenerated",
+      "CimClassQualifiers": "dynamic = True locale = \"MS\\0x409\" provider = \"ReliabilityMetricsProvider\"",
+      "CimClassMethods": "GetRecordCount",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+    },
+    "CimInstanceProperties": [
+      "EndMeasurementDate = 6/6/2026 3:00:00 AM",
+      "RelID = \"{0}\"",
+      "StartMeasurementDate = 6/6/2026 2:00:00 AM",
+      "SystemStabilityIndex = 4.886",
+      "TimeGenerated = 6/6/2026 2:00:00 AM"
+    ],
+    "CimSystemProperties": {
+      "Namespace": "root/cimv2",
+      "ServerName": "DTM-P1GEN7",
+      "ClassName": "Win32_ReliabilityStabilityMetrics",
+      "Path": null
+    },
+    "EndMeasurementDate": "2026-06-06T03:00:00-04:00",
+    "RelID": "{0}",
+    "StartMeasurementDate": "2026-06-06T02:00:00-04:00",
+    "SystemStabilityIndex": 4.886,
+    "TimeGenerated": "2026-06-06T02:00:00-04:00",
+    "PSComputerName": null
+  }
+]

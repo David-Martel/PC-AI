@@ -1,0 +1,6 @@
+4965	Microsoft-Windows-HttpEvent
+16	Microsoft-Windows-DistributedCOM
+15	Netwaw18
+2	Microsoft-Windows-Smartcard-Server
+1	Service Control Manager
+1	User32

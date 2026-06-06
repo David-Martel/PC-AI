@@ -1,0 +1,133 @@
+# hid-deep-04-haptic-sensel-registry — Haptic/Sensel/PTP registry + events
+# Collected: 2026-06-06T16:56:37.5277995-04:00  Elevated: True
+
+## Sensel HapticTouchpad UWP app (installed)
+
+Name            : SenselInc.SenselHapticTouchpad
+Version         : 1.2.12.0
+PackageFullName : SenselInc.SenselHapticTouchpad_1.2.12.0_x64__h91pjf1v583kj
+InstallLocation : C:\Program Files\WindowsApps\SenselInc.SenselHapticTouchpad_1.2.12.0_x64__h91pjf1v583kj
+Status          : Ok
+
+
+## HKLM PrecisionTouchPad settings
+  Path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options
+  
+  Path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad
+  
+AAPDisabled          : 0
+HorizontalOffset     : 0
+RightClickZoneHeight : 0
+RightClickZoneWidth  : 0
+SpaceBarOffset       : 1000
+PSPath               : Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad
+PSParentPath         : Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion
+PSChildName          : PrecisionTouchPad
+PSDrive              : HKLM
+PSProvider           : Microsoft.PowerShell.Core\Registry
+
+
+  Path: HKLM:\SYSTEM\CurrentControlSet\Enum\HID\SNSL002D
+  (path not found)
+## HKCU PrecisionTouchPad settings (current user)
+  Path: HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad
+  
+AAPThreshold           : 2
+EnableEdgy             : 1
+ScrollDirection        : 0
+CursorSpeed            : 14
+LeaveOnWithMouse       : 4294967295
+PanEnabled             : 4294967295
+RightClickZoneEnabled  : 4294967295
+TapAndDrag             : 4294967295
+TapsEnabled            : 0
+TwoFingerTapEnabled    : 0
+ZoomEnabled            : 4294967295
+FeedbackIntensity      : 50
+ClickForceSensitivity  : 50
+FeedbackEnabled        : 4294967295
+HonorMouseAccelSetting : 0
+RightClickZoneWidth    : 0
+RightClickZoneHeight   : 0
+PSPath                 : Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad
+PSParentPath           : Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion
+PSChildName            : PrecisionTouchPad
+PSDrive                : HKCU
+PSProvider             : Microsoft.PowerShell.Core\Registry
+
+
+  Path: HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status
+  
+Enabled      : 1
+PSPath       : Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status
+PSParentPath : Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad
+PSChildName  : Status
+PSDrive      : HKCU
+PSProvider   : Microsoft.PowerShell.Core\Registry
+
+
+## Lenovo haptic + Sensel registry keys
+  Path: HKLM:\SYSTEM\CurrentControlSet\Services\SenselHapticTouchpad
+  (not found)
+  Path: HKLM:\SOFTWARE\Lenovo\ImController
+    InfInstaller = 1
+    SubKeys: PluginData
+  Path: HKLM:\SOFTWARE\Lenovo\TPPWRSCHEME
+  (not found)
+  Path: HKLM:\SOFTWARE\Lenovo\SHF
+  (not found)
+  Path: HKLM:\SOFTWARE\WOW6432Node\Lenovo
+    SubKeys: AnonymousMetrics, CommercialAddin, Customer Feedback, ImController, MachineInfo, ModernPreload, OOBE, PWRMGRV, SmartStandby, SystemUpdateAddin, ThinkPadDefaultPowerScheme, TVT, VantageService
+  Path: HKCU:\SOFTWARE\Lenovo
+    SubKeys: Camera, Customer Feedback, HotkeyAudioCue, ImController, Lenovo Service Bridge, LenovoSecurityAddin, MicMute, OnScreenDisplay, QuickClean, Rainbow, VantageService
+## Sensel COL04 (vendor-defined HID — haptic) device info
+  FriendlyName: HID-compliant vendor-defined device  Status: OK  Problem: CM_PROB_NONE
+  InstanceId: HID\SNSL002D&COL04\5&14B88203&0&0003
+    DEVPKEY_Device_DeviceDesc = HID-compliant vendor-defined device
+    DEVPKEY_Device_HardwareIds = HID\VEN_SNSL&DEV_002D&REV_0002&Col04 HID\VEN_SNSL&DEV_002D&Col04 HID\SNSL002D&Col04 HID\*SNSL002D&Col04 HID\VID_2C2F&UP:FF00_U:0001 HID_DEVICE_UP:FF00_U:0001 HID_DEVICE_UPR:FF00-FFFF HID_DEVICE
+    DEVPKEY_Device_Class = HIDClass
+    DEVPKEY_Device_ClassGuid = {745A17A0-74D3-11D0-B6FE-00A0C90F57DA}
+    DEVPKEY_Device_Driver = {745a17a0-74d3-11d0-b6fe-00a0c90f57da}\0005
+    DEVPKEY_Device_Manufacturer = (Standard system devices)
+    DEVPKEY_Device_PDOName = \Device\000000c6
+    DEVPKEY_Device_Capabilities = 224
+    DEVPKEY_Device_BusTypeGuid = {EEAF37D0-1963-47C4-AA48-72476DB7CF49}
+    DEVPKEY_Device_LegacyBusType = 15
+    DEVPKEY_Device_EnumeratorName = HID
+    DEVPKEY_Device_Address = 4
+    DEVPKEY_Device_PowerData = 56 0 0 0 1 0 0 0 153 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0 4 0 0 0 1 0 0 0
+    DEVPKEY_Device_RemovalPolicy = 1
+    DEVPKEY_Device_RemovalPolicyDefault = 1
+    DEVPKEY_Device_BaseContainerId = {00000000-0000-0000-FFFF-FFFFFFFFFFFF}
+    DEVPKEY_NAME = HID-compliant vendor-defined device
+    DEVPKEY_Device_InstanceId = HID\SNSL002D&COL04\5&14B88203&0&0003
+    DEVPKEY_Device_DevNodeStatus = 25174026
+    DEVPKEY_Device_Parent = ACPI\SNSL002D\4&39979b3e&0
+    DEVPKEY_Device_Siblings = HID\SNSL002D&Col01\5&14b88203&0&0000 HID\SNSL002D&Col02\5&14b88203&0&0001 HID\SNSL002D&Col03\5&14b88203&0&0002
+    DEVPKEY_Device_ContainerId = {00000000-0000-0000-FFFF-FFFFFFFFFFFF}
+    DEVPKEY_Device_IsPresent = True
+    {83DA6326-97A6-4088-9453-A1923F573B29} 15 = True
+    DEVPKEY_Device_ReportedDeviceIdsHash = 1659212052
+    DEVPKEY_Device_InLocalMachineContainer = True
+    DEVPKEY_Device_Stack = \Driver\mshidkmdf
+    {3464F7A4-2444-40B1-980A-E0903CB6D912} 10 = 3
+    DEVPKEY_Device_ConfigurationId = input.inf:HID_DEVICE_UPR:FF00-FFFF,HID_Raw_Inst.NT
+    {83DA6326-97A6-4088-9453-A1923F573B29} 3 = input.inf:741f41b5ea19c7ad:HID_Raw_Inst.NT:10.0.26100.8521:HID_DEVICE_UPR:FF00-FFFF
+    {83DA6326-97A6-4088-9453-A1923F573B29} 10 = ACPI\SNSL002D\4&39979b3e&0
+    DEVPKEY_Device_InstallDate = 12/16/2025 22:42:43
+    DEVPKEY_Device_FirstInstallDate = 12/16/2025 22:42:43
+    DEVPKEY_Device_LastArrivalDate = 06/05/2026 21:03:14
+    DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+    DEVPKEY_Device_DriverVersion = 10.0.26100.8521
+    DEVPKEY_Device_DriverDesc = HID-compliant vendor-defined device
+    DEVPKEY_Device_DriverInfPath = input.inf
+    DEVPKEY_Device_DriverInfSection = HID_Raw_Inst.NT
+    DEVPKEY_Device_MatchingDeviceId = HID_DEVICE_UPR:FF00-FFFF
+    DEVPKEY_Device_DriverProvider = Microsoft
+    DEVPKEY_Device_DriverRank = 16715782
+    DEVPKEY_Device_GenericDriverInstalled = True
+    DEVPKEY_Device_AdditionalSoftwareRequested = True
+## SenselHapticTouchpad / haptic events — Application + System logs (30d)
+  Application — No haptic/Sensel events found
+  System — No haptic/Sensel events found
+

@@ -1,0 +1,56 @@
+# hid-deep-08-dpc-latency-perf-counters -- DPC/ISR time sampled over 10s (read-only LatencyMon proxy)
+# Collected: 2026-06-06T16:58:40.7813237-04:00  Elevated: True
+
+## 1. % DPC Time and % Interrupt Time (10 samples, 1s interval)
+  16:58:42  % dpc time  = 0.497%
+  16:58:42  % interrupt time  = 0.639%
+  16:58:42  % dpc time  = 0.497%
+  16:58:42  % interrupt time  = 0.639%
+  16:58:43  % dpc time  = 0.637%
+  16:58:43  % interrupt time  = 0.708%
+  16:58:43  % dpc time  = 0.637%
+  16:58:43  % interrupt time  = 0.708%
+  16:58:44  % dpc time  = 0.568%
+  16:58:44  % interrupt time  = 0.639%
+  16:58:44  % dpc time  = 0.568%
+  16:58:44  % interrupt time  = 0.639%
+  16:58:45  % dpc time  = 0.426%
+  16:58:45  % interrupt time  = 0.852%
+  16:58:45  % dpc time  = 0.426%
+  16:58:45  % interrupt time  = 0.852%
+  16:58:46  % dpc time  = 0.71%
+  16:58:46  % interrupt time  = 0.355%
+  16:58:46  % dpc time  = 0.71%
+  16:58:46  % interrupt time  = 0.355%
+  16:58:47  % dpc time  = 0.497%
+  16:58:47  % interrupt time  = 0.426%
+  16:58:47  % dpc time  = 0.497%
+  16:58:47  % interrupt time  = 0.426%
+  16:58:48  % dpc time  = 0.355%
+  16:58:48  % interrupt time  = 0.355%
+  16:58:48  % dpc time  = 0.355%
+  16:58:48  % interrupt time  = 0.355%
+  16:58:49  % dpc time  = 0.497%
+  16:58:49  % interrupt time  = 0.993%
+  16:58:49  % dpc time  = 0.497%
+  16:58:49  % interrupt time  = 0.993%
+  16:58:50  % dpc time  = 0.142%
+  16:58:50  % interrupt time  = 0.568%
+  16:58:50  % dpc time  = 0.142%
+  16:58:50  % interrupt time  = 0.568%
+  16:58:51  % dpc time  = 0.852%
+  16:58:51  % interrupt time  = 0.781%
+  16:58:51  % dpc time  = 0.852%
+  16:58:51  % interrupt time  = 0.781%
+## 2. Kernel-Processor-Power events (throttling, thermal, perf states) -- System log 30d
+  Total: 66
+  ID=55 Count=66 Last=2026-06-05 10:39:48
+    Processor 2 in group 0 exposes the following power management capabilities:  Idle state type: Micro Power Engine Plugin (11 state(s))  Performance state type: ACPI Collaborative Processor Performance Control Nominal Frequency (MHz): 900 Maximum performance percentage: 422 Minimum performance 
+## 3. Kernel-Power event 37 (performance state change) -- 30d
+  KP37: none
+## 4. Interrupt/DPC-related BugChecks (0x133 DPC_WATCHDOG_VIOLATION) -- 30d
+  BugCheck query error: No events were found that match the specified selection criteria.
+## 5. All BugCheck/Kernel-Power 41 events -- 30d
+  KP41 (unexpected shutdown) count: 1
+  2026-06-05 21:03:01 The system has rebooted without cleanly shutting down first. This error could be caused if the system stopped responding, crashed, or lost power unexpectedly.
+

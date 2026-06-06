@@ -1,0 +1,15 @@
+06-05 21:03 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: INTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 Status: 0xC0000365
+06-05 21:03 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: LCI\IDDCX\1&36444bd7&0&WHO_CARE Status: 0xC0000365
+06-05 21:03 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: ROOT\SYSTEM\0002 Status: 0xC0000365
+06-05 21:03 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: ROOT\SYSTEM\0001 Status: 0xC0000365
+06-05 21:03 | ID=219 | The driver \Driver\WudfRd failed to load. Device: ROOT\WPD\0000 Status: 0xC0000365
+06-05 21:03 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 Status: 0xC0000365
+06-05 21:03 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20 Status: 0xC0000365
+06-05 21:03 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: ROOT\WINDOWSHELLOFACESOFTWAREDRIVER\0000 Status: 0xC0000365
+06-05 19:36 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: INTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 Status: 0xC0000365
+06-05 19:36 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: LCI\IDDCX\1&36444bd7&0&WHO_CARE Status: 0xC0000365
+06-05 19:36 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: ROOT\SYSTEM\0002 Status: 0xC0000365
+06-05 19:36 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: ROOT\SYSTEM\0001 Status: 0xC0000365
+06-05 19:36 | ID=219 | The driver \Driver\WudfRd failed to load. Device: ROOT\WPD\0000 Status: 0xC0000365
+06-05 19:36 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 Status: 0xC0000365
+06-05 19:35 | ID=219 | The driver \Driver\WUDFRd failed to load. Device: PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20 Status: 0xC0000365

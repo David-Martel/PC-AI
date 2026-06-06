@@ -1,0 +1,14 @@
+Stopped | brave | Brave Update Service (brave) | Exit=0
+Stopped | dmwappushservice | Device Management Wireless Application Protocol (WAP) Push message Routing Service | Exit=0
+Stopped | DropboxUpdaterInternalService123.0.6299.144 | DropboxUpdater InternalService 123.0.6299.144 (DropboxUpdaterInternalService123.0.6299.144) | Exit=0
+Stopped | DropboxUpdaterService123.0.6299.144 | DropboxUpdater Service 123.0.6299.144 (DropboxUpdaterService123.0.6299.144) | Exit=0
+Stopped | edgeupdate | Microsoft Edge Update Service (edgeupdate) | Exit=0
+Stopped | EllipticVLS | Virtual Lock Sensor | Exit=0
+Stopped | GoogleUpdaterInternalService150.0.7863.0 | Google Updater Internal Service (GoogleUpdaterInternalService150.0.7863.0) | Exit=0
+Stopped | GoogleUpdaterService150.0.7863.0 | Google Updater Service (GoogleUpdaterService150.0.7863.0) | Exit=0
+Stopped | IntelDisplayUMService | Intel(R) Graphics Display Service | Exit=0
+Stopped | LocalKdc | Kerberos Local Key Distribution Center | Exit=0
+Stopped | LPlatSvc | Lenovo Platform Service | Exit=0
+Stopped | MapsBroker | Downloaded Maps Manager | Exit=0
+Stopped | sppsvc | Software Protection | Exit=0
+Stopped | WbioSrvc | Windows Biometric Service | Exit=0

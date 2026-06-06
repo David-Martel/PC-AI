@@ -1,0 +1,116 @@
+# hid-deep-09-i2c-hid-device-power-deep -- Detailed power state of all input stack devices
+# Collected: 2026-06-06T16:59:17.7128855-04:00  Elevated: True
+
+=== Device: Standard PS/2 Keyboard
+    InstanceId: ACPI\LEN0071\4&76D3D92&0  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 9; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 0; 0; 0; 0
+    DEVPKEY_Device_Service = i8042prt
+    DEVPKEY_Device_DriverVersion = 10.0.26100.8521
+    DEVPKEY_Device_DriverInfPath = keyboard.inf
+    DEVPKEY_Device_Parent = PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\ACPI\LEN0071\4&76D3D92&0\Device Parameters PowerCapabilities = 4
+
+=== Device: HID-compliant mouse
+    InstanceId: HID\SNSL002D&COL01\5&14B88203&0&0000  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+    DEVPKEY_Device_Service = mouhid
+    DEVPKEY_Device_DriverVersion = 10.0.26100.1150
+    DEVPKEY_Device_DriverInfPath = msmouse.inf
+    DEVPKEY_Device_Parent = ACPI\SNSL002D\4&39979b3e&0
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\HID\SNSL002D&COL01\5&14B88203&0&0000\Device Parameters EnhancedPowerManagementEnabled = 0
+
+=== Device: HID-compliant touch pad
+    InstanceId: HID\SNSL002D&COL02\5&14B88203&0&0001  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+    DEVPKEY_Device_DriverVersion = 10.0.26100.8521
+    DEVPKEY_Device_DriverInfPath = input.inf
+    DEVPKEY_Device_Parent = ACPI\SNSL002D\4&39979b3e&0
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\HID\SNSL002D&COL02\5&14B88203&0&0001\Device Parameters EnhancedPowerManagementEnabled = 0
+
+=== Device: Microsoft Input Configuration Device
+    InstanceId: HID\SNSL002D&COL03\5&14B88203&0&0002  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+    DEVPKEY_Device_Service = MTConfig
+    DEVPKEY_Device_DriverVersion = 10.0.26100.1150
+    DEVPKEY_Device_DriverInfPath = mtconfig.inf
+    DEVPKEY_Device_Parent = ACPI\SNSL002D\4&39979b3e&0
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\HID\SNSL002D&COL03\5&14B88203&0&0002\Device Parameters EnhancedPowerManagementEnabled = 0
+
+=== Device: HID-compliant vendor-defined device
+    InstanceId: HID\SNSL002D&COL04\5&14B88203&0&0003  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+    DEVPKEY_Device_DriverVersion = 10.0.26100.8521
+    DEVPKEY_Device_DriverInfPath = input.inf
+    DEVPKEY_Device_Parent = ACPI\SNSL002D\4&39979b3e&0
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\HID\SNSL002D&COL04\5&14B88203&0&0003\Device Parameters EnhancedPowerManagementEnabled = 0
+
+=== Device: I2C HID Device
+    InstanceId: ACPI\SNSL002D\4&39979B3E&0  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+    DEVPKEY_Device_Service = hidi2c
+    DEVPKEY_Device_DriverVersion = 10.0.26100.8521
+    DEVPKEY_Device_DriverInfPath = hidi2c.inf
+    DEVPKEY_Device_Parent = PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+    DEVPKEY_Device_Children = HID\SNSL002D&Col01\5&14b88203&0&0000; HID\SNSL002D&Col02\5&14b88203&0&0001; HID\SNSL002D&Col03\5&14b88203&0&0002; HID\SNSL002D&Col04\5&14b88203&0&0003
+    DEVPKEY_Device_UpperFilters = mshidkmdf
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\ACPI\SNSL002D\4&39979B3E&0\Device Parameters DeviceResetNotificationEnabled = 1
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\ACPI\SNSL002D\4&39979B3E&0\Device Parameters EnhancedPowerManagementEnabled = 0
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\ACPI\SNSL002D\4&39979B3E&0\Device Parameters SelectiveSuspendOn = 0
+
+=== Device: TrackPoint Device
+    InstanceId: ACPI\LEN032A\4&76D3D92&0  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 9; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 0; 0; 0; 0
+    DEVPKEY_Device_Service = i8042prt
+    DEVPKEY_Device_DriverVersion = 31.21.51.2
+    DEVPKEY_Device_DriverInfPath = oem279.inf
+    DEVPKEY_Device_Parent = PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8
+    DEVPKEY_Device_Children = ETDHSA\VID_04F3&PID_0001\5&bda4387&0&0002; SWD\DRIVERENUM\EPD_component&5&bda4387&0
+    DEVPKEY_Device_UpperFilters = EPD
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\ACPI\LEN032A\4&76D3D92&0\Device Parameters EnableWheelDetection = 2
+
+=== Device: Intel(R) Serial IO I2C Host Controller - 7E78
+    InstanceId: PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 9; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 0; 0; 0; 0
+    DEVPKEY_Device_Service = iaLPSS2_I2C_MTL
+    DEVPKEY_Device_DriverVersion = 30.100.2527.40
+    DEVPKEY_Device_DriverInfPath = oem107.inf
+    DEVPKEY_Device_Parent = ACPI\PNP0A08\0
+    DEVPKEY_Device_Children = ACPI\SNSL002D\4&39979b3e&0
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8\Device Parameters EnhancedPowerManagementEnabled = 0
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8\Device Parameters\WDF WdfDirectedPowerTransitionEnable = 1
+
+=== Device: PCI standard ISA bridge
+    InstanceId: PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 9; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 0; 0; 0; 0
+    DEVPKEY_Device_Service = msisadrv
+    DEVPKEY_Device_DriverVersion = 10.0.26100.1150
+    DEVPKEY_Device_DriverInfPath = machine.inf
+    DEVPKEY_Device_Parent = ACPI\PNP0A08\0
+    DEVPKEY_Device_Children = ACPI\PNP0C09\0; ACPI\PNP0103\0; ACPI\PNP0000\4&76d3d92&0; ACPI\PNP0C02\2; ACPI\PNP0100\4&76d3d92&0; ACPI\INTC109D\4&76d3d92&0; ACPI\PNP0800\4&76d3d92&0; ACPI\LEN0071\4&76d3d92&0; ACPI\LEN032A\4&76d3d92&0; ACPI\PNP0C02\0
+
+=== Device: Synaptics UWP WBDI
+    InstanceId: USB\VID_06CB&PID_00F9\DDF5456187B0  Status: OK  Problem: CM_PROB_NONE
+    DEVPKEY_Device_PowerData = 56; 0; 0; 0; 4; 0; 0; 0; 127; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+    DEVPKEY_Device_Service = WUDFRd
+    DEVPKEY_Device_DriverVersion = 6.0.67.1136
+    DEVPKEY_Device_DriverInfPath = oem398.inf
+    DEVPKEY_Device_Parent = USB\ROOT_HUB30\4&3237baa9&0&0
+    DEVPKEY_Device_Children = SWD\DRIVERENUM\{549bb3bd-6a2c-499c-97f1-120ffb14d3e7}#synaUtilApp_component&6&316ec929&0
+    DEVPKEY_Device_LowerFilters = WinUsb
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_06CB&PID_00F9\DDF5456187B0\Device Parameters DeviceIdleEnabled = 1
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_06CB&PID_00F9\DDF5456187B0\Device Parameters DeviceSelectiveSuspended = 1
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_06CB&PID_00F9\DDF5456187B0\Device Parameters UserSetDeviceIdleEnabled = 1
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_06CB&PID_00F9\DDF5456187B0\Device Parameters WinUsbPowerPolicyOwnershipDisabled = 1
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_06CB&PID_00F9\DDF5456187B0\Device Parameters EnhancedPowerManagementEnabled = 0
+    REG HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_06CB&PID_00F9\DDF5456187B0\Device Parameters\WDF WdfDirectedPowerTransitionEnable = 1
+
+## MSPower_DeviceEnable registry state (current — after T1 applied)
+Device: ACPI\SNSL002D\4&39979b3e&0
+  DeviceResetNotificationEnabled = 1
+  EnhancedPowerManagementEnabled = 0
+  LegacyTouchScaling = 0
+  FirmwareIdentified = 1
+  SelectiveSuspendOn = 0
+Device: PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+  EnhancedPowerManagementEnabled = 0
+

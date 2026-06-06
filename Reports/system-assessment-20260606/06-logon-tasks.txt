@@ -1,0 +1,30 @@
+Ready | \BraveSoftwareUpdateTaskMachineCore{5562EDD6-A61A-40A2-A6BD-2A38E5712D2D}
+Ready | \BW-Auto-Unlock
+Ready | \iSCSIAgentAutoStartup
+Ready | \LspmuxServer
+Ready | \MATLAB R2025b Startup Accelerator
+Ready | \MATLAB R2026a Startup Accelerator
+Ready | \MicrosoftEdgeUpdateTaskMachineCore
+Ready | \NIUpdateServiceStartupTask
+Ready | \OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1001
+Ready | \PC-AI Process Lasso Governor Watchdog
+Ready | \Process Lasso Management Console (GUI)
+Ready | \Session agent for Process Lasso
+Ready | \Bitwarden\Initialize-MachineSecrets
+Ready | \DropboxSystem\DropboxUpdater\DropboxUpdaterTaskSystem123.0.6299.144{668B0EA2-DE99-431B-9215-10877E09E7CB}
+Ready | \GoogleSystem\GoogleUpdater\GoogleUpdaterTaskSystem150.0.7863.0{AC5F461A-41A8-4EC3-8A85-E1F8648DE586}
+Ready | \HP\HP Print Scan Doctor\Printer Health Monitor Logon
+Ready | \Lenovo\ImController\Lenovo iM Controller Scheduled Maintenance
+Ready | \Lenovo\Lenovo Service Bridge\S-1-5-21-357761096-1057752491-2136275046-1001
+Ready | \Lenovo\Vantage\Lenovo.Vantage.ServiceMaintainance
+Ready | \Lenovo\Vantage\StartupFixPlan
+Ready | \Microsoft\Office\Office Actions Server
+Ready | \Microsoft\Office\Office Automatic Updates 2.0
+Ready | \Microsoft\Office\Office Background Push Maintenance
+Ready | \Microsoft\Office\Office Feature Updates Logon
+Ready | \Microsoft\Office\Office Startup Maintenance
+Ready | \Microsoft\VisualStudio\Updates\UpdateConfiguration_S-1-5-21-357761096-1057752491-2136275046-1009
+Ready | \Microsoft\VisualStudio\Updates\UpdateConfiguration_S-1-5-21-357761096-1057752491-2136275046-1007
+Ready | \Microsoft\VisualStudio\Updates\UpdateConfiguration_S-1-5-21-357761096-1057752491-2136275046-1001
+Ready | \Microsoft\VisualStudio\Updates\UpdateConfiguration_S-1-5-21-357761096-1057752491-2136275046-1003
+Ready | \Microsoft\Windows\Active Directory Rights Management Services Client\AD RMS Rights Policy Template Management (Manual)

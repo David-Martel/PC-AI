@@ -1,0 +1,88 @@
+06-06 14:34 | Source=MsiInstaller | EventID=1033 | Microsoft.NET.Workloads.10.0.300 (x64) | Windows Installer installed the product. Product Name: Microsoft.NET.Workloads.10.0.300 (x64). Produ
+06-06 12:42 | Source=MsiInstaller | EventID=1033 | NETGEAR A9000 BE6500 WiFi 7 Adapter | Windows Installer installed the product. Product Name: NETGEAR A9000 BE6500 WiFi 7 Adapter. Product 
+06-06 09:39 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.451.294.0) - Current Channel (Broad) | Installation Successful: Windows successfully installed the following update: Security Intelligence 
+06-06 09:39 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | Intel Corporation Extension Driver Update (32.0.100.4724) | Installation Successful: Windows successfully installed the following update: Intel Corporation Exte
+06-05 21:04 | Source=EventLog | EventID=6008 | Windows | The previous system shutdown at 7:36:17 PM on ‎6/‎5/‎2026 was unexpected.
+06-05 19:41 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | Microsoft Corporation AudioProcessingObject Driver Update (1.0.3.56670) | Installation Successful: Windows successfully installed the following update: Microsoft Corporation 
+06-05 19:41 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | Intel SoftwareComponent Driver Update (267.102.85.0) | Installation Successful: Windows successfully installed the following update: Intel SoftwareComponen
+06-05 19:41 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | Lenovo System Driver Update (10.2.5.2) | Installation Successful: Windows successfully installed the following update: Lenovo System Driver U
+06-05 19:40 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.451.286.0) - Current Channel (Broad) | Installation Successful: Windows successfully installed the following update: Security Intelligence 
+06-05 19:40 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | Dell Inc. - Monitor, Other hardware - DELL U2515H(Hdmi1) | Installation Successful: Windows successfully installed the following update: Dell Inc. - Monitor, O
+06-05 19:40 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | Intel System Driver Update (2603.9.4.0) | Installation Successful: Windows successfully installed the following update: Intel System Driver Up
+06-05 19:39 | Source=MsiInstaller | EventID=1033 | Logi Plugin Service | Windows Installer installed the product. Product Name: Logi Plugin Service. Product Version: 6.3.1.2
+06-05 18:18 | Source=MsiInstaller | EventID=1035 | Office 16 Click-to-Run Extensibility Component | Windows Installer reconfigured the product. Product Name: Office 16 Click-to-Run Extensibility Compo
+06-05 10:50 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.451.280.0) - Current Channel (Broad) | Installation Successful: Windows successfully installed the following update: Security Intelligence 
+06-04 17:56 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | 9MZ08JF4T3NG-E0469640.TrackPointQuickMenu | Installation Successful: Windows successfully installed the following update: 9MZ08JF4T3NG-E0469640.
+06-04 17:55 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | 9N1KVPCJP303-AD2F1837.HPPrinterDriver | Installation Successful: Windows successfully installed the following update: 9N1KVPCJP303-AD2F1837.
+06-04 17:55 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | 9NC184TX90WZ-Microsoft.Ink.Handwriting.Main.en-US.1.0.1 | Installation Successful: Windows successfully installed the following update: 9NC184TX90WZ-Microsoft
+06-04 17:55 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | 9NP9QTRNK38Q-Microsoft.Ink.Handwriting.en-US.1.0 | Installation Successful: Windows successfully installed the following update: 9NP9QTRNK38Q-Microsoft
+06-04 17:55 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | 9WZDNCRD29V9-MICROSOFT.MICROSOFTOFFICEHUB | Installation Successful: Windows successfully installed the following update: 9WZDNCRD29V9-MICROSOFT
+06-04 17:55 | Source=Microsoft-Windows-WindowsUpdateClient | EventID=19 | 9MZ95KL8MR0L-Microsoft.ScreenSketch | Installation Successful: Windows successfully installed the following update: 9MZ95KL8MR0L-Microsoft
+06-04 17:23 | Source=MsiInstaller | EventID=1033 | Quick Share | Windows Installer installed the product. Product Name: Quick Share. Product Version: 1.0.2600.1. Pro
+06-03 14:29 | Source=MsiInstaller | EventID=1033 | CMake | Windows Installer installed the product. Product Name: CMake. Product Version: 4.3.3. Product Langua
+06-03 10:19 | Source=Application Error | EventID=1000 | UDClientService.exe | Faulting application name: UDClientService.exe, version: 26.5.0.21, time stamp: 0x6a04339e
+Faulting
+06-02 03:54 | Source=MsiInstaller | EventID=1035 | Office 16 Click-to-Run Extensibility Component | Windows Installer reconfigured the product. Product Name: Office 16 Click-to-Run Extensibility Compo
+06-02 03:54 | Source=MsiInstaller | EventID=1035 | Office 16 Click-to-Run Extensibility Component | Windows Installer reconfigured the product. Product Name: Office 16 Click-to-Run Extensibility Compo
+06-01 14:58 | Source=MsiInstaller | EventID=1033 | Microsoft Teams Meeting Add-in for Microsoft Office | Windows Installer installed the product. Product Name: Microsoft Teams Meeting Add-in for Microsoft 
+06-01 14:58 | Source=MsiInstaller | EventID=1034 | Microsoft Teams Meeting Add-in for Microsoft Office | Windows Installer removed the product. Product Name: Microsoft Teams Meeting Add-in for Microsoft Of
+06-01 09:55 | Source=MsiInstaller | EventID=1033 | Microsoft Teams Meeting Add-in for Microsoft Office | Windows Installer installed the product. Product Name: Microsoft Teams Meeting Add-in for Microsoft 
+06-01 09:55 | Source=MsiInstaller | EventID=1034 | Microsoft Teams Meeting Add-in for Microsoft Office | Windows Installer removed the product. Product Name: Microsoft Teams Meeting Add-in for Microsoft Of
+05-31 00:27 | Source=Application Error | EventID=1000 | LvfInstallService.exe | Faulting application name: LvfInstallService.exe, version: 4.3.0.3, time stamp: 0x6982e1b6
+Faulting
+05-31 00:04 | Source=Application Error | EventID=1000 | OneDrive.exe | Faulting application name: OneDrive.exe, version: 26.78.426.2, time stamp: 0x26c1f5ee
+Faulting modu
+05-31 00:04 | Source=MsiInstaller | EventID=1034 | oneAPI Level Zero | Windows Installer removed the product. Product Name: oneAPI Level Zero. Product Version: 1.26.1. Pro
+05-31 00:03 | Source=MsiInstaller | EventID=1034 | Intel® Graphics Software | Windows Installer removed the product. Product Name: Intel® Graphics Software. Product Version: 25.5
+05-31 00:03 | Source=MsiInstaller | EventID=1034 | Intel Driver && Support Assistant | Windows Installer removed the product. Product Name: Intel Driver && Support Assistant. Product Vers
+05-31 00:03 | Source=MsiInstaller | EventID=1034 | Intel(R) Computing Improvement Program | Windows Installer removed the product. Product Name: Intel(R) Computing Improvement Program. Product
+05-30 23:56 | Source=MsiInstaller | EventID=1034 | AudiogramModule | Windows Installer removed the product. Product Name: AudiogramModule. Product Version: 1.87.0000. Pr
+05-30 23:55 | Source=MsiInstaller | EventID=1034 | Aventa3.8 | Windows Installer removed the product. Product Name: Aventa3.8. Product Version: 3.80.002. Product L
+05-30 23:55 | Source=Application Error | EventID=1000 | MsiExec.exe | Faulting application name: MsiExec.exe, version: 5.0.26100.5074, time stamp: 0xe074eae8
+Faulting mo
+05-30 22:52 | Source=Application Error | EventID=1000 | LvfInstallService.exe | Faulting application name: LvfInstallService.exe, version: 4.3.0.3, time stamp: 0x6982e1b6
+Faulting
+05-29 20:17 | Source=Application Error | EventID=1000 | svchost.exe_FrameServer | Faulting application name: svchost.exe_FrameServer, version: 10.0.26100.8521, time stamp: 0x6588a4b7
+05-29 20:17 | Source=Application Hang | EventID=1002 | svchost.exe | The program svchost.exe version 10.0.26100.8521 stopped interacting with Windows and was closed. To 
+05-29 20:16 | Source=Application Error | EventID=1000 | svchost.exe_FrameServer | Faulting application name: svchost.exe_FrameServer, version: 10.0.26100.8521, time stamp: 0x6588a4b7
+05-29 20:16 | Source=Application Error | EventID=1000 | svchost.exe_FrameServer | Faulting application name: svchost.exe_FrameServer, version: 10.0.26100.8521, time stamp: 0x6588a4b7
+05-29 18:22 | Source=Application Hang | EventID=1002 | dllhost.exe | The program dllhost.exe version 10.0.26100.8521 stopped interacting with Windows and was closed. To 
+05-29 09:18 | Source=Application Error | EventID=1000 | FloatingMenu1.exe | Faulting application name: FloatingMenu1.exe, version: 3.0.10091.0, time stamp: 0xe3f90c9e
+Faulting
+05-28 01:03 | Source=Application Error | EventID=1000 | powershell.exe | Faulting application name: powershell.exe, version: 10.0.26100.5074, time stamp: 0x04b35d0f
+Faultin
+05-28 00:59 | Source=Application Error | EventID=1000 | powershell.exe | Faulting application name: powershell.exe, version: 10.0.26100.5074, time stamp: 0x04b35d0f
+Faultin
+05-28 00:31 | Source=Application Error | EventID=1000 | powershell.exe | Faulting application name: powershell.exe, version: 10.0.26100.5074, time stamp: 0x04b35d0f
+Faultin
+05-27 23:24 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-27 23:23 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-27 01:36 | Source=Application Error | EventID=1000 | wmiprvse.exe | Faulting application name: wmiprvse.exe, version: 10.0.26100.8521, time stamp: 0x891fc72d
+Faulting 
+05-27 01:23 | Source=Application Error | EventID=1000 | Dell.TechHub.Instrumentation.SubAgent.exe | Faulting application name: Dell.TechHub.Instrumentation.SubAgent.exe, version: 3.7.10.9147, time sta
+05-26 12:35 | Source=Application Hang | EventID=1002 | explorer.exe | The program explorer.exe version 10.0.26100.8457 stopped interacting with Windows and was closed. To
+05-26 10:28 | Source=MsiInstaller | EventID=1033 | UniFi Endpoint | Windows Installer installed the product. Product Name: UniFi Endpoint. Product Version: 3.7.1.290. P
+05-26 06:38 | Source=Application Error | EventID=1000 | Dell.TechHub.Instrumentation.SubAgent.exe | Faulting application name: Dell.TechHub.Instrumentation.SubAgent.exe, version: 3.7.10.9147, time sta
+05-26 00:09 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-26 00:09 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-26 00:08 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-26 00:06 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-25 23:20 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-25 20:04 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-25 20:02 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-25 19:57 | Source=Application Error | EventID=1000 | python.exe | Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80
+Faulting mo
+05-25 01:35 | Source=Application Error | EventID=1000 | Dell.TechHub.Instrumentation.SubAgent.exe | Faulting application name: Dell.TechHub.Instrumentation.SubAgent.exe, version: 3.7.10.9147, time sta
+05-23 19:49 | Source=Application Error | EventID=1000 | warp-svc.exe | Faulting application name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131
+Faulting modul
+05-23 19:49 | Source=Application Error | EventID=1000 | warp-svc.exe | Faulting application name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131
+Faulting modul

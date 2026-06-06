@@ -1,0 +1,71 @@
+# hid-deep-12-provider-channel-audit -- actual registered providers and channels for HID/I2C/kbd
+# Collected: 2026-06-06T17:07:50.2227868-04:00  Elevated: True
+
+## 1. Registered event providers matching HID|SPB|I2C|kbd|mou|i8042|hid2|tablet|input
+  Count: 36
+  Provider: HidBth  Logs: System
+  Provider: hidi2c  Logs: System
+  Provider: hidspi  Logs: System
+  Provider: i8042prt  Logs: System
+  Provider: Intel-iaLPSS-GPIO  Logs: Intel-iaLPSS-GPIO/Analytic, System
+  Provider: Intel-iaLPSS-I2C  Logs: Intel-iaLPSS-I2C/Analytic, System
+  Provider: Intel-iaLPSS2-GPIO2  Logs: Intel-iaLPSS2-GPIO2/Debug, Intel-iaLPSS2-GPIO2/Performance
+  Provider: Intel-iaLPSS2-I2C  Logs: Intel-iaLPSS2-I2C/Debug, Intel-iaLPSS2-I2C/Performance
+  Provider: kbdclass  Logs: System
+  Provider: kbdhid  Logs: System
+  Provider: Microsoft-Windows-hidcfu  Logs: Microsoft-Windows-hidcfu/Operational
+  Provider: Microsoft-Windows-I3C-HIDI3C  Logs: 
+  Provider: Microsoft-Windows-Input-HIDCLASS  Logs: Microsoft-Windows-Input-HIDCLASS-Analytic
+  Provider: Microsoft-Windows-InputSwitch  Logs: Microsoft-Windows-InputSwitch/Diagnostic
+  Provider: Microsoft-Windows-MountMgr  Logs: System
+  Provider: Microsoft-Windows-Serial-ClassExtension  Logs: Microsoft-Windows-Serial-ClassExtension/Analytic, System
+  Provider: Microsoft-Windows-Serial-ClassExtension-V2  Logs: System, Microsoft-Windows-Serial-ClassExtension-V2/Analytic
+  Provider: Microsoft-Windows-SPB-ClassExtension  Logs: Microsoft-Windows-SPB-ClassExtension/Analytic, System
+  Provider: Microsoft-Windows-SPB-HIDI2C  Logs: Microsoft-Windows-SPB-HIDI2C/Analytic, System
+  Provider: Microsoft-Windows-TabletPC-CoreInkRecognition  Logs: 
+  Provider: Microsoft-Windows-TabletPC-InputPanel  Logs: TabletPC_InputPanel_Channel, OSK_SoftKeyboard_Channel, TabletPC_InputPanel_Channel/IHM, Physical_Keyboard_Manager_Channel, IHM_DebugChannel
+  Provider: Microsoft-Windows-TabletPC-MathInput  Logs: 
+  Provider: Microsoft-Windows-TabletPC-MathRecognizer  Logs: 
+  Provider: Microsoft-Windows-TabletPC-Platform-Input-Core  Logs: 
+  Provider: Microsoft-Windows-TabletPC-Platform-Input-Ninput  Logs: 
+  Provider: Microsoft-Windows-TabletPC-Platform-Input-Wisp  Logs: 
+  Provider: Microsoft-Windows-TabletPC-Platform-Manipulations  Logs: 
+  Provider: Microsoft-Windows-UI-Input-Inking  Logs: 
+  Provider: mouclass  Logs: System
+  Provider: mouhid  Logs: System
+  Provider: mshidumdf  Logs: System
+  Provider: PC-AI-VHDMount  Logs: Application
+  Provider: sermouse  Logs: System
+  Provider: spbcx  Logs: System
+  Provider: System.Runtime.Serialization 3.0.0.0  Logs: Application
+  Provider: System.Runtime.Serialization 4.0.0.0  Logs: Application
+## 2. Log names matching HID|SPB|I2C|kbd|Input|Tablet|DeviceSetup|ShimEngine
+  Count: 7
+  Log: Microsoft-Windows-DeviceSetupManager/Admin | Enabled=True | Type=Administrative | RecordCount=2177
+  Log: Microsoft-Windows-DeviceSetupManager/Operational | Enabled=True | Type=Operational | RecordCount=422
+  Log: Microsoft-Windows-hidcfu/Operational | Enabled=True | Type=Operational | RecordCount=0
+  Log: Microsoft-Windows-Kernel-ShimEngine/Operational | Enabled=True | Type=Operational | RecordCount=1977
+  Log: Microsoft-Windows-KeyboardFilter/Admin | Enabled=True | Type=Administrative | RecordCount=0
+  Log: Microsoft-Windows-KeyboardFilter/Operational | Enabled=False | Type=Operational | RecordCount=
+  Log: Microsoft-Windows-KeyboardFilter/Performance | Enabled=False | Type=Operational | RecordCount=
+## 3. Query Microsoft-Windows-SPB-HIDI2C (the correct I2C HID provider name per MS docs)
+  Microsoft-Windows-SPB-HIDI2C : NOT FOUND or no events: no events
+  Microsoft-Windows-SPB-XHCITransfer : NOT FOUND or no events: There is not an event provider on the localhost computer that matches "Microsoft-Windows-SPB-XHCITransfer".
+  Microsoft-Windows-HIDCLASS : NOT FOUND or no events: There is not an event provider on the localhost computer that matches "Microsoft-Windows-HIDCLASS".
+  Microsoft-Windows-HID-MINIPORT : NOT FOUND or no events: There is not an event provider on the localhost computer that matches "Microsoft-Windows-HID-MINIPORT".
+  Microsoft-Windows-Kernel-Keyboard : NOT FOUND or no events: There is not an event provider on the localhost computer that matches "Microsoft-Windows-Kernel-Keyboard".
+  Microsoft-Windows-TabletPC-InputPanel : NOT FOUND or no events: The parameter is incorrect.
+  Microsoft-Windows-Input-HIDCLASS : NOT FOUND or no events: The parameter is incorrect.
+## 4. Any enabled Operational/Admin logs for HID/input domains
+## 5. logioptionsplus_agent start time vs system uptime (for CPU context)
+  logioptionsplus_agent start: 2026-06-05 21:04:27
+  Process age: 20.1 hours
+  System uptime: 20.1 hours
+  CPU time (seconds): 839.859375
+  CPU % of uptime: 1.16%
+  Thread count: 94
+## 6. WdfDirectedPowerTransitionEnable presence check (is it default on all WDF devices?)
+  USB\VID_06CB&PID_00F9\DDF5456187B0 => WdfDirectedPowerTransitionEnable = 1
+  PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8 => WdfDirectedPowerTransitionEnable = 1
+  PCI\VEN_8086&DEV_7D01&SUBSYS_223417AA&REV_04\3&11583659&1&00 => WdfDirectedPowerTransitionEnable = (WDF key not found)
+

@@ -1,0 +1,73 @@
+POINTER PATH & CURSOR RENDERING — Evidence for Theory A+B Coupling
+Generated: 2026-06-06
+Machine: ThinkPad P1 Gen 7 (LENOVO 21KV0014US)
+Read-only probe — no state modified.
+
+=== CURSOR RENDERING MODE ===
+Mode:         Hardware cursor (WDDM HW overlay) — confirmed by:
+              - No MouseTrails (= 0) — SW cursor emulation not forced
+              - No Avalon.Graphics AcceleratedGraphics disabled key
+              - Standard Aero cursor scheme (aero_arrow.cur etc.)
+              - TdrLevel=3 (GPU hang recovery enabled, not SW fallback)
+              - HAGS enabled (HwSchMode=2)
+
+GPU handling cursor: NVIDIA RTX 5060 Ti (only functioning display GPU)
+Cursor sprite rendered by: dwm.exe → dwmcore.dll → nvlddmkm.sys (on 5060 Ti)
+
+=== DISPLAY ADAPTER ASSIGNMENT (Win32_VideoController) ===
+  Intel Arc (iGPU):        Status=OK, RefreshRate=165 Hz  — drives INTERNAL laptop panel
+  NVIDIA 5060 Ti (eGPU):   Status=OK, RefreshRate=164 Hz  — drives EXTERNAL display
+  NVIDIA RTX 2000 Ada:     Status=Error (Code 31)          — not rendering anything
+  LuminonCore IDDCX:       Status=OK, RefreshRate=N/A      — virtual/software display adapter
+  DisplayLink:             (oem275.inf v11.2.3146.0)       — USB display adapter
+
+NOTE: DWM composites all visible displays. The HW cursor is managed on the GPU that owns
+the "primary" display (highest-priority display in WDDM chain). nvidia-smi shows dwm.exe
+on the 5060 Ti, so that GPU owns the DWM primary plane.
+
+=== POINTER INPUT PATH (COL01 → cursor) ===
+  1. Sensel firmware detects finger/touch position delta
+  2. Firmware formats HID Mouse report on COL01 (HID\SNSL002D&COL01)
+  3. hidi2c pulls report from Intel I2C controller (7E78) via interrupt
+  4. mouhid class driver converts HID report to MOUSE_INPUT_DATA
+  5. mouclass sends to Win32k (RawInput path) → csrss → WM_MOUSEMOVE
+  6. WM_MOUSEMOVE → DWM updates cursor sprite position
+  7. DWM tells nvlddmkm to reposition HW cursor overlay on 5060 Ti framebuffer
+
+HAPTIC PATH (cursor click → haptic feedback):
+  1. User presses touchpad (COL01 reports left-button-down)
+  2. PTP driver (COL02) or Windows PTP classifes click
+  3. Windows sends haptic play command via WinRT HapticsController API
+  4. Command goes to COL04 (vendor-defined) via PTP haptic output report
+  5. Sensel firmware fires actuator → physical vibration
+  CRITICAL: This is a DOWNSTREAM, OUT-OF-BAND path. It does NOT stall COL01.
+
+=== COUPLING ANALYSIS: CAN HAPTIC STALL CURSOR? ===
+Mechanism 1 — I2C bus contention: COL01 (input) and COL04 (haptic output) share the
+same I2C bus. If COL04 haptic output holds the bus (long write), COL01 reads could be
+delayed by 1-2 I2C transactions. At 400 kHz (fast-mode I2C), typical HID reads are
+~0.2ms; a haptic command is ~0.5ms. Maximum contention: ~0.7ms per click.
+VERDICT: Sub-millisecond — not perceptible as a stall. Not the cause of multi-second lockups.
+
+Mechanism 2 — CPU/DPC contention: hidi2c ISR runs at DIRQL. Haptic ACK also runs at DIRQL.
+If haptic actuator takes multiple I2C retries (firmware busy), DPC could be delayed.
+Theoretical, but no evidence in events (no hidi2c errors).
+
+Mechanism 3 — Modern Standby resume + power-down (H6): when the I2C stack resumes from
+Modern Standby, hidi2c must re-enumerate all COL devices. If the haptic actuator firmware
+does not respond quickly to re-enumeration, hidi2c times out on COL04, and the entire
+ACPI\SNSL002D device tree (including COL01) may be stuck in reset state.
+VERDICT: This IS a plausible mechanism, and it's amplified by MSPower_DeviceEnable=True
+on the device and its I2C parent (H6). The haptic firmware startup time at resume is the
+risk, not haptic operation during normal use.
+
+=== EGPU HOT-PLUG CURSOR STALL MECHANISM ===
+If the eGPU (5060 Ti) is cold-connected after boot, Windows performs a GPU enumeration
+which temporarily pauses dwm.exe while WDDM reassigns the primary display. During this
+multi-second pause, the HW cursor sprite is not updated — the cursor appears frozen even
+though the touchpad is still sending HID events.
+EVIDENCE: nvidia-smi shows "Host Max" PCIe link = x1, which is the bandwidth into the
+TB4 host controller. This is correct for Thunderbolt. If TB4 link flaps (power event,
+cable disturbance), the eGPU may disconnect/reconnect, causing a cursor freeze.
+HwSchMode=2 (HAGS) means GPU scheduling is hardware-driven; HAGS hangs on broken GPU
+enumeration, causing longer freezes than without HAGS.

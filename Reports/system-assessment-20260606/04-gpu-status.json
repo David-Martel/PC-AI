@@ -1,0 +1,34 @@
+[
+  {
+    "Name": "Intel(R) Arc(TM) Pro Graphics",
+    "DeviceID": "VideoController1",
+    "Status": "OK",
+    "AdapterRAM": 2147479552,
+    "DriverVersion": "32.0.101.6078",
+    "DriverDate": "2024-09-12T20:00:00-04:00"
+  },
+  {
+    "Name": "LuminonCore IDDCX Adapter",
+    "DeviceID": "VideoController2",
+    "Status": "OK",
+    "AdapterRAM": null,
+    "DriverVersion": "1.0.2018.1204",
+    "DriverDate": "2018-12-03T19:00:00-05:00"
+  },
+  {
+    "Name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+    "DeviceID": "VideoController3",
+    "Status": "Error",
+    "AdapterRAM": 4293918720,
+    "DriverVersion": "32.0.15.9659",
+    "DriverDate": "2026-05-20T20:00:00-04:00"
+  },
+  {
+    "Name": "NVIDIA GeForce RTX 5060 Ti",
+    "DeviceID": "VideoController4",
+    "Status": "OK",
+    "AdapterRAM": 4293918720,
+    "DriverVersion": "32.0.15.9186",
+    "DriverDate": "2026-01-19T19:00:00-05:00"
+  }
+]

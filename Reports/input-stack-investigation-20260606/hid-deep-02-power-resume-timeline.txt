@@ -1,0 +1,23 @@
+# hid-deep-02-power-resume-timeline — Power transitions (30d) for correlation
+# Collected: 2026-06-06T16:55:50.3907016-04:00
+# Elevated: True
+
+## Kernel-Power events (IDs 41,42,107,506,507) — last 30d
+Total: 7
+  2026-06-05 19:39:27 ID=506 The system is entering Modern Standby   Reason: Idle Timeout.
+  2026-06-05 19:39:53 ID=507 The system is exiting Modern Standby   Reason: Input Keyboard.
+  2026-06-05 21:03:01 ID=41 The system has rebooted without cleanly shutting down first. This error could be caused if the system stopped responding, crashed, or lost power unexpectedly.
+  2026-06-05 23:27:54 ID=506 The system is entering Modern Standby   Reason: Idle Timeout.
+  2026-06-05 23:59:19 ID=507 The system is exiting Modern Standby   Reason: Lid.
+  2026-06-05 23:59:19 ID=506 The system is entering Modern Standby   Reason: Lid.
+  2026-06-06 10:10:10 ID=507 The system is exiting Modern Standby   Reason: Lid.
+
+## Power-Troubleshooter ID=1 (resume from sleep) — last 30d
+ERROR or NO EVENTS: No events were found that match the specified selection criteria.
+
+## WHEA-Logger events (all) — last 30d
+WHEA: NO EVENTS or ERROR: No events were found that match the specified selection criteria.
+
+## DPC Watchdog violation (BugCheck 0x133) history — System/BugCheck logs
+BugCheck: NO EVENTS or ERROR: There is not an event provider on the localhost computer that matches "Microsoft-Windows-Kernel-BugCheck".
+

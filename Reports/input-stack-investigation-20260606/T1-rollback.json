@@ -1,0 +1,15 @@
+{
+  "applied_utc": "2026-06-06T16:52:25.3786821-04:00",
+  "fix": "T1: disable device power-down (allow-turn-off=OFF)",
+  "before": [
+    {
+      "instance": "PCI\\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\\3&11583659&1&A8_0",
+      "enable": false
+    },
+    {
+      "instance": "ACPI\\SNSL002D\\4&39979b3e&0_0",
+      "enable": false
+    }
+  ],
+  "revert": "Set-CimInstance Enable=$true on these InstanceNames to restore power-down"
+}

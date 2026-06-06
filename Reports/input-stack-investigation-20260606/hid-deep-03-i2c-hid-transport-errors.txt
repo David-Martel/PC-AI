@@ -1,0 +1,45 @@
+# hid-deep-03-i2c-hid-transport-errors — I2C/HID/keyboard event providers (30d)
+# Collected: 2026-06-06T16:56:05.0065160-04:00  Elevated: True
+
+## Provider: iaLPSS2i_I2C (Log: System)
+  ERROR: There is not an event provider on the localhost computer that matches "iaLPSS2i_I2C".
+
+## Provider: iaLPSS2_I2C (Log: System)
+  ERROR: There is not an event provider on the localhost computer that matches "iaLPSS2_I2C".
+
+## Provider: iaLPSS2_I2C_MTL (Log: System)
+  ERROR: There is not an event provider on the localhost computer that matches "iaLPSS2_I2C_MTL".
+
+## Provider: hidi2c (Log: System)
+  (no events / provider not found)
+
+## Provider: HidIr (Log: System)
+  ERROR: There is not an event provider on the localhost computer that matches "HidIr".
+
+## Provider: Microsoft-Windows-HID (Log: Microsoft-Windows-HID/Operational)
+  ERROR: There is not an event log on the localhost computer that matches "Microsoft-Windows-HID/Operational".
+
+## Provider: kbdhid (Log: System)
+  (no events / provider not found)
+
+## Provider: i8042prt (Log: System)
+  (no events / provider not found)
+
+## Provider: mouhid (Log: System)
+  (no events / provider not found)
+
+## Provider: kbdclass (Log: System)
+  (no events / provider not found)
+
+## Provider: mouclass (Log: System)
+  (no events / provider not found)
+
+## Provider: Microsoft-Windows-Kernel-IO (Log: System)
+  (no events / provider not found)
+
+## Provider: Microsoft-Windows-UserModePowerService (Log: System)
+  (no events / provider not found)
+
+## Microsoft-Windows-HID/Operational log (direct)
+  ERROR/Not available: There is not an event log on the localhost computer that matches "Microsoft-Windows-HID/Operational".
+

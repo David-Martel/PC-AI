@@ -1,0 +1,244 @@
+THEORY A+B ANALYSIS — Root Cause Assessment
+Generated: 2026-06-06
+Machine: ThinkPad P1 Gen 7 (LENOVO 21KV0014US)
+
+Based on fresh evidence in:
+  haptic-nvidia-sensel-stack.txt   — Theory A (haptic stalling)
+  haptic-nvidia-dual-gpu.txt       — Theory B (NVIDIA driver split)
+  haptic-nvidia-pointer-path.txt   — Theory A+B coupling
+
+===================================================================
+THEORY A: HAPTIC FEEDBACK SENSING/PROCESSING STALLING POINTER INPUT
+===================================================================
+
+VERDICT: REFUTES the strong form; INCONCLUSIVE on one narrow sub-mechanism.
+
+Evidence summary:
+  A1. SUPPORTS (weak): MSPower_DeviceEnable=True on ACPI\SNSL002D AND its parent I2C
+      controller (7E78). All four COL devices (including COL04/haptic output and
+      COL01/pointer input) share this power-manageable I2C stack. If the haptic
+      firmware (COL04) is slow to respond during Modern Standby resume, hidi2c's
+      re-enumeration of the whole SNSL002D device tree stalls, which can deadlock
+      COL01 (the pointer). This is an INDIRECT haptic–pointer coupling via power
+      management, not a direct signaling conflict. Already subsumed by H6 (power-down).
+
+  A2. REFUTES (direct stall): The Sensel AppX (v1.2.12.0) has NO background tasks —
+      it is a user-launched control panel, not a persistent process or system service.
+      It cannot continuously intercept or delay pointer events.
+
+  A3. REFUTES (I2C bus contention): COL01 (mouse input) and COL04 (haptic output) share
+      the I2C bus, but haptic transactions are <1ms. They cannot cause multi-second stalls.
+
+  A4. REFUTES (driver split): All five SNSL002D PnP nodes are Status OK/CM_PROB_NONE.
+      The COL01/COL03 vs COL02/COL04 driver version split (10.0.26100.1150 vs .8521) is
+      a routine Windows KB-level difference between mouhid and hidi2c/PTP components.
+      It is NOT a vendor-driver split and does not constitute a compatibility mismatch.
+
+  A5. REFUTES (haptic sensing path): The haptic actuator is OUTPUT-only from the OS
+      perspective. Windows does NOT read haptic sensor data for pointer processing.
+      "Sensing" in Sensel's industrial product terminology means fine-grained pressure
+      sensing; in this ThinkPad context the Sensel device operates as a standard PTP
+      touchpad with haptic click feedback. There is no separate "haptic sensing" process
+      that could stall cursor updates.
+
+  A6. SUPPORTS (firmware resume): n48et.inf FirmwareVersion jumped from 0x10013 (1.19)
+      to 0x10014 (1.20) around March–April 2026. If the haptic firmware update changed
+      the re-enumeration timing on resume, it could have introduced the lockup window.
+      This is speculative without a glitch-time capture.
+
+BEST READING FOR A: The haptic touchpad itself is NOT an independent stall vector.
+The only credible haptic-related path to pointer stalls is the I2C power-management
+mechanism already identified as H6: MSPower_DeviceEnable=True causes the entire hidi2c
+stack (including COL01 pointer) to power down on Modern Standby, and re-arm failure
+explains touchpad-dead episodes. Haptic output (COL04) may complicate re-enumeration
+timing, but this is a secondary amplifier, not the root cause.
+
+===================================================================
+THEORY B: NVIDIA DRIVER SPLIT PERTURBS CURSOR/RENDER PATH
+===================================================================
+
+VERDICT: SUPPORTS (partial) — the mismatch is real and load-bearing, but its CURSOR
+         PERTURBATION effect is INDIRECT and the crash storm pre-dates the current
+         driver install.
+
+Evidence summary:
+  B1. CONFIRMED — DRIVER SPLIT IS REAL:
+      Internal Ada:   oem236.inf (nvltwi) v32.0.15.9659 — dated 2026-05-21 — FAILED (Code 31)
+      External 5060Ti: oem395.inf (nv_dispig) v32.0.15.9186 — dated 2026-01-20 — OK
+      The two GPUs use DIFFERENT INF packages with DIFFERENT version numbers.
+
+  B2. CONFIRMED — CODE 31 IS ACTIVE:
+      RTX 2000 Ada is Code 31 (CM_PROB_FAILED_ADD, 0xC0000182). The nvlddmkm.sys that
+      loaded from the 5060 Ti's INF (v591.86) rejected AddDevice() for the Ada GPU.
+      The Ada GPU's INF (oem236 v32.0.15.9659) corresponds to driver build ≥596.59,
+      which is NEWER than the 591.86 currently loaded. The kernel driver is too old
+      to service the newer INF's Ada device.
+
+  B3. CONFIRMS — DWM RENDERS ON 5060 Ti ONLY:
+      nvidia-smi confirms dwm.exe is on GPU 0 (5060 Ti). The HW cursor is rendered by
+      the 5060 Ti. The failed Ada GPU plays no role in the current render path.
+      Intel Arc iGPU drives the internal panel (RefreshRate=165); 5060 Ti drives external.
+
+  B4. REFUTES (cursor freeze via driver version mismatch per se):
+      Zero TDR events (4101/4109), zero nvlddmkm System events in 30 days.
+      No WHEA hardware errors. The 5060 Ti is working correctly. The Ada Code 31 is
+      a cold failure (device never starts) — not a hot reset or TDR storm.
+      A cold-failed Ada GPU does NOT cause cursor jitter or freeze on the 5060 Ti,
+      because Windows WDDM treats it as absent.
+
+  B5. TIMELINE CLARIFICATION — DWM CRASHES PRE-DATE DRIVER INSTALL:
+      61 DWM APPCRASH events (dwmcore.dll, c00001ad = STATUS_VIDEO_DRIVER_INIT_FAILURE)
+      clustered 2026-05-23 through 2026-05-26. Both current NVIDIA drivers were
+      installed 2026-05-30 (4 days AFTER crashes stopped). The crashes therefore
+      happened under the PRIOR driver state — likely during an unstable transition
+      period where a driver package was partially installed or the Ada GPU was oscillating
+      between states. The current driver install produced a stable (if degraded) state:
+      Ada fails cleanly at Code 31, 5060 Ti works. DWM has not crashed since.
+
+  B6. SUPPORTS (Thunderbolt link stability risk):
+      5060 Ti PCIe: Host Max = x1. This is the Thunderbolt 4 host controller's
+      PCIe connection. If the TB4 link flaps (cable disturbance, power event, Modern
+      Standby), the eGPU disconnects and DWM must failover to the iGPU. During this
+      transition, the HW cursor stops updating. This is a live risk that could explain
+      FUTURE cursor freezes — but there is no event log evidence of past TB4 flaps.
+
+  B7. SUPPORTS (HAGS amplification):
+      Hardware-Accelerated GPU Scheduling is enabled (HwSchMode=2). HAGS assigns
+      GPU work at the hardware scheduler level; if the 5060 Ti's HAGS queues stall
+      (due to power capping — 245M µs of power-capping logged by nvidia-smi), DWM's
+      cursor flip could be delayed. Combined with a Code 31 Ada GPU (HAGS can't
+      fall back to it), stalls are longer. Not proven, but structurally consistent.
+
+BEST READING FOR B: The NVIDIA driver split IS real and load-bearing for system
+health — the Ada GPU's Code 31 is a serious unresolved problem. However, its DIRECT
+effect on cursor/pointer processing is low today (the 5060 Ti renders DWM correctly,
+no TDR events, DWM stable since 05-26). The PRIMARY cursor freeze risk from NVIDIA
+is the eGPU Thunderbolt link stability (B6) and HAGS + power-cap stalls (B7) — both
+indirect, unconfirmed at this time.
+
+===================================================================
+COUPLING ANALYSIS: ARE A AND B INDEPENDENT OR COUPLED?
+===================================================================
+
+VERDICT: PARTIALLY COUPLED — via DWM compositor health, NOT via direct I2C/GPU signal sharing.
+
+Coupling pathway:
+  1. When DWM crashes (as it did 61×), the HW cursor vanishes AND touchpad input
+     stops being processed for the duration of the DWM restart cycle (typically 1-5s).
+     This makes BOTH a touchpad lockup AND a cursor freeze appear simultaneously,
+     even though the touchpad hardware (Sensel/I2C) is completely fine.
+  2. DWM stability depends on the GPU(s) it uses. During the crash storm (05-23 to 05-26),
+     the Ada GPU was in a half-started state that caused dwmcore.dll to throw
+     STATUS_VIDEO_DRIVER_INIT_FAILURE. DWM was restarting every few minutes.
+  3. After 05-30 driver install, Ada settled at Code 31 (hard exclusion from DWM),
+     and DWM has not crashed since. The current state is: Ada excluded, 5060 Ti stable.
+
+Independence in the CURRENT (post-05-30) state:
+  - Theory A (touchpad power-down): independent of GPU state. Triggered by Modern
+    Standby, resolved by disabling MSPower_DeviceEnable on SNSL002D and 7E78 (T1).
+  - Theory B (NVIDIA split causing cursor freeze): only triggered if 5060 Ti encounters
+    a TDR, HAGS hang, or TB4 link flap — none yet observed in post-05-30 logs.
+
+===================================================================
+BEST-SUPPORTED ROOT-CAUSE READING (ALL EVIDENCE)
+===================================================================
+
+PRIMARY (ongoing risk): H6 — I2C touchpad power-down on Modern Standby resume.
+  Cause: MSPower_DeviceEnable=True on both ACPI\SNSL002D and parent I2C 7E78.
+  Mechanism: On Modern Standby enter, the I2C controller powers down. On resume,
+             hidi2c must re-enumerate all COL devices. If the Sensel haptic firmware
+             takes >200ms to respond (power-up delay), hidi2c times out and the whole
+             SNSL002D device becomes inaccessible until next unplug/re-plug or reboot.
+  Evidence: H6 confirmed (MSPower_DeviceEnable=True on both), Modern Standby cycles
+            confirmed (Kernel-Power 506/507 ×3 in 14d).
+  Theory A contribution: Haptic firmware startup time at resume MAY be the bottleneck,
+            but it is within the H6 power-management framework, not a standalone path.
+
+SECONDARY (historical, currently stable): NVIDIA dual-GPU driver mismatch.
+  Cause: oem236.inf (Ada, newer) installed alongside oem395.inf (5060 Ti, older).
+         nvlddmkm.sys at 591.86 rejected the Ada GPU → Code 31.
+  Mechanism: During transition period (05-23 to 05-26), Ada GPU was oscillating →
+             61 DWM APPCRASH → UI/cursor froze for minutes at a time.
+  Current status: Stable in degraded state (Ada dead, 5060 Ti OK, DWM clean).
+  Risk: Thunderbolt link instability or a future HAGS stall could re-trigger cursor freeze.
+
+TERTIARY (potential future risk): Thunderbolt/PCIe eGPU link flap.
+  If the TB4 link to the 5060 Ti drops (Modern Standby, cable, power policy),
+  DWM must fail over to the Intel Arc iGPU. During the ~2-5s handoff, cursor
+  does not update. HAGS amplifies the freeze duration.
+  Evidence: No TB4 flap events seen yet; structural risk noted from PCIe link stats.
+
+===================================================================
+NEXT STEPS — RANKED BY CONFIDENCE × REVERSIBILITY
+===================================================================
+
+Step 1 (Highest priority — HIGH confidence, LOW risk):
+  Apply T1 from FINDINGS.md: disable MSPower_DeviceEnable on SNSL002D touchpad AND
+  its parent I2C controller (7E78).
+  Tool: Set-InputDevicePowerPolicy.ps1 (proposed) or Device Manager → Power Management.
+  Reversible: Yes (registry set back to True, or re-enable via Device Manager).
+  Evaluate: Watch for touchpad-dead episodes across ≥3 Modern Standby cycles.
+            Use Watch-InputGlitch.ps1 baseline → T1 → compare glitch/day.
+
+Step 2 (High priority — HIGH confidence, MEDIUM risk):
+  Fix the NVIDIA dual-GPU driver split: install a SINGLE NVIDIA driver package that
+  covers BOTH the Ada (DEV_28B8) and 5060 Ti (DEV_2D04) from the same INF version.
+  The split (oem236 newer than oem395) is the Code 31 cause.
+  Approach: Download the NVIDIA Laptop GeForce driver that includes both the Ada and
+            Blackwell (5060 Ti) device IDs from the same package. Or install the
+            GeForce Game Ready driver ≥596.xx which has a unified INF.
+  Pre-requisite: Create restore point. Run from external keyboard in case DWM crashes.
+  Evaluate: Code 31 resolved → Ada device shows Status OK in Device Manager.
+            DWM stays stable (no AppCrash events).
+
+Step 3 (Medium priority — MEDIUM confidence, LOW risk):
+  Audit Thunderbolt 4 / eGPU stability: check if any past TB4 link events exist in
+  the Microsoft-Windows-Thunderbolt event log.
+  Command (read-only):
+    Get-WinEvent -LogName 'Microsoft-Windows-Thunderbolt/Operational' -ErrorAction SilentlyContinue
+  If flap events exist, evaluate: Disable HAGS (HwSchMode=1) and/or exclude 5060 Ti
+  from auto-power-management (TdrDelay increase, or GPU power management = prefer max).
+  Evaluate: Cursor freeze episodes absent after TB4 audit.
+
+Step 4 (Low priority — ADVISORY, no risk):
+  Run Watch-InputGlitch.ps1 (Gate C) to capture a glitch-time snapshot.
+  This is the missing discriminator from FINDINGS.md §5.
+  If the next freeze is captured: check whether dwm.exe is running, whether SNSL002D
+  COL01 is Status OK, and whether a Modern Standby exit event preceded the freeze.
+  This data decides whether T1 worked and whether the NVIDIA path is implicated.
+
+Step 5 (Low priority — if Step 2 does not fully resolve):
+  Investigate whether disabling haptic feedback (FeedbackEnabled=0 in PrecisionTouchPad)
+  reduces resume-time I2C bus activity. If the haptic actuator's POST sequence on
+  resume is slowing re-enumeration, disabling feedback eliminates COL04 initialization.
+  Reversible: Yes. Evaluate: Resume-time touchpad availability.
+
+===================================================================
+CODEX OVERLAP — WHAT Test-NvidiaDualGpuDriverHealth.ps1 ALREADY COVERS
+===================================================================
+Codex's Restart-NvidiaInternalGpu.ps1 (found in workstation-audit folder) captures:
+  - pnputil /enum-devices for the Ada GPU before/after restart
+  - pnputil /enum-devices /problem (all problem devices)
+Codex's direct-pass-20260606/nvidia-dual-gpu-health/ folder contains:
+  - pnputil-display-drivers.txt: lists all Display class INF packages with versions
+  - pnputil-problems.txt: Code 31 on Ada GPU confirmed
+  - nvidia-smi.txt: 5060 Ti only, dwm.exe listed, Driver 591.86
+  - nvidia-smi-q.txt: Full 5060 Ti GPU properties
+
+WHAT THIS SESSION ADDS (not in Codex evidence):
+  - DEVPKEY_Device_InstallDate for BOTH GPUs (2026-05-30 for both — confirms both
+    installed same session, after DWM crash storm ended)
+  - Decoded Code 31 status (0xC0000182 = STATUS_DEVICE_CONFIGURATION_ERROR) — tells
+    WHY AddDevice() failed (kernel driver version mismatch, not hardware fault)
+  - DWM crash timeline (61 crashes 05-23 to 05-26) cross-correlated with driver
+    install dates — proves crashes pre-date current driver install
+  - DWM exception code c00001ad = STATUS_VIDEO_DRIVER_INIT_FAILURE decoded
+  - Intel Arc iGPU drives internal panel (165 Hz), 5060 Ti drives external (164 Hz)
+  - HAGS enabled (HwSchMode=2) — amplification risk for GPU stalls
+  - Thunderbolt PCIe link bandwidth constraint (Host Max x1)
+  - Power capping history on 5060 Ti (245M µs cumulative)
+  - Sensel AppX manifest: no background tasks — AppX is control panel only
+  - All SNSL002D PnP collection driver details (COL01-COL04) + version split analysis
+  - PrecisionTouchPad haptic settings: FeedbackEnabled=TRUE, Intensity=50%
+  - Haptic-to-pointer I2C coupling analysis (sub-ms; not a stall source)
+  - n48et.inf firmware version history (v1.19 → v1.20 transition)

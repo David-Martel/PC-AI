@@ -1,0 +1,58 @@
+06-05 21:05 | ID=42 | WHEA event log entry
+06-05 21:03 | ID=42 | WHEA event log entry
+06-05 21:03 | ID=42 | WHEA event log entry
+06-05 21:03 | ID=42 | WHEA event log entry
+06-05 21:03 | ID=42 | WHEA event log entry
+06-05 21:03 | ID=5 | WHEA successfully initialized.
+   5 error sources are active
+   Error record format version is 10.
+06-05 21:03 | ID=42 | WHEA event log entry
+06-05 21:03 | ID=42 | WHEA event log entry
+06-05 21:03 | ID=42 | WHEA event log entry
+06-05 21:02 | ID=42 | WHEA event log entry
+06-05 21:02 | ID=42 | WHEA event log entry
+06-05 21:02 | ID=42 | WHEA event log entry
+06-05 19:40 | ID=42 | WHEA event log entry
+06-05 19:37 | ID=42 | WHEA event log entry
+06-05 19:36 | ID=42 | WHEA event log entry
+06-05 19:36 | ID=42 | WHEA event log entry
+06-05 19:35 | ID=42 | WHEA event log entry
+06-05 19:35 | ID=42 | WHEA event log entry
+06-05 19:35 | ID=5 | WHEA successfully initialized.
+   5 error sources are active
+   Error record format version is 10.
+06-05 19:35 | ID=42 | WHEA event log entry
+06-05 19:35 | ID=42 | WHEA event log entry
+06-05 19:35 | ID=42 | WHEA event log entry
+06-05 19:35 | ID=42 | WHEA event log entry
+06-05 19:35 | ID=42 | WHEA event log entry
+06-05 10:41 | ID=42 | WHEA event log entry
+06-05 10:39 | ID=42 | WHEA event log entry
+06-05 10:39 | ID=42 | WHEA event log entry
+06-05 10:39 | ID=42 | WHEA event log entry
+06-05 10:39 | ID=42 | WHEA event log entry
+06-05 10:39 | ID=5 | WHEA successfully initialized.
+   5 error sources are active
+   Error record format version is 10.
+06-05 10:39 | ID=42 | WHEA event log entry
+06-05 10:39 | ID=42 | WHEA event log entry
+06-05 10:39 | ID=42 | WHEA event log entry
+06-05 10:39 | ID=42 | WHEA event log entry
+06-05 10:39 | ID=42 | WHEA event log entry
+06-04 17:17 | ID=42 | WHEA event log entry
+06-04 17:15 | ID=42 | WHEA event log entry
+06-04 17:15 | ID=42 | WHEA event log entry
+06-04 17:15 | ID=42 | WHEA event log entry
+06-04 17:15 | ID=42 | WHEA event log entry
+06-04 17:15 | ID=5 | WHEA successfully initialized.
+   5 error sources are active
+   Error record format version is 10.
+06-04 17:15 | ID=42 | WHEA event log entry
+06-04 17:15 | ID=42 | WHEA event log entry
+06-04 17:15 | ID=42 | WHEA event log entry
+06-04 17:15 | ID=42 | WHEA event log entry
+06-04 17:15 | ID=42 | WHEA event log entry
+06-03 19:21 | ID=42 | WHEA event log entry
+06-03 19:20 | ID=42 | WHEA event log entry
+06-03 19:20 | ID=42 | WHEA event log entry
+06-03 19:20 | ID=42 | WHEA event log entry

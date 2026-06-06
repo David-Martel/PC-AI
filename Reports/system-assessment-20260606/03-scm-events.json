@@ -1,0 +1,200 @@
+[
+  {
+    "Id": 7001,
+    "Version": 0,
+    "Qualifiers": 49152,
+    "Level": 2,
+    "Task": 0,
+    "Opcode": 0,
+    "Keywords": -9187343239835811840,
+    "RecordId": 2409706,
+    "ProviderName": "Service Control Manager",
+    "ProviderId": "555908d1-a6d7-4695-8e1e-26931d2012f4",
+    "LogName": "System",
+    "ProcessId": 1988,
+    "ThreadId": 7224,
+    "MachineName": "dtm-p1gen7",
+    "UserId": null,
+    "TimeCreated": "2026-06-05T21:04:05.1721947-04:00",
+    "ActivityId": null,
+    "RelatedActivityId": null,
+    "ContainerLog": "System",
+    "MatchedQueryIds": [
+      0
+    ],
+    "Bookmark": {
+      "BookmarkXml": "<BookmarkList Direction='backward'>\r\n  <Bookmark Channel='System' RecordId='2409706' IsCurrent='true'/>\r\n</BookmarkList>"
+    },
+    "LevelDisplayName": "Error",
+    "OpcodeDisplayName": null,
+    "TaskDisplayName": null,
+    "KeywordsDisplayNames": [
+      "Classic"
+    ],
+    "Properties": [
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty"
+    ],
+    "Message": "The PC_AI-ToolRouter service depends on the PC_AI-VLLM service which failed to start because of the following error: \r\nThe service cannot be started, either because it is disabled or because it has no enabled devices associated with it."
+  },
+  {
+    "Id": 7001,
+    "Version": 0,
+    "Qualifiers": 49152,
+    "Level": 2,
+    "Task": 0,
+    "Opcode": 0,
+    "Keywords": -9187343239835811840,
+    "RecordId": 2405819,
+    "ProviderName": "Service Control Manager",
+    "ProviderId": "555908d1-a6d7-4695-8e1e-26931d2012f4",
+    "LogName": "System",
+    "ProcessId": 1984,
+    "ThreadId": 7520,
+    "MachineName": "dtm-p1gen7",
+    "UserId": null,
+    "TimeCreated": "2026-06-05T19:36:25.1541144-04:00",
+    "ActivityId": null,
+    "RelatedActivityId": null,
+    "ContainerLog": "System",
+    "MatchedQueryIds": [
+      0
+    ],
+    "Bookmark": {
+      "BookmarkXml": "<BookmarkList Direction='backward'>\r\n  <Bookmark Channel='System' RecordId='2405819' IsCurrent='true'/>\r\n</BookmarkList>"
+    },
+    "LevelDisplayName": "Error",
+    "OpcodeDisplayName": null,
+    "TaskDisplayName": null,
+    "KeywordsDisplayNames": [
+      "Classic"
+    ],
+    "Properties": [
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty"
+    ],
+    "Message": "The PC_AI-ToolRouter service depends on the PC_AI-VLLM service which failed to start because of the following error: \r\nThe service cannot be started, either because it is disabled or because it has no enabled devices associated with it."
+  },
+  {
+    "Id": 7034,
+    "Version": 0,
+    "Qualifiers": 49152,
+    "Level": 2,
+    "Task": 0,
+    "Opcode": 0,
+    "Keywords": -9187343239835811840,
+    "RecordId": 2405513,
+    "ProviderName": "Service Control Manager",
+    "ProviderId": "555908d1-a6d7-4695-8e1e-26931d2012f4",
+    "LogName": "System",
+    "ProcessId": 1992,
+    "ThreadId": 51040,
+    "MachineName": "dtm-p1gen7",
+    "UserId": null,
+    "TimeCreated": "2026-06-05T18:31:06.0550693-04:00",
+    "ActivityId": null,
+    "RelatedActivityId": null,
+    "ContainerLog": "System",
+    "MatchedQueryIds": [
+      0
+    ],
+    "Bookmark": {
+      "BookmarkXml": "<BookmarkList Direction='backward'>\r\n  <Bookmark Channel='System' RecordId='2405513' IsCurrent='true'/>\r\n</BookmarkList>"
+    },
+    "LevelDisplayName": "Error",
+    "OpcodeDisplayName": null,
+    "TaskDisplayName": null,
+    "KeywordsDisplayNames": [
+      "Classic"
+    ],
+    "Properties": [
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty"
+    ],
+    "Message": "The OpenSSH SSH Server service terminated unexpectedly.  It has done this 1 time(s)."
+  },
+  {
+    "Id": 7001,
+    "Version": 0,
+    "Qualifiers": 49152,
+    "Level": 2,
+    "Task": 0,
+    "Opcode": 0,
+    "Keywords": -9187343239835811840,
+    "RecordId": 2374260,
+    "ProviderName": "Service Control Manager",
+    "ProviderId": "555908d1-a6d7-4695-8e1e-26931d2012f4",
+    "LogName": "System",
+    "ProcessId": 1992,
+    "ThreadId": 6892,
+    "MachineName": "dtm-p1gen7",
+    "UserId": null,
+    "TimeCreated": "2026-06-05T10:40:07.6798809-04:00",
+    "ActivityId": null,
+    "RelatedActivityId": null,
+    "ContainerLog": "System",
+    "MatchedQueryIds": [
+      0
+    ],
+    "Bookmark": {
+      "BookmarkXml": "<BookmarkList Direction='backward'>\r\n  <Bookmark Channel='System' RecordId='2374260' IsCurrent='true'/>\r\n</BookmarkList>"
+    },
+    "LevelDisplayName": "Error",
+    "OpcodeDisplayName": null,
+    "TaskDisplayName": null,
+    "KeywordsDisplayNames": [
+      "Classic"
+    ],
+    "Properties": [
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty"
+    ],
+    "Message": "The PC_AI-ToolRouter service depends on the PC_AI-VLLM service which failed to start because of the following error: \r\nThe service cannot be started, either because it is disabled or because it has no enabled devices associated with it."
+  },
+  {
+    "Id": 7034,
+    "Version": 0,
+    "Qualifiers": 49152,
+    "Level": 2,
+    "Task": 0,
+    "Opcode": 0,
+    "Keywords": -9187343239835811840,
+    "RecordId": 2374013,
+    "ProviderName": "Service Control Manager",
+    "ProviderId": "555908d1-a6d7-4695-8e1e-26931d2012f4",
+    "LogName": "System",
+    "ProcessId": 1948,
+    "ThreadId": 26372,
+    "MachineName": "dtm-p1gen7",
+    "UserId": null,
+    "TimeCreated": "2026-06-04T19:39:48.7421521-04:00",
+    "ActivityId": null,
+    "RelatedActivityId": null,
+    "ContainerLog": "System",
+    "MatchedQueryIds": [
+      0
+    ],
+    "Bookmark": {
+      "BookmarkXml": "<BookmarkList Direction='backward'>\r\n  <Bookmark Channel='System' RecordId='2374013' IsCurrent='true'/>\r\n</BookmarkList>"
+    },
+    "LevelDisplayName": "Error",
+    "OpcodeDisplayName": null,
+    "TaskDisplayName": null,
+    "KeywordsDisplayNames": [
+      "Classic"
+    ],
+    "Properties": [
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty",
+      "System.Diagnostics.Eventing.Reader.EventProperty"
+    ],
+    "Message": "The OpenSSH SSH Server service terminated unexpectedly.  It has done this 1 time(s)."
+  }
+]

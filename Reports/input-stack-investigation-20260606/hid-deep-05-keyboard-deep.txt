@@ -1,0 +1,50 @@
+# hid-deep-05-keyboard-deep — Scancode Map, filter drivers, accessibility live state, hooks
+# Collected: 2026-06-06T16:57:10.6546333-04:00  Elevated: True
+
+## 1. HKLM Scancode Map (remap table — empty = no remap)
+  Scancode Map: NOT PRESENT (no hardware-level remap active)
+## 2. HKCU Keyboard Layout (user-level remap)
+## 3. Keyboard device class filter drivers (UpperFilters/LowerFilters)
+  UpperFilters: kbdclass
+  LowerFilters: 
+## 3b. Per-device filter drivers on LEN0071 (i8042 keyboard)
+  Device: Standard PS/2 Keyboard | ACPI\LEN0071\4&76D3D92&0 | Status: OK
+    UpperFilters: 
+    LowerFilters: 
+    Service: i8042prt
+## 4. Accessibility key states (HKCU — live session values)
+  StickyKeys (HKCU:\Control Panel\Accessibility\StickyKeys)
+    Flags = 2 [AVAILABLE(0x02)]
+  FilterKeys (HKCU:\Control Panel\Accessibility\Keyboard Response)
+    AutoRepeatDelay = 0
+    AutoRepeatRate = 0
+    BounceTime = 0
+    DelayBeforeAcceptance = 0
+    Flags = 2 [AVAILABLE(0x02)]
+    Last BounceKey Setting = 0
+    Last Valid Delay = 0
+    Last Valid Repeat = 0
+    Last Valid Wait = 1000
+  ToggleKeys (HKCU:\Control Panel\Accessibility\ToggleKeys)
+    Flags = 2 [AVAILABLE(0x02)]
+  KbdPreference (HKCU:\Control Panel\Accessibility\Keyboard Preference)
+    On = 0
+  MouseKeys (HKCU:\Control Panel\Accessibility\MouseKeys)
+    Flags = 62 [AVAILABLE(0x02)|HOTKEYACTIVE(0x04)|CONFIRMHOTKEY(0x08)|HOTKEYSOUND(0x10)|INDICATOR(0x20)]
+    MaximumSpeed = 80
+    TimeToMaximumSpeed = 3000
+## 5. Potential global keyboard hook processes (PowerToys, AHK, Razer, Logitech)
+  FOUND: PowerToys
+    PID=13228 Name=Microsoft.CmdPal.Ext.PowerToys Path=C:\Users\david\AppData\Local\PowerToys\WinUI3Apps\Microsoft.CmdPal.Ext.PowerToys.exe
+    PID=62972 Name=PowerToys.EnvironmentVariables Path=C:\Users\david\AppData\Local\PowerToys\WinUI3Apps\PowerToys.EnvironmentVariables.exe
+  FOUND: LogiOptions
+    PID=23328 Name=logioptionsplus_agent Path=C:\Program Files\LogiOptionsPlus\logioptionsplus_agent.exe
+    PID=14764 Name=logioptionsplus_updater Path=C:\Program Files\LogiOptionsPlus\logioptionsplus_updater.exe
+  FOUND: ctfmon
+    PID=30676 Name=ctfmon Path=C:\WINDOWS\system32\ctfmon.exe
+  FOUND: TextInputHost
+    PID=23604 Name=TextInputHost Path=C:\WINDOWS\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe
+## 6. PowerToys Keyboard Manager remaps (if installed)
+  PowerToys KBM config FOUND at: C:\Users\david\AppData\Local\Microsoft\PowerToys\Keyboard Manager\default.json
+{"remapKeys":{"inProcess":[]},"remapKeysToText":{"inProcess":[]},"remapShortcuts":{"global":[],"appSpecific":[]},"remapShortcutsToText":{"global":[],"appSpecific":[]}}
+

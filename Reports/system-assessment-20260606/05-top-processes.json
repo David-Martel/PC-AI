@@ -1,0 +1,252 @@
+[
+  {
+    "Name": "OneDrive",
+    "Id": 37764,
+    "CPU": 66339.140625,
+    "WorkingSet64": 715231232,
+    "VirtualMemorySize64": 2208044945408,
+    "CPUh": 18.4,
+    "WS_MB": 682.0,
+    "VM_MB": 2105756.0
+  },
+  {
+    "Name": "MsMpEng",
+    "Id": 14776,
+    "CPU": 8472.0625,
+    "WorkingSet64": 569982976,
+    "VirtualMemorySize64": 2205239517184,
+    "CPUh": 2.4,
+    "WS_MB": 544.0,
+    "VM_MB": 2103080.0
+  },
+  {
+    "Name": "System",
+    "Id": 4,
+    "CPU": 8411.765625,
+    "WorkingSet64": 454897664,
+    "VirtualMemorySize64": 465293312,
+    "CPUh": 2.3,
+    "WS_MB": 434.0,
+    "VM_MB": 444.0
+  },
+  {
+    "Name": "svchost",
+    "Id": 3172,
+    "CPU": 7245.953125,
+    "WorkingSet64": 21151744,
+    "VirtualMemorySize64": 2203445489664,
+    "CPUh": 2.0,
+    "WS_MB": 20.0,
+    "VM_MB": 2101369.0
+  },
+  {
+    "Name": "dwm",
+    "Id": 2328,
+    "CPU": 5943.15625,
+    "WorkingSet64": 958226432,
+    "VirtualMemorySize64": 2207535284224,
+    "CPUh": 1.7,
+    "WS_MB": 914.0,
+    "VM_MB": 2105270.0
+  },
+  {
+    "Name": "svchost",
+    "Id": 13900,
+    "CPU": 4407.40625,
+    "WorkingSet64": 74559488,
+    "VirtualMemorySize64": 2203659046912,
+    "CPUh": 1.2,
+    "WS_MB": 71.0,
+    "VM_MB": 2101573.0
+  },
+  {
+    "Name": "claude",
+    "Id": 45660,
+    "CPU": 2943.078125,
+    "WorkingSet64": 745193472,
+    "VirtualMemorySize64": 13937979392,
+    "CPUh": 0.8,
+    "WS_MB": 711.0,
+    "VM_MB": 13292.0
+  },
+  {
+    "Name": "tailscaled",
+    "Id": 18216,
+    "CPU": 2768.71875,
+    "WorkingSet64": 120827904,
+    "VirtualMemorySize64": 5755387904,
+    "CPUh": 0.8,
+    "WS_MB": 115.0,
+    "VM_MB": 5489.0
+  },
+  {
+    "Name": "svchost",
+    "Id": 7240,
+    "CPU": 2635.578125,
+    "WorkingSet64": 41623552,
+    "VirtualMemorySize64": 2203494080512,
+    "CPUh": 0.7,
+    "WS_MB": 40.0,
+    "VM_MB": 2101416.0
+  },
+  {
+    "Name": "codex",
+    "Id": 51092,
+    "CPU": 2390.546875,
+    "WorkingSet64": 478138368,
+    "VirtualMemorySize64": 7763517440,
+    "CPUh": 0.7,
+    "WS_MB": 456.0,
+    "VM_MB": 7404.0
+  },
+  {
+    "Name": "vmmemWSL",
+    "Id": 47784,
+    "CPU": 2095.609375,
+    "WorkingSet64": 3159306240,
+    "VirtualMemorySize64": 38721748992,
+    "CPUh": 0.6,
+    "WS_MB": 3013.0,
+    "VM_MB": 36928.0
+  },
+  {
+    "Name": "claude",
+    "Id": 61284,
+    "CPU": 1874.34375,
+    "WorkingSet64": 642732032,
+    "VirtualMemorySize64": 11770843136,
+    "CPUh": 0.5,
+    "WS_MB": 613.0,
+    "VM_MB": 11226.0
+  },
+  {
+    "Name": "WDDriveService",
+    "Id": 14492,
+    "CPU": 1622.671875,
+    "WorkingSet64": 26755072,
+    "VirtualMemorySize64": 117477376,
+    "CPUh": 0.5,
+    "WS_MB": 26.0,
+    "VM_MB": 112.0
+  },
+  {
+    "Name": "WmiPrvSE",
+    "Id": 6280,
+    "CPU": 1524.921875,
+    "WorkingSet64": 93683712,
+    "VirtualMemorySize64": 2203585257472,
+    "CPUh": 0.4,
+    "WS_MB": 89.0,
+    "VM_MB": 2101503.0
+  },
+  {
+    "Name": "redis-server",
+    "Id": 15928,
+    "CPU": 1501.390625,
+    "WorkingSet64": 20480000,
+    "VirtualMemorySize64": 13548457984,
+    "CPUh": 0.4,
+    "WS_MB": 20.0,
+    "VM_MB": 12921.0
+  },
+  {
+    "Name": "ProcessGovernor",
+    "Id": 8316,
+    "CPU": 1489.71875,
+    "WorkingSet64": 24207360,
+    "VirtualMemorySize64": 4456284160,
+    "CPUh": 0.4,
+    "WS_MB": 23.0,
+    "VM_MB": 4250.0
+  },
+  {
+    "Name": "services",
+    "Id": 1988,
+    "CPU": 1342.8125,
+    "WorkingSet64": 27586560,
+    "VirtualMemorySize64": 2203463036928,
+    "CPUh": 0.4,
+    "WS_MB": 26.0,
+    "VM_MB": 2101386.0
+  },
+  {
+    "Name": "GoogleDriveFS",
+    "Id": 27568,
+    "CPU": 1079.53125,
+    "WorkingSet64": 302718976,
+    "VirtualMemorySize64": 56763797504,
+    "CPUh": 0.3,
+    "WS_MB": 289.0,
+    "VM_MB": 54134.0
+  },
+  {
+    "Name": "WindowsTerminal",
+    "Id": 48924,
+    "CPU": 966.75,
+    "WorkingSet64": 739573760,
+    "VirtualMemorySize64": 2204562874368,
+    "CPUh": 0.3,
+    "WS_MB": 705.0,
+    "VM_MB": 2102435.0
+  },
+  {
+    "Name": "Dell.TechHub.Instrumentation.SubAgent",
+    "Id": 35232,
+    "CPU": 903.15625,
+    "WorkingSet64": 461520896,
+    "VirtualMemorySize64": 2481455292416,
+    "CPUh": 0.3,
+    "WS_MB": 440.0,
+    "VM_MB": 2366500.0
+  },
+  {
+    "Name": "svchost",
+    "Id": 4488,
+    "CPU": 872.3125,
+    "WorkingSet64": 36745216,
+    "VirtualMemorySize64": 2203623702528,
+    "CPUh": 0.2,
+    "WS_MB": 35.0,
+    "VM_MB": 2101539.0
+  },
+  {
+    "Name": "warp-svc",
+    "Id": 14308,
+    "CPU": 845.5625,
+    "WorkingSet64": 138989568,
+    "VirtualMemorySize64": 4752084992,
+    "CPUh": 0.2,
+    "WS_MB": 133.0,
+    "VM_MB": 4532.0
+  },
+  {
+    "Name": "logioptionsplus_agent",
+    "Id": 23328,
+    "CPU": 825.375,
+    "WorkingSet64": 200171520,
+    "VirtualMemorySize64": 5144547328,
+    "CPUh": 0.2,
+    "WS_MB": 191.0,
+    "VM_MB": 4906.0
+  },
+  {
+    "Name": "svchost",
+    "Id": 3632,
+    "CPU": 817.4375,
+    "WorkingSet64": 30425088,
+    "VirtualMemorySize64": 2203459936256,
+    "CPUh": 0.2,
+    "WS_MB": 29.0,
+    "VM_MB": 2101383.0
+  },
+  {
+    "Name": "svchost",
+    "Id": 3260,
+    "CPU": 731.21875,
+    "WorkingSet64": 12705792,
+    "VirtualMemorySize64": 2203418349568,
+    "CPUh": 0.2,
+    "WS_MB": 12.0,
+    "VM_MB": 2101343.0
+  }
+]

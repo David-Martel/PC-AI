@@ -1,0 +1,42 @@
+# hid-deep-11-mousekeys-logitech -- MouseKeys anomaly + Logitech deeper investigation
+# Collected: 2026-06-06T17:03:09.5753568-04:00  Elevated: True
+
+## 1. MouseKeys registry state (anomaly: HOTKEYACTIVE=0x04 still set)
+  Flags = 62
+  MaximumSpeed = 80
+  TimeToMaximumSpeed = 3000
+  DECODED Flags: 62 = AVAILABLE(0x02)|HOTKEYACTIVE(0x04)|CONFIRMHOTKEY(0x08)|HOTKEYSOUND(0x10)|INDICATOR(0x20)
+  RISK: Alt+LeftShift+NumLock can toggle MouseKeys ON during use. MouseKeys ON can swallow Shift+numpad combos.
+## 2. Logitech Options+ process details
+  Process: LogiFacecamService PID=8364 CPU=0.234375
+  Path: C:\Program Files\Logitech\LogiCapture\bin\Service\LogiFacecamService.exe
+  MainWindowTitle: 
+  Handle count: 238  Thread count: 6
+  Process: logioptionsplus_agent PID=23328 CPU=834.0625
+  Path: C:\Program Files\LogiOptionsPlus\logioptionsplus_agent.exe
+  MainWindowTitle: 
+  Handle count: 1037  Thread count: 94
+  Process: logioptionsplus_updater PID=14764 CPU=7.65625
+  Path: C:\Program Files\LogiOptionsPlus\logioptionsplus_updater.exe
+  MainWindowTitle: 
+  Handle count: 335  Thread count: 43
+  Process: LogiSyncStub PID=8268 CPU=0.0625
+  Path: C:\Program Files (x86)\Logitech\LogiSyncStub\LogiSyncStub.exe
+  MainWindowTitle: 
+  Handle count: 202  Thread count: 3
+## 3. Logitech services
+  LogiFacecamService Status=Running StartType=Automatic
+  LogiSyncStub Status=Running StartType=Automatic
+  OptionsPlusUpdaterService Status=Running StartType=Automatic
+## 4. Logitech registry hooks and keyboard interception
+  Found: HKLM:\SOFTWARE\Logitech
+  SubKeys: Capture, CPDevMgr, LogiOptionsPlus, LogiSyncStub
+  Found: HKCU:\SOFTWARE\Logitech
+  SubKeys: Capture, FirmwareUpdateTool, LogiOptionsPlus, VirtualCam
+  Found: HKLM:\SOFTWARE\WOW6432Node\Logitech
+  SubKeys: LogiDownloadAssistant
+## 5. Logi Options+ keyboard/shortcut config files
+  Not found: C:\Users\david\AppData\Local\Logi\LogiOptionsPlus
+  Not found: C:\Users\david\AppData\Roaming\Logi\LogiOptionsPlus
+  Found config dir: C:\ProgramData\Logi\LogiOptionsPlus
+

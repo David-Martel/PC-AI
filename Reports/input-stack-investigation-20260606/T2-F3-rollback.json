@@ -1,0 +1,13 @@
+{
+  "applied_utc": "2026-06-06T17:14:58.4270347-04:00",
+  "T2_before": {
+    "WdfDirectedPowerTransitionEnable": 1,
+    "key": "Microsoft.PowerShell.Core\\Registry::HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Enum\\PCI\\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\\3&11583659&1&A8\\Device Parameters\\WDF"
+  },
+  "T2_applied": true,
+  "F3_before": {
+    "key": "HKCU:\\Control Panel\\Accessibility\\MouseKeys",
+    "Flags": "62"
+  },
+  "F3_applied": true
+}

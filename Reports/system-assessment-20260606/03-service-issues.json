@@ -1,0 +1,128 @@
+[
+  {
+    "Name": "brave",
+    "DisplayName": "Brave Update Service (brave)",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "\"C:\\Program Files (x86)\\BraveSoftware\\Update\\BraveUpdate.exe\" /svc"
+  },
+  {
+    "Name": "dmwappushservice",
+    "DisplayName": "Device Management Wireless Application Protocol (WAP) Push message Routing Service",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+  },
+  {
+    "Name": "DropboxUpdaterInternalService123.0.6299.144",
+    "DisplayName": "DropboxUpdater InternalService 123.0.6299.144 (DropboxUpdaterInternalService123.0.6299.144)",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "\"C:\\Program Files\\Dropbox\\DropboxUpdater\\123.0.6299.144\\updater.exe\" --system --windows-service --service=update-internal --enable-logging --vmodule=*/components/winhttp/*=1,*/components/update_client/*=2,*/chrome/updater/*=2"
+  },
+  {
+    "Name": "DropboxUpdaterService123.0.6299.144",
+    "DisplayName": "DropboxUpdater Service 123.0.6299.144 (DropboxUpdaterService123.0.6299.144)",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "\"C:\\Program Files\\Dropbox\\DropboxUpdater\\123.0.6299.144\\updater.exe\" --system --windows-service --service=update --enable-logging --vmodule=*/components/winhttp/*=1,*/components/update_client/*=2,*/chrome/updater/*=2"
+  },
+  {
+    "Name": "edgeupdate",
+    "DisplayName": "Microsoft Edge Update Service (edgeupdate)",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "\"C:\\Program Files (x86)\\Microsoft\\EdgeUpdate\\MicrosoftEdgeUpdate.exe\" /svc"
+  },
+  {
+    "Name": "EllipticVLS",
+    "DisplayName": "Virtual Lock Sensor",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\ellipticvls.inf_amd64_24d97f3a92e5d4d2\\VLS\\VirtualLockSensor.exe"
+  },
+  {
+    "Name": "GoogleUpdaterInternalService150.0.7863.0",
+    "DisplayName": "Google Updater Internal Service (GoogleUpdaterInternalService150.0.7863.0)",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "\"C:\\Program Files (x86)\\Google\\GoogleUpdater\\150.0.7863.0\\updater.exe\" --system --windows-service --service=update-internal"
+  },
+  {
+    "Name": "GoogleUpdaterService150.0.7863.0",
+    "DisplayName": "Google Updater Service (GoogleUpdaterService150.0.7863.0)",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "\"C:\\Program Files (x86)\\Google\\GoogleUpdater\\150.0.7863.0\\updater.exe\" --system --windows-service --service=update"
+  },
+  {
+    "Name": "IntelDisplayUMService",
+    "DisplayName": "Intel(R) Graphics Display Service",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\iigd_dch.inf_amd64_a553090cbabe96be\\IntelDisplayUMService.exe"
+  },
+  {
+    "Name": "LocalKdc",
+    "DisplayName": "Kerberos Local Key Distribution Center",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "C:\\WINDOWS\\System32\\lsass.exe"
+  },
+  {
+    "Name": "LPlatSvc",
+    "DisplayName": "Lenovo Platform Service",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\ibmpmdrv.inf_amd64_317aadafb86018c3\\x64\\LPlatSvc.exe"
+  },
+  {
+    "Name": "MapsBroker",
+    "DisplayName": "Downloaded Maps Manager",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetworkService -p"
+  },
+  {
+    "Name": "sppsvc",
+    "DisplayName": "Software Protection",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "C:\\WINDOWS\\system32\\sppsvc.exe"
+  },
+  {
+    "Name": "WbioSrvc",
+    "DisplayName": "Windows Biometric Service",
+    "State": "Stopped",
+    "ProcessId": 0,
+    "ExitCode": 0,
+    "StartMode": "Auto",
+    "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k WbioSvcGroup"
+  }
+]

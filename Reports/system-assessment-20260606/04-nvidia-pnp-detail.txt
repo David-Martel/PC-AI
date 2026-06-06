@@ -1,0 +1,32 @@
+
+Caption                     : NVIDIA RTX 2000 Ada Generation Laptop GPU
+Description                 : NVIDIA RTX 2000 Ada Generation Laptop GPU
+InstallDate                 : 
+Name                        : NVIDIA RTX 2000 Ada Generation Laptop GPU
+Status                      : Error
+Availability                : 
+ConfigManagerErrorCode      : 31
+ConfigManagerUserConfig     : False
+CreationClassName           : Win32_PnPEntity
+DeviceID                    : PCI\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\4&218D282A&0&0008
+ErrorCleared                : 
+ErrorDescription            : 
+LastErrorCode               : 
+PNPDeviceID                 : PCI\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\4&218D282A&0&0008
+PowerManagementCapabilities : 
+PowerManagementSupported    : 
+StatusInfo                  : 
+SystemCreationClassName     : Win32_ComputerSystem
+SystemName                  : DTM-P1GEN7
+ClassGuid                   : {4d36e968-e325-11ce-bfc1-08002be10318}
+CompatibleID                : {PCI\VEN_10DE&DEV_28B8&REV_A1, PCI\VEN_10DE&DEV_28B8, PCI\VEN_10DE&CC_030200, PCI\VEN_10DE&CC_0302…}
+HardwareID                  : {PCI\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1, PCI\VEN_10DE&DEV_28B8&SUBSYS_223417AA, PCI\VEN_10DE&DEV_28B8&CC_030200, PCI\VEN_10DE&DEV_28B8&CC_0302}
+Manufacturer                : NVIDIA
+PNPClass                    : Display
+Present                     : True
+Service                     : nvlddmkm
+PSComputerName              : 
+CimClass                    : root/cimv2:Win32_PnPEntity
+CimInstanceProperties       : {Caption, Description, InstallDate, Name…}
+CimSystemProperties         : Microsoft.Management.Infrastructure.CimSystemProperties
+

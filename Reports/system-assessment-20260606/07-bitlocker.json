@@ -1,0 +1,37 @@
+[
+  {
+    "MountPoint": "T:",
+    "ProtectionStatus": 1,
+    "EncryptionMethod": 6,
+    "EncryptionPercentage": 100.0,
+    "VolumeType": 1
+  },
+  {
+    "MountPoint": "C:",
+    "ProtectionStatus": 1,
+    "EncryptionMethod": 6,
+    "EncryptionPercentage": 100.0,
+    "VolumeType": 0
+  },
+  {
+    "MountPoint": "F:",
+    "ProtectionStatus": 1,
+    "EncryptionMethod": 6,
+    "EncryptionPercentage": 100.0,
+    "VolumeType": 1
+  },
+  {
+    "MountPoint": "W:",
+    "ProtectionStatus": 0,
+    "EncryptionMethod": 0,
+    "EncryptionPercentage": 0.0,
+    "VolumeType": 1
+  },
+  {
+    "MountPoint": "E:",
+    "ProtectionStatus": 0,
+    "EncryptionMethod": 0,
+    "EncryptionPercentage": 0.0,
+    "VolumeType": 1
+  }
+]

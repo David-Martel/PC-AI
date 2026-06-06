@@ -1,0 +1,30 @@
+
+Name                                   CPUh   WS_MB      VM_MB
+----                                   ----   -----      -----
+OneDrive                              18.40  682.00 2105756.00
+MsMpEng                                2.40  544.00 2103080.00
+System                                 2.30  434.00     444.00
+svchost                                2.00   20.00 2101369.00
+dwm                                    1.70  914.00 2105270.00
+svchost                                1.20   71.00 2101573.00
+claude                                 0.80  711.00   13292.00
+tailscaled                             0.80  115.00    5489.00
+svchost                                0.70   40.00 2101416.00
+codex                                  0.70  456.00    7404.00
+vmmemWSL                               0.60 3013.00   36928.00
+claude                                 0.50  613.00   11226.00
+WDDriveService                         0.50   26.00     112.00
+WmiPrvSE                               0.40   89.00 2101503.00
+redis-server                           0.40   20.00   12921.00
+ProcessGovernor                        0.40   23.00    4250.00
+services                               0.40   26.00 2101386.00
+GoogleDriveFS                          0.30  289.00   54134.00
+WindowsTerminal                        0.30  705.00 2102435.00
+Dell.TechHub.Instrumentation.SubAgent  0.30  440.00 2366500.00
+svchost                                0.20   35.00 2101539.00
+warp-svc                               0.20  133.00    4532.00
+logioptionsplus_agent                  0.20  191.00    4906.00
+svchost                                0.20   29.00 2101383.00
+svchost                                0.20   12.00 2101343.00
+
+

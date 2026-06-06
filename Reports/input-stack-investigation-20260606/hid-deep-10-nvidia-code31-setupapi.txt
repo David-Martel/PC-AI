@@ -1,0 +1,61 @@
+# hid-deep-10-nvidia-code31-setupapi -- NVIDIA error device details + recent SetupAPI
+# Collected: 2026-06-06T16:59:55.7154654-04:00  Elevated: True
+
+## 1. All NVIDIA/GPU devices with problem codes
+  [GHOST][Unknown] Problem=CM_PROB_PHANTOM Class=MEDIA Name=NVIDIA High Definition Audio
+  InstanceId: HDAUDIO\FUNC_01&VEN_10DE&DEV_00AD&SUBSYS_10DE0000&REV_1001\7&10E04B75&0&0001
+  DriverVersion: 1.4.5.7  Service: NVHDA
+  [GHOST][Unknown] Problem=CM_PROB_PHANTOM Class=AudioEndpoint Name=Microphone (NVIDIA Broadcast)
+  InstanceId: SWD\MMDEVAPI\{0.0.1.00000000}.{D60E70C8-0B4A-4339-AE5B-FDA00F95F6FC}
+  DriverVersion: 10.0.26100.1  Service: 
+  [GHOST][Unknown] Problem=CM_PROB_PHANTOM Class=AudioEndpoint Name=Speakers (NVIDIA Broadcast)
+  InstanceId: SWD\MMDEVAPI\{0.0.0.00000000}.{4DB3DA5A-9DE1-4435-9711-41DA08E8846A}
+  DriverVersion: 10.0.26100.1  Service: 
+  [PRESENT][Error] Problem=CM_PROB_FAILED_ADD Class=Display Name=NVIDIA RTX 2000 Ada Generation Laptop GPU
+  InstanceId: PCI\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\4&218D282A&0&0008
+  DriverVersion: 32.0.15.9659  Service: nvlddmkm
+  [PRESENT][OK] Problem=CM_PROB_NONE Class=Display Name=Intel(R) Arc(TM) Graphics
+  InstanceId: PCI\VEN_8086&DEV_7D55&SUBSYS_223417AA&REV_08\3&11583659&1&10
+  [PRESENT][OK] Problem=CM_PROB_NONE Class=Display Name=LuminonCore IDDCX Adapter
+  InstanceId: LCI\IDDCX\1&36444BD7&0&WHO_CARE
+  [PRESENT][OK] Problem=CM_PROB_NONE Class=Display Name=NVIDIA GeForce RTX 5060 Ti
+  InstanceId: PCI\VEN_10DE&DEV_2D04&SUBSYS_8A071043&REV_A1\17A20750D72DB04800
+  [PRESENT][OK] Problem=CM_PROB_NONE Class=MEDIA Name=NVIDIA Virtual Audio Device (Wave Extensible) (WDM)
+  InstanceId: ROOT\UNNAMED_DEVICE\0000
+  [PRESENT][OK] Problem=CM_PROB_NONE Class=MEDIA Name=NVIDIA Broadcast
+  InstanceId: ROOT\UNNAMED_DEVICE\0001
+  [PRESENT][OK] Problem=CM_PROB_NONE Class=SoftwareDevice Name=NVIDIA Platform Controllers and Framework
+  InstanceId: ACPI\NVDA0820\NPCF
+## 2. nvlddmkm (NVIDIA GPU driver) events -- System log 30d
+  nvlddmkm: no events in 30d
+## 3. Recent SetupAPI log tail (driver installs last 30d entries)
+  SetupAPI entries matching input/GPU keywords (last 500 lines):
+  Count: 23
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nvltwi.inf_amd64_751865768b3d6c40\nvidia-ngx-updater' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem236-nvltwi\nvidia-ngx-updater'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nvltwi.inf_amd64_751865768b3d6c40\libnvidia-nvvm.so.4' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem236-nvltwi\libnvidia-nvvm.so.4'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nvltwi.inf_amd64_751865768b3d6c40\nvidia-pcc.exe' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem236-nvltwi\nvidia-pcc.exe'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nvltwi.inf_amd64_751865768b3d6c40\libnvidia-ptxjitcompiler.so.1' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem236-nvltwi\libnvidia-ptxjitcompiler.so.1'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nvltwi.inf_amd64_751865768b3d6c40\nvidia-smi.exe' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem236-nvltwi\nvidia-smi.exe'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nvltwi.inf_amd64_751865768b3d6c40\libnvidia-nvvm70.so.4' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem236-nvltwi\libnvidia-nvvm70.so.4'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nvltwi.inf_amd64_751865768b3d6c40\libnvidia-encode.so.1' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem236-nvltwi\libnvidia-encode.so.1'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nvltwi.inf_amd64_751865768b3d6c40\libnvidia-gpucomp.so' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem236-nvltwi\libnvidia-gpucomp.so'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nvltwi.inf_amd64_751865768b3d6c40\nvidia-smi' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem236-nvltwi\nvidia-smi'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-opticalflow.so.1' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-opticalflow.so.1'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-ml.so.1' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-ml.so.1'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-tileiras.so' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-tileiras.so'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-ngx.so.1' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-ngx.so.1'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-ml_loader.so' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-ml_loader.so'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\nvidia-ngx-updater' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\nvidia-ngx-updater'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-nvvm.so.4' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-nvvm.so.4'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\nvidia-pcc.exe' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\nvidia-pcc.exe'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-ptxjitcompiler.so.1' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-ptxjitcompiler.so.1'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\nvidia-smi.exe' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\nvidia-smi.exe'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-nvvm70.so.4' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-nvvm70.so.4'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-encode.so.1' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-encode.so.1'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\libnvidia-gpucomp.so' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\libnvidia-gpucomp.so'.
+       flq:      Copying 'C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispig.inf_amd64_f4c7a2fd13e0f763\nvidia-smi' to 'C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\oem395-nvdispig\nvidia-smi'.
+## 4. Application Error / WER events for nvlddmkm + display crashes (30d)
+  System events referencing nvlddmkm/display driver: 1
+  2026-06-05 20:57:24 ID=20003 Provider=Microsoft-Windows-UserPnp
+  Driver Management has concluded the process to add Service nvlddmkm for Device Instance ID PCI\VEN_10DE&DEV_2D04&SUBSYS_8A071043&REV_A1\17A20750D72DB04800 with the following status: 0.
+

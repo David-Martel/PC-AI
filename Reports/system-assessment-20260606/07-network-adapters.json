@@ -1,0 +1,44 @@
+[
+  {
+    "Name": "Ethernet 8",
+    "InterfaceDescription": "Realtek Gaming USB 2.5GbE Family Controller",
+    "LinkSpeed": "2.5 Gbps",
+    "MacAddress": "F4-4D-AD-04-95-C9"
+  },
+  {
+    "Name": "vEthernet (WSL)",
+    "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter #2",
+    "LinkSpeed": "10 Gbps",
+    "MacAddress": "00-15-5D-15-20-07"
+  },
+  {
+    "Name": "Npcap Loopback Adapter",
+    "InterfaceDescription": "Npcap Loopback Adapter",
+    "LinkSpeed": "1.2 Gbps",
+    "MacAddress": "02-00-4C-4F-4F-50"
+  },
+  {
+    "Name": "vEthernet (Default Switch)",
+    "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter",
+    "LinkSpeed": "10 Gbps",
+    "MacAddress": "00-15-5D-27-A3-8A"
+  },
+  {
+    "Name": "Tailscale",
+    "InterfaceDescription": "Tailscale Tunnel",
+    "LinkSpeed": "100 Gbps",
+    "MacAddress": ""
+  },
+  {
+    "Name": "Wi-Fi 4",
+    "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+    "LinkSpeed": "0 bps",
+    "MacAddress": "6E-2F-80-8E-80-96"
+  },
+  {
+    "Name": "vEthernet (WSL (Hyper-V firewall))",
+    "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter #3",
+    "LinkSpeed": "10 Gbps",
+    "MacAddress": "00-15-5D-88-02-8F"
+  }
+]

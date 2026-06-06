@@ -1,0 +1,50 @@
+[
+  {
+    "FriendlyName": "Msft Virtual Disk",
+    "MediaType": "SSD",
+    "HealthStatus": "Healthy",
+    "OperationalStatus": "OK",
+    "Size": 549755813888,
+    "Size_GB": 512.0
+  },
+  {
+    "FriendlyName": "Msft Virtual Disk",
+    "MediaType": "SSD",
+    "HealthStatus": "Healthy",
+    "OperationalStatus": "OK",
+    "Size": 1342177280000,
+    "Size_GB": 1250.0
+  },
+  {
+    "FriendlyName": "WD_BLACK SN850X 4000GB",
+    "MediaType": "SSD",
+    "HealthStatus": "Healthy",
+    "OperationalStatus": "OK",
+    "Size": 4000787030016,
+    "Size_GB": 3726.0
+  },
+  {
+    "FriendlyName": "Msft Virtual Disk",
+    "MediaType": "SSD",
+    "HealthStatus": "Healthy",
+    "OperationalStatus": "OK",
+    "Size": 274877906944,
+    "Size_GB": 256.0
+  },
+  {
+    "FriendlyName": "WD_BLACK SN850X 4000GB",
+    "MediaType": "SSD",
+    "HealthStatus": "Healthy",
+    "OperationalStatus": "OK",
+    "Size": 4000787030016,
+    "Size_GB": 3726.0
+  },
+  {
+    "FriendlyName": "General UDisk",
+    "MediaType": "Unspecified",
+    "HealthStatus": "Healthy",
+    "OperationalStatus": "OK",
+    "Size": 126877696,
+    "Size_GB": 0.0
+  }
+]

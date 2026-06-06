@@ -1,0 +1,82 @@
+[
+  {
+    "Count": 1297,
+    "Name": "Bonjour Service"
+  },
+  {
+    "Count": 136,
+    "Name": "Microsoft-Windows-AppModel-State"
+  },
+  {
+    "Count": 120,
+    "Name": "Universal Print"
+  },
+  {
+    "Count": 104,
+    "Name": "Microsoft-Windows-WMI"
+  },
+  {
+    "Count": 87,
+    "Name": "Microsoft-Windows-CertificateServicesClient-AutoEnrollment"
+  },
+  {
+    "Count": 40,
+    "Name": "VBScriptDeprecationAlert"
+  },
+  {
+    "Count": 31,
+    "Name": "PC-AI-VHDMount"
+  },
+  {
+    "Count": 28,
+    "Name": "Application Error"
+  },
+  {
+    "Count": 27,
+    "Name": "Microsoft-Windows-Perflib"
+  },
+  {
+    "Count": 23,
+    "Name": "VSS"
+  },
+  {
+    "Count": 18,
+    "Name": "nssm"
+  },
+  {
+    "Count": 4,
+    "Name": "Microsoft-Windows-Defrag"
+  },
+  {
+    "Count": 4,
+    "Name": "Microsoft-Windows-Winlogon"
+  },
+  {
+    "Count": 3,
+    "Name": ".NET Runtime"
+  },
+  {
+    "Count": 3,
+    "Name": "Application Hang"
+  },
+  {
+    "Count": 3,
+    "Name": "Microsoft-Windows-RestartManager"
+  },
+  {
+    "Count": 2,
+    "Name": "DbxSvc"
+  },
+  {
+    "Count": 1,
+    "Name": "IPFSVCHOST"
+  },
+  {
+    "Count": 1,
+    "Name": "ESRV_SVC_QUEENCREEK"
+  },
+  {
+    "Count": 1,
+    "Name": "NVWMI"
+  }
+]

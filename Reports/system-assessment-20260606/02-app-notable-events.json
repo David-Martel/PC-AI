@@ -1,0 +1,338 @@
+[
+  {
+    "TimeCreated": "2026-06-05T18:31:16.4323841-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.425861-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.4251995-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.41868-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.4179439-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.4122289-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.4101685-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.4095152-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.4054754-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.404989-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.4039433-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-06-05T18:31:16.4026185-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-06-04T19:39:59.0206714-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-06-04T19:39:59.0197037-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-06-04T19:39:59.0128034-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-06-04T19:39:59.0117663-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-06-03T10:19:05.0791475-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: UDClientService.exe, version: 26.5.0.21, time stamp: 0x6a04339e Faulting module name: unknown, version: 0.0.0.0, time stamp: 0x00000000 Exception code: 0xc0000005 Fault offset: 0x0000006500750054 Faulting process id: 0x4544 Faulting application start time: 0x1DCF36362A34ED2 Faulting application path: C:\\WINDOWS\\System32\\drivers\\Lenovo\\udc\\Service\\UDClientService.exe Faulting module path: unknown Report Id: 79a69ef9-d5cf-4ee5-968c-7d3d3bd5f528 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-31T00:27:18.3595574-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: LvfInstallService.exe, version: 4.3.0.3, time stamp: 0x6982e1b6 Faulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4 Exception code: 0xc0000374 Fault offset: 0x0000000000112265 Faulting process id: 0x1DB4 Faulting application start time: 0x1DCF0B5B2BAD79A Faulting application path: C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\lnvvsndmft.inf_amd64_f6d79d78edcb4315\\LvfInstallService.exe Faulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll Report Id: b68d0b73-013e-43d7-95e6-ae99388415ec Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-31T00:04:04.499897-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: OneDrive.exe, version: 26.78.426.2, time stamp: 0x26c1f5ee Faulting module name: igd10umt64xe.DLL, version: 32.0.101.6637, time stamp: 0x67bfa92a Exception code: 0xc0000005 Fault offset: 0x0000000000871944 Faulting process id: 0x7E28 Faulting application start time: 0x1DCF0B052CDC9CA Faulting application path: C:\\Program Files\\Microsoft OneDrive\\OneDrive.exe Faulting module path: C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\iigd_dch.inf_amd64_b5fdf22acfaa3c6d\\igd10umt64xe.DLL Report Id: 2e2bf015-f108-4f91-ac74-d7f1fd0c297f Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-31T00:03:51.0923846-04:00",
+    "ProviderName": "Microsoft-Windows-RestartManager",
+    "Id": 10010,
+    "Msg": "Application 'C:\\Program Files\\Intel\\Intel Graphics Software\\PresentMonService.exe' (pid 12292) cannot be restarted - Application SID does not match Conductor SID.."
+  },
+  {
+    "TimeCreated": "2026-05-31T00:03:28.0995133-04:00",
+    "ProviderName": "Microsoft-Windows-RestartManager",
+    "Id": 10010,
+    "Msg": "Application 'C:\\Program Files (x86)\\Intel\\Driver and Support Assistant\\x86\\DSATray.exe' (pid 20800) cannot be restarted - Application SID does not match Conductor SID.."
+  },
+  {
+    "TimeCreated": "2026-05-30T23:55:04.5474233-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: MsiExec.exe, version: 5.0.26100.5074, time stamp: 0xe074eae8 Faulting module name: KERNELBASE.dll, version: 10.0.26100.8521, time stamp: 0xf3d54447 Exception code: 0xe06d7363 Fault offset: 0x001659e4 Faulting process id: 0x9B28 Faulting application start time: 0x1DCF0B13849D442 Faulting application path: C:\\Windows\\syswow64\\MsiExec.exe Faulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll Report Id: 688ff277-9c9a-46ee-a067-f9971276a773 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-30T23:54:48.4273948-04:00",
+    "ProviderName": "Microsoft-Windows-RestartManager",
+    "Id": 10010,
+    "Msg": "Application 'C:\\ProgramData\\FLEXnet\\Connect\\11\\agent.exe' (pid 39756) cannot be restarted - Application SID does not match Conductor SID.."
+  },
+  {
+    "TimeCreated": "2026-05-30T22:52:13.9053655-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: LvfInstallService.exe, version: 4.3.0.3, time stamp: 0x6982e1b6 Faulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4 Exception code: 0xc0000374 Fault offset: 0x0000000000112265 Faulting process id: 0x1EB8 Faulting application start time: 0x1DCF0A867A973F3 Faulting application path: C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\lnvvsndmft.inf_amd64_f6d79d78edcb4315\\LvfInstallService.exe Faulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll Report Id: 9c464fdc-fdc0-46f0-8155-95b5bbf9c33e Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-30T22:49:33.8498036-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-05-29T20:17:21.1525028-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: svchost.exe_FrameServer, version: 10.0.26100.8521, time stamp: 0x6588a4b7 Faulting module name: frameserver.dll, version: 10.0.26100.8521, time stamp: 0x5698fc4f Exception code: 0xcfffffff Fault offset: 0x00000000000b9574 Faulting process id: 0x9EF8 Faulting application start time: 0x1DCEFC999A1C7E5 Faulting application path: C:\\WINDOWS\\System32\\svchost.exe Faulting module path: c:\\windows\\system32\\frameserver.dll Report Id: 76a77b7d-6380-421c-b6ca-8f05fbed1fca Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-29T20:17:08.1496206-04:00",
+    "ProviderName": "Application Hang",
+    "Id": 1002,
+    "Msg": "The program svchost.exe version 10.0.26100.8521 stopped interacting with Windows and was closed. To see if more information about the problem is available, check the problem history in the Security and Maintenance control panel. "
+  },
+  {
+    "TimeCreated": "2026-05-29T20:16:43.8234951-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: svchost.exe_FrameServer, version: 10.0.26100.8521, time stamp: 0x6588a4b7 Faulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4 Exception code: 0xcfffffff Fault offset: 0x0000000000160b14 Faulting process id: 0x2834 Faulting application start time: 0x1DCEFC98C4DCCBB Faulting application path: C:\\WINDOWS\\System32\\svchost.exe Faulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll Report Id: ae5ceed4-e170-49ff-b13c-631953d7c0c0 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-29T20:16:19.4476161-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: svchost.exe_FrameServer, version: 10.0.26100.8521, time stamp: 0x6588a4b7 Faulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4 Exception code: 0xcfffffff Fault offset: 0x0000000000160b14 Faulting process id: 0x5788 Faulting application start time: 0x1DCEFC97D81D0BF Faulting application path: C:\\WINDOWS\\System32\\svchost.exe Faulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll Report Id: ee4d69f2-3b8d-4fef-b080-926b9b4a812a Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-29T18:22:58.105575-04:00",
+    "ProviderName": "Application Hang",
+    "Id": 1002,
+    "Msg": "The program dllhost.exe version 10.0.26100.8521 stopped interacting with Windows and was closed. To see if more information about the problem is available, check the problem history in the Security and Maintenance control panel. "
+  },
+  {
+    "TimeCreated": "2026-05-29T09:18:21.1725548-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: FloatingMenu1.exe, version: 3.0.10091.0, time stamp: 0xe3f90c9e Faulting module name: KERNELBASE.dll, version: 10.0.26100.8521, time stamp: 0xdd98c8ba Exception code: 0xe0434352 Fault offset: 0x00000000000c1b6a Faulting process id: 0xF9C Faulting application start time: 0x1DCEF6D9DA506F9 Faulting application path: C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\FloatingMenu1.exe Faulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll Report Id: dd8b13d9-d70b-4c3e-804b-8e075b9483c9 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-28T01:03:46.180123-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: powershell.exe, version: 10.0.26100.5074, time stamp: 0x04b35d0f Faulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4 Exception code: 0xc00000fd Fault offset: 0x00000000000540c0 Faulting process id: 0x13A44 Faulting application start time: 0x1DCEE5E342D07CF Faulting application path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe Faulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll Report Id: 6916b082-13fd-42f4-8f55-32978dcfed4d Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-28T00:59:07.2406211-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: powershell.exe, version: 10.0.26100.5074, time stamp: 0x04b35d0f Faulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4 Exception code: 0xc00000fd Fault offset: 0x0000000000054194 Faulting process id: 0x136A0 Faulting application start time: 0x1DCEE5E16776562 Faulting application path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe Faulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll Report Id: 4a9a12b9-2897-4c5c-9d62-8ec5e172f6fb Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-28T00:31:37.9299784-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: powershell.exe, version: 10.0.26100.5074, time stamp: 0x04b35d0f Faulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4 Exception code: 0xc00000fd Fault offset: 0x00000000000540c0 Faulting process id: 0x1258C Faulting application start time: 0x1DCEE5A531633E2 Faulting application path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe Faulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll Report Id: 837d2e60-9646-48bc-970f-882db87bd6d5 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-27T23:24:48.2789203-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: rm-virtualcam-module64.dll, version: 0.0.0.0, time stamp: 0x469324af Exception code: 0xc0000005 Fault offset: 0x00000000000032e2 Faulting process id: 0x11CD8 Faulting application start time: 0x1DCEE5174592807 Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\Program Files\\OBSBOT Center\\data\\rmfunc\\indshow\\rm-virtualcam-module64.dll Report Id: 48a35df5-c418-439d-bc23-c75913f103bd Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-27T23:23:58.4811789-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4 Exception code: 0xc0000374 Fault offset: 0x0000000000112265 Faulting process id: 0x11ADC Faulting application start time: 0x1DCEE5157E9F48D Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll Report Id: ccc33cfe-e4ea-43e5-becb-bb39e1503c3a Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-27T01:36:01.7219628-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: wmiprvse.exe, version: 10.0.26100.8521, time stamp: 0x891fc72d Faulting module name: wmiprvse.exe, version: 10.0.26100.8521, time stamp: 0x891fc72d Exception code: 0xc0000005 Fault offset: 0x0000000000005793 Faulting process id: 0x2768 Faulting application start time: 0x1DCED9A4233B72E Faulting application path: C:\\WINDOWS\\system32\\wbem\\wmiprvse.exe Faulting module path: C:\\WINDOWS\\system32\\wbem\\wmiprvse.exe Report Id: c548bae8-47e8-44d7-8e29-4af58c005834 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-27T01:23:26.7428117-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: Dell.TechHub.Instrumentation.SubAgent.exe, version: 3.7.10.9147, time stamp: 0x65cd0000 Faulting module name: KERNELBASE.dll, version: 10.0.26100.8457, time stamp: 0x18603c3f Exception code: 0xe0434352 Fault offset: 0x00000000000bfe0a Faulting process id: 0x4E70 Faulting application start time: 0x1DCED80CA73B264 Faulting application path: C:\\Program Files\\Dell\\DTP\\InstrumentationSubAgent\\Dell.TechHub.Instrumentation.SubAgent.exe Faulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll Report Id: 9db1af61-5ddc-470c-bde6-9204ad3e32b7 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-26T12:35:53.3789495-04:00",
+    "ProviderName": "Application Hang",
+    "Id": 1002,
+    "Msg": "The program explorer.exe version 10.0.26100.8457 stopped interacting with Windows and was closed. To see if more information about the problem is available, check the problem history in the Security and Maintenance control panel. "
+  },
+  {
+    "TimeCreated": "2026-05-26T06:38:23.2813188-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: Dell.TechHub.Instrumentation.SubAgent.exe, version: 3.7.10.9147, time stamp: 0x65cd0000 Faulting module name: KERNELBASE.dll, version: 10.0.26100.8457, time stamp: 0x18603c3f Exception code: 0xe0434352 Fault offset: 0x00000000000bfe0a Faulting process id: 0x5F84 Faulting application start time: 0x1DCEC5D2462795C Faulting application path: C:\\Program Files\\Dell\\DTP\\InstrumentationSubAgent\\Dell.TechHub.Instrumentation.SubAgent.exe Faulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll Report Id: 1bb09b3e-ba17-484e-a11a-9c9959d7b55f Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-26T00:09:20.48206-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: python312.dll, version: 3.12.11150.1013, time stamp: 0x68b08c64 Exception code: 0xc0000005 Fault offset: 0x00000000000db096 Faulting process id: 0x170F0 Faulting application start time: 0x1DCECC56AAAA5D9 Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python312.dll Report Id: bf52a500-ee30-4382-a75d-24d335cd9dfe Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-26T00:09:05.5807969-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: python312.dll, version: 3.12.11150.1013, time stamp: 0x68b08c64 Exception code: 0xc0000005 Fault offset: 0x00000000000a38c3 Faulting process id: 0x12548 Faulting application start time: 0x1DCECC562828890 Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python312.dll Report Id: bb0b5017-202b-447d-9f22-60b1e7a2aaed Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-26T00:08:19.913224-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: python312.dll, version: 3.12.11150.1013, time stamp: 0x68b08c64 Exception code: 0xc0000005 Fault offset: 0x00000000000db096 Faulting process id: 0x9394 Faulting application start time: 0x1DCECC531002286 Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python312.dll Report Id: efe963d5-b0e0-4ece-b700-5541bceccc90 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-26T00:06:30.5314017-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: python312.dll, version: 3.12.11150.1013, time stamp: 0x68b08c64 Exception code: 0xc0000005 Fault offset: 0x000000000008b707 Faulting process id: 0x903C Faulting application start time: 0x1DCECC4EE781231 Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python312.dll Report Id: c4e5278b-6297-4466-9bb6-a9524dfec191 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-25T23:20:50.7632018-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: nvcuda64.dll, version: 32.0.15.9636, time stamp: 0x69e9896c Exception code: 0xc0000005 Fault offset: 0x0000000000179e7c Faulting process id: 0x15010 Faulting application start time: 0x1DCECBE9ABF6F92 Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\nv_dispsi.inf_amd64_0cc79ee359bdef40\\nvcuda64.dll Report Id: 262d7c18-192d-4e3e-ae71-1161e8a0327a Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-25T20:04:40.8695513-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: nvcuda64.dll, version: 32.0.15.9636, time stamp: 0x69e9896c Exception code: 0xc0000005 Fault offset: 0x0000000000179e7c Faulting process id: 0x134D8 Faulting application start time: 0x1DCECA30E154CFA Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\nv_dispsi.inf_amd64_0cc79ee359bdef40\\nvcuda64.dll Report Id: 5fc1fcdc-e6fd-4737-9702-84659523ce56 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-25T20:02:19.8478646-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: nvcuda64.dll, version: 32.0.15.9636, time stamp: 0x69e9896c Exception code: 0xc0000005 Fault offset: 0x0000000000179e7c Faulting process id: 0x2D98 Faulting application start time: 0x1DCECA2B805350C Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\nv_dispsi.inf_amd64_0cc79ee359bdef40\\nvcuda64.dll Report Id: f6d272d2-f35a-4d90-bd25-52125d5de5cb Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-25T19:57:37.682648-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80 Faulting module name: nvcuda64.dll, version: 32.0.15.9636, time stamp: 0x69e9896c Exception code: 0xc0000005 Fault offset: 0x0000000000179e7c Faulting process id: 0x12AA4 Faulting application start time: 0x1DCECA21DBA23CE Faulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe Faulting module path: C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\nv_dispsi.inf_amd64_0cc79ee359bdef40\\nvcuda64.dll Report Id: 77250588-8a6f-4760-9dfd-bc941b9577ab Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-25T01:35:21.9622866-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: Dell.TechHub.Instrumentation.SubAgent.exe, version: 3.7.10.9147, time stamp: 0x65cd0000 Faulting module name: KERNELBASE.dll, version: 10.0.26100.8457, time stamp: 0x18603c3f Exception code: 0xe0434352 Fault offset: 0x00000000000bfe0a Faulting process id: 0xD64 Faulting application start time: 0x1DCEADB1B57CBEC Faulting application path: C:\\Program Files\\Dell\\DTP\\InstrumentationSubAgent\\Dell.TechHub.Instrumentation.SubAgent.exe Faulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll Report Id: db8835d4-f928-476b-9b6c-5bde2f0d9766 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-25T01:35:20.2603456-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-05-25T01:35:20.2480526-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-05-25T01:35:20.2475125-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-05-25T01:35:20.2425347-04:00",
+    "ProviderName": "VSS",
+    "Id": 8193,
+    "Msg": "Volume Shadow Copy Service error: Unexpected error calling routine CoCreateInstance. hr = 0x8007045b, A system shutdown is in progress. . "
+  },
+  {
+    "TimeCreated": "2026-05-25T01:35:20.2419731-04:00",
+    "ProviderName": "VSS",
+    "Id": 13,
+    "Msg": "Volume Shadow Copy Service information: The COM Server with CLSID {4e14fba2-2e22-11d1-9964-00c04fbbb345} and name CEventSystem cannot be started. [0x8007045b, A system shutdown is in progress. ] "
+  },
+  {
+    "TimeCreated": "2026-05-23T19:49:38.0210551-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131 Faulting module name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131 Exception code: 0xc0000409 Fault offset: 0x000000000228ce31 Faulting process id: 0xFC3C Faulting application start time: 0x1DCEB0ECE879734 Faulting application path: C:\\Program Files\\Cloudflare\\Cloudflare WARP\\warp-svc.exe Faulting module path: C:\\Program Files\\Cloudflare\\Cloudflare WARP\\warp-svc.exe Report Id: 82b95cf0-2fa8-44bb-8aa9-29a2be32e638 Faulting package full name: Faulting package-relative application ID: "
+  },
+  {
+    "TimeCreated": "2026-05-23T19:49:05.9520311-04:00",
+    "ProviderName": "Application Error",
+    "Id": 1000,
+    "Msg": "Faulting application name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131 Faulting module name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131 Exception code: 0xc0000409 Fault offset: 0x000000000228ce31 Faulting process id: 0x3EC4 Faulting application start time: 0x1DCEADAE74B4153 Faulting application path: C:\\Program Files\\Cloudflare\\Cloudflare WARP\\warp-svc.exe Faulting module path: C:\\Program Files\\Cloudflare\\Cloudflare WARP\\warp-svc.exe Report Id: c7b14921-941f-4038-86d2-ebd7643a48c6 Faulting package full name: Faulting package-relative application ID: "
+  }
+]

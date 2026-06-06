@@ -1,0 +1,464 @@
+[
+  {
+    "TimeGenerated": "2026-06-06T14:34:30.074-04:00",
+    "ProductName": "Microsoft.NET.Workloads.10.0.300 (x64)",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1033,
+    "Message": "Windows Installer installed the product. Product Name: Microsoft.NET.Workloads.10.0.300 (x64). Product Version: 84.176.53639. Product Language: 1033. Manufacturer: Microsoft Corporation. Installation success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-06T12:42:35.321-04:00",
+    "ProductName": "NETGEAR A9000 BE6500 WiFi 7 Adapter",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1033,
+    "Message": "Windows Installer installed the product. Product Name: NETGEAR A9000 BE6500 WiFi 7 Adapter. Product Version: 2.0.1.9. Product Language: 1033. Manufacturer: NETGEAR. Installation success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-06T09:39:58.34-04:00",
+    "ProductName": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.451.294.0) - Current Channel (Broad)",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.451.294.0) - Current Channel (Broad)"
+  },
+  {
+    "TimeGenerated": "2026-06-06T09:39:51.21-04:00",
+    "ProductName": "Intel Corporation Extension Driver Update (32.0.100.4724)",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: Intel Corporation Extension Driver Update (32.0.100.4724)"
+  },
+  {
+    "TimeGenerated": "2026-06-05T21:04:01.253-04:00",
+    "ProductName": "Windows",
+    "SourceName": "EventLog",
+    "EventIdentifier": 6008,
+    "Message": "The previous system shutdown at 7:36:17 PM on ‎6/‎5/‎2026 was unexpected."
+  },
+  {
+    "TimeGenerated": "2026-06-05T19:41:13.913-04:00",
+    "ProductName": "Microsoft Corporation AudioProcessingObject Driver Update (1.0.3.56670)",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: Microsoft Corporation AudioProcessingObject Driver Update (1.0.3.56670)"
+  },
+  {
+    "TimeGenerated": "2026-06-05T19:41:11.21-04:00",
+    "ProductName": "Intel SoftwareComponent Driver Update (267.102.85.0)",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: Intel SoftwareComponent Driver Update (267.102.85.0)"
+  },
+  {
+    "TimeGenerated": "2026-06-05T19:41:06.467-04:00",
+    "ProductName": "Lenovo System Driver Update (10.2.5.2)",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: Lenovo System Driver Update (10.2.5.2)"
+  },
+  {
+    "TimeGenerated": "2026-06-05T19:40:59.904-04:00",
+    "ProductName": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.451.286.0) - Current Channel (Broad)",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.451.286.0) - Current Channel (Broad)"
+  },
+  {
+    "TimeGenerated": "2026-06-05T19:40:49.889-04:00",
+    "ProductName": "Dell Inc. - Monitor, Other hardware - DELL U2515H(Hdmi1)",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: Dell Inc. - Monitor, Other hardware - DELL U2515H(Hdmi1)"
+  },
+  {
+    "TimeGenerated": "2026-06-05T19:40:47.754-04:00",
+    "ProductName": "Intel System Driver Update (2603.9.4.0)",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: Intel System Driver Update (2603.9.4.0)"
+  },
+  {
+    "TimeGenerated": "2026-06-05T19:39:49.494-04:00",
+    "ProductName": "Logi Plugin Service",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1033,
+    "Message": "Windows Installer installed the product. Product Name: Logi Plugin Service. Product Version: 6.3.1.2628. Product Language: 1033. Manufacturer: Logitech. Installation success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-05T18:18:34.921-04:00",
+    "ProductName": "Office 16 Click-to-Run Extensibility Component",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1035,
+    "Message": "Windows Installer reconfigured the product. Product Name: Office 16 Click-to-Run Extensibility Component. Product Version: 16.0.20026.20076. Product Language: 0. Manufacturer: Microsoft Corporation. Reconfiguration success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-05T10:50:58.111-04:00",
+    "ProductName": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.451.280.0) - Current Channel (Broad)",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.451.280.0) - Current Channel (Broad)"
+  },
+  {
+    "TimeGenerated": "2026-06-04T17:56:03.285-04:00",
+    "ProductName": "9MZ08JF4T3NG-E0469640.TrackPointQuickMenu",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: 9MZ08JF4T3NG-E0469640.TrackPointQuickMenu"
+  },
+  {
+    "TimeGenerated": "2026-06-04T17:55:58.872-04:00",
+    "ProductName": "9N1KVPCJP303-AD2F1837.HPPrinterDriver",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: 9N1KVPCJP303-AD2F1837.HPPrinterDriver"
+  },
+  {
+    "TimeGenerated": "2026-06-04T17:55:52.744-04:00",
+    "ProductName": "9NC184TX90WZ-Microsoft.Ink.Handwriting.Main.en-US.1.0.1",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: 9NC184TX90WZ-Microsoft.Ink.Handwriting.Main.en-US.1.0.1"
+  },
+  {
+    "TimeGenerated": "2026-06-04T17:55:51.949-04:00",
+    "ProductName": "9NP9QTRNK38Q-Microsoft.Ink.Handwriting.en-US.1.0",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: 9NP9QTRNK38Q-Microsoft.Ink.Handwriting.en-US.1.0"
+  },
+  {
+    "TimeGenerated": "2026-06-04T17:55:45.027-04:00",
+    "ProductName": "9WZDNCRD29V9-MICROSOFT.MICROSOFTOFFICEHUB",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: 9WZDNCRD29V9-MICROSOFT.MICROSOFTOFFICEHUB"
+  },
+  {
+    "TimeGenerated": "2026-06-04T17:55:30.678-04:00",
+    "ProductName": "9MZ95KL8MR0L-Microsoft.ScreenSketch",
+    "SourceName": "Microsoft-Windows-WindowsUpdateClient",
+    "EventIdentifier": 19,
+    "Message": "Installation Successful: Windows successfully installed the following update: 9MZ95KL8MR0L-Microsoft.ScreenSketch"
+  },
+  {
+    "TimeGenerated": "2026-06-04T17:23:12.847-04:00",
+    "ProductName": "Quick Share",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1033,
+    "Message": "Windows Installer installed the product. Product Name: Quick Share. Product Version: 1.0.2600.1. Product Language: 1033. Manufacturer: Google LLC. Installation success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-03T14:29:10.307-04:00",
+    "ProductName": "CMake",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1033,
+    "Message": "Windows Installer installed the product. Product Name: CMake. Product Version: 4.3.3. Product Language: 1033. Manufacturer: Kitware. Installation success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-03T10:19:05.079-04:00",
+    "ProductName": "UDClientService.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: UDClientService.exe, version: 26.5.0.21, time stamp: 0x6a04339e\r\nFaulting module name: unknown, version: 0.0.0.0, time stamp: 0x00000000\r\nException code: 0xc0000005\r\nFault offset: 0x0000006500750054\r\nFaulting process id: 0x4544\r\nFaulting application start time: 0x1DCF36362A34ED2\r\nFaulting application path: C:\\WINDOWS\\System32\\drivers\\Lenovo\\udc\\Service\\UDClientService.exe\r\nFaulting module path: unknown\r\nReport Id: 79a69ef9-d5cf-4ee5-968c-7d3d3bd5f528\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-06-02T03:54:26.483-04:00",
+    "ProductName": "Office 16 Click-to-Run Extensibility Component",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1035,
+    "Message": "Windows Installer reconfigured the product. Product Name: Office 16 Click-to-Run Extensibility Component. Product Version: 16.0.20026.20076. Product Language: 0. Manufacturer: Microsoft Corporation. Reconfiguration success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-02T03:54:17.049-04:00",
+    "ProductName": "Office 16 Click-to-Run Extensibility Component",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1035,
+    "Message": "Windows Installer reconfigured the product. Product Name: Office 16 Click-to-Run Extensibility Component. Product Version: 16.0.20026.20076. Product Language: 0. Manufacturer: Microsoft Corporation. Reconfiguration success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-01T14:58:58.237-04:00",
+    "ProductName": "Microsoft Teams Meeting Add-in for Microsoft Office",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1033,
+    "Message": "Windows Installer installed the product. Product Name: Microsoft Teams Meeting Add-in for Microsoft Office. Product Version: 1.26.11802. Product Language: 1033. Manufacturer: Microsoft. Installation success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-01T14:58:54.994-04:00",
+    "ProductName": "Microsoft Teams Meeting Add-in for Microsoft Office",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1034,
+    "Message": "Windows Installer removed the product. Product Name: Microsoft Teams Meeting Add-in for Microsoft Office. Product Version: 1.26.08901. Product Language: 1033. Manufacturer: Microsoft. Removal success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-01T09:55:32.944-04:00",
+    "ProductName": "Microsoft Teams Meeting Add-in for Microsoft Office",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1033,
+    "Message": "Windows Installer installed the product. Product Name: Microsoft Teams Meeting Add-in for Microsoft Office. Product Version: 1.26.08901. Product Language: 1033. Manufacturer: Microsoft. Installation success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-06-01T09:55:28.624-04:00",
+    "ProductName": "Microsoft Teams Meeting Add-in for Microsoft Office",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1034,
+    "Message": "Windows Installer removed the product. Product Name: Microsoft Teams Meeting Add-in for Microsoft Office. Product Version: 1.25.28902. Product Language: 1033. Manufacturer: Microsoft. Removal success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-05-31T00:27:18.359-04:00",
+    "ProductName": "LvfInstallService.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: LvfInstallService.exe, version: 4.3.0.3, time stamp: 0x6982e1b6\r\nFaulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4\r\nException code: 0xc0000374\r\nFault offset: 0x0000000000112265\r\nFaulting process id: 0x1DB4\r\nFaulting application start time: 0x1DCF0B5B2BAD79A\r\nFaulting application path: C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\lnvvsndmft.inf_amd64_f6d79d78edcb4315\\LvfInstallService.exe\r\nFaulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll\r\nReport Id: b68d0b73-013e-43d7-95e6-ae99388415ec\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-31T00:04:04.499-04:00",
+    "ProductName": "OneDrive.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: OneDrive.exe, version: 26.78.426.2, time stamp: 0x26c1f5ee\r\nFaulting module name: igd10umt64xe.DLL, version: 32.0.101.6637, time stamp: 0x67bfa92a\r\nException code: 0xc0000005\r\nFault offset: 0x0000000000871944\r\nFaulting process id: 0x7E28\r\nFaulting application start time: 0x1DCF0B052CDC9CA\r\nFaulting application path: C:\\Program Files\\Microsoft OneDrive\\OneDrive.exe\r\nFaulting module path: C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\iigd_dch.inf_amd64_b5fdf22acfaa3c6d\\igd10umt64xe.DLL\r\nReport Id: 2e2bf015-f108-4f91-ac74-d7f1fd0c297f\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-31T00:04:00.864-04:00",
+    "ProductName": "oneAPI Level Zero",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1034,
+    "Message": "Windows Installer removed the product. Product Name: oneAPI Level Zero. Product Version: 1.26.1. Product Language: 1033. Manufacturer: Intel. Removal success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-05-31T00:03:59.081-04:00",
+    "ProductName": "Intel® Graphics Software",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1034,
+    "Message": "Windows Installer removed the product. Product Name: Intel® Graphics Software. Product Version: 25.52.2110.4. Product Language: 1033. Manufacturer: Intel Corporation. Removal success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-05-31T00:03:40.937-04:00",
+    "ProductName": "Intel Driver && Support Assistant",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1034,
+    "Message": "Windows Installer removed the product. Product Name: Intel Driver && Support Assistant. Product Version: 26.1.0.2. Product Language: 1033. Manufacturer: Intel. Removal success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-05-31T00:03:20.932-04:00",
+    "ProductName": "Intel(R) Computing Improvement Program",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1034,
+    "Message": "Windows Installer removed the product. Product Name: Intel(R) Computing Improvement Program. Product Version: 2.4.11187. Product Language: 1033. Manufacturer: Intel Corporation. Removal success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-05-30T23:56:05.094-04:00",
+    "ProductName": "AudiogramModule",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1034,
+    "Message": "Windows Installer removed the product. Product Name: AudiogramModule. Product Version: 1.87.0000. Product Language: 1033. Manufacturer: HIMSA. Removal success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-05-30T23:55:11.737-04:00",
+    "ProductName": "Aventa3.8",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1034,
+    "Message": "Windows Installer removed the product. Product Name: Aventa3.8. Product Version: 3.80.002. Product Language: 1033. Manufacturer: GN ReSound. Removal success or error status: 1603."
+  },
+  {
+    "TimeGenerated": "2026-05-30T23:55:04.547-04:00",
+    "ProductName": "MsiExec.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: MsiExec.exe, version: 5.0.26100.5074, time stamp: 0xe074eae8\r\nFaulting module name: KERNELBASE.dll, version: 10.0.26100.8521, time stamp: 0xf3d54447\r\nException code: 0xe06d7363\r\nFault offset: 0x001659e4\r\nFaulting process id: 0x9B28\r\nFaulting application start time: 0x1DCF0B13849D442\r\nFaulting application path: C:\\Windows\\syswow64\\MsiExec.exe\r\nFaulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll\r\nReport Id: 688ff277-9c9a-46ee-a067-f9971276a773\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-30T22:52:13.905-04:00",
+    "ProductName": "LvfInstallService.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: LvfInstallService.exe, version: 4.3.0.3, time stamp: 0x6982e1b6\r\nFaulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4\r\nException code: 0xc0000374\r\nFault offset: 0x0000000000112265\r\nFaulting process id: 0x1EB8\r\nFaulting application start time: 0x1DCF0A867A973F3\r\nFaulting application path: C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\lnvvsndmft.inf_amd64_f6d79d78edcb4315\\LvfInstallService.exe\r\nFaulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll\r\nReport Id: 9c464fdc-fdc0-46f0-8155-95b5bbf9c33e\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-29T20:17:21.152-04:00",
+    "ProductName": "svchost.exe_FrameServer",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: svchost.exe_FrameServer, version: 10.0.26100.8521, time stamp: 0x6588a4b7\r\nFaulting module name: frameserver.dll, version: 10.0.26100.8521, time stamp: 0x5698fc4f\r\nException code: 0xcfffffff\r\nFault offset: 0x00000000000b9574\r\nFaulting process id: 0x9EF8\r\nFaulting application start time: 0x1DCEFC999A1C7E5\r\nFaulting application path: C:\\WINDOWS\\System32\\svchost.exe\r\nFaulting module path: c:\\windows\\system32\\frameserver.dll\r\nReport Id: 76a77b7d-6380-421c-b6ca-8f05fbed1fca\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-29T20:17:08.149-04:00",
+    "ProductName": "svchost.exe",
+    "SourceName": "Application Hang",
+    "EventIdentifier": 1002,
+    "Message": "The program svchost.exe version 10.0.26100.8521 stopped interacting with Windows and was closed. To see if more information about the problem is available, check the problem history in the Security and Maintenance control panel.\r\n"
+  },
+  {
+    "TimeGenerated": "2026-05-29T20:16:43.823-04:00",
+    "ProductName": "svchost.exe_FrameServer",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: svchost.exe_FrameServer, version: 10.0.26100.8521, time stamp: 0x6588a4b7\r\nFaulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4\r\nException code: 0xcfffffff\r\nFault offset: 0x0000000000160b14\r\nFaulting process id: 0x2834\r\nFaulting application start time: 0x1DCEFC98C4DCCBB\r\nFaulting application path: C:\\WINDOWS\\System32\\svchost.exe\r\nFaulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll\r\nReport Id: ae5ceed4-e170-49ff-b13c-631953d7c0c0\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-29T20:16:19.447-04:00",
+    "ProductName": "svchost.exe_FrameServer",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: svchost.exe_FrameServer, version: 10.0.26100.8521, time stamp: 0x6588a4b7\r\nFaulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4\r\nException code: 0xcfffffff\r\nFault offset: 0x0000000000160b14\r\nFaulting process id: 0x5788\r\nFaulting application start time: 0x1DCEFC97D81D0BF\r\nFaulting application path: C:\\WINDOWS\\System32\\svchost.exe\r\nFaulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll\r\nReport Id: ee4d69f2-3b8d-4fef-b080-926b9b4a812a\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-29T18:22:58.105-04:00",
+    "ProductName": "dllhost.exe",
+    "SourceName": "Application Hang",
+    "EventIdentifier": 1002,
+    "Message": "The program dllhost.exe version 10.0.26100.8521 stopped interacting with Windows and was closed. To see if more information about the problem is available, check the problem history in the Security and Maintenance control panel.\r\n"
+  },
+  {
+    "TimeGenerated": "2026-05-29T09:18:21.172-04:00",
+    "ProductName": "FloatingMenu1.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: FloatingMenu1.exe, version: 3.0.10091.0, time stamp: 0xe3f90c9e\r\nFaulting module name: KERNELBASE.dll, version: 10.0.26100.8521, time stamp: 0xdd98c8ba\r\nException code: 0xe0434352\r\nFault offset: 0x00000000000c1b6a\r\nFaulting process id: 0xF9C\r\nFaulting application start time: 0x1DCEF6D9DA506F9\r\nFaulting application path: C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\FloatingMenu1.exe\r\nFaulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll\r\nReport Id: dd8b13d9-d70b-4c3e-804b-8e075b9483c9\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-28T01:03:46.18-04:00",
+    "ProductName": "powershell.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: powershell.exe, version: 10.0.26100.5074, time stamp: 0x04b35d0f\r\nFaulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4\r\nException code: 0xc00000fd\r\nFault offset: 0x00000000000540c0\r\nFaulting process id: 0x13A44\r\nFaulting application start time: 0x1DCEE5E342D07CF\r\nFaulting application path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\nFaulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll\r\nReport Id: 6916b082-13fd-42f4-8f55-32978dcfed4d\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-28T00:59:07.24-04:00",
+    "ProductName": "powershell.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: powershell.exe, version: 10.0.26100.5074, time stamp: 0x04b35d0f\r\nFaulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4\r\nException code: 0xc00000fd\r\nFault offset: 0x0000000000054194\r\nFaulting process id: 0x136A0\r\nFaulting application start time: 0x1DCEE5E16776562\r\nFaulting application path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\nFaulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll\r\nReport Id: 4a9a12b9-2897-4c5c-9d62-8ec5e172f6fb\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-28T00:31:37.929-04:00",
+    "ProductName": "powershell.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: powershell.exe, version: 10.0.26100.5074, time stamp: 0x04b35d0f\r\nFaulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4\r\nException code: 0xc00000fd\r\nFault offset: 0x00000000000540c0\r\nFaulting process id: 0x1258C\r\nFaulting application start time: 0x1DCEE5A531633E2\r\nFaulting application path: C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\nFaulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll\r\nReport Id: 837d2e60-9646-48bc-970f-882db87bd6d5\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-27T23:24:48.278-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: rm-virtualcam-module64.dll, version: 0.0.0.0, time stamp: 0x469324af\r\nException code: 0xc0000005\r\nFault offset: 0x00000000000032e2\r\nFaulting process id: 0x11CD8\r\nFaulting application start time: 0x1DCEE5174592807\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\Program Files\\OBSBOT Center\\data\\rmfunc\\indshow\\rm-virtualcam-module64.dll\r\nReport Id: 48a35df5-c418-439d-bc23-c75913f103bd\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-27T23:23:58.481-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: ntdll.dll, version: 10.0.26100.8521, time stamp: 0xccc028d4\r\nException code: 0xc0000374\r\nFault offset: 0x0000000000112265\r\nFaulting process id: 0x11ADC\r\nFaulting application start time: 0x1DCEE5157E9F48D\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\WINDOWS\\SYSTEM32\\ntdll.dll\r\nReport Id: ccc33cfe-e4ea-43e5-becb-bb39e1503c3a\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-27T01:36:01.721-04:00",
+    "ProductName": "wmiprvse.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: wmiprvse.exe, version: 10.0.26100.8521, time stamp: 0x891fc72d\r\nFaulting module name: wmiprvse.exe, version: 10.0.26100.8521, time stamp: 0x891fc72d\r\nException code: 0xc0000005\r\nFault offset: 0x0000000000005793\r\nFaulting process id: 0x2768\r\nFaulting application start time: 0x1DCED9A4233B72E\r\nFaulting application path: C:\\WINDOWS\\system32\\wbem\\wmiprvse.exe\r\nFaulting module path: C:\\WINDOWS\\system32\\wbem\\wmiprvse.exe\r\nReport Id: c548bae8-47e8-44d7-8e29-4af58c005834\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-27T01:23:26.742-04:00",
+    "ProductName": "Dell.TechHub.Instrumentation.SubAgent.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: Dell.TechHub.Instrumentation.SubAgent.exe, version: 3.7.10.9147, time stamp: 0x65cd0000\r\nFaulting module name: KERNELBASE.dll, version: 10.0.26100.8457, time stamp: 0x18603c3f\r\nException code: 0xe0434352\r\nFault offset: 0x00000000000bfe0a\r\nFaulting process id: 0x4E70\r\nFaulting application start time: 0x1DCED80CA73B264\r\nFaulting application path: C:\\Program Files\\Dell\\DTP\\InstrumentationSubAgent\\Dell.TechHub.Instrumentation.SubAgent.exe\r\nFaulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll\r\nReport Id: 9db1af61-5ddc-470c-bde6-9204ad3e32b7\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-26T12:35:53.378-04:00",
+    "ProductName": "explorer.exe",
+    "SourceName": "Application Hang",
+    "EventIdentifier": 1002,
+    "Message": "The program explorer.exe version 10.0.26100.8457 stopped interacting with Windows and was closed. To see if more information about the problem is available, check the problem history in the Security and Maintenance control panel.\r\n"
+  },
+  {
+    "TimeGenerated": "2026-05-26T10:28:21.409-04:00",
+    "ProductName": "UniFi Endpoint",
+    "SourceName": "MsiInstaller",
+    "EventIdentifier": 1033,
+    "Message": "Windows Installer installed the product. Product Name: UniFi Endpoint. Product Version: 3.7.1.290. Product Language: 1033. Manufacturer: Ubiquiti Inc. Installation success or error status: 0."
+  },
+  {
+    "TimeGenerated": "2026-05-26T06:38:23.281-04:00",
+    "ProductName": "Dell.TechHub.Instrumentation.SubAgent.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: Dell.TechHub.Instrumentation.SubAgent.exe, version: 3.7.10.9147, time stamp: 0x65cd0000\r\nFaulting module name: KERNELBASE.dll, version: 10.0.26100.8457, time stamp: 0x18603c3f\r\nException code: 0xe0434352\r\nFault offset: 0x00000000000bfe0a\r\nFaulting process id: 0x5F84\r\nFaulting application start time: 0x1DCEC5D2462795C\r\nFaulting application path: C:\\Program Files\\Dell\\DTP\\InstrumentationSubAgent\\Dell.TechHub.Instrumentation.SubAgent.exe\r\nFaulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll\r\nReport Id: 1bb09b3e-ba17-484e-a11a-9c9959d7b55f\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-26T00:09:20.482-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: python312.dll, version: 3.12.11150.1013, time stamp: 0x68b08c64\r\nException code: 0xc0000005\r\nFault offset: 0x00000000000db096\r\nFaulting process id: 0x170F0\r\nFaulting application start time: 0x1DCECC56AAAA5D9\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python312.dll\r\nReport Id: bf52a500-ee30-4382-a75d-24d335cd9dfe\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-26T00:09:05.58-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: python312.dll, version: 3.12.11150.1013, time stamp: 0x68b08c64\r\nException code: 0xc0000005\r\nFault offset: 0x00000000000a38c3\r\nFaulting process id: 0x12548\r\nFaulting application start time: 0x1DCECC562828890\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python312.dll\r\nReport Id: bb0b5017-202b-447d-9f22-60b1e7a2aaed\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-26T00:08:19.913-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: python312.dll, version: 3.12.11150.1013, time stamp: 0x68b08c64\r\nException code: 0xc0000005\r\nFault offset: 0x00000000000db096\r\nFaulting process id: 0x9394\r\nFaulting application start time: 0x1DCECC531002286\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python312.dll\r\nReport Id: efe963d5-b0e0-4ece-b700-5541bceccc90\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-26T00:06:30.531-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: python312.dll, version: 3.12.11150.1013, time stamp: 0x68b08c64\r\nException code: 0xc0000005\r\nFault offset: 0x000000000008b707\r\nFaulting process id: 0x903C\r\nFaulting application start time: 0x1DCECC4EE781231\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python312.dll\r\nReport Id: c4e5278b-6297-4466-9bb6-a9524dfec191\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-25T23:20:50.763-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: nvcuda64.dll, version: 32.0.15.9636, time stamp: 0x69e9896c\r\nException code: 0xc0000005\r\nFault offset: 0x0000000000179e7c\r\nFaulting process id: 0x15010\r\nFaulting application start time: 0x1DCECBE9ABF6F92\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\nv_dispsi.inf_amd64_0cc79ee359bdef40\\nvcuda64.dll\r\nReport Id: 262d7c18-192d-4e3e-ae71-1161e8a0327a\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-25T20:04:40.869-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: nvcuda64.dll, version: 32.0.15.9636, time stamp: 0x69e9896c\r\nException code: 0xc0000005\r\nFault offset: 0x0000000000179e7c\r\nFaulting process id: 0x134D8\r\nFaulting application start time: 0x1DCECA30E154CFA\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\nv_dispsi.inf_amd64_0cc79ee359bdef40\\nvcuda64.dll\r\nReport Id: 5fc1fcdc-e6fd-4737-9702-84659523ce56\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-25T20:02:19.847-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: nvcuda64.dll, version: 32.0.15.9636, time stamp: 0x69e9896c\r\nException code: 0xc0000005\r\nFault offset: 0x0000000000179e7c\r\nFaulting process id: 0x2D98\r\nFaulting application start time: 0x1DCECA2B805350C\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\nv_dispsi.inf_amd64_0cc79ee359bdef40\\nvcuda64.dll\r\nReport Id: f6d272d2-f35a-4d90-bd25-52125d5de5cb\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-25T19:57:37.682-04:00",
+    "ProductName": "python.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: python.exe, version: 3.12.11150.1013, time stamp: 0x68b08c80\r\nFaulting module name: nvcuda64.dll, version: 32.0.15.9636, time stamp: 0x69e9896c\r\nException code: 0xc0000005\r\nFault offset: 0x0000000000179e7c\r\nFaulting process id: 0x12AA4\r\nFaulting application start time: 0x1DCECA21DBA23CE\r\nFaulting application path: C:\\Users\\david\\AppData\\Roaming\\uv\\python\\cpython-3.12.11-windows-x86_64-none\\python.exe\r\nFaulting module path: C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\nv_dispsi.inf_amd64_0cc79ee359bdef40\\nvcuda64.dll\r\nReport Id: 77250588-8a6f-4760-9dfd-bc941b9577ab\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-25T01:35:21.962-04:00",
+    "ProductName": "Dell.TechHub.Instrumentation.SubAgent.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: Dell.TechHub.Instrumentation.SubAgent.exe, version: 3.7.10.9147, time stamp: 0x65cd0000\r\nFaulting module name: KERNELBASE.dll, version: 10.0.26100.8457, time stamp: 0x18603c3f\r\nException code: 0xe0434352\r\nFault offset: 0x00000000000bfe0a\r\nFaulting process id: 0xD64\r\nFaulting application start time: 0x1DCEADB1B57CBEC\r\nFaulting application path: C:\\Program Files\\Dell\\DTP\\InstrumentationSubAgent\\Dell.TechHub.Instrumentation.SubAgent.exe\r\nFaulting module path: C:\\WINDOWS\\System32\\KERNELBASE.dll\r\nReport Id: db8835d4-f928-476b-9b6c-5bde2f0d9766\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-23T19:49:38.021-04:00",
+    "ProductName": "warp-svc.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131\r\nFaulting module name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131\r\nException code: 0xc0000409\r\nFault offset: 0x000000000228ce31\r\nFaulting process id: 0xFC3C\r\nFaulting application start time: 0x1DCEB0ECE879734\r\nFaulting application path: C:\\Program Files\\Cloudflare\\Cloudflare WARP\\warp-svc.exe\r\nFaulting module path: C:\\Program Files\\Cloudflare\\Cloudflare WARP\\warp-svc.exe\r\nReport Id: 82b95cf0-2fa8-44bb-8aa9-29a2be32e638\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  },
+  {
+    "TimeGenerated": "2026-05-23T19:49:05.952-04:00",
+    "ProductName": "warp-svc.exe",
+    "SourceName": "Application Error",
+    "EventIdentifier": 1000,
+    "Message": "Faulting application name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131\r\nFaulting module name: warp-svc.exe, version: 2026.4.0.0, time stamp: 0x6a01f131\r\nException code: 0xc0000409\r\nFault offset: 0x000000000228ce31\r\nFaulting process id: 0x3EC4\r\nFaulting application start time: 0x1DCEADAE74B4153\r\nFaulting application path: C:\\Program Files\\Cloudflare\\Cloudflare WARP\\warp-svc.exe\r\nFaulting module path: C:\\Program Files\\Cloudflare\\Cloudflare WARP\\warp-svc.exe\r\nReport Id: c7b14921-941f-4038-86d2-ebd7643a48c6\r\nFaulting package full name: \r\nFaulting package-relative application ID: "
+  }
+]

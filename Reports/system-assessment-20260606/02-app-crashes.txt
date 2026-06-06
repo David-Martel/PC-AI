@@ -1,0 +1,381 @@
+06-05 21:06 | App: unknown | Module: unknown
+06-05 21:05 | App: unknown | Module: unknown
+06-05 21:05 | App: unknown | Module: unknown
+06-05 21:05 | App: unknown | Module: unknown
+06-05 21:05 | App: unknown | Module: unknown
+06-05 21:05 | App: unknown | Module: unknown
+06-05 21:05 | App: unknown | Module: unknown
+06-05 21:05 | App: unknown | Module: unknown
+06-05 19:37 | App: unknown | Module: unknown
+06-05 19:37 | App: unknown | Module: unknown
+06-05 19:37 | App: unknown | Module: unknown
+06-05 19:36 | App: unknown | Module: unknown
+06-05 19:36 | App: unknown | Module: unknown
+06-05 19:36 | App: unknown | Module: unknown
+06-05 19:36 | App: unknown | Module: unknown
+06-05 19:36 | App: unknown | Module: unknown
+06-05 10:41 | App: unknown | Module: unknown
+06-05 10:41 | App: unknown | Module: unknown
+06-05 10:41 | App: unknown | Module: unknown
+06-05 10:40 | App: unknown | Module: unknown
+06-05 10:40 | App: unknown | Module: unknown
+06-05 10:40 | App: unknown | Module: unknown
+06-05 10:40 | App: unknown | Module: unknown
+06-05 10:40 | App: unknown | Module: unknown
+06-04 17:17 | App: unknown | Module: unknown
+06-04 17:17 | App: unknown | Module: unknown
+06-04 17:17 | App: unknown | Module: unknown
+06-04 17:15 | App: unknown | Module: unknown
+06-04 17:15 | App: unknown | Module: unknown
+06-04 17:15 | App: unknown | Module: unknown
+06-04 17:15 | App: unknown | Module: unknown
+06-04 17:15 | App: unknown | Module: unknown
+06-03 23:20 | App: unknown | Module: unknown
+06-03 23:20 | App: unknown | Module: unknown
+06-03 23:20 | App: unknown | Module: unknown
+06-03 23:20 | App: unknown | Module: unknown
+06-03 23:20 | App: unknown | Module: unknown
+06-03 19:22 | App: unknown | Module: unknown
+06-03 19:21 | App: unknown | Module: unknown
+06-03 19:21 | App: unknown | Module: unknown
+06-03 19:21 | App: unknown | Module: unknown
+06-03 19:21 | App: unknown | Module: unknown
+06-03 19:21 | App: unknown | Module: unknown
+06-03 19:21 | App: unknown | Module: unknown
+06-03 19:21 | App: unknown | Module: unknown
+06-03 10:19 | App: UDClientService.exe | Module: unknown
+06-03 10:16 | App: unknown | Module: unknown
+06-03 10:16 | App: unknown | Module: unknown
+06-03 10:16 | App: unknown | Module: unknown
+06-03 10:15 | App: unknown | Module: unknown
+06-03 10:15 | App: unknown | Module: unknown
+06-03 10:15 | App: unknown | Module: unknown
+06-03 10:15 | App: unknown | Module: unknown
+06-03 10:15 | App: unknown | Module: unknown
+06-02 19:27 | App: unknown | Module: unknown
+06-02 19:27 | App: unknown | Module: unknown
+06-02 19:27 | App: unknown | Module: unknown
+06-02 19:26 | App: unknown | Module: unknown
+06-02 19:26 | App: unknown | Module: unknown
+06-02 19:26 | App: unknown | Module: unknown
+06-02 19:26 | App: unknown | Module: unknown
+06-02 19:26 | App: unknown | Module: unknown
+06-01 11:27 | App: unknown | Module: unknown
+06-01 11:27 | App: unknown | Module: unknown
+06-01 11:27 | App: unknown | Module: unknown
+06-01 11:26 | App: unknown | Module: unknown
+06-01 11:26 | App: unknown | Module: unknown
+06-01 11:26 | App: unknown | Module: unknown
+06-01 11:26 | App: unknown | Module: unknown
+06-01 11:26 | App: unknown | Module: unknown
+06-01 08:59 | App: unknown | Module: unknown
+06-01 08:59 | App: unknown | Module: unknown
+06-01 08:59 | App: unknown | Module: unknown
+06-01 08:59 | App: unknown | Module: unknown
+06-01 08:59 | App: unknown | Module: unknown
+06-01 08:54 | App: unknown | Module: unknown
+06-01 08:54 | App: unknown | Module: unknown
+06-01 08:54 | App: unknown | Module: unknown
+06-01 08:53 | App: unknown | Module: unknown
+06-01 08:53 | App: unknown | Module: unknown
+06-01 08:53 | App: unknown | Module: unknown
+06-01 08:53 | App: unknown | Module: unknown
+06-01 08:53 | App: unknown | Module: unknown
+05-31 00:28 | App: unknown | Module: unknown
+05-31 00:28 | App: unknown | Module: unknown
+05-31 00:28 | App: unknown | Module: unknown
+05-31 00:27 | App: LvfInstallService.exe | Module: ntdll.dll
+05-31 00:26 | App: unknown | Module: unknown
+05-31 00:26 | App: unknown | Module: unknown
+05-31 00:26 | App: unknown | Module: unknown
+05-31 00:26 | App: unknown | Module: unknown
+05-31 00:26 | App: unknown | Module: unknown
+05-31 00:20 | App: unknown | Module: unknown
+05-31 00:20 | App: unknown | Module: unknown
+05-31 00:20 | App: unknown | Module: unknown
+05-31 00:20 | App: unknown | Module: unknown
+05-31 00:20 | App: unknown | Module: unknown
+05-31 00:10 | App: unknown | Module: unknown
+05-31 00:10 | App: unknown | Module: unknown
+05-31 00:10 | App: unknown | Module: unknown
+05-31 00:10 | App: unknown | Module: unknown
+05-31 00:10 | App: unknown | Module: unknown
+05-31 00:09 | App: unknown | Module: unknown
+05-31 00:08 | App: unknown | Module: unknown
+05-31 00:08 | App: unknown | Module: unknown
+05-31 00:04 | App: OneDrive.exe | Module: igd10umt64xe.DLL
+05-30 23:55 | App: MsiExec.exe | Module: KERNELBASE.dll
+05-30 23:47 | App: unknown | Module: unknown
+05-30 23:47 | App: unknown | Module: unknown
+05-30 23:47 | App: unknown | Module: unknown
+05-30 23:47 | App: unknown | Module: unknown
+05-30 23:47 | App: unknown | Module: unknown
+05-30 23:47 | App: unknown | Module: unknown
+05-30 23:46 | App: unknown | Module: unknown
+05-30 23:46 | App: unknown | Module: unknown
+05-30 22:53 | App: unknown | Module: unknown
+05-30 22:53 | App: unknown | Module: unknown
+05-30 22:53 | App: unknown | Module: unknown
+05-30 22:52 | App: LvfInstallService.exe | Module: ntdll.dll
+05-30 22:51 | App: unknown | Module: unknown
+05-30 22:51 | App: unknown | Module: unknown
+05-30 22:51 | App: unknown | Module: unknown
+05-30 22:51 | App: unknown | Module: unknown
+05-30 22:51 | App: unknown | Module: unknown
+05-30 15:12 | App: unknown | Module: unknown
+05-30 15:12 | App: unknown | Module: unknown
+05-30 15:12 | App: unknown | Module: unknown
+05-30 15:12 | App: unknown | Module: unknown
+05-30 15:12 | App: unknown | Module: unknown
+05-30 15:11 | App: unknown | Module: unknown
+05-30 15:10 | App: unknown | Module: unknown
+05-30 15:10 | App: unknown | Module: unknown
+05-30 14:53 | App: unknown | Module: unknown
+05-30 14:53 | App: unknown | Module: unknown
+05-30 14:53 | App: unknown | Module: unknown
+05-30 14:53 | App: unknown | Module: unknown
+05-30 14:53 | App: unknown | Module: unknown
+05-30 14:52 | App: unknown | Module: unknown
+05-30 14:51 | App: unknown | Module: unknown
+05-30 14:51 | App: unknown | Module: unknown
+05-30 14:48 | App: unknown | Module: unknown
+05-30 14:48 | App: unknown | Module: unknown
+05-30 14:48 | App: unknown | Module: unknown
+05-30 14:48 | App: unknown | Module: unknown
+05-30 14:48 | App: unknown | Module: unknown
+05-30 14:34 | App: unknown | Module: unknown
+05-30 14:34 | App: unknown | Module: unknown
+05-30 14:34 | App: unknown | Module: unknown
+05-30 14:34 | App: unknown | Module: unknown
+05-30 14:34 | App: unknown | Module: unknown
+05-30 14:34 | App: unknown | Module: unknown
+05-30 14:33 | App: unknown | Module: unknown
+05-30 14:33 | App: unknown | Module: unknown
+05-30 11:42 | App: unknown | Module: unknown
+05-30 11:41 | App: unknown | Module: unknown
+05-30 11:41 | App: unknown | Module: unknown
+05-30 11:41 | App: unknown | Module: unknown
+05-30 11:41 | App: unknown | Module: unknown
+05-30 11:41 | App: unknown | Module: unknown
+05-30 11:41 | App: unknown | Module: unknown
+05-30 11:41 | App: unknown | Module: unknown
+05-29 21:23 | App: unknown | Module: unknown
+05-29 21:23 | App: unknown | Module: unknown
+05-29 21:23 | App: unknown | Module: unknown
+05-29 21:23 | App: unknown | Module: unknown
+05-29 21:23 | App: unknown | Module: unknown
+05-29 21:22 | App: unknown | Module: unknown
+05-29 21:22 | App: unknown | Module: unknown
+05-29 21:21 | App: unknown | Module: unknown
+05-29 21:15 | App: unknown | Module: unknown
+05-29 21:15 | App: unknown | Module: unknown
+05-29 21:14 | App: unknown | Module: unknown
+05-29 21:06 | App: unknown | Module: unknown
+05-29 21:05 | App: unknown | Module: unknown
+05-29 21:05 | App: unknown | Module: unknown
+05-29 21:01 | App: unknown | Module: unknown
+05-29 21:01 | App: unknown | Module: unknown
+05-29 21:01 | App: unknown | Module: unknown
+05-29 21:01 | App: unknown | Module: unknown
+05-29 21:01 | App: unknown | Module: unknown
+05-29 20:57 | App: unknown | Module: unknown
+05-29 20:57 | App: unknown | Module: unknown
+05-29 20:56 | App: unknown | Module: unknown
+05-29 20:54 | App: unknown | Module: unknown
+05-29 20:53 | App: unknown | Module: unknown
+05-29 20:53 | App: unknown | Module: unknown
+05-29 20:53 | App: unknown | Module: unknown
+05-29 20:53 | App: unknown | Module: unknown
+05-29 20:53 | App: unknown | Module: unknown
+05-29 20:52 | App: unknown | Module: unknown
+05-29 20:52 | App: unknown | Module: unknown
+05-29 20:17 | App: svchost.exe_FrameServer | Module: frameserver.dll
+05-29 20:16 | App: svchost.exe_FrameServer | Module: ntdll.dll
+05-29 20:16 | App: svchost.exe_FrameServer | Module: ntdll.dll
+05-29 20:13 | App: unknown | Module: unknown
+05-29 20:13 | App: unknown | Module: unknown
+05-29 20:13 | App: unknown | Module: unknown
+05-29 20:11 | App: unknown | Module: unknown
+05-29 20:11 | App: unknown | Module: unknown
+05-29 20:11 | App: unknown | Module: unknown
+05-29 20:11 | App: unknown | Module: unknown
+05-29 20:11 | App: unknown | Module: unknown
+05-29 09:19 | App: unknown | Module: unknown
+05-29 09:19 | App: unknown | Module: unknown
+05-29 09:19 | App: unknown | Module: unknown
+05-29 09:19 | App: unknown | Module: unknown
+05-29 09:19 | App: unknown | Module: unknown
+05-29 09:19 | App: unknown | Module: unknown
+05-29 09:18 | App: unknown | Module: unknown
+05-29 09:18 | App: FloatingMenu1.exe | Module: KERNELBASE.dll
+05-29 09:17 | App: unknown | Module: unknown
+05-29 08:11 | App: unknown | Module: unknown
+05-29 08:11 | App: unknown | Module: unknown
+05-29 08:11 | App: unknown | Module: unknown
+05-29 08:09 | App: unknown | Module: unknown
+05-29 08:09 | App: unknown | Module: unknown
+05-29 08:09 | App: unknown | Module: unknown
+05-29 08:09 | App: unknown | Module: unknown
+05-29 08:09 | App: unknown | Module: unknown
+05-28 12:34 | App: unknown | Module: unknown
+05-28 12:34 | App: unknown | Module: unknown
+05-28 12:34 | App: unknown | Module: unknown
+05-28 12:34 | App: unknown | Module: unknown
+05-28 12:34 | App: unknown | Module: unknown
+05-28 12:34 | App: unknown | Module: unknown
+05-28 12:33 | App: unknown | Module: unknown
+05-28 12:33 | App: unknown | Module: unknown
+05-28 12:29 | App: unknown | Module: unknown
+05-28 12:29 | App: unknown | Module: unknown
+05-28 12:29 | App: unknown | Module: unknown
+05-28 12:29 | App: unknown | Module: unknown
+05-28 12:29 | App: unknown | Module: unknown
+05-28 10:03 | App: unknown | Module: unknown
+05-28 10:03 | App: unknown | Module: unknown
+05-28 10:03 | App: unknown | Module: unknown
+05-28 10:03 | App: unknown | Module: unknown
+05-28 10:03 | App: unknown | Module: unknown
+05-28 10:03 | App: unknown | Module: unknown
+05-28 10:03 | App: unknown | Module: unknown
+05-28 10:03 | App: unknown | Module: unknown
+05-28 01:03 | App: powershell.exe | Module: ntdll.dll
+05-28 00:59 | App: powershell.exe | Module: ntdll.dll
+05-28 00:31 | App: powershell.exe | Module: ntdll.dll
+05-27 23:24 | App: python.exe | Module: rm-virtualcam-module64.dll
+05-27 23:23 | App: python.exe | Module: ntdll.dll
+05-27 18:44 | App: unknown | Module: unknown
+05-27 18:44 | App: unknown | Module: unknown
+05-27 18:44 | App: unknown | Module: unknown
+05-27 18:42 | App: unknown | Module: unknown
+05-27 18:42 | App: unknown | Module: unknown
+05-27 18:42 | App: unknown | Module: unknown
+05-27 18:42 | App: unknown | Module: unknown
+05-27 18:42 | App: unknown | Module: unknown
+05-27 10:04 | App: unknown | Module: unknown
+05-27 10:04 | App: unknown | Module: unknown
+05-27 10:04 | App: unknown | Module: unknown
+05-27 10:04 | App: unknown | Module: unknown
+05-27 10:04 | App: unknown | Module: unknown
+05-27 01:36 | App: wmiprvse.exe | Module: wmiprvse.exe
+05-27 01:34 | App: unknown | Module: unknown
+05-27 01:33 | App: unknown | Module: unknown
+05-27 01:33 | App: unknown | Module: unknown
+05-27 01:28 | App: unknown | Module: unknown
+05-27 01:23 | App: Dell.TechHub.Instrumentation.SubAgent.exe | Module: KERNELBASE.dll
+05-26 22:30 | App: unknown | Module: unknown
+05-26 22:30 | App: unknown | Module: unknown
+05-26 22:30 | App: unknown | Module: unknown
+05-26 22:30 | App: unknown | Module: unknown
+05-26 22:30 | App: unknown | Module: unknown
+05-26 22:30 | App: unknown | Module: unknown
+05-26 22:30 | App: unknown | Module: unknown
+05-26 22:30 | App: unknown | Module: unknown
+05-26 09:17 | App: unknown | Module: unknown
+05-26 09:17 | App: unknown | Module: unknown
+05-26 09:17 | App: unknown | Module: unknown
+05-26 09:17 | App: unknown | Module: unknown
+05-26 09:17 | App: unknown | Module: unknown
+05-26 09:17 | App: unknown | Module: unknown
+05-26 09:17 | App: unknown | Module: unknown
+05-26 09:17 | App: unknown | Module: unknown
+05-26 06:38 | App: Dell.TechHub.Instrumentation.SubAgent.exe | Module: KERNELBASE.dll
+05-26 00:09 | App: python.exe | Module: python312.dll
+05-26 00:09 | App: python.exe | Module: python312.dll
+05-26 00:08 | App: python.exe | Module: python312.dll
+05-26 00:06 | App: python.exe | Module: python312.dll
+05-25 23:20 | App: python.exe | Module: nvcuda64.dll
+05-25 20:04 | App: python.exe | Module: nvcuda64.dll
+05-25 20:02 | App: python.exe | Module: nvcuda64.dll
+05-25 19:57 | App: python.exe | Module: nvcuda64.dll
+05-25 11:42 | App: unknown | Module: unknown
+05-25 11:42 | App: unknown | Module: unknown
+05-25 11:42 | App: unknown | Module: unknown
+05-25 11:42 | App: unknown | Module: unknown
+05-25 11:42 | App: unknown | Module: unknown
+05-25 11:42 | App: unknown | Module: unknown
+05-25 11:42 | App: unknown | Module: unknown
+05-25 11:42 | App: unknown | Module: unknown
+05-25 01:35 | App: Dell.TechHub.Instrumentation.SubAgent.exe | Module: KERNELBASE.dll
+05-23 19:49 | App: warp-svc.exe | Module: warp-svc.exe
+05-23 19:49 | App: warp-svc.exe | Module: warp-svc.exe
+06-05 21:05 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+06-05 21:05 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+06-05 21:05 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+06-05 19:37 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+06-05 19:37 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+06-05 19:37 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+06-05 10:41 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+06-05 10:41 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+06-05 10:41 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+06-03 19:22 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+06-03 19:21 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+06-03 19:21 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+06-03 10:16 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+06-03 10:16 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+06-03 10:16 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+06-01 11:27 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+06-01 11:27 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+06-01 11:27 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+06-01 08:54 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+06-01 08:54 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+06-01 08:54 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-31 00:28 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-31 00:28 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-31 00:28 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-31 00:09 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-31 00:09 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-31 00:08 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-30 23:47 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-30 23:46 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-30 23:46 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-30 22:53 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-30 22:53 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-30 22:53 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-30 15:11 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-30 15:10 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-30 15:10 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-30 14:52 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-30 14:51 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-30 14:51 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-30 14:34 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-30 14:33 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-30 14:33 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-30 11:42 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-30 11:41 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-30 11:41 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-29 21:22 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-29 21:22 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-29 21:21 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-29 21:15 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-29 21:15 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-29 21:14 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-29 21:06 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-29 21:05 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-29 21:05 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-29 20:57 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-29 20:57 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-29 20:56 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-29 20:53 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-29 20:53 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-29 20:52 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-29 20:17 | The program svchost.exe version 10.0.26100.8521 stopped interacting with Windows and was closed. To see if more informat
+05-29 18:22 | The program dllhost.exe version 10.0.26100.8521 stopped interacting with Windows and was closed. To see if more informat
+05-28 12:34 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-28 12:33 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-28 12:33 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-27 18:44 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-27 18:44 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-27 18:44 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-27 01:34 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-27 01:34 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-27 01:34 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-26 22:30 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-26 22:30 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-26 22:30 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-26 12:35 | The program explorer.exe version 10.0.26100.8457 stopped interacting with Windows and was closed. To see if more informa
+05-26 09:17 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-26 09:17 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx
+05-26 09:17 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-25 11:42 | VHDX mount validated successfully for T:\vm\share-ext4.vhdx
+05-25 11:42 | VHDX mount validated successfully for T:\vm\shared-dev.vhdx
+05-25 11:42 | VHDX mount validated successfully for T:\vm\cloud-cache-disk.vhdx

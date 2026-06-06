@@ -1,0 +1,108 @@
+SENSEL HAPTIC TOUCHPAD STACK — Evidence for Theory A
+Generated: 2026-06-06
+Machine: ThinkPad P1 Gen 7 (LENOVO 21KV0014US)
+Read-only probe — no state modified.
+
+=== APPX PACKAGE ===
+Name:               SenselInc.SenselHapticTouchpad
+PackageFullName:    SenselInc.SenselHapticTouchpad_1.2.12.0_x64__h91pjf1v583kj
+Version:            1.2.12.0
+Status:             0 (Active/OK)
+InstallLocation:    C:\Program Files\WindowsApps\SenselInc.SenselHapticTouchpad_1.2.12.0_x64__h91pjf1v583kj
+Notes:              No background tasks registered in AppxManifest.xml.
+                    This is a UWP control-panel app (SenselControlPanelWinUI.exe) only —
+                    it does NOT run as a persistent background service or system driver.
+                    Libraries: HidSharp.dll, SenselSerialDevice.dll, RJCP.SerialPortStream.dll
+                    (serial/HID control panel; reads haptic device state, does NOT intercept HID input path).
+
+=== PNP DEVICE HIERARCHY ===
+Root:
+  ACPI\SNSL002D\4&39979B3E&0
+    Class:   HIDClass
+    Name:    I2C HID Device
+    Service: hidi2c  (Microsoft inbox, v10.0.26100.8521, date 2006-06-20 INF anchor)
+    Status:  OK / CM_PROB_NONE
+    Problem: None
+
+Child HID Collections (all under HID\SNSL002D):
+  COL01 (HID\SNSL002D&COL01\5&14B88203&0&0000)
+    Class:   Mouse
+    Name:    HID-compliant mouse
+    Service: mouhid   (Microsoft, v10.0.26100.1150)
+    Status:  OK / CM_PROB_NONE
+    — This is the POINTER-MOVING collection. It feeds cursor X/Y to the OS.
+
+  COL02 (HID\SNSL002D&COL02\5&14B88203&0&0001)
+    Class:   HIDClass
+    Name:    HID-compliant touch pad
+    Service: (empty — no service explicitly listed; handled by PTP via HID class)
+    Driver:  v10.0.26100.8521
+    Status:  OK / CM_PROB_NONE
+    — Precision Touch Pad collection. Supplies gesture/multi-touch data.
+
+  COL03 (HID\SNSL002D&COL03\5&14B88203&0&0002)
+    Class:   HIDClass
+    Name:    Microsoft Input Configuration Device
+    Service: MTConfig
+    Driver:  v10.0.26100.1150
+    Status:  OK / CM_PROB_NONE
+    — HID touch configuration endpoint. Handles touch-latency/mode switching.
+
+  COL04 (HID\SNSL002D&COL04\5&14B88203&0&0003)
+    Class:   HIDClass
+    Name:    HID-compliant vendor-defined device
+    Service: (empty)
+    Driver:  v10.0.26100.8521
+    Status:  OK / CM_PROB_NONE
+    — Haptic feedback control collection. Sensel AppX writes haptic commands here.
+    — This is the HAPTIC OUTPUT channel, not on the cursor INPUT path.
+
+DRIVER VERSION NOTES:
+  COL01 driver: 10.0.26100.1150  (older Windows build component)
+  COL02 driver: 10.0.26100.8521  (newer — different build)
+  COL03 driver: 10.0.26100.1150
+  COL04 driver: 10.0.26100.8521
+  ACPI root:    10.0.26100.8521
+  SPLIT EXISTS: COL01 (mouhid/mouse) is on .1150 while COL02/COL04/root are on .8521.
+  This is a Windows inbox driver version difference between mouhid and hidi2c stacks.
+  Both are OS-supplied Microsoft drivers; the split is expected (they ship in different KB updates).
+  VERDICT: No OEM driver version split; no third-party driver on any collection.
+
+=== HAPTIC FEEDBACK STATUS ===
+HKCU\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad:
+  FeedbackEnabled:   4294967295 (0xFFFFFFFF = -1 = TRUE — haptic is ON)
+  FeedbackIntensity: 50 (50% intensity)
+  ClickForceSensitivity: 50
+
+HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad:
+  AAPDisabled: 0 (Accidental Activation Prevention enabled)
+  SpaceBarOffset: 1000
+
+INFERENCE: Haptic feedback is ACTIVE. When the user clicks, the Sensel haptic actuator fires.
+The haptic command travels: Windows PTP driver → COL04 (vendor-defined) → Sensel firmware → actuator.
+This path is OUTPUT-only and is NOT on the cursor position/button input path (COL01/COL02).
+Haptic output via COL04 cannot directly stall pointer processing on COL01.
+
+=== SENSEL FIRMWARE / INF ===
+n48et.inf_amd64_c3e256de458a2f6b (latest, LastWriteTime 2026-04-16):
+  DriverVer:    03/02/2026, 1.20.0.0
+  FirmwareVersion: 0x00010014 (= v1.0.20)
+  Provider:     Lenovo Ltd.
+  FirmwareDesc: "ThinkPad P1 Gen 7 System Firmware Version 1.20"
+  Note: This is the system FIRMWARE INF (Lenovo BIOS update), not the HID touchpad driver.
+        The "N48ET" INF is the platform INF for the Lenovo board. It does NOT directly
+        install a kernel driver for the Sensel HID device.
+
+n48et.inf_amd64_d06c4cab03cf7472 (older, 2026-03-05):
+  DriverVer:    12/30/2025, 1.19.0.0
+  FirmwareVersion: 0x00010013 (= v1.0.19)
+  Note: Firmware was updated from 1.19 to 1.20 around 2026-03-02 to 2026-04-16.
+
+=== SENSEL INTERRUPT AFFINITY ===
+Registry: HKLM\SYSTEM\CurrentControlSet\Enum\ACPI\SNSL002D\4&39979b3e&0\Device Parameters\Interrupt Management
+  (key exists; subkeys: "Affinity Policy" and "Affinity Policy - Temporal")
+  No explicit affinity override found — using Windows default APIC assignment.
+
+=== EVENTS — SENSEL / HAPTIC / HIDI2C ===
+No hidi2c, SynTP, or Sensel-sourced error events in 14 days.
+Only Win32k/267 "Touch/Touchpad HW QA verification succeeded" (benign).

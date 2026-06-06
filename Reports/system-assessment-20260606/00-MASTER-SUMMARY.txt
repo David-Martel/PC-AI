@@ -1,0 +1,93 @@
+SYSTEM ASSESSMENT SUMMARY - 2026-06-06
+Machine: ThinkPad P1 Gen 7, Windows 11 26200, 64GB RAM
+Elevation: Admin | Stability Index: 5.237 (scale 1-10)
+
+=== UNEXPECTED SHUTDOWNS ===
+1 unexpected shutdown in 14d: 2026-06-05 19:36:17 (system time)
+Recovery event at 21:04 - WHEA bursts fired during/after this shutdown
+
+=== WHEA EVENTS ===
+91 WHEA-42 hardware error events in 14d
+Pattern: bursts of 9-10 events, correlated with each boot/resume cycle
+Owner: HAL (Hardware Abstraction Layer) 
+Likely source: RTX 2000 Ada initialization errors each boot
+
+=== GPU STATUS ===
+- RTX 5060 Ti (eGPU Thunderbolt): OK, Driver 32.0.15.9186
+- RTX 2000 Ada (internal): ERROR Code 31 (CM_PROB_FAILED_ADD), Driver 32.0.15.9659, oem236.inf
+- Intel Arc Pro: OK, Driver 32.0.101.6078
+VRAM reported as 4GB for RTX 2000 Ada (should be 8GB - may indicate partial init)
+
+=== DRIVER FAILURES AT BOOT ===
+WUDFRd failed to load for 8 devices on every boot (0xC0000365):
+  - Intel Audio (INTELAUDIO)
+  - LuminonCore IDDCX (virtual display)
+  - ROOT\SYSTEM\0001, ROOT\SYSTEM\0002
+  - ROOT\WPD\0000 (portable devices)
+  - ACPI ELAS B41A (sensor?)
+  - Intel PCI chipset (7D03)
+  - WindowsHelloFaceSoftwareDriver
+
+=== APPLICATION CRASHES ===
+Total Event 1000: ~298 in 14d
+Real app crashes (named):
+  - python.exe x9: nvcuda64.dll (CUDA init crash - likely sm_120 Blackwell compat)
+  - svchost.exe_FrameServer x3: ntdll.dll (Camera Frame Server - 05-29)
+  - OneDrive.exe x1: igd10umt64xe.DLL (Intel Arc GPU driver)
+  - warp-svc.exe x2: self (WARP service crash - 05-23)
+  - Dell.TechHub.SubAgent x3: KERNELBASE.dll (recurring)
+  - powershell.exe x3: ntdll.dll (05-28 late night - scripting sessions)
+  - LvfInstallService.exe x2: ntdll.dll (Logitech?)
+  - FloatingMenu1.exe x1, UDClientService.exe x1, wmiprvse.exe x1
+"UNKNOWN" crashes x272: These appear to be phantom events from boot sessions
+  matching exactly the WHEA burst times - likely WER reporting for devices
+  that couldn't initialize properly (RTX 2000 Ada and WUDFRd devices)
+
+=== SYSTEM LOG NOISE ===
+4965 HttpEvent 15300/15301 events: SSL cert rebind for WebManagement service (:50443)
+Each network topology change (IP address reassignment, resume from sleep) triggers
+WebManagement.exe to rebind SSL certs to all interface IPs - pure noise
+
+=== SERVICES ===
+14 Auto-start services stopped (all benign: updaters, optional features)
+51 "broken ImagePath" services = false positive (exe exists, test was wrong)
+Service Control Manager events: checking...
+
+=== SCHEDULED TASKS ===
+168 failed scheduled tasks
+51 tasks with logon triggers (login storm)
+Notable failures:
+  - Bitwarden\Initialize-MachineSecrets: 0x80070002 (file not found)
+  - Microsoft\Windows\DiskCleanup\SilentCleanup: 0x8007042B
+  - Lenovo UDC Monitor: 0xFFFFFFFF
+  - Session agent for Process Lasso: 0x40010004
+  - RNIdle Task: 0x80070002
+
+=== MEMORY/PERFORMANCE ===
+RAM: 45.3GB/63.5GB (71%) - healthy, no pressure
+PageFile: 28GB alloc, peak 2.3GB used - oversized, manually managed
+OneDrive CPU: 18.4h (known/acceptable for active sync)
+MsMpEng (Defender): 2.4h CPU - significant
+
+=== DISK HEALTH ===
+All physical disks: Healthy/OK
+2x WD_BLACK SN850X 4TB, Msft Virtual Disks (WSL/VHD)
+StorageReliabilityCounter: requires cmdlet investigation (param mismatch)
+
+=== POWER/CONFIG ===
+Power plan: Balanced (suboptimal for workstation with dual eGPU)
+HAGS: ON (HwSchMode=2) - GPU scheduling accelerated
+Fast Startup: OFF (HiberbootEnabled=0) - good
+Pending reboot: No (but PendingFileRenameOperations=True - minor)
+BitLocker: C: and T: protected (XTS-AES-128), W: and E: unprotected
+AutoManagedPagefile: False (manually configured)
+
+=== DEFENDER ===
+Real-time: ON
+82 exclusion paths (extensive but reasonable for dev workstation)
+20 exclusion processes (Rust toolchain, Docker, WSL - appropriate)
+MsMpEng 2.4h CPU in 14d - moderate impact
+
+=== STABILITY ===
+Stability index: 5.237/10 - BELOW average (scale: 1=unstable, 10=perfect)
+Main driver: RTX 2000 Ada failures + phantom crash events on every boot

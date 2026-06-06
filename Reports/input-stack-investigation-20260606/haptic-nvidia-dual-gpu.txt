@@ -1,0 +1,121 @@
+NVIDIA DUAL-GPU DRIVER STATE — Evidence for Theory B
+Generated: 2026-06-06
+Machine: ThinkPad P1 Gen 7 (LENOVO 21KV0014US)
+Read-only probe — no state modified.
+Source data: workstation-audit-20260606-124859/direct-pass-20260606/nvidia-dual-gpu-health/20260606-143238/
+             + fresh PnP property queries this session.
+
+=== GPU INVENTORY ===
+
+GPU 1 — INTERNAL (Laptop dGPU)
+  Name:         NVIDIA RTX 2000 Ada Generation Laptop GPU
+  PnP ID:       PCI\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\4&218D282A&0&0008
+  BIOS name:    \_SB.PC00.RP12.PXSX
+  Parent:       PCI\VEN_8086&DEV_7ECC&SUBSYS_223417AA&REV_10 (Intel PCIe Root Port)
+  PCI Bus:      1 (device 0, function 0)
+  PCIe link:    Gen4 x8 max/current
+  STATUS:       ERROR — Code 31 (CM_PROB_FAILED_ADD)
+  ProblemStatus: 0xC0000182 (STATUS_DEVICE_CONFIGURATION_ERROR)
+  Service:      nvlddmkm (assigned but load failed — Stack: \Driver\ACPI, \Driver\pci only)
+  INF:          oem236.inf (nvltwi.inf = NVIDIA laptop dGPU INF)
+  DriverVersion: 32.0.15.9659
+  DriverDate:   2026-05-21
+  InstallDate:  2026-05-30 15:07:08
+  nvidia-smi:   NOT VISIBLE (code 31 device not enumerated by NVML)
+  DWM renders:  NO — DWM cannot use a failed GPU
+
+GPU 2 — EXTERNAL (eGPU via Thunderbolt/PCIe)
+  Name:         NVIDIA GeForce RTX 5060 Ti
+  PnP ID:       PCI\VEN_10DE&DEV_2D04&SUBSYS_8A071043&REV_A1\17A20750D72DB04800
+  PCI Bus:      0x52 (00000000:52:00.0)
+  PCIe link:    Gen5 x16 max, Gen4 x4 current (TB4 bandwidth-limited)
+  STATUS:       OK — CM_PROB_NONE
+  Service:      nvlddmkm
+  INF:          oem395.inf (nv_dispig.inf = NVIDIA desktop/eGPU INF)
+  DriverVersion: 32.0.15.9186
+  DriverDate:   2026-01-20
+  InstallDate:  2026-05-30 15:10:34
+  Driver version from nvidia-smi: 591.86
+  DWM renders:  YES — dwm.exe confirmed on GPU 0 (the 5060 Ti) by nvidia-smi
+  Primary display: YES (CurrentRefreshRate=164 Hz, in Win32_VideoController)
+  VRAM usage:   409 MiB / 16311 MiB used by: dwm.exe, warp.exe, FloatingMenu1.exe
+
+=== DRIVER SPLIT SUMMARY ===
+                Ada (internal)          5060 Ti (eGPU)
+  INF file:     oem236.inf (nvltwi)     oem395.inf (nv_dispig)
+  Version:      32.0.15.9659            32.0.15.9186
+  Date:         2026-05-21              2026-01-20
+  Status:       FAILED (Code 31)        OK
+  Renders DWM:  No                      Yes
+
+DRIVER MISMATCH: YES — the two GPUs use different INF packages with different version numbers.
+  - oem236.inf (nvltwi.inf) = NVIDIA Laptop GPU INF — newer build (9659)
+  - oem395.inf (nv_dispig.inf) = NVIDIA desktop/discrete GPU INF — older build (9186)
+  - Both share the SAME nvlddmkm.sys kernel-mode driver (they must — Windows uses one copy)
+  - The INF mismatch means user-mode components may be mismatched
+
+IMPORTANT: nvlddmkm.sys version on disk is 591.86 (from nvidia-smi Driver Version: 591.86).
+The Ada GPU's INF lists v32.0.15.9659 which maps to driver build 596.59 — this is NEWER
+than the 591.86 nvlddmkm.sys currently loaded. This version mismatch between what oem236.inf
+expects and what nvlddmkm.sys provides is the most likely cause of Code 31.
+
+=== CODE 31 DETAIL ===
+Problem Code:   31 (CM_PROB_FAILED_ADD)
+Problem Status: 0xC0000182 (STATUS_DEVICE_CONFIGURATION_ERROR)
+DevNodeStatus:  25175040 (= 0x1800000 = DN_STARTED|DN_ROOT_ENUMERATED not set → device not started)
+Driver stack:   Only \Driver\ACPI, \Driver\pci present — nvlddmkm was NOT loaded for this GPU.
+Meaning: The device was enumerated and matched the INF, but the driver AddDevice() call failed.
+         With nvlddmkm, AddDevice() failure at Code 31 = the kernel-mode driver rejected the device,
+         typically because the GPU microarchitecture (Ada Lovelace, SM89) requires a kernel driver
+         build ≥ 596.59 but only 591.86 is loaded (from oem395).
+
+=== TDR / GPU EVENTS ===
+TDR events (Id 4101, 4109): 0 in last 14 days
+nvlddmkm System events: 0 in last 30 days
+WHEA-Logger events: 0 in last 14 days
+NvContainer App events: 0 in last 14 days
+CONCLUSION: No GPU-caused TDR resets, no hardware error events.
+
+=== DWM CRASH CORRELATION ===
+DWM APPCRASH storm: 61 crashes from 2026-05-23 15:57 through 2026-05-26 09:18
+Exception code: P7 = c00001ad = STATUS_VIDEO_DRIVER_INIT_FAILURE
+  (The GPU display driver failed to initialize — DWM could not acquire the GPU resource)
+Last crash:  2026-05-26 09:18
+Both drivers installed: 2026-05-30 (4 days AFTER crashes stopped)
+  → Installing the drivers did NOT stop the crashes (crashes stopped before install)
+  → Something else stabilized DWM on 2026-05-26 (unknown: possibly driver rollback, restart)
+  → The current Code 31 on the Ada GPU is a NEW failure introduced at 2026-05-30 driver install
+
+=== DWM GPU ASSIGNMENT ===
+DWM renders on RTX 5060 Ti (eGPU, GPU 0 in nvidia-smi).
+HW cursor overlay: managed by WDDM scheduler on the 5060 Ti.
+The HW cursor (pointer sprite) is composited by dwmcore.dll on the GPU that owns the display.
+Since the internal Ada GPU is Code 31, it is not participating in display rendering.
+The iGPU (Intel Arc) reports CurrentRefreshRate=165 — it may be driving the internal panel.
+The 5060 Ti reports CurrentRefreshRate=164 — driving an external display.
+DisplayLink adapter present (oem275.inf, v11.2.3146.0) — a USB display adapter is also connected.
+LuminonCore IDDCX present — a virtual/software display adapter.
+
+=== CURSOR RENDERING PATH ===
+HKCU\Software\Microsoft\DirectX\UserGpuPreferences: No DWM entry (DWM uses system-default GPU)
+HKCU\Control Panel\Cursors: Standard Aero theme, custom-sized (CursorBaseSize=48).
+  No non-standard cursor scheme that would cause SW rendering fallback.
+MouseTrails: 0 (disabled — no forced SW cursor emulation).
+Avalon.Graphics HW accel: key not found → default (hardware acceleration enabled).
+HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers:
+  TdrDelay: 8 seconds (default; no aggressive TDR tuning)
+  TdrLevel: 3 (recover on GPU hang — default)
+  HwSchMode: 2 (Hardware-Accelerated GPU Scheduling enabled)
+
+HAGS (Hardware-Accelerated GPU Scheduling) is ENABLED.
+With a Code 31 internal GPU and HAGS on, the scheduler on the 5060 Ti must handle all
+rendering. No evidence of SW cursor fallback.
+
+=== NVIDIA-SMI SUMMARY (from 2026-06-06 14:32:41) ===
+GPU 0: RTX 5060 Ti — WDDM, 49°C, P5, 13W/180W, 409 MiB used
+       Display Active: Yes
+       Driver: 591.86, CUDA 13.1
+       PCIe: Gen4 x4 current (Host Max x1 suggests Thunderbolt 4 limitation)
+       Processes: dwm.exe, warp.exe, FloatingMenu1.exe
+       Power capping events: 245,498,042 µs cumulative (GPU has been power-capped significantly)
+Attached GPUs: 1 (Ada internal not visible to nvidia-smi due to Code 31)

@@ -1,0 +1,96 @@
+# hid-deep-SUMMARY — Input-Stack Deep Investigation 2026-06-06
+# Machine: ThinkPad P1 Gen 7 (21KV0014US) | BIOS N48ET33W 1.20 | Win 11 Pro 26200
+# Collected: elevated session | Read-only throughout
+# Evidence files: hid-deep-01 through hid-deep-11
+
+## WHAT IS KNOWN (NOT RE-REPORTED)
+- Sensel SNSL002D I2C parent 7E78: T1 (MSPower_DeviceEnable off) APPLIED and CONFIRMED.
+- FilterKeys / StickyKeys / ToggleKeys: all Flags=2 (AVAILABLE only, OFF, hotkey DISARMED). CLEAN.
+- Scancode Map (HKLM): NOT PRESENT. No hardware remap.
+- PowerToys Keyboard Manager: loaded (default.json), but remapKeys=[], remapShortcuts=[] — EMPTY.
+- i8042prt / kbdhid / kbdclass events: ZERO in 30d. HID transport events: ZERO.
+- DPC/ISR baseline (10s sample): DPC 0.14-0.85%, Interrupt 0.36-0.99% — NORMAL at idle.
+- No DPC Watchdog (0x133) bugchecks in 30d.
+- WHEA hardware errors: ZERO in 30d.
+- No BT HID conflicts: 181 BT device nodes, all OK. No phantoms in HIDClass that are present.
+
+## NEW FINDINGS TABLE
+
+### F1: NVIDIA RTX 2000 Ada Generation Laptop GPU — CM_PROB_FAILED_ADD (Code 31), Driver 32.0.15.9659
+Evidence: hid-deep-01:9, hid-deep-10:14-16
+- Device: PCI\VEN_10DE&DEV_28B8 — PRESENT but [Error], Problem=31 (CM_PROB_FAILED_ADD)
+- nvlddmkm events: ZERO in 30d (driver not firing events — because it never fully started)
+- KP41: 2026-06-05 21:03:01 — one unexpected shutdown. KP 506 at 19:39, 507 at 19:53 (resume), KP41 at 21:03 = 70 min post-resume
+- DWM crashes 62 events: 2026-05-23 (7), 2026-05-24 (25), 2026-05-25 (22), 2026-05-26 (8) — all via dwmcore.dll, exception c00001ad
+- UserPnP 20003 at 2026-06-05 20:57: nvlddmkm installed for RTX 5060 Ti (VEN_10DE&DEV_2D04) — confirming the Ada is still Code 31 while 5060 Ti is OK
+- Memory Integrity / Code Integrity is a known cause per NVIDIA/Dell forums [Source: dell.com/community en/conversations/inspiron NVPCF Code 31]
+
+### F2: Logi Options+ agent HIGH CPU (834s CPU accumulated) with 1037 handles / 94 threads — global hook process
+Evidence: hid-deep-11:15-18, hid-deep-05:37-43, hid-deep-06:40-43
+- logioptionsplus_agent.exe is a known WH_KEYBOARD_LL and WH_MOUSE_LL hook-instaling process (docs confirmed)
+- CPU=834s total — unusually high for a background agent (compare: logioptionsplus_updater only 7.6s)
+- 94 threads, 1037 handles — indicative of per-device event listener threads  
+- MX Keys Mini (BT LE `D90061F37B6F`) and MX Anywhere 3S (`D35004A25279`) both present and active in BT scan
+- Windows 11 24H2 forum report: left Shift misbehaving after installing Logitech drivers [elevenforum.com thread]
+- HOW: Logi Options+ hooks WH_KEYBOARD_LL and can reorder or delay events during its processing loop; if hook chain times out (> 200ms), Windows removes it and swallows the queued keystroke — Shift is a particularly vulnerable modifier
+
+### F3: MouseKeys Flags=62 — HOTKEYACTIVE still armed (NOT disarmed by prior remediation)
+Evidence: hid-deep-05:33, hid-deep-11:1-9
+- Prior remediation targeted StickyKeys(506→506)/FilterKeys/ToggleKeys. MouseKeys was NOT touched.
+- Current Flags=62: AVAILABLE(0x02) | HOTKEYACTIVE(0x04) | CONFIRMHOTKEY(0x08) | HOTKEYSOUND(0x10) | INDICATOR(0x20)
+- Hotkey: Alt+Left Shift+NumLock → toggles MouseKeys ON
+- When MouseKeys is ON: Shift+numpad keys are intercepted as mouse movement commands, not delivered to applications
+- This is a SEPARATE mechanism from StickyKeys and survives the prior accessibility hardening
+
+### F4: Camera Frame Server (svchost_FrameServer) crashing 422 times — ntdll.dll + frameserver.dll
+Evidence: hid-deep-06:32-36
+- 422 crash events in 30d (continuous pattern, not one-day burst like DWM)
+- Faulting module: frameserver.dll and ntdll.dll (exception at 0x6588a4b7 — consistent crash address)
+- IR camera is in Error state (per prior context); FrameServer owns the IR/camera pipeline
+- Connection to input: Windows Hello face-auth uses FrameServer; when FrameServer is crashed, the auth/lock-screen state machine can enter confused state → focus may shift away from foreground window → subsequent Shift keystrokes go to wrong window or are dropped by focus loss
+- Lenovo ThinkPad + FrameServer crashes documented as ongoing issue on forums [forums.lenovo.com/t5/ThinkPad-P-and-W-Series-Mobile-Workstations Windows-Camera-Frame-Server]
+
+### F5: T1 Verification — EnhancedPowerManagementEnabled=0 CONFIRMED on SNSL002D and I2C 7E78
+Evidence: hid-deep-09:57, hid-deep-09:79
+- ACPI\SNSL002D Device Parameters: EnhancedPowerManagementEnabled=0, SelectiveSuspendOn=0 — APPLIED
+- PCI\7E78 Device Parameters: EnhancedPowerManagementEnabled=0 — APPLIED
+- ACPI\SNSL002D: DeviceResetNotificationEnabled=1 — this means firmware reset notifications are active
+- However: ACPI\SNSL002D WDF\WdfDirectedPowerTransitionEnable=1 on the I2C controller 7E78 — WDF Directed Power means the I2C controller CAN still be power-gated by the PEP (Platform Energy Package) independent of the device-level setting. This is the residual risk after T1.
+
+### F6: Sensel Forcepad firmware REV_10014 (BIOS v1.19) — update available, freeze history confirmed
+Evidence: hid-deep-04:117 (COL04 LastArrivalDate=06/05/2026 21:03:14 = same as KP41 timestamp)
+- Sensel COL04 LastArrivalDate=2026-06-05 21:03:14 = EXACTLY at resume after KP41 — device re-enumerated on that boot
+- Lenovo Vantage has a Sensel Forcepad Firmware package for P1 Gen 7 [support.lenovo.com/us/en/downloads/ds571229]
+- Lenovo forum thread explicitly documents "Haptic touchpad in ThinkPad P1 Gen 7 randomly freezes" [forums.lenovo.com]
+- github.com/fwupd/firmware-lenovo issue #538: "broken touchpad after update" — firmware update fragility confirmed
+- Current firmware version not yet identified (HID feature report probe incomplete in prior session)
+- SYSTEM firmware at 1.19 (oem183.inf, N48ET33W 1.19); Lenovo released 1.20 per prior FINDINGS — BIOS update pending
+
+### F7: WdfDirectedPowerTransitionEnable=1 on I2C 7E78 controller — residual after T1
+Evidence: hid-deep-09:80
+- REG: HKLM:\...7E78\Device Parameters\WDF\WdfDirectedPowerTransitionEnable=1
+- This setting allows the Runtime Power Framework (PoFx) / Platform Energy Policy to direct the WDF driver (iaLPSS2_I2C_MTL) into D3cold independently of the MSPower_DeviceEnable flag
+- Modern Standby with Connected Standby active: PEP can still clock-gate/power-gate the I2C controller even with power-down disabled at the device level
+- Net effect: T1 reduced but did NOT eliminate the power-gating pathway for the touchpad controller
+
+### F8: Massive Bluetooth device tree (181 nodes) — present HID devices include 3 active BT LE HID devices (Logi MX Keys Mini, MX Anywhere 3S, MX Master 3)
+Evidence: hid-deep-07:322-328, hid-deep-07:368-403
+- 3 present BT LE GATT HID devices: MX Keys Mini (VID 046D PID B369), MX Anywhere 3S (046D B037), MX Master 3 (046D B023)
+- These are separate keyboard and mouse devices whose events arrive over the BT stack (bthle) not PS/2/i8042
+- MX Keys Mini is a BLUETOOTH keyboard that also has Shift keys — if user accidentally types on it and there is a dropped key, it would appear as Shift not working while actually being the wrong device in focus
+- 136 ghosted HID devices — unusually large ghost list; can slow down re-enumeration on resume
+
+## RESUME TIMELINE CORRELATION
+
+Power transitions this 30d window:
+  2026-06-05 19:39:27 KP506 (enter Modern Standby) — Reason: Idle Timeout
+  2026-06-05 19:39:53 KP507 (exit Modern Standby) — Reason: Input Keyboard [ONLY 26s in standby]
+  2026-06-05 21:03:01 KP41 (unexpected shutdown) [83 min after prior resume]
+  2026-06-05 23:27:54 KP506 (enter standby)
+  2026-06-05 23:59:19 KP507 (exit) — Reason: Lid
+  2026-06-05 23:59:19 KP506 (re-enter immediately — lid open into sleep loop?)
+  2026-06-06 10:10:10 KP507 (exit) — Reason: Lid
+
+Sensel COL04 LastArrivalDate: 2026-06-05 21:03:14 = after the KP41 reboot. Consistent with re-enumeration after hard shutdown.
+
+Only 3 Modern Standby cycles in 30d makes temporal correlation to touchpad lockups statistically thin, but the KP41 at 21:03 following the 19:53 resume is the best-available data point.

@@ -1,0 +1,1346 @@
+[
+  {
+    "TaskName": "Schedule created by dm client for dual enrollment to Mmpc",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x8018000B",
+    "LastRun": "2026-06-06T16:55:01-04:00",
+    "NextRun": "2026-06-06T17:00:00-04:00"
+  },
+  {
+    "TaskName": "ProfileLogSync",
+    "TaskPath": "\\PowerShell\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-06-06T16:47:10-04:00",
+    "NextRun": "2026-06-06T17:02:09-04:00"
+  },
+  {
+    "TaskName": "AnalyzeSystem",
+    "TaskPath": "\\Microsoft\\Windows\\Power Efficiency Diagnostics\\",
+    "State": 3,
+    "LastResult": "0x8007042B",
+    "LastRun": "2026-06-06T16:10:18-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "SilentCleanup",
+    "TaskPath": "\\Microsoft\\Windows\\DiskCleanup\\",
+    "State": 3,
+    "LastResult": "0x8007042B",
+    "LastRun": "2026-06-06T16:10:17-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "StorageSense",
+    "TaskPath": "\\Microsoft\\Windows\\DiskFootprint\\",
+    "State": 3,
+    "LastResult": "0x80040154",
+    "LastRun": "2026-06-06T16:10:17-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "ThemesSyncedImageDownload",
+    "TaskPath": "\\Microsoft\\Windows\\Shell\\",
+    "State": 3,
+    "LastResult": "0x800700B7",
+    "LastRun": "2026-06-06T16:10:17-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "SynchronizeTime",
+    "TaskPath": "\\Microsoft\\Windows\\Time Synchronization\\",
+    "State": 3,
+    "LastResult": "0x00000420",
+    "LastRun": "2026-06-06T16:10:17-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RNIdle Task",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-06-06T16:10:16-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "ProcessMemoryDiagnosticEvents",
+    "TaskPath": "\\Microsoft\\Windows\\MemoryDiagnostic\\",
+    "State": 3,
+    "LastResult": "0x800710E0",
+    "LastRun": "2026-06-06T16:10:16-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "VantageCoreAddinIdleScheduleTask",
+    "TaskPath": "\\Lenovo\\Vantage\\Schedule\\",
+    "State": 3,
+    "LastResult": "0x8007042B",
+    "LastRun": "2026-06-06T16:10:16-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Notifications",
+    "TaskPath": "\\Microsoft\\Windows\\Location\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-06-06T12:29:27-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "ResolutionHost",
+    "TaskPath": "\\Microsoft\\Windows\\WDI\\",
+    "State": 4,
+    "LastResult": "0x00041301",
+    "LastRun": "2026-06-06T10:14:23-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Lenovo ITS WM Task",
+    "TaskPath": "\\Lenovo\\ITS\\",
+    "State": 4,
+    "LastResult": "0x00041301",
+    "LastRun": "2026-06-06T10:10:18-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Lenovo ITS ADM Task",
+    "TaskPath": "\\Lenovo\\ITS\\",
+    "State": 4,
+    "LastResult": "0x00041301",
+    "LastRun": "2026-06-06T10:10:18-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "USO_UxBroker",
+    "TaskPath": "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-06-06T09:39:51-04:00",
+    "NextRun": "2026-06-07T04:53:12-04:00"
+  },
+  {
+    "TaskName": "ActivationDailyScheduleTask",
+    "TaskPath": "\\Lenovo\\TrackPointQuickMenu\\Schedule\\",
+    "State": 3,
+    "LastResult": "0xFFFFFF95",
+    "LastRun": "2026-06-06T09:30:01-04:00",
+    "NextRun": "2026-06-07T09:30:00-04:00"
+  },
+  {
+    "TaskName": "Secure-Boot-Update",
+    "TaskPath": "\\Microsoft\\Windows\\PI\\",
+    "State": 3,
+    "LastResult": "0x800706D9",
+    "LastRun": "2026-06-06T09:09:01-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Office Startup Maintenance",
+    "TaskPath": "\\Microsoft\\Office\\",
+    "State": 3,
+    "LastResult": "0xFFFFFFF8",
+    "LastRun": "2026-06-06T08:06:53-04:00",
+    "NextRun": "2026-06-07T08:03:57-04:00"
+  },
+  {
+    "TaskName": "Lenovo.Vantage.ServiceMaintainance",
+    "TaskPath": "\\Lenovo\\Vantage\\",
+    "State": 3,
+    "LastResult": "0x00000420",
+    "LastRun": "2026-06-05T21:19:27-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Lenovo iM Controller Scheduled Maintenance",
+    "TaskPath": "\\Lenovo\\ImController\\",
+    "State": 3,
+    "LastResult": "0x00000420",
+    "LastRun": "2026-06-05T21:19:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Initialize-MachineSecrets",
+    "TaskPath": "\\Bitwarden\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-06-05T21:07:29-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RtkAudUService64_BG",
+    "TaskPath": "\\",
+    "State": 4,
+    "LastResult": "0x00041301",
+    "LastRun": "2026-06-05T21:04:56-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Lenovo UDC Monitor",
+    "TaskPath": "\\Lenovo\\UDC\\",
+    "State": 3,
+    "LastResult": "0xFFFFFFFF",
+    "LastRun": "2026-06-05T21:04:37-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Session agent for Process Lasso",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0x40010004",
+    "LastRun": "2026-06-05T21:04:27-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Lenovo Professional Ultraslim Wireless Combo Gen2 OSD task",
+    "TaskPath": "\\Lenovo\\",
+    "State": 4,
+    "LastResult": "0x00041301",
+    "LastRun": "2026-06-05T21:04:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "StartupFixPlan",
+    "TaskPath": "\\Lenovo\\Vantage\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-06-05T21:04:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Process Lasso Core Engine Only",
+    "TaskPath": "\\",
+    "State": 4,
+    "LastResult": "0x00041301",
+    "LastRun": "2026-06-05T21:04:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "SystemSoundsService",
+    "TaskPath": "\\Microsoft\\Windows\\Multimedia\\",
+    "State": 4,
+    "LastResult": "0x00041301",
+    "LastRun": "2026-06-05T21:04:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Background monitor",
+    "TaskPath": "\\Lenovo\\Power Manager\\",
+    "State": 4,
+    "LastResult": "0x00041301",
+    "LastRun": "2026-06-05T21:04:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "NIUpdateServiceStartupTask",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-06-05T21:04:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "CacheTask",
+    "TaskPath": "\\Microsoft\\Windows\\Wininet\\",
+    "State": 4,
+    "LastResult": "0x00041301",
+    "LastRun": "2026-06-05T21:04:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "iSCSIAgentAutoStartup",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0x40010004",
+    "LastRun": "2026-06-05T21:04:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "AutomaticOfflineMemoryDiagnostic",
+    "TaskPath": "\\Microsoft\\Windows\\MemoryDiagnostic\\",
+    "State": 3,
+    "LastResult": "0x80040111",
+    "LastRun": "2026-06-05T21:04:26-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Gemini-CLI-Update-stable",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0x00000001",
+    "LastRun": "2026-06-03T10:19:04-04:00",
+    "NextRun": "2026-06-10T08:00:00-04:00"
+  },
+  {
+    "TaskName": "UsbCeip",
+    "TaskPath": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\",
+    "State": 3,
+    "LastResult": "0x80004005",
+    "LastRun": "2026-06-02T14:58:43-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "BgTaskRegistrationMaintenanceTask",
+    "TaskPath": "\\Microsoft\\Windows\\BrokerInfrastructure\\",
+    "State": 3,
+    "LastResult": "0x10000000",
+    "LastRun": "2026-06-02T14:58:43-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "NIUpdateServiceCheckTask",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-06-01T18:37:00-04:00",
+    "NextRun": "2026-06-08T18:37:00-04:00"
+  },
+  {
+    "TaskName": "Git Maintenance (weekly)",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0xC0000142",
+    "LastRun": "2026-05-31T00:20:00-04:00",
+    "NextRun": "2026-06-07T00:20:00-04:00"
+  },
+  {
+    "TaskName": "UnifiUdmDriveStackStartup",
+    "TaskPath": "\\",
+    "State": 1,
+    "LastResult": "0x00000032",
+    "LastRun": "2026-04-30T12:52:53-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Schedule created by enrollment client for renewal of certificate warning",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x80180016",
+    "LastRun": "2026-03-23T09:07:00-04:00",
+    "NextRun": "2026-11-16T21:38:00-05:00"
+  },
+  {
+    "TaskName": "Retry Schedule created for incomplete session {66CFF198-AE46-41D1-AE3C-4CF3C93B075A}",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\SessionRetry\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-03-18T14:56:16-04:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Retry Schedule created for incomplete session {6F8C3073-860D-47B7-9BCF-903AA9414530}",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\SessionRetry\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x8007045B",
+    "LastRun": "2026-03-03T16:07:22-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "WSL-Docker-Startup",
+    "TaskPath": "\\",
+    "State": 1,
+    "LastResult": "0x00000001",
+    "LastRun": "2026-01-25T22:00:07-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Retry Schedule created for incomplete session {AA275000-047F-42C7-819E-73BE7217365E}",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\SessionRetry\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-01-22T12:43:11-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Retry Schedule created for incomplete session {DFAE730C-24F6-4D1D-8601-6E77E32EDEE3}",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\SessionRetry\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x80070002",
+    "LastRun": "2026-01-20T20:39:07-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Passport for Work alert created by enrollment client",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x82AC0204",
+    "LastRun": "2024-11-27T17:36:29-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "EDP Policy Manager",
+    "TaskPath": "\\Microsoft\\Windows\\AppID\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "UpdateUserPictureTaskContained",
+    "TaskPath": "\\Microsoft\\Windows\\Shell\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "UpdateUserPictureTask",
+    "TaskPath": "\\Microsoft\\Windows\\Shell\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1007",
+    "TaskPath": "\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-06T21:55:16-04:00"
+  },
+  {
+    "TaskName": "ThemeAssetTask_SyncFODState",
+    "TaskPath": "\\Microsoft\\Windows\\Shell\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "FamilySafetyRefreshTask",
+    "TaskPath": "\\Microsoft\\Windows\\Shell\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "FamilySafetyMonitor",
+    "TaskPath": "\\Microsoft\\Windows\\Shell\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Account Cleanup",
+    "TaskPath": "\\Microsoft\\Windows\\SharedPC\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Initialization",
+    "TaskPath": "\\Microsoft\\Windows\\ReFsDedupSvc\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "MobilityManager",
+    "TaskPath": "\\Microsoft\\Windows\\Ras\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "EduPrintProv",
+    "TaskPath": "\\Microsoft\\Windows\\Printing\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1009",
+    "TaskPath": "\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-06T21:55:16-04:00"
+  },
+  {
+    "TaskName": "Pluton-Ksp-Provisioning",
+    "TaskPath": "\\Microsoft\\Windows\\Pluton\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Sysprep Generalize Drivers",
+    "TaskPath": "\\Microsoft\\Windows\\Plug and Play\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1003",
+    "TaskPath": "\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "WhesvcToast",
+    "TaskPath": "\\Microsoft\\Windows\\PerformanceTrace\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "ShowFeedbackToast",
+    "TaskPath": "\\Microsoft\\Windows\\PerformanceTrace\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RequestTrace",
+    "TaskPath": "\\Microsoft\\Windows\\PerformanceTrace\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "BitLocker Reduced PCR Profile Cleanup Task",
+    "TaskPath": "\\Microsoft\\Windows\\PCRPF\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Logon Synchronization",
+    "TaskPath": "\\Microsoft\\Windows\\Offline Files\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Background Synchronization",
+    "TaskPath": "\\Microsoft\\Windows\\Offline Files\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-06T18:14:47-04:00"
+  },
+  {
+    "TaskName": "WiFiTask",
+    "TaskPath": "\\Microsoft\\Windows\\NlaSvc\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1007",
+    "TaskPath": "\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RunFullMemoryDiagnostic",
+    "TaskPath": "\\Microsoft\\Windows\\MemoryDiagnostic\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1009",
+    "TaskPath": "\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "SvcRestartTask",
+    "TaskPath": "\\Microsoft\\Windows\\SoftwareProtectionPlatform\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2126-05-13T16:51:46-04:00"
+  },
+  {
+    "TaskName": "MapsUpdateTask",
+    "TaskPath": "\\Microsoft\\Windows\\Maps\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-07T01:09:30-04:00"
+  },
+  {
+    "TaskName": "SvcRestartTaskNetwork",
+    "TaskPath": "\\Microsoft\\Windows\\SoftwareProtectionPlatform\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "SpaceManagerTask",
+    "TaskPath": "\\Microsoft\\Windows\\SpacePort\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "XblGameSaveTask",
+    "TaskPath": "\\Microsoft\\XblGameSave\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "NotificationTask",
+    "TaskPath": "\\Microsoft\\Windows\\WwanSvc\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Recovery-Check",
+    "TaskPath": "\\Microsoft\\Windows\\Workplace Join\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Device-Sync",
+    "TaskPath": "\\Microsoft\\Windows\\Workplace Join\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Automatic-Device-Join",
+    "TaskPath": "\\Microsoft\\Windows\\Workplace Join\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "WIM-Hash-Management",
+    "TaskPath": "\\Microsoft\\Windows\\WOF\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "MoProfileManagement",
+    "TaskPath": "\\Microsoft\\Windows\\WlanSvc\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "LvfCleanup",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Scheduled Start",
+    "TaskPath": "\\Microsoft\\Windows\\WindowsUpdate\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "ModelCachingLimit",
+    "TaskPath": "\\Microsoft\\Windows\\WindowsAI\\ClickToDo\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "UpdateLibrary",
+    "TaskPath": "\\Microsoft\\Windows\\Windows Media Sharing\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "BfeOnServiceStartTypeChange",
+    "TaskPath": "\\Microsoft\\Windows\\Windows Filtering Platform\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "HiveUploadTask",
+    "TaskPath": "\\Microsoft\\Windows\\User Profile Service\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-07T00:39:23-04:00"
+  },
+  {
+    "TaskName": "UPnPHostConfig",
+    "TaskPath": "\\Microsoft\\Windows\\UPnP\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "UUS Failover Task",
+    "TaskPath": "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "OneDrive Per-Machine Standalone Update Task",
+    "TaskPath": "\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-06T20:11:30-04:00"
+  },
+  {
+    "TaskName": "StartOobeAppsScan_LicenseAccepted",
+    "TaskPath": "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "StartOobeAppsScanAfterUpdate",
+    "TaskPath": "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Schedule Maintenance Work",
+    "TaskPath": "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RunUpdateNotificationMgr",
+    "TaskPath": "\\Microsoft\\Windows\\UNP\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-07T13:31:58-04:00"
+  },
+  {
+    "TaskName": "Tpm-HASCertRetr",
+    "TaskPath": "\\Microsoft\\Windows\\TPM\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1003",
+    "TaskPath": "\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-06T21:55:16-04:00"
+  },
+  {
+    "TaskName": "Interactive",
+    "TaskPath": "\\Microsoft\\Windows\\Task Manager\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "HybridDriveCacheRebalance",
+    "TaskPath": "\\Microsoft\\Windows\\Sysmain\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "HybridDriveCachePrepopulate",
+    "TaskPath": "\\Microsoft\\Windows\\Sysmain\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "LicenseAcquisition",
+    "TaskPath": "\\Microsoft\\Windows\\Subscription\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-06T23:18:48-04:00"
+  },
+  {
+    "TaskName": "Storage Tiers Optimization",
+    "TaskPath": "\\Microsoft\\Windows\\Storage Tiers Management\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-06T17:00:00-04:00"
+  },
+  {
+    "TaskName": "Storage Tiers Management Initialization",
+    "TaskPath": "\\Microsoft\\Windows\\Storage Tiers Management\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "SpaceAgentTask",
+    "TaskPath": "\\Microsoft\\Windows\\SpacePort\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "MapsToastTask",
+    "TaskPath": "\\Microsoft\\Windows\\Maps\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Retry",
+    "TaskPath": "\\Microsoft\\Windows\\Management\\Provisioning\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "AD RMS Rights Policy Template Management (Manual)",
+    "TaskPath": "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Microsoft-Windows-DiskDiagnosticResolver",
+    "TaskPath": "\\Microsoft\\Windows\\DiskDiagnostic\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "UpdateConfiguration_S-1-5-21-357761096-1057752491-2136275046-1007",
+    "TaskPath": "\\Microsoft\\VisualStudio\\Updates\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RegisterDeviceWnsFallback",
+    "TaskPath": "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-26T13:26:18-04:00"
+  },
+  {
+    "TaskName": "RegisterDeviceSettingChange",
+    "TaskPath": "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RegisterDeviceAccountChange",
+    "TaskPath": "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "LocateCommandUserSession",
+    "TaskPath": "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "IntegrityCheck",
+    "TaskPath": "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-08T20:03:56-04:00"
+  },
+  {
+    "TaskName": "HandleWnsCommand",
+    "TaskPath": "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "HandleCommand",
+    "TaskPath": "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Driver Recovery on Reboot",
+    "TaskPath": "\\Microsoft\\Windows\\Device Setup\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Data Integrity Scan for Crash Recovery",
+    "TaskPath": "\\Microsoft\\Windows\\Data Integrity Scan\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Data Integrity Scan",
+    "TaskPath": "\\Microsoft\\Windows\\Data Integrity Scan\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Data Integrity Check And Scan",
+    "TaskPath": "\\Microsoft\\Windows\\Data Integrity Scan\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-06T23:54:16-04:00"
+  },
+  {
+    "TaskName": "UpdateConfiguration_S-1-5-21-357761096-1057752491-2136275046-1009",
+    "TaskPath": "\\Microsoft\\VisualStudio\\Updates\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Restore",
+    "TaskPath": "\\Microsoft\\Windows\\CloudRestore\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "LicenseImdsIntegration",
+    "TaskPath": "\\Microsoft\\Windows\\Clip\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-07T08:52:32-04:00"
+  },
+  {
+    "TaskName": "License Validation",
+    "TaskPath": "\\Microsoft\\Windows\\Clip\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "SyspartRepair",
+    "TaskPath": "\\Microsoft\\Windows\\Chkdsk\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "CryptoPolicyTask",
+    "TaskPath": "\\Microsoft\\Windows\\CertificateServicesClient\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "AD RMS Rights Policy Template Management (Automated)",
+    "TaskPath": "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-07T03:53:11-04:00"
+  },
+  {
+    "TaskName": "BitLocker MDM policy Refresh",
+    "TaskPath": "\\Microsoft\\Windows\\BitLocker\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "BitLocker Encrypt All Drives",
+    "TaskPath": "\\Microsoft\\Windows\\BitLocker\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "SdbinstMergeDbTask",
+    "TaskPath": "\\Microsoft\\Windows\\Application Experience\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Microsoft Compatibility Appraiser Exp",
+    "TaskPath": "\\Microsoft\\Windows\\Application Experience\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "MareBackup",
+    "TaskPath": "\\Microsoft\\Windows\\Application Experience\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "VerifiedPublisherCertStoreCheck",
+    "TaskPath": "\\Microsoft\\Windows\\AppID\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "PolicyConverter",
+    "TaskPath": "\\Microsoft\\Windows\\AppID\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "UpdateConfiguration_S-1-5-21-357761096-1057752491-2136275046-1003",
+    "TaskPath": "\\Microsoft\\VisualStudio\\Updates\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RunOnReboot",
+    "TaskPath": "\\Microsoft\\Windows\\Management\\Provisioning\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "dusmtask",
+    "TaskPath": "\\Microsoft\\Windows\\DUSM\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "EDP Auth Task",
+    "TaskPath": "\\Microsoft\\Windows\\EDP\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "MdmDiagnosticsCleanup",
+    "TaskPath": "\\Microsoft\\Windows\\Management\\Provisioning\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Cellular",
+    "TaskPath": "\\Microsoft\\Windows\\Management\\Provisioning\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RemediateHardwareChange",
+    "TaskPath": "\\Microsoft\\Windows\\Management\\Autopilot\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "DetectHardwareChange",
+    "TaskPath": "\\Microsoft\\Windows\\Management\\Autopilot\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "WindowsActionDialog",
+    "TaskPath": "\\Microsoft\\Windows\\Location\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RunPlatformExperienceHelper_Metrics",
+    "TaskPath": "\\GoogleUserPEH\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-08T12:42:40-04:00"
+  },
+  {
+    "TaskName": "WakeUpAndScanForUpdates",
+    "TaskPath": "\\Microsoft\\Windows\\InstallService\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-06T21:01:53-04:00"
+  },
+  {
+    "TaskName": "WakeUpAndContinueUpdates",
+    "TaskPath": "\\Microsoft\\Windows\\InstallService\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "TouchpadSyncDataAvailable",
+    "TaskPath": "\\Microsoft\\Windows\\input\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "syncpensettings",
+    "TaskPath": "\\Microsoft\\Windows\\input\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RemoteTouchpadSyncDataAvailable",
+    "TaskPath": "\\Microsoft\\Windows\\input\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RemotePenSyncDataAvailable",
+    "TaskPath": "\\Microsoft\\Windows\\input\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "RemoteMouseSyncDataAvailable",
+    "TaskPath": "\\Microsoft\\Windows\\input\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "PenSyncDataAvailable",
+    "TaskPath": "\\Microsoft\\Windows\\input\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "MouseSyncDataAvailable",
+    "TaskPath": "\\Microsoft\\Windows\\input\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "InputSettingsRestoreDataAvailable",
+    "TaskPath": "\\Microsoft\\Windows\\input\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Property Definition Sync",
+    "TaskPath": "\\Microsoft\\Windows\\File Classification Infrastructure\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-07T04:51:17-04:00"
+  },
+  {
+    "TaskName": "Lenovo UDC Diagnostic Scan",
+    "TaskPath": "\\Lenovo\\UDC\\",
+    "State": 1,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Win10 S Mode event listener created by enrollment client",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Schedule to run OMADMClient by server",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "LenovoSystemUpdateAddin_WeeklyTask",
+    "TaskPath": "\\Lenovo\\Vantage\\Schedule\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": "2026-06-10T04:19:47-04:00"
+  },
+  {
+    "TaskName": "Office Performance Monitor",
+    "TaskPath": "\\Microsoft\\Office\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "PushLaunch",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Provisioning initiated session",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "OS Edition Upgrade event listener created by enrollment client",
+    "TaskPath": "\\Microsoft\\Windows\\EnterpriseMgmt\\AF2A2E15-F851-42C8-B30A-926FDF8C2BF8\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "StorageCardEncryption Task",
+    "TaskPath": "\\Microsoft\\Windows\\EDP\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "EDP Inaccessible Credentials Task",
+    "TaskPath": "\\Microsoft\\Windows\\EDP\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "EDP App Launch Task",
+    "TaskPath": "\\Microsoft\\Windows\\EDP\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  },
+  {
+    "TaskName": "Autorun for david",
+    "TaskPath": "\\PowerToys\\",
+    "State": 3,
+    "LastResult": "0x00041303",
+    "LastRun": "1999-11-30T00:00:00-05:00",
+    "NextRun": null
+  }
+]

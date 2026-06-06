@@ -1,0 +1,3 @@
+05-31 00:03 | ID=10010 | Application 'C:\Program Files\Intel\Intel Graphics Software\PresentMonService.exe' (pid 12292) cannot be restarted - Application SID does not match Conductor SID..
+05-31 00:03 | ID=10010 | Application 'C:\Program Files (x86)\Intel\Driver and Support Assistant\x86\DSATray.exe' (pid 20800) cannot be restarted - Application SID does not match Conductor SID..
+05-30 23:54 | ID=10010 | Application 'C:\ProgramData\FLEXnet\Connect\11\agent.exe' (pid 39756) cannot be restarted - Application SID does not match Conductor SID..

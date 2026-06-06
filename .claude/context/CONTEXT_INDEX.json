@@ -1,7 +1,18 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-inputstack-20260606",
+  "latest": "ctx-pcai-gitops-syshard-20260606",
   "contexts": [
+    {
+      "id": "ctx-pcai-gitops-syshard-20260606",
+      "file": "pcai-context-20260606-gitops-and-system-hardening.md",
+      "created": "2026-06-06T21:30:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["systematic-debugging", "dispatching-parallel-agents", "general-purpose", "Explore", "codex(peer via agent-bus)"],
+      "summary": "Very long multi-arc session. GitOps: SSH-signing standard + dtm-default-protection ruleset on ALL 194 eligible David-Martel repos (PR-only/0-approval self-merge, signed, gh-actions bypass) + non-blocking lefthook push monitors (Watch-WorkflowHealth/Get-UpstreamReviews). Git/GPG/GitHub robustness proposal. Fixed GitHub account-picker (github https->ssh in ~/.gitconfig). Fixed PowerShell .bak shim (created ~/.config/powershell local profile; deleted bak). Input-stack: two independent root causes (PS/2 keyboard vs Sensel SNSL002D I2C touchpad); APPLIED T1 (device power-down off SNSL002D+7E78), T2 (WdfDirectedPowerTransitionEnable 1->0 on 7E78, reboot needed), F3 (MouseKeys hotkey disarm); haptic theory refuted; NVIDIA Ada Code 31 = driver split, two-package manual fix (user-driven). Dep modernization: AI-Media pyproject torch>=2.7+cu128 + requires-python>=3.13 (uv). vLLM->Manual. OneDrive C:\\codedev confirmed not linked. Restore point made. Coordinated w/ Codex on agent-bus throughout.",
+      "tags": ["gitops", "ssh-signing", "branch-protection", "ruleset", "input-stack", "touchpad", "nvidia-code31", "pytorch-cu128", "python313", "agent-bus", "codex-coordination"],
+      "artifacts": ["Tools/GitOps/", ".claude/plans/git-gpg-github-agent-robustness-proposal.md", "Reports/system-assessment-20260606/", "Reports/input-stack-investigation-20260606/", "AI-Media/pyproject.toml"],
+      "commit": "pending"
+    },
     {
       "id": "ctx-pcai-inputstack-20260606",
       "file": "pcai-context-20260606-input-stack-reinvestigation.md",

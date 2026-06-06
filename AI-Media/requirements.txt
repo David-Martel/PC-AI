@@ -1,9 +1,14 @@
-torch>=2.1.0
-transformers>=4.38.0
+# Prefer the pyproject.toml + `uv sync` path (binds the CUDA 12.8 index for Blackwell SM_120).
+# pip fallback for Blackwell (RTX 5060 Ti): the cu128 index is REQUIRED or you get CPU-only torch:
+#   pip install --index-url https://download.pytorch.org/whl/cu128 torch torchvision
+torch>=2.7.0
+torchvision>=0.22.0
+transformers>=4.38.2
 accelerate>=0.27.0
 sentencepiece
-numpy
-pillow
-# Optional: For upscaling
-basicsr>=1.4.2
-realesrgan>=0.3.0
+numpy>=2.0
+pillow>=11.0
+# Optional upscaling — DISABLED: basicsr/realesrgan abandoned (2022), CVE-2024-27763 unpatched,
+# no Python 3.13 wheels, and torchvision>=0.17 removed functional_tensor. main.py falls back to BICUBIC.
+# basicsr>=1.4.2
+# realesrgan>=0.3.0

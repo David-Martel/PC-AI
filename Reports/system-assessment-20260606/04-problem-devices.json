@@ -1,0 +1,14 @@
+[
+  {
+    "Name": "Cisco AnyConnect Virtual Miniport Adapter for Windows x64",
+    "DeviceID": "ROOT\\NET\\0001",
+    "ConfigManagerErrorCode": 22,
+    "Manufacturer": "Cisco Systems"
+  },
+  {
+    "Name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+    "DeviceID": "PCI\\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\\4&218D282A&0&0008",
+    "ConfigManagerErrorCode": 31,
+    "Manufacturer": "NVIDIA"
+  }
+]

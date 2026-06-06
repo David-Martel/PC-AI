@@ -1,0 +1,10 @@
+
+SequenceNumber CreationTime              Description               RestorePointType
+-------------- ------------              -----------               ----------------
+            68 20260502190243.808495-000 PreTouchpadFix-2026-05-02               12
+            67 20260430171601.554815-000 Intel® Software Installer                0
+            66 20260428182410.843442-000 Windows Update                          17
+            65 20260421202634.253198-000 Scheduled Checkpoint                     7
+            64 20260414184252.596955-000 Windows Update                          17
+
+

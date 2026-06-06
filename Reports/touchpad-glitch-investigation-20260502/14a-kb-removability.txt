@@ -1,0 +1,447 @@
+# KB removability check 2026-05-02T14:51:21.9506760-04:00
+
+## Touchpad-window relevant KBs (5/1 batch candidates)
+
+### KB5083631
+(not present)
+
+### KB5082417
+(not present)
+
+### KB5088467
+(not present)
+
+### KB5091378
+(not present)
+
+### KB5089614
+(not present)
+
+### KB5090315
+(not present)
+
+## All packages installed in last 7 days (with Permanent flag)
+Package Identity : Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-OneCore-DeveloperMode-Desktop-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-OneCore-Graphics-Tools-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-WebDriver-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : Language Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-Windows-Ethernet-Client-Intel-E1i68x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-Windows-Ethernet-Client-Intel-E2f68-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-Windows-Ethernet-Client-Realtek-Rtcx21x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-Windows-Ethernet-Client-Vmware-Vmxnet3-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-Windows-FodMetadataServicing-Desktop-Metadata-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : Feature Pack
+Install Time : 5/1/2026 5:56 AM
+---
+Package Identity : Microsoft-Windows-Hello-Face-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35~amd64~en-US~11.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35~amd64~~11.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-LanguageFeatures-Basic-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-LanguageFeatures-Handwriting-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-LanguageFeatures-OCR-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-LanguageFeatures-Speech-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-LanguageFeatures-TextToSpeech-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-MediaPlayer-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-MediaPlayer-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-MediaPlayer-Package~31bf3856ad364e35~wow64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-NetFx3-OnDemand-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~wow64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-SenseClient-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-SenseClient-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~wow64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-StorageManagement-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-StorageManagement-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-StorageManagement-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-TabletPCMath-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-TPM-Diagnostics-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-TPM-Diagnostics-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-TPM-Diagnostics-FOD-Package~31bf3856ad364e35~wow64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Realtek-Rtl8187se-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Realtek-Rtl819xp-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Realtek-Rtl85n64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-WirelessDisplay-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-WirelessDisplay-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Microsoft-Windows-Xps-Xps-Viewer-Opt-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Msix-PackagingTool-Driver-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : OpenSSH-Client-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : OpenSSH-Server-Package~31bf3856ad364e35~amd64~~10.0.26100.8328
+State : Installed
+Release Type : OnDemand Pack
+Install Time : 5/1/2026 5:57 AM
+---
+Package Identity : Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.8328.1.31
+State : Installed
+Release Type : Update
+Install Time : 5/1/2026 5:57 AM
+---
+
+## Permanent=True count vs Permanent=False count (across all packages)
+Permanent=Yes: 0
+Permanent=No : 0

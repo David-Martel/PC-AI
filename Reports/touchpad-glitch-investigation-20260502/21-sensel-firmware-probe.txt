@@ -1,0 +1,67 @@
+# Sensel firmware probe 2026-05-02T15:19:16.2859529-04:00
+
+## 1. UEFI Firmware capsule history (Get-WindowsDriver Class=Firmware)
+
+Driver     OriginalFileName
+------     ----------------                                                                                             
+oem112.inf C:\Windows\System32\DriverStore\FileRepository\n48et.inf_amd64_29cccbd3ad5131e3\n48et.inf
+oem141.inf C:\Windows\System32\DriverStore\FileRepository\rtkcamera.inf_amd64_ab23ff52a9e9612e\rtkcamera.inf
+oem183.inf C:\Windows\System32\DriverStore\FileRepository\n48et.inf_amd64_d06c4cab03cf7472\n48et.inf
+oem329.inf C:\Windows\System32\DriverStore\FileRepository\n48ht.inf_amd64_b5740717664b8808\n48ht.inf
+oem399.inf C:\Windows\System32\DriverStore\FileRepository\mtlme_18_1_18_2724_cons_18.inf_amd64_5f383f3ece893ebe\mtlme_18
+           _1_18_2724_cons_18.inf
+oem98.inf  C:\Windows\System32\DriverStore\FileRepository\mtlme_18_0_15_2515_cons_18.inf_amd64_098acbff26b9b9d2\mtlme_18
+           _0_15_2515_cons_18.inf
+
+
+
+## 2. Sensel HID Feature Report probe (firmware version via HID API)
+(C# probe registered. To get firmware version, query HID feature report 0xX from device — varies per Sensel firmware.)
+
+## 3. Lenovo Vantage / Commercial Vantage / System Interface Foundation versions
+
+### AppX packages
+
+Name                           PackageFullName                                            Version      Publisher
+----                           ---------------                                            -------      ---------
+SenselInc.SenselHapticTouchpad SenselInc.SenselHapticTouchpad_1.2.12.0_x64__h91pjf1v583kj 1.2.12.0     CN=91D15A5B-C92D-
+                                                                                                       417A-9FF4-0A89145
+                                                                                                       5D9AF
+E046963F.LenovoCompanion       E046963F.LenovoCompanion_10.2603.12.0_x64__k1h2ywk1493x8   10.2603.12.0 CN=8F32EFB2-B494-
+                                                                                                       4AEC-A27C-4B07362
+                                                                                                       52363
+
+
+
+## 4. Lenovo Setup logs / Vantage update history
+Found: C:\ProgramData\Lenovo\Vantage\Logs
+
+Found: C:\Users\david\AppData\Local\Lenovo\Vantage\Logs
+
+
+## 5. Lenovo / firmware events in Setup log last 30d
+(no Lenovo/firmware events in Setup log last 30d)
+
+## 6. n48et firmware (Lenovo touchpad firmware capsule) - currently bound
+Device Firmware | UEFI\RES_{C4B753C8-FBB9-4A49-930E-16ACCF4D6718}\0 | DEVPKEY_Device_DriverDate=06/20/2006 20:00:00 | DEVPKEY_Device_DriverVersion=10.0.26100.4768 | DEVPKEY_Device_DriverInfPath=c_firmware.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{c4b753c8-fbb9-4a49-930e-16accf4d6718}&REV_120 UEFI\RES_{c4b753c8-fbb9-4a49-930e-16accf4d6718}
+Device Firmware | UEFI\RES_{E3074A9C-A8F2-4EC6-8B7A-4124B1B3C134}\0 | DEVPKEY_Device_DriverDate=06/20/2006 20:00:00 | DEVPKEY_Device_DriverVersion=10.0.26100.4768 | DEVPKEY_Device_DriverInfPath=c_firmware.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}&REV_10002 UEFI\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}
+Intel CSME 18.1.18.2724 Cons_18 | UEFI\RES_{4A4946B5-8C16-4E10-AE80-EABB7E38D3D1}\0 | DEVPKEY_Device_DriverDate=12/15/2025 19:00:00 | DEVPKEY_Device_DriverVersion=18.1.18.2724 | DEVPKEY_Device_DriverInfPath=oem399.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{4a4946b5-8c16-4e10-ae80-eabb7e38d3d1}&REV_1120AA4 UEFI\RES_{4a4946b5-8c16-4e10-ae80-eabb7e38d3d1}
+Device Firmware | UEFI\RES_{0FF0C92E-E5E8-45FA-8341-319D20B7F57B}\0 | DEVPKEY_Device_DriverDate=06/20/2006 20:00:00 | DEVPKEY_Device_DriverVersion=10.0.26100.4768 | DEVPKEY_Device_DriverInfPath=c_firmware.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{0ff0c92e-e5e8-45fa-8341-319d20b7f57b}&REV_7020400 UEFI\RES_{0ff0c92e-e5e8-45fa-8341-319d20b7f57b}
+Device Firmware | UEFI\RES_{A09D98B8-E3E0-46A2-A48A-C1E6A64BD9CE}\0 | DEVPKEY_Device_DriverDate=06/20/2006 20:00:00 | DEVPKEY_Device_DriverVersion=10.0.26100.4768 | DEVPKEY_Device_DriverInfPath=c_firmware.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{a09d98b8-e3e0-46a2-a48a-c1e6a64bd9ce}&REV_40000 UEFI\RES_{a09d98b8-e3e0-46a2-a48a-c1e6a64bd9ce}
+Device Firmware | UEFI\RES_{86A885EE-D71E-2ED6-0FC1-9D6CCC9677EB}\0 | DEVPKEY_Device_DriverDate=06/20/2006 20:00:00 | DEVPKEY_Device_DriverVersion=10.0.26100.4768 | DEVPKEY_Device_DriverInfPath=c_firmware.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{86a885ee-d71e-2ed6-0fc1-9d6ccc9677eb}&REV_1 UEFI\RES_{86a885ee-d71e-2ed6-0fc1-9d6ccc9677eb}
+Intel CSME 18.0.15.2515 Cons_18 | UEFI\RES_{3E00E617-C8FF-4E88-8133-C3032089C5E7}\0 | DEVPKEY_Device_DriverDate=02/23/2025 19:00:00 | DEVPKEY_Device_DriverVersion=18.0.15.2515 | DEVPKEY_Device_DriverInfPath=oem98.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{3e00e617-c8ff-4e88-8133-c3032089c5e7}&REV_F09D3 UEFI\RES_{3e00e617-c8ff-4e88-8133-c3032089c5e7}
+Device Firmware | UEFI\RES_{0EB9BDA9-3010-493A-A6A8-B5E80EDDF870}\0 | DEVPKEY_Device_DriverDate=06/20/2006 20:00:00 | DEVPKEY_Device_DriverVersion=10.0.26100.4768 | DEVPKEY_Device_DriverInfPath=c_firmware.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{0eb9bda9-3010-493a-a6a8-b5e80eddf870}&REV_7020400 UEFI\RES_{0eb9bda9-3010-493a-a6a8-b5e80eddf870}
+Device Firmware | UEFI\RES_{680875A8-F49C-4528-BFA9-BB17B3DBA9F4}\0 | DEVPKEY_Device_DriverDate=06/20/2006 20:00:00 | DEVPKEY_Device_DriverVersion=10.0.26100.4768 | DEVPKEY_Device_DriverInfPath=c_firmware.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{680875a8-f49c-4528-bfa9-bb17b3dba9f4}&REV_1000005 UEFI\RES_{680875a8-f49c-4528-bfa9-bb17b3dba9f4}
+Device Firmware | UEFI\RES_{F4BA3171-B54E-4534-8F6F-9CBC4B93F96A}\0 | DEVPKEY_Device_DriverDate=06/20/2006 20:00:00 | DEVPKEY_Device_DriverVersion=10.0.26100.4768 | DEVPKEY_Device_DriverInfPath=c_firmware.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{f4ba3171-b54e-4534-8f6f-9cbc4b93f96a}&REV_1 UEFI\RES_{f4ba3171-b54e-4534-8f6f-9cbc4b93f96a}
+Camera Firmware | UEFI\RES_{AA55A7E9-96C3-4D3E-88E1-3B9FAC817786}\0 | DEVPKEY_Device_DriverDate=01/08/2025 19:00:00 | DEVPKEY_Device_DriverVersion=1.0.0.1 | DEVPKEY_Device_DriverInfPath=oem141.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{aa55a7e9-96c3-4d3e-88e1-3b9fac817786}&REV_1009 UEFI\RES_{aa55a7e9-96c3-4d3e-88e1-3b9fac817786}
+ThinkPad P1 Gen 7 System Firmware Version 1.19 | UEFI\RES_{361E26CE-012C-41FD-B887-3D4F924E602A}\0 | DEVPKEY_Device_DriverDate=12/29/2025 19:00:00 | DEVPKEY_Device_DriverVersion=1.19.0.0 | DEVPKEY_Device_DriverInfPath=oem183.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{361e26ce-012c-41fd-b887-3d4f924e602a}&REV_10014 UEFI\RES_{361e26ce-012c-41fd-b887-3d4f924e602a}
+Device Firmware | UEFI\RES_{51FBF029-5F1C-4160-AB18-3EED5619D5CA}\0 | DEVPKEY_Device_DriverDate=06/20/2006 20:00:00 | DEVPKEY_Device_DriverVersion=10.0.26100.4768 | DEVPKEY_Device_DriverInfPath=c_firmware.inf | DEVPKEY_Device_HardwareIds=UEFI\RES_{51fbf029-5f1c-4160-ab18-3eed5619d5ca}&REV_1 UEFI\RES_{51fbf029-5f1c-4160-ab18-3eed5619d5ca}
+
+## 7. System BIOS/UEFI version
+Manufacturer : LENOVO
+Name         : N48ET33W (1.20 )
+Version      : LENOVO - 10200
+SMBIOSVersion: N48ET33W (1.20 )
+ReleaseDate  : 03/01/2026 19:00:00
+
+# Done 2026-05-02T15:21:37.0877162-04:00

@@ -1,0 +1,515 @@
+# Touchpad/HID/I2C driver blocks
+Published Name :     oem161.inf
+Original Name:      e2f_ext.inf
+Provider Name:      Lenovo
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {20891346-231c-468e-906e-c7b1afbd17aa}
+Driver Version:     02/02/2022 1.0.0.7
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem279.inf
+Original Name:      epd.inf
+Provider Name:      ELAN
+Class Name:         Mouse
+Class GUID:         {4d36e96f-e325-11ce-bfc1-08002be10318}
+Driver Version:     08/05/2025 31.21.51.2
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem300.inf
+Original Name:      etdhsa.inf
+Provider Name:      ELAN
+Class Name:         HIDClass
+Class GUID:         {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Driver Version:     08/05/2025 31.21.51.2
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem347.inf
+Original Name:      etdhsa.inf
+Provider Name:      ELAN
+Class Name:         HIDClass
+Class GUID:         {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Driver Version:     03/18/2024 31.21.0.5
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem233.inf
+Original Name:      fn.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     11/13/2025 10.15.2511.2
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem127.inf
+Original Name:      fn.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     03/17/2026 10.17.2603.3
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem19.inf
+Original Name:      hdx_lenovoext_dolby_wrap36_nocapture.inf
+Provider Name:      Realtek Semiconductor Corp.
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {c3a63edd-2d27-4b66-b155-5e94b43d926a}
+Driver Version:     06/11/2024 6.0.9694.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem77.inf
+Original Name:      ialpss2_gpio2_mtl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     02/02/2024 30.100.2405.44
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem369.inf
+Original Name:      ialpss2_gpio2_mtl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/03/2025 30.100.2527.40
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem107.inf
+Original Name:      ialpss2_i2c_mtl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/03/2025 30.100.2527.40
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem312.inf
+Original Name:      ialpss2_i2c_mtl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     02/02/2024 30.100.2405.44
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem157.inf
+Original Name:      ialpss2_i3c_mtl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/03/2025 30.100.2527.40
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem190.inf
+Original Name:      ialpss2_spi_mtl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/03/2025 30.100.2527.40
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem368.inf
+Original Name:      ialpss2_uart2_mtl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/03/2025 30.100.2527.40
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem151.inf
+Original Name:      ibmpmdrv.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     02/16/2026 1.69.168.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem156.inf
+Original Name:      ibmpmdrv.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     10/27/2025 1.69.132.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem21.inf
+Original Name:      imdriver.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     11/23/2022 1.2.0.11
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem348.inf
+Original Name:      lenovodisplay_ext.inf
+Provider Name:      Lenovo
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {3b7cfe02-0de0-4a7b-b9e0-5744d4fea385}
+Driver Version:     11/17/2023 1.2.7.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem392.inf
+Original Name:      litsdrv.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     01/26/2026 3.1.1.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem349.inf
+Original Name:      litsdrv.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     02/29/2024 2.1.17.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem243.inf
+Original Name:      litsdrv.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     11/13/2024 3.0.68.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem54.inf
+Original Name:      lnvmepoptin.inf
+Provider Name:      Lenovo
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {b6ac5b56-400d-4ca3-b70d-a5ce7a11358d}
+Driver Version:     06/19/2024 1.0.16.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem376.inf
+Original Name:      lnvvsndmft.inf
+Provider Name:      Lenovo
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {eb4291e3-f6d1-45dd-9416-8e24c8b3807e}
+Driver Version:     02/04/2026 4.3.0.3
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem112.inf
+Original Name:      n48et.inf
+Provider Name:      Lenovo Ltd.
+Class Name:         Firmware
+Class GUID:         {f2e7dd72-6468-4e36-b6f1-6488f42c1b52}
+Driver Version:     10/29/2025 1.18.0.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem183.inf
+Original Name:      n48et.inf
+Provider Name:      Lenovo Ltd.
+Class Name:         Firmware
+Class GUID:         {f2e7dd72-6468-4e36-b6f1-6488f42c1b52}
+Driver Version:     12/30/2025 1.19.0.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem329.inf
+Original Name:      n48ht.inf
+Provider Name:      Lenovo Ltd.
+Class Name:         Firmware
+Class GUID:         {f2e7dd72-6468-4e36-b6f1-6488f42c1b52}
+Driver Version:     02/26/2025 1.12.0.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem154.inf
+Original Name:      powermgr.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     11/10/2025 10.2.4.1
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem128.inf
+Original Name:      powermgr.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     02/04/2026 10.2.4.15
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem155.inf
+Original Name:      powermgrextension.inf
+Provider Name:      Lenovo
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {0a548529-41e1-458c-9baf-c10fa17024ec}
+Driver Version:     12/02/2021 1.0.3.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem180.inf
+Original Name:      smartstandbycomponent.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     11/13/2025 4.3.13.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem315.inf
+Original Name:      smartstandbycomponent.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     05/09/2024 4.3.11.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem83.inf
+Original Name:      synasecurebioon.inf
+Provider Name:      Synaptics Incorporated
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {2214d2e3-8d90-490e-8cbb-f15bfa5db507}
+Driver Version:     02/25/2024 6.0.46.1136
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem387.inf
+Original Name:      synautilapp_ext.inf
+Provider Name:      Synaptics Incorporated
+Class Name:         Extension
+Class GUID:         {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Extension ID:       {549bb3bd-6a2c-499c-97f1-120ffb14d3e7}
+Driver Version:     02/02/2026 6.0.67.1136
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem32.inf
+Original Name:      udcdriver.inf
+Provider Name:      Lenovo
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     03/27/2026 26.3.0.13
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem63.inf
+Original Name:      epd_component.inf
+Provider Name:      ELAN Input Device
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     03/18/2024 31.21.0.6
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem281.inf
+Original Name:      epd_component.inf
+Provider Name:      ELAN Input Device
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     08/05/2025 31.21.51.2
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem65.inf
+Original Name:      ladm_scw.inf
+Provider Name:      Lenovo
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     09/03/2024 1.0.2.9031
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Legacy
+WHCP Version:       Unknown
+
+
+Published Name :     oem163.inf
+Original Name:      m14d.inf
+Provider Name:      Lenovo Inc.
+Class Name:         Monitor
+Class GUID:         {4d36e96e-e325-11ce-bfc1-08002be10318}
+Driver Version:     02/22/2022 1.0.0.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem119.inf
+Original Name:      synautilapp_cmp.inf
+Provider Name:      Synaptics Incorporated
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     09/22/2025 6.0.62.1136
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem242.inf
+Original Name:      synautilapp_cmp.inf
+Provider Name:      Synaptics Incorporated
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     02/02/2026 6.0.67.1136
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem398.inf
+Original Name:      synawudfbiousbuwp.inf
+Provider Name:      Synaptics Incorporated
+Class Name:         Biometric
+Class GUID:         {53d29ef7-377c-4d14-864b-eb3a85769359}
+Driver Version:     02/02/2026 6.0.67.1136
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem283.inf
+Original Name:      synawudfbiousbuwp.inf
+Provider Name:      Synaptics Incorporated
+Class Name:         Biometric
+Class GUID:         {53d29ef7-377c-4d14-864b-eb3a85769359}
+Driver Version:     09/22/2025 6.0.62.1136
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+
+
+Published Name :     oem205.inf
+Original Name:      tplcd.inf
+Provider Name:      Lenovo
+Class Name:         Monitor
+Class GUID:         {4d36e96e-e325-11ce-bfc1-08002be10318}
+Driver Version:     12/16/2025 6.14.29.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem78.inf
+Original Name:      tplcd.inf
+Provider Name:      Lenovo
+Class Name:         Monitor
+Class GUID:         {4d36e96e-e325-11ce-bfc1-08002be10318}
+Driver Version:     11/18/2025 6.14.28.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem48.inf
+Original Name:      udccomponent.inf
+Provider Name:      Lenovo
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     06/04/2025 1.0.0.9
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+
+Published Name :     oem360.inf
+Original Name:      udccomponent.inf
+Provider Name:      Lenovo
+Class Name:         SoftwareComponent
+Class GUID:         {5c4c3332-344d-483c-8739-259e934c9cc8}
+Driver Version:     06/03/2024 1.0.0.114
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+
+

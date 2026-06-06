@@ -1,0 +1,262 @@
+# Driver versions for touchpad/HID/I2C stack
+
+--- USB Input Device ---
+InstanceId: USB\VID_0BDA&PID_493B&MI_03\9&31215658&0&0003
+Service: HidUsb  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = USB Input Device
+
+--- HID-compliant mouse ---
+InstanceId: HID\SNSL002D&COL01\5&14B88203&0&0000
+Service: mouhid  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.1150
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = msmouse.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant mouse
+
+--- USB Input Device ---
+InstanceId: USB\VID_1532&PID_0F51&MI_01\E&11807DDE&0&0001
+Service: HidUsb  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = USB Input Device
+
+--- USB Input Device ---
+InstanceId: USB\VID_1050&PID_0407&MI_00\6&30359553&1&0000
+Service: HidUsb  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = USB Input Device
+
+--- HID Sensor Collection V2 ---
+InstanceId: HID\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\3&1A87E07D&0&0000
+Service: WUDFRd  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 04/20/2009 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = sensorshidclassdriver.inf
+  DEVPKEY_Device_DriverDesc = HID Sensor Collection V2
+
+--- Synaptics UWP WBDI ---
+InstanceId: USB\VID_06CB&PID_00F9\DDF5456187B0
+Service: WUDFRd  Status: OK
+  DEVPKEY_Device_DriverVersion = 6.0.67.1136
+  DEVPKEY_Device_DriverDate = 02/01/2026 19:00:00
+  DEVPKEY_Device_DriverProvider = Synaptics Incorporated
+  DEVPKEY_Device_DriverInfPath = oem398.inf
+  DEVPKEY_Device_DriverDesc = Synaptics UWP WBDI
+
+--- HID Keyboard Device ---
+InstanceId: HID\VID_1532&PID_0F51&MI_00\F&16638C4F&0&0000
+Service: kbdhid  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = keyboard.inf
+  DEVPKEY_Device_DriverDesc = HID Keyboard Device
+
+--- HID-compliant consumer control device ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL03\3&1933B186&0&0002
+Service:   Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.1
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = hidserv.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant consumer control device
+
+--- HID Sensor Collection V2 ---
+InstanceId: HID\VID_413C&PID_D001&COL02\8&3704C6&0&0001
+Service: WUDFRd  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 04/20/2009 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = sensorshidclassdriver.inf
+  DEVPKEY_Device_DriverDesc = HID Sensor Collection V2
+
+--- ETD HSA Device ---
+InstanceId: ETDHSA\VID_04F3&PID_0001\5&BDA4387&0&0002
+Service: etdhsa  Status: OK
+  DEVPKEY_Device_DriverVersion = 31.21.51.2
+  DEVPKEY_Device_DriverDate = 08/04/2025 20:00:00
+  DEVPKEY_Device_DriverProvider = ELAN
+  DEVPKEY_Device_DriverInfPath = oem300.inf
+  DEVPKEY_Device_DriverDesc = ETD HSA Device
+
+--- HID-compliant touch pad ---
+InstanceId: HID\SNSL002D&COL02\5&14B88203&0&0001
+Service:   Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant touch pad
+
+--- HID Keyboard Device ---
+InstanceId: HID\VID_1050&PID_0407&MI_00\7&83AE9D6&0&0000
+Service: kbdhid  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = keyboard.inf
+  DEVPKEY_Device_DriverDesc = HID Keyboard Device
+
+--- USB Input Device ---
+InstanceId: USB\VID_1050&PID_0407&MI_01\6&30359553&1&0001
+Service: HidUsb  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = USB Input Device
+
+--- HID-compliant system controller ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL04\3&1933B186&0&0003
+Service:   Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant system controller
+
+--- Microsoft Input Configuration Device ---
+InstanceId: HID\SNSL002D&COL03\5&14B88203&0&0002
+Service: MTConfig  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.1150
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = mtconfig.inf
+  DEVPKEY_Device_DriverDesc = Microsoft Input Configuration Device
+
+--- HID-compliant mouse ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL05\3&1933B186&0&0004
+Service: mouhid  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.1150
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = msmouse.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant mouse
+
+--- HID-compliant vendor-defined device ---
+InstanceId: HID\SNSL002D&COL04\5&14B88203&0&0003
+Service:   Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant vendor-defined device
+
+--- USB Input Device ---
+InstanceId: USB\VID_413C&PID_D001\8120181201
+Service: HidUsb  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = USB Input Device
+
+--- HID-compliant vendor-defined device ---
+InstanceId: HID\VID_0BDA&PID_1100\9&1F51688&0&0000
+Service:   Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant vendor-defined device
+
+--- HID Keyboard Device ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL01\3&1933B186&0&0000
+Service: kbdhid  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = keyboard.inf
+  DEVPKEY_Device_DriverDesc = HID Keyboard Device
+
+--- HID-compliant consumer control device ---
+InstanceId: HID\VID_0BDA&PID_493B&MI_03\A&7D0B9B2&0&0000
+Service:   Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.1
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = hidserv.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant consumer control device
+
+--- USB Input Device ---
+InstanceId: USB\VID_0BDA&PID_1100\8&30A63C84&1&3
+Service: HidUsb  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = USB Input Device
+
+--- I2C HID Device ---
+InstanceId: ACPI\SNSL002D\4&39979B3E&0
+Service: hidi2c  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = hidi2c.inf
+  DEVPKEY_Device_DriverDesc = I2C HID Device
+
+--- Dell Presence Sensor WB7022 HID-compliant vendor-defined device ---
+InstanceId: HID\VID_413C&PID_D001&COL01\8&3704C6&0&0000
+Service:   Status: OK
+  DEVPKEY_Device_DriverVersion = 2.2.0.0
+  DEVPKEY_Device_DriverDate = 12/02/2025 19:00:00
+  DEVPKEY_Device_DriverProvider = Dell Inc.
+  DEVPKEY_Device_DriverInfPath = oem239.inf
+  DEVPKEY_Device_DriverDesc = Dell Presence Sensor WB7022 HID-compliant vendor-defined device
+
+--- HID-compliant fido ---
+InstanceId: HID\VID_1050&PID_0407&MI_01\7&1FFE761B&0&0000
+Service:   Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.1
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = fidohid.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant fido
+
+--- USB Input Device ---
+InstanceId: USB\VID_FFFF&PID_BACE&REV_0002&MI_00\2&2CEE342A&1&0000
+Service: HidUsb  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = USB Input Device
+
+--- USB Input Device ---
+InstanceId: USB\VID_1532&PID_0F51&MI_00\E&11807DDE&0&0000
+Service: HidUsb  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = USB Input Device
+
+--- HID-compliant device ---
+InstanceId: HID\VID_1532&PID_0F51&MI_01\F&D73B173&0&0000
+Service:   Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverDesc = HID-compliant device
+
+--- HID Keyboard Device ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL02\3&1933B186&0&0001
+Service: kbdhid  Status: OK
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_DriverDate = 06/20/2006 20:00:00
+  DEVPKEY_Device_DriverProvider = Microsoft
+  DEVPKEY_Device_DriverInfPath = keyboard.inf
+  DEVPKEY_Device_DriverDesc = HID Keyboard Device

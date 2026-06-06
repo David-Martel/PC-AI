@@ -1,0 +1,46 @@
+# Recent system events for HID/I2C/PnP/WUDFHost/Power (last 7 days)
+
+=== Provider: Microsoft-Windows-Kernel-PnP (count=30) ===
+5/2/2026 2:12:22 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: INTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 | Status: 0xC0000365
+5/2/2026 2:12:19 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: LCI\IDDCX\1&36444bd7&0&WHO_CARE | Status: 0xC0000365
+5/2/2026 2:12:19 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\SYSTEM\0002 | Status: 0xC0000365
+5/2/2026 2:12:19 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\SYSTEM\0001 | Status: 0xC0000365
+5/2/2026 2:12:19 PM  Id=219  Lvl=Warning  The driver \Driver\WudfRd failed to load. | Device: ROOT\WPD\0000 | Status: 0xC0000365
+5/2/2026 2:12:18 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 | Status: 0xC0000365
+5/2/2026 2:12:11 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20 | Status: 0xC0000365
+5/2/2026 2:12:01 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\WINDOWSHELLOFACESOFTWAREDRIVER\0000 | Status: 0xC0000365
+5/2/2026 1:37:32 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: INTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 | Status: 0xC0000365
+5/2/2026 1:37:29 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: LCI\IDDCX\1&36444bd7&0&WHO_CARE | Status: 0xC0000365
+5/2/2026 1:37:29 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\SYSTEM\0002 | Status: 0xC0000365
+5/2/2026 1:37:29 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\SYSTEM\0001 | Status: 0xC0000365
+5/2/2026 1:37:29 PM  Id=219  Lvl=Warning  The driver \Driver\WudfRd failed to load. | Device: ROOT\WPD\0000 | Status: 0xC0000365
+5/2/2026 1:37:29 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 | Status: 0xC0000365
+5/2/2026 1:37:23 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20 | Status: 0xC0000365
+5/2/2026 1:37:15 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\WINDOWSHELLOFACESOFTWAREDRIVER\0000 | Status: 0xC0000365
+5/2/2026 1:25:54 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: INTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 | Status: 0xC0000365
+5/2/2026 1:25:51 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: LCI\IDDCX\1&36444bd7&0&WHO_CARE | Status: 0xC0000365
+5/2/2026 1:25:51 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\SYSTEM\0002 | Status: 0xC0000365
+5/2/2026 1:25:51 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\SYSTEM\0001 | Status: 0xC0000365
+5/2/2026 1:25:51 PM  Id=219  Lvl=Warning  The driver \Driver\WudfRd failed to load. | Device: ROOT\WPD\0000 | Status: 0xC0000365
+5/2/2026 1:25:51 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 | Status: 0xC0000365
+5/2/2026 1:25:47 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20 | Status: 0xC0000365
+5/2/2026 1:25:42 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\WINDOWSHELLOFACESOFTWAREDRIVER\0000 | Status: 0xC0000365
+5/2/2026 1:19:16 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: INTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 | Status: 0xC0000365
+5/2/2026 1:19:12 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: LCI\IDDCX\1&36444bd7&0&WHO_CARE | Status: 0xC0000365
+5/2/2026 1:19:12 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\SYSTEM\0002 | Status: 0xC0000365
+5/2/2026 1:19:12 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ROOT\SYSTEM\0001 | Status: 0xC0000365
+5/2/2026 1:19:12 PM  Id=219  Lvl=Warning  The driver \Driver\WudfRd failed to load. | Device: ROOT\WPD\0000 | Status: 0xC0000365
+5/2/2026 1:19:12 PM  Id=219  Lvl=Warning  The driver \Driver\WUDFRd failed to load. | Device: ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 | Status: 0xC0000365
+
+=== Provider: Microsoft-Windows-Kernel-Power (count=1) ===
+5/2/2026 1:25:42 PM  Id=41  Lvl=Critical  The system has rebooted without cleanly shutting down first. This error could be caused if the system stopped responding, crashed, or lost power unexpectedly.
+
+=== Provider: Microsoft-Windows-WUDFHost (no events or query failed) ===
+
+=== Provider: Microsoft-Windows-UserModeDriverFramework (no events or query failed) ===
+
+=== Provider: Microsoft-Windows-DeviceSetupManager (no events or query failed) ===
+
+=== Provider: Microsoft-Windows-DriverFrameworks-UserMode (no events or query failed) ===
+
+=== Provider: Microsoft-Windows-Power-Troubleshooter (no events or query failed) ===

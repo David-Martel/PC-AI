@@ -1,0 +1,427 @@
+# I2C / HID filter / power deep-dive 2026-05-02T15:13:58.5568693-04:00
+
+## 1. HID filter chain (UpperFilters/LowerFilters across HID stack)
+
+### HKLM:\SYSTEM\CurrentControlSet\Control\Class\{745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Class : HIDClass
+UpperFilters: 
+LowerFilters: 
+
+### HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e96f-e325-11ce-bfc1-08002be10318}
+Class : Mouse
+UpperFilters: mouclass
+LowerFilters: 
+
+### HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e978-e325-11ce-bfc1-08002be10318}
+Class : Ports
+UpperFilters: 
+LowerFilters: 
+
+### HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e97d-e325-11ce-bfc1-08002be10318}
+Class : System
+UpperFilters: 
+LowerFilters: 
+
+## 2. Touchpad device hierarchy (parent + siblings on same I2C bus)
+
+### HID-compliant mouse (HID\SNSL002D&COL01\5&14B88203&0&0000)
+  Status: OK / Class: Mouse / Service: mouhid
+  DEVPKEY_Device_Parent = ACPI\SNSL002D\4&39979b3e&0
+  DEVPKEY_Device_Children = 
+  DEVPKEY_Device_Siblings = HID\SNSL002D&Col02\5&14b88203&0&0001; HID\SNSL002D&Col03\5&14b88203&0&0002; HID\SNSL002D&Col04\5&14b88203&0&0003
+  DEVPKEY_Device_BusReportedDeviceDesc = 
+  DEVPKEY_Device_LocationInfo = 
+  DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+  DEVPKEY_Device_PowerRelations = 
+  DEVPKEY_Device_DriverInfPath = msmouse.inf
+  DEVPKEY_Device_DriverVersion = 10.0.26100.1150
+  DEVPKEY_Device_Service = mouhid
+
+### Intel(R) Serial IO I2C Host Controller - 7E78 (PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8)
+  Status: OK / Class: System / Service: iaLPSS2_I2C_MTL
+  DEVPKEY_Device_Parent = ACPI\PNP0A08\0
+  DEVPKEY_Device_Children = ACPI\SNSL002D\4&39979b3e&0
+  DEVPKEY_Device_Siblings = PCI\VEN_8086&DEV_7D01&SUBSYS_223417AA&REV_04\3&11583659&1&00; PCI\VEN_8086&DEV_7ECC&SUBSYS_223417AA&REV_10\3&11583659&1&08; PCI\VEN_8086&DEV_7D55&SUBSYS_223417AA&REV_08\3&11583659&1&10; PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20; PCI\VEN_8086&DEV_7E4D&SUBSYS_223417AA&REV_20\3&11583659&1&30; PCI\VEN_8086&DEV_7ECB&SUBSYS_223417AA&REV_10\3&11583659&1&32; PCI\VEN_8086&DEV_7EC4&SUBSYS_223417AA&REV_02\3&11583659&1&38; PCI\VEN_8086&DEV_7EC5&SUBSYS_223417AA&REV_02\3&11583659&1&39; PCI\VEN_8086&DEV_7E4C&SUBSYS_223417AA&REV_20\3&11583659&1&40; PCI\VEN_8086&DEV_7D0D&SUBSYS_223417AA&REV_01\3&11583659&1&50; PCI\VEN_8086&DEV_7D1D&SUBSYS_223417AA&REV_04\3&11583659&1&58; PCI\VEN_8086&DEV_7EC0&SUBSYS_223417AA&REV_02\3&11583659&1&68; PCI\VEN_8086&DEV_7EC2&SUBSYS_223417AA&REV_02&USB4_MS_CM\3&11583659&1&6A; PCI\VEN_8086&DEV_7E7D&SUBSYS_223417AA&REV_20\3&11583659&1&A0; PCI\VEN_8086&DEV_7E7F&SUBSYS_223417AA&REV_20\3&11583659&1&A2; PCI\VEN_8086&DEV_7E70&SUBSYS_223417AA&REV_20\3&11583659&1&B0; PCI\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\3&11583659&1&C8; PCI\VEN_8086&DEV_7E38&SUBSYS_223417AA&REV_20\3&11583659&1&E0; PCI\VEN_8086&DEV_7E3F&SUBSYS_223417AA&REV_20\3&11583659&1&E7; PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8; PCI\VEN_8086&DEV_7E28&SUBSYS_223417AA&REV_20\3&11583659&1&FB; PCI\VEN_8086&DEV_7E22&SUBSYS_223417AA&REV_20\3&11583659&1&FC; PCI\VEN_8086&DEV_7E23&SUBSYS_223417AA&REV_20\3&11583659&1&FD; ACPI\ACPI000E\3&11583659&1; ACPI\PNP0C02\1
+  DEVPKEY_Device_BusReportedDeviceDesc = PCI Device
+  DEVPKEY_Device_LocationInfo = PCI bus 0, device 21, function 0
+  DEVPKEY_Device_PowerData = 56; 0; 0; 0; 4; 0; 0; 0; 9; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 0; 0; 0; 0
+  DEVPKEY_Device_PowerRelations = 
+  DEVPKEY_Device_DriverInfPath = oem107.inf
+  DEVPKEY_Device_DriverVersion = 30.100.2527.40
+  DEVPKEY_Device_Service = iaLPSS2_I2C_MTL
+
+### ETD HSA Device (ETDHSA\VID_04F3&PID_0001\5&BDA4387&0&0002)
+  Status: OK / Class: HIDClass / Service: etdhsa
+  DEVPKEY_Device_Parent = ACPI\LEN032A\4&76d3d92&0
+  DEVPKEY_Device_Children = 
+  DEVPKEY_Device_Siblings = SWD\DRIVERENUM\EPD_component&5&bda4387&0
+  DEVPKEY_Device_BusReportedDeviceDesc = ELAN HSA Device
+  DEVPKEY_Device_LocationInfo = mouse port
+  DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 9; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 0; 0; 0; 0
+  DEVPKEY_Device_PowerRelations = 
+  DEVPKEY_Device_DriverInfPath = oem300.inf
+  DEVPKEY_Device_DriverVersion = 31.21.51.2
+  DEVPKEY_Device_Service = etdhsa
+
+### Intel(R) Serial IO I2C Host Controller - 7E50 (PCI\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\3&11583659&1&C8)
+  Status: OK / Class: System / Service: iaLPSS2_I2C_MTL
+  DEVPKEY_Device_Parent = ACPI\PNP0A08\0
+  DEVPKEY_Device_Children = ACPI\TIAS2781\0
+  DEVPKEY_Device_Siblings = PCI\VEN_8086&DEV_7D01&SUBSYS_223417AA&REV_04\3&11583659&1&00; PCI\VEN_8086&DEV_7ECC&SUBSYS_223417AA&REV_10\3&11583659&1&08; PCI\VEN_8086&DEV_7D55&SUBSYS_223417AA&REV_08\3&11583659&1&10; PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20; PCI\VEN_8086&DEV_7E4D&SUBSYS_223417AA&REV_20\3&11583659&1&30; PCI\VEN_8086&DEV_7ECB&SUBSYS_223417AA&REV_10\3&11583659&1&32; PCI\VEN_8086&DEV_7EC4&SUBSYS_223417AA&REV_02\3&11583659&1&38; PCI\VEN_8086&DEV_7EC5&SUBSYS_223417AA&REV_02\3&11583659&1&39; PCI\VEN_8086&DEV_7E4C&SUBSYS_223417AA&REV_20\3&11583659&1&40; PCI\VEN_8086&DEV_7D0D&SUBSYS_223417AA&REV_01\3&11583659&1&50; PCI\VEN_8086&DEV_7D1D&SUBSYS_223417AA&REV_04\3&11583659&1&58; PCI\VEN_8086&DEV_7EC0&SUBSYS_223417AA&REV_02\3&11583659&1&68; PCI\VEN_8086&DEV_7EC2&SUBSYS_223417AA&REV_02&USB4_MS_CM\3&11583659&1&6A; PCI\VEN_8086&DEV_7E7D&SUBSYS_223417AA&REV_20\3&11583659&1&A0; PCI\VEN_8086&DEV_7E7F&SUBSYS_223417AA&REV_20\3&11583659&1&A2; PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8; PCI\VEN_8086&DEV_7E70&SUBSYS_223417AA&REV_20\3&11583659&1&B0; PCI\VEN_8086&DEV_7E38&SUBSYS_223417AA&REV_20\3&11583659&1&E0; PCI\VEN_8086&DEV_7E3F&SUBSYS_223417AA&REV_20\3&11583659&1&E7; PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8; PCI\VEN_8086&DEV_7E28&SUBSYS_223417AA&REV_20\3&11583659&1&FB; PCI\VEN_8086&DEV_7E22&SUBSYS_223417AA&REV_20\3&11583659&1&FC; PCI\VEN_8086&DEV_7E23&SUBSYS_223417AA&REV_20\3&11583659&1&FD; ACPI\ACPI000E\3&11583659&1; ACPI\PNP0C02\1
+  DEVPKEY_Device_BusReportedDeviceDesc = PCI Device
+  DEVPKEY_Device_LocationInfo = PCI bus 0, device 25, function 0
+  DEVPKEY_Device_PowerData = 56; 0; 0; 0; 4; 0; 0; 0; 9; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 0; 0; 0; 0
+  DEVPKEY_Device_PowerRelations = 
+  DEVPKEY_Device_DriverInfPath = oem107.inf
+  DEVPKEY_Device_DriverVersion = 30.100.2527.40
+  DEVPKEY_Device_Service = iaLPSS2_I2C_MTL
+
+### HID-compliant touch pad (HID\SNSL002D&COL02\5&14B88203&0&0001)
+  Status: OK / Class: HIDClass / Service: 
+  DEVPKEY_Device_Parent = ACPI\SNSL002D\4&39979b3e&0
+  DEVPKEY_Device_Children = 
+  DEVPKEY_Device_Siblings = HID\SNSL002D&Col01\5&14b88203&0&0000; HID\SNSL002D&Col03\5&14b88203&0&0002; HID\SNSL002D&Col04\5&14b88203&0&0003
+  DEVPKEY_Device_BusReportedDeviceDesc = 
+  DEVPKEY_Device_LocationInfo = 
+  DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+  DEVPKEY_Device_PowerRelations = 
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_Service = 
+
+### Microsoft Input Configuration Device (HID\SNSL002D&COL03\5&14B88203&0&0002)
+  Status: OK / Class: HIDClass / Service: MTConfig
+  DEVPKEY_Device_Parent = ACPI\SNSL002D\4&39979b3e&0
+  DEVPKEY_Device_Children = 
+  DEVPKEY_Device_Siblings = HID\SNSL002D&Col01\5&14b88203&0&0000; HID\SNSL002D&Col02\5&14b88203&0&0001; HID\SNSL002D&Col04\5&14b88203&0&0003
+  DEVPKEY_Device_BusReportedDeviceDesc = 
+  DEVPKEY_Device_LocationInfo = 
+  DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+  DEVPKEY_Device_PowerRelations = 
+  DEVPKEY_Device_DriverInfPath = mtconfig.inf
+  DEVPKEY_Device_DriverVersion = 10.0.26100.1150
+  DEVPKEY_Device_Service = MTConfig
+
+### Intel(R) Innovation Platform Framework Processor Participant (PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20)
+  Status: OK / Class: System / Service: ipf_cpu
+  DEVPKEY_Device_Parent = ACPI\PNP0A08\0
+  DEVPKEY_Device_Children = SWD\DRIVERENUM\IpfEfExtComponent&4&d3a5780&0; SWD\DRIVERENUM\{bc7814a1-a80e-44b3-87c6-652eac676387}#DttExtComponent&4&d3a5780&0
+  DEVPKEY_Device_Siblings = PCI\VEN_8086&DEV_7D01&SUBSYS_223417AA&REV_04\3&11583659&1&00; PCI\VEN_8086&DEV_7ECC&SUBSYS_223417AA&REV_10\3&11583659&1&08; PCI\VEN_8086&DEV_7D55&SUBSYS_223417AA&REV_08\3&11583659&1&10; PCI\VEN_8086&DEV_7E4D&SUBSYS_223417AA&REV_20\3&11583659&1&30; PCI\VEN_8086&DEV_7ECB&SUBSYS_223417AA&REV_10\3&11583659&1&32; PCI\VEN_8086&DEV_7EC4&SUBSYS_223417AA&REV_02\3&11583659&1&38; PCI\VEN_8086&DEV_7EC5&SUBSYS_223417AA&REV_02\3&11583659&1&39; PCI\VEN_8086&DEV_7E4C&SUBSYS_223417AA&REV_20\3&11583659&1&40; PCI\VEN_8086&DEV_7D0D&SUBSYS_223417AA&REV_01\3&11583659&1&50; PCI\VEN_8086&DEV_7D1D&SUBSYS_223417AA&REV_04\3&11583659&1&58; PCI\VEN_8086&DEV_7EC0&SUBSYS_223417AA&REV_02\3&11583659&1&68; PCI\VEN_8086&DEV_7EC2&SUBSYS_223417AA&REV_02&USB4_MS_CM\3&11583659&1&6A; PCI\VEN_8086&DEV_7E7D&SUBSYS_223417AA&REV_20\3&11583659&1&A0; PCI\VEN_8086&DEV_7E7F&SUBSYS_223417AA&REV_20\3&11583659&1&A2; PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8; PCI\VEN_8086&DEV_7E70&SUBSYS_223417AA&REV_20\3&11583659&1&B0; PCI\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\3&11583659&1&C8; PCI\VEN_8086&DEV_7E38&SUBSYS_223417AA&REV_20\3&11583659&1&E0; PCI\VEN_8086&DEV_7E3F&SUBSYS_223417AA&REV_20\3&11583659&1&E7; PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8; PCI\VEN_8086&DEV_7E28&SUBSYS_223417AA&REV_20\3&11583659&1&FB; PCI\VEN_8086&DEV_7E22&SUBSYS_223417AA&REV_20\3&11583659&1&FC; PCI\VEN_8086&DEV_7E23&SUBSYS_223417AA&REV_20\3&11583659&1&FD; ACPI\ACPI000E\3&11583659&1; ACPI\PNP0C02\1
+  DEVPKEY_Device_BusReportedDeviceDesc = PCI Data Acquisition and Signal Processing Controller
+  DEVPKEY_Device_LocationInfo = PCI bus 0, device 4, function 0
+  DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 9; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 0; 0; 0; 0
+  DEVPKEY_Device_PowerRelations = 
+  DEVPKEY_Device_DriverInfPath = oem259.inf
+  DEVPKEY_Device_DriverVersion = 2.3.20200.4422
+  DEVPKEY_Device_Service = ipf_cpu
+
+### HID-compliant vendor-defined device (HID\SNSL002D&COL04\5&14B88203&0&0003)
+  Status: OK / Class: HIDClass / Service: 
+  DEVPKEY_Device_Parent = ACPI\SNSL002D\4&39979b3e&0
+  DEVPKEY_Device_Children = 
+  DEVPKEY_Device_Siblings = HID\SNSL002D&Col01\5&14b88203&0&0000; HID\SNSL002D&Col02\5&14b88203&0&0001; HID\SNSL002D&Col03\5&14b88203&0&0002
+  DEVPKEY_Device_BusReportedDeviceDesc = 
+  DEVPKEY_Device_LocationInfo = 
+  DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+  DEVPKEY_Device_PowerRelations = 
+  DEVPKEY_Device_DriverInfPath = input.inf
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_Service = 
+
+### I2C HID Device (ACPI\SNSL002D\4&39979B3E&0)
+  Status: OK / Class: HIDClass / Service: hidi2c
+  DEVPKEY_Device_Parent = PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+  DEVPKEY_Device_Children = HID\SNSL002D&Col01\5&14b88203&0&0000; HID\SNSL002D&Col02\5&14b88203&0&0001; HID\SNSL002D&Col03\5&14b88203&0&0002; HID\SNSL002D&Col04\5&14b88203&0&0003
+  DEVPKEY_Device_Siblings = 
+  DEVPKEY_Device_BusReportedDeviceDesc = 
+  DEVPKEY_Device_LocationInfo = 
+  DEVPKEY_Device_PowerData = 56; 0; 0; 0; 1; 0; 0; 0; 153; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 4; 0; 0; 0; 4; 0; 0; 0; 1; 0; 0; 0
+  DEVPKEY_Device_PowerRelations = 
+  DEVPKEY_Device_DriverInfPath = hidi2c.inf
+  DEVPKEY_Device_DriverVersion = 10.0.26100.8328
+  DEVPKEY_Device_Service = hidi2c
+
+## 3. Power management settings (selective suspend / D-state)
+
+### ACPI\SNSL002D\4&39979B3E&0
+  Service        : hidi2c
+  Driver         : {745a17a0-74d3-11d0-b6fe-00a0c90f57da}\0002
+  ConfigFlags    : 0
+  CapabilityFlags: 
+  Device Parameters:
+    DeviceResetNotificationEnabled = 1
+    EnhancedPowerManagementEnabled = 1
+    LegacyTouchScaling = 0
+    FirmwareIdentified = 1
+
+### HID\SNSL002D&COL01\5&14B88203&0&0000
+  Service        : mouhid
+  Driver         : {4d36e96f-e325-11ce-bfc1-08002be10318}\0001
+  ConfigFlags    : 0
+  CapabilityFlags: 
+  Device Parameters:
+    FlipFlopHScroll = 0
+    FlipFlopWheel = 0
+    ForceAbsolute = 0
+    HScrollHighResolutionDisable = 0
+    HScrollPageOverride = 0
+    HScrollUsageOverride = 0
+    VScrollHighResolutionDisable = 0
+    VScrollPageOverride = 0
+    VScrollUsageOverride = 0
+
+### HID\SNSL002D&COL02\5&14B88203&0&0001
+  Service        : 
+  Driver         : {745a17a0-74d3-11d0-b6fe-00a0c90f57da}\0003
+  ConfigFlags    : 0
+  CapabilityFlags: 
+  Device Parameters:
+
+### HID\SNSL002D&COL03\5&14B88203&0&0002
+  Service        : MTConfig
+  Driver         : {745a17a0-74d3-11d0-b6fe-00a0c90f57da}\0004
+  ConfigFlags    : 0
+  CapabilityFlags: 
+  Device Parameters:
+
+### HID\SNSL002D&COL04\5&14B88203&0&0003
+  Service        : 
+  Driver         : {745a17a0-74d3-11d0-b6fe-00a0c90f57da}\0005
+  ConfigFlags    : 0
+  CapabilityFlags: 
+  Device Parameters:
+
+## 4. I2C Host Controller power settings
+
+### PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+
+### PCI\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\3&11583659&1&C8
+
+## 5. Available I2C / HID / WUDF analytic-debug log channels (often disabled)
+
+LogName                                                                        IsEnabled RecordCount
+-------                                                                        --------- -----------
+Microsoft-Windows-DeviceManagement-Enterprise-Diagnostics-Provider/Admin            True        1203
+Microsoft-Windows-DeviceManagement-Enterprise-Diagnostics-Provider/Autopilot        True           0
+Microsoft-Windows-DeviceManagement-Enterprise-Diagnostics-Provider/Enrollment       True        1952
+Microsoft-Windows-DeviceManagement-Enterprise-Diagnostics-Provider/Operational      True        1216
+Microsoft-Windows-DeviceManagement-Enterprise-Diagnostics-Provider/Sync             True        1479
+Microsoft-Windows-DeviceSetupManager/Admin                                          True        2167
+Microsoft-Windows-DeviceSetupManager/Operational                                    True         325
+Microsoft-Windows-DriverFrameworks-UserMode/Operational                            False            
+
+
+
+## 6. UserModeDriverFramework Operational/Analytic events last 4h, filter HID/I2C/touch
+
+### Microsoft-Windows-Kernel-PnP (26 relevant)
+05/02/2026 14:12:41 [Id 906 Lvl Warning] A long running thread for device add routine was detected. The thread has been running for 3000 milliseconds.
+05/02/2026 14:12:22 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 14:12:19 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 14:12:19 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 14:12:19 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 14:12:19 [Id 219 Lvl Warning] The driver \Driver\WudfRd failed to load.
+05/02/2026 14:12:18 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 14:12:11 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 14:12:01 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:37:32 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:37:29 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:37:29 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:37:29 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:37:29 [Id 219 Lvl Warning] The driver \Driver\WudfRd failed to load.
+05/02/2026 13:37:29 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:37:23 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:37:15 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:26:13 [Id 906 Lvl Warning] A long running thread for device add routine was detected. The thread has been running for 3000 milliseconds.
+05/02/2026 13:25:54 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:25:51 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:25:51 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:25:51 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:25:51 [Id 219 Lvl Warning] The driver \Driver\WudfRd failed to load.
+05/02/2026 13:25:51 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:25:47 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:25:42 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+
+## 7. Reliability Monitor entries last 7d (top failures)
+(no touchpad/HID-related reliability events in last 7d)
+
+## 8. ALL events mentioning SNSL/Sensel/hidi2c/iaLPSS in last 24h (any log)
+Total hits: 1
+05/02/2026 13:33:15 [Microsoft-Windows-Kernel-PnP/Configuration] [400/Information] Device UEFI\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}\0 was configured. | 
+
+## 9. EnhancedPowerManagementEnabled across HID stack
+ACPI\SNSL002D\4&39979B3E&0 : EnhancedPowerManagementEnabled = 1
+HID\SNSL002D&COL01\5&14B88203&0&0000 : (no EnhancedPowerManagementEnabled value set - inheriting default)
+HID\SNSL002D&COL02\5&14B88203&0&0001 : (no EnhancedPowerManagementEnabled value set - inheriting default)
+HID\SNSL002D&COL03\5&14B88203&0&0002 : (no EnhancedPowerManagementEnabled value set - inheriting default)
+HID\SNSL002D&COL04\5&14B88203&0&0003 : (no EnhancedPowerManagementEnabled value set - inheriting default)
+
+## 10. Kernel-IO + Storage events last 24h, filter to common I2C/HID timing/transfer issues
+(none)
+
+## 11. SmbCls / I2C bus filter / Synaptics SmiProDrv presence
+
+Driver     OriginalFileName
+------     ----------------                                                                                             
+oem1.inf   C:\Windows\System32\DriverStore\FileRepository\intcsdwbus.inf_amd64_4c54c2efd8e56be7\intcsdwbus.inf
+oem102.inf C:\Windows\System32\DriverStore\FileRepository\intcsdwbus.inf_amd64_9402afdff7b7d74c\intcsdwbus.inf
+oem107.inf C:\Windows\System32\DriverStore\FileRepository\ialpss2_i2c_mtl.inf_amd64_5a68757fc3557794\ialpss2_i2c_mtl.inf
+oem11.inf  C:\Windows\System32\DriverStore\FileRepository\intcoed.inf_amd64_3f27c0e4d2852503\intcoed.inf
+oem111.inf C:\Windows\System32\DriverStore\FileRepository\meteorlakesystem.inf_amd64_ff69daa6884130e3\meteorlakesystem.i
+           nf
+oem12.inf  C:\Windows\System32\DriverStore\FileRepository\wachidrouterisdu.inf_amd64_350acc223b8e5caf\wachidrouterisdu.i
+           nf
+oem121.inf C:\Windows\System32\DriverStore\FileRepository\heci.inf_amd64_8aa2a580e0a96b6f\heci.inf
+oem125.inf C:\Windows\System32\DriverStore\FileRepository\heci.inf_amd64_ff1c3fc1da89f4ca\heci.inf
+oem127.inf C:\Windows\System32\DriverStore\FileRepository\fn.inf_amd64_8e91a39d67d49dc4\fn.inf
+oem128.inf C:\Windows\System32\DriverStore\FileRepository\powermgr.inf_amd64_dbd148612f40377d\powermgr.inf
+oem129.inf C:\Windows\System32\DriverStore\FileRepository\intcoed.inf_amd64_f8547c7aab9bf5a3\intcoed.inf
+oem139.inf C:\Windows\System32\DriverStore\FileRepository\dpmdriver.inf_amd64_7ad3ee1bc9d7141b\dpmdriver.inf
+oem142.inf C:\Windows\System32\DriverStore\FileRepository\intelacm_mtl_pw_1.19.24.0.inf_amd64_77118be1296d577d\intelacm_
+           mtl_pw_1.19.24.0.inf
+oem143.inf C:\Windows\System32\DriverStore\FileRepository\lci_proxywddm.inf_amd64_a909cab09ba387b1\lci_proxywddm.inf
+oem151.inf C:\Windows\System32\DriverStore\FileRepository\ibmpmdrv.inf_amd64_317aadafb86018c3\ibmpmdrv.inf
+oem154.inf C:\Windows\System32\DriverStore\FileRepository\powermgr.inf_amd64_d8cf0072d22196fc\powermgr.inf
+oem156.inf C:\Windows\System32\DriverStore\FileRepository\ibmpmdrv.inf_amd64_ce00423f6224d769\ibmpmdrv.inf
+oem157.inf C:\Windows\System32\DriverStore\FileRepository\ialpss2_i3c_mtl.inf_amd64_2e6dcf2b7d056d5f\ialpss2_i3c_mtl.inf
+oem159.inf C:\Windows\System32\DriverStore\FileRepository\ipf_cpu.inf_amd64_049e38a37c46edc4\ipf_cpu.inf
+oem180.inf C:\Windows\System32\DriverStore\FileRepository\smartstandbycomponent.inf_amd64_3d585c065d8f0236\smartstandbyc
+           omponent.inf
+oem190.inf C:\Windows\System32\DriverStore\FileRepository\ialpss2_spi_mtl.inf_amd64_6642fd3ab134e7f0\ialpss2_spi_mtl.inf
+oem196.inf C:\Windows\System32\DriverStore\FileRepository\elliptichpd.inf_amd64_6e442439d4224041\elliptichpd.inf
+oem21.inf  C:\Windows\System32\DriverStore\FileRepository\imdriver.inf_amd64_72fec7b52e0fa5bb\imdriver.inf
+oem233.inf C:\Windows\System32\DriverStore\FileRepository\fn.inf_amd64_4ad9b0573b01a792\fn.inf
+oem239.inf C:\Windows\System32\DriverStore\FileRepository\dpmautoinstalldriver.inf_amd64_412d7d28a0358c95\dpmautoinstall
+           driver.inf
+oem243.inf C:\Windows\System32\DriverStore\FileRepository\litsdrv.inf_amd64_d33ff97599ab13ea\litsdrv.inf
+oem244.inf C:\Windows\System32\DriverStore\FileRepository\dpmautoinstalldriver.inf_amd64_67a67054b9a6bcfe\dpmautoinstall
+           driver.inf
+oem246.inf C:\Windows\System32\DriverStore\FileRepository\meteorlakepch-ssystem.inf_amd64_533eaff1e6025468\meteorlakepch
+           -ssystem.inf
+oem259.inf C:\Windows\System32\DriverStore\FileRepository\ipf_cpu.inf_amd64_09022c71eac15532\ipf_cpu.inf
+oem260.inf C:\Windows\System32\DriverStore\FileRepository\detectionverificationdrv.inf_amd64_d3f665e4d11fc4b8\detectionv
+           erificationdrv.inf
+oem265.inf C:\Windows\System32\DriverStore\FileRepository\cordhid.inf_amd64_08e897dc28443f55\cordhid.inf
+oem279.inf C:\Windows\System32\DriverStore\FileRepository\epd.inf_amd64_7db5b1e3d78d953a\epd.inf
+oem282.inf C:\Windows\System32\DriverStore\FileRepository\ipf_acpi.inf_amd64_d8fafa4e2f98ceba\ipf_acpi.inf
+oem284.inf C:\Windows\System32\DriverStore\FileRepository\briostubdriver.inf_amd64_269ae79e30458f4d\briostubdriver.inf
+oem286.inf C:\Windows\System32\DriverStore\FileRepository\ipf_acpi.inf_amd64_e86356c582100a57\ipf_acpi.inf
+oem297.inf C:\Windows\System32\DriverStore\FileRepository\unifhid.inf_amd64_ba680b8596be64e8\unifhid.inf
+oem298.inf C:\Windows\System32\DriverStore\FileRepository\ipf_acpi.inf_amd64_c6eee0207705bc06\ipf_acpi.inf
+oem300.inf C:\Windows\System32\DriverStore\FileRepository\etdhsa.inf_amd64_1f7d050043b94532\etdhsa.inf
+oem302.inf C:\Windows\System32\DriverStore\FileRepository\sensorssimulatordriver.inf_amd64_6d5e6cd20d5b7cdd\sensorssimul
+           atordriver.inf
+oem312.inf C:\Windows\System32\DriverStore\FileRepository\ialpss2_i2c_mtl.inf_amd64_ebe13cc3b9ecef7d\ialpss2_i2c_mtl.inf
+oem315.inf C:\Windows\System32\DriverStore\FileRepository\smartstandbycomponent.inf_amd64_443332a5152da4f0\smartstandbyc
+           omponent.inf
+oem319.inf C:\Windows\System32\DriverStore\FileRepository\intcaudiobus.inf_amd64_0a2c92f963b79d49\intcaudiobus.inf
+oem32.inf  C:\Windows\System32\DriverStore\FileRepository\udcdriver.inf_amd64_796fbddcf707a9cb\udcdriver.inf
+oem322.inf C:\Windows\System32\DriverStore\FileRepository\bomebus.inf_amd64_ad57aa78b6963f19\bomebus.inf
+oem333.inf C:\Windows\System32\DriverStore\FileRepository\gna.inf_amd64_8e2f374849f1eba9\gna.inf
+oem347.inf C:\Windows\System32\DriverStore\FileRepository\etdhsa.inf_amd64_2a45ba690facdba0\etdhsa.inf
+oem349.inf C:\Windows\System32\DriverStore\FileRepository\litsdrv.inf_amd64_6bb86a76b7b08c46\litsdrv.inf
+oem368.inf C:\Windows\System32\DriverStore\FileRepository\ialpss2_uart2_mtl.inf_amd64_66a584e7eeddf08d\ialpss2_uart2_mtl
+           .inf
+oem369.inf C:\Windows\System32\DriverStore\FileRepository\ialpss2_gpio2_mtl.inf_amd64_c08e1077091ea765\ialpss2_gpio2_mtl
+           .inf
+oem38.inf  C:\Windows\System32\DriverStore\FileRepository\intcpmt.inf_amd64_7a61591fddff4def\intcpmt.inf
+oem389.inf C:\Windows\System32\DriverStore\FileRepository\heci.inf_amd64_247e4fef97a77e01\heci.inf
+oem392.inf C:\Windows\System32\DriverStore\FileRepository\litsdrv.inf_amd64_560d28789341653e\litsdrv.inf
+oem50.inf  C:\Windows\System32\DriverStore\FileRepository\logitechble.inf_amd64_27c62f22eccef20c\logitechble.inf
+oem72.inf  C:\Windows\System32\DriverStore\FileRepository\wachidrouterisdf.inf_amd64_b645bba290bcb1d2\wachidrouterisdf.i
+           nf
+oem77.inf  C:\Windows\System32\DriverStore\FileRepository\ialpss2_gpio2_mtl.inf_amd64_09c898ac0a6057e6\ialpss2_gpio2_mtl
+           .inf
+
+
+
+## 12. Current disk queue depth / latency (storport perf counters)
+
+Path                                                     CookedValue
+----                                                     -----------
+\\dtm-p1gen7\physicaldisk(0 t:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(1 c:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(2 d:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(3 k:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(4 w:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(5 f:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(6)\avg. disk queue length             0.00
+\\dtm-p1gen7\physicaldisk(_total)\avg. disk queue length        0.00
+\\dtm-p1gen7\physicaldisk(0 t:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(1 c:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(2 d:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(3 k:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(4 w:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(5 f:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(6)\avg. disk sec/read                 0.00
+\\dtm-p1gen7\physicaldisk(_total)\avg. disk sec/read            0.00
+\\dtm-p1gen7\physicaldisk(0 t:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(1 c:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(2 d:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(3 k:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(4 w:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(5 f:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(6)\avg. disk sec/write                0.00
+\\dtm-p1gen7\physicaldisk(_total)\avg. disk sec/write           0.00
+
+
+
+Path                                                     CookedValue
+----                                                     -----------
+\\dtm-p1gen7\physicaldisk(0 t:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(1 c:)\avg. disk queue length          0.01
+\\dtm-p1gen7\physicaldisk(2 d:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(3 k:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(4 w:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(5 f:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(6)\avg. disk queue length             0.00
+\\dtm-p1gen7\physicaldisk(_total)\avg. disk queue length        0.01
+\\dtm-p1gen7\physicaldisk(0 t:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(1 c:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(2 d:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(3 k:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(4 w:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(5 f:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(6)\avg. disk sec/read                 0.00
+\\dtm-p1gen7\physicaldisk(_total)\avg. disk sec/read            0.00
+\\dtm-p1gen7\physicaldisk(0 t:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(1 c:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(2 d:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(3 k:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(4 w:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(5 f:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(6)\avg. disk sec/write                0.00
+\\dtm-p1gen7\physicaldisk(_total)\avg. disk sec/write           0.00
+
+
+
+Path                                                     CookedValue
+----                                                     -----------
+\\dtm-p1gen7\physicaldisk(0 t:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(1 c:)\avg. disk queue length          0.02
+\\dtm-p1gen7\physicaldisk(2 d:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(3 k:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(4 w:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(5 f:)\avg. disk queue length          0.00
+\\dtm-p1gen7\physicaldisk(6)\avg. disk queue length             0.00
+\\dtm-p1gen7\physicaldisk(_total)\avg. disk queue length        0.02
+\\dtm-p1gen7\physicaldisk(0 t:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(1 c:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(2 d:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(3 k:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(4 w:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(5 f:)\avg. disk sec/read              0.00
+\\dtm-p1gen7\physicaldisk(6)\avg. disk sec/read                 0.00
+\\dtm-p1gen7\physicaldisk(_total)\avg. disk sec/read            0.00
+\\dtm-p1gen7\physicaldisk(0 t:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(1 c:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(2 d:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(3 k:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(4 w:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(5 f:)\avg. disk sec/write             0.00
+\\dtm-p1gen7\physicaldisk(6)\avg. disk sec/write                0.00
+\\dtm-p1gen7\physicaldisk(_total)\avg. disk sec/write           0.00
+
+
+
+# Done 2026-05-02T15:16:31.3026297-04:00

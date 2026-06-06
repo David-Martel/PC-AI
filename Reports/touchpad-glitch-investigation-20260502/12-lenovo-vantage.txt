@@ -1,0 +1,7 @@
+# Lenovo Vantage
+
+Name                  Status StartType DisplayName
+----                  ------ --------- -----------
+ImControllerService  Running Automatic System Interface Foundation Service
+LenovoVantageService Running Automatic Critical Service for Lenovo Vantage
+

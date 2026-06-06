@@ -1,0 +1,80 @@
+# Top processes right now
+
+## Top 25 by CPU time
+
+Name                                     Id     CPU  RAM_MB BasePriority Responding StartTime
+----                                     --     ---  ------ ------------ ---------- ---------
+WebManagement                         11804 1610.80   95.10            8       True 5/2/2026 2:12:35 PM
+OneDrive                               5100 1411.40  543.70            6       True 5/2/2026 2:16:04 PM
+System                                    4  587.20   57.30            8       True 5/2/2026 2:12:01 PM
+MsMpEng                               11768  566.00  534.80            8       True 5/2/2026 2:12:35 PM
+WmiPrvSE                               5208  406.00   65.70            8       True 5/2/2026 2:12:29 PM
+svchost                                2764  403.00   15.10            8       True 5/2/2026 2:12:28 PM
+RzDLLService_v1.0.26.0                45672  377.30  125.40            8       True 5/2/2026 2:18:01 PM
+GoogleDriveFS                         39476  299.40  242.50            6       True 5/2/2026 2:16:31 PM
+dwm                                    2260  238.30  681.90           10       True 5/2/2026 2:12:28 PM
+svchost                               41032  188.60 1769.30            8       True 5/2/2026 2:37:23 PM
+tailscaled                            18128  125.30   61.70            8       True 5/2/2026 2:12:39 PM
+explorer                              23904  114.50  553.10           10       True 5/2/2026 2:12:55 PM
+DDPM.Subagent.User                    31016   97.00  380.50            6       True 5/2/2026 2:14:21 PM
+Dell.TechHub.Instrumentation.SubAgent 39928   89.60  357.90            6       True 5/2/2026 2:14:01 PM
+DSAService                             6096   89.20  132.30            8       True 5/2/2026 2:12:30 PM
+svchost                                5988   87.40   26.80            8       True 5/2/2026 2:12:30 PM
+lsass                                  1992   84.10   53.70            9       True 5/2/2026 2:12:27 PM
+svchost                                3884   81.70   37.60            8       True 5/2/2026 2:12:29 PM
+MSPCManagerService                    11104   76.80  121.60            8       True 5/2/2026 2:12:35 PM
+PhoneExperienceHost                   25424   75.90  319.50            8       True 5/2/2026 2:13:04 PM
+PowerToys.PowerLauncher               35184   74.80  566.20            8       True 5/2/2026 2:13:19 PM
+msedgewebview2                         2940   69.30  103.20            8       True 5/2/2026 2:16:32 PM
+Microsoft.CmdPal.UI                   35448   67.50  281.30            8       True 5/2/2026 2:13:13 PM
+msedgewebview2                        34504   62.60  150.50           10       True 5/2/2026 2:16:32 PM
+svchost                                4912   55.80   63.40            8       True 5/2/2026 2:12:29 PM
+
+
+## Watched processes - input/shell/sync paths
+
+Name                          Id BasePriority Responding     CPU RAM_MB
+----                          -- ------------ ----------     --- ------
+dwm                         2260           10       True  238.30 681.90
+explorer                   23904           10       True  114.50 553.10
+sihost                     13528           10       True    5.30  54.30
+StartMenuExperienceHost    25564           10       True   10.70 213.60
+ShellExperienceHost        26712           10       True    1.20 119.20
+TextInputHost              30976           10       True    2.30 113.30
+ctfmon                     15796           10       True    1.70  33.00
+SynRpcServer               12000           10       True    0.00   6.10
+Lenovo.Modern.ImController  6276           10       True   17.50  62.40
+LenovoVantageService        6184            8       True   13.60  63.90
+OneDrive                    5100            6       True 1411.50 543.70
+OneDrive.Sync.Service      11540            6       True   31.10 214.80
+FileSyncHelper             30960            6       True    0.20  29.70
+GoogleDriveFS              19524            6       True    0.10  23.60
+GoogleDriveFS              39476            6       True  299.40 242.50
+redis-server               14560            6       True   42.80  20.60
+node                       22196            6       True    0.00  35.10
+node                       27812            6       True    0.70  73.80
+node                       46112            6       True    0.70  91.10
+node                       47392            6       True    0.00  44.30
+node                       47660            6       True    0.00  48.30
+node                       47800            6       True    5.70 133.20
+node                       48032            6       True    0.60  70.90
+node                       48460            6       True    1.00  89.60
+node                       49172            6       True    4.60 134.50
+node                       52132            6       True    0.00  35.20
+PresentMonService           9580            6       True    0.80  17.90
+NVDisplay.Container         4068            8       True    7.20  47.70
+NVDisplay.Container         7936            8       True   22.20 186.60
+WUDFHost                   11368            8       True    0.40  16.50
+WUDFHost                   11596            8       True    0.10  17.00
+WUDFHost                   12188            8       True    2.50  13.90
+WUDFHost                   13504            8       True    0.00  10.10
+WUDFHost                   13700            8       True    0.10   7.80
+WUDFHost                   13812           13       True    7.80  29.90
+WUDFHost                   13948            8       True    2.40  25.60
+WUDFHost                   15328            8       True    0.00   8.80
+WUDFHost                   15876            8       True    0.00   8.10
+WUDFHost                   16636            8       True    0.10   8.80
+WUDFHost                   17984            8       True    0.20  17.40
+WUDFHost                   19584            8       True    1.10  12.20
+WUDFHost                   20816           13       True    0.30  12.80
+

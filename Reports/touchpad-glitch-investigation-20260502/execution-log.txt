@@ -1,0 +1,42 @@
+===== EXECUTION RUN 2026-05-02T15:02:36.7868697-04:00 =====
+15:02:36.796 | Gate A: creating manual System Restore Point
+15:03:37.540 | Gate A: Checkpoint-Computer returned successfully
+15:04:27.207 | Gate A: top 5 RPs written to gateA-restorepoints.txt
+15:04:27.223 | Gate A: NEW RP confirmed - sequence=68 created=20260502190243.808495-000
+15:04:27.225 | Gate B: checking VSS / shadow storage / free space
+15:04:27.723 | Gate B: C: free=588 GB
+15:04:27.724 | Gate B: complete - see gateB-vss-feasibility.txt
+15:04:27.725 | Capturing rollback state for Step 2
+15:04:27.781 | Active power scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e
+15:04:27.813 | Power plan exported to C:\codedev\PC_AI\Reports\touchpad-glitch-investigation-20260502\powercfg-current-backup.pow
+15:04:28.411 | PL config backup: 20 files copied from C:\ProgramData\ProcessLasso to C:\codedev\PC_AI\Reports\touchpad-glitch-investigation-20260502\pl-config-backup
+15:04:28.412 | Step 2.3: switching to High Performance power plan
+15:04:28.469 | powercfg: 
+15:04:28.639 | Step 2.3 verify: Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance) 
+15:04:28.640 | Step 1 prep: capturing package list (for rollback documentation)
+15:04:31.041 | Step 1 prep: packages-pre-step1.txt written
+15:04:31.042 | Step 0: I2C HID disable/enable cycle
+15:04:33.165 | Step 0: target instance ACPI\SNSL002D\4&39979B3E&0
+15:04:33.165 | Step 0: disabling...
+15:04:33.244 | pnputil: Microsoft PnP Utility
+
+Disabling device:          ACPI\SNSL002D\4&39979b3e&0
+Device disabled successfully.
+
+
+15:04:41.250 | Step 0: enabling...
+15:04:41.367 | pnputil: Microsoft PnP Utility
+
+Enabling device:          ACPI\SNSL002D\4&39979b3e&0
+Device enabled successfully.
+
+
+15:04:46.160 | Step 0: post-cycle status = OK
+15:04:46.161 | Step 2.1: suspending OneDrive + GoogleDriveFS processes for diagnostic window
+15:04:46.204 | Step 2.1: noted OneDrive PID=5100 (CPU=2669.515625)
+15:04:46.216 | Step 2.1: noted GoogleDriveFS PID=19524 (CPU=0.0625)
+15:04:46.217 | Step 2.1: noted GoogleDriveFS PID=39476 (CPU=316.921875)
+15:04:46.229 | Step 2.1: noted OneDrive.Sync.Service PID=11540 (CPU=34.90625)
+15:04:46.239 | Step 2.1: noted FileSyncHelper PID=30960 (CPU=0.296875)
+15:04:46.345 | Step 2.1: suspended PIDs catalogued in sync-suspended-pids.txt (NOT actually suspended yet - confirm with user before suspending)
+15:04:46.346 | ===== EXECUTION COMPLETE - check execution-log.txt and individual gate files =====

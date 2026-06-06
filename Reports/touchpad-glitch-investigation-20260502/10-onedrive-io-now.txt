@@ -1,0 +1,42 @@
+# OneDrive / sync process IO right now
+
+Name                : OneDrive.exe
+ProcessId           : 5100
+WorkingSetSize      : 570118144
+ReadOperationCount  : 2091629
+WriteOperationCount : 990372
+ReadTransferCount   : 8556957965
+WriteTransferCount  : 459231686
+
+Name                : FileSyncHelper.exe
+ProcessId           : 30960
+WorkingSetSize      : 31121408
+ReadOperationCount  : 1557
+WriteOperationCount : 30
+ReadTransferCount   : 5483668
+WriteTransferCount  : 31737
+
+Name                : GoogleDriveFS.exe
+ProcessId           : 19524
+WorkingSetSize      : 24788992
+ReadOperationCount  : 11
+WriteOperationCount : 15
+ReadTransferCount   : 2200
+WriteTransferCount  : 3264
+
+Name                : GoogleDriveFS.exe
+ProcessId           : 39476
+WorkingSetSize      : 254308352
+ReadOperationCount  : 2540851
+WriteOperationCount : 19706
+ReadTransferCount   : 10398709427
+WriteTransferCount  : 35179838
+
+Name                : OneDrive.Sync.Service.exe
+ProcessId           : 11540
+WorkingSetSize      : 225263616
+ReadOperationCount  : 157330
+WriteOperationCount : 15321
+ReadTransferCount   : 641745329
+WriteTransferCount  : 42630055
+

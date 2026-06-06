@@ -1,0 +1,126 @@
+# Pre-plan verification checks (2026-05-02T14:50:21.7357799-04:00)
+
+## 14a: KB5083631 / recent KBs - removability check (dism Permanent flag)
+
+### Detailed: KB5083631
+
+## 14b: Existing restore points
+
+SequenceNumber CreationTime              Description               RestorePointType
+-------------- ------------              -----------               ----------------
+            64 20260414184252.596955-000 Windows Update                          17
+            65 20260421202634.253198-000 Scheduled Checkpoint                     7
+            66 20260428182410.843442-000 Windows Update                          17
+            67 20260430171601.554815-000 Intel® Software Installer                0
+
+
+
+## 14c: SystemRestorePointCreationFrequency (minutes between forced points)
+(unset - default 1440 minutes / 24h applies)
+Other SystemRestore settings:
+
+RPSessionInterval              : 1
+FirstRun                       : 0
+LastIndex                      : 67
+SRInitDone                     : 1
+LastMainenanceTaskRunTimeStamp : 134219735327265051
+PSPath                         : Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\SystemRestore
+PSParentPath                   : Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion
+PSChildName                    : SystemRestore
+PSDrive                        : HKLM
+PSProvider                     : Microsoft.PowerShell.Core\Registry
+
+
+
+## 14d: WUDFRd 219 events last 30d - filter to touchpad-relevant (ELAS/SNSL/hidi2c/iaLPSS2)
+Touchpad-relevant WUDFRd 219 events in last 30d: 12
+
+Count Name
+----- ----
+   12 The driver \Driver\WUDFRd failed to load.
+
+
+
+### Earliest 5 + latest 5 (to gauge chronicity)
+04/30/2026 21:36:12 | The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:45:20 | The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:55:33 | The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:59:03 | The driver \Driver\WUDFRd failed to load.
+05/01/2026 02:01:52 | The driver \Driver\WUDFRd failed to load.
+---
+05/02/2026 14:12:18 | The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:37:29 | The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:25:51 | The driver \Driver\WUDFRd failed to load.
+05/02/2026 13:19:12 | The driver \Driver\WUDFRd failed to load.
+05/02/2026 08:06:43 | The driver \Driver\WUDFRd failed to load.
+
+### Total WUDFRd 219 events in last 30d (any device)
+Total: 96
+
+## 14e: setupapi.dev.log entries around 5/1 update window (touchpad/HID/I2C related)
+(no 5/1-5/2 matches - searching most recent 5000 lines for relevant patterns)
+Relevant in last 5000 lines: 0
+
+## 14f: ETDHSA driver rollback chain (multiple versions in DriverStore)
+Published Name:     oem300.inf
+Original Name:      etdhsa.inf
+Provider Name:      ELAN
+Class Name:         HIDClass
+Class GUID:         {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Driver Version:     08/05/2025 31.21.51.2
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+---
+Published Name:     oem347.inf
+Original Name:      etdhsa.inf
+Provider Name:      ELAN
+Class Name:         HIDClass
+Class GUID:         {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Driver Version:     03/18/2024 31.21.0.5
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+---
+Published Name:     oem107.inf
+Original Name:      ialpss2_i2c_mtl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     07/03/2025 30.100.2527.40
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+---
+Published Name:     oem312.inf
+Original Name:      ialpss2_i2c_mtl.inf
+Provider Name:      Intel Corporation
+Class Name:         System
+Class GUID:         {4d36e97d-e325-11ce-bfc1-08002be10318}
+Driver Version:     02/02/2024 30.100.2405.44
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Universal
+WHCP Version:       Unknown
+---
+Published Name:     oem112.inf
+Original Name:      n48et.inf
+Provider Name:      Lenovo Ltd.
+Class Name:         Firmware
+Class GUID:         {f2e7dd72-6468-4e36-b6f1-6488f42c1b52}
+Driver Version:     10/29/2025 1.18.0.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+---
+Published Name:     oem183.inf
+Original Name:      n48et.inf
+Provider Name:      Lenovo Ltd.
+Class Name:         Firmware
+Class GUID:         {f2e7dd72-6468-4e36-b6f1-6488f42c1b52}
+Driver Version:     12/30/2025 1.19.0.0
+Signer Name:        Microsoft Windows Hardware Compatibility Publisher
+Attributes:         Declarative
+WHCP Version:       Unknown
+---
+
+# Done - 2026-05-02T14:50:27.1091985-04:00

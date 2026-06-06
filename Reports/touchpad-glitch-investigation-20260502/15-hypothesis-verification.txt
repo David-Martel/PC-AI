@@ -1,0 +1,288 @@
+# Hypothesis verification 2026-05-02T14:56:00.4054955-04:00
+
+## V1: I2C Host Controller — DriverDate / DriverVersion / DriverInfPath
+InstanceId: PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+Friendly  : Intel(R) Serial IO I2C Host Controller - 7E78
+Service   : iaLPSS2_I2C_MTL
+  DEVPKEY_Device_DriverDate: 07/02/2025 20:00:00
+  DEVPKEY_Device_DriverVersion: 30.100.2527.40
+  DEVPKEY_Device_DriverInfPath: oem107.inf
+  DEVPKEY_Device_DriverInfSection: iaLPSS2_I2C_MTL_Device.NT
+
+InstanceId: PCI\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\3&11583659&1&C8
+Friendly  : Intel(R) Serial IO I2C Host Controller - 7E50
+Service   : iaLPSS2_I2C_MTL
+  DEVPKEY_Device_DriverDate: 07/02/2025 20:00:00
+  DEVPKEY_Device_DriverVersion: 30.100.2527.40
+  DEVPKEY_Device_DriverInfPath: oem107.inf
+  DEVPKEY_Device_DriverInfSection: iaLPSS2_I2C_MTL_Device.NT
+
+
+## V2: WUDFRd 219 events last 7d — actual failing device IDs
+Total: 96 events
+
+### Per-event detail (TimeCreated | Status | Device)
+05/02/2026 14:12:22 | 0xINTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 | 3221226341
+05/02/2026 14:12:19 | 0xLCI\IDDCX\1&36444bd7&0&WHO_CARE | 3221226341
+05/02/2026 14:12:19 | 0xROOT\SYSTEM\0002 | 3221226341
+05/02/2026 14:12:19 | 0xROOT\SYSTEM\0001 | 3221226341
+05/02/2026 14:12:19 | 0xROOT\WPD\0000 | 3221226341
+05/02/2026 14:12:18 | 0xACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 | 3221226341
+05/02/2026 14:12:11 | 0xPCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20 | 3221226341
+05/02/2026 14:12:01 | 0xROOT\WINDOWSHELLOFACESOFTWAREDRIVER\0000 | 3221226341
+05/02/2026 13:37:32 | 0xINTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 | 3221226341
+05/02/2026 13:37:29 | 0xLCI\IDDCX\1&36444bd7&0&WHO_CARE | 3221226341
+05/02/2026 13:37:29 | 0xROOT\SYSTEM\0002 | 3221226341
+05/02/2026 13:37:29 | 0xROOT\SYSTEM\0001 | 3221226341
+05/02/2026 13:37:29 | 0xROOT\WPD\0000 | 3221226341
+05/02/2026 13:37:29 | 0xACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 | 3221226341
+05/02/2026 13:37:23 | 0xPCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20 | 3221226341
+05/02/2026 13:37:15 | 0xROOT\WINDOWSHELLOFACESOFTWAREDRIVER\0000 | 3221226341
+05/02/2026 13:25:54 | 0xINTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 | 3221226341
+05/02/2026 13:25:51 | 0xLCI\IDDCX\1&36444bd7&0&WHO_CARE | 3221226341
+05/02/2026 13:25:51 | 0xROOT\SYSTEM\0002 | 3221226341
+05/02/2026 13:25:51 | 0xROOT\SYSTEM\0001 | 3221226341
+05/02/2026 13:25:51 | 0xROOT\WPD\0000 | 3221226341
+05/02/2026 13:25:51 | 0xACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 | 3221226341
+05/02/2026 13:25:47 | 0xPCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20 | 3221226341
+05/02/2026 13:25:42 | 0xROOT\WINDOWSHELLOFACESOFTWAREDRIVER\0000 | 3221226341
+05/02/2026 13:19:16 | 0xINTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 | 3221226341
+05/02/2026 13:19:12 | 0xLCI\IDDCX\1&36444bd7&0&WHO_CARE | 3221226341
+05/02/2026 13:19:12 | 0xROOT\SYSTEM\0002 | 3221226341
+05/02/2026 13:19:12 | 0xROOT\SYSTEM\0001 | 3221226341
+05/02/2026 13:19:12 | 0xROOT\WPD\0000 | 3221226341
+05/02/2026 13:19:12 | 0xACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 | 3221226341
+
+### Group by device (count desc)
+
+Count Name
+----- ----
+   96 3221226341
+
+
+
+## V3: DeviceSetupManager Admin events last 7d (driver install/update activity)
+Events found: 1000
+04/28/2026 15:30:22 [112] Device container 'Steinberg UR44C' ({88446396-007e-11f1-84a5-6c2f808e809a}) has been serviced, processed 2 tasks, and wrote 35 properties in 776 ms.
+04/28/2026 15:30:22 [112] Device container 'dtm-p1gen7' ({4f404b2c-1b9b-4ce3-9309-fc2e6f4e1ec1}) has been serviced, processed 2 tasks, and wrote 35 properties in 776 ms.
+04/28/2026 15:30:22 [11] DSM service is idle and waiting for stop.
+04/28/2026 15:31:07 [101] DSM Service is shutting down. Service uptime was 46 seconds, active worktime was 975 ms.
+04/28/2026 15:31:07 [107] DSM service has shut down.
+04/28/2026 17:38:23 [100] DSM service started, mode is Normal, last session (or boot) was 7635 seconds ago.
+04/28/2026 17:38:23 [30] Device container {5912d25d-cb59-500b-aa85-f251566a97c1} is queued for setup.
+04/28/2026 17:38:23 [190] Property heuristics for device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) completed in 21 ms.
+04/28/2026 17:38:23 [112] Device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) has been serviced, processed 3 tasks, and wrote 35 properties in 61 ms.
+04/28/2026 17:38:23 [11] DSM service is idle and waiting for stop.
+04/28/2026 17:39:08 [101] DSM Service is shutting down. Service uptime was 45 seconds, active worktime was 62 ms.
+04/28/2026 17:39:08 [107] DSM service has shut down.
+04/28/2026 19:40:13 [100] DSM service started, mode is Normal, last session (or boot) was 33 seconds ago.
+04/28/2026 19:40:13 [30] Device container {cdca26d9-7018-5bf6-86ff-773b46196277} is queued for setup.
+04/28/2026 19:40:14 [112] Device container 'Speakers (SoundID Reference Virtual Audio Device)' ({cdca26d9-7018-5bf6-86ff-773b46196277}) has been serviced, processed 3 tasks, and wrote 0 properties in 37 ms.
+04/28/2026 19:40:14 [11] DSM service is idle and waiting for stop.
+04/28/2026 19:40:17 [30] Device container {5912d25d-cb59-500b-aa85-f251566a97c1} is queued for setup.
+04/28/2026 19:40:17 [190] Property heuristics for device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) completed in 28 ms.
+04/28/2026 19:40:17 [112] Device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) has been serviced, processed 4 tasks, and wrote 35 properties in 28 ms.
+04/28/2026 19:40:17 [11] DSM service is idle and waiting for stop.
+04/28/2026 19:40:27 [203] The Network List Manager reports connection to the internet has been established.
+04/28/2026 19:40:28 [30] Device container {00000000-0000-0000-ffff-ffffffffffff} is queued for setup.
+04/28/2026 19:40:29 [190] Property heuristics for device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) completed in 405 ms.
+04/28/2026 19:40:29 [130] Metadata package ec4d5fdd-aa12-400f-83e2-7b0ea6023eb7 was staged for device container {00000000-0000-0000-ffff-ffffffffffff} in 0 ms.
+04/28/2026 19:40:29 [112] Device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) has been serviced, processed 5 tasks, and wrote 98 properties in 552 ms.
+04/28/2026 19:40:29 [11] DSM service is idle and waiting for stop.
+04/28/2026 19:40:29 [203] The Network List Manager reports connection to the internet has been established.
+04/28/2026 19:40:30 [190] Property heuristics for device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) completed in 411 ms.
+04/28/2026 19:40:30 [130] Metadata package ec4d5fdd-aa12-400f-83e2-7b0ea6023eb7 was staged for device container {00000000-0000-0000-ffff-ffffffffffff} in 0 ms.
+04/28/2026 19:40:30 [112] Device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) has been serviced, processed 4 tasks, and wrote 98 properties in 493 ms.
+04/28/2026 19:40:30 [11] DSM service is idle and waiting for stop.
+04/28/2026 19:40:30 [190] Property heuristics for device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) completed in 373 ms.
+04/28/2026 19:40:30 [130] Metadata package ec4d5fdd-aa12-400f-83e2-7b0ea6023eb7 was staged for device container {00000000-0000-0000-ffff-ffffffffffff} in 0 ms.
+04/28/2026 19:40:30 [112] Device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) has been serviced, processed 4 tasks, and wrote 98 properties in 442 ms.
+04/28/2026 19:40:30 [11] DSM service is idle and waiting for stop.
+04/28/2026 19:40:44 [190] Property heuristics for device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) completed in 331 ms.
+04/28/2026 19:40:44 [190] Property heuristics for device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) completed in 318 ms.
+04/28/2026 19:40:44 [130] Metadata package ec4d5fdd-aa12-400f-83e2-7b0ea6023eb7 was staged for device container {00000000-0000-0000-ffff-ffffffffffff} in 0 ms.
+04/28/2026 19:40:44 [112] Device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) has been serviced, processed 9 tasks, and wrote 107 properties in 824 ms.
+04/28/2026 19:40:44 [11] DSM service is idle and waiting for stop.
+04/28/2026 19:41:29 [101] DSM Service is shutting down. Service uptime was 75 seconds, active worktime was 2399 ms.
+04/28/2026 19:41:29 [107] DSM service has shut down.
+04/28/2026 19:41:44 [100] DSM service started, mode is Normal, last session (or boot) was 14 seconds ago.
+04/28/2026 19:41:44 [30] Device container {5912d25d-cb59-500b-aa85-f251566a97c1} is queued for setup.
+04/28/2026 19:41:44 [190] Property heuristics for device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) completed in 22 ms.
+04/28/2026 19:41:44 [112] Device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) has been serviced, processed 5 tasks, and wrote 35 properties in 65 ms.
+04/28/2026 19:41:44 [11] DSM service is idle and waiting for stop.
+04/28/2026 19:41:50 [30] Device container {21646989-759d-5c8d-96f4-c8ccf63e8ee9} is queued for setup.
+04/28/2026 19:41:50 [190] Property heuristics for device container 'Pixel 10 Pro XL' ({21646989-759d-5c8d-96f4-c8ccf63e8ee9}) completed in 51 ms.
+04/28/2026 19:41:50 [112] Device container 'Pixel 10 Pro XL' ({21646989-759d-5c8d-96f4-c8ccf63e8ee9}) has been serviced, processed 5 tasks, and wrote 35 properties in 69 ms.
+04/28/2026 19:41:50 [11] DSM service is idle and waiting for stop.
+04/28/2026 19:42:35 [101] DSM Service is shutting down. Service uptime was 51 seconds, active worktime was 138 ms.
+04/28/2026 19:42:35 [107] DSM service has shut down.
+04/28/2026 19:46:15 [100] DSM service started, mode is Normal, last session (or boot) was 220 seconds ago.
+04/28/2026 19:46:15 [30] Device container {e0f7b565-0fab-5ba8-9b48-1e7cdfb2d671} is queued for setup.
+04/28/2026 19:46:15 [112] Device container 'Speakers (NVIDIA Broadcast)' ({e0f7b565-0fab-5ba8-9b48-1e7cdfb2d671}) has been serviced, processed 3 tasks, and wrote 0 properties in 40 ms.
+04/28/2026 19:46:15 [11] DSM service is idle and waiting for stop.
+04/28/2026 19:47:00 [101] DSM Service is shutting down. Service uptime was 45 seconds, active worktime was 41 ms.
+04/28/2026 19:47:00 [107] DSM service has shut down.
+04/28/2026 20:09:04 [100] DSM service started, mode is Normal, last session (or boot) was 1323 seconds ago.
+04/28/2026 20:09:04 [30] Device container {5912d25d-cb59-500b-aa85-f251566a97c1} is queued for setup.
+04/28/2026 20:09:04 [190] Property heuristics for device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) completed in 16 ms.
+04/28/2026 20:09:04 [112] Device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) has been serviced, processed 3 tasks, and wrote 35 properties in 53 ms.
+04/28/2026 20:09:04 [11] DSM service is idle and waiting for stop.
+04/28/2026 20:09:49 [101] DSM Service is shutting down. Service uptime was 45 seconds, active worktime was 53 ms.
+04/28/2026 20:09:49 [107] DSM service has shut down.
+04/29/2026 12:27:37 [100] DSM service started, mode is Normal, last session (or boot) was 58667 seconds ago.
+04/29/2026 12:27:37 [30] Device container {eb58fb0a-ee9a-52b2-ab2e-f8de18c84902} is queued for setup.
+04/29/2026 12:28:08 [41] WU search completed.
+04/29/2026 12:28:20 [41] WU search completed.
+04/29/2026 12:28:20 [127] Device 'USB\VID_2672&PID_0059&MI_02\7&2e28edbb&0&0002' does not match any driver updates that are not optional.
+04/29/2026 12:28:20 [127] Device 'USB\VID_2672&PID_0059&MI_02\7&2e28edbb&0&0002' does not match any driver updates that are not optional.
+04/29/2026 12:28:20 [190] Property heuristics for device container 'MTP' ({eb58fb0a-ee9a-52b2-ab2e-f8de18c84902}) completed in 25 ms.
+04/29/2026 12:28:20 [112] Device container 'MTP' ({eb58fb0a-ee9a-52b2-ab2e-f8de18c84902}) has been serviced, processed 8 tasks, and wrote 44 properties in 43042 ms.
+04/29/2026 12:28:20 [11] DSM service is idle and waiting for stop.
+04/29/2026 12:29:05 [101] DSM Service is shutting down. Service uptime was 88 seconds, active worktime was 43053 ms.
+04/29/2026 12:29:05 [107] DSM service has shut down.
+04/29/2026 15:40:55 [100] DSM service started, mode is Normal, last session (or boot) was 11510 seconds ago.
+04/29/2026 15:40:55 [30] Device container {9390ee91-05d9-1650-a39f-abdc3cc1e8eb} is queued for setup.
+04/29/2026 15:40:55 [190] Property heuristics for device container 'PDF24' ({9390ee91-05d9-1650-a39f-abdc3cc1e8eb}) completed in 10 ms.
+04/29/2026 15:40:55 [112] Device container 'PDF24' ({9390ee91-05d9-1650-a39f-abdc3cc1e8eb}) has been serviced, processed 4 tasks, and wrote 44 properties in 78 ms.
+04/29/2026 15:40:55 [11] DSM service is idle and waiting for stop.
+04/29/2026 15:40:55 [30] Device container {8a5bc733-6ba2-2101-9a71-1349a816b114} is queued for setup.
+04/29/2026 15:40:55 [190] Property heuristics for device container 'PDF24 Fax' ({8a5bc733-6ba2-2101-9a71-1349a816b114}) completed in 6 ms.
+04/29/2026 15:40:55 [112] Device container 'PDF24 Fax' ({8a5bc733-6ba2-2101-9a71-1349a816b114}) has been serviced, processed 4 tasks, and wrote 44 properties in 14 ms.
+04/29/2026 15:40:55 [11] DSM service is idle and waiting for stop.
+04/29/2026 15:41:40 [101] DSM Service is shutting down. Service uptime was 45 seconds, active worktime was 96 ms.
+04/29/2026 15:41:40 [107] DSM service has shut down.
+04/30/2026 12:42:37 [100] DSM service started, mode is Normal, last session (or boot) was 53 seconds ago.
+04/30/2026 12:42:37 [30] Device container {5912d25d-cb59-500b-aa85-f251566a97c1} is queued for setup.
+04/30/2026 12:42:37 [30] Device container {f63ad666-d4ac-5613-9402-bb3ddcde7b0c} is queued for setup.
+04/30/2026 12:42:38 [190] Property heuristics for device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) completed in 104 ms.
+04/30/2026 12:42:38 [190] Property heuristics for device container 'dtm-cell' ({f63ad666-d4ac-5613-9402-bb3ddcde7b0c}) completed in 153 ms.
+04/30/2026 12:42:38 [112] Device container 'SPvJncWd' ({5912d25d-cb59-500b-aa85-f251566a97c1}) has been serviced, processed 3 tasks, and wrote 35 properties in 258 ms.
+04/30/2026 12:42:38 [112] Device container 'dtm-cell' ({f63ad666-d4ac-5613-9402-bb3ddcde7b0c}) has been serviced, processed 5 tasks, and wrote 35 properties in 257 ms.
+04/30/2026 12:42:38 [11] DSM service is idle and waiting for stop.
+04/30/2026 12:42:45 [30] Device container {00000000-0000-0000-ffff-ffffffffffff} is queued for setup.
+04/30/2026 12:42:45 [202] The Network List Manager reports no connectivity to the internet.
+04/30/2026 12:42:47 [190] Property heuristics for device container 'DTM-P1GEN7' ({00000000-0000-0000-ffff-ffffffffffff}) completed in 1649 ms.
+04/30/2026 12:42:47 [130] Metadata package ec4d5fdd-aa12-400f-83e2-7b0ea6023eb7 was staged for device container {00000000-0000-0000-ffff-ffffffffffff} in 1 ms.
+
+## V4: Kernel-PnP / Drivers events 4/30 16:00 to 5/1 02:00 (regression window)
+
+### Provider: Microsoft-Windows-Kernel-PnP
+Count: 32
+04/30/2026 21:35:58 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:36:09 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:36:12 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:36:12 [Id 219 Lvl Warning] The driver \Driver\WudfRd failed to load.
+04/30/2026 21:36:12 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:36:12 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:36:12 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:36:15 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:45:17 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:45:20 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:45:20 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:45:20 [Id 219 Lvl Warning] The driver \Driver\WudfRd failed to load.
+04/30/2026 21:45:20 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:45:20 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:45:20 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+04/30/2026 21:45:23 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:55:30 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:55:33 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:55:33 [Id 219 Lvl Warning] The driver \Driver\WudfRd failed to load.
+05/01/2026 01:55:33 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:55:33 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:55:33 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:55:36 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:55:46 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:59:00 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:59:03 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:59:03 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:59:03 [Id 219 Lvl Warning] The driver \Driver\WudfRd failed to load.
+05/01/2026 01:59:03 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:59:03 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:59:03 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+05/01/2026 01:59:06 [Id 219 Lvl Warning] The driver \Driver\WUDFRd failed to load.
+
+### Provider: Microsoft-Windows-DriverFrameworks-UserMode
+Count: 32
+04/30/2026 21:35:58 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:36:09 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:36:12 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:36:12 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:36:12 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:36:12 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:36:12 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:36:15 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:45:17 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:45:20 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:45:20 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:45:20 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:45:20 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:45:20 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:45:20 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+04/30/2026 21:45:23 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:55:30 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:55:33 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:55:33 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:55:33 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:55:33 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:55:33 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:55:36 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:55:46 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:59:00 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:59:03 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:59:03 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:59:03 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:59:03 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:59:03 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:59:03 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+05/01/2026 01:59:06 [Id 10118 Lvl Information] UMDF reflector is unable to connect to service control manager (SCM). This is expected during boot, when SCM has not started yet. Will retry when it starts.
+
+### Provider: Microsoft-Windows-WUDFHost
+(error: The parameter is incorrect.)
+
+## V5: All touchpad-chain device DriverDates (sorted recency)
+
+Date                  Version          Inf                       Friendly
+----                  -------          ---                       --------                                               
+4/26/2026 8:00:00 PM  10.0.26100.8328  usbxhci.inf               Intel(R) USB 3.20 eXtensible Host Controller - 1.20
+                                                                 (Microsoft)
+4/26/2026 8:00:00 PM  10.0.26100.8328  usb4hostrouter.inf        USB4(TM) Host Router (Microsoft)
+4/26/2026 8:00:00 PM  10.0.26100.8328  usbxhci.inf               Intel(R) USB 3.20 eXtensible Host Controller - 1.20
+                                                                 (Microsoft)
+3/18/2026 8:00:00 PM  32.0.100.4724    oem5.inf                  Intel(R) AI Boost
+12/22/2025 7:00:00 PM 2552.9.3.0       oem389.inf                Intel(R) Management Engine Interface #1
+8/28/2025 8:00:00 PM  2.3.20200.4422   oem259.inf                Intel(R) Innovation Platform Framework Processor
+                                                                 Participant
+8/4/2025 8:00:00 PM   31.21.51.2       oem300.inf                ETD HSA Device
+7/2/2025 8:00:00 PM   30.100.2527.40   oem107.inf                Intel(R) Serial IO I2C Host Controller - 7E78
+7/2/2025 8:00:00 PM   30.100.2527.40   oem107.inf                Intel(R) Serial IO I2C Host Controller - 7E50
+2/26/2025 7:00:00 PM  1000.100.108.801 oem196.inf                Elliptic Human Presence Detection Device
+2/25/2025 7:00:00 PM  32.0.101.6637    oem370.inf                Intel(R) Arc(TM) Pro Graphics
+2/11/2025 7:00:00 PM  20.40.11880.0    oem319.inf                Intel® Smart Sound Technology BUS
+6/20/2024 8:00:00 PM  1.0.41.0         oem331.inf                Windows Studio Effects Driver
+6/20/2024 8:00:00 PM  1.0.41.0         oem331.inf                Windows Studio Effects Driver
+6/20/2024 8:00:00 PM  1.0.41.0         oem331.inf                Windows Studio Effects Driver
+6/20/2024 8:00:00 PM  1.0.41.0         oem331.inf                Windows Studio Effects Driver
+5/23/2024 8:00:00 PM  3.1.2.6          oem38.inf                 Intel(R) Platform Monitoring Technology (PMT) Driver
+11/13/2023 7:00:00 PM 3.5.0.1578       oem333.inf                Intel(R) GNA Scoring Accelerator module
+4/20/2009 8:00:00 PM  10.0.26100.8328  sensorshidclassdriver.inf HID Sensor Collection V2
+6/20/2006 8:00:00 PM  10.0.26100.8328  pci.inf                   PCI Express Root Port
+6/20/2006 8:00:00 PM  10.0.26100.8328  hidi2c.inf                I2C HID Device
+6/20/2006 8:00:00 PM  10.0.26100.8328  input.inf                 HID-compliant vendor-defined device
+6/20/2006 8:00:00 PM  10.0.26100.1150  machine.inf               PCI standard ISA bridge
+6/20/2006 8:00:00 PM  10.0.26100.8328  pci.inf                   PCI Express Root Port
+6/20/2006 8:00:00 PM  10.0.26100.8328  pci.inf                   PCI Express Root Port
+6/20/2006 8:00:00 PM  10.0.26100.8328  pci.inf                   PCI Express Root Port
+6/20/2006 8:00:00 PM  10.0.26100.1150  machine.inf               PCI standard host CPU bridge
+6/20/2006 8:00:00 PM  10.0.26100.8328  pci.inf                   PCI Express Root Port
+6/20/2006 8:00:00 PM  10.0.26100.8328  input.inf                 HID-compliant touch pad
+6/20/2006 8:00:00 PM  10.0.26100.8328  pci.inf                   PCI Express Root Port
+6/20/2006 8:00:00 PM  10.0.26100.1150  msmouse.inf               HID-compliant mouse
+6/20/2006 8:00:00 PM  10.0.26100.1150  mtconfig.inf              Microsoft Input Configuration Device
+6/20/2006 8:00:00 PM  10.0.26100.8328  pci.inf                   PCI Express Root Port
+7/17/1968 8:00:00 PM  10.1.47.12       oem111.inf                Intel(R) Shared SRAM - 7E7F
+7/17/1968 8:00:00 PM  10.1.47.12       oem111.inf                Intel(R) SMBus - 7E22
+7/17/1968 8:00:00 PM  10.1.47.12       oem111.inf                Intel(R) SPI - 7E23
+
+
+
+# Done 2026-05-02T14:57:09.5428215-04:00

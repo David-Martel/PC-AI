@@ -1,0 +1,29 @@
+# Process Lasso state right now
+
+Name         : bitsumsessionagent
+Id           : 21748
+StartTime    : 5/2/2026 2:12:53 PM
+Responding   : True
+BasePriority : 6
+CPU_seconds  : 0.11
+WorkingSetMB : 3.6
+Path         : C:\Program Files\Process Lasso\bitsumsessionagent.exe
+
+Name         : ProcessGovernor
+Id           : 11608
+StartTime    : 5/2/2026 2:12:52 PM
+Responding   : True
+BasePriority : 13
+CPU_seconds  : 49.73
+WorkingSetMB : 16.8
+Path         : C:\Program Files\Process Lasso\processgovernor.exe
+
+Name         : ProcessLasso
+Id           : 21288
+StartTime    : 5/2/2026 2:12:52 PM
+Responding   : True
+BasePriority : 10
+CPU_seconds  : 53.2
+WorkingSetMB : 55.4
+Path         : C:\Program Files\Process Lasso\processlasso.exe
+

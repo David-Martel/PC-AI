@@ -1,0 +1,34 @@
+# Gate B - VSS feasibility (2026-05-02T15:04:27.2270332-04:00)
+
+## VSS shadow storage
+vssadmin 1.1 - Volume Shadow Copy Service administrative command-line tool
+(C) Copyright 2001-2013 Microsoft Corp.
+
+Shadow Copy Storage association
+   For volume: (C:)\\?\Volume{6a87a13f-6359-11ef-8035-6c2f808e809a}\
+   Shadow Copy Storage volume: (C:)\\?\Volume{6a87a13f-6359-11ef-8035-6c2f808e809a}\
+   Used Shadow Copy Storage space: 265 GB (7%)
+   Allocated Shadow Copy Storage space: 285 GB (7%)
+   Maximum Shadow Copy Storage space: 409 GB (11%)
+
+Shadow Copy Storage association
+   For volume: (\\?\Volume{6a87a152-6359-11ef-8035-6c2f808e809a}\)\\?\Volume{6a87a152-6359-11ef-8035-6c2f808e809a}\
+   Shadow Copy Storage volume: (\\?\Volume{6a87a152-6359-11ef-8035-6c2f808e809a}\)\\?\Volume{6a87a152-6359-11ef-8035-6c2f808e809a}\
+   Used Shadow Copy Storage space: 4.98 MB (0%)
+   Allocated Shadow Copy Storage space: 36.3 MB (0%)
+   Maximum Shadow Copy Storage space: 1.14 GB (15%)
+
+
+
+## VSS services
+
+Name   Status StartType
+----   ------ ---------
+swprv Running    Manual
+vss   Running    Manual
+
+
+
+## C: free space
+Free: 588 GB
+Used: 3129.38 GB

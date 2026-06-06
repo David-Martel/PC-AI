@@ -1,0 +1,141 @@
+# Power scheme + recent power events
+Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)
+
+## Recent Kernel-Power events (last 3 days)
+
+TimeCreated          Id LevelDisplayName Msg
+-----------          -- ---------------- ---
+5/2/2026 2:12:19 PM 521 Information      Active battery count change.
+5/2/2026 2:12:19 PM 521 Information      Active battery count change.
+5/2/2026 2:12:01 PM 125 Information      ACPI thermal zone \_TZ.THM0 has been enumerated.             …
+5/2/2026 2:09:27 PM 577 Information      The system has prepared for a system initiated reboot from Active.
+5/2/2026 2:09:21 PM 109 Information      The kernel power manager has initiated a shutdown transition.…
+5/2/2026 1:37:29 PM 521 Information      Active battery count change.
+5/2/2026 1:37:29 PM 521 Information      Active battery count change.
+5/2/2026 1:37:15 PM 125 Information      ACPI thermal zone \_TZ.THM0 has been enumerated.             …
+5/2/2026 1:34:41 PM 577 Information      The system has prepared for a system initiated reboot from Active.
+5/2/2026 1:34:37 PM 109 Information      The kernel power manager has initiated a shutdown transition.…
+5/2/2026 1:25:52 PM 521 Information      Active battery count change.
+5/2/2026 1:25:52 PM 521 Information      Active battery count change.
+5/2/2026 1:25:42 PM  41 Critical         The system has rebooted without cleanly shutting down first. This error could …
+5/2/2026 1:25:42 PM 125 Information      ACPI thermal zone \_TZ.THM0 has been enumerated.             …
+5/2/2026 1:19:13 PM 521 Information      Active battery count change.
+
+
+## HID device power capabilities
+
+--- USB Input Device ---
+InstanceId: USB\VID_0BDA&PID_493B&MI_03\9&31215658&0&0003
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant mouse ---
+InstanceId: HID\SNSL002D&COL01\5&14B88203&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- USB Input Device ---
+InstanceId: USB\VID_1532&PID_0F51&MI_01\E&11807DDE&0&0001
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- USB Input Device ---
+InstanceId: USB\VID_1050&PID_0407&MI_00\6&30359553&1&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID Sensor Collection V2 ---
+InstanceId: HID\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\3&1A87E07D&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- Synaptics UWP WBDI ---
+InstanceId: USB\VID_06CB&PID_00F9\DDF5456187B0
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID Keyboard Device ---
+InstanceId: HID\VID_1532&PID_0F51&MI_00\F&16638C4F&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant consumer control device ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL03\3&1933B186&0&0002
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID Sensor Collection V2 ---
+InstanceId: HID\VID_413C&PID_D001&COL02\8&3704C6&0&0001
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- ETD HSA Device ---
+InstanceId: ETDHSA\VID_04F3&PID_0001\5&BDA4387&0&0002
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant touch pad ---
+InstanceId: HID\SNSL002D&COL02\5&14B88203&0&0001
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID Keyboard Device ---
+InstanceId: HID\VID_1050&PID_0407&MI_00\7&83AE9D6&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- USB Input Device ---
+InstanceId: USB\VID_1050&PID_0407&MI_01\6&30359553&1&0001
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant system controller ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL04\3&1933B186&0&0003
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- Microsoft Input Configuration Device ---
+InstanceId: HID\SNSL002D&COL03\5&14B88203&0&0002
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant mouse ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL05\3&1933B186&0&0004
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant vendor-defined device ---
+InstanceId: HID\SNSL002D&COL04\5&14B88203&0&0003
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- USB Input Device ---
+InstanceId: USB\VID_413C&PID_D001\8120181201
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant vendor-defined device ---
+InstanceId: HID\VID_0BDA&PID_1100\9&1F51688&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID Keyboard Device ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL01\3&1933B186&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant consumer control device ---
+InstanceId: HID\VID_0BDA&PID_493B&MI_03\A&7D0B9B2&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- USB Input Device ---
+InstanceId: USB\VID_0BDA&PID_1100\8&30A63C84&1&3
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- I2C HID Device ---
+InstanceId: ACPI\SNSL002D\4&39979B3E&0
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- Dell Presence Sensor WB7022 HID-compliant vendor-defined device ---
+InstanceId: HID\VID_413C&PID_D001&COL01\8&3704C6&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant fido ---
+InstanceId: HID\VID_1050&PID_0407&MI_01\7&1FFE761B&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- USB Input Device ---
+InstanceId: USB\VID_FFFF&PID_BACE&REV_0002&MI_00\2&2CEE342A&1&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- USB Input Device ---
+InstanceId: USB\VID_1532&PID_0F51&MI_00\E&11807DDE&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID-compliant device ---
+InstanceId: HID\VID_1532&PID_0F51&MI_01\F&D73B173&0&0000
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)
+
+--- HID Keyboard Device ---
+InstanceId: HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL02\3&1933B186&0&0001
+PowerData length: 56 bytes (raw - decoded via CM_GetDevNodeStatus)

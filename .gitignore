@@ -262,3 +262,9 @@ Tools/InputDiagnostics/backups/
 *.bak-*
 # Scheduler lock (runtime artifact)
 .claude/scheduled_tasks.lock
+
+# --- 2026-06-06 input-stack session ---
+# Watch-InputGlitch.ps1 eval-harness runtime output (snapshots + symptom ledger)
+Reports/input-glitch-watch/
+# Incidental large diagnostic evidence dumps (may contain profile/secret content)
+Reports/**/direct-pass-*/

@@ -7,13 +7,11 @@
 #>
 try {
     $mon = Join-Path $PSScriptRoot 'Invoke-GitOpsMonitors.ps1'
-    $tmp = $env:TEMP
-    # Redirect the child's stdout/stderr to files so it does NOT inherit/hold the hook's console
-    # pipe — otherwise the push appears to hang until the 20s monitor finishes. True fire-and-forget.
-    Start-Process -FilePath 'pwsh' -WindowStyle Hidden `
-        -ArgumentList '-NoProfile', '-WindowStyle', 'Hidden', '-File', $mon `
-        -RedirectStandardOutput (Join-Path $tmp 'gitops-monitor.out.log') `
-        -RedirectStandardError  (Join-Path $tmp 'gitops-monitor.err.log') | Out-Null
+    # Win32_Process.Create orphans the worker (parent = wmiprvse), breaking the git/lefthook job
+    # object so the pre-push hook returns INSTANTLY. Start-Process keeps the child in the hook's job,
+    # which makes git wait for the full 20s monitor — defeating "non-blocking".
+    $cmd = "pwsh -NoProfile -WindowStyle Hidden -File `"$mon`""
+    Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmd } | Out-Null
 } catch {
     # Never block the push on a monitor-launch failure.
     Write-Host "gitops monitor launch skipped: $_" -ForegroundColor DarkYellow

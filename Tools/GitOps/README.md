@@ -36,13 +36,22 @@ git -c commit.gpgsign=true -c gpg.format=ssh `
 ```
 (For a permanent fix, reconcile the repo's local `.git/config` to SSH signing — see below.)
 
-## Roadmap (remaining layers from the proposal)
-- [ ] **Reconcile-GitSigning.ps1** — flip a local clone's `.git/config` to SSH signing (drop the OpenPGP override).
-- [ ] **Watch-WorkflowHealth.ps1** — detect silent CI **billing/quota** blocks + `startup_failure` + disabled workflows (`gh run list` + `gh api .../actions/runs` + billing API) → ledger + agent-bus.
-- [ ] **Get-UpstreamReviews.ps1** — harvest Dependabot/code-scanning/Copilot/Jules findings into an actionable ledger.
-- [ ] **Install-GitOpsHooks.ps1** + `hooks/` — **non-blocking** post-commit/post-push hooks that fire the two
-  monitors detached and write results where agents can read them (directive 3).
+## Monitors + non-blocking hooks (directive 3 — shipped)
+| Script | Purpose |
+|---|---|
+| `Watch-WorkflowHealth.ps1` | Detect silent CI failures: `startup_failure` (billing/permissions), failures, disabled workflows, Actions-minutes exhaustion → `Reports/gitops/workflow-health-*.json` |
+| `Get-UpstreamReviews.ps1` | Harvest Dependabot + code-scanning alerts + Copilot/Gemini/Jules PR reviews → `Reports/gitops/upstream-reviews-*.json` |
+| `Invoke-GitOpsMonitors.ps1` | Runs both, writes a combined snapshot, best-effort posts to the agent-bus (`localhost:8400`). Launched **detached** from the hook so it never blocks. |
+| `Install-GitOpsHooks.ps1` | Installs a non-blocking `pre-push` hook for non-lefthook repos; prints the lefthook snippet otherwise. |
+
+Wired into PC_AI via `lefthook.yml` `pre-push` (fires `Invoke-GitOpsMonitors.ps1` detached). Git has no
+`post-push` hook, so `pre-push` + a detached worker (with a short delay) captures post-push CI state without
+blocking. Outputs land in `Reports/gitops/` (gitignored) + the agent-bus for live agents.
+
+## Roadmap (remaining)
+- [ ] **Reconcile-GitSigning.ps1** — flip an arbitrary local clone's `.git/config` to SSH signing (PC-AI done inline).
 - [ ] **Tests/GitOps/GitOps.Tests.ps1** — sign-under-redirect, billing-detect, secret-scan, onedrive-guard.
+- [ ] Reconcile legacy *classic* branch protection on any repo that still has it (PC-AI done; it conflicted with the ruleset's 0-approval self-merge).
 
 ## Coordination
 Multiple agents (Claude, Codex, Jules) work these repos. Claim files via the agent-bus `topic=ownership`

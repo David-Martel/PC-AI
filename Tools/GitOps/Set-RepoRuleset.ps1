@@ -114,11 +114,14 @@ function Set-OneRepoRuleset {
             if ($LASTEXITCODE -ne 0) { throw "POST failed: $out" }
             $result.action = 'created'; $result.status = 'ok'; $result.ruleset_id = ($out | ConvertFrom-Json).id
         }
-        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
         if ($result.status -eq 'ok' -and -not $result.ruleset_id -and -not $DryRun) { throw 'no ruleset id returned' }
     }
     catch {
         $result.status = 'error'; $result.error = "$_"
+    }
+    finally {
+        # Copilot review (PR #41): clean the temp file on every path, not just success.
+        if ($tmp) { Remove-Item $tmp -Force -ErrorAction SilentlyContinue }
     }
     ($result | ConvertTo-Json -Compress) | Add-Content -Path $log -Encoding utf8
     $color = switch ($result.status) { 'ok' { 'Green' } 'dry-run' { 'Yellow' } default { 'Red' } }

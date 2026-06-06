@@ -1,0 +1,12 @@
+[SC] QueryServiceConfig SUCCESS
+
+SERVICE_NAME: PC_AI-ToolRouter
+        TYPE               : 10  WIN32_OWN_PROCESS 
+        START_TYPE         : 2   AUTO_START
+        ERROR_CONTROL      : 1   NORMAL
+        BINARY_PATH_NAME   : C:\ProgramData\chocolatey\lib\NSSM\tools\nssm.exe
+        LOAD_ORDER_GROUP   : 
+        TAG                : 0
+        DISPLAY_NAME       : PC_AI-ToolRouter
+        DEPENDENCIES       : PC_AI-VLLM
+        SERVICE_START_NAME : LocalSystem

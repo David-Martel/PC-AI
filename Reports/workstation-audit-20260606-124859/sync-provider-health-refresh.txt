@@ -1,0 +1,15 @@
+
+Status                  : Pass
+DryRun                  : False
+GeneratedAt             : 2026-06-06T13:37:04.8777162-04:00
+LastBootTime            : 6/5/2026 9:02:53 PM
+EventStartTime          : 6/6/2026 12:37:02 PM
+Providers               : {@{Name=OneDrive; Required=True; Processes=System.Object[]; SyncRoots=System.Object[]}, @{Name=GoogleDrive; Required=False; Processes=System.Object[]; SyncRoots=System.Object[]}, @{Name=Dropbox; Required=False; Processes=System.Object[]; SyncRoots=System.Object[]}, @{Name=iCloud; Required=False; Processes=System.Object[]; SyncRoots=System.Object[]}…}
+SyncRoots               : {@{ProviderId=OneDrive; DisplayName=OneDrive; UserSyncRoot=C:\Users\david\OneDrive; Source=Filesystem}, @{ProviderId=iCloudDrive; DisplayName=iCloudDrive; UserSyncRoot=C:\Users\david\iCloudDrive; Source=Filesystem}}
+ShellOverlayHandlers    : {@{Scope=HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers; Name=     OneDrive1; Clsid={BBACC218-34EA-4666-9D7A-C78F2274A524}}, @{Scope=HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers; Name=     OneDrive2; Clsid={5AB7172C-9C11-405C-8DD5-AF20F3606282}}, @{Scope=HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers; Name=     OneDrive3; Clsid={A78ED123-AB77-406B-9962-2A5D9D2F7F30}}, @{Scope=HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers; Name=     OneDrive4; Clsid={F241C880-6982-4CE5-8CF7-7085BA96DA5A}}…}
+ScheduledTasks          : {@{TaskPath=\; TaskName=OneDrive Per-Machine Standalone Update Task; State=Ready; LastRunTime=11/30/1999 12:00:00 AM; LastTaskResult=267011; NextRunTime=6/6/2026 8:32:49 PM}, @{TaskPath=\; TaskName=OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1001; State=Ready; LastRunTime=6/5/2026 9:55:17 PM; LastTaskResult=0; NextRunTime=6/6/2026 9:55:16 PM}, @{TaskPath=\; TaskName=OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1003; State=Ready; LastRunTime=11/30/1999 12:00:00 AM; LastTaskResult=267011; NextRunTime=6/6/2026 9:55:16 PM}, @{TaskPath=\; TaskName=OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1007; State=Ready; LastRunTime=11/30/1999 12:00:00 AM; LastTaskResult=267011; NextRunTime=6/6/2026 9:55:16 PM}…}
+WerEvents               : {}
+OneDriveSyncDiagnostics : @{Path=C:\Users\david\AppData\Local\Microsoft\OneDrive\logs\Personal\SyncDiagnostics.log; Exists=True; LastWriteTime=6/6/2026 12:31:09 PM; FreshSinceBoot=True; Tail=System.Object[]}
+Failures                : {}
+Warnings                : {Sync root exists but provider process is not running: iCloud}
+

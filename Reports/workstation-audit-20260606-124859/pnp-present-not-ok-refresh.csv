@@ -1,0 +1,3 @@
+"Class","FriendlyName","InstanceId","Status","Problem"
+"Net","Cisco AnyConnect Virtual Miniport Adapter for Windows x64","ROOT\NET\0001","Error","CM_PROB_DISABLED"
+"Display","NVIDIA RTX 2000 Ada Generation Laptop GPU","PCI\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\4&218D282A&0&0008","Error","CM_PROB_FAILED_ADD"

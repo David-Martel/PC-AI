@@ -1,0 +1,5 @@
+Microsoft PnP Utility
+
+Restarting device:         PCI\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\4&218d282a&0&0008
+Device restarted successfully.
+

@@ -1,0 +1,8 @@
+
+Count Name
+----- ----
+  641 Microsoft-Windows-HttpEvent, 15301, Warning
+  631 Microsoft-Windows-HttpEvent, 15300, Warning
+    1 Microsoft-Windows-CertificateServicesClient-AutoEnrollment, 64, Warning
+    1 Service Control Manager, 7030, Error
+

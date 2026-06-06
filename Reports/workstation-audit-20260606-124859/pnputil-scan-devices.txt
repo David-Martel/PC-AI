@@ -1,0 +1,5 @@
+Microsoft PnP Utility
+
+Scanning for device hardware changes.
+Scan complete.
+

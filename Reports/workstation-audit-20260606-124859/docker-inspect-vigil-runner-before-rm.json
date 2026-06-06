@@ -1,0 +1,281 @@
+[
+    {
+        "Id": "f2083b14a723d6dc349f3e6224f96aa8a3e13e9a5b4c2eb735c1c5e8167530ff",
+        "Created": "2026-05-26T01:17:23.819747487Z",
+        "Path": "/home/runner/entrypoint.sh",
+        "Args": [
+            "serve"
+        ],
+        "State": {
+            "Status": "exited",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 137,
+            "Error": "",
+            "StartedAt": "2026-05-31T03:33:50.559311567Z",
+            "FinishedAt": "2026-05-31T03:39:22.81286613Z",
+            "Health": {
+                "Status": "unhealthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2026-05-31T03:34:50.866640445Z",
+                        "End": "2026-05-31T03:34:50.939385839Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    },
+                    {
+                        "Start": "2026-05-31T03:35:50.937946239Z",
+                        "End": "2026-05-31T03:35:50.982830343Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    },
+                    {
+                        "Start": "2026-05-31T03:36:50.981001991Z",
+                        "End": "2026-05-31T03:36:51.036758808Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    },
+                    {
+                        "Start": "2026-05-31T03:37:51.034328709Z",
+                        "End": "2026-05-31T03:37:51.115077595Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    },
+                    {
+                        "Start": "2026-05-31T03:38:51.114054663Z",
+                        "End": "2026-05-31T03:38:51.17365923Z",
+                        "ExitCode": 0,
+                        "Output": ""
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:0b4d659ad454d0e7f06943651f07ebcd8655909865eb0fb7a11804fd622e25e2",
+        "ResolvConfPath": "/var/lib/docker/containers/f2083b14a723d6dc349f3e6224f96aa8a3e13e9a5b4c2eb735c1c5e8167530ff/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/f2083b14a723d6dc349f3e6224f96aa8a3e13e9a5b4c2eb735c1c5e8167530ff/hostname",
+        "HostsPath": "/var/lib/docker/containers/f2083b14a723d6dc349f3e6224f96aa8a3e13e9a5b4c2eb735c1c5e8167530ff/hosts",
+        "LogPath": "/var/lib/docker/containers/f2083b14a723d6dc349f3e6224f96aa8a3e13e9a5b4c2eb735c1c5e8167530ff/f2083b14a723d6dc349f3e6224f96aa8a3e13e9a5b4c2eb735c1c5e8167530ff-json.log",
+        "Name": "/vigil-runner-docker-1",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "runner-config:/home/runner/actions-runner/_work",
+                "runner-puppeteer-cache:/home/runner/.cache/puppeteer",
+                "runner-uv-cache:/home/runner/.cache/uv"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "bridge",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 12884901888,
+            "NanoCpus": 8000000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 12884901888,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": 2048,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "runner-puppeteer-cache",
+                "Source": "/var/lib/docker/volumes/runner-puppeteer-cache/_data",
+                "Destination": "/home/runner/.cache/puppeteer",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "runner-uv-cache",
+                "Source": "/var/lib/docker/volumes/runner-uv-cache/_data",
+                "Destination": "/home/runner/.cache/uv",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "runner-config",
+                "Source": "/var/lib/docker/volumes/runner-config/_data",
+                "Destination": "/home/runner/actions-runner/_work",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "f2083b14a723",
+            "Domainname": "",
+            "User": "root",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "RUNNER_TOKEN=ADMIIBFFV5RZB6KMN4ZH7Y3KCUBLG",
+                "RUNNER_NAME=vigil-tpm-docker-dtm-p1gen7",
+                "REPO=David-Martel/vigil-ai-tpm",
+                "PATH=/home/runner/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Cmd": [
+                "serve"
+            ],
+            "Healthcheck": {
+                "Test": [
+                    "CMD-SHELL",
+                    "pgrep -af 'Runner.Listener' \u003e/dev/null || exit 1"
+                ],
+                "Interval": 60000000000,
+                "Timeout": 10000000000,
+                "Retries": 3
+            },
+            "Image": "vigil-runner",
+            "Volumes": null,
+            "WorkingDir": "/home/runner/actions-runner",
+            "Entrypoint": [
+                "/home/runner/entrypoint.sh"
+            ],
+            "Labels": {
+                "org.opencontainers.image.version": "24.04",
+                "vigil-tpm": ""
+            },
+            "StopTimeout": 1
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "0d78eeeecc548ff39022c7be1e8e687f69695b73c3ca16271009591c1e07f930",
+                    "EndpointID": "",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:44409fc99a75a15e2d29ad305fc001dfac6d1ee9941758eb4026f1c847d99ac9",
+            "size": 2969,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

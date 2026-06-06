@@ -1,0 +1,71 @@
+
+DeviceID   : C:
+VolumeName : Windows
+FileSystem : NTFS
+SizeGB     : 3717.38
+FreeGB     : 416.89
+FreePct    : 11.21
+
+DeviceID   : D:
+VolumeName : 
+FileSystem : 
+SizeGB     : 0
+FreeGB     : 0
+FreePct    : 
+
+DeviceID   : E:
+VolumeName : 
+FileSystem : FAT
+SizeGB     : 0.12
+FreeGB     : 0.09
+FreePct    : 75.04
+
+DeviceID   : F:
+VolumeName : cloud-cache-disk
+FileSystem : NTFS
+SizeGB     : 1249.98
+FreeGB     : 528.25
+FreePct    : 42.26
+
+DeviceID   : G:
+VolumeName : david.martel@auricleinc.com -...
+FileSystem : FAT32
+SizeGB     : 1249.98
+FreeGB     : 501.84
+FreePct    : 40.15
+
+DeviceID   : H:
+VolumeName : davidmartel@dtmventures.com -...
+FileSystem : FAT32
+SizeGB     : 1249.98
+FreeGB     : 501.84
+FreePct    : 40.15
+
+DeviceID   : I:
+VolumeName : damartel@umich.edu - Google D...
+FileSystem : FAT32
+SizeGB     : 1249.98
+FreeGB     : 501.84
+FreePct    : 40.15
+
+DeviceID   : K:
+VolumeName : 
+FileSystem : 
+SizeGB     : 0
+FreeGB     : 0
+FreePct    : 
+
+DeviceID   : T:
+VolumeName : dev-drive
+FileSystem : ReFS
+SizeGB     : 3726
+FreeGB     : 632.83
+FreePct    : 16.98
+
+DeviceID   : W:
+VolumeName : WSL-Shared-Dev
+FileSystem : NTFS
+SizeGB     : 511.98
+FreeGB     : 243.01
+FreePct    : 47.46
+

@@ -1,0 +1,21 @@
+
+Name                                        DisplayName
+----                                        -----------                                                                 
+Bonjour Service                             Bonjour Service                                                             
+csc_vpnagent                                Cisco Secure Client - AnyConnect VPN Agent                                  
+DropboxElevationService                     Dropbox Elevation Service (DropboxElevationService)                         
+DropboxUpdaterInternalService123.0.6299.144 DropboxUpdater InternalService 123.0.6299.144 (DropboxUpdaterInternalServic…
+DropboxUpdaterService123.0.6299.144         DropboxUpdater Service 123.0.6299.144 (DropboxUpdaterService123.0.6299.144) 
+FvSvc                                       NVIDIA FrameView SDK service                                                
+GoogleChromeElevationService                Google Chrome Elevation Service (GoogleChromeElevationService)              
+GoogleUpdaterInternalService150.0.7863.0    Google Updater Internal Service (GoogleUpdaterInternalService150.0.7863.0)  
+GoogleUpdaterService150.0.7863.0            Google Updater Service (GoogleUpdaterService150.0.7863.0)                   
+InventorySvc                                Inventory and Compatibility Appraisal service                               
+nvagent                                     Network Virtualization Service                                              
+NvContainerLocalSystem                      NVIDIA LocalSystem Container                                                
+NVDisplay.ContainerLocalSystem              NVIDIA Display Container LS                                                 
+NVWMI                                       NVWMI                                                                       
+OneDrive Updater Service                    OneDrive Updater Service                                                    
+ProtonVPN Service                           ProtonVPN Service                                                           
+SessionEnv                                  Remote Desktop Configuration                                                
+

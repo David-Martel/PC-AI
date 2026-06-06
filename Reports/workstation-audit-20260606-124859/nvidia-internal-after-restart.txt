@@ -1,0 +1,12 @@
+Microsoft PnP Utility
+
+Instance ID:                PCI\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\4&218d282a&0&0008
+Device Description:         NVIDIA RTX 2000 Ada Generation Laptop GPU
+Class Name:                 Display
+Class GUID:                 {4d36e968-e325-11ce-bfc1-08002be10318}
+Manufacturer Name:          NVIDIA
+Status:                     Problem
+Problem Code:               31 (0x1F) [CM_PROB_FAILED_ADD]
+Problem Status:             0xC0000182
+Driver Name:                oem236.inf
+

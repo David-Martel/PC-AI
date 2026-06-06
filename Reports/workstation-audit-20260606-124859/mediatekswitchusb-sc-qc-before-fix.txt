@@ -1,0 +1,12 @@
+[SC] QueryServiceConfig SUCCESS
+
+SERVICE_NAME: MediatekSwitchUSB
+        TYPE               : 110  WIN32_OWN_PROCESS (interactive)
+        START_TYPE         : 2   AUTO_START
+        ERROR_CONTROL      : 1   NORMAL
+        BINARY_PATH_NAME   : "C:\Program Files (x86)\MediatekSwitchUSB\MediatekSwitchUSB.exe"
+        LOAD_ORDER_GROUP   : 
+        TAG                : 0
+        DISPLAY_NAME       : MediatekSwitch for USB
+        DEPENDENCIES       : 
+        SERVICE_START_NAME : LocalSystem

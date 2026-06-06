@@ -1,0 +1,7 @@
+{
+  "TimeCreated": "2026-06-06T13:04:11.436443-04:00",
+  "ProviderName": "Microsoft-Windows-CertificateServicesClient-AutoEnrollment",
+  "Id": 64,
+  "LevelDisplayName": "Warning",
+  "Message": "Certificate for local system with Thumbprint e4 c0 78 3f b2 1a ca 7d 29 35 c4 ad e1 6b 6f e8 e8 ff 97 22 is about to expire or already expired."
+}

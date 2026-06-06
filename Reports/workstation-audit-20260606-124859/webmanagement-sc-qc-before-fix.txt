@@ -1,0 +1,13 @@
+[SC] QueryServiceConfig SUCCESS
+
+SERVICE_NAME: WebManagement
+        TYPE               : 10  WIN32_OWN_PROCESS 
+        START_TYPE         : 2   AUTO_START
+        ERROR_CONTROL      : 1   NORMAL
+        BINARY_PATH_NAME   : C:\WINDOWS\system32\WebManagement.exe
+        LOAD_ORDER_GROUP   : 
+        TAG                : 0
+        DISPLAY_NAME       : Web Management
+        DEPENDENCIES       : rpcss
+                           : http
+        SERVICE_START_NAME : LocalSystem

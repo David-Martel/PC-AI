@@ -1,0 +1,290 @@
+
+Snapshot of HTTP service state (Request Queue View): 
+----------------------------------------------------- 
+
+Request queue name: Request queue is unnamed.
+    Version: 2.0
+    State: Active
+    Request queue 503 verbosity level: Basic
+    Max requests: 1000
+    Active requests: 0
+    Queued requests: 0
+    Max queued request age: 0s
+    Requests arrived: 0
+    Requests rejected: 0
+    Cache hits: 0
+    Number of active processes attached: 1
+    Processes:
+        ID: 14656, image: C:\Windows\System32\WebManagement.exe
+        Services: WebManagement
+        Tagged Service: WebManagement
+    URL groups:
+    URL group ID: FE00000020000001
+        State: Active
+        Request queue name: Request queue is unnamed.
+        Properties:
+            Max bandwidth: inherited
+            Max connections: inherited
+            Timeouts:
+                Timeout values inherited
+            Number of registered URLs: 2
+            Registered URLs:
+                HTTP://*:50080/
+                HTTPS://*:50443/
+        Server session ID: FF00000010000001
+            Version: 2.0
+            State: Active
+            Properties:
+                Max bandwidth: 4294967295
+                Timeouts:
+                    Entity body timeout (secs): 120
+                    Drain entity body timeout (secs): 120
+                    Request queue timeout (secs): 120
+                    Idle connection timeout (secs): 120
+                    Header wait timeout (secs): 120
+                    Minimum send rate (bytes/sec): 150
+Request queue name: Request queue is unnamed.
+    Version: 2.0
+    State: Active
+    Request queue 503 verbosity level: Basic
+    Max requests: 1000
+    Active requests: 0
+    Queued requests: 0
+    Max queued request age: 0s
+    Requests arrived: 30
+    Requests rejected: 0
+    Cache hits: 0
+    Number of active processes attached: 1
+    Processes:
+        ID: 18136, image: C:\Windows\System32\svchost.exe
+        Services: FDResPub
+        Tagged Service: FDResPub
+    URL groups:
+    URL group ID: FE00001120000001
+        State: Active
+        Request queue name: Request queue is unnamed.
+        Properties:
+            Max bandwidth: inherited
+            Max connections: inherited
+            Timeouts:
+                Timeout values inherited
+            Number of registered URLs: 1
+            Registered URLs:
+                HTTP://*:5357/490C29CA-967D-4F9B-A5AD-88ABC67102F4/
+        Server session ID: FF00001110000001
+            Version: 2.0
+            State: Active
+            Properties:
+                Max bandwidth: 4294967295
+                Timeouts:
+                    Entity body timeout (secs): 120
+                    Drain entity body timeout (secs): 120
+                    Request queue timeout (secs): 120
+                    Idle connection timeout (secs): 120
+                    Header wait timeout (secs): 120
+                    Minimum send rate (bytes/sec): 150
+Request queue name: 01ad3493-6358-4e55-a70e-cd3276e0ad07
+    Security descriptor: O:SYG:SYD:(A;OICI;FA;;;S-1-15-2-3221040779-10200146-4245217980-4102746306-394287551-3314955617-3332620926)(A;OICI;FA;;;AU)
+    Version: 2.0
+    State: Active
+    Request queue 503 verbosity level: Basic
+    Max requests: 1000
+    Active requests: 0
+    Queued requests: 0
+    Max queued request age: 0s
+    Requests arrived: 0
+    Requests rejected: 0
+    Cache hits: 0
+    Number of active processes attached: 0
+    Controller process:
+        ID: 14656, image: C:\Windows\System32\WebManagement.exe
+        Services: WebManagement
+        Tagged Service: WebManagement
+    Processes:
+    URL groups:
+    URL group ID: FF00000D20000001
+        State: Active
+        Request queue name: 01ad3493-6358-4e55-a70e-cd3276e0ad07
+        Properties:
+            Max bandwidth: inherited
+            Max connections: inherited
+            Timeouts:
+                Timeout values inherited
+            Number of registered URLs: 4
+            Registered URLs:
+                HTTP://*:50080/DEVTOOLS/API/
+                HTTPS://*:50443/DEVTOOLS/API/
+                HTTP://*:50080/DEVTOOLS/WWW/
+                HTTPS://*:50443/DEVTOOLS/WWW/
+        Server session ID: FF00000010000001
+            Version: 2.0
+            State: Active
+            Properties:
+                Max bandwidth: 4294967295
+                Timeouts:
+                    Entity body timeout (secs): 120
+                    Drain entity body timeout (secs): 120
+                    Request queue timeout (secs): 120
+                    Idle connection timeout (secs): 120
+                    Header wait timeout (secs): 120
+                    Minimum send rate (bytes/sec): 150
+Request queue name: Request queue is unnamed.
+    Version: 2.0
+    State: Active
+    Request queue 503 verbosity level: Basic
+    Max requests: 1000
+    Active requests: 0
+    Queued requests: 0
+    Max queued request age: 0s
+    Requests arrived: 0
+    Requests rejected: 0
+    Cache hits: 0
+    Number of active processes attached: 1
+    Processes:
+        ID: 14428, image: C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS Visualize\SWVisualize.Queue.Server.exe
+        Services: SWVisualize2024.Queue.Server
+        Tagged Service: SWVisualize2024.Queue.Server
+    URL groups:
+    URL group ID: FE00000E20000001
+        State: Active
+        Request queue name: Request queue is unnamed.
+        Properties:
+            Max bandwidth: inherited
+            Max connections: inherited
+            Timeouts:
+                Timeout values inherited
+            Number of registered URLs: 1
+            Registered URLs:
+                HTTP://*:8032/
+        Server session ID: FF00000E10000001
+            Version: 2.0
+            State: Active
+            Properties:
+                Max bandwidth: 4294967295
+                Timeouts:
+                    Entity body timeout (secs): 120
+                    Drain entity body timeout (secs): 120
+                    Request queue timeout (secs): 120
+                    Idle connection timeout (secs): 120
+                    Header wait timeout (secs): 120
+                    Minimum send rate (bytes/sec): 150
+Request queue name: Request queue is unnamed.
+    Version: 1.0
+    State: Active
+    Request queue 503 verbosity level: Basic
+    Max requests: 1000
+    Active requests: 0
+    Queued requests: 0
+    Max queued request age: 0s
+    Requests arrived: 0
+    Requests rejected: 0
+    Cache hits: 0
+    Number of active processes attached: 1
+    Processes:
+        ID: 15988, image: C:\Windows\System32\svchost.exe
+        Services: WinRM
+        Tagged Service: WinRM
+    URL groups:
+    URL group ID: FD00000D20000001
+        State: Active
+        Request queue name: Request queue is unnamed.
+        Properties:
+            Max bandwidth: inherited
+            Max connections: inherited
+            Timeouts:
+                Timeout values inherited
+            Number of registered URLs: 2
+            Registered URLs:
+                HTTP://+:5985/WSMAN/
+                HTTP://+:47001/WSMAN/
+        Server session ID: FE00000D10000003
+            Version: 1.0
+            State: Active
+            Properties:
+                Max bandwidth: 4294967295
+                Timeouts:
+                    Entity body timeout (secs): 120
+                    Drain entity body timeout (secs): 120
+                    Request queue timeout (secs): 120
+                    Idle connection timeout (secs): 120
+                    Header wait timeout (secs): 120
+                    Minimum send rate (bytes/sec): 150
+Request queue name: Request queue is unnamed.
+    Version: 2.0
+    State: Active
+    Request queue 503 verbosity level: Basic
+    Max requests: 1000
+    Active requests: 0
+    Queued requests: 0
+    Max queued request age: 0s
+    Requests arrived: 0
+    Requests rejected: 0
+    Cache hits: 0
+    Number of active processes attached: 1
+    Processes:
+        ID: 33720, image: C:\Users\david\AppData\Local\Programs\Lenovo\Lenovo Service Bridge\LSB.exe
+    URL groups:
+    URL group ID: FE00000C20000002
+        State: Active
+        Request queue name: Request queue is unnamed.
+        Properties:
+            Max bandwidth: inherited
+            Max connections: inherited
+            Timeouts:
+                Timeout values inherited
+            Number of registered URLs: 1
+            Registered URLs:
+                HTTP://LOCALHOST:50128/
+        Server session ID: FF00000C1000021B
+            Version: 2.0
+            State: Active
+            Properties:
+                Max bandwidth: 4294967295
+                Timeouts:
+                    Entity body timeout (secs): 120
+                    Drain entity body timeout (secs): 120
+                    Request queue timeout (secs): 120
+                    Idle connection timeout (secs): 120
+                    Header wait timeout (secs): 120
+                    Minimum send rate (bytes/sec): 150
+Request queue name: Request queue is unnamed.
+    Version: 1.0
+    State: Active
+    Request queue 503 verbosity level: Basic
+    Max requests: 1000
+    Active requests: 0
+    Queued requests: 0
+    Max queued request age: 0s
+    Requests arrived: 1293
+    Requests rejected: 0
+    Cache hits: 0
+    Number of active processes attached: 1
+    Processes:
+        ID: 29136, image: C:\Windows\System32\svchost.exe
+        Services: upnphost
+        Tagged Service: upnphost
+    URL groups:
+    URL group ID: FE00000920000003
+        State: Active
+        Request queue name: Request queue is unnamed.
+        Properties:
+            Max bandwidth: inherited
+            Max connections: inherited
+            Timeouts:
+                Timeout values inherited
+            Number of registered URLs: 1
+            Registered URLs:
+                HTTP://*:2869/
+        Server session ID: FF00000910000007
+            Version: 1.0
+            State: Active
+            Properties:
+                Max bandwidth: 4294967295
+                Timeouts:
+                    Entity body timeout (secs): 120
+                    Drain entity body timeout (secs): 120
+                    Request queue timeout (secs): 120
+                    Idle connection timeout (secs): 120
+                    Header wait timeout (secs): 120
+                    Minimum send rate (bytes/sec): 150
+

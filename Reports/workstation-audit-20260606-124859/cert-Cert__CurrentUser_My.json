@@ -1,0 +1,295 @@
+[
+  {
+    "Subject": "CN=Adobe Content Certificate 10-5, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Issuer": "CN=Adobe Intermediate CA 10-3, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Thumbprint": "F0BD97B4EC6CD8B71C35631738259CF9F2E54381",
+    "NotBefore": "2018-08-20T09:18:42-04:00",
+    "NotAfter": "2025-08-18T09:18:42-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=localhost",
+    "Issuer": "CN=localhost",
+    "Thumbprint": "D5258C31E04F27C6CF3469CD85A0DBA2C5270ECB",
+    "NotBefore": "2026-01-21T11:08:30-05:00",
+    "NotAfter": "2027-01-21T11:08:30-05:00",
+    "FriendlyName": "ASP.NET Core HTTPS development certificate",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Server Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.1"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=Adobe Intermediate CA 10-3, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Issuer": "CN=Adobe Root CA 10-3, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Thumbprint": "D1DF7F06B769BCCB3F4479041EC1F06E9CD3CB1A",
+    "NotBefore": "2018-08-17T13:37:58-04:00",
+    "NotAfter": "2068-08-04T13:37:58-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=Adobe Intermediate CA 10-4, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Issuer": "CN=Adobe Root CA 10-3, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Thumbprint": "BF89E52F8D681360E6B84941BD2F9BC0093309F6",
+    "NotBefore": "2018-08-17T13:37:59-04:00",
+    "NotAfter": "2068-08-04T13:37:59-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=Adobe Intermediate CA 10-15, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Issuer": "CN=Adobe Root CA 10-3, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Thumbprint": "A5C8D928986EC17FCC7D5F2353885D1709B73A29",
+    "NotBefore": "2018-08-17T13:38:15-04:00",
+    "NotAfter": "2068-08-04T13:38:15-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=trust_eb36f5a1-730e-486a-b71a-af91acd698f7",
+    "Issuer": "CN=trust_eb36f5a1-730e-486a-b71a-af91acd698f7",
+    "Thumbprint": "974493DEAE815433EA1CFA873648DA06D956A09F",
+    "NotBefore": "2026-02-18T07:00:44-05:00",
+    "NotAfter": "2027-02-18T19:00:44-05:00",
+    "FriendlyName": "CrossDevice",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=Adobe Content Certificate 10-6, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Issuer": "CN=Adobe Intermediate CA 10-4, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Thumbprint": "906CC149415780CFB79F39E1CF449F87CA6D4D16",
+    "NotBefore": "2018-08-20T09:20:00-04:00",
+    "NotAfter": "2025-08-18T09:20:00-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=Adobe Intermediate CA 10-19, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Issuer": "CN=Adobe Root CA 10-3, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Thumbprint": "85E2C5B0D9CFF505363FA62A5E8B8C1D76A60B46",
+    "NotBefore": "2018-08-17T13:38:19-04:00",
+    "NotAfter": "2068-08-04T13:38:19-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=S-1-5-21-357761096-1057752491-2136275046-1001/e5df7707-1d76-4770-b537-964cf3a11bd5/login.windows.net/74725d92-5b63-4cdf-8969-942b529ecbee/david.martel@auricleinc.com",
+    "Issuer": "CN=S-1-5-21-357761096-1057752491-2136275046-1001/e5df7707-1d76-4770-b537-964cf3a11bd5/login.windows.net/74725d92-5b63-4cdf-8969-942b529ecbee/david.martel@auricleinc.com",
+    "Thumbprint": "7B7BDEAA1C88E2444AF2DDEEBA46871448BECBE5",
+    "NotBefore": "2024-11-27T17:26:25-05:00",
+    "NotAfter": "2054-11-27T17:36:25-05:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Smart Card Logon",
+        "ObjectId": "1.3.6.1.4.1.311.20.2.2"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=7504744b-4d4c-4325-98e0-c28365e73647",
+    "Issuer": "CN=Microsoft Intune MDM Device CA",
+    "Thumbprint": "785E3A0D4FE83DF944B58412565C7B36F4C2D0DE",
+    "NotBefore": "2024-10-21T21:41:29-04:00",
+    "NotAfter": "2025-10-21T03:55:22-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Client Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.2"
+      }
+    ]
+  },
+  {
+    "Subject": "C=US, E=davidmartel07@gmail.com, OU=Research and Development, O=\"Auricle, Inc.\", CN=David T. Martel",
+    "Issuer": "C=US, E=davidmartel07@gmail.com, OU=Research and Development, O=\"Auricle, Inc.\", CN=David T. Martel",
+    "Thumbprint": "6AAB08DACCD45DD42FBD6D39A49F6C8719151449",
+    "NotBefore": "2025-01-22T16:35:41-05:00",
+    "NotAfter": "2030-01-22T16:35:41-05:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=Adobe Content Certificate 10-8, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Issuer": "CN=Adobe Intermediate CA 10-19, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Thumbprint": "686DF0A4A89F7CB6BFB4D33C6A48E2EE5FB6C4FB",
+    "NotBefore": "2023-08-07T11:11:27-04:00",
+    "NotAfter": "2030-08-05T11:11:25-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=B2611F89-EAA0-4D20-AB4D-1B8C6C105F7C",
+    "Issuer": "CN=Apple iPhone Device CA, OU=Apple iPhone, O=Apple Inc., C=US",
+    "Thumbprint": "5BE5193AFA68B4A14B755F1C91244692517C1685",
+    "NotBefore": "2024-10-21T17:23:46-04:00",
+    "NotAfter": "2025-10-21T17:28:46-04:00",
+    "FriendlyName": "APNS certificate(AppleInc.iCloud_nzyj5cx40ttqa)",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Server Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.1"
+      },
+      {
+        "FriendlyName": "Client Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.2"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=2E8DCA5A-0AC6-4441-B457-447A6C74A8C5",
+    "Issuer": "CN=Apple iPhone Device CA, OU=Apple iPhone, O=Apple Inc., C=US",
+    "Thumbprint": "57A9A44B408520DA8FE6FCBF711D237FFDDCAFB8",
+    "NotBefore": "2024-10-19T14:46:20-04:00",
+    "NotAfter": "2025-10-19T14:51:20-04:00",
+    "FriendlyName": "APNS certificate Direct",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Server Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.1"
+      },
+      {
+        "FriendlyName": "Client Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.2"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=47cc342f-dca6-45cd-8f54-4a7a9eda2c83",
+    "Issuer": "CN=47cc342f-dca6-45cd-8f54-4a7a9eda2c83",
+    "Thumbprint": "510BB0EA148497865C901F1B7E1FB73C3EEAAF46",
+    "NotBefore": "2026-04-09T00:18:25-04:00",
+    "NotAfter": "2027-04-09T12:18:25-04:00",
+    "FriendlyName": "Microsoft Your Phone",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=trust_47cc342f-dca6-45cd-8f54-4a7a9eda2c83",
+    "Issuer": "CN=trust_47cc342f-dca6-45cd-8f54-4a7a9eda2c83",
+    "Thumbprint": "4D5B761C0277E4FEE69829DA6079EFEC29B41746",
+    "NotBefore": "2026-03-02T06:55:34-05:00",
+    "NotAfter": "2027-03-02T18:55:34-05:00",
+    "FriendlyName": "Microsoft Your Phone",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=Adobe Content Certificate 10-7, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Issuer": "CN=Adobe Intermediate CA 10-15, OU=Cloud Technology, O=Adobe Systems, L=San Jose, S=California, C=US",
+    "Thumbprint": "4C7C2E87F0BC79A039D39B05F899A1CC521FDE99",
+    "NotBefore": "2023-08-07T09:48:43-04:00",
+    "NotAfter": "2030-08-05T09:48:41-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=localhost",
+    "Issuer": "CN=localhost",
+    "Thumbprint": "4A9C7FA0F21220FA6D64FD1E88B6BE561F1237AF",
+    "NotBefore": "2025-12-12T12:16:03-05:00",
+    "NotAfter": "2026-12-12T12:16:03-05:00",
+    "FriendlyName": "ASP.NET Core HTTPS development certificate",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Server Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.1"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=david",
+    "Issuer": "CN=david",
+    "Thumbprint": "41B46A653E02A017570B90AFC92158C373310824",
+    "NotBefore": "2025-03-11T00:53:07-04:00",
+    "NotAfter": "2125-02-14T23:53:07-05:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Encrypting File System",
+        "ObjectId": "1.3.6.1.4.1.311.10.3.4"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=localhost",
+    "Issuer": "CN=localhost",
+    "Thumbprint": "315F886C5D4A7BCAACA11112BB03ABB951B5FF2C",
+    "NotBefore": "2025-01-28T09:27:31-05:00",
+    "NotAfter": "2026-01-28T09:27:31-05:00",
+    "FriendlyName": "ASP.NET Core HTTPS development certificate",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Server Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.1"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=7504744b-4d4c-4325-98e0-c28365e73647",
+    "Issuer": "CN=Microsoft Intune MDM Device CA",
+    "Thumbprint": "289A1AD4441BA28F221B640694720BF8B4EA04E0",
+    "NotBefore": "2025-05-30T11:27:42-04:00",
+    "NotAfter": "2026-05-03T09:07:33-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Client Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.2"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=eb36f5a1-730e-486a-b71a-af91acd698f7",
+    "Issuer": "CN=eb36f5a1-730e-486a-b71a-af91acd698f7",
+    "Thumbprint": "268E7C2031D5643005D742B9CA560F42BE5216ED",
+    "NotBefore": "2026-02-13T00:16:32-05:00",
+    "NotAfter": "2027-02-13T12:16:32-05:00",
+    "FriendlyName": "CrossDevice",
+    "EnhancedKeyUsageList": []
+  },
+  {
+    "Subject": "CN=\"WDKTestCert david,134190010172404856\"",
+    "Issuer": "CN=\"WDKTestCert david,134190010172404856\"",
+    "Thumbprint": "1FAEDFCC70F1D0B6498D924067B687CAB87FCCA9",
+    "NotBefore": "2026-03-26T08:16:57-04:00",
+    "NotAfter": "2036-03-25T20:00:00-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Code Signing",
+        "ObjectId": "1.3.6.1.5.5.7.3.3"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=7504744b-4d4c-4325-98e0-c28365e73647",
+    "Issuer": "CN=Microsoft Intune MDM Device CA",
+    "Thumbprint": "19AEE86DBF4E8C7736BF27BF816DD6B0754A4E52",
+    "NotBefore": "2025-12-29T22:59:22-05:00",
+    "NotAfter": "2026-12-27T21:38:43-05:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Client Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.2"
+      }
+    ]
+  },
+  {
+    "Subject": "CN=4d7b37cd-3faa-42cd-b308-8d20f9fd3656",
+    "Issuer": "DC=net + DC=windows + CN=MS-Organization-Access + OU=82dbaca4-3e81-46ca-9c73-0950c1eaca97",
+    "Thumbprint": "101B8C74EC86B990909EA76D4AD324E04BE92E7F",
+    "NotBefore": "2024-11-01T09:17:29-04:00",
+    "NotAfter": "2034-11-01T09:47:29-04:00",
+    "FriendlyName": "",
+    "EnhancedKeyUsageList": [
+      {
+        "FriendlyName": "Client Authentication",
+        "ObjectId": "1.3.6.1.5.5.7.3.2"
+      }
+    ]
+  }
+]

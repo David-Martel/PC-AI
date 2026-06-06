@@ -1,0 +1,24 @@
+
+Check                  Ok Detail
+-----                  -- ------
+GovernorRunning      True   8316
+GovernorResponding   True   True
+ProBalanceExclusions True     ok
+SmartTrimExclusions  True     ok
+LoggingFlags         True       
+RecentLogLines       True     54
+
+
+Ok                    : True
+DryRun                : False
+GeneratedAt           : 2026-06-06T13:37:10.8029164-04:00
+ConfigPath            : C:\ProgramData\ProcessLasso\config\prolasso.ini
+LogPath               : C:\ProgramData\ProcessLasso\logs\processlasso.log
+LookbackMinutes       : 240
+Governor              : @{Running=True; Id=8316; Responding=True; StartTime=6/5/2026 9:04:26 PM; Path=C:\Program Files\Process Lasso\processgovernor.exe}
+MissingOocExclusions  : {}
+MissingSmartTrimItems : {}
+Logging               : {@{Key=IncludeCommandLines; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessExecutions; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessTerminations; Expected=true; Actual=true; Ok=True}, @{Key=LogEfficiencyMode; Expected=true; Actual=true; Ok=True}…}
+RecentLogLines        : {"UTC","LocalTime","Machine","User","PID","Basename","ActionId","Action","Info","Path","CommandLine", "134252409996395394","2026-06-06 13:36:39","DTM-P1GEN7","david","37584","pwsh.exe","78","(0x4e) Process has terminated","Ran for 0 secs. Average CPU use 4.46%.","c:\program files\powershell\7\pwsh.exe","""C:\Program Files\PowerShell\7\pwsh.exe"" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ""\""user.email: $(git config user.email)\"", \""user.name: $(git config user.name)\"", \""--- key uids: davidmartel07@gmail.com\, damartel@umich.edu ---\""…}
+Failures              : {}
+

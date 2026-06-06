@@ -1,0 +1,25 @@
+
+Status                      : Pass
+DryRun                      : False
+GeneratedAt                 : 2026-06-06T13:33:05.3903970-04:00
+LastBootTime                : 6/5/2026 9:02:53 PM
+EventStartTime              : 6/6/2026 9:33:00 AM
+Vhds                        : {@{Name=cloud-cache-disk; Path=T:\vm\cloud-cache-disk.vhdx; Exists=True; 
+                              ExpectedDriveLetter=F; ExpectedState=mounted-volume; Attached=True; DiskNumber=4; 
+                              DiskOperationalStatus=Online; Volumes=System.Object[]; Error=}, @{Name=share-ext4; 
+                              Path=T:\vm\share-ext4.vhdx; Exists=True; ExpectedDriveLetter=; 
+                              ExpectedState=attached-disk-only; Attached=True; DiskNumber=6; 
+                              DiskOperationalStatus=Online; Volumes=System.Object[]; Error=}, @{Name=shared-dev; 
+                              Path=T:\vm\shared-dev.vhdx; Exists=True; ExpectedDriveLetter=W; 
+                              ExpectedState=mounted-volume; Attached=True; DiskNumber=5; DiskOperationalStatus=Online; 
+                              Volumes=System.Object[]; Error=}}
+Tasks                       : {@{TaskPath=\; TaskName=AutoMount_VHDX_cloud-cache-disk; State=Ready; 
+                              LastRunTime=6/5/2026 9:04:31 PM; LastTaskResult=0; NextRunTime=}, @{TaskPath=\; 
+                              TaskName=AutoMount_VHDX_share-ext4; State=Ready; LastRunTime=6/5/2026 9:05:31 PM; 
+                              LastTaskResult=0; NextRunTime=}, @{TaskPath=\; TaskName=AutoMount_VHDX_shared-dev; 
+                              State=Ready; LastRunTime=6/5/2026 9:05:01 PM; LastTaskResult=0; NextRunTime=}}
+FilterManagerEventId3       : {}
+LatestBootDiagnosticsReport : C:\codedev\PC_AI\Reports\boot-diagnostics\20260606-133230
+Failures                    : {}
+Warnings                    : {}
+

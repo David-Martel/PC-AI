@@ -1,0 +1,54 @@
+
+Count Name
+----- ----
+10470 Microsoft-Windows-HttpEvent, 15300, Warning
+10247 Microsoft-Windows-HttpEvent, 15301, Warning
+  688 Bonjour Service, 100, Error
+  207 Microsoft-Windows-DistributedCOM, 10010, Error
+   71 Microsoft-Windows-DistributedCOM, 10016, Warning
+   48 Microsoft-Windows-WMI, 63, Warning
+   39 Microsoft-Windows-CertificateServicesClient-AutoEnrollment, 64, Warning
+   38 Universal Print, 1, Error
+   35 Microsoft-Windows-HttpEvent, 15005, Error
+   32 Microsoft-Windows-Kernel-PnP, 219, Warning
+   22 Netwaw18, 6062, Warning
+   16 Microsoft-Windows-AppModel-State, 20, Warning
+   16 Microsoft-Windows-AppModel-State, 21, Warning
+   16 Microsoft-Windows-AppModel-State, 23, Warning
+   16 Microsoft-Windows-AppModel-State, 24, Warning
+   16 VBScriptDeprecationAlert, 4096
+   11 Microsoft-Windows-Bits-Client, 16393, Warning
+    9 VSS, 13, Error
+    8 Microsoft-Windows-Perflib, 1008, Warning
+    8 VSS, 8193, Error
+    6 Microsoft-Windows-Smartcard-Server, 610, Error
+    6 PC-AI-VHDMount, 3001, Warning
+    6 Microsoft-Windows-FilterManager, 3, Error
+    6 PC-AI-VHDMount, 2000, Warning
+    5 Application Error, 1000, Error
+    5 Microsoft-Windows-Time-Service, 134, Warning
+    4 Microsoft-Windows-DNS-Client, 1023, Error
+    4 Microsoft-Windows-WLAN-AutoConfig, 10002, Warning
+    4 disk, 158, Warning
+    4 Microsoft-Windows-DeviceAssociationService, 3503, Error
+    4 Service Control Manager, 7001, Error
+    3 Microsoft-Windows-WinRM, 10149, Warning
+    3 Service Control Manager, 7043, Error
+    3 Service Control Manager, 7034, Error
+    3 Microsoft-Windows-RestartManager, 10010, Warning
+    2 User32, 1073, Warning
+    2 winsrvext, 100, Warning
+    2 Microsoft-Windows-DriverFrameworks-UserMode, 10120, Critical
+    2 Microsoft-Windows-DNS-Client, 1014, Warning
+    2 Microsoft-Windows-Defrag, 264, Error
+    2 MEIx64, 4, Warning
+    2 Microsoft-Windows-TPM-WMI, 1538, Warning
+    1 NVWMI, 3, Warning
+    1 Microsoft-Windows-MSMQ, 2027, Error
+    1 Microsoft-Windows-Kernel-Power, 41, Critical
+    1 Service Control Manager, 7030, Error
+    1 Microsoft-Windows-DriverFrameworks-UserMode, 10111, Critical
+    1 EventLog, 6008, Error
+    1 ESRV_SVC_QUEENCREEK, 2
+    1 .NET Runtime, 1026, Error
+

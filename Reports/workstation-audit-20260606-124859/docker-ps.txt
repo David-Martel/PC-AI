@@ -1,0 +1,9 @@
+NAMES                                                                          STATUS                 IMAGE
+finance_pg                                                                     Up 2 hours             postgres:17
+jupyter_embedded_dd_vm                                                         Up 2 hours (healthy)   jupyter/scipy-notebook:lab-4.0.7
+mochoa_jupyter-docker-extension-desktop-extension-jupyter-docker-extension-1   Up 2 hours             mochoa/jupyter-docker-extension:22.4.2
+coder_embedded_dd_vm                                                           Up 2 hours             codercom/code-server:4.106.2-39
+mochoa_coder-docker-extension-desktop-extension-coder-docker-extension-1       Up 2 hours             mochoa/coder-docker-extension:4.106.2-39
+openwebui-extension-service                                                    Up 2 hours (healthy)   ghcr.io/open-webui/open-webui:main
+rw4lll_openwebui-docker-extension-desktop-extension-service                    Up 2 hours             alpine:latest
+docker_labs-vscode-installer-desktop-extension-service                         Up 2 hours             docker/labs-vscode-installer:0.0.9

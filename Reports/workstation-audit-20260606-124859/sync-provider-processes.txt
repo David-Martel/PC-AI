@@ -1,0 +1,21 @@
+
+ProcessName : GoogleDriveFS
+Id          : 27568
+Path        : C:\Program Files\Google\Drive File Stream\126.0.5.0\GoogleDriveFS.exe
+StartTime   : 6/5/2026 9:07:37 PM
+
+ProcessName : GoogleDriveFS
+Id          : 35608
+Path        : C:\Program Files\Google\Drive File Stream\126.0.5.0\GoogleDriveFS.exe
+StartTime   : 6/5/2026 9:07:37 PM
+
+ProcessName : OneDrive
+Id          : 37764
+Path        : C:\Program Files\Microsoft OneDrive\OneDrive.exe
+StartTime   : 6/5/2026 9:06:37 PM
+
+ProcessName : OneDrive.Sync.Service
+Id          : 19644
+Path        : C:\Program Files\Microsoft OneDrive\26.088.0510.0004\OneDrive.Sync.Service.exe
+StartTime   : 6/5/2026 9:08:37 PM
+

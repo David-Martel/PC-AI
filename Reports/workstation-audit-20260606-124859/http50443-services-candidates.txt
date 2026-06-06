@@ -1,0 +1,33 @@
+
+Name                        DisplayName                                                                         Status S
+                                                                                                                       t
+                                                                                                                       a
+                                                                                                                       r
+                                                                                                                       t
+                                                                                                                       T
+                                                                                                                       y
+                                                                                                                       p
+                                                                                                                       e
+----                        -----------                                                                         ------ -
+ALG                         Application Layer Gateway Service                                                  Stopped l
+AppMgmt                     Application Management                                                             Running l
+BTAGService                 Bluetooth Audio Gateway Service                                                    Running l
+DellClientManagementService Dell Client Management Service                                                     Running c
+DmEnrollmentSvc             Device Management Enrollment Service                                               Stopped l
+dmwappushservice            Device Management Wireless Application Protocol (WAP) Push message Routing Service Stopped c
+EntAppSvc                   Enterprise App Management Service                                                  Stopped l
+McmSvc                      Mobile Connectivity Management Service                                             Stopped l
+McpManagementService        McpManagementService                                                               Stopped l
+RmSvc                       Radio Management Service                                                           Running l
+TextInputManagementService  Text Input Management Service                                                      Running c
+TieringEngineService        Storage Tiers Management                                                           Stopped l
+vmms                        Hyper-V Virtual Machine Management                                                 Running c
+WebManagement               Web Management                                                                     Running c
+WebManagementUser_49af28    WebManagementUser_49af28                                                           Stopped l
+Winmgmt                     Windows Management Instrumentation                                                 Running c
+WinRM                       Windows Remote Management (WS-Management)                                          Running c
+WManSvc                     Windows Management Service                                                         Stopped l
+WMIRegistrationService      Intel(R) Management Engine WMI Provider Registration                               Running c
+WMSVC                       Web Management Service                                                             Stopped l
+XboxGipSvc                  Xbox Accessory Management Service                                                  Stopped l
+

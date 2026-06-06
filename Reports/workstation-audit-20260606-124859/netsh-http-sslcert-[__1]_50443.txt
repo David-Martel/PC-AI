@@ -1,0 +1,60 @@
+
+SSL Certificate bindings: 
+------------------------- 
+
+
+
+    IP:port                      : [::1]:50443
+    Certificate Hash             : 4b3410070af7cd1b03319c3699a575365b91a4ec
+    Application ID               : {7125f84e-a584-49bf-b90f-ecaa96fe8b63}
+    Certificate Store Name       : Windows Web Management
+    Verify Client Certificate Revocation : Enabled
+    Verify Revocation Using Cached Client Certificate Only : Disabled
+    Use Revocation Freshness Time : Disabled
+    Verify Revocation Using Cached URLs Only : Disabled
+    Disable Authority Info Access : Disabled
+    Usage Check                  : Enabled
+    Revocation Freshness Time    : 0
+    URL Retrieval Timeout        : 0
+    Ctl Identifier               : (null)
+    Ctl Store Name               : (null)
+    DS Mapper Usage              : Disabled
+    Negotiate Client Certificate : Disabled
+    Reject Connections           : Disabled
+    Disable HTTP2                : Not Set
+    Disable QUIC                 : Not Set
+    Disable TLS1.2               : Not Set
+    Disable TLS1.3               : Not Set
+    Disable OCSP Stapling        : Not Set
+    Enable Token Binding         : Not Set
+    Log Extended Events          : Not Set
+    Disable Legacy TLS Versions  : Not Set
+    Enable Session Ticket        : Not Set
+    Disable Session ID           : Not Set
+    Enable Caching Client Hello  : Not Set
+ Extended Property:
+    PropertyId                   : 0
+    Receive Window               : 1048576
+ Extended Property:
+    PropertyId                   : 1
+    Max Settings Per Frame       : 2796202
+    Max Settings Per Minute      : 4294967295
+ Extended Property:
+    PropertyId                   : 2
+    Send Buffering Flags         : 0x0
+    Aggressive ICW               : Not Set
+    Max Send Buffer Size         : 4294967295
+    Max Concurrent Client Streams: 100
+    Max Receive Buffer Size      : 0
+    Decrypt On SSPI Thread       : Set
+ Extended Property:
+    PropertyId                   : 3
+    TLS Restrictions             : Not Set
+ Extended Property:
+    PropertyId                   : 4
+    Error Headers                : Not Set
+    Status Code                  : 0
+ Extended Property:
+    PropertyId                   : 6
+    Cert Config                  : Not Set
+

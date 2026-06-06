@@ -1,0 +1,9 @@
+CONTAINER ID   IMAGE                                      STATUS                 NAMES                                                                          SIZE
+2448a4e96a37   postgres:17                                Up 3 hours             finance_pg                                                                     39.4MB (virtual 517MB)
+d14af782fb47   jupyter/scipy-notebook:lab-4.0.7           Up 3 hours (healthy)   jupyter_embedded_dd_vm                                                         12.3kB (virtual 4.44GB)
+cab0175c34d3   mochoa/jupyter-docker-extension:22.4.2     Up 3 hours             mochoa_jupyter-docker-extension-desktop-extension-jupyter-docker-extension-1   12.3kB (virtual 12.6MB)
+d5a7c0e81186   codercom/code-server:4.106.2-39            Up 3 hours             coder_embedded_dd_vm                                                           12.3kB (virtual 812MB)
+fc7c133df0d7   mochoa/coder-docker-extension:4.106.2-39   Up 3 hours             mochoa_coder-docker-extension-desktop-extension-coder-docker-extension-1       12.3kB (virtual 14.7MB)
+8f7c642aad21   ghcr.io/open-webui/open-webui:main         Up 3 hours (healthy)   openwebui-extension-service                                                    65.4MB (virtual 4.68GB)
+e5adc0995a09   alpine:latest                              Up 3 hours             rw4lll_openwebui-docker-extension-desktop-extension-service                    4.1kB (virtual 8.53MB)
+39a2db51cc5d   docker/labs-vscode-installer:0.0.9         Up 3 hours             docker_labs-vscode-installer-desktop-extension-service                         12.3kB (virtual 31.2MB)

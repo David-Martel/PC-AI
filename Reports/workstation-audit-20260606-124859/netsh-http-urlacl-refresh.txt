@@ -1,0 +1,146 @@
+
+URL Reservations: 
+----------------- 
+
+    Reserved URL            : http://*:5357/ 
+        User: BUILTIN\Users
+            Listen: Yes
+            Delegate: No
+        User: NT AUTHORITY\LOCAL SERVICE
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;BU)(A;;GX;;;LS) 
+
+    Reserved URL            : http://+:80/Temporary_Listen_Addresses/ 
+        User: \Everyone
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;WD) 
+
+    Reserved URL            : https://*:5358/ 
+        User: BUILTIN\Users
+            Listen: Yes
+            Delegate: No
+        User: NT AUTHORITY\LOCAL SERVICE
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;BU)(A;;GX;;;LS) 
+
+    Reserved URL            : http://*:2869/ 
+        User: NT AUTHORITY\LOCAL SERVICE
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;LS) 
+
+    Reserved URL            : https://+:5986/wsman/ 
+        User: NT SERVICE\WinRM
+            Listen: Yes
+            Delegate: No
+        User: NT SERVICE\Wecsvc
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;S-1-5-80-569256582-2953403351-2909559716-1301513147-412116970)(A;;GX;;;S-1-5-80-4059739203-877974739-1245631912-527174227-2996563517) 
+
+    Reserved URL            : http://+:47001/wsman/ 
+        User: NT SERVICE\WinRM
+            Listen: Yes
+            Delegate: No
+        User: NT SERVICE\Wecsvc
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;S-1-5-80-569256582-2953403351-2909559716-1301513147-412116970)(A;;GX;;;S-1-5-80-4059739203-877974739-1245631912-527174227-2996563517) 
+
+    Reserved URL            : http://+:5985/wsman/ 
+        User: NT SERVICE\WinRM
+            Listen: Yes
+            Delegate: No
+        User: NT SERVICE\Wecsvc
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;S-1-5-80-569256582-2953403351-2909559716-1301513147-412116970)(A;;GX;;;S-1-5-80-4059739203-877974739-1245631912-527174227-2996563517) 
+
+    Reserved URL            : https://+:8200/ 
+        User: \Everyone
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;WD) 
+
+    Reserved URL            : https://+:8206/ 
+        User: \Everyone
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;WD) 
+
+    Reserved URL            : http://+:12292/ 
+        User: DTM-P1GEN7\david
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;S-1-5-21-357761096-1057752491-2136275046-1001) 
+
+    Reserved URL            : http://+:10247/apps/ 
+        User: NT AUTHORITY\Authenticated Users
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;AU) 
+
+    Reserved URL            : https://+:10245/WMPNSSv4/ 
+        User: NT SERVICE\WMPNetworkSvc
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;S-1-5-80-2375682873-768044350-3534595160-1005545032-2873800392) 
+
+    Reserved URL            : http://+:10243/WMPNSSv4/ 
+        User: NT SERVICE\WMPNetworkSvc
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;S-1-5-80-2375682873-768044350-3534595160-1005545032-2873800392) 
+
+    Reserved URL            : http://+:10246/MDEServer/ 
+        User: NT AUTHORITY\Authenticated Users
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;AU) 
+
+    Reserved URL            : http://+:8733/Design_Time_Addresses/ 
+        User: NT AUTHORITY\INTERACTIVE
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;IU) 
+
+    Reserved URL            : https://+:3392/rdp/ 
+        User: NT SERVICE\TermService
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;S-1-5-80-446051430-1559341753-4161941529-1950928533-810483104) 
+
+    Reserved URL            : https://+:443/sra_{BA195980-CD49-458b-9E23-C84EE0ADCD75}/ 
+        User: NT SERVICE\SstpSvc
+            Listen: Yes
+            Delegate: Yes
+        User: BUILTIN\Administrators
+            Listen: Yes
+            Delegate: Yes
+        User: NT AUTHORITY\SYSTEM
+            Listen: Yes
+            Delegate: Yes
+            SDDL: D:(A;;GA;;;S-1-5-80-3435701886-799518250-3791383489-3228296122-2938884314)(A;;GA;;;BA)(A;;GA;;;SY) 
+
+    Reserved URL            : http://+:80/0131501b-d67f-491b-9a40-c4bf27bcb4d4/ 
+        User: NT AUTHORITY\NETWORK SERVICE
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;NS) 
+
+    Reserved URL            : https://+:443/C574AC30-5794-4AEE-B1BB-6651C5315029/ 
+        User: NT AUTHORITY\NETWORK SERVICE
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;NS) 
+
+    Reserved URL            : http://+:80/116B50EB-ECE2-41ac-8429-9F9E963361B7/ 
+        User: NT AUTHORITY\NETWORK SERVICE
+            Listen: Yes
+            Delegate: No
+            SDDL: D:(A;;GX;;;NS) 
+
+

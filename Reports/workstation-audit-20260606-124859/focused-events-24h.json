@@ -1,0 +1,1122 @@
+[
+  {
+    "TimeCreated": "2026-06-06T13:17:45.7644928-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::1c55:4f06:5d3e:f508%27]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:45.7514757-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::1c55:4f06:5d3e:f508%27]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:42.0761378-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2001:0:14c9:ce06:1c55:4f06:5d3e:f508]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:38.7198673-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 127.0.0.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:35.3398752-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [::1]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:31.959-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.69.157:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:28.6223659-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::4bf7:4f21:532d:a052%32]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:28.6088476-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::4bf7:4f21:532d:a052%32]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:25.2213575-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.228.161:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:21.9720119-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::4aa3:2a2a:a5e0:d7c8%20]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:21.9630105-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::4aa3:2a2a:a5e0:d7c8%20]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:18.4867392-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.186.170:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:14.7502796-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::eec4:f2a2:a61e:c1b7%94]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:14.7357626-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::eec4:f2a2:a61e:c1b7%94]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:11.3678094-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 192.168.137.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:08.1981431-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::188:ad6d:591b:dce9%9]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:08.1891474-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::188:ad6d:591b:dce9%9]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:04.9852445-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.155.228:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:01.8123828-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::90d6:cd4e:2b18:dd7a%8]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:17:01.7963764-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::90d6:cd4e:2b18:dd7a%8]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:58.3000261-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.37.107:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:55.1144071-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::e027:31f5:f2c4:2b7b%13]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:55.1034078-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::e027:31f5:f2c4:2b7b%13]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:51.8690732-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 10.10.15.38:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:48.6570392-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::14fe:8099:8d98:ccf9%30]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:45.1797479-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fd62:c8aa:580:60:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:45.1672264-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fd62:c8aa:580:60:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:41.4561303-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fd62:c8aa:580:10:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:41.4439399-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fd62:c8aa:580:10:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:37.9867553-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb54:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:37.9762403-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb54:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:34.3112288-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb53:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:34.2957152-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb53:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:30.759917-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb52:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:30.7474518-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb52:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:27.1525437-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb51:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:27.1415265-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb51:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:23.0443657-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb50:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:23.0310852-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb50:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:17.894611-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fd62:c8aa:580:60:6ccb:9a88:2bc4:3d77]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:17.882071-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fd62:c8aa:580:60:6ccb:9a88:2bc4:3d77]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:14.2303817-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fd62:c8aa:580:10:4650:2130:8cd5:e2bd]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:10.8251099-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb54:4997:79d5:3031:e879]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:10.814908-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb54:4997:79d5:3031:e879]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:07.50025-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb53:1fd6:f684:5510:6146]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:07.4881802-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb53:1fd6:f684:5510:6146]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:04.0727304-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb52:d1c9:32e5:f547:95ad]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:16:04.0606902-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb52:d1c9:32e5:f547:95ad]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:59.7405075-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb51:beb5:5246:4e87:125c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:59.7284975-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb51:beb5:5246:4e87:125c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:55.908707-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb50:c088:83c6:9e77:91f3]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:55.8981928-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb50:c088:83c6:9e77:91f3]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:52.4928891-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb50::40d2]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:49.1137426-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 192.168.240.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:45.6868988-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::b324:5186:6d6:39c7%89]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:45.6763473-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::b324:5186:6d6:39c7%89]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:41.9029053-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.76.173:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:38.7400723-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::5caa:e531:5511:4574%15]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:38.7290724-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::5caa:e531:5511:4574%15]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:35.6257578-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 172.21.64.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:32.4066291-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::c5ba:95ec:264e:825a%43]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:32.3940925-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::c5ba:95ec:264e:825a%43]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:29.2059835-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.161.239:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:25.9840327-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::ca0d:a27c:f96a:4bc7%36]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:25.9728187-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::ca0d:a27c:f96a:4bc7%36]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:22.7939579-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.83.107:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:19.5504921-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::ca0d:a27c:f96a:4bc7%12]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:19.540485-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::ca0d:a27c:f96a:4bc7%12]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:16.3979021-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : localhost:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:13.1626791-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : dtm-p1gen7:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.323491-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : localhost:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.323491-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : dtm-p1gen7:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3224864-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::14fe:8099:8d98:ccf9%30]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3224864-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fd62:c8aa:580:10:4650:2130:8cd5:e2bd]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3209824-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 192.168.240.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3209824-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [::1]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3209824-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb50::40d2]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3209824-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2001:0:14c9:ce06:1c55:4f06:5d3e:f508]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3199812-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 192.168.137.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3189806-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 172.21.64.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3189806-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 169.254.83.107:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.317979-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 169.254.76.173:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3169832-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 169.254.69.157:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3169832-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 169.254.37.107:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3159797-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 169.254.228.161:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.314987-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 169.254.186.170:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3139804-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 169.254.161.239:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3139804-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 169.254.155.228:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.3139804-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 127.0.0.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:06.312981-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : 10.10.15.38:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:05.0125297-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::1c55:4f06:5d3e:f508%27]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:04.9998036-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::1c55:4f06:5d3e:f508%27]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:15:01.3084886-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2001:0:14c9:ce06:1c55:4f06:5d3e:f508]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:57.8571484-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 127.0.0.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:54.7111346-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [::1]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:51.397497-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.69.157:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:48.1802116-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::4bf7:4f21:532d:a052%32]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:48.1712042-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::4bf7:4f21:532d:a052%32]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:44.9940019-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.228.161:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:41.5637015-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::4aa3:2a2a:a5e0:d7c8%20]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:41.5525729-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::4aa3:2a2a:a5e0:d7c8%20]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:38.4080853-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.186.170:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:35.1501457-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::eec4:f2a2:a61e:c1b7%94]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:35.1398532-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::eec4:f2a2:a61e:c1b7%94]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:31.1112671-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 192.168.137.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:27.444005-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::188:ad6d:591b:dce9%9]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:27.4330072-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::188:ad6d:591b:dce9%9]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:24.2148778-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.155.228:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:20.9676645-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::90d6:cd4e:2b18:dd7a%8]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:20.9576535-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::90d6:cd4e:2b18:dd7a%8]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:17.7530894-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.37.107:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:14.5507303-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::e027:31f5:f2c4:2b7b%13]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:14.5399422-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::e027:31f5:f2c4:2b7b%13]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:11.3093611-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 10.10.15.38:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:08.0807777-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::14fe:8099:8d98:ccf9%30]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:04.8829077-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fd62:c8aa:580:60:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:04.8722416-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fd62:c8aa:580:60:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:01.6581249-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fd62:c8aa:580:10:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:14:01.6471103-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fd62:c8aa:580:10:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:58.5726003-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb54:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:58.561842-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb54:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:55.4855569-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb53:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:55.4728724-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb53:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:52.43697-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb52:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:52.4254599-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb52:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:49.5189943-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb51:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:49.5079952-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb51:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:46.5098606-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb50:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:46.4987718-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb50:c1c4:5cf4:27ab:760c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:43.5148319-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fd62:c8aa:580:60:6ccb:9a88:2bc4:3d77]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:43.5042961-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fd62:c8aa:580:60:6ccb:9a88:2bc4:3d77]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:40.4981543-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fd62:c8aa:580:10:4650:2130:8cd5:e2bd]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:37.510796-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb54:4997:79d5:3031:e879]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:37.500787-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb54:4997:79d5:3031:e879]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:34.5036783-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb53:1fd6:f684:5510:6146]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:34.4901236-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb53:1fd6:f684:5510:6146]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:31.407761-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb52:d1c9:32e5:f547:95ad]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:31.3987606-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb52:d1c9:32e5:f547:95ad]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:28.3857168-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb51:beb5:5246:4e87:125c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:28.3765835-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb51:beb5:5246:4e87:125c]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:25.2116136-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb50:c088:83c6:9e77:91f3]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:25.2012173-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [2600:1702:7220:fb50:c088:83c6:9e77:91f3]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:22.1834236-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [2600:1702:7220:fb50::40d2]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:19.0710197-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 192.168.240.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:15.1312543-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::b324:5186:6d6:39c7%89]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:15.1184611-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::b324:5186:6d6:39c7%89]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:11.3895225-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.76.173:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:08.3316534-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::5caa:e531:5511:4574%15]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:08.3191025-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::5caa:e531:5511:4574%15]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:05.2954181-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 172.21.64.1:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:02.1545446-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::c5ba:95ec:264e:825a%43]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:13:02.1440349-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::c5ba:95ec:264e:825a%43]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:12:59.1063454-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.161.239:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:12:56.0241881-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::ca0d:a27c:f96a:4bc7%36]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:12:56.0141847-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::ca0d:a27c:f96a:4bc7%36]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:12:52.8850979-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : 169.254.83.107:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:12:49.8166985-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : [fe80::ca0d:a27c:f96a:4bc7%12]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:12:49.8074456-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15300,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings deleted for endpoint : [fe80::ca0d:a27c:f96a:4bc7%12]:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:12:46.7320611-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : localhost:50443 ."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:12:43.4851533-04:00",
+    "ProviderName": "Microsoft-Windows-HttpEvent",
+    "Id": 15301,
+    "LevelDisplayName": "Warning",
+    "Message": "SSL Certificate Settings created by an admin process for endpoint : dtm-p1gen7:50443 ."
+  }
+]

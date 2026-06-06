@@ -1,0 +1,17 @@
+=== Kernel-Power Id 41 (critical) detail ===
+  [6/5/2026 9:03:01 PM] The system has rebooted without cleanly shutting down first. This error could be caused if the system stopped responding, crashed, or lost power unexpectedly.
+=== Modern Standby enter/exit (506/507) timeline ===
+  [06-05 19:39:27] Id506 The system is entering Modern Standby
+  [06-05 19:39:53] Id507 The system is exiting Modern Standby
+  [06-05 23:27:54] Id506 The system is entering Modern Standby
+  [06-05 23:59:19] Id507 The system is exiting Modern Standby
+  [06-05 23:59:19] Id506 The system is entering Modern Standby
+  [06-06 10:10:10] Id507 The system is exiting Modern Standby
+
+=== Kernel-PnP 219 WUDFRd which device? ===
+  [06-05 21:03] The driver \Driver\WUDFRd failed to load. Device: INTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000 Status: 0xC0000365
+  [06-05 21:03] The driver \Driver\WUDFRd failed to load. Device: LCI\IDDCX\1&36444bd7&0&WHO_CARE Status: 0xC0000365
+  [06-05 21:03] The driver \Driver\WUDFRd failed to load. Device: ROOT\SYSTEM\0002 Status: 0xC0000365
+  [06-05 21:03] The driver \Driver\WUDFRd failed to load. Device: ROOT\SYSTEM\0001 Status: 0xC0000365
+  [06-05 21:03] The driver \Driver\WudfRd failed to load. Device: ROOT\WPD\0000 Status: 0xC0000365
+  [06-05 21:03] The driver \Driver\WUDFRd failed to load. Device: ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1 Status: 0xC0000365

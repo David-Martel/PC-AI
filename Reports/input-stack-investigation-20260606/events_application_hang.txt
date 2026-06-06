@@ -1,0 +1,20 @@
+=== Application log: Application Error (1000) + Hang (1002) for explorer/dwm ===
+  total app-error/hang/WER events: 3891
+  matching explorer/dwm/input: 65
+    [05-26 12:35] Id1002 The program explorer.exe version 10.0.26100.8457 stopped interacting with Windows and was closed. To see if more information about the problem is available, che
+    [05-26 12:35] Id1001 Fault bucket 1915894843679656175, type 5 Event Name: AppHangB1 Response: Not available Cab Id: 0  Problem signature: P1: explorer.exe P2: 10.0.26100.8457 P3: f2
+    [05-26 11:56] Id1001 Fault bucket 1519415616126674699, type 5 Event Name: RADAR_PRE_LEAK_64 Response: Not available Cab Id: 0  Problem signature: P1: explorer.exe P2: 10.0.26100.845
+    [05-26 09:18] Id1001 Fault bucket 1247395880758060261, type 4 Event Name: APPCRASH Response: Not available Cab Id: 1771559863389594384  Problem signature: P1: dwm.exe P2: 10.0.26100
+    [05-26 04:48] Id1001 Fault bucket , type 0 Event Name: APPCRASH Response: Not available Cab Id: 0  Problem signature: P1: dwm.exe P2: 10.0.26100.8328 P3: 59f31718 P4: dwmcore.dll P5
+    [05-26 03:43] Id1001 Fault bucket , type 0 Event Name: APPCRASH Response: Not available Cab Id: 0  Problem signature: P1: dwm.exe P2: 10.0.26100.8328 P3: 59f31718 P4: dwmcore.dll P5
+  --- ALL app errors/hangs by app (top) ---
+    svchost.exe x570
+    LvfInstallService.exe x139
+    OneDrive.exe x130
+    warp-svc.exe x119
+    python.exe x105
+    dwm.exe x62
+    Dell.TechHub.Instrumentation.SubAgent.exe x60
+    powershell.exe x21
+    wmiprvse.exe x20
+    drvinst.exe x9

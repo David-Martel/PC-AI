@@ -1,0 +1,32 @@
+=== Active scheme === Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)
+
+=== USB selective suspend ===
+  USB selective suspend: Current AC Power Setting Index: 0x00000000 | Current DC Power Setting Index: 0x00000000
+=== PCI Express ASPM (link state power mgmt) ===
+  PCIe ASPM: Current AC Power Setting Index: 0x00000000 | Current DC Power Setting Index: 0x00000000
+=== Processor idle (C-state) disable ===
+  err idle
+
+=== Devices armed to wake (powercfg /devicequery wake_armed) ===
+Realtek Gaming USB 2.5GbE Family Controller
+USB4 Root Router (1.0)
+Intel(R) Wi-Fi 7 BE200 320MHz
+
+=== Input devices with power-management (devicequery all_devices_verbose subset) ===
+--- wake_programmable (devices that CAN be armed) ---
+  (no input devices in wake_programmable)
+
+=== Per-device power policy (PnP "allow turn off to save power") ===
+--- Sensel touchpad (I2C-HID) ---
+    Capabilities=0x20
+--- i8042 keyboard ---
+    Capabilities=0x20
+--- TrackPoint ---
+    Capabilities=0x20
+--- Intel I2C 7E78 ---
+    Capabilities=0x0
+
+=== MSPower_DeviceEnable (root\wmi) — Enable=True means power-mgmt(turn-off) ALLOWED ===
+  Enable=True  PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8_0
+  Enable=True  ACPI\SNSL002D\4&39979b3e&0_0
+  (full table written to H6_power_devenable.txt)

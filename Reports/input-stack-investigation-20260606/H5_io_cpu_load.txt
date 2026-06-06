@@ -1,0 +1,55 @@
+=== Top 12 processes by CPU(s) total ===
+
+Name              Id    CPU_s  WS_MB
+----              --    -----  -----
+OneDrive       37764 55165.00 647.00
+System             4  5354.00 430.00
+MsMpEng        14776  4732.00 550.00
+svchost        13900  4378.00  52.00
+svchost         3172  3798.00  19.00
+dwm             2328  2757.00 903.00
+WDDriveService 14492  1332.00  26.00
+claude         45660  1300.00 737.00
+tailscaled     18216  1276.00 114.00
+redis-server   15928  1247.00  19.00
+codex          51092  1216.00 409.00
+WmiPrvSE        6280  1163.00  78.00
+
+
+=== Top 12 by Working Set (MB) ===
+
+Name                   Id   WS_MB
+----                   --   -----
+vmmemWSL            47784 2987.00
+warp                22380 1357.00
+dwm                  2328  903.00
+claude              45660  737.00
+PhoneExperienceHost 32292  733.00
+explorer            25400  710.00
+OneDrive            37764  647.00
+Bitwarden           19940  616.00
+MsMpEng             14776  552.00
+claude              61284  521.00
+chrome              45648  518.00
+chrome              21592  472.00
+
+
+=== Instantaneous CPU% and Disk Queue (Get-Counter) ===
+  \\dtm-p1gen7\processor(_total)\% processor time = 15.90
+  \\dtm-p1gen7\physicaldisk(_total)\current disk queue length = 0.00
+  \\dtm-p1gen7\physicaldisk(_total)\% disk time = 0.00
+  \\dtm-p1gen7\system\processor queue length = 0.00
+=== OneDrive / Defender / sync processes ===
+
+Name              Id    CPU_s  WS_MB
+----              --    -----  -----
+FileSyncHelper 19508     1.00  30.00
+GoogleDriveFS  27568   932.00 287.00
+GoogleDriveFS  35608     0.00  37.00
+MsMpEng        14776  4732.00 543.00
+NisSrv         20280    11.00  17.00
+OneDrive       37764 55167.00 647.00
+
+
+=== Defender real-time status ===
+  RealTimeProtectionEnabled=True BehaviorMonitor=True OnAccessProtection=True AntivirusSignatureAge(d)=0

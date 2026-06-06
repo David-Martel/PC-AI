@@ -1,0 +1,21 @@
+=== dwm.exe crash timeline (Application Error 1000 / WER 1001 APPCRASH) ===
+  dwm crash-type events: 62
+    [05-26 09:18] faultmod=dwmcore.dll
+    [05-26 04:48] faultmod=dwmcore.dll
+    [05-26 03:43] faultmod=dwmcore.dll
+    [05-26 00:09] faultmod=dwmcore.dll
+    [05-26 00:09] faultmod=dwmcore.dll
+    [05-26 00:08] faultmod=dwmcore.dll
+    [05-26 00:07] faultmod=dwmcore.dll
+    [05-26 00:06] faultmod=dwmcore.dll
+
+=== explorer hang timeline (AppHangB1) ===
+  explorer hang events: 2
+    [05-26 12:35]
+    [05-26 12:35]
+
+=== System log: ANY event mentioning Sensel/SNSL/I2C/touchpad/HID resume (provider-agnostic, 14d) ===
+  matching events: 3
+    [06-05 21:04] Win32k/267: Touch/Touchpad Hardware Quality Assurance verification succeeded.
+    [06-05 19:36] Win32k/267: Touch/Touchpad Hardware Quality Assurance verification succeeded.
+    [06-05 10:40] Win32k/267: Touch/Touchpad Hardware Quality Assurance verification succeeded.

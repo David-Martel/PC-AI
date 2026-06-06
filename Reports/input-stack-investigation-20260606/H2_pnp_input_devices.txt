@@ -1,0 +1,1319 @@
+
+Status  Class    FriendlyName                                                    InstanceId
+------  -----    ------------                                                    ----------
+OK      HIDClass USB Input Device                                                USB\VID_0BDA&PID_493B&MI_03\9&31215658&0&0003
+OK      HIDClass HID-compliant touch pad                                         HID\SNSL002D&COL02\5&14B88203&0&0001
+OK      HIDClass HID-compliant consumer control device                           HID\VID_0BDA&PID_493B&MI_03\A&7D0B9B2&0&0000
+OK      HIDClass ETD HSA Device                                                  ETDHSA\VID_04F3&PID_0001\5&BDA4387&0&0002
+OK      HIDClass HID-compliant vendor-defined device                             HID\SNSL002D&COL04\5&14B88203&0&0003
+OK      HIDClass I2C HID Device                                                  ACPI\SNSL002D\4&39979B3E&0
+OK      HIDClass Bluetooth Low Energy GATT compliant HID device                  BTHLEDEVICE\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279\8&2757D4AB&0&001F
+OK      HIDClass USB Input Device                                                USB\VID_1050&PID_0407&MI_01\6&30359553&1&0001
+OK      HIDClass HID-compliant fido                                              HID\VID_1050&PID_0407&MI_01\7&1FFE761B&0&0000
+OK      HIDClass USB Input Device                                                USB\VID_1050&PID_0407&MI_00\6&30359553&1&0000
+OK      HIDClass USB Input Device                                                USB\VID_1532&PID_0F51&MI_01\E&11807DDE&0&0001
+OK      HIDClass Elliptic Human Presence Detection Device                        ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&DABA3FF&1
+OK      HIDClass Bluetooth Low Energy GATT compliant HID device                  BTHLEDEVICE\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B023_REV&0015_E642266DDE7E\8&6F8DC1B&0&0021
+OK      HIDClass USB Input Device                                                USB\VID_1532&PID_0F51&MI_00\E&11807DDE&0&0000
+OK      HIDClass Microsoft Input Configuration Device                            HID\SNSL002D&COL03\5&14B88203&0&0002
+OK      HIDClass Bluetooth Low Energy GATT compliant HID device                  BTHLEDEVICE\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B369_REV&0016_D90061F37B6F\8&F9481DD&0&001F
+OK      HIDClass HID-compliant device                                            HID\VID_1532&PID_0F51&MI_01\F&D73B173&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C31C&MI_00\8&FD225FE&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_0BDA&PID_1100\9&3824CF20&0&3
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C31C&MI_01\8&ED834A8&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_413C&PID_D001\8120181201
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_046D&PID_C548&MI_02&COL01\A&ED6552A&0&0000
+Unknown HIDClass HID-compliant device                                            HID\VID_046D&PID_C548&MI_01&COL04\A&22067168&0&0003
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_07CA&PID_D553&MI_01\A&319DBF0D&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_0BDA&PID_1100\9&369E208F&0&3
+Unknown HIDClass USB Input Device                                                USB\VID_0416&PID_0123\8&33BDB4C5&0&4
+Unknown HIDClass HID-compliant system controller                                 HID\VID_1DDD&PID_2821&MI_01&COL03\B&2EE6DD6E&0&0002
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C31C&MI_01\7&6BC686A&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_0BDA&PID_493B&MI_03\9&2688B248&0&0003
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C31C&MI_00\8&ED834A8&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_03F0&PID_2F4A&MI_01\6&214572&0&0001
+Unknown HIDClass HID-compliant system controller                                 HID\VID_046D&PID_C31C&MI_01&COL02\9&1A67BF02&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_0A12&PID_1004&MI_03&COL01\B&66702B9&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_03F0&PID_2F4A&MI_01\9&2389032D&0&0001
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_0A12&PID_1004&MI_03&COL02\B&66702B9&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C548&MI_03\A&3278E7DC&0&0003
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_03F0&PID_2F4A&MI_01&COL01\7&17C34F13&0&0000
+Unknown HIDClass Logitech Download Assistant                                     HID\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279&COL02\9&348521D9&0&0001
+Unknown HIDClass HID-compliant system controller                                 HID\VID_03F0&PID_2F4A&MI_01&COL02\A&184BA762&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C31C&MI_01&COL03\8&1CCE8E68&0&0002
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_046D&PID_C093&MI_01&COL05\9&187B854B&0&0004
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_03F0&PID_078B&MI_02&COL01\8&27D7FA09&0&0000
+Unknown HIDClass HID-compliant headset                                           HID\VID_0A12&PID_1004&MI_03&COL03\B&66702B9&0&0002
+Unknown HIDClass USB Input Device                                                USB\VID_1050&PID_0407&MI_00\7&393F0F1E&0&0000
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_03F0&PID_2F4A&MI_01&COL04\9&1CCF6655&0&0003
+Unknown HIDClass HID-compliant touch pad                                         HID\VID_046D&PID_C548&MI_03\A&374102F3&0&0000
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_046D&PID_C548&MI_02&COL02\A&ED6552A&0&0001
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_0BDA&PID_1100\9&1F51688&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_0BDA&PID_1100\8&2581A964&0&3
+Unknown HIDClass HID-compliant fido                                              HID\VID_1050&PID_0407&MI_01\A&147A7FBE&0&0000
+Unknown HIDClass HID-compliant device                                            HID\VID_1DDD&PID_2821&MI_01&COL04\B&2EE6DD6E&0&0003
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C548&MI_01&COL02\A&29ECEDCA&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C31C&MI_01&COL03\9&64B8239&0&0002
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_0BDA&PID_1100\A&305E0CA9&0&0000
+Unknown HIDClass Logitech USB Input Device                                       USB\VID_046D&PID_C548&MI_00\A&3278E7DC&0&0000
+Unknown HIDClass HID-compliant system controller                                 HID\VID_03F0&PID_2F4A&MI_01&COL02\7&17C34F13&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_03F0&PID_2F4A&MI_00\8&2E48DE9B&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_FFFF&PID_BACE&REV_0002&MI_00\2&2CEE342A&1&0000
+Unknown HIDClass HID-compliant system controller                                 HID\VID_046D&PID_C31C&MI_01&COL02\9&64B8239&0&0001
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_03F0&PID_2F4A&MI_01&COL04\A&184BA762&0&0003
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C548&MI_01\9&1465A072&0&0001
+Unknown HIDClass HID-compliant phone                                             HID\VID_03F0&PID_078B&MI_02&COL03\8&27D7FA09&0&0002
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C31C&MI_01\8&1FE4B983&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_03F0&PID_2F4A&MI_01&COL01\9&1CCF6655&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_001F&PID_0B21&MI_03\7&609D0DF&1&0003
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C548&MI_01&COL02\B&14A85B29&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C31C&MI_01&COL01\9&64B8239&0&0000
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_0BDA&PID_1100\A&988EE89&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_07CA&PID_D553&MI_01\9&378F793C&3&0001
+Unknown HIDClass USB Input Device                                                USB\VID_0A12&PID_1004&MI_03\A&11EF77F4&0&0003
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_03F0&PID_2F4A&MI_01&COL03\A&184BA762&0&0002
+Unknown HIDClass Logitech USB Input Device                                       USB\VID_046D&PID_C548&MI_00\9&1465A072&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C31C&MI_01\8&FD225FE&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_03F0&PID_078B&MI_02&COL02\8&27D7FA09&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C31C&MI_00\8&1FE4B983&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_1050&PID_0407&MI_01\7&393F0F1E&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_0BDA&PID_1100\8&30A63C84&1&3
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_0BDA&PID_1100\9&61AF614&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_03F0&PID_078B&MI_02\7&15E0445&0&0002
+Unknown HIDClass HID-compliant fido                                              HID\VID_1050&PID_0407&MI_01\A&FEBBD58&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_10C4&PID_EA90\00AD4DDB
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_10C4&PID_EA90\7&4394A8E&1&0000
+Unknown HIDClass USB Input Device                                                USB\VID_2CA3&PID_4015&MI_02\9&1ED00EAD&0&0002
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_03F0&PID_2F4A&MI_01&COL01\9&3055350F&0&0000
+Unknown HIDClass Dell Presence Sensor WB7022 HID-compliant vendor-defined device HID\VID_413C&PID_D001&COL01\8&3704C6&0&0000
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C31C&MI_01&COL03\9&1A67BF02&0&0002
+Unknown HIDClass USB Input Device                                                USB\VID_0BDA&PID_1100\9&12B16DD6&0&3
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_0BDA&PID_493B&MI_03\A&13A91442&0&0000
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_1DDD&PID_2821&MI_01&COL02\B&2EE6DD6E&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C093&MI_01&COL02\9&187B854B&0&0001
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_03F0&PID_2F4A&MI_01&COL03\9&3055350F&0&0002
+Unknown HIDClass HID-compliant system controller                                 HID\VID_046D&PID_C31C&MI_01&COL02\9&A90674E&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C548&MI_02\9&DB0BC7C&0&0002
+Unknown HIDClass HID-compliant system controller                                 HID\VID_03F0&PID_2F4A&MI_01&COL02\9&3055350F&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_03F0&PID_2F4A&MI_00\6&214572&0&0000
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_001F&PID_0B21&MI_03\8&13D821A2&0&0000
+Unknown HIDClass HID-compliant device                                            HID\VID_07CA&PID_D553&MI_02\A&DC6814B&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C548&MI_03\9&DB0BC7C&0&0003
+Unknown HIDClass USB Input Device                                                USB\VID_1050&PID_0407&MI_01\9&3192FDCD&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_03F0&PID_2F4A&MI_01\8&1424746F&0&0001
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_046D&PID_C548&MI_02&COL02\B&F2EE299&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C31C&MI_01&COL01\8&1CCE8E68&0&0000
+Unknown HIDClass HID-compliant system controller                                 HID\VID_046D&PID_C093&MI_01&COL03\9&187B854B&0&0002
+Unknown HIDClass Logitech BRIO                                                   USB\VID_046D&PID_085E&MI_05\9&AD33FED&0&0005
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C548&MI_01\A&3278E7DC&0&0001
+Unknown HIDClass HID-compliant system controller                                 HID\VID_046D&PID_C548&MI_01&COL03\B&14A85B29&0&0002
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_046D&PID_C548&MI_02&COL01\B&F2EE299&0&0000
+Unknown HIDClass HID-compliant touch pad                                         HID\VID_046D&PID_C548&MI_03\B&3306205B&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_0416&PID_0123\8&193EC85D&0&4
+Unknown HIDClass USB Input Device                                                USB\VID_07CA&PID_D553&MI_02\9&378F793C&3&0002
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_046D&PID_C548&MI_02&COL01\A&12296185&0&0000
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C548&MI_01&COL02\A&22067168&0&0001
+Unknown HIDClass USB Input Device                                                USB\VID_1DDD&PID_2821&MI_00\A&3A842376&0&0000
+Unknown HIDClass HID-compliant system controller                                 HID\VID_03F0&PID_2F4A&MI_01&COL02\9&1CCF6655&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL03\3&1933B186&0&0002
+Unknown HIDClass HID-compliant system controller                                 HID\VID_046D&PID_C548&MI_01&COL03\A&29ECEDCA&0&0002
+Unknown HIDClass Logitech USB Input Device                                       USB\VID_046D&PID_C093&MI_00\8&2F6E8C23&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C548&MI_02\9&1465A072&0&0002
+Unknown HIDClass HID-compliant fido                                              HID\VID_1050&PID_0407&MI_01\8&EEF95D2&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_03F0&PID_2F4A&MI_01\8&2E48DE9B&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C31C&MI_01&COL01\9&A90674E&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_0416&PID_0123\8&8324382&0&4
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C548&MI_01\9&DB0BC7C&0&0001
+Unknown HIDClass HID-compliant touch pad                                         HID\VID_046D&PID_C548&MI_03\A&36009F47&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_1050&PID_0407&MI_00\9&8B1E46B&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_1050&PID_0407&MI_01\9&8B1E46B&0&0001
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_03F0&PID_2F4A&MI_01&COL04\9&3055350F&0&0003
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C31C&MI_01&COL01\9&1A67BF02&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_03F0&PID_2F4A&MI_00\9&2389032D&0&0000
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_0BDA&PID_1100\A&32216F74&0&0000
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_2CA3&PID_4015&MI_02\A&310BBE91&0&0000
+Unknown HIDClass HID-compliant system controller                                 HID\VID_046D&PID_C31C&MI_01&COL02\8&1CCE8E68&0&0001
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_046D&PID_C093&MI_01&COL04\9&187B854B&0&0003
+Unknown HIDClass USB Input Device                                                USB\VID_0BDA&PID_1100\9&F52455D&0&3
+Unknown HIDClass HID-compliant device                                            HID\VID_046D&PID_C548&MI_01&COL04\B&14A85B29&0&0003
+Unknown HIDClass USB Input Device                                                USB\VID_1DDD&PID_2821&MI_01\A&3A842376&0&0001
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_03F0&PID_2F4A&MI_01&COL03\9&1CCF6655&0&0002
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_085E&MI_05\A&13658340&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C31C&MI_00\7&6BC686A&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C093&MI_01\8&2F6E8C23&0&0001
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_046D&PID_C31C&MI_01&COL03\9&A90674E&0&0002
+Unknown HIDClass USB Input Device                                                USB\VID_03F0&PID_2F4A&MI_00\8&1424746F&0&0000
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_046D&PID_C548&MI_02&COL02\A&12296185&0&0001
+Unknown HIDClass HID-compliant system controller                                 HID\VID_046D&PID_C548&MI_01&COL03\A&22067168&0&0002
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_0BDA&PID_1100\A&38A2DEA&0&0000
+Unknown HIDClass HID-compliant system controller                                 HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL04\3&1933B186&0&0003
+Unknown HIDClass HID-compliant device                                            HID\VID_046D&PID_C548&MI_01&COL04\A&29ECEDCA&0&0003
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_03F0&PID_2F4A&MI_01&COL03\7&17C34F13&0&0002
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C548&MI_02\A&3278E7DC&0&0002
+Unknown HIDClass HID-compliant vendor-defined device                             HID\VID_03F0&PID_2F4A&MI_01&COL04\7&17C34F13&0&0003
+Unknown HIDClass USB Input Device                                                USB\VID_1050&PID_0407&MI_00\9&3192FDCD&0&0000
+Unknown HIDClass HID-compliant consumer control device                           HID\VID_03F0&PID_2F4A&MI_01&COL01\A&184BA762&0&0000
+Unknown HIDClass USB Input Device                                                USB\VID_046D&PID_C548&MI_03\9&1465A072&0&0003
+OK      Keyboard HID Keyboard Device                                             HID\VID_1050&PID_0407&MI_00\7&83AE9D6&0&0000
+OK      Keyboard HID Keyboard Device                                             HID\VID_1532&PID_0F51&MI_00\F&16638C4F&0&0000
+OK      Keyboard Standard PS/2 Keyboard                                          ACPI\LEN0071\4&76D3D92&0
+Unknown Keyboard HID Keyboard Device                                             HID\VID_0416&PID_0123\9&CE3B9FB&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_046D&PID_C548&MI_00\A&615B008&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_03F0&PID_2F4A&MI_00\9&707D76D&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL02\3&1933B186&0&0001
+Unknown Keyboard HID Keyboard Device                                             HID\VID_046D&PID_C31C&MI_00\8&99E722A&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_046D&PID_C31C&MI_00\9&2D97DB40&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_046D&PID_C31C&MI_00\9&1E0F0E7E&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_046D&PID_C31C&MI_00\9&1DC0838C&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_1050&PID_0407&MI_00\8&32C6D394&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_046D&PID_C548&MI_00\B&387F98EB&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_03F0&PID_2F4A&MI_00\A&881B1D&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_0416&PID_0123\9&2F6B5772&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_1DDD&PID_2821&MI_00\B&17235129&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL01\3&1933B186&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_1050&PID_0407&MI_00\A&27AA9BFC&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_03F0&PID_2F4A&MI_00\9&C7DF74D&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_046D&PID_C093&MI_01&COL01\9&187B854B&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_1050&PID_0407&MI_00\A&27AF499D&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_03F0&PID_2F4A&MI_00\7&272770F0&0&0000
+Unknown Keyboard HID Keyboard Device                                             HID\VID_0416&PID_0123\9&14865272&0&0000
+OK      Mouse    HID-compliant mouse                                             HID\SNSL002D&COL01\5&14B88203&0&0000
+OK      Mouse    TrackPoint Device                                               ACPI\LEN032A\4&76D3D92&0
+Unknown Mouse    HID-compliant mouse                                             HID\VID_046D&PID_C548&MI_01&COL01\B&14A85B29&0&0000
+Unknown Mouse    HID-compliant mouse                                             HID\VID_046D&PID_C548&MI_01&COL01\A&29ECEDCA&0&0000
+Unknown Mouse    HID-compliant mouse                                             HID\VID_046D&PID_C093&MI_00\9&B7F906&0&0000
+Unknown Mouse    HID-compliant mouse                                             HID\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279&COL01\9&348521D9&0&0000
+Unknown Mouse    HID-compliant mouse                                             HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL05\3&1933B186&0&0004
+
+
+
+=== Non-OK devices detail ===
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_00\9&707D76D&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_0416&PID_0123\9&CE3B9FB&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C31C&MI_00\7&6BC686A&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_1050&PID_0407&MI_00\9&3192FDCD&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_0BDA&PID_1100\A&38A2DEA&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL03\9&A90674E&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant touch pad
+InstanceId         : HID\VID_046D&PID_C548&MI_03\A&36009F47&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL02\9&A90674E&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL02\9&3055350F&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_046D&PID_C548&MI_02&COL02\B&F2EE299&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL01\9&A90674E&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_046D&PID_C548&MI_02&COL01\B&F2EE299&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant touch pad
+InstanceId         : HID\VID_046D&PID_C548&MI_03\B&3306205B&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_07CA&PID_D553&MI_02\9&378F793C&3&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_046D&PID_C548&MI_02&COL01\A&12296185&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL02\A&22067168&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL03\A&29ECEDCA&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_01\A&3278E7DC&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL03\7&17C34F13&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_1DDD&PID_2821&MI_00\B&17235129&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_03F0&PID_2F4A&MI_01\8&2E48DE9B&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant fido
+InstanceId         : HID\VID_1050&PID_0407&MI_01\8&EEF95D2&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_02\9&1465A072&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : Logitech USB Input Device
+InstanceId         : USB\VID_046D&PID_C093&MI_00\8&2F6E8C23&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL03\3&1933B186&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL02\9&1CCF6655&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_1DDD&PID_2821&MI_00\A&3A842376&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_00\7&272770F0&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_1050&PID_0407&MI_00\A&27AF499D&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Mouse
+FriendlyName       : HID-compliant mouse
+InstanceId         : HID\VID_046D&PID_C093&MI_00\9&B7F906&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0416&PID_0123\8&193EC85D&0&4
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL03\B&14A85B29&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : Logitech BRIO
+InstanceId         : USB\VID_046D&PID_085E&MI_05\9&AD33FED&0&0005
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_046D&PID_C093&MI_01&COL03\9&187B854B&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL01\8&1CCE8E68&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_1050&PID_0407&MI_01\9&3192FDCD&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_03\9&DB0BC7C&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant device
+InstanceId         : HID\VID_07CA&PID_D553&MI_02\A&DC6814B&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_001F&PID_0B21&MI_03\8&13D821A2&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_03F0&PID_2F4A&MI_00\6&214572&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_1050&PID_0407&MI_00\A&27AA9BFC&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_02\9&DB0BC7C&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL03\9&3055350F&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_01\9&DB0BC7C&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0416&PID_0123\8&8324382&0&4
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_03F0&PID_2F4A&MI_00\8&1424746F&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_046D&PID_C548&MI_02&COL02\A&12296185&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL03\A&22067168&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant device
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL04\A&29ECEDCA&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_1050&PID_0407&MI_00\8&32C6D394&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_02\A&3278E7DC&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL04\7&17C34F13&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Mouse
+FriendlyName       : HID-compliant mouse
+InstanceId         : HID\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279&COL01\9&348521D9&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL01\A&184BA762&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_03\9&1465A072&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C093&MI_01\8&2F6E8C23&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL04\3&1933B186&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_085E&MI_05\A&13658340&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL03\9&1CCF6655&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_046D&PID_C31C&MI_00\9&1DC0838C&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_1DDD&PID_2821&MI_01\A&3A842376&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant device
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL04\B&14A85B29&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0BDA&PID_1100\9&F52455D&0&3
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_046D&PID_C093&MI_01&COL04\9&187B854B&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL02\8&1CCE8E68&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_2CA3&PID_4015&MI_02\A&310BBE91&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_0BDA&PID_1100\A&32216F74&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_03F0&PID_2F4A&MI_00\9&2389032D&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL01\9&1A67BF02&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL04\9&3055350F&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_1050&PID_0407&MI_01\9&8B1E46B&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_1050&PID_0407&MI_00\9&8B1E46B&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_046D&PID_C31C&MI_00\9&1E0F0E7E&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_046D&PID_C31C&MI_00\8&99E722A&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_03F0&PID_2F4A&MI_01\8&1424746F&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_0BDA&PID_493B&MI_03\A&13A91442&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C31C&MI_01\8&FD225FE&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_1DDD&PID_2821&MI_01&COL02\B&2EE6DD6E&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant device
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL04\A&22067168&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0BDA&PID_1100\9&3824CF20&0&3
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C31C&MI_00\8&FD225FE&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_03\A&3278E7DC&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : Logitech Download Assistant
+InstanceId         : HID\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279&COL02\9&348521D9&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL02\A&184BA762&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_03F0&PID_078B&MI_02&COL01\8&27D7FA09&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_03F0&PID_2F4A&MI_01\6&214572&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant touch pad
+InstanceId         : HID\VID_046D&PID_C548&MI_03\A&374102F3&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Mouse
+FriendlyName       : HID-compliant mouse
+InstanceId         : HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL05\3&1933B186&0&0004
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL04\9&1CCF6655&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_1050&PID_0407&MI_00\7&393F0F1E&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant headset
+InstanceId         : HID\VID_0A12&PID_1004&MI_03&COL03\B&66702B9&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_046D&PID_C093&MI_01&COL05\9&187B854B&0&0004
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL03\8&1CCE8E68&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_0A12&PID_1004&MI_03&COL02\B&66702B9&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_03F0&PID_2F4A&MI_01\9&2389032D&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_0A12&PID_1004&MI_03&COL01\B&66702B9&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_046D&PID_C548&MI_02&COL02\A&ED6552A&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL02\9&1A67BF02&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C31C&MI_01\8&ED834A8&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_413C&PID_D001\8120181201
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_046D&PID_C548&MI_00\B&387F98EB&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_046D&PID_C548&MI_02&COL01\A&ED6552A&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C31C&MI_00\8&ED834A8&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_07CA&PID_D553&MI_01\A&319DBF0D&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_00\A&881B1D&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_0416&PID_0123\9&2F6B5772&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0BDA&PID_1100\9&369E208F&0&3
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0416&PID_0123\8&33BDB4C5&0&4
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_1DDD&PID_2821&MI_01&COL03\B&2EE6DD6E&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0BDA&PID_493B&MI_03\9&2688B248&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Mouse
+FriendlyName       : HID-compliant mouse
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL01\A&29ECEDCA&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL01\7&17C34F13&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_0BDA&PID_1100\9&1F51688&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_0BDA&PID_1100\A&988EE89&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant fido
+InstanceId         : HID\VID_1050&PID_0407&MI_01\A&147A7FBE&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL03\A&184BA762&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : Logitech USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_00\9&1465A072&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0BDA&PID_1100\8&2581A964&0&3
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_03F0&PID_078B&MI_02&COL02\8&27D7FA09&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL01\3&1933B186&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C31C&MI_00\8&1FE4B983&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_1050&PID_0407&MI_01\7&393F0F1E&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0BDA&PID_1100\8&30A63C84&1&3
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Mouse
+FriendlyName       : HID-compliant mouse
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL01\B&14A85B29&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_00\9&C7DF74D&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_046D&PID_C093&MI_01&COL01\9&187B854B&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_03F0&PID_078B&MI_02\7&15E0445&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0BDA&PID_1100\9&12B16DD6&0&3
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant fido
+InstanceId         : HID\VID_1050&PID_0407&MI_01\A&FEBBD58&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_10C4&PID_EA90\00AD4DDB
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_10C4&PID_EA90\7&4394A8E&1&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_2CA3&PID_4015&MI_02\9&1ED00EAD&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_0416&PID_0123\9&14865272&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL01\9&3055350F&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : Dell Presence Sensor WB7022 HID-compliant vendor-defined device
+InstanceId         : HID\VID_413C&PID_D001&COL01\8&3704C6&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_046D&PID_C31C&MI_00\9&2D97DB40&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL03\9&1A67BF02&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_0A12&PID_1004&MI_03\A&11EF77F4&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_0BDA&PID_1100\9&61AF614&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_07CA&PID_D553&MI_01\9&378F793C&3&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_FFFF&PID_BACE&REV_0002&MI_00\2&2CEE342A&1&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_046D&PID_C548&MI_00\A&615B008&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant device
+InstanceId         : HID\VID_1DDD&PID_2821&MI_01&COL04\B&2EE6DD6E&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL02\A&29ECEDCA&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL03\9&64B8239&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_0BDA&PID_1100\A&305E0CA9&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : Logitech USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_00\A&3278E7DC&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL02\7&17C34F13&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_03F0&PID_2F4A&MI_00\8&2E48DE9B&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant system controller
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL02\9&64B8239&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C31C&MI_01&COL01\9&64B8239&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant vendor-defined device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL04\A&184BA762&0&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C548&MI_01\9&1465A072&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant phone
+InstanceId         : HID\VID_03F0&PID_078B&MI_02&COL03\8&27D7FA09&0&0002
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : Keyboard
+FriendlyName       : HID Keyboard Device
+InstanceId         : HID\VID_FFFF&PID_BACE&REV_0002&MI_00&COL02\3&1933B186&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C31C&MI_01\8&1FE4B983&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_03F0&PID_2F4A&MI_01&COL01\9&1CCF6655&0&0000
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_001F&PID_0B21&MI_03\7&609D0DF&1&0003
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C548&MI_01&COL02\B&14A85B29&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : USB Input Device
+InstanceId         : USB\VID_046D&PID_C31C&MI_01\7&6BC686A&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+Status             : Unknown
+Class              : HIDClass
+FriendlyName       : HID-compliant consumer control device
+InstanceId         : HID\VID_046D&PID_C093&MI_01&COL02\9&187B854B&0&0001
+Problem            : CM_PROB_PHANTOM
+ProblemDescription : 
+
+

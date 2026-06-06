@@ -1,0 +1,44 @@
+=== Sensel Touchpad (I2C HID) ===
+  InstanceId: ACPI\SNSL002D\4&39979B3E&0
+  Status: OK
+  DriverVersion = 10.0.26100.8521
+  DriverDate = 6/20/2006 8:00:00 PM
+  DriverProvider = Microsoft
+  Service = hidi2c
+  Parent = PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+  Class = HIDClass
+  Manufacturer = Microsoft
+
+=== Sensel HID touch pad child ===
+  InstanceId: HID\SNSL002D&COL02\5&14B88203&0&0001
+  Status: OK
+  DriverVersion = 10.0.26100.8521
+  DriverDate = 6/20/2006 8:00:00 PM
+  DriverProvider = Microsoft
+  Service = 
+  Parent = ACPI\SNSL002D\4&39979b3e&0
+  Class = HIDClass
+  Manufacturer = (Standard system devices)
+
+=== PS/2 Keyboard (i8042 LEN0071) ===
+  InstanceId: ACPI\LEN0071\4&76D3D92&0
+  Status: OK
+  DriverVersion = 10.0.26100.8521
+  DriverDate = 6/20/2006 8:00:00 PM
+  DriverProvider = Microsoft
+  Service = i8042prt
+  Parent = PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8
+  Class = Keyboard
+  Manufacturer = (Standard keyboards)
+
+=== TrackPoint (LEN032A) ===
+  InstanceId: ACPI\LEN032A\4&76D3D92&0
+  Status: OK
+  DriverVersion = 31.21.51.2
+  DriverDate = 8/4/2025 8:00:00 PM
+  DriverProvider = ELAN
+  Service = i8042prt
+  Parent = PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8
+  Class = Mouse
+  Manufacturer = ELAN
+

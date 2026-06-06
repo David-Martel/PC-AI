@@ -1,0 +1,28 @@
+=== Synaptics/ELAN/Sensel/Lenovo input-related services ===
+
+ Status StartType Name                 DisplayName
+ ------ --------- ----                 -----------
+Running Automatic EPDService           ELAN PST Service
+Running Automatic LenovoVantageService Critical Service for Lenovo Vantage
+Running Automatic TPHKLOAD             Lenovo Hotkey Client Loader
+
+
+
+=== Lenovo / vendor processes running ===
+
+Name                                               Id CPU_s
+----                                               -- -----
+Lenovo.Modern.ImController                       7356 49.00
+LenovoAccessoriesAndDisplayControlCenterService 26148 60.00
+LenovoGoCentral1                                46012  0.00
+LenovoVantage-(GenericMessagingAddin)           23416  2.00
+LenovoVantage-(VantageCoreAddin)                17872  7.00
+LenovoVantageService                             7564 37.00
+
+
+
+=== Touchpad/keyboard driver versions (recap) ===
+  Sensel touchpad (hidi2c)  : Microsoft inbox 10.0.26100.8521 (date placeholder 2006)
+  i8042 keyboard (i8042prt) : Microsoft inbox 10.0.26100.8521 (date placeholder 2006)
+  TrackPoint (ELAN)         : 31.21.51.2 dated 8/4/2025
+  Intel I2C 7E78 (iaLPSS2)  : 30.100.2527.40 dated 7/2/2025

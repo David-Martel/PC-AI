@@ -1,0 +1,43 @@
+=== Keyboard Response (Filter Keys) (HKCU:\Control Panel\Accessibility\Keyboard Response) ===
+  AutoRepeatDelay = 0
+  AutoRepeatRate = 0
+  BounceTime = 0
+  DelayBeforeAcceptance = 0
+  Flags = 2
+  Last BounceKey Setting = 0
+  Last Valid Delay = 0
+  Last Valid Repeat = 0
+  Last Valid Wait = 1000
+  DECODE Flags=2: available(0x01)=False ON/active(0x02)=True hotkey-enabled(0x04)=False audible(0x08)=False hotkeyConfirm(0x100)=False
+
+=== StickyKeys (HKCU:\Control Panel\Accessibility\StickyKeys) ===
+  Flags = 2
+  DECODE Flags=2: available(0x01)=False ON/active(0x02)=True hotkey-enabled(0x04)=False audible(0x08)=False hotkeyConfirm(0x100)=False
+
+=== ToggleKeys (HKCU:\Control Panel\Accessibility\ToggleKeys) ===
+  Flags = 2
+  DECODE Flags=2: available(0x01)=False ON/active(0x02)=True hotkey-enabled(0x04)=False audible(0x08)=False hotkeyConfirm(0x100)=False
+
+=== MouseKeys (HKCU:\Control Panel\Accessibility\MouseKeys) ===
+  Flags = 62
+  MaximumSpeed = 80
+  TimeToMaximumSpeed = 3000
+  DECODE Flags=62: available(0x01)=False ON/active(0x02)=True hotkey-enabled(0x04)=True audible(0x08)=True hotkeyConfirm(0x100)=False
+
+
+==================================================================
+CORRECTED DECODE (verified against Microsoft winuser.h docs):
+  0x01 = FEATURE ON  (FKF_FILTERKEYSON / SKF_STICKYKEYSON / TKF_TOGGLEKEYSON)
+  0x02 = AVAILABLE   (FKF_AVAILABLE / SKF_AVAILABLE)
+  0x04 = HOTKEY ARMED (RightShift-8s / Shift x5 / NumLock-5s toggle)
+  0x08 = CONFIRMHOTKEY, 0x10 = HOTKEYSOUND, 0x20 = INDICATOR
+NOTE: original task-prompt decode (0x01=available,0x02=ON) was INVERTED.
+
+ACTUAL STATE (Flags values read above):
+  Filter Keys (Keyboard Response) Flags=2 -> OFF, Available, Hotkey DISARMED. BounceTime=0, DelayBeforeAcceptance=0.
+  Sticky Keys                     Flags=2 -> OFF, Available, Hotkey DISARMED.
+  Toggle Keys                     Flags=2 -> OFF, Available, Hotkey DISARMED.
+  Mouse Keys                      Flags=62 (0x3E=0x02+0x04+0x08+0x10+0x20) -> OFF, Available, Hotkey ARMED (LAlt+LShift+NumLock). Not keyboard-shift relevant.
+
+VERDICT H1: REFUTED. No accessibility key-filtering is ON; Filter/Sticky/Toggle hotkeys are
+DISARMED (value 2, not the default-armed 510/0x1FE), so accidental toggle is doubly unlikely.

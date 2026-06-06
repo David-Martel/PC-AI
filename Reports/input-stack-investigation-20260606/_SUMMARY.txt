@@ -1,0 +1,65 @@
+INPUT-STACK INVESTIGATION SUMMARY — ThinkPad P1 Gen 7 (LENOVO 21KV0014US) — 2026-06-06
+Read-only diagnostic. No state was modified.
+
+DEVICE TOPOLOGY (the load-bearing discriminator)
+  SHIFT key  -> Standard PS/2 Keyboard, ACPI\LEN0071, service=i8042prt,
+                parent PCI\VEN_8086&DEV_7E02 (Intel ESPI/LPC bus). Status OK.
+  Touchpad   -> Sensel SNSL002D, HID-over-I2C, service=hidi2c,
+                parent PCI\VEN_8086&DEV_7E78 (Intel Serial-IO I2C, drv 30.100.2527.40 2025-07).
+                Status OK.
+  => Keyboard and touchpad are on DIFFERENT buses. A single shared-controller fault
+     cannot explain both symptoms; treat them as separate root causes.
+
+HYPOTHESIS VERDICTS
+  H1 Filter/Sticky/Bounce keys ...... REFUTED. Flags=2 on all three = OFF, Available,
+       hotkey DISARMED (NOT 510/armed). BounceTime/DelayBeforeAcceptance=0. Decode
+       verified vs Microsoft winuser.h (0x01=ON, 0x02=AVAILABLE, 0x04=HOTKEYACTIVE).
+       (Task-prompt decode was inverted.) MouseKeys hotkey armed but irrelevant to SHIFT.
+  H2 I2C-HID touchpad / driver ...... INCONCLUSIVE(no fault). Touchpad+keyboard both Status OK,
+       no problem codes (phantom flood is normal stale-USB history). Touchpad = Sensel I2C-HID
+       on MS inbox hidi2c. No driver age red flag. No I2C error events.
+  H3 Shared Intel Serial-IO/I2C/GPIO  REFUTED (as common cause). Controllers all Status OK,
+       current drivers. Keyboard parent 7E02 != touchpad parent 7E78. Cannot explain both.
+  H4 Process Lasso starving input ... REFUTED. ProcessGovernor.exe running (964s CPU/24h, light).
+       prolasso.ini (C:\ProgramData\ProcessLasso\config\) gives input/UI procs (syntp*,snsl*,
+       sensel*,elan*,dwm,ctfmon,textinputhost,synrpcserver) ABOVE-NORMAL priority + IO priority 3,
+       and EXCLUDES them from SmartTrim/OOC restraint. No affinity restraint (RestrainByAffinity=false).
+       Config protects input rather than starving it.
+  H5 Heavy I/O stalls ............... INCONCLUSIVE/weak. Instantaneous load light (CPU 15.9%,
+       disk queue 0, %disk time 0). BUT OneDrive has 55,167s CPU total (~15h, 10x next process)
+       — chronic background churn. Defender real-time+behavior+on-access ALL on (sig age 0d).
+       Plausible contributor to transient UI stalls but no smoking gun at probe time.
+  H6 Power management ............... SUPPORTS (touchpad symptom only). Scheme=Balanced.
+       USB selective suspend=0 and PCIe ASPM=0 on AC and DC (NOT a factor). HOWEVER:
+       MSPower_DeviceEnable=True for BOTH the Sensel touchpad (ACPI\SNSL002D) AND its parent
+       Intel I2C controller (7E78) => "Allow the computer to turn off this device to save power"
+       is ENABLED on the I2C touchpad stack. Combined with Modern Standby cycles (Kernel-Power
+       506/507 observed), this is a classic mechanism for I2C-HID touchpad resume lockups.
+       i8042 keyboard is NOT in the power-managed list -> does NOT explain SHIFT.
+  H7 Vendor drivers/services ........ INCONCLUSIVE. Running: ELAN PST Service (EPDService),
+       LenovoVantageService, Lenovo Hotkey Loader (TPHKLOAD), Lenovo.Modern.ImController.
+       TrackPoint=ELAN 31.21.51.2 (2025-08, current). No obviously stale touchpad driver.
+
+EVENT LOG HIGHLIGHTS (14d)
+  Kernel-Power 41 (critical) x1 @ 06-05 21:03 = unclean reboot (one event; correlates w/ that boot).
+  Kernel-Power 506/507 Modern Standby enter/exit x3 each — system DOES use Modern Standby.
+  Kernel-PnP 219 WUDFRd-failed-to-load x24 — at boot, for audio-detect / ELAS sensor / ROOT
+       pseudo-devices. NOT the touchpad. Status 0xC0000365 = benign optional-driver boot noise.
+  Application: dwm.exe APPCRASH x62 ALL clustered on 05-26 (fault module dwmcore.dll) — a single
+       bad day, not ongoing. explorer.exe AppHang x2 also 05-26. DWM/explorer crashes transiently
+       freeze the whole UI incl. touchpad -> could match a touchpad-lockup episode on that date.
+  No i8042prt/kbdhid/kbdclass/hidi2c/mouhid/WHEA error events at all in 14d (clean).
+  Only touchpad System events: Win32k/267 "Touch/Touchpad HW QA verification succeeded" (benign).
+
+ANOMALIES OUTSIDE THE HYPOTHESES
+  * OneDrive 55,167s CPU (~15h) — pathological background CPU; worth investigating separately.
+  * dwm.exe crashed 62x in one day (05-26) on dwmcore.dll — UI compositor instability burst.
+  * 3,891 Application error/hang events in 14d overall; top offenders svchost(570), LvfInstallService(139),
+    OneDrive(130), warp-svc(119), python(105) — noisy app environment.
+
+LEADING ROOT-CAUSE READING
+  SHIFT (keyboard): NOT explained by H1/H3/H6. PS/2/i8042 path is clean in logs. Most likely a
+    firmware/scan-code or intermittent hardware/contact issue, OR app-level focus loss during
+    dwm/explorer instability — needs an input-capture trace to localize (no OS-layer evidence yet).
+  TOUCHPAD lockup: Best-supported = H6 (I2C touchpad + its controller have device power-down
+    ENABLED) interacting with Modern Standby resume, plus episodic DWM compositor crashes (H5-adjacent).

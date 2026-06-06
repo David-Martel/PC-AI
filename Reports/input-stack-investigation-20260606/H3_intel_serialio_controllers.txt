@@ -1,0 +1,37 @@
+=== Intel Serial-IO / I2C / GPIO / ESPI controllers ===
+
+Status FriendlyName                                       InstanceId
+------ ------------                                       ----------
+OK     Intel(R) Serial IO GPIO Host Controller - INTC1083 ACPI\INTC1083\2&DABA3FF&1
+OK     Intel(R) Serial IO I2C Host Controller - 7E50      PCI\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\3&11583659&1&C8
+OK     Intel(R) Serial IO I2C Host Controller - 7E78      PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+OK     Intel(R) SPI - 7E23                                PCI\VEN_8086&DEV_7E23&SUBSYS_223417AA&REV_20\3&11583659&1&FD
+
+
+
+=== Driver detail per controller ===
+--- Intel(R) Serial IO I2C Host Controller - 7E78 [OK] ---
+    InstanceId: PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+    DriverVersion=30.100.2527.40
+    DriverDate=7/2/2025 8:00:00 PM
+    Service=iaLPSS2_I2C_MTL
+--- Intel(R) Serial IO I2C Host Controller - 7E50 [OK] ---
+    InstanceId: PCI\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\3&11583659&1&C8
+    DriverVersion=30.100.2527.40
+    DriverDate=7/2/2025 8:00:00 PM
+    Service=iaLPSS2_I2C_MTL
+--- Intel(R) Serial IO GPIO Host Controller - INTC1083 [OK] ---
+    InstanceId: ACPI\INTC1083\2&DABA3FF&1
+    DriverVersion=30.100.2527.40
+    DriverDate=7/2/2025 8:00:00 PM
+    Service=iaLPSS2_GPIO2_MTL
+--- Intel(R) SPI - 7E23 [OK] ---
+    InstanceId: PCI\VEN_8086&DEV_7E23&SUBSYS_223417AA&REV_20\3&11583659&1&FD
+    DriverVersion=10.1.47.12
+    DriverDate=7/17/1968 8:00:00 PM
+    Service=
+
+=== Bus discriminator: keyboard parent 7E02 vs touchpad parent 7E78 ===
+  Touchpad (Sensel I2C-HID) parent : PCI\VEN_8086&DEV_7E78 (Intel Serial IO I2C)
+  Keyboard (i8042 PS/2)     parent : PCI\VEN_8086&DEV_7E02 (Intel ESPI/LPC)
+  => Different buses; H3 shared-controller cannot explain BOTH symptoms.

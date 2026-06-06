@@ -1,0 +1,31 @@
+=== Event log scan: 05/23/2026 14:09:36 to now ===
+--- i8042prt: 0 events (or provider absent) ---
+--- kbdhid: 0 events (or provider absent) ---
+--- kbdclass: 0 events (or provider absent) ---
+--- hidi2c: 0 events (or provider absent) ---
+--- mouhid: 0 events (or provider absent) ---
+--- iaLPSS2_I2C_MTL: 0 events (or provider absent) ---
+--- iaLPSS2i_I2C: 0 events (or provider absent) ---
+--- Microsoft-Windows-Kernel-PnP: 24 events ---
+     Id 219 x24 (Warning)
+       [06-05 21:03] Id219 The driver \Driver\WUDFRd failed to load.
+       [06-05 21:03] Id219 The driver \Driver\WUDFRd failed to load.
+       [06-05 21:03] Id219 The driver \Driver\WUDFRd failed to load.
+--- Microsoft-Windows-Kernel-Power: 25 events ---
+     Id 521 x6 (Information)
+     Id 566 x5 (Information)
+     Id 125 x3 (Information)
+     Id 506 x3 (Information)
+     Id 507 x3 (Information)
+     Id 109 x2 (Information)
+     Id 577 x2 (Information)
+     Id 41 x1 (Critical)
+       [06-06 10:10] Id566 The system session has transitioned from 3 to 5.
+       [06-06 10:10] Id507 The system is exiting Modern Standby
+       [06-05 23:59] Id506 The system is entering Modern Standby
+--- Microsoft-Windows-WHEA-Logger: 0 events (or provider absent) ---
+--- Microsoft-Windows-Kernel-Processor-Power: 66 events ---
+     Id 55 x66 (Information)
+       [06-05 21:03] Id55 Processor 21 in group 0 exposes the following power management capabilities:
+       [06-05 21:03] Id55 Processor 20 in group 0 exposes the following power management capabilities:
+       [06-05 21:03] Id55 Processor 19 in group 0 exposes the following power management capabilities:

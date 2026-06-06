@@ -1,0 +1,24 @@
+
+Check                  Ok Detail
+-----                  -- ------
+GovernorRunning      True   8316
+GovernorResponding   True   True
+ProBalanceExclusions True     ok
+SmartTrimExclusions  True     ok
+LoggingFlags         True       
+RecentLogLines       True     80
+
+
+Ok                    : True
+DryRun                : False
+GeneratedAt           : 2026-06-06T13:32:41.6722544-04:00
+ConfigPath            : C:\ProgramData\ProcessLasso\config\prolasso.ini
+LogPath               : C:\ProgramData\ProcessLasso\logs\processlasso.log
+LookbackMinutes       : 240
+Governor              : @{Running=True; Id=8316; Responding=True; StartTime=6/5/2026 9:04:26 PM; Path=C:\Program Files\Process Lasso\processgovernor.exe}
+MissingOocExclusions  : {}
+MissingSmartTrimItems : {}
+Logging               : {@{Key=IncludeCommandLines; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessExecutions; Expected=true; Actual=true; Ok=True}, @{Key=LogProcessTerminations; Expected=true; Actual=true; Ok=True}, @{Key=LogEfficiencyMode; Expected=true; Actual=true; Ok=True}…}
+RecentLogLines        : {"134252407210948333","2026-06-06 13:32:01","DTM-P1GEN7","david","60292","docker.exe","1","(0x1) Process launched","Parent docker desktop.exe (39224)","C:\Program Files\Docker\Docker\resources\bin\docker.exe","""C:\Program Files\Docker\Docker\resources\bin\docker.exe"" stats --all --no-trunc --no-stream --format ""{{ json .}}""", "134252407210948333","2026-06-06 13:32:01","DTM-P1GEN7","david","61512","conhost.exe","1","(0x1) Process launched","Parent docker.exe (60292)","C:\WINDOWS\system32\conhost.exe","\??\C:\WINDOWS\system32\conhost.exe 0x4", "134252407210948333","2026-06-06 13:32:01","DTM-P1GEN7","david","59756","cmd.exe","1","(0x1) Process launched","Parent codex.exe (51092)","C:\WINDOWS\System32\cmd.exe","""C:\WINDOWS\System32\cmd.exe"" /c ""pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\Restart-NvidiaInternalGpu.ps1""", "134252407222229028","2026-06-06 13:32:02","DTM-P1GEN7","david","63244","pwsh.exe","1","(0x1) Process launched","Parent cmd.exe (59756)","C:\Program Files\PowerShell\7\pwsh.exe","pwsh.exe  -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\codedev\PC_AI\Reports\workstation-audit-20260606-124859\Restart-NvidiaInternalGpu.ps1"…}
+Failures              : {}
+

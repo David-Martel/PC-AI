@@ -37,6 +37,36 @@ function Write-Status {
     if (-not $Quiet) { Write-Host $Message -ForegroundColor $Color }
 }
 
+function Invoke-BwSyncIfDue {
+    # Sync the BW vault from server if lastSync is missing or older than -MaxAgeHours.
+    # Idempotent + cheap; safe to call before every successful return.
+    # Requires BW_SESSION to be set (caller's responsibility).
+    param(
+        [Parameter(Mandatory)][string]$BwPath,
+        [int]$MaxAgeHours = 6
+    )
+    try {
+        $st = & $BwPath status 2>$null | ConvertFrom-Json -ErrorAction Stop
+        $age = $null
+        $needSync = $true
+        if ($st.lastSync) {
+            $age = (Get-Date) - [DateTime]::Parse($st.lastSync).ToLocalTime()
+            $needSync = $age.TotalHours -gt $MaxAgeHours
+        }
+        if ($needSync) {
+            $lastDesc = if ($st.lastSync) { $st.lastSync } else { 'never' }
+            Write-Status "Syncing BW vault (last sync: $lastDesc)..." Cyan
+            $null = & $BwPath sync 2>&1
+            if ($LASTEXITCODE -eq 0) { Write-Status 'BW vault synced' Green }
+            else                     { Write-Status "BW sync exit=$LASTEXITCODE (non-fatal; continuing)" Yellow }
+        } else {
+            Write-Status ("BW vault sync skipped (last sync {0:N1}h ago)" -f $age.TotalHours) Gray
+        }
+    } catch {
+        Write-Status "BW sync check failed: $_ (non-fatal)" Yellow
+    }
+}
+
 # -- Locate bw binary --
 $bwCmd = Get-Command bw -ErrorAction SilentlyContinue
 if (-not $bwCmd) {
@@ -62,6 +92,7 @@ if ($vaultStatus -eq 'unlocked' -and -not $Force) {
     # Already unlocked - just ensure BW_SESSION is set
     if ($env:BW_SESSION) {
         Write-Status "BW vault already unlocked (session active)" Green
+        Invoke-BwSyncIfDue -BwPath $bw
         return $true
     }
     # Unlocked but no session var - need to re-unlock to get session token
@@ -171,4 +202,5 @@ if ($PersistSession) {
 }
 
 Write-Status "BW vault unlocked successfully" Green
+Invoke-BwSyncIfDue -BwPath $bw
 return $true

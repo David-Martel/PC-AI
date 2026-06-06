@@ -240,3 +240,25 @@ RealESRGAN_x4.onnx
 # Track Claude project context, plans, logs, and settings for agent handoff.
 !.claude/
 !.claude/**
+
+# --- 2026-06-06 commit-cluster: keep sensitive/binary workstation evidence out ---
+# These MUST stay after the !.claude/** and !Tools/SystemScripts/** negations so
+# the exclusions below win (last matching gitignore pattern takes precedence).
+#
+# OneDrive sync databases & other copied SQLite DBs (~1 GB binary, sync metadata/PII)
+Reports/**/*.db
+# OneAuth credential / MSA token backups
+Reports/**/oneauth-backup*/
+# Registry exports (HKLM/HKCU environment dumps may contain secrets)
+*.reg
+# Memory dumps and power-scheme binary backups
+*.dmp
+Reports/**/*.pow
+# Process Lasso / input-diagnostics config backups (evidence-only snapshots)
+Reports/**/pl-config-backup/
+Tools/InputDiagnostics/backups/
+# Timestamped backup files (e.g. *.bak.20260513_100619, *.bak-20260530-140925)
+*.bak.*
+*.bak-*
+# Scheduler lock (runtime artifact)
+.claude/scheduled_tasks.lock

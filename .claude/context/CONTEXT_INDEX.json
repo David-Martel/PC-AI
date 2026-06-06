@@ -1,7 +1,18 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-20260410-nvidia-option-b",
+  "latest": "ctx-pcai-inputfreeze-20260530",
   "contexts": [
+    {
+      "id": "ctx-pcai-inputfreeze-20260530",
+      "file": "input-stack-freeze-context-20260530.md",
+      "created": "2026-05-30T12:54:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["systematic-debugging", "advisor", "powershell-pro(infra-failed)"],
+      "summary": "Shift/trackpad/fingerprint freeze on DTM-P1GEN7. RESOLVED ROOT CAUSES: Shift = NOT software (stack proven clean; Razer/Logi/PowerToys/accessibility all exonerated) -> ThinkPad EC/keyboard firmware, triggered under eGPU+Terminal+contention load (TrackPoint immune=separate path). Touchpad = Synaptics I2C-HID. eGPU+Terminal+ProcessLasso competition = PL pinned Terminal/pwsh to EcoQoS + forced Terminal render onto eGPU. 5/29 hard-freeze cascade = eGPU(Razer Core X V2/USB4) Thunderbolt link (WHEA PCIe corrected errors). APPLIED+VALIDATED (elevated): USB selective suspend OFF, CrashDumpEnabled=7, per-device power off, PC_AI-HVSockProxy+vtss disabled, PL EcoQoS+GPU-pref optimized (all GPU prefs->auto). Razer uninstalled (not needed for eGPU). 7-script toolkit (Pester 41/41). PENDING USER: sign out/in, EC reset+Test-KeyInput, Lenovo BIOS/EC+Synaptics+NVIDIA driver updates. See machine-reliability.TODO.md + boot.TODO.md.",
+      "tags": ["input-stack", "freeze", "filterkeys", "usb-selective-suspend", "dpc-latency", "process-lasso", "kernel-power-41", "boot-reliability"],
+      "artifacts": ["Tools/InputDiagnostics/Invoke-InputStackDiagnostics.ps1", "Tools/InputDiagnostics/Repair-InputStackQuickWins.ps1", "Tools/InputDiagnostics/Start-LoadCapture.ps1", "Tools/InputDiagnostics/README.md"],
+      "commit": "pending"
+    },
     {
       "id": "ctx-pcai-20260410-nvidia-option-b",
       "file": "pcai-context-20260410-nvidia-option-b.md",

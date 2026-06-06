@@ -6,11 +6,192 @@ focuses on making filesystem/filter failures visible, reducing startup
 contention, and preserving UI responsiveness while keeping VHD, WSL, OneDrive,
 Google Drive, UDM, and developer workflows functional.
 
-Last updated: 2026-04-30 after post-reboot validation on boot time
+Last updated: 2026-05-30 after input-stack (Shift + trackpad + fingerprint)
+re-investigation — recurrence of the 2026-05-02 touchpad glitch. New reusable
+toolkit at `Tools\InputDiagnostics\`; see the "## 2026-05-30 Input-Stack
+Re-Investigation" section below. Key cross-finding: the 2026-05-02
+Balanced→High Performance power-plan switch is being reverted to Balanced on
+every boot by Process Lasso `StartWithPowerPlan=Balanced` in `prolasso.ini`.
+
+2026-06-06 workstation remediation update:
+- Evidence root: `Reports\workstation-audit-20260606-124859\`.
+- Current boot diagnostics refreshed:
+  `Reports\boot-diagnostics\20260606-133230`; post-reboot verifier found
+  `PostRebootFailureCount = 0`.
+- `Tools\Test-BootMountHealth.ps1 -SinceMinutes 240 -PassThru` now passes
+  with no warnings after the fresh boot-diagnostics report.
+- `Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru` passes for
+  OneDrive/GoogleDrive; remaining warning is stale/optional iCloud sync root
+  with data present and no running provider process.
+- Stopped `WebManagement` and changed it from auto-start to manual after
+  HTTP.sys `50443` SSL certificate churn was traced to the Web Management
+  service and the `Windows Web Management` cert store. Rollback:
+  `sc config WebManagement start= auto` then `sc start WebManagement`.
+- Removed interactive-service flag from `MediatekSwitchUSB`; service is now
+  normal own-process, auto-start, and running. Rollback:
+  `sc config MediatekSwitchUSB type= interact type= own`.
+- Changed `PC_AI-ToolRouter` from auto-start to manual because it depended on
+  disabled `PC_AI-VLLM` and generated guaranteed boot errors. Rollback:
+  `sc config PC_AI-ToolRouter start= auto` after enabling/repairing VLLM.
+- Restarted Bonjour; no Bonjour errors appeared in the immediate one-hour
+  post-restart sample. Service remains automatic/running for Apple/iCloud
+  compatibility.
+- Removed stopped Docker container `vigil-runner-docker-1` after saving
+  `docker inspect`; container reclaim went from ~1.7 GB to 0 B.
+- PnP rescan and targeted restart cleared no NVIDIA issue: internal
+  `NVIDIA RTX 2000 Ada Generation Laptop GPU` remains Code 31
+  (`CM_PROB_FAILED_ADD`, status `0xC0000182`) on `oem236.inf`. Do not
+  uninstall/reinstall display drivers without a driver rollback package.
+
+Last updated: 2026-05-02 after touchpad glitch investigation: evidence
+captured under `Reports\touchpad-glitch-investigation-20260502\`, restore
+point #68 created (PreTouchpadFix), power plan switched Balanced→High
+Performance, I2C HID device (ACPI\SNSL002D) disable/enable cycled. Step 1
+(System Restore to RP 65) staged but not pulled pending touchpad re-test.
+Previous update 2026-04-30 after post-reboot validation on boot time
 2026-04-30 12:50:02 America/New_York, UDM startup disablement, OneDrive
 registry/file-notification review, conservative registry rollback, Process
 Lasso watchdog deployment, `~\bin` script risk review, and OneDrive
 install/reset repair. Reconciled into high-level project docs on 2026-04-30.
+
+## 2026-05-30 Input-Stack Re-Investigation (Shift / Trackpad / Fingerprint)
+
+Recurrence of the 2026-05-02 touchpad glitch, now reported as Shift-key +
+trackpad + fingerprint freezing. Investigated with systematic-debugging +
+advisor, grounded in Microsoft Learn docs. Two distinct tiers identified.
+
+New reusable toolkit (complements `Collect-BootDiagnostics.ps1` /
+`Apply-ProcessLassoUiSyncTuning.ps1`):
+- `Tools\InputDiagnostics\Invoke-InputStackDiagnostics.ps1` (read-only collector)
+- `Tools\InputDiagnostics\Repair-InputStackQuickWins.ps1` (reversible, backup + `-Revert`)
+- `Tools\InputDiagnostics\Start-LoadCapture.ps1` (native powercfg thermal/DPC capture)
+- `Tools\InputDiagnostics\README.md` (findings + MS doc references)
+
+Findings:
+- Keyboard `ACPI\LEN0071` (EC) and touchpad Synaptics `SNSL002D` (I2C) are on
+  different buses → co-freeze is system-wide (DPC/contention), not one device.
+- Fingerprint = Synaptics USB `VID_06CB`; **USB selective suspend ON (AC+DC)**
+  → resume-latency glitch on the reader.
+- **Login storm: 57 autostart entries** (Docker, Ollama, LM Studio, 4×
+  GoogleDriveFS, 6× USB-audio panels, Razer, MATLAB, SOLIDWORKS…).
+- **Pro-audio ASIO drivers** (RME Fireface/MADIface, Focusrite, Topping,
+  miniDSP) are the leading suspect for the kbd+trackpad co-freeze (DPC latency).
+- **Accessibility hotkeys** were armed (FilterKeys `DelayBeforeAcceptance=1000ms`).
+- Acute 5/29 cascade: 6× Kernel-Power 41 in 32 min + 7× nvlddmkm + 1 WHEA
+  corrected error, **no crash dump** (CrashDumpEnabled=0x3). All 7 KP41 in 90d
+  were on 5/29 → acute outlier, not the chronic complaint.
+- Process Lasso EXONERATED for input freezes (live `prolasso.ini` shields
+  `dwm.exe`/`explorer.exe`; no throttle/affinity on input/UI).
+- `PC_AI-HVSockProxy` (this repo's PC-AI.Virtualization service) + `vtss` (Intel
+  VTune sampler) fail at **every** boot ("system cannot find the path specified").
+- Windows Hello *face* separately broken: IR camera in `Error`, Camera Frame
+  Server crashed ×3.
+
+Done:
+- [x] Disable accidental accessibility activation hotkeys (HKCU, no admin).
+  - StickyKeys 510→506, FilterKeys 126→122, ToggleKeys 58 (cleared 0x04).
+  - Verified via collector baseline:
+    `Logs\input-diagnostics\input-diagnostics-20260530-125420.txt`.
+
+2026-05-30 (continuation) — Shift-specific root-cause pivot:
+- Symptom refined by user: **bare Shift (L or R) does nothing; Ctrl+Shift works
+  intermittently**; laptop built-in keyboard. This is NOT a DPC/freeze pattern
+  (a stall drops all keys equally) — it is the signature of a **system-wide
+  keyboard hook intercepting bare Shift**.
+- Ruled out (live `SystemParametersInfo` GET): FilterKeys ON=False, StickyKeys
+  ON=False, no Shift latched, no Scancode Map, PowerToys Keyboard Manager config
+  EMPTY, single US layout. Accessibility is NOT the cause.
+- Prime suspect: **Logitech Options+** (`logioptionsplus_agent` running; installs
+  a system-wide kbd hook; known to intermittently break bare Shift). Razer not
+  running. A/B test started: killed `logioptionsplus_agent`/`appbroker` →
+  awaiting user confirm that bare Shift returns.
+- New scripts: `Tools\InputDiagnostics\Reset-AccessibilityKeysLive.ps1` (live
+  SPI fix, applied) and `Tools\InputDiagnostics\Repair-WorkstationInputReliability.ps1`
+  (elevated; USB suspend + crash dump + per-device power + disable HVSockProxy/vtss;
+  backup + `-Revert` + `-WhatIf`; elevation guard validated).
+- Toolkit COMPLETE + VALIDATED 2026-05-30 (built via parallel powershell-pro agents):
+  6 scripts in `Tools\InputDiagnostics\` + `Tools\InputDiagnostics\Optimize-StartupLoad.ps1`
+  (login-storm trim; report-only validated: 63 startup entries → 19 essential /
+  15 deferrable / 29 review; HKCU-only `-Apply`/`-Revert`, no admin) +
+  `Tests\InputDiagnostics\InputDiagnostics.Tests.ps1` (Pester v5, **41/41 passing**,
+  independently re-run). All scripts parse-clean, help-documented, read-only/mutating
+  contracts enforced.
+- [~] CORRECTION (2026-05-30 later) — earlier "Logitech Options+ = Shift culprit"
+  was WRONG (coincidental timing). Shift RECURRED while Razer is UNINSTALLED and
+  `logioptionsplus_agent` is NOT running. Re-verified live with a clean stack:
+  FilterKeys/StickyKeys OFF, no Shift latched, no Scancode Map, keyboard class
+  UpperFilters = {kbdclass} only (no orphaned rzudd), no rz*.sys, PowerToys KBM
+  engine not running. => Software input hooks EXONERATED (Razer + Logi + PowerToys).
+  Bare Shift fails / Ctrl+Shift works / all other keys type / TrackPoint always
+  works / touchpad (I2C-HID) glitches independently.
+  LEADING CAUSE: **ThinkPad keyboard EC / firmware** (intermittent), shared with the
+  Synaptics I2C touchpad via the EC/Intel-SerialIO-I2C path; TrackPoint (separate
+  EC/PS2 path) immune. Possible triggers: sleep/resume, eGPU Thunderbolt power events
+  (WHEA PCIe corrected errors recur), EC glitch.
+  - [ ] USER decisive tests: (a) Caps Lock → capitals? (b) `Test-KeyInput.ps1` → do
+    Shift events reach OS? (c) external USB keyboard Shift; (d) osk.exe Shift.
+  - [ ] FIX path if hardware/EC: EC power-drain reset (AC off, hold power 30s / P1
+    Gen 7 emergency reset pinhole), then **Lenovo BIOS/EC update** (BIOS 1.20 → check
+    Vantage) + Synaptics touchpad driver update. New tool: `Tools\InputDiagnostics\Test-KeyInput.ps1`.
+
+2026-05-30 — eGPU + Razer resolution (user-confirmed Razer interferes with touchpad):
+- **eGPU identified**: the "RTX 5060 Ti" is in a **Razer Core X V2** over USB4/TB,
+  daisy-chained with Cable Matters + CalDigit Element Hub + Focusrite TB Audio.
+- **Razer Synapse NOT required for Core X V2** (plug-and-play TB/USB4 PCIe enclosure;
+  Synapse only drives Razer peripherals/Chroma). Safe to uninstall — eGPU keeps working.
+- [x] Removed `RazerAppEngine` from HKCU\Run (stops auto-launch / touchpad+Shift
+  interference). Backup: `Tools\InputDiagnostics\backups\` (reg export). Restore value:
+  RazerAppEngine = '"C:\Program Files\Razer\RazerAppEngine\RazerAppEngine.exe" --url-params=apps=synapse,chroma-app --launch-force-hidden=synapse,chroma-app --autoStart=1'.
+- [ ] USER: full uninstall (elevated, interactive):
+  `& "C:\Windows\Installer\Razer\installer2\App\RazerInstaller.exe" /uninstall true`
+  (removes Razer Synapse 4.0.662 + Razer Chroma 4.0.662 + 6 Razer services).
+- **eGPU hardware link**: recurring `WHEA-Logger 17` corrected PCIe errors (5/29 21:17
+  during the hard-freeze cascade, and 5/30 13:19). Likely the Thunderbolt/USB4 eGPU
+  link. [ ] USER: connect Core X V2 to a DEDICATED TB4/USB4 port (NOT daisy-chained
+  through the Cable Matters/CalDigit hub — chaining an eGPU is a known instability
+  source), use a certified TB4 cable, update the NVIDIA driver. Crash dump (0x7 via
+  Repair-WorkstationInputReliability.ps1) will capture the next hard freeze.
+
+2026-05-30 — APPLIED (elevated, user-approved UAC; backup
+`Tools\InputDiagnostics\backups\backup_20260530T135052.json`; log
+`Logs\elevated\repair-Apply-20260530-135052.log`):
+- [x] USB selective suspend AC/DC 0x1→0x0; CrashDumpEnabled 3→7 (+AutoReboot);
+  EnhancedPowerManagementEnabled=0 on Synaptics fingerprint + 4 USB Root Hubs;
+  PC_AI-HVSockProxy + vtss → Disabled. (Sign out/in for HID/BT power re-init.)
+
+2026-05-30 — PROCESS LASSO ↔ TERMINAL ↔ eGPU review (user hypothesis CONFIRMED):
+Two prolasso.ini settings create the competitive interaction:
+- **EfficiencyMode (line 142)** pins `pwsh.exe` + `windowsterminal.exe` to EcoQoS
+  (E-cores, capped freq) — throttles the interactive terminal driving eGPU work.
+- **DefaultGPUAdapterPreferences (line 135)** sets Windows Terminal GPU pref = `2`
+  (High-Perf = the **eGPU**) → terminal RENDER competes with eGPU COMPUTE over the
+  same Thunderbolt link.
+Touchpad/input is otherwise well-protected (syntp*/snsl*/synaptics*/elan*/etd* at
+Above-Normal, IO 3, ProBalance-excluded; dwm/ctfmon/textinputhost boosted+excluded)
+— so PL is NOT throttling the touchpad; that glitch is the I2C/EC-under-load issue.
+- [x] FIXED & VALIDATED (2026-05-30, `Repair-ProcessLassoTerminalGpu.ps1`, elevated;
+  backup `prolasso.ini.bak-20260530-140925`; log `Logs\elevated\plgpu-Apply-20260530-140925.log`):
+  removed `windowsterminal.exe`+`pwsh.exe` from EfficiencyMode; set ALL
+  `DefaultGPUAdapterPreferences` → auto(0) (eGPU forcing on Terminal removed). On-disk
+  validated. Governor (task "Process Lasso Core Engine Only" + watchdog) reloads at sign-in.
+  - [ ] Still open: reconcile `StartWithPowerPlan=Balanced` vs 2026-05-02 High-Perf intent (user decision).
+  - Consolidated machine issues: see [machine-reliability.TODO.md](machine-reliability.TODO.md).
+
+Open (need elevation / user action — preserve evidence per repo convention):
+- [ ] Run elevated `Tools\InputDiagnostics\Repair-InputStackQuickWins.ps1`
+  → disable USB selective suspend (AC+DC) + set CrashDumpEnabled=0x7 (MS rec for
+  >32GB RAM) so the next hard freeze is captured. Backup auto-written to
+  `Tools\InputDiagnostics\backups\`.
+- [ ] Resolve power-plan revert: Process Lasso `StartWithPowerPlan=Balanced`
+  overrides the 2026-05-02 High Performance switch on every boot. Decide intended
+  plan and reconcile `prolasso.ini` via `Apply-ProcessLassoUiSyncTuning.ps1`.
+- [ ] Confirm co-freeze driver with LatencyMon (~10 min under load); update/roll
+  back the offending pro-audio / `nvlddmkm` / `Wdf01000` driver.
+- [ ] Trim login storm (Task Manager Startup) and gate heavy AI/dev tools.
+- [ ] Fix `PC_AI-HVSockProxy` (missing path) + `vtss` auto-start failures.
+- [ ] Repair Windows Hello face camera stack (IR camera Error + RealSense).
+- [ ] Install sensor/latency tools when online+elevated:
+  `winget install REALiX.HWiNFO -e` ; `winget install Resplendence.LatencyMon -e`.
 
 ## Completed In This Pass
 
@@ -752,3 +933,114 @@ install/reset repair. Reconciled into high-level project docs on 2026-04-30.
   - `T:\vm\shared-dev.vhdx` -> attached, fixed, Disk 4, drive `W:`.
 - `C:\Users\david\unifi_api\docs\commands\rclone_udm_mount.log` was stale
   during investigation, last written before the current task failure.
+
+## 2026-05-02 Touchpad Glitch Investigation
+
+Operational ledger for the touchpad regression discovered 2026-05-02.
+
+### Evidence captured (read-only)
+
+- `Reports\touchpad-glitch-investigation-20260502\01-touchpad-devices.txt` — Sensel
+  HID collection inventory.
+- `02-driver-versions.txt` — split-version state (COL01/COL03 at 26100.1150;
+  COL02/COL04 + ACPI\SNSL002D at 26100.8328).
+- `03-pnputil-touchpad.txt` — DriverStore enumeration (older drivers retained
+  for iaLPSS2_I2C_MTL, etdhsa, n48et firmware).
+- `05-events.txt` — Kernel-PnP / WUDFRd events; 41 critical at 5/2 13:25:42.
+- `06-hotfixes.txt` — KB5083631 + 5/1 5:56-5:57 OS rollup batch.
+- `09-top-processes.txt` / `10-onedrive-io-now.txt` / `11-power-mgmt.txt` /
+  `12-lenovo-vantage.txt` — runtime baseline.
+- `14-preplan-checks.txt`, `14a-kb-removability.txt`,
+  `15-hypothesis-verification.txt` — verification of hypotheses (V1: I2C
+  controller DriverDate is 2025-07-02 NOT 4/30; V2: WUDFRd events are
+  chronic boot-time noise from unrelated devices, not touchpad signal).
+
+### Hypothesis (after verification)
+
+1. Primary: 5/1 cumulative servicing rollup `26100.8328.1.31` regressed inbox
+   HID class drivers (input.inf, hidi2c.inf). Rollback path = System Restore
+   only (inbox drivers; no vendor INF to swap).
+2. Secondary: storage IO contention from OneDrive + GoogleDriveFS sync
+   (priority demotion on 4/30 did not cap IOPS).
+3. Demoted: iaLPSS2_I2C_MTL rollback (verified not changed in window).
+4. Demoted: ETDHSA rollback (no evidence).
+5. Demoted: WUDFRd 0xC0000365 as touchpad signal (chronic noise).
+
+### Applied 2026-05-02 (gates + low-risk steps)
+
+- [x] Gate A: System Restore Point #68 "PreTouchpadFix-2026-05-02" created
+  2026-05-02 19:02:43 UTC (`gateA-restorepoints.txt`).
+- [x] Gate B: VSS feasibility OK; C: free 588 GB
+  (`gateB-vss-feasibility.txt`).
+- [x] Power plan rollback artifact: GUID `381b4222-f694-41f0-9685-ff5bb260df2e`
+  (Balanced) exported to `powercfg-current-backup.pow`.
+- [x] Process Lasso config snapshot (20 files) → `pl-config-backup\`.
+- [x] Pre-restore package list snapshot → `packages-pre-step1.txt`.
+- [x] Step 2.3 — power plan switched to High Performance
+  (`8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c`).
+- [x] Step 0 — `pnputil /disable-device` then `/enable-device` on
+  `ACPI\SNSL002D\4&39979B3E&0`. Post-cycle status: OK.
+
+### Applied 2026-05-02 (deeper I2C / power fix after first round insufficient)
+
+User reported continuing glitches after Step 0 + 2.3. Deep-dive into I2C /
+HID filter chain / power management identified:
+
+- Kernel-PnP Id 906 "long running thread for device add routine, 3000ms"
+  events at boot (13:26:13, 14:12:41) — device enumeration exceeding SLA.
+- `EnhancedPowerManagementEnabled = 1` on `ACPI\SNSL002D\4&39979B3E&0` —
+  classic ThinkPad selective-suspend / D-state cycling that delays first
+  touch report after idle.
+- `DeviceResetNotificationEnabled = 1` — driver reset notifications enabled
+  (firmware reset path active).
+- Disk queue depth confirmed 0.00 across all volumes — IO contention
+  eliminated as contributor.
+
+External research corroborated this is a documented pattern:
+- Lenovo forum thread "Haptic Touchpad in Thinkpad P1 Gen 7 randomly freezes"
+  (post 5351108) — same model, same symptom.
+- Notebookcheck review documents Sensel firmware freezing on palm + TrackPoint.
+- KB5083631 introduced new haptic-signal subsystem racing HID input stream.
+- n48et.inf is BIOS firmware (System Firmware 1.19 / 1.20), NOT Sensel
+  touchpad firmware — earlier annex was misaimed.
+- Sensel Curie firmware not visible in UEFI capsule list; delivered via
+  Lenovo Vantage. No firmware push events in Setup log last 30d.
+
+Applied:
+- [x] `Apply-PowerFix.ps1` — set `EnhancedPowerManagementEnabled = 0` on
+  `ACPI\SNSL002D\4&39979B3E&0` and restarted device. Pre-fix state captured
+  in `powerfix-rollback.json` (was 1). Rollback: `Apply-PowerFix.ps1 -Restore`.
+
+### Open items (next escalation steps)
+
+- [ ] Touchpad re-test after EPM=0 fix. Outcome determines next action:
+  - Glitches gone: close investigation; document fix in this ledger.
+  - Reduced: also disable I2C controller selective suspend (riskier,
+    affects audio TIAS2781 on same bus).
+  - Unchanged: disable Dell DDPM (research-supported moderate-strength
+    cursor-hook stutter cause), then check Lenovo Vantage for Sensel
+    firmware update, then System Restore to RP 65 last resort.
+- [ ] If glitches persist: Step 2.1 — pause OneDrive + Google Drive sync
+  (graceful: tray pause for 2h, OR programmatic via `OneDrive.exe /shutdown`).
+  If glitches stop while paused → hypothesis #2 confirmed; investigate IO
+  isolation tactics rather than System Restore.
+- [ ] If glitches persist with sync paused: Step 1 — System Restore to RP 65
+  (4/21 Scheduled Checkpoint, predates rollup). Pre-step actions: pause
+  Windows Update 7d, document apps installed since 4/21 for reinstall list.
+- [ ] After any restore: re-apply 4/30 PL UI/sync tuning via
+  `Tools\Apply-ProcessLassoUiSyncTuning.ps1`.
+
+### Rollback artifacts
+
+| Step | Artifact | Restore command |
+|---|---|---|
+| Power plan (2.3) | `powercfg-current-backup.pow` + GUID in `powercfg-rollback.txt` | `powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e` |
+| All steps (umbrella) | RP #68 PreTouchpadFix-2026-05-02 | `Restore-Computer -RestorePoint 68` |
+| PL config (if 2.2 applied) | `pl-config-backup\` | Stop ProLasso, copy back, restart |
+
+### Off-limits / annex
+
+- n48et.inf firmware downgrade — NOT in plan. Firmware flash is irreversible
+  even if older INF binds. Requires separate written consent + Lenovo Support
+  consultation.
+- iaLPSS2 / ETDHSA pnputil rollback — explicitly removed per V1 verification.

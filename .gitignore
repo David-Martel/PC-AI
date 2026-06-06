@@ -268,3 +268,5 @@ Tools/InputDiagnostics/backups/
 Reports/input-glitch-watch/
 # Incidental large diagnostic evidence dumps (may contain profile/secret content)
 Reports/**/direct-pass-*/
+# GitOps run logs (ruleset-apply, workflow-health) — runtime artifacts
+Reports/gitops/

@@ -1,0 +1,22 @@
+=== Live sync diagnostic at 2026-05-09T15:09:25.6676007-04:00 ===
+Source: C:\codedev\PC_AI\Reports\onedrive-triage-20260509\liverepair-readonly\pre-repair-evidence.json
+
+--- Top-level keys ---
+GeneratedAt
+ComputerName
+UserName
+IsAdministrator
+SinceMinutes
+Processes
+Executables
+Tasks
+SyncDiagnostics
+WerEvents
+WerQueues
+SyncRoots
+ProgramFilesChildren
+
+--- SyncValues block (full) ---
+(no SyncValues field)
+
+--- Specific upload-related fields ---

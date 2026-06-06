@@ -1,0 +1,132 @@
+=== Post-restart inspection at 2026-05-09T15:41:32.7456522-04:00 ===
+
+--- DB file mtimes ---
+
+Name                      LastWriteTime           AgeMin
+----                      -------------           ------
+CxP.db-wal                5/9/2026 3:41:16 PM       0.30
+SyncEngineDatabase.db-wal 5/9/2026 3:40:59 PM       0.50
+UXDatabase.db             5/9/2026 3:40:57 PM       0.60
+SettingsDatabase.db-wal   5/9/2026 3:40:57 PM       0.60
+CxP.db-shm                5/9/2026 3:40:56 PM       0.60
+OCSI.db-shm               5/9/2026 3:40:55 PM       0.60
+SyncEngineDatabase.db-shm 5/9/2026 3:40:55 PM       0.60
+SettingsDatabase.db-shm   5/9/2026 3:40:55 PM       0.60
+OCSI.db-wal               5/9/2026 2:40:30 PM      61.00
+OCSI.db                   5/9/2026 1:33:39 AM     847.90
+SyncEngineDatabase.db     5/9/2026 1:33:39 AM     847.90
+SafeDelete.db-shm         5/8/2026 2:23:20 PM    1518.20
+SafeDelete.db-wal         5/7/2026 8:47:01 AM    3294.50
+SafeDelete.db             4/30/2026 11:02:22 PM 12519.20
+KFM.db                    4/30/2026 3:31:57 PM  12969.60
+CxP.db                    4/9/2026 7:00:15 PM   43001.30
+SettingsDatabase.db       3/19/2026 1:54:21 PM  73547.20
+
+
+
+--- OneDrive.exe + parents ---
+
+Name            : OneDrive.Sync.Service.exe
+ProcessId       : 41220
+ParentProcessId : 22364
+ExecutablePath  : C:\Program Files\Microsoft OneDrive\26.070.0414.0001\OneDrive.Sync.Service.exe
+CreationDate    : 5/9/2026 2:41:33 PM
+CommandLine     : "C:\Program Files\Microsoft OneDrive\26.070.0414.0001\OneDrive.Sync.Service.exe" 
+
+Name            : OneDrive.exe
+ProcessId       : 4496
+ParentProcessId : 51396
+ExecutablePath  : C:\Program Files\Microsoft OneDrive\OneDrive.exe
+CreationDate    : 5/9/2026 3:40:55 PM
+CommandLine     : "C:\Program Files\Microsoft OneDrive\OneDrive.exe" /background /launchedViaOneDriveLauncher
+
+Name            : FileSyncHelper.exe
+ProcessId       : 11680
+ParentProcessId : 2036
+ExecutablePath  : C:\Program Files\Microsoft OneDrive\26.070.0414.0001\FileSyncHelper.exe
+CreationDate    : 5/9/2026 3:40:57 PM
+CommandLine     : "C:\Program Files\Microsoft OneDrive\26.070.0414.0001\FileSyncHelper.exe"
+
+
+
+--- HKCU OneDrive root keys (live state) ---
+
+Version             : 26.070.0414.0001
+UserCount           : 
+IsLoggedIn          : 
+ProcessRunningCount : 
+BootTimeOfLastSync  : 
+OneAuthAccountId    : 
+
+
+
+--- HKCU Personal keys (live state) ---
+
+UserEmail               : davidmartel07@gmail.com
+IsLoggedIn              : 
+LastSignInTime          : 1778355656
+LastSignInResult        : 0
+LastAttemptedSignInTime : 1778355656
+LastSyncTimeStamp       : 
+GetOnlineStatus         : Completed
+
+
+
+--- Newest 8 log files ---
+
+Name                                           LastWriteTime        SizeKB
+----                                           -------------        ------
+SyncEngine-2026-05-09.1941.4496.19.aodl        5/9/2026 3:41:13 PM    0.00
+SyncEngine-2026-05-09.1941.4496.18.odl         5/9/2026 3:41:13 PM 1024.30
+SyncEngine-2026-05-09.1941.4496.3.odlgz        5/9/2026 3:41:13 PM   90.60
+SyncEngine-2026-05-09.1941.4496.17.odl         5/9/2026 3:41:13 PM 1024.20
+FileCoAuth-2026-05-09.1940.51396.1.odlgz       5/9/2026 3:41:13 PM    0.70
+OneDriveLauncher-2026-05-09.1940.36456.2.odlgz 5/9/2026 3:41:13 PM    2.40
+SyncEngine-2026-05-09.1940.4496.1.odlgz        5/9/2026 3:41:13 PM    0.70
+OneDriveLauncher-2026-05-09.1940.36456.1.odlgz 5/9/2026 3:41:13 PM    0.70
+
+
+
+--- TCP from OneDrive PIDs (Established) ---
+OneDrive PIDs: 11680,4496
+PID 11680:
+
+LocalPort RemoteAddress RemotePort CreationTime
+--------- ------------- ---------- ------------
+    37359 20.189.173.1         443 5/9/2026 3:40:58 PM
+
+
+PID 4496:
+
+LocalPort RemoteAddress               RemotePort CreationTime
+--------- -------------               ---------- ------------
+    37358 2620:1ec:50::11                    443 5/9/2026 3:40:58 PM
+    37353 2603:1063:2001:531::365:ff1        443 5/9/2026 3:40:57 PM
+    37351 2620:1ec:50::11                    443 5/9/2026 3:40:57 PM
+    37350 2603:1063:27:1::14                 443 5/9/2026 3:40:57 PM
+    37348 2603:1036:304:873::2               443 5/9/2026 3:40:56 PM
+    37347 2603:1036:304:873::2               443 5/9/2026 3:40:56 PM
+    37395 20.209.185.33                      443 5/9/2026 3:41:13 PM
+    37394 20.135.4.169                       443 5/9/2026 3:41:13 PM
+    37388 20.135.6.9                         443 5/9/2026 3:41:07 PM
+    37387 20.96.153.111                      443 5/9/2026 3:41:07 PM
+    37355 52.104.144.39                      443 5/9/2026 3:40:57 PM
+    37352 13.107.137.11                      443 5/9/2026 3:40:57 PM
+    37349 13.107.137.11                      443 5/9/2026 3:40:56 PM
+
+
+
+--- Test file shell sync status ---
+  Sharing status (col 298) = Not shared
+  Availability status (col 306) = Sync pending
+  Status (col 307) = C600000031535053214A94C906A4FE488225AEC7E24C211B9900000010000000001F00000044000000700072006F0070003A00530079007300740065006D002E00530074006F007200610067006500500072006F0076006900640065007200530074006100740065003B00530079007300740065006D002E00530074006F007200610067006500500072006F007600690064006500720043007500730074006F006D0053007400610074006500730000001100000012000000001300000003000000000000002D00000031535053DF907EE771625B4F834F2DD1F245DDA41100000003000000001300000004000000000000001C0000003153505353F1EFFC39E8F34CA9E7EA22832094B80000000000000000F1
+  File present: C:\Users\david\OneDrive\_synctest_20260509\synctest-20260509-151440.txt (size=216)
+
+--- Live SyncEngine DB tail ---
+Max op id+ts: 1320|2026-05-09 05:30:00
+1320|2026-05-09 05:30:00|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1319|2026-05-09 05:25:48|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1318|2026-05-09 05:24:01|GetClientPolicy|200|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+1317|2026-05-09 05:20:03|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1316|2026-05-09 05:09:09|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+Total rows: 1320

@@ -1,0 +1,46 @@
+=== Stale-SID OneDrive task cleanup at 2026-05-09T15:22:43.5160921-04:00 ===
+Mode: APPLY
+My SID: S-1-5-21-357761096-1057752491-2136275046-1001
+
+--- Keepers (3) ---
+
+Task                                                                  Principal Resolved  Mine SystemPerMachine
+----                                                                  --------- --------  ---- ----------------
+OneDrive Per-Machine Standalone Update Task                           SYSTEM    SYSTEM   False             True
+OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1001 david     david    False            False
+OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1001   david     david    False            False
+
+
+
+--- Stale targets (7) ---
+
+TaskName                                                              TaskPath Principal
+--------                                                              -------- ---------
+OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1002 \        S-1-5-21-357761096-1057752491-2136275046…
+OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1003 \        WsiAccount
+OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1007 \        DevToolsUser
+OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1009 \        CodexSandboxOffline
+OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1003   \        WsiAccount
+OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1007   \        DevToolsUser
+OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1009   \        CodexSandboxOffline
+
+
+
+--- Applying deletion ---
+  DELETED: OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1002
+  DELETED: OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1003
+  DELETED: OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1007
+  DELETED: OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1009
+  DELETED: OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1003
+  DELETED: OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1007
+  DELETED: OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1009
+
+--- Post-state OneDrive task inventory ---
+
+TaskName                                                              State Principal
+--------                                                              ----- ---------
+OneDrive Per-Machine Standalone Update Task                           Ready SYSTEM
+OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1001 Ready david
+OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1001   Ready david
+
+

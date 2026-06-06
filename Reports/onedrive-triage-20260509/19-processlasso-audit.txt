@@ -1,0 +1,37 @@
+=== Process Lasso audit for OneDrive at 2026-05-09T15:43:22.3165829-04:00 ===
+
+--- Process Governor (Lasso) state ---
+
+Name               Id Responding StartTime           Mem(MB)
+----               -- ---------- ---------           -------
+ProcessGovernor 20212       True 5/9/2026 2:37:22 PM   21.40
+
+
+
+--- prolasso.ini live (relevant OneDrive sections) ---
+Path: C:\ProgramData\ProcessLasso\config\prolasso.ini, mtime 05/09/2026 14:38:26, size 21612 bytes
+OneDrive references in config:
+Total references: 4
+  OocExclusions=audiodg.exe,bitsumsessionagent.exe,codex.exe,ctfmon.exe,docker desktop.exe,dwm.exe,elan*.exe,etd*.exe,explorer.exe,filesynchelper.exe,fontdrvhost.exe,googledrivefs.exe,lenovo.modern.imcontroller.exe,lenovoaccessoriesanddisplaycontrolcenterservice.exe,lenovogocentral1.exe,lenovovantage-(genericmessagingaddin).exe,lenovovantage-(lenovoservicebridgeaddin).exe,lenovovantage-(vantagecoreaddin).exe,lenovovantageservice.exe,lockapp.exe,onedrive*,onedrive.exe,onedrive.sync.service.exe,powershell.exe,processgovernor.exe,processlasso.exe,processlassolauncher.exe,processlassoservice.exe,pwsh.exe,rclone.exe,runtimebroker.exe,searchhost.exe,sensel*.exe,setup.exe,shellexperiencehost.exe,sihost.exe,snsl*.exe,startmenuexperiencehost.exe,synaptics*.exe,synrpcserver.exe,syntp*.exe,tabtip.exe,taskhostw.exe,textinputhost.exe,useroobebroker.exe,uv.exe,vmmemwsl,winlogon.exe,winstore.app.exe,wsl.exe,wslhost.exe
+  SmartTrimExclusions=bitwarden.exe,brave.exe,chrome.exe,codex.exe,pwsh.exe,signal.exe,windowsterminal.exe,zoom.exe,audiodg.exe,bitsumsessionagent.exe,ctfmon.exe,dwm.exe,explorer.exe,fontdrvhost.exe,lenovo.modern.imcontroller.exe,lenovoaccessoriesanddisplaycontrolcenterservice.exe,lenovogocentral1.exe,lenovovantageservice.exe,lenovovantage-(genericmessagingaddin).exe,lenovovantage-(lenovoservicebridgeaddin).exe,lenovovantage-(vantagecoreaddin).exe,lockapp.exe,runtimebroker.exe,searchhost.exe,shellexperiencehost.exe,sihost.exe,startmenuexperiencehost.exe,synrpcserver.exe,tabtip.exe,taskhostw.exe,textinputhost.exe,useroobebroker.exe,winlogon.exe,winstore.app.exe,onedrive.exe,onedrive.sync.service.exe,filesynchelper.exe,chatgpt.exe,claude.exe,code.exe,powershell.exe,rclone.exe,wsl.exe,wslhost.exe,vmmemwsl,docker desktop.exe,googledrivefs.exe,onedrive*,processgovernor.exe,processlasso.exe,processlassolauncher.exe,processlassoservice.exe,sensel*.exe,snsl*.exe,syntp*.exe,synaptics*.exe,elan*.exe,etd*.exe
+  DefaultPriorities=onedrive.exe,below normal,iclouddrive.exe,below normal,googledrivefs.exe,below normal,nvcontainer.exe,below normal,node.exe,below normal,rclone.exe,below normal,robocopy.exe,below normal,wslservice.exe,below normal,com.docker.backend.exe,below normal,syntp*.exe,above normal,shellexperiencehost.exe,above normal,snsl*.exe,above normal,git-cluster-analyzer.exe,below normal,cl.exe,below normal,startmenuexperiencehost.exe,above normal,winget.exe,below normal,cargo.exe,below normal,redis-service.exe,below normal,docker desktop.exe,below normal,redis-server.exe,below normal,ctfmon.exe,above normal,7z.exe,below normal,docker-agent.exe,below normal,rustc.exe,below normal,sccache.exe,below normal,docker-sandbox.exe,below normal,link.exe,below normal,npm.exe,below normal,synrpcserver.exe,above normal,sihost.exe,above normal,elan*.exe,above normal,dwm.exe,above normal,tabtip.exe,above normal,onedrive.sync.service.exe,below normal,protondrive.exe,below normal,synaptics*.exe,above normal,wslhost.exe,below normal,sensel*.exe,above normal,sccache-dist.exe,below normal,textinputhost.exe,above normal,etd*.exe,above normal,filesynchelper.exe,below normal,lenovo.modern.imcontroller.exe,above normal,audiodg.exe,above normal,com.docker.build.exe,below normal,npx.exe,below normal,explorer.exe,above normal,dropbox.exe,below normal,icloudckks.exe,below normal,nvidia share.exe,below normal,dell.uca.manager.exe,below normal,hpprinterhealthmonitor.exe,below normal,presentmon_x64.exe,below normal,hpprintscandoctorservice.exe,below normal,dell.techhub*.exe,below normal,nvidia broadcast.exe,below normal,serviceshell.exe,below normal,dell.coreservices.client.exe,below normal,dpmservice.exe,below normal,presentmonservice.exe,below normal,dell.update.subagent.exe,below normal,disp.exe,below normal,dpmcrashhandler.exe,below normal,nvfvsdksvc_x64.exe,below normal
+  DefaultIOPriorities=chrome.exe,3,brave.exe,3,zoom.exe,3,audiodg.exe,3,node.exe,1,vmmemwsl,1,rclone.exe,1,robocopy.exe,1,wslservice.exe,1,com.docker.backend.exe,1,syntp*.exe,3,shellexperiencehost.exe,3,snsl*.exe,3,git-cluster-analyzer.exe,1,cl.exe,1,startmenuexperiencehost.exe,3,winget.exe,1,cargo.exe,1,redis-service.exe,1,docker desktop.exe,1,redis-server.exe,1,ctfmon.exe,3,7z.exe,1,onedrive.exe,1,docker-agent.exe,1,rustc.exe,1,wsl.exe,1,sccache.exe,1,docker-sandbox.exe,1,link.exe,1,npm.exe,1,lenovoaccessoriesanddisplaycontrolcenterservice.exe,3,synrpcserver.exe,3,sihost.exe,3,elan*.exe,3,dwm.exe,3,tabtip.exe,3,onedrive.sync.service.exe,1,protondrive.exe,1,synaptics*.exe,3,wslhost.exe,1,googledrivefs.exe,1,sensel*.exe,3,lenovovantageservice.exe,3,sccache-dist.exe,1,textinputhost.exe,3,etd*.exe,3,filesynchelper.exe,1,lenovo.modern.imcontroller.exe,3,com.docker.build.exe,1,npx.exe,1,iclouddrive.exe,1,explorer.exe,3,dropbox.exe,1,icloudckks.exe,1,nvidia share.exe,1,dell.uca.manager.exe,1,hpprinterhealthmonitor.exe,1,presentmon_x64.exe,1,hpprintscandoctorservice.exe,1,nvidia overlay.exe,1,dell.techhub*.exe,1,nvidia broadcast.exe,1,serviceshell.exe,1,nvidia app.exe,1,dell.coreservices.client.exe,1,dpmservice.exe,1,presentmonservice.exe,1,dell.update.subagent.exe,1,disp.exe,1,dpmcrashhandler.exe,1,nvfvsdksvc_x64.exe,1
+
+Exclusion-related sections containing OneDrive:
+
+--- Live OneDrive process priority/IO snapshot ---
+FileSyncHelper PID 11680 BasePriority=6 PriorityClass=BelowNormal
+OneDrive PID 4496 BasePriority=6 PriorityClass=BelowNormal
+OneDrive.Sync.Service PID 41220 BasePriority=6 PriorityClass=BelowNormal
+
+--- WMIC priority class for OneDrive procs ---
+
+Name                      ProcessId Priority ThreadCount WorkingSetSize IoReadOperationCount IoWriteOperationCount KernelModeTime UserModeTime
+----                      --------- -------- ----------- -------------- -------------------- --------------------- -------------- ------------
+OneDrive.Sync.Service.exe     41220        6          35      232890368                                                 233906250    387812500
+OneDrive.exe                   4496        6          40      535277568                                                 247343750   1305312500
+FileSyncHelper.exe            11680        6           6       29974528                                                    312500       156250
+
+
+
+--- Process Lasso recent log lines (mentioning OneDrive) ---

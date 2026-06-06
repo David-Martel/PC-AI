@@ -1,0 +1,205 @@
+=== OneDrive AppX package + PushNotifications event log diagnostics at 2026-05-09T15:59:54.5414380-04:00 ===
+
+=== AppX package state ===
+
+Name                   : Microsoft.OneDriveSync
+PackageFullName        : Microsoft.OneDriveSync_26070.414.1.0_neutral__8wekyb3d8bbwe
+Architecture           : Neutral
+Version                : 26070.414.1.0
+Publisher              : CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US
+PackageUserInformation : {}
+Status                 : Ok
+IsBundle               : False
+IsFramework            : False
+IsResourcePackage      : False
+NonRemovable           : False
+SignatureKind          : Developer
+InstallLocation        : C:\Program Files\WindowsApps\Microsoft.OneDriveSync_26070.414.1.0_neutral__8wekyb3d8bbwe
+ResourceId             : 
+
+
+
+=== AppX package full status detail ===
+Status: Ok
+Dependencies: 
+User information: 
+
+=== PushNotifications-Platform event log (last 24h) ===
+
+--- Provider: Microsoft-Windows-PushNotifications-Platform ---
+Total events 24h: 100
+
+TimeCreated           Id LevelDisplayName Snippet
+-----------           -- ---------------- -------
+5/9/2026 3:56:21 PM 2413 Information      An application was registered with the following parameters: Microsoft.SkyDrive.Desktop [PackageFullName] Microsoft.SkyDrive.Desktop [AppUserModelId] 0xD00 [Settings] 536870912 [AppType] The
+                                          operation completed successfully. [ErrorCode].
+5/9/2026 3:56:21 PM 2415 Information      An application was unregistered with the following parameters: Microsoft.SkyDrive.Desktop [AppUserModelId] The operation completed successfully. [ErrorCode]
+5/9/2026 3:56:21 PM 3056 Information      Badge Notification are being cleared for Microsoft.SkyDrive.Desktop - informed session 1.
+5/9/2026 3:50:45 PM   42 Information      Cloud Notifications must be enabled in GP and MDM to receive push notifications. GroupPolicyValue: true, MDMPolicyValue: true.
+5/9/2026 3:49:59 PM 2413 Information      An application was registered with the following parameters: Microsoft.SkyDrive.Desktop [PackageFullName] Microsoft.SkyDrive.Desktop [AppUserModelId] 0xD00 [Settings] 536870912 [AppType] The
+                                          operation completed successfully. [ErrorCode].
+5/9/2026 3:49:59 PM 2415 Information      An application was unregistered with the following parameters: Microsoft.SkyDrive.Desktop [AppUserModelId] The operation completed successfully. [ErrorCode]
+5/9/2026 3:49:59 PM 3056 Information      Badge Notification are being cleared for Microsoft.SkyDrive.Desktop - informed session 1.
+5/9/2026 3:49:53 PM 3049 Information      Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM 3049 Information      Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM 3049 Information      Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM 3049 Information      Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM   42 Information      Cloud Notifications must be enabled in GP and MDM to receive push notifications. GroupPolicyValue: true, MDMPolicyValue: true.
+5/9/2026 3:49:53 PM   42 Information      Cloud Notifications must be enabled in GP and MDM to receive push notifications. GroupPolicyValue: true, MDMPolicyValue: true.
+5/9/2026 3:49:53 PM 3049 Information      Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM 3007 Information      Toast session creation is finished for C:\Windows\System32\svchost.exe from endpoint 0x0 with result The operation completed successfully., and 2 is assigned as session id.
+5/9/2026 3:49:53 PM 3006 Information      Toast session creation is requested for C:\Windows\System32\svchost.exe from endpoint 0x0.
+5/9/2026 3:49:53 PM 1005 Information      The Connection Provider status changed to Connected.
+5/9/2026 3:49:53 PM 1264 Information      Adding new user to the Windows Push Notification Service completed. 0018800F01ECD931 [DeviceId] 17056888 [UserId] 0x0 [ErrorCode].
+5/9/2026 3:49:53 PM 1268 Verbose          WNP Transport Layer received command: BND, Trid: 18, Namespace: CON, CV: FVUzz5roREqrR5Fb.17.0 containing 135 bytes of payload only. However, full payload including header is: 0x424E4420313820434F4E
+                                          003133350D0A436F6E746578743A20653736316231616635356264323438350D0A4D532D43563A204656557A7A35726F52457172523546622E31372E300D0A0D0A3C776E732D726573706F6E73653E3C7665723E313C2F7665723E3C6E6F6E63653E32
+                                          303438313930353130353834323635343233313C2F6E6F6E6365. IsLongRunning: Data Connection.
+5/9/2026 3:49:53 PM 1225 Verbose          WNP Transport Layer received command: BND, Trid: 18, Namespace: CON, CV: FVUzz5roREqrR5Fb.17.0 containing 135 bytes of payload: 0x436F6E746578743A20653736316231616635356264323438350D0A4D532D43563A20
+                                          4656557A7A35726F52457172523546622E31372E300D0A0D0A3C776E732D726573706F6E73653E3C7665723E313C2F7665723E3C6E6F6E63653E32303438313930353130353834323635343233313C2F6E6F6E63653E3C2F776E732D726573706F6E73
+                                          653E. IsLongRunning: Data Connection.
+5/9/2026 3:49:53 PM 1267 Verbose          WNP Transport Layer sent command: BND, Trid: 18, Namespace: CON\WNS 1044478, CV: FVUzz5roREqrR5Fb.17 containing 241 bytes of payload only. However, full payload including header is: 0x424E4420313820
+                                          434F4E5C574E532031303434343738203231330D0A4D532D43563A204656557A7A35726F52457172523546622E31370D0A436F6E746578743A20653736316231616635356264323438350D0A0D0A3C776E733E3C7665723E313C2F7665723E3C636C69
+                                          656E743E3C6E616D653E57504E3C2F6E616D653E3C7665723E312E303C2F7665723E3C2F636C69656E743E3C6F7074696F6E733E3C7077726D6F6465206D6F64653D2230223E3C2F7077726D6F64653E3C2F6F7074696F6E733E3C6C6173744D736749
+                                          643E336235376332326535623738663230383C2F6C6173744D736749643E3C2F776E733E. IsLongRunning: Data Connection.
+5/9/2026 3:49:53 PM 1223 Verbose          WNP Transport Layer sent command: BND, Trid: 18, Namespace: CON\WNS 1044478, CV: FVUzz5roREqrR5Fb.17 containing 185 bytes of payload: 0x436F6E746578743A20653736316231616635356264323438350D0A0D0A3C77
+                                          6E733E3C7665723E313C2F7665723E3C636C69656E743E3C6E616D653E57504E3C2F6E616D653E3C7665723E312E303C2F7665723E3C2F636C69656E743E3C6F7074696F6E733E3C7077726D6F6465206D6F64653D2230223E3C2F7077726D6F64653E
+                                          3C2F6F7074696F6E733E3C6C6173744D736749643E336235376332326535623738663230383C2F6C6173744D736749643E3C2F776E733E. IsLongRunning: Data Connection.
+5/9/2026 3:49:53 PM 1261 Information      Adding new user to the Windows Push Notification Service. 0018800F01ECD931 [DeviceId] 17056888 [UserId] 2 [UserType].
+5/9/2026 3:49:53 PM 1022 Information      ConnectWork is requesting ConnectionManager to connect.
+5/9/2026 3:49:53 PM 3001 Information      Tile session creation is finished for C:\Windows\explorer.exe from endpoint 0x0 with result The operation completed successfully., and 1 is assigned as session id. Queued Closes = 0, Queued
+                                          Cleanups = 0
+5/9/2026 3:49:53 PM 3000 Information      Tile session creation is requested for C:\Windows\explorer.exe endpoint 0x0.
+5/9/2026 3:49:53 PM 1025 Information      A Power event was fired: OpportunisticConnectedStandbyStateChange [PowerEventType] false [Enabled].
+5/9/2026 3:49:53 PM 1025 Information      A Power event was fired: MonitorSettingChange [PowerEventType] true [Enabled].
+5/9/2026 3:49:53 PM 1025 Information      A Power event was fired: ACPowerChange [PowerEventType] true [Enabled].
+5/9/2026 3:49:53 PM 1025 Information      A Power event was fired: BatterySaverStateChange [PowerEventType] false [Enabled].
+
+
+
+--- Provider: Microsoft-Windows-PushNotifications-InProc ---
+Total events 24h: 0
+
+
+--- Provider: Microsoft-Windows-PushNotifications-Developer ---
+Total events 24h: 0
+
+
+--- Provider: Microsoft-Windows-WNSCP-Server ---
+Provider not available: There is not an event provider on the localhost computer that matches "Microsoft-Windows-WNSCP-Server".
+
+=== Operational log: PushNotifications/Operational and Analytic ===
+
+--- Log: Microsoft-Windows-PushNotification-Platform/Operational ---
+Total: 100
+
+TimeCreated           Id LevelDisplayName ProviderName                                 Snippet
+-----------           -- ---------------- ------------                                 -------
+5/9/2026 3:56:21 PM 2413 Information      Microsoft-Windows-PushNotifications-Platform An application was registered with the following parameters: Microsoft.SkyDrive.Desktop [PackageFullName] Microsoft.SkyDrive.Desktop [AppUserModelId]
+                                                                                       0xD00 [Settings] 536870912 [AppType] The operation completed successfully. [ErrorCode].
+5/9/2026 3:56:21 PM 2415 Information      Microsoft-Windows-PushNotifications-Platform An application was unregistered with the following parameters: Microsoft.SkyDrive.Desktop [AppUserModelId] The operation completed successfully.
+                                                                                       [ErrorCode]
+5/9/2026 3:56:21 PM 3056 Information      Microsoft-Windows-PushNotifications-Platform Badge Notification are being cleared for Microsoft.SkyDrive.Desktop - informed session 1.
+5/9/2026 3:50:45 PM   42 Information      Microsoft-Windows-PushNotifications-Platform Cloud Notifications must be enabled in GP and MDM to receive push notifications. GroupPolicyValue: true, MDMPolicyValue: true.
+5/9/2026 3:49:59 PM 2413 Information      Microsoft-Windows-PushNotifications-Platform An application was registered with the following parameters: Microsoft.SkyDrive.Desktop [PackageFullName] Microsoft.SkyDrive.Desktop [AppUserModelId]
+                                                                                       0xD00 [Settings] 536870912 [AppType] The operation completed successfully. [ErrorCode].
+5/9/2026 3:49:59 PM 2415 Information      Microsoft-Windows-PushNotifications-Platform An application was unregistered with the following parameters: Microsoft.SkyDrive.Desktop [AppUserModelId] The operation completed successfully.
+                                                                                       [ErrorCode]
+5/9/2026 3:49:59 PM 3056 Information      Microsoft-Windows-PushNotifications-Platform Badge Notification are being cleared for Microsoft.SkyDrive.Desktop - informed session 1.
+5/9/2026 3:49:53 PM 3049 Information      Microsoft-Windows-PushNotifications-Platform Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM 3049 Information      Microsoft-Windows-PushNotifications-Platform Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM 3049 Information      Microsoft-Windows-PushNotifications-Platform Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM 3049 Information      Microsoft-Windows-PushNotifications-Platform Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM   42 Information      Microsoft-Windows-PushNotifications-Platform Cloud Notifications must be enabled in GP and MDM to receive push notifications. GroupPolicyValue: true, MDMPolicyValue: true.
+5/9/2026 3:49:53 PM   42 Information      Microsoft-Windows-PushNotifications-Platform Cloud Notifications must be enabled in GP and MDM to receive push notifications. GroupPolicyValue: true, MDMPolicyValue: true.
+5/9/2026 3:49:53 PM 3049 Information      Microsoft-Windows-PushNotifications-Platform Endpoint 0x0 is being cleanedup
+5/9/2026 3:49:53 PM 3007 Information      Microsoft-Windows-PushNotifications-Platform Toast session creation is finished for C:\Windows\System32\svchost.exe from endpoint 0x0 with result The operation completed successfully., and 2 is
+                                                                                       assigned as session id.
+5/9/2026 3:49:53 PM 3006 Information      Microsoft-Windows-PushNotifications-Platform Toast session creation is requested for C:\Windows\System32\svchost.exe from endpoint 0x0.
+5/9/2026 3:49:53 PM 1005 Information      Microsoft-Windows-PushNotifications-Platform The Connection Provider status changed to Connected.
+5/9/2026 3:49:53 PM 1264 Information      Microsoft-Windows-PushNotifications-Platform Adding new user to the Windows Push Notification Service completed. 0018800F01ECD931 [DeviceId] 17056888 [UserId] 0x0 [ErrorCode].
+5/9/2026 3:49:53 PM 1268 Verbose          Microsoft-Windows-PushNotifications-Platform WNP Transport Layer received command: BND, Trid: 18, Namespace: CON, CV: FVUzz5roREqrR5Fb.17.0 containing 135 bytes of payload only. However, full
+                                                                                       payload including header is: 0x424E4420313820434F4E003133350D0A436F6E746578743A20653736316231616635356264323438350D0A4D532D43563A204656557A7A35726F524571
+                                                                                       72523546622E31372E300D0A0D0A3C776E732D726573706F6E73653E3C7665723E313C2F7665723E3C6E6F6E63653E32303438313930353130353834323635343233313C2F6E6F6E6365.
+                                                                                       IsLongRunning: Data Connection.
+5/9/2026 3:49:53 PM 1225 Verbose          Microsoft-Windows-PushNotifications-Platform WNP Transport Layer received command: BND, Trid: 18, Namespace: CON, CV: FVUzz5roREqrR5Fb.17.0 containing 135 bytes of payload: 0x436F6E746578743A2065373
+                                                                                       6316231616635356264323438350D0A4D532D43563A204656557A7A35726F52457172523546622E31372E300D0A0D0A3C776E732D726573706F6E73653E3C7665723E313C2F7665723E3C6E6F
+                                                                                       6E63653E32303438313930353130353834323635343233313C2F6E6F6E63653E3C2F776E732D726573706F6E73653E. IsLongRunning: Data Connection.
+5/9/2026 3:49:53 PM 1267 Verbose          Microsoft-Windows-PushNotifications-Platform WNP Transport Layer sent command: BND, Trid: 18, Namespace: CON\WNS 1044478, CV: FVUzz5roREqrR5Fb.17 containing 241 bytes of payload only. However, full
+                                                                                       payload including header is: 0x424E4420313820434F4E5C574E532031303434343738203231330D0A4D532D43563A204656557A7A35726F52457172523546622E31370D0A436F6E7465
+                                                                                       78743A20653736316231616635356264323438350D0A0D0A3C776E733E3C7665723E313C2F7665723E3C636C69656E743E3C6E616D653E57504E3C2F6E616D653E3C7665723E312E303C2F766
+                                                                                       5723E3C2F636C69656E743E3C6F7074696F6E733E3C7077726D6F6465206D6F64653D2230223E3C2F7077726D6F64653E3C2F6F7074696F6E733E3C6C6173744D736749643E33623537633232
+                                                                                       6535623738663230383C2F6C6173744D736749643E3C2F776E733E. IsLongRunning: Data Connection.
+5/9/2026 3:49:53 PM 1223 Verbose          Microsoft-Windows-PushNotifications-Platform WNP Transport Layer sent command: BND, Trid: 18, Namespace: CON\WNS 1044478, CV: FVUzz5roREqrR5Fb.17 containing 185 bytes of payload: 0x436F6E746578743A2
+                                                                                       0653736316231616635356264323438350D0A0D0A3C776E733E3C7665723E313C2F7665723E3C636C69656E743E3C6E616D653E57504E3C2F6E616D653E3C7665723E312E303C2F7665723E3C
+                                                                                       2F636C69656E743E3C6F7074696F6E733E3C7077726D6F6465206D6F64653D2230223E3C2F7077726D6F64653E3C2F6F7074696F6E733E3C6C6173744D736749643E336235376332326535623
+                                                                                       738663230383C2F6C6173744D736749643E3C2F776E733E. IsLongRunning: Data Connection.
+5/9/2026 3:49:53 PM 1261 Information      Microsoft-Windows-PushNotifications-Platform Adding new user to the Windows Push Notification Service. 0018800F01ECD931 [DeviceId] 17056888 [UserId] 2 [UserType].
+5/9/2026 3:49:53 PM 1022 Information      Microsoft-Windows-PushNotifications-Platform ConnectWork is requesting ConnectionManager to connect.
+5/9/2026 3:49:53 PM 3001 Information      Microsoft-Windows-PushNotifications-Platform Tile session creation is finished for C:\Windows\explorer.exe from endpoint 0x0 with result The operation completed successfully., and 1 is assigned as
+                                                                                       session id. Queued Closes = 0, Queued Cleanups = 0
+5/9/2026 3:49:53 PM 3000 Information      Microsoft-Windows-PushNotifications-Platform Tile session creation is requested for C:\Windows\explorer.exe endpoint 0x0.
+5/9/2026 3:49:53 PM 1025 Information      Microsoft-Windows-PushNotifications-Platform A Power event was fired: OpportunisticConnectedStandbyStateChange [PowerEventType] false [Enabled].
+5/9/2026 3:49:53 PM 1025 Information      Microsoft-Windows-PushNotifications-Platform A Power event was fired: MonitorSettingChange [PowerEventType] true [Enabled].
+5/9/2026 3:49:53 PM 1025 Information      Microsoft-Windows-PushNotifications-Platform A Power event was fired: ACPowerChange [PowerEventType] true [Enabled].
+5/9/2026 3:49:53 PM 1025 Information      Microsoft-Windows-PushNotifications-Platform A Power event was fired: BatterySaverStateChange [PowerEventType] false [Enabled].
+
+
+
+--- Log: Microsoft-Windows-PushNotifications-Platform/Operational ---
+Log not enabled: There is not an event log on the localhost computer that matches "Microsoft-Windows-PushNotifications-Platform/Operational".
+
+--- Log: Microsoft-Windows-PushNotifications-Platform/Admin ---
+Log not enabled: There is not an event log on the localhost computer that matches "Microsoft-Windows-PushNotifications-Platform/Admin".
+
+=== Anything mentioning OneDriveSync in any event log (last 24h) ===
+Log: Microsoft-Windows-PushNotification-Platform/Operational (records: 1730, last 24h check)
+  matched: 9
+
+TimeCreated           Id LevelDisplayName ProviderName                                 Snippet
+-----------           -- ---------------- ------------                                 -------
+5/9/2026 3:56:21 PM 2413 Information      Microsoft-Windows-PushNotifications-Platform An application was registered with the following parameters: Microsoft.SkyDrive.Desktop [PackageFullName] Microsoft.SkyDrive.Desktop [AppUserModelId]
+                                                                                       0xD00 [Settings] 536870912 [AppType] The operation completed successfully. [ErrorCode].
+5/9/2026 3:56:21 PM 2415 Information      Microsoft-Windows-PushNotifications-Platform An application was unregistered with the following parameters: Microsoft.SkyDrive.Desktop [AppUserModelId] The operation completed successfully.
+                                                                                       [ErrorCode]
+5/9/2026 3:56:21 PM 3056 Information      Microsoft-Windows-PushNotifications-Platform Badge Notification are being cleared for Microsoft.SkyDrive.Desktop - informed session 1.
+5/9/2026 3:49:59 PM 2413 Information      Microsoft-Windows-PushNotifications-Platform An application was registered with the following parameters: Microsoft.SkyDrive.Desktop [PackageFullName] Microsoft.SkyDrive.Desktop [AppUserModelId]
+                                                                                       0xD00 [Settings] 536870912 [AppType] The operation completed successfully. [ErrorCode].
+5/9/2026 3:49:59 PM 2415 Information      Microsoft-Windows-PushNotifications-Platform An application was unregistered with the following parameters: Microsoft.SkyDrive.Desktop [AppUserModelId] The operation completed successfully.
+                                                                                       [ErrorCode]
+5/9/2026 3:49:59 PM 3056 Information      Microsoft-Windows-PushNotifications-Platform Badge Notification are being cleared for Microsoft.SkyDrive.Desktop - informed session 1.
+5/9/2026 3:40:55 PM 2413 Information      Microsoft-Windows-PushNotifications-Platform An application was registered with the following parameters: Microsoft.SkyDrive.Desktop [PackageFullName] Microsoft.SkyDrive.Desktop [AppUserModelId]
+                                                                                       0xD00 [Settings] 536870912 [AppType] The operation completed successfully. [ErrorCode].
+5/9/2026 3:40:55 PM 2415 Information      Microsoft-Windows-PushNotifications-Platform An application was unregistered with the following parameters: Microsoft.SkyDrive.Desktop [AppUserModelId] The operation completed successfully.
+                                                                                       [ErrorCode]
+5/9/2026 3:40:55 PM 3056 Information      Microsoft-Windows-PushNotifications-Platform Badge Notification are being cleared for Microsoft.SkyDrive.Desktop - informed session 2.
+
+
+Log: Microsoft-Windows-PushNotification-Platform/Admin (records: 4, last 24h check)
+  matched: 0
+
+
+=== System log (related to apps) for OneDrive in last 6h ===
+
+TimeCreated           Id LevelDisplayName ProviderName            Snippet
+-----------           -- ---------------- ------------            -------
+5/9/2026 3:56:15 PM 7034 Error            Service Control Manager The FileSyncHelper service terminated unexpectedly.  It has done this 3 time(s).
+5/9/2026 3:49:47 PM 7034 Error            Service Control Manager The FileSyncHelper service terminated unexpectedly.  It has done this 2 time(s).
+5/9/2026 3:29:28 PM 7034 Error            Service Control Manager The FileSyncHelper service terminated unexpectedly.  It has done this 1 time(s).
+
+
+
+=== Check if Operational log is enabled ===
+
+LogName                                                 IsEnabled RecordCount  LogMode
+-------                                                 --------- -----------  -------
+Microsoft-Windows-PushNotification-Platform/Operational      True        1730 Circular
+Microsoft-Windows-PushNotification-Platform/Admin            True           4 Circular
+
+
+
+=== Check WPN diagnostic registry ===
+
+ServiceDll             : C:\WINDOWS\system32\WpnService.dll
+ServiceDllUnloadOnStop : 1
+
+

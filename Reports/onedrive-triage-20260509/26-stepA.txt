@@ -1,0 +1,95 @@
+=== Step A: Clear OneAuth WAM cache + restart at 2026-05-09T15:56:15.1980607-04:00 ===
+
+--- PRE: OneAuth files for cid 8d77a48e98fdb6dc ---
+
+FullName                                                                                         Length LastWriteTime
+--------                                                                                         ------ -------------
+C:\Users\david\AppData\Local\Microsoft\OneAuth\accounts\8d77a48e98fdb6dc                           3404 5/9/2026 3:50:00 PM
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_avatar                     137904 5/9/2026 3:50:00 PM
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_avatar_metadata              1682 5/9/2026 3:50:00 PM
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_substrate_profile            4703 5/9/2026 3:50:00 PM
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_substrate_profile_metadata   1583 5/9/2026 3:50:00 PM
+
+
+PRE total: 5 files
+Backed up to: C:\codedev\PC_AI\Reports\onedrive-triage-20260509\oneauth-backup-stepA
+
+=== STOPPING OneDrive ===
+  Stopping FileSyncHelper PID 54284
+  Stopping OneDrive PID 61124
+
+=== Deleting WAM cache files ===
+  DELETED: C:\Users\david\AppData\Local\Microsoft\OneAuth\accounts\8d77a48e98fdb6dc
+  DELETED: C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_avatar
+  DELETED: C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_avatar_metadata
+  DELETED: C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_substrate_profile
+  DELETED: C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_substrate_profile_metadata
+
+--- POST-DELETE: OneAuth files for cid 8d77a48e98fdb6dc ---
+POST-DELETE count: 0 files
+
+=== STARTING OneDrive via Startup Task ===
+Triggered: OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1001
+
+=== POST: 90s after launch ===
+OneDrive procs:
+
+Name              Id StartTime           SessionId Responding Mem(MB)
+----              -- ---------           --------- ---------- -------
+FileSyncHelper 53776 5/9/2026 3:56:28 PM         0       True   27.10
+OneDrive       44868 5/9/2026 3:56:20 PM         1       True  532.40
+
+
+
+--- POST: New OneAuth files for cid 8d77a48e98fdb6dc (should be regenerated) ---
+
+FullName                                                                                         Length LastWriteTime
+--------                                                                                         ------ -------------
+C:\Users\david\AppData\Local\Microsoft\OneAuth\accounts\8d77a48e98fdb6dc                           3188 5/9/2026 3:56:22 PM
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_avatar                     137904 5/9/2026 3:56:22 PM
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_avatar_metadata              1681 5/9/2026 3:56:22 PM
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_substrate_profile            4703 5/9/2026 3:56:22 PM
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_substrate_profile_metadata   1580 5/9/2026 3:56:22 PM
+
+
+
+--- POST: WNS channel registration check ---
+        RecordId: 2952
+       PrimaryId: Microsoft.OneDriveSync_8wekyb3d8bbwe!Microsoft.OneDrive.ActionsServer
+      HasChannel: 0
+ChannelCreatedAt: 
+      UriPreview: 
+
+        RecordId: 2951
+       PrimaryId: Microsoft.OneDriveSync_8wekyb3d8bbwe!OneDrive
+      HasChannel: 0
+ChannelCreatedAt: 
+      UriPreview: 
+
+        RecordId: 3163
+       PrimaryId: Microsoft.SkyDrive.Desktop
+      HasChannel: 0
+ChannelCreatedAt: 
+      UriPreview: 
+
+        RecordId: 1060
+       PrimaryId: Microsoft.YourPhone_8wekyb3d8bbwe!YourPhoneNotifications_com.microsoft.skydrive
+      HasChannel: 0
+ChannelCreatedAt: 
+      UriPreview: 
+
+--- POST: SyncEngineDatabase op count + last 10 ops ---
+od_ServiceOperationHistory rows: 1343
+1343|2026-05-09 19:56:34|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1342|2026-05-09 19:56:33|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario/GetOnline
+1341|2026-05-09 19:56:32|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario/GetOnline
+1340|2026-05-09 19:56:32|EnumChanges|304|NthRun_FindChangesOther_ODB_ConnectMountedFolderScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+1339|2026-05-09 19:56:28|ProvisionFolder|200|NthRun_StorageProvisioningScenario_ODB_GetOnline/ProvisionUserFolder/ScopeInit/SyncEngineSignIn
+1338|2026-05-09 19:52:51|GetClientPolicy|200|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+1337|2026-05-09 19:50:05|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1336|2026-05-09 19:50:04|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario/GetOnline
+1335|2026-05-09 19:50:04|EnumChanges|304|NthRun_FindChangesOther_ODB_ConnectMountedFolderScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+1334|2026-05-09 19:50:00|ProvisionFolder|200|NthRun_StorageProvisioningScenario_ODB_GetOnline/ProvisionUserFolder/ScopeInit/SyncEngineSignIn
+
+--- POST: Test file shell sync status ---
+Availability status: Sync pending

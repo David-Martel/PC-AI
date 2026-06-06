@@ -1,0 +1,153 @@
+=== Live OneDrive state at 2026-05-09T15:08:08.6058578-04:00 ===
+
+--- Get-OneDriveSyncSettings (if module exposes it) ---
+OneDrive PS module: NOT installed
+
+--- COM SyncEngine query (Microsoft.OneDriveCloud.Personal) ---
+Sync status of OneDrive folder (col 303): Source
+  col280=Episode name
+  col281=Closed captioning
+  col282=Rerun
+  col283=SAP
+  col284=Broadcast date
+  col285=Program description
+  col286=Recording time
+  col287=Station call sign
+  col288=Station name
+  col290=Summary
+  col291=Search match kind
+  col292=Snippets
+  col293=Auto summary
+  col294=Relevance
+  col295=File ownership
+  col296=Sensitivity
+  col297=Shared with
+  col298=Sharing status
+  col300=Product name
+  col301=Product version
+  col302=Support link
+  col303=Source
+  col304=Start date
+  col305=Sharing
+  col306=Availability status
+  col307=Status
+  col308=Billing information
+  col309=Complete
+  col310=Task owner
+  col311=Sort title
+  col312=Total file size
+  col313=Legal trademarks
+  col314=Last change author email
+  col315=Last change author name
+  col316=Last change date
+  col317=Last change ID
+  col318=Last change message
+  col319=Version status
+
+--- SettingsDatabase.db schema (if accessible) ---
+Copied DB to C:\codedev\PC_AI\Reports\onedrive-triage-20260509\SettingsDatabase.copy.db (20 KB)
+Using sqlite3: C:\ProgramData\chocolatey\bin\sqlite3.exe
+
+--- Tables ---
+__oddbm_schema     integer_settings     string_settings
+
+--- Schema ---
+CREATE TABLE __oddbm_schema (name TEXT PRIMARY KEY, value INTEGER UNIQUE) WITHOUT ROWID;
+CREATE TABLE integer_settings ( name TEXT PRIMARY KEY, value INTEGER ) WITHOUT ROWID;
+CREATE TABLE string_settings ( name TEXT PRIMARY KEY, value TEXT ) WITHOUT ROWID;
+
+--- Row counts ---
+  __oddbm_schema: 1
+  integer_settings: 10
+  string_settings: 0
+
+--- key_value_table (top 200 rows) ---
+Parse error in 2nd command line argument: no such table: key_value_table
+
+--- SyncEngineDatabase.db schema ---
+Copied SyncEngine DB to C:\codedev\PC_AI\Reports\onedrive-triage-20260509\SyncEngineDatabase.copy.db (157.2 MB)
+
+--- Tables ---
+__oddbm_schema                             od_HydrationData
+od_ArchiveData_Records                     od_IgnoredItem_Records
+od_ClientFilePostponedChange_Records       od_MigrateItemPostponedChange_Records
+od_ClientFile_Records                      od_ScopeInfo_Records
+od_ClientFolderPostponedChange_Records     od_SelectiveSync_Records
+od_ClientFolder_Records                    od_ServiceOperationHistory
+od_ClientPolicy_Records                    od_ThrottleHistory
+od_CreateAddedFolderFailures               od_UnrealizedFile_Records
+od_GraphMetadata_LastWrite                 odc_Convergence_ScopeInfo_Records
+od_GraphMetadata_Records                   odc_convergence_items
+
+--- Row counts ---
+  __oddbm_schema: 1
+  odc_convergence_items: 0
+  od_SelectiveSync_Records: 0
+  od_ScopeInfo_Records: 1
+  od_ClientFile_Records: 148426
+  od_UnrealizedFile_Records: 0
+  od_ClientFolder_Records: 16130
+  od_ClientFilePostponedChange_Records: 0
+  od_ClientFolderPostponedChange_Records: 0
+  od_MigrateItemPostponedChange_Records: 0
+  od_GraphMetadata_Records: 148426
+  od_GraphMetadata_LastWrite: 1
+  odc_Convergence_ScopeInfo_Records: 0
+  od_HydrationData: 554
+  od_CreateAddedFolderFailures: 0
+  od_ArchiveData_Records: 0
+  od_ThrottleHistory: 0
+  od_ServiceOperationHistory: 1320
+  sqlite_sequence: 1
+  od_IgnoredItem_Records: 0
+  od_ClientPolicy_Records: 0
+
+--- HKCU Tenants subkey contents ---
+Tenant key: OneDrive
+
+C:\Users\david\OneDrive : 7913
+
+
+
+--- HKCU AuthenticationURLs ---
+
+Authority           : https://login.microsoftonline.com/consumers
+DiscoveryApi        : https://odc.officeapps.live.com/odc/servicemanager/userconnected
+DiscoveryResourceId : https://api.office.net
+GraphApi            : 
+NextEmailHRDUpdate  : 0
+FederationProvider  : 
+
+
+
+--- Cloud Files filter ETL ---
+ETL: C:\WINDOWS\system32\LogFiles\CloudFiles\CldFlt2.etl size=808 KB mtime=05/09/2026 15:08:01
+
+--- ODL/ODLgz log file timestamps (last 10 sent + active) ---
+Newest 10 .odlsent:
+
+Name                                          LastWriteTime       SizeKB
+----                                          -------------       ------
+SyncEngine-2026-05-09.0532.53940.3829.odlsent 5/9/2026 2:41:39 PM 109.10
+SyncEngine-2026-05-09.0532.53940.3828.odlsent 5/9/2026 2:41:39 PM 136.40
+SyncEngine-2026-05-09.0532.53940.3827.odlsent 5/9/2026 2:41:39 PM 139.50
+SyncEngine-2026-05-09.0532.53940.3826.odlsent 5/9/2026 2:41:39 PM  81.50
+SyncEngine-2026-05-09.0532.53940.3824.odlsent 5/9/2026 2:41:39 PM  71.40
+SyncEngine-2026-05-09.0532.53940.3823.odlsent 5/9/2026 2:41:39 PM  67.60
+SyncEngine-2026-05-09.0532.53940.3825.odlsent 5/9/2026 2:41:39 PM  72.10
+SyncEngine-2026-05-09.0532.53940.3818.odlsent 5/9/2026 2:41:38 PM  62.70
+SyncEngine-2026-05-09.0532.53940.3822.odlsent 5/9/2026 2:41:38 PM  63.50
+SyncEngine-2026-05-09.0532.53940.3820.odlsent 5/9/2026 2:41:38 PM  62.70
+
+
+Newest 5 .odlgz:
+
+Name                                     LastWriteTime       SizeKB
+----                                     -------------       ------
+FileCoAuth-2026-05-09.1840.35516.1.odlgz 5/9/2026 2:41:42 PM   0.70
+SyncEngine-2026-05-09.1840.3792.2.odlgz  5/9/2026 2:41:42 PM 154.70
+FileCoAuth-2026-05-09.1840.41624.2.odlgz 5/9/2026 2:41:42 PM   7.90
+FileCoAuth-2026-05-09.1840.41624.1.odlgz 5/9/2026 2:41:42 PM   0.70
+SyncEngine-2026-05-09.1840.3792.1.odlgz  5/9/2026 2:41:42 PM   0.70
+
+

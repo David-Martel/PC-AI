@@ -1,0 +1,47 @@
+=== Network probes at 2026-05-09T15:02:48.2601083-04:00 ===
+
+--- DNS resolution ---
+oneclient.sfx.ms: 23.33.85.245
+onedrive.live.com: 13.107.137.11
+login.live.com: 
+d.docs.live.net: 
+my.microsoftpersonalcontent.com: 
+graph.microsoft.com: 20.190.135.44
+officeclient.microsoft.com: 
+
+--- TCP 443 reachability ---
+oneclient.sfx.ms:443 -> Reachable=True
+onedrive.live.com:443 -> Reachable=True
+login.live.com:443 -> Reachable=True
+graph.microsoft.com:443 -> Reachable=True
+
+--- DNS client config ---
+
+InterfaceAlias ServerAddresses
+-------------- ---------------
+Ethernet 8     {192.168.1.1, 1.1.1.1}
+Ethernet 6     {10.10.15.1, 1.1.1.1}
+Wi-Fi          {10.10.20.1}
+
+
+
+--- Proxy / WARP / Acrylic presence ---
+WARP service: Running
+Acrylic service: NOT_INSTALLED
+
+netsh winhttp show proxy:
+
+Current WinHTTP proxy settings:
+
+    Direct access (no proxy server).
+
+
+IE/WinINET proxy:
+ProxyEnable=0  ProxyServer=  AutoConfigURL=
+
+--- Active TCP from OneDrive PIDs ---
+OneDrive PIDs: 16276,3792
+--- PID 16276 ---
+
+--- PID 3792 ---
+

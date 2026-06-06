@@ -1,0 +1,43 @@
+=== Vault state + WER recheck at 2026-05-09T15:02:57.6002100-04:00 ===
+
+--- Personal Vault registry state ---
+No PersonalVault key
+
+--- OneDrive Account Personal registry root (selected keys) ---
+
+UserFolder                 : C:\Users\david\OneDrive
+UserEmail                  : davidmartel07@gmail.com
+cid                        : 8d77a48e98fdb6dc
+ServiceEndpointUri         : 
+SPOResourceId              : 
+OneAuthAccountId           : 8d77a48e98fdb6dc
+ConfiguredTenantId         : 
+LastSignInTime             : 1778352031
+IsLoggedIn                 : 
+LastSyncTimeStamp          : 
+ClientFirstSignInTimestamp : 1723666561
+FilesOnDemand              : 
+
+
+
+--- OneDrive process snapshot ---
+
+Name              Id StartTime           Responding Mem(MB) Threads
+----              -- ---------           ---------- ------- -------
+FileSyncHelper 16276 5/9/2026 2:40:37 PM       True   28.60       7
+OneDrive        3792 5/9/2026 2:40:30 PM       True  538.30      40
+
+
+
+--- WER ReportQueue (OneDrive entries) ---
+ReportQueue count: 0
+
+
+ReportArchive count: 0
+
+
+--- Newest WER Report.wer (if any) ---
+
+--- Application log Errors (last 24h, filtered to OneDrive ecosystem) ---
+Total Level=2 events 24h: 200; OneDrive-related: 0
+

@@ -1,0 +1,101 @@
+=== Live sync check at 2026-05-09T15:45:11.4115748-04:00 ===
+
+--- Op count ---
+1320
+
+--- Last 20 ops ---
+1320|2026-05-09 05:30:00|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1319|2026-05-09 05:25:48|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1318|2026-05-09 05:24:01|GetClientPolicy|200|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+1317|2026-05-09 05:20:03|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1316|2026-05-09 05:09:09|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1315|2026-05-09 04:59:17|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1314|2026-05-09 04:48:18|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1313|2026-05-09 04:38:27|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1312|2026-05-09 04:28:38|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1311|2026-05-09 04:18:42|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1310|2026-05-09 04:08:47|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1309|2026-05-09 04:05:55|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1308|2026-05-09 03:58:03|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1307|2026-05-09 03:47:59|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1306|2026-05-09 03:47:58|EnumChanges|0|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1305|2026-05-09 03:37:08|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1304|2026-05-09 03:27:28|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1303|2026-05-09 03:25:00|GetClientPolicy|200|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+1302|2026-05-09 03:16:29|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1301|2026-05-09 03:06:32|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+
+--- Op count by name (entire history) ---
+DownloadBlock|551
+EnumChanges|466
+NotificationReceived|103
+GetQuotaInfo|61
+GetClientPolicy|59
+ProvisionFolder|16
+GetCanonicalFolderInfo|16
+CreateSubscription|16
+SelectiveSync|12
+GetSignature|12
+GetItemMetadata|8
+
+--- Any new UPLOAD operations today? ---
+590|2026-05-01 03:02:09|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+563|2026-05-01 03:01:54|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+552|2026-05-01 03:01:48|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+548|2026-05-01 03:01:47|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+501|2026-05-01 03:01:21|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+500|2026-05-01 03:01:21|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+494|2026-05-01 03:01:18|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+484|2026-05-01 03:01:13|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+445|2026-05-01 03:00:51|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+443|2026-05-01 03:00:50|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+364|2026-05-01 03:00:02|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+284|2026-05-01 02:59:19|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+
+--- Last NotificationReceived ---
+1266|2026-05-08 21:56:47|NotificationReceived|200
+1265|2026-05-08 21:48:52|NotificationReceived|200
+1263|2026-05-08 21:45:23|NotificationReceived|200
+1260|2026-05-08 20:46:22|NotificationReceived|200
+1258|2026-05-08 20:41:07|NotificationReceived|200
+
+--- DB mtimes ---
+
+Name                      LastWriteTime
+----                      -------------
+SyncEngineDatabase.db-wal 5/9/2026 3:44:14 PM
+CxP.db-wal                5/9/2026 3:41:16 PM
+UXDatabase.db             5/9/2026 3:40:57 PM
+SettingsDatabase.db-wal   5/9/2026 3:40:57 PM
+CxP.db-shm                5/9/2026 3:40:56 PM
+OCSI.db-shm               5/9/2026 3:40:55 PM
+SyncEngineDatabase.db-shm 5/9/2026 3:40:55 PM
+SettingsDatabase.db-shm   5/9/2026 3:40:55 PM
+OCSI.db-wal               5/9/2026 2:40:30 PM
+OCSI.db                   5/9/2026 1:33:39 AM
+
+
+
+--- TCP from new OneDrive ---
+
+LocalPort RemoteAddress  RemotePort       State CreationTime
+--------- -------------  ----------       ----- ------------
+    35868 52.168.117.171        443 Established 5/9/2026 3:44:21 PM
+
+
+
+--- Test file shell sync status ---
+Availability status (col 306): Sync pending
+Status (col 307): C600000031535053214A94C906A4FE488225AEC7E24C211B99...
+File size: 216 bytes
+
+--- All 4 OneDrive procs current state ---
+
+Name                     Id StartTime           UpMin Mem(MB) Responding   IO_R(KB)  IO_W(KB)
+----                     -- ---------           ----- ------- ----------   --------  --------
+FileCoAuth            57424 5/9/2026 3:45:13 PM  0.00   37.80       True     215.00     53.00
+FileSyncHelper        11680 5/9/2026 3:40:57 PM  4.30   28.50       True    5391.00     31.00
+OneDrive               4496 5/9/2026 3:40:55 PM  4.30  523.00       True 1216956.00 101747.00
+OneDrive.Sync.Service 41220 5/9/2026 2:41:33 PM 63.70  222.10       True 1747016.00 131219.00
+
+

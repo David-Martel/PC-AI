@@ -1,0 +1,39 @@
+=== FileCoAuth diagnostic at 2026-05-09T15:03:11.3426016-04:00 ===
+
+--- OneDrive subdirs (versioned binary roots) ---
+
+Name             LastWriteTime
+----             -------------
+24.151.0728.0003 8/15/2024 10:18:03 AM
+
+
+
+--- Searching for FileCoAuth.exe ---
+C:\Users\david\AppData\Local\Microsoft\OneDrive\24.151.0728.0003\FileCoAuth.exe | ver=24.151.0728.0003 | size=1301 KB | written=08/14/2024 16:15:52
+Found 1 FileCoAuth.exe instance(s)
+
+--- Office ClickToRun install ---
+
+ProductReleaseIds : O365HomePremRetail,OneNoteFreeRetail,ProjectProRetail,O365BusinessRetail
+VersionToReport   : 16.0.19929.20106
+ClientCulture     : en-us
+UpdateChannel     : http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60
+InstallationPath  : C:\Program Files\Microsoft Office
+Platform          : x64
+
+
+
+--- Office app process snapshot ---
+
+
+--- WinEvent Application log entries mentioning FileCoAuth (last 7 days) ---
+Total Application events 7d: 5288; FileCoAuth-mentioning: 0
+
+
+--- CIM process tree (FileCoAuth + likely parents) ---
+
+Name         ProcessId ParentProcessId CreationDate
+----         --------- --------------- ------------
+OneDrive.exe      3792           22364 5/9/2026 2:40:30 PM
+
+

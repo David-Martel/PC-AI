@@ -1,0 +1,48 @@
+=== OneDrive write-test at 2026-05-09T15:14:40.3287699-04:00 ===
+Test file created: C:\Users\david\OneDrive\_synctest_20260509\synctest-20260509-151440.txt (size=216 bytes)
+Capturing pre-state via Repair-OneDriveSync (DryRun)...
+Pre-state at 2026-05-09T15:14:45.6775515-04:00:
+  pre.driveChangesToSend = 24592
+  pre.driveSentChanges = 0
+  pre.numLocalChanges = 290
+  pre.numFileUploads = 0
+  pre.numFileFailedUploads = 0
+  pre.BytesUploaded = 0
+  pre.BytesToUpload = 0
+  pre.FilesToUpload = 0
+  pre.syncProgressState = 3
+  pre.scanState = 3
+  pre.uptimeSecs = 126
+  pre.timeUtc = 05/09/2026 18:42:36
+
+--- Waiting 90 seconds for sync ---
+
+Post-state at 2026-05-09T15:16:19.1457490-04:00:
+  post.driveChangesToSend = 24592
+  post.driveSentChanges = 0
+  post.numLocalChanges = 290
+  post.numFileUploads = 0
+  post.numFileFailedUploads = 0
+  post.BytesUploaded = 0
+  post.BytesToUpload = 0
+  post.FilesToUpload = 0
+  post.syncProgressState = 3
+  post.scanState = 3
+  post.uptimeSecs = 126
+  post.timeUtc = 05/09/2026 18:42:36
+
+--- Compare ---
+  driveChangesToSend : 24592 -> 24592
+  driveSentChanges : 0 -> 0
+  numLocalChanges : 290 -> 290
+  numFileUploads : 0 -> 0
+  BytesUploaded : 0 -> 0
+  timeUtc : 05/09/2026 18:42:36 -> 05/09/2026 18:42:36
+
+--- File status check ---
+Test file attrs: 524320
+  IsOffline (placeholder): False
+  IsSparseFile: False
+  Sharing status (col 298) = Not shared
+  Availability status (col 306) = Sync pending
+  Status (col 307) = C600000031535053214A94C906A4FE488225AEC7E24C211B9900000010000000001F00000044000000700072006F0070003A00530079007300740065006D002E00530074006F007200610067006500500072006F0076006900640065007200530074006100740065003B00530079007300740065006D002E00530074006F007200610067006500500072006F007600690064006500720043007500730074006F006D0053007400610074006500730000001100000012000000001300000003000000000000002D00000031535053DF907EE771625B4F834F2DD1F245DDA41100000003000000001300000004000000000000001C0000003153505353F1EFFC39E8F34CA9E7EA22832094B80000000000000000F1

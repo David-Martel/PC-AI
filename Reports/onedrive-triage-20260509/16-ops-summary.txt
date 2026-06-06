@@ -1,0 +1,129 @@
+=== Operation summary at 2026-05-09T15:20:57.3865534-04:00 ===
+
+--- Operation counts (entire 1320-row history) ---
+DownloadBlock|551|2026-05-01 02:59:05|2026-05-07 12:44:56
+EnumChanges|466|2026-04-30 19:32:00|2026-05-09 05:30:00
+NotificationReceived|103|2026-05-06 19:26:51|2026-05-08 21:56:47
+GetQuotaInfo|61|2026-04-30 19:32:00|2026-05-09 05:25:48
+GetClientPolicy|59|2026-04-30 19:31:57|2026-05-09 05:24:01
+ProvisionFolder|16|2026-04-30 19:31:57|2026-05-09 02:45:55
+GetCanonicalFolderInfo|16|2026-05-01 20:08:01|2026-05-08 20:08:12
+CreateSubscription|16|2026-05-01 05:15:06|2026-05-08 13:00:48
+SelectiveSync|12|2026-04-30 19:32:02|2026-05-07 12:45:03
+GetSignature|12|2026-05-01 02:59:19|2026-05-01 03:02:09
+GetItemMetadata|8|2026-05-01 01:40:22|2026-05-03 18:50:19
+
+--- Result code distribution ---
+200|567
+206|551
+304|196
+0|5
+401|1
+
+--- Any upload/put/save/commit operations EVER? ---
+1133|2026-05-08 13:00:48|CreateSubscription|200|CreateSubscription_ODB
+1132|2026-05-08 13:00:48|CreateSubscription|200|CreateSubscription_ODB
+1105|2026-05-07 12:44:56|CreateSubscription|200|CreateSubscription_ODB
+1103|2026-05-07 12:44:56|CreateSubscription|200|CreateSubscription_ODB
+1096|2026-05-06 21:46:22|CreateSubscription|200|CreateSubscription_ODB
+1095|2026-05-06 21:46:22|CreateSubscription|200|CreateSubscription_ODB
+1055|2026-05-06 12:56:02|CreateSubscription|200|CreateSubscription_ODB
+1053|2026-05-06 12:56:02|CreateSubscription|200|CreateSubscription_ODB
+1029|2026-05-04 19:49:43|CreateSubscription|200|CreateSubscription_ODB
+1028|2026-05-04 19:49:43|CreateSubscription|200|CreateSubscription_ODB
+850|2026-05-01 20:07:53|CreateSubscription|200|CreateSubscription_ODB
+849|2026-05-01 20:07:53|CreateSubscription|200|CreateSubscription_ODB
+841|2026-05-01 06:08:03|CreateSubscription|200|CreateSubscription_ODB
+839|2026-05-01 06:08:02|CreateSubscription|200|CreateSubscription_ODB
+831|2026-05-01 05:15:06|CreateSubscription|200|CreateSubscription_ODB
+830|2026-05-01 05:15:06|CreateSubscription|200|CreateSubscription_ODB
+590|2026-05-01 03:02:09|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+563|2026-05-01 03:01:54|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+552|2026-05-01 03:01:48|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+548|2026-05-01 03:01:47|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+501|2026-05-01 03:01:21|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+500|2026-05-01 03:01:21|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+494|2026-05-01 03:01:18|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+484|2026-05-01 03:01:13|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+445|2026-05-01 03:00:51|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+443|2026-05-01 03:00:50|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+364|2026-05-01 03:00:02|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+284|2026-05-01 02:59:19|GetSignature|200|UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+
+--- Distinct scenarios containing 'WNS' or 'Notification' ---
+DownloadFile_StorageDownloadStreamFileScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario|530
+NthRun_FindChangesOther_ODB_ReadOnlyDatabase_ConnectMountedFolderScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario|166
+CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario|160
+NotificationReceived_ODB|103
+NthRun_FindChangesOther_ODB_ConnectMountedFolderScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario|83
+CheckForChanges_FindChangesWnsNotification_ODB_FindChangesScenario/NotificationLatencyScenario|26
+CheckForChanges_FindChangesOther_ODB_FindChangesScenario/NotificationLatencyScenario|21
+UploadFile_StorageGetSignatureScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario|12
+DownloadFile_StorageDownloadFileDiffScenario_ODB_ConnectMountedFolderScenario/DownloadCxP/DownloadScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario|9
+CheckForChanges_FindChangesPollingSubscriptionConnected_ODB_FindChangesScenario/NotificationLatencyScenario|8
+CheckForChanges_FindChangesPollingSubscriptionNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario|2
+SignIn_NoPolicyForScopeInitialization_VaultAddedScope_ReadOnlyDatabase_ConnectMountedFolderScenario/DownloadClientPolicy/FindChangesScenario/GetOnline/NotificationLatencyScenario|1
+
+--- WNS-related Application events (last 24h) ---
+Found 0 WNS-related events
+
+
+--- WpnService and WpnUserService_* details ---
+
+Name                  State   StartMode Status ProcessId
+----                  -----   --------- ------ ---------
+WpnService            Running Auto      OK         19352
+WpnUserService_16ec35 Running Auto      OK         20060
+
+
+
+--- WNS HKCU registration entries ---
+--- HKCU:\Software\Microsoft\Windows NT\CurrentVersion\PushNotifications ---
+
+--- HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications ---
+
+MobileBroadbandNextResetDate     : 134247456000000000
+ToastEnabled                     : 1
+MobileBroadbandBillingCycleAware : 0
+MobileBroadbandLastResetDate     : 134220672000008608
+DatabaseMigrationCompleted       : 1
+
+
+--- HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings ---
+
+QuietHoursTelemetryLastRun : {1, 81, 251, 105…}
+
+
+
+--- WNS network endpoints ---
+client.wns.windows.com: ips=172.183.7.194 ; cnames=wns.notify.trafficmanager.net
+client.wns.windows.com:443 reachable=True
+sso.wns.windows.com: FAIL: sso.wns.windows.com : DNS name does not exist.
+sso.wns.windows.com:443 reachable=False
+login.wns.windows.com: FAIL: login.wns.windows.com : DNS name does not exist.
+login.wns.windows.com:443 reachable=False
+
+--- Port 443 connections from OneDrive process to wns.* ---
+--- PID 16276 ---
+
+--- PID 3792 ---
+
+LocalAddress LocalPort RemoteAddress RemotePort       State CreationTime
+------------ --------- ------------- ----------       ----- ------------
+::               63680 ::                     0       Bound 5/9/2026 2:45:35 PM
+::               61077 ::                     0       Bound 5/9/2026 2:41:15 PM
+::               58767 ::                     0       Bound 5/9/2026 2:43:22 PM
+::               58104 ::                     0       Bound 5/9/2026 2:40:40 PM
+::               52669 ::                     0       Bound 5/9/2026 2:42:13 PM
+::               50674 ::                     0       Bound 5/9/2026 2:40:53 PM
+::               50663 ::                     0       Bound 5/9/2026 2:40:46 PM
+::               49694 ::                     0       Bound 5/9/2026 2:58:33 PM
+::               48153 ::                     0       Bound 5/9/2026 2:41:02 PM
+::               44452 ::                     0       Bound 5/9/2026 3:08:38 PM
+::               30326 ::                     0       Bound 5/9/2026 2:41:36 PM
+::               17991 ::                     0       Bound 5/9/2026 2:49:56 PM
+::                3044 ::                     0       Bound 5/9/2026 3:18:43 PM
+0.0.0.0           3198 0.0.0.0                0       Bound 5/9/2026 3:20:37 PM
+10.10.15.150      3198 20.189.173.11        443 Established 5/9/2026 3:20:37 PM
+
+

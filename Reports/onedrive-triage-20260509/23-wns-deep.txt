@@ -1,0 +1,114 @@
+=== WNS / WAM / WebView2 deep probe at 2026-05-09T15:46:56.4662951-04:00 ===
+
+--- WebView2 Runtime ---
+WebView2 ver: 147.0.3912.98 name: Microsoft Edge WebView2 Runtime
+EdgeWebView versions present:
+
+Name          LastWriteTime
+----          -------------
+SetupMetrics  5/2/2026 1:20:23 PM
+147.0.3912.98 5/2/2026 8:17:50 AM
+
+
+
+--- OneDrive Personal AAD/MSA WAM account state ---
+OneAuth dir present at C:\Users\david\AppData\Local\Microsoft\OneAuth
+
+FullName                                                                                                                                                               LastWriteTime       SizeKB
+--------                                                                                                                                                               -------------       ------
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_avatar                                                                                           5/9/2026 3:40:57 PM 134.70
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_avatar_metadata                                                                                  5/9/2026 3:40:57 PM   1.60
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_substrate_profile                                                                                5/9/2026 3:40:57 PM   4.60
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\8d77a48e98fdb6dc_substrate_profile_metadata                                                                       5/9/2026 3:40:57 PM   1.50
+C:\Users\david\AppData\Local\Microsoft\OneAuth\accounts\8d77a48e98fdb6dc                                                                                               5/9/2026 3:40:56 PM   3.30
+C:\Users\david\AppData\Local\Microsoft\OneAuth\accounts\00000000-0000-0000-8d77-a48e98fdb6dc.9188040d-6c67-4c5b-b112-36a304b66dad.f8cdef31-a31e-4b4a-93e4-5f571e91255a 5/9/2026 3:40:56 PM   2.40
+C:\Users\david\AppData\Local\Microsoft\OneAuth\accounts\e763e1a3-60b9-435c-bfbd-9ea6b3bde844                                                                           5/9/2026 3:40:56 PM   5.60
+C:\Users\david\AppData\Local\Microsoft\OneAuth\accounts\5767d506-6356-4f68-9eb4-ccefe1dfaab4                                                                           5/9/2026 3:40:56 PM   2.00
+C:\Users\david\AppData\Local\Microsoft\OneAuth\accounts\e763e1a3-60b9-435c-bfbd-9ea6b3bde844.74725d92-5b63-4cdf-8969-942b529ecbee.f8cdef31-a31e-4b4a-93e4-5f571e91255a 5/9/2026 3:40:56 PM   2.10
+C:\Users\david\AppData\Local\Microsoft\OneAuth\accounts\0532136b-0bdd-4df1-83c5-888f88183d57                                                                           5/9/2026 3:40:56 PM   2.00
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\e763e1a3-60b9-435c-bfbd-9ea6b3bde844_avatar                                                                       5/9/2026 2:41:39 PM 118.10
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\e763e1a3-60b9-435c-bfbd-9ea6b3bde844_avatar_metadata                                                              5/9/2026 2:41:39 PM   0.60
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\e763e1a3-60b9-435c-bfbd-9ea6b3bde844_graph_organization                                                           5/9/2026 2:41:38 PM   0.10
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\e763e1a3-60b9-435c-bfbd-9ea6b3bde844_graph_organization_metadata                                                  5/9/2026 2:41:38 PM   0.70
+C:\Users\david\AppData\Local\Microsoft\OneAuth\blobs\74725d92-5b63-4cdf-8969-942b529ecbee_hrd                                                                          5/9/2026 2:41:38 PM   0.60
+
+
+
+--- Win32WebViewHost / OneDrive AppLifetime ---
+
+Name            : Microsoft.OneDriveSync
+Version         : 26070.414.1.0
+InstallLocation : C:\Program Files\WindowsApps\Microsoft.OneDriveSync_26070.414.1.0_neutral__8wekyb3d8bbwe
+
+
+
+--- Windows Push Notification (Wpn*) state ---
+--- HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WpnService ---
+
+--- HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications ---
+
+MobileBroadbandNextResetDate     : 134247456000000000
+ToastEnabled                     : 1
+MobileBroadbandBillingCycleAware : 0
+MobileBroadbandLastResetDate     : 134220672000008608
+DatabaseMigrationCompleted       : 1
+
+
+--- HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications ---
+
+EnableMultiUser : 0
+
+
+
+--- WnsId / channels ---
+WPN DB: C:\Users\david\AppData\Local\Microsoft\Windows\Notifications\wpndatabase.db size=1660 KB
+Tables:
+HandlerAssets       Notification            TimedNotification
+HandlerSettings     NotificationData        TransientTable
+Metadata            NotificationHandler     WNSPushChannel
+Channel-like records:
+table|NotificationHandler|NotificationHandler|2|CREATE TABLE [NotificationHandler] ( [RecordId] INTEGER PRIMARY KEY, [PrimaryId] TEXT NOT NULL COLLATE NOCASE, [WNSId] TEXT COLLATE NOCASE, [HandlerType] TEXT, [WNFEventName] INT64, [SystemDataPropertySet] BLOB, [CreatedTime] DATETIME, [ModifiedTime] DATETIME, [ParentId] TEXT COLLATE NOCASE, [ContainerSid] TEXT COLLATE NOCASE)
+table|Notification|Notification|7|CREATE TABLE [Notification]( [Order] INTEGER NOT NULL PRIMARY KEY, [Id] INTEGER NOT NULL, [HandlerId] INTEGER CONSTRAINT[NotificationToHandler] REFERENCES[NotificationHandler]([RecordId]) ON DELETE CASCADE ON UPDATE CASCADE, [ActivityId] GUID,[Type] TEXT NOT NULL, [Payload] BLOB, [Tag] TEXT, [Group] TEXT, [ExpiryTime] INT64, [ArrivalTime] INT64, [DataVersion] INT64 DEFAULT '0', [PayloadType] TEXT NOT NULL, [BootId] INT64 DEFAULT '0', [ExpiresOnReboot] BOOLEAN DEFAULT 'FALSE', UNIQUE([Id]) ON CONFLICT REPLACE)
+index|sqlite_autoindex_Notification_1|Notification|8|
+index|notificationById|Notification|9|CREATE INDEX [notificationById] ON [Notification] ([Id])
+index|notificationByApp|Notification|10|CREATE INDEX [notificationByApp] ON [Notification] ([HandlerId])
+index|notificationByActivityId|Notification|11|CREATE INDEX [notificationByActivityId] ON [Notification] ([ActivityId])
+index|notificationByAppByType|Notification|12|CREATE INDEX [notificationByAppByType] ON [Notification] ([HandlerId], [Type])
+index|notificationByTagGroup|Notification|13|CREATE INDEX [notificationByTagGroup] ON [Notification] ([HandlerId], [Type], [Group], [Tag])
+index|notificationByType|Notification|14|CREATE INDEX [notificationByType] ON [Notification] ([Type])
+index|notificationExpired|Notification|15|CREATE INDEX [notificationExpired] ON [Notification] ([ExpiryTime] DESC)
+table|WNSPushChannel|WNSPushChannel|16|CREATE TABLE [WNSPushChannel]( [ChannelId] TEXT NOT NULL, [HandlerId] INTEGER REFERENCES[NotificationHandler]([RecordId]) ON DELETE CASCADE ON UPDATE CASCADE, [Uri] TEXT, [ExpiryTime] INT64, [CreatedTime] INT64, [DeviceVersion] INT64 DEFAULT '0', CONSTRAINT[] PRIMARY KEY([ChannelId]) ON CONFLICT REPLACE)
+index|sqlite_autoindex_WNSPushChannel_1|WNSPushChannel|17|
+index|channelByApp|WNSPushChannel|18|CREATE INDEX [channelByApp] ON [WNSPushChannel] ([HandlerId])
+index|channelExpired|WNSPushChannel|19|CREATE INDEX [channelExpired] ON [WNSPushChannel] ([ExpiryTime] DESC)
+table|NotificationData|NotificationData|22|CREATE TABLE [NotificationData]( [NotificationId] INTEGER CONSTRAINT[DataToNotification] REFERENCES[Notification]([Id]) ON DELETE CASCADE ON UPDATE CASCADE, [Key] TEXT NOT NULL, [Value] TEXT, CONSTRAINT[] PRIMARY KEY([Key], [NotificationId]) ON CONFLICT REPLACE)
+index|sqlite_autoindex_NotificationData_1|NotificationData|23|
+table|TimedNotification|TimedNotification|29|CREATE TABLE [TimedNotification]( [TimerEventId] GUID NOT NULL, [BBIWorkId] GUID NOT NULL, [WnfStateName] INT64 NOT NULL, [HandlerId] INTEGER REFERENCES[NotificationHandler]([RecordId]) ON DELETE CASCADE ON UPDATE CASCADE, [NotificationType] INTEGER NOT NULL, [Url] TEXT, CONSTRAINT[] PRIMARY KEY([TimerEventId]) ON CONFLICT REPLACE)
+index|sqlite_autoindex_TimedNotification_1|TimedNotification|30|
+
+--- WNS Pending tracking via PLM (Process Lifetime Manager) ---
+OneDrive UWP app users:
+Privacy policy: absent
+
+--- Per-user WNS connection state via Get-AppxNotification ---
+
+--- Test WNS reachability over time ---
+ = True
+ = False
+ = True
+ = True
+
+--- TLS 1.2/1.3 reachability test ---
+login.live.com failed: Exception calling "GetResponse" with "0" argument(s): "The remote server returned an error: (404) Not Found."
+client.wns.windows.com failed: Exception calling "GetResponse" with "0" argument(s): "The operation has timed out."
+
+--- Defender real-time scan stats (large counts can starve OneDrive IO) ---
+
+RealTimeProtectionEnabled     : True
+AntivirusSignatureLastUpdated : 5/9/2026 7:23:16 AM
+NISSignatureLastUpdated       : 5/9/2026 7:23:16 AM
+OnAccessProtectionEnabled     : True
+AntivirusEnabled              : True
+IoavProtectionEnabled         : True
+
+

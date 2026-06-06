@@ -1,0 +1,108 @@
+=== WpnUserService restart + OneDrive re-launch at 2026-05-09T15:49:47.8008589-04:00 ===
+
+--- PRE: WpnUserService state ---
+
+Name                   Status StartType
+----                   ------ ---------
+WpnUserService_16ec35 Running Automatic
+
+
+
+--- PRE: OneDrive WNS channel state ---
+OneDrive (2951/2952/3161) channel count PRE: 0
+
+=== STOPPING OneDrive processes ===
+  Stopping FileSyncHelper PID 11680
+  Stopping OneDrive PID 4496
+
+=== RESTARTING WpnUserService ===
+Restart WpnUserService_16ec35...
+  OK
+
+--- POST: WpnUserService state ---
+
+Name                   Status StartType
+----                   ------ ---------
+WpnUserService_16ec35 Running Automatic
+
+
+
+=== STARTING OneDrive via Startup Task ===
+Task: OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1001
+  Triggered
+
+--- 15s post-launch: OneDrive procs ---
+
+Name                     Id StartTime           SessionId
+----                     -- ---------           ---------
+FileCoAuth            60524 5/9/2026 3:49:58 PM         1
+FileSyncHelper        54284 5/9/2026 3:50:00 PM         0
+OneDrive              61124 5/9/2026 3:49:59 PM         1
+OneDrive.Sync.Service 41220 5/9/2026 2:41:33 PM         1
+
+
+
+--- 15s post-launch: TCP connections ---
+PID 54284:
+
+LocalPort RemoteAddress RemotePort
+--------- ------------- ----------
+    46567 20.42.73.26          443
+
+
+PID 61124:
+
+LocalPort RemoteAddress               RemotePort
+--------- -------------               ----------
+    46573 2620:1ec:50::11                    443
+    46566 2603:1063:2001:b0e::365:ff1        443
+    46563 2620:1ec:50::11                    443
+    46562 2603:1063:27:2::14                 443
+    46561 2603:1036:304:3405::2              443
+    46560 2603:1036:304:3405::2              443
+    46584 135.237.220.44                     443
+    46581 20.75.60.91                        443
+    46579 20.42.65.90                        443
+    46571 52.104.144.39                      443
+    46565 13.107.137.11                      443
+    46559 13.107.137.11                      443
+
+
+
+--- 75s post-launch: Channel registration check ---
+OneDrive (2951/2952/3161) channel count POST: 0
+
+--- All NEW channels registered (since 1 hour ago) ---
+
+--- All OneDrive-related notification handlers + channel state ---
+        RecordId: 2952
+       PrimaryId: Microsoft.OneDriveSync_8wekyb3d8bbwe!Microsoft.OneDrive.ActionsServer
+      HasChannel: 0
+ChannelCreatedAt: 
+
+        RecordId: 2951
+       PrimaryId: Microsoft.OneDriveSync_8wekyb3d8bbwe!OneDrive
+      HasChannel: 0
+ChannelCreatedAt: 
+
+        RecordId: 3163
+       PrimaryId: Microsoft.SkyDrive.Desktop
+      HasChannel: 0
+ChannelCreatedAt: 
+
+        RecordId: 1060
+       PrimaryId: Microsoft.YourPhone_8wekyb3d8bbwe!YourPhoneNotifications_com.microsoft.skydrive
+      HasChannel: 0
+ChannelCreatedAt: 
+
+--- Live SyncEngineDatabase op count ---
+od_ServiceOperationHistory rows: 1337
+Last 5 ops:
+1337|2026-05-09 19:50:05|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1336|2026-05-09 19:50:04|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario/GetOnline
+1335|2026-05-09 19:50:04|EnumChanges|304|NthRun_FindChangesOther_ODB_ConnectMountedFolderScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+1334|2026-05-09 19:50:00|ProvisionFolder|200|NthRun_StorageProvisioningScenario_ODB_GetOnline/ProvisionUserFolder/ScopeInit/SyncEngineSignIn
+1333|2026-05-09 19:40:59|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+
+--- Test file shell sync status ---
+Availability status: Sync pending

@@ -1,0 +1,279 @@
+=== od_ServiceOperationHistory + OCSI.db query at 2026-05-09T15:14:24.8485857-04:00 ===
+Source DB: C:\codedev\PC_AI\Reports\onedrive-triage-20260509\SyncEngineDatabase.copy.db
+
+--- od_ServiceOperationHistory schema ---
+CREATE TABLE od_ServiceOperationHistory ( id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp INTEGER NOT NULL, scopeId TEXT NOT NULL, operationName TEXT NOT NULL, resultCode INTEGER NOT NULL, sizeInBytes REAL , scenarioName TEXT);
+
+--- od_ServiceOperationHistory total rows ---
+1320
+
+--- Most recent 50 service ops ---
+           id              timestam             scopeId                                     operationName                          resultCode  sizeInBytes                                                     scenarioName
+                              p
+-------------------------  --------  ------------------------------  ------------------------------------------------------------  ----------  -----------  ------------------------------------------------------------------------------------------------------------------
+                     1320  17783046  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 00  e7
+
+                     1319  17783043  76f76637faf34514befe90220cb0c5  GetQuotaInfo                                                         200        786.0  CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+                                 48  e7
+
+                     1318  17783042  76f76637faf34514befe90220cb0c5  GetClientPolicy                                                      200      23493.0  Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+                                 41  e7
+
+                     1317  17783040  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 03  e7
+
+                     1316  17783033  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 49  e7
+
+                     1315  17783027  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 57  e7
+
+                     1314  17783020  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 98  e7
+
+                     1313  17783015  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 07  e7
+
+                     1312  17783009  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 18  e7
+
+                     1311  17783003  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 22  e7
+
+                     1310  17782997  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 27  e7
+
+                     1309  17782995  76f76637faf34514befe90220cb0c5  GetQuotaInfo                                                         200        786.0  CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+                                 55  e7
+
+                     1308  17782990  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 83  e7
+
+                     1307  17782984  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 79  e7
+
+                     1306  17782984  76f76637faf34514befe90220cb0c5  EnumChanges                                                            0          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 78  e7
+
+                     1305  17782978  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 28  e7
+
+                     1304  17782972  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 48  e7
+
+                     1303  17782971  76f76637faf34514befe90220cb0c5  GetClientPolicy                                                      200      23493.0  Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+                                 00  e7
+
+                     1302  17782965  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 89  e7
+
+                     1301  17782959  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 92  e7
+
+                     1300  17782954  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 05  e7
+
+                     1299  17782947  76f76637faf34514befe90220cb0c5  GetQuotaInfo                                                         200        786.0  CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+                                 60  e7
+
+                     1298  17782947  76f76637faf34514befe90220cb0c5  GetQuotaInfo                                                         200        786.0  CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario/GetOnline
+                                 59  e7
+
+                     1297  17782947  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  NthRun_FindChangesOther_ODB_ConnectMountedFolderScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+                                 58  e7
+
+                     1296  17782947  76f76637faf34514befe90220cb0c5  ProvisionFolder                                                      200        961.0  NthRun_StorageProvisioningScenario_ODB_GetOnline/ProvisionUserFolder/ScopeInit/SyncEngineSignIn
+                                 55  e7
+
+                     1295  17782941  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 77  e7
+
+                     1294  17782935  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 28  e7
+
+                     1293  17782929  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 22  e7
+
+                     1292  17782922  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 62  e7
+
+                     1291  17782920  76f76637faf34514befe90220cb0c5  GetClientPolicy                                                      200      23493.0  Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+                                 50  e7
+
+                     1290  17782917  76f76637faf34514befe90220cb0c5  GetQuotaInfo                                                         200        786.0  CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+                                 84  e7
+
+                     1289  17782916  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 26  e7
+
+                     1288  17782909  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 83  e7
+
+                     1287  17782903  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 48  e7
+
+                     1286  17782897  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 00  e7
+
+                     1285  17782890  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 33  e7
+
+                     1284  17782883  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 93  e7
+
+                     1283  17782877  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 56  e7
+
+                     1282  17782874  76f76637faf34514befe90220cb0c5  GetClientPolicy                                                      200      23493.0  Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+                                 04  e7
+
+                     1281  17782871  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 05  e7
+
+                     1280  17782869  76f76637faf34514befe90220cb0c5  GetQuotaInfo                                                         200        786.0  CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+                                 40  e7
+
+                     1279  17782865  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 12  e7
+
+                     1278  17782859  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 17  e7
+
+                     1277  17782852  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 41  e7
+
+                     1276  17782845  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 71  e7
+
+                     1275  17782839  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 70  e7
+
+                     1274  17782833  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 60  e7
+
+                     1273  17782827  76f76637faf34514befe90220cb0c5  EnumChanges                                                          304          0.0  CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+                                 66  e7
+
+                     1272  17782821  76f76637faf34514befe90220cb0c5  GetQuotaInfo                                                         200        786.0  CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+                                 00  e7
+
+                     1271  17782821  76f76637faf34514befe90220cb0c5  GetQuotaInfo                                                         200        786.0  CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario/GetOnline
+                                 00  e7
+
+--- Distinct status codes / values ---
+0|id|INTEGER|0||1
+1|timestamp|INTEGER|1||0
+2|scopeId|TEXT|1||0
+3|operationName|TEXT|1||0
+4|resultCode|INTEGER|1||0
+5|sizeInBytes|REAL|0||0
+6|scenarioName|TEXT|0||0
+
+--- Failed/non-200 ops (broad scan) ---
+
+821|1777608102|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+822|1777608381|76f76637faf34514befe90220cb0c5e7|GetClientPolicy|200|23493.0|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+823|1777608714|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+824|1777609386|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+825|1777609387|76f76637faf34514befe90220cb0c5e7|GetQuotaInfo|200|786.0|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+826|1777610016|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+827|1777610628|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+828|1777611312|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+829|1777611921|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+830|1777612506|76f76637faf34514befe90220cb0c5e7|CreateSubscription|200|0.0|CreateSubscription_ODB
+831|1777612506|76f76637faf34514befe90220cb0c5e7|CreateSubscription|200|0.0|CreateSubscription_ODB
+832|1777612549|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesOther_ODB_FindChangesScenario/NotificationLatencyScenario
+833|1777612680|76f76637faf34514befe90220cb0c5e7|GetClientPolicy|200|23493.0|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+834|1777614381|76f76637faf34514befe90220cb0c5e7|GetQuotaInfo|200|786.0|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+835|1777615678|76f76637faf34514befe90220cb0c5e7|ProvisionFolder|200|961.0|NthRun_StorageProvisioningScenario_ODB_GetOnline/ProvisionUserFolder/ScopeInit/SyncEngineSignIn
+836|1777615681|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|NthRun_FindChangesOther_ODB_ConnectMountedFolderScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+837|1777615681|76f76637faf34514befe90220cb0c5e7|GetItemMetadata|200|2607.0|_StorageChangeEnumeration_ODB_ConnectMountedFolderScenario/GetOnline
+838|1777615681|76f76637faf34514befe90220cb0c5e7|GetQuotaInfo|200|786.0|CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario/GetOnline
+839|1777615682|76f76637faf34514befe90220cb0c5e7|CreateSubscription|200|0.0|CreateSubscription_ODB
+840|1777615682|76f76637faf34514befe90220cb0c5e7|GetQuotaInfo|200|786.0|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+841|1777615683|76f76637faf34514befe90220cb0c5e7|CreateSubscription|200|0.0|CreateSubscription_ODB
+842|1777615689|76f76637faf34514befe90220cb0c5e7|SelectiveSync|200|5879.0|SignIn_StorageSelectiveSyncEnumeration_ODB_GetOnline
+843|1777615792|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesOther_ODB_FindChangesScenario/NotificationLatencyScenario
+844|1777666069|76f76637faf34514befe90220cb0c5e7|GetClientPolicy|200|23493.0|Refresh_InvalidPolicyOnScopeInitialization_ODB_ReadOnlyDatabase_DownloadClientPolicy/GetOnline/ScopeInit/SyncEngineSignIn
+845|1777666069|76f76637faf34514befe90220cb0c5e7|ProvisionFolder|200|961.0|NthRun_StorageProvisioningScenario_ODB_GetOnline/ProvisionUserFolder/ScopeInit/SyncEngineSignIn
+846|1777666072|76f76637faf34514befe90220cb0c5e7|EnumChanges|200|921.0|NthRun_FindChangesOther_ODB_ConnectMountedFolderScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+847|1777666072|76f76637faf34514befe90220cb0c5e7|GetItemMetadata|200|2607.0|_StorageChangeEnumeration_ODB_ConnectMountedFolderScenario/GetOnline
+848|1777666073|76f76637faf34514befe90220cb0c5e7|GetQuotaInfo|200|786.0|CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario/GetOnline
+849|1777666073|76f76637faf34514befe90220cb0c5e7|CreateSubscription|200|0.0|CreateSubscription_ODB
+850|1777666073|76f76637faf34514befe90220cb0c5e7|CreateSubscription|200|0.0|CreateSubscription_ODB
+851|1777666079|76f76637faf34514befe90220cb0c5e7|SelectiveSync|200|5879.0|SignIn_StorageSelectiveSyncEnumeration_ODB_GetOnline
+852|1777666080|76f76637faf34514befe90220cb0c5e7|GetQuotaInfo|200|786.0|CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario
+853|1777666081|76f76637faf34514befe90220cb0c5e7|GetCanonicalFolderInfo|200|1375.0|CheckQuotaInfo_StorageGetSpecialFolderInfoScenario_ODB_CheckQuotaInfoScenario
+854|1777666081|76f76637faf34514befe90220cb0c5e7|GetCanonicalFolderInfo|200|1346.0|CheckQuotaInfo_StorageGetSpecialFolderInfoScenario_ODB_CheckQuotaInfoScenario
+855|1777666081|76f76637faf34514befe90220cb0c5e7|GetCanonicalFolderInfo|200|1369.0|CheckQuotaInfo_StorageGetSpecialFolderInfoScenario_ODB_CheckQuotaInfoScenario
+856|1777666081|76f76637faf34514befe90220cb0c5e7|GetCanonicalFolderInfo|200|1362.0|CheckQuotaInfo_StorageGetSpecialFolderInfoScenario_ODB_CheckQuotaInfoScenario
+857|1777666081|76f76637faf34514befe90220cb0c5e7|GetCanonicalFolderInfo|200|1360.0|CheckQuotaInfo_StorageGetSpecialFolderInfoScenario_ODB_CheckQuotaInfoScenario
+858|1777666082|76f76637faf34514befe90220cb0c5e7|GetCanonicalFolderInfo|200|1369.0|CheckQuotaInfo_StorageGetSpecialFolderInfoScenario_ODB_CheckQuotaInfoScenario
+859|1777666082|76f76637faf34514befe90220cb0c5e7|GetCanonicalFolderInfo|200|1340.0|CheckQuotaInfo_StorageGetSpecialFolderInfoScenario_ODB_CheckQuotaInfoScenario
+860|1777666082|76f76637faf34514befe90220cb0c5e7|GetCanonicalFolderInfo|200|1373.0|CheckQuotaInfo_StorageGetSpecialFolderInfoScenario_ODB_CheckQuotaInfoScenario
+861|1777666154|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesOther_ODB_FindChangesScenario/NotificationLatencyScenario
+862|1777723889|76f76637faf34514befe90220cb0c5e7|GetClientPolicy|200|23493.0|Refresh_InvalidPolicyOnScopeInitialization_ODB_ReadOnlyDatabase_DownloadClientPolicy/GetOnline/ScopeInit/SyncEngineSignIn
+863|1777723889|76f76637faf34514befe90220cb0c5e7|ProvisionFolder|200|961.0|NthRun_StorageProvisioningScenario_ODB_GetOnline/ProvisionUserFolder/ScopeInit/SyncEngineSignIn
+864|1777723893|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|NthRun_FindChangesOther_ODB_ConnectMountedFolderScenario/FindChangesScenario/GetOnline/NotificationLatencyScenario
+865|1777723893|76f76637faf34514befe90220cb0c5e7|GetItemMetadata|200|2607.0|_StorageChangeEnumeration_ODB_ConnectMountedFolderScenario/GetOnline
+866|1777723894|76f76637faf34514befe90220cb0c5e7|GetQuotaInfo|200|786.0|CheckQuotaInfo_StorageRetrieveSpaceUsedScenario_ODB_CheckQuotaInfoScenario/GetOnline
+867|1777723894|76f76637faf34514befe90220cb0c5e7|GetQuotaInfo|200|786.0|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+868|1777723900|76f76637faf34514befe90220cb0c5e7|SelectiveSync|200|5879.0|SignIn_StorageSelectiveSyncEnumeration_ODB_GetOnline
+869|1777724531|76f76637faf34514befe90220cb0c5e7|EnumChanges|304|0.0|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+870|1777743614|76f76637faf34514befe90220cb0c5e7|ProvisionFolder|200|961.0|NthRun_StorageProvisioningScenario_ODB_GetOnline/ProvisionUserFolder/ScopeInit/SyncEngineSignIn
+
+
+--- od_ThrottleHistory ---
+Parse error in 2nd command line argument: no such column: rowid
+  SELECT * FROM od_ThrottleHistory ORDER BY rowid DESC LIMIT 20;
+                              error here ---^
+
+--- od_GraphMetadata_LastWrite ---
+lastWriteCounter|150188|
+
+--- od_ScopeInfo_Records (the drive scope) ---
+              scopeID: 76f76637faf34514befe90220cb0c5e7
+                flags: 32768
+            scopeType: 3
+         resyncStatus: 0
+      resyncScheduled: 0
+        syncTokenData: 4;%234;%231;3;daa20696-9096-496f-8345-a7c636e4ec89;639139013978100000;1343181831;%23;%23;%230;%23
+ selectiveSyncEnabled: 0
+        syncRootFiles: 1
+     sourceResourceID: 
+                  cid: 
+    scopeSequentialID: 
+     shortcutVolumeID: 
+    shortcutItemIndex: 
+               siteID: c39db04ddc524e74afbe81541a8b3ad5
+                webID: 7c22106645f2469d9af0ce1e8a604e7d
+               listID: daa206969096496f8345a7c636e4ec89
+       resyncFolderID: 
+          libraryType: 2
+       spoPermissions: 31
+      checkedOutState: 0
+   resyncRestrictions: 0
+libraryIrmPolicyState: 0
+               webURL: https://my.microsoftpersonalcontent.com/personal/8d77a48e98fdb6dc
+             tenantID: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
+           remotePath: 
+    lastResyncVersion: 1
+  lastProcessedChange: 
+  lastKnownFolderPath: C:\Users\david\OneDrive
+
+=== OCSI.db ===
+Copied OCSI.db (146 MB)
+
+--- OCSI tables ---
+__oddbm_schema     ocsi_map_paths_records     ocsi_property_records
+
+--- OCSI row counts ---
+  __oddbm_schema: 1
+  ocsi_property_records: 29074
+  ocsi_map_paths_records: 33973
+
+--- OCSI schema (focused on problem-like tables) ---
+
+CREATE TABLE ocsi_property_records ( resourceID TEXT PRIMARY KEY NOT NULL COLLATE NOCASE, conflictJson TEXT, lastSetPropsSessionId TEXT, lastSetPropsTime INTEGER, lastSetPropsResult INTEGER , documentSessionId INTEGER, ocsSessionId TEXT, ocsRevisionSequenceNumber INTEGER, ocsLastSyncedRevisionSequenceNumber INTEGER, waterlineSize INTEGER, waterlineData BLOB, writeValidationToken BLOB, collabMetadataHashAlgorithm INTEGER, collabMetadataHashDescriptor INTEGER, collabMetadataHashDigest BLOB, streamProtocolSupport INTEGER, streamSyncToken BLOB, coAuthClockData TEXT, holdBegin INTEGER, holdReason INTEGER, holdResolution INTEGER, irmEnabled INTEGER, irmPolicyState INTEGER, irmEncryptedFileSize INTEGER, irmHashAlgorithm INTEGER, irmHashDescriptor INTEGER, irmHashDigest BLOB, clpIsMipDecrypted INTEGER, clpHashScope INTEGER, clpHashAlgorithm INTEGER, clpHashDescriptor INTEGER, clpHashDigest BLOB, size INTEGER, lastChange INTEGER, isOfflineUpdate INTEGER, savePropHandlerType INTEGER) WITHOUT ROWID;
+

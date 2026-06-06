@@ -1,0 +1,94 @@
+=== OneDrive configuration audit at 2026-05-09T15:43:36.7377249-04:00 ===
+
+--- HKLM Group Policy keys for OneDrive (could lock features) ---
+--- HKLM:\SOFTWARE\Policies\Microsoft\OneDrive ---
+
+--- HKLM:\SOFTWARE\Microsoft\OneDrive ---
+
+Version                          : 26.070.0414.0001
+CurrentVersionPath               : C:\Program Files\Microsoft OneDrive\26.070.0414.0001
+StandaloneUpdaterSafeMode        : 0
+UpdateBeginTimestampTryCountODSU : 14
+DeviceFeatureMask                : 0
+InstallerType                    : Standard
+ECSDownloadEnabledSafe           : 1
+UpdateBeginTimestampODSU         : 321125
+
+
+--- HKCU:\Software\Policies\Microsoft\OneDrive ---
+
+
+--- HKLM\SOFTWARE\Policies\Microsoft\Office (could affect FileCoAuth) ---
+
+
+--- Files-On-Demand state and storage sense ---
+Personal tenant root: @{C:\Users\david\OneDrive=9750; PSPath=Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Microsoft\OneDrive\Accounts\Personal\Tenants\OneDrive; PSParentPath=Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Microsoft\OneDrive\Accounts\Personal\Tenants; PSChildName=OneDrive; PSDrive=HKCU; PSProvider=Microsoft.PowerShell.Core\Registry}
+FilesOnDemand: 
+placeholdersEnabled: (see global.ini SavedPlaceholdersEnabledState)
+
+--- Storage Sense state ---
+
+01                         : 1
+CloudfilePolicyConsent     : 1
+2048                       : 7
+04                         : 1
+08                         : 1
+256                        : 30
+32                         : 0
+02                         : 1
+StoragePoliciesChanged     : 1
+StoragePoliciesLastTrigger : {115, 204, 40, 56…}
+128                        : 30
+512                        : 0
+1024                       : 1
+
+
+
+--- KFM (Known Folder Move) status ---
+KfmFoldersProtectedNow: 3584 (bitfield: 1=Desktop,2=Pictures,4=Documents,8=Music,16=Videos)
+LastKFMOptInTime: 1734468660
+
+--- KFM.db (Known Folder Move state) ---
+KFM.db tables:
+__oddbm_schema     throttled_kfm_paths
+KFM.db schema:
+CREATE TABLE __oddbm_schema (name TEXT PRIMARY KEY, value INTEGER UNIQUE) WITHOUT ROWID;
+CREATE TABLE throttled_kfm_paths ( path TEXT PRIMARY KEY NOT NULL COLLATE NOCASE , timeAdded INTEGER NOT NULL DEFAULT 0);
+KFM contents (first 30 rows per table):
+--- __oddbm_schema ---
+ name: version
+value: 2
+--- throttled_kfm_paths ---
+
+--- Storage Provider Sync Roots ---
+
+--- File explorer sync overlay ---
+
+PSChildName    CLSID
+-----------    -----
+     OneDrive1 {BBACC218-34EA-4666-9D7A-C78F2274A524}
+     OneDrive2 {5AB7172C-9C11-405C-8DD5-AF20F3606282}
+     OneDrive3 {A78ED123-AB77-406B-9962-2A5D9D2F7F30}
+     OneDrive4 {F241C880-6982-4CE5-8CF7-7085BA96DA5A}
+     OneDrive5 {A0396A93-DC06-4AEF-BEE9-95FFCCAEF20E}
+     OneDrive6 {9AA2F32D-362A-42D9-9328-24A483E2CCC3}
+     OneDrive7 {C5FF006E-2AE9-408C-B85B-2DFDD5449D9C}
+
+
+
+--- OneDrive Quota / sub limits ---
+Personal tenant 'OneDrive' value (hex bytes): @{C:\Users\david\OneDrive=9750; PSPath=Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Microsoft\OneDrive\Accounts\Personal\Tenants\OneDrive; PSParentPath=Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Microsoft\OneDrive\Accounts\Personal\Tenants; PSChildName=OneDrive; PSDrive=HKCU; PSProvider=Microsoft.PowerShell.Core\Registry}
+
+--- Defender exclusions (per Microsoft OneDrive recommendation) ---
+ExclusionPath count: 81
+OneDrive-related exclusions (1):
+  C:\Users\david\OneDrive\Documents\MATLAB\Examples\R2024b\android\GettingStartedWithAndroidExample\androidGettingStartedExample_ert_rtw
+ExclusionProcess count: 15
+OneDrive-related process exclusions (0):
+
+--- Cloud Files filter mini-status ---
+bindflt                                 1       409800         0
+CldFlt                                  3       180451         0
+
+--- WAM Account Manager state (relevant for OneDrive Personal sign-in) ---
+WAM accepted domains (top 5):

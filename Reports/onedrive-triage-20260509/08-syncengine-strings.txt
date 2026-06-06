@@ -1,0 +1,22 @@
+=== SyncEngine .aodl strings extraction at 2026-05-09T15:07:02.1553967-04:00 ===
+Active log: C:\Users\david\AppData\Local\Microsoft\OneDrive\logs\Personal\SyncEngine-2026-05-09.1906.3792.495.aodl (size=404188, mtime=05/09/2026 15:07:02)
+Read bytes: 404188
+ASCII runs: 5630; UTF-16LE runs: 0
+
+--- Filtered hits (14, max 300) ---
+App.SyncEngineLibraryStatusChanged????
+App.SyncStatusProcessed????
+FileScanner::DoScanWorkInternal
+FileScanner::FindFileByNameAndRepairFSIDCacheIfRequiredk
+FileScanner::HandleScannedFolder?
+fileScanner.cpp
+fileScanner.cpp?
+NotInSync????
+OneDriveMainThread
+OneDriveMainThread"
+SystrayManager::OnLibraryStatus
+updateSyncStatus????
+UX.LibraryStatusChanged????
+WindowManager::IsOsShutdownPending????
+
+--- HRESULT hex codes ---

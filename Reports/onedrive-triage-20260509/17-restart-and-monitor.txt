@@ -1,0 +1,132 @@
+=== OneDrive restart + monitor at 2026-05-09T15:29:27.9581043-04:00 ===
+
+=== PRE-RESTART ===
+
+--- ops snapshot @ pre (15:29:27) ---
+DownloadBlock|551
+EnumChanges|466
+NotificationReceived|103
+GetQuotaInfo|61
+GetClientPolicy|59
+ProvisionFolder|16
+GetCanonicalFolderInfo|16
+CreateSubscription|16
+SelectiveSync|12
+GetSignature|12
+GetItemMetadata|8
+max id+ts: 1320|2026-05-09 05:30:00
+last 5:
+1320|2026-05-09 05:30:00|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1319|2026-05-09 05:25:48|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1318|2026-05-09 05:24:01|GetClientPolicy|200|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+1317|2026-05-09 05:20:03|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1316|2026-05-09 05:09:09|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+
+Processes pre-stop:
+
+Name              Id StartTime
+----              -- ---------
+FileSyncHelper 16276 5/9/2026 2:40:37 PM
+OneDrive        3792 5/9/2026 2:40:30 PM
+
+
+
+=== STOPPING OneDrive ecosystem at 2026-05-09T15:29:28.3478476-04:00 ===
+  Stopping FileSyncHelper PID 16276...
+  Stopping OneDrive PID 3792...
+
+Post-stop process check:
+  All OneDrive processes exited cleanly
+
+=== STARTING OneDrive at 2026-05-09T15:29:33.3997449-04:00 ===
+  Launching C:\Program Files\Microsoft OneDrive\OneDrive.exe /background
+
+Process check (10s post-start):
+
+
+--- ops snapshot @ T+s post-start (15:30:13) ---
+DownloadBlock|551
+EnumChanges|466
+NotificationReceived|103
+GetQuotaInfo|61
+GetClientPolicy|59
+ProvisionFolder|16
+GetCanonicalFolderInfo|16
+CreateSubscription|16
+SelectiveSync|12
+GetSignature|12
+GetItemMetadata|8
+max id+ts: 1320|2026-05-09 05:30:00
+last 5:
+1320|2026-05-09 05:30:00|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1319|2026-05-09 05:25:48|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1318|2026-05-09 05:24:01|GetClientPolicy|200|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+1317|2026-05-09 05:20:03|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1316|2026-05-09 05:09:09|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+
+--- ops snapshot @ T+s post-start (15:30:43) ---
+DownloadBlock|551
+EnumChanges|466
+NotificationReceived|103
+GetQuotaInfo|61
+GetClientPolicy|59
+ProvisionFolder|16
+GetCanonicalFolderInfo|16
+CreateSubscription|16
+SelectiveSync|12
+GetSignature|12
+GetItemMetadata|8
+max id+ts: 1320|2026-05-09 05:30:00
+last 5:
+1320|2026-05-09 05:30:00|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1319|2026-05-09 05:25:48|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1318|2026-05-09 05:24:01|GetClientPolicy|200|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+1317|2026-05-09 05:20:03|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1316|2026-05-09 05:09:09|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+
+--- ops snapshot @ T+s post-start (15:31:44) ---
+DownloadBlock|551
+EnumChanges|466
+NotificationReceived|103
+GetQuotaInfo|61
+GetClientPolicy|59
+ProvisionFolder|16
+GetCanonicalFolderInfo|16
+CreateSubscription|16
+SelectiveSync|12
+GetSignature|12
+GetItemMetadata|8
+max id+ts: 1320|2026-05-09 05:30:00
+last 5:
+1320|2026-05-09 05:30:00|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1319|2026-05-09 05:25:48|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1318|2026-05-09 05:24:01|GetClientPolicy|200|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+1317|2026-05-09 05:20:03|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1316|2026-05-09 05:09:09|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+
+--- ops snapshot @ T+s post-start (15:34:44) ---
+DownloadBlock|551
+EnumChanges|466
+NotificationReceived|103
+GetQuotaInfo|61
+GetClientPolicy|59
+ProvisionFolder|16
+GetCanonicalFolderInfo|16
+CreateSubscription|16
+SelectiveSync|12
+GetSignature|12
+GetItemMetadata|8
+max id+ts: 1320|2026-05-09 05:30:00
+last 5:
+1320|2026-05-09 05:30:00|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1319|2026-05-09 05:25:48|GetQuotaInfo|200|CheckQuotaInfo_StorageRetrieveQuotaStateScenario_ODB_CheckQuotaInfoScenario
+1318|2026-05-09 05:24:01|GetClientPolicy|200|Refresh_RefreshAdvised_ODB_ReadOnlyDatabase_DownloadClientPolicy
+1317|2026-05-09 05:20:03|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+1316|2026-05-09 05:09:09|EnumChanges|304|CheckForChanges_FindChangesPollingWNSChannelNotConnected_ODB_FindChangesScenario/NotificationLatencyScenario
+
+=== Post-restart TCP from OneDrive (5 min after start) ===
+
+=== Post-restart synctest file status ===
+  Sharing status (col 298) = Not shared
+  Availability status (col 306) = Sync pending
+  Status (col 307) = C600000031535053214A94C906A4FE488225AEC7E24C211B9900000010000000001F00000044000000700072006F0070003A00530079007300740065006D002E00530074006F007200610067006500500072006F0076006900640065007200530074006100740065003B00530079007300740065006D002E00530074006F007200610067006500500072006F007600690064006500720043007500730074006F006D0053007400610074006500730000001100000012000000001300000003000000000000002D00000031535053DF907EE771625B4F834F2DD1F245DDA41100000003000000001300000004000000000000001C0000003153505353F1EFFC39E8F34CA9E7EA22832094B80000000000000000F1

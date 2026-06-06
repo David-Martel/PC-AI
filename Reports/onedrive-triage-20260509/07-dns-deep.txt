@@ -1,0 +1,196 @@
+=== DNS deep probe at 2026-05-09T15:05:05.9729453-04:00 ===
+
+--- Resolve via system resolver (with cache) ---
+oneclient.sfx.ms: ips=23.216.5.155, 23.216.5.157 ; cnames=oneclient.sfx.ms.edgesuite.net, a124.dscd.akamai.net
+onedrive.live.com: ips=13.107.137.11 ; cnames=odwebpl.trafficmanager.net.dual-spov-0006.spov-msedge.net, dual-spov-0006.spov-msedge.net
+login.live.com: ips=40.126.28.12 ; cnames=login.msa.msidentity.com, www.tm.lg.prod.aadmsa.trafficmanager.net, prdv4a.aadg.msidentity.com, www.tm.v4.a.prd.aadg.akadns.net
+d.docs.live.net: ips= ; cnames=common-afdrk.fe.1drv.com, odc-commonafdrk-geo.onedrive.akadns.net, odc-commonafdrk-brs.onedrive.akadns.net, ln-0001.ln-dc-msedge.net.ln-0001.ln-msedge.net, ln-0001.ln-msedge.net
+my.microsoftpersonalcontent.com: ips= ; cnames=lists-e.tm-rt.sharepoint.com, 194044-ipv4mte.gr.global.aa-rt.sharepoint.com, 194044-ipv4mte.farm.dprodmgd105.aa-rt.sharepoint.com, 194044-ipv4mteg.farm.dprodmgd105.sharepointonline.com.akadns.net, 194044-ipv4.farm.dprodmgd105.aa-rt.sharepoint.com.dual-spov-0006.spov-msedge.net
+graph.microsoft.com: ips=20.190.135.47, 20.190.135.42, 20.190.135.46 ; cnames=ags.privatelink.msidentity.com, www.tm.prd.ags.akadns.net
+officeclient.microsoft.com: ips= ; cnames=config.officeapps.live.com, prod.configsvc1.live.com.akadns.net, us.configsvc1.live.com.akadns.net, config-prod-weightedww.trafficmanager.net, atm.office.mira.tm.svc.cloud.microsoft
+login.microsoftonline.com: ips=40.126.28.11, 20.190.135.3 ; cnames=login.mso.msidentity.com, ak.privatelink.msidentity.com, www.tm.a.prd.aadg.akadns.net
+sb.cdn.skype.com: FAIL: sb.cdn.skype.com : DNS name does not exist.
+
+--- Resolve via 1.1.1.1 (Cloudflare) ---
+oneclient.sfx.ms: 23.216.5.157, 23.216.5.155
+onedrive.live.com: 13.107.137.11
+login.live.com: 40.126.7.32
+d.docs.live.net: 
+my.microsoftpersonalcontent.com: 
+graph.microsoft.com: 20.190.135.47, 20.190.135.45, 20.190.135.46
+officeclient.microsoft.com: 
+login.microsoftonline.com: 20.190.157.2, 20.190.157.15
+sb.cdn.skype.com: FAIL: sb.cdn.skype.com : DNS name does not exist.
+
+--- Resolve via 8.8.8.8 (Google) ---
+oneclient.sfx.ms: 23.33.85.244, 23.33.85.228, 23.33.85.234
+onedrive.live.com: 13.107.137.11
+login.live.com: 20.190.155.2
+d.docs.live.net: 
+my.microsoftpersonalcontent.com: 
+graph.microsoft.com: 20.190.135.43, 20.190.135.45, 20.190.135.42
+officeclient.microsoft.com: 
+login.microsoftonline.com: 40.126.27.66, 40.126.27.128
+sb.cdn.skype.com: FAIL: sb.cdn.skype.com : DNS name does not exist.
+
+--- nslookup (uses default DNS) ---
+--- nslookup login.live.com ---
+Non-authoritative answer:
+
+Server:  unifi.dtmventures.com
+Address:  10.10.15.1
+
+Name:    www.tm.v4.a.prd.aadg.trafficmanager.net
+Addresses:  40.126.7.32
+	  20.190.135.18
+	  40.126.7.35
+	  20.190.135.7
+	  20.190.135.5
+	  40.126.28.14
+	  40.126.28.23
+	  20.190.135.16
+Aliases:  login.live.com
+	  login.msa.msidentity.com
+	  www.tm.lg.prod.aadmsa.trafficmanager.net
+	  prdv4a.aadg.msidentity.com
+
+--- nslookup d.docs.live.net ---
+Non-authoritative answer:
+
+Server:  unifi.dtmventures.com
+Address:  10.10.15.1
+
+Name:    ln-0001.ln-msedge.net
+Addresses:  2620:1ec:50::11
+	  150.171.22.11
+Aliases:  d.docs.live.net
+	  common-afdrk.fe.1drv.com
+	  odc-commonafdrk-geo.onedrive.akadns.net
+	  odc-commonafdrk-brs.onedrive.akadns.net
+	  ln-0001.ln-dc-msedge.net.ln-0001.ln-msedge.net
+
+--- nslookup my.microsoftpersonalcontent.com ---
+Non-authoritative answer:
+
+Server:  unifi.dtmventures.com
+Address:  10.10.15.1
+
+Name:    dual-spov-0006.spov-msedge.net
+Address:  13.107.137.11
+Aliases:  my.microsoftpersonalcontent.com
+	  lists-e.tm-rt.sharepoint.com
+	  194044-ipv4mte.gr.global.aa-rt.sharepoint.com
+	  194044-ipv4mte.farm.dprodmgd105.aa-rt.sharepoint.com
+	  194044-ipv4mteg.farm.dprodmgd105.sharepointonline.com.akadns.net
+	  194044-ipv4.farm.dprodmgd105.aa-rt.sharepoint.com.dual-spov-0006.spov-msedge.net
+
+
+--- WARP runtime status ---
+Status update: Disconnected
+Reason: Manual Disconnection
+
+--- WARP settings ---
+Merged configuration:
+(not set)	Compliance Environment: Normal
+(derived)	Always On: false
+(override)	Switch Locked: false
+(network policy)	Mode: WarpWithDnsOverHttps
+(network policy)	WARP tunnel protocol: WireGuard
+(not set)	MASQUE Protocol Settings: 
+  HTTP Version: MASQUE (HTTP/3 with HTTP/2 fallback)
+(network policy)	Post-quantum support for MASQUE: Enabled (downgrades allowed)
+(default)	Disabled for Wifi: false
+(default)	Disabled for Ethernet: false
+(reg defaults)	Resolve via: a804beee72fa22f9fa04aada631e3eda.cloudflare-gateway.com @ [162.159.36.1, 162.159.46.1, 2606:4700:4700::1111, 2606:4700:4700::1001]
+(not set)	qlog log until: FutureSystemTime(None)
+(default)	Onboarding: true
+(network policy)	Exclude mode, with hosts/ips:
+  10.0.0.0/8
+  100.64.0.0/10
+  169.254.0.0/16 (DHCP Unspecified)
+  172.16.0.0/12
+  192.0.0.0/24
+  192.168.0.0/16
+  224.0.0.0/24
+  240.0.0.0/4
+  255.255.255.255/32 (DHCP Broadcast)
+  fe80::/10 (IPv6 Link Local)
+  fd00::/8
+  ff01::/16
+  ff02::/16
+  ff03::/16
+  ff04::/16
+  ff05::/16
+
+(network policy)	Fallback domains:
+  home.arpa
+  intranet
+  internal
+  private
+  localdomain
+  domain
+  lan
+  home
+  host
+  corp
+  local
+  localhost
+  invalid
+  test
+(not set)	Daemon Teams Auth: false
+(network policy)	Disable Auto Fallback: false
+(network policy)	Captive Portal: 180
+(network policy)	Support URL: 
+(user set)	Organization: auricleinc
+(network policy)	Allow Mode Switch: false
+(network policy)	Allow Updates: false
+(network policy)	Allowed to Leave Org: true
+(network policy)	Profile ID: d6ce42a3-b917-4677-85aa-2b681d00d97a
+(not set)	Registration Scope: System
+(network policy)	Register Tunnel Interface IP: true
+(not set)	Firewall Scope: All interfaces
+(network policy)	SCCM VPN Boundary Support: false
+(network policy)	NetBT: false
+
+--- WARP virtual networks (split tunnel) ---
+error: unrecognized subcommand 'virtual-networks'
+
+Usage: warp-cli.exe [OPTIONS] <COMMAND>
+
+For more information, try '--help'.
+
+--- WARP DNS stats ---
+Error: DNS proxy is not running
+
+--- Active TCP connections from OneDrive (re-check with broader filter) ---
+OneDrive PIDs: 16276,3792
+--- PID 16276 (all states) ---
+
+--- PID 16276 UDP ---
+
+--- PID 3792 (all states) ---
+
+LocalAddress LocalPort RemoteAddress RemotePort       State CreationTime
+------------ --------- ------------- ----------       ----- ------------
+::               63680 ::                     0       Bound 5/9/2026 2:45:35 PM
+::               61077 ::                     0       Bound 5/9/2026 2:41:15 PM
+::               58767 ::                     0       Bound 5/9/2026 2:43:22 PM
+::               58104 ::                     0       Bound 5/9/2026 2:40:40 PM
+::               52669 ::                     0       Bound 5/9/2026 2:42:13 PM
+::               50674 ::                     0       Bound 5/9/2026 2:40:53 PM
+::               50663 ::                     0       Bound 5/9/2026 2:40:46 PM
+::               49694 ::                     0       Bound 5/9/2026 2:58:33 PM
+::               48153 ::                     0       Bound 5/9/2026 2:41:02 PM
+::               30326 ::                     0       Bound 5/9/2026 2:41:36 PM
+::               17991 ::                     0       Bound 5/9/2026 2:49:56 PM
+0.0.0.0          28439 0.0.0.0                0       Bound 5/9/2026 3:04:54 PM
+10.10.15.150     28439 13.89.179.13         443 Established 5/9/2026 3:04:54 PM
+
+
+--- PID 3792 UDP ---
+
+
+--- All OneDrive-process-related TCP from netstat ---
+
+  TCP    10.10.15.150:28439     13.89.179.13:443       ESTABLISHED     3792
+

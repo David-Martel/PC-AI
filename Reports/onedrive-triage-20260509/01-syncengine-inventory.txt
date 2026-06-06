@@ -1,0 +1,31 @@
+=== SyncEngine log inventory at 2026-05-09T15:02:25.5164767-04:00 ===
+Log root: C:\Users\david\AppData\Local\Microsoft\OneDrive\logs\Personal
+Total .aodl files: 1
+
+Name                                     LastWriteTime       SizeKB
+----                                     -------------       ------
+SyncEngine-2026-05-09.1902.3792.410.aodl 5/9/2026 3:02:25 PM 231.90
+
+
+
+=== Newest 3 paths ===
+C:\Users\david\AppData\Local\Microsoft\OneDrive\logs\Personal\SyncEngine-2026-05-09.1902.3792.410.aodl
+
+=== Other log types in Personal\ ===
+
+Count Name
+----- ----
+    1 collector
+    1 DeviceFailureDatagram
+    1 DeviceHealth
+    1 DeviceHealthSummaryConfiguration
+    1 FeedbackHub
+   11 FileCoAuth
+    1 general
+    1 SyncDiagnostics
+  459 SyncEngine
+    1 telemetry
+    3 telemetryCache
+    3 telemetryCacheExperimental
+
+

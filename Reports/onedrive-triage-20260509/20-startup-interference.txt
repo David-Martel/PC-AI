@@ -1,0 +1,150 @@
+=== Startup interference audit at 2026-05-09T15:43:27.7218684-04:00 ===
+
+--- Active scheduled tasks that touch network/files at startup ---
+Boot/logon-triggered tasks: 66
+Risky boot/logon tasks (sync/network/cloud-related): 2
+
+TaskName                                                                     State Trigger      Exec
+--------                                                                     ----- -------      ----
+OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1001          Ready LogonTrigger C:\Program Files\Microsoft OneDrive\26.070.0414.0001\OneDriveLauncher.exe
+DropboxUpdaterTaskSystem123.0.6299.144{668B0EA2-DE99-431B-9215-10877E09E7CB} Ready LogonTrigger "C:\Program Files\Dropbox\DropboxUpdater\123.0.6299.144\updater.exe"
+
+
+
+--- Currently running Cloud-sync / DNS / network services ---
+
+Name            Status StartType
+----            ------ ---------
+CloudflareWARP Running Automatic
+
+
+
+Name              Status StartType
+----              ------ ---------
+WireGuardManager Running Automatic
+
+
+
+Name       Status StartType
+----       ------ ---------
+Tailscale Running Automatic
+
+
+
+Name                      Status StartType
+----                      ------ ---------
+OneDrive Updater Service Stopped    Manual
+
+
+
+Name                                         Status StartType
+----                                         ------ ---------
+DropboxElevationService                     Stopped    Manual
+DropboxUpdaterInternalService123.0.6299.144 Stopped Automatic
+DropboxUpdaterService123.0.6299.144         Stopped Automatic
+
+
+
+Name        Status StartType
+----        ------ ---------
+WSLService Running Automatic
+
+
+
+Name  Status StartType
+----  ------ ---------
+vmms Running Automatic
+
+
+
+--- Currently running cloud sync processes ---
+
+--- HKCU/HKLM Run / RunOnce keys ---
+--- HKCU:\Software\Microsoft\Windows\CurrentVersion\Run ---
+  OneDrive = "C:\Program Files\Microsoft OneDrive\OneDrive.exe" /background
+  electron.app.Bitwarden = C:\Program Files\Bitwarden\Bitwarden.exe
+  dspMixFxRemoteBridge = "C:\Program Files\Steinberg\dspMixFx Remote Bridge\dspMixFx_Remote_Bridge.exe"
+  GoogleDriveFS = "C:\Program Files\Google\Drive File Stream\124.0.3.0\GoogleDriveFS.exe" --startup_mode
+  org.whispersystems.signal-desktop = C:\Users\david\AppData\Local\Programs\signal-desktop\Signal.exe --start-in-tray
+  NIRegistrationWizard = C:\Program Files (x86)\National Instruments\Shared\RegistrationWizard\Bin\RegistrationWizard.exe -autoDiscover 1 -displayIfNoneFound 0 -displayRegisterOptions 1 -sleepIfNoneFound 0 -locale 9
+  Microsoft.Lists = C:\Program Files\Microsoft OneDrive\26.070.0414.0001\OneDrive.Sync.Service.exe
+  com.todoist = C:\Users\david\AppData\Local\Programs\todoist\Todoist.exe --process-start-args "--hidden"
+  JetBrains Toolbox = "C:\Users\david\AppData\Local\JetBrains\Toolbox\bin\jetbrains-toolbox.exe" --minimize
+  Universal Control = C:\Program Files\PreSonus\Universal Control\Universal Control.exe /startup
+  WingetUI = "C:\Program Files\UniGetUI\UniGetUI.exe" --daemon
+  Visual Studio Code Tunnel = "c:\Program Files\vscode\bin\code-tunnel.exe" --verbose --cli-data-dir C:\Users\david\.vscode\cli tunnel service internal-run --log-to-file C:\Users\david\.vscode\cli\tunnel-service.log
+  Identity = C:\Program Files\UniFi Identity Standard\Identity.exe /autorun
+  electron.app.LM Studio = C:\Program Files\LM Studio\LM Studio.exe --run-as-service
+  electron.app.Notion = C:\Users\david\AppData\Local\Programs\Notion\Notion.exe --open-at-login
+  Mathworks Service Host = "C:\Users\david\AppData\Local\MathWorks\ServiceHost\v2025.12.1.2\bin\win64\MathWorksServiceHost.exe" service --realm-id companion@prod@production
+  MATLAB Connector = "C:\Users\david\AppData\Local\MathWorks\ServiceHost\v2025.12.1.2\bin\win64\MATLABConnector.exe"
+  AdobeBridge = 
+  Adobe Acrobat Synchronizer = "C:\Program Files\Adobe\Acrobat DC\Acrobat\AdobeCollabSync.exe"
+  Parsec.App.0 = C:\Program Files\Parsec\parsecd.exe app_silent=1
+  LenovoVantage = C:\ProgramData\Lenovo\Vantage\Addins\LenovoCompanionAppAddin\1.0.0.57\LenovoVantage.exe
+  electron.app.Dropbox Dash = C:\Users\david\AppData\Local\Programs\Dropbox Dash\Dropbox Dash.exe
+  GoogleChromeAutoLaunch_C8D43A3EEFF19C42AA31C68EEE7A5AF4 = "C:\Program Files\Google\Chrome\Application\chrome.exe" --no-startup-window /prefetch:5
+  RazerAppEngine = "C:\Program Files\Razer\RazerAppEngine\RazerAppEngine.exe" --url-params=apps=chroma-app --launch-force-hidden=synapse,chroma-app --autoStart=1
+  UniFi Endpoint = C:\Program Files\UniFi Identity Standard\UniFi Endpoint.exe /autorun
+  Docker Desktop = C:\Program Files\Docker\Docker\Docker Desktop.exe
+  Warp = "C:\Users\david\AppData\Local\Programs\Warp\warp.exe"
+  Proton Drive = "C:\Users\david\AppData\Local\Programs\Proton\Drive\ProtonDrive.exe" -quiet
+  Discord = "C:\Users\david\AppData\Local\Discord\Update.exe" --processStart Discord.exe --process-start-args --start-minimized
+  com.squirrel.slack.slack = "C:\Users\david\AppData\Local\slack\slack.exe" --process-start-args --startup
+--- HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run ---
+  SecurityHealth = C:\WINDOWS\system32\SecurityHealthSystray.exe
+  MsmqIntCert = "C:\Windows\System32\regsvr32.exe" /s "C:\Windows\System32\mqrt.dll"
+  FirefaceUsbTray1 = C:\Program Files\RME\fireface\firefaceusb_x64.exe
+  MadifaceeUsbTray1 = C:\Program Files\RME\madiface\madifaceusb_x64.exe
+  FirefaceMixTray2 = C:\Program Files\RME\fireface\TotalMixFX_x64.exe
+  Everything = "C:\Program Files\Everything\Everything.exe" -startup
+  Focusrite Notifier = "C:\Program Files\Focusrite\Drivers\Focusrite Notifier.exe"
+  GoPro Webcam = C:\Program Files (x86)\GoPro\GoPro Webcam\GoPro Webcam.exe
+  Nearby Share = "C:\Program Files\Google\NearbyShare\nearby_share_launcher.exe" --delayed_start
+  PDF24 = "C:\Program Files\PDF24\pdf24.exe"
+--- HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run ---
+  Dropbox = "C:\Program Files (x86)\Dropbox\Client\Dropbox.exe" /systemstartup
+  Adobe CCXProcess = C:\Program Files (x86)\Adobe\Adobe Creative Cloud Experience\CCXProcess.exe
+  ISUSPM = C:\ProgramData\FLEXnet\Connect\11\\isuspm.exe -scheduler
+  Discord = C:\ProgramData\SquirrelMachineInstalls\Discord.exe --checkInstall
+  DriveUtilitiesHelper = C:\Program Files (x86)\Western Digital\WD Utilities\WDDriveUtilitiesHelper.exe
+  QfinderPro = "C:\Program Files (x86)\QNAP\Qfinder\QfinderPro.exe" /min /auto
+  Intel® Graphics Software = "C:\Program Files\Intel\Intel Graphics Software\IntelGraphicsSoftware.exe" -s
+  Adobe Creative Cloud = "C:\Program Files\Adobe\Adobe Creative Cloud\ACC\Creative Cloud.exe" --showwindow=false --onOSstartup=true
+  Cisco Secure Client = "C:\Program Files (x86)\Cisco\Cisco Secure Client\UI\csc_ui.exe" -minimized
+
+--- Startup folder shortcuts ---
+--- C:\Users\david\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup ---
+
+Name                   Length LastWriteTime
+----                   ------ -------------
+Google Cloud.lnk         2990 10/10/2025 4:03:08 AM
+Ollama.lnk               2169 7/4/2025 8:38:38 AM
+Proton Mail Bridge.lnk    761 4/30/2026 4:30:40 PM
+SSH-Agent-Startup.lnk    1040 5/19/2025 4:29:16 AM
+
+
+--- C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup ---
+
+Name                                                 Length LastWriteTime
+----                                                 ------ -------------
+Cloudflare WARP.lnk                                    1254 4/30/2026 5:32:48 PM
+DeviceCenter.lnk                                       1347 12/30/2025 5:47:26 PM
+EPOS Gaming Suite.lnk                                  2171 11/29/2024 12:08:53 PM
+miniDSP UAC2 Control Panel Autostart.lnk               1230 11/4/2025 7:34:34 PM
+SOLIDWORKS 2024 Fast Start.lnk                         2769 9/17/2024 10:23:31 AM
+SOLIDWORKS Background Downloader.lnk                   1395 9/17/2024 10:20:22 AM
+Tailscale.lnk                                          1949 4/30/2026 2:55:35 PM
+Topping USB Audio Device Control Panel Autostart.lnk   1268 1/24/2025 8:29:25 PM
+
+
+
+--- Active TCP listeners that may interfere with OneDrive (DNS hijacking, proxies) ---
+
+
+--- OneDrive boot.TODO indicators (boot.TODO references) ---
+Items from boot.TODO.md still flagged as risk to OneDrive:
+- WARP exclude mode could route OneDrive through Cloudflare gateway (org=auricleinc Zero Trust)
+- iCloud sync root present without provider running (per 4/30 sync-provider-health)
+- UnifiUdmDriveStackStartup task disabled (intentional per ledger, OK)
+- VHDs cloud-cache-disk on F: hosts Dropbox + Proton Drive — racing OneDrive at boot

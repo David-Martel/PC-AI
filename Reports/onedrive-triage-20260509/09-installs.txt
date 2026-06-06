@@ -1,0 +1,89 @@
+=== OneDrive install layout at 2026-05-09T15:06:12.9573256-04:00 ===
+
+--- Per-Machine install (C:\Program Files\Microsoft OneDrive) ---
+
+Name                                LastWriteTime         Type
+----                                -------------         ----
+Update                              5/9/2026 2:37:08 PM   Dir
+26.070.0414.0001                    5/8/2026 10:45:53 PM  Dir
+LogoImages                          5/8/2026 10:45:50 PM  Dir
+Resources.pri                       5/8/2026 10:45:45 PM  18,521.7 KB
+OneDriveStandaloneUpdater.exe       5/8/2026 10:45:45 PM  4,324.4 KB
+OneDrive.VisualElementsManifest.xml 5/8/2026 10:45:45 PM  0.3 KB
+OneDrive.exe                        5/8/2026 10:45:44 PM  4,636.9 KB
+OneDrive.App.exe                    5/8/2026 10:45:44 PM  929.9 KB
+StandaloneUpdater                   4/28/2026 2:35:49 PM  Dir
+UpdaterService                      8/29/2024 1:20:12 PM  Dir
+FileSyncHelper                      8/15/2024 11:10:12 PM Dir
+setup                               8/15/2024 11:09:30 PM Dir
+
+
+
+--- Versioned subdirs ---
+--- 26.070.0414.0001 ---
+
+Name                                              SizeKB Ver
+----                                              ------ ---
+FileCoAuth.exe                                   2262.40 26.070.0414.0001
+FileSyncConfig.exe                                863.40 26.070.0414.0001
+FileSyncHelper.exe                               3526.40 26.070.0414.0001
+Microsoft.SharePoint.NativeMessagingClient.exe     53.90 26.070.0414.0001
+OneDrive.Sync.Service.exe                         933.90 26.070.0414.0001
+OneDriveActionHelper.exe                          651.40 26.070.0414.0001
+OneDriveFileLauncher.exe                          360.40 26.070.0414.0001
+OneDriveLauncher.exe                              740.90 26.070.0414.0001
+OneDrivePatcher.exe                              3443.40 26.070.0414.0001
+OneDriveSetup.exe                              107126.40 26.070.0414.0001
+OneDriveUpdaterService.exe                       3923.90 26.070.0414.0001
+
+
+FileCoAuth.exe present: True
+OneDriveLauncher.exe present: True
+OneDrive.exe present: False
+
+--- Per-User install (LOCALAPPDATA) ---
+
+Name              LastWriteTime         Type
+----              -------------         ----
+Update            5/9/2026 2:40:30 PM   Dir
+settings          5/1/2026 4:07:47 PM   Dir
+ListSync          3/30/2026 6:37:40 PM  Dir
+logs              1/26/2026 1:43:00 PM  Dir
+EBWebView         1/25/2026 4:42:07 AM  Dir
+24.151.0728.0003  8/15/2024 10:18:03 AM Dir
+StandaloneUpdater 8/14/2024 5:15:58 PM  Dir
+setup             8/14/2024 4:15:42 PM  Dir
+
+
+
+--- Currently running OneDrive image path ---
+
+ProcessId      : 3792
+ExecutablePath : C:\Program Files\Microsoft OneDrive\OneDrive.exe
+CreationDate   : 5/9/2026 2:40:30 PM
+CommandLine    : "C:\Program Files\Microsoft OneDrive\OneDrive.exe" /background
+
+
+
+--- HKCU OneDrive Update info ---
+
+Version                    : 26.070.0414.0001
+InstallationType           : 
+IsPerMachineInstall        : 
+OneDriveTrigger_Background : 
+LastUpdate                 : 
+
+
+
+--- HKLM OneDrive ---
+
+Version                          : 26.070.0414.0001
+CurrentVersionPath               : C:\Program Files\Microsoft OneDrive\26.070.0414.0001
+StandaloneUpdaterSafeMode        : 0
+UpdateBeginTimestampTryCountODSU : 14
+DeviceFeatureMask                : 0
+InstallerType                    : Standard
+ECSDownloadEnabledSafe           : 1
+UpdateBeginTimestampODSU         : 321125
+
+

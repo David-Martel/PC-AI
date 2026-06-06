@@ -38,4 +38,6 @@ pre-push:
     # GitOps directive 3: fire CI-health + upstream-review monitors NON-BLOCKING (detached) so the
     # push is never delayed; results land in Reports/gitops/ + the agent-bus for agents to read.
     gitops-monitors:
-      run: pwsh -NoProfile -File "{root}/Tools/GitOps/Start-GitOpsMonitors.ps1"
+      # lefthook runs from the repo root; use a relative path ({root} is not a lefthook var and sh
+      # brace-expands it to "root"). The launcher detaches the monitor and always exits 0.
+      run: pwsh -NoProfile -File Tools/GitOps/Start-GitOpsMonitors.ps1

@@ -40,7 +40,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$GH_ACTIONS_APP_ID = 15368   # gh api /apps/github-actions => id
+# github-actions[bot] User id (gh api /users/github-actions[bot]). NOTE: the GitHub Actions
+# *Integration* actor is org-only ("must be part of owner organization"); on a USER account the
+# bot must be bypassed as a User actor instead.
+$GH_ACTIONS_BOT_USER_ID = 41898282
 
 if (-not $LogDir) {
     $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..') | Select-Object -ExpandProperty Path
@@ -75,7 +78,7 @@ function New-RulesetBody {
         enforcement = 'active'
         conditions  = @{ ref_name = @{ include = @('~DEFAULT_BRANCH'); exclude = @() } }
         bypass_actors = @(
-            @{ actor_id = $GH_ACTIONS_APP_ID; actor_type = 'Integration'; bypass_mode = 'always' }
+            @{ actor_id = $GH_ACTIONS_BOT_USER_ID; actor_type = 'User'; bypass_mode = 'always' }
         )
         rules = $rules
     }
@@ -102,14 +105,17 @@ function Set-OneRepoRuleset {
             $result.status = 'dry-run'
         }
         elseif ($match) {
-            $r = gh api "repos/$Owner/$Repo/rulesets/$($match.id)" -X PUT --input $tmp | ConvertFrom-Json
-            $result.action = 'updated'; $result.status = 'ok'; $result.ruleset_id = $r.id
+            $out = gh api "repos/$Owner/$Repo/rulesets/$($match.id)" -X PUT --input $tmp 2>&1
+            if ($LASTEXITCODE -ne 0) { throw "PUT failed: $out" }
+            $result.action = 'updated'; $result.status = 'ok'; $result.ruleset_id = ($out | ConvertFrom-Json).id
         }
         else {
-            $r = gh api "repos/$Owner/$Repo/rulesets" -X POST --input $tmp | ConvertFrom-Json
-            $result.action = 'created'; $result.status = 'ok'; $result.ruleset_id = $r.id
+            $out = gh api "repos/$Owner/$Repo/rulesets" -X POST --input $tmp 2>&1
+            if ($LASTEXITCODE -ne 0) { throw "POST failed: $out" }
+            $result.action = 'created'; $result.status = 'ok'; $result.ruleset_id = ($out | ConvertFrom-Json).id
         }
         Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+        if ($result.status -eq 'ok' -and -not $result.ruleset_id -and -not $DryRun) { throw 'no ruleset id returned' }
     }
     catch {
         $result.status = 'error'; $result.error = "$_"

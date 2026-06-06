@@ -11,13 +11,15 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     gpus: all
+    cpus: ${OLLAMA_CPUS:-8}
+    mem_limit: ${OLLAMA_MEMORY_LIMIT:-16g}
+    memswap_limit: ${OLLAMA_MEMORY_SWAP_LIMIT:-16g}
     volumes:
-      - ollama:/root/.ollama
+      - "${OLLAMA_MODEL_DIR:-T:/Models/ollama}:/root/.ollama"
     restart: unless-stopped
+    stop_grace_period: 30s
     deploy:
       resources:
         reservations:
           devices:
             - capabilities: [gpu]
-volumes:
-  ollama:

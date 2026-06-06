@@ -61,7 +61,7 @@ PC_AI/
 │   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
 │   ├── PcaiInference.psm1             # Inference module (load/generate/stream/async)
 │   └── PcaiMedia.psm1                 # Media processing module (Janus-Pro wrapper)
-├── Tools/                             # 89 utility/build/diagnostic scripts
+├── Tools/                             # ~81 top-level utility/build/diagnostic scripts (245+ incl. subfolders e.g. InputDiagnostics/, SystemScripts/)
 ├── Tests/                             # Pester + Rust test suites (80+ test files)
 ├── Scripts/                           # Rust analyzer health, CargoTools tests
 ├── Config/
@@ -150,6 +150,8 @@ deepwiki-rs.exe -c .litho/litho.toml -p . -v
 ```
 
 Config: `.litho/litho.toml` — knowledge categories cover architecture, modules, native code, deployment, tests, reports, and build tools.
+
+> **Status (2026-06-06):** Litho C4 docs have **not yet been generated** for this repo — `docs/auto/` does not exist. Note `Tools\Invoke-DocPipeline.ps1` looks for a binary named `litho`/`~\bin\litho.exe`; the actual usable binary is `deepwiki-rs.exe` (on PATH and at `C:\codedev\.claude\tools\bin\`), so the pipeline's Litho steps currently silently skip. Run the `deepwiki-rs.exe` command above directly to generate. See `Reports/doc-tooling-evaluation-20260606.md`.
 
 ### Reports Directory
 
@@ -436,6 +438,8 @@ git push origin v1.0.0
 | `tooling-automation.yml` | Manual — doc/FG/LLM tooling |
 | `rust-guidelines.yml` | PR/push (Rust files) — format, clippy, test, audit for .rs/Cargo changes |
 | `nvidia-validation.yml` | PR/push (GPU files) — NVIDIA stack validation for PC-AI.Gpu changes |
+| `portable-ci.yml` | PR to main/develop — Portable CI (Linux) cross-platform gate |
+| `jules-review.yml` | Weekly Monday 06:00 UTC + manual — Jules automated review |
 
 ## Diagnostic Categories
 

@@ -32,3 +32,10 @@ pre-commit:
       glob: "*.rs"
       run: "if grep -rn 'TODO: Verify unwrap' {staged_files} 2>/dev/null; then exit 1; else exit 0; fi"
       fail_text: "Generic TODO expects found. Use descriptive expect messages."
+
+pre-push:
+  commands:
+    # GitOps directive 3: fire CI-health + upstream-review monitors NON-BLOCKING (detached) so the
+    # push is never delayed; results land in Reports/gitops/ + the agent-bus for agents to read.
+    gitops-monitors:
+      run: pwsh -NoProfile -Command "Start-Process pwsh -ArgumentList '-NoProfile','-File','{root}/Tools/GitOps/Invoke-GitOpsMonitors.ps1' -WindowStyle Hidden"

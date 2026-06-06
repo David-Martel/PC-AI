@@ -1,23 +1,28 @@
 # LATEST CONTEXT
 
-**Pointer →** [`input-stack-freeze-context-20260530.md`](input-stack-freeze-context-20260530.md)
-**ID:** `ctx-pcai-inputfreeze-20260530` · **Date:** 2026-05-30
+**Pointer →** [`pcai-context-20260606-input-stack-reinvestigation.md`](pcai-context-20260606-input-stack-reinvestigation.md)
+**ID:** `ctx-pcai-inputstack-20260606` · **Date:** 2026-06-06
 
-## One-line state (RESOLVED root causes)
-- **Shift broken = Logitech Options+ keyboard hook** (v2.3.879545). Killing `logioptionsplus_agent` fixed it (user-confirmed). Durable fix: update Options+ / remove Shift Smart Action / disable Logi service.
-- **Touchpad interference = Razer software** (user-confirmed). `RazerAppEngine` autostart REMOVED. Synapse NOT needed for the **Razer Core X V2 eGPU** (the "RTX 5060 Ti" is the eGPU over USB4). Full uninstall pending (elevated).
-- **Acute 5/29 hard-freeze cascade = eGPU Thunderbolt/USB4 link** (recurring WHEA 17 corrected PCIe errors + nvlddmkm + KP41). eGPU is daisy-chained through hubs — move to a dedicated TB4 port.
-- 6-script toolkit in `Tools/InputDiagnostics/` + Pester (41/41). Process Lasso & accessibility exonerated.
+## One-line state
+Re-investigated **shift-key + touchpad lockup** with fresh live evidence (systematic-debugging). **Two
+independent root causes** — keyboard (PS/2 `LEN0071`/i8042) and touchpad (Sensel `SNSL002D` I2C) are on
+**different buses** (parents `7E02` vs `7E78`), so simultaneous failure = system-wide contention, not a shared fault.
 
-## APPLIED & VALIDATED 2026-05-30 (elevated, UAC-approved)
-- USB selective suspend OFF (AC/DC=0x0 verified); CrashDumpEnabled=7; per-device power off (fingerprint+4 USB hubs); PC_AI-HVSockProxy+vtss Disabled.
-- Process Lasso optimized: windowsterminal+pwsh removed from EcoQoS; ALL DefaultGPUAdapterPreferences→auto(0) (eGPU forcing on Terminal removed). On-disk validated; reloads at sign-in.
-- Razer uninstalled (user) + autostart removed; was NOT needed for Core X V2 eGPU.
-- Shift root cause: NOT software (stack proven clean; Razer/Logi/PowerToys all exonerated) → ThinkPad EC/keyboard firmware, triggered under eGPU+Terminal+contention load. Touchpad = Synaptics I2C-HID (TrackPoint immune). 5/29 cascade = eGPU Thunderbolt link (WHEA PCIe errors).
+- **Touchpad — best supported (H6):** "allow computer to turn off this device" (`MSPower_DeviceEnable=True`,
+  confirmed live) on BOTH the Sensel touchpad AND its parent I2C controller `7E78`, × Modern Standby (506/507)
+  = classic I2C-HID resume-lockup. Fix **T1** = disable power-down on both (reversible).
+- **Shift — undecided, no OS-layer evidence** (i8042 logs clean 14 d; H1 FilterKeys REFUTED = off+disarmed now).
+  Run `Test-KeyInput.ps1` during a failure to decide software (app focus / DWM instability) vs EC/firmware.
+- Note: prior contexts variously blamed "Logitech Options+" then "EC firmware" then "Synaptics" — those are
+  **superseded**; the touchpad is **Sensel** (Synaptics = fingerprint, ELAN = TrackPoint). H4 Process Lasso REFUTED.
+- dwm.exe crashed 62× on 05-26 (dwmcore.dll) → cross-links the open **NVIDIA RTX 2000 Ada Code 31**.
+
+## New this session
+`Tools/InputDiagnostics/Watch-InputGlitch.ps1` — Gate-C glitch capture + glitches/day before/after a fix (the
+measurement prior fixes lacked). CLAUDE.md accuracy reconciled; `Reports/doc-tooling-evaluation-20260606.md`.
 
 ## Resume here (USER-gated, hands-on)
-1. **Sign out/in (or reboot)** — applies HID/USB power changes + reloads Process Lasso new config. TOP priority.
-2. When Shift fails: EC power-drain reset + `Tools\InputDiagnostics\Test-KeyInput.ps1` + external-keyboard test.
-3. Lenovo Vantage: **BIOS/EC firmware** + Synaptics touchpad + NVIDIA driver updates (durable Shift/touchpad fix).
-4. Behavioral validation: run heavy eGPU+Terminal workload post-sign-in; confirm input issues gone (PL fix removes the contention trigger).
-5. Decide `StartWithPowerPlan=Balanced` vs High-Perf. Consolidated: `machine-reliability.TODO.md` + `boot.TODO.md`.
+1. **`Test-KeyInput.ps1`** during a Shift failure — decides the keyboard branch.
+2. Apply touchpad **T1** (power-down off on `SNSL002D` + `7E78`); measure with `Watch-InputGlitch.ps1`.
+3. **NVIDIA Code 31** remediation (restore point + Vantage); OneDrive WNS GUI relink; re-run stale doc pipeline.
+4. Decide: delete ~934 MB OneDrive `.db` evidence copies? Consolidated: `machine-reliability.TODO.md` + `boot.TODO.md`.

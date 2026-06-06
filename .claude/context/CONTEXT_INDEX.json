@@ -1,7 +1,18 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-inputfreeze-20260530",
+  "latest": "ctx-pcai-inputstack-20260606",
   "contexts": [
+    {
+      "id": "ctx-pcai-inputstack-20260606",
+      "file": "pcai-context-20260606-input-stack-reinvestigation.md",
+      "created": "2026-06-06T18:30:00Z",
+      "project": "PC_AI",
+      "agents_involved": ["systematic-debugging", "Explore", "general-purpose"],
+      "summary": "Re-investigated shift-key + touchpad lockup from scratch. Device topology: Shift=PS/2 LEN0071/i8042 (parent 7E02), Touchpad=Sensel SNSL002D HID-over-I2C (parent 7E78) — DIFFERENT buses = two independent root causes (corrected prior 'Synaptics' mislabel; Synaptics=fingerprint, ELAN=TrackPoint). Verdicts: H1 FilterKeys REFUTED (off+disarmed now), H3 shared-bus REFUTED, H4 ProcessLasso REFUTED (protects input), H6 power SUPPORTS touchpad (MSPower_DeviceEnable=True live on SNSL002D + parent I2C 7E78 x Modern Standby = resume-lockup). Shift has NO OS-layer evidence -> needs Test-KeyInput trace. dwm.exe 62x crash 05-26 cross-links open NVIDIA Code 31. NEW: Watch-InputGlitch.ps1 Gate-C eval harness; touchpad fix T1 (power-down off). Also: CLAUDE.md doc reconciliation (Tools 89->81, +2 workflows, Litho status), doc-tooling eval report (validate-doc-accuracy caught TOOLS.md 31-vs-28 drift; Litho C4 never generated). Cleanup: 44 empty dirs + __pycache__; gitignored eval output + 12.9MB profile dump; surfaced 934MB OneDrive .db for user decision.",
+      "tags": ["input-stack", "shift-key", "touchpad", "sensel-i2c", "modern-standby", "device-power", "doc-accuracy", "tooling-eval", "gpg-keyboxd"],
+      "artifacts": ["Reports/input-stack-investigation-20260606/FINDINGS.md", "Tools/InputDiagnostics/Watch-InputGlitch.ps1", "Reports/doc-tooling-evaluation-20260606.md", "machine-reliability.TODO.md"],
+      "commit": "pending"
+    },
     {
       "id": "ctx-pcai-inputfreeze-20260530",
       "file": "input-stack-freeze-context-20260530.md",

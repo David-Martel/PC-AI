@@ -1,0 +1,1716 @@
+
+Name                            CommandType Source
+----                            ----------- ------
+ConvertTo-LlmContext               Function CargoTools
+Format-CargoError                  Function CargoTools
+Format-CargoOutput                 Function CargoTools
+Get-BuildVersionInfo               Function CargoTools
+Get-CargoContextSnapshot           Function CargoTools
+Get-CargoQueueStatus               Function CargoTools
+Get-MachineConfig                  Function CargoTools
+Get-MachineIdentity                Function CargoTools
+Get-OptimalBuildJobs               Function CargoTools
+Get-RustAnalyzerMemoryMB           Function CargoTools
+Get-RustAnalyzerTransportStatus    Function CargoTools
+Get-RustProjectContext             Function CargoTools
+Get-SccacheMemoryMB                Function CargoTools
+Initialize-CargoEnv                Function CargoTools
+Initialize-ProjectCargoConfig      Function CargoTools
+Initialize-RustDefaults            Function CargoTools
+Invoke-CargoDocker                 Function CargoTools
+Invoke-CargoMacos                  Function CargoTools
+Invoke-CargoRoute                  Function CargoTools
+Invoke-CargoWrapper                Function CargoTools
+Invoke-CargoWsl                    Function CargoTools
+Invoke-RustAnalyzerWrapper         Function CargoTools
+Publish-BuildArtifact              Function CargoTools
+Register-CurrentMachine            Function CargoTools
+Resolve-CargoTargetDirectory       Function CargoTools
+Resolve-RustAnalyzerPath           Function CargoTools
+Set-BuildVersionEnvironment        Function CargoTools
+Start-SccacheServer                Function CargoTools
+Stop-SccacheServer                 Function CargoTools
+Test-BuildEnvironment              Function CargoTools
+Test-RustAnalyzerHealth            Function CargoTools
+Test-RustAnalyzerSingleton         Function CargoTools
+
+
+
+HelpUri             : 
+ScriptBlock         : 
+                      <#
+                      .SYNOPSIS
+                      Centralized cargo wrapper with sccache and diagnostics support.
+                      .DESCRIPTION
+                      Sets sccache defaults, optional linkers, and runs preflight diagnostics before cargo builds.
+                      .PARAMETER ArgumentList
+                      Raw cargo arguments to pass through.
+                      .EXAMPLE
+                      Invoke-CargoWrapper --wrapper-help
+                      #>
+                          [CmdletBinding(DefaultParameterSetName = 'Args')]
+                          param(
+                              [Parameter(ParameterSetName = 'Args', ValueFromRemainingArguments = $true, Position = 0)]
+                              [string[]]$ArgumentList,
+                      
+                              [Parameter(ParameterSetName = 'Named', Mandatory = $true)]
+                              [string]$Command,
+                      
+                              [Parameter(ParameterSetName = 'Named')]
+                              [string[]]$AdditionalArgs,
+                      
+                              [Parameter(ParameterSetName = 'Named')]
+                              [string]$WorkingDirectory
+                          )
+                      
+                          $rawArgs = if ($PSCmdlet.ParameterSetName -eq 'Named') {
+                              $argsList = New-Object System.Collections.Generic.List[string]
+                              $argsList.Add($Command)
+                              if ($AdditionalArgs) { $argsList.AddRange($AdditionalArgs) }
+                              $argsList.ToArray()
+                          } elseif ($ArgumentList) {
+                              @($ArgumentList)
+                          } else {
+                              @()
+                          }
+                          if ($rawArgs -isnot [System.Array]) { $rawArgs = @($rawArgs) }
+                          $passThrough = New-Object System.Collections.Generic.List[string]
+                          $helpRequested = $false
+                          $wrapperOnly = $false
+                          $rawMode = $false
+                          $useNextest = $null
+                          $useLld = $null
+                          $useNative = $null
+                          $useFastlink = $null
+                          $llmDebug = $false
+                          $llmOutput = $false
+                          $autoCopy = $null
+                          $fix = $false
+                          $useTimings = $null
+                          $releaseOptimized = $false
+                          $quickCheck = $null
+                          $enforceQuality = $true
+                          $runPostBuildNextest = $true
+                          $runPostBuildDoctest = $true
+                          $sharedCacheRoot = Resolve-CacheRoot
+                      
+                          function Show-WrapperHelp {
+                              Write-Host 'cargo-wrapper.ps1 - Centralized Rust build wrapper' -ForegroundColor Cyan
+                              Write-Host ''
+                              Write-Host 'Usage:' -ForegroundColor Yellow
+                              Write-Host '  cargo [cargo-args]' -ForegroundColor Gray
+                              Write-Host '  cargo --help | -h              Show wrapper + cargo help' -ForegroundColor Gray
+                              Write-Host '  cargo --wrapper-help           Show wrapper help only' -ForegroundColor Gray
+                              Write-Host '  Invoke-CargoWrapper -Command build -AdditionalArgs --release -WorkingDirectory <path>' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Defaults enforced:' -ForegroundColor Yellow
+                              Write-Host '  - sccache enabled (RUSTC_WRAPPER=sccache)' -ForegroundColor Gray
+                              Write-Host "  - sccache cache dir: $sharedCacheRoot\sccache" -ForegroundColor Gray
+                              Write-Host "  - shared cargo/rustup homes: $sharedCacheRoot\cargo-home and $sharedCacheRoot\rustup" -ForegroundColor Gray
+                              Write-Host '  - project-local target/ output by default' -ForegroundColor Gray
+                              Write-Host '  - queued top-level cargo execution to prevent contention storms' -ForegroundColor Gray
+                              Write-Host '  - sccache port: 4400' -ForegroundColor Gray
+                              Write-Host '  - quality gate enabled (autofix + clippy + fmt, blocking)' -ForegroundColor Gray
+                              Write-Host '  - post-build validation enabled (nextest + doctests)' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Passthrough mode:' -ForegroundColor Yellow
+                              Write-Host '  --raw | --passthrough       Bypass all wrapper behavior (no preflight, no env, no auto-copy)' -ForegroundColor Gray
+                              Write-Host '  CARGO_RAW=1                 Enable raw mode via environment' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Wrapper flags:' -ForegroundColor Yellow
+                              Write-Host '  --use-lld | --no-lld            Toggle lld-link (LLVM linker)' -ForegroundColor Gray
+                              Write-Host '  --use-native | --no-native      Toggle -C target-cpu=native' -ForegroundColor Gray
+                              Write-Host '  --fastlink | --no-fastlink      Toggle MSVC /DEBUG:FASTLINK' -ForegroundColor Gray
+                              Write-Host '  --llm-debug                     Enable LLM-friendly debug defaults' -ForegroundColor Gray
+                              Write-Host '  --preflight                     Run pre-build diagnostics (cargo check)' -ForegroundColor Gray
+                              Write-Host '  --preflight-mode <check|clippy|fmt|deny|all>' -ForegroundColor Gray
+                              Write-Host '  --preflight-ra                  Run rust-analyzer diagnostics before build' -ForegroundColor Gray
+                              Write-Host '  --fix                           Automatically apply clippy/fmt fixes during preflight' -ForegroundColor Gray
+                              Write-Host '  --preflight-strict              Treat warnings as errors for clippy' -ForegroundColor Gray
+                              Write-Host '  --preflight-blocking            Fail build on preflight errors' -ForegroundColor Gray
+                              Write-Host '  --preflight-nonblocking         Continue build on preflight errors' -ForegroundColor Gray
+                              Write-Host '  --preflight-force               Force preflight even in IDE contexts' -ForegroundColor Gray
+                              Write-Host '  --quick-check | --no-quick-check Rewrite build -> check for fast validation' -ForegroundColor Gray
+                              Write-Host '  --nextest                       Use cargo-nextest for test commands' -ForegroundColor Gray
+                              Write-Host '  --no-nextest                    Force standard cargo test' -ForegroundColor Gray
+                              Write-Host '  --timings                       Generate HTML build timing report' -ForegroundColor Gray
+                              Write-Host '  --release-optimized             Enable thin LTO + codegen-units=1 for release builds' -ForegroundColor Gray
+                              Write-Host '  --llm-output                    Emit single-line JSON status (for LLM agents)' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Env toggles (for blank cargo invocations):' -ForegroundColor Yellow
+                              Write-Host '  CARGO_USE_LLD=1|0, CARGO_USE_NATIVE=1|0, CARGO_USE_FASTLINK=1|0' -ForegroundColor Gray
+                              Write-Host '  CARGO_LLD_PATH=C:\Program Files\LLVM\bin\lld-link.exe' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT=1, CARGO_PREFLIGHT_MODE=check|clippy|fmt|all' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT_STRICT=1, CARGO_RA_PREFLIGHT=1' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT_BLOCKING=1      Fail build on preflight errors' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT_IDE_GUARD=1     Disable preflight in IDE contexts' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT_FORCE=1         Force preflight even in IDE contexts' -ForegroundColor Gray
+                              Write-Host '  CARGO_RAW=1                     Bypass all wrapper behavior' -ForegroundColor Gray
+                              Write-Host '  CARGO_QUICK_CHECK=1             Rewrite build -> check for validation' -ForegroundColor Gray
+                              Write-Host '  CARGO_USE_NEXTEST=1             Use cargo-nextest for test commands' -ForegroundColor Gray
+                              Write-Host '  CARGO_TIMINGS=1                 Generate build timing report' -ForegroundColor Gray
+                              Write-Host '  CARGO_RELEASE_LTO=1             Enable thin LTO for release builds' -ForegroundColor Gray
+                              Write-Host '  CARGO_VERBOSITY=llm             Enable JSON output for LLM agents' -ForegroundColor Gray
+                              Write-Host '  CARGOTOOLS_RUST_TOOLCHAIN=<toolchain>  Pin wrapper rustup toolchain' -ForegroundColor Gray
+                              Write-Host '  CARGOTOOLS_ENFORCE_QUALITY=1|0  Toggle mandatory quality gate (default: 1)' -ForegroundColor Gray
+                              Write-Host '  CARGOTOOLS_RUN_TESTS_AFTER_BUILD=1|0  Toggle mandatory post-build nextest (default: 1)' -ForegroundColor Gray
+                              Write-Host '  CARGOTOOLS_RUN_DOCTESTS_AFTER_BUILD=1|0 Toggle mandatory post-build doctests (default: 1)' -ForegroundColor Gray
+                              Write-Host '  RA_DIAGNOSTICS_FLAGS="--disable-build-scripts --disable-proc-macros"' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Common helpers:' -ForegroundColor Yellow
+                              Write-Host '  sccache --show-stats' -ForegroundColor Gray
+                              Write-Host '  sccache --zero-stats' -ForegroundColor Gray
+                              Write-Host '  sccache --stop-server' -ForegroundColor Gray
+                              Write-Host '  sccache --start-server' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Build output auto-copy:' -ForegroundColor Yellow
+                              Write-Host '  Only used when building against a nonlocal/shared CARGO_TARGET_DIR' -ForegroundColor Gray
+                              Write-Host '  Enable with: $env:CARGO_AUTO_COPY=1 or --auto-copy' -ForegroundColor Gray
+                              Write-Host '  --no-auto-copy          Disable local output copy for this run' -ForegroundColor Gray
+                              Write-Host '  --auto-copy             Force local output copy for this run' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Verbosity control:' -ForegroundColor Yellow
+                              Write-Host '  -q, --quiet             Suppress non-error output' -ForegroundColor Gray
+                              Write-Host '  -v, --verbose           Show detailed progress and sccache stats' -ForegroundColor Gray
+                              Write-Host '  -vv, --debug            Show debug-level diagnostics' -ForegroundColor Gray
+                              Write-Host '  CARGO_VERBOSITY=0|1|2|3 Set via environment (0=quiet, 1=normal, 2=verbose, 3=debug)' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Docker/WSL helpers (if installed):' -ForegroundColor Yellow
+                              Write-Host '  cargo-docker [args...]    Run cargo inside Docker' -ForegroundColor Gray
+                              Write-Host '  cargo-wsl [args...]       Run cargo inside WSL' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Wrappers:' -ForegroundColor Yellow
+                              Write-Host '  PowerShell: cargo.ps1 (preferred) -> cargo-route.ps1' -ForegroundColor Gray
+                              Write-Host '  Direct wrapper: cargo-wrapper.ps1' -ForegroundColor Gray
+                              Write-Host '  cmd.exe: cargo.cmd / cargo.bat -> cargo.ps1 (pwsh)' -ForegroundColor Gray
+                              Write-Host ''
+                          }
+                      
+                          function Ensure-CargoNextest {
+                              param(
+                                  [string]$RustupPath,
+                                  [string]$Toolchain
+                              )
+                      
+                              if (-not $Toolchain) { $Toolchain = Resolve-CargoToolchain -RustupPath $RustupPath }
+                              & $RustupPath run $Toolchain cargo nextest --version 2>$null | Out-Null
+                              if ($LASTEXITCODE -eq 0) { return $true }
+                      
+                              Write-CargoStatus -Phase 'PostBuild' -Message 'cargo-nextest not found, installing...' -Type 'Warning'
+                              & $RustupPath run $Toolchain cargo install cargo-nextest --locked
+                              if ($LASTEXITCODE -eq 0) { return $true }
+                      
+                              Write-CargoStatus -Phase 'PostBuild' -Message 'Unable to install cargo-nextest.' -Type 'Error'
+                              return $false
+                          }
+                      
+                          function Test-DoctestEligibleScope {
+                              param(
+                                  [Parameter(Mandatory)]
+                                  [string]$RustupPath,
+                                  [string]$Toolchain,
+                                  [string[]]$ScopeArgs
+                              )
+                      
+                              if (-not $Toolchain) { $Toolchain = Resolve-CargoToolchain -RustupPath $RustupPath }
+                      
+                              $metadataArgs = New-Object System.Collections.Generic.List[string]
+                              foreach ($metadataArg in @('metadata', '--no-deps', '--format-version', '1')) {
+                                  $metadataArgs.Add([string]$metadataArg)
+                              }
+                      
+                              $selectedPackages = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+                              $scope = Normalize-ArgsList $ScopeArgs
+                              for ($idx = 0; $idx -lt $scope.Count; $idx++) {
+                                  $arg = $scope[$idx]
+                                  switch ($arg) {
+                                      '--package' {
+                                          if ($idx + 1 -lt $scope.Count) {
+                                              $idx++
+                                              [void]$selectedPackages.Add($scope[$idx])
+                                          }
+                                          continue
+                                      }
+                                      '-p' {
+                                          if ($idx + 1 -lt $scope.Count) {
+                                              $idx++
+                                              [void]$selectedPackages.Add($scope[$idx])
+                                          }
+                                          continue
+                                      }
+                                      '--manifest-path' {
+                                          if ($idx + 1 -lt $scope.Count) {
+                                              $metadataArgs.Add('--manifest-path')
+                                              $idx++
+                                              $metadataArgs.Add($scope[$idx])
+                                          }
+                                          continue
+                                      }
+                                      '--all-features' {
+                                          $metadataArgs.Add('--all-features')
+                                          continue
+                                      }
+                                      '--no-default-features' {
+                                          $metadataArgs.Add('--no-default-features')
+                                          continue
+                                      }
+                                      '--features' {
+                                          if ($idx + 1 -lt $scope.Count) {
+                                              $metadataArgs.Add('--features')
+                                              $idx++
+                                              $metadataArgs.Add($scope[$idx])
+                                          }
+                                          continue
+                                      }
+                                      default {
+                                          if ($arg.StartsWith('--package=')) {
+                                              [void]$selectedPackages.Add(($arg -split '=', 2)[1])
+                                              continue
+                                          }
+                                          if ($arg.StartsWith('--manifest-path=')) {
+                                              $metadataArgs.Add($arg)
+                                              continue
+                                          }
+                                          if ($arg.StartsWith('--features=')) {
+                                              $metadataArgs.Add($arg)
+                                              continue
+                                          }
+                                          continue
+                                      }
+                                  }
+                              }
+                      
+                              $metadataJson = & $RustupPath run $Toolchain cargo $metadataArgs.ToArray() 2>$null
+                              if ($LASTEXITCODE -ne 0 -or -not $metadataJson) {
+                                  return $true
+                              }
+                      
+                              try {
+                                  $metadata = $metadataJson | ConvertFrom-Json -Depth 32
+                              } catch {
+                                  return $true
+                              }
+                      
+                              $packages = @($metadata.packages)
+                              if ($selectedPackages.Count -gt 0) {
+                                  $packages = @($packages | Where-Object { $selectedPackages.Contains($_.name) })
+                              } elseif ($metadata.workspace_members) {
+                                  $workspaceMemberIds = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+                                  foreach ($memberId in @($metadata.workspace_members)) {
+                                      [void]$workspaceMemberIds.Add([string]$memberId)
+                                  }
+                                  $packages = @($packages | Where-Object { $workspaceMemberIds.Contains([string]$_.id) })
+                              }
+                      
+                              foreach ($package in $packages) {
+                                  foreach ($target in @($package.targets)) {
+                                      $kinds = @($target.kind)
+                                      $supportsDoctest = $true
+                                      if ($null -ne $target.doctest) {
+                                          $supportsDoctest = [bool]$target.doctest
+                                      }
+                      
+                                      if ($supportsDoctest -and ($kinds -contains 'lib' -or $kinds -contains 'rlib' -or $kinds -contains 'proc-macro')) {
+                                          return $true
+                                      }
+                                  }
+                              }
+                      
+                              return $false
+                          }
+                      
+                          function Remove-CargoToolchainOverrideArg {
+                              param(
+                                  [System.Collections.Generic.List[string]]$ArgsList
+                              )
+                      
+                              if ($null -eq $ArgsList) { return $null }
+                              if ($ArgsList.Count -gt 0 -and $ArgsList[0] -like '+*') {
+                                  $toolchain = $ArgsList[0].TrimStart('+')
+                                  $ArgsList.RemoveAt(0)
+                                  return $toolchain
+                              }
+                      
+                              return $null
+                          }
+                      
+                          for ($i = 0; $i -lt $rawArgs.Count; $i++) {
+                              $arg = $rawArgs[$i]
+                              switch ($arg) {
+                                  '--wrapper-help' { $wrapperOnly = $true; continue }
+                                  '--raw' { $rawMode = $true; continue }
+                                  '--passthrough' { $rawMode = $true; continue }
+                                  '--nextest' { $useNextest = $true; continue }
+                                  '--no-nextest' { $useNextest = $false; continue }
+                                  '--llm-output' { $llmOutput = $true; continue }
+                                  '--use-lld' { $useLld = $true; continue }
+                                  '--lld' { $useLld = $true; continue }
+                                  '--no-lld' { $useLld = $false; continue }
+                                  '--use-native' { $useNative = $true; continue }
+                                  '--no-native' { $useNative = $false; continue }
+                                  '--fastlink' { $useFastlink = $true; continue }
+                                  '--use-fastlink' { $useFastlink = $true; continue }
+                                  '--no-fastlink' { $useFastlink = $false; continue }
+                                  '--llm-debug' { $llmDebug = $true; continue }
+                                  '--auto-copy' { $autoCopy = $true; continue }
+                                  '--no-auto-copy' { $autoCopy = $false; continue }
+                                  '--timings' { $useTimings = $true; continue }
+                                  '--no-timings' { $useTimings = $false; continue }
+                                  '--release-optimized' { $releaseOptimized = $true; continue }
+                                  '--quick-check' { $quickCheck = $true; continue }
+                                  '--fix' { $fix = $true; continue }
+                                  '--no-quick-check' { $quickCheck = $false; continue }
+                                  '--help' { $helpRequested = $true; $passThrough.Add($arg); continue }
+                                  '-h' { $helpRequested = $true; $passThrough.Add($arg); continue }
+                                  'help' { $helpRequested = $true; $passThrough.Add($arg); continue }
+                                  default { $passThrough.Add($arg); continue }
+                              }
+                          }
+                      
+                          # Check CARGO_RAW env var
+                          if (-not $rawMode -and $env:CARGO_RAW -and (Test-Truthy $env:CARGO_RAW)) {
+                              $rawMode = $true
+                          }
+                      
+                          $requestedToolchain = Remove-CargoToolchainOverrideArg -ArgsList $passThrough
+                      
+                          # Raw/passthrough mode: bypass all wrapper behavior, run cargo directly
+                          if ($rawMode) {
+                              Ensure-MsvcEnv
+                              $rustupPath = Get-RustupPath
+                              if (-not (Test-Path $rustupPath)) {
+                                  Write-Error "Error: rustup.exe not found at $rustupPath"
+                                  return 1
+                              }
+                              $toolchain = Resolve-CargoToolchain -RustupPath $rustupPath -RequestedToolchain $requestedToolchain
+                              $rawPassThrough = $passThrough.ToArray()
+                              & $rustupPath run $toolchain cargo @rawPassThrough
+                              return $LASTEXITCODE
+                          }
+                      
+                          # Initialize verbosity from arguments
+                          if ($llmOutput) {
+                              Initialize-CargoLlmOutput
+                          }
+                          $verbosity = Initialize-CargoVerbosity $passThrough.ToArray()
+                          $passThroughFiltered = @(Get-VerbosityArgs $passThrough.ToArray())
+                          $passThrough = New-Object System.Collections.Generic.List[string]
+                          foreach ($arg in $passThroughFiltered) {
+                              if ($null -ne $arg) { $passThrough.Add([string]$arg) }
+                          }
+                      
+                          $enforceQuality = if ($env:CARGOTOOLS_ENFORCE_QUALITY) {
+                              Test-Truthy $env:CARGOTOOLS_ENFORCE_QUALITY
+                          } else {
+                              $true
+                          }
+                          $runPostBuildNextest = if ($env:CARGOTOOLS_RUN_TESTS_AFTER_BUILD) {
+                              Test-Truthy $env:CARGOTOOLS_RUN_TESTS_AFTER_BUILD
+                          } else {
+                              $enforceQuality
+                          }
+                          $runPostBuildDoctest = if ($env:CARGOTOOLS_RUN_DOCTESTS_AFTER_BUILD) {
+                              Test-Truthy $env:CARGOTOOLS_RUN_DOCTESTS_AFTER_BUILD
+                          } else {
+                              $enforceQuality
+                          }
+                          if ($enforceQuality) {
+                              $fix = $true
+                          }
+                      
+                          $primaryCmd = Get-PrimaryCommand $passThrough.ToArray()
+                          if ($primaryCmd -eq 'test') {
+                              $env:CARGO_RA_PREFLIGHT = '0'
+                          }
+                      
+                          $preflightSplit = Split-PreflightArgs $passThrough.ToArray()
+                          if (-not $preflightSplit) { return 1 }
+                      
+                          $passThrough = New-Object System.Collections.Generic.List[string]
+                          foreach ($arg in @($preflightSplit.Remaining)) {
+                              if ($null -ne $arg) { $passThrough.Add([string]$arg) }
+                          }
+                          $preflight = Apply-PreflightEnvDefaults $preflightSplit.State
+                          $preflight = Apply-PreflightIdeGuard $preflight
+                      
+                          if ($wrapperOnly -or $helpRequested) {
+                              Show-WrapperHelp
+                              if ($wrapperOnly -and -not $helpRequested) {
+                                  return 0
+                              }
+                          }
+                      
+                          $popLocation = $false
+                          if ($WorkingDirectory) {
+                              if (-not (Test-Path $WorkingDirectory)) {
+                                  Write-Error "Working directory not found: $WorkingDirectory"
+                                  return 1
+                              }
+                              Push-Location $WorkingDirectory
+                              $popLocation = $true
+                          }
+                      
+                          $queueTicket = $null
+                          try {
+                              if ($llmDebug -or ($env:CARGO_LLM_DEBUG -and $env:CARGO_LLM_DEBUG -ne '0')) {
+                                  $env:RUST_BACKTRACE = 'full'
+                                  if (-not $env:CARGO_TERM_COLOR) { $env:CARGO_TERM_COLOR = 'always' }
+                                  Add-RustFlags '-C debuginfo=1'
+                                  Set-CargoVerbosity 3
+                              }
+                      
+                              # Environment setup phase
+                              Write-CargoBuildPhase -Phase 'Environment' -Starting
+                              Initialize-CargoEnv
+                              if ($null -ne (Get-Item -Path 'Function:Test-CargoMachineDependencies' -ErrorAction SilentlyContinue)) {
+                                  $depCheck = Test-CargoMachineDependencies -Quiet
+                                  if (-not $depCheck.Passed) {
+                                      Write-CargoStatus -Phase 'Environment' -Message ("Machine dependency check failed: " + ($depCheck.MissingMandatory -join ', ')) -Type 'Error'
+                                      return 1
+                                  }
+                              }
+                              Write-CargoDebug "CARGO_TARGET_DIR: $env:CARGO_TARGET_DIR"
+                              Write-CargoDebug "SCCACHE_DIR: $env:SCCACHE_DIR"
+                      
+                              $lldPath = Resolve-LldLinker
+                              if ($null -eq $useLld) {
+                                  if ($env:CARGO_USE_LLD) { $useLld = Test-Truthy $env:CARGO_USE_LLD }
+                                  else { $useLld = $false }
+                              }
+                      
+                              $useLld = Apply-LinkerSettings -UseLld $useLld -LldPath $lldPath
+                      
+                              if ($null -eq $useNative) {
+                                  if ($env:CARGO_USE_NATIVE) { $useNative = Test-Truthy $env:CARGO_USE_NATIVE }
+                                  else { $useNative = $false }
+                              }
+                              Apply-NativeCpuFlag -UseNative $useNative
+                      
+                              if ($null -eq $useFastlink) {
+                                  if ($env:CARGO_USE_FASTLINK) { $useFastlink = Test-Truthy $env:CARGO_USE_FASTLINK }
+                                  else { $useFastlink = $false }
+                              }
+                              if ($useFastlink -and -not $useLld) { Add-RustFlags '-C link-arg=/DEBUG:FASTLINK' }
+                      
+                              $sccacheOk = Start-SccacheServer
+                              if (-not $sccacheOk) {
+                                  # sccache failed to start - clear RUSTC_WRAPPER to prevent cargo from trying
+                                  # to invoke a non-functional sccache, which would produce confusing errors
+                                  if ($env:RUSTC_WRAPPER -eq 'sccache') {
+                                      Remove-Item Env:RUSTC_WRAPPER -ErrorAction SilentlyContinue
+                                      Write-CargoStatus -Phase 'Environment' -Message 'sccache unavailable, building without cache acceleration' -Type 'Warning' -MinVerbosity 1
+                                  }
+                              } else {
+                                  Write-CargoStatus -Phase 'Environment' -Message 'sccache server started' -Type 'Success' -MinVerbosity 2
+                              }
+                      
+                              $shouldQueue = -not $rawMode -and (Test-CargoCommandNeedsQueue $primaryCmd -or $preflight.Enabled -or $fix)
+                              if ($shouldQueue) {
+                                  Write-CargoBuildPhase -Phase 'Queue' -Starting
+                                  $queueTicket = Enter-CargoBuildQueue -ArgsList $passThrough.ToArray() -WorkingDirectory (Get-Location).Path
+                                  if ($queueTicket) {
+                                      Write-CargoBuildPhase -Phase 'Queue' -Complete
+                                  }
+                              }
+                      
+                              $rustupPath = Get-RustupPath
+                              if (Test-Path $rustupPath) {
+                                  $toolchain = Resolve-CargoToolchain -RustupPath $rustupPath -RequestedToolchain $requestedToolchain
+                                  Write-CargoStatus -Phase 'Environment' -Message "Using Rust toolchain: $toolchain" -Type 'Info' -MinVerbosity 2
+                                  $buildStartTime = Get-Date
+                                  try {
+                                      # Auto-fix phase
+                                      if ($fix -and @('build','check','test','bench','run') -contains $primaryCmd) {
+                                          $fixArgs = Normalize-ArgsList (Strip-ArgsAfterDoubleDash $passThrough.ToArray())
+                                          $fixSansCmd = New-Object System.Collections.Generic.List[string]
+                                          $removedCmd = $false
+                                          foreach ($arg in $fixArgs) {
+                                              if (-not $removedCmd -and -not $arg.StartsWith('-') -and -not $arg.StartsWith('+')) {
+                                                  $removedCmd = $true
+                                                  continue
+                                              }
+                                              $fixSansCmd.Add($arg)
+                                          }
+                                          $fixArgs = $fixSansCmd.ToArray()
+                                          Write-CargoStatus -Phase "Preflight" -Message "Mandatory auto-fix (clippy --fix + fmt)..." -Type "Info"
+                                          & $rustupPath run $toolchain cargo clippy --fix --allow-dirty --allow-staged --allow-no-vcs @fixArgs
+                                          if ($LASTEXITCODE -ne 0) {
+                                              Write-CargoStatus -Phase "Preflight" -Message "Auto-fix failed." -Type "Error"
+                                              return $LASTEXITCODE
+                                          }
+                                          & $rustupPath run $toolchain cargo fmt --all
+                                          if ($LASTEXITCODE -ne 0) {
+                                              Write-CargoStatus -Phase "Preflight" -Message "cargo fmt failed." -Type "Error"
+                                              return $LASTEXITCODE
+                                          }
+                                      }
+                                      # Preflight phase
+                                      if ($preflight.Enabled) {
+                                          Write-CargoBuildPhase -Phase 'Preflight' -Starting
+                                          $preflightExit = Invoke-PreflightLocal -RustupPath $rustupPath -Toolchain $toolchain -PassThroughArgs $passThrough.ToArray() -State $preflight
+                                          if ($preflightExit -ne 0) {
+                                              Write-CargoBuildPhase -Phase 'Preflight' -Failed
+                                              if ($preflight.Blocking) {
+                                                  Write-CargoStatus -Phase 'Preflight' -Message "Failed with exit code $preflightExit (blocking)" -Type 'Error'
+                                                  return $preflightExit
+                                              }
+                                              Write-CargoStatus -Phase 'Preflight' -Message 'Failed (non-blocking, continuing)' -Type 'Warning'
+                                          } else {
+                                              Write-CargoBuildPhase -Phase 'Preflight' -Complete
+                                          }
+                                      }
+                      
+                                      # Rust-analyzer diagnostics
+                                      if ($preflight.RA) {
+                                          $raExit = Invoke-RaDiagnosticsLocal -State $preflight -PassThroughArgs $passThrough.ToArray()
+                                          if ($raExit -ne 0 -and $preflight.Blocking) {
+                                              Write-CargoStatus -Phase 'Preflight' -Message 'rust-analyzer diagnostics failed (blocking)' -Type 'Error'
+                                              return $raExit
+                                          }
+                                      }
+                      
+                                      # Quick-check: rewrite 'build' -> 'check' for fast validation
+                                      if ($null -eq $quickCheck -and $env:CARGO_QUICK_CHECK) {
+                                          $quickCheck = Test-Truthy $env:CARGO_QUICK_CHECK
+                                      }
+                                      if ($quickCheck -and $primaryCmd -eq 'build' -and -not $enforceQuality) {
+                                          $rewritten = New-Object System.Collections.Generic.List[string]
+                                          $replaced = $false
+                                          foreach ($a in $passThrough.ToArray()) {
+                                              if (-not $replaced -and $a -eq 'build') {
+                                                  $rewritten.Add('check')
+                                                  $replaced = $true
+                                              } else {
+                                                  $rewritten.Add($a)
+                                              }
+                                          }
+                                          $passThrough = $rewritten
+                                          $primaryCmd = 'check'
+                                          Write-CargoStatus -Phase 'Build' -Message 'Quick-check: rewrote build -> check' -Type 'Info' -MinVerbosity 1
+                                      }
+                      
+                                      # Nextest: rewrite 'test' -> 'nextest run' when enabled
+                                      if ($null -eq $useNextest -and $env:CARGO_USE_NEXTEST) {
+                                          $useNextest = Test-Truthy $env:CARGO_USE_NEXTEST
+                                      }
+                                      if ($useNextest -and $primaryCmd -eq 'test') {
+                                          $nextestCmd = & $rustupPath run $toolchain cargo nextest --version 2>$null
+                                          if ($LASTEXITCODE -eq 0) {
+                                              $rewritten = New-Object System.Collections.Generic.List[string]
+                                              $replaced = $false
+                                              foreach ($a in $passThrough.ToArray()) {
+                                                  if (-not $replaced -and $a -eq 'test') {
+                                                      $rewritten.Add('nextest')
+                                                      $rewritten.Add('run')
+                                                      $replaced = $true
+                                                  } else {
+                                                      $rewritten.Add($a)
+                                                  }
+                                              }
+                                              $passThrough = $rewritten
+                                              Write-CargoStatus -Phase 'Build' -Message 'Rewrote test -> nextest run' -Type 'Info' -MinVerbosity 2
+                                          } else {
+                                              Write-CargoStatus -Phase 'Build' -Message 'cargo-nextest not installed, using standard test' -Type 'Warning' -MinVerbosity 1
+                                          }
+                                      }
+                      
+                                      # --timings: append --timings to build commands for HTML timing report
+                                      if ($null -eq $useTimings -and $env:CARGO_TIMINGS) {
+                                          $useTimings = Test-Truthy $env:CARGO_TIMINGS
+                                      }
+                                      if ($useTimings -and (Test-IsBuildCommand $primaryCmd)) {
+                                          $passThrough.Add('--timings')
+                                          Write-CargoStatus -Phase 'Build' -Message 'Build timings enabled (--timings)' -Type 'Info' -MinVerbosity 2
+                                      }
+                      
+                                      # --release-optimized: thin LTO + codegen-units=1 for release builds
+                                      if ($releaseOptimized -or ($env:CARGO_RELEASE_LTO -and (Test-Truthy $env:CARGO_RELEASE_LTO))) {
+                                          if ($passThrough.Contains('--release') -or $primaryCmd -eq 'install') {
+                                              Add-RustFlags '-C lto=thin' '-C codegen-units=1'
+                                              Write-CargoStatus -Phase 'Build' -Message 'Release-optimized: thin LTO + codegen-units=1' -Type 'Info' -MinVerbosity 1
+                                          }
+                                      }
+                      
+                                      # LLM JSON message format injection
+                                      if ($script:LlmOutputMode -and $primaryCmd) {
+                                          $injected = Get-MessageFormatArgs -PrimaryCommand $primaryCmd -ArgsList $passThrough.ToArray()
+                                          if ($injected.Count -ne $passThrough.Count) {
+                                              $passThrough = New-Object System.Collections.Generic.List[string]
+                                              foreach ($a in $injected) { $passThrough.Add($a) }
+                                              Write-CargoDebug 'LLM mode: injected --message-format=json'
+                                          }
+                                      }
+                      
+                                      # Build phase
+                                      Write-CargoBuildPhase -Phase 'Build' -Starting
+                                      $passThroughBuild = Ensure-RunArgSeparator $passThrough.ToArray()
+                      
+                                      $buildArgs = @($passThroughBuild)
+                                      if ((Get-CargoVerbosity) -ge 3) {
+                                          Write-CargoDebug "Argument Count: $($buildArgs.Count)"
+                                          for ($i = 0; $i -lt $buildArgs.Count; $i++) {
+                                              if ($null -eq $buildArgs[$i]) {
+                                                  Write-CargoDebug "Arg[$i]: NULL"
+                                              } else {
+                                                  Write-CargoDebug "Arg[$i]: '$($buildArgs[$i])'"
+                                              }
+                                          }
+                                      }
+                      
+                                      Write-CargoStatus -Phase 'Build' -Message "Running: cargo $($buildArgs -join ' ')" -Type 'Info' -MinVerbosity 2
+                      
+                                      & $rustupPath run $toolchain cargo @buildArgs
+                                      $cargoExitCode = $LASTEXITCODE
+                                      $buildElapsed = (Get-Date) - $buildStartTime
+                      
+                                      if ($cargoExitCode -ne 0) {
+                                          Write-CargoBuildPhase -Phase 'Build' -Failed
+                      
+                                          # Check if sccache died mid-build â€” auto-retry once if so
+                                          $sccacheRetried = $false
+                                          if ($env:RUSTC_WRAPPER -eq 'sccache') {
+                                              $sccHealth = Test-SccacheHealth
+                                              if (-not $sccHealth.Healthy) {
+                                                  Write-CargoStatus -Phase 'Build' -Message "sccache failed during build: $($sccHealth.Error)" -Type 'Warning'
+                                                  if (-not $sccHealth.Running) {
+                                                      Write-CargoStatus -Phase 'Build' -Message 'Restarting sccache and retrying build...' -Type 'Info'
+                                                      $sccacheRestarted = Start-SccacheServer -Force
+                                                      if ($sccacheRestarted) {
+                                                          Write-CargoBuildPhase -Phase 'Build' -Starting
+                                                          & $rustupPath run $toolchain cargo @buildArgs
+                                                          $cargoExitCode = $LASTEXITCODE
+                                                          $sccacheRetried = $true
+                                                          if ($cargoExitCode -eq 0) {
+                                                              $buildElapsed = (Get-Date) - $buildStartTime
+                                                              Write-CargoBuildPhase -Phase 'Build' -Complete
+                                                              Write-CargoStatus -Phase 'Build' -Message "Succeeded on sccache retry in $([Math]::Round($buildElapsed.TotalSeconds, 2))s" -Type 'Success' -MinVerbosity 1
+                                                          }
+                                                      } else {
+                                                          Write-CargoStatus -Phase 'Build' -Message 'sccache restart failed. Hint: retry with --raw to bypass sccache' -Type 'Warning'
+                                                      }
+                                                  }
+                                              }
+                                          }
+                      
+                                          if ($cargoExitCode -ne 0) {
+                                              # Enhanced error diagnostics
+                                              $diagnostics = Format-CargoDiagnostics -ExitCode $cargoExitCode -Command 'cargo' -Arguments $passThrough.ToArray() -StartTime $buildStartTime
+                                              Write-Host $diagnostics -ForegroundColor Red
+                      
+                                              # Show sccache stats on failure for debugging
+                                              Show-SccacheStatus -Compact
+                      
+                                              return $cargoExitCode
+                                          }
+                                      }
+                      
+                                      Write-CargoBuildPhase -Phase 'Build' -Complete
+                                      Write-CargoStatus -Phase 'Build' -Message "Completed in $([Math]::Round($buildElapsed.TotalSeconds, 2))s" -Type 'Success' -MinVerbosity 2
+                      
+                                      if ($cargoExitCode -eq 0 -and $primaryCmd -eq 'build' -and $runPostBuildNextest) {
+                                          Write-CargoBuildPhase -Phase 'PostBuild' -Starting
+                      
+                                          if (-not (Ensure-CargoNextest -RustupPath $rustupPath -Toolchain $toolchain)) {
+                                              Write-CargoBuildPhase -Phase 'PostBuild' -Failed
+                                              return 1
+                                          }
+                      
+                                          $scopeArgs = New-Object System.Collections.Generic.List[string]
+                                          $buildArgsRaw = Normalize-ArgsList (Strip-ArgsAfterDoubleDash $passThrough.ToArray())
+                                          $removedCmd = $false
+                                          for ($idx = 0; $idx -lt $buildArgsRaw.Count; $idx++) {
+                                              $arg = $buildArgsRaw[$idx]
+                                              if (-not $removedCmd -and -not $arg.StartsWith('-') -and -not $arg.StartsWith('+')) {
+                                                  $removedCmd = $true
+                                                  continue
+                                              }
+                                              switch ($arg) {
+                                                  '--workspace' { $scopeArgs.Add($arg); continue }
+                                                  '--all-features' { $scopeArgs.Add($arg); continue }
+                                                  '--no-default-features' { $scopeArgs.Add($arg); continue }
+                                                  '--package' {
+                                                      if ($idx + 1 -lt $buildArgsRaw.Count) {
+                                                          $scopeArgs.Add('--package')
+                                                          $idx++
+                                                          $scopeArgs.Add($buildArgsRaw[$idx])
+                                                      }
+                                                      continue
+                                                  }
+                                                  '-p' {
+                                                      if ($idx + 1 -lt $buildArgsRaw.Count) {
+                                                          $scopeArgs.Add('-p')
+                                                          $idx++
+                                                          $scopeArgs.Add($buildArgsRaw[$idx])
+                                                      }
+                                                      continue
+                                                  }
+                                                  '--features' {
+                                                      if ($idx + 1 -lt $buildArgsRaw.Count) {
+                                                          $scopeArgs.Add('--features')
+                                                          $idx++
+                                                          $scopeArgs.Add($buildArgsRaw[$idx])
+                                                      }
+                                                      continue
+                                                  }
+                                                  '--manifest-path' {
+                                                      if ($idx + 1 -lt $buildArgsRaw.Count) {
+                                                          $scopeArgs.Add('--manifest-path')
+                                                          $idx++
+                                                          $scopeArgs.Add($buildArgsRaw[$idx])
+                                                      }
+                                                      continue
+                                                  }
+                                                  default {
+                                                      if ($arg.StartsWith('--package=') -or
+                                                          $arg.StartsWith('--features=') -or
+                                                          $arg.StartsWith('--manifest-path=')) {
+                                                          $scopeArgs.Add($arg)
+                                                      }
+                                                      continue
+                                                  }
+                                              }
+                                          }
+                      
+                                          $profile = Get-BuildProfile $passThrough.ToArray()
+                                          $nextestArgs = @('nextest', 'run')
+                                          if ($scopeArgs.Count -gt 0) {
+                                              $nextestArgs += $scopeArgs.ToArray()
+                                          } else {
+                                              $nextestArgs += '--workspace'
+                                          }
+                                          $nextestArgs += '--no-fail-fast'
+                                          $nextestArgs += @('--no-tests', 'pass')
+                                          if ($profile -eq 'release') {
+                                              $nextestArgs += '--release'
+                                          } elseif ($profile -ne 'debug') {
+                                              $nextestArgs += @('--profile', $profile)
+                                          }
+                                          Write-CargoStatus -Phase 'PostBuild' -Message "Running: cargo $($nextestArgs -join ' ')" -Type 'Info'
+                                          & $rustupPath run $toolchain cargo @nextestArgs
+                                          if ($LASTEXITCODE -ne 0) {
+                                              Write-CargoBuildPhase -Phase 'PostBuild' -Failed
+                                              return $LASTEXITCODE
+                                          }
+                      
+                                          if ($runPostBuildDoctest -and (Test-DoctestEligibleScope -RustupPath $rustupPath -Toolchain $toolchain -ScopeArgs $scopeArgs.ToArray())) {
+                                              $docArgs = @('test')
+                                              if ($scopeArgs.Count -gt 0) {
+                                                  $docArgs += $scopeArgs.ToArray()
+                                              } else {
+                                                  $docArgs += '--workspace'
+                                              }
+                                              $docArgs += '--doc'
+                                              if ($profile -eq 'release') {
+                                                  $docArgs += '--release'
+                                              } elseif ($profile -ne 'debug') {
+                                                  $docArgs += @('--profile', $profile)
+                                              }
+                                              Write-CargoStatus -Phase 'PostBuild' -Message "Running: cargo $($docArgs -join ' ')" -Type 'Info'
+                                              & $rustupPath run $toolchain cargo @docArgs
+                                              if ($LASTEXITCODE -ne 0) {
+                                                  Write-CargoBuildPhase -Phase 'PostBuild' -Failed
+                                                  return $LASTEXITCODE
+                                              }
+                                          } elseif ($runPostBuildDoctest) {
+                                              Write-CargoStatus -Phase 'PostBuild' -Message 'Skipping doctests because the selected scope has no doctestable library targets.' -Type 'Info'
+                                          }
+                      
+                                          Write-CargoBuildPhase -Phase 'PostBuild' -Complete
+                                      }
+                      
+                                      # LLM build summary
+                                      if ($script:LlmOutputMode) {
+                                          Format-LlmBuildSummary -ExitCode $cargoExitCode -Command $primaryCmd -Duration $buildElapsed
+                                      }
+                      
+                                      # Show sccache stats in verbose mode
+                                      Show-SccacheStatus -Compact
+                      
+                                      # Auto-copy phase
+                                      $shouldAutoCopy = if ($null -ne $autoCopy) { $autoCopy } else { Test-AutoCopyEnabled -ProjectRoot (Get-Location).Path }
+                      
+                                      if ($shouldAutoCopy -and (Test-IsBuildCommand $primaryCmd)) {
+                                          Write-CargoBuildPhase -Phase 'AutoCopy' -Starting
+                                          $profile = Get-BuildProfile $passThrough.ToArray()
+                                          $copied = Copy-BuildOutputToLocal -Profile $profile -ProjectRoot (Get-Location).Path -ArgsList $passThrough.ToArray()
+                                          if ($copied) {
+                                              Write-CargoBuildPhase -Phase 'AutoCopy' -Complete
+                                          }
+                                      }
+                      
+                                      return $cargoExitCode
+                                  } catch {
+                                      Write-CargoBuildPhase -Phase 'Build' -Failed
+                                      Write-Error "cargo wrapper failed: $($_.Exception.Message)"
+                                      if ($_.ScriptStackTrace) {
+                                          Write-Host "  [STACK] $($_.ScriptStackTrace)" -ForegroundColor DarkGray
+                                      }
+                      
+                                      # Enhanced error output
+                                      $diagnostics = Format-CargoDiagnostics -ExitCode 1 -Command 'cargo' -Arguments $passThrough.ToArray() -StartTime $buildStartTime
+                                      Write-Host $diagnostics -ForegroundColor Red
+                      
+                                      Write-Host 'Try: rustup update stable' -ForegroundColor Yellow
+                                      Write-Host 'Or run: cargo --version' -ForegroundColor Yellow
+                                      return 1
+                                  }
+                              }
+                      
+                              Write-Error "Error: rustup.exe not found at $rustupPath"
+                              Write-Host 'Install Rust using rustup or add rustup.exe to PATH.' -ForegroundColor Yellow
+                              return 1
+                          } finally {
+                              if ($queueTicket) {
+                                  Exit-CargoBuildQueue -TicketPath $queueTicket.TicketPath
+                              }
+                              if ($popLocation) { Pop-Location }
+                          }
+                      
+CmdletBinding       : True
+DefaultParameterSet : Args
+Definition          : 
+                      <#
+                      .SYNOPSIS
+                      Centralized cargo wrapper with sccache and diagnostics support.
+                      .DESCRIPTION
+                      Sets sccache defaults, optional linkers, and runs preflight diagnostics before cargo builds.
+                      .PARAMETER ArgumentList
+                      Raw cargo arguments to pass through.
+                      .EXAMPLE
+                      Invoke-CargoWrapper --wrapper-help
+                      #>
+                          [CmdletBinding(DefaultParameterSetName = 'Args')]
+                          param(
+                              [Parameter(ParameterSetName = 'Args', ValueFromRemainingArguments = $true, Position = 0)]
+                              [string[]]$ArgumentList,
+                      
+                              [Parameter(ParameterSetName = 'Named', Mandatory = $true)]
+                              [string]$Command,
+                      
+                              [Parameter(ParameterSetName = 'Named')]
+                              [string[]]$AdditionalArgs,
+                      
+                              [Parameter(ParameterSetName = 'Named')]
+                              [string]$WorkingDirectory
+                          )
+                      
+                          $rawArgs = if ($PSCmdlet.ParameterSetName -eq 'Named') {
+                              $argsList = New-Object System.Collections.Generic.List[string]
+                              $argsList.Add($Command)
+                              if ($AdditionalArgs) { $argsList.AddRange($AdditionalArgs) }
+                              $argsList.ToArray()
+                          } elseif ($ArgumentList) {
+                              @($ArgumentList)
+                          } else {
+                              @()
+                          }
+                          if ($rawArgs -isnot [System.Array]) { $rawArgs = @($rawArgs) }
+                          $passThrough = New-Object System.Collections.Generic.List[string]
+                          $helpRequested = $false
+                          $wrapperOnly = $false
+                          $rawMode = $false
+                          $useNextest = $null
+                          $useLld = $null
+                          $useNative = $null
+                          $useFastlink = $null
+                          $llmDebug = $false
+                          $llmOutput = $false
+                          $autoCopy = $null
+                          $fix = $false
+                          $useTimings = $null
+                          $releaseOptimized = $false
+                          $quickCheck = $null
+                          $enforceQuality = $true
+                          $runPostBuildNextest = $true
+                          $runPostBuildDoctest = $true
+                          $sharedCacheRoot = Resolve-CacheRoot
+                      
+                          function Show-WrapperHelp {
+                              Write-Host 'cargo-wrapper.ps1 - Centralized Rust build wrapper' -ForegroundColor Cyan
+                              Write-Host ''
+                              Write-Host 'Usage:' -ForegroundColor Yellow
+                              Write-Host '  cargo [cargo-args]' -ForegroundColor Gray
+                              Write-Host '  cargo --help | -h              Show wrapper + cargo help' -ForegroundColor Gray
+                              Write-Host '  cargo --wrapper-help           Show wrapper help only' -ForegroundColor Gray
+                              Write-Host '  Invoke-CargoWrapper -Command build -AdditionalArgs --release -WorkingDirectory <path>' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Defaults enforced:' -ForegroundColor Yellow
+                              Write-Host '  - sccache enabled (RUSTC_WRAPPER=sccache)' -ForegroundColor Gray
+                              Write-Host "  - sccache cache dir: $sharedCacheRoot\sccache" -ForegroundColor Gray
+                              Write-Host "  - shared cargo/rustup homes: $sharedCacheRoot\cargo-home and $sharedCacheRoot\rustup" -ForegroundColor Gray
+                              Write-Host '  - project-local target/ output by default' -ForegroundColor Gray
+                              Write-Host '  - queued top-level cargo execution to prevent contention storms' -ForegroundColor Gray
+                              Write-Host '  - sccache port: 4400' -ForegroundColor Gray
+                              Write-Host '  - quality gate enabled (autofix + clippy + fmt, blocking)' -ForegroundColor Gray
+                              Write-Host '  - post-build validation enabled (nextest + doctests)' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Passthrough mode:' -ForegroundColor Yellow
+                              Write-Host '  --raw | --passthrough       Bypass all wrapper behavior (no preflight, no env, no auto-copy)' -ForegroundColor Gray
+                              Write-Host '  CARGO_RAW=1                 Enable raw mode via environment' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Wrapper flags:' -ForegroundColor Yellow
+                              Write-Host '  --use-lld | --no-lld            Toggle lld-link (LLVM linker)' -ForegroundColor Gray
+                              Write-Host '  --use-native | --no-native      Toggle -C target-cpu=native' -ForegroundColor Gray
+                              Write-Host '  --fastlink | --no-fastlink      Toggle MSVC /DEBUG:FASTLINK' -ForegroundColor Gray
+                              Write-Host '  --llm-debug                     Enable LLM-friendly debug defaults' -ForegroundColor Gray
+                              Write-Host '  --preflight                     Run pre-build diagnostics (cargo check)' -ForegroundColor Gray
+                              Write-Host '  --preflight-mode <check|clippy|fmt|deny|all>' -ForegroundColor Gray
+                              Write-Host '  --preflight-ra                  Run rust-analyzer diagnostics before build' -ForegroundColor Gray
+                              Write-Host '  --fix                           Automatically apply clippy/fmt fixes during preflight' -ForegroundColor Gray
+                              Write-Host '  --preflight-strict              Treat warnings as errors for clippy' -ForegroundColor Gray
+                              Write-Host '  --preflight-blocking            Fail build on preflight errors' -ForegroundColor Gray
+                              Write-Host '  --preflight-nonblocking         Continue build on preflight errors' -ForegroundColor Gray
+                              Write-Host '  --preflight-force               Force preflight even in IDE contexts' -ForegroundColor Gray
+                              Write-Host '  --quick-check | --no-quick-check Rewrite build -> check for fast validation' -ForegroundColor Gray
+                              Write-Host '  --nextest                       Use cargo-nextest for test commands' -ForegroundColor Gray
+                              Write-Host '  --no-nextest                    Force standard cargo test' -ForegroundColor Gray
+                              Write-Host '  --timings                       Generate HTML build timing report' -ForegroundColor Gray
+                              Write-Host '  --release-optimized             Enable thin LTO + codegen-units=1 for release builds' -ForegroundColor Gray
+                              Write-Host '  --llm-output                    Emit single-line JSON status (for LLM agents)' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Env toggles (for blank cargo invocations):' -ForegroundColor Yellow
+                              Write-Host '  CARGO_USE_LLD=1|0, CARGO_USE_NATIVE=1|0, CARGO_USE_FASTLINK=1|0' -ForegroundColor Gray
+                              Write-Host '  CARGO_LLD_PATH=C:\Program Files\LLVM\bin\lld-link.exe' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT=1, CARGO_PREFLIGHT_MODE=check|clippy|fmt|all' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT_STRICT=1, CARGO_RA_PREFLIGHT=1' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT_BLOCKING=1      Fail build on preflight errors' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT_IDE_GUARD=1     Disable preflight in IDE contexts' -ForegroundColor Gray
+                              Write-Host '  CARGO_PREFLIGHT_FORCE=1         Force preflight even in IDE contexts' -ForegroundColor Gray
+                              Write-Host '  CARGO_RAW=1                     Bypass all wrapper behavior' -ForegroundColor Gray
+                              Write-Host '  CARGO_QUICK_CHECK=1             Rewrite build -> check for validation' -ForegroundColor Gray
+                              Write-Host '  CARGO_USE_NEXTEST=1             Use cargo-nextest for test commands' -ForegroundColor Gray
+                              Write-Host '  CARGO_TIMINGS=1                 Generate build timing report' -ForegroundColor Gray
+                              Write-Host '  CARGO_RELEASE_LTO=1             Enable thin LTO for release builds' -ForegroundColor Gray
+                              Write-Host '  CARGO_VERBOSITY=llm             Enable JSON output for LLM agents' -ForegroundColor Gray
+                              Write-Host '  CARGOTOOLS_RUST_TOOLCHAIN=<toolchain>  Pin wrapper rustup toolchain' -ForegroundColor Gray
+                              Write-Host '  CARGOTOOLS_ENFORCE_QUALITY=1|0  Toggle mandatory quality gate (default: 1)' -ForegroundColor Gray
+                              Write-Host '  CARGOTOOLS_RUN_TESTS_AFTER_BUILD=1|0  Toggle mandatory post-build nextest (default: 1)' -ForegroundColor Gray
+                              Write-Host '  CARGOTOOLS_RUN_DOCTESTS_AFTER_BUILD=1|0 Toggle mandatory post-build doctests (default: 1)' -ForegroundColor Gray
+                              Write-Host '  RA_DIAGNOSTICS_FLAGS="--disable-build-scripts --disable-proc-macros"' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Common helpers:' -ForegroundColor Yellow
+                              Write-Host '  sccache --show-stats' -ForegroundColor Gray
+                              Write-Host '  sccache --zero-stats' -ForegroundColor Gray
+                              Write-Host '  sccache --stop-server' -ForegroundColor Gray
+                              Write-Host '  sccache --start-server' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Build output auto-copy:' -ForegroundColor Yellow
+                              Write-Host '  Only used when building against a nonlocal/shared CARGO_TARGET_DIR' -ForegroundColor Gray
+                              Write-Host '  Enable with: $env:CARGO_AUTO_COPY=1 or --auto-copy' -ForegroundColor Gray
+                              Write-Host '  --no-auto-copy          Disable local output copy for this run' -ForegroundColor Gray
+                              Write-Host '  --auto-copy             Force local output copy for this run' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Verbosity control:' -ForegroundColor Yellow
+                              Write-Host '  -q, --quiet             Suppress non-error output' -ForegroundColor Gray
+                              Write-Host '  -v, --verbose           Show detailed progress and sccache stats' -ForegroundColor Gray
+                              Write-Host '  -vv, --debug            Show debug-level diagnostics' -ForegroundColor Gray
+                              Write-Host '  CARGO_VERBOSITY=0|1|2|3 Set via environment (0=quiet, 1=normal, 2=verbose, 3=debug)' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Docker/WSL helpers (if installed):' -ForegroundColor Yellow
+                              Write-Host '  cargo-docker [args...]    Run cargo inside Docker' -ForegroundColor Gray
+                              Write-Host '  cargo-wsl [args...]       Run cargo inside WSL' -ForegroundColor Gray
+                              Write-Host ''
+                              Write-Host 'Wrappers:' -ForegroundColor Yellow
+                              Write-Host '  PowerShell: cargo.ps1 (preferred) -> cargo-route.ps1' -ForegroundColor Gray
+                              Write-Host '  Direct wrapper: cargo-wrapper.ps1' -ForegroundColor Gray
+                              Write-Host '  cmd.exe: cargo.cmd / cargo.bat -> cargo.ps1 (pwsh)' -ForegroundColor Gray
+                              Write-Host ''
+                          }
+                      
+                          function Ensure-CargoNextest {
+                              param(
+                                  [string]$RustupPath,
+                                  [string]$Toolchain
+                              )
+                      
+                              if (-not $Toolchain) { $Toolchain = Resolve-CargoToolchain -RustupPath $RustupPath }
+                              & $RustupPath run $Toolchain cargo nextest --version 2>$null | Out-Null
+                              if ($LASTEXITCODE -eq 0) { return $true }
+                      
+                              Write-CargoStatus -Phase 'PostBuild' -Message 'cargo-nextest not found, installing...' -Type 'Warning'
+                              & $RustupPath run $Toolchain cargo install cargo-nextest --locked
+                              if ($LASTEXITCODE -eq 0) { return $true }
+                      
+                              Write-CargoStatus -Phase 'PostBuild' -Message 'Unable to install cargo-nextest.' -Type 'Error'
+                              return $false
+                          }
+                      
+                          function Test-DoctestEligibleScope {
+                              param(
+                                  [Parameter(Mandatory)]
+                                  [string]$RustupPath,
+                                  [string]$Toolchain,
+                                  [string[]]$ScopeArgs
+                              )
+                      
+                              if (-not $Toolchain) { $Toolchain = Resolve-CargoToolchain -RustupPath $RustupPath }
+                      
+                              $metadataArgs = New-Object System.Collections.Generic.List[string]
+                              foreach ($metadataArg in @('metadata', '--no-deps', '--format-version', '1')) {
+                                  $metadataArgs.Add([string]$metadataArg)
+                              }
+                      
+                              $selectedPackages = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+                              $scope = Normalize-ArgsList $ScopeArgs
+                              for ($idx = 0; $idx -lt $scope.Count; $idx++) {
+                                  $arg = $scope[$idx]
+                                  switch ($arg) {
+                                      '--package' {
+                                          if ($idx + 1 -lt $scope.Count) {
+                                              $idx++
+                                              [void]$selectedPackages.Add($scope[$idx])
+                                          }
+                                          continue
+                                      }
+                                      '-p' {
+                                          if ($idx + 1 -lt $scope.Count) {
+                                              $idx++
+                                              [void]$selectedPackages.Add($scope[$idx])
+                                          }
+                                          continue
+                                      }
+                                      '--manifest-path' {
+                                          if ($idx + 1 -lt $scope.Count) {
+                                              $metadataArgs.Add('--manifest-path')
+                                              $idx++
+                                              $metadataArgs.Add($scope[$idx])
+                                          }
+                                          continue
+                                      }
+                                      '--all-features' {
+                                          $metadataArgs.Add('--all-features')
+                                          continue
+                                      }
+                                      '--no-default-features' {
+                                          $metadataArgs.Add('--no-default-features')
+                                          continue
+                                      }
+                                      '--features' {
+                                          if ($idx + 1 -lt $scope.Count) {
+                                              $metadataArgs.Add('--features')
+                                              $idx++
+                                              $metadataArgs.Add($scope[$idx])
+                                          }
+                                          continue
+                                      }
+                                      default {
+                                          if ($arg.StartsWith('--package=')) {
+                                              [void]$selectedPackages.Add(($arg -split '=', 2)[1])
+                                              continue
+                                          }
+                                          if ($arg.StartsWith('--manifest-path=')) {
+                                              $metadataArgs.Add($arg)
+                                              continue
+                                          }
+                                          if ($arg.StartsWith('--features=')) {
+                                              $metadataArgs.Add($arg)
+                                              continue
+                                          }
+                                          continue
+                                      }
+                                  }
+                              }
+                      
+                              $metadataJson = & $RustupPath run $Toolchain cargo $metadataArgs.ToArray() 2>$null
+                              if ($LASTEXITCODE -ne 0 -or -not $metadataJson) {
+                                  return $true
+                              }
+                      
+                              try {
+                                  $metadata = $metadataJson | ConvertFrom-Json -Depth 32
+                              } catch {
+                                  return $true
+                              }
+                      
+                              $packages = @($metadata.packages)
+                              if ($selectedPackages.Count -gt 0) {
+                                  $packages = @($packages | Where-Object { $selectedPackages.Contains($_.name) })
+                              } elseif ($metadata.workspace_members) {
+                                  $workspaceMemberIds = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+                                  foreach ($memberId in @($metadata.workspace_members)) {
+                                      [void]$workspaceMemberIds.Add([string]$memberId)
+                                  }
+                                  $packages = @($packages | Where-Object { $workspaceMemberIds.Contains([string]$_.id) })
+                              }
+                      
+                              foreach ($package in $packages) {
+                                  foreach ($target in @($package.targets)) {
+                                      $kinds = @($target.kind)
+                                      $supportsDoctest = $true
+                                      if ($null -ne $target.doctest) {
+                                          $supportsDoctest = [bool]$target.doctest
+                                      }
+                      
+                                      if ($supportsDoctest -and ($kinds -contains 'lib' -or $kinds -contains 'rlib' -or $kinds -contains 'proc-macro')) {
+                                          return $true
+                                      }
+                                  }
+                              }
+                      
+                              return $false
+                          }
+                      
+                          function Remove-CargoToolchainOverrideArg {
+                              param(
+                                  [System.Collections.Generic.List[string]]$ArgsList
+                              )
+                      
+                              if ($null -eq $ArgsList) { return $null }
+                              if ($ArgsList.Count -gt 0 -and $ArgsList[0] -like '+*') {
+                                  $toolchain = $ArgsList[0].TrimStart('+')
+                                  $ArgsList.RemoveAt(0)
+                                  return $toolchain
+                              }
+                      
+                              return $null
+                          }
+                      
+                          for ($i = 0; $i -lt $rawArgs.Count; $i++) {
+                              $arg = $rawArgs[$i]
+                              switch ($arg) {
+                                  '--wrapper-help' { $wrapperOnly = $true; continue }
+                                  '--raw' { $rawMode = $true; continue }
+                                  '--passthrough' { $rawMode = $true; continue }
+                                  '--nextest' { $useNextest = $true; continue }
+                                  '--no-nextest' { $useNextest = $false; continue }
+                                  '--llm-output' { $llmOutput = $true; continue }
+                                  '--use-lld' { $useLld = $true; continue }
+                                  '--lld' { $useLld = $true; continue }
+                                  '--no-lld' { $useLld = $false; continue }
+                                  '--use-native' { $useNative = $true; continue }
+                                  '--no-native' { $useNative = $false; continue }
+                                  '--fastlink' { $useFastlink = $true; continue }
+                                  '--use-fastlink' { $useFastlink = $true; continue }
+                                  '--no-fastlink' { $useFastlink = $false; continue }
+                                  '--llm-debug' { $llmDebug = $true; continue }
+                                  '--auto-copy' { $autoCopy = $true; continue }
+                                  '--no-auto-copy' { $autoCopy = $false; continue }
+                                  '--timings' { $useTimings = $true; continue }
+                                  '--no-timings' { $useTimings = $false; continue }
+                                  '--release-optimized' { $releaseOptimized = $true; continue }
+                                  '--quick-check' { $quickCheck = $true; continue }
+                                  '--fix' { $fix = $true; continue }
+                                  '--no-quick-check' { $quickCheck = $false; continue }
+                                  '--help' { $helpRequested = $true; $passThrough.Add($arg); continue }
+                                  '-h' { $helpRequested = $true; $passThrough.Add($arg); continue }
+                                  'help' { $helpRequested = $true; $passThrough.Add($arg); continue }
+                                  default { $passThrough.Add($arg); continue }
+                              }
+                          }
+                      
+                          # Check CARGO_RAW env var
+                          if (-not $rawMode -and $env:CARGO_RAW -and (Test-Truthy $env:CARGO_RAW)) {
+                              $rawMode = $true
+                          }
+                      
+                          $requestedToolchain = Remove-CargoToolchainOverrideArg -ArgsList $passThrough
+                      
+                          # Raw/passthrough mode: bypass all wrapper behavior, run cargo directly
+                          if ($rawMode) {
+                              Ensure-MsvcEnv
+                              $rustupPath = Get-RustupPath
+                              if (-not (Test-Path $rustupPath)) {
+                                  Write-Error "Error: rustup.exe not found at $rustupPath"
+                                  return 1
+                              }
+                              $toolchain = Resolve-CargoToolchain -RustupPath $rustupPath -RequestedToolchain $requestedToolchain
+                              $rawPassThrough = $passThrough.ToArray()
+                              & $rustupPath run $toolchain cargo @rawPassThrough
+                              return $LASTEXITCODE
+                          }
+                      
+                          # Initialize verbosity from arguments
+                          if ($llmOutput) {
+                              Initialize-CargoLlmOutput
+                          }
+                          $verbosity = Initialize-CargoVerbosity $passThrough.ToArray()
+                          $passThroughFiltered = @(Get-VerbosityArgs $passThrough.ToArray())
+                          $passThrough = New-Object System.Collections.Generic.List[string]
+                          foreach ($arg in $passThroughFiltered) {
+                              if ($null -ne $arg) { $passThrough.Add([string]$arg) }
+                          }
+                      
+                          $enforceQuality = if ($env:CARGOTOOLS_ENFORCE_QUALITY) {
+                              Test-Truthy $env:CARGOTOOLS_ENFORCE_QUALITY
+                          } else {
+                              $true
+                          }
+                          $runPostBuildNextest = if ($env:CARGOTOOLS_RUN_TESTS_AFTER_BUILD) {
+                              Test-Truthy $env:CARGOTOOLS_RUN_TESTS_AFTER_BUILD
+                          } else {
+                              $enforceQuality
+                          }
+                          $runPostBuildDoctest = if ($env:CARGOTOOLS_RUN_DOCTESTS_AFTER_BUILD) {
+                              Test-Truthy $env:CARGOTOOLS_RUN_DOCTESTS_AFTER_BUILD
+                          } else {
+                              $enforceQuality
+                          }
+                          if ($enforceQuality) {
+                              $fix = $true
+                          }
+                      
+                          $primaryCmd = Get-PrimaryCommand $passThrough.ToArray()
+                          if ($primaryCmd -eq 'test') {
+                              $env:CARGO_RA_PREFLIGHT = '0'
+                          }
+                      
+                          $preflightSplit = Split-PreflightArgs $passThrough.ToArray()
+                          if (-not $preflightSplit) { return 1 }
+                      
+                          $passThrough = New-Object System.Collections.Generic.List[string]
+                          foreach ($arg in @($preflightSplit.Remaining)) {
+                              if ($null -ne $arg) { $passThrough.Add([string]$arg) }
+                          }
+                          $preflight = Apply-PreflightEnvDefaults $preflightSplit.State
+                          $preflight = Apply-PreflightIdeGuard $preflight
+                      
+                          if ($wrapperOnly -or $helpRequested) {
+                              Show-WrapperHelp
+                              if ($wrapperOnly -and -not $helpRequested) {
+                                  return 0
+                              }
+                          }
+                      
+                          $popLocation = $false
+                          if ($WorkingDirectory) {
+                              if (-not (Test-Path $WorkingDirectory)) {
+                                  Write-Error "Working directory not found: $WorkingDirectory"
+                                  return 1
+                              }
+                              Push-Location $WorkingDirectory
+                              $popLocation = $true
+                          }
+                      
+                          $queueTicket = $null
+                          try {
+                              if ($llmDebug -or ($env:CARGO_LLM_DEBUG -and $env:CARGO_LLM_DEBUG -ne '0')) {
+                                  $env:RUST_BACKTRACE = 'full'
+                                  if (-not $env:CARGO_TERM_COLOR) { $env:CARGO_TERM_COLOR = 'always' }
+                                  Add-RustFlags '-C debuginfo=1'
+                                  Set-CargoVerbosity 3
+                              }
+                      
+                              # Environment setup phase
+                              Write-CargoBuildPhase -Phase 'Environment' -Starting
+                              Initialize-CargoEnv
+                              if ($null -ne (Get-Item -Path 'Function:Test-CargoMachineDependencies' -ErrorAction SilentlyContinue)) {
+                                  $depCheck = Test-CargoMachineDependencies -Quiet
+                                  if (-not $depCheck.Passed) {
+                                      Write-CargoStatus -Phase 'Environment' -Message ("Machine dependency check failed: " + ($depCheck.MissingMandatory -join ', ')) -Type 'Error'
+                                      return 1
+                                  }
+                              }
+                              Write-CargoDebug "CARGO_TARGET_DIR: $env:CARGO_TARGET_DIR"
+                              Write-CargoDebug "SCCACHE_DIR: $env:SCCACHE_DIR"
+                      
+                              $lldPath = Resolve-LldLinker
+                              if ($null -eq $useLld) {
+                                  if ($env:CARGO_USE_LLD) { $useLld = Test-Truthy $env:CARGO_USE_LLD }
+                                  else { $useLld = $false }
+                              }
+                      
+                              $useLld = Apply-LinkerSettings -UseLld $useLld -LldPath $lldPath
+                      
+                              if ($null -eq $useNative) {
+                                  if ($env:CARGO_USE_NATIVE) { $useNative = Test-Truthy $env:CARGO_USE_NATIVE }
+                                  else { $useNative = $false }
+                              }
+                              Apply-NativeCpuFlag -UseNative $useNative
+                      
+                              if ($null -eq $useFastlink) {
+                                  if ($env:CARGO_USE_FASTLINK) { $useFastlink = Test-Truthy $env:CARGO_USE_FASTLINK }
+                                  else { $useFastlink = $false }
+                              }
+                              if ($useFastlink -and -not $useLld) { Add-RustFlags '-C link-arg=/DEBUG:FASTLINK' }
+                      
+                              $sccacheOk = Start-SccacheServer
+                              if (-not $sccacheOk) {
+                                  # sccache failed to start - clear RUSTC_WRAPPER to prevent cargo from trying
+                                  # to invoke a non-functional sccache, which would produce confusing errors
+                                  if ($env:RUSTC_WRAPPER -eq 'sccache') {
+                                      Remove-Item Env:RUSTC_WRAPPER -ErrorAction SilentlyContinue
+                                      Write-CargoStatus -Phase 'Environment' -Message 'sccache unavailable, building without cache acceleration' -Type 'Warning' -MinVerbosity 1
+                                  }
+                              } else {
+                                  Write-CargoStatus -Phase 'Environment' -Message 'sccache server started' -Type 'Success' -MinVerbosity 2
+                              }
+                      
+                              $shouldQueue = -not $rawMode -and (Test-CargoCommandNeedsQueue $primaryCmd -or $preflight.Enabled -or $fix)
+                              if ($shouldQueue) {
+                                  Write-CargoBuildPhase -Phase 'Queue' -Starting
+                                  $queueTicket = Enter-CargoBuildQueue -ArgsList $passThrough.ToArray() -WorkingDirectory (Get-Location).Path
+                                  if ($queueTicket) {
+                                      Write-CargoBuildPhase -Phase 'Queue' -Complete
+                                  }
+                              }
+                      
+                              $rustupPath = Get-RustupPath
+                              if (Test-Path $rustupPath) {
+                                  $toolchain = Resolve-CargoToolchain -RustupPath $rustupPath -RequestedToolchain $requestedToolchain
+                                  Write-CargoStatus -Phase 'Environment' -Message "Using Rust toolchain: $toolchain" -Type 'Info' -MinVerbosity 2
+                                  $buildStartTime = Get-Date
+                                  try {
+                                      # Auto-fix phase
+                                      if ($fix -and @('build','check','test','bench','run') -contains $primaryCmd) {
+                                          $fixArgs = Normalize-ArgsList (Strip-ArgsAfterDoubleDash $passThrough.ToArray())
+                                          $fixSansCmd = New-Object System.Collections.Generic.List[string]
+                                          $removedCmd = $false
+                                          foreach ($arg in $fixArgs) {
+                                              if (-not $removedCmd -and -not $arg.StartsWith('-') -and -not $arg.StartsWith('+')) {
+                                                  $removedCmd = $true
+                                                  continue
+                                              }
+                                              $fixSansCmd.Add($arg)
+                                          }
+                                          $fixArgs = $fixSansCmd.ToArray()
+                                          Write-CargoStatus -Phase "Preflight" -Message "Mandatory auto-fix (clippy --fix + fmt)..." -Type "Info"
+                                          & $rustupPath run $toolchain cargo clippy --fix --allow-dirty --allow-staged --allow-no-vcs @fixArgs
+                                          if ($LASTEXITCODE -ne 0) {
+                                              Write-CargoStatus -Phase "Preflight" -Message "Auto-fix failed." -Type "Error"
+                                              return $LASTEXITCODE
+                                          }
+                                          & $rustupPath run $toolchain cargo fmt --all
+                                          if ($LASTEXITCODE -ne 0) {
+                                              Write-CargoStatus -Phase "Preflight" -Message "cargo fmt failed." -Type "Error"
+                                              return $LASTEXITCODE
+                                          }
+                                      }
+                                      # Preflight phase
+                                      if ($preflight.Enabled) {
+                                          Write-CargoBuildPhase -Phase 'Preflight' -Starting
+                                          $preflightExit = Invoke-PreflightLocal -RustupPath $rustupPath -Toolchain $toolchain -PassThroughArgs $passThrough.ToArray() -State $preflight
+                                          if ($preflightExit -ne 0) {
+                                              Write-CargoBuildPhase -Phase 'Preflight' -Failed
+                                              if ($preflight.Blocking) {
+                                                  Write-CargoStatus -Phase 'Preflight' -Message "Failed with exit code $preflightExit (blocking)" -Type 'Error'
+                                                  return $preflightExit
+                                              }
+                                              Write-CargoStatus -Phase 'Preflight' -Message 'Failed (non-blocking, continuing)' -Type 'Warning'
+                                          } else {
+                                              Write-CargoBuildPhase -Phase 'Preflight' -Complete
+                                          }
+                                      }
+                      
+                                      # Rust-analyzer diagnostics
+                                      if ($preflight.RA) {
+                                          $raExit = Invoke-RaDiagnosticsLocal -State $preflight -PassThroughArgs $passThrough.ToArray()
+                                          if ($raExit -ne 0 -and $preflight.Blocking) {
+                                              Write-CargoStatus -Phase 'Preflight' -Message 'rust-analyzer diagnostics failed (blocking)' -Type 'Error'
+                                              return $raExit
+                                          }
+                                      }
+                      
+                                      # Quick-check: rewrite 'build' -> 'check' for fast validation
+                                      if ($null -eq $quickCheck -and $env:CARGO_QUICK_CHECK) {
+                                          $quickCheck = Test-Truthy $env:CARGO_QUICK_CHECK
+                                      }
+                                      if ($quickCheck -and $primaryCmd -eq 'build' -and -not $enforceQuality) {
+                                          $rewritten = New-Object System.Collections.Generic.List[string]
+                                          $replaced = $false
+                                          foreach ($a in $passThrough.ToArray()) {
+                                              if (-not $replaced -and $a -eq 'build') {
+                                                  $rewritten.Add('check')
+                                                  $replaced = $true
+                                              } else {
+                                                  $rewritten.Add($a)
+                                              }
+                                          }
+                                          $passThrough = $rewritten
+                                          $primaryCmd = 'check'
+                                          Write-CargoStatus -Phase 'Build' -Message 'Quick-check: rewrote build -> check' -Type 'Info' -MinVerbosity 1
+                                      }
+                      
+                                      # Nextest: rewrite 'test' -> 'nextest run' when enabled
+                                      if ($null -eq $useNextest -and $env:CARGO_USE_NEXTEST) {
+                                          $useNextest = Test-Truthy $env:CARGO_USE_NEXTEST
+                                      }
+                                      if ($useNextest -and $primaryCmd -eq 'test') {
+                                          $nextestCmd = & $rustupPath run $toolchain cargo nextest --version 2>$null
+                                          if ($LASTEXITCODE -eq 0) {
+                                              $rewritten = New-Object System.Collections.Generic.List[string]
+                                              $replaced = $false
+                                              foreach ($a in $passThrough.ToArray()) {
+                                                  if (-not $replaced -and $a -eq 'test') {
+                                                      $rewritten.Add('nextest')
+                                                      $rewritten.Add('run')
+                                                      $replaced = $true
+                                                  } else {
+                                                      $rewritten.Add($a)
+                                                  }
+                                              }
+                                              $passThrough = $rewritten
+                                              Write-CargoStatus -Phase 'Build' -Message 'Rewrote test -> nextest run' -Type 'Info' -MinVerbosity 2
+                                          } else {
+                                              Write-CargoStatus -Phase 'Build' -Message 'cargo-nextest not installed, using standard test' -Type 'Warning' -MinVerbosity 1
+                                          }
+                                      }
+                      
+                                      # --timings: append --timings to build commands for HTML timing report
+                                      if ($null -eq $useTimings -and $env:CARGO_TIMINGS) {
+                                          $useTimings = Test-Truthy $env:CARGO_TIMINGS
+                                      }
+                                      if ($useTimings -and (Test-IsBuildCommand $primaryCmd)) {
+                                          $passThrough.Add('--timings')
+                                          Write-CargoStatus -Phase 'Build' -Message 'Build timings enabled (--timings)' -Type 'Info' -MinVerbosity 2
+                                      }
+                      
+                                      # --release-optimized: thin LTO + codegen-units=1 for release builds
+                                      if ($releaseOptimized -or ($env:CARGO_RELEASE_LTO -and (Test-Truthy $env:CARGO_RELEASE_LTO))) {
+                                          if ($passThrough.Contains('--release') -or $primaryCmd -eq 'install') {
+                                              Add-RustFlags '-C lto=thin' '-C codegen-units=1'
+                                              Write-CargoStatus -Phase 'Build' -Message 'Release-optimized: thin LTO + codegen-units=1' -Type 'Info' -MinVerbosity 1
+                                          }
+                                      }
+                      
+                                      # LLM JSON message format injection
+                                      if ($script:LlmOutputMode -and $primaryCmd) {
+                                          $injected = Get-MessageFormatArgs -PrimaryCommand $primaryCmd -ArgsList $passThrough.ToArray()
+                                          if ($injected.Count -ne $passThrough.Count) {
+                                              $passThrough = New-Object System.Collections.Generic.List[string]
+                                              foreach ($a in $injected) { $passThrough.Add($a) }
+                                              Write-CargoDebug 'LLM mode: injected --message-format=json'
+                                          }
+                                      }
+                      
+                                      # Build phase
+                                      Write-CargoBuildPhase -Phase 'Build' -Starting
+                                      $passThroughBuild = Ensure-RunArgSeparator $passThrough.ToArray()
+                      
+                                      $buildArgs = @($passThroughBuild)
+                                      if ((Get-CargoVerbosity) -ge 3) {
+                                          Write-CargoDebug "Argument Count: $($buildArgs.Count)"
+                                          for ($i = 0; $i -lt $buildArgs.Count; $i++) {
+                                              if ($null -eq $buildArgs[$i]) {
+                                                  Write-CargoDebug "Arg[$i]: NULL"
+                                              } else {
+                                                  Write-CargoDebug "Arg[$i]: '$($buildArgs[$i])'"
+                                              }
+                                          }
+                                      }
+                      
+                                      Write-CargoStatus -Phase 'Build' -Message "Running: cargo $($buildArgs -join ' ')" -Type 'Info' -MinVerbosity 2
+                      
+                                      & $rustupPath run $toolchain cargo @buildArgs
+                                      $cargoExitCode = $LASTEXITCODE
+                                      $buildElapsed = (Get-Date) - $buildStartTime
+                      
+                                      if ($cargoExitCode -ne 0) {
+                                          Write-CargoBuildPhase -Phase 'Build' -Failed
+                      
+                                          # Check if sccache died mid-build â€” auto-retry once if so
+                                          $sccacheRetried = $false
+                                          if ($env:RUSTC_WRAPPER -eq 'sccache') {
+                                              $sccHealth = Test-SccacheHealth
+                                              if (-not $sccHealth.Healthy) {
+                                                  Write-CargoStatus -Phase 'Build' -Message "sccache failed during build: $($sccHealth.Error)" -Type 'Warning'
+                                                  if (-not $sccHealth.Running) {
+                                                      Write-CargoStatus -Phase 'Build' -Message 'Restarting sccache and retrying build...' -Type 'Info'
+                                                      $sccacheRestarted = Start-SccacheServer -Force
+                                                      if ($sccacheRestarted) {
+                                                          Write-CargoBuildPhase -Phase 'Build' -Starting
+                                                          & $rustupPath run $toolchain cargo @buildArgs
+                                                          $cargoExitCode = $LASTEXITCODE
+                                                          $sccacheRetried = $true
+                                                          if ($cargoExitCode -eq 0) {
+                                                              $buildElapsed = (Get-Date) - $buildStartTime
+                                                              Write-CargoBuildPhase -Phase 'Build' -Complete
+                                                              Write-CargoStatus -Phase 'Build' -Message "Succeeded on sccache retry in $([Math]::Round($buildElapsed.TotalSeconds, 2))s" -Type 'Success' -MinVerbosity 1
+                                                          }
+                                                      } else {
+                                                          Write-CargoStatus -Phase 'Build' -Message 'sccache restart failed. Hint: retry with --raw to bypass sccache' -Type 'Warning'
+                                                      }
+                                                  }
+                                              }
+                                          }
+                      
+                                          if ($cargoExitCode -ne 0) {
+                                              # Enhanced error diagnostics
+                                              $diagnostics = Format-CargoDiagnostics -ExitCode $cargoExitCode -Command 'cargo' -Arguments $passThrough.ToArray() -StartTime $buildStartTime
+                                              Write-Host $diagnostics -ForegroundColor Red
+                      
+                                              # Show sccache stats on failure for debugging
+                                              Show-SccacheStatus -Compact
+                      
+                                              return $cargoExitCode
+                                          }
+                                      }
+                      
+                                      Write-CargoBuildPhase -Phase 'Build' -Complete
+                                      Write-CargoStatus -Phase 'Build' -Message "Completed in $([Math]::Round($buildElapsed.TotalSeconds, 2))s" -Type 'Success' -MinVerbosity 2
+                      
+                                      if ($cargoExitCode -eq 0 -and $primaryCmd -eq 'build' -and $runPostBuildNextest) {
+                                          Write-CargoBuildPhase -Phase 'PostBuild' -Starting
+                      
+                                          if (-not (Ensure-CargoNextest -RustupPath $rustupPath -Toolchain $toolchain)) {
+                                              Write-CargoBuildPhase -Phase 'PostBuild' -Failed
+                                              return 1
+                                          }
+                      
+                                          $scopeArgs = New-Object System.Collections.Generic.List[string]
+                                          $buildArgsRaw = Normalize-ArgsList (Strip-ArgsAfterDoubleDash $passThrough.ToArray())
+                                          $removedCmd = $false
+                                          for ($idx = 0; $idx -lt $buildArgsRaw.Count; $idx++) {
+                                              $arg = $buildArgsRaw[$idx]
+                                              if (-not $removedCmd -and -not $arg.StartsWith('-') -and -not $arg.StartsWith('+')) {
+                                                  $removedCmd = $true
+                                                  continue
+                                              }
+                                              switch ($arg) {
+                                                  '--workspace' { $scopeArgs.Add($arg); continue }
+                                                  '--all-features' { $scopeArgs.Add($arg); continue }
+                                                  '--no-default-features' { $scopeArgs.Add($arg); continue }
+                                                  '--package' {
+                                                      if ($idx + 1 -lt $buildArgsRaw.Count) {
+                                                          $scopeArgs.Add('--package')
+                                                          $idx++
+                                                          $scopeArgs.Add($buildArgsRaw[$idx])
+                                                      }
+                                                      continue
+                                                  }
+                                                  '-p' {
+                                                      if ($idx + 1 -lt $buildArgsRaw.Count) {
+                                                          $scopeArgs.Add('-p')
+                                                          $idx++
+                                                          $scopeArgs.Add($buildArgsRaw[$idx])
+                                                      }
+                                                      continue
+                                                  }
+                                                  '--features' {
+                                                      if ($idx + 1 -lt $buildArgsRaw.Count) {
+                                                          $scopeArgs.Add('--features')
+                                                          $idx++
+                                                          $scopeArgs.Add($buildArgsRaw[$idx])
+                                                      }
+                                                      continue
+                                                  }
+                                                  '--manifest-path' {
+                                                      if ($idx + 1 -lt $buildArgsRaw.Count) {
+                                                          $scopeArgs.Add('--manifest-path')
+                                                          $idx++
+                                                          $scopeArgs.Add($buildArgsRaw[$idx])
+                                                      }
+                                                      continue
+                                                  }
+                                                  default {
+                                                      if ($arg.StartsWith('--package=') -or
+                                                          $arg.StartsWith('--features=') -or
+                                                          $arg.StartsWith('--manifest-path=')) {
+                                                          $scopeArgs.Add($arg)
+                                                      }
+                                                      continue
+                                                  }
+                                              }
+                                          }
+                      
+                                          $profile = Get-BuildProfile $passThrough.ToArray()
+                                          $nextestArgs = @('nextest', 'run')
+                                          if ($scopeArgs.Count -gt 0) {
+                                              $nextestArgs += $scopeArgs.ToArray()
+                                          } else {
+                                              $nextestArgs += '--workspace'
+                                          }
+                                          $nextestArgs += '--no-fail-fast'
+                                          $nextestArgs += @('--no-tests', 'pass')
+                                          if ($profile -eq 'release') {
+                                              $nextestArgs += '--release'
+                                          } elseif ($profile -ne 'debug') {
+                                              $nextestArgs += @('--profile', $profile)
+                                          }
+                                          Write-CargoStatus -Phase 'PostBuild' -Message "Running: cargo $($nextestArgs -join ' ')" -Type 'Info'
+                                          & $rustupPath run $toolchain cargo @nextestArgs
+                                          if ($LASTEXITCODE -ne 0) {
+                                              Write-CargoBuildPhase -Phase 'PostBuild' -Failed
+                                              return $LASTEXITCODE
+                                          }
+                      
+                                          if ($runPostBuildDoctest -and (Test-DoctestEligibleScope -RustupPath $rustupPath -Toolchain $toolchain -ScopeArgs $scopeArgs.ToArray())) {
+                                              $docArgs = @('test')
+                                              if ($scopeArgs.Count -gt 0) {
+                                                  $docArgs += $scopeArgs.ToArray()
+                                              } else {
+                                                  $docArgs += '--workspace'
+                                              }
+                                              $docArgs += '--doc'
+                                              if ($profile -eq 'release') {
+                                                  $docArgs += '--release'
+                                              } elseif ($profile -ne 'debug') {
+                                                  $docArgs += @('--profile', $profile)
+                                              }
+                                              Write-CargoStatus -Phase 'PostBuild' -Message "Running: cargo $($docArgs -join ' ')" -Type 'Info'
+                                              & $rustupPath run $toolchain cargo @docArgs
+                                              if ($LASTEXITCODE -ne 0) {
+                                                  Write-CargoBuildPhase -Phase 'PostBuild' -Failed
+                                                  return $LASTEXITCODE
+                                              }
+                                          } elseif ($runPostBuildDoctest) {
+                                              Write-CargoStatus -Phase 'PostBuild' -Message 'Skipping doctests because the selected scope has no doctestable library targets.' -Type 'Info'
+                                          }
+                      
+                                          Write-CargoBuildPhase -Phase 'PostBuild' -Complete
+                                      }
+                      
+                                      # LLM build summary
+                                      if ($script:LlmOutputMode) {
+                                          Format-LlmBuildSummary -ExitCode $cargoExitCode -Command $primaryCmd -Duration $buildElapsed
+                                      }
+                      
+                                      # Show sccache stats in verbose mode
+                                      Show-SccacheStatus -Compact
+                      
+                                      # Auto-copy phase
+                                      $shouldAutoCopy = if ($null -ne $autoCopy) { $autoCopy } else { Test-AutoCopyEnabled -ProjectRoot (Get-Location).Path }
+                      
+                                      if ($shouldAutoCopy -and (Test-IsBuildCommand $primaryCmd)) {
+                                          Write-CargoBuildPhase -Phase 'AutoCopy' -Starting
+                                          $profile = Get-BuildProfile $passThrough.ToArray()
+                                          $copied = Copy-BuildOutputToLocal -Profile $profile -ProjectRoot (Get-Location).Path -ArgsList $passThrough.ToArray()
+                                          if ($copied) {
+                                              Write-CargoBuildPhase -Phase 'AutoCopy' -Complete
+                                          }
+                                      }
+                      
+                                      return $cargoExitCode
+                                  } catch {
+                                      Write-CargoBuildPhase -Phase 'Build' -Failed
+                                      Write-Error "cargo wrapper failed: $($_.Exception.Message)"
+                                      if ($_.ScriptStackTrace) {
+                                          Write-Host "  [STACK] $($_.ScriptStackTrace)" -ForegroundColor DarkGray
+                                      }
+                      
+                                      # Enhanced error output
+                                      $diagnostics = Format-CargoDiagnostics -ExitCode 1 -Command 'cargo' -Arguments $passThrough.ToArray() -StartTime $buildStartTime
+                                      Write-Host $diagnostics -ForegroundColor Red
+                      
+                                      Write-Host 'Try: rustup update stable' -ForegroundColor Yellow
+                                      Write-Host 'Or run: cargo --version' -ForegroundColor Yellow
+                                      return 1
+                                  }
+                              }
+                      
+                              Write-Error "Error: rustup.exe not found at $rustupPath"
+                              Write-Host 'Install Rust using rustup or add rustup.exe to PATH.' -ForegroundColor Yellow
+                              return 1
+                          } finally {
+                              if ($queueTicket) {
+                                  Exit-CargoBuildQueue -TicketPath $queueTicket.TicketPath
+                              }
+                              if ($popLocation) { Pop-Location }
+                          }
+                      
+Options             : None
+Description         : 
+Verb                : Invoke
+Noun                : CargoWrapper
+HelpFile            : 
+OutputType          : {}
+Name                : Invoke-CargoWrapper
+CommandType         : Function
+Source              : CargoTools
+Version             : 0.9.0
+Visibility          : Public
+ModuleName          : CargoTools
+Module              : CargoTools
+RemotingCapability  : PowerShell
+Parameters          : {[ArgumentList, System.Management.Automation.ParameterMetadata], [Command, System.Management.Automation.ParameterMetadata], [AdditionalArgs, System.Management.Automation.ParameterMetadata], [WorkingDirectory, System.Management.Automation.ParameterMetadata]…}
+ParameterSets       : {[[-ArgumentList] <string[]>] [<CommonParameters>], -Command <string> [-AdditionalArgs <string[]>] [-WorkingDirectory <string>] [<CommonParameters>]}
+

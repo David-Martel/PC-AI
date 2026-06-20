@@ -1,0 +1,155 @@
+
+TimeCreated      : 6/5/2026 9:04:03 PM
+ProviderName     : BTHUSB
+Id               : 18
+LevelDisplayName : Information
+Message          : Windows cannot store Bluetooth authentication codes (link keys) on the local adapter. Bluetooth keyboards might not work in the system BIOS during startup.
+
+TimeCreated      : 6/5/2026 9:03:13 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: INTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 9:03:10 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: LCI\IDDCX\1&36444bd7&0&WHO_CARE
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 9:03:10 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: ROOT\SYSTEM\0002
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 9:03:10 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: ROOT\SYSTEM\0001
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 9:03:10 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WudfRd failed to load.
+                   Device: ROOT\WPD\0000
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 9:03:10 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 9:03:08 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 9:03:01 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: ROOT\WINDOWSHELLOFACESOFTWAREDRIVER\0000
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 8:58:33 PM
+ProviderName     : Microsoft-Windows-DriverFrameworks-UserMode
+Id               : 10111
+LevelDisplayName : Critical
+Message          : The device Intel(R) Dynamic Tuning Technology Device Extension Component (location (unknown)) is offline due to a user-mode driver crash.  Windows will attempt to restart the device 5 more times.  Please contact the device manufacturer for more information about this problem.
+
+TimeCreated      : 6/5/2026 7:39:53 PM
+ProviderName     : Microsoft-Windows-Kernel-Power
+Id               : 507
+LevelDisplayName : Information
+Message          : The system is exiting Modern Standby 
+                   
+                   Reason: Input Keyboard.
+
+TimeCreated      : 6/5/2026 7:36:21 PM
+ProviderName     : BTHUSB
+Id               : 18
+LevelDisplayName : Information
+Message          : Windows cannot store Bluetooth authentication codes (link keys) on the local adapter. Bluetooth keyboards might not work in the system BIOS during startup.
+
+TimeCreated      : 6/5/2026 7:36:04 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: INTELAUDIO\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\5&2ea39da9&0&DIF_0000&UIF_0000
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 7:36:01 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: LCI\IDDCX\1&36444bd7&0&WHO_CARE
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 7:36:01 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: ROOT\SYSTEM\0002
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 7:36:01 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: ROOT\SYSTEM\0001
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 7:36:01 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WudfRd failed to load.
+                   Device: ROOT\WPD\0000
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 7:36:01 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: ACPI\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\2&daba3ff&1
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 7:35:56 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20
+                   Status: 0xC0000365
+
+TimeCreated      : 6/5/2026 7:35:45 PM
+ProviderName     : Microsoft-Windows-Kernel-PnP
+Id               : 219
+LevelDisplayName : Warning
+Message          : The driver \Driver\WUDFRd failed to load.
+                   Device: ROOT\WINDOWSHELLOFACESOFTWAREDRIVER\0000
+                   Status: 0xC0000365
+

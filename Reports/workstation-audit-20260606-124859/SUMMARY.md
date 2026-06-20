@@ -75,6 +75,9 @@ Rollback:
 
 This folder contains the collected read-only evidence:
 
+- `hid-io-regression-triage-20260606.md` - current non-GPU HID/IO,
+  haptic touchpad, Shift-key, Terminal/Claude, WDF/IPF, USB/network, and power
+  maintenance triage with validated next actions.
 - `boot-mount-health.json`
 - `sync-provider-health.json`
 - `process-lasso-boot-safety.txt`
@@ -303,6 +306,203 @@ Next gated action:
 - The one-hour event summary may still show pre-fix HTTP Event counts until that
   window ages out.
 
+## Direct Pass - 2026-06-06
+
+Evidence root for this pass:
+
+- `direct-pass-20260606\`
+- `direct-pass-20260606-after-actions\`
+
+### Docker Cleanup
+
+Docker image/container cleanup was completed without stopping or removing any
+running containers.
+
+Actions:
+
+- Confirmed all running containers and their images.
+- Searched repo, Codex, agent, and PowerShell automation paths for references
+  to unused tagged images.
+- Ran `docker image prune -f`; no dangling reclaim was available.
+- Ran `docker image prune -a -f` to remove images unused by any container.
+- Ran `docker builder prune -a -f` to remove build cache.
+
+Result:
+
+- Images: `28` -> `8`.
+- Images reclaimable: `25.32 GB` -> `0 B`.
+- Build cache: `2.298 GB` -> `0 B`.
+- Containers: still `8` active, `0 B` reclaimable.
+- Remaining images are exactly the images backing running containers.
+
+Validation artifacts:
+
+- `direct-pass-20260606\docker-image-prune-a.txt`
+- `direct-pass-20260606\docker-builder-prune-a.txt`
+- `direct-pass-20260606\docker-system-df-final.txt`
+- `direct-pass-20260606\docker-ps-final.txt`
+
+Remaining gated item:
+
+- Local volumes still report `4.108 GB` reclaimable across inactive volumes, but
+  volumes were not pruned because they can contain project state.
+
+### OneDrive Task Triage
+
+OneDrive itself remains healthy. The task noise was from non-primary account
+tasks that never successfully ran.
+
+Actions:
+
+- Disabled OneDrive reporting/startup tasks for inactive `WsiAccount`.
+- Searched repo/profile/machine automation for `DevToolsUser`,
+  `CodexSandboxOffline`, and `WsiAccount`; no automation dependency was found.
+- Disabled OneDrive reporting/startup tasks for `DevToolsUser` and
+  `CodexSandboxOffline`.
+- Kept the current user `david` OneDrive tasks enabled.
+- Kept the per-machine updater task enabled.
+
+Rationale:
+
+- `WsiAccount` is inactive.
+- `CodexSandboxOffline` is explicitly an offline sandbox account.
+- `DevToolsUser` appears to be a development isolation account with no evidence
+  of OneDrive dependency.
+
+Rollback:
+
+```powershell
+Enable-ScheduledTask -TaskPath '\' -TaskName 'OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1003'
+Enable-ScheduledTask -TaskPath '\' -TaskName 'OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1003'
+Enable-ScheduledTask -TaskPath '\' -TaskName 'OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1007'
+Enable-ScheduledTask -TaskPath '\' -TaskName 'OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1007'
+Enable-ScheduledTask -TaskPath '\' -TaskName 'OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1009'
+Enable-ScheduledTask -TaskPath '\' -TaskName 'OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1009'
+```
+
+Validation:
+
+- `Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru` reports
+  `Status: Pass`.
+- Current user OneDrive tasks still report `LastTaskResult = 0`.
+- Remaining warning is unchanged and intentional for this pass:
+  `iCloud` sync root exists while no provider process is running.
+
+Validation artifacts:
+
+- `direct-pass-20260606\onedrive-wsiaccount-tasks-before-disable.json`
+- `direct-pass-20260606\onedrive-wsiaccount-tasks-after-disable.json`
+- `direct-pass-20260606\onedrive-nonprimary-tasks-before-disable.json`
+- `direct-pass-20260606\onedrive-tasks-after-nonprimary-disable.json`
+- `direct-pass-20260606\sync-provider-health-post-direct-pass.txt`
+
+### NVIDIA Dual-GPU State
+
+The internal RTX 2000 Ada and eGPU RTX 5060 Ti remain split across NVIDIA driver
+versions:
+
+- Internal RTX 2000 Ada: `32.0.15.9659` / NVIDIA `596.59`, `Status=Error`,
+  Code 31.
+- eGPU RTX 5060 Ti: `32.0.15.9186` / NVIDIA `591.86`, `Status=OK`.
+
+Actions:
+
+- Exported both current NVIDIA display driver packages:
+  - `oem236.inf` / `nvltwi.inf`
+  - `oem395.inf` / `nv_dispig.inf`
+- Added `Tools\InputDiagnostics\Test-NvidiaDualGpuDriverHealth.ps1`, a
+  read-only checker for driver-version split, Code 31, and `nvidia-smi` state.
+- Updated `Tools\InputDiagnostics\README.md`.
+- Updated and ran `Tests\InputDiagnostics\InputDiagnostics.Tests.ps1`.
+
+Validation:
+
+- `Test-NvidiaDualGpuDriverHealth.ps1` reports
+  `HasNvidiaDriverVersionSplit = true` and
+  `HasNvidiaDeviceProblem = true`.
+- Pester: `46 passed, 0 failed`.
+
+Research-grounded conclusion:
+
+- NVIDIA documents that two NVIDIA cards in one system should use the same
+  driver to avoid conflicts, while GeForce plus Quadro/RTX professional mixed
+  setups are not a fully supported configuration.
+- NVIDIA's notebook/eGPU driver guidance also warns that notebook OEM support
+  must be preserved; installing a driver that supports only the external GPU can
+  break notebook-specific support.
+
+Recommended gated fix path:
+
+1. Create a restore point.
+2. Keep the exported driver packages as rollback.
+3. Prefer Lenovo Vantage / Lenovo-qualified display package first for the P1 Gen
+   7 internal GPU.
+4. If Lenovo does not provide a package that also supports the RTX 5060 Ti eGPU,
+   test a single NVIDIA Studio/RTX package only after confirming it supports both
+   device IDs.
+5. After driver change, run:
+   `Tools\InputDiagnostics\Test-NvidiaDualGpuDriverHealth.ps1 -AsJson`,
+   `pnputil /enum-devices /problem`, and `nvidia-smi`.
+
+Validation artifacts:
+
+- `direct-pass-20260606\driver-export\`
+- `direct-pass-20260606\nvidia-dual-gpu-health-final.json`
+- `direct-pass-20260606\nvidia-dual-gpu-health-final\`
+
+### PC_AI Service Staleness
+
+The disabled PC_AI services were stale because NSSM still pointed to the removed
+`C:\Users\david\PC_AI` tree.
+
+Actions:
+
+- Fixed `Native\PcaiServiceHost\PcaiServiceHost.csproj` package downgrade:
+  `System.Text.Json` `8.0.5` -> `10.0.7`, matching `PcaiNative`.
+- Rebuilt `Build.ps1 -Component servicehost -Configuration Release
+  -SkipQualityGate`.
+- Updated disabled NSSM service paths for:
+  - `PC_AI-HVSockProxy`
+  - `PC_AI-VLLM`
+- Kept both services disabled.
+- Fixed `PcaiServiceHost` HVSock status handling so stale PowerShell-created
+  state files deserialize correctly and PID `0` is not treated as alive.
+- Cleared stale HVSock state through `PcaiServiceHost.exe hvsock stop`.
+
+Validation:
+
+- `PC_AI-HVSockProxy`: disabled, stopped, NSSM points to current repo.
+- `PC_AI-VLLM`: disabled, stopped, NSSM points to current repo.
+- `PcaiServiceHost.exe --help` works.
+- `PcaiServiceHost.exe hvsock status` now reports no proxies running after stale
+  state cleanup.
+- `PcaiServiceHost.exe vllm status` reports `vLLM container not running`.
+
+Remaining service debt:
+
+- `PC_AI-ToolRouter` still points to removed
+  `Deploy\functiongemma-finetune\tool_router.py` under the old tree. The
+  current repo appears to have moved FunctionGemma router work into
+  `Deploy\rust-functiongemma-runtime`; service migration should be a separate
+  work item.
+
+Validation artifacts:
+
+- `direct-pass-20260606\hvsock-nssm-before.txt`
+- `direct-pass-20260606\vllm-nssm-before.txt`
+- `direct-pass-20260606\pcai-servicehost-help.txt`
+- `direct-pass-20260606\pcai-servicehost-hvsock-status-after-clear.txt`
+- `.pcai\build\logs\build_pcai-servicehost_20260606_*.log`
+
+### Final Direct-Pass Validation
+
+- `Check-PostFixEvents.ps1 -Minutes 30`: no output, meaning no critical/error
+  /warning records in that window.
+- `Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru`: pass.
+- `docker system df`: no image/container/build-cache reclaim remains.
+- `pnputil /enum-devices /problem`: only internal NVIDIA RTX 2000 Ada Code 31
+  remains.
+
 ## Current Findings
 
 1. PowerShell/Codex command processing was unhealthy and has been fixed.
@@ -359,6 +559,65 @@ Next gated action:
 9. WSL inventory is stable but Docker Desktop is the only running distro.
    - Default distro: Ubuntu-22.04, stopped.
    - Running distro: docker-desktop.
+
+## Repo Fix Pass - 2026-06-06
+
+Read-only evidence was collected under
+`repo-fix-pass-20260606`; focused validation logs are under
+`repo-fix-validation-20260606`.
+
+Completed fixes:
+- Corrected `Config\pcai-functiongemma.json` to use the existing repo-local
+  FunctionGemma model directory: `Models/functiongemma-270m-it`.
+- Split the default FunctionGemma runtime build away from the heavy model/CUDA
+  core dependency. The heuristic runtime now validates with
+  `check --no-default-features`; the full `model` feature remains the gated
+  CUDA/model path.
+- Aligned `rust-functiongemma-core`'s direct `cudarc` dependency with
+  `candle-core 0.9.2`'s `cudarc 0.19.0` resolver line.
+- Changed `Tools\Initialize-CudaEnvironment.ps1` to prefer CUDA `v13.1`
+  before `v13.2`, matching the repo's Rust/CUDA compatibility notes and
+  avoiding the current `cudarc` CUDA 13.2 build-script panic.
+- Hardened `Tools\Invoke-RustBuild.ps1` with `-LlmOutput`, path validation,
+  missing-argument failure, and CargoTools returned-exit-code handling.
+- Updated CargoTools tests to current exported command names and added config
+  drift tests for FunctionGemma and CUDA initializer defaults.
+- Brought `Test-KeyInput.ps1` and `Watch-InputGlitch.ps1` under the input
+  diagnostics structural test contract.
+- Extended `Test-NvidiaDualGpuDriverHealth.ps1` with local NVIDIA App/update
+  artifact detection, explicit issue reporting, recommended actions, and
+  `-FailOnIssue` for automation gates.
+- Added and applied `Tools\InputDiagnostics\Repair-TouchpadPowerManagement.ps1`
+  for the live Sensel touchpad stickiness path. It disables the
+  `MSPower_DeviceEnable` power-down permission for `SNSL002D` and Intel `7E78`,
+  writes reversible `EnhancedPowerManagementEnabled=0` values, and records
+  rollback state in
+  `Tools\InputDiagnostics\backups\touchpad-power-20260606-152612.json`.
+  Evidence report:
+  `Reports\workstation-audit-20260606-124859\touchpad-power-fix-20260606.md`.
+
+Validation:
+- `Reports\workstation-audit-20260606-124859\Run-RepoFixValidation.ps1` passed.
+- Passing gates: `pester-invoke-rustbuild`, `pester-cargotools`,
+  `pester-functiongemma-config`, `pester-cuda-initializer`,
+  `pester-inputdiagnostics`, `nvidia-health-readonly`, and
+  `rust-functiongemma-runtime-check`.
+- `git diff --check` passed.
+
+Remaining gated items:
+- Full FunctionGemma `model` feature still needs a separate GPU build window.
+  Previous validation showed `candle-kernels` / `candle-flash-attn` failures
+  in NVCC/MSVC environment setup and Windows command-line length handling.
+- NVIDIA driver remediation remains intentionally uninstalled/unmodified. The
+  checker is now the validation gate; any install should first verify a
+  candidate INF covers both `VEN_10DE&DEV_28B8` and `VEN_10DE&DEV_2D04`.
+- Input symptoms still require live reproduction evidence from
+  `Test-KeyInput.ps1` and/or `Watch-InputGlitch.ps1`; current logs show
+  repeated WUDFRd warnings for `ACPI\VEN_ELAS&DEV_B41A` while the actual
+  touchpad path remains Sensel `SNSL002D`. As of the touchpad power pass, the
+  direct Sensel/I2C power-down risk has been remediated and future recurrence
+  should be measured with `Watch-InputGlitch.ps1 -Mode Report -SinceFix
+  2026-06-06`.
 
 ## Proposed Todo List
 

@@ -1,0 +1,31 @@
+
+=== Rust Build Environment ===
+  Rustup                 rustup 1.29.0 (28d1352db 2026-03-05)
+  ActiveToolchain        stable-x86_64-pc-windows-msvc
+  SelectedToolchain      stable-x86_64-pc-windows-msvc (healthy)
+  VisualStudio           Visual Studio Community 2022 (C:\Program Files\Microsoft Visual Studio\2022\Community)
+  MSVC                   14.44.35207 (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\link.exe)
+  Linker                 external lld-link (C:\Program Files\LLVM\bin\lld-link.exe)
+  Sccache                healthy (T:\RustCache\cargo-home\bin\sccache.exe, 12MB)
+  Nextest                installed (T:\RustCache\cargo-home\bin\cargo-nextest.exe)
+  Ninja                  installed (C:\ProgramData\chocolatey\bin\ninja.exe)
+  CacheRoot              T:\RustCache
+  TargetMode             local
+  CacheFileSystem        ReFS
+  DevDrive               Yes (ReFS detected)
+  DefenderExclusions     All key dirs excluded
+  CARGO_INCREMENTAL      0
+  PATHConflicts          1 conflict(s) found (auto-sanitized during builds)
+  CargoConfig            present (sparse registry)
+  CargoConfigMerge       compatible [env] value types
+  RustfmtConfig          present
+  BuildJobs              6
+  MachineDeps            pass
+
+  Build environment is fully optimized.
+
+
+Results
+-------                                                                                                                 
+{[Rustup, rustup 1.29.0 (28d1352db 2026-03-05)], [ActiveToolchain, stable-x86_64-pc-windows-msvc], [SelectedToolchain, …
+

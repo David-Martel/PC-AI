@@ -1,0 +1,13 @@
+Enabling tracing for 30 seconds...
+Observing system behavior...
+Analyzing trace data...
+Analysis complete.
+
+Energy efficiency problems were found.
+
+30 Errors
+10 Warnings
+78 Informational
+
+See C:\codedev\PC_AI\Reports\power-maintenance-20260606-165916\energy.html for more details.
+

@@ -1488,7 +1488,7 @@ function Invoke-RustQuality {
             'check' { @('check', '--workspace', '--all-targets') }
             'clippy' { @('clippy', '--workspace', '--all-targets', '--', '-D', 'warnings') }
             'fmt' {
-                if ($WriteMode) { @('fmt', '--all') } else { @('fmt', '--all', '--', '--check') }
+                if ($WriteMode) { @('fmt', '--all') } else { @('fmt', '--all', '--check') }
             }
         }
 
@@ -1532,7 +1532,7 @@ function Invoke-RustInferenceQuality {
             if ($WriteMode) {
                 $commands += , @('fmt', '--all')
             } else {
-                $commands += , @('fmt', '--all', '--', '--check')
+                $commands += , @('fmt', '--all', '--check')
             }
         }
     }

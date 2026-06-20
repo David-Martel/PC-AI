@@ -1,0 +1,275 @@
+[
+  {
+    "TimeCreated": "2026-06-06T12:35:51.6589742-04:00",
+    "Id": 20003,
+    "ProviderName": "Microsoft-Windows-UserPnp",
+    "LevelDisplayName": "Information",
+    "Message": "Driver Management has concluded the process to add Service WUDFWpdFs for Device Instance ID SWD\\WPDBUSENUM\\_??_USBSTOR#DISK&VEN_GENERAL&PROD_UDISK&REV_5.00#6&13B90F1C&0&_&0#{53F56307-B6BF-11D0-94F2-00A0C91EFB8B} with the following status: 0."
+  },
+  {
+    "TimeCreated": "2026-06-05T21:04:02.737277-04:00",
+    "Id": 1,
+    "ProviderName": "Microsoft-Windows-IsolatedUserMode",
+    "LevelDisplayName": "Information",
+    "Message": "Secure Trustlet \\??\\C:\\Windows\\System32\\WUDFCompanionHost.exe Id 4096 and Pid 9152 started with status STATUS_SUCCESS."
+  },
+  {
+    "TimeCreated": "2026-06-05T21:04:01.1088408-04:00",
+    "Id": 267,
+    "ProviderName": "Win32k",
+    "LevelDisplayName": "Information",
+    "Message": "Touch/Touchpad Hardware Quality Assurance verification succeeded."
+  },
+  {
+    "TimeCreated": "2026-06-05T21:04:00.6934325-04:00",
+    "Id": 1,
+    "ProviderName": "Microsoft-Windows-IsolatedUserMode",
+    "LevelDisplayName": "Information",
+    "Message": "Secure Trustlet \\??\\C:\\Windows\\System32\\WUDFCompanionHost.exe Id 4096 and Pid 2804 started with status STATUS_SUCCESS."
+  },
+  {
+    "TimeCreated": "2026-06-05T21:03:13.2142451-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: INTELAUDIO\\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\\5&2ea39da9&0&DIF_0000&UIF_0000\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T21:03:10.5880422-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: LCI\\IDDCX\\1&36444bd7&0&WHO_CARE\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T21:03:10.5727805-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ROOT\\SYSTEM\\0002\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T21:03:10.5585352-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ROOT\\SYSTEM\\0001\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T21:03:10.5234449-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WudfRd failed to load.\r\nDevice: ROOT\\WPD\\0000\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T21:03:10.4569315-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ACPI\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\2&daba3ff&1\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T21:03:08.6876797-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: PCI\\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\\3&11583659&1&20\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T21:03:01.435725-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ROOT\\WINDOWSHELLOFACESOFTWAREDRIVER\\0000\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T20:57:24.1002498-04:00",
+    "Id": 20003,
+    "ProviderName": "Microsoft-Windows-UserPnp",
+    "LevelDisplayName": "Information",
+    "Message": "Driver Management has concluded the process to add Service nvlddmkm for Device Instance ID PCI\\VEN_10DE&DEV_2D04&SUBSYS_8A071043&REV_A1\\17A20750D72DB04800 with the following status: 0."
+  },
+  {
+    "TimeCreated": "2026-06-05T19:36:18.8576409-04:00",
+    "Id": 1,
+    "ProviderName": "Microsoft-Windows-IsolatedUserMode",
+    "LevelDisplayName": "Information",
+    "Message": "Secure Trustlet \\??\\C:\\Windows\\System32\\WUDFCompanionHost.exe Id 4096 and Pid 6460 started with status STATUS_SUCCESS."
+  },
+  {
+    "TimeCreated": "2026-06-05T19:36:17.8501179-04:00",
+    "Id": 267,
+    "ProviderName": "Win32k",
+    "LevelDisplayName": "Information",
+    "Message": "Touch/Touchpad Hardware Quality Assurance verification succeeded."
+  },
+  {
+    "TimeCreated": "2026-06-05T19:36:17.30692-04:00",
+    "Id": 1,
+    "ProviderName": "Microsoft-Windows-IsolatedUserMode",
+    "LevelDisplayName": "Information",
+    "Message": "Secure Trustlet \\??\\C:\\Windows\\System32\\WUDFCompanionHost.exe Id 4096 and Pid 2820 started with status STATUS_SUCCESS."
+  },
+  {
+    "TimeCreated": "2026-06-05T19:36:04.5832653-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: INTELAUDIO\\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\\5&2ea39da9&0&DIF_0000&UIF_0000\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T19:36:01.8111998-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: LCI\\IDDCX\\1&36444bd7&0&WHO_CARE\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T19:36:01.7520061-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ROOT\\SYSTEM\\0002\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T19:36:01.7376699-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ROOT\\SYSTEM\\0001\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T19:36:01.6475333-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WudfRd failed to load.\r\nDevice: ROOT\\WPD\\0000\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T19:36:01.4464681-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ACPI\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\2&daba3ff&1\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T19:35:56.608137-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: PCI\\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\\3&11583659&1&20\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T19:35:45.899225-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ROOT\\WINDOWSHELLOFACESOFTWAREDRIVER\\0000\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T10:40:06.8429479-04:00",
+    "Id": 1,
+    "ProviderName": "Microsoft-Windows-IsolatedUserMode",
+    "LevelDisplayName": "Information",
+    "Message": "Secure Trustlet \\??\\C:\\Windows\\System32\\WUDFCompanionHost.exe Id 4096 and Pid 14112 started with status STATUS_SUCCESS."
+  },
+  {
+    "TimeCreated": "2026-06-05T10:40:03.3386937-04:00",
+    "Id": 267,
+    "ProviderName": "Win32k",
+    "LevelDisplayName": "Information",
+    "Message": "Touch/Touchpad Hardware Quality Assurance verification succeeded."
+  },
+  {
+    "TimeCreated": "2026-06-05T10:40:02.8015287-04:00",
+    "Id": 1,
+    "ProviderName": "Microsoft-Windows-IsolatedUserMode",
+    "LevelDisplayName": "Information",
+    "Message": "Secure Trustlet \\??\\C:\\Windows\\System32\\WUDFCompanionHost.exe Id 4096 and Pid 2816 started with status STATUS_SUCCESS."
+  },
+  {
+    "TimeCreated": "2026-06-05T10:39:53.8535743-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: INTELAUDIO\\DIF_0000&UIF_0000&CTLR_DEV_7E28&VEN_8086&DetectionVerification\\5&2ea39da9&0&DIF_0000&UIF_0000\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T10:39:48.8162457-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: LCI\\IDDCX\\1&36444bd7&0&WHO_CARE\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T10:39:48.8019691-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ROOT\\SYSTEM\\0002\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T10:39:48.7900667-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ROOT\\SYSTEM\\0001\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T10:39:48.7575864-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WudfRd failed to load.\r\nDevice: ROOT\\WPD\\0000\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T10:39:48.6954729-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ACPI\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\2&daba3ff&1\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T10:39:48.2286734-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: PCI\\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\\3&11583659&1&20\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-05T10:39:45.9015137-04:00",
+    "Id": 219,
+    "ProviderName": "Microsoft-Windows-Kernel-PnP",
+    "LevelDisplayName": "Warning",
+    "Message": "The driver \\Driver\\WUDFRd failed to load.\r\nDevice: ROOT\\WINDOWSHELLOFACESOFTWAREDRIVER\\0000\r\nStatus: 0xC0000365"
+  },
+  {
+    "TimeCreated": "2026-06-04T17:56:03.2856952-04:00",
+    "Id": 19,
+    "ProviderName": "Microsoft-Windows-WindowsUpdateClient",
+    "LevelDisplayName": "Information",
+    "Message": "Installation Successful: Windows successfully installed the following update: 9MZ08JF4T3NG-E0469640.TrackPointQuickMenu"
+  },
+  {
+    "TimeCreated": "2026-06-04T17:56:02.5656533-04:00",
+    "Id": 16,
+    "ProviderName": "Microsoft-Windows-Kernel-General",
+    "LevelDisplayName": "Information",
+    "Message": "The access history in hive \\??\\C:\\Users\\david\\AppData\\Local\\Packages\\E0469640.TrackPointQuickMenu_5grkq8ppsgwt4\\Settings\\settings.dat was cleared updating 1 keys and creating 1 modified pages."
+  },
+  {
+    "TimeCreated": "2026-06-04T17:56:02.1973827-04:00",
+    "Id": 43,
+    "ProviderName": "Microsoft-Windows-WindowsUpdateClient",
+    "LevelDisplayName": "Information",
+    "Message": "Installation Started: Windows has started installing the following update: 9MZ08JF4T3NG-E0469640.TrackPointQuickMenu"
+  },
+  {
+    "TimeCreated": "2026-06-04T17:56:01.583719-04:00",
+    "Id": 16,
+    "ProviderName": "Microsoft-Windows-Kernel-General",
+    "LevelDisplayName": "Information",
+    "Message": "The access history in hive \\??\\C:\\ProgramData\\Microsoft\\Windows\\AppRepository\\Packages\\E0469640.TrackPointQuickMenu_1.2605.35.0_x64__5grkq8ppsgwt4\\ActivationStore.dat was cleared updating 0 keys and creating 0 modified pages."
+  }
+]

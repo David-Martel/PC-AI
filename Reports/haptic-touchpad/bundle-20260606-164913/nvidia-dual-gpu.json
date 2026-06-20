@@ -1,0 +1,226 @@
+{
+  "Timestamp": "2026-06-06T16:49:48.4625736-04:00",
+  "Machine": "DTM-P1GEN7",
+  "RunDirectory": "C:\\codedev\\PC_AI\\Logs\\nvidia-dual-gpu\\20260606-164945",
+  "NvidiaDriverVersions": [
+    "32.0.15.9186",
+    "32.0.15.9659"
+  ],
+  "NvidiaSmiDriverVersion": "591.86",
+  "HasNvidiaDriverVersionSplit": true,
+  "HasNvidiaDeviceProblem": true,
+  "HasIssues": true,
+  "Issues": [
+    "NVIDIA display adapters report more than one driver version: 32.0.15.9186, 32.0.15.9659",
+    "NVIDIA device problem: NVIDIA RTX 2000 Ada Generation Laptop GPU status=Error code=CM_PROB_FAILED_ADD",
+    "nvidia-smi reports driver 591.86, which does not match all Win32_VideoController versions."
+  ],
+  "RecommendedActions": [
+    "Do not run a blind NVIDIA installer while the internal GPU and eGPU report different driver/package state.",
+    "Before any install, extract the candidate NVIDIA package and verify its Display.Driver INF covers both VEN_10DE&DEV_28B8 and VEN_10DE&DEV_2D04.",
+    "After any driver change, rerun this script with -FailOnIssue and compare nvidia-smi with Win32_VideoController and pnputil problem devices."
+  ],
+  "LocalApplications": {
+    "NvidiaAppRoot": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App",
+    "NvidiaAppInstalled": true,
+    "UpdateFrameworkRoot": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework",
+    "UpdateFrameworkPresent": true,
+    "UpdateArtifactSample": [
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\fd610678-8bc1-45fe-a594-db78a542d7f1\\853d8a651684350b2831c599f9e3fd6e\\ChatRTX_0.5_568220.exe",
+        "Length": 13170120,
+        "LastWriteTime": "2025-08-06T00:21:38.1313931-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\00f7e328d2ede5dd6cb2f3f27afb48fb\\596.59-quadro-rtx-desktop-notebook-win10-win11-64bit-international-dch-whql-g.exe",
+        "Length": 748123880,
+        "LastWriteTime": "2026-05-30T14:41:36.7498466-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\52271a9ad910231d98fa82df87f410ec\\610.47-quadro-rtx-desktop-notebook-win10-win11-64bit-international-dch-whql-g.exe",
+        "Length": 767618736,
+        "LastWriteTime": "2026-05-30T15:12:33.2294164-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\fc1047b9feb032ee840905647e337b0f\\580.97-quadro-rtx-desktop-notebook-win10-win11-64bit-international-dch-whql-g.exe",
+        "Length": 707783792,
+        "LastWriteTime": "2025-08-12T10:45:13.0161715-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\setup.exe",
+        "Length": 662248,
+        "LastWriteTime": "2026-05-22T17:03:10-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\dbInstaller.exe",
+        "Length": 827624,
+        "LastWriteTime": "2026-05-22T16:55:32-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\mcu.exe",
+        "Length": 853736,
+        "LastWriteTime": "2026-05-22T16:55:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nv_dispwi.inf",
+        "Length": 546811,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nv-vk32.json",
+        "Length": 1189,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nv-vk64.json",
+        "Length": 1189,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nv-vksc64.json",
+        "Length": 1189,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvacwi.inf",
+        "Length": 992711,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvadvwi.inf",
+        "Length": 393274,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvadwi.inf",
+        "Length": 433969,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvamwi.inf",
+        "Length": 2723878,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvblwi.inf",
+        "Length": 2664852,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvdebugdump.exe",
+        "Length": 469736,
+        "LastWriteTime": "2026-05-22T16:56:50-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvdispco64.exe",
+        "Length": 1740520,
+        "LastWriteTime": "2026-05-22T16:57:06-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvdmwi.inf",
+        "Length": 5702478,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvdwwi.inf",
+        "Length": 493512,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvfmwi.inf",
+        "Length": 309110,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvhdcwi.inf",
+        "Length": 732470,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvhmwi.inf",
+        "Length": 1631129,
+        "LastWriteTime": "2026-05-21T20:41:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvidia-pcc.exe",
+        "Length": 28071144,
+        "LastWriteTime": "2026-05-22T16:58:12-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA app\\UpdateFramework\\ota-artifacts\\grd\\post-processing\\00f7e328d2ede5dd6cb2f3f27afb48fb\\Display.Driver\\nvidia-smi.exe",
+        "Length": 1624808,
+        "LastWriteTime": "2026-05-22T16:58:22-04:00"
+      }
+    ],
+    "WingetAvailable": true,
+    "Processes": [
+      {
+        "ProcessName": "nvcontainer",
+        "Id": 3848,
+        "Path": "C:\\Program Files\\NVIDIA Corporation\\NvContainer\\nvcontainer.exe"
+      },
+      {
+        "ProcessName": "nvcontainer",
+        "Id": 12380,
+        "Path": "C:\\Program Files\\NVIDIA Corporation\\NvContainer\\nvcontainer.exe"
+      },
+      {
+        "ProcessName": "nvcontainer",
+        "Id": 14508,
+        "Path": "C:\\Program Files\\NVIDIA Corporation\\NvContainer\\nvcontainer.exe"
+      },
+      {
+        "ProcessName": "NVDisplay.Container",
+        "Id": 2704,
+        "Path": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\nv_dispig.inf_amd64_f4c7a2fd13e0f763\\Display.NvContainer\\NVDisplay.Container.exe"
+      },
+      {
+        "ProcessName": "NVDisplay.Container",
+        "Id": 4752,
+        "Path": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\nv_dispig.inf_amd64_f4c7a2fd13e0f763\\Display.NvContainer\\NVDisplay.Container.exe"
+      },
+      {
+        "ProcessName": "nvWmi64",
+        "Id": 5424,
+        "Path": "C:\\Windows\\System32\\DriverStore\\FileRepository\\nvltwi.inf_amd64_751865768b3d6c40\\NVWMI\\nvWmi64.exe"
+      },
+      {
+        "ProcessName": "nvWmi64",
+        "Id": 14568,
+        "Path": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\nvltwi.inf_amd64_751865768b3d6c40\\NVWMI\\nvWmi64.exe"
+      }
+    ]
+  },
+  "NvidiaProblems": [
+    {
+      "Status": "Error",
+      "Class": "Display",
+      "FriendlyName": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+      "InstanceId": "PCI\\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\\4&218D282A&0&0008",
+      "Problem": 31,
+      "ConfigManagerErrorCode": 31
+    }
+  ],
+  "NvidiaVideoControllers": [
+    {
+      "Name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+      "PNPDeviceID": "PCI\\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\\4&218D282A&0&0008",
+      "DriverVersion": "32.0.15.9659",
+      "Status": "Error",
+      "AdapterRAM": 4293918720
+    },
+    {
+      "Name": "NVIDIA GeForce RTX 5060 Ti",
+      "PNPDeviceID": "PCI\\VEN_10DE&DEV_2D04&SUBSYS_8A071043&REV_A1\\17A20750D72DB04800",
+      "DriverVersion": "32.0.15.9186",
+      "Status": "OK",
+      "AdapterRAM": 4293918720
+    }
+  ],
+  "Evidence": {
+    "PnputilProblems": "C:\\codedev\\PC_AI\\Logs\\nvidia-dual-gpu\\20260606-164945\\pnputil-problems.txt",
+    "PnputilDisplayDrivers": "C:\\codedev\\PC_AI\\Logs\\nvidia-dual-gpu\\20260606-164945\\pnputil-display-drivers.txt",
+    "NvidiaSmi": "C:\\codedev\\PC_AI\\Logs\\nvidia-dual-gpu\\20260606-164945\\nvidia-smi.txt",
+    "NvidiaSmiQuery": "C:\\codedev\\PC_AI\\Logs\\nvidia-dual-gpu\\20260606-164945\\nvidia-smi-q.txt"
+  }
+}

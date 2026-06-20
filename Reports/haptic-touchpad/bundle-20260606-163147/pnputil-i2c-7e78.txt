@@ -1,0 +1,215 @@
+>>> pnputil.exe /enum-devices /instanceid PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8 /properties
+exit=0
+--- stdout ---
+Microsoft PnP Utility
+
+Instance ID:                PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+Device Description:         Intel(R) Serial IO I2C Host Controller - 7E78
+Class Name:                 System
+Class GUID:                 {4d36e97d-e325-11ce-bfc1-08002be10318}
+Manufacturer Name:          Intel Corporation
+Status:                     Started
+Driver Name:                oem107.inf
+Properties:
+    DEVPKEY_Device_DeviceDesc [String]:
+        Intel(R) Serial IO I2C Host Controller - 7E78
+    DEVPKEY_Device_HardwareIds [String List]:
+        PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20
+        PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA
+        PCI\VEN_8086&DEV_7E78&CC_0C8000
+        PCI\VEN_8086&DEV_7E78&CC_0C80
+    DEVPKEY_Device_CompatibleIds [String List]:
+        PCI\VEN_8086&DEV_7E78&REV_20
+        PCI\VEN_8086&DEV_7E78
+        PCI\VEN_8086&CC_0C8000
+        PCI\VEN_8086&CC_0C80
+        PCI\VEN_8086
+        PCI\CC_0C8000
+        PCI\CC_0C80
+    DEVPKEY_Device_Service [String]:
+        iaLPSS2_I2C_MTL
+    DEVPKEY_Device_Class [String]:
+        System
+    DEVPKEY_Device_ClassGuid [GUID]:
+        {4d36e97d-e325-11ce-bfc1-08002be10318}
+    DEVPKEY_Device_Driver [String]:
+        {4d36e97d-e325-11ce-bfc1-08002be10318}\0052
+    DEVPKEY_Device_ConfigFlags [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_Manufacturer [String]:
+        Intel Corporation
+    DEVPKEY_Device_LocationInfo [String]:
+        PCI bus 0, device 21, function 0
+    DEVPKEY_Device_PDOName [String]:
+        \Device\NTPNP_PCI0015
+    DEVPKEY_Device_Capabilities [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_BusTypeGuid [GUID]:
+        {c8ebdfb0-b510-11d0-80e5-00a0c92542e3}
+    DEVPKEY_Device_LegacyBusType [UINT32]:
+        0x00000005 (5)
+    DEVPKEY_Device_BusNumber [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_EnumeratorName [String]:
+        PCI
+    DEVPKEY_Device_Address [UINT32]:
+        0x00150000 (1376256)
+    DEVPKEY_Device_PowerData [Binary]:
+        38 00 00 00 01 00 00 00 09 00 00 00 00 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 
+        04 00 00 00 00 00 00 00
+    DEVPKEY_Device_RemovalPolicy [UINT32]:
+        0x00000001 (1)
+    DEVPKEY_Device_RemovalPolicyDefault [UINT32]:
+        0x00000001 (1)
+    DEVPKEY_Device_InstallState [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_BaseContainerId [GUID]:
+        {00000000-0000-0000-ffff-ffffffffffff}
+    DEVPKEY_NAME [String]:
+        Intel(R) Serial IO I2C Host Controller - 7E78
+    DEVPKEY_Device_InstanceId [String]:
+        PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+    DEVPKEY_Device_DevNodeStatus [UINT32]:
+        0x0180200A (25174026)
+    DEVPKEY_Device_ProblemCode [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_BusRelations [String List]:
+        ACPI\SNSL002D\4&39979b3e&0
+    DEVPKEY_Device_Parent [String]:
+        ACPI\PNP0A08\0
+    DEVPKEY_Device_Children [String List]:
+        ACPI\SNSL002D\4&39979b3e&0
+    DEVPKEY_Device_Siblings [String List]:
+        PCI\VEN_8086&DEV_7D01&SUBSYS_223417AA&REV_04\3&11583659&1&00
+        PCI\VEN_8086&DEV_7ECC&SUBSYS_223417AA&REV_10\3&11583659&1&08
+        PCI\VEN_8086&DEV_7D55&SUBSYS_223417AA&REV_08\3&11583659&1&10
+        PCI\VEN_8086&DEV_7D03&SUBSYS_223417AA&REV_04\3&11583659&1&20
+        PCI\VEN_8086&DEV_7E4D&SUBSYS_223417AA&REV_20\3&11583659&1&30
+        PCI\VEN_8086&DEV_7ECB&SUBSYS_223417AA&REV_10\3&11583659&1&32
+        PCI\VEN_8086&DEV_7EC4&SUBSYS_223417AA&REV_02\3&11583659&1&38
+        PCI\VEN_8086&DEV_7EC5&SUBSYS_223417AA&REV_02\3&11583659&1&39
+        PCI\VEN_8086&DEV_7E4C&SUBSYS_223417AA&REV_20\3&11583659&1&40
+        PCI\VEN_8086&DEV_7D0D&SUBSYS_223417AA&REV_01\3&11583659&1&50
+        PCI\VEN_8086&DEV_7D1D&SUBSYS_223417AA&REV_04\3&11583659&1&58
+        PCI\VEN_8086&DEV_7EC0&SUBSYS_223417AA&REV_02\3&11583659&1&68
+        PCI\VEN_8086&DEV_7EC2&SUBSYS_223417AA&REV_02&USB4_MS_CM\3&11583659&1&6A
+        PCI\VEN_8086&DEV_7E7D&SUBSYS_223417AA&REV_20\3&11583659&1&A0
+        PCI\VEN_8086&DEV_7E7F&SUBSYS_223417AA&REV_20\3&11583659&1&A2
+        PCI\VEN_8086&DEV_7E70&SUBSYS_223417AA&REV_20\3&11583659&1&B0
+        PCI\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\3&11583659&1&C8
+        PCI\VEN_8086&DEV_7E38&SUBSYS_223417AA&REV_20\3&11583659&1&E0
+        PCI\VEN_8086&DEV_7E3F&SUBSYS_223417AA&REV_20\3&11583659&1&E7
+        PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8
+        PCI\VEN_8086&DEV_7E28&SUBSYS_223417AA&REV_20\3&11583659&1&FB
+        PCI\VEN_8086&DEV_7E22&SUBSYS_223417AA&REV_20\3&11583659&1&FC
+        PCI\VEN_8086&DEV_7E23&SUBSYS_223417AA&REV_20\3&11583659&1&FD
+        ACPI\ACPI000E\3&11583659&1
+        ACPI\PNP0C02\1
+    DEVPKEY_Device_SafeRemovalRequired [Boolean]:
+        FALSE
+    DEVPKEY_Device_ContainerId [GUID]:
+        {00000000-0000-0000-ffff-ffffffffffff}
+    DEVPKEY_Device_IsPresent [Boolean]:
+        TRUE
+    DEVPKEY_Device_HasProblem [Boolean]:
+        FALSE
+    {83da6326-97a6-4088-9453-a1923f573b29}[15] [Boolean]:
+        TRUE
+    DEVPKEY_Device_IsRebootRequired [Boolean]:
+        FALSE
+    DEVPKEY_Device_ReportedDeviceIdsHash [UINT32]:
+        0x3FB13812 (1068578834)
+    DEVPKEY_Device_InLocalMachineContainer [Boolean]:
+        TRUE
+    DEVPKEY_Device_Stack [String List]:
+        \Driver\iaLPSS2_I2C_MTL
+        \Driver\ACPI
+        \Driver\pci
+    DEVPKEY_Device_DependencyDependents [String List]:
+        ACPI\SNSL002D\4&39979b3e&0
+    {a8b865dd-2e3d-4094-ad97-e593a70c75d6}[26] [Boolean]:
+        FALSE
+    {3464f7a4-2444-40b1-980a-e0903cb6d912}[10] [UINT32]:
+        0x00000003 (3)
+    DEVPKEY_PciDevice_DeviceType [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_PciDevice_CurrentSpeedAndMode [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_PciDevice_BaseClass [UINT32]:
+        0x0000000C (12)
+    DEVPKEY_PciDevice_SubClass [UINT32]:
+        0x00000080 (128)
+    DEVPKEY_PciDevice_ProgIf [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_PciDevice_InterruptSupport [UINT32]:
+        0x00000001 (1)
+    DEVPKEY_PciDevice_BarTypes [UINT32]:
+        0x00000100 (256)
+    DEVPKEY_PciDevice_S0WakeupSupported [Boolean]:
+        TRUE
+    DEVPKEY_PciDevice_RequiresReservedMemoryRegion [Boolean]:
+        FALSE
+    DEVPKEY_PciDevice_SupportedLinkSubState [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_BusReportedDeviceDesc [String]:
+        PCI Device
+    DEVPKEY_Device_ConfigurationId [String]:
+        oem107.inf:PCI\VEN_8086&DEV_7E78,iaLPSS2_I2C_MTL_Device.NT
+    DEVPKEY_Device_BiosDeviceName [String]:
+        \_SB.PC00.I2C0
+    {5d078032-6378-437b-8da5-9b32b7ca3fdd}[2] [UINT32]:
+        0x00000000 (0)
+    {80497100-8c73-48b9-aad9-ce387e19c56e}[6] [UINT32]:
+        0x00000000 (0)
+    {80497100-8c73-48b9-aad9-ce387e19c56e}[7] [UINT64]:
+        0x0000000000000000 (0)
+    {83da6326-97a6-4088-9453-a1923f573b29}[3] [String]:
+        oem107.inf:5f63e5343f5afc31:iaLPSS2_I2C_MTL_Device.NT:30.100.2527.40:PCI\VEN_8086&DEV_7E78
+    {83da6326-97a6-4088-9453-a1923f573b29}[4] [String]:
+        oem312.inf:5f63e5343f5afc31:iaLPSS2_I2C_MTL_Device.NT:30.100.2405.44:PCI\VEN_8086&DEV_7E78
+    {83da6326-97a6-4088-9453-a1923f573b29}[10] [String]:
+        ACPI\PNP0A08\0
+    {83da6326-97a6-4088-9453-a1923f573b29}[18] [UINT32]:
+        0x00000002 (2)
+    {83da6326-97a6-4088-9453-a1923f573b29}[25] [UINT32]:
+        0x00000000 (0)
+    {83da6326-97a6-4088-9453-a1923f573b29}[26] [Binary]:
+        00
+    DEVPKEY_Device_InstallDate [FILETIME]:
+        2/23/2026 15:07:37
+    DEVPKEY_Device_FirstInstallDate [FILETIME]:
+        12/17/2025 3:42:32
+    DEVPKEY_Device_LastArrivalDate [FILETIME]:
+        6/6/2026 1:02:55
+    DEVPKEY_Device_LocationPaths [String List]:
+        PCIROOT(0)#PCI(1500)
+        ACPI(_SB_)#ACPI(PC00)#ACPI(I2C0)
+    DEVPKEY_Device_DriverDate [FILETIME]:
+        7/3/2025 0:00:00
+    DEVPKEY_Device_DriverVersion [String]:
+        30.100.2527.40
+    DEVPKEY_Device_DriverDesc [String]:
+        Intel(R) Serial IO I2C Host Controller - 7E78
+    DEVPKEY_Device_DriverInfPath [String]:
+        oem107.inf
+    DEVPKEY_Device_DriverInfSection [String]:
+        iaLPSS2_I2C_MTL_Device.NT
+    DEVPKEY_Device_MatchingDeviceId [String]:
+        PCI\VEN_8086&DEV_7E78
+    DEVPKEY_Device_DriverProvider [String]:
+        Intel Corporation
+    DEVPKEY_Device_DriverRank [UINT32]:
+        0x00FF2001 (16719873)
+    {f0e20f09-d97a-49a9-8046-bb6e22e6bb2e}[2] [Binary]:
+        01 00 00 00 00 00 00 00 00 00 00 00 B3 00 00 00 
+        0B 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 
+        99 99 29 00 00 00 00 00 00 00 00 00 00 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+        20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+
+--- stderr ---
+

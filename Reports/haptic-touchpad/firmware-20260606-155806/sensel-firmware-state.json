@@ -1,0 +1,286 @@
+{
+  "Timestamp": "2026-06-06T15:58:20.0630538-04:00",
+  "Machine": "DTM-P1GEN7",
+  "OutDir": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\firmware-20260606-155806",
+  "Target": {
+    "FirmwareGuid": "e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134",
+    "FirmwarePnPId": "UEFI\\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}",
+    "ExpectedPackageId": "n48gb01w",
+    "ExpectedFirmwareVersionDword": "0x01040002"
+  },
+  "FirmwareInf": {
+    "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\Repository\\n48gb01w\\SenselTrackpad.inf",
+    "Present": true,
+    "DriverVer": "06/19/2024,1.4.2.0",
+    "FirmwareVersion": {
+      "Hex": "0x01040002",
+      "Decimal": 17039362,
+      "Version": "1.4.2"
+    },
+    "FirmwareFilename": "{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}\\SenselTrackpad.Cap",
+    "Description": "Sensel Curie Trackpad Firmware 1.4.2"
+  },
+  "LenovoVantage": {
+    "SessionRoot": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session",
+    "PackageRoot": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\Repository\\n48gb01w",
+    "PackageFiles": [
+      {
+        "FullName": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\Repository\\n48gb01w\\n48gb01w_2_.xml",
+        "Length": 24279,
+        "LastWriteTime": "2025-03-16T15:36:56.8611598-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\Repository\\n48gb01w\\SenselTrackpad.Cap",
+        "Length": 100128,
+        "LastWriteTime": "2024-07-26T14:59:02-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\Repository\\n48gb01w\\senseltrackpad.cat",
+        "Length": 11784,
+        "LastWriteTime": "2024-07-26T17:46:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\Repository\\n48gb01w\\SenselTrackpad.inf",
+        "Length": 1179,
+        "LastWriteTime": "2024-07-26T17:30:02-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\Repository\\n48gb01w\\TMP\\SenselTrackpad.Cap",
+        "Length": 100128,
+        "LastWriteTime": "2024-07-26T14:59:02-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\Repository\\n48gb01w\\TMP\\senseltrackpad.cat",
+        "Length": 11784,
+        "LastWriteTime": "2024-07-26T17:46:44-04:00"
+      },
+      {
+        "FullName": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\Repository\\n48gb01w\\TMP\\SenselTrackpad.inf",
+        "Length": 1179,
+        "LastWriteTime": "2024-07-26T17:30:02-04:00"
+      }
+    ],
+    "UpdateHistoryMatches": [
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\update_history.txt",
+        "LineNumber": 16,
+        "Line": "n48gb01w %-% Sensel Forcepad Firmware - 10 (21H2 or Later)/11 (22H2 or Later) %-% AlreadyInstalled %-%  %-% 1.4.2.0 %-% Recommended %-% 638877093435020794"
+      }
+    ],
+    "ProblematicUpdatesMatches": [
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\ProblematicUpdates.xml",
+        "LineNumber": 11,
+        "Line": "      <PackageID>n48gb01w</PackageID>"
+      }
+    ],
+    "AvailableUpdatesMatches": [
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\available_updates.json",
+        "LineNumber": 1,
+        "Line": "[{\"status\":1,\"packageElement\":{\"compatiblePackage\":false,\"PCDDescriptorVersion\":\"230\",\"Hide\":false,\"RequireUserInteraction\":false,\"Id\":\"n48gb01w\",\"OfferOrderID\":0,\"OfferRadio1\":null,\"OfferRadio2\":null,\"Comment\":[],\"Priority\":\"5\",\"Name\":\"FWU_N48GB\",\"Version\":\"1.4.2.0\",\"InstalledVersion\":\"\",\"Title\":{\"Default\":0,\"Descs\":[{\"Value\":\"Sensel Forcepad Firmware - 10 (21H2 or Later)/11 (22H2 or Later)\",\"Id\":0,\"ElementName\":\"Desc\"}],\"ElementName\":\"Title\"},\"Summary\":{\"Default\":0,\"Descs\":[],\"ElementName\":\"Summary\"},\"DetectVersion\":{\"Type\":1,\"ShowFlag\":true,\"DetectFileVersion\":[],\"DetectInfVersion\":[{\"PnPID\":\"UEFI\\\\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}\",\"Version\":\"10.0.26100.4768\"}],\"DetectRegistryVersion\":[],\"DetectServiceVersion\":[],\"ElementName\":\"DetectVersion\"},\"Severity\":{\"Type\":2,\"SeverityOve..."
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1060,
+        "Line": "        \"Id\": \"n48gb01w\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1066,
+        "Line": "        \"Name\": \"FWU_N48GB\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1073,
+        "Line": "              \"Value\": \"Sensel Forcepad Firmware - 10 (21H2 or Later)/11 (22H2 or Later)\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1110,
+        "Line": "          \"Command\": \"n48gb01w.exe /VERYSILENT /DIR=%PACKAGEPATH% /EXTRACT=\\\"YES\\\"\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1149,
+        "Line": "              \"Commad\": \"%PACKAGEPATH%\\\\n48gb01w.exe /verysilent /DIR=%PACKAGEPATH%\\\\TMP\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1355,
+        "Line": "                \"Name\": \"n48gb01w.exe\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1368,
+        "Line": "                \"Name\": \"n48gb01w.html\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1391,
+        "Line": "      \"fileName\": \"n48gb01w_2_.xml\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1393,
+        "Line": "      \"localPath\": \"C:\\\\ProgramData\\\\Lenovo\\\\Vantage\\\\AddinData\\\\LenovoSystemUpdateAddin\\\\session\\\\Repository\\\\n48gb01w\\\\\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\aggregated_device_updates.json",
+        "LineNumber": 1395,
+        "Line": "      \"title\": \"Sensel Forcepad Firmware - 10 (21H2 or Later)/11 (22H2 or Later)\","
+      },
+      {
+        "Path": "C:\\ProgramData\\Lenovo\\Vantage\\AddinData\\LenovoSystemUpdateAddin\\session\\updates.json",
+        "LineNumber": 1,
+        "Line": "[{\"nzbli03w30.100.2527.40\":{\"status\":3,\"packageElement\":{\"compatiblePackage\":false,\"PCDDescriptorVersion\":\"230\",\"Hide\":false,\"RequireUserInteraction\":false,\"Id\":\"nzbli03w\",\"OfferOrderID\":0,\"OfferRadio1\":null,\"OfferRadio2\":null,\"Comment\":[],\"Priority\":\"5\",\"Name\":\"SIO_NZBLI\",\"Version\":\"30.100.2527.40\",\"InstalledVersion\":\"\",\"Title\":{\"Default\":0,\"Descs\":[{\"Value\":\"Intel Serial IO Driver - 10 (22H2 or Later)/11\",\"Id\":0,\"ElementName\":\"Desc\"}],\"ElementName\":\"Title\"},\"Summary\":{\"Default\":0,\"Descs\":[],\"ElementName\":\"Summary\"},\"DetectVersion\":{\"Type\":1,\"ShowFlag\":true,\"DetectFileVersion\":[],\"DetectInfVersion\":[{\"PnPID\":\"PCI\\\\VEN_8086&DEV_7E7B\",\"Version\":null},{\"PnPID\":\"PCI\\\\VEN_8086&DEV_7E7A\",\"Version\":null},{\"PnPID\":\"PCI\\\\VEN_8086&DEV_7E50\",\"Version\":null},{\"PnPID\":\"PCI\\\\VEN_8086&DEV_7E79\",\"Version..."
+      }
+    ]
+  },
+  "WindowsFirmwareDevice": {
+    "ResourceId": "UEFI\\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}",
+    "PnpDevice": [
+      {
+        "Class": "Firmware",
+        "FriendlyName": "Device Firmware",
+        "InstanceId": "UEFI\\RES_{E3074A9C-A8F2-4EC6-8B7A-4124B1B3C134}\\0",
+        "Status": "OK",
+        "Problem": 0
+      }
+    ],
+    "PnputilInstance": {
+      "FileName": "pnputil.exe",
+      "Arguments": [
+        "/enum-devices",
+        "/instanceid",
+        "UEFI\\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}\\0",
+        "/properties"
+      ],
+      "ExitCode": 0,
+      "StdOut": "Microsoft PnP Utility\r\n\r\nInstance ID:                UEFI\\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}\\0\r\nDevice Description:         Device Firmware\r\nClass Name:                 Firmware\r\nClass GUID:                 {f2e7dd72-6468-4e36-b6f1-6488f42c1b52}\r\nManufacturer Name:          Microsoft\r\nStatus:                     Started\r\nDriver Name:                c_firmware.inf\r\nProperties:\r\n    DEVPKEY_Device_DeviceDesc [String]:\r\n        Device Firmware\r\n    DEVPKEY_Device_HardwareIds [String List]:\r\n        UEFI\\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}&REV_2D000002\r\n        UEFI\\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}\r\n    DEVPKEY_Device_CompatibleIds [String List]:\r\n        UEFI\\CC_00010002\r\n        GenFirmwareResource\r\n    DEVPKEY_Device_Class [String]:\r\n        Firmware\r\n    DEVPKEY_Device_ClassGuid [GUID]:\r\n        {f2e7dd72-6468-4e36-b6f1-6488f42c1b52}\r\n    DEVPKEY_Device_Driver [String]:\r\n        {f2e7dd72-6468-4e36-b6f1-6488f42c1b52}\\0010\r\n    DEVPKEY_Device_ConfigFlags [UINT32]:\r\n        0x00000000 (0)\r\n    DEVPKEY_Device_Manufacturer [String]:\r\n        Microsoft\r\n    DEVPKEY_Device_PDOName [String]:\r\n        \\Device\\0000009d\r\n    DEVPKEY_Device_Capabilities [UINT32]:\r\n        0x00000070 (112)\r\n    DEVPKEY_Device_EnumeratorName [String]:\r\n        UEFI\r\n    DEVPKEY_Device_PowerData [Binary]:\r\n        38 00 00 00 01 00 00 00 09 00 00 00 00 00 00 00 \r\n        00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 \r\n        00 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 \r\n        04 00 00 00 00 00 00 00\r\n    DEVPKEY_Device_RemovalPolicy [UINT32]:\r\n        0x00000001 (1)\r\n    DEVPKEY_Device_RemovalPolicyDefault [UINT32]:\r\n        0x00000001 (1)\r\n    DEVPKEY_Device_InstallState [UINT32]:\r\n        0x00000000 (0)\r\n    DEVPKEY_Device_BaseContainerId [GUID]:\r\n        {00000000-0000-0000-ffff-ffffffffffff}\r\n    DEVPKEY_NAME [String]:\r\n        Device Firmware\r\n    DEVPKEY_Device_InstanceId [String]:\r\n        UEFI\\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}\\0\r\n    DEVPKEY_Device_DevNodeStatus [UINT32]:\r\n        0x0180200A (25174026)\r\n    DEVPKEY_Device_ProblemCode [UINT32]:\r\n        0x00000000 (0)\r\n    DEVPKEY_Device_Parent [String]:\r\n        ACPI_HAL\\UEFI\\0\r\n    DEVPKEY_Device_Siblings [String List]:\r\n        UEFI\\RES_{0eb9bda9-3010-493a-a6a8-b5e80eddf870}\\0\r\n        UEFI\\RES_{0ff0c92e-e5e8-45fa-8341-319d20b7f57b}\\0\r\n        UEFI\\RES_{361e26ce-012c-41fd-b887-3d4f924e602a}\\0\r\n        UEFI\\RES_{4a4946b5-8c16-4e10-ae80-eabb7e38d3d1}\\0\r\n        UEFI\\RES_{51fbf029-5f1c-4160-ab18-3eed5619d5ca}\\0\r\n        UEFI\\RES_{680875a8-f49c-4528-bfa9-bb17b3dba9f4}\\0\r\n        UEFI\\RES_{86a885ee-d71e-2ed6-0fc1-9d6ccc9677eb}\\0\r\n        UEFI\\RES_{a09d98b8-e3e0-46a2-a48a-c1e6a64bd9ce}\\0\r\n        UEFI\\RES_{aa55a7e9-96c3-4d3e-88e1-3b9fac817786}\\0\r\n        UEFI\\RES_{c4b753c8-fbb9-4a49-930e-16accf4d6718}\\0\r\n        UEFI\\RES_{f4ba3171-b54e-4534-8f6f-9cbc4b93f96a}\\0\r\n    DEVPKEY_Device_SafeRemovalRequired [Boolean]:\r\n        FALSE\r\n    DEVPKEY_Device_ContainerId [GUID]:\r\n        {00000000-0000-0000-ffff-ffffffffffff}\r\n    DEVPKEY_Device_IsPresent [Boolean]:\r\n        TRUE\r\n    DEVPKEY_Device_HasProblem [Boolean]:\r\n        FALSE\r\n    {83da6326-97a6-4088-9453-a1923f573b29}[15] [Boolean]:\r\n        TRUE\r\n    DEVPKEY_Device_IsRebootRequired [Boolean]:\r\n        FALSE\r\n    DEVPKEY_Device_ReportedDeviceIdsHash [UINT32]:\r\n        0x21FEA4C8 (570336456)\r\n    DEVPKEY_Device_InLocalMachineContainer [Boolean]:\r\n        TRUE\r\n    DEVPKEY_Device_Stack [String List]:\r\n        \\Driver\\UEFI\r\n    {a8b865dd-2e3d-4094-ad97-e593a70c75d6}[26] [Boolean]:\r\n        FALSE\r\n    {3464f7a4-2444-40b1-980a-e0903cb6d912}[10] [UINT32]:\r\n        0x00000003 (3)\r\n    DEVPKEY_Device_ConfigurationId [String]:\r\n        c_firmware.inf:UEFI\\CC_00010002,FirmwareResource.NT\r\n    DEVPKEY_Device_FirmwareVersion [String]:\r\n        2D000002\r\n    {80497100-8c73-48b9-aad9-ce387e19c56e}[6] [UINT32]:\r\n        0x00000000 (0)\r\n    {83da6326-97a6-4088-9453-a1923f573b29}[3] [String]:\r\n        c_firmware.inf:db04a16cb4be2fbe:FirmwareResource.NT:10.0.26100.4768:UEFI\\CC_00010002\r\n    {83da6326-97a6-4088-9453-a1923f573b29}[10] [String]:\r\n        ACPI_HAL\\UEFI\\0\r\n    DEVPKEY_Device_InstallDate [FILETIME]:\r\n        5/2/2026 18:20:11\r\n    DEVPKEY_Device_FirstInstallDate [FILETIME]:\r\n        5/2/2026 18:20:11\r\n    DEVPKEY_Device_LastArrivalDate [FILETIME]:\r\n        6/6/2026 1:03:10\r\n    DEVPKEY_Device_DriverDate [FILETIME]:\r\n        6/21/2006 0:00:00\r\n    DEVPKEY_Device_DriverVersion [String]:\r\n        10.0.26100.4768\r\n    DEVPKEY_Device_DriverDesc [String]:\r\n        Device Firmware\r\n    DEVPKEY_Device_DriverInfPath [String]:\r\n        c_firmware.inf\r\n    DEVPKEY_Device_DriverInfSection [String]:\r\n        FirmwareResource.NT\r\n    DEVPKEY_Device_MatchingDeviceId [String]:\r\n        UEFI\\CC_00010002\r\n    DEVPKEY_Device_DriverProvider [String]:\r\n        Microsoft\r\n    DEVPKEY_Device_DriverRank [UINT32]:\r\n        0x00FF3000 (16723968)\r\n    DEVPKEY_FirmwareResource_Id [GUID]:\r\n        {e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}\r\n    DEVPKEY_FirmwareResource_Type [UINT32]:\r\n        0x00000002 (2)\r\n    DEVPKEY_FirmwareResource_Version [UINT32]:\r\n        0x2D000002 (754974722)\r\n    DEVPKEY_FirmwareResource_LowestSupportedVersion [UINT32]:\r\n        0x00000000 (0)\r\n\r\n",
+      "StdErr": ""
+    },
+    "PnputilFirmwareClassMatches": [
+      "Instance ID:                UEFI\\RES_{e3074a9c-a8f2-4ec6-8b7a-4124b1b3c134}\\0"
+    ],
+    "SignedDrivers": [
+      {
+        "DeviceName": "Device Firmware",
+        "DeviceID": "UEFI\\RES_{F4BA3171-B54E-4534-8F6F-9CBC4B93F96A}\\0",
+        "DriverProviderName": "Microsoft",
+        "DriverVersion": "10.0.26100.4768",
+        "DriverDate": "2006-06-20T20:00:00-04:00",
+        "InfName": "c_firmware.inf",
+        "Manufacturer": "Microsoft",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "Device Firmware",
+        "DeviceID": "UEFI\\RES_{E3074A9C-A8F2-4EC6-8B7A-4124B1B3C134}\\0",
+        "DriverProviderName": "Microsoft",
+        "DriverVersion": "10.0.26100.4768",
+        "DriverDate": "2006-06-20T20:00:00-04:00",
+        "InfName": "c_firmware.inf",
+        "Manufacturer": "Microsoft",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "Device Firmware",
+        "DeviceID": "UEFI\\RES_{C4B753C8-FBB9-4A49-930E-16ACCF4D6718}\\0",
+        "DriverProviderName": "Microsoft",
+        "DriverVersion": "10.0.26100.4768",
+        "DriverDate": "2006-06-20T20:00:00-04:00",
+        "InfName": "c_firmware.inf",
+        "Manufacturer": "Microsoft",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "Camera Firmware",
+        "DeviceID": "UEFI\\RES_{AA55A7E9-96C3-4D3E-88E1-3B9FAC817786}\\0",
+        "DriverProviderName": "Realtek Semiconductor Corp.",
+        "DriverVersion": "1.0.0.1",
+        "DriverDate": "2025-01-08T19:00:00-05:00",
+        "InfName": "oem141.inf",
+        "Manufacturer": "Realtek Semiconductor Corp.",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "Device Firmware",
+        "DeviceID": "UEFI\\RES_{A09D98B8-E3E0-46A2-A48A-C1E6A64BD9CE}\\0",
+        "DriverProviderName": "Microsoft",
+        "DriverVersion": "10.0.26100.4768",
+        "DriverDate": "2006-06-20T20:00:00-04:00",
+        "InfName": "c_firmware.inf",
+        "Manufacturer": "Microsoft",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "Device Firmware",
+        "DeviceID": "UEFI\\RES_{86A885EE-D71E-2ED6-0FC1-9D6CCC9677EB}\\0",
+        "DriverProviderName": "Microsoft",
+        "DriverVersion": "10.0.26100.4768",
+        "DriverDate": "2006-06-20T20:00:00-04:00",
+        "InfName": "c_firmware.inf",
+        "Manufacturer": "Microsoft",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "Device Firmware",
+        "DeviceID": "UEFI\\RES_{680875A8-F49C-4528-BFA9-BB17B3DBA9F4}\\0",
+        "DriverProviderName": "Microsoft",
+        "DriverVersion": "10.0.26100.4768",
+        "DriverDate": "2006-06-20T20:00:00-04:00",
+        "InfName": "c_firmware.inf",
+        "Manufacturer": "Microsoft",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "Device Firmware",
+        "DeviceID": "UEFI\\RES_{51FBF029-5F1C-4160-AB18-3EED5619D5CA}\\0",
+        "DriverProviderName": "Microsoft",
+        "DriverVersion": "10.0.26100.4768",
+        "DriverDate": "2006-06-20T20:00:00-04:00",
+        "InfName": "c_firmware.inf",
+        "Manufacturer": "Microsoft",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "ThinkPad P1 Gen 7 System Firmware Version 1.20",
+        "DeviceID": "UEFI\\RES_{361E26CE-012C-41FD-B887-3D4F924E602A}\\0",
+        "DriverProviderName": "Lenovo Ltd.",
+        "DriverVersion": "1.20.0.0",
+        "DriverDate": "2026-03-01T19:00:00-05:00",
+        "InfName": "oem37.inf",
+        "Manufacturer": "Lenovo Ltd.",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "Device Firmware",
+        "DeviceID": "UEFI\\RES_{0FF0C92E-E5E8-45FA-8341-319D20B7F57B}\\0",
+        "DriverProviderName": "Microsoft",
+        "DriverVersion": "10.0.26100.4768",
+        "DriverDate": "2006-06-20T20:00:00-04:00",
+        "InfName": "c_firmware.inf",
+        "Manufacturer": "Microsoft",
+        "IsSigned": true
+      },
+      {
+        "DeviceName": "Device Firmware",
+        "DeviceID": "UEFI\\RES_{0EB9BDA9-3010-493A-A6A8-B5E80EDDF870}\\0",
+        "DriverProviderName": "Microsoft",
+        "DriverVersion": "10.0.26100.4768",
+        "DriverDate": "2006-06-20T20:00:00-04:00",
+        "InfName": "c_firmware.inf",
+        "Manufacturer": "Microsoft",
+        "IsSigned": true
+      }
+    ]
+  },
+  "HidCfuEvents": [],
+  "SetupEvents": [],
+  "Interpretation": [
+    "Vantage package metadata and Windows firmware PnP state should agree before any firmware action.",
+    "If Vantage says AlreadyInstalled but firmware PnP cannot expose the UEFI resource, collect this report for Lenovo/Sensel escalation.",
+    "Empty hidcfu logs do not prove firmware absence; they only mean no recorded HID CFU events in the queried window."
+  ]
+}

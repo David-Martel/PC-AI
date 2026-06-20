@@ -43,6 +43,95 @@ every boot by Process Lasso `StartWithPowerPlan=Balanced` in `prolasso.ini`.
   (`CM_PROB_FAILED_ADD`, status `0xC0000182`) on `oem236.inf`. Do not
   uninstall/reinstall display drivers without a driver rollback package.
 
+2026-06-06 direct-pass continuation:
+- Docker cleanup completed without stopping running containers. Removed unused
+  images and build cache: images `28 -> 8`, image reclaim `25.32 GB -> 0 B`,
+  build cache `2.298 GB -> 0 B`; running containers remained up. Volumes were
+  not pruned because inactive Docker volumes can contain project state.
+- Disabled non-primary OneDrive startup/reporting tasks for inactive/offline
+  accounts (`WsiAccount`, `DevToolsUser`, `CodexSandboxOffline`) after finding
+  no repo/profile automation dependency. Current user `david` OneDrive tasks
+  remain enabled and healthy. Rollback: `Enable-ScheduledTask` for the six
+  disabled OneDrive task names.
+- Added read-only NVIDIA split-driver checker:
+  `Tools\InputDiagnostics\Test-NvidiaDualGpuDriverHealth.ps1`; Pester
+  `Tests\InputDiagnostics\InputDiagnostics.Tests.ps1` now covers it and passes
+  `46/46`.
+- NVIDIA remains the active device issue: internal RTX 2000 Ada is on
+  `32.0.15.9659` / `596.59` and Code 31; eGPU RTX 5060 Ti is on
+  `32.0.15.9186` / `591.86` and OK. Both driver packages were exported under
+  `Reports\workstation-audit-20260606-124859\direct-pass-20260606\driver-export\`.
+- Fixed PC_AI servicehost build debt by aligning `System.Text.Json` in
+  `Native\PcaiServiceHost\PcaiServiceHost.csproj` with `PcaiNative`
+  (`10.0.7`) and rebuilding `Build.ps1 -Component servicehost`.
+- Repointed disabled `PC_AI-HVSockProxy` and disabled `PC_AI-VLLM` NSSM entries
+  from dead `C:\Users\david\PC_AI` paths to live `C:\codedev\PC_AI` servicehost
+  artifacts. Services remain disabled/stopped.
+- Fixed `PcaiServiceHost` HVSock status parsing so old PowerShell-written
+  `state.json` files deserialize correctly and PID `0` is not reported as
+  running. Cleared stale HVSock state; final status is "No HVSOCK proxies
+  running."
+- `PC_AI-ToolRouter` remains stale: it points to removed
+  `Deploy\functiongemma-finetune\tool_router.py` and should be migrated to the
+  current `Deploy\rust-functiongemma-runtime` path in a separate work item.
+- Final validation: no new 30-minute critical/error/warning events,
+  `Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru` passes, and
+  `pnputil /enum-devices /problem` shows only NVIDIA Code 31.
+
+2026-06-06 repo-fix pass:
+- Fixed FunctionGemma runtime config drift:
+  `Config\pcai-functiongemma.json` now points to the existing repo-local
+  `Models/functiongemma-270m-it` model directory; new Pester coverage prevents
+  stale user-profile model paths from returning.
+- Fixed FunctionGemma runtime build drift:
+  the default heuristic runtime no longer pulls the full CUDA/model core crate
+  just to parse config, so `Tools\Invoke-RustBuild.ps1 -Path
+  Deploy\rust-functiongemma-runtime -LlmOutput -CargoArgs @('check',
+  '--no-default-features')` now passes.
+- Kept the heavy `model` feature as a separate GPU build work item. Current
+  blocker evidence is NVCC/MSVC setup and Windows command-line length failures
+  in `candle-kernels` / `candle-flash-attn`, not the default router path.
+- Fixed Rust/CUDA tooling defaults:
+  `Tools\Initialize-CudaEnvironment.ps1` now prefers CUDA `v13.1` over `v13.2`
+  because the current `cudarc`/Candle line rejects CUDA 13.2; static Pester
+  coverage locks that preference.
+- Hardened `Tools\Invoke-RustBuild.ps1` for agent usage: `-LlmOutput`,
+  missing-argument failure, path resolution, and CargoTools return-code
+  handling.
+- Added fail-loud NVIDIA diagnostics:
+  `Tools\InputDiagnostics\Test-NvidiaDualGpuDriverHealth.ps1 -FailOnIssue`
+  now reports local NVIDIA App/update artifacts and exits nonzero when active
+  issues are present. Do not use it as an installer; use it as pre/post driver
+  validation.
+- Input diagnostics now cover `Test-KeyInput.ps1` and `Watch-InputGlitch.ps1`.
+  The ELAN/ELAS issue is currently a WUDFRd warning path
+  (`ACPI\VEN_ELAS&DEV_B41A`); the actual touchpad device remains Sensel
+  `SNSL002D`, so live symptom validation should use the key monitor and
+  glitch ledger before applying driver/firmware changes.
+- Validation:
+  `Reports\workstation-audit-20260606-124859\Run-RepoFixValidation.ps1`
+  passes all focused gates; `git diff --check` passes.
+
+2026-06-06 touchpad power-management pass:
+- Added `Tools\InputDiagnostics\Repair-TouchpadPowerManagement.ps1`, a
+  targeted reversible repair for the Sensel `SNSL002D` touchpad path and Intel
+  `7E78` I2C controller when `Watch-InputGlitch.ps1` shows
+  `PowerDownEnabled.CanPowerDown=true`.
+- Applied the fix without restarting live devices. Rollback backup:
+  `Tools\InputDiagnostics\backups\touchpad-power-20260606-152612.json`.
+- Post-fix validation snapshot:
+  `Reports\input-glitch-watch\snapshots\snap-20260606-152639.json`.
+  Result: touchpad `Status=OK`, keyboard `Status=OK`, no recent input errors,
+  and both `SNSL002D` / `7E78` power-down permissions now report
+  `CanPowerDown=false`.
+- Remaining non-OK devices in the post-fix input collector are not touchpad
+  devices: Cisco AnyConnect virtual miniport and internal
+  `NVIDIA RTX 2000 Ada Generation Laptop GPU` Code 31. NVIDIA can still be an
+  indirect UI/display instability contributor, but the direct touchpad evidence
+  now points to the Sensel/I2C power-management path being remediated.
+- Validation: `Reports\workstation-audit-20260606-124859\Run-InputDiagnosticsValidation.ps1`
+  passes `65/65`.
+
 Last updated: 2026-05-02 after touchpad glitch investigation: evidence
 captured under `Reports\touchpad-glitch-investigation-20260502\`, restore
 point #68 created (PreTouchpadFix), power plan switched Balanced→High
@@ -1013,13 +1102,17 @@ Applied:
 
 ### Open items (next escalation steps)
 
-- [ ] Touchpad re-test after EPM=0 fix. Outcome determines next action:
-  - Glitches gone: close investigation; document fix in this ledger.
-  - Reduced: also disable I2C controller selective suspend (riskier,
-    affects audio TIAS2781 on same bus).
-  - Unchanged: disable Dell DDPM (research-supported moderate-strength
-    cursor-hook stutter cause), then check Lenovo Vantage for Sensel
-    firmware update, then System Restore to RP 65 last resort.
+- [x] Superseded 2026-06-06: touchpad re-test after ACPI EPM=0 led to a
+  stronger targeted repair. `Repair-TouchpadPowerManagement.ps1` now disables
+  `MSPower_DeviceEnable` for both Sensel `SNSL002D` and Intel `7E78`, and
+  writes `EnhancedPowerManagementEnabled=0` on the related Sensel HID
+  collections. Continue measuring recurrence with `Watch-InputGlitch.ps1
+  -Mode Report -SinceFix 2026-06-06`.
+- [ ] If touchpad pointer/finger-press stickiness persists after a reboot or
+  sign-out/in: rerun `Watch-InputGlitch.ps1 -Mode Snapshot -Symptom touchpad`
+  immediately during the symptom, then decide between `-RestartDevices`,
+  Lenovo Vantage Sensel/BIOS firmware review, Dell DDPM cursor-hook testing,
+  or NVIDIA driver remediation based on the captured state.
 - [ ] If glitches persist: Step 2.1 — pause OneDrive + Google Drive sync
   (graceful: tray pause for 2h, OR programmatic via `OneDrive.exe /shutdown`).
   If glitches stop while paused → hypothesis #2 confirmed; investigate IO

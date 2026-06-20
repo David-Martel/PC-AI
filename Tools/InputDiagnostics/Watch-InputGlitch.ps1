@@ -1,4 +1,4 @@
-#requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Gate-C glitch-capture + symptom-frequency harness for the intermittent Shift-key /

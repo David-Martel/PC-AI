@@ -25,8 +25,8 @@
 # phase) because $PSScriptRoot is not reliable at discovery in all hosts.
 # ---------------------------------------------------------------------------
 BeforeDiscovery {
-    # All six scripts the toolkit specifies.  The 6th (Repair-Workstation...) may
-    # not yet exist; per-It guards skip gracefully when absent.
+    # All primary scripts the toolkit specifies. Per-It guards skip gracefully
+    # when a script is intentionally absent in a portable checkout.
     $script:AllScriptNames = @(
         'Invoke-InputStackDiagnostics.ps1'
         'Repair-InputStackQuickWins.ps1'
@@ -34,6 +34,14 @@ BeforeDiscovery {
         'Reset-AccessibilityKeysLive.ps1'
         'Repair-WorkstationInputReliability.ps1'
         'Optimize-StartupLoad.ps1'
+        'Test-KeyInput.ps1'
+        'Watch-InputGlitch.ps1'
+        'Test-NvidiaDualGpuDriverHealth.ps1'
+        'Repair-TouchpadPowerManagement.ps1'
+        'Get-SenselFirmwareState.ps1'
+        'Start-HapticTouchpadTrace.ps1'
+        'Watch-HapticTouchpadInput.ps1'
+        'Export-HapticTouchpadReproBundle.ps1'
     )
 
     # Subset: scripts that write system state and therefore must declare
@@ -44,6 +52,7 @@ BeforeDiscovery {
         'Repair-InputStackQuickWins.ps1'
         'Repair-WorkstationInputReliability.ps1'
         'Optimize-StartupLoad.ps1'
+        'Repair-TouchpadPowerManagement.ps1'
     )
 }
 
@@ -184,6 +193,64 @@ Describe 'InputDiagnostics scripts — read-only enforcement' -Tag 'Unit', 'Inpu
             -Because 'Reset-AccessibilityKeysLive uses P/Invoke, not registry cmdlets'
         $commands | Should -Not -Contain 'New-ItemProperty' `
             -Because 'Reset-AccessibilityKeysLive uses P/Invoke, not registry cmdlets'
+    }
+
+    It 'Test-NvidiaDualGpuDriverHealth.ps1 exposes -FailOnIssue for automation gates' {
+        $fullPath = Join-Path $script:ToolsDir 'Test-NvidiaDualGpuDriverHealth.ps1'
+        if (-not (Test-Path -LiteralPath $fullPath)) {
+            Set-ItResult -Skipped -Because 'Test-NvidiaDualGpuDriverHealth.ps1 not found'
+            return
+        }
+        $parsed = Invoke-ParseScript -Path $fullPath
+        $failOnIssueParam = $parsed.Ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.ParameterAst] -and
+            $node.Name.VariablePath.UserPath -eq 'FailOnIssue'
+        }, $true)
+        @($failOnIssueParam).Count | Should -BeGreaterThan 0
+    }
+
+    It 'Start-HapticTouchpadTrace.ps1 exposes a bounded -DurationSeconds parameter' {
+        $fullPath = Join-Path $script:ToolsDir 'Start-HapticTouchpadTrace.ps1'
+        if (-not (Test-Path -LiteralPath $fullPath)) {
+            Set-ItResult -Skipped -Because 'Start-HapticTouchpadTrace.ps1 not found'
+            return
+        }
+        $parsed = Invoke-ParseScript -Path $fullPath
+        $durationParam = $parsed.Ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.ParameterAst] -and
+            $node.Name.VariablePath.UserPath -eq 'DurationSeconds'
+        }, $true)
+        @($durationParam).Count | Should -BeGreaterThan 0
+        $raw = Get-Content -LiteralPath $fullPath -Raw
+        $raw | Should -Match 'ValidateRange' -Because 'trace captures must be bounded'
+        $raw | Should -Match 'finally' -Because 'trace sessions must stop/delete in cleanup'
+        $raw | Should -Match 'Get-TraceOutputFiles' `
+            -Because 'logman may emit suffixed ETL files such as *_000001.etl'
+        $raw | Should -Match 'EtlFiles' `
+            -Because 'the manifest must report actual trace files for validation'
+    }
+
+    It 'Repair-TouchpadPowerManagement.ps1 keeps ELAS human-presence hardening opt-in' {
+        $fullPath = Join-Path $script:ToolsDir 'Repair-TouchpadPowerManagement.ps1'
+        if (-not (Test-Path -LiteralPath $fullPath)) {
+            Set-ItResult -Skipped -Because 'Repair-TouchpadPowerManagement.ps1 not found'
+            return
+        }
+        $parsed = Invoke-ParseScript -Path $fullPath
+        $includeParam = $parsed.Ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.ParameterAst] -and
+            $node.Name.VariablePath.UserPath -eq 'IncludeHumanPresenceSensor'
+        }, $true)
+        @($includeParam).Count | Should -BeGreaterThan 0
+
+        $raw = Get-Content -LiteralPath $fullPath -Raw
+        $raw | Should -Match 'HumanPresenceTargetPatterns' `
+            -Because 'ELAS targeting should be an explicit optional target group'
+        $raw | Should -Match 'VEN_ELAS&DEV_B41A' `
+            -Because 'the current WUDF timeout target must be identifiable in source'
     }
 }
 

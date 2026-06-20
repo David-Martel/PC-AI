@@ -1,0 +1,88 @@
+{
+  "Timestamp": "2026-06-06T16:49:48.4751674-04:00",
+  "Machine": "DTM-P1GEN7",
+  "OutDir": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913",
+  "SinceHours": 2,
+  "Files": [
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\device-powerdown-state.json",
+      "Length": 332,
+      "LastWriteTime": "2026-06-06T16:49:23.7140023-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\events-Application.json",
+      "Length": 4351,
+      "LastWriteTime": "2026-06-06T16:49:24.5761751-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\input-devices.json",
+      "Length": 2535,
+      "LastWriteTime": "2026-06-06T16:49:15.6088401-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\logman-input-providers.txt",
+      "Length": 106240,
+      "LastWriteTime": "2026-06-06T16:49:34.3255586-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\nvidia-dual-gpu.json",
+      "Length": 11593,
+      "LastWriteTime": "2026-06-06T16:49:48.4688259-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\pnputil-i2c-7e78.txt",
+      "Length": 9107,
+      "LastWriteTime": "2026-06-06T16:49:24.6864171-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\pnputil-sensel.txt",
+      "Length": 6263,
+      "LastWriteTime": "2026-06-06T16:49:24.6332849-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\pnputil-trackpoint.txt",
+      "Length": 6467,
+      "LastWriteTime": "2026-06-06T16:49:24.6578283-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\precision-touchpad-settings.json",
+      "Length": 955,
+      "LastWriteTime": "2026-06-06T16:49:23.6767797-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\processes.json",
+      "Length": 5713,
+      "LastWriteTime": "2026-06-06T16:49:24.1580574-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\services.json",
+      "Length": 2217,
+      "LastWriteTime": "2026-06-06T16:49:23.9250096-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\signed-drivers.json",
+      "Length": 7225,
+      "LastWriteTime": "2026-06-06T16:49:23.6412466-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\symptom-log.jsonl",
+      "Length": 423,
+      "LastWriteTime": "2026-06-06T15:26:43.9963958-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\firmware\\README.md",
+      "Length": 382,
+      "LastWriteTime": "2026-06-06T16:49:45.9354638-04:00"
+    },
+    {
+      "FullName": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\bundle-20260606-164913\\firmware\\sensel-firmware-state.json",
+      "Length": 19507,
+      "LastWriteTime": "2026-06-06T16:49:45.9284581-04:00"
+    }
+  ],
+  "RecommendedNext": [
+    "Run Start-HapticTouchpadTrace.ps1 during a live repro and place the ETL in this bundle.",
+    "Run Watch-HapticTouchpadInput.ps1 concurrently if the symptom is press/button stickiness.",
+    "Compare haptic-enabled and haptic-disabled captures only after baseline ETW evidence exists."
+  ]
+}

@@ -1,0 +1,104 @@
+[
+  {
+    "Name": "EPDService",
+    "DisplayName": "ELAN PST Service",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "FileSyncHelper",
+    "DisplayName": "FileSyncHelper",
+    "Status": 4,
+    "StartType": 3
+  },
+  {
+    "Name": "hidserv",
+    "DisplayName": "Human Interface Device Service",
+    "Status": 4,
+    "StartType": 3
+  },
+  {
+    "Name": "IBMPMSVC",
+    "DisplayName": "Lenovo PM Service",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "ImControllerService",
+    "DisplayName": "System Interface Foundation Service",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "LenovoAccessoriesandDisplayManagerService",
+    "DisplayName": "Lenovo Accessories and Display Manager Service",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "LenovoSmartStandby",
+    "DisplayName": "Lenovo Smart Standby",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "LenovoVantageService",
+    "DisplayName": "Critical Service for Lenovo Vantage",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "LITSSVC",
+    "DisplayName": "Lenovo Intelligent Thermal Solution Service",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "lkTimeSync",
+    "DisplayName": "NI Time Synchronization",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "LogiSyncStub",
+    "DisplayName": "LogiSyncStub Service",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "LPlatSvc",
+    "DisplayName": "Lenovo Platform Service",
+    "Status": 1,
+    "StartType": 2
+  },
+  {
+    "Name": "LvfInstallService",
+    "DisplayName": "Lenovo View Install Service",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "OneSyncSvc_49af28",
+    "DisplayName": "Sync Host_49af28",
+    "Status": 1,
+    "StartType": 3
+  },
+  {
+    "Name": "SynHsaService",
+    "DisplayName": "SynHsaService",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "TPHKLOAD",
+    "DisplayName": "Lenovo Hotkey Client Loader",
+    "Status": 4,
+    "StartType": 2
+  },
+  {
+    "Name": "vmictimesync",
+    "DisplayName": "Hyper-V Time Synchronization Service",
+    "Status": 1,
+    "StartType": 3
+  }
+]

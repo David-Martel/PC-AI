@@ -1,0 +1,3 @@
+{"timestamp":"2026-06-06T14:20:51.8606046-04:00","note":"smoke-test baseline","symptom":"none","snapshot":"snap-20260606-142051.json"}
+{"snapshot":"snap-20260606-151812.json","timestamp":"2026-06-06T15:18:12.0709509-04:00","symptom":"touchpad","note":"CurrentTouchpadIssue"}
+{"timestamp":"2026-06-06T15:26:39.2245868-04:00","snapshot":"snap-20260606-152639.json","symptom":"none","note":"PostTouchpadPowerFixNoRestart"}

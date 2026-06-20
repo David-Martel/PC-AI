@@ -1,0 +1,17 @@
+{
+  "Timestamp": "2026-06-06T16:06:16.3571401-04:00",
+  "Machine": "DTM-P1GEN7",
+  "Note": "",
+  "Seconds": 0,
+  "StuckThresholdMs": 1200,
+  "EventCount": 0,
+  "MoveCount": 0,
+  "LeftDownCount": 0,
+  "LeftUpCount": 0,
+  "RightDownCount": 0,
+  "RightUpCount": 0,
+  "WarningCount": 0,
+  "Warnings": [],
+  "Events": [],
+  "SelfTest": true
+}

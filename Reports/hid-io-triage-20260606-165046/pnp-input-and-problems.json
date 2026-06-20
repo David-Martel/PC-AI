@@ -1,0 +1,5028 @@
+[
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00010000-0000-1000-8000-011F2000046D}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279\\8&2757D4AB&0&0043",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Integrated Monitor",
+    "InstanceId": "DISPLAY\\DEFAULT_MONITOR\\4&1793AD96&1&UID0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_00\\9&707D76D&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0626\\7&1D05C306&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DAW (9- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{83038576-D3E6-45CF-9874-D7AB6D5A886C}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_0416&PID_0123\\9&CE3B9FB&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_1050&PID_0407\\8&38DFAED0&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_1050&PID_0407\\8&38DFAED0&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C&MI_00\\7&6BC686A&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_1050&PID_0407&MI_00\\9&3192FDCD&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_0BDA&PID_1100\\A&38A2DEA&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{E2B48238-09B6-11F1-84B9-6C2F808E809A}#0000000001000000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL03\\9&A90674E&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant touch pad",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_03\\A&36009F47&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000180F-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B023_REV&0015_E642266DDE7E\\8&6F8DC1B&0&001D",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "Yamaha Steinberg USB Audio",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_KSA_10057824320606294128",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00007F64-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&00A9",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "WPD",
+    "FriendlyName": "Apple iPad",
+    "InstanceId": "USB\\VID_05AC&PID_12AB&MI_00\\9&F733E32&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Vendor Interface",
+    "InstanceId": "USB\\VID_2230&PID_2025&MI_01\\8&A372B22&1&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C\\6&374E4CD&1&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "USB Audio",
+    "InstanceId": "USB\\VID_001F&PID_0B21&MI_00\\7&609D0DF&1&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL02\\9&A90674E&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL02\\9&3055350F&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_0412\\7&2C4019B3&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_02&COL02\\B&F2EE299&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "NvmeDisk",
+    "FriendlyName": "KINGSTON SNV3S1000G",
+    "InstanceId": "NVME\\NVMEDISK&VEN_2646&SUBSYS_2646&MN_KINGSTON&SN_50026B7687214C1F&REV_SDQ00103\\0000_0000_0000_0000_0026_B768_7214_C1F5.",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Mouse",
+    "FriendlyName": "HID-compliant mouse",
+    "InstanceId": "HID\\SNSL002D&COL01\\5&14B88203&0&0000",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "BomeMIDI: TouchOSC Bridge (1)",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_KSA_16285050341202283113",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{24B755C9-6646-11EF-803F-6C2F808E809A}#0000000000100000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "MIDI 2.0 Service Tests",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_DIAG_TRANSPORT",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00001849-0000-1000-8000-00805F9B34FB}_D43A2C9F523C\\8&13BE1151&0&0028",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Steinberg UR44C",
+    "InstanceId": "USB\\VID_0499&PID_1730\\9&343794FD&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Billboard Interface",
+    "InstanceId": "USB\\VID_2230&PID_2025&MI_00\\8&A372B22&1&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Live Gamer Ultra 2.1-Audio",
+    "InstanceId": "USB\\VID_07CA&PID_2553&MI_02\\8&2F3BE87A&2&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Intel(R) USB 3.20 eXtensible Host Controller - 1.20 (Microsoft)",
+    "InstanceId": "PCI\\VEN_8086&DEV_5787&SUBSYS_00000000&REV_00\\A&231491C4&0&0008000800100038",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL01\\9&A90674E&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000FE2C-0000-1000-8000-00805F9B34FB}_BC87FA44E06F\\8&1A60F822&0&0017",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_02&COL01\\B&F2EE299&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_07CA&PID_D553\\5313347100164",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{A3C87600-0005-1000-8000-001A11000100}_D43A2C9F523C\\8&13BE1151&0&0086",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "TouchOSC Bridge",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_78289FD4.P_0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (Innoview)",
+    "InstanceId": "DISPLAY\\YCTCD4F\\9&26F0E025&3&UID139520",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2109&PID_2822\\6&1890AE26&3&5",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone (Realtek USB2.0 Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{1446790E-567B-466A-9591-D7FB2C5C4AA4}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "RME Fireface UCX II",
+    "InstanceId": "USB\\VID_2A39&PID_3F82\\3A17A1B400A4180",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\9FEF741235E9070000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\9FEF741235E9070008",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\9FEF741235E9070010",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\9FEF741235E9070018",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\9FEF741235E9070020",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_291A&PID_8308\\8&1ACB6F09&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\7&12487850&0&03",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\7&12487850&0&04",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\7&12487850&0&05",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant touch pad",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_03\\B&3306205B&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Access Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&0014",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headset (LE-dtm-bose-qcu Hands-Free)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{A9E22775-F16D-4678-A147-0D6F90B0A360}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Serial Converter",
+    "InstanceId": "USB\\VID_0403&PID_6001\\B003DWYQ",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_07CA&PID_D553&MI_02\\9&378F793C&3&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Speakers (B03 Pro)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{2724F429-BDF3-40CD-857B-A05899196D13}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Realtek USB2.0 Audio",
+    "InstanceId": "USB\\VID_0BDA&PID_493B&MI_00\\9&2688B248&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "Intel(R) Serial IO I2C Host Controller - 7E78",
+    "InstanceId": "PCI\\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\\3&11583659&1&A8",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A\\7&C181C50&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Line Out (RME Fireface UCX II)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{8B2E93CB-546E-46A1-8371-854B1C639D09}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_02&COL01\\A&12296185&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Device Information Service",
+    "InstanceId": "BTHLEDEVICE\\{0000180A-0000-1000-8000-00805F9B34FB}_DEV_VID&0101F1_PID&0192_REV&0120_6095321F88A8\\8&1BEFC4E9&0&000B",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL02\\A&22067168&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\9&211B397F&0&06",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL03\\A&29ECEDCA&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_0412\\8&BC11AC4&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Input 1/2 (10- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{CDBAB848-4DE6-4CFD-B049-7931D26ACCE9}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_8087&PID_0B40\\5&2F5D9168&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_8087&PID_0B40\\5&2F5D9168&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_01\\A&3278E7DC&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL03\\7&17C34F13&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\7&EF12334&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_1DDD&PID_2821&MI_00\\B&17235129&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A&MI_01\\8&2E48DE9B&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_2230&PID_2025\\11AD1D85A109300D172D0B00",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\A04768E204B7D00000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\A04768E204B7D00008",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\A04768E204B7D00010",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\A04768E204B7D00018",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\A04768E204B7D00020",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_15EF&SUBSYS_00008086&REV_06\\D8DF208139E9070008",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_15EF&SUBSYS_00008086&REV_06\\D8DF208139E9070010",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_15EF&SUBSYS_00008086&REV_06\\D8DF208139E9070020",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Line In (RME Fireface UCX II)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{534F1672-27EE-4D4A-855C-483E54492888}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headset (David's Pixel Buds Pro)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{C6E50B9F-3F0D-4888-9B25-D7564230B936}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8140\\7&19D23162&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_046D&PID_C093\\205239554147",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Sensor",
+    "FriendlyName": "HID Sensor Collection V2",
+    "InstanceId": "HID\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\3&1A87E07D&0&0000",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Camera",
+    "FriendlyName": "Intel(R) RealSense(TM) Depth Camera 435 with RGB Module Depth",
+    "InstanceId": "USB\\VID_8086&PID_0B07&MI_00\\6&2AF718F3&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{2A408D94-011C-11F1-84A6-6C2F808E809A}#0000000010503000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant fido",
+    "InstanceId": "HID\\VID_1050&PID_0407&MI_01\\8&EEF95D2&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Biometric",
+    "FriendlyName": "Synaptics UWP WBDI",
+    "InstanceId": "USB\\VID_06CB&PID_00F9\\DDF5456187B0",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00001855-0000-1000-8000-00805F9B34FB}_C01C6A88A900\\8&48F3728&0&0082",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Speakers (USB Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{8F6A19EF-356B-42CC-AD6F-F026D975991A}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2BE0&PID_24A0\\MSFT20000000001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_1532&PID_0F51&MI_00\\F&16638C4F&0&0000",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_046D&PID_C548\\8&213E3647&0&5",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_0BDA&PID_493B\\8&1ACB6F09&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Line In (RME Fireface UCX II)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{D5263EAB-D584-4104-8C04-7F3DB238EC58}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_2672&PID_0059\\C3501324716293",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_02\\9&1465A072&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Speakers (Realtek(R) Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{95212606-C48D-40AE-8DB4-8E85B2F09699}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0626\\8&182FA0A0&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Logitech USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C093&MI_00\\8&2F6E8C23&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_FFFF&PID_BACE&REV_0002&MI_00&COL03\\3&1933B186&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Sensor",
+    "FriendlyName": "HID Sensor Collection V2",
+    "InstanceId": "HID\\VID_413C&PID_D001&COL02\\8&3704C6&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000FEF3-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&00BB",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL02\\9&1CCF6655&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Integrated Monitor",
+    "InstanceId": "DISPLAY\\CSO160B\\4&1793AD96&1&UID0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Bluetooth Low Energy GATT compliant HID device",
+    "InstanceId": "BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279\\8&2757D4AB&0&001F",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (10- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{B5BC1B01-6A3A-4553-929A-B445C4C40961}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{DA60D3BD-0077-11F1-84A5-806E6F6E6963}#0000000011500000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_1DDD&PID_2821&MI_00\\A&3A842376&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0626\\5&2DD6E1F8&0&14",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00001849-0000-1000-8000-00805F9B34FB}_C01C6A88A900\\8&48F3728&0&0028",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_00\\7&272770F0&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_1050&PID_0407&MI_00\\A&27AF499D&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_03F0&PID_078B\\6&1890AE26&3&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone Array (Intel® Smart Sound Technology for Digital Microphones)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{A9EA3629-0512-45E6-AD02-1459008FB5F3}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Mouse",
+    "FriendlyName": "HID-compliant mouse",
+    "InstanceId": "HID\\VID_046D&PID_C093&MI_00\\9&B7F906&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0416&PID_0123\\8&193EC85D&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000185B-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&0093",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_8087&PID_0B40\\6&1B4ECF07&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL03\\B&14A85B29&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Net",
+    "FriendlyName": "Cisco AnyConnect Virtual Miniport Adapter for Windows x64",
+    "InstanceId": "ROOT\\NET\\0001",
+    "Status": "Error",
+    "Problem": 22
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "ETD HSA Device",
+    "InstanceId": "ETDHSA\\VID_04F3&PID_0001\\5&BDA4387&0&0002",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Logitech BRIO",
+    "InstanceId": "USB\\VID_046D&PID_085E&MI_05\\9&AD33FED&0&0005",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "NVIDIA High Definition Audio",
+    "InstanceId": "HDAUDIO\\FUNC_01&VEN_10DE&DEV_00AD&SUBSYS_10DE0000&REV_1001\\7&10E04B75&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Music (7- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{348BA452-B221-499B-8EF4-B462044C02F2}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Line In (RME Fireface UCX II)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{56D82877-66C0-487B-9EB8-3C1CC4BF9961}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headset (David's Pixel Buds Pro Hands-Free)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{1CC55E06-61FA-4876-91B7-7BA132DBC581}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_046D&PID_C093&MI_01&COL03\\9&187B854B&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (7- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{EE039FD6-9CA6-4E21-A5D1-4DF4724A4A40}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL01\\8&1CCE8E68&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headphones (LE EPOS H3PRO)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{F735E9D4-0C89-4069-BAB7-69485A7E4300}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8140\\8&266FE015&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8140\\6&12729E3E&3&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Port Reset Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0001\\7&8BE2049&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Mouse",
+    "FriendlyName": "TrackPoint Device",
+    "InstanceId": "ACPI\\LEN032A\\4&76D3D92&0",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Port Reset Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0001\\6&24E9D98A&1&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2188&PID_0031\\7&18D0492B&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_1050&PID_0407&MI_01\\9&3192FDCD&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_03\\9&DB0BC7C&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Attribute Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279\\8&2757D4AB&0&000A",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{CFA2703A-3277-11F0-8268-010101010000}#0000000000004400",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_046D&PID_C548\\9&D323B57&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (Innoview)",
+    "InstanceId": "DISPLAY\\YCTCD4F\\9&26F0E025&3&UID160000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant device",
+    "InstanceId": "HID\\VID_07CA&PID_D553&MI_02\\A&DC6814B&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Device Information Service",
+    "InstanceId": "BTHLEDEVICE\\{0000180A-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B369_REV&0016_D90061F37B6F\\8&F9481DD&0&000E",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C\\7&37B0FC56&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "Intel(R) Serial IO I2C Host Controller - 7E50",
+    "InstanceId": "PCI\\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\\3&11583659&1&C8",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "Steinberg UR44C",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_KSA_5146162601199869334",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "11 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_BA2047DF.P_0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "11 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_BA2047DF.P_0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_001F&PID_0B21&MI_03\\8&13D821A2&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (Innoview)",
+    "InstanceId": "DISPLAY\\YCTCD4F\\9&26F0E025&3&UID356608",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "4 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_A5BA59B3.P_0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "4 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_A5BA59B3.P_0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": null,
+    "FriendlyName": "com.dji.mic",
+    "InstanceId": "USB\\VID_2CA3&PID_4015&MI_04\\9&1ED00EAD&0&0004",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Logitech BRIO",
+    "InstanceId": "USB\\VID_046D&PID_085E&MI_03\\9&AD33FED&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Net",
+    "FriendlyName": "UsbNcm Host Device #2",
+    "InstanceId": "USB\\VID_2672&PID_0059&MI_00\\7&2E28EDBB&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Intel(R) RealSense(TM) RS400 Device",
+    "InstanceId": "USB\\VID_8086&PID_0ADB\\111111111111",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A&MI_00\\6&214572&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "HDMI/Line In (Live Gamer Ultra 2.1-Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{187AA19E-E8BF-4D9C-9488-5F69476BB9D6}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_1050&PID_0407&MI_00\\A&27AA9BFC&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00010000-0000-1000-8000-011F2000046D}_DEV_VID&02046D_PID&B369_REV&0016_D90061F37B6F\\8&F9481DD&0&005B",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_02\\9&DB0BC7C&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_0412\\8&86F17C1&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "HPI4D943B (HP Color LaserJet Pro MFP 4301)",
+    "InstanceId": "SWD\\DAFWSDPROVIDER\\URN:UUID:BF718EAD-DA51-4341-A38C-B296514A4DD4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL03\\9&3055350F&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB4 Router (2.0), Razer - Core X V2",
+    "InstanceId": "USB4\\VID_8087&PID_5786\\7&222067A1&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "WSDPrintDevice",
+    "FriendlyName": "HPI4D943B (HP Color LaserJet Pro MFP 4301)",
+    "InstanceId": "SWD\\DAFWSDPROVIDER\\URN:UUID:BF718EAD-DA51-4341-A38C-B296514A4DD4/HTTP://BF718EAD-DA51-4341-A38C-B296514A4DD4/PRINTSERVICE",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant touch pad",
+    "InstanceId": "HID\\SNSL002D&COL02\\5&14B88203&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_4348&PID_7048\\6&1F7DF24F&2&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Speakers (Realtek(R) Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{50E06422-73C5-4510-91FB-D458A590B5AD}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "Brother MFC-L8900CDW series [b4220022f2d0]",
+    "InstanceId": "SWD\\DAFWSDPROVIDER\\URN:UUID:E3248000-80CE-11DB-8000-B4220022F2D0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_2CA3&PID_4015\\XSP12345678",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_01\\9&DB0BC7C&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "B03 Pro",
+    "InstanceId": "USB\\VID_0A12&PID_1004&MI_00\\A&11EF77F4&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{D0611E78-BBB4-4591-A5F8-487910AE4366}_4F341BCF8073\\8&32BFE5E5&0&000F",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_2672&PID_0059\\C3535424598612",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "NvmeDisk",
+    "FriendlyName": "WD_BLACK SN850X 4000GB",
+    "InstanceId": "NVME\\NVMEDISK&VEN_15B7&SUBSYS_15B7&MN_WD_BLACK&SN_24035E801250&REV_624361WD\\E823_8FA6_BF53_0001_001B_448B_476D_1892.",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{766FC1BD-5302-11F0-829C-010101010000}#0000000001000000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8142\\MSFT20F80500593FF2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Camera",
+    "FriendlyName": "Intel(R) RealSense(TM) Depth Camera 435 with RGB Module RGB",
+    "InstanceId": "USB\\VID_8086&PID_0B07&MI_03\\7&12784042&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0626\\8&36C9B070&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00001805-0000-1000-8000-00805F9B34FB}_4F341BCF8073\\8&32BFE5E5&0&001D",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0416&PID_0123\\8&8324382&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000EB10-D102-11E1-9B23-00025B00A5A5}_BC87FA44E06F\\8&1A60F822&0&0025",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_1050&PID_0407&MI_00\\7&83AE9D6&0&0000",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": null,
+    "FriendlyName": "USB Receiver",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_00\\9&DB0BC7C&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "WPD",
+    "FriendlyName": "HERO12 Black",
+    "InstanceId": "USB\\VID_2672&PID_0059&MI_02\\8&6B2B9CC&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_2109&PID_0817\\8&1E96807E&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A&MI_00\\8&1424746F&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Music (Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{6F8324DB-993D-4B6A-8982-4D9D1188F7D0}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DELL U2515H (3- HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{144B53C0-49D0-4C44-AAC8-B575DE934353}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Saleae Logic Pro 8 USB Logic Analyzer",
+    "InstanceId": "USB\\VID_21A9&PID_1005\\SERNUM",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00001855-0000-1000-8000-00805F9B34FB}_D43A2C9F523C\\8&13BE1151&0&0082",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": null,
+    "FriendlyName": null,
+    "InstanceId": "HID\\VID_1DDD&PID_2821&MI_01&COL01\\B&2EE6DD6E&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0626\\7&333524F6&1&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Net",
+    "FriendlyName": "USB4(TM) P2P Network Adapter #5",
+    "InstanceId": "USB4\\VEN_045E&DEV_0000083F&PROT_USB4NET\\6&391F9031&0&7",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_02&COL02\\A&12296185&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Image",
+    "FriendlyName": "Logitech BRIO",
+    "InstanceId": "USB\\VID_046D&PID_085E&MI_00\\9&AD33FED&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL03\\A&22067168&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_5412\\7&C181C50&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL04\\A&29ECEDCA&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MidiEndpoint",
+    "FriendlyName": "Service Test Loopback A",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_DIAG_LOOPBACK_A",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MidiEndpoint",
+    "FriendlyName": "Service Test Loopback B",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_DIAG_LOOPBACK_B",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Attribute Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_BC87FA44E06F\\8&1A60F822&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_2188&PID_0032\\7&333524F6&1&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_1050&PID_0407&MI_00\\8&32C6D394&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_02\\A&3278E7DC&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL04\\7&17C34F13&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000FD92-0000-1000-8000-00805F9B34FB}_BC87FA44E06F\\8&1A60F822&0&002F",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000180F-0000-1000-8000-00805F9B34FB}_4F341BCF8073\\8&32BFE5E5&0&0019",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C\\7&2C030A0C&0&5",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Access Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_DEV_VID&0101F1_PID&0192_REV&0120_6095321F88A8\\8&1BEFC4E9&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Attribute Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B369_REV&0016_D90061F37B6F\\8&F9481DD&0&000A",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{CFA2703A-3277-11F0-8268-010101010000}#0000000001000000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000FD72-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B369_REV&0016_D90061F37B6F\\8&F9481DD&0&004E",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Net",
+    "FriendlyName": "UsbNcm Host Device #3",
+    "InstanceId": "USB\\VID_2672&PID_0059&MI_00\\8&6B2B9CC&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Upstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\U9FEF741235E9070000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{DA60D3BD-0077-11F1-84A5-806E6F6E6963}#0000000010500000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Ports",
+    "FriendlyName": "USB Serial Port (COM4)",
+    "InstanceId": "FTDIBUS\\VID_0403+PID_6001+B003DWYQA\\0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Net",
+    "FriendlyName": "Realtek USB GbE Family Controller",
+    "InstanceId": "USB\\VID_0BDA&PID_8153\\001000001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Mouse",
+    "FriendlyName": "HID-compliant mouse",
+    "InstanceId": "HID\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279&COL01\\9&348521D9&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Image",
+    "FriendlyName": "HPI4D943B (HP Color LaserJet Pro MFP 4301)",
+    "InstanceId": "SWD\\DAFWSDPROVIDER\\URN:UUID:BF718EAD-DA51-4341-A38C-B296514A4DD4/HTTP://BF718EAD-DA51-4341-A38C-B296514A4DD4/SCANSERVICE",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{9FA480E0-4967-4542-9390-D343DC5D04AE}_4F341BCF8073\\8&32BFE5E5&0&0014",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL01\\A&184BA762&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DELL U2415 (HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{25824F77-5BC2-4390-B357-D278B71403AC}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_8086&PID_0B07\\6&1890AE26&3&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{DA60D3BD-0077-11F1-84A5-806E6F6E6963}#0000000000100000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Streaming (7- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{366FD4F3-B2DA-446D-819D-06DB9AAAE20D}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "NvmeDisk",
+    "FriendlyName": "WD_BLACK SN850X 4000GB",
+    "InstanceId": "NVME\\NVMEDISK&VEN_15B7&SUBSYS_15B7&MN_WD_BLACK&SN_240243800125&REV_624361WD\\E823_8FA6_BF53_0001_001B_448B_474F_DAED.",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_03\\9&1465A072&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Input 1/2 (7- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{4653F8FF-3F01-4C5B-B95D-6D3B948CEE2B}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Camera",
+    "FriendlyName": "Dell Webcam WB7022",
+    "InstanceId": "USB\\VID_413C&PID_C015&MI_00\\8&49D079&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C093&MI_01\\8&2F6E8C23&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_FFFF&PID_BACE&REV_0002&MI_00&COL04\\3&1933B186&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_085E&MI_05\\A&13658340&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL03\\9&1CCF6655&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Access Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_BC87FA44E06F\\8&1A60F822&0&0012",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Elliptic Human Presence Detection Device",
+    "InstanceId": "ACPI\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\2&DABA3FF&1",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{7905F431-B5CE-4E99-A40F-4B1E122D00D0}_4F341BCF8073\\8&32BFE5E5&0&0023",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Device Information Service",
+    "InstanceId": "BTHLEDEVICE\\{0000180A-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B023_REV&0015_E642266DDE7E\\8&6F8DC1B&0&000E",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_00\\9&1DC0838C&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_1DDD&PID_2821&MI_01\\A&3A842376&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "7 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_1EC0BD2E.P_0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "7 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_1EC0BD2E.P_0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Upstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\UA04768E204B7D00000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCard",
+    "FriendlyName": "YubiKey Smart Card Minidriver",
+    "InstanceId": "SCFILTER\\CID_8073C021C057597562694B6579\\8&20611A45&0&YUBICO_YUBIKEY_OTP+FIDO+CCID_2_SCFILTER_CID_8073C021C057597562694B6579",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00010000-0000-1000-8000-011F2000046D}_DEV_VID&02046D_PID&B023_REV&0015_E642266DDE7E\\8&6F8DC1B&0&0041",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Upstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_15EF&SUBSYS_00008086&REV_06\\UD8DF208139E9070000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Access Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B369_REV&0016_D90061F37B6F\\8&F9481DD&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL04\\B&14A85B29&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_291A&PID_8308\\8&2F322B88&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&14A6380&0&01",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&14A6380&0&02",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&14A6380&0&03",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&14A6380&0&06",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Firmware",
+    "FriendlyName": "Intel CSME 18.0.15.2515 Cons_18",
+    "InstanceId": "UEFI\\RES_{3E00E617-C8FF-4E88-8133-C3032089C5E7}\\0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Logitech BRIO",
+    "InstanceId": "USB\\VID_046D&PID_085E\\1A76DF54",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C\\7&21B3A7BF&1&5",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone Array (Intel® Smart Sound Technology for Digital Microphones)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{6577EB22-E788-4314-B838-0D650AF790B2}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0616\\7&4643DE5&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\7&C181C50&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "ASUS MG278 (4- HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{960BDE04-1A36-44DD-9A5E-6435AB773DAA}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "Steinberg UR44C",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_KSA_11077207260232835726",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0BDA&PID_1100\\9&F52455D&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_046D&PID_C093&MI_01&COL04\\9&187B854B&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Display",
+    "FriendlyName": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+    "InstanceId": "PCI\\VEN_10DE&DEV_28B8&SUBSYS_223417AA&REV_A1\\4&218D282A&0&0008",
+    "Status": "Error",
+    "Problem": 31
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Vendor Interface",
+    "InstanceId": "USB\\VID_310E&PID_0952&MI_01\\7&DDD9C4B&1&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Thunderbolt 3(TM) Router, ACASIS - TBU405Pro",
+    "InstanceId": "USB4\\VID_8086&PID_15EF\\7&3716E2D3&0&5",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Thunderbolt 3(TM) Router, ACASIS - TBU405Pro",
+    "InstanceId": "USB4\\VID_8086&PID_15EF\\7&3716E2D3&0&7",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL02\\8&1CCE8E68&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\8&4A4064C&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (9- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{9FA3EA7C-7431-4D16-9E20-936CEC4F1450}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "BomeMIDI: TouchOSC Bridge (1)",
+    "InstanceId": "BOMEBUS\\BOMEMIDI\\01",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (Innoview)",
+    "InstanceId": "DISPLAY\\YCTCD4F\\9&3539707C&0&UID336128",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Input 1/2 (Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{2B1FCE74-515E-4958-B495-DC1CEC1558C0}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardReader",
+    "FriendlyName": "Microsoft Usbccid Smartcard Reader (WUDF)",
+    "InstanceId": "USB\\VID_1050&PID_0407&MI_02\\9&3192FDCD&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DAW (7- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{18D73173-80C3-4346-A158-2F05AC43A0C7}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Intel(R) USB 3.1 eXtensible Host Controller - 1.10 (Microsoft)",
+    "InstanceId": "PCI\\VEN_8086&DEV_15F0&SUBSYS_00008086&REV_06\\B1011899D7E9070000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_5412\\7&25C9374E&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Billboard Interface",
+    "InstanceId": "USB\\VID_310E&PID_0952&MI_00\\7&DDD9C4B&1&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\8&20611A45&0&02",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Wireless Mic Rx",
+    "InstanceId": "USB\\VID_2CA3&PID_4015&MI_00\\9&1ED00EAD&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0626\\6&FABA5E7&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_2CA3&PID_4015&MI_02\\A&310BBE91&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_0BDA&PID_1100\\A&32216F74&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_0412\\7&1D05C306&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Root Hub (USB 3.0)",
+    "InstanceId": "USB\\ROOT_HUB30\\B&2508B1B&0&0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardReader",
+    "FriendlyName": "Microsoft Usbccid Smartcard Reader (WUDF)",
+    "InstanceId": "USB\\VID_1050&PID_0407&MI_02\\9&8B1E46B&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": null,
+    "FriendlyName": "iAP Interface",
+    "InstanceId": "USB\\VID_2CA3&PID_4015&MI_05\\9&1ED00EAD&0&0005",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_8087&PID_0B40\\6&8951E62&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "USB 2.0 BILLBOARD",
+    "InstanceId": "USB\\VID_2109&PID_0105\\0000000000000001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A&MI_00\\9&2389032D&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0610\\7&2C030A0C&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_8086&PID_0B07\\344223022564",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Live Gamer Ultra 2.1",
+    "InstanceId": "USB\\VID_07CA&PID_2553\\5313347100164",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\8&14E7A7F0&0&01",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL01\\9&1A67BF02&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Input 1/2 (9- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{426CF58E-30B3-43C2-B8AB-0F1BD08C6C53}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL04\\9&3055350F&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_0412\\8&2EC2BD21&0&5",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Attribute Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_C01C6A88A900\\8&48F3728&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Microsoft Input Configuration Device",
+    "InstanceId": "HID\\SNSL002D&COL03\\5&14B88203&0&0002",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_8086&PID_0B07\\344223022977",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_1050&PID_0407&MI_01\\9&8B1E46B&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_413C&PID_C015\\BF341557B22D",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Attribute Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B023_REV&0015_E642266DDE7E\\8&6F8DC1B&0&000A",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8142\\MSFT20980508793FF2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (10- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{196B1959-DCF6-41E9-8285-FFEBCCC5B44D}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Bluetooth Low Energy GATT compliant HID device",
+    "InstanceId": "BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B369_REV&0016_D90061F37B6F\\8&F9481DD&0&001F",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2230&PID_2022\\6&1890AE26&3&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_1050&PID_0407&MI_00\\9&8B1E46B&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_00\\9&1E0F0E7E&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Streaming (3- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{AE9F4DF2-151E-4A32-A040-7FB939E31D12}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_00\\8&99E722A&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT13",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT14",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT15",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT16",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT17",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT18",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT19",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT20",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT21",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT22",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT24",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT25",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT26",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT27",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "VolumeSnapshot",
+    "FriendlyName": "Generic volume shadow copy",
+    "InstanceId": "STORAGE\\VOLUMESNAPSHOT\\HARDDISKVOLUMESNAPSHOT28",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\7&183604EE&0&02",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A&MI_01\\8&1424746F&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "ASUS MG278 (5- HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{FF3F99F5-FE40-4FC4-9469-76C368AB9259}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_0BDA&PID_493B&MI_03\\A&13A91442&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\9&2474A6B1&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\9&2474A6B1&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C&MI_01\\8&FD225FE&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone Array (Intel® Smart Sound Technology for Digital Microphones)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{B00AD00C-DBA3-4B59-A58C-5214EEBEBE38}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor",
+    "InstanceId": "DISPLAY\\DEFAULT_MONITOR\\1&8713BCA&0&UID0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0610\\9&BEE5377&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000184C-0000-1000-8000-00805F9B34FB}_D43A2C9F523C\\8&13BE1151&0&005A",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DELL U2515H (5- HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{50591043-0125-459A-B903-C698B8A5BA09}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MidiEndpoint",
+    "FriendlyName": "Service Test Ping (Internal)",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_DIAG_PING",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_1DDD&PID_2821&MI_01&COL02\\B&2EE6DD6E&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_1D5C&PID_5801\\6&2694569&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headset (LE-dtm-bose-qcu)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{9EE0D897-EA63-47E7-ACCD-7A0B64A418D0}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (9- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{4AD03703-6786-4D67-8C40-A41F8B88E186}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL04\\A&22067168&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Attribute Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_4F341BCF8073\\8&32BFE5E5&0&0006",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0BDA&PID_1100\\9&3824CF20&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C&MI_00\\8&FD225FE&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Attribute Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_D43A2C9F523C\\8&13BE1151&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Speakers (Realtek(R) Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{F765998A-86AB-456D-993D-C02C11D5F18F}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0610\\7&3A645BEC&1&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_03\\A&3278E7DC&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0610\\7&21B3A7BF&1&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0610\\7&21B3A7BF&1&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00001855-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&0082",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Streaming (Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{462E68AA-A981-4C01-B324-468054C297C2}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_291A&PID_8308\\7&25C9374E&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone Array (Intel® Smart Sound Technology for Digital Microphones)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{C07BA4ED-CE48-4302-B387-873884D76D06}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (DELL U2515H)",
+    "InstanceId": "DISPLAY\\DELD070\\4&1793AD96&1&UID41030",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headphones (David's Pixel Buds Pro)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{D3BE2EF9-9BB3-449B-93BD-91A59647E2FD}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\9&F52455D&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\9&F52455D&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_5412\\8&213E3647&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_5412\\8&213E3647&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_2230&PID_2023\\6&471267&1&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A\\5&2DD6E1F8&0&6",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDIU_KSA_10057824320606294128_0_0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "NvmeDisk",
+    "FriendlyName": "WD_BLACK SN850X 4000GB",
+    "InstanceId": "NVME\\NVMEDISK&VEN_15B7&SUBSYS_15B7&MN_WD_BLACK&SN_25166T800673&REV_624361WD\\E823_8FA6_BF53_0001_001B_448B_4DFD_57F1.",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headset (LE EPOS H3PRO Hands-Free)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{751B601B-5DDC-45EF-A6F3-9944460D8ABD}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Access Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B023_REV&0015_E642266DDE7E\\8&6F8DC1B&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDIU_KSA_10057824320606294128_1_0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\8&1C89AF4C&0&01",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "HD Audio Driver for Display Audio",
+    "InstanceId": "HDAUDIO\\SUBFUNC_01&VEN_8086&DEV_281D&NID_0001&SUBSYS_00000000&REV_1000\\6&3A5F5FF0&1&0002&00000015",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "HD Audio Driver for Display Audio",
+    "InstanceId": "HDAUDIO\\SUBFUNC_01&VEN_8086&DEV_281D&NID_0001&SUBSYS_00000000&REV_1000\\6&3A5F5FF0&1&0002&0000001D",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "HD Audio Driver for Display Audio",
+    "InstanceId": "HDAUDIO\\SUBFUNC_01&VEN_8086&DEV_281D&NID_0001&SUBSYS_00000000&REV_1000\\6&3A5F5FF0&1&0002&0000001F",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "HD Audio Driver for Display Audio",
+    "InstanceId": "HDAUDIO\\SUBFUNC_01&VEN_8086&DEV_281D&NID_0001&SUBSYS_00000000&REV_1000\\6&3A5F5FF0&1&0002&00000021",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "HD Audio Driver for Display Audio",
+    "InstanceId": "HDAUDIO\\SUBFUNC_01&VEN_8086&DEV_281D&NID_0001&SUBSYS_00000000&REV_1000\\6&3A5F5FF0&1&0002&00000023",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Logitech Download Assistant",
+    "InstanceId": "HID\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279&COL02\\9&348521D9&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "High Definition Audio Controller",
+    "InstanceId": "PCI\\VEN_10DE&DEV_22EB&SUBSYS_000010DE&REV_A1\\A&B831F0D&0&010000100038",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_8087&PID_5787\\6&1B4ECF07&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL02\\A&184BA762&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headset (LE EPOS H3PRO)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{2B093AD2-8A97-4428-8B96-BF37683EE5AC}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_291A&PID_8308\\7&1D05C306&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Attribute Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_DEV_VID&0101F1_PID&0192_REV&0120_6095321F88A8\\8&1BEFC4E9&0&000A",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_0412\\8&175BF191&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_0412\\8&175BF191&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SCSIAdapter",
+    "FriendlyName": "Standard NVM Express Controller",
+    "InstanceId": "PCI\\VEN_2646&DEV_5028&SUBSYS_50282646&REV_03\\8&18BE363E&1&0008001000100039",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_03F0&PID_078B&MI_02&COL01\\8&27D7FA09&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A&MI_01\\6&214572&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00001849-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&0028",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (DELL U2515H)",
+    "InstanceId": "DISPLAY\\DELD070\\4&1793AD96&1&UID24645",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant touch pad",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_03\\A&374102F3&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_046D&PID_C548\\8&25BDC9FF&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DELL U2515H (2- HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{A62816E3-F67D-4B09-B5E8-7DF49FF459F6}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{1DAF467B-E7B6-11F0-845A-806E6F6E6963}#0000000000004400",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Mouse",
+    "FriendlyName": "HID-compliant mouse",
+    "InstanceId": "HID\\VID_FFFF&PID_BACE&REV_0002&MI_00&COL05\\3&1933B186&0&0004",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "HD Audio Driver for Display Audio",
+    "InstanceId": "INTELAUDIO\\SGPC_FUNC_01&VEN_8086&DEV_281D&SUBSYS_80860101&REV_1000\\5&2EA39DA9&0&0201DIF_000B&UIF_0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL04\\9&1CCF6655&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Access Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_4F341BCF8073\\8&32BFE5E5&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "TouchOSC Bridge",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDIU_KSA_14844649857380803529_0_0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone (B03 Pro)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{0DB42620-800C-4FEE-9B91-126453046DBE}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "TouchOSC Bridge",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDIU_KSA_14844649857380803529_1_0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Access Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_D43A2C9F523C\\8&13BE1151&0&0014",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_1050&PID_0407&MI_00\\7&393F0F1E&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Root Hub (USB 3.0)",
+    "InstanceId": "USB\\ROOT_HUB30\\7&19409CCD&0&0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareComponent",
+    "FriendlyName": "AVerMedia AssistCentralPro",
+    "InstanceId": "SWD\\DRIVERENUM\\{C4CB7F0F-94D7-40B9-8122-FF58C09818F5}#ASSISTCENTRALPRO_COMPONENT&8&2F3BE87A&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone (NVIDIA Broadcast)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{D60E70C8-0B4A-4339-AE5B-FDA00F95F6FC}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Steinberg UR44C",
+    "InstanceId": "USB\\VID_0499&PID_1730\\7&931D68A&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{DA60D3BD-0077-11F1-84A5-806E6F6E6963}#000003A304600000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SCSIAdapter",
+    "FriendlyName": "Standard NVM Express Controller",
+    "InstanceId": "PCI\\VEN_15B7&DEV_5030&SUBSYS_503015B7&REV_01\\8&18BE363E&1&0008001800100039",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (Innoview)",
+    "InstanceId": "DISPLAY\\YCTCD4F\\9&3539707C&0&UID172288",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DAW (3- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{B8C9EBF0-D6FA-48F3-BBAC-3D0EA2DCF5A0}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{E73E0001-EF1B-4E74-8291-2E4F3164F3B5}_C01C6A88A900\\8&48F3728&0&0086",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Music (10- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{8F1AA210-7906-4254-A7BA-FC01CE910E61}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Billboard Interface",
+    "InstanceId": "USB\\VID_2188&PID_0035&MI_00\\8&16F67953&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Apple Mobile Device USB Composite Device",
+    "InstanceId": "USB\\VID_05AC&PID_12AB\\00008132000C108A269A401C",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Billboard Device",
+    "InstanceId": "USB\\VID_05E3&PID_0F01\\6&2694569&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\FD6CA4292FE9070000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\FD6CA4292FE9070008",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\FD6CA4292FE9070010",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\FD6CA4292FE9070018",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\FD6CA4292FE9070020",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Net",
+    "FriendlyName": "USB4(TM) P2P Network Adapter #2",
+    "InstanceId": "USB4\\VEN_045E&DEV_0000083F&PROT_USB4NET\\7&222067A1&0&7",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (ASUS MG278)",
+    "InstanceId": "DISPLAY\\ACI27A8\\4&1793AD96&1&UID41030",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\7&21B3A7BF&1&5",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Device Information Service",
+    "InstanceId": "BTHLEDEVICE\\{0000180A-0000-1000-8000-00805F9B34FB}_4F341BCF8073\\8&32BFE5E5&0&000A",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant headset",
+    "InstanceId": "HID\\VID_0A12&PID_1004&MI_03&COL03\\B&66702B9&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000184C-0000-1000-8000-00805F9B34FB}_C01C6A88A900\\8&48F3728&0&005A",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DELL U2515H (4- HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{ABD19E9A-74BF-4B4D-AFE4-F265B8AB3BEC}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "10 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_D2D056DE.P_0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "10 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_D2D056DE.P_0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_046D&PID_C093&MI_01&COL05\\9&187B854B&0&0004",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&33C2FB1A&0&02",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&33C2FB1A&0&04",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&33C2FB1A&0&05",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&33C2FB1A&0&07",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_5412\\8&24483490&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2188&PID_0031\\7&3A645BEC&1&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{2A408D94-011C-11F1-84A6-6C2F808E809A}#0000000000100000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL03\\8&1CCE8E68&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (3- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{5500A03A-A766-4776-B1E3-3F415ABB23F0}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2230&PID_2022\\6&2694569&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&38284C11&0&05",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&38284C11&0&07",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone (Wireless Mic Rx)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{30599E5C-6092-400B-83B0-8DF18E29C030}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareComponent",
+    "FriendlyName": "TrackPoint Component",
+    "InstanceId": "SWD\\DRIVERENUM\\EPD_COMPONENT&5&BDA4387&0",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone (USB Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{B27197B1-014E-4815-A735-9ACBCED74CD1}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0424&PID_2512\\8&5E5CAFE&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Bluetooth Low Energy GATT compliant HID device",
+    "InstanceId": "BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B023_REV&0015_E642266DDE7E\\8&6F8DC1B&0&0021",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (ASUS MG278)",
+    "InstanceId": "DISPLAY\\ACI27A8\\4&1793AD96&1&UID24645",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_0A12&PID_1004&MI_03&COL02\\B&66702B9&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0626\\7&2C4019B3&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Microsoft Streaming Tee/Sink-to-Sink Converter",
+    "InstanceId": "SW\\{CFD669F1-9BC2-11D0-8299-0000F822FE8A}\\{0A4252A0-7E70-11D0-A5D6-28DB04C10000}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\8&35EBCD8C&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2109&PID_2817\\7&C181C50&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2109&PID_2817\\7&C181C50&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_15EF&SUBSYS_00008086&REV_06\\B1011899D7E9070008",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_15EF&SUBSYS_00008086&REV_06\\B1011899D7E9070010",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_15EF&SUBSYS_00008086&REV_06\\B1011899D7E9070020",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "BillBoard Device",
+    "InstanceId": "USB\\VID_0BDA&PID_2172\\00000000000000000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Steinberg UR44C",
+    "InstanceId": "USB\\VID_0499&PID_1730\\8&1E96807E&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A\\7&25C9374E&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "WPD",
+    "FriendlyName": "HERO13 Black",
+    "InstanceId": "USB\\VID_2672&PID_0059&MI_02\\7&2E28EDBB&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Line Out (RME Fireface UCX II)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{82E77016-3A50-47DA-87F4-872056CE4C72}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A&MI_01\\9&2389032D&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_0A12&PID_1004&MI_03&COL01\\B&66702B9&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "2 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_3CA96806.P_0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "2 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_3CA96806.P_0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2109&PID_2817\\8&4A4064C&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB4 Router (1.0), Plugable - TBT4-UDZ",
+    "InstanceId": "USB4\\VID_8087&PID_0B26\\5&2D101DC1&3&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB4 Router (1.0), Plugable - TBT4-UDZ",
+    "InstanceId": "USB4\\VID_8087&PID_0B26\\5&2D101DC1&3&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8140\\6&471267&1&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_02&COL02\\A&ED6552A&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL02\\9&1A67BF02&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C&MI_01\\8&ED834A8&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&46FFAD8&0&04",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardFilter",
+    "FriendlyName": "Smart card filter driver",
+    "InstanceId": "{892EDE5E-BE49-443C-A0B3-005D74F2D69C}\\SCFILTER\\A&46FFAD8&0&06",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\SNSL002D&COL04\\5&14B88203&0&0003",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "WPD",
+    "FriendlyName": "CCCOMA_X64FRE_EN-US_DV9",
+    "InstanceId": "SWD\\WPDBUSENUM\\{2A408D94-011C-11F1-84A6-6C2F808E809A}#0000000018503000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{89D3502B-0F36-433A-8EF4-C502AD55F8DC}_4F341BCF8073\\8&32BFE5E5&0&002D",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{1DAF467B-E7B6-11F0-845A-806E6F6E6963}#0000000001000000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_413C&PID_D001\\8120181201",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Camera",
+    "FriendlyName": "Live Gamer Ultra 2.1-Video",
+    "InstanceId": "USB\\VID_07CA&PID_2553&MI_00\\8&2F3BE87A&2&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Camera",
+    "FriendlyName": "Intel(R) RealSense(TM) Depth Camera 435 with RGB Module Depth",
+    "InstanceId": "USB\\VID_8086&PID_0B07&MI_00\\7&12784042&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareComponent",
+    "FriendlyName": "Logi Download Assistant",
+    "InstanceId": "SWD\\DRIVERENUM\\{E4E94CEB-1D44-11F1-9005-0ED72144C585}#LOGI_DOWNLOAD_ASSISTANT_COMPONENT&A&70FBC30&0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000FCF1-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&00B7",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_00\\B&387F98EB&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_02&COL01\\A&ED6552A&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_1050&PID_0407\\6&2BB800EF&1&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Input 1/2 (3- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{1DD4B30D-1B4C-49C1-A22D-A3E65024E11D}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C&MI_00\\8&ED834A8&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_07CA&PID_D553&MI_01\\A&319DBF0D&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareComponent",
+    "FriendlyName": "AVerMedia AssistCentralPro",
+    "InstanceId": "SWD\\DRIVERENUM\\{C4CB7F0F-94D7-40B9-8122-FF58C09818F5}#ASSISTCENTRALPRO_COMPONENT&9&233540C&0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_0411\\5&2F5D9168&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_00\\A&881B1D&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Camera",
+    "FriendlyName": "Intel(R) RealSense(TM) Depth Camera 435 with RGB Module RGB",
+    "InstanceId": "USB\\VID_8086&PID_0B07&MI_03\\7&28C4058&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Live Gamer Ultra 2.1-RGB",
+    "InstanceId": "USB\\VID_07CA&PID_D553&MI_00\\9&378F793C&3&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_1DDD&PID_2821\\9&2B5CC29&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB4 Router (1.0), FULL-LINK - USB4 Device",
+    "InstanceId": "USB4\\VID_2109&PID_0830\\5&2D101DC1&3&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Steinberg UR44C",
+    "InstanceId": "USB\\VID_0499&PID_1730\\7&EF12334&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_0416&PID_0123\\9&2F6B5772&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Thunderbolt 3(TM) Router, Intel - Module 2  PD 85W",
+    "InstanceId": "USB4\\VID_8086&PID_15EF\\6&2A377A77&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (Innoview)",
+    "InstanceId": "DISPLAY\\YCTCD4F\\9&26F0E025&3&UID336128",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{1DAF467C-E7B6-11F0-845A-806E6F6E6963}#0000000000100000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_291A&PID_8308\\9&D323B57&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0BDA&PID_1100\\9&369E208F&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0416&PID_0123\\8&33BDB4C5&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Image",
+    "FriendlyName": "WSD Scan Device",
+    "InstanceId": "SWD\\DAFWSDPROVIDER\\URN:UUID:E3248000-80CE-11DB-8000-B4220022F2D0/URI:E3248000-80CE-11DB-8000-B4220022F2D0/SCANNERSERVICE",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_1DDD&PID_2821&MI_01&COL03\\B&2EE6DD6E&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0BDA&PID_493B&MI_03\\9&2688B248&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Mouse",
+    "FriendlyName": "HID-compliant mouse",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL01\\A&29ECEDCA&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "PrintQueue",
+    "FriendlyName": "Brother MFC-L8900CDW series",
+    "InstanceId": "SWD\\PRINTENUM\\{D8588117-8CC4-45F7-9B38-7B35BE6B82B0}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{1DAF467C-E7B6-11F0-845A-806E6F6E6963}#000000003F900000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{24B755C9-6646-11EF-803F-6C2F808E809A}#0000000000004400",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL01\\7&17C34F13&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Access Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_C01C6A88A900\\8&48F3728&0&0014",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Streaming (9- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{7256DD79-711B-4082-9780-4CA1E07165E4}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "UCX II Midi Port 1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDIU_KSA_698215754851179305_0_0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_0BDA&PID_1100\\9&1F51688&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "UCX II Midi Port 1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDIU_KSA_698215754851179305_1_0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_04B4&PID_6506\\MSFT20123456789A",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "Standard PS/2 Keyboard",
+    "InstanceId": "ACPI\\LEN0071\\4&76D3D92&0",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "SoftwareComponent",
+    "FriendlyName": "Dell Display and Peripheral Manager Software",
+    "InstanceId": "SWD\\DRIVERENUM\\DPMAUTOINSTALLDRIVER_DEVICE_COMPONENT&B&22C5EF37&0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_2188&PID_0032\\7&1BC5D2BE&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_0BDA&PID_1100\\A&988EE89&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Not To Use (Live Gamer Ultra 2.1-Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{390A49B8-FE44-4D76-A7C6-6B9824D1F7D6}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Microsoft Streaming Quality Manager Proxy",
+    "InstanceId": "SW\\{DDF4358E-BB2C-11D0-A42F-00A0C9223196}\\{97EBAACB-95BD-11D0-A3EA-00A0C9223196}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Camera",
+    "FriendlyName": "Intel(R) RealSense(TM) Depth Camera 435 with RGB Module RGB",
+    "InstanceId": "USB\\VID_8086&PID_0B07&MI_03\\6&2AF718F3&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_291A&PID_8308\\9&2228D124&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant fido",
+    "InstanceId": "HID\\VID_1050&PID_0407&MI_01\\A&147A7FBE&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL03\\A&184BA762&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Net",
+    "FriendlyName": "Realtek USB 5GbE Family Controller #2",
+    "InstanceId": "USB\\VID_0BDA&PID_8157\\000300242789197F",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8140\\7&23FA0C37&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Logitech USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_00\\9&1465A072&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Camera",
+    "FriendlyName": "Intel(R) RealSense(TM) Depth Camera 435 with RGB Module Depth",
+    "InstanceId": "USB\\VID_8086&PID_0B07&MI_00\\7&28C4058&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "MIDI 2.0 Virtual Devices",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_APP_TRANSPORT",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "High Definition Audio Controller",
+    "InstanceId": "PCI\\VEN_10DE&DEV_22EB&SUBSYS_000010DE&REV_A1\\A&B831F0D&0&0100000800100038",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0BDA&PID_1100\\8&2581A964&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_03F0&PID_078B&MI_02&COL02\\8&27D7FA09&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{24B755C9-6646-11EF-803F-6C2F808E809A}#0000000008100000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_FFFF&PID_BACE&REV_0002&MI_00&COL01\\3&1933B186&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C&MI_00\\8&1FE4B983&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_1A40&PID_0101\\7&2C030A0C&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "MIDI 2.0 Loop Devices",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_LOOP_TRANSPORT",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{00001858-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&0085",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Apple Mobile Device USB Composite Device",
+    "InstanceId": "USB\\VID_05AC&PID_12AB\\0000810100160DAA0222601E",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000FD72-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279\\8&2757D4AB&0&0036",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2188&PID_0034\\6&2694569&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8142\\MSFT202F040841E723",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{1DAF467C-E7B6-11F0-845A-806E6F6E6963}#000003A199100000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headphones (Realtek USB2.0 Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{1F39572D-5CCE-4F95-943C-1A6742A3486F}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_5411\\5&2DD6E1F8&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_310E&PID_0952\\11AD1D0ADCAD7D141D2F0B00",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DAW (Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{1C8BE3A4-8C7D-4674-B349-30763AAD644D}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (7- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{8647728B-A645-4FFB-A3D6-73ECECB9DD67}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_1050&PID_0407&MI_01\\7&393F0F1E&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_0BDA&PID_493B&MI_03\\A&7D0B9B2&0&0000",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{E2F0261F-38B2-11F0-8274-010101010000}#0000000000004400",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0BDA&PID_1100\\8&30A63C84&1&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "DiskDrive",
+    "FriendlyName": "PNY USB 3.2.2 FD SCSI Disk Device",
+    "InstanceId": "SCSI\\DISK&VEN_PNY&PROD_USB_3.2.2_FD\\6&886DBF7&0&000000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8140\\7&1E7CD0B5&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Device Information Service",
+    "InstanceId": "BTHLEDEVICE\\{0000180A-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279\\8&2757D4AB&0&000E",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_FFFF&PID_BACE&REV_0002\\1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Mouse",
+    "FriendlyName": "HID-compliant mouse",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL01\\B&14A85B29&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "Vendor Interface",
+    "InstanceId": "USB\\VID_2188&PID_0035&MI_01\\8&16F67953&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_00\\9&C7DF74D&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_046D&PID_C093&MI_01&COL01\\9&187B854B&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor (Innoview)",
+    "InstanceId": "DISPLAY\\YCTCD4F\\9&3539707C&0&UID139520",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_2109&PID_0822\\6&8951E62&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_03F0&PID_078B&MI_02\\7&15E0445&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\8&5E5CAFE&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Headphones (LE-dtm-bose-qcu)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{7F1C5ABE-862F-415B-A2E4-CC40F3143622}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_001F&PID_0B21\\20210726905926",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{24B755C9-6646-11EF-803F-6C2F808E809A}#0000000001000000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0BDA&PID_1100\\9&12B16DD6&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AndroidUsbDeviceClass",
+    "FriendlyName": "Android Composite ADB Interface",
+    "InstanceId": "USB\\VID_18D1&PID_4EE7\\58090DLCQ005ZZ",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant fido",
+    "InstanceId": "HID\\VID_1050&PID_0407&MI_01\\A&FEBBD58&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "WPD",
+    "FriendlyName": "Apple iPad",
+    "InstanceId": "USB\\VID_05AC&PID_12AB&MI_00\\6&2B19EF3A&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_10C4&PID_EA90\\00AD4DDB",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_04B4&PID_6504\\MSFT30123456789A",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_2BE0&PID_34A0\\MSFT30000000001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "I2C HID Device",
+    "InstanceId": "ACPI\\SNSL002D\\4&39979B3E&0",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A\\8&24483490&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "RME Fireface UCX II",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_KSA_698215754851179305",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_1A40&PID_0101\\7&21B3A7BF&1&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_10C4&PID_EA90\\7&4394A8E&1&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{2A408D94-011C-11F1-84A6-6C2F808E809A}#0000000018503000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "TouchOSC Bridge",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDIU_KSA_16285050341202283113_0_0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MidiEndpoint",
+    "FriendlyName": "BomeMIDI: TouchOSC Bridge (1)",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_KSA_14844649857380803529",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_2CA3&PID_4015&MI_02\\9&1ED00EAD&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "TouchOSC Bridge",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDIU_KSA_16285050341202283113_1_0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Attribute Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "ASUS MG278 (2- HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{340D5C84-458B-4E1D-8C77-1E5C73ADFFE8}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "DAW (10- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{372A505C-6B4E-4A47-A464-47B665F7F8C9}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Steinberg UR44C",
+    "InstanceId": "USB\\VID_0499&PID_1730\\9&16903809&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "HyperX SoloCast",
+    "InstanceId": "USB\\VID_03F0&PID_078B&MI_00\\7&15E0445&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_0416&PID_0123\\9&14865272&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL01\\9&3055350F&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_0A12&PID_1004\\9&3583E698&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Dell Presence Sensor WB7022 HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_413C&PID_D001&COL01\\8&3704C6&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareComponent",
+    "FriendlyName": "Elliptic Virtual Lock Sensor",
+    "InstanceId": "SWD\\DRIVERENUM\\{C9AC678B-DBB3-4F48-969C-FCE65B53E13A}#ELLIPTICVLS&3&1A87E07D&0",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Upstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_0B26&SUBSYS_00008086&REV_03\\UFD6CA4292FE9070000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Music (9- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{E0076E62-D950-4605-9644-D6B96A374B48}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Downstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_5786&SUBSYS_11112222&REV_85\\71DE21008087ECE420",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB4 Router (1.0), CalDigit. Inc. - Element Hub",
+    "InstanceId": "USB4\\VID_8087&PID_0B26\\6&391F9031&0&7",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_00\\9&2D97DB40&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL03\\9&1A67BF02&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_1A40&PID_0101\\8&24483490&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "High Definition Audio Controller",
+    "InstanceId": "PCI\\VEN_10DE&DEV_22EB&SUBSYS_000010DE&REV_A1\\6&31CF623F&0&01080038",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "High Definition Audio Controller",
+    "InstanceId": "PCI\\VEN_10DE&DEV_22EB&SUBSYS_000010DE&REV_A1\\6&31CF623F&0&01080039",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_2230&PID_2023\\6&12729E3E&3&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\9&343794FD&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{7CB08DA1-1A0F-11F1-84D6-6C2F808E809A}#0000000000004400",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USBDevice",
+    "FriendlyName": "USB Billboard Device   ",
+    "InstanceId": "USB\\VID_2BE0&PID_14A0\\0000000000000001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_0A12&PID_1004&MI_03\\A&11EF77F4&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "TouchOSC Bridge",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_96317EFF.P_0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant fido",
+    "InstanceId": "HID\\VID_1050&PID_0407&MI_01\\7&1FFE761B&0&0000",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{E2F0261F-38B2-11F0-8274-010101010000}#0000000001000000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0610\\8&25BDC9FF&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000180F-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B369_REV&0016_D90061F37B6F\\8&F9481DD&0&001B",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_0BDA&PID_1100\\9&61AF614&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_07CA&PID_D553&MI_01\\9&378F793C&3&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000180F-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279\\8&2757D4AB&0&001B",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "ASUS MG278 (3- HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{4E9AC603-5E70-42C6-B141-EB151F9E43C2}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "Yamaha Steinberg USB Audio",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_KSA_1940468316070708014",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Monitor",
+    "FriendlyName": "Generic Monitor",
+    "InstanceId": "DISPLAY\\DEFAULT_MONITOR\\9&26F0E025&3&UID139520",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_FFFF&PID_BACE&REV_0002&MI_00\\2&2CEE342A&1&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_00\\A&615B008&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{0B777757-5D43-4CC2-8FC7-EF4F544E233E}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": null,
+    "FriendlyName": null,
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL01\\A&22067168&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_1D5C&PID_5801\\C&347D261F&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone (Logitech BRIO)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{4ED002DE-44EA-4E31-BECC-9B5E98E1AC62}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant device",
+    "InstanceId": "HID\\VID_1DDD&PID_2821&MI_01&COL04\\B&2EE6DD6E&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL02\\A&29ECEDCA&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "PCI Express Upstream Switch Port",
+    "InstanceId": "PCI\\VEN_8086&DEV_15EF&SUBSYS_00008086&REV_06\\UB1011899D7E9070000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL03\\9&64B8239&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "WSDPrintDevice",
+    "FriendlyName": "WSD Print Device",
+    "InstanceId": "SWD\\DAFWSDPROVIDER\\URN:UUID:E3248000-80CE-11DB-8000-B4220022F2D0/URI:E3248000-80CE-11DB-8000-B4220022F2D0/PRINTERSERVICE",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_0BDA&PID_1100\\A&305E0CA9&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Net",
+    "FriendlyName": "Realtek USB 5GbE Family Controller",
+    "InstanceId": "USB\\VID_0BDA&PID_8157\\0003002427892147",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SCSIAdapter",
+    "FriendlyName": "USB Attached SCSI (UAS) Mass Storage Device",
+    "InstanceId": "USB\\VID_154B&PID_1007\\MSFT30071C564AB88CA821",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "Logitech USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_00\\A&3278E7DC&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL02\\7&17C34F13&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB4 Router (1.0), CalDigit. Inc. - Element Hub",
+    "InstanceId": "USB4\\VID_8087&PID_0B26\\6&2A377A77&0&7",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Intel(R) USB 3.1 eXtensible Host Controller - 1.10 (Microsoft)",
+    "InstanceId": "PCI\\VEN_8086&DEV_15F0&SUBSYS_00008086&REV_06\\D8DF208139E9070000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0616\\7&1E7CD0B5&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0616\\7&1E7CD0B5&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_03F0&PID_2F4A&MI_00\\8&2E48DE9B&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Microsoft Streaming Clock Proxy",
+    "InstanceId": "SW\\{97EBAACC-95BD-11D0-A3EA-00A0C9223196}\\{53172480-4791-11D0-A5D6-28DB04C10000}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "HPI4D943B (HP Color LaserJet Pro MFP 4301)",
+    "InstanceId": "SWD\\DAFWSDPROVIDER\\URN:UUID:BF718EAD-DA51-4341-A38C-B296514A4DD4/HTTP://WWW.HP.COM/SCHEMAS/IMAGING/CON/LEDM/DISCOVERYTREE/2007/07/01",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{E2B48238-09B6-11F1-84B9-6C2F808E809A}#0000000000004400",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_291A&PID_8308\\8&12AF4E21&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_2109&PID_0817\\7&2C4019B3&0&2",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_2109&PID_0817\\7&2C4019B3&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant system controller",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL02\\9&64B8239&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Microphone (HyperX SoloCast)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{DC321CDF-5C35-4F15-8D6D-6139A7AB7DBB}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Speakers (RME Fireface UCX II)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{DA7D5F7B-247F-4D6C-9BA3-66C5304A17D7}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Speakers (Realtek(R) Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{577FF616-F52A-409A-AF78-1FAE6593C420}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Capsule 3 (HD Audio Driver for Display Audio)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{83EADB3C-7AAE-45B4-A659-9863DB543069}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_1A86&PID_E010\\7&8BE2049&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0610\\8&5E5CAFE&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{1DAF467C-E7B6-11F0-845A-806E6F6E6963}#0000000040900000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "Yamaha Steinberg USB Audio",
+    "InstanceId": "SWD\\MIDISRV\\MIDIU_KSA_8534548047770183888",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_05E3&PID_0626\\8&2B78AD87&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0451&PID_8142\\MSFT20DF040871E723",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{B6A5EF92-A0E0-40A2-9E35-7BAAE389E2CD}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C31C&MI_01&COL01\\9&64B8239&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant vendor-defined device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL04\\A&184BA762&0&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant device",
+    "InstanceId": "HID\\VID_1532&PID_0F51&MI_01\\F&D73B173&0&0000",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Voice (3- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{04729EFC-3FFF-489E-A6CA-1336E6F8AEDD}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C548&MI_01\\9&1465A072&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Streaming (10- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.1.00000000}.{972E01EF-F928-4A04-A63F-15E7682C3F61}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant phone",
+    "InstanceId": "HID\\VID_03F0&PID_078B&MI_02&COL03\\8&27D7FA09&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic SuperSpeed USB Hub",
+    "InstanceId": "USB\\VID_8087&PID_5787\\C&347D261F&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Keyboard",
+    "FriendlyName": "HID Keyboard Device",
+    "InstanceId": "HID\\VID_FFFF&PID_BACE&REV_0002&MI_00&COL02\\3&1933B186&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_2188&PID_0034\\6&1890AE26&3&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C&MI_01\\8&1FE4B983&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_03F0&PID_2F4A&MI_01&COL01\\9&1CCF6655&0&0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "9 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_A1B454AE.P_0000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SoftwareDevice",
+    "FriendlyName": "9 - Steinberg UR44C-1",
+    "InstanceId": "SWD\\MMDEVAPI\\MIDII_A1B454AE.P_0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "High Definition Audio Controller",
+    "InstanceId": "PCI\\VEN_10DE&DEV_22EB&SUBSYS_000010DE&REV_A1\\6&31CF623F&0&010800000038",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000FEBE-0000-1000-8000-00805F9B34FB}_BC87FA44E06F\\8&1A60F822&0&000B",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{E73E0001-EF1B-4E74-8291-2E4F3164F3B5}_B0D5FBD35A12\\8&72BB49D&0&0090",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\9&17024321&0&1",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Volume",
+    "FriendlyName": "Volume",
+    "InstanceId": "STORAGE\\VOLUME\\{7CB08DA1-1A0F-11F1-84D6-6C2F808E809A}#0000000001000000",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Composite Device",
+    "InstanceId": "USB\\VID_2188&PID_0035\\11AD1D85B4F33012270C0B00",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "SmartCardReader",
+    "FriendlyName": "Microsoft Usbccid Smartcard Reader (WUDF)",
+    "InstanceId": "USB\\VID_1050&PID_0407&MI_02\\7&393F0F1E&0&0002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "DiskDrive",
+    "FriendlyName": "Microsoft Virtual Disk",
+    "InstanceId": "SCSI\\DISK&VEN_MSFT&PROD_VIRTUAL_DISK\\2&1F4ADFFE&0&000001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "DiskDrive",
+    "FriendlyName": "Microsoft Virtual Disk",
+    "InstanceId": "SCSI\\DISK&VEN_MSFT&PROD_VIRTUAL_DISK\\2&1F4ADFFE&0&000002",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "DiskDrive",
+    "FriendlyName": "Microsoft Virtual Disk",
+    "InstanceId": "SCSI\\DISK&VEN_MSFT&PROD_VIRTUAL_DISK\\2&1F4ADFFE&0&000003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "DiskDrive",
+    "FriendlyName": "Microsoft Virtual Disk",
+    "InstanceId": "SCSI\\DISK&VEN_MSFT&PROD_VIRTUAL_DISK\\2&1F4ADFFE&0&00000A",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "DiskDrive",
+    "FriendlyName": "Microsoft Virtual Disk",
+    "InstanceId": "SCSI\\DISK&VEN_MSFT&PROD_VIRTUAL_DISK\\2&1F4ADFFE&0&00000B",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Generic USB Hub",
+    "InstanceId": "USB\\VID_0BDA&PID_5412\\8&1ACB6F09&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_001F&PID_0B21&MI_03\\7&609D0DF&1&0003",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "MEDIA",
+    "FriendlyName": "Microsoft Streaming Tee/Sink-to-Sink Converter",
+    "InstanceId": "SW\\{CFD669F1-9BC2-11D0-8299-0000F822FE8A}\\{CF1DDA2C-9743-11D0-A3EE-00A0C9223196}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{0000184C-0000-1000-8000-00805F9B34FB}_B0D5FBD35A12\\8&72BB49D&0&005A",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Bluetooth LE Generic Attribute Service",
+    "InstanceId": "BTHLEDEVICE\\{38EB4A80-C570-11E3-9507-0002A5D5C51B}_DEV_VID&0101F1_PID&0192_REV&0120_6095321F88A8\\8&1BEFC4E9&0&001A",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C548&MI_01&COL02\\B&14A85B29&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Music (3- Steinberg UR44C)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{CBF138C2-2EA6-48DC-A5D0-0917138D4B20}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "USB Input Device",
+    "InstanceId": "USB\\VID_046D&PID_C31C&MI_01\\7&6BC686A&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "HIDClass",
+    "FriendlyName": "HID-compliant consumer control device",
+    "InstanceId": "HID\\VID_046D&PID_C093&MI_01&COL02\\9&187B854B&0&0001",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "Bluetooth",
+    "FriendlyName": "Generic Access Profile",
+    "InstanceId": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279\\8&2757D4AB&0&0001",
+    "Status": "OK",
+    "Problem": 0
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\8&1ACB6F09&0&3",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "Unknown USB Device (Device Descriptor Request Failed)",
+    "InstanceId": "USB\\VID_0000&PID_0002\\8&1ACB6F09&0&4",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "AudioEndpoint",
+    "FriendlyName": "Speakers (NVIDIA Broadcast)",
+    "InstanceId": "SWD\\MMDEVAPI\\{0.0.0.00000000}.{4DB3DA5A-9DE1-4435-9711-41DA08E8846A}",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB Root Hub (USB 3.0)",
+    "InstanceId": "USB\\ROOT_HUB30\\9&A4DCE57&1&0",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "System",
+    "FriendlyName": "High Definition Audio Controller",
+    "InstanceId": "PCI\\VEN_10DE&DEV_22EB&SUBSYS_000010DE&REV_A1\\A&B831F0D&0&01000038",
+    "Status": "Unknown",
+    "Problem": 45
+  },
+  {
+    "Class": "USB",
+    "FriendlyName": "USB4 Router (2.0), Razer - Core X V2",
+    "InstanceId": "USB4\\VID_8087&PID_5786\\6&2A377A77&0&7",
+    "Status": "Unknown",
+    "Problem": 45
+  }
+]

@@ -1,0 +1,338 @@
+[
+  {
+    "TimeCreated": "2026-06-06T13:36:13.0070281-04:00",
+    "LogName": "System",
+    "ProviderName": "Service Control Manager",
+    "Id": 7040,
+    "LevelDisplayName": "Information",
+    "Message": "The start type of the PC_AI-ToolRouter service was changed from auto start to demand start."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:29:46.5532053-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T13:29:37.8791322-04:00",
+    "LogName": "System",
+    "ProviderName": "Service Control Manager",
+    "Id": 7040,
+    "LevelDisplayName": "Information",
+    "Message": "The start type of the Web Management service was changed from auto start to demand start."
+  },
+  {
+    "TimeCreated": "2026-06-06T13:28:57.2953827-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T13:28:57.2383022-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T13:26:31.7463732-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T13:26:31.7370572-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T13:26:31.6905574-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T13:25:32.6846626-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T13:25:32.6187602-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T13:25:32.6113353-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T12:58:43.072165-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 291,
+    "LevelDisplayName": "Information",
+    "Message": "RSC offload modified for NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) Previous IPv4: Enabled, Current IPv4: Enabled, Previous IPv6: Enabled, Current IPv6: Enabled. Reason: RSC OID"
+  },
+  {
+    "TimeCreated": "2026-06-06T12:58:43.0674676-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 291,
+    "LevelDisplayName": "Information",
+    "Message": "RSC offload modified for NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) Previous IPv4: Disabled, Current IPv4: Enabled, Previous IPv6: Disabled, Current IPv6: Enabled. Reason: RSC OID"
+  },
+  {
+    "TimeCreated": "2026-06-06T12:58:43.0649718-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 232,
+    "LevelDisplayName": "Information",
+    "Message": "NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) successfully connected to port C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Host Vnic C08CB7B8-9B3C-408E-8E30-5E16A3AEB444) on switch C08CB7B8-9B3C-408E-8E30-5E16A3AEB444(Friendly Name: Default Switch)."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:58:43.0606265-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 233,
+    "LevelDisplayName": "Information",
+    "Message": "The operation 'Enable Lightweight NIC' succeeded on nic C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch), Instance Id {00000000-0000-0000-0000-000000000000}."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:58:43.0578047-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 7,
+    "LevelDisplayName": "Information",
+    "Message": "Miniport NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) successfully initialized."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:58:43.0575225-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 291,
+    "LevelDisplayName": "Information",
+    "Message": "RSC offload modified for NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) Previous IPv4: Enabled, Current IPv4: Disabled, Previous IPv6: Enabled, Current IPv6: Disabled. Reason: NIC start"
+  },
+  {
+    "TimeCreated": "2026-06-06T12:58:42.7892007-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 233,
+    "LevelDisplayName": "Information",
+    "Message": "The operation 'Disable Lightweight NIC' succeeded on nic C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch), Instance Id {00000000-0000-0000-0000-000000000000}."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:42:56.231601-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T12:42:52.2542684-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T12:42:48.2590983-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T12:42:42.7548809-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T12:42:42.2434367-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Configuration-Change-Monitor",
+    "Id": 1,
+    "LevelDisplayName": "Information",
+    "Message": ""
+  },
+  {
+    "TimeCreated": "2026-06-06T12:42:20.277564-04:00",
+    "LogName": "System",
+    "ProviderName": "Service Control Manager",
+    "Id": 7045,
+    "LevelDisplayName": "Information",
+    "Message": "A service was installed in the system. Service Name: MediatekSwitch for USB Service File Name: \"C:\\Program Files (x86)\\MediatekSwitchUSB\\MediatekSwitchUSB.exe\" Service Type: user mode service Service Start Type: auto start Service Account: LocalSystem"
+  },
+  {
+    "TimeCreated": "2026-06-06T12:42:12.0018992-04:00",
+    "LogName": "System",
+    "ProviderName": "Service Control Manager",
+    "Id": 7045,
+    "LevelDisplayName": "Information",
+    "Message": "A service was installed in the system. Service Name: NETGEAR A9000 WiFi 7 Adapter Service File Name: \\SystemRoot\\System32\\drivers\\mtkwecxu.sys Service Type: kernel mode driver Service Start Type: demand start Service Account: "
+  },
+  {
+    "TimeCreated": "2026-06-06T12:35:51.6589742-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-UserPnp",
+    "Id": 20003,
+    "LevelDisplayName": "Information",
+    "Message": "Driver Management has concluded the process to add Service WUDFWpdFs for Device Instance ID SWD\\WPDBUSENUM\\_??_USBSTOR#DISK&VEN_GENERAL&PROD_UDISK&REV_5.00#6&13B90F1C&0&_&0#{53F56307-B6BF-11D0-94F2-00A0C91EFB8B} with the following status: 0."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:35:51.6353793-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-DriverFrameworks-UserMode",
+    "Id": 10100,
+    "LevelDisplayName": "Information",
+    "Message": "The driver package installation has succeeded."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:35:51.6268914-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-DriverFrameworks-UserMode",
+    "Id": 10000,
+    "LevelDisplayName": "Information",
+    "Message": "A driver package which uses user-mode driver framework version 2.35.0 is being installed on device SWD\\WPDBUSENUM\\_??_USBSTOR#DISK&VEN_GENERAL&PROD_UDISK&REV_5.00#6&13B90F1C&0&_&0#{53F56307-B6BF-11D0-94F2-00A0C91EFB8B}."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:35:51.7959723-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-WPDClassInstaller",
+    "Id": 24579,
+    "LevelDisplayName": "Information",
+    "Message": "Autoplay registration was skipped for device %1."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:35:51.795121-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-WPDClassInstaller",
+    "Id": 24577,
+    "LevelDisplayName": "Information",
+    "Message": "Media player and imaging program compatibility layers were successfully registered for device %1. Layer bits %2 were requested, layer bits %3 were registered."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:35:51.7503847-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-WPDClassInstaller",
+    "Id": 24576,
+    "LevelDisplayName": "Information",
+    "Message": "Drivers were successfully installed for device WPD Device."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:28:36.5290164-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 291,
+    "LevelDisplayName": "Information",
+    "Message": "RSC offload modified for NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) Previous IPv4: Enabled, Current IPv4: Enabled, Previous IPv6: Enabled, Current IPv6: Enabled. Reason: RSC OID"
+  },
+  {
+    "TimeCreated": "2026-06-06T12:28:36.5275091-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 291,
+    "LevelDisplayName": "Information",
+    "Message": "RSC offload modified for NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) Previous IPv4: Disabled, Current IPv4: Enabled, Previous IPv6: Disabled, Current IPv6: Enabled. Reason: RSC OID"
+  },
+  {
+    "TimeCreated": "2026-06-06T12:28:36.5230015-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 232,
+    "LevelDisplayName": "Information",
+    "Message": "NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) successfully connected to port C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Host Vnic C08CB7B8-9B3C-408E-8E30-5E16A3AEB444) on switch C08CB7B8-9B3C-408E-8E30-5E16A3AEB444(Friendly Name: Default Switch)."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:28:36.5207523-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 233,
+    "LevelDisplayName": "Information",
+    "Message": "The operation 'Enable Lightweight NIC' succeeded on nic C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch), Instance Id {00000000-0000-0000-0000-000000000000}."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:28:36.5181276-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 7,
+    "LevelDisplayName": "Information",
+    "Message": "Miniport NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) successfully initialized."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:28:36.518013-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 291,
+    "LevelDisplayName": "Information",
+    "Message": "RSC offload modified for NIC C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch) Previous IPv4: Enabled, Current IPv4: Disabled, Previous IPv6: Enabled, Current IPv6: Disabled. Reason: NIC start"
+  },
+  {
+    "TimeCreated": "2026-06-06T12:28:36.3778963-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-Hyper-V-VmSwitch",
+    "Id": 233,
+    "LevelDisplayName": "Information",
+    "Message": "The operation 'Disable Lightweight NIC' succeeded on nic C08CB7B8-9B3C-408E-8E30-5E16A3AEB445 (Friendly Name: Default Switch), Instance Id {00000000-0000-0000-0000-000000000000}."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:00:53.5498522-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-DistributedCOM",
+    "Id": 10016,
+    "LevelDisplayName": "Warning",
+    "Message": "The machine-default permission settings do not grant Local Activation permission for the COM Server application with CLSID {00000000-0000-0000-0000-000000000000} and APPID {01C337F2-5519-4720-B560-4871783A6DD5} to the user NT AUTHORITY\\NETWORK SERVICE SID (S-1-5-20) from address LocalHost (Using LRPC) running in the application container Unavailable SID (Unavailable). This security permission can be modified using the Component Services administrative tool."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:00:53.5017248-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-DistributedCOM",
+    "Id": 10016,
+    "LevelDisplayName": "Warning",
+    "Message": "The machine-default permission settings do not grant Local Activation permission for the COM Server application with CLSID {00000000-0000-0000-0000-000000000000} and APPID {01C337F2-5519-4720-B560-4871783A6DD5} to the user NT AUTHORITY\\NETWORK SERVICE SID (S-1-5-20) from address LocalHost (Using LRPC) running in the application container Unavailable SID (Unavailable). This security permission can be modified using the Component Services administrative tool."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:00:33.2319094-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-DistributedCOM",
+    "Id": 10016,
+    "LevelDisplayName": "Warning",
+    "Message": "The machine-default permission settings do not grant Local Activation permission for the COM Server application with CLSID {00000000-0000-0000-0000-000000000000} and APPID {01C337F2-5519-4720-B560-4871783A6DD5} to the user NT AUTHORITY\\NETWORK SERVICE SID (S-1-5-20) from address LocalHost (Using LRPC) running in the application container Unavailable SID (Unavailable). This security permission can be modified using the Component Services administrative tool."
+  },
+  {
+    "TimeCreated": "2026-06-06T12:00:33.1919093-04:00",
+    "LogName": "System",
+    "ProviderName": "Microsoft-Windows-DistributedCOM",
+    "Id": 10016,
+    "LevelDisplayName": "Warning",
+    "Message": "The machine-default permission settings do not grant Local Activation permission for the COM Server application with CLSID {00000000-0000-0000-0000-000000000000} and APPID {01C337F2-5519-4720-B560-4871783A6DD5} to the user NT AUTHORITY\\NETWORK SERVICE SID (S-1-5-20) from address LocalHost (Using LRPC) running in the application container Unavailable SID (Unavailable). This security permission can be modified using the Component Services administrative tool."
+  }
+]

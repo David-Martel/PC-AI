@@ -1,0 +1,34 @@
+[
+  {
+    "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad",
+    "Values": {
+      "AAPThreshold": 2,
+      "EnableEdgy": 1,
+      "ScrollDirection": 0,
+      "CursorSpeed": 14,
+      "LeaveOnWithMouse": 4294967295,
+      "PanEnabled": 4294967295,
+      "RightClickZoneEnabled": 4294967295,
+      "TapAndDrag": 4294967295,
+      "TapsEnabled": 0,
+      "TwoFingerTapEnabled": 0,
+      "ZoomEnabled": 4294967295,
+      "FeedbackIntensity": 50,
+      "ClickForceSensitivity": 50,
+      "FeedbackEnabled": 4294967295,
+      "HonorMouseAccelSetting": 0,
+      "RightClickZoneWidth": 0,
+      "RightClickZoneHeight": 0
+    }
+  },
+  {
+    "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad",
+    "Values": {
+      "AAPDisabled": 0,
+      "HorizontalOffset": 0,
+      "RightClickZoneHeight": 0,
+      "RightClickZoneWidth": 0,
+      "SpaceBarOffset": 1000
+    }
+  }
+]

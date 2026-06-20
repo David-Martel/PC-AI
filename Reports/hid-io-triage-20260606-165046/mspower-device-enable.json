@@ -1,0 +1,30 @@
+[
+  {
+    "InstanceName": "PCI\\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\\3&11583659&1&A8_0",
+    "Enable": false
+  },
+  {
+    "InstanceName": "ACPI\\SNSL002D\\4&39979b3e&0_0",
+    "Enable": false
+  },
+  {
+    "InstanceName": "ACPI\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\2&daba3ff&1_0",
+    "Enable": true
+  },
+  {
+    "InstanceName": "USB\\VID_06CB&PID_00F9\\ddf5456187b0_0",
+    "Enable": true
+  },
+  {
+    "InstanceName": "BTHLEDevice\\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&02046d_PID&b037_REV&0003_d35004a25279\\8&2757d4ab&0&001f_0",
+    "Enable": true
+  },
+  {
+    "InstanceName": "BTHLEDevice\\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&02046d_PID&b369_REV&0016_d90061f37b6f\\8&f9481dd&0&001f_0",
+    "Enable": true
+  },
+  {
+    "InstanceName": "BTHLEDevice\\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&02046d_PID&b023_REV&0015_e642266dde7e\\8&6f8dc1b&0&0021_0",
+    "Enable": true
+  }
+]

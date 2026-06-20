@@ -1,0 +1,166 @@
+{
+  "Timestamp": "2026-06-06T16:19:27.2464334-04:00",
+  "Machine": "DTM-P1GEN7",
+  "Note": "live haptic touchpad diagnostic pass 2026-06-06",
+  "StartTime": "2026-06-06T16:17:52.0480020-04:00",
+  "StopTime": "2026-06-06T16:19:24.7446865-04:00",
+  "DurationSeconds": 92.7,
+  "OutDir": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\trace-20260606-161752",
+  "Etl": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\trace-20260606-161752\\haptic-touchpad.etl",
+  "WppEtl": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\trace-20260606-161752\\hidi2c-wpp.etl",
+  "Providers": [
+    {
+      "Name": "Microsoft-Windows-SPB-HIDI2C",
+      "Level": "5",
+      "Flags": "0xFFFFFFFF"
+    },
+    {
+      "Name": "Microsoft-Windows-Input-HIDCLASS",
+      "Level": "5",
+      "Flags": "0xFFFFFFFF"
+    },
+    {
+      "Name": "Intel-iaLPSS2-I2C",
+      "Level": "5",
+      "Flags": "0xFFFFFFFF"
+    },
+    {
+      "Name": "Intel-iaLPSS-I2C",
+      "Level": "5",
+      "Flags": "0xFFFFFFFF"
+    },
+    {
+      "Name": "{485E7DE9-0A80-11D8-AD15-505054503030}",
+      "Level": "5",
+      "Flags": "0xFFFFFFFF"
+    }
+  ],
+  "DeviceSnapshot": [
+    {
+      "Class": "Mouse",
+      "FriendlyName": "HID-compliant mouse",
+      "InstanceId": "HID\\SNSL002D&COL01\\5&14B88203&0&0000",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "System",
+      "FriendlyName": "Intel(R) Serial IO I2C Host Controller - 7E78",
+      "InstanceId": "PCI\\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\\3&11583659&1&A8",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "Sensor",
+      "FriendlyName": "HID Sensor Collection V2",
+      "InstanceId": "HID\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\3&1A87E07D&0&0000",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "HIDClass",
+      "FriendlyName": "ETD HSA Device",
+      "InstanceId": "ETDHSA\\VID_04F3&PID_0001\\5&BDA4387&0&0002",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "Mouse",
+      "FriendlyName": "TrackPoint Device",
+      "InstanceId": "ACPI\\LEN032A\\4&76D3D92&0",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "System",
+      "FriendlyName": "Intel(R) Serial IO I2C Host Controller - 7E50",
+      "InstanceId": "PCI\\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\\3&11583659&1&C8",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "HIDClass",
+      "FriendlyName": "HID-compliant touch pad",
+      "InstanceId": "HID\\SNSL002D&COL02\\5&14B88203&0&0001",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "HIDClass",
+      "FriendlyName": "Elliptic Human Presence Detection Device",
+      "InstanceId": "ACPI\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\2&DABA3FF&1",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "MEDIA",
+      "FriendlyName": "BomeMIDI: TouchOSC Bridge (1)",
+      "InstanceId": "BOMEBUS\\BOMEMIDI\\01",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "HIDClass",
+      "FriendlyName": "Microsoft Input Configuration Device",
+      "InstanceId": "HID\\SNSL002D&COL03\\5&14B88203&0&0002",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "SoftwareComponent",
+      "FriendlyName": "TrackPoint Component",
+      "InstanceId": "SWD\\DRIVERENUM\\EPD_COMPONENT&5&BDA4387&0",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "HIDClass",
+      "FriendlyName": "HID-compliant vendor-defined device",
+      "InstanceId": "HID\\SNSL002D&COL04\\5&14B88203&0&0003",
+      "Status": "OK",
+      "Problem": 0
+    },
+    {
+      "Class": "HIDClass",
+      "FriendlyName": "I2C HID Device",
+      "InstanceId": "ACPI\\SNSL002D\\4&39979B3E&0",
+      "Status": "OK",
+      "Problem": 0
+    }
+  ],
+  "PrecisionTouchpadSettings": [
+    {
+      "Path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad",
+      "Values": {
+        "AAPThreshold": 2,
+        "EnableEdgy": 1,
+        "ScrollDirection": 0,
+        "CursorSpeed": 14,
+        "LeaveOnWithMouse": 4294967295,
+        "PanEnabled": 4294967295,
+        "RightClickZoneEnabled": 4294967295,
+        "TapAndDrag": 4294967295,
+        "TapsEnabled": 0,
+        "TwoFingerTapEnabled": 0,
+        "ZoomEnabled": 4294967295,
+        "FeedbackIntensity": 50,
+        "ClickForceSensitivity": 50,
+        "FeedbackEnabled": 4294967295,
+        "HonorMouseAccelSetting": 0,
+        "RightClickZoneWidth": 0,
+        "RightClickZoneHeight": 0
+      }
+    },
+    {
+      "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad",
+      "Values": {
+        "AAPDisabled": 0,
+        "HorizontalOffset": 0,
+        "RightClickZoneHeight": 0,
+        "RightClickZoneWidth": 0,
+        "SpaceBarOffset": 1000
+      }
+    }
+  ],
+  "CommandLog": "C:\\codedev\\PC_AI\\Reports\\haptic-touchpad\\trace-20260606-161752\\logman-commands.txt"
+}

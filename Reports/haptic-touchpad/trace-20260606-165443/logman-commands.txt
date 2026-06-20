@@ -1,0 +1,100 @@
+>>> logman.exe delete PC_AI_HapticTouchpad_ETW -ets
+
+Error:
+Data Collector Set was not found.
+
+
+<<< exit=-2144337918
+
+>>> logman.exe create trace PC_AI_HapticTouchpad_ETW -o C:\codedev\PC_AI\Reports\haptic-touchpad\trace-20260606-165443\haptic-touchpad.etl -nb 128 640 -bs 128 -ow
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe update trace PC_AI_HapticTouchpad_ETW -p Microsoft-Windows-SPB-HIDI2C 0xFFFFFFFF 5
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe update trace PC_AI_HapticTouchpad_ETW -p Microsoft-Windows-Input-HIDCLASS 0xFFFFFFFF 5
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe update trace PC_AI_HapticTouchpad_ETW -p Intel-iaLPSS2-I2C 0xFFFFFFFF 5
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe update trace PC_AI_HapticTouchpad_ETW -p Intel-iaLPSS-I2C 0xFFFFFFFF 5
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe update trace PC_AI_HapticTouchpad_ETW -p {485E7DE9-0A80-11D8-AD15-505054503030} 0xFFFFFFFF 5
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe start PC_AI_HapticTouchpad_ETW
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe delete PC_AI_HIDI2C_WPP -ets
+
+Error:
+Data Collector Set was not found.
+
+
+<<< exit=-2144337918
+
+>>> logman.exe create trace PC_AI_HIDI2C_WPP -o C:\codedev\PC_AI\Reports\haptic-touchpad\trace-20260606-165443\hidi2c-wpp.etl -nb 128 640 -bs 128 -ow
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe update trace PC_AI_HIDI2C_WPP -p {E742C27D-29B1-4E4B-94EE-074D3AD72836} 0x7FFFFFFF 255
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe start PC_AI_HIDI2C_WPP
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe stop PC_AI_HIDI2C_WPP -ets
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe delete PC_AI_HIDI2C_WPP
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe stop PC_AI_HapticTouchpad_ETW -ets
+The command completed successfully.
+
+
+<<< exit=0
+
+>>> logman.exe delete PC_AI_HapticTouchpad_ETW
+The command completed successfully.
+
+
+<<< exit=0
+

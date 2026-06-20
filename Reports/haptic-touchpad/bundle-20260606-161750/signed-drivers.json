@@ -1,0 +1,202 @@
+[
+  {
+    "DeviceName": "HID Sensor Collection V2",
+    "DeviceID": "HID\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\3&1A87E07D&0&0000",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2009-04-20T20:00:00-04:00",
+    "InfName": "sensorshidclassdriver.inf",
+    "Manufacturer": "Microsoft",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "Elliptic Human Presence Detection Device",
+    "DeviceID": "ACPI\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\2&DABA3FF&1",
+    "DriverProviderName": "Elliptic Laboratories ASA",
+    "DriverVersion": "1000.100.108.801",
+    "DriverDate": "2025-02-26T19:00:00-05:00",
+    "InfName": "oem196.inf",
+    "Manufacturer": "Elliptic Laboratories ASA",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "TrackPoint Component",
+    "DeviceID": "SWD\\DRIVERENUM\\EPD_COMPONENT&5&BDA4387&0",
+    "DriverProviderName": "ELAN Input Device",
+    "DriverVersion": "31.21.51.2",
+    "DriverDate": "2025-08-04T20:00:00-04:00",
+    "InfName": "oem281.inf",
+    "Manufacturer": "ELAN",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "ETD HSA Device",
+    "DeviceID": "ETDHSA\\VID_04F3&PID_0001\\5&BDA4387&0&0002",
+    "DriverProviderName": "ELAN",
+    "DriverVersion": "31.21.51.2",
+    "DriverDate": "2025-08-04T20:00:00-04:00",
+    "InfName": "oem300.inf",
+    "Manufacturer": "ELAN",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "TrackPoint Device",
+    "DeviceID": "ACPI\\LEN032A\\4&76D3D92&0",
+    "DriverProviderName": "ELAN",
+    "DriverVersion": "31.21.51.2",
+    "DriverDate": "2025-08-04T20:00:00-04:00",
+    "InfName": "oem279.inf",
+    "Manufacturer": "ELAN",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "Intel(R) Serial IO I2C Host Controller - 7E50",
+    "DeviceID": "PCI\\VEN_8086&DEV_7E50&SUBSYS_223417AA&REV_20\\3&11583659&1&C8",
+    "DriverProviderName": "Intel Corporation",
+    "DriverVersion": "30.100.2527.40",
+    "DriverDate": "2025-07-02T20:00:00-04:00",
+    "InfName": "oem107.inf",
+    "Manufacturer": "Intel Corporation",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "HID-compliant vendor-defined device",
+    "DeviceID": "HID\\SNSL002D&COL04\\5&14B88203&0&0003",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "input.inf",
+    "Manufacturer": "(Standard system devices)",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "Microsoft Input Configuration Device",
+    "DeviceID": "HID\\SNSL002D&COL03\\5&14B88203&0&0002",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.1150",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "mtconfig.inf",
+    "Manufacturer": "Microsoft",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "HID-compliant touch pad",
+    "DeviceID": "HID\\SNSL002D&COL02\\5&14B88203&0&0001",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "input.inf",
+    "Manufacturer": "(Standard system devices)",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "HID-compliant mouse",
+    "DeviceID": "HID\\SNSL002D&COL01\\5&14B88203&0&0000",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.1150",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "msmouse.inf",
+    "Manufacturer": "Microsoft",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "I2C HID Device",
+    "DeviceID": "ACPI\\SNSL002D\\4&39979B3E&0",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "hidi2c.inf",
+    "Manufacturer": "Microsoft",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "Intel(R) Serial IO I2C Host Controller - 7E78",
+    "DeviceID": "PCI\\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\\3&11583659&1&A8",
+    "DriverProviderName": "Intel Corporation",
+    "DriverVersion": "30.100.2527.40",
+    "DriverDate": "2025-07-02T20:00:00-04:00",
+    "InfName": "oem107.inf",
+    "Manufacturer": "Intel Corporation",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "Bluetooth Low Energy GATT compliant HID device",
+    "DeviceID": "BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B023_REV&0015_E642266DDE7E\\8&6F8DC1B&0&0021",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "hidbthle.inf",
+    "Manufacturer": "Microsoft",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "Bluetooth Low Energy GATT compliant HID device",
+    "DeviceID": "BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B369_REV&0016_D90061F37B6F\\8&F9481DD&0&001F",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "hidbthle.inf",
+    "Manufacturer": "Microsoft",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "Bluetooth Low Energy GATT compliant HID device",
+    "DeviceID": "BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B037_REV&0003_D35004A25279\\8&2757D4AB&0&001F",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "hidbthle.inf",
+    "Manufacturer": "Microsoft",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "HID-compliant fido",
+    "DeviceID": "HID\\VID_1050&PID_0407&MI_01\\7&1FFE761B&0&0000",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.1",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "fidohid.inf",
+    "Manufacturer": "FIDO",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "HID Keyboard Device",
+    "DeviceID": "HID\\VID_1050&PID_0407&MI_00\\7&83AE9D6&0&0000",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "keyboard.inf",
+    "Manufacturer": "(Standard keyboards)",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "HID-compliant device",
+    "DeviceID": "HID\\VID_1532&PID_0F51&MI_01\\F&D73B173&0&0000",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "input.inf",
+    "Manufacturer": "(Standard system devices)",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "HID Keyboard Device",
+    "DeviceID": "HID\\VID_1532&PID_0F51&MI_00\\F&16638C4F&0&0000",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.8521",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "keyboard.inf",
+    "Manufacturer": "(Standard keyboards)",
+    "IsSigned": true
+  },
+  {
+    "DeviceName": "HID-compliant consumer control device",
+    "DeviceID": "HID\\VID_0BDA&PID_493B&MI_03\\A&7D0B9B2&0&0000",
+    "DriverProviderName": "Microsoft",
+    "DriverVersion": "10.0.26100.1",
+    "DriverDate": "2006-06-20T20:00:00-04:00",
+    "InfName": "hidserv.inf",
+    "Manufacturer": "Microsoft",
+    "IsSigned": true
+  }
+]

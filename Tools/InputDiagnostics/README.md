@@ -26,6 +26,17 @@ Keyboard = `ACPI\LEN0071` (EC), TrackPoint = `ACPI\LEN032A`, Touchpad = Synaptic
 | `Invoke-InputStackDiagnostics.ps1` | **Read-only** collector. Reproduces the whole investigation → timestamped `.txt`/`.json` in `PC_AI\Logs\input-diagnostics`. Run whenever freezes recur. | No (more complete elevated) |
 | `Repair-InputStackQuickWins.ps1` | Applies the safe, reversible fixes (backup + `-Revert`). | Yes (HKCU part works without) |
 | `Start-LoadCapture.ps1` | Native `powercfg` thermal/power/latency capture during heavy ML load; drives HWiNFO/LatencyMon if installed. | Yes |
+| `Test-KeyInput.ps1` | Passive WH_KEYBOARD_LL monitor for Shift-key press/release events. Device-AGNOSTIC (sees the merged stream). Use interactively while reproducing the Shift symptom. | No |
+| `Trace-ShiftKeySource.ps1` | **Device-AWARE** Raw Input (WM_INPUT/RIDEV_INPUTSINK) trace: tags every key event with its source device and classifies INTERNAL (`ACPI\LEN0071`) vs USB/HID. The decisive discriminator for "internal Shift intermittent but USB Shift always works" — proves whether the internal Shift scancode reaches Windows. Writes a live JSONL + final JSON to `Logs\input-diagnostics`. **Must run FOREGROUND** (a background `Start-Job` runspace has no interactive desktop and captures nothing). | No |
+| `Measure-ShiftOrdering.ps1` | Per-device Shift/letter ORDERING metric on a `shift-source-live-*.jsonl`: for each shifted letter, computes `letterDown - shiftDown` ms; negative = letter-before-shift (the timing-race signature). Reports failure rate per device for internal-vs-USB comparison. | No |
+| `Analyze-ShiftTrace.ps1` | Reconstructs the typed text from a capture with raw Shift state applied, and counts Shift make/break balance — used to expose stuck-shift / dropped-key-up vs auto-repeat. | No |
+| `Watch-InputGlitch.ps1` | Read-only symptom ledger and snapshot tool for Shift/touchpad co-freeze events. Use before/after driver or firmware changes. | No |
+| `Test-NvidiaDualGpuDriverHealth.ps1` | Read-only NVIDIA internal/eGPU health check; reports driver-version split, Code 31, `nvidia-smi`, local NVIDIA App/update artifacts, and can fail automation with `-FailOnIssue`. | No |
+| `Repair-TouchpadPowerManagement.ps1` | Applies/reverts the targeted Sensel `SNSL002D` + Intel `7E78` I2C power-down fix when `Watch-InputGlitch.ps1` shows `CanPowerDown=true`; opt-in `-IncludeHumanPresenceSensor` also hardens the nearby Elliptic `VEN_ELAS&DEV_B41A` sensor when WUDF timeouts implicate it. | Yes |
+| `Get-SenselFirmwareState.ps1` | Read-only reconciliation of Lenovo Vantage `n48gb01w`, Sensel firmware INF/CAP metadata, Windows firmware PnP state, and `hidcfu` logs. | No |
+| `Start-HapticTouchpadTrace.ps1` | Bounded ETW/logman capture for HIDI2C, HIDCLASS, Intel I2C, UMDF/WDF, and optional HIDI2C WPP during a repro. | Yes |
+| `Watch-HapticTouchpadInput.ps1` | Passive pointer/button monitor for stuck press, missing button-up, and movement-stall correlation during haptic touchpad repros. | No |
+| `Export-HapticTouchpadReproBundle.ps1` | Read-only evidence bundle: firmware, PnP, drivers, Precision Touchpad settings, services/processes, events, NVIDIA state, symptom ledger. | No |
 
 ### Usage
 ```powershell
@@ -41,12 +52,86 @@ pwsh -File .\Repair-InputStackQuickWins.ps1 -Revert
 
 # 3. Capture evidence during a heavy CUDA/ML session (elevated):
 pwsh -File .\Start-LoadCapture.ps1 -EnergyDurationSec 90 -LaunchHwinfo
+
+# 4. Check fragile internal NVIDIA + eGPU driver state:
+pwsh -File .\Test-NvidiaDualGpuDriverHealth.ps1 -AsJson
+pwsh -File .\Test-NvidiaDualGpuDriverHealth.ps1 -FailOnIssue
+
+# 5. Prove whether Shift reaches Windows when the symptom is active:
+pwsh -File .\Test-KeyInput.ps1 -Seconds 20
+#   ...device-aware (which keyboard?) — run in background, reproduce in your real app:
+pwsh -File .\Trace-ShiftKeySource.ps1 -Seconds 45        # -AllKeys to log every key
+
+# 6. Keep a before/after symptom ledger for touchpad + Shift fixes:
+pwsh -File .\Watch-InputGlitch.ps1 -Mode Snapshot -Symptom none
+pwsh -File .\Watch-InputGlitch.ps1 -Mode Report -SinceFix 2026-06-06
+
+# 7. Apply/revert the targeted touchpad/I2C power-management fix:
+pwsh -File .\Repair-TouchpadPowerManagement.ps1 -WhatIf
+pwsh -File .\Repair-TouchpadPowerManagement.ps1
+pwsh -File .\Repair-TouchpadPowerManagement.ps1 -IncludeHumanPresenceSensor
+pwsh -File .\Repair-TouchpadPowerManagement.ps1 -Revert
+
+# 8. Haptic/Sensel diagnostic workflow:
+pwsh -File .\Get-SenselFirmwareState.ps1 -AsJson
+pwsh -File .\Export-HapticTouchpadReproBundle.ps1 -SinceHours 72
+
+# 9. Live repro capture; run both at the same time in two elevated/non-elevated terminals:
+pwsh -File .\Start-HapticTouchpadTrace.ps1 -DurationSeconds 90 -IncludeHidi2cWpp -Note "TrackPoint palm haptic repro"
+pwsh -File .\Watch-HapticTouchpadInput.ps1 -Seconds 90 -Note "same repro window"
 ```
 
 ## What `Repair-InputStackQuickWins.ps1` changes (all reversible)
 1. **Accessibility hotkeys** (HKCU, no admin) — clears `HOTKEYACTIVE 0x04`: StickyKeys `510→506`, FilterKeys `126→122`, ToggleKeys `62→58`. **Already applied in the 2026-05-30 session.**
 2. **USB selective suspend OFF** (AC+DC) — `powercfg ... 2a737441-... 48e6b7a6-... 0`. Fixes fingerprint-wake glitches.
 3. **Crash dump → Automatic (0x7)** — so the *next* hard freeze is captured (current was `0x3`).
+
+## What `Repair-TouchpadPowerManagement.ps1` changes (all reversible)
+1. **MSPower_DeviceEnable OFF** for `ACPI\SNSL002D\...\_0` and the Intel
+   Serial IO I2C controller `PCI\VEN_8086&DEV_7E78...\_0`, so Windows is no
+   longer allowed to power down the touchpad path.
+2. **Enhanced Power Management OFF** on the ACPI Sensel device, Sensel HID
+   collections, and the Intel `7E78` I2C controller.
+3. **Conditional suspend values OFF** only when already present:
+   `SelectiveSuspendEnabled` and `AllowIdleIrpInD3`.
+4. **Optional Elliptic human-presence sensor hardening** with
+   `-IncludeHumanPresenceSensor`, targeting `ACPI\VEN_ELAS&DEV_B41A`. Use this
+   only when logs show repeated `WUDFHostProblem2` / `WUDFRd` warnings for that
+   device. It may affect presence-detection features such as walk-away lock or
+   wake-on-approach.
+
+The 2026-06-06 apply wrote rollback state to
+`Tools\InputDiagnostics\backups\touchpad-power-20260606-152612.json` and the
+post-fix validation snapshot is
+`Reports\input-glitch-watch\snapshots\snap-20260606-152639.json`.
+
+## Haptic/Sensel debugging strategy
+
+The current remaining symptom should be treated as a haptic force/firmware
+interaction until disproven. The P1 Gen 7 Sensel pad exposes separate Windows
+paths for:
+
+- Sensel HID-over-I2C transport: `ACPI\SNSL002D` through `hidi2c` and
+  `mshidkmdf`.
+- Windows Precision Touchpad collection: `HID\SNSL002D&COL02`.
+- Vendor-defined Sensel collection: `HID\SNSL002D&COL04`.
+- TrackPoint / integrated button path: ELAN `EPD` driver and service.
+- Intel I2C controller: `PCI\VEN_8086&DEV_7E78`.
+- Nearby Elliptic human-presence sensor: `ACPI\VEN_ELAS&DEV_B41A`; not the
+  touchpad itself, but current logs show repeated UMDF timeout/load warnings on
+  this path while its power-down permission remains enabled.
+
+Do not apply more settings changes until one baseline repro has:
+
+1. `Export-HapticTouchpadReproBundle.ps1` output.
+2. `Start-HapticTouchpadTrace.ps1` ETL from the repro window.
+3. `Watch-HapticTouchpadInput.ps1` pointer/button output from the same window.
+4. A `Watch-InputGlitch.ps1 -Mode Snapshot -Symptom touchpad` marker.
+
+Only after that baseline should haptic settings be A/B tested by temporarily
+changing Windows Settings > Touchpad feedback, because `FeedbackEnabled`,
+`FeedbackIntensity`, and `ClickForceSensitivity` are part of the feature-report
+path and can mask or expose firmware/force-threshold issues.
 
 ## Remaining **manual** steps (not auto-applied — device-specific or need your judgement)
 - **Cut the login storm:** Task Manager → Startup apps → disable Docker, Ollama, LM Studio, duplicate GoogleDriveFS, Razer, GoPro, MATLAB, SOLIDWORKS Fast Start, Adobe. Launch heavy tools on demand.

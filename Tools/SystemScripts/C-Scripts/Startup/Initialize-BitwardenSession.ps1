@@ -65,9 +65,9 @@ $ErrorActionPreference = 'Stop'
 
 $script:Config = @{
     CredentialTargets = @{
-        ClientId       = 'bitwarden/client_id'
-        ClientSecret   = 'bitwarden/client_secret'
-        MasterPassword = 'bitwarden/master_password'
+        ClientId       = $env:BW_CLIENTID
+        ClientSecret   = $env:BW_CLIENTSECRET # pragma: allowlist secret
+        MasterPassword = $env:BW_PASSWORD # pragma: allowlist secret
     }
     # Retry configuration justified by Bitwarden API characteristics:
     # - 95th percentile latency ~3s, occasional spikes to 10s

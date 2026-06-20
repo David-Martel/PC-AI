@@ -1,0 +1,14 @@
+[
+  {
+    "InstanceName": "PCI\\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\\3&11583659&1&A8_0",
+    "Enable": false
+  },
+  {
+    "InstanceName": "ACPI\\SNSL002D\\4&39979b3e&0_0",
+    "Enable": false
+  },
+  {
+    "InstanceName": "ACPI\\VEN_ELAS&DEV_B41A&SUBSYS_17AA2234&REV_0003\\2&daba3ff&1_0",
+    "Enable": true
+  }
+]

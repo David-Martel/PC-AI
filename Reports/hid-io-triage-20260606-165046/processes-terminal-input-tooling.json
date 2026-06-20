@@ -1,0 +1,1910 @@
+[
+  {
+    "ProcessId": 5260,
+    "ParentProcessId": 1988,
+    "Name": "svchost.exe",
+    "CommandLine": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p -s TextInputManagementService"
+  },
+  {
+    "ProcessId": 7356,
+    "ParentProcessId": 1988,
+    "Name": "Lenovo.Modern.ImController.exe",
+    "CommandLine": "C:\\WINDOWS\\Lenovo\\ImController\\Service\\Lenovo.Modern.ImController.exe"
+  },
+  {
+    "ProcessId": 7564,
+    "ParentProcessId": 1988,
+    "Name": "LenovoVantageService.exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Lenovo\\VantageService\\\\4.2601.31.0\\LenovoVantageService.exe\""
+  },
+  {
+    "ProcessId": 7692,
+    "ParentProcessId": 1988,
+    "Name": "LADMAutoInstallService.exe",
+    "CommandLine": "\"C:\\Program Files\\Lenovo\\LADMLauncherService\\bin\\LADMAutoInstallService.exe\""
+  },
+  {
+    "ProcessId": 7900,
+    "ParentProcessId": 1988,
+    "Name": "UDCCBackGroundService.exe",
+    "CommandLine": "\"C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\UDCCBackGroundService.exe\""
+  },
+  {
+    "ProcessId": 8268,
+    "ParentProcessId": 1988,
+    "Name": "LogiSyncStub.exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Logitech\\LogiSyncStub\\LogiSyncStub.exe\""
+  },
+  {
+    "ProcessId": 9640,
+    "ParentProcessId": 9564,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 14172,
+    "ParentProcessId": 1988,
+    "Name": "cowork-svc.exe",
+    "CommandLine": "\"C:\\Program Files\\WindowsApps\\Claude_1.8089.1.0_x64__pzs8sxrjxfjjc\\app\\resources\\cowork-svc.exe\""
+  },
+  {
+    "ProcessId": 14672,
+    "ParentProcessId": 1988,
+    "Name": "UDClientService.exe",
+    "CommandLine": "C:\\WINDOWS\\System32\\drivers\\Lenovo\\udc\\Service\\UDClientService.exe"
+  },
+  {
+    "ProcessId": 14764,
+    "ParentProcessId": 1988,
+    "Name": "logioptionsplus_updater.exe",
+    "CommandLine": "\"C:\\Program Files\\LogiOptionsPlus\\logioptionsplus_updater.exe\" --run-as-service"
+  },
+  {
+    "ProcessId": 15268,
+    "ParentProcessId": 14476,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 15984,
+    "ParentProcessId": 15928,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 16376,
+    "ParentProcessId": 15840,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 22068,
+    "ParentProcessId": 3292,
+    "Name": "UltraslimOSD.exe",
+    "CommandLine": "\"C:\\Program Files\\Lenovo\\Lenovo Professional Wireless Rechargeable Combo\\UltraslimOSD.exe\""
+  },
+  {
+    "ProcessId": 22804,
+    "ParentProcessId": 3292,
+    "Name": "PowerMgr.exe",
+    "CommandLine": "\"C:\\WINDOWS\\SysWOW64\\Lenovo\\PowerMgr\\PowerMgr.exe\""
+  },
+  {
+    "ProcessId": 23328,
+    "ParentProcessId": 14764,
+    "Name": "logioptionsplus_agent.exe",
+    "CommandLine": "\"C:\\Program Files\\LogiOptionsPlus\\logioptionsplus_agent.exe\""
+  },
+  {
+    "ProcessId": 30676,
+    "ParentProcessId": 5260,
+    "Name": "ctfmon.exe",
+    "CommandLine": "/QuitInfo:0000000000000358;000000000000035C; "
+  },
+  {
+    "ProcessId": 23604,
+    "ParentProcessId": 1036,
+    "Name": "TextInputHost.exe",
+    "CommandLine": "\"C:\\WINDOWS\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\" -ServerName:InputApp.AppXk0k6mrh4r2q0ct33a9wgbez0x7v9cz5y.mca"
+  },
+  {
+    "ProcessId": 31540,
+    "ParentProcessId": 14672,
+    "Name": "AppProvisioningPlugin.exe",
+    "CommandLine": "\"C:\\ProgramData\\Lenovo\\Udc\\Hosts\\x64\\AppProvisioningPlugin.exe\" C:\\ProgramData\\Lenovo\\Udc\\Broker\\Elevated\\E1C2687A-327E-49C7-8B4D-E99A2616DDBA 14672 AppProvisioningPlugin"
+  },
+  {
+    "ProcessId": 31548,
+    "ParentProcessId": 31540,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 32812,
+    "ParentProcessId": 23992,
+    "Name": "Microsoft.CmdPal.UI.exe",
+    "CommandLine": "\"C:\\Program Files\\WindowsApps\\Microsoft.CommandPalette_0.10.11181.0_x64__8wekyb3d8bbwe\\Microsoft.CmdPal.UI.exe\" x-cmdpal://background/"
+  },
+  {
+    "ProcessId": 17872,
+    "ParentProcessId": 7564,
+    "Name": "LenovoVantage-(VantageCoreAddin).exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Lenovo\\VantageService\\4.2601.31.0\\LenovoVantage-(VantageCoreAddin).exe\" VantageCoreAddin C:\\ProgramData\\Lenovo\\Vantage\\Addins\\\\VantageCoreAddin\\1.1.0.32\\VantageCoreAddin.dll VantageCoreAddin.90b19963a51e4d84950a9283e95e6611 ecc54b3a-bc3f-4e5d-9ba0-a3b6c161cbf7 8"
+  },
+  {
+    "ProcessId": 16696,
+    "ParentProcessId": 6956,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 13228,
+    "ParentProcessId": 1036,
+    "Name": "Microsoft.CmdPal.Ext.PowerToys.exe",
+    "CommandLine": "\"C:\\Users\\david\\AppData\\Local\\PowerToys\\WinUI3Apps\\\\Microsoft.CmdPal.Ext.PowerToys.exe\" -RegisterProcessAsComServer -Embedding"
+  },
+  {
+    "ProcessId": 35204,
+    "ParentProcessId": 35184,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 35264,
+    "ParentProcessId": 35232,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 35316,
+    "ParentProcessId": 35256,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 35336,
+    "ParentProcessId": 35296,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 35396,
+    "ParentProcessId": 35328,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 35492,
+    "ParentProcessId": 35476,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 8364,
+    "ParentProcessId": 1988,
+    "Name": "LogiFacecamService.exe",
+    "CommandLine": "\"C:\\Program Files\\Logitech\\LogiCapture\\bin\\Service\\LogiFacecamService.exe\""
+  },
+  {
+    "ProcessId": 19080,
+    "ParentProcessId": 27568,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 26148,
+    "ParentProcessId": 7900,
+    "Name": "LenovoAccessoriesAndDisplayControlCenterService.exe",
+    "CommandLine": "\"C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\LenovoAccessoriesAndDisplayControlCenterService.exe\" -console"
+  },
+  {
+    "ProcessId": 41184,
+    "ParentProcessId": 7900,
+    "Name": "UDCCGCHelper.exe",
+    "CommandLine": "\"C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\UDCCGCHelper.exe\""
+  },
+  {
+    "ProcessId": 12656,
+    "ParentProcessId": 26148,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 26052,
+    "ParentProcessId": 26148,
+    "Name": "WndMsgHelper1.exe",
+    "CommandLine": "\"C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\WndMsgHelper1.exe\" 25618088-8E34-52FB-F46C-5407246E6A4E"
+  },
+  {
+    "ProcessId": 46012,
+    "ParentProcessId": 26148,
+    "Name": "LenovoGoCentral1.exe",
+    "CommandLine": "\"C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\LenovoGoCentral1.exe\" 25618088-8E34-52FB-F46C-5407246E6A4E"
+  },
+  {
+    "ProcessId": 29852,
+    "ParentProcessId": 26148,
+    "Name": "FloatingMenu1.exe",
+    "CommandLine": "\"C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\FloatingMenu1.exe\" 25618088-8E34-52FB-F46C-5407246E6A4E"
+  },
+  {
+    "ProcessId": 23000,
+    "ParentProcessId": 29852,
+    "Name": "msedgewebview2.exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=FloatingMenu1.exe --webview-exe-version=3.0.10091.0 --user-data-dir=\"C:\\ProgramData\\Lenovo\\LenovoAccessoriesAndDisplayManager\\Temp\\david\\FloatingMenu.exe.WebView2\\EBWebView\" --noerrdialogs --embedded-browser-webview-dpi-awareness=2 --remote-debugging-port=9222 --mojo-named-platform-channel-pipe=29852.2068.6057318045606136752 /pfhostedapp:323cfa6711540a082102c291d72c74d0969c23a0"
+  },
+  {
+    "ProcessId": 41160,
+    "ParentProcessId": 23000,
+    "Name": "msedgewebview2.exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\ProgramData\\Lenovo\\LenovoAccessoriesAndDisplayManager\\Temp\\david\\FloatingMenu.exe.WebView2\\EBWebView /prefetch:4 /pfhostedapp:323cfa6711540a082102c291d72c74d0969c23a0 --monitor-self-annotation=ptype=crashpad-handler --database=C:\\ProgramData\\Lenovo\\LenovoAccessoriesAndDisplayManager\\Temp\\david\\FloatingMenu.exe.WebView2\\EBWebView\\Crashpad --metrics-dir=C:\\ProgramData\\Lenovo\\LenovoAccessoriesAndDisplayManager\\Temp\\david\\FloatingMenu.exe.WebView2\\EBWebView --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=148.0.7778.217 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --annotation=plat=Win64 \"--annotation=prod=Edge WebView2\" --annotation=ver=148.0.3967.96 --initial-client-data=0x174,0x178,0x17c,0x150,0x184,0x7ffac6d75d58,0x7ffac6d75d64,0x7ffac6d75d70"
+  },
+  {
+    "ProcessId": 18940,
+    "ParentProcessId": 23000,
+    "Name": "msedgewebview2.exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\ProgramData\\Lenovo\\LenovoAccessoriesAndDisplayManager\\Temp\\david\\FloatingMenu.exe.WebView2\\EBWebView\" --webview-exe-name=FloatingMenu1.exe --webview-exe-version=3.0.10091.0 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --gpu-preferences=SAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAAQAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --startup-read-main-dll --metrics-shmem-handle=1856,i,4406877843648503303,3371597730141916320,262144 --field-trial-handle=1952,i,16726320617842295627,14560418872005203755,262144 --variations-seed-version --pseudonymization-salt-handle=1992,i,806546186520316948,14337481196635255826,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=1980 /prefetch:2 /pfhostedapp:323cfa6711540a082102c291d72c74d0969c23a0"
+  },
+  {
+    "ProcessId": 18648,
+    "ParentProcessId": 23000,
+    "Name": "msedgewebview2.exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\ProgramData\\Lenovo\\LenovoAccessoriesAndDisplayManager\\Temp\\david\\FloatingMenu.exe.WebView2\\EBWebView\" --webview-exe-name=FloatingMenu1.exe --webview-exe-version=3.0.10091.0 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=2200,i,8929766137711469455,11781887058915705504,524288 --field-trial-handle=1952,i,16726320617842295627,14560418872005203755,262144 --variations-seed-version --pseudonymization-salt-handle=1992,i,806546186520316948,14337481196635255826,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2216 /prefetch:11 /pfhostedapp:323cfa6711540a082102c291d72c74d0969c23a0"
+  },
+  {
+    "ProcessId": 37864,
+    "ParentProcessId": 23000,
+    "Name": "msedgewebview2.exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=en-US --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\ProgramData\\Lenovo\\LenovoAccessoriesAndDisplayManager\\Temp\\david\\FloatingMenu.exe.WebView2\\EBWebView\" --webview-exe-name=FloatingMenu1.exe --webview-exe-version=3.0.10091.0 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=2428,i,10786453197289254522,4369865509247663833,524288 --field-trial-handle=1952,i,16726320617842295627,14560418872005203755,262144 --variations-seed-version --pseudonymization-salt-handle=1992,i,806546186520316948,14337481196635255826,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2448 /prefetch:13 /pfhostedapp:323cfa6711540a082102c291d72c74d0969c23a0"
+  },
+  {
+    "ProcessId": 23416,
+    "ParentProcessId": 7564,
+    "Name": "LenovoVantage-(GenericMessagingAddin).exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Lenovo\\VantageService\\4.2601.31.0\\LenovoVantage-(GenericMessagingAddin).exe\" GenericMessagingAddin C:\\ProgramData\\Lenovo\\Vantage\\Addins\\\\GenericMessagingAddin\\1.1.0.155\\GenericMessagingAddin.dll GenericMessagingAddin.186e6afa7b554a10bb682c5b1778936b ecc54b3a-bc3f-4e5d-9ba0-a3b6c161cbf7 8"
+  },
+  {
+    "ProcessId": 43956,
+    "ParentProcessId": 43332,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd\" /c \"\"C:\\Users\\david\\AppData\\Local\\Programs\\Lenovo\\Lenovo Service Bridge\\LSB.exe\" -tag entry=LSBUpdater.exe,info={entry=unknown,afterupdate=no}\""
+  },
+  {
+    "ProcessId": 40996,
+    "ParentProcessId": 43956,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 33720,
+    "ParentProcessId": 43956,
+    "Name": "LSB.exe",
+    "CommandLine": "\"C:\\Users\\david\\AppData\\Local\\Programs\\Lenovo\\Lenovo Service Bridge\\LSB.exe\"  -tag entry=LSBUpdater.exe,info={entry=unknown,afterupdate=no}"
+  },
+  {
+    "ProcessId": 42896,
+    "ParentProcessId": 23000,
+    "Name": "msedgewebview2.exe",
+    "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\ProgramData\\Lenovo\\LenovoAccessoriesAndDisplayManager\\Temp\\david\\FloatingMenu.exe.WebView2\\EBWebView\" --webview-exe-name=FloatingMenu1.exe --webview-exe-version=3.0.10091.0 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --remote-debugging-port=9222 --video-capture-use-gpu-memory-buffer --lang=en-US --js-flags=--expose-gc --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=8 --time-ticks-at-unix-epoch=-1780707772969829 --launch-time-ticks=47241445859 --ssd-no-pressure-read-main-dll --metrics-shmem-handle=4988,i,9894433051646285936,14083051004151030177,2097152 --field-trial-handle=1952,i,16726320617842295627,14560418872005203755,262144 --variations-seed-version --pseudonymization-salt-handle=1992,i,806546186520316948,14337481196635255826,4 --trace-process-track-uuid=3190708993808206286 --mojo-platform-channel-handle=4380 /pfhostedapp:323cfa6711540a082102c291d72c74d0969c23a0 /prefetch:1"
+  },
+  {
+    "ProcessId": 43672,
+    "ParentProcessId": 45184,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 18420,
+    "ParentProcessId": 45648,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c \"\"C:\\Users\\david\\AppData\\Roaming\\Claude\\ChromeNativeHost\\chrome-native-host.exe\" chrome-extension://fcoeoabgfenejglbffodgkkbkcdhcgfn/ --parent-window=0\" < \\\\.\\pipe\\chrome.nativeMessaging.in.a90cf0af690b27c9 > \\\\.\\pipe\\chrome.nativeMessaging.out.a90cf0af690b27c9"
+  },
+  {
+    "ProcessId": 25560,
+    "ParentProcessId": 18420,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 44200,
+    "ParentProcessId": 18420,
+    "Name": "chrome-native-host.exe",
+    "CommandLine": "\"C:\\Users\\david\\AppData\\Roaming\\Claude\\ChromeNativeHost\\chrome-native-host.exe\"  chrome-extension://fcoeoabgfenejglbffodgkkbkcdhcgfn/ --parent-window=0 "
+  },
+  {
+    "ProcessId": 8172,
+    "ParentProcessId": 38736,
+    "Name": "Discord.exe",
+    "CommandLine": "\"C:\\Users\\david\\AppData\\Local\\Discord\\app-1.0.9240\\Discord.exe\" --type=renderer --user-data-dir=\"C:\\Users\\david\\AppData\\Roaming\\discord\" --standard-schemes=disclip --secure-schemes=disclip,sentry-ipc --bypasscsp-schemes=sentry-ipc --cors-schemes=sentry-ipc --fetch-schemes=disclip,sentry-ipc --streaming-schemes=disclip --app-user-model-id=com.squirrel.Discord.Discord --app-path=\"C:\\Users\\david\\AppData\\Local\\Discord\\app-1.0.9240\\resources\\app.asar\" --no-sandbox --no-zygote --enable-blink-features=EnumerateDevices,AudioOutputDevices --autoplay-policy=no-user-gesture-required --disable-background-timer-throttling --enable-h264-mf --enable-h264-mf-zero-copy --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=6 --time-ticks-at-unix-epoch=-1780707773058091 --launch-time-ticks=47700889662 --field-trial-handle=1784,i,8056345350761187305,4171946349719031453,262144 --enable-features=EnableTransparentHwndEnlargement --disable-features=AllowAggressiveThrottlingWithWebSocket,HardwareMediaKeyHandling,IntensiveWakeUpThrottling,MediaSessionService,ScreenAIOCREnabled,SpareRendererForSitePerProcess,UseEcoQoSForBackgroundProcess,WinDelaySpellcheckServiceInit,WinRetrieveSuggestionsOnlyOnDemand --variations-seed-version --mojo-platform-channel-handle=3820 --enable-node-leakage-in-renderers /prefetch:1"
+  },
+  {
+    "ProcessId": 39112,
+    "ParentProcessId": 25400,
+    "Name": "WindowsTerminal.exe",
+    "CommandLine": "\"C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.11321.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe\" "
+  },
+  {
+    "ProcessId": 2692,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\bin\\agent-bus.exe serve --transport stdio"
+  },
+  {
+    "ProcessId": 44444,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c npx -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 22748,
+    "ParentProcessId": 2692,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 11248,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\.cargo\\bin\\memory-mcp-rs.exe --db-path C:\\Users\\david\\.codex\\memory\\knowledge_graph.db"
+  },
+  {
+    "ProcessId": 29232,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\.cargo\\bin\\sequential-thinking-server.exe --transport stdio --disable-logging --log-level error"
+  },
+  {
+    "ProcessId": 16276,
+    "ParentProcessId": 29232,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 27196,
+    "ParentProcessId": 44444,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 21636,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\bin\\qmd-codex.cmd"
+  },
+  {
+    "ProcessId": 27280,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 33168,
+    "ParentProcessId": 21636,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 7616,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c rust-mcp-filesystem.exe --allow-write --enable-roots C:\\ T:\\ W:\\ F:\\"
+  },
+  {
+    "ProcessId": 13156,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c cloudflare-workers-mcp.cmd"
+  },
+  {
+    "ProcessId": 27296,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\.codex\\tools\\playwright-direct\\run-playwright-direct.cmd"
+  },
+  {
+    "ProcessId": 38528,
+    "ParentProcessId": 11248,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 32168,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\.cargo\\bin\\mcp-server-fetch.exe"
+  },
+  {
+    "ProcessId": 29540,
+    "ParentProcessId": 13156,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 45960,
+    "ParentProcessId": 32168,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 34520,
+    "ParentProcessId": 27280,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 44348,
+    "ParentProcessId": 7616,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 5308,
+    "ParentProcessId": 27296,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 10508,
+    "ParentProcessId": 13156,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers-codex.js\" "
+  },
+  {
+    "ProcessId": 43932,
+    "ParentProcessId": 11248,
+    "Name": "memory-mcp-rs.exe",
+    "CommandLine": "C:\\Users\\david\\.cargo\\bin\\memory-mcp-rs.exe  --db-path C:\\Users\\david\\.codex\\memory\\knowledge_graph.db"
+  },
+  {
+    "ProcessId": 38848,
+    "ParentProcessId": 27280,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe  -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 40648,
+    "ParentProcessId": 21636,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-litho-qmd-codex.js\" "
+  },
+  {
+    "ProcessId": 39252,
+    "ParentProcessId": 10508,
+    "Name": "powershell.exe",
+    "CommandLine": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers.ps1"
+  },
+  {
+    "ProcessId": 44436,
+    "ParentProcessId": 39252,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 20504,
+    "ParentProcessId": 27296,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" --isolated --browser chrome --caps pdf --output-dir \"C:\\Users\\david\\AppData\\Local\\Temp\\playwright-mcp-output\" --output-mode stdout --timeout-action 10000 --timeout-navigation 120000"
+  },
+  {
+    "ProcessId": 37236,
+    "ParentProcessId": 40648,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-qmd-mcp.ps1 -SkipHealthcheck"
+  },
+  {
+    "ProcessId": 33492,
+    "ParentProcessId": 37236,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 38616,
+    "ParentProcessId": 44444,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 46640,
+    "ParentProcessId": 39252,
+    "Name": "bun.exe",
+    "CommandLine": "\"C:\\Users\\david\\.bun\\bin\\bun.exe\" C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\runtime\\node_modules\\@cloudflare\\mcp-server-cloudflare\\dist\\index.js run df187590eb0257d8974f1727aa8736d6"
+  },
+  {
+    "ProcessId": 46768,
+    "ParentProcessId": 38848,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.js --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 47084,
+    "ParentProcessId": 47048,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 46636,
+    "ParentProcessId": 38616,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 46604,
+    "ParentProcessId": 46636,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Roaming\\npm\\\\node_modules\\@upstash\\context7-mcp\\dist\\index.js\" --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 3960,
+    "ParentProcessId": 33660,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 51056,
+    "ParentProcessId": 47192,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 51060,
+    "ParentProcessId": 50828,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 51112,
+    "ParentProcessId": 50600,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 49540,
+    "ParentProcessId": 50816,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 48924,
+    "ParentProcessId": 25400,
+    "Name": "WindowsTerminal.exe",
+    "CommandLine": "\"C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.11321.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe\" --profile \"{574e775e-4f2a-5b96-ac1e-a2962a402336}\" --startingDirectory \"C:\\Users\\david\" "
+  },
+  {
+    "ProcessId": 46148,
+    "ParentProcessId": 48924,
+    "Name": "OpenConsole.exe",
+    "CommandLine": "\"C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.11321.0_x64__8wekyb3d8bbwe\\OpenConsole.exe\" --headless --textMeasurement graphemes --width 120 --height 30 --signal 0xa8c --server 0xa80"
+  },
+  {
+    "ProcessId": 41132,
+    "ParentProcessId": 48924,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe"
+  },
+  {
+    "ProcessId": 45660,
+    "ParentProcessId": 41132,
+    "Name": "claude.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\claude.exe\" --dangerously-skip-permissions"
+  },
+  {
+    "ProcessId": 53104,
+    "ParentProcessId": 29400,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 52400,
+    "ParentProcessId": 45660,
+    "Name": "git-cluster-analyzer.exe",
+    "CommandLine": "C:\\Users\\david\\.claude\\tools\\git-cluster-analyzer\\bin\\git-cluster-analyzer.exe mcp"
+  },
+  {
+    "ProcessId": 26936,
+    "ParentProcessId": 52400,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 37560,
+    "ParentProcessId": 45660,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c \"npx ^\"-y^\" ^\"@upstash/context7-mcp^\"\""
+  },
+  {
+    "ProcessId": 8072,
+    "ParentProcessId": 37560,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 52996,
+    "ParentProcessId": 37560,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"-y\" \"@upstash/context7-mcp\""
+  },
+  {
+    "ProcessId": 48464,
+    "ParentProcessId": 45660,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd /c npx -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 40608,
+    "ParentProcessId": 48464,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 32636,
+    "ParentProcessId": 45660,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\run-playwright-direct.cmd\""
+  },
+  {
+    "ProcessId": 19708,
+    "ParentProcessId": 32636,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 28468,
+    "ParentProcessId": 32636,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" --isolated --browser chrome --caps pdf --output-dir \"C:\\Users\\david\\AppData\\Local\\Temp\\playwright-mcp-output\" --output-mode stdout --timeout-action 10000 --timeout-navigation 120000"
+  },
+  {
+    "ProcessId": 52000,
+    "ParentProcessId": 48464,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 40140,
+    "ParentProcessId": 20876,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 20536,
+    "ParentProcessId": 52996,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 3044,
+    "ParentProcessId": 20536,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Roaming\\npm\\\\node_modules\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 32024,
+    "ParentProcessId": 52000,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 38632,
+    "ParentProcessId": 45660,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 44764,
+    "ParentProcessId": 32024,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Local\\npm-cache\\_npx\\c35ab75beed40a3c\\node_modules\\.bin\\\\..\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 25608,
+    "ParentProcessId": 38632,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 34064,
+    "ParentProcessId": 52696,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 50196,
+    "ParentProcessId": 38632,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.js --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 50428,
+    "ParentProcessId": 49768,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 47644,
+    "ParentProcessId": 47564,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 25304,
+    "ParentProcessId": 1760,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 42580,
+    "ParentProcessId": 48924,
+    "Name": "OpenConsole.exe",
+    "CommandLine": "\"C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.11321.0_x64__8wekyb3d8bbwe\\OpenConsole.exe\" --headless --textMeasurement graphemes --width 120 --height 30 --signal 0xf64 --server 0xf5c"
+  },
+  {
+    "ProcessId": 44808,
+    "ParentProcessId": 48924,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe"
+  },
+  {
+    "ProcessId": 35040,
+    "ParentProcessId": 44808,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\AppData\\Roaming\\npm/node_modules/@openai/codex/bin/codex.js --search --dangerously-bypass-approvals-and-sandbox"
+  },
+  {
+    "ProcessId": 51092,
+    "ParentProcessId": 35040,
+    "Name": "codex.exe",
+    "CommandLine": "C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\@openai\\codex\\node_modules\\@openai\\codex-win32-x64\\vendor\\x86_64-pc-windows-msvc\\bin\\codex.exe --search --dangerously-bypass-approvals-and-sandbox"
+  },
+  {
+    "ProcessId": 39996,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\qmd-codex.cmd\"\""
+  },
+  {
+    "ProcessId": 51536,
+    "ParentProcessId": 51092,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 36632,
+    "ParentProcessId": 39996,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-litho-qmd-codex.js\" "
+  },
+  {
+    "ProcessId": 7788,
+    "ParentProcessId": 51092,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 49196,
+    "ParentProcessId": 51092,
+    "Name": "memory-mcp-rs.exe",
+    "CommandLine": "\"C:\\Users\\david\\.cargo\\bin\\memory-mcp-rs.exe\" --db-path C:\\Users\\david\\.codex\\memory\\knowledge_graph.db"
+  },
+  {
+    "ProcessId": 30632,
+    "ParentProcessId": 51092,
+    "Name": "git-cluster-analyzer.exe",
+    "CommandLine": "\"C:\\Users\\david\\.codex\\tools\\git-cluster-analyzer\\bin\\git-cluster-analyzer.exe\" mcp"
+  },
+  {
+    "ProcessId": 52592,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\.codex\\tools\\playwright-direct\\run-playwright-direct.cmd\"\""
+  },
+  {
+    "ProcessId": 24036,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\cloudflare-workers-mcp.cmd\"\""
+  },
+  {
+    "ProcessId": 44068,
+    "ParentProcessId": 36632,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-qmd-mcp.ps1 -SkipHealthcheck"
+  },
+  {
+    "ProcessId": 46988,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Program Files\\nodejs\\npx.cmd\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d\""
+  },
+  {
+    "ProcessId": 40488,
+    "ParentProcessId": 44068,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 27600,
+    "ParentProcessId": 24036,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers-codex.js\" "
+  },
+  {
+    "ProcessId": 31856,
+    "ParentProcessId": 52592,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" --isolated --browser chrome --caps pdf --output-dir \"C:\\Users\\david\\AppData\\Local\\Temp\\playwright-mcp-output\" --output-mode stdout --timeout-action 10000 --timeout-navigation 120000"
+  },
+  {
+    "ProcessId": 25388,
+    "ParentProcessId": 27600,
+    "Name": "powershell.exe",
+    "CommandLine": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers.ps1"
+  },
+  {
+    "ProcessId": 33144,
+    "ParentProcessId": 25388,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 14248,
+    "ParentProcessId": 46988,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 20292,
+    "ParentProcessId": 51536,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.js --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 5580,
+    "ParentProcessId": 29340,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 10928,
+    "ParentProcessId": 25388,
+    "Name": "bun.exe",
+    "CommandLine": "\"C:\\Users\\david\\.bun\\bin\\bun.exe\" C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\runtime\\node_modules\\@cloudflare\\mcp-server-cloudflare\\dist\\index.js run df187590eb0257d8974f1727aa8736d6"
+  },
+  {
+    "ProcessId": 29756,
+    "ParentProcessId": 14248,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 49276,
+    "ParentProcessId": 29756,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Roaming\\npm\\\\node_modules\\@upstash\\context7-mcp\\dist\\index.js\" --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 44608,
+    "ParentProcessId": 7788,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 50504,
+    "ParentProcessId": 44608,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Local\\npm-cache\\_npx\\c35ab75beed40a3c\\node_modules\\.bin\\\\..\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 21428,
+    "ParentProcessId": 51092,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo -NoProfile -NonInteractive -EncodedCommand JABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAdABvAHAAJwANAAoAJABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAaQBsAGUAbgB0AGwAeQBDAG8AbgB0AGkAbgB1AGUAJwANAAoADQAKACMAIABMAG8AbgBnAC0AbABpAHYAZQBkACAAUABvAHcAZQByAFMAaABlAGwAbAAgAEEAUwBUACAAcABhAHIAcwBlAHIAIAB1AHMAZQBkACAAYgB5ACAAdABoAGUAIABSAHUAcwB0ACAAYwBvAG0AbQBhAG4AZAAtAHMAYQBmAGUAdAB5ACAAbABhAHkAZQByACAAbwBuACAAVwBpAG4AZABvAHcAcwAuAA0ACgAjACAAVABoAGUAIABjAGEAbABsAGUAcgAgAHMAdABhAHIAdABzACAAbwBuAGUAIABjAGgAaQBsAGQAIABwAHIAbwBjAGUAcwBzACAAcABlAHIAIABQAG8AdwBlAHIAUwBoAGUAbABsACAAZQB4AGUAYwB1AHQAYQBiAGwAZQAgAHYAYQByAGkAYQBuAHQAIABhAG4AZAAgAHQAaABlAG4AIABzAGUAbgBkAHMADQAKACMAIABuAGUAdwBsAGkAbgBlAC0AZABlAGwAaQBtAGkAdABlAGQAIABKAFMATwBOACAAcgBlAHEAdQBlAHMAdABzACAAbwB2AGUAcgAgAHMAdABkAGkAbgA6AA0ACgAjACAAIAAgAHsAIAAiAGkAZAAiADoAIAA8AHUANgA0AD4ALAAgACIAcABhAHkAbABvAGEAZAAiADoAIAAiADwAYgBhAHMAZQA2ADQALQBlAG4AYwBvAGQAZQBkACAAVQBUAEYALQAxADYATABFACAAcwBjAHIAaQBwAHQAPgAiACAAfQANAAoAIwAgAFcAZQAgAGEAbgBzAHcAZQByACAAdwBpAHQAaAAgAG8AbgBlACAAYwBvAG0AcABhAGMAdAAgAEoAUwBPAE4AIABsAGkAbgBlACAAcABlAHIAIAByAGUAcQB1AGUAcwB0ADoADQAKACMAIAAgACAAewAgACIAaQBkACIAOgAgADwAcwBhAG0AZQA+ACwAIAAiAHMAdABhAHQAdQBzACIAOgAgACIAbwBrACIALAAgACIAYwBvAG0AbQBhAG4AZABzACIAOgAgAFsAWwAiAEcAZQB0AC0AQwBvAG4AdABlAG4AdAAiACwAIAAiAGYAbwBvAC4AdAB4AHQAIgBdAF0AIAB9AA0ACgAjACAAbwByADoADQAKACMAIAAgACAAewAgACIAaQBkACIAOgAgADwAcwBhAG0AZQA+ACwAIAAiAHMAdABhAHQAdQBzACIAOgAgACIAcABhAHIAcwBlAF8AZgBhAGkAbABlAGQAIgAgAHwAIAAiAHAAYQByAHMAZQBfAGUAcgByAG8AcgBzACIAIAB8ACAAIgB1AG4AcwB1AHAAcABvAHIAdABlAGQAIgAgAH0ADQAKACMADQAKACMAIAAiAHUAbgBzAHUAcABwAG8AcgB0AGUAZAAiACAAaQBzACAAaQBuAHQAZQBuAHQAaQBvAG4AYQBsADoAIABpAHQAIABtAGUAYQBuAHMAIAB0AGgAZQAgAHMAYwByAGkAcAB0ACAAcABhAHIAcwBlAGQAIABzAHUAYwBjAGUAcwBzAGYAdQBsAGwAeQAsACAAYgB1AHQAIAB0AGgAZQAgAEEAUwBUAA0ACgAjACAAaQBuAGMAbAB1AGQAZQBkACAAYwBvAG4AcwB0AHIAdQBjAHQAcwAgAHQAaABhAHQAIAB3AGUAIABjAG8AbgBzAGUAcgB2AGEAdABpAHYAZQBsAHkAIAByAGUAZgB1AHMAZQAgAHQAbwAgAGwAbwB3AGUAcgAgAGkAbgB0AG8AIABhAHIAZwB2AC0AbABpAGsAZQAgAGMAbwBtAG0AYQBuAGQAIAB3AG8AcgBkAHMALgANAAoAIwAgAFQAaABlACAAUgB1AHMAdAAgAHMAaQBkAGUAIAB0AHIAZQBhAHQAcwAgAHQAaABhAHQAIAB0AGgAZQAgAHMAYQBtAGUAIAB3AGEAeQAgAGEAcwAgAGEAbgAgAHUAbgBzAGEAZgBlACAAYwBvAG0AbQBhAG4AZAAuAA0ACgANAAoAIwAgAFUAcwBlACAAQgBPAE0ALQBmAHIAZQBlACAAVQBUAEYALQA4ACAAbwBuACAAdABoAGUAIABwAHIAbwB0AG8AYwBvAGwAIABzAHQAcgBlAGEAbQAgAHMAbwAgAFIAdQBzAHQAIABzAGUAZQBzACAAYwBsAGUAYQBuACAASgBTAE8ATgAgAGwAaQBuAGUAcwAgAHcAaQB0AGgAIABuAG8ADQAKACMAIABsAGUAYQBkAGkAbgBnACAAQgBPAE0AIABiAHkAdABlAHMAIABvAG4AIAB0AGgAZQAgAGYAaQByAHMAdAAgAHIAZQBzAHAAbwBuAHMAZQAuAA0ACgAkAHUAdABmADgAIAA9ACAAWwBTAHkAcwB0AGUAbQAuAFQAZQB4AHQALgBVAFQARgA4AEUAbgBjAG8AZABpAG4AZwBdADoAOgBuAGUAdwAoACQAZgBhAGwAcwBlACkADQAKACQAcwB0AGQAaQBuACAAPQAgAFsAUwB5AHMAdABlAG0ALgBJAE8ALgBTAHQAcgBlAGEAbQBSAGUAYQBkAGUAcgBdADoAOgBuAGUAdwAoAFsAQwBvAG4AcwBvAGwAZQBdADoAOgBPAHAAZQBuAFMAdABhAG4AZABhAHIAZABJAG4AcAB1AHQAKAApACwAIAAkAHUAdABmADgALAAgACQAZgBhAGwAcwBlACkADQAKACQAcwB0AGQAbwB1AHQAIAA9ACAAWwBTAHkAcwB0AGUAbQAuAEkATwAuAFMAdAByAGUAYQBtAFcAcgBpAHQAZQByAF0AOgA6AG4AZQB3ACgAWwBDAG8AbgBzAG8AbABlAF0AOgA6AE8AcABlAG4AUwB0AGEAbgBkAGEAcgBkAE8AdQB0AHAAdQB0ACgAKQAsACAAJAB1AHQAZgA4ACkADQAKACQAcwB0AGQAbwB1AHQALgBBAHUAdABvAEYAbAB1AHMAaAAgAD0AIAAkAHQAcgB1AGUADQAKAA0ACgBmAHUAbgBjAHQAaQBvAG4AIABJAG4AdgBvAGsAZQAtAFAAYQByAHMAZQBSAGUAcQB1AGUAcwB0ACAAewANAAoAIAAgACAAIABwAGEAcgBhAG0AKAAkAFIAZQBxAHUAZQBzAHQASQBkACwAIAAkAFMAbwB1AHIAYwBlACkADQAKAA0ACgAgACAAIAAgACQAdABvAGsAZQBuAHMAIAA9ACAAJABuAHUAbABsAA0ACgAgACAAIAAgACQAZQByAHIAbwByAHMAIAA9ACAAJABuAHUAbABsAA0ACgANAAoAIAAgACAAIAAkAGEAcwB0ACAAPQAgACQAbgB1AGwAbAANAAoAIAAgACAAIAB0AHIAeQAgAHsADQAKACAAIAAgACAAIAAgACAAIAAkAGEAcwB0ACAAPQAgAFsAUwB5AHMAdABlAG0ALgBNAGEAbgBhAGcAZQBtAGUAbgB0AC4AQQB1AHQAbwBtAGEAdABpAG8AbgAuAEwAYQBuAGcAdQBhAGcAZQAuAFAAYQByAHMAZQByAF0AOgA6AFAAYQByAHMAZQBJAG4AcAB1AHQAKAANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAJABTAG8AdQByAGMAZQAsAA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIABbAHIAZQBmAF0AJAB0AG8AawBlAG4AcwAsAA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIABbAHIAZQBmAF0AJABlAHIAcgBvAHIAcwANAAoAIAAgACAAIAAgACAAIAAgACkADQAKACAAIAAgACAAfQAgAGMAYQB0AGMAaAAgAHsADQAKACAAIAAgACAAIAAgACAAIAByAGUAdAB1AHIAbgAgAEAAewAgAGkAZAAgAD0AIAAkAFIAZQBxAHUAZQBzAHQASQBkADsAIABzAHQAYQB0AHUAcwAgAD0AIAAnAHAAYQByAHMAZQBfAGYAYQBpAGwAZQBkACcAIAB9AA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgAGkAZgAgACgAJABlAHIAcgBvAHIAcwAuAEMAbwB1AG4AdAAgAC0AZwB0ACAAMAApACAAewANAAoAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAQAB7ACAAaQBkACAAPQAgACQAUgBlAHEAdQBlAHMAdABJAGQAOwAgAHMAdABhAHQAdQBzACAAPQAgACcAcABhAHIAcwBlAF8AZQByAHIAbwByAHMAJwAgAH0ADQAKACAAIAAgACAAfQANAAoADQAKACAAIAAgACAAIwAgAFAAbwB3AGUAcgBTAGgAZQBsAGwAJwBzACAAcwB0AG8AcAAtAHAAYQByAHMAaQBuAGcAIABtAGEAcgBrAGUAcgAgAGgAYQBuAGQAcwAgAHQAaABlACAAcgBlAG0AYQBpAG4AaQBuAGcAIABzAG8AdQByAGMAZQAgAHQAZQB4AHQAIAB0AG8AIABuAGEAdABpAHYAZQANAAoAIAAgACAAIAAjACAAYwBvAG0AbQBhAG4AZABzACAAdwBpAHQAaAAgAHIAdQBuAHQAaQBtAGUAIABhAHIAZwB1AG0AZQBuAHQAIABoAGEAbgBkAGwAaQBuAGcAIAB0AGgAYQB0ACAAZABvAGUAcwAgAG4AbwB0ACAAbQBhAHQAYwBoACAAdABoAGUAIABBAFMAVAAgAHMAaABhAHAAZQAgAHcAZQANAAoAIAAgACAAIAAjACAAZgBsAGEAdAB0AGUAbgAgAGIAZQBsAG8AdwAuACAASwBlAGUAcAAgAHQAaABhAHQAIABmAG8AcgBtACAAbwB1AHQAIABvAGYAIAB0AGgAZQAgAGEAcgBnAHYALQBsAGkAawBlACAAbABvAHcAZQByAGkAbgBnACAAcABhAHQAaAAgAGUAbgB0AGkAcgBlAGwAeQAuAA0ACgAgACAAIAAgAGYAbwByAGUAYQBjAGgAIAAoACQAdABvAGsAZQBuACAAaQBuACAAJAB0AG8AawBlAG4AcwApACAAewANAAoAIAAgACAAIAAgACAAIAAgAGkAZgAgACgAJAB0AG8AawBlAG4ALgBUAGUAeAB0ACAALQBlAHEAIAAnAC0ALQAlACcAKQAgAHsADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAQAB7ACAAaQBkACAAPQAgACQAUgBlAHEAdQBlAHMAdABJAGQAOwAgAHMAdABhAHQAdQBzACAAPQAgACcAdQBuAHMAdQBwAHAAbwByAHQAZQBkACcAIAB9AA0ACgAgACAAIAAgACAAIAAgACAAfQANAAoAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIAAjACAATwBuAGwAeQAgAGEAYwBjAGUAcAB0ACAAQQBTAFQAIABzAGgAYQBwAGUAcwAgAHcAZQAgAGMAYQBuACAAZgBsAGEAdAB0AGUAbgAgAGkAbgB0AG8AIABhACAAbABpAHMAdAAgAG8AZgAgAGEAcgBnAHYALQBsAGkAawBlACAAYwBvAG0AbQBhAG4AZAAgAHcAbwByAGQAcwAuAA0ACgAgACAAIAAgACMAIABBAG4AeQB0AGgAaQBuAGcAIABtAG8AcgBlACAAZAB5AG4AYQBtAGkAYwAgAHQAaABhAG4AIAB0AGgAYQB0ACAAYgBlAGMAbwBtAGUAcwAgACIAdQBuAHMAdQBwAHAAbwByAHQAZQBkACIAIABpAG4AcwB0AGUAYQBkACAAbwBmACAAYgBlAGkAbgBnACAAZwB1AGUAcwBzAGUAZAAgAGEAdAAuAA0ACgAgACAAIAAgACQAYwBvAG0AbQBhAG4AZABzACAAPQAgAFsAUwB5AHMAdABlAG0ALgBDAG8AbABsAGUAYwB0AGkAbwBuAHMALgBBAHIAcgBhAHkATABpAHMAdABdADoAOgBuAGUAdwAoACkADQAKAA0ACgAgACAAIAAgAGYAbwByAGUAYQBjAGgAIAAoACQAcwB0AGEAdABlAG0AZQBuAHQAIABpAG4AIAAkAGEAcwB0AC4ARQBuAGQAQgBsAG8AYwBrAC4AUwB0AGEAdABlAG0AZQBuAHQAcwApACAAewANAAoAIAAgACAAIAAgACAAIAAgAGkAZgAgACgALQBuAG8AdAAgACgAQQBkAGQALQBDAG8AbQBtAGEAbgBkAHMARgByAG8AbQBQAGkAcABlAGwAaQBuAGUAQgBhAHMAZQAgACQAcwB0AGEAdABlAG0AZQBuAHQAIAAkAGMAbwBtAG0AYQBuAGQAcwApACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIAAkAGMAbwBtAG0AYQBuAGQAcwAgAD0AIAAkAG4AdQBsAGwADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgAGIAcgBlAGEAawANAAoAIAAgACAAIAAgACAAIAAgAH0ADQAKACAAIAAgACAAfQANAAoADQAKACAAIAAgACAAaQBmACAAKAAkAGMAbwBtAG0AYQBuAGQAcwAgAC0AbgBlACAAJABuAHUAbABsACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAJABuAG8AcgBtAGEAbABpAHoAZQBkACAAPQAgAFsAUwB5AHMAdABlAG0ALgBDAG8AbABsAGUAYwB0AGkAbwBuAHMALgBBAHIAcgBhAHkATABpAHMAdABdADoAOgBuAGUAdwAoACkADQAKACAAIAAgACAAIAAgACAAIABmAG8AcgBlAGEAYwBoACAAKAAkAGMAbQBkACAAaQBuACAAJABjAG8AbQBtAGEAbgBkAHMAKQAgAHsADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgACMAIABDAG8AbgB2AGUAcgB0ACAAZQB2AGUAcgB5ACAAcwB1AGMAYwBlAHMAcwBmAHUAbAAgAHAAYQByAHMAZQAgAHIAZQBzAHUAbAB0ACAAdABvACAAYQBuACAAYQByAHIAYQB5AC0AbwBmAC0AYQByAHIAYQB5AHMAIABzAGgAYQBwAGUAIABzAG8AIAB0AGgAZQAgAFIAdQBzAHQADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgACMAIABzAGkAZABlACAAYwBhAG4AIABkAGUAcwBlAHIAaQBhAGwAaQB6AGUAIABvAG4AZQAgAHUAbgBpAGYAbwByAG0AIAByAGUAcAByAGUAcwBlAG4AdABhAHQAaQBvAG4ALgANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAaQBmACAAKAAkAGMAbQBkACAALQBpAHMAIABbAHMAdAByAGkAbgBnAF0AKQAgAHsADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAJABuAHUAbABsACAAPQAgACQAbgBvAHIAbQBhAGwAaQB6AGUAZAAuAEEAZABkACgAQAAoACQAYwBtAGQAKQApAA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgAGMAbwBuAHQAaQBuAHUAZQANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAfQANAAoADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgAGkAZgAgACgAJABjAG0AZAAgAC0AaQBzACAAWwBTAHkAcwB0AGUAbQAuAEEAcgByAGEAeQBdACAALQBvAHIAIAAkAGMAbQBkACAALQBpAHMAIABbAFMAeQBzAHQAZQBtAC4AQwBvAGwAbABlAGMAdABpAG8AbgBzAC4ASQBFAG4AdQBtAGUAcgBhAGIAbABlAF0AKQAgAHsADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAJABuAHUAbABsACAAPQAgACQAbgBvAHIAbQBhAGwAaQB6AGUAZAAuAEEAZABkACgAQAAoACQAYwBtAGQAKQApAA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgAGMAbwBuAHQAaQBuAHUAZQANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAfQANAAoADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgACQAbgBvAHIAbQBhAGwAaQB6AGUAZAAgAD0AIAAkAG4AdQBsAGwADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgAGIAcgBlAGEAawANAAoAIAAgACAAIAAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgACAAIAAgACAAJABjAG8AbQBtAGEAbgBkAHMAIAA9ACAAJABuAG8AcgBtAGEAbABpAHoAZQBkAA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgAGkAZgAgACgAJABjAG8AbQBtAGEAbgBkAHMAIAAtAGUAcQAgACQAbgB1AGwAbAApACAAewANAAoAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAQAB7ACAAaQBkACAAPQAgACQAUgBlAHEAdQBlAHMAdABJAGQAOwAgAHMAdABhAHQAdQBzACAAPQAgACcAdQBuAHMAdQBwAHAAbwByAHQAZQBkACcAIAB9AA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgAHIAZQB0AHUAcgBuACAAQAB7ACAAaQBkACAAPQAgACQAUgBlAHEAdQBlAHMAdABJAGQAOwAgAHMAdABhAHQAdQBzACAAPQAgACcAbwBrACcAOwAgAGMAbwBtAG0AYQBuAGQAcwAgAD0AIAAkAGMAbwBtAG0AYQBuAGQAcwAgAH0ADQAKAH0ADQAKAA0ACgBmAHUAbgBjAHQAaQBvAG4AIABXAHIAaQB0AGUALQBSAGUAcwBwAG8AbgBzAGUAIAB7AA0ACgAgACAAIAAgAHAAYQByAGEAbQAoACQAUgBlAHMAcABvAG4AcwBlACkADQAKAA0ACgAgACAAIAAgACQAcwB0AGQAbwB1AHQALgBXAHIAaQB0AGUATABpAG4AZQAoACgAJABSAGUAcwBwAG8AbgBzAGUAIAB8ACAAQwBvAG4AdgBlAHIAdABUAG8ALQBKAHMAbwBuACAALQBDAG8AbQBwAHIAZQBzAHMAIAAtAEQAZQBwAHQAaAAgADMAKQApAA0ACgB9AA0ACgANAAoAZgB1AG4AYwB0AGkAbwBuACAAQwBvAG4AdgBlAHIAdAAtAEMAbwBtAG0AYQBuAGQARQBsAGUAbQBlAG4AdAAgAHsADQAKACAAIAAgACAAcABhAHIAYQBtACgAJABlAGwAZQBtAGUAbgB0ACkADQAKAA0ACgAgACAAIAAgACMAIABBAGMAYwBlAHAAdAAgAG8AbgBsAHkAIABsAGkAdABlAHIAYQBsAC0AaQBzAGgAIABjAG8AbQBtAGEAbgBkACAAZQBsAGUAbQBlAG4AdABzAC4AIABWAGEAcgBpAGEAYgBsAGUAIABlAHgAcABhAG4AcwBpAG8AbgAsACAAcwB1AGIAZQB4AHAAcgBlAHMAcwBpAG8AbgBzACwAIABzAHAAbABhAHQAcwAsAA0ACgAgACAAIAAgACMAIABhAG4AZAAgAG8AdABoAGUAcgAgAGQAeQBuAGEAbQBpAGMAIABmAG8AcgBtAHMAIAByAGUAdAB1AHIAbgAgACQAbgB1AGwAbAAgAHMAbwAgAHQAaABlACAAdwBoAG8AbABlACAAcgBlAHEAdQBlAHMAdAAgAGIAZQBjAG8AbQBlAHMAIAB1AG4AcwB1AHAAcABvAHIAdABlAGQALgANAAoAIAAgACAAIABpAGYAIAAoACQAZQBsAGUAbQBlAG4AdAAgAC0AaQBzACAAWwBTAHkAcwB0AGUAbQAuAE0AYQBuAGEAZwBlAG0AZQBuAHQALgBBAHUAdABvAG0AYQB0AGkAbwBuAC4ATABhAG4AZwB1AGEAZwBlAC4AUwB0AHIAaQBuAGcAQwBvAG4AcwB0AGEAbgB0AEUAeABwAHIAZQBzAHMAaQBvAG4AQQBzAHQAXQApACAAewANAAoAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAQAAoACQAZQBsAGUAbQBlAG4AdAAuAFYAYQBsAHUAZQApAA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgAGkAZgAgACgAJABlAGwAZQBtAGUAbgB0ACAALQBpAHMAIABbAFMAeQBzAHQAZQBtAC4ATQBhAG4AYQBnAGUAbQBlAG4AdAAuAEEAdQB0AG8AbQBhAHQAaQBvAG4ALgBMAGEAbgBnAHUAYQBnAGUALgBFAHgAcABhAG4AZABhAGIAbABlAFMAdAByAGkAbgBnAEUAeABwAHIAZQBzAHMAaQBvAG4AQQBzAHQAXQApACAAewANAAoAIAAgACAAIAAgACAAIAAgAGkAZgAgACgAJABlAGwAZQBtAGUAbgB0AC4ATgBlAHMAdABlAGQARQB4AHAAcgBlAHMAcwBpAG8AbgBzAC4AQwBvAHUAbgB0ACAALQBnAHQAIAAwACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIAByAGUAdAB1AHIAbgAgACQAbgB1AGwAbAANAAoAIAAgACAAIAAgACAAIAAgAH0ADQAKACAAIAAgACAAIAAgACAAIAByAGUAdAB1AHIAbgAgAEAAKAAkAGUAbABlAG0AZQBuAHQALgBWAGEAbAB1AGUAKQANAAoAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIABpAGYAIAAoACQAZQBsAGUAbQBlAG4AdAAgAC0AaQBzACAAWwBTAHkAcwB0AGUAbQAuAE0AYQBuAGEAZwBlAG0AZQBuAHQALgBBAHUAdABvAG0AYQB0AGkAbwBuAC4ATABhAG4AZwB1AGEAZwBlAC4AQwBvAG4AcwB0AGEAbgB0AEUAeABwAHIAZQBzAHMAaQBvAG4AQQBzAHQAXQApACAAewANAAoAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAQAAoACQAZQBsAGUAbQBlAG4AdAAuAFYAYQBsAHUAZQAuAFQAbwBTAHQAcgBpAG4AZwAoACkAKQANAAoAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIABpAGYAIAAoACQAZQBsAGUAbQBlAG4AdAAgAC0AaQBzACAAWwBTAHkAcwB0AGUAbQAuAE0AYQBuAGEAZwBlAG0AZQBuAHQALgBBAHUAdABvAG0AYQB0AGkAbwBuAC4ATABhAG4AZwB1AGEAZwBlAC4AQwBvAG0AbQBhAG4AZABQAGEAcgBhAG0AZQB0AGUAcgBBAHMAdABdACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAaQBmACAAKAAkAGUAbABlAG0AZQBuAHQALgBBAHIAZwB1AG0AZQBuAHQAIAAtAGUAcQAgACQAbgB1AGwAbAApACAAewANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAcgBlAHQAdQByAG4AIABAACgAJwAtACcAIAArACAAJABlAGwAZQBtAGUAbgB0AC4AUABhAHIAYQBtAGUAdABlAHIATgBhAG0AZQApAA0ACgAgACAAIAAgACAAIAAgACAAfQANAAoADQAKACAAIAAgACAAIAAgACAAIABpAGYAIAAoACQAZQBsAGUAbQBlAG4AdAAuAEEAcgBnAHUAbQBlAG4AdAAgAC0AaQBzACAAWwBTAHkAcwB0AGUAbQAuAE0AYQBuAGEAZwBlAG0AZQBuAHQALgBBAHUAdABvAG0AYQB0AGkAbwBuAC4ATABhAG4AZwB1AGEAZwBlAC4AUwB0AHIAaQBuAGcAQwBvAG4AcwB0AGEAbgB0AEUAeABwAHIAZQBzAHMAaQBvAG4AQQBzAHQAXQApACAAewANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAcgBlAHQAdQByAG4AIABAACgAJwAtACcAIAArACAAJABlAGwAZQBtAGUAbgB0AC4AUABhAHIAYQBtAGUAdABlAHIATgBhAG0AZQAsACAAJABlAGwAZQBtAGUAbgB0AC4AQQByAGcAdQBtAGUAbgB0AC4AVgBhAGwAdQBlACkADQAKACAAIAAgACAAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIAAgACAAIAAgAGkAZgAgACgAJABlAGwAZQBtAGUAbgB0AC4AQQByAGcAdQBtAGUAbgB0ACAALQBpAHMAIABbAFMAeQBzAHQAZQBtAC4ATQBhAG4AYQBnAGUAbQBlAG4AdAAuAEEAdQB0AG8AbQBhAHQAaQBvAG4ALgBMAGEAbgBnAHUAYQBnAGUALgBDAG8AbgBzAHQAYQBuAHQARQB4AHAAcgBlAHMAcwBpAG8AbgBBAHMAdABdACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIAByAGUAdAB1AHIAbgAgAEAAKAAnAC0AJwAgACsAIAAkAGUAbABlAG0AZQBuAHQALgBQAGEAcgBhAG0AZQB0AGUAcgBOAGEAbQBlACwAIAAkAGUAbABlAG0AZQBuAHQALgBBAHIAZwB1AG0AZQBuAHQALgBWAGEAbAB1AGUALgBUAG8AUwB0AHIAaQBuAGcAKAApACkADQAKACAAIAAgACAAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAJABuAHUAbABsAA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgAHIAZQB0AHUAcgBuACAAJABuAHUAbABsAA0ACgB9AA0ACgANAAoAZgB1AG4AYwB0AGkAbwBuACAAQwBvAG4AdgBlAHIAdAAtAFAAaQBwAGUAbABpAG4AZQBFAGwAZQBtAGUAbgB0ACAAewANAAoAIAAgACAAIABwAGEAcgBhAG0AKAAkAGUAbABlAG0AZQBuAHQAKQANAAoADQAKACAAIAAgACAAaQBmACAAKAAkAGUAbABlAG0AZQBuAHQAIAAtAGkAcwAgAFsAUwB5AHMAdABlAG0ALgBNAGEAbgBhAGcAZQBtAGUAbgB0AC4AQQB1AHQAbwBtAGEAdABpAG8AbgAuAEwAYQBuAGcAdQBhAGcAZQAuAEMAbwBtAG0AYQBuAGQAQQBzAHQAXQApACAAewANAAoAIAAgACAAIAAgACAAIAAgACMAIABSAGUAZABpAHIAZQBjAHQAaQBvAG4AcwAgAGEAbgBkACAAaQBuAHYAbwBjAGEAdABpAG8AbgAgAG8AcABlAHIAYQB0AG8AcgBzACAAbQBhAGsAZQAgAHQAaABlACAAYwBvAG0AbQBhAG4AZAAgAGgAYQByAGQAZQByACAAdABvACAAYwBsAGEAcwBzAGkAZgB5ACAAcwBhAGYAZQBsAHkALAANAAoAIAAgACAAIAAgACAAIAAgACMAIABzAG8AIAByAGUAagBlAGMAdAAgAHQAaABlAG0AIAByAGEAdABoAGUAcgAgAHQAaABhAG4AIAB0AHIAeQBpAG4AZwAgAHQAbwAgAG4AbwByAG0AYQBsAGkAegBlACAAdABoAGUAbQAuAA0ACgAgACAAIAAgACAAIAAgACAAaQBmACAAKAAkAGUAbABlAG0AZQBuAHQALgBSAGUAZABpAHIAZQBjAHQAaQBvAG4AcwAuAEMAbwB1AG4AdAAgAC0AZwB0ACAAMAApACAAewANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAcgBlAHQAdQByAG4AIAAkAG4AdQBsAGwADQAKACAAIAAgACAAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIAAgACAAIAAgAGkAZgAgACgADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgACQAZQBsAGUAbQBlAG4AdAAuAEkAbgB2AG8AYwBhAHQAaQBvAG4ATwBwAGUAcgBhAHQAbwByACAALQBuAGUAIAAkAG4AdQBsAGwAIAAtAGEAbgBkAA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIAAkAGUAbABlAG0AZQBuAHQALgBJAG4AdgBvAGMAYQB0AGkAbwBuAE8AcABlAHIAYQB0AG8AcgAgAC0AbgBlACAAWwBTAHkAcwB0AGUAbQAuAE0AYQBuAGEAZwBlAG0AZQBuAHQALgBBAHUAdABvAG0AYQB0AGkAbwBuAC4ATABhAG4AZwB1AGEAZwBlAC4AVABvAGsAZQBuAEsAaQBuAGQAXQA6ADoAVQBuAGsAbgBvAHcAbgANAAoAIAAgACAAIAAgACAAIAAgACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIAByAGUAdAB1AHIAbgAgACQAbgB1AGwAbAANAAoAIAAgACAAIAAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgACAAIAAgACAAJABwAGEAcgB0AHMAIAA9ACAAQAAoACkADQAKACAAIAAgACAAIAAgACAAIABmAG8AcgBlAGEAYwBoACAAKAAkAGMAbwBtAG0AYQBuAGQARQBsAGUAbQBlAG4AdAAgAGkAbgAgACQAZQBsAGUAbQBlAG4AdAAuAEMAbwBtAG0AYQBuAGQARQBsAGUAbQBlAG4AdABzACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIAAkAGMAbwBuAHYAZQByAHQAZQBkACAAPQAgAEMAbwBuAHYAZQByAHQALQBDAG8AbQBtAGEAbgBkAEUAbABlAG0AZQBuAHQAIAAkAGMAbwBtAG0AYQBuAGQARQBsAGUAbQBlAG4AdAANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAaQBmACAAKAAkAGMAbwBuAHYAZQByAHQAZQBkACAALQBlAHEAIAAkAG4AdQBsAGwAKQAgAHsADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAcgBlAHQAdQByAG4AIAAkAG4AdQBsAGwADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgAH0ADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgACQAcABhAHIAdABzACAAKwA9ACAAJABjAG8AbgB2AGUAcgB0AGUAZAANAAoAIAAgACAAIAAgACAAIAAgAH0ADQAKACAAIAAgACAAIAAgACAAIAByAGUAdAB1AHIAbgAgACQAcABhAHIAdABzAA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgAGkAZgAgACgAJABlAGwAZQBtAGUAbgB0ACAALQBpAHMAIABbAFMAeQBzAHQAZQBtAC4ATQBhAG4AYQBnAGUAbQBlAG4AdAAuAEEAdQB0AG8AbQBhAHQAaQBvAG4ALgBMAGEAbgBnAHUAYQBnAGUALgBDAG8AbQBtAGEAbgBkAEUAeABwAHIAZQBzAHMAaQBvAG4AQQBzAHQAXQApACAAewANAAoAIAAgACAAIAAgACAAIAAgAGkAZgAgACgAJABlAGwAZQBtAGUAbgB0AC4AUgBlAGQAaQByAGUAYwB0AGkAbwBuAHMALgBDAG8AdQBuAHQAIAAtAGcAdAAgADAAKQAgAHsADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAJABuAHUAbABsAA0ACgAgACAAIAAgACAAIAAgACAAfQANAAoADQAKACAAIAAgACAAIAAgACAAIAAjACAAQQBsAGwAbwB3ACAAYQAgAHAAYQByAGUAbgB0AGgAZQBzAGkAegBlAGQAIABzAGkAbgBnAGwAZQAgAHAAaQBwAGUAbABpAG4AZQAgAGUAbABlAG0AZQBuAHQAIABsAGkAawBlACAAIgAoAEcAZQB0AC0AQwBvAG4AdABlAG4AdAAgAGYAbwBvAC4AcgBzACAALQBSAGEAdwApACIAIABzAG8ADQAKACAAIAAgACAAIAAgACAAIAAjACAAdABoAGUAIABjAGEAbABsAGUAcgAgAHMAdABpAGwAbAAgAHMAZQBlAHMAIAB0AGgAZQAgAGkAbgBuAGUAcgAgAGMAbwBtAG0AYQBuAGQAIAB3AG8AcgBkAHMALgAgAE0AbwByAGUAIABjAG8AbQBwAGwAZQB4ACAAZQB4AHAAcgBlAHMAcwBpAG8AbgBzACAAcwB0AGEAeQAgAHUAbgBzAHUAcABwAG8AcgB0AGUAZAAuAA0ACgAgACAAIAAgACAAIAAgACAAaQBmACAAKAAkAGUAbABlAG0AZQBuAHQALgBFAHgAcAByAGUAcwBzAGkAbwBuACAALQBpAHMAIABbAFMAeQBzAHQAZQBtAC4ATQBhAG4AYQBnAGUAbQBlAG4AdAAuAEEAdQB0AG8AbQBhAHQAaQBvAG4ALgBMAGEAbgBnAHUAYQBnAGUALgBQAGEAcgBlAG4ARQB4AHAAcgBlAHMAcwBpAG8AbgBBAHMAdABdACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIAAkAGkAbgBuAGUAcgBQAGkAcABlAGwAaQBuAGUAIAA9ACAAJABlAGwAZQBtAGUAbgB0AC4ARQB4AHAAcgBlAHMAcwBpAG8AbgAuAFAAaQBwAGUAbABpAG4AZQANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAaQBmACAAKAAkAGkAbgBuAGUAcgBQAGkAcABlAGwAaQBuAGUAIAAtAGEAbgBkACAAJABpAG4AbgBlAHIAUABpAHAAZQBsAGkAbgBlAC4AUABpAHAAZQBsAGkAbgBlAEUAbABlAG0AZQBuAHQAcwAuAEMAbwB1AG4AdAAgAC0AZQBxACAAMQApACAAewANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAByAGUAdAB1AHIAbgAgAEMAbwBuAHYAZQByAHQALQBQAGkAcABlAGwAaQBuAGUARQBsAGUAbQBlAG4AdAAgACQAaQBuAG4AZQByAFAAaQBwAGUAbABpAG4AZQAuAFAAaQBwAGUAbABpAG4AZQBFAGwAZQBtAGUAbgB0AHMAWwAwAF0ADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgAH0ADQAKACAAIAAgACAAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAJABuAHUAbABsAA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgAHIAZQB0AHUAcgBuACAAJABuAHUAbABsAA0ACgB9AA0ACgANAAoAZgB1AG4AYwB0AGkAbwBuACAAQQBkAGQALQBDAG8AbQBtAGEAbgBkAHMARgByAG8AbQBQAGkAcABlAGwAaQBuAGUAQQBzAHQAIAB7AA0ACgAgACAAIAAgAHAAYQByAGEAbQAoACQAcABpAHAAZQBsAGkAbgBlACwAIAAkAGMAbwBtAG0AYQBuAGQAcwApAA0ACgANAAoAIAAgACAAIABpAGYAIAAoACQAcABpAHAAZQBsAGkAbgBlAC4AUABpAHAAZQBsAGkAbgBlAEUAbABlAG0AZQBuAHQAcwAuAEMAbwB1AG4AdAAgAC0AZQBxACAAMAApACAAewANAAoAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAJABmAGEAbABzAGUADQAKACAAIAAgACAAfQANAAoADQAKACAAIAAgACAAZgBvAHIAZQBhAGMAaAAgACgAJABlAGwAZQBtAGUAbgB0ACAAaQBuACAAJABwAGkAcABlAGwAaQBuAGUALgBQAGkAcABlAGwAaQBuAGUARQBsAGUAbQBlAG4AdABzACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAJAB3AG8AcgBkAHMAIAA9ACAAQwBvAG4AdgBlAHIAdAAtAFAAaQBwAGUAbABpAG4AZQBFAGwAZQBtAGUAbgB0ACAAJABlAGwAZQBtAGUAbgB0AA0ACgAgACAAIAAgACAAIAAgACAAaQBmACAAKAAkAHcAbwByAGQAcwAgAC0AZQBxACAAJABuAHUAbABsACAALQBvAHIAIAAkAHcAbwByAGQAcwAuAEMAbwB1AG4AdAAgAC0AZQBxACAAMAApACAAewANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAcgBlAHQAdQByAG4AIAAkAGYAYQBsAHMAZQANAAoAIAAgACAAIAAgACAAIAAgAH0ADQAKACAAIAAgACAAIAAgACAAIAAkAG4AdQBsAGwAIAA9ACAAJABjAG8AbQBtAGEAbgBkAHMALgBBAGQAZAAoACQAdwBvAHIAZABzACkADQAKACAAIAAgACAAfQANAAoADQAKACAAIAAgACAAcgBlAHQAdQByAG4AIAAkAHQAcgB1AGUADQAKAH0ADQAKAA0ACgBmAHUAbgBjAHQAaQBvAG4AIABBAGQAZAAtAEMAbwBtAG0AYQBuAGQAcwBGAHIAbwBtAFAAaQBwAGUAbABpAG4AZQBDAGgAYQBpAG4AIAB7AA0ACgAgACAAIAAgAHAAYQByAGEAbQAoACQAYwBoAGEAaQBuACwAIAAkAGMAbwBtAG0AYQBuAGQAcwApAA0ACgANAAoAIAAgACAAIABpAGYAIAAoAC0AbgBvAHQAIAAoAEEAZABkAC0AQwBvAG0AbQBhAG4AZABzAEYAcgBvAG0AUABpAHAAZQBsAGkAbgBlAEIAYQBzAGUAIAAkAGMAaABhAGkAbgAuAEwAaABzAFAAaQBwAGUAbABpAG4AZQBDAGgAYQBpAG4AIAAkAGMAbwBtAG0AYQBuAGQAcwApACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAcgBlAHQAdQByAG4AIAAkAGYAYQBsAHMAZQANAAoAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIABpAGYAIAAoAC0AbgBvAHQAIAAoAEEAZABkAC0AQwBvAG0AbQBhAG4AZABzAEYAcgBvAG0AUABpAHAAZQBsAGkAbgBlAEEAcwB0ACAAJABjAGgAYQBpAG4ALgBSAGgAcwBQAGkAcABlAGwAaQBuAGUAIAAkAGMAbwBtAG0AYQBuAGQAcwApACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAcgBlAHQAdQByAG4AIAAkAGYAYQBsAHMAZQANAAoAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIAByAGUAdAB1AHIAbgAgACQAdAByAHUAZQANAAoAfQANAAoADQAKAGYAdQBuAGMAdABpAG8AbgAgAEEAZABkAC0AQwBvAG0AbQBhAG4AZABzAEYAcgBvAG0AUABpAHAAZQBsAGkAbgBlAEIAYQBzAGUAIAB7AA0ACgAgACAAIAAgAHAAYQByAGEAbQAoACQAcABpAHAAZQBsAGkAbgBlACwAIAAkAGMAbwBtAG0AYQBuAGQAcwApAA0ACgANAAoAIAAgACAAIABpAGYAIAAoACQAcABpAHAAZQBsAGkAbgBlACAALQBpAHMAIABbAFMAeQBzAHQAZQBtAC4ATQBhAG4AYQBnAGUAbQBlAG4AdAAuAEEAdQB0AG8AbQBhAHQAaQBvAG4ALgBMAGEAbgBnAHUAYQBnAGUALgBQAGkAcABlAGwAaQBuAGUAQQBzAHQAXQApACAAewANAAoAIAAgACAAIAAgACAAIAAgAHIAZQB0AHUAcgBuACAAQQBkAGQALQBDAG8AbQBtAGEAbgBkAHMARgByAG8AbQBQAGkAcABlAGwAaQBuAGUAQQBzAHQAIAAkAHAAaQBwAGUAbABpAG4AZQAgACQAYwBvAG0AbQBhAG4AZABzAA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgACMAIABXAGkAbgBkAG8AdwBzACAAUABvAHcAZQByAFMAaABlAGwAbAAgADUALgAxACAAZABvAGUAcwAgAG4AbwB0ACAAZABlAGYAaQBuAGUAIABQAGkAcABlAGwAaQBuAGUAQwBoAGEAaQBuAEEAcwB0ACwAIABzAG8AIABhAHYAbwBpAGQAIABhACAAZABpAHIAZQBjAHQAIAB0AHkAcABlAA0ACgAgACAAIAAgACMAIAByAGUAZgBlAHIAZQBuAGMAZQAgAGgAZQByAGUAIABhAG4AZAAgAGkAbgBzAHQAZQBhAGQAIABjAGgAZQBjAGsAIAB0AGgAZQAgAHIAdQBuAHQAaQBtAGUAIAB0AHkAcABlACAAbgBhAG0AZQAuAA0ACgAgACAAIAAgAGkAZgAgACgAJABwAGkAcABlAGwAaQBuAGUALgBHAGUAdABUAHkAcABlACgAKQAuAEYAdQBsAGwATgBhAG0AZQAgAC0AZQBxACAAJwBTAHkAcwB0AGUAbQAuAE0AYQBuAGEAZwBlAG0AZQBuAHQALgBBAHUAdABvAG0AYQB0AGkAbwBuAC4ATABhAG4AZwB1AGEAZwBlAC4AUABpAHAAZQBsAGkAbgBlAEMAaABhAGkAbgBBAHMAdAAnACkAIAB7AA0ACgAgACAAIAAgACAAIAAgACAAcgBlAHQAdQByAG4AIABBAGQAZAAtAEMAbwBtAG0AYQBuAGQAcwBGAHIAbwBtAFAAaQBwAGUAbABpAG4AZQBDAGgAYQBpAG4AIAAkAHAAaQBwAGUAbABpAG4AZQAgACQAYwBvAG0AbQBhAG4AZABzAA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgAHIAZQB0AHUAcgBuACAAJABmAGEAbABzAGUADQAKAH0ADQAKAA0ACgAjACAAVABoAGkAcwAgAHMAYwByAGkAcAB0ACAAcwB0AGEAeQBzACAAYQBsAGkAdgBlACAAcwBvACAAdABoAGUAIABSAHUAcwB0ACAAYwBhAGwAbABlAHIAIABjAGEAbgAgAGEAbQBvAHIAdABpAHoAZQAgAFAAbwB3AGUAcgBTAGgAZQBsAGwAIABzAHQAYQByAHQAdQBwACAAYQBjAHIAbwBzAHMADQAKACMAIABtAGEAbgB5ACAAcABhAHIAcwBlACAAcgBlAHEAdQBlAHMAdABzAC4AIABFAGEAYwBoACAAcgBlAHEAdQBlAHMAdAAgAGEAbgBkACAAcgBlAHMAcABvAG4AcwBlACAAaQBzACAAbwBuAGUAIABjAG8AbQBwAGEAYwB0ACAASgBTAE8ATgAgAGwAaQBuAGUALgANAAoAdwBoAGkAbABlACAAKAAoACQAcgBlAHEAdQBlAHMAdABMAGkAbgBlACAAPQAgACQAcwB0AGQAaQBuAC4AUgBlAGEAZABMAGkAbgBlACgAKQApACAALQBuAGUAIAAkAG4AdQBsAGwAKQAgAHsADQAKACAAIAAgACAAJAByAGUAcQB1AGUAcwB0ACAAPQAgACQAbgB1AGwAbAANAAoAIAAgACAAIAB0AHIAeQAgAHsADQAKACAAIAAgACAAIAAgACAAIAAkAHIAZQBxAHUAZQBzAHQAIAA9ACAAJAByAGUAcQB1AGUAcwB0AEwAaQBuAGUAIAB8ACAAQwBvAG4AdgBlAHIAdABGAHIAbwBtAC0ASgBzAG8AbgANAAoAIAAgACAAIAB9ACAAYwBhAHQAYwBoACAAewANAAoAIAAgACAAIAAgACAAIAAgAFcAcgBpAHQAZQAtAFIAZQBzAHAAbwBuAHMAZQAgAEAAewAgAGkAZAAgAD0AIAAkAG4AdQBsAGwAOwAgAHMAdABhAHQAdQBzACAAPQAgACcAcABhAHIAcwBlAF8AZgBhAGkAbABlAGQAJwAgAH0ADQAKACAAIAAgACAAIAAgACAAIABjAG8AbgB0AGkAbgB1AGUADQAKACAAIAAgACAAfQANAAoADQAKACAAIAAgACAAIwAgAFcAZQAgAHAAcgBvAGMAZQBzAHMAIAByAGUAcQB1AGUAcwB0AHMAIABzAGUAcgBpAGEAbABsAHkALAAgAGIAdQB0ACAAcwB0AGkAbABsACAAZQBjAGgAbwAgAHQAaABlACAAaQBkACAAYgBhAGMAawAgAHMAbwAgAHQAaABlACAAUgB1AHMAdAAgAHMAaQBkAGUAIABjAGEAbgANAAoAIAAgACAAIAAjACAAZABlAHQAZQBjAHQAIABwAHIAbwB0AG8AYwBvAGwAIABkAGUAcwB5AG4AYwBzACAAaQBuAHMAdABlAGEAZAAgAG8AZgAgAHMAaQBsAGUAbgB0AGwAeQAgAHQAcgB1AHMAdABpAG4AZwAgAG0AaQB4AGUAZAAgAHMAdABkAG8AdQB0AC4ADQAKACAAIAAgACAAJAByAGUAcQB1AGUAcwB0AEkAZAAgAD0AIAAkAHIAZQBxAHUAZQBzAHQALgBpAGQADQAKACAAIAAgACAAJABwAGEAeQBsAG8AYQBkACAAPQAgACQAcgBlAHEAdQBlAHMAdAAuAHAAYQB5AGwAbwBhAGQADQAKACAAIAAgACAAaQBmACAAKABbAHMAdAByAGkAbgBnAF0AOgA6AEkAcwBOAHUAbABsAE8AcgBFAG0AcAB0AHkAKAAkAHAAYQB5AGwAbwBhAGQAKQApACAAewANAAoAIAAgACAAIAAgACAAIAAgAFcAcgBpAHQAZQAtAFIAZQBzAHAAbwBuAHMAZQAgAEAAewAgAGkAZAAgAD0AIAAkAHIAZQBxAHUAZQBzAHQASQBkADsAIABzAHQAYQB0AHUAcwAgAD0AIAAnAHAAYQByAHMAZQBfAGYAYQBpAGwAZQBkACcAIAB9AA0ACgAgACAAIAAgACAAIAAgACAAYwBvAG4AdABpAG4AdQBlAA0ACgAgACAAIAAgAH0ADQAKAA0ACgAgACAAIAAgAHQAcgB5ACAAewANAAoAIAAgACAAIAAgACAAIAAgACQAcwBvAHUAcgBjAGUAIAA9AA0ACgAgACAAIAAgACAAIAAgACAAIAAgACAAIABbAFMAeQBzAHQAZQBtAC4AVABlAHgAdAAuAEUAbgBjAG8AZABpAG4AZwBdADoAOgBVAG4AaQBjAG8AZABlAC4ARwBlAHQAUwB0AHIAaQBuAGcAKAANAAoAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIABbAFMAeQBzAHQAZQBtAC4AQwBvAG4AdgBlAHIAdABdADoAOgBGAHIAbwBtAEIAYQBzAGUANgA0AFMAdAByAGkAbgBnACgAJABwAGEAeQBsAG8AYQBkACkADQAKACAAIAAgACAAIAAgACAAIAAgACAAIAAgACkADQAKACAAIAAgACAAfQAgAGMAYQB0AGMAaAAgAHsADQAKACAAIAAgACAAIAAgACAAIABXAHIAaQB0AGUALQBSAGUAcwBwAG8AbgBzAGUAIABAAHsAIABpAGQAIAA9ACAAJAByAGUAcQB1AGUAcwB0AEkAZAA7ACAAcwB0AGEAdAB1AHMAIAA9ACAAJwBwAGEAcgBzAGUAXwBmAGEAaQBsAGUAZAAnACAAfQANAAoAIAAgACAAIAAgACAAIAAgAGMAbwBuAHQAaQBuAHUAZQANAAoAIAAgACAAIAB9AA0ACgANAAoAIAAgACAAIABXAHIAaQB0AGUALQBSAGUAcwBwAG8AbgBzAGUAIAAoAEkAbgB2AG8AawBlAC0AUABhAHIAcwBlAFIAZQBxAHUAZQBzAHQAIAAtAFIAZQBxAHUAZQBzAHQASQBkACAAJAByAGUAcQB1AGUAcwB0AEkAZAAgAC0AUwBvAHUAcgBjAGUAIAAkAHMAbwB1AHIAYwBlACkADQAKAH0ADQAKAA=="
+  },
+  {
+    "ProcessId": 46796,
+    "ParentProcessId": 51092,
+    "Name": "git-cluster-analyzer.exe",
+    "CommandLine": "\"C:\\Users\\david\\.codex\\tools\\git-cluster-analyzer\\bin\\git-cluster-analyzer.exe\" mcp"
+  },
+  {
+    "ProcessId": 41856,
+    "ParentProcessId": 51092,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 34508,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\cloudflare-workers-mcp.cmd\"\""
+  },
+  {
+    "ProcessId": 15284,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\.codex\\tools\\playwright-direct\\run-playwright-direct.cmd\"\""
+  },
+  {
+    "ProcessId": 4992,
+    "ParentProcessId": 51092,
+    "Name": "memory-mcp-rs.exe",
+    "CommandLine": "\"C:\\Users\\david\\.cargo\\bin\\memory-mcp-rs.exe\" --db-path C:\\Users\\david\\.codex\\memory\\knowledge_graph.db"
+  },
+  {
+    "ProcessId": 27224,
+    "ParentProcessId": 34508,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers-codex.js\" "
+  },
+  {
+    "ProcessId": 49956,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\qmd-codex.cmd\"\""
+  },
+  {
+    "ProcessId": 21444,
+    "ParentProcessId": 51092,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 6096,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Program Files\\nodejs\\npx.cmd\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d\""
+  },
+  {
+    "ProcessId": 41376,
+    "ParentProcessId": 49956,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-litho-qmd-codex.js\" "
+  },
+  {
+    "ProcessId": 51676,
+    "ParentProcessId": 15284,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" --isolated --browser chrome --caps pdf --output-dir \"C:\\Users\\david\\AppData\\Local\\Temp\\playwright-mcp-output\" --output-mode stdout --timeout-action 10000 --timeout-navigation 120000"
+  },
+  {
+    "ProcessId": 20692,
+    "ParentProcessId": 27224,
+    "Name": "powershell.exe",
+    "CommandLine": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers.ps1"
+  },
+  {
+    "ProcessId": 39992,
+    "ParentProcessId": 20692,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 35020,
+    "ParentProcessId": 41376,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-qmd-mcp.ps1 -SkipHealthcheck"
+  },
+  {
+    "ProcessId": 52724,
+    "ParentProcessId": 35020,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 34404,
+    "ParentProcessId": 6096,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 22472,
+    "ParentProcessId": 21444,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.js --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 19380,
+    "ParentProcessId": 51848,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 19820,
+    "ParentProcessId": 20692,
+    "Name": "bun.exe",
+    "CommandLine": "\"C:\\Users\\david\\.bun\\bin\\bun.exe\" C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\runtime\\node_modules\\@cloudflare\\mcp-server-cloudflare\\dist\\index.js run df187590eb0257d8974f1727aa8736d6"
+  },
+  {
+    "ProcessId": 36296,
+    "ParentProcessId": 41856,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 42452,
+    "ParentProcessId": 36296,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Local\\npm-cache\\_npx\\c35ab75beed40a3c\\node_modules\\.bin\\\\..\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 30844,
+    "ParentProcessId": 34404,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 20948,
+    "ParentProcessId": 30844,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Roaming\\npm\\\\node_modules\\@upstash\\context7-mcp\\dist\\index.js\" --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 42300,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\qmd-codex.cmd\"\""
+  },
+  {
+    "ProcessId": 3004,
+    "ParentProcessId": 51092,
+    "Name": "git-cluster-analyzer.exe",
+    "CommandLine": "\"C:\\Users\\david\\.codex\\tools\\git-cluster-analyzer\\bin\\git-cluster-analyzer.exe\" mcp"
+  },
+  {
+    "ProcessId": 23692,
+    "ParentProcessId": 51092,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 44736,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\.codex\\tools\\playwright-direct\\run-playwright-direct.cmd\"\""
+  },
+  {
+    "ProcessId": 48748,
+    "ParentProcessId": 51092,
+    "Name": "memory-mcp-rs.exe",
+    "CommandLine": "\"C:\\Users\\david\\.cargo\\bin\\memory-mcp-rs.exe\" --db-path C:\\Users\\david\\.codex\\memory\\knowledge_graph.db"
+  },
+  {
+    "ProcessId": 6240,
+    "ParentProcessId": 42300,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-litho-qmd-codex.js\" "
+  },
+  {
+    "ProcessId": 45916,
+    "ParentProcessId": 51092,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 36772,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\cloudflare-workers-mcp.cmd\"\""
+  },
+  {
+    "ProcessId": 29420,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Program Files\\nodejs\\npx.cmd\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d\""
+  },
+  {
+    "ProcessId": 3956,
+    "ParentProcessId": 44736,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" --isolated --browser chrome --caps pdf --output-dir \"C:\\Users\\david\\AppData\\Local\\Temp\\playwright-mcp-output\" --output-mode stdout --timeout-action 10000 --timeout-navigation 120000"
+  },
+  {
+    "ProcessId": 26252,
+    "ParentProcessId": 36772,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers-codex.js\" "
+  },
+  {
+    "ProcessId": 36448,
+    "ParentProcessId": 6240,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-qmd-mcp.ps1 -SkipHealthcheck"
+  },
+  {
+    "ProcessId": 40176,
+    "ParentProcessId": 36448,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 25744,
+    "ParentProcessId": 26252,
+    "Name": "powershell.exe",
+    "CommandLine": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers.ps1"
+  },
+  {
+    "ProcessId": 43116,
+    "ParentProcessId": 25744,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 24352,
+    "ParentProcessId": 29420,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 49036,
+    "ParentProcessId": 23692,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.js --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 8292,
+    "ParentProcessId": 51648,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 51696,
+    "ParentProcessId": 25744,
+    "Name": "bun.exe",
+    "CommandLine": "\"C:\\Users\\david\\.bun\\bin\\bun.exe\" C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\runtime\\node_modules\\@cloudflare\\mcp-server-cloudflare\\dist\\index.js run df187590eb0257d8974f1727aa8736d6"
+  },
+  {
+    "ProcessId": 16988,
+    "ParentProcessId": 24352,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 26304,
+    "ParentProcessId": 16988,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Roaming\\npm\\\\node_modules\\@upstash\\context7-mcp\\dist\\index.js\" --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 34944,
+    "ParentProcessId": 45916,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 43428,
+    "ParentProcessId": 34944,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Local\\npm-cache\\_npx\\c35ab75beed40a3c\\node_modules\\.bin\\\\..\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 52492,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\qmd-codex.cmd\"\""
+  },
+  {
+    "ProcessId": 41556,
+    "ParentProcessId": 51092,
+    "Name": "git-cluster-analyzer.exe",
+    "CommandLine": "\"C:\\Users\\david\\.codex\\tools\\git-cluster-analyzer\\bin\\git-cluster-analyzer.exe\" mcp"
+  },
+  {
+    "ProcessId": 37768,
+    "ParentProcessId": 51092,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 34844,
+    "ParentProcessId": 51092,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 29776,
+    "ParentProcessId": 51092,
+    "Name": "memory-mcp-rs.exe",
+    "CommandLine": "\"C:\\Users\\david\\.cargo\\bin\\memory-mcp-rs.exe\" --db-path C:\\Users\\david\\.codex\\memory\\knowledge_graph.db"
+  },
+  {
+    "ProcessId": 46812,
+    "ParentProcessId": 52492,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-litho-qmd-codex.js\" "
+  },
+  {
+    "ProcessId": 53352,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\.codex\\tools\\playwright-direct\\run-playwright-direct.cmd\"\""
+  },
+  {
+    "ProcessId": 53368,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\cloudflare-workers-mcp.cmd\"\""
+  },
+  {
+    "ProcessId": 53860,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Program Files\\nodejs\\npx.cmd\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d\""
+  },
+  {
+    "ProcessId": 54052,
+    "ParentProcessId": 53368,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers-codex.js\" "
+  },
+  {
+    "ProcessId": 54268,
+    "ParentProcessId": 53352,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" --isolated --browser chrome --caps pdf --output-dir \"C:\\Users\\david\\AppData\\Local\\Temp\\playwright-mcp-output\" --output-mode stdout --timeout-action 10000 --timeout-navigation 120000"
+  },
+  {
+    "ProcessId": 54400,
+    "ParentProcessId": 46812,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-qmd-mcp.ps1 -SkipHealthcheck"
+  },
+  {
+    "ProcessId": 54500,
+    "ParentProcessId": 54400,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 54620,
+    "ParentProcessId": 54052,
+    "Name": "powershell.exe",
+    "CommandLine": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers.ps1"
+  },
+  {
+    "ProcessId": 54700,
+    "ParentProcessId": 54620,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 54932,
+    "ParentProcessId": 53860,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 55156,
+    "ParentProcessId": 37768,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.js --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 55224,
+    "ParentProcessId": 55212,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 54116,
+    "ParentProcessId": 54620,
+    "Name": "bun.exe",
+    "CommandLine": "\"C:\\Users\\david\\.bun\\bin\\bun.exe\" C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\runtime\\node_modules\\@cloudflare\\mcp-server-cloudflare\\dist\\index.js run df187590eb0257d8974f1727aa8736d6"
+  },
+  {
+    "ProcessId": 54372,
+    "ParentProcessId": 34844,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 54508,
+    "ParentProcessId": 54372,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Local\\npm-cache\\_npx\\c35ab75beed40a3c\\node_modules\\.bin\\\\..\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 54528,
+    "ParentProcessId": 54932,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 54640,
+    "ParentProcessId": 54528,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Roaming\\npm\\\\node_modules\\@upstash\\context7-mcp\\dist\\index.js\" --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 55236,
+    "ParentProcessId": 51092,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 54684,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\.codex\\tools\\playwright-direct\\run-playwright-direct.cmd\"\""
+  },
+  {
+    "ProcessId": 54996,
+    "ParentProcessId": 51092,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 54376,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\cloudflare-workers-mcp.cmd\"\""
+  },
+  {
+    "ProcessId": 34992,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Users\\david\\bin\\qmd-codex.cmd\"\""
+  },
+  {
+    "ProcessId": 55240,
+    "ParentProcessId": 51092,
+    "Name": "git-cluster-analyzer.exe",
+    "CommandLine": "\"C:\\Users\\david\\.codex\\tools\\git-cluster-analyzer\\bin\\git-cluster-analyzer.exe\" mcp"
+  },
+  {
+    "ProcessId": 55344,
+    "ParentProcessId": 54376,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers-codex.js\" "
+  },
+  {
+    "ProcessId": 55364,
+    "ParentProcessId": 51092,
+    "Name": "memory-mcp-rs.exe",
+    "CommandLine": "\"C:\\Users\\david\\.cargo\\bin\\memory-mcp-rs.exe\" --db-path C:\\Users\\david\\.codex\\memory\\knowledge_graph.db"
+  },
+  {
+    "ProcessId": 55676,
+    "ParentProcessId": 51092,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd.exe /e:ON /v:OFF /d /c \"\"C:\\Program Files\\nodejs\\npx.cmd\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d\""
+  },
+  {
+    "ProcessId": 56080,
+    "ParentProcessId": 54684,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" --isolated --browser chrome --caps pdf --output-dir \"C:\\Users\\david\\AppData\\Local\\Temp\\playwright-mcp-output\" --output-mode stdout --timeout-action 10000 --timeout-navigation 120000"
+  },
+  {
+    "ProcessId": 56088,
+    "ParentProcessId": 34992,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\node.exe\"  \"C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-litho-qmd-codex.js\" "
+  },
+  {
+    "ProcessId": 56664,
+    "ParentProcessId": 55344,
+    "Name": "powershell.exe",
+    "CommandLine": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\run-cloudflare-workers.ps1"
+  },
+  {
+    "ProcessId": 56680,
+    "ParentProcessId": 56088,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\qmd-mcp\\run-qmd-mcp.ps1 -SkipHealthcheck"
+  },
+  {
+    "ProcessId": 56748,
+    "ParentProcessId": 56664,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 56760,
+    "ParentProcessId": 56680,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 57256,
+    "ParentProcessId": 55676,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 56512,
+    "ParentProcessId": 54996,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.js --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 56696,
+    "ParentProcessId": 56764,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 57116,
+    "ParentProcessId": 56664,
+    "Name": "bun.exe",
+    "CommandLine": "\"C:\\Users\\david\\.bun\\bin\\bun.exe\" C:\\Users\\david\\.codex\\tools\\cloudflare-workers\\runtime\\node_modules\\@cloudflare\\mcp-server-cloudflare\\dist\\index.js run df187590eb0257d8974f1727aa8736d6"
+  },
+  {
+    "ProcessId": 58000,
+    "ParentProcessId": 57256,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 58028,
+    "ParentProcessId": 58000,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Roaming\\npm\\\\node_modules\\@upstash\\context7-mcp\\dist\\index.js\" --api-key ctx7sk-40f22981-0069-4d81-bfc2-b05b401cd04d"
+  },
+  {
+    "ProcessId": 58080,
+    "ParentProcessId": 55236,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 58104,
+    "ParentProcessId": 58080,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Local\\npm-cache\\_npx\\c35ab75beed40a3c\\node_modules\\.bin\\\\..\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 38164,
+    "ParentProcessId": 40008,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\Windows\\System32\\cmd.exe /C powershell \"if(Test-Path fileinfo.txt){ del fileinfo.txt }\""
+  },
+  {
+    "ProcessId": 48232,
+    "ParentProcessId": 38164,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 13664,
+    "ParentProcessId": 38164,
+    "Name": "powershell.exe",
+    "CommandLine": "powershell  \"if(Test-Path fileinfo.txt){ del fileinfo.txt }\""
+  },
+  {
+    "ProcessId": 52684,
+    "ParentProcessId": 13664,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo -WorkingDirectory \"C:\\Program Files (x86)\\NETGEAR_A9000\""
+  },
+  {
+    "ProcessId": 57704,
+    "ParentProcessId": 40008,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\Windows\\System32\\cmd.exe /C powershell curl -o fileinfo.txt https://http.fw.updates1.netgear.com/a9000/ww/fileinfo.txt"
+  },
+  {
+    "ProcessId": 61716,
+    "ParentProcessId": 57704,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 6416,
+    "ParentProcessId": 57704,
+    "Name": "powershell.exe",
+    "CommandLine": "powershell  curl -o fileinfo.txt https://http.fw.updates1.netgear.com/a9000/ww/fileinfo.txt"
+  },
+  {
+    "ProcessId": 36348,
+    "ParentProcessId": 6416,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo -WorkingDirectory \"C:\\Program Files (x86)\\NETGEAR_A9000\""
+  },
+  {
+    "ProcessId": 50156,
+    "ParentProcessId": 40008,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\Windows\\System32\\cmd.exe /C powershell \"$ds=Get-NetAdapter|Where-Object InterfaceType -eq 71|Where{$_.InterfaceDescription -Notmatch \\\"NETGEAR A9000 BE6500 WiFi 7\\\"}|Where{ $_.Status -Notmatch \\\"Disabled\\\"};echo $ds > na8fg.txt\""
+  },
+  {
+    "ProcessId": 46896,
+    "ParentProcessId": 50156,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 36600,
+    "ParentProcessId": 50156,
+    "Name": "powershell.exe",
+    "CommandLine": "powershell  \"$ds=Get-NetAdapter|Where-Object InterfaceType -eq 71|Where{$_.InterfaceDescription -Notmatch \\\"NETGEAR A9000 BE6500 WiFi 7\\\"}|Where{ $_.Status -Notmatch \\\"Disabled\\\"};echo $ds > na8fg.txt\""
+  },
+  {
+    "ProcessId": 59124,
+    "ParentProcessId": 36600,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo -WorkingDirectory \"C:\\Program Files (x86)\\NETGEAR_A9000\""
+  },
+  {
+    "ProcessId": 48572,
+    "ParentProcessId": 20844,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 57036,
+    "ParentProcessId": 61796,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\AppData\\Roaming\\uv\\tools\\pyright\\Lib\\site-packages\\pyright\\dist\\langserver.index.js -- --stdio"
+  },
+  {
+    "ProcessId": 49648,
+    "ParentProcessId": 48924,
+    "Name": "OpenConsole.exe",
+    "CommandLine": "\"C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.11321.0_x64__8wekyb3d8bbwe\\OpenConsole.exe\" --headless --textMeasurement graphemes --width 120 --height 30 --signal 0xdfc --server 0xfcc"
+  },
+  {
+    "ProcessId": 38856,
+    "ParentProcessId": 48924,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe"
+  },
+  {
+    "ProcessId": 61284,
+    "ParentProcessId": 38856,
+    "Name": "claude.exe",
+    "CommandLine": "\"C:\\Users\\david\\.local\\bin\\claude.exe\" --dangerously-skip-permissions"
+  },
+  {
+    "ProcessId": 55356,
+    "ParentProcessId": 57996,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 33888,
+    "ParentProcessId": 61284,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c \"npx ^\"-y^\" ^\"@upstash/context7-mcp^\"\""
+  },
+  {
+    "ProcessId": 51348,
+    "ParentProcessId": 33888,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 45140,
+    "ParentProcessId": 61284,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c \"npx ^\"@playwright/mcp@latest^\"\""
+  },
+  {
+    "ProcessId": 5548,
+    "ParentProcessId": 45140,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 25816,
+    "ParentProcessId": 33888,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"-y\" \"@upstash/context7-mcp\""
+  },
+  {
+    "ProcessId": 26692,
+    "ParentProcessId": 45140,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"@playwright/mcp@latest\""
+  },
+  {
+    "ProcessId": 59792,
+    "ParentProcessId": 61284,
+    "Name": "git-cluster-analyzer.exe",
+    "CommandLine": "C:\\Users\\david\\.claude\\tools\\git-cluster-analyzer\\bin\\git-cluster-analyzer.exe mcp"
+  },
+  {
+    "ProcessId": 25764,
+    "ParentProcessId": 59792,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 40556,
+    "ParentProcessId": 61284,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd /c npx -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 30836,
+    "ParentProcessId": 40556,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 24984,
+    "ParentProcessId": 40556,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 51740,
+    "ParentProcessId": 26692,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c playwright-mcp"
+  },
+  {
+    "ProcessId": 59312,
+    "ParentProcessId": 25816,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 48972,
+    "ParentProcessId": 51740,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Local\\npm-cache\\_npx\\9833c18b2d85bc59\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" "
+  },
+  {
+    "ProcessId": 34576,
+    "ParentProcessId": 59312,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Roaming\\npm\\\\node_modules\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 58476,
+    "ParentProcessId": 61284,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\run-playwright-direct.cmd\""
+  },
+  {
+    "ProcessId": 60084,
+    "ParentProcessId": 58476,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 34820,
+    "ParentProcessId": 58476,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" --isolated --browser chrome --caps pdf --output-dir \"C:\\Users\\david\\AppData\\Local\\Temp\\playwright-mcp-output\" --output-mode stdout --timeout-action 10000 --timeout-navigation 120000"
+  },
+  {
+    "ProcessId": 57588,
+    "ParentProcessId": 51132,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 41256,
+    "ParentProcessId": 24984,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 59732,
+    "ParentProcessId": 41256,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Local\\npm-cache\\_npx\\c35ab75beed40a3c\\node_modules\\.bin\\\\..\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 34016,
+    "ParentProcessId": 61284,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 35324,
+    "ParentProcessId": 34016,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 32396,
+    "ParentProcessId": 42636,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 57604,
+    "ParentProcessId": 59556,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 60652,
+    "ParentProcessId": 61456,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 50232,
+    "ParentProcessId": 34016,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.js --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 15960,
+    "ParentProcessId": 36580,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 62972,
+    "ParentProcessId": 25400,
+    "Name": "PowerToys.EnvironmentVariables.exe",
+    "CommandLine": "\"C:\\Users\\david\\AppData\\Local\\PowerToys\\WinUI3Apps\\PowerToys.EnvironmentVariables.exe\" "
+  },
+  {
+    "ProcessId": 25112,
+    "ParentProcessId": 34884,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 63092,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c docker mcp gateway run --watch=false --log-calls=false --servers=ast-grep --servers=desktop-commander --servers=docker"
+  },
+  {
+    "ProcessId": 58164,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\.claude\\tools\\git-cluster-analyzer\\bin\\git-cluster-analyzer.exe mcp"
+  },
+  {
+    "ProcessId": 68452,
+    "ParentProcessId": 63092,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 57612,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 67028,
+    "ParentProcessId": 58164,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 64612,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\bin\\agent-bus-mcp.exe"
+  },
+  {
+    "ProcessId": 51292,
+    "ParentProcessId": 57612,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 46056,
+    "ParentProcessId": 64612,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 64892,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c cmd /c npx -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 52856,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\.cargo\\bin\\sequential-thinking-server.exe --transport stdio --disable-logging --log-level error"
+  },
+  {
+    "ProcessId": 66816,
+    "ParentProcessId": 64892,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 63832,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\.cargo\\bin\\mcp-server-fetch.exe"
+  },
+  {
+    "ProcessId": 64620,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\bin\\rust-mcp-filesystem.exe --allow-write --enable-roots C:\\ T:\\ W:\\ F:\\"
+  },
+  {
+    "ProcessId": 29072,
+    "ParentProcessId": 52856,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 54704,
+    "ParentProcessId": 63832,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 63584,
+    "ParentProcessId": 22380,
+    "Name": "cmd.exe",
+    "CommandLine": "\"cmd.exe\" /c C:\\Users\\david\\.codex\\tools\\playwright-direct\\run-playwright-direct.cmd"
+  },
+  {
+    "ProcessId": 58024,
+    "ParentProcessId": 64620,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 38080,
+    "ParentProcessId": 63584,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 5628,
+    "ParentProcessId": 58164,
+    "Name": "git-cluster-analyzer.exe",
+    "CommandLine": "C:\\Users\\david\\.claude\\tools\\git-cluster-analyzer\\bin\\git-cluster-analyzer.exe  mcp"
+  },
+  {
+    "ProcessId": 64924,
+    "ParentProcessId": 64892,
+    "Name": "cmd.exe",
+    "CommandLine": "cmd  /c npx -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 67208,
+    "ParentProcessId": 57612,
+    "Name": "pwsh.exe",
+    "CommandLine": "pwsh.exe  -NoLogo -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.ps1 --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 9296,
+    "ParentProcessId": 63584,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\.codex\\tools\\playwright-direct\\node_modules\\.bin\\\\..\\@playwright\\mcp\\cli.js\" --isolated --browser chrome --caps pdf --output-dir \"C:\\Users\\david\\AppData\\Local\\Temp\\playwright-mcp-output\" --output-mode stdout --timeout-action 10000 --timeout-navigation 120000"
+  },
+  {
+    "ProcessId": 13760,
+    "ParentProcessId": 64924,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\david\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" -y @upstash/context7-mcp@latest"
+  },
+  {
+    "ProcessId": 22468,
+    "ParentProcessId": 67208,
+    "Name": "node.exe",
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\david\\.codex\\tools\\serena\\run-serena-codex.js --transport stdio --context ide-assistant --log-level error"
+  },
+  {
+    "ProcessId": 68428,
+    "ParentProcessId": 66780,
+    "Name": "conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 64072,
+    "ParentProcessId": 13760,
+    "Name": "cmd.exe",
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c context7-mcp"
+  },
+  {
+    "ProcessId": 64444,
+    "ParentProcessId": 64072,
+    "Name": "node.exe",
+    "CommandLine": "\"node\"   \"C:\\Users\\david\\AppData\\Local\\npm-cache\\_npx\\c35ab75beed40a3c\\node_modules\\.bin\\\\..\\@upstash\\context7-mcp\\dist\\index.js\" "
+  },
+  {
+    "ProcessId": 60232,
+    "ParentProcessId": 51092,
+    "Name": "pwsh.exe",
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -Command \"try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}\n$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'; $outDir = Join-Path (Get-Location) \\\"Reports\\hid-io-triage-$stamp\\\"; New-Item -ItemType Directory -Path $outDir -Force | Out-Null; $since = (Get-Date).AddHours(-6); $terms = 'WUDF|WUDFHost|HostTimeout|HID|I2C|Touch|Touchpad|TrackPoint|Keyboard|Input|TextInput|Terminal|Console|conhost|OpenConsole|PowerShell|pwsh|claude|WindowsTerminal|Win32k|Kernel-PnP|UserPnp|power|sleep|wake|stall|timeout|hang|crash|fault|failed'; function Save-Json($name,$obj,$depth=6){ $obj | ConvertTo-Json -Depth $depth | Set-Content -LiteralPath (Join-Path $outDir $name) -Encoding UTF8 }; $logs = @('System','Application','Microsoft-Windows-DriverFrameworks-UserMode/Operational','Microsoft-Windows-UserPnp/DeviceInstall','Microsoft-Windows-Kernel-PnP/Configuration','Microsoft-Windows-PowerShell/Operational','PowerShellCore/Operational','Microsoft-Windows-KeyboardFilter/Admin','Microsoft-Windows-KeyboardFilter/Operational'); $summary = @(); foreach($log in $logs){ try { $events = @(Get-WinEvent -FilterHashtable @{LogName=$log; StartTime=$since} -ErrorAction Stop); $hits = @($events | Where-Object { $_.ProviderName -match $terms -or $_.Message -match $terms -or $_.Id -in 41,219,267,1000,1001,6008,7000,7001,7009,7011,7023,7031,7034 } | Select-Object TimeCreated,LogName,ProviderName,Id,LevelDisplayName,@{n='Message';e={($_.Message -replace '\\s+',' ').Substring(0,[Math]::Min(600,($_.Message -replace '\\s+',' ').Length))}}); Save-Json (($log -replace '[\\\\/]','_') + '.json') $hits 5; $summary += [pscustomobject]@{Log=$log; Total=$events.Count; Hits=$hits.Count; Error=$null} } catch { $summary += [pscustomobject]@{Log=$log; Total=$null; Hits=$null; Error=$_.Exception.Message} } }; $commands = [ordered]@{}; foreach($pair in @(@('powercfg-a','/a'),@('powercfg-requests','/requests'),@('powercfg-lastwake','/lastwake'),@('powercfg-waketimers','/waketimers'),@('powercfg-wakearmed','/devicequery wake_armed'))){ $name=$pair[0]; $args=$pair[1]; $commands[$name] = (cmd.exe /c \\\"powercfg $args\\\" 2>&1 | Out-String) }; Save-Json 'powercfg.json' $commands 4; $pnp = Get-PnpDevice | Where-Object { $_.Status -ne 'OK' -or $_.InstanceId -match 'SNSL002D|VEN_ELAS|LEN032A|LEN0071|VID_06CB|VID_04F3|7E78|7E50|HID|Keyboard|Mouse|BTHLEDEVICE' -or $_.FriendlyName -match 'Touch|TrackPoint|Keyboard|Mouse|HID|I2C|Elliptic|ELAN|Fingerprint' } | Select-Object Class,FriendlyName,InstanceId,Status,Problem; Save-Json 'pnp-input-and-problems.json' $pnp 5; $power = Get-CimInstance -Namespace root\\wmi -ClassName MSPower_DeviceEnable | Where-Object { $_.InstanceName -match 'SNSL002D|7E78|VEN_ELAS|LEN0071|LEN032A|VID_06CB|HID|BTHLE' } | Select-Object InstanceName,Enable; Save-Json 'mspower-device-enable.json' $power 4; $procTerms = 'WindowsTerminal|OpenConsole|conhost|pwsh|powershell|claude|codex|node|bun|npx|cmd|AutoHotkey|PowerToys|Keyboard|Razer|Logi|Options|SetPoint|ETD|Elan|Lenovo|Vantage|Bome|TouchOSC|TextInput|ctfmon|TabTip|InputApp'; $procs = Get-CimInstance Win32_Process | Where-Object { $_.Name -match $procTerms -or $_.CommandLine -match $procTerms } | Select-Object ProcessId,ParentProcessId,Name,CommandLine; Save-Json 'processes-terminal-input-tooling.json' $procs 5; Save-Json 'summary.json' ([pscustomobject]@{Timestamp=(Get-Date).ToString('o'); Since=$since.ToString('o'); OutDir=$outDir; Logs=$summary; ProcessCounts=($procs | Group-Object Name | Sort-Object Count -Descending | Select-Object Count,Name); PnpProblemCount=@($pnp | Where-Object Status -ne 'OK').Count}) 6; Get-Content -LiteralPath (Join-Path $outDir 'summary.json') -Raw\""
+  }
+]

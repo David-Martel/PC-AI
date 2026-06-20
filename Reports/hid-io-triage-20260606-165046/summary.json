@@ -1,0 +1,232 @@
+{
+  "Timestamp": "2026-06-06T16:50:54.9433570-04:00",
+  "Since": "2026-06-06T10:50:46.7410577-04:00",
+  "OutDir": "C:\\codedev\\PC_AI\\Reports\\hid-io-triage-20260606-165046",
+  "Logs": [
+    {
+      "Log": "System",
+      "Total": 3748,
+      "Hits": 42,
+      "Error": null
+    },
+    {
+      "Log": "Application",
+      "Total": 191,
+      "Hits": 26,
+      "Error": null
+    },
+    {
+      "Log": "Microsoft-Windows-DriverFrameworks-UserMode/Operational",
+      "Total": null,
+      "Hits": null,
+      "Error": "No events were found that match the specified selection criteria."
+    },
+    {
+      "Log": "Microsoft-Windows-UserPnp/DeviceInstall",
+      "Total": 8,
+      "Hits": 8,
+      "Error": null
+    },
+    {
+      "Log": "Microsoft-Windows-Kernel-PnP/Configuration",
+      "Total": 24,
+      "Hits": 24,
+      "Error": null
+    },
+    {
+      "Log": "Microsoft-Windows-PowerShell/Operational",
+      "Total": 548,
+      "Hits": 548,
+      "Error": null
+    },
+    {
+      "Log": "PowerShellCore/Operational",
+      "Total": 1637,
+      "Hits": 1637,
+      "Error": null
+    },
+    {
+      "Log": "Microsoft-Windows-KeyboardFilter/Admin",
+      "Total": null,
+      "Hits": null,
+      "Error": "No events were found that match the specified selection criteria."
+    },
+    {
+      "Log": "Microsoft-Windows-KeyboardFilter/Operational",
+      "Total": null,
+      "Hits": null,
+      "Error": "No events were found that match the specified selection criteria."
+    }
+  ],
+  "ProcessCounts": [
+    {
+      "Count": 88,
+      "Name": "conhost.exe"
+    },
+    {
+      "Count": 69,
+      "Name": "cmd.exe"
+    },
+    {
+      "Count": 66,
+      "Name": "node.exe"
+    },
+    {
+      "Count": 23,
+      "Name": "pwsh.exe"
+    },
+    {
+      "Count": 9,
+      "Name": "powershell.exe"
+    },
+    {
+      "Count": 8,
+      "Name": "git-cluster-analyzer.exe"
+    },
+    {
+      "Count": 6,
+      "Name": "msedgewebview2.exe"
+    },
+    {
+      "Count": 6,
+      "Name": "memory-mcp-rs.exe"
+    },
+    {
+      "Count": 6,
+      "Name": "bun.exe"
+    },
+    {
+      "Count": 3,
+      "Name": "OpenConsole.exe"
+    },
+    {
+      "Count": 2,
+      "Name": "claude.exe"
+    },
+    {
+      "Count": 2,
+      "Name": "WindowsTerminal.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "UDCCBackGroundService.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "TextInputHost.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "svchost.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "Microsoft.CmdPal.Ext.PowerToys.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "UDClientService.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "PowerToys.EnvironmentVariables.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "PowerMgr.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "UltraslimOSD.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "Microsoft.CmdPal.UI.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "UDCCGCHelper.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "AppProvisioningPlugin.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "logioptionsplus_agent.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "LogiSyncStub.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "chrome-native-host.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "codex.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "cowork-svc.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "ctfmon.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "Discord.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "FloatingMenu1.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "LADMAutoInstallService.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "Lenovo.Modern.ImController.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "LenovoAccessoriesAndDisplayControlCenterService.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "LenovoGoCentral1.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "LenovoVantage-(GenericMessagingAddin).exe"
+    },
+    {
+      "Count": 1,
+      "Name": "LenovoVantage-(VantageCoreAddin).exe"
+    },
+    {
+      "Count": 1,
+      "Name": "LenovoVantageService.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "LogiFacecamService.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "logioptionsplus_updater.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "LSB.exe"
+    },
+    {
+      "Count": 1,
+      "Name": "WndMsgHelper1.exe"
+    }
+  ],
+  "PnpProblemCount": 635
+}

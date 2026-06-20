@@ -1,0 +1,44 @@
+[
+  {
+    "Name": "pester-invoke-rustbuild",
+    "ExitCode": 0,
+    "Log": "C:\\codedev\\PC_AI\\Reports\\workstation-audit-20260606-124859\\repo-fix-validation-20260606\\pester-invoke-rustbuild.log",
+    "Passed": true
+  },
+  {
+    "Name": "pester-cargotools",
+    "ExitCode": 0,
+    "Log": "C:\\codedev\\PC_AI\\Reports\\workstation-audit-20260606-124859\\repo-fix-validation-20260606\\pester-cargotools.log",
+    "Passed": true
+  },
+  {
+    "Name": "pester-functiongemma-config",
+    "ExitCode": 0,
+    "Log": "C:\\codedev\\PC_AI\\Reports\\workstation-audit-20260606-124859\\repo-fix-validation-20260606\\pester-functiongemma-config.log",
+    "Passed": true
+  },
+  {
+    "Name": "pester-cuda-initializer",
+    "ExitCode": 0,
+    "Log": "C:\\codedev\\PC_AI\\Reports\\workstation-audit-20260606-124859\\repo-fix-validation-20260606\\pester-cuda-initializer.log",
+    "Passed": true
+  },
+  {
+    "Name": "pester-inputdiagnostics",
+    "ExitCode": 0,
+    "Log": "C:\\codedev\\PC_AI\\Reports\\workstation-audit-20260606-124859\\repo-fix-validation-20260606\\pester-inputdiagnostics.log",
+    "Passed": true
+  },
+  {
+    "Name": "nvidia-health-readonly",
+    "ExitCode": 0,
+    "Log": "C:\\codedev\\PC_AI\\Reports\\workstation-audit-20260606-124859\\repo-fix-validation-20260606\\nvidia-health-readonly.log",
+    "Passed": true
+  },
+  {
+    "Name": "rust-functiongemma-runtime-check",
+    "ExitCode": 0,
+    "Log": "C:\\codedev\\PC_AI\\Reports\\workstation-audit-20260606-124859\\repo-fix-validation-20260606\\rust-functiongemma-runtime-check.log",
+    "Passed": true
+  }
+]

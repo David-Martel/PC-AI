@@ -1,0 +1,164 @@
+>>> pnputil.exe /enum-devices /instanceid ACPI\SNSL002D\4&39979B3E&0 /properties
+exit=0
+--- stdout ---
+Microsoft PnP Utility
+
+Instance ID:                ACPI\SNSL002D\4&39979b3e&0
+Device Description:         I2C HID Device
+Class Name:                 HIDClass
+Class GUID:                 {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                hidi2c.inf
+Properties:
+    DEVPKEY_Device_DeviceDesc [String]:
+        I2C HID Device
+    DEVPKEY_Device_HardwareIds [String List]:
+        ACPI\VEN_SNSL&DEV_002D&REV_0002
+        ACPI\VEN_SNSL&DEV_002D
+        ACPI\SNSL002D
+        *SNSL002D
+    DEVPKEY_Device_CompatibleIds [String List]:
+        ACPI\PNP0C50
+        PNP0C50
+    DEVPKEY_Device_Service [String]:
+        hidi2c
+    DEVPKEY_Device_Class [String]:
+        HIDClass
+    DEVPKEY_Device_ClassGuid [GUID]:
+        {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+    DEVPKEY_Device_Driver [String]:
+        {745a17a0-74d3-11d0-b6fe-00a0c90f57da}\0002
+    DEVPKEY_Device_ConfigFlags [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_Manufacturer [String]:
+        Microsoft
+    DEVPKEY_Device_PDOName [String]:
+        \Device\000000b4
+    DEVPKEY_Device_Capabilities [UINT32]:
+        0x00000020 (32)
+    DEVPKEY_Device_UpperFilters [String List]:
+        mshidkmdf
+    DEVPKEY_Device_BusTypeGuid [GUID]:
+        {d7b46895-001a-4942-891f-a7d46610a843}
+    DEVPKEY_Device_LegacyBusType [UINT32]:
+        0x00000011 (17)
+    DEVPKEY_Device_BusNumber [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_EnumeratorName [String]:
+        ACPI
+    DEVPKEY_Device_PowerData [Binary]:
+        38 00 00 00 01 00 00 00 99 00 00 00 00 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 
+        04 00 00 00 01 00 00 00
+    DEVPKEY_Device_RemovalPolicy [UINT32]:
+        0x00000001 (1)
+    DEVPKEY_Device_RemovalPolicyDefault [UINT32]:
+        0x00000001 (1)
+    DEVPKEY_Device_InstallState [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_BaseContainerId [GUID]:
+        {00000000-0000-0000-ffff-ffffffffffff}
+    DEVPKEY_NAME [String]:
+        I2C HID Device
+    DEVPKEY_Device_InstanceId [String]:
+        ACPI\SNSL002D\4&39979b3e&0
+    DEVPKEY_Device_DevNodeStatus [UINT32]:
+        0x0180200A (25174026)
+    DEVPKEY_Device_ProblemCode [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_BusRelations [String List]:
+        HID\SNSL002D&Col01\5&14b88203&0&0000
+        HID\SNSL002D&Col02\5&14b88203&0&0001
+        HID\SNSL002D&Col03\5&14b88203&0&0002
+        HID\SNSL002D&Col04\5&14b88203&0&0003
+    DEVPKEY_Device_Parent [String]:
+        PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+    DEVPKEY_Device_Children [String List]:
+        HID\SNSL002D&Col01\5&14b88203&0&0000
+        HID\SNSL002D&Col02\5&14b88203&0&0001
+        HID\SNSL002D&Col03\5&14b88203&0&0002
+        HID\SNSL002D&Col04\5&14b88203&0&0003
+    DEVPKEY_Device_SafeRemovalRequired [Boolean]:
+        FALSE
+    DEVPKEY_Device_ContainerId [GUID]:
+        {00000000-0000-0000-ffff-ffffffffffff}
+    DEVPKEY_Device_IsPresent [Boolean]:
+        TRUE
+    DEVPKEY_Device_HasProblem [Boolean]:
+        FALSE
+    {83da6326-97a6-4088-9453-a1923f573b29}[15] [Boolean]:
+        TRUE
+    DEVPKEY_Device_IsRebootRequired [Boolean]:
+        FALSE
+    DEVPKEY_Device_ReportedDeviceIdsHash [UINT32]:
+        0xE51CCE1A (3843870234)
+    DEVPKEY_Device_InLocalMachineContainer [Boolean]:
+        TRUE
+    DEVPKEY_Device_Stack [String List]:
+        \Driver\mshidkmdf
+        \Driver\hidi2c
+        \Driver\ACPI
+    DEVPKEY_Device_DependencyProviders [String List]:
+        PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+        ACPI\INTC1083\2&daba3ff&1
+    {a8b865dd-2e3d-4094-ad97-e593a70c75d6}[26] [Boolean]:
+        FALSE
+    {83da6326-97a6-4088-9453-a1923f573b29}[22] [String List]:
+        mshidkmdf
+    {3464f7a4-2444-40b1-980a-e0903cb6d912}[10] [UINT32]:
+        0x00000003 (3)
+    DEVPKEY_Device_ConfigurationId [String]:
+        hidi2c.inf:ACPI\PNP0C50,hidi2c_Device.NT
+    DEVPKEY_Device_BiosDeviceName [String]:
+        \_SB.PC00.I2C0.TPD0
+    {80497100-8c73-48b9-aad9-ce387e19c56e}[6] [UINT32]:
+        0x00000000 (0)
+    {80497100-8c73-48b9-aad9-ce387e19c56e}[7] [UINT64]:
+        0x0000000000000000 (0)
+    {83da6326-97a6-4088-9453-a1923f573b29}[3] [String]:
+        hidi2c.inf:db04a16cb5172d0c:hidi2c_Device.NT:10.0.26100.8521:ACPI\PNP0C50
+    {83da6326-97a6-4088-9453-a1923f573b29}[10] [String]:
+        PCI\VEN_8086&DEV_7E78&SUBSYS_223417AA&REV_20\3&11583659&1&A8
+    {83da6326-97a6-4088-9453-a1923f573b29}[25] [UINT32]:
+        0x00000000 (0)
+    {83da6326-97a6-4088-9453-a1923f573b29}[26] [Binary]:
+        00
+    DEVPKEY_Device_InstallDate [FILETIME]:
+        12/17/2025 3:42:40
+    DEVPKEY_Device_FirstInstallDate [FILETIME]:
+        12/17/2025 3:42:40
+    DEVPKEY_Device_LastArrivalDate [FILETIME]:
+        6/6/2026 1:03:12
+    DEVPKEY_Device_LocationPaths [String List]:
+        ACPI(_SB_)#ACPI(PC00)#ACPI(I2C0)#ACPI(TPD0)
+    DEVPKEY_Device_DriverDate [FILETIME]:
+        6/21/2006 0:00:00
+    DEVPKEY_Device_DriverVersion [String]:
+        10.0.26100.8521
+    DEVPKEY_Device_DriverDesc [String]:
+        I2C HID Device
+    DEVPKEY_Device_DriverInfPath [String]:
+        hidi2c.inf
+    DEVPKEY_Device_DriverInfSection [String]:
+        hidi2c_Device.NT
+    DEVPKEY_Device_MatchingDeviceId [String]:
+        ACPI\PNP0C50
+    DEVPKEY_Device_DriverProvider [String]:
+        Microsoft
+    DEVPKEY_Device_DriverRank [UINT32]:
+        0x00FF2000 (16719872)
+    {a8b865dd-2e3d-4094-ad97-e593a70c75d6}[16] [String List]:
+        pci.inf
+    {f0e20f09-d97a-49a9-8046-bb6e22e6bb2e}[2] [Binary]:
+        01 00 00 00 00 00 00 00 00 00 00 00 B0 01 00 00 
+        0A 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 
+        01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+        00 04 00 00 01 00 00 00 00 00 00 00 00 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+
+--- stderr ---
+

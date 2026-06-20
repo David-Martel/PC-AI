@@ -1,0 +1,6 @@
+Timer set by [SERVICE] \Device\HarddiskVolume5\Windows\System32\svchost.exe (SystemEventsBroker) expires at 5:39:47 PM on 6/6/2026.
+  Reason: Windows will execute 'NT TASK\HP\HP Print Scan Doctor\Printer Health Monitor' scheduled task that requested waking the computer.
+Realtek Gaming USB 2.5GbE Family Controller
+USB4 Root Router (1.0)
+Intel(R) Wi-Fi 7 BE200 320MHz
+

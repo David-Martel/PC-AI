@@ -1,0 +1,219 @@
+[
+  {
+    "ProcessName": "ctfmon",
+    "Id": 30676,
+    "Path": "C:\\WINDOWS\\system32\\ctfmon.exe",
+    "CPU": 10.203125,
+    "WorkingSet64": 34668544
+  },
+  {
+    "ProcessName": "dwm",
+    "Id": 2328,
+    "Path": "C:\\WINDOWS\\system32\\dwm.exe",
+    "CPU": 5059.375,
+    "WorkingSet64": 956391424
+  },
+  {
+    "ProcessName": "EPDCtrl",
+    "Id": 17396,
+    "Path": "C:\\WINDOWS\\system32\\EPDCtrl.exe",
+    "CPU": 0.484375,
+    "WorkingSet64": 20144128
+  },
+  {
+    "ProcessName": "EPDService",
+    "Id": 4908,
+    "Path": "C:\\WINDOWS\\System32\\EPDService.exe",
+    "CPU": 3.296875,
+    "WorkingSet64": 10059776
+  },
+  {
+    "ProcessName": "explorer",
+    "Id": 25400,
+    "Path": "C:\\WINDOWS\\Explorer.EXE",
+    "CPU": 559.25,
+    "WorkingSet64": 745013248
+  },
+  {
+    "ProcessName": "explorer",
+    "Id": 40172,
+    "Path": "C:\\WINDOWS\\explorer.exe",
+    "CPU": 27.09375,
+    "WorkingSet64": 338808832
+  },
+  {
+    "ProcessName": "FileSyncHelper",
+    "Id": 19508,
+    "Path": "C:\\Program Files\\Microsoft OneDrive\\26.088.0510.0004\\FileSyncHelper.exe",
+    "CPU": 1.515625,
+    "WorkingSet64": 31145984
+  },
+  {
+    "ProcessName": "Lenovo.Modern.ImController",
+    "Id": 7356,
+    "Path": "C:\\WINDOWS\\Lenovo\\ImController\\Service\\Lenovo.Modern.ImController.exe",
+    "CPU": 52.765625,
+    "WorkingSet64": 67235840
+  },
+  {
+    "ProcessName": "LenovoAccessoriesAndDisplayControlCenterService",
+    "Id": 26148,
+    "Path": "C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\LenovoAccessoriesAndDisplayControlCenterService.exe",
+    "CPU": 84.203125,
+    "WorkingSet64": 44711936
+  },
+  {
+    "ProcessName": "LenovoGoCentral1",
+    "Id": 46012,
+    "Path": "C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\LenovoGoCentral1.exe",
+    "CPU": 0.359375,
+    "WorkingSet64": 17997824
+  },
+  {
+    "ProcessName": "LenovoVantage-(GenericMessagingAddin)",
+    "Id": 23416,
+    "Path": "C:\\Program Files (x86)\\Lenovo\\VantageService\\4.2601.31.0\\LenovoVantage-(GenericMessagingAddin).exe",
+    "CPU": 2.109375,
+    "WorkingSet64": 8634368
+  },
+  {
+    "ProcessName": "LenovoVantage-(VantageCoreAddin)",
+    "Id": 17872,
+    "Path": "C:\\Program Files (x86)\\Lenovo\\VantageService\\4.2601.31.0\\LenovoVantage-(VantageCoreAddin).exe",
+    "CPU": 7.65625,
+    "WorkingSet64": 9248768
+  },
+  {
+    "ProcessName": "LenovoVantageService",
+    "Id": 7564,
+    "Path": "C:\\Program Files (x86)\\Lenovo\\VantageService\\4.2601.31.0\\LenovoVantageService.exe",
+    "CPU": 39.921875,
+    "WorkingSet64": 58339328
+  },
+  {
+    "ProcessName": "LogiSyncStub",
+    "Id": 8268,
+    "Path": "C:\\Program Files (x86)\\Logitech\\LogiSyncStub\\LogiSyncStub.exe",
+    "CPU": 0.0625,
+    "WorkingSet64": 13553664
+  },
+  {
+    "ProcessName": "OneDrive.Sync.Service",
+    "Id": 19644,
+    "Path": "C:\\Program Files\\Microsoft OneDrive\\26.088.0510.0004\\OneDrive.Sync.Service.exe",
+    "CPU": 239.03125,
+    "WorkingSet64": 141262848
+  },
+  {
+    "ProcessName": "SynRpcServer",
+    "Id": 14752,
+    "Path": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\synawudfbiousbuwp.inf_amd64_1bdc1fe7c5930d7a\\SynRpcServer.exe",
+    "CPU": 0.015625,
+    "WorkingSet64": 5779456
+  },
+  {
+    "ProcessName": "WUDFCompanionHost",
+    "Id": 2804,
+    "Path": null,
+    "CPU": 7.421875,
+    "WorkingSet64": 4636672
+  },
+  {
+    "ProcessName": "WUDFCompanionHost",
+    "Id": 9152,
+    "Path": null,
+    "CPU": 0.0625,
+    "WorkingSet64": 4526080
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 2132,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 0.09375,
+    "WorkingSet64": 17768448
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 2364,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 2.671875,
+    "WorkingSet64": 13930496
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 2456,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 0.3125,
+    "WorkingSet64": 14499840
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 2512,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 0.046875,
+    "WorkingSet64": 10358784
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 2644,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 0.015625,
+    "WorkingSet64": 7782400
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 2696,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 52.859375,
+    "WorkingSet64": 26628096
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 2756,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 15.171875,
+    "WorkingSet64": 26873856
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 5192,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 33.1875,
+    "WorkingSet64": 12943360
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 5712,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 0.046875,
+    "WorkingSet64": 8544256
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 6456,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 0.171875,
+    "WorkingSet64": 14364672
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 11000,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 0.03125,
+    "WorkingSet64": 8593408
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 12224,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 0.015625,
+    "WorkingSet64": 9240576
+  },
+  {
+    "ProcessName": "WUDFHost",
+    "Id": 13796,
+    "Path": "C:\\Windows\\System32\\WUDFHost.exe",
+    "CPU": 0.28125,
+    "WorkingSet64": 13512704
+  }
+]

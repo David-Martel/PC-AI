@@ -1,4 +1,5 @@
 #Requires -Version 7.0
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Raw low-level keyboard monitor. Installs a WH_KEYBOARD_LL hook and logs every
@@ -31,12 +32,12 @@
 param([int]$Seconds = 20)
 
 Add-Type -AssemblyName System.Windows.Forms
-Add-Type -Namespace KbMon -Name Hook -UsingNamespace System.Runtime.InteropServices -MemberDefinition @"
+Add-Type -Namespace KbMon -Name Hook -MemberDefinition @"
 public delegate System.IntPtr HookProc(int nCode, System.IntPtr wParam, System.IntPtr lParam);
-[DllImport("user32.dll", SetLastError=true)] public static extern System.IntPtr SetWindowsHookExW(int idHook, HookProc lpfn, System.IntPtr hMod, uint dwThreadId);
-[DllImport("user32.dll", SetLastError=true)] public static extern bool UnhookWindowsHookEx(System.IntPtr hhk);
-[DllImport("user32.dll")] public static extern System.IntPtr CallNextHookEx(System.IntPtr hhk, int nCode, System.IntPtr wParam, System.IntPtr lParam);
-[DllImport("kernel32.dll")] public static extern System.IntPtr GetModuleHandleW(string lpModuleName);
+[System.Runtime.InteropServices.DllImport("user32.dll", SetLastError=true)] public static extern System.IntPtr SetWindowsHookExW(int idHook, HookProc lpfn, System.IntPtr hMod, uint dwThreadId);
+[System.Runtime.InteropServices.DllImport("user32.dll", SetLastError=true)] public static extern bool UnhookWindowsHookEx(System.IntPtr hhk);
+[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern System.IntPtr CallNextHookEx(System.IntPtr hhk, int nCode, System.IntPtr wParam, System.IntPtr lParam);
+[System.Runtime.InteropServices.DllImport("kernel32.dll")] public static extern System.IntPtr GetModuleHandleW(string lpModuleName);
 "@
 
 $WH_KEYBOARD_LL = 13

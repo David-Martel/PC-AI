@@ -1,0 +1,171 @@
+>>> pnputil.exe /enum-devices /instanceid ACPI\LEN032A\4&76D3D92&0 /properties
+exit=0
+--- stdout ---
+Microsoft PnP Utility
+
+Instance ID:                ACPI\LEN032A\4&76d3d92&0
+Device Description:         TrackPoint Device
+Class Name:                 Mouse
+Class GUID:                 {4d36e96f-e325-11ce-bfc1-08002be10318}
+Manufacturer Name:          ELAN
+Status:                     Started
+Driver Name:                oem279.inf
+Properties:
+    DEVPKEY_Device_DeviceDesc [String]:
+        TrackPoint Device
+    DEVPKEY_Device_HardwareIds [String List]:
+        ACPI\VEN_LEN&DEV_032A
+        ACPI\LEN032A
+        *LEN032A
+    DEVPKEY_Device_CompatibleIds [String List]:
+        *PNP0F13
+    DEVPKEY_Device_Service [String]:
+        i8042prt
+    DEVPKEY_Device_Class [String]:
+        Mouse
+    DEVPKEY_Device_ClassGuid [GUID]:
+        {4d36e96f-e325-11ce-bfc1-08002be10318}
+    DEVPKEY_Device_Driver [String]:
+        {4d36e96f-e325-11ce-bfc1-08002be10318}\0000
+    DEVPKEY_Device_ConfigFlags [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_Manufacturer [String]:
+        ELAN
+    DEVPKEY_Device_PDOName [String]:
+        \Device\0000006e
+    DEVPKEY_Device_Capabilities [UINT32]:
+        0x00000020 (32)
+    DEVPKEY_Device_UpperFilters [String List]:
+        EPD
+    DEVPKEY_Device_BusTypeGuid [GUID]:
+        {d7b46895-001a-4942-891f-a7d46610a843}
+    DEVPKEY_Device_LegacyBusType [UINT32]:
+        0x00000011 (17)
+    DEVPKEY_Device_BusNumber [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_EnumeratorName [String]:
+        ACPI
+    DEVPKEY_Device_PowerData [Binary]:
+        38 00 00 00 01 00 00 00 09 00 00 00 00 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 
+        04 00 00 00 00 00 00 00
+    DEVPKEY_Device_RemovalPolicy [UINT32]:
+        0x00000001 (1)
+    DEVPKEY_Device_RemovalPolicyDefault [UINT32]:
+        0x00000001 (1)
+    DEVPKEY_Device_InstallState [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_BaseContainerId [GUID]:
+        {00000000-0000-0000-ffff-ffffffffffff}
+    DEVPKEY_NAME [String]:
+        TrackPoint Device
+    DEVPKEY_Device_InstanceId [String]:
+        ACPI\LEN032A\4&76d3d92&0
+    DEVPKEY_Device_DevNodeStatus [UINT32]:
+        0x0180000A (25165834)
+    DEVPKEY_Device_ProblemCode [UINT32]:
+        0x00000000 (0)
+    DEVPKEY_Device_BusRelations [String List]:
+        ETDHSA\VID_04F3&PID_0001\5&bda4387&0&0002
+        SWD\DRIVERENUM\EPD_component&5&bda4387&0
+    DEVPKEY_Device_Parent [String]:
+        PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8
+    DEVPKEY_Device_Children [String List]:
+        ETDHSA\VID_04F3&PID_0001\5&bda4387&0&0002
+        SWD\DRIVERENUM\EPD_component&5&bda4387&0
+    DEVPKEY_Device_Siblings [String List]:
+        ACPI\PNP0C09\0
+        ACPI\PNP0103\0
+        ACPI\PNP0000\4&76d3d92&0
+        ACPI\PNP0C02\2
+        ACPI\PNP0100\4&76d3d92&0
+        ACPI\INTC109D\4&76d3d92&0
+        ACPI\PNP0800\4&76d3d92&0
+        ACPI\LEN0071\4&76d3d92&0
+        ACPI\PNP0C02\0
+    DEVPKEY_Device_SafeRemovalRequired [Boolean]:
+        FALSE
+    DEVPKEY_Device_ContainerId [GUID]:
+        {00000000-0000-0000-ffff-ffffffffffff}
+    DEVPKEY_Device_IsPresent [Boolean]:
+        TRUE
+    DEVPKEY_Device_HasProblem [Boolean]:
+        FALSE
+    {83da6326-97a6-4088-9453-a1923f573b29}[15] [Boolean]:
+        TRUE
+    DEVPKEY_Device_IsRebootRequired [Boolean]:
+        FALSE
+    DEVPKEY_Device_ReportedDeviceIdsHash [UINT32]:
+        0xC1477751 (3242686289)
+    DEVPKEY_Device_InLocalMachineContainer [Boolean]:
+        TRUE
+    DEVPKEY_Device_Stack [String List]:
+        \Driver\mouclass
+        \Driver\EPD
+        \Driver\i8042prt
+        \Driver\ACPI
+    {a8b865dd-2e3d-4094-ad97-e593a70c75d6}[26] [Boolean]:
+        FALSE
+    {83da6326-97a6-4088-9453-a1923f573b29}[22] [String List]:
+        EPD
+    {3464f7a4-2444-40b1-980a-e0903cb6d912}[10] [UINT32]:
+        0x00000003 (3)
+    DEVPKEY_Device_ConfigurationId [String]:
+        oem279.inf:ACPI\LEN032A,ELAN_CS23_Win10_Inst_DT_Sensel
+    DEVPKEY_Device_BiosDeviceName [String]:
+        \_SB.PC00.LPCB.MOU
+    {80497100-8c73-48b9-aad9-ce387e19c56e}[6] [UINT32]:
+        0x00000000 (0)
+    {80497100-8c73-48b9-aad9-ce387e19c56e}[7] [UINT64]:
+        0x0000000000000000 (0)
+    {83da6326-97a6-4088-9453-a1923f573b29}[3] [String]:
+        oem279.inf:4777d1a39189b0f4:ELAN_CS23_Win10_Inst_DT_Sensel:31.21.51.2:ACPI\LEN032A
+    {83da6326-97a6-4088-9453-a1923f573b29}[4] [String]:
+        oem174.inf:4777d1a39189b0f4:ELAN_CS23_Win10_Inst_DT_Sensel:31.21.49.1:ACPI\LEN032A
+    {83da6326-97a6-4088-9453-a1923f573b29}[10] [String]:
+        PCI\VEN_8086&DEV_7E02&SUBSYS_223417AA&REV_20\3&11583659&1&F8
+    {83da6326-97a6-4088-9453-a1923f573b29}[25] [UINT32]:
+        0x00000000 (0)
+    {83da6326-97a6-4088-9453-a1923f573b29}[26] [Binary]:
+        00
+    DEVPKEY_Device_InstallDate [FILETIME]:
+        2/15/2026 0:03:00
+    DEVPKEY_Device_FirstInstallDate [FILETIME]:
+        12/17/2025 3:42:32
+    DEVPKEY_Device_LastArrivalDate [FILETIME]:
+        6/6/2026 1:02:55
+    DEVPKEY_Device_LocationPaths [String List]:
+        ACPI(_SB_)#ACPI(PC00)#ACPI(LPCB)#ACPI(MOU_)
+    DEVPKEY_Device_DriverDate [FILETIME]:
+        8/5/2025 0:00:00
+    DEVPKEY_Device_DriverVersion [String]:
+        31.21.51.2
+    DEVPKEY_Device_DriverDesc [String]:
+        TrackPoint Device
+    DEVPKEY_Device_DriverInfPath [String]:
+        oem279.inf
+    DEVPKEY_Device_DriverInfSection [String]:
+        ELAN_CS23_Win10_Inst_DT_Sensel
+    DEVPKEY_Device_MatchingDeviceId [String]:
+        ACPI\LEN032A
+    DEVPKEY_Device_DriverProvider [String]:
+        ELAN
+    DEVPKEY_Device_DriverRank [UINT32]:
+        0x00F90001 (16318465)
+    {a8b865dd-2e3d-4094-ad97-e593a70c75d6}[16] [String List]:
+        msmouse.inf
+        keyboard.inf
+    {a8b865dd-2e3d-4094-ad97-e593a70c75d6}[33] [String List]:
+        EPDService
+    {f0e20f09-d97a-49a9-8046-bb6e22e6bb2e}[2] [Binary]:
+        01 00 00 00 00 00 00 00 00 00 00 00 70 00 00 00 
+        07 00 00 00 01 00 00 00 01 00 00 00 00 00 00 00 
+        66 66 16 00 00 00 00 00 00 00 00 00 00 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+        0C 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+
+--- stderr ---
+

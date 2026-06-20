@@ -57,6 +57,11 @@ Describe 'Invoke-RustBuild' -Tag 'Unit', 'Portable' {
             $script:Command.Parameters['LlmDebug'].SwitchParameter | Should -BeTrue
         }
 
+        It 'Should have LlmOutput switch' {
+            $script:Command.Parameters.ContainsKey('LlmOutput') | Should -BeTrue
+            $script:Command.Parameters['LlmOutput'].SwitchParameter | Should -BeTrue
+        }
+
         It 'Should have RaPreflight switch' {
             $script:Command.Parameters.ContainsKey('RaPreflight') | Should -BeTrue
             $script:Command.Parameters['RaPreflight'].SwitchParameter | Should -BeTrue
@@ -121,7 +126,7 @@ Describe 'Invoke-RustBuild' -Tag 'Unit', 'Portable' {
         It 'Should resolve CargoTools module manifest explicitly' {
             $content = Get-Content $script:RustBuildPath -Raw
             $content | Should -Match 'Resolve-PcaiModuleManifestPath'
-            $content | Should -Match 'Import-Module -Name \\$cargoToolsManifest'
+            $content | Should -Match 'Import-Module -Name \$cargoToolsManifest'
         }
 
         It 'Should fall back when CargoTools is not available' {
@@ -161,6 +166,11 @@ Describe 'Invoke-RustBuild' -Tag 'Unit', 'Portable' {
             $content = Get-Content $script:RustBuildPath -Raw
             $content | Should -Match 'CARGO_PREFLIGHT_BLOCKING'
         }
+
+        It 'Should pass LLM output mode to CargoTools' {
+            $content = Get-Content $script:RustBuildPath -Raw
+            $content | Should -Match '--llm-output'
+        }
     }
 
     Context 'Cargo Wrapper Invocation' {
@@ -172,7 +182,7 @@ Describe 'Invoke-RustBuild' -Tag 'Unit', 'Portable' {
         It 'Should invoke cargo directly when CargoTools fallback is active' {
             $content = Get-Content $script:RustBuildPath -Raw
             $content | Should -Match 'if \(\$script:UseCargoTools\)'
-            $content | Should -Match '& cargo @finalArgs'
+            $content | Should -Match '& \$cargoPath @finalArgs'
         }
 
         It 'Should use Push-Location and Pop-Location' {
@@ -184,6 +194,12 @@ Describe 'Invoke-RustBuild' -Tag 'Unit', 'Portable' {
         It 'Should check LASTEXITCODE' {
             $content = Get-Content $script:RustBuildPath -Raw
             $content | Should -Match '\$LASTEXITCODE'
+        }
+
+        It 'Should capture CargoTools returned exit codes' {
+            $content = Get-Content $script:RustBuildPath -Raw
+            $content | Should -Match '\$wrapperExitCode'
+            $content | Should -Match '\$effectiveExitCode'
         }
 
         It 'Should use try-finally for location cleanup' {
@@ -202,6 +218,11 @@ Describe 'Invoke-RustBuild' -Tag 'Unit', 'Portable' {
         It 'Should exit with LASTEXITCODE on failure' {
             $content = Get-Content $script:RustBuildPath -Raw
             $content | Should -Match 'exit \$LASTEXITCODE'
+        }
+
+        It 'Should fail loudly when no cargo arguments are provided' {
+            $content = Get-Content $script:RustBuildPath -Raw
+            $content | Should -Match 'No cargo arguments provided'
         }
     }
 

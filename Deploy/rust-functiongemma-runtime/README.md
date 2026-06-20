@@ -37,7 +37,11 @@ Build with model features, then enable model engine:
   .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime -CargoArgs @('build','--features','model')
   # Update Config/pcai-functiongemma.json:
   #   runtime.router_engine = "model"
-  #   runtime.router_model_path = "C:\\Users\\david\\PC_AI\\Models\\functiongemma-270m-it"
+  #   runtime.router_model_path = "Models\\functiongemma-270m-it"
+
+The model path is resolved from the repo root. On this workstation the live
+model directory is `C:\codedev\PC_AI\Models\functiongemma-270m-it`; avoid the
+older `C:\Users\david\PC_AI` path because that repo location is stale.
 
 This path loads the base model and attempts to parse FunctionGemma-style
 tool calls from the generated output. It is functional but not optimized.

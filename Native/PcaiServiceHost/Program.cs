@@ -12,6 +12,7 @@ public static class Program
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
         WriteIndented = true
     };
 
@@ -225,7 +226,17 @@ public static class Program
         {
             try
             {
+                if (entry.Pid <= 0)
+                {
+                    continue;
+                }
+
                 var proc = Process.GetProcessById(entry.Pid);
+                if (!proc.ProcessName.Contains("winsocat", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 proc.Kill(true);
                 stopped++;
             }
@@ -252,10 +263,14 @@ public static class Program
         var running = 0;
         foreach (var entry in state)
         {
-            var alive = true;
+            var alive = false;
             try
             {
-                Process.GetProcessById(entry.Pid);
+                if (entry.Pid > 0)
+                {
+                    var proc = Process.GetProcessById(entry.Pid);
+                    alive = proc.ProcessName.Contains("winsocat", StringComparison.OrdinalIgnoreCase);
+                }
             }
             catch
             {

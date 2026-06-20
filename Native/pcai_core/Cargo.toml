@@ -82,7 +82,7 @@ async-trait = "0.1"
 futures = "0.3"
 
 # IDs
-uuid = { version = "1.11", features = ["v4"] }
+uuid = { version = "1.23", features = ["v4"] }
 
 # HTTP server
 axum = "0.8"

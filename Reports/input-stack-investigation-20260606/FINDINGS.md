@@ -1,3 +1,13 @@
+> **UPDATE 2026-06-19 (rev 2) — Shift branch tested with hardware-in-the-loop; hardware-defect
+> hypothesis REFUTED.** A device-aware Raw Input capture during live reproduction showed: (1) a
+> 20.9 s continuous internal-Shift hold with **zero contact dropouts** (switch is mechanically sound);
+> (2) the wrong-case events are Shift/letter **timing races** during fast typing, occurring at **equal
+> rates on the internal Lenovo (12%) and an external USB keyboard (13%)** — i.e. NOT internal-specific
+> and NOT a worn switch / EC fault. The earlier "EC firmware or physical contact" reading (rev 1) is
+> superseded. Full data + revised conclusion in
+> [`SHIFT-RESOLUTION-ADDENDUM-20260619.md`](SHIFT-RESOLUTION-ADDENDUM-20260619.md); tools:
+> `Trace-ShiftKeySource.ps1`, `Measure-ShiftOrdering.ps1`, `Analyze-ShiftTrace.ps1`.
+
 # Input-Stack Investigation — Shift Key Not Recognized + Touchpad Lockup
 
 **Machine:** ThinkPad P1 Gen 7 (LENOVO 21KV0014US), BIOS N48ET33W 1.20

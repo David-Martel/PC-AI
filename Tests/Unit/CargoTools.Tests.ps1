@@ -66,16 +66,16 @@ Describe 'CargoTools Module' -Tag 'Unit', 'CargoTools', 'Fast', 'Portable' {
 
     Context 'Environment Functions' -Skip:(-not (Get-Module CargoTools)) {
         BeforeAll {
-            $script:hasInit = $null -ne (Get-Command Initialize-CargoEnvironment -ErrorAction SilentlyContinue)
+            $script:hasInit = $null -ne (Get-Command Initialize-CargoEnv -ErrorAction SilentlyContinue)
         }
 
-        It 'Should have Initialize-CargoEnvironment function' -Skip:(-not $script:hasInit) {
-            $command = Get-Command Initialize-CargoEnvironment -ErrorAction SilentlyContinue
+        It 'Should have Initialize-CargoEnv function' -Skip:(-not $script:hasInit) {
+            $command = Get-Command Initialize-CargoEnv -ErrorAction SilentlyContinue
             $command | Should -Not -BeNullOrEmpty
         }
 
-        It 'Initialize-CargoEnvironment should accept common parameters' -Skip:(-not $script:hasInit) {
-            $command = Get-Command Initialize-CargoEnvironment -ErrorAction SilentlyContinue
+        It 'Initialize-CargoEnv should accept common parameters' -Skip:(-not $script:hasInit) {
+            $command = Get-Command Initialize-CargoEnv -ErrorAction SilentlyContinue
             if ($command) {
                 $command.Parameters.Keys | Should -Contain 'ErrorAction'
             }
@@ -87,10 +87,10 @@ Describe 'CargoTools Module' -Tag 'Unit', 'CargoTools', 'Fast', 'Portable' {
             $exported = (Get-Module CargoTools).ExportedFunctions.Keys
             $cargoCommands = $exported | Where-Object { $_ -match 'Cargo|Rust' }
 
-            # At least some cargo-related functionality should be present
-            if ($exported.Count -gt 0) {
-                $exported | Should -Not -BeNullOrEmpty
-            }
+            $cargoCommands | Should -Not -BeNullOrEmpty
+            $exported | Should -Contain 'Invoke-CargoWrapper'
+            $exported | Should -Contain 'Format-CargoOutput'
+            $exported | Should -Contain 'Format-CargoError'
         }
     }
 }
@@ -170,9 +170,9 @@ Describe 'CargoTools Integration with PC_AI' -Tag 'Unit', 'Integration', 'Fast',
 
     Context 'Error Handling' -Skip:(-not $script:cargoToolsAvailable) {
         It 'Should handle missing cargo gracefully' {
-            if (Get-Command Initialize-CargoEnvironment -ErrorAction SilentlyContinue) {
+            if (Get-Command Initialize-CargoEnv -ErrorAction SilentlyContinue) {
                 # Should not throw even if cargo is not installed
-                { Initialize-CargoEnvironment -ErrorAction SilentlyContinue } | Should -Not -Throw
+                { Initialize-CargoEnv -ErrorAction SilentlyContinue } | Should -Not -Throw
             }
         }
     }

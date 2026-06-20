@@ -22,6 +22,9 @@
 .PARAMETER LlmDebug
   Enable CargoTools LLM debug defaults (RUST_BACKTRACE, verbose traces).
 
+.PARAMETER LlmOutput
+  Ask CargoTools to emit LLM-friendly JSON status and cargo JSON messages.
+
 .PARAMETER RaPreflight
   Enable rust-analyzer diagnostics during CargoTools preflight.
 
@@ -47,6 +50,7 @@ param(
     [switch]$NoLld,
     [switch]$DisableCache,
     [switch]$LlmDebug,
+    [switch]$LlmOutput,
     [switch]$RaPreflight,
     [switch]$Preflight,
     [ValidateSet('check','clippy','fmt','all')]
@@ -169,25 +173,46 @@ if ($PreflightBlocking) {
 
 $wrapperArgs = @()
 if ($LlmDebug) { $wrapperArgs += '--llm-debug' }
+if ($LlmOutput) { $wrapperArgs += '--llm-output' }
 if ($UseLld) { $wrapperArgs += '--use-lld' }
 if ($NoLld) { $wrapperArgs += '--no-lld' }
 
 $finalArgs = if ($CargoArgs -and $CargoArgs.Count -gt 0) { $CargoArgs } else { $RemainingArgs }
 if ($finalArgs -is [string]) { $finalArgs = @($finalArgs) }
+if (-not $finalArgs -or $finalArgs.Count -eq 0) {
+    throw 'No cargo arguments provided. Use -CargoArgs @(''check'') or pass cargo arguments after the script parameters.'
+}
 $wrapperArgs += @($finalArgs)
 
-Push-Location $Path
+$resolvedPath = Resolve-Path -LiteralPath $Path -ErrorAction Stop
+
+Push-Location $resolvedPath.Path
 try {
     if ($script:UseCargoTools) {
-        Invoke-CargoWrapper @wrapperArgs
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $wrapperExitCode = $null
+        Invoke-CargoWrapper @wrapperArgs | ForEach-Object {
+            if ($_ -is [int]) {
+                $wrapperExitCode = $_
+            } else {
+                $_
+            }
+        }
+
+        $effectiveExitCode = if ($null -ne $wrapperExitCode) {
+            [int]$wrapperExitCode
+        } elseif ($LASTEXITCODE -is [int]) {
+            [int]$LASTEXITCODE
+        } elseif ($?) {
+            0
+        } else {
+            1
+        }
+
+        if ($effectiveExitCode -ne 0) { exit $effectiveExitCode }
     } else {
         $cargoCommand = Get-Command cargo -ErrorAction SilentlyContinue
         if (-not $cargoCommand) {
             throw 'cargo not found on PATH. Install Rust and ensure cargo is available.'
-        }
-        if (-not $finalArgs -or $finalArgs.Count -eq 0) {
-            throw 'No cargo arguments provided.'
         }
 
         $cargoPath = $cargoCommand.Path

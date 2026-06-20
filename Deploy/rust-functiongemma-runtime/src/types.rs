@@ -5,6 +5,10 @@ use std::time::Duration;
 use tokio::sync::Semaphore;
 
 #[derive(Debug, Deserialize)]
+#[expect(
+    dead_code,
+    reason = "OpenAI-compatible request schema accepts fields that the heuristic router may not use yet"
+)]
 pub struct ChatCompletionRequest {
     pub model: Option<String>,
     pub messages: Vec<Message>,

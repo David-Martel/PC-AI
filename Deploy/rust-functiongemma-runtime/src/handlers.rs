@@ -96,13 +96,11 @@ pub(crate) fn validate_request(req: &ChatCompletionRequest) -> Result<(), ErrorR
                     Some("tool_choice".to_string()),
                 ));
             }
-            Value::Object(map) => {
-                if !map.contains_key("function") && !map.contains_key("type") {
-                    return Err(ErrorResponse::bad_request(
-                        "tool_choice object must have 'function' or 'type' field",
-                        Some("tool_choice".to_string()),
-                    ));
-                }
+            Value::Object(map) if !map.contains_key("function") && !map.contains_key("type") => {
+                return Err(ErrorResponse::bad_request(
+                    "tool_choice object must have 'function' or 'type' field",
+                    Some("tool_choice".to_string()),
+                ));
             }
             _ => {}
         }

@@ -29,6 +29,10 @@ impl ErrorResponse {
         }
     }
 
+    #[expect(
+        dead_code,
+        reason = "reserved for model/runtime failures that should map to OpenAI-compatible server errors"
+    )]
     pub(crate) fn internal_error(message: impl Into<String>) -> Self {
         Self {
             error: ApiError {

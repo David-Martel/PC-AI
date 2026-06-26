@@ -28,11 +28,15 @@ and VHD rollback paths.
   running unattended.
 - Ran `npm cache verify` and `npm cache clean --force`; verification garbage
   collected 754 entries, about 1.03 GB.
+- Created a fresh Windows restore point with Windows PowerShell:
+  `Checkpoint-Computer -Description 'PC_AI cleanup lane 2026-06-26'`.
+- Resized C: VSS shadow storage to 100 GB:
+  `vssadmin Resize ShadowStorage /For=C: /On=C: /MaxSize=100GB`.
 
 ## Measured result
 
-Before cleanup, `C:` had about 234 GB free. After the completed cleanup work,
-`C:` had `382,521,475,072` bytes free, about 356 GB.
+Before cleanup, `C:` had about 234 GB free. After the completed cleanup work and
+VSS retargeting, `C:` had `770,750,451,712` bytes free, about 718 GB.
 
 Final measured selected surfaces:
 
@@ -44,6 +48,7 @@ Final measured selected surfaces:
 | Docker containers | 5.013 GB total, near-zero reclaimable |
 | Docker volumes | 21.27 GB total, 9.105 GB reclaimable |
 | Docker BuildKit cache | 29.79 GB total, 18.34 GB reclaimable |
+| C: VSS shadow storage | 409 MB used, 20.4 GB allocated, 100 GB maximum |
 | `T:\vm\docker\wsl\disk` | 167.7 GB |
 | `T:\vm\docker-backup` | 167.9 GB |
 | `T:\vm\docker\disk` | 86.3 GB |
@@ -63,9 +68,8 @@ Final measured selected surfaces:
   detached named volumes include model and database caches.
 - `T:\vm\docker-backup\DockerDesktopWSL-old\disk\docker_data.vhdx`: strong
   archive/delete candidate after backup and rollback check.
-- VSS shadow storage on `C:`: used 374 GB with 409 GB maximum. Retarget to a new
-  restore point and reduce/delete old restore points only after confirming the
-  desired rollback policy.
+- VSS shadow storage on `C:`: retargeted to a fresh restore point and capped at
+  100 GB during this cleanup lane.
 - `T:\UniversalMac_26.2_25C5037j_Restore.ipsw`: 18.7 GB archive/delete
   candidate.
 

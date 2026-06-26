@@ -18,7 +18,16 @@ function Get-PcaiDiskUsage {
     Import-Module PC-AI.Common -ErrorAction SilentlyContinue
     if (-not (Initialize-PcaiNative)) { return }
 
-    $Json = [PcaiNative.PerformanceModule]::GetDiskUsageJson($Path, $Top)
+    $performanceType = ([System.Management.Automation.PSTypeName]'PcaiNative.PerformanceModule').Type
+    if (-not $performanceType) {
+        $loadedAssembly = [System.AppDomain]::CurrentDomain.GetAssemblies() |
+            Where-Object { $_.GetName().Name -eq 'PcaiNative' } |
+            Select-Object -First 1
+        $loadedLocation = if ($loadedAssembly) { $loadedAssembly.Location } else { '<not loaded>' }
+        throw "PcaiNative.PerformanceModule is unavailable after native initialization. Loaded PcaiNative assembly: $loadedLocation"
+    }
+
+    $Json = $performanceType::GetDiskUsageJson($Path, $Top)
     if ($Json) {
         return $Json | ConvertFrom-Json
     }

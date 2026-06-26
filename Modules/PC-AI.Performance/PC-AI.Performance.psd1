@@ -35,8 +35,9 @@
         'Test-PcaiNative'
     )
 
-    # Struct mappings
-    TypesToProcess    = @('PC-AI.Performance.types.ps1xml')
+    # Native types now expose their calculated members directly. Loading the
+    # legacy type-data file causes duplicate member errors on recent builds.
+    TypesToProcess    = @()
 
     # Cmdlets to export from this module
     CmdletsToExport   = @()

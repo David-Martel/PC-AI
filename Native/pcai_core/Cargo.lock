@@ -646,6 +646,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "candle-flash-attn"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12512cf8e706744642e9a8579305a6ed1e44a0c636ce20c416cd5c519de19b7d"
+dependencies = [
+ "anyhow",
+ "candle-core 0.10.2",
+ "cudaforge",
+ "half",
+]
+
+[[package]]
 name = "candle-flash-attn-build"
 version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -713,6 +725,25 @@ dependencies = [
  "byteorder",
  "candle-core 0.9.2",
  "candle-nn 0.9.2",
+ "fancy-regex 0.17.0",
+ "num-traits",
+ "rand 0.9.3",
+ "rayon",
+ "serde",
+ "serde_json",
+ "serde_plain",
+ "tracing",
+]
+
+[[package]]
+name = "candle-transformers"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f59d08c89e9f4af9c464e2f3a8e16199e7cc601e6f34538c2cfbb42b623b1783"
+dependencies = [
+ "byteorder",
+ "candle-core 0.10.2",
+ "candle-nn 0.10.2",
  "fancy-regex 0.17.0",
  "num-traits",
  "rand 0.9.3",
@@ -4236,9 +4267,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
- "candle-core 0.9.2",
+ "candle-core 0.10.2",
  "candle-nn 0.10.2",
- "candle-transformers",
+ "candle-transformers 0.10.2",
  "hf-hub 0.5.0",
  "image",
  "memmap2 0.9.10",
@@ -4262,10 +4293,10 @@ name = "pcai-media-model"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "candle-core 0.9.2",
- "candle-flash-attn",
+ "candle-core 0.10.2",
+ "candle-flash-attn 0.10.2",
  "candle-nn 0.10.2",
- "candle-transformers",
+ "candle-transformers 0.10.2",
  "serde",
  "serde_json",
 ]
@@ -5148,9 +5179,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "candle-core 0.9.2",
- "candle-flash-attn",
+ "candle-flash-attn 0.9.2",
  "candle-nn 0.9.2",
- "candle-transformers",
+ "candle-transformers 0.9.2",
  "cudarc 0.19.4",
  "minijinja",
  "qlora-rs",
@@ -5168,7 +5199,7 @@ dependencies = [
  "anyhow",
  "candle-core 0.9.2",
  "candle-nn 0.9.2",
- "candle-transformers",
+ "candle-transformers 0.9.2",
  "clap",
  "itertools 0.14.0",
  "memmap2 0.9.10",
@@ -6233,7 +6264,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.2",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",

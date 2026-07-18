@@ -124,15 +124,15 @@ function Test-HyperVConfiguration {
             $analysis.Features[$feature] = $status.State
 
             if ($status.State -eq "Enabled") {
-                Write-Host "✓ $feature: Enabled" -ForegroundColor Green
+                Write-Host "✓ ${feature}: Enabled" -ForegroundColor Green
             }
             else {
-                Write-Host "✗ $feature: $($status.State)" -ForegroundColor Red
+                Write-Host "✗ ${feature}: $($status.State)" -ForegroundColor Red
                 $analysis.Issues += "$feature is not enabled"
             }
         }
         catch {
-            Write-Host "? $feature: Unknown" -ForegroundColor Yellow
+            Write-Host "? ${feature}: Unknown" -ForegroundColor Yellow
             $analysis.Issues += "Cannot determine status of $feature"
         }
     }
@@ -147,17 +147,17 @@ function Test-HyperVConfiguration {
                 $analysis.Services[$serviceName] = $service.Status
 
                 if ($service.Status -eq "Running") {
-                    Write-Host "✓ Service $serviceName: Running" -ForegroundColor Green
+                    Write-Host "✓ Service ${serviceName}: Running" -ForegroundColor Green
                 }
                 else {
-                    Write-Host "⚠ Service $serviceName: $($service.Status)" -ForegroundColor Yellow
+                    Write-Host "⚠ Service ${serviceName}: $($service.Status)" -ForegroundColor Yellow
                     if ($serviceName -eq "vmms") {
                         $analysis.Issues += "Hyper-V Virtual Machine Management service is not running"
                     }
                 }
             }
             else {
-                Write-Host "✗ Service $serviceName: Not found" -ForegroundColor Red
+                Write-Host "✗ Service ${serviceName}: Not found" -ForegroundColor Red
                 $analysis.Issues += "Service $serviceName is not installed"
             }
         }
@@ -484,8 +484,10 @@ function Generate-OptimizationReport {
         Write-Host "  ✓ System appears to be well configured" -ForegroundColor Green
     }
     else {
-        foreach ($i, $recommendation in $allRecommendations | ForEach-Object { $i = 0 } { @{ Index = ++$i; Value = $_ } }) {
-            Write-Host "  $($i.Index). $($i.Value)" -ForegroundColor Cyan
+        $i = 0
+        foreach ($recommendation in $allRecommendations) {
+            $i++
+            Write-Host "  $i. $recommendation" -ForegroundColor Cyan
         }
     }
 

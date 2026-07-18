@@ -333,7 +333,7 @@ function Start-LxssManager {
         return $false
     }
     catch {
-        Write-Log "Failed to start $serviceName: $_" -Level ERROR
+        Write-Log "Failed to start ${serviceName}: $_" -Level ERROR
         return $false
     }
 }

@@ -92,6 +92,10 @@ fn find_gguf_in_dir(dir: &PathBuf) -> Option<PathBuf> {
 /// Get the model path from environment or panic with helpful message
 ///
 /// Use this in tests that require a real model file.
+// justification: this shared test helper is only called from the feature-gated
+// (llamacpp / mistralrs-backend) integration tests, so it reads as dead code
+// when the crate is compiled under the default feature set.
+#[allow(dead_code, reason = "used only by feature-gated integration tests")]
 pub fn require_test_model() -> PathBuf {
     find_test_model().unwrap_or_else(|| {
         panic!(

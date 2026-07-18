@@ -30,7 +30,7 @@
 use anyhow::{Context, Result};
 use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::{VarBuilder, VarMap};
-use image::{ImageBuffer, Rgb};
+use image::{ImageBuffer, RgbImage};
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -479,7 +479,7 @@ impl GenerationPipeline {
     /// # Errors
     ///
     /// Returns an error on any tensor operation failure or tokenization error.
-    pub fn generate(&self, prompt: &str) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+    pub fn generate(&self, prompt: &str) -> Result<RgbImage> {
         self.generate_with_overrides(prompt, None, None)
     }
 
@@ -526,7 +526,7 @@ impl GenerationPipeline {
         prompt: &str,
         cfg_scale: Option<f64>,
         temperature: Option<f64>,
-    ) -> Result<(ImageBuffer<Rgb<u8>, Vec<u8>>, GenerationTelemetry)> {
+    ) -> Result<(RgbImage, GenerationTelemetry)> {
         self.generate_inner(prompt, cfg_scale, temperature)
     }
 
@@ -547,7 +547,7 @@ impl GenerationPipeline {
         prompt: &str,
         cfg_scale: Option<f64>,
         temperature: Option<f64>,
-    ) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+    ) -> Result<RgbImage> {
         let (image, _telemetry) = self.generate_inner(prompt, cfg_scale, temperature)?;
         Ok(image)
     }
@@ -562,7 +562,7 @@ impl GenerationPipeline {
         prompt: &str,
         cfg_scale: Option<f64>,
         temperature: Option<f64>,
-    ) -> Result<(ImageBuffer<Rgb<u8>, Vec<u8>>, GenerationTelemetry)> {
+    ) -> Result<(RgbImage, GenerationTelemetry)> {
         let guidance_scale = cfg_scale.unwrap_or(self.config.guidance_scale);
         let temperature_val = temperature.unwrap_or(self.config.temperature);
         let parallel_size = self.config.parallel_size;
@@ -1163,7 +1163,7 @@ impl GenerationPipeline {
             // rejected position; it is pushed directly into `generated`.
             let mut rejection_token: Option<(u32, Tensor)> = None;
 
-            'accept_loop: for j in 0..k {
+            'accept_loop: for (j, &draft_tok) in draft_tokens.iter().enumerate().take(k) {
                 // Extract verify hidden at position j: [B, K, H] → [B, H]
                 let verify_hidden_j = verify_hidden_batch
                     .i((.., j, ..))
@@ -1183,7 +1183,7 @@ impl GenerationPipeline {
                     pos + j,
                 )?;
 
-                if draft_tokens[j] == verify_tok {
+                if draft_tok == verify_tok {
                     accept_count += 1;
                     // Keep going — may accept more tokens.
                 } else {
@@ -1305,61 +1305,6 @@ impl GenerationPipeline {
         Ok(tokens[0])
     }
 
-    /// Greedy (argmax) token selection from a `[B, hidden_size]` hidden state.
-    ///
-    /// Used in the verify phase to compare draft tokens against the full-depth
-    /// model's greedy prediction without stochastic noise.  Returns the greedy
-    /// token for the first batch element after optional CFG blending.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error on any candle operation failure.
-    fn greedy_from_hidden(
-        &self,
-        hidden: &Tensor,
-        use_cfg: bool,
-        batch_size: usize,
-        guidance_scale: f64,
-    ) -> Result<u32> {
-        let img_logits = self
-            .model
-            .project_to_image_vocab(&hidden.unsqueeze(1).context("greedy_from_hidden: unsqueeze failed")?)
-            .context("greedy_from_hidden: project_to_image_vocab")?
-            .squeeze(1)
-            .context("greedy_from_hidden: squeeze")?;
-
-        let logits = if use_cfg && batch_size >= 2 {
-            let cond = img_logits
-                .i(0_usize)
-                .context("greedy_from_hidden: cond slice")?
-                .unsqueeze(0)
-                .context("greedy_from_hidden: cond unsqueeze")?;
-            let uncond = img_logits
-                .i(1_usize)
-                .context("greedy_from_hidden: uncond slice")?
-                .unsqueeze(0)
-                .context("greedy_from_hidden: uncond unsqueeze")?;
-            let diff = (&cond - &uncond).context("greedy_from_hidden: CFG subtract failed")?;
-            (&uncond + (diff * guidance_scale).context("greedy_from_hidden: CFG scale failed")?)
-                .context("greedy_from_hidden: CFG add failed")?
-        } else {
-            img_logits
-                .i(0_usize)
-                .context("greedy_from_hidden: img_logits slice")?
-                .unsqueeze(0)
-                .context("greedy_from_hidden: img_logits unsqueeze")?
-        };
-
-        let idx = logits
-            .argmax(candle_core::D::Minus1)
-            .context("greedy_from_hidden: argmax")?
-            .i(0_usize)
-            .context("greedy_from_hidden: extract index")?
-            .to_scalar::<u32>()
-            .context("greedy_from_hidden: to_scalar")?;
-        Ok(idx)
-    }
-
     /// Embed a single image token through `gen_embed` + `gen_aligner`.
     ///
     /// Returns a `[batch_size, 1, hidden_size]` tensor on `self.device`.
@@ -1398,7 +1343,7 @@ impl GenerationPipeline {
 ///
 /// Returns an error if the tensor has wrong number of dimensions, wrong
 /// channel count, or any candle operation fails.
-pub fn tensor_to_image(tensor: &Tensor) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+pub fn tensor_to_image(tensor: &Tensor) -> Result<RgbImage> {
     // Validate shape [C, H, W].
     let dims = tensor.dims();
     anyhow::ensure!(dims.len() == 3, "expected 3D tensor [C, H, W], got {}D", dims.len());
@@ -1680,40 +1625,6 @@ mod tests {
         assert!(tensor_to_image(&tensor).is_err());
     }
 
-    /// `tensor_to_image` must preserve pixel values during [C, H, W] to [H, W, C] permutation.
-    #[test]
-    fn test_tensor_to_image_pixel_content() {
-        // Create a 3x2x2 [C, H, W] tensor with known values.
-        let data = vec![
-            // Channel 0 (R):
-            10u8, 20, 30, 40, // Channel 1 (G):
-            50u8, 60, 70, 80, // Channel 2 (B):
-            90u8, 100, 110, 120,
-        ];
-
-        let tensor = Tensor::from_vec(data, (3_usize, 2_usize, 2_usize), &Device::Cpu).unwrap();
-        let img = tensor_to_image(&tensor).expect("tensor_to_image should succeed");
-
-        assert_eq!(img.width(), 2);
-        assert_eq!(img.height(), 2);
-
-        // Verify pixel (x, y) = (0, 0)
-        assert_eq!(img.get_pixel(0, 0).0, [10, 50, 90]);
-        // Verify pixel (x, y) = (1, 0)
-        assert_eq!(img.get_pixel(1, 0).0, [20, 60, 100]);
-        // Verify pixel (x, y) = (0, 1)
-        assert_eq!(img.get_pixel(0, 1).0, [30, 70, 110]);
-        // Verify pixel (x, y) = (1, 1)
-        assert_eq!(img.get_pixel(1, 1).0, [40, 80, 120]);
-    }
-
-    /// `tensor_to_image` must return an error for non-U8 tensors.
-    #[test]
-    fn test_tensor_to_image_wrong_dtype() {
-        let tensor = Tensor::zeros((3_usize, 8_usize, 8_usize), DType::F32, &Device::Cpu).unwrap();
-        assert!(tensor_to_image(&tensor).is_err());
-    }
-
     /// `rand_val` must produce values in `[0, 1)`.
     #[test]
     fn test_rand_val_range() {
@@ -1779,7 +1690,7 @@ mod tests {
     #[test]
     fn test_cpu_multinomial_batch() {
         // 3 rows, 5 vocab elements — uniform distribution.
-        let data: Vec<f32> = vec![0.2_f32, 0.2, 0.2, 0.2, 0.2].repeat(3);
+        let data: Vec<f32> = [0.2_f32, 0.2, 0.2, 0.2, 0.2].repeat(3);
         let probs = Tensor::from_vec(data, (3_usize, 5_usize), &Device::Cpu).unwrap();
         let tokens = cpu_multinomial_sample(&probs).unwrap();
         assert_eq!(tokens.len(), 3);

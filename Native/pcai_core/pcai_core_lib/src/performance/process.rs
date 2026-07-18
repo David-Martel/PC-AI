@@ -263,7 +263,7 @@ pub fn get_top_processes(top_n: usize, sort_by: &str) -> (ProcessStats, Vec<Proc
                 .partial_cmp(&a.cpu_usage)
                 .unwrap_or(std::cmp::Ordering::Equal)
         }),
-        _ => processes.sort_by(|a, b| b.memory_bytes.cmp(&a.memory_bytes)),
+        _ => processes.sort_by_key(|p| std::cmp::Reverse(p.memory_bytes)),
     }
 
     processes.truncate(top_n);

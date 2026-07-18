@@ -140,7 +140,7 @@ pub fn vram_snapshot_all() -> Result<Vec<GpuVramSnapshot>> {
             .collect();
 
         // Sort by VRAM usage descending so top consumers appear first.
-        processes.sort_by(|a, b| b.used_mb.cmp(&a.used_mb));
+        processes.sort_by_key(|p| std::cmp::Reverse(p.used_mb));
 
         snapshots.push(GpuVramSnapshot {
             index: idx,

@@ -10,7 +10,7 @@
 
 use std::ffi::{CStr, CString};
 
-use pcai_inference::ffi::{
+use pcai_inference_lib::ffi::{
     pcai_init, pcai_last_error, pcai_last_error_code, pcai_shutdown, pcai_version, PcaiErrorCode,
 };
 
@@ -50,7 +50,7 @@ fn test_not_initialized_error() {
 
     #[cfg(feature = "ffi")]
     {
-        use pcai_inference::ffi::pcai_load_model;
+        use pcai_inference_lib::ffi::pcai_load_model;
         let result = pcai_load_model(path.as_ptr(), 0);
         assert_eq!(result, -1);
 
@@ -72,7 +72,7 @@ fn test_not_initialized_error() {
 #[cfg(feature = "llamacpp")]
 mod llamacpp_error_tests {
     use super::*;
-    use pcai_inference::ffi::{pcai_generate, pcai_load_model};
+    use pcai_inference_lib::ffi::{pcai_generate, pcai_load_model};
 
     /// Test error for model not found
     #[test]
@@ -251,7 +251,7 @@ fn test_error_codes() {
 #[cfg(feature = "llamacpp")]
 mod error_code_tests {
     use super::*;
-    use pcai_inference::ffi::{pcai_generate, pcai_load_model};
+    use pcai_inference_lib::ffi::{pcai_generate, pcai_load_model};
 
     /// Test NotInitialized error code
     #[test]
@@ -313,7 +313,7 @@ mod error_code_tests {
 /// Test prompt length validation
 #[test]
 fn test_prompt_too_large() {
-    use pcai_inference::ffi::pcai_generate;
+    use pcai_inference_lib::ffi::pcai_generate;
 
     pcai_shutdown();
 

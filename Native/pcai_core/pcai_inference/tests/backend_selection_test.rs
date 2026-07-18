@@ -1,6 +1,6 @@
 //! Unit tests for backend selection logic
 
-use pcai_inference::backends::{BackendType, FinishReason, GenerateRequest, GenerateResponse};
+use pcai_inference_lib::backends::{FinishReason, GenerateRequest, GenerateResponse};
 
 #[test]
 fn test_generate_request_defaults() {
@@ -61,8 +61,8 @@ fn test_generate_response_creation() {
 
 #[cfg(feature = "llamacpp")]
 mod llamacpp_tests {
-    use pcai_inference::backends::llamacpp::LlamaCppBackend;
-    use pcai_inference::backends::InferenceBackend;
+    use pcai_inference_lib::backends::llamacpp::LlamaCppBackend;
+    use pcai_inference_lib::backends::InferenceBackend;
 
     #[test]
     fn test_backend_creation() {
@@ -80,7 +80,7 @@ mod llamacpp_tests {
 
     #[test]
     fn test_backend_type_creation() {
-        use pcai_inference::backends::BackendType;
+        use pcai_inference_lib::backends::BackendType;
 
         let backend = BackendType::LlamaCpp.create();
         assert!(backend.is_ok(), "Should create llamacpp backend");
@@ -90,8 +90,8 @@ mod llamacpp_tests {
 
 #[cfg(feature = "mistralrs-backend")]
 mod mistralrs_tests {
-    use pcai_inference::backends::mistralrs::MistralRsBackend;
-    use pcai_inference::backends::InferenceBackend;
+    use pcai_inference_lib::backends::mistralrs::MistralRsBackend;
+    use pcai_inference_lib::backends::InferenceBackend;
 
     #[test]
     fn test_backend_creation() {
@@ -102,7 +102,7 @@ mod mistralrs_tests {
 
     #[test]
     fn test_backend_type_creation() {
-        use pcai_inference::backends::BackendType;
+        use pcai_inference_lib::backends::BackendType;
 
         let backend = BackendType::MistralRs.create();
         assert!(backend.is_ok(), "Should create mistralrs backend");
@@ -112,18 +112,17 @@ mod mistralrs_tests {
 
 #[test]
 fn test_backend_trait_object_safety() {
-    // Verify that InferenceBackend can be used as trait object
-    use pcai_inference::backends::InferenceBackend;
+    // Verify that InferenceBackend can be used as a trait object.
+    // This test passes if it compiles.
+    use pcai_inference_lib::backends::InferenceBackend;
 
-    fn assert_object_safe(_: &dyn InferenceBackend) {}
-
-    // This test passes if it compiles
+    let _: Option<&dyn InferenceBackend> = None;
 }
 
 #[cfg(all(feature = "llamacpp", feature = "mistralrs-backend"))]
 #[test]
 fn test_backend_switching() {
-    use pcai_inference::backends::BackendType;
+    use pcai_inference_lib::backends::BackendType;
 
     let llamacpp = BackendType::LlamaCpp.create().expect("backend creation should succeed");
     let mistralrs = BackendType::MistralRs

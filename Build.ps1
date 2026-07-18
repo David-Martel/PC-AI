@@ -801,14 +801,44 @@ function Add-CargoDependencyFlags {
         return $CargoArgs
     }
 
-    if ($script:DependencyStrategy -eq 'locked') {
-        return $CargoArgs + @('--locked')
+    $flag = switch ($script:DependencyStrategy) {
+        'locked' { '--locked' }
+        'frozen' { '--frozen' }
+        default { $null }
     }
-    if ($script:DependencyStrategy -eq 'frozen') {
-        return $CargoArgs + @('--frozen')
+    if (-not $flag) {
+        return $CargoArgs
     }
 
-    return $CargoArgs
+    # Cargo-level flags MUST precede the '--' separator. Anything after '--' is
+    # forwarded verbatim to the underlying tool (rustc / clippy-driver), which
+    # rejects '--locked'/'--frozen' and fails the command in <1s. Commands like
+    # `clippy ... -- -D warnings` therefore need the flag inserted before '--',
+    # not appended. (Root cause of the green-CI-blocking Clippy failure.)
+    $sepIndex = [array]::IndexOf($CargoArgs, '--')
+    if ($sepIndex -gt 0) {
+        $before = @($CargoArgs[0..($sepIndex - 1)])
+        $after = @($CargoArgs[$sepIndex..($CargoArgs.Count - 1)])
+        return $before + @($flag) + $after
+    }
+
+    return $CargoArgs + @($flag)
+}
+
+function Write-RustBuildFailureLog {
+    param([Parameter(Mandatory)][string]$LogFile)
+
+    # cargo output is Tee'd to a log file and suppressed from the console during
+    # the run. On failure, surface the tail so CI consoles (and local runs) show
+    # the real compiler/clippy error instead of only "command N failed".
+    if (Test-Path $LogFile) {
+        $tail = Get-Content -LiteralPath $LogFile -Tail 60 -ErrorAction SilentlyContinue
+        if ($tail) {
+            Write-Host '  ---- cargo output (tail) ----' -ForegroundColor DarkYellow
+            $tail | ForEach-Object { Write-Host "  $_" }
+            Write-Host "  ---- (full log: $LogFile) ----" -ForegroundColor DarkYellow
+        }
+    }
 }
 
 function Invoke-RustBuildCommand {
@@ -842,7 +872,9 @@ function Invoke-RustBuildCommand {
         }
 
         & $shellExe @wrapperArgs 2>&1 | Tee-Object -FilePath $LogFile | Out-Null
-        return ($LASTEXITCODE -eq 0)
+        $succeeded = ($LASTEXITCODE -eq 0)
+        if (-not $succeeded) { Write-RustBuildFailureLog -LogFile $LogFile }
+        return $succeeded
     }
 
     Push-Location $Path
@@ -865,13 +897,16 @@ function Invoke-RustBuildCommand {
                 $effectivePreflightArgs = Add-CargoDependencyFlags -CargoArgs $preflightArgs
                 & cargo @effectivePreflightArgs 2>&1 | Tee-Object -FilePath $LogFile | Out-Null
                 if ($LASTEXITCODE -ne 0) {
+                    Write-RustBuildFailureLog -LogFile $LogFile
                     return $false
                 }
             }
         }
 
         & cargo @effectiveCargoArgs 2>&1 | Tee-Object -FilePath $LogFile | Out-Null
-        return ($LASTEXITCODE -eq 0)
+        $succeeded = ($LASTEXITCODE -eq 0)
+        if (-not $succeeded) { Write-RustBuildFailureLog -LogFile $LogFile }
+        return $succeeded
     } finally {
         Pop-Location
     }

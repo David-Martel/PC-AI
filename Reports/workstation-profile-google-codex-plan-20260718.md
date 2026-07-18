@@ -136,7 +136,7 @@ recoverable.
 
 ```powershell
 Get-GoogleAccessAuthenticationStatus -Json
-Set-GcpProfile personal
+Set-ActiveGcpProfile personal
 gcloud auth list
 gcloud config get-value project
 

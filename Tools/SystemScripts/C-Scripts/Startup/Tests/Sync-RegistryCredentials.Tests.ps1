@@ -22,6 +22,7 @@ BeforeAll {
 
     # Mock Bitwarden item structure
     function New-MockBitwardenItem {
+        [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '', Justification = 'test fixture, not a real secret')]
         param(
             [string]$Name = 'Test Item',
             [string]$Username = 'testuser',

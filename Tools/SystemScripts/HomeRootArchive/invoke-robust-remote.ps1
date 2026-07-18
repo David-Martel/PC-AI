@@ -1,6 +1,7 @@
 # invoke-robust-remote.ps1
 # Robust remote command execution with automatic fallback
 
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '', Justification = 'Purpose-built remote command executor: $Command is an arbitrary caller-supplied command line run on the remote host via Invoke-Command; there is no fixed command+args to refactor to the call operator.')]
 param(
     [Parameter(Mandatory=$true)]
     [string]$Command,

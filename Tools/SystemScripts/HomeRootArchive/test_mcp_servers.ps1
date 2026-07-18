@@ -94,8 +94,7 @@ foreach ($serverName in $servers.PSObject.Properties.Name) {
         Write-Host "Testing server startup..." -ForegroundColor Yellow
         try {
             # Test with timeout using Claude CLI
-            $testCmd = "claude --mcp-config `"$ConfigPath`" --timeout 10 -p `"Test connectivity to $serverName server only. List available tools.`""
-            $testOutput = Invoke-Expression $testCmd 2>&1
+            $testOutput = & claude --mcp-config $ConfigPath --timeout 10 -p "Test connectivity to $serverName server only. List available tools." 2>&1
 
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "✓ Server startup test passed" -ForegroundColor Green

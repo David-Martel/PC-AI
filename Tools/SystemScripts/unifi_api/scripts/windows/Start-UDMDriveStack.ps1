@@ -16,6 +16,7 @@ The long CLI form `--DryRun` is also accepted.
 .PARAMETER Help
 Print script help and exit. The aliases `-h` and `--help` are also accepted.
 #>
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '', Justification = 'Entry-point script: the SMB credential user/password are consumed by the native cmdkey /add /user /pass CLI, which requires plaintext values; SecureString cannot be passed to cmdkey. SmbCredentialUser is a username, not a secret.')]
 param(
     [string]$TargetHost = "192.168.1.1",
     [string]$SmbShareName = "udmpro_data",
@@ -368,6 +369,7 @@ function Resolve-IdentityFile {
 }
 
 function Test-SmbCredentialAvailable {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '', Justification = 'Only tests whether a plaintext SMB password was supplied vs. already stored in Windows Credential Manager; the value flows from the entry-point param that the native cmdkey CLI requires as plaintext.')]
     param(
         [string]$HostName,
         [string]$User,
@@ -592,6 +594,7 @@ function Ensure-SmbPathLink {
 }
 
 function Ensure-SmbCredential {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '', Justification = 'Password is passed to the native cmdkey /add /pass: CLI, which requires a plaintext value; SecureString cannot be supplied to cmdkey.')]
     param(
         [string]$TargetHost,
         [string]$User,

@@ -254,7 +254,7 @@ $tests = @(
 
 foreach ($test in $tests) {
     try {
-        $output = Invoke-Expression "$($test.Cmd) $($test.Args)" 2>&1
+        $output = & $test.Cmd $test.Args 2>&1
         $match = $output | Select-String $test.Pattern | Select-Object -First 1
         if ($match) {
             Write-ColoredOutput "  ✓ $($test.Name): $match" "Green"

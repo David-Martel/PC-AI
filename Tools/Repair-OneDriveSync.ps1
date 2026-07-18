@@ -289,6 +289,7 @@ function Get-SyncRootInventory {
 }
 
 function Invoke-OneDriveInstaller {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string]$Path,
         [Parameter(Mandatory)] [object]$Actions
@@ -319,6 +320,7 @@ function Invoke-OneDriveInstaller {
 }
 
 function Invoke-OneDriveInteractiveTask {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string]$Executable,
         [AllowNull()] [string]$Arguments,

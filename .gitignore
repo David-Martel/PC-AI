@@ -23,6 +23,11 @@ Hardware-Diagnostics-Report.txt
 Reports/*.addr
 Reports/*.port
 
+# Cleanup-archive dry-run manifests + rclone transfer logs (transient; keep the
+# executed .jsonl manifest as evidence, drop the dry-run scratch and logs)
+Reports/*.dryrun.jsonl
+Reports/rclone-*.log
+
 # IDE
 .vscode/
 !.vscode/settings.json

@@ -45,7 +45,7 @@ nvml = ["dep:nvml-wrapper"]
 
 [target.'cfg(windows)'.dependencies]
 winreg.workspace = true
-windows = { version = "0.58", features = [
+windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_System_SystemInformation",
     "Win32_System_Performance",

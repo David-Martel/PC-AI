@@ -2,8 +2,8 @@
 //!
 //! This library provides a C-compatible FFI interface for deleting Windows filenames
 //! that standard tooling cannot remove (reserved device aliases, stray literal `$null`
-//! artifacts, and shell path-mangling artifacts), using parallel file system traversal
-//! and direct Win32 API calls.
+//! artifacts, shell path-mangling artifacts, and stray `$variable` artifacts),
+//! using parallel file system traversal and direct Win32 API calls.
 //!
 //! # Architecture
 //! - Uses `ignore` crate for multi-threaded directory walking (ripgrep's engine)
@@ -12,17 +12,26 @@
 //! - Thread-safe collection of per-entry results (deleted / would-delete / skipped)
 //!
 //! # Match families
-//! A scan can combine any of three independent name families:
+//! A scan can combine any of four independent name families:
 //! - **Reserved device names**: `nul`, `con`, `prn`, `aux`, `com1-9`, `lpt1-9`
 //! - **Literal `$null`**: real files/dirs whose visible leaf is exactly `$null`
-//!   (case-insensitive, trailing dots/spaces ignored). Files are only deleted when
-//!   zero-byte unless `allow_nonempty` is set (see [`NukeOptions`]).
+//!   (case-insensitive, trailing dots/spaces ignored).
 //! - **Path-mangle artifacts**: leaf names ending in `;<letter>` or `;<letter>:`,
 //!   produced by shells that mis-concatenate a path.
+//! - **Leading-`$` artifacts**: leaf names starting with `$` other than `$null`
+//!   itself (e.g. `$runDir`, `$out`, `$local`, `$archiveDir`), produced when a
+//!   PowerShell `$variable` name is stripped or misinterpreted in a bash context.
+//!
+//! `$null` and leading-`$` matches are both "stray shell-variable artifact"
+//! families: a matching *file* is only deleted when zero-byte unless
+//! `allow_nonempty` is set (see [`NukeOptions`]), and a non-empty match is
+//! reported with its size and a content preview so an operator can judge it.
+//! Reserved-device and path-mangle files carry no such gate.
 //!
 //! Directories are never touched unless `include_dirs` is set, and even then only an
 //! *empty* directory is ever removed (`RemoveDirectoryW` itself refuses non-empty
-//! directories - we never recurse to empty one out).
+//! directories - we never recurse to empty one out) - this is the safety gate for
+//! all four families' directory matches alike.
 //!
 //! # Safety
 //! This library uses unsafe code for FFI and Win32 API calls. All unsafe blocks
@@ -88,16 +97,21 @@ impl ScanStats {
 /// - `match_reserved` - include the reserved-device-name family
 /// - `match_dollar_null` - include the literal `$null` family
 /// - `match_path_mangle` - include the path-mangle-artifact family
+/// - `match_dollar_prefix` - include the leading-`$` shell-variable-artifact
+///   family (e.g. `$runDir`, `$out`) produced when a PowerShell `$variable`
+///   name is stripped/misinterpreted in a bash context
 /// - `include_dirs` - also consider empty directories as deletion candidates
 /// - `dry_run` - walk and match, but never delete anything
-/// - `allow_nonempty` - allow deleting `$null` files larger than zero bytes
-///   (only meaningful when `match_dollar_null` is set)
+/// - `allow_nonempty` - allow deleting non-zero-byte files matched by
+///   `match_dollar_null` or `match_dollar_prefix` (both are "stray shell
+///   artifact" families gated by the same zero-byte content-safety check)
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct NukeOptions {
     pub match_reserved: u8,
     pub match_dollar_null: u8,
     pub match_path_mangle: u8,
+    pub match_dollar_prefix: u8,
     pub include_dirs: u8,
     pub dry_run: u8,
     pub allow_nonempty: u8,
@@ -124,6 +138,7 @@ pub unsafe extern "C" fn nuke_reserved_files(root_ptr: *const c_char) -> ScanSta
             match_reserved: 1,
             match_dollar_null: 0,
             match_path_mangle: 0,
+            match_dollar_prefix: 0,
             include_dirs: 0,
             dry_run: 0,
             allow_nonempty: 0,
@@ -155,6 +170,7 @@ pub unsafe extern "C" fn nuke_dollar_null_files(root_ptr: *const c_char) -> Scan
             match_reserved: 0,
             match_dollar_null: 1,
             match_path_mangle: 0,
+            match_dollar_prefix: 0,
             include_dirs: 0,
             dry_run: 0,
             allow_nonempty: 0,
@@ -292,6 +308,7 @@ enum MatchFamily {
     Reserved,
     DollarNull,
     PathMangle,
+    DollarPrefix,
 }
 
 impl MatchFamily {
@@ -300,7 +317,18 @@ impl MatchFamily {
             MatchFamily::Reserved => "reserved",
             MatchFamily::DollarNull => "dollar_null",
             MatchFamily::PathMangle => "path_mangle",
+            MatchFamily::DollarPrefix => "dollar_prefix",
         }
+    }
+
+    /// Whether files in this family are subject to the zero-byte content
+    /// safety gate (see [`content_gate_skip_reason`]). Both `$null` and the
+    /// broader leading-`$` family are stray shell-variable artifacts where a
+    /// non-empty match may hold data worth reviewing before deletion;
+    /// `Reserved` and `PathMangle` are not shell-variable artifacts and are
+    /// not gated.
+    const fn needs_content_gate(self) -> bool {
+        matches!(self, MatchFamily::DollarNull | MatchFamily::DollarPrefix)
     }
 }
 
@@ -310,11 +338,12 @@ struct ActiveFamilies {
     reserved: bool,
     dollar_null: bool,
     path_mangle: bool,
+    dollar_prefix: bool,
 }
 
 impl ActiveFamilies {
     fn any(self) -> bool {
-        self.reserved || self.dollar_null || self.path_mangle
+        self.reserved || self.dollar_null || self.path_mangle || self.dollar_prefix
     }
 }
 
@@ -323,14 +352,16 @@ fn resolve_families(options: &NukeOptions) -> ActiveFamilies {
         reserved: options.match_reserved != 0,
         dollar_null: options.match_dollar_null != 0,
         path_mangle: options.match_path_mangle != 0,
+        dollar_prefix: options.match_dollar_prefix != 0,
     }
 }
 
 /// Returns the family a leaf filename belongs to, checking only families enabled
 /// in `families`. Families are checked in a fixed order so a name matching more
-/// than one narrow rule reports the first (this cannot currently happen given the
-/// three families are mutually exclusive by construction, but a fixed order keeps
-/// results deterministic if that ever changes).
+/// than one narrow rule reports the first; in particular `$null` is checked
+/// before the broader `dollar_prefix` family so the two never double-report
+/// (`matches_dollar_prefix` also explicitly excludes `$null` for the same
+/// reason, so this holds even when `dollar_null` is disabled).
 fn classify(file_name: &OsStr, families: ActiveFamilies) -> Option<MatchFamily> {
     if families.reserved && matches_reserved(file_name) {
         return Some(MatchFamily::Reserved);
@@ -340,6 +371,9 @@ fn classify(file_name: &OsStr, families: ActiveFamilies) -> Option<MatchFamily> 
     }
     if families.path_mangle && matches_path_mangle(file_name) {
         return Some(MatchFamily::PathMangle);
+    }
+    if families.dollar_prefix && matches_dollar_prefix(file_name) {
+        return Some(MatchFamily::DollarPrefix);
     }
     None
 }
@@ -379,15 +413,36 @@ fn matches_path_mangle(file_name: &OsStr) -> bool {
     semicolon == b';' && last.is_ascii_alphabetic()
 }
 
-/// Returns a skip reason when a `$null` file of the given `size` must NOT be
-/// deleted under the current options (the zero-byte safety gate). Returns `None`
-/// when the file is eligible for deletion.
-fn dollar_null_skip_reason(size: u64, allow_nonempty: bool) -> Option<String> {
+/// Returns whether `file_name` looks like a stray shell-variable artifact: a
+/// leaf name starting with `$` (e.g. `$runDir`, `$out`, `$local`,
+/// `$archiveDir`), produced when a PowerShell `$variable` name is stripped or
+/// misinterpreted when run in a bash context. Deliberately excludes exact
+/// `$null` matches (case-insensitive, trailing dots/spaces ignored) so this
+/// family never overlaps with the dedicated [`MatchFamily::DollarNull`]
+/// family, even when `dollar_null` is disabled and this is the only active
+/// leading-`$` rule.
+fn matches_dollar_prefix(file_name: &OsStr) -> bool {
+    let Some(name) = file_name.to_str() else {
+        return false;
+    };
+    if !name.starts_with('$') || name.len() <= 1 {
+        return false;
+    }
+    !name
+        .trim_end_matches(['.', ' '])
+        .eq_ignore_ascii_case("$null")
+}
+
+/// Returns a skip reason when a file of the given `size`, belonging to a
+/// family gated by [`MatchFamily::needs_content_gate`], must NOT be deleted
+/// under the current options (the zero-byte safety gate). Returns `None` when
+/// the file is eligible for deletion.
+fn content_gate_skip_reason(size: u64, allow_nonempty: bool) -> Option<String> {
     if size == 0 || allow_nonempty {
         None
     } else {
         Some(format!(
-            "non-empty $null file ({size} bytes); rerun with --allow-nonempty to delete"
+            "non-empty file ({size} bytes); rerun with --allow-nonempty to delete"
         ))
     }
 }
@@ -732,13 +787,15 @@ fn process_entry(
     let kind = if is_dir { "dir" } else { "file" };
     let path_display = entry.path().display().to_string();
 
-    // Zero-byte safety gate: only applies to real (non-directory) $null files.
+    // Zero-byte safety gate: only applies to real (non-directory) files in a
+    // family that needs it ($null and the broader leading-$ family - both are
+    // stray shell-variable artifacts where content is worth reviewing).
     // Directories get an equivalent safety net for free: RemoveDirectoryW simply
     // refuses to remove a non-empty directory.
     let mut size: Option<u64> = None;
     let mut content_preview: Option<String> = None;
 
-    if family == MatchFamily::DollarNull && is_file {
+    if family.needs_content_gate() && is_file {
         match entry.metadata() {
             Ok(meta) => {
                 let len = meta.len();
@@ -746,7 +803,7 @@ fn process_entry(
                 if len > 0 {
                     content_preview = read_content_preview(entry.path());
                 }
-                if let Some(reason) = dollar_null_skip_reason(len, options.allow_nonempty != 0) {
+                if let Some(reason) = content_gate_skip_reason(len, options.allow_nonempty != 0) {
                     collector.push_skipped(ActionEntry {
                         path: path_display,
                         family: family.as_str(),
@@ -938,11 +995,30 @@ mod tests {
     }
 
     #[test]
+    fn dollar_prefix_matches_leading_dollar_names() {
+        assert!(matches_dollar_prefix(OsStr::new("$runDir")));
+        assert!(matches_dollar_prefix(OsStr::new("$out")));
+        assert!(matches_dollar_prefix(OsStr::new("$local")));
+        assert!(matches_dollar_prefix(OsStr::new("$archiveDir")));
+    }
+
+    #[test]
+    fn dollar_prefix_excludes_dollar_null_and_lookalikes() {
+        // $null is the dedicated, narrower family - never double-classified here.
+        assert!(!matches_dollar_prefix(OsStr::new("$null")));
+        assert!(!matches_dollar_prefix(OsStr::new("$NULL. ")));
+        assert!(!matches_dollar_prefix(OsStr::new("$")));
+        assert!(!matches_dollar_prefix(OsStr::new("plainfile.txt")));
+        assert!(!matches_dollar_prefix(OsStr::new("money$sign")));
+    }
+
+    #[test]
     fn classify_respects_active_families() {
         let all = ActiveFamilies {
             reserved: true,
             dollar_null: true,
             path_mangle: true,
+            dollar_prefix: true,
         };
         assert_eq!(
             classify(OsStr::new("nul"), all),
@@ -956,12 +1032,17 @@ mod tests {
             classify(OsStr::new("foo;C"), all),
             Some(MatchFamily::PathMangle)
         );
+        assert_eq!(
+            classify(OsStr::new("$runDir"), all),
+            Some(MatchFamily::DollarPrefix)
+        );
         assert_eq!(classify(OsStr::new("readme.txt"), all), None);
 
         let none = ActiveFamilies {
             reserved: false,
             dollar_null: false,
             path_mangle: false,
+            dollar_prefix: false,
         };
         assert_eq!(classify(OsStr::new("nul"), none), None);
         assert!(!none.any());
@@ -974,30 +1055,53 @@ mod tests {
             reserved: false,
             dollar_null: false,
             path_mangle: true,
+            dollar_prefix: false,
         };
         assert_eq!(classify(OsStr::new("$null"), only_path_mangle), None);
         assert_eq!(
             classify(OsStr::new("foo;C"), only_path_mangle),
             Some(MatchFamily::PathMangle)
         );
+
+        // $null stays with the dedicated family even when dollar_prefix alone
+        // is active - dollar_prefix's own exclusion prevents any overlap.
+        let only_dollar_prefix = ActiveFamilies {
+            reserved: false,
+            dollar_null: false,
+            path_mangle: false,
+            dollar_prefix: true,
+        };
+        assert_eq!(classify(OsStr::new("$null"), only_dollar_prefix), None);
+        assert_eq!(
+            classify(OsStr::new("$out"), only_dollar_prefix),
+            Some(MatchFamily::DollarPrefix)
+        );
+    }
+
+    #[test]
+    fn needs_content_gate_is_scoped_to_shell_variable_families() {
+        assert!(MatchFamily::DollarNull.needs_content_gate());
+        assert!(MatchFamily::DollarPrefix.needs_content_gate());
+        assert!(!MatchFamily::Reserved.needs_content_gate());
+        assert!(!MatchFamily::PathMangle.needs_content_gate());
     }
 
     #[test]
     fn zero_byte_gate_allows_empty_files() {
-        assert!(dollar_null_skip_reason(0, false).is_none());
-        assert!(dollar_null_skip_reason(0, true).is_none());
+        assert!(content_gate_skip_reason(0, false).is_none());
+        assert!(content_gate_skip_reason(0, true).is_none());
     }
 
     #[test]
     fn zero_byte_gate_blocks_nonempty_by_default() {
-        let reason = dollar_null_skip_reason(877, false);
+        let reason = content_gate_skip_reason(877, false);
         assert!(reason.is_some());
         assert!(reason.unwrap().contains("877 bytes"));
     }
 
     #[test]
     fn zero_byte_gate_allow_nonempty_overrides() {
-        assert!(dollar_null_skip_reason(877, true).is_none());
+        assert!(content_gate_skip_reason(877, true).is_none());
     }
 
     #[test]
@@ -1048,6 +1152,7 @@ mod tests {
             match_reserved: 1,
             match_dollar_null: 0,
             match_path_mangle: 1,
+            match_dollar_prefix: 1,
             include_dirs: 0,
             dry_run: 0,
             allow_nonempty: 0,
@@ -1056,6 +1161,7 @@ mod tests {
         assert!(families.reserved);
         assert!(!families.dollar_null);
         assert!(families.path_mangle);
+        assert!(families.dollar_prefix);
     }
 
     /// Minimal RAII helper for a scratch directory under `target/`, cleaned up

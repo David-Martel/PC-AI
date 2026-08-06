@@ -40,6 +40,7 @@ internal struct NukeOptions
     public byte MatchReserved;
     public byte MatchDollarNull;
     public byte MatchPathMangle;
+    public byte MatchDollarPrefix;
     public byte IncludeDirs;
     public byte DryRun;
     public byte AllowNonempty;
@@ -234,6 +235,7 @@ internal static class Program
         public bool Reserved;
         public bool DollarNull;
         public bool PathMangle;
+        public bool DollarPrefix;
         public bool All;
         public bool IncludeDirs;
         public bool DryRun;
@@ -267,18 +269,20 @@ internal static class Program
         // flag at all) preserves the original default: reserved-device names
         // only. --dollar-null-only alone keeps its historical "only" behavior
         // (reserved is NOT auto-included). Any explicit combination of
-        // --reserved / --dollar-null-only / --path-mangle composes exactly
-        // the families named. --all is shorthand for all three.
-        bool anyFamilyFlag = parsed.Reserved || parsed.DollarNull || parsed.PathMangle || parsed.All;
+        // --reserved / --dollar-null-only / --path-mangle / --dollar-prefix
+        // composes exactly the families named. --all is shorthand for all four.
+        bool anyFamilyFlag = parsed.Reserved || parsed.DollarNull || parsed.PathMangle || parsed.DollarPrefix || parsed.All;
         bool finalReserved = parsed.All || parsed.Reserved || !anyFamilyFlag;
         bool finalDollarNull = parsed.All || parsed.DollarNull;
         bool finalPathMangle = parsed.All || parsed.PathMangle;
+        bool finalDollarPrefix = parsed.All || parsed.DollarPrefix;
 
         var options = new NukeOptions
         {
             MatchReserved = (byte)(finalReserved ? 1 : 0),
             MatchDollarNull = (byte)(finalDollarNull ? 1 : 0),
             MatchPathMangle = (byte)(finalPathMangle ? 1 : 0),
+            MatchDollarPrefix = (byte)(finalDollarPrefix ? 1 : 0),
             IncludeDirs = (byte)(parsed.IncludeDirs ? 1 : 0),
             DryRun = (byte)(parsed.DryRun ? 1 : 0),
             AllowNonempty = (byte)(parsed.AllowNonempty ? 1 : 0),
@@ -288,7 +292,7 @@ internal static class Program
         var result = new ScanResult
         {
             Target = targetPath,
-            Operation = BuildOperationLabel(finalReserved, finalDollarNull, finalPathMangle, parsed.IncludeDirs, parsed.AllowNonempty),
+            Operation = BuildOperationLabel(finalReserved, finalDollarNull, finalPathMangle, finalDollarPrefix, parsed.IncludeDirs, parsed.AllowNonempty),
             Timestamp = DateTime.UtcNow,
             DryRun = parsed.DryRun,
         };
@@ -406,6 +410,9 @@ internal static class Program
                 case "--path-mangle":
                     parsed.PathMangle = true;
                     break;
+                case "--dollar-prefix":
+                    parsed.DollarPrefix = true;
+                    break;
                 case "--reserved":
                     parsed.Reserved = true;
                     break;
@@ -447,7 +454,7 @@ internal static class Program
     /// <summary>
     /// Builds a human-readable operation label from the resolved options.
     /// </summary>
-    private static string BuildOperationLabel(bool reserved, bool dollarNull, bool pathMangle, bool includeDirs, bool allowNonempty)
+    private static string BuildOperationLabel(bool reserved, bool dollarNull, bool pathMangle, bool dollarPrefix, bool includeDirs, bool allowNonempty)
     {
         var families = new List<string>();
         if (reserved)
@@ -463,6 +470,11 @@ internal static class Program
         if (pathMangle)
         {
             families.Add("PathMangle");
+        }
+
+        if (dollarPrefix)
+        {
+            families.Add("DollarPrefix");
         }
 
         string label = families.Count > 0 ? string.Join("+", families) : "None";
@@ -498,24 +510,32 @@ internal static class Program
                                      deleted by default; see --allow-nonempty.
               --path-mangle          Shell path-mangle artifacts: leaf names ending in
                                      ";<letter>" or ";<letter>:" (e.g. "foo;C").
-              --all                  Shorthand for all three families above.
+              --dollar-prefix         Leading-"$" shell-variable artifacts other than
+                                      $null (e.g. "$runDir", "$out", "$archiveDir"),
+                                      produced when a PowerShell $variable name is
+                                      stripped in a bash context. Zero-byte files are
+                                      deleted by default; see --allow-nonempty.
+              --all                  Shorthand for all four families above.
 
             Modifiers:
               --include-dirs         Also remove matching directories, but ONLY if they
                                       are empty (never recursive; RemoveDirectoryW itself
                                       refuses non-empty directories).
               --dry-run, -n           Preview only - walk and match, delete nothing.
-              --allow-nonempty        Allow deleting $null files larger than zero bytes
-                                      (dollar-null family only; default is zero-byte-only).
+              --allow-nonempty        Allow deleting non-zero-byte files matched by
+                                      --dollar-null-only or --dollar-prefix (default is
+                                      zero-byte-only for both).
 
             Examples:
               NukeNul.exe C:\Path\To\Scan
               NukeNul.exe --dry-run --all C:\Path\To\Scan
               NukeNul.exe --dollar-null-only --path-mangle --include-dirs C:\Path
+              NukeNul.exe --dollar-prefix --include-dirs C:\Path
 
             Behavior change: --dollar-null-only now deletes ONLY zero-byte $null files
             by default (previously deleted files of any size). Pass --allow-nonempty to
-            restore the old behavior for a given run.
+            restore the old behavior for a given run. The same zero-byte-only default
+            applies to the new --dollar-prefix family.
             """);
     }
 

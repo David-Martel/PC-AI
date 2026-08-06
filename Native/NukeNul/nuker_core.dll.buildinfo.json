@@ -1,0 +1,16 @@
+{
+  "artifactKind": "native-rust",
+  "fileName": "nuker_core.dll",
+  "destinationPath": "C:\\codedev\\nukenul\\nuker_core.dll",
+  "sourcePath": "T:\\RustCache\\cargo-target\\release\\nuker_core.dll",
+  "sizeBytes": 1180160,
+  "sha256": "BF5969E50E6F08198BE58B889355BF3A60CD0B7791CBABF64F60CAEB82997B4D",
+  "copiedUtc": "2026-03-11T10:27:51.8724551Z",
+  "version": "0.1.0.80+5dc05d8.dirty",
+  "semver": "0.1.0",
+  "releaseTag": "v0.1.0",
+  "fileVersion": "0.1.0.80",
+  "assemblyVersion": "0.1.0.0",
+  "informationalVersion": "0.1.0.80+5dc05d8.dirty (v0.1.0)",
+  "gitHashShort": "5dc05d8"
+}

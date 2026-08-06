@@ -602,7 +602,7 @@ dependencies = [
  "gemm 0.19.0",
  "half",
  "libm",
- "memmap2 0.9.10",
+ "memmap2 0.9.11",
  "num-traits",
  "num_cpus",
  "rand 0.9.3",
@@ -628,7 +628,7 @@ dependencies = [
  "gemm 0.19.0",
  "half",
  "libm",
- "memmap2 0.9.10",
+ "memmap2 0.9.11",
  "num-traits",
  "num_cpus",
  "rand 0.9.3",
@@ -3351,9 +3351,9 @@ dependencies = [
 
 [[package]]
 name = "memmap2"
-version = "0.9.10"
+version = "0.9.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "714098028fe011992e1c3962653c96b2d578c4b4bce9036e15ff220319b1e0e3"
+checksum = "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0"
 dependencies = [
  "libc",
  "stable_deref_trait",
@@ -3638,7 +3638,7 @@ dependencies = [
  "half",
  "hf-hub 0.4.3",
  "lazy_static",
- "memmap2 0.9.10",
+ "memmap2 0.9.11",
  "paste",
  "rayon",
  "regex",
@@ -4215,7 +4215,7 @@ dependencies = [
  "candle-transformers",
  "hf-hub 0.5.0",
  "image",
- "memmap2 0.9.10",
+ "memmap2 0.9.11",
  "ort",
  "pcai-media-model",
  "pcai_core_lib",
@@ -4306,7 +4306,7 @@ dependencies = [
  "ignore",
  "libc",
  "log",
- "memmap2 0.9.10",
+ "memmap2 0.9.11",
  "num_cpus",
  "nvml-wrapper",
  "parking_lot",
@@ -4590,7 +4590,7 @@ dependencies = [
  "byteorder",
  "candle-core 0.9.2",
  "candle-nn 0.9.2",
- "memmap2 0.9.10",
+ "memmap2 0.9.11",
  "peft-rs",
  "serde",
  "serde_json",
@@ -5145,7 +5145,7 @@ dependencies = [
  "candle-transformers",
  "clap",
  "itertools 0.14.0",
- "memmap2 0.9.10",
+ "memmap2 0.9.11",
  "mimalloc",
  "rand 0.8.6",
  "rust-functiongemma-core",
@@ -6797,7 +6797,7 @@ dependencies = [
  "gemm 0.18.2",
  "half",
  "libloading 0.8.9",
- "memmap2 0.9.10",
+ "memmap2 0.9.11",
  "num",
  "num-traits",
  "num_cpus",

@@ -488,6 +488,18 @@ fn delete_dir_win32(path: &Path) -> Result<(), DirDeleteOutcome> {
     }
 }
 
+/// Reports whether a directory is empty, for the `--dry-run` preview path. This
+/// mirrors the real safety gate (`RemoveDirectoryW` refuses non-empty
+/// directories) without actually attempting a delete.
+fn dir_is_empty(path: &Path) -> Result<bool, String> {
+    let extended =
+        to_extended_path(path).ok_or_else(|| "path contains invalid UTF-8".to_string())?;
+    match std::fs::read_dir(extended) {
+        Ok(mut entries) => Ok(entries.next().is_none()),
+        Err(e) => Err(format!("failed to read directory: {e}")),
+    }
+}
+
 /// Reads up to [`CONTENT_PREVIEW_MAX_BYTES`] of `path` for operator review,
 /// lossily decoded as UTF-8. Returns `None` if the file cannot be opened or read
 /// (this is best-effort auditing, not a correctness requirement).
@@ -762,14 +774,49 @@ fn process_entry(
     }
 
     if options.dry_run != 0 {
-        collector.push_would_delete(ActionEntry {
-            path: path_display,
-            family: family.as_str(),
-            kind,
-            reason: None,
-            size,
-            content_preview,
-        });
+        // For directories, predict RemoveDirectoryW's outcome up front so a dry
+        // run is an honest preview: a non-empty directory would be skipped, not
+        // deleted, so it must be reported that way here too.
+        if is_dir {
+            match dir_is_empty(entry.path()) {
+                Ok(true) => collector.push_would_delete(ActionEntry {
+                    path: path_display,
+                    family: family.as_str(),
+                    kind,
+                    reason: None,
+                    size,
+                    content_preview,
+                }),
+                Ok(false) => collector.push_skipped(ActionEntry {
+                    path: path_display,
+                    family: family.as_str(),
+                    kind,
+                    reason: Some("directory not empty (would be skipped, not deleted)".to_string()),
+                    size,
+                    content_preview,
+                }),
+                Err(e) => {
+                    collector.errors.fetch_add(1, Ordering::Relaxed);
+                    collector.push_skipped(ActionEntry {
+                        path: path_display,
+                        family: family.as_str(),
+                        kind,
+                        reason: Some(e),
+                        size,
+                        content_preview,
+                    });
+                }
+            }
+        } else {
+            collector.push_would_delete(ActionEntry {
+                path: path_display,
+                family: family.as_str(),
+                kind,
+                reason: None,
+                size,
+                content_preview,
+            });
+        }
         return;
     }
 
@@ -1009,5 +1056,38 @@ mod tests {
         assert!(families.reserved);
         assert!(!families.dollar_null);
         assert!(families.path_mangle);
+    }
+
+    /// Minimal RAII helper for a scratch directory under `target/`, cleaned up
+    /// on drop regardless of test outcome.
+    struct ScratchDir(std::path::PathBuf);
+
+    impl ScratchDir {
+        fn new(name: &str) -> Self {
+            let dir =
+                std::env::temp_dir().join(format!("nuker_core_test_{name}_{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).expect("create scratch dir");
+            Self(dir)
+        }
+    }
+
+    impl Drop for ScratchDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn dir_is_empty_true_for_empty_directory() {
+        let scratch = ScratchDir::new("empty");
+        assert_eq!(dir_is_empty(&scratch.0), Ok(true));
+    }
+
+    #[test]
+    fn dir_is_empty_false_for_directory_with_children() {
+        let scratch = ScratchDir::new("nonempty");
+        std::fs::write(scratch.0.join("keep.txt"), b"data").expect("write child file");
+        assert_eq!(dir_is_empty(&scratch.0), Ok(false));
     }
 }

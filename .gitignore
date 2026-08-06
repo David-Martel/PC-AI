@@ -1,0 +1,35 @@
+# Rust build artifacts
+**/target/
+**/*.rs.bk
+*.pdb
+
+# C# build artifacts
+bin/
+obj/
+*.dll
+*.exe
+!C:/Users/david/bin/NukeNul.exe
+
+# IDE
+.idea/
+.vs/
+*.swp
+*.swo
+*~
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# User-specific files
+*.user
+*.suo

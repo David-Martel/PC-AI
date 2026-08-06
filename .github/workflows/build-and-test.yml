@@ -1,0 +1,263 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-rust:
+    name: Build Rust DLL
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: x86_64-pc-windows-msvc
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          nuker_core/target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Build Rust DLL (Release)
+      working-directory: nuker_core
+      run: cargo build --release --verbose
+
+    - name: Run Rust tests
+      working-directory: nuker_core
+      run: cargo test --release --verbose
+
+    - name: Upload Rust DLL artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuker_core-dll
+        path: nuker_core/target/release/nuker_core.dll
+        retention-days: 7
+
+  build-csharp:
+    name: Build C# CLI
+    runs-on: windows-latest
+    needs: build-rust
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Download Rust DLL
+      uses: actions/download-artifact@v4
+      with:
+        name: nuker_core-dll
+        path: NukeNul/
+
+    - name: Restore dependencies
+      working-directory: NukeNul
+      run: dotnet restore
+
+    - name: Build C# application
+      working-directory: NukeNul
+      run: dotnet build -c Release --no-restore
+
+    - name: Upload C# executable artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nukenul-exe
+        path: |
+          NukeNul/bin/Release/net8.0/NukeNul.exe
+          NukeNul/bin/Release/net8.0/nuker_core.dll
+        retention-days: 7
+
+  integration-test:
+    name: Integration Tests
+    runs-on: windows-latest
+    needs: build-csharp
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: nukenul-exe
+        path: NukeNul/bin/Release/net8.0/
+
+    - name: Run integration tests
+      shell: pwsh
+      run: |
+        # Install PowerShell 7 if needed
+        if ($PSVersionTable.PSVersion.Major -lt 7) {
+          Write-Host "PowerShell 7+ required for tests"
+          exit 1
+        }
+
+        # Run test script
+        .\test.ps1 -TestCount 50 -SkipBenchmark
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          test-results/
+          test-*.log
+        retention-days: 30
+
+  security-scan:
+    name: Security Scan
+    runs-on: windows-latest
+    needs: build-rust
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Run cargo audit
+      working-directory: nuker_core
+      run: |
+        cargo install cargo-audit --quiet
+        cargo audit
+
+    - name: Run cargo clippy
+      working-directory: nuker_core
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+  publish-release:
+    name: Publish Release Build
+    runs-on: windows-latest
+    needs: [build-rust, build-csharp, integration-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Build self-contained executable
+      shell: pwsh
+      run: .\build.ps1 -Publish -Clean
+
+    - name: Create release archive
+      shell: pwsh
+      run: |
+        $PublishDir = "NukeNul\bin\Release\net8.0\win-x64\publish"
+        $Version = (Get-Date -Format "yyyy.MM.dd.HHmm")
+        $ArchiveName = "NukeNul-$Version-win-x64.zip"
+
+        Compress-Archive -Path "$PublishDir\*" -DestinationPath $ArchiveName
+
+        Write-Output "ARCHIVE_NAME=$ArchiveName" >> $env:GITHUB_ENV
+        Write-Output "VERSION=$Version" >> $env:GITHUB_ENV
+
+    - name: Upload release archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: nukenul-release-${{ env.VERSION }}
+        path: "*.zip"
+        retention-days: 90
+
+    - name: Create GitHub Release (optional)
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: "*.zip"
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  benchmark:
+    name: Performance Benchmark
+    runs-on: windows-latest
+    needs: build-csharp
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: nukenul-exe
+        path: NukeNul/bin/Release/net8.0/
+
+    - name: Run performance benchmark
+      shell: pwsh
+      run: |
+        # Run benchmark with various file counts
+        $TestCounts = @(10, 100, 1000)
+        $Results = @()
+
+        foreach ($Count in $TestCounts) {
+          Write-Host "Benchmarking with $Count files..."
+          $Output = .\test.ps1 -TestCount $Count -SkipBenchmark -Verbose
+          $Results += "Test Count: $Count - Output: $Output"
+        }
+
+        # Save results
+        $Results | Out-File -FilePath "benchmark-results.txt"
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: benchmark-results.txt
+        retention-days: 30
+
+  code-coverage:
+    name: Code Coverage
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cargo-tarpaulin
+      run: cargo install cargo-tarpaulin
+
+    - name: Generate coverage report
+      working-directory: nuker_core
+      run: cargo tarpaulin --out Xml --output-dir coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: nuker_core/coverage/cobertura.xml
+        flags: rust
+        name: rust-coverage

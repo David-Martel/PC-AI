@@ -24,24 +24,29 @@ Traditional PowerShell scripts hit performance ceilings when dealing with reserv
 - ✅ **Self-contained** - No .NET runtime required
 - ✅ **Cross-platform ready** - Windows x64 (Linux/macOS support possible)
 - ✅ **Literal `$null` safety mode** - Deletes only real `$null` files, not device aliases
-- ✅ **Composable match families** - reserved device names, literal `$null`, and
-  path-mangle artifacts (`foo;C`) can be combined in a single pass
+- ✅ **Leading-`$` shell-variable-artifact matching** (`--dollar-prefix`) - Catches
+  `$runDir`, `$out`, `$local`, `$archiveDir` and similar names left behind when a
+  PowerShell `$variable` name is stripped or misinterpreted in a bash context
+- ✅ **Composable match families** - reserved device names, literal `$null`,
+  path-mangle artifacts (`foo;C`), and leading-`$` artifacts can be combined in a
+  single pass
 - ✅ **`--dry-run`** - Preview exactly what would be deleted (and why something
   would be skipped) without touching disk
 - ✅ **Empty-directory cleanup** (`--include-dirs`) - Removes matching directories,
   but only if they are already empty; never recursive
 - ✅ **Auditable output** - Every deleted/would-delete/skipped entry lists its full
-  path, match family, and (for `$null`) size + a content preview
+  path, match family, and (for `$null`/`--dollar-prefix`) size + a content preview
 
-## ⚠️ Behavior change: `$null` zero-byte safety gate
+## ⚠️ Behavior change: zero-byte safety gate for `$null` and `--dollar-prefix`
 
-As of this version, the `$null` family (`--dollar-null-only`) deletes **only
-zero-byte** files by default. This matches the governing workspace policy:
-*"Discovery hooks may delete only zero-byte matches inside the active
-workspace; preserve and report non-empty or out-of-scope matches."*
+As of this version, the `$null` family (`--dollar-null-only`) and the leading-`$`
+family (`--dollar-prefix`) both delete **only zero-byte** files by default. This
+matches the governing workspace policy: *"Discovery hooks may delete only
+zero-byte matches inside the active workspace; preserve and report non-empty or
+out-of-scope matches."*
 
-Non-empty `$null` files are now **skipped** (not deleted) and reported in the
-JSON output with their size and the first 200 bytes of their content, so an
+Non-empty matches in either family are now **skipped** (not deleted) and reported
+in the JSON output with their size and the first 200 bytes of their content, so an
 operator can review them before deciding what to do. Pass `--allow-nonempty`
 to opt into deleting `$null` files larger than zero bytes, restoring the
 previous unconditional-delete behavior for that run.
@@ -91,6 +96,10 @@ NukeNul.exe --dollar-null-only --path-mangle "C:\Path\To\Scan"
 
 # Delete non-empty $null files too (opt-in override)
 NukeNul.exe --dollar-null-only --allow-nonempty "C:\Path\To\Scan"
+
+# Sweep stray $variable artifacts left by PowerShell->bash context bugs
+# ($runDir, $out, $local, $archiveDir, ...), including empty directories
+NukeNul.exe --dollar-prefix --include-dirs "C:\Path\To\Scan"
 ```
 
 ### CLI Reference
@@ -103,7 +112,8 @@ to `--reserved`):
 | `--reserved` | Reserved device names | `nul`, `con`, `prn`, `aux`, `com1-9`, `lpt1-9`. Active by default when no other family flag is given. |
 | `--dollar-null-only` | Literal `$null` | Zero-byte files deleted by default; see `--allow-nonempty`. Kept exclusive when passed alone, for backward compatibility. |
 | `--path-mangle` | Shell path-mangle artifacts | Leaf names ending in `;<letter>` or `;<letter>:` (e.g. `foo;C`, `foo;C:`). Deliberately narrow - `;` is a legal filename character. |
-| `--all` | All three families | Shorthand for `--reserved --dollar-null-only --path-mangle`. |
+| `--dollar-prefix` | Leading-`$` shell-variable artifacts | Leaf names starting with `$` other than `$null` itself (e.g. `$runDir`, `$out`, `$local`, `$archiveDir`). Zero-byte files deleted by default; see `--allow-nonempty`. |
+| `--all` | All four families | Shorthand for `--reserved --dollar-null-only --path-mangle --dollar-prefix`. |
 
 Modifiers:
 
@@ -111,7 +121,7 @@ Modifiers:
 |------|--------|
 | `--include-dirs` | Also remove matching directories, but **only if they are empty**. Never recursive - `RemoveDirectoryW` itself refuses non-empty directories, and that refusal is the safety mechanism. |
 | `--dry-run`, `-n` | Preview only. Walks and matches identically to a real run (including predicting whether a directory would be empty), but performs no deletion. Exit code 0. |
-| `--allow-nonempty` | Allow deleting `$null` files larger than zero bytes (dollar-null family only). |
+| `--allow-nonempty` | Allow deleting files larger than zero bytes matched by `--dollar-null-only` or `--dollar-prefix` (the two zero-byte-gated families). |
 
 ### Example Output
 
@@ -153,10 +163,11 @@ Modifiers:
 ```
 
 Every `deleted_entries` / `would_delete_entries` / `skipped_entries` item
-carries `path`, `family` (`reserved` | `dollar_null` | `path_mangle`), and
-`kind` (`file` | `dir`). `reason`, `size`, and `content_preview` are present
-only where relevant (skips always have a `reason`; `$null` files carry `size`,
-and non-empty ones also carry `content_preview`).
+carries `path`, `family` (`reserved` | `dollar_null` | `path_mangle` |
+`dollar_prefix`), and `kind` (`file` | `dir`). `reason`, `size`, and
+`content_preview` are present only where relevant (skips always have a
+`reason`; `dollar_null`/`dollar_prefix` files carry `size`, and non-empty ones
+also carry `content_preview`).
 
 ### Exit Codes
 
@@ -261,6 +272,7 @@ pub struct NukeOptions {
     pub match_reserved: u8,
     pub match_dollar_null: u8,
     pub match_path_mangle: u8,
+    pub match_dollar_prefix: u8,
     pub include_dirs: u8,
     pub dry_run: u8,
     pub allow_nonempty: u8,
@@ -300,6 +312,7 @@ internal struct NukeOptions
     public byte MatchReserved;
     public byte MatchDollarNull;
     public byte MatchPathMangle;
+    public byte MatchDollarPrefix;
     public byte IncludeDirs;
     public byte DryRun;
     public byte AllowNonempty;

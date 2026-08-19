@@ -407,8 +407,6 @@ impl UnderstandingPipeline {
             .map_err(|e| anyhow::anyhow!("prefill forward_input_embed failed: {e}"))?;
         // prefill_logits: [1, vocab_size]
 
-        let mut pos = combined_len;
-
         // ── 9. Autoregressive text generation ────────────────────────────────
         //
         // Correct decode loop for understanding:
@@ -435,7 +433,7 @@ impl UnderstandingPipeline {
         generated_ids.push(first_token);
         let mut current_token = first_token;
 
-        for step in 1..max_tokens {
+        for (pos, step) in (combined_len..).zip(1..max_tokens) {
             // A. Embed the previously sampled token → [1, 1, hidden_size]
             let token_tensor = Tensor::from_slice(&[current_token], (1_usize, 1_usize), embed_device)
                 .with_context(|| format!("step {step}: failed to build token tensor"))?;
@@ -451,7 +449,6 @@ impl UnderstandingPipeline {
                 .llama
                 .forward_input_embed(&token_embed, pos, &mut cache)
                 .map_err(|e| anyhow::anyhow!("step {step}: forward_input_embed failed: {e}"))?;
-            pos += 1;
 
             // C. Apply repetition penalty: reduce logits for previously generated tokens.
             //    This prevents the model from falling into repetition loops (e.g.,

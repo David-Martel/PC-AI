@@ -1,8 +1,12 @@
 @{
     Run = @{
+        # Paths are resolved from the repo root (the CI working directory and
+        # the cwd assumed by CodeCoverage.Path './Modules/**' below). Bare
+        # 'Unit'/'Integration' resolved to ./Unit at the repo root and made
+        # Pester find zero test files ("No test files were found" -> exit 1).
         Path = @(
-            'Unit'
-            'Integration'
+            'Tests/Unit'
+            'Tests/Integration'
         )
         Exit = $false
         PassThru = $true

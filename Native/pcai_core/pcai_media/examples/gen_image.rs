@@ -39,6 +39,7 @@ fn main() -> Result<()> {
         temperature: 1.0,
         parallel_size: 1,
         gpu_layers: 0,
+        ..Default::default()
     };
 
     // Load model

@@ -198,6 +198,7 @@ $taskRepoints = @(
 )
 
 function Move-MigrationItem {
+    [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)] $Item)
 
     $exists = Test-Path -LiteralPath $Item.Source
@@ -251,6 +252,7 @@ function Move-MigrationItem {
 }
 
 function Update-ScheduledTaskActionPath {
+    [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)] $TaskSpec)
 
     $record = [ordered]@{
@@ -309,6 +311,7 @@ function Update-ScheduledTaskActionPath {
 }
 
 function Remove-EmptyDirectoryTree {
+    [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)] [string]$Path)
 
     $record = [ordered]@{

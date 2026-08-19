@@ -405,7 +405,7 @@ mod tests {
         let mut tensors = HashMap::new();
         tensors.insert("dummy_tensor".to_string(), tensor);
 
-        safetensors::serialize_to_file(&tensors, &None, &file_path).expect("serialize");
+        safetensors::serialize_to_file(&tensors, None, &file_path).expect("serialize");
 
         let archive = open_safetensors(&[file_path]).expect("open_safetensors");
         assert!(archive.tensors().iter().any(|(name, _)| name == "dummy_tensor"));
@@ -425,13 +425,13 @@ mod tests {
         let tensor1 = TensorView::new(Dtype::F32, vec![4], &data1).unwrap();
         let mut tensors1 = HashMap::new();
         tensors1.insert("tensor_part_1".to_string(), tensor1);
-        safetensors::serialize_to_file(&tensors1, &None, &path1).expect("serialize path1");
+        safetensors::serialize_to_file(&tensors1, None, &path1).expect("serialize path1");
 
         let data2: Vec<u8> = vec![1; 16];
         let tensor2 = TensorView::new(Dtype::F32, vec![4], &data2).unwrap();
         let mut tensors2 = HashMap::new();
         tensors2.insert("tensor_part_2".to_string(), tensor2);
-        safetensors::serialize_to_file(&tensors2, &None, &path2).expect("serialize path2");
+        safetensors::serialize_to_file(&tensors2, None, &path2).expect("serialize path2");
 
         let archive = open_safetensors(&[path1, path2]).expect("open_safetensors multi");
 

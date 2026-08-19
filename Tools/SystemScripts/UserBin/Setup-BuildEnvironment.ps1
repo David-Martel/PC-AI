@@ -240,7 +240,10 @@ Write-Host "Developer environment loaded" -ForegroundColor Green
 Write-ColoredOutput "`n=== Verifying Toolchains ===" "Cyan"
 
 $tests = @(
-    @{Name='MSVC'; Cmd='cl'; Args='/? 2>&1'; Pattern='Version'},
+    # Args must not carry a redirection operator: under the call operator `&` the
+    # whole string is passed to cl.exe as one literal argument. The `2>&1` on the
+    # invocation below already merges stderr, which is where cl writes its banner.
+    @{Name='MSVC'; Cmd='cl'; Args='/?'; Pattern='Version'},
     @{Name='GCC'; Cmd='gcc'; Args='--version'; Pattern='gcc'},
     @{Name='Rust'; Cmd='rustc'; Args='--version'; Pattern='rustc'},
     @{Name='Cargo'; Cmd='cargo'; Args='--version'; Pattern='cargo'},

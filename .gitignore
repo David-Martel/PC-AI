@@ -270,3 +270,8 @@ Reports/input-glitch-watch/
 Reports/**/direct-pass-*/
 # GitOps run logs (ruleset-apply, workflow-health) — runtime artifacts
 Reports/gitops/
+
+# --- managed: wip-audit gitignore gaps 2026-08-19 ---
+worktrees/
+.Codex/state/
+Reports/*.dryrun.jsonl

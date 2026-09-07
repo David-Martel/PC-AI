@@ -1113,7 +1113,37 @@ function Copy-CompiledArtifacts {
 
     Write-BuildSection 'Collecting Artifacts'
 
-    $targetRoot = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $ProjectRoot 'target' }
+    # Ask cargo where its output actually goes instead of guessing. The old guess
+    # -- CARGO_TARGET_DIR, else "$ProjectRoot/target" -- was wrong in every
+    # configuration this repo is built in, because $ProjectRoot is the crate
+    # directory and pcai_inference is a WORKSPACE MEMBER: cargo never writes to a
+    # member's own target/. On CI it writes to the workspace root
+    # (Native/pcai_core/target); on the dev boxes .cargo/config.toml redirects it
+    # to T:\RustCache\cargo-target, which the guess did not consider at all.
+    # So the "Target directory not found" warning fired every run and artifact
+    # collection silently did nothing -- the build reported success having
+    # collected nothing. `cargo metadata` resolves CARGO_TARGET_DIR, the config
+    # target-dir, and the workspace layout in one answer.
+    $targetRoot = $null
+    try {
+        $meta = & $script:cargoExe metadata --no-deps --format-version 1 --manifest-path (Join-Path $ProjectRoot 'Cargo.toml') 2>$null
+        if ($LASTEXITCODE -eq 0 -and $meta) {
+            $targetRoot = ($meta | ConvertFrom-Json).target_directory
+        }
+    } catch {
+        Write-BuildStatus "cargo metadata failed while resolving the target dir: $($_.Exception.Message)" 'Warning'
+    }
+    if (-not $targetRoot) {
+        # Fallbacks, most specific first, for when cargo cannot be consulted.
+        $targetRoot = if ($env:CARGO_TARGET_DIR) {
+            $env:CARGO_TARGET_DIR
+        } elseif (Test-Path (Join-Path (Split-Path $ProjectRoot -Parent) 'target')) {
+            Join-Path (Split-Path $ProjectRoot -Parent) 'target'   # workspace root
+        } else {
+            Join-Path $ProjectRoot 'target'
+        }
+    }
+
     $configDir = if ($Configuration -eq 'Debug') { 'debug' } else { 'release' }
     $targetDir = Join-Path $targetRoot $configDir
 
@@ -1121,6 +1151,7 @@ function Copy-CompiledArtifacts {
         Write-BuildStatus "Target directory not found: $targetDir" 'Warning'
         return
     }
+    Write-BuildStatus "Collecting from $targetDir" 'Info'
 
     # Ensure output directories exist
     $localBin = Join-Path $env:USERPROFILE '.local\bin'

@@ -2,6 +2,14 @@
 #Requires -Modules Pester
 
 Describe 'FunctionGemma runtime config' -Tag 'Unit', 'FunctionGemma', 'Portable' {
+    # Resolved at DISCOVERY time, because -Skip is evaluated while Pester builds
+    # the tree -- anything set in BeforeAll does not exist yet at that point.
+    $discoveryRepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $discoveryModelPath = Join-Path $discoveryRepoRoot (
+        (Get-Content -LiteralPath (Join-Path $discoveryRepoRoot 'Config\pcai-functiongemma.json') -Raw |
+            ConvertFrom-Json).runtime.router_model_path)
+    $modelPresent = Test-Path -LiteralPath $discoveryModelPath -PathType Container
+
     BeforeAll {
         $script:RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
         $script:ConfigPath = Join-Path $script:RepoRoot 'Config\pcai-functiongemma.json'
@@ -9,12 +17,20 @@ Describe 'FunctionGemma runtime config' -Tag 'Unit', 'FunctionGemma', 'Portable'
         $script:Config = Get-Content -LiteralPath $script:ConfigPath -Raw | ConvertFrom-Json
     }
 
-    It 'uses an existing repo-local model directory' {
+    # The config contract itself holds everywhere and must never be skipped.
+    It 'declares a relative repo-local model path' {
         $modelPath = $script:Config.runtime.router_model_path
         $modelPath | Should -Not -BeNullOrEmpty
         [System.IO.Path]::IsPathFullyQualified($modelPath) | Should -BeFalse
+    }
 
-        $resolvedModelPath = Join-Path $script:RepoRoot $modelPath
+    # The weights are a different matter: Models/ is gitignored and nothing under
+    # it is tracked, so this directory cannot exist in a fresh checkout. Asserting
+    # its presence made the test guaranteed-red on CI and it always had been --
+    # invisible only because this job never got far enough to run. An absent
+    # optional model must read as "not exercised", not as "broken".
+    It 'has the router model weights on disk' -Skip:(-not $modelPresent) {
+        $resolvedModelPath = Join-Path $script:RepoRoot $script:Config.runtime.router_model_path
         Test-Path -LiteralPath $resolvedModelPath -PathType Container | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $resolvedModelPath 'config.json') -PathType Leaf | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $resolvedModelPath 'tokenizer.json') -PathType Leaf | Should -BeTrue

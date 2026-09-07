@@ -22,6 +22,7 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -80,6 +81,7 @@ jobs:
   rust-fmt:
     name: Rust Format
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -94,6 +96,7 @@ jobs:
   powershell-lint:
     name: PowerShell Lint
     runs-on: windows-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Install PSScriptAnalyzer
@@ -121,6 +124,7 @@ jobs:
   rust-check:
     name: Rust Check + Clippy
     runs-on: windows-latest
+    timeout-minutes: 30
     needs: rust-fmt
     steps:
       - uses: actions/checkout@v4
@@ -129,7 +133,7 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: Native/pcai_core/pcai_inference
+          workspaces: Native/pcai_core
           shared-key: pcai-inference
       - name: Cargo Check
         shell: pwsh
@@ -145,13 +149,14 @@ jobs:
   rust-test:
     name: Rust Tests
     runs-on: windows-latest
+    timeout-minutes: 30
     needs: rust-check
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: Native/pcai_core/pcai_inference
+          workspaces: Native/pcai_core
           shared-key: pcai-inference-test
       - name: Run Unit Tests
         working-directory: Native/pcai_core/pcai_inference
@@ -180,6 +185,7 @@ jobs:
   powershell-test:
     name: PowerShell Tests
     runs-on: windows-latest
+    timeout-minutes: 60
     needs: powershell-lint
     steps:
       - uses: actions/checkout@v4
@@ -216,6 +222,7 @@ jobs:
   build-llamacpp:
     name: Build (llamacpp CPU)
     runs-on: windows-latest
+    timeout-minutes: 45
     needs: rust-test
     steps:
       - uses: actions/checkout@v4
@@ -294,6 +301,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: windows-latest
+    timeout-minutes: 30
     needs: [build-llamacpp, powershell-test]
     steps:
       - uses: actions/checkout@v4
@@ -331,6 +339,7 @@ jobs:
   gate:
     name: CI Gate
     runs-on: windows-latest
+    timeout-minutes: 5
     if: always()
     needs:
       - security-scan

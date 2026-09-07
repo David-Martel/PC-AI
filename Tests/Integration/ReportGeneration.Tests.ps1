@@ -39,6 +39,15 @@ BeforeAll {
 Describe "Full Diagnostic Report Generation" -Tag 'Integration', 'E2E', 'Slow' {
     Context "When generating a complete diagnostic report" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent. Mocking just the
+            # fallback leaves the result dependent on whether some other suite loaded
+            # the acceleration modules, which is why this file passes alone and fails
+            # in a full run. Force the fallback path deterministically.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
+
             # Mock all external commands
             Mock Get-CimInstance {
                 param($ClassName)
@@ -119,6 +128,15 @@ Describe "Full Diagnostic Report Generation" -Tag 'Integration', 'E2E', 'Slow' {
 
     Context "When report generation fails partially" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent. Mocking just the
+            # fallback leaves the result dependent on whether some other suite loaded
+            # the acceleration modules, which is why this file passes alone and fails
+            # in a full run. Force the fallback path deterministically.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance { Get-MockDevicesHealthy } -ModuleName PC-AI.Hardware
             Mock Invoke-Expression { throw "Command failed" } -ModuleName PC-AI.Hardware
             Mock Get-WinEvent { Get-MockDiskUsbEvents -ErrorType None } -ModuleName PC-AI.Hardware
@@ -168,20 +186,43 @@ WDC HDD: Pred Fail
                 Get-MockOllamaResponse -Type Success
             } -ModuleName PC-AI.LLM
 
+            # Invoke-PCDiagnosis no longer calls Send-OllamaRequest. It walks the
+            # configured provider fallback order, gating each provider on
+            # Get-CachedProviderHealth and then calling Invoke-OllamaChat /
+            # Invoke-OpenAIChat. Mocking only the old entry point left the health
+            # gate to run for real, find nothing listening, and throw "No LLM
+            # providers are reachable in the configured fallback order" -- so these
+            # tests never reached the mock at all. Mock the current path too.
+            Mock Get-CachedProviderHealth { $true } -ModuleName PC-AI.LLM
+            Mock Invoke-OllamaChat { (Get-MockOllamaResponse -Type Success).response } -ModuleName PC-AI.LLM
+            Mock Invoke-OpenAIChat { (Get-MockOllamaResponse -Type Success).response } -ModuleName PC-AI.LLM
+
+            $script:StubReportPath = Join-Path $script:TestOutputPath 'StubReport.txt'
+            # The tests below pass "TestDrive:\report.txt" but nothing ever
+            # created it. Mocking Get-Content is not sufficient: -DiagnosticReportPath
+            # carries a ValidateScript { Test-Path $_ -PathType Leaf }, and
+            # parameter validation runs BEFORE the function body, so the call
+            # was rejected at binding time with "the validation script ... did
+            # not return a result of True" and never reached the mock at all.
+            @'
+=== Diagnostic Report (test fixture) ===
+- Disk error: Bad block detected
+'@ | Set-Content -LiteralPath $script:StubReportPath -Encoding utf8
+
             $script:AnalysisPath = Join-Path $script:TestOutputPath "Analysis.txt"
         }
 
         It "Should analyze report without errors" {
-            { Invoke-PCDiagnosis -DiagnosticReportPath "TestDrive:\report.txt" -OutputPath $script:AnalysisPath } | Should -Not -Throw
+            { Invoke-PCDiagnosis -DiagnosticReportPath $script:StubReportPath -OutputPath $script:AnalysisPath } | Should -Not -Throw
         }
 
         It "Should create analysis output file" {
-            Invoke-PCDiagnosis -DiagnosticReportPath "TestDrive:\report.txt" -OutputPath $script:AnalysisPath
+            Invoke-PCDiagnosis -DiagnosticReportPath $script:StubReportPath -OutputPath $script:AnalysisPath
             Should -Invoke Send-OllamaRequest -ModuleName PC-AI.LLM
         }
 
         It "Should include diagnostic data in prompt" {
-            Invoke-PCDiagnosis -DiagnosticReportPath "TestDrive:\report.txt"
+            Invoke-PCDiagnosis -DiagnosticReportPath $script:StubReportPath
 
             Should -Invoke Send-OllamaRequest -ModuleName PC-AI.LLM -ParameterFilter {
                 $Prompt -match "USB.*43|Error Code: 43"
@@ -189,7 +230,7 @@ WDC HDD: Pred Fail
         }
 
         It "Should use appropriate system prompt" {
-            Invoke-PCDiagnosis -DiagnosticReportPath "TestDrive:\report.txt"
+            Invoke-PCDiagnosis -DiagnosticReportPath $script:StubReportPath
 
             Should -Invoke Send-OllamaRequest -ModuleName PC-AI.LLM -ParameterFilter {
                 $SystemMessage -match "diagnostic|hardware|analyze"
@@ -201,12 +242,32 @@ WDC HDD: Pred Fail
 Describe "Multi-Module Workflow" -Tag 'Integration', 'E2E', 'Slow' {
     Context "When executing complete diagnostics-to-analysis workflow" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent. Mocking just the
+            # fallback leaves the result dependent on whether some other suite loaded
+            # the acceleration modules, which is why this file passes alone and fails
+            # in a full run. Force the fallback path deterministically.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
+
             # Mock all dependent functions
             Mock Get-CimInstance { Get-MockDevicesWithErrors } -ModuleName PC-AI.Hardware
             Mock Invoke-Expression { Get-MockDiskSmartOutput -Health Warning } -ModuleName PC-AI.Hardware
             Mock Get-WinEvent { Get-MockDiskUsbEvents -ErrorType Mixed } -ModuleName PC-AI.Hardware
             Mock Get-PSDrive { Get-MockDiskSpace -Status LowSpace } -ModuleName PC-AI.Performance
             Mock Send-OllamaRequest { Get-MockOllamaResponse -Type Success } -ModuleName PC-AI.LLM
+
+            # Invoke-PCDiagnosis no longer calls Send-OllamaRequest. It walks the
+            # configured provider fallback order, gating each provider on
+            # Get-CachedProviderHealth and then calling Invoke-OllamaChat /
+            # Invoke-OpenAIChat. Mocking only the old entry point left the health
+            # gate to run for real, find nothing listening, and throw "No LLM
+            # providers are reachable in the configured fallback order" -- so these
+            # tests never reached the mock at all. Mock the current path too.
+            Mock Get-CachedProviderHealth { $true } -ModuleName PC-AI.LLM
+            Mock Invoke-OllamaChat { (Get-MockOllamaResponse -Type Success).response } -ModuleName PC-AI.LLM
+            Mock Invoke-OpenAIChat { (Get-MockOllamaResponse -Type Success).response } -ModuleName PC-AI.LLM
 
             $script:WorkflowReportPath = Join-Path $script:TestOutputPath "WorkflowReport.txt"
             $script:WorkflowAnalysisPath = Join-Path $script:TestOutputPath "WorkflowAnalysis.txt"
@@ -252,6 +313,15 @@ Describe "Multi-Module Workflow" -Tag 'Integration', 'E2E', 'Slow' {
 Describe "Cross-Module Data Flow" -Tag 'Integration', 'DataFlow' {
     Context "When modules exchange data" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent. Mocking just the
+            # fallback leaves the result dependent on whether some other suite loaded
+            # the acceleration modules, which is why this file passes alone and fails
+            # in a full run. Force the fallback path deterministically.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance { Get-MockDevicesWithErrors } -ModuleName PC-AI.Hardware
             Mock Invoke-Expression { Get-MockWSLOutput -Command Status } -ModuleName PC-AI.Virtualization
         }

@@ -128,9 +128,14 @@ not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
 Surfaced by the CI repair pass; each item is a real measurement, not a
 suspicion.
 
-- [ ] Reduce the Windows PowerShell 5.1 failure count. Baseline is 456 failed /
-  888 total, recorded in `Tests\powershell-51-baseline.json`; the Weekly
-  Maintenance job now gates against regression only. The bulk of it is 42 test
+- [ ] Reduce the Windows PowerShell 5.1 failure count. Baseline is **374**
+  failed / 888 total, recorded in `Tests\powershell-51-baseline.json` and
+  measured on run 34152822239; the Weekly Maintenance job now gates against
+  regression only. (An earlier reading of 456 predates excluding the
+  `Performance`/`Slow` tags, which were making a *compatibility* gate depend on
+  runner speed — it is not comparable.) Note this number was taken before the
+  PowerShell test repairs in section 1c landed, so it is now pessimistic and
+  should be re-measured. The bulk of it is 42 test
   files that cannot even load, because `PC-AI.LLM.psm1` and
   `PC-AI.Virtualization.psm1` declare `#Requires -PSEdition Core`. Decide per
   module: drop the Core-only requirement where PS7 features are not actually
@@ -201,6 +206,83 @@ suspicion.
 - [ ] `release-cuda.yml` is now valid YAML but has still never executed — the
   repo has no tags at all. Cut a throwaway pre-release tag to prove the
   4-variant CUDA/CPU release path actually works end to end.
+
+### 1c. PowerShell Test Suite (opened 2026-09-07)
+
+The Unit+Integration suite went from 168 failures to the number recorded below
+in one pass. Almost none of that was 168 separate bugs: seven root causes
+accounted for the great majority, and each one failed whole files at a time.
+The tell was always the same -- assertions as trivial as "the crate directory
+exists" were failing, which is never a real defect and always means the setup
+block threw, or a mock was silently bypassed.
+
+Fixed (each verified by running the affected file before and after):
+
+- `Join-Path` throws on a null first argument rather than returning null, and
+  `CARGO_TARGET_DIR` is unset on the runners. `Get-TestPaths` therefore threw,
+  and every FFI suite calls it from `BeforeAll`. 55 failures.
+- Pester runs discovery and execution in different scopes, so a helper
+  dot-sourced or defined at file top level does not exist when `BeforeAll` or a
+  `Mock` body runs. Two separate instances, 26 failures.
+- A guideline check swept `target-codex-media*`, which the exclusion list did
+  not name, and counted a dependency's generated `built.rs`. 132 of its 133
+  findings were someone else's code. 4 failures.
+- `Set-LLMConfig` wrote with `[System.Text.Encoding]::UTF8`, which emits a BOM,
+  and its tests pointed it at the REAL `Config\llm-config.json` -- so running
+  the suite corrupted the repo's own configuration. See also 1d.
+- Tests mocked `Test-PcaiInferenceConnection` while the code gated on
+  `Test-OllamaConnection`. Both exist, so the mock applied cleanly to a
+  function the code never calls. 6 failures.
+- Test files imported the same module by `.psd1` in some places and `.psm1` in
+  others. PowerShell treats those as two modules with the same name and Pester
+  then refuses to mock into either. 3 failures.
+- `Get-DeviceErrors`, `Get-UsbStatus` and `Get-SystemEvents` try a NATIVE probe
+  before falling back to CIM. Only the fallback was mocked, so results depended
+  on what other suites had loaded. 13 failures.
+
+Still open:
+
+- [ ] `Tests\Integration\ReportGeneration.Tests.ps1` LLM tests have not been
+  reconciled with the refactored provider architecture. `Invoke-PCDiagnosis` no
+  longer calls `Send-OllamaRequest`; it walks the configured fallback order,
+  gating each provider on `Get-CachedProviderHealth` and calling
+  `Invoke-OllamaChat` / `Invoke-OpenAIChat`. Mocks for the current path and a
+  real fixture file are now in place (the tests passed a
+  `TestDrive:\report.txt` that nothing ever created, and `ValidateScript` on
+  `-DiagnosticReportPath` rejected the call before the body ran), but the
+  response contract still does not line up: the run now fails on "Cannot bind
+  argument to parameter 'Content' because it is an empty string". Whoever owns
+  the provider refactor should finish this -- it needs the response shape, not
+  more guessing.
+- [ ] `Tests\Integration\FFI.Media.Tests.ps1` exercises the real media FFI and
+  fails when `pcai_media.dll` is absent, which is always true on CI. It needs
+  the same treatment `PC-AI.Media.Tests.ps1` received: detect and skip rather
+  than fail, so an unbuilt optional component reads as "not exercised" instead
+  of "broken".
+- [ ] `PC-AI.Drivers` (2) and `PC-AI.Gpu` (2) have assertion-level failures that
+  are genuinely per-test, not systemic. The GPU ones mock `nvidia-smi.exe` as a
+  command, which is worth checking against how the module actually invokes it.
+- [ ] `Step 3: Should analyze PATH for duplicates` fails with "Unable to find
+  type [PcaiNative.PcaiCore]" -- another native-type dependency that should
+  skip rather than fail when the assembly is absent.
+- [ ] The suite still writes outside its temp directories: `Reports\` artefacts
+  and `Deploy\rust-functiongemma\TOOLS.md` change during a run. Tests must not
+  mutate tracked repo state; `Config\llm-config.json` was the worst instance
+  and is fixed, but the pattern should be swept.
+
+### 1d. Config Encoding (opened 2026-09-07)
+
+- [x] `Config\llm-config.json` and `Config\pcai-tools.json` were committed WITH
+  a UTF-8 BOM. PowerShell's `ConvertFrom-Json` tolerates a BOM; Rust's
+  `serde_json` does not. `load_default_tools` swallows the parse failure with
+  `.ok()?`, so all 31 FunctionGemma tool definitions were silently discarded at
+  runtime with nothing reporting a problem. Both files rewritten without a BOM,
+  the writer that reintroduced it fixed, and two Rust regression tests added --
+  one naming the failure mode, one asserting the real committed schema loads.
+- [ ] Sweep the rest of the repo's JSON for BOMs, and prefer
+  `New-Object System.Text.UTF8Encoding($false)` over
+  `[System.Text.Encoding]::UTF8` anywhere PowerShell writes a file that a
+  non-PowerShell reader will parse.
 
 ### 1b. Rust Lint Policy Backlog (opened 2026-09-07)
 

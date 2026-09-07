@@ -53,9 +53,20 @@ function Resolve-PcaiPath {
         return $null
     }
 
-    # Determine root path (shared helper -> module location -> working directory)
+    # Determine root path.
+    # PCAI_ROOT wins outright when set. It is already an established convention
+    # in this repo -- Tests\Evaluation\Invoke-InferenceEvaluation.ps1 resolves
+    # binaries relative to it -- but this function ignored it entirely and
+    # always walked up from the module location, so pointing PCAI_ROOT at an
+    # alternate checkout silently had no effect here. An explicit override that
+    # is quietly discarded is worse than one that does not exist, because the
+    # caller has no way to tell.
     $root = $null
-    if (Get-Command Resolve-PcaiRepoRoot -ErrorAction SilentlyContinue) {
+    if (-not [string]::IsNullOrWhiteSpace($env:PCAI_ROOT)) {
+        $root = $env:PCAI_ROOT.TrimEnd('\', '/')
+    }
+
+    if (-not $root -and (Get-Command Resolve-PcaiRepoRoot -ErrorAction SilentlyContinue)) {
         $root = Resolve-PcaiRepoRoot -StartPath $PSScriptRoot
     }
 

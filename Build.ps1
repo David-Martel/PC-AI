@@ -2920,7 +2920,7 @@ function Invoke-PostBuildTests {
     $testFailures = @()
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 
-    $runInferenceTests = ($BuildTargets | Where-Object { $_ -in @('llamacpp', 'mistralrs') }).Count -gt 0
+    $runInferenceTests = @($BuildTargets | Where-Object { $_ -in @('llamacpp', 'mistralrs') }).Count -gt 0
     if ($runInferenceTests) {
         $inferenceProject = Join-Path $script:ProjectRoot 'Native\pcai_core\pcai_inference'
         $baseArgs = @('test', '--no-default-features', '--features')

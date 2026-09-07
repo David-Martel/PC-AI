@@ -90,7 +90,7 @@ function Test-SuspiciousValue {
     if ($Value -match $testValuePattern) { return $false }
     # A value that is entirely one repeated character, or contains no variety,
     # is a mask rather than a credential.
-    if (($Value.ToCharArray() | Sort-Object -Unique).Count -lt 5) { return $false }
+    if (@($Value.ToCharArray() | Sort-Object -Unique).Count -lt 5) { return $false }
     return $true
 }
 

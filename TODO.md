@@ -349,6 +349,55 @@ Still open:
   path was broken. If a CPU-only feature set is viable, the matrix entry can be
   re-enabled against `Deploy`.
 
+### 1f. Build And CI Plumbing (opened 2026-09-07)
+
+Everything here surfaced only because the earlier fixes made `Build (llamacpp
+CPU)` reachable for the first time. It had been `skipped` on every run, and the
+CI gate counts `skipped` as passing.
+
+- [x] The llamacpp backend did not compile at all. `llm-base` pins rand 0.8.6;
+  the workspace had been bumped to 0.9 without revisiting the one call site, and
+  `StdRng::from_entropy` is a 0.8-only API. Pinned this crate's rand to 0.8.
+- [x] `Invoke-PcaiBuild.ps1` reported the wrong error. A property slip in a
+  `finally` block threw, replacing the real build exception — CI showed "The
+  property 'SourceIdentifier' cannot be found" instead of the compile failure.
+- [x] The compiler errors were never in the log. Under `--message-format=json`
+  every diagnostic is a `compiler-message` record, and only `compiler-artifact`
+  was handled, so the log ended at cargo's "due to 2 previous errors" summary
+  with neither error above it.
+- [x] `Copy-CompiledArtifacts` had never found its target directory in any
+  configuration. It guessed `$ProjectRoot/target`, but `pcai_inference` is a
+  workspace member (cargo writes to the workspace target) and the dev boxes
+  redirect output to `T:\RustCache` besides. It warned and returned, so the
+  build reported success having collected nothing. Now asks `cargo metadata`.
+- [x] The CI chain around that: Copy Artifacts searched the same impossible
+  path, copied nothing, and exited 0; the upload used
+  `if-no-files-found: warn`; Integration Tests then failed downloading an
+  artifact that was never produced — three steps from the cause. All three now
+  fail at the point of failure.
+- [x] `rust-cache` pointed `workspaces` at the crate directory in all three Rust
+  jobs. `Cargo.lock` and `target/` are at `Native/pcai_core`, so the action was
+  keying against a path with neither.
+- [x] No job had `timeout-minutes`, so a hang ran to the 360-minute default.
+  Bounded from measured durations.
+- [x] `.Count` on a `Where-Object` result threw under StrictMode. **Build.ps1
+  does not set StrictMode** — it dot-sources `Tools\PcaiModuleBootstrap.ps1`,
+  which does, and dot-sourcing runs in the caller's scope. So the whole of
+  Build.ps1 is strict with nothing in the file saying so. Any future audit of
+  strict-mode hazards has to follow dot-sources, not just grep for
+  `Set-StrictMode`. Nine sites fixed.
+- [ ] **Integration Tests has never run.** It needs `build-llamacpp` and
+  `powershell-test`, both long red, so it has been skipped on every run and the
+  gate treated that as a pass. Expect it to execute for the first time once
+  those are green, and to carry its own backlog — the same way this whole
+  section appeared the moment the build job became reachable.
+- [ ] `powershell-test` takes **36 minutes** and gates `integration-tests`;
+  every other job finishes in under four. It is the pipeline's long pole by an
+  order of magnitude and is worth profiling or splitting.
+- [ ] The gate counting `skipped` as success is what let a broken job hide for
+  months. Worth deciding whether a job that is skipped *because a dependency
+  failed* should be distinguishable from one skipped by an explicit condition.
+
 ### 1b. Rust Lint Policy Backlog (opened 2026-09-07)
 
 `[workspace.lints]` in `Native\pcai_core\Cargo.toml` had never been applied.

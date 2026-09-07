@@ -226,7 +226,11 @@ jobs:
       - run: choco install ninja -y
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: Native/pcai_core/pcai_inference
+          # The WORKSPACE root, not the crate directory. pcai_inference is a member
+          # of the Native/pcai_core workspace, so that is where Cargo.lock and
+          # target/ live; pointing this at the crate meant caching against a path
+          # that has neither.
+          workspaces: Native/pcai_core
           shared-key: pcai-inference-msvc
       - name: Set MSVC Environment
         shell: pwsh
@@ -243,18 +247,49 @@ jobs:
       - name: Copy Artifacts
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Path bin -Force
-          $paths = @(".pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll",
-                     "Native\pcai_core\pcai_inference\target\release\pcai_inference.dll")
+          New-Item -ItemType Directory -Path bin -Force | Out-Null
+
+          # Ask cargo where it put things rather than guessing. The old list named
+          # Native\pcai_core\pcai_inference\target\release, which cannot exist:
+          # pcai_inference is a workspace member, so cargo writes to the workspace
+          # target dir, not the member's own.
+          $targetRoot = $null
+          try {
+              $meta = cargo metadata --no-deps --format-version 1 --manifest-path Native/pcai_core/Cargo.toml 2>$null
+              if ($LASTEXITCODE -eq 0 -and $meta) { $targetRoot = ($meta | ConvertFrom-Json).target_directory }
+          } catch { }
+          if (-not $targetRoot) { $targetRoot = "Native\pcai_core\target" }
+
+          $paths = @(
+              ".pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll",
+              (Join-Path $targetRoot "release\pcai_inference.dll")
+          )
+          $copied = $false
           foreach ($p in $paths) {
-              if (Test-Path $p) { Copy-Item $p -Destination bin/ -Force; break }
+              if (Test-Path $p) {
+                  Copy-Item $p -Destination bin/ -Force
+                  Write-Host "Copied $p"
+                  $copied = $true
+                  break
+              }
+          }
+          # Fail loudly. Previously this silently copied nothing, the upload step
+          # only warned, and Integration Tests then failed downloading an artifact
+          # that was never produced -- three steps away from the actual cause.
+          if (-not $copied) {
+              Write-Host "::error::pcai_inference.dll not found. Searched:"
+              $paths | ForEach-Object { Write-Host "::error::  $_" }
+              exit 1
           }
       - name: Upload DLL
         uses: actions/upload-artifact@v4
         with:
           name: pcai-inference-dll-${{ github.sha }}
           path: bin/pcai_inference.dll
-          if-no-files-found: warn
+          # error, not warn: Integration Tests downloads this artifact, so an
+          # empty upload turns a missing DLL into a confusing failure one job
+          # later instead of here.
+          if-no-files-found: error
 
   integration-tests:
     name: Integration Tests

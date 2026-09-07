@@ -25,43 +25,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Was a second, divergent copy of the credential patterns inlined here.
+      # It matched on the PATTERN alone, with no check on the matched VALUE, so
+      # it fired on `api_key = "<20+ chars>"` regardless of what those chars
+      # were -- including the positive-control canaries inside
+      # Tools/Test-CredentialScan.ps1 itself, which is what failed run
+      # 34152812699. A scanner that cannot tell a canary from a secret cries
+      # wolf, and a security gate that cries wolf gets muted.
+      #
+      # Both workflows now call the one rule-based scanner, which guards on the
+      # matched value (length, entropy, placeholder/test wordlist) and runs 5
+      # positive and 6 negative controls on every invocation, so it fails loudly
+      # if it ever stops being able to detect a real secret.
       - name: Check for Hardcoded Credentials
         shell: pwsh
         run: |
-          # Patterns require 20+ alphanumeric chars to exclude PowerShell
-          # property names like `Token = '%CUDA_PATH%'` (11 chars, mostly
-          # punctuation). Real secrets (API keys, GitHub tokens, etc.) are
-          # all 20+ chars of [A-Za-z0-9+/=_-].
-          $patterns = @(
-              'password\s*=\s*[''"][A-Za-z0-9+/=._/\-]{20,}[''"]',
-              'api[_-]?key\s*=\s*[''"][A-Za-z0-9+/=._/\-]{20,}[''"]',
-              'secret\s*=\s*[''"][A-Za-z0-9+/=._/\-]{20,}[''"]',
-              '\btoken\s*=\s*[''"][A-Za-z0-9+/=._/\-]{20,}[''"]',
-              'APIKey\s*=\s*[''"][A-Za-z0-9]{20,}[''"]'
-          )
-          $findings = @()
-          # Skip Tests/ directory — mock credentials in test fixtures are
-          # expected and commonly match these patterns without being leaks.
-          # ConvertTo-SecureString and PSCredential are removed from patterns
-          # because they are legitimate PowerShell idioms for secure-string
-          # handling (the values come from user prompts or env vars, not
-          # from literal strings in source).
-          Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 |
-              Where-Object { $_.FullName -notmatch '[/\\]Tests[/\\]' } |
-              ForEach-Object {
-                  $content = Get-Content $_.FullName -Raw
-                  foreach ($pattern in $patterns) {
-                      if ($content -match $pattern) {
-                          $findings += "$($_.FullName): Pattern match: $pattern"
-                      }
-                  }
-              }
-          if ($findings) {
-              Write-Host "Security Issues Found:" -ForegroundColor Red
-              $findings | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
-              exit 1
-          }
-          Write-Host "No hardcoded credentials found" -ForegroundColor Green
+          .\Tools\Test-CredentialScan.ps1
+          exit $LASTEXITCODE
 
       - name: Validate Module Manifests
         shell: pwsh

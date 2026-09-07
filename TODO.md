@@ -156,6 +156,25 @@ suspicion.
   finished, the longest reaching 21+ minutes still inside `Rust Tests`. Let
   one run to completion, then set the cap from the real number and consider
   narrowing the workspace scope.
+- [ ] **This is what actually holds the `CI Gate` red, and neither half is new.**
+  Measured on run 34152812699 and confirmed identical on run 32283624611 from
+  2026-08-19, before any of this session's work:
+  - `Rust Tests >> Coverage Report` runs
+    `cargo llvm-cov --no-default-features --features server,ffi --lib
+    --fail-under-lines 70` against `pcai_inference`. Actual line coverage is
+    **43.47%** (2741 regions, 1730 lines, 978 missed), so the step exits 1. The
+    gap is concentrated in `http\mod.rs` (30.12% lines) and `ffi\mod.rs`
+    (45.12%); `lib.rs`, `version.rs` and `backends\mod.rs` are all 91-100%.
+    Either write tests for the HTTP and FFI surfaces or lower the threshold to
+    a number that reflects reality --- but do not leave a threshold nobody
+    intends to meet, because a permanently red gate gets ignored exactly like a
+    permanently green one.
+  - `PowerShell Tests >> Run Tests with Coverage` sets `Run.Exit = $true` and
+    `CoveragePercentTarget = 85`, so it fails on the pre-existing PS7
+    test-contract failures already tracked above.
+  Every completed `ci.yml` run in the repo's history is a failure, across
+  unrelated branches (dependabot, `feat/import-nukenul`), which is consistent
+  with this being long-standing rather than branch-specific.
 - [ ] git-guard's commit-time Rust gate can never PASS in this repo, only
   block. `qa_check_rust` in `git-guard/hooks/common/qa_gate.sh` runs
   `cd "$REPO_ROOT" && cargo fmt --all --check` (and the same for clippy), but

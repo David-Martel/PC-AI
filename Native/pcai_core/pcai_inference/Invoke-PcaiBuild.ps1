@@ -1033,6 +1033,29 @@ function Invoke-Build {
                             $lastPkg = $pkg
                             $script:BuildLastPkg = $pkg
                         }
+                    } elseif ($msg -and $msg.reason -eq 'compiler-message') {
+                        # Under --message-format=json every diagnostic arrives as
+                        # a compiler-message record, NOT as plain text. Dropping
+                        # these left CI showing only cargo's final "could not
+                        # compile ... due to 2 previous errors" summary with the
+                        # two errors themselves nowhere in the log, which makes a
+                        # red build undiagnosable without reproducing locally.
+                        $rendered = $msg.message.rendered
+                        if ($rendered) {
+                            # Levels seen in practice: error, warning, note, help,
+                            # failure-note, and ICEs. Allow-list only 'warning' as
+                            # non-fatal and treat everything else as diagnostic
+                            # output worth keeping -- a deny-list would silently
+                            # drop any level rustc adds later, which is the class
+                            # of bug this branch exists to fix.
+                            if ($msg.message.level -eq 'warning') {
+                                $rendered | Out-File $logFile -Append
+                                Write-Host $rendered -ForegroundColor Yellow
+                            } else {
+                                $rendered | Out-File $errorLogFile -Append
+                                Write-Host $rendered -ForegroundColor Red
+                            }
+                        }
                     }
                 } catch {}
             } else {
@@ -1056,11 +1079,23 @@ function Invoke-Build {
             throw "Build failed for $BackendName"
         }
     } finally {
-        if ($heartbeatTimer) { $heartbeatTimer.Stop() }
-        if ($heartbeatEvent -and $heartbeatEvent.SourceIdentifier) {
-            Unregister-Event -SourceIdentifier $heartbeatEvent.SourceIdentifier -ErrorAction SilentlyContinue
+        # Nothing in here may throw. An exception raised in finally REPLACES the
+        # exception that caused us to get here, so a cleanup slip silently
+        # substitutes itself for the real build failure -- which is exactly what
+        # happened: CI reported "The property 'SourceIdentifier' cannot be found
+        # on this object" instead of the compile error that actually failed the
+        # build. Register-ObjectEvent -Action returns a PSEventJob, whose
+        # identifier is .Name; it has no .SourceIdentifier, and StrictMode makes
+        # reading a missing property a terminating error.
+        try {
+            if ($heartbeatTimer) { $heartbeatTimer.Stop() }
+            if ($heartbeatEvent -and $heartbeatEvent.Name) {
+                Unregister-Event -SourceIdentifier $heartbeatEvent.Name -ErrorAction SilentlyContinue
+            }
+            if ($heartbeatTimer) { $heartbeatTimer.Dispose() }
+        } catch {
+            Write-Host "  (heartbeat cleanup: $($_.Exception.Message))" -ForegroundColor DarkGray
         }
-        if ($heartbeatTimer) { $heartbeatTimer.Dispose() }
         $ErrorActionPreference = $prevErrorActionPreference
         Pop-Location
         $duration = (Get-Date) - $startTime

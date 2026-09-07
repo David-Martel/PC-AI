@@ -153,7 +153,48 @@ $report = [PSCustomObject]@{
 $reportJson = Join-Path $reportDir 'API_SIGNATURE_REPORT.json'
 $reportMd = Join-Path $reportDir 'API_SIGNATURE_REPORT.md'
 
-$report | ConvertTo-Json -Depth 6 | Set-Content -Path $reportJson -Encoding UTF8
+function Save-ReportIfChanged {
+    <#
+    .SYNOPSIS
+        Write a generated report only when its substance actually changed.
+    .DESCRIPTION
+        These two reports are tracked in git, and every run rewrote them with a
+        fresh "Generated" stamp even when nothing else moved. That left the tree
+        dirty after any doc-pipeline or test run, so real changes had to be
+        picked out of timestamp noise in every diff.
+
+        Comparison ignores the timestamp line; if that is the only difference the
+        existing file is left untouched and keeps its original stamp.
+
+        Encoding is explicit and BOM-less. `Set-Content -Encoding UTF8` emits a
+        BOM on Windows PowerShell 5.1 (and not on 7+), so the byte content of a
+        tracked file depended on which host ran the generator -- and 5.1 is what
+        maintenance.yml uses. A BOM here would break any non-PowerShell JSON
+        reader, which is the same defect that silently disabled the router tool
+        schema (see TODO 1d).
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Content,
+        [Parameter(Mandatory)][string]$StampPattern
+    )
+
+    if (Test-Path -LiteralPath $Path) {
+        $existing = [System.IO.File]::ReadAllText($Path)
+        $strip = { param($t) ($t -replace $StampPattern, '') }
+        if ((& $strip $existing) -eq (& $strip $Content)) {
+            Write-Host "Unchanged: $Path" -ForegroundColor DarkGray
+            return
+        }
+    }
+
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+    Write-Host "Wrote: $Path" -ForegroundColor Green
+}
+
+$jsonContent = $report | ConvertTo-Json -Depth 6
+Save-ReportIfChanged -Path $reportJson -Content $jsonContent -StampPattern '"Generated":\s*"[^"]*"'
 
 $md = New-Object System.Text.StringBuilder
 $null = $md.AppendLine('# API_SIGNATURE_REPORT')
@@ -198,7 +239,4 @@ if (@($report.PowerShellToCSharp.MissingCsharpMethods).Count -gt 0) {
     $null = $md.AppendLine('')
 }
 
-$md.ToString() | Set-Content -Path $reportMd -Encoding UTF8
-
-Write-Host "Wrote: $reportMd" -ForegroundColor Green
-Write-Host "Wrote: $reportJson" -ForegroundColor Green
+Save-ReportIfChanged -Path $reportMd -Content $md.ToString() -StampPattern 'Generated:.*'

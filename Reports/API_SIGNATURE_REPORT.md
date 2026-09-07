@@ -1,6 +1,6 @@
 # API_SIGNATURE_REPORT
 
-Generated: 2026-09-07 18:05:51
+Generated: 2026-09-07 19:12:53
 
 PowerShell functions: 237
 Missing help blocks: 172
@@ -198,5 +198,4 @@ Missing Rust exports: 0
 - Set-PCaiServiceState: missing Name, Action
 - Start-HVSockProxy: missing ConfigPath, StatePath, Force, RegisterServices
 - Stop-HVSockProxy: missing StatePath
-
 

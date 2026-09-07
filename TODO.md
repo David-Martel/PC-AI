@@ -29,8 +29,19 @@ four verification tools. Their newest evidence:
 |---|---|---|
 | `Test-SyncProviderHealth.ps1` | 2026-06-06 (`workstation-audit-20260606-124859\direct-pass-20260606\`) | 3 months |
 | `Test-BootMountHealth.ps1` | 2026-06-06 (`workstation-audit-20260606-124859\boot-mount-health-refresh.txt`) | 3 months |
-| `Test-ProcessLassoBootSafety.ps1` | 2026-09-07 (`processlasso-governor-watchdog.json`) | current |
+| `Test-ProcessLassoBootSafety.ps1` | 2026-06-06 (`workstation-audit-20260606-124859\process-lasso-boot-safety.txt`) | 3 months |
 | `Collect-DrivePerformanceSyncRisk.ps1` | 2026-04-30 (`drive-performance-sync-risk\20260430-153629\`) | 4 months |
+
+Corrected 2026-09-07: the Process Lasso row first read "2026-09-07
+(`processlasso-governor-watchdog.json`) | current", which was wrong twice over.
+That file is written by `Register-ProcessLassoGovernorWatchdog.ps1:109`, not by
+`Test-ProcessLassoBootSafety.ps1`, and its `GeneratedAt` is 2026-08-19 even
+though its mtime is 2026-09-07. **Use the `GeneratedAt` field inside these
+artifacts, never the file mtime** -- several `Reports\` subtrees have uniform
+mtimes from a bulk copy (the four `2026-06-19 22:23` directories all contain
+artifacts whose internal timestamps read 2026-06-06). Getting this wrong makes
+stale evidence look current, which is the one error mode this table exists to
+prevent. All four tools are in fact 3-4 months stale; none is current.
 
 `boot.TODO.md`'s 2026-06-06 block already records that
 `Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru` passes for

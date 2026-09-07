@@ -5,7 +5,6 @@ edition = "2021"
 description = "Janus-Pro model architecture for PC_AI media agent"
 license = "MIT"
 rust-version.workspace = true
-lints.workspace = true
 
 [dependencies]
 anyhow = "1.0"
@@ -28,3 +27,6 @@ cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
 # future candle releases that may add cuDNN-fused attention.
 cudnn = ["cuda", "candle-core/cudnn"]
 flash-attn = ["dep:candle-flash-attn"]
+
+[lints]
+workspace = true

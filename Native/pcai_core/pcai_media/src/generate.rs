@@ -608,7 +608,7 @@ impl GenerationPipeline {
                     flat_ids.extend_from_slice(&prompt_ids);
                 } else {
                     // Unconditional: pad tokens + <begin_of_image> at the end.
-                    flat_ids.extend(std::iter::repeat(pad_id).take(seq_len - 1));
+                    flat_ids.extend(std::iter::repeat_n(pad_id, seq_len - 1));
                     flat_ids.push(boi_id);
                 }
             }
@@ -1314,7 +1314,7 @@ impl GenerationPipeline {
     /// Returns an error on any candle operation failure.
     fn embed_image_token(&self, token_id: u32, batch_size: usize) -> Result<Tensor> {
         use candle_core::Module;
-        let ids_flat: Vec<u32> = std::iter::repeat(token_id).take(batch_size).collect();
+        let ids_flat: Vec<u32> = std::iter::repeat_n(token_id, batch_size).collect();
         let ids = Tensor::from_slice(&ids_flat, (batch_size, 1_usize), &self.device)
             .context("embed_image_token: from_slice")?;
         let raw = self

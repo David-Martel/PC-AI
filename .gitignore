@@ -222,6 +222,7 @@ MODELS.md
 # Machine-specific performance data
 Reports/detailed-process-data.json
 Reports/system-performance-data.json
+Reports/LITHO_EXTRACT.json
 
 # Tooling benchmark runs (generated artifacts, accumulate rapidly)
 Reports/tooling-benchmarks/

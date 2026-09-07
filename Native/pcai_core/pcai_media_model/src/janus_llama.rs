@@ -361,7 +361,7 @@ impl PreAllocKvCache {
                 (0..h).flat_map(move |_h| {
                     (0..s).flat_map(move |p| {
                         let pos = (seq_pos + p) as u32;
-                        std::iter::repeat(pos).take(d)
+                        std::iter::repeat_n(pos, d)
                     })
                 })
             })

@@ -138,12 +138,82 @@ suspicion.
   auto-fix phase invokes `cargo fix` with a stray `-` argument. CI is
   unaffected (no CargoTools on the runners), so this is a workstation-only
   break in `Build.ps1 -Component functiongemma-router-data`.
-- [ ] `Portable CI (Linux)` takes 30+ minutes, not the "~4-6 min" its comment
-  claimed, because `cargo test --workspace` builds all seven crates. A
-  `timeout-minutes: 60` now bounds it; consider narrowing the workspace scope.
+- [ ] `Portable CI (Linux)` takes far longer than the "~4-6 min" its comment
+  claimed, because `cargo test --workspace` builds all seven crates. The
+  60-minute cap added on 2026-09-07 is an upper bound, NOT a measurement:
+  every dispatched run so far was cancelled by a newer push before it
+  finished, the longest reaching 21+ minutes still inside `Rust Tests`. Let
+  one run to completion, then set the cap from the real number and consider
+  narrowing the workspace scope.
+- [ ] git-guard's commit-time Rust gate can never PASS in this repo, only
+  block. `qa_check_rust` in `git-guard/hooks/common/qa_gate.sh` runs
+  `cd "$REPO_ROOT" && cargo fmt --all --check` (and the same for clippy), but
+  PC_AI has no root `Cargo.toml` -- the workspaces are at
+  `Native\pcai_core` and `Deploy\rust-functiongemma`. Cargo exits "could not
+  find `Cargo.toml`", so with `.qa-gate.conf` set to `block` every commit
+  touching a `.rs` file was rejected regardless of its quality, which pushes
+  people toward `GIT_GUARD=0`. Both are now `off` in `.qa-gate.conf` with the
+  reasoning recorded there; CI still enforces fmt and clippy properly under
+  `working-directory: Native/pcai_core`. The real fix belongs upstream: teach
+  `qa_check_rust` a `rust.dir` (or manifest-path) setting defaulting to
+  `$REPO_ROOT`. git-guard is shared fleet infrastructure, so that change needs
+  an ownership announcement before anyone makes it.
+- [ ] The `Deploy\rust-functiongemma` workspace does not resolve at all.
+  Its `[workspace] members` are `"../rust-functiongemma-runtime"`,
+  `"../rust-functiongemma-train"` and `"../rust-functiongemma-core"`, and Cargo
+  rejects members that are not hierarchically below the workspace root:
+  `cargo metadata` fails outright, so `cargo fmt`/`cargo clippy`/`cargo build`
+  cannot be run against that root. `Build.ps1` still points a build path at it
+  (`Build.ps1:1190`). Either move the three crates under
+  `Deploy\rust-functiongemma\` or drop the aggregating root and treat the
+  three as independent crates. This is pre-existing and separate from the
+  CargoTools `cargo fix` bug noted above.
 - [ ] `release-cuda.yml` is now valid YAML but has still never executed — the
   repo has no tags at all. Cut a throwaway pre-release tag to prove the
   4-variant CUDA/CPU release path actually works end to end.
+
+### 1b. Rust Lint Policy Backlog (opened 2026-09-07)
+
+`[workspace.lints]` in `Native\pcai_core\Cargo.toml` had never been applied.
+All seven crates declared `lints.workspace = true` *inside* their `[package]`
+table; Cargo requires a top-level `[lints]` table, so it silently reported
+`unused manifest key: package.lints` and dropped the entire policy. The
+`clippy -D warnings` gate in `portable-ci.yml` was therefore only ever
+enforcing clippy's built-in defaults.
+
+The key is now in the right place and the gate is green, verified with a
+positive control: an unused-lifetime canary fails the gate, and was reverted.
+Because the policy had never run, roughly 960 accumulated warnings surfaced at
+once. Rather than redden the gate or silently drop the policy, the lints are
+split into an enforced set and a deferred backlog. Every count below is from a
+single real clippy run, not an estimate.
+
+Note that the enforced clippy *groups* (correctness, suspicious, style,
+complexity, perf) overlap clippy's own defaults, so the practical enforcement
+gained is the non-default rust lints plus `empty_drop`. The larger win is that
+the policy now means what it says and the backlog is visible instead of silent.
+
+- [ ] `clippy::pedantic` -- ~800 sites. Dominated by missing doc backticks
+  (152), `must_use` candidates (105), and cast-precision warnings (~105).
+  Re-enable in tranches, not all at once.
+- [ ] `undocumented_unsafe_blocks` -- 59 sites needing `// SAFETY:` comments.
+  Highest safety value in this backlog; do this one first.
+- [ ] `missing_debug_implementations` -- 32 public types.
+- [ ] `unsafe_op_in_unsafe_fn` -- 25 sites. These are edition-2024 E0133 hard
+  errors, so clearing this one changes code, not just annotations.
+- [ ] `clippy::cargo` -- 25 sites, all missing publish metadata
+  (description/readme/keywords/categories). Low value while these crates stay
+  unpublished; either add the metadata or close as won't-fix.
+- [ ] `clone_on_ref_ptr` -- 21 sites.
+- [ ] `redundant_imports` -- 18 sites.
+- [ ] `map_err_ignore` -- 17 sites discarding the original error.
+- [ ] `allow_attributes_without_reason` -- 6 sites.
+- [ ] `trivial_numeric_casts` (2 sites) and `unused_result_ok` (1 site).
+
+Two related defects were fixed in the same pass: repo `clippy.toml` declared
+`msrv = "1.75.0"` while the workspace declares `rust-version = "1.85"`, and
+clippy was silently using the lower one; and `clippy::string_to_string` was
+still listed although upstream removed it in favour of `implicit_clone`.
 
 ### 2. Native-First Architecture
 

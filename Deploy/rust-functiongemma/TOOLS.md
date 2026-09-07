@@ -172,6 +172,27 @@ Parameters:
 - model_path (string, required)
 - gpu_layers (integer, optional)
 
+### pcai_analyze_image
+Analyze a screenshot or image using the Janus-Pro vision model. Extracts text, error codes, device names, and diagnostic information from screenshots of error dialogs, BSOD, Device Manager, Event Viewer, etc.
+
+Parameters:
+- image_path (string, required)
+- question (string, optional)
+- max_tokens (integer, optional)
+
+### pcai_generate_image
+Generate an image from a text description using the Janus-Pro model.
+
+Parameters:
+- prompt (string, required)
+- output_path (string, optional)
+- cfg_scale (number, optional)
+
+### pcai_media_status
+Get the current status of the media pipeline (initialized, model loaded, device).
+
+Parameters:
+
 ### pcai_run_evaluation
 Run an evaluation suite against the active inference backend.
 

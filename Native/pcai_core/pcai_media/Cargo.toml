@@ -5,7 +5,6 @@ edition = "2021"
 description = "Janus-Pro media pipeline with FFI and HTTP support"
 license = "MIT"
 rust-version.workspace = true
-lints.workspace = true
 
 [lib]
 name = "pcai_media"
@@ -75,3 +74,6 @@ optional = true
 
 [dev-dependencies]
 tempfile = "3"
+
+[lints]
+workspace = true

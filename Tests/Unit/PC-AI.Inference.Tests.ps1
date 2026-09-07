@@ -66,11 +66,22 @@ Describe 'PcaiInference Module' -Tag 'Unit', 'Portable' {
             $cmd.Parameters.ContainsKey('ModelPath') | Should -BeTrue
         }
 
-        It 'Import-PcaiModel ModelPath should be mandatory' {
+        It 'Import-PcaiModel ModelPath is optional and falls back to configuration' {
+            # This asserted -Mandatory, which the implementation deliberately
+            # does not do: when ModelPath is omitted, Import-PcaiModel reads
+            # providers.pcai-native.modelPath from Config\llm-config.json and
+            # only throws if that is unset too (PcaiInference.psm1). Marking
+            # the parameter mandatory would delete that documented fallback, so
+            # the test was asserting against a feature rather than a defect.
             $cmd = Get-Command Import-PcaiModel -ErrorAction SilentlyContinue
+            $cmd | Should -Not -BeNullOrEmpty
+
             $param = $cmd.Parameters['ModelPath']
-            $mandatory = $param.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
-            $mandatory.Mandatory | Should -BeTrue
+            $param | Should -Not -BeNullOrEmpty -Because 'the parameter must still exist'
+
+            $attribute = $param.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
+            $attribute.Mandatory | Should -BeFalse -Because 'omitting ModelPath must fall back to the configured model path'
+            $param.ParameterType | Should -Be ([string])
         }
     }
 

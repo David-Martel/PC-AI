@@ -1147,6 +1147,9 @@ function Clear-BuildArtifacts {
     # Clean Rust target directories if requested
     $rustTargets = @(
         'Native\pcai_core\pcai_inference\target',
+        # Workspace output now lands in Deploy\target. The two per-crate paths
+        # below are pre-workspace leftovers, kept so an older tree still cleans.
+        'Deploy\target',
         'Deploy\rust-functiongemma-runtime\target',
         'Deploy\rust-functiongemma-train\target'
     )
@@ -1187,7 +1190,9 @@ function Get-QualityTargets {
         },
         @{
             Name = 'functiongemma-workspace'
-            Path = Join-Path $script:ProjectRoot 'Deploy\rust-functiongemma'
+            # Deploy/, not Deploy/rust-functiongemma/ -- the workspace root moved
+            # up one level so its members sit below it, which Cargo requires.
+            Path = Join-Path $script:ProjectRoot 'Deploy'
         },
         @{
             Name = 'nukenul-core'

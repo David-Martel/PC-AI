@@ -19,7 +19,9 @@ From repo root:
   .\Build.ps1 -Component functiongemma-eval
 
 ## Build/Test scripts
-From Deploy/rust-functiongemma:
+The Cargo workspace root is `Deploy/`, not this directory — members must sit
+below their workspace root, and the three crates are siblings of this folder.
+Run `cargo` commands from `Deploy/`. These wrapper scripts live here:
 
   .\build.ps1
   .\test.ps1

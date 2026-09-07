@@ -38,8 +38,9 @@ PC_AI/
 ├── Native/PcaiServiceHost/            # C# Windows service host for inference
 ├── External: C:\codedev\nukenul\      # Standalone Rust/C# utility for null-file removal
 ├── AI-Media/                          # Python Janus-Pro media agent (CUDA)
-├── Deploy/
-│   ├── rust-functiongemma/            # Rust workspace root (includes core/runtime/train)
+├── Deploy/                            # Cargo workspace ROOT for the FunctionGemma crates
+│   ├── Cargo.toml                     # workspace manifest (+ [patch] for vendored CUDA kernels)
+│   ├── rust-functiongemma/            # FunctionGemma docs + build/test scripts (no manifest)
 │   ├── rust-functiongemma-core/       # Shared library (model, GPU, prompt, config, LoRA)
 │   ├── rust-functiongemma-runtime/    # Router runtime (axum HTTP, port 8000)
 │   ├── rust-functiongemma-train/      # Router dataset + training pipeline

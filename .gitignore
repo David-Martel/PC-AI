@@ -91,6 +91,13 @@ target/
 **/target-*/
 **/*.rs.bk
 Cargo.lock
+# ...except the two workspace lockfiles. Cargo's guidance is to commit the lock
+# for applications, and both of these build binaries. Native/pcai_core's was
+# already tracked (added before the blanket rule above, so the rule never
+# applied to it); Deploy's is named here so it is tracked by intent rather than
+# by accident of ordering.
+!Native/pcai_core/Cargo.lock
+!Deploy/Cargo.lock
 
 # Rust build output logs (JSON structured output)
 cargo_output*.json

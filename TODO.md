@@ -284,6 +284,33 @@ Still open:
   `[System.Text.Encoding]::UTF8` anywhere PowerShell writes a file that a
   non-PowerShell reader will parse.
 
+### 1e. FunctionGemma Cargo Workspace (opened 2026-09-07)
+
+- [x] `Deploy\rust-functiongemma\Cargo.toml` declared its members as
+  `../rust-functiongemma-*`, which Cargo rejects outright -- workspace members
+  must be hierarchically below the workspace root. The workspace did not resolve
+  at all, so everything pointing at it inherited the failure: `Build.ps1`'s
+  `functiongemma-workspace` lint/build target, the Dependabot cargo entry for
+  `/Deploy/rust-functiongemma` (which is why no FunctionGemma dependency update
+  PR has ever appeared), and the `rust-guidelines` matrix entry, which had been
+  commented out rather than fixed. Root moved up to `Deploy\Cargo.toml`, with
+  `vendor/` excluded so the vendored candle crates are not pulled in as members.
+- [x] The `[patch.crates-io]` blocks redirecting `candle-kernels` and
+  `candle-flash-attn` to the patched vendored copies lived in two member
+  manifests. Cargo honours `[patch]` only at the workspace root, so making these
+  crates real members would have silently swapped the CUDA-13-patched kernels
+  for stock crates.io ones. Hoisted to the root and removed from the members;
+  verified both now resolve to `Deploy\vendor\...`.
+- [ ] `[workspace.dependencies]` in `Deploy\Cargo.toml` is **inert**: not one of
+  the three members uses `dep.workspace = true`, so every version in that table
+  is decorative. Either migrate the members onto it or delete it. Leaving policy
+  that looks applied but is not is the same trap as the crate lint policy in 1b
+  -- the table is currently annotated in place so nobody reads it as enforced.
+- [ ] `rust-guidelines.yml` still skips this workspace, now for its own stated
+  reason (CUDA bindgen is unavailable on hosted runners) rather than because the
+  path was broken. If a CPU-only feature set is viable, the matrix entry can be
+  re-enabled against `Deploy`.
+
 ### 1b. Rust Lint Policy Backlog (opened 2026-09-07)
 
 `[workspace.lints]` in `Native\pcai_core\Cargo.toml` had never been applied.

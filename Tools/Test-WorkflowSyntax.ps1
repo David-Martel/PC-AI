@@ -101,6 +101,19 @@ $stepsScanned = 0
 foreach ($file in $files) {
     $raw = Get-Content -LiteralPath $file.FullName -Raw
 
+    # GitHub evaluates ${{ ... }} ANYWHERE in a workflow, including inside a
+    # run: block's shell comments. An empty or whitespace-only expression is
+    # rejected at workflow-load time with "An expression was expected", which
+    # kills the workflow before a single step runs. powershell-yaml parses such
+    # a file happily, so this has to be checked separately.
+    foreach ($expr in [regex]::Matches($raw, '\$\{\{(.*?)\}\}')) {
+        if ([string]::IsNullOrWhiteSpace($expr.Groups[1].Value)) {
+            $lineNumber = ($raw.Substring(0, $expr.Index) -split "`n").Count
+            Add-Finding -File $file.Name -Scope "line $lineNumber" -Kind 'EmptyActionsExpression' `
+                -Message 'Empty ${{ }} expression. GitHub rejects the whole workflow with "An expression was expected".'
+        }
+    }
+
     if (-not $haveYaml) { continue }
 
     $doc = $null

@@ -812,11 +812,21 @@ fn stream_functiongemma_response(
 }
 
 fn should_route_to_functiongemma(req: &ChatCompletionRequest) -> bool {
-    if router_settings().disable {
+    should_route_with(router_settings(), req)
+}
+
+/// Routing decision against an explicit settings value.
+///
+/// Split out from [`should_route_to_functiongemma`] so it can be tested: the
+/// public entry point reads a process-global `OnceLock`, whose value is fixed
+/// by whichever test touches it first, which would make these assertions
+/// order-dependent.
+fn should_route_with(settings: &RouterSettings, req: &ChatCompletionRequest) -> bool {
+    if settings.disable {
         return false;
     }
 
-    if router_settings().force {
+    if settings.force {
         return true;
     }
 
@@ -902,8 +912,16 @@ async fn call_functiongemma(req: &ChatCompletionRequest) -> std::result::Result<
 }
 
 fn load_default_tools() -> Option<Vec<serde_json::Value>> {
-    let path = router_settings().tools_path.clone();
-    let content = std::fs::read_to_string(&path).ok()?;
+    load_tools_from(&router_settings().tools_path)
+}
+
+/// Read a tool schema from an explicit path.
+///
+/// Split out from [`load_default_tools`] for the same reason as
+/// [`should_route_with`]: the caller's path comes from a process-global
+/// `OnceLock`, so a test cannot point it at a fixture.
+fn load_tools_from(path: &str) -> Option<Vec<serde_json::Value>> {
+    let content = std::fs::read_to_string(path).ok()?;
     let doc: serde_json::Value = serde_json::from_str(&content).ok()?;
     doc.get("tools")
         .and_then(|tools| tools.as_array())
@@ -1014,6 +1032,7 @@ fn chunk_text(text: &str, max_chars: usize) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backends::GenerateResponse;
 
     #[test]
     fn test_build_chat_prompt() {
@@ -1221,5 +1240,636 @@ mod tests {
         assert!(tracker.stop_hit());
         let result = tracker.push("more text");
         assert!(result.is_empty());
+    }
+    // ---------------------------------------------------------------
+    // Test doubles and helpers
+    // ---------------------------------------------------------------
+
+    /// Minimal in-memory backend so the HTTP handlers can be exercised
+    /// without a model file, a GPU, or a network listener.
+    #[derive(Debug, Clone)]
+    struct StubBackend {
+        loaded: bool,
+        text: String,
+        tokens: usize,
+        finish: FinishReason,
+        fail_with: Option<String>,
+    }
+
+    impl StubBackend {
+        fn loaded(text: &str) -> Self {
+            Self {
+                loaded: true,
+                text: text.to_string(),
+                tokens: 7,
+                finish: FinishReason::Stop,
+                fail_with: None,
+            }
+        }
+
+        fn unloaded() -> Self {
+            Self {
+                loaded: false,
+                text: String::new(),
+                tokens: 0,
+                finish: FinishReason::Stop,
+                fail_with: None,
+            }
+        }
+
+        fn failing(message: &str) -> Self {
+            Self {
+                loaded: true,
+                text: String::new(),
+                tokens: 0,
+                finish: FinishReason::Error,
+                fail_with: Some(message.to_string()),
+            }
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl InferenceBackend for StubBackend {
+        async fn load_model(&mut self, _model_path: &str) -> Result<()> {
+            self.loaded = true;
+            Ok(())
+        }
+
+        async fn generate(&self, _request: GenerateRequest) -> Result<GenerateResponse> {
+            if let Some(message) = &self.fail_with {
+                return Err(Error::Backend(message.clone()));
+            }
+            Ok(GenerateResponse {
+                text: self.text.clone(),
+                tokens_generated: self.tokens,
+                finish_reason: self.finish,
+            })
+        }
+
+        async fn unload_model(&mut self) -> Result<()> {
+            self.loaded = false;
+            Ok(())
+        }
+
+        fn is_loaded(&self) -> bool {
+            self.loaded
+        }
+
+        fn backend_name(&self) -> &'static str {
+            "stub"
+        }
+    }
+
+    fn state_with(backend: StubBackend) -> Arc<AppState> {
+        Arc::new(AppState {
+            backend: Arc::new(RwLock::new(Box::new(backend))),
+        })
+    }
+
+    async fn body_string(response: Response) -> String {
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("test: response body must be readable");
+        String::from_utf8(bytes.to_vec()).expect("test: response body must be valid UTF-8")
+    }
+
+    fn completion_req(value: serde_json::Value) -> CompletionRequest {
+        serde_json::from_value(value).expect("test: CompletionRequest fixture must deserialize")
+    }
+
+    fn chat_req(value: serde_json::Value) -> ChatCompletionRequest {
+        serde_json::from_value(value).expect("test: ChatCompletionRequest fixture must deserialize")
+    }
+
+    fn router_settings_fixture() -> RouterSettings {
+        RouterSettings {
+            base_url: "http://router.invalid".to_string(),
+            model: "functiongemma-270m-it".to_string(),
+            tools_path: String::new(),
+            strict: false,
+            force: false,
+            disable: false,
+            default_temperature: 0.2,
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // health_check / list_models
+    // ---------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_health_check_reports_ready_when_loaded() {
+        let response = health_check(State(state_with(StubBackend::loaded("hi"))))
+            .await
+            .into_response();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_string(response).await;
+        assert!(body.contains("\"status\":\"ready\""), "body was {body}");
+        assert!(body.contains("\"backend\":\"stub\""), "body was {body}");
+    }
+
+    #[tokio::test]
+    async fn test_health_check_reports_not_ready_when_unloaded() {
+        let response = health_check(State(state_with(StubBackend::unloaded())))
+            .await
+            .into_response();
+        let body = body_string(response).await;
+        assert!(body.contains("\"status\":\"not_ready\""), "body was {body}");
+    }
+
+    #[tokio::test]
+    async fn test_list_models_uses_backend_name_when_loaded() {
+        let response = list_models(State(state_with(StubBackend::loaded("hi"))))
+            .await
+            .into_response();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_string(response).await;
+        assert!(body.contains("\"id\":\"stub\""), "body was {body}");
+        assert!(body.contains("\"object\":\"list\""), "body was {body}");
+    }
+
+    #[tokio::test]
+    async fn test_list_models_falls_back_when_unloaded() {
+        let response = list_models(State(state_with(StubBackend::unloaded())))
+            .await
+            .into_response();
+        let body = body_string(response).await;
+        assert!(body.contains("\"id\":\"pcai-inference\""), "body was {body}");
+    }
+
+    // ---------------------------------------------------------------
+    // completions
+    // ---------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_completions_returns_generated_text_and_usage() {
+        let state = state_with(StubBackend::loaded("a generated answer"));
+        let req = completion_req(serde_json::json!({"prompt": "hello world", "model": "m1"}));
+        let response = match completions(State(state), Json(req)).await {
+            Ok(response) => response,
+            Err(err) => panic!("test: completions must succeed, got {err:?}"),
+        };
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_string(response).await;
+        assert!(body.contains("a generated answer"), "body was {body}");
+        assert!(body.contains("\"object\":\"text_completion\""), "body was {body}");
+        assert!(body.contains("\"model\":\"m1\""), "body was {body}");
+        assert!(body.contains("\"completion_tokens\":7"), "body was {body}");
+    }
+
+    #[tokio::test]
+    async fn test_completions_defaults_model_when_absent() {
+        let state = state_with(StubBackend::loaded("x"));
+        let req = completion_req(serde_json::json!({"prompt": "hello"}));
+        let response = match completions(State(state), Json(req)).await {
+            Ok(response) => response,
+            Err(err) => panic!("test: completions must succeed, got {err:?}"),
+        };
+        let body = body_string(response).await;
+        assert!(body.contains("\"model\":\"pcai-inference\""), "body was {body}");
+    }
+
+    #[tokio::test]
+    async fn test_completions_applies_stop_sequence() {
+        let state = state_with(StubBackend::loaded("keep this STOP drop this"));
+        let req = completion_req(serde_json::json!({"prompt": "p", "stop": ["STOP"]}));
+        let response = match completions(State(state), Json(req)).await {
+            Ok(response) => response,
+            Err(err) => panic!("test: completions must succeed, got {err:?}"),
+        };
+        let body = body_string(response).await;
+        assert!(body.contains("keep this "), "body was {body}");
+        assert!(!body.contains("drop this"), "stop sequence not applied: {body}");
+    }
+
+    #[tokio::test]
+    async fn test_completions_unloaded_backend_is_503() {
+        let state = state_with(StubBackend::unloaded());
+        let req = completion_req(serde_json::json!({"prompt": "p"}));
+        let response = match completions(State(state), Json(req)).await {
+            Ok(_) => panic!("test: completions must fail when no model is loaded"),
+            Err(err) => err.into_response(),
+        };
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let body = body_string(response).await;
+        assert!(body.contains("Model not loaded"), "body was {body}");
+    }
+
+    #[tokio::test]
+    async fn test_completions_backend_error_is_500() {
+        let state = state_with(StubBackend::failing("gpu exploded"));
+        let req = completion_req(serde_json::json!({"prompt": "p"}));
+        let response = match completions(State(state), Json(req)).await {
+            Ok(_) => panic!("test: completions must propagate a backend error"),
+            Err(err) => err.into_response(),
+        };
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        let body = body_string(response).await;
+        assert!(body.contains("gpu exploded"), "body was {body}");
+    }
+
+    #[tokio::test]
+    async fn test_completions_streaming_emits_sse_chunks_and_done() {
+        let state = state_with(StubBackend::loaded("streamed text"));
+        let req = completion_req(serde_json::json!({"prompt": "p", "stream": true}));
+        let response = match completions(State(state), Json(req)).await {
+            Ok(response) => response,
+            Err(err) => panic!("test: streaming completions must succeed, got {err:?}"),
+        };
+        let body = tokio::time::timeout(std::time::Duration::from_secs(10), body_string(response))
+            .await
+            .expect("test: SSE stream must terminate");
+        assert!(body.contains("streamed text"), "body was {body}");
+        assert!(body.contains("text_completion.chunk"), "body was {body}");
+        assert!(body.contains("[DONE]"), "stream must end with [DONE]: {body}");
+    }
+
+    #[tokio::test]
+    async fn test_completions_streaming_reports_unloaded_model() {
+        let state = state_with(StubBackend::unloaded());
+        let req = completion_req(serde_json::json!({"prompt": "p", "stream": true}));
+        let response = match completions(State(state), Json(req)).await {
+            Ok(response) => response,
+            Err(err) => panic!("test: streaming completions must return a stream, got {err:?}"),
+        };
+        let body = tokio::time::timeout(std::time::Duration::from_secs(10), body_string(response))
+            .await
+            .expect("test: SSE stream must terminate");
+        assert!(body.contains("Model not loaded"), "body was {body}");
+        assert!(body.contains("[DONE]"), "body was {body}");
+    }
+
+    // ---------------------------------------------------------------
+    // chat_completions
+    // ---------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_chat_completions_returns_assistant_message() {
+        let state = state_with(StubBackend::loaded("assistant reply"));
+        let req = chat_req(serde_json::json!({
+            "model": "chat-1",
+            "messages": [{"role": "user", "content": "hello"}]
+        }));
+        let response = match chat_completions(State(state), Json(req)).await {
+            Ok(response) => response,
+            Err(err) => panic!("test: chat_completions must succeed, got {err:?}"),
+        };
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_string(response).await;
+        assert!(body.contains("assistant reply"), "body was {body}");
+        assert!(body.contains("\"object\":\"chat.completion\""), "body was {body}");
+        assert!(body.contains("\"role\":\"assistant\""), "body was {body}");
+    }
+
+    #[tokio::test]
+    async fn test_chat_completions_empty_messages_is_400() {
+        let state = state_with(StubBackend::loaded("x"));
+        let req = chat_req(serde_json::json!({"messages": []}));
+        let response = match chat_completions(State(state), Json(req)).await {
+            Ok(_) => panic!("test: chat_completions must reject an empty message list"),
+            Err(err) => err.into_response(),
+        };
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_string(response).await;
+        assert!(body.contains("messages must not be empty"), "body was {body}");
+    }
+
+    #[tokio::test]
+    async fn test_chat_completions_unloaded_backend_is_503() {
+        let state = state_with(StubBackend::unloaded());
+        let req = chat_req(serde_json::json!({"messages": [{"role": "user", "content": "hi"}]}));
+        let response = match chat_completions(State(state), Json(req)).await {
+            Ok(_) => panic!("test: chat_completions must fail when no model is loaded"),
+            Err(err) => err.into_response(),
+        };
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
+    async fn test_chat_completions_streaming_emits_done() {
+        let state = state_with(StubBackend::loaded("chat stream"));
+        let req = chat_req(serde_json::json!({
+            "messages": [{"role": "user", "content": "hi"}],
+            "stream": true
+        }));
+        let response = match chat_completions(State(state), Json(req)).await {
+            Ok(response) => response,
+            Err(err) => panic!("test: streaming chat must succeed, got {err:?}"),
+        };
+        let body = tokio::time::timeout(std::time::Duration::from_secs(10), body_string(response))
+            .await
+            .expect("test: SSE stream must terminate");
+        assert!(
+            body.contains("chat.completion.chunk") || body.contains("chat stream"),
+            "body was {body}"
+        );
+        assert!(body.contains("[DONE]"), "body was {body}");
+    }
+
+    // ---------------------------------------------------------------
+    // AppError -> HTTP status mapping
+    // ---------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_app_error_model_not_loaded_maps_to_503() {
+        let response = AppError::ModelNotLoaded.into_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
+    async fn test_app_error_backend_maps_to_500_with_message() {
+        let response = AppError(Error::Backend("boom".to_string())).into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(body_string(response).await.contains("boom"));
+    }
+
+    #[tokio::test]
+    async fn test_app_error_invalid_input_maps_to_400() {
+        let response = AppError(Error::InvalidInput("bad".to_string())).into_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert!(body_string(response).await.contains("bad"));
+    }
+
+    #[tokio::test]
+    async fn test_app_error_other_maps_to_generic_500() {
+        let response = AppError(Error::Config("nope".to_string())).into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(body_string(response).await.contains("Internal server error"));
+    }
+
+    #[test]
+    fn test_app_error_from_error_conversion() {
+        let err: AppError = Error::Backend("converted".to_string()).into();
+        assert!(matches!(err.0, Error::Backend(ref m) if m == "converted"));
+    }
+
+    // ---------------------------------------------------------------
+    // Router settings mapping
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_map_router_settings_disables_on_empty_base_url() {
+        let config = RouterConfig {
+            enabled: true,
+            base_url: "   ".to_string(),
+            ..RouterConfig::default()
+        };
+        assert!(
+            map_router_settings(&config).disable,
+            "empty base_url must disable routing"
+        );
+    }
+
+    #[test]
+    fn test_map_router_settings_disables_when_not_enabled() {
+        let config = RouterConfig {
+            enabled: false,
+            base_url: "http://router.invalid".to_string(),
+            ..RouterConfig::default()
+        };
+        assert!(map_router_settings(&config).disable);
+    }
+
+    #[test]
+    fn test_map_router_settings_respects_explicit_disable() {
+        let config = RouterConfig {
+            enabled: true,
+            disable: true,
+            base_url: "http://router.invalid".to_string(),
+            ..RouterConfig::default()
+        };
+        assert!(map_router_settings(&config).disable);
+    }
+
+    #[test]
+    fn test_map_router_settings_enabled_path_trims_and_defaults() {
+        let config = RouterConfig {
+            enabled: true,
+            base_url: "  http://router.invalid  ".to_string(),
+            model: "   ".to_string(),
+            tools_path: "  tools.json  ".to_string(),
+            strict: true,
+            force: true,
+            ..RouterConfig::default()
+        };
+        let settings = map_router_settings(&config);
+        assert!(!settings.disable);
+        assert_eq!(settings.base_url, "http://router.invalid");
+        assert_eq!(
+            settings.model, "functiongemma-270m-it",
+            "blank model must fall back to the default"
+        );
+        assert_eq!(settings.tools_path, "tools.json");
+        assert!(settings.strict);
+        assert!(settings.force);
+    }
+
+    #[test]
+    fn test_map_router_settings_keeps_explicit_model() {
+        let config = RouterConfig {
+            enabled: true,
+            base_url: "http://router.invalid".to_string(),
+            model: "  custom-model  ".to_string(),
+            ..RouterConfig::default()
+        };
+        assert_eq!(map_router_settings(&config).model, "custom-model");
+    }
+
+    #[test]
+    fn test_router_settings_global_is_initialised() {
+        // Whichever test reaches the OnceLock first fixes its value, so assert
+        // only the invariant that holds for any initialisation.
+        let settings = router_settings();
+        assert!(!settings.model.is_empty(), "router model must never be empty");
+    }
+
+    // ---------------------------------------------------------------
+    // Routing decision
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_should_route_false_when_disabled() {
+        let mut settings = router_settings_fixture();
+        settings.disable = true;
+        let req = chat_req(serde_json::json!({
+            "messages": [{"role": "user", "content": "please diagnose my disk"}]
+        }));
+        assert!(!should_route_with(&settings, &req));
+    }
+
+    #[test]
+    fn test_should_route_true_when_forced() {
+        let mut settings = router_settings_fixture();
+        settings.force = true;
+        let req = chat_req(serde_json::json!({
+            "messages": [{"role": "user", "content": "tell me a joke"}]
+        }));
+        assert!(should_route_with(&settings, &req));
+    }
+
+    #[test]
+    fn test_should_route_true_when_tools_supplied() {
+        let settings = router_settings_fixture();
+        let req = chat_req(serde_json::json!({
+            "messages": [{"role": "user", "content": "tell me a joke"}],
+            "tools": [{"type": "function"}]
+        }));
+        assert!(should_route_with(&settings, &req));
+    }
+
+    #[test]
+    fn test_should_route_false_for_empty_tool_list() {
+        let settings = router_settings_fixture();
+        let req = chat_req(serde_json::json!({
+            "messages": [{"role": "user", "content": "tell me a joke"}],
+            "tools": []
+        }));
+        assert!(!should_route_with(&settings, &req));
+    }
+
+    #[test]
+    fn test_should_route_matches_diagnostic_keyword_case_insensitively() {
+        let settings = router_settings_fixture();
+        for keyword in ["Diagnose", "USB", "disk", "GPU", "event log", "SMART"] {
+            let req = chat_req(serde_json::json!({
+                "messages": [{"role": "user", "content": format!("help with {keyword}")}]
+            }));
+            assert!(should_route_with(&settings, &req), "keyword {keyword} must route");
+        }
+    }
+
+    #[test]
+    fn test_should_route_false_for_unrelated_chat() {
+        let settings = router_settings_fixture();
+        let req = chat_req(serde_json::json!({
+            "messages": [{"role": "user", "content": "write me a poem about the sea"}]
+        }));
+        assert!(!should_route_with(&settings, &req));
+    }
+
+    // ---------------------------------------------------------------
+    // Tool schema loading
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_load_tools_from_missing_file_is_none() {
+        assert!(load_tools_from("this/path/does/not/exist.json").is_none());
+    }
+
+    #[test]
+    fn test_load_tools_from_valid_schema() {
+        let dir = tempfile::tempdir().expect("test: temp dir must be creatable");
+        let path = dir.path().join("tools.json");
+        std::fs::write(&path, r#"{"tools": [{"name": "a"}, {"name": "b"}]}"#).expect("test: fixture must be writable");
+        let tools = load_tools_from(&path.to_string_lossy()).expect("test: valid schema must load");
+        assert_eq!(tools.len(), 2);
+    }
+
+    #[test]
+    fn test_load_tools_from_malformed_json_is_none() {
+        let dir = tempfile::tempdir().expect("test: temp dir must be creatable");
+        let path = dir.path().join("bad.json");
+        std::fs::write(&path, "{not json").expect("test: fixture must be writable");
+        assert!(load_tools_from(&path.to_string_lossy()).is_none());
+    }
+
+    #[test]
+    fn test_load_tools_from_schema_without_tools_key_is_none() {
+        let dir = tempfile::tempdir().expect("test: temp dir must be creatable");
+        let path = dir.path().join("empty.json");
+        std::fs::write(&path, r#"{"other": []}"#).expect("test: fixture must be writable");
+        assert!(load_tools_from(&path.to_string_lossy()).is_none());
+    }
+
+    // ---------------------------------------------------------------
+    // Serde contracts for the wire types
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_completion_request_defaults() {
+        let req = completion_req(serde_json::json!({"prompt": "only prompt"}));
+        assert_eq!(req.prompt, "only prompt");
+        assert!(req.model.is_none());
+        assert!(req.max_tokens.is_none());
+        assert!(req.temperature.is_none());
+        assert!(req.top_p.is_none());
+        assert!(req.stop.is_none());
+        assert!(req.stream.is_none());
+    }
+
+    #[test]
+    fn test_completion_request_full() {
+        let req = completion_req(serde_json::json!({
+            "prompt": "p", "model": "m", "max_tokens": 64,
+            "temperature": 0.5, "top_p": 0.9, "stop": ["A"], "stream": true
+        }));
+        assert_eq!(req.max_tokens, Some(64));
+        assert_eq!(req.stop, Some(vec!["A".to_string()]));
+        assert_eq!(req.stream, Some(true));
+    }
+
+    #[test]
+    fn test_chat_completion_request_defaults() {
+        let req = chat_req(serde_json::json!({"messages": [{"role": "user", "content": "c"}]}));
+        assert_eq!(req.messages.len(), 1);
+        assert!(req.tools.is_none());
+        assert!(req.tool_choice.is_none());
+        assert!(req.stream.is_none());
+    }
+
+    #[test]
+    fn test_completion_response_serializes_expected_shape() {
+        let response = CompletionResponse {
+            id: "cmpl-1".to_string(),
+            object: "text_completion".to_string(),
+            created: 1,
+            model: "m".to_string(),
+            choices: vec![Choice {
+                text: "t".to_string(),
+                index: 0,
+                finish_reason: Some("stop".to_string()),
+            }],
+            usage: Usage {
+                prompt_tokens: 1,
+                completion_tokens: 2,
+                total_tokens: 3,
+            },
+        };
+        let json = serde_json::to_string(&response).expect("test: CompletionResponse must serialize");
+        assert!(json.contains("\"total_tokens\":3"), "json was {json}");
+        assert!(json.contains("\"finish_reason\":\"stop\""), "json was {json}");
+    }
+
+    #[test]
+    fn test_chat_completion_response_serializes_expected_shape() {
+        let response = ChatCompletionResponse {
+            id: "chatcmpl-1".to_string(),
+            object: "chat.completion".to_string(),
+            created: 1,
+            model: "m".to_string(),
+            choices: vec![ChatChoice {
+                index: 0,
+                message: ChatMessageResponse {
+                    role: "assistant".to_string(),
+                    content: "hi".to_string(),
+                },
+                finish_reason: Some("length".to_string()),
+            }],
+            usage: Usage {
+                prompt_tokens: 1,
+                completion_tokens: 1,
+                total_tokens: 2,
+            },
+        };
+        let json = serde_json::to_string(&response).expect("test: ChatCompletionResponse must serialize");
+        assert!(json.contains("\"role\":\"assistant\""), "json was {json}");
+        assert!(json.contains("\"content\":\"hi\""), "json was {json}");
+    }
+
+    #[test]
+    fn test_finish_reason_to_string_all_variants() {
+        assert_eq!(finish_reason_to_string(FinishReason::Stop), "stop");
+        assert_eq!(finish_reason_to_string(FinishReason::Length), "length");
+        assert_eq!(finish_reason_to_string(FinishReason::Error), "error");
     }
 }

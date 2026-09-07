@@ -542,7 +542,7 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 
 ### Git Hooks (lefthook)
 
-Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. Hooks run `cargo fmt --check` and `cargo clippy` on staged Rust files.
+Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. On staged Rust files the hooks run `cargo fmt --all --check` (`pcai-rust-fmt`, rooted at `Native/pcai_core/`) plus an ast-grep scan and a TODO-expect check. They do **not** run clippy — that is enforced in CI only (portable-ci, rust-guidelines, nvidia-validation, and `ci.yml` via `Build.ps1 -Component lint`). See `.qa-gate.conf` for why the git-guard Rust gate is off in this repo.
 
 ### PowerShell Requirements
 

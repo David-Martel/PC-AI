@@ -302,6 +302,11 @@ jobs:
           $config.Run.Exit = $false
           $config.Run.PassThru = $true
           $config.Output.Verbosity = 'Normal'
+          # This gate measures 5.1 COMPATIBILITY, so wall-clock assertions must not
+          # count toward it. "Module Performance" in ModuleLoading.Tests.ps1 asserts
+          # module loads finish in 5s/15s; on a slow runner that reddens the gate
+          # with no code change at all. Tagged 'Performance','Slow' -- excluded.
+          $config.Filter.ExcludeTag = @('Performance', 'Slow')
           $result = Invoke-Pester -Configuration $config
 
           $baseline = Get-Content Tests/powershell-51-baseline.json -Raw | ConvertFrom-Json

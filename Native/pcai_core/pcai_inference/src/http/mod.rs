@@ -1774,6 +1774,48 @@ mod tests {
     }
 
     #[test]
+    fn test_load_tools_from_rejects_utf8_bom() {
+        // serde_json does NOT skip a UTF-8 BOM -- it fails to parse. Because
+        // load_tools_from swallows that with `.ok()?`, a BOM makes the router
+        // silently load ZERO tools instead of reporting a problem. This test
+        // pins the failure mode so the next person sees it named.
+        let dir = tempfile::tempdir().expect("test: temp dir must be creatable");
+        let path = dir.path().join("bom.json");
+        let mut bytes = vec![0xEF, 0xBB, 0xBF];
+        bytes.extend_from_slice(br#"{"tools": [{"name": "a"}]}"#);
+        std::fs::write(&path, bytes).expect("test: fixture must be writable");
+        assert!(
+            load_tools_from(&path.to_string_lossy()).is_none(),
+            "a BOM must not silently parse -- if this ever starts passing, the guard below can be relaxed"
+        );
+    }
+
+    #[test]
+    fn test_repo_tool_schema_actually_loads() {
+        // Regression guard for a real defect: Config\pcai-tools.json was
+        // committed WITH a UTF-8 BOM, so every one of its tool definitions was
+        // silently discarded at runtime by the `.ok()?` above. Nothing failed
+        // loudly; the router just behaved as though no tools existed.
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("..")
+            .join("Config")
+            .join("pcai-tools.json");
+        assert!(
+            path.exists(),
+            "expected the committed tool schema at {} -- if the repo layout moved, update this path rather than deleting the test",
+            path.display()
+        );
+        let tools = load_tools_from(&path.to_string_lossy())
+            .expect("Config/pcai-tools.json must parse; a UTF-8 BOM or malformed JSON silently disables every tool");
+        assert!(
+            !tools.is_empty(),
+            "the shipped tool schema must declare at least one tool"
+        );
+    }
+
+    #[test]
     fn test_load_tools_from_schema_without_tools_key_is_none() {
         let dir = tempfile::tempdir().expect("test: temp dir must be creatable");
         let path = dir.path().join("empty.json");

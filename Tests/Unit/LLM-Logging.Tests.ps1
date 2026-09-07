@@ -1,8 +1,14 @@
 #Requires -Version 5.1
 
-. (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
-
 BeforeAll {
+    # Dot-source INSIDE BeforeAll. At file top level this runs during Pester's
+    # discovery pass only, and the run pass gets a different scope -- so
+    # `Resolve-TestRepoRoot` was undefined by the time this block executed.
+    # BeforeAll then threw, which fails every test in the file and leaves
+    # $script:TestLogFile null, so AfterAll failed too with "The provided Path
+    # argument was null". All 21 tests in this file failed for that one reason.
+    . (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
+
     $PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
 
     # Import the module

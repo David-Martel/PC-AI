@@ -27,6 +27,15 @@ BeforeAll {
 Describe "Get-DeviceErrors" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
     Context "When devices have errors" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance { Get-MockDevicesWithErrors } -ModuleName PC-AI.Hardware
         }
 
@@ -55,6 +64,15 @@ Describe "Get-DeviceErrors" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When no devices have errors" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance { Get-MockDevicesHealthy } -ModuleName PC-AI.Hardware
         }
 
@@ -66,6 +84,15 @@ Describe "Get-DeviceErrors" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When Get-CimInstance fails" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance { throw "Access denied" } -ModuleName PC-AI.Hardware
         }
 
@@ -78,6 +105,15 @@ Describe "Get-DeviceErrors" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
     Context "When all disks are healthy" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             # Suppress native DLL path so CIM fallback is always exercised
             Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
             Mock Get-CimInstance {
@@ -134,6 +170,15 @@ Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When disks have warnings" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
             Mock Get-CimInstance {
                 @(
@@ -165,6 +210,15 @@ Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When disks have failures" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
             Mock Get-CimInstance {
                 @(
@@ -191,6 +245,15 @@ Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When Get-CimInstance fails" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-HardwareDiskHealthNative { $null } -ModuleName PC-AI.Hardware
             Mock Get-CimInstance { throw "Access denied" } -ModuleName PC-AI.Hardware
         }
@@ -204,6 +267,15 @@ Describe "Get-DiskHealth" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 Describe "Get-UsbStatus" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
     Context "When USB devices are present" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance {
                 @(
                     New-MockPnPEntity -Name "USB Mass Storage Device" -DeviceID "USB\VID_0781&PID_5567" `
@@ -227,6 +299,15 @@ Describe "Get-UsbStatus" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When USB controllers have errors" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance {
                 @(
                     New-MockPnPEntity -Name "Intel(R) USB 3.0 eXtensible Host Controller" `
@@ -246,6 +327,15 @@ Describe "Get-UsbStatus" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 Describe "Get-NetworkAdapters" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
     Context "When physical adapters are present" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance { Get-MockNetworkAdapters } -ModuleName PC-AI.Hardware
         }
 
@@ -267,6 +357,15 @@ Describe "Get-NetworkAdapters" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When IncludeVirtual is specified" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance { Get-MockNetworkAdapters -IncludeVirtual } -ModuleName PC-AI.Hardware
         }
 
@@ -279,6 +378,15 @@ Describe "Get-NetworkAdapters" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 
     Context "When no adapters are found" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-CimInstance { @() } -ModuleName PC-AI.Hardware
         }
 
@@ -292,6 +400,15 @@ Describe "Get-NetworkAdapters" -Tag 'Unit', 'Hardware', 'Fast', 'Portable' {
 Describe "Get-SystemEvents" -Tag 'Unit', 'Hardware', 'Slow', 'Portable' {
     Context "When disk and USB errors exist" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-WinEvent { Get-MockDiskUsbEvents -ErrorType Mixed } -ModuleName PC-AI.Hardware
         }
 
@@ -323,6 +440,15 @@ Describe "Get-SystemEvents" -Tag 'Unit', 'Hardware', 'Slow', 'Portable' {
 
     Context "When no errors exist" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-WinEvent { Get-MockDiskUsbEvents -ErrorType None } -ModuleName PC-AI.Hardware
         }
 
@@ -334,6 +460,15 @@ Describe "Get-SystemEvents" -Tag 'Unit', 'Hardware', 'Slow', 'Portable' {
 
     Context "When event log is not accessible" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-WinEvent { throw "Access denied" } -ModuleName PC-AI.Hardware
         }
 
@@ -345,6 +480,15 @@ Describe "Get-SystemEvents" -Tag 'Unit', 'Hardware', 'Slow', 'Portable' {
 
 Describe "New-DiagnosticReport" -Tag 'Unit', 'Hardware', 'Integration', 'Portable' {
     BeforeAll {
+        # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+        # probe first and only fall back to CIM/Get-WinEvent when it returns
+        # nothing. Whether the native path succeeds depends on what other suites
+        # happened to load into the session, so mocking only Get-CimInstance made
+        # these tests pass alone and fail in a full run -- the mock was bypassed
+        # entirely and real device data came through. Force the fallback path.
+        Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+        Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
         # Mock all dependent functions
         Mock Get-DeviceErrors { Get-MockDevicesWithErrors } -ModuleName PC-AI.Hardware
         Mock Get-DiskHealth {
@@ -394,6 +538,15 @@ Describe "New-DiagnosticReport" -Tag 'Unit', 'Hardware', 'Integration', 'Portabl
 
     Context "When a section fails" {
         BeforeAll {
+            # Get-DeviceErrors, Get-UsbStatus and Get-SystemEvents each try a NATIVE
+            # probe first and only fall back to CIM/Get-WinEvent when it returns
+            # nothing. Whether the native path succeeds depends on what other suites
+            # happened to load into the session, so mocking only Get-CimInstance made
+            # these tests pass alone and fail in a full run -- the mock was bypassed
+            # entirely and real device data came through. Force the fallback path.
+            Mock Get-HardwarePnpDevicesNative { $null } -ModuleName PC-AI.Hardware
+            Mock Get-HardwareSystemEventsNative { $null } -ModuleName PC-AI.Hardware
+
             Mock Get-DiskHealth { throw "SMART data unavailable" } -ModuleName PC-AI.Hardware
         }
 

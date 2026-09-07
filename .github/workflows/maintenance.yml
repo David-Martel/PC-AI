@@ -34,7 +34,7 @@ jobs:
         shell: pwsh
         run: |
           .\Tools\Test-CredentialScan.ps1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          exit $LASTEXITCODE
 
       - name: Validate Module Manifests
         shell: pwsh
@@ -48,6 +48,7 @@ jobs:
                   exit 1
               }
           }
+          exit 0
 
       # This step used to print "Rust dependency vulnerabilities found" and
       # carry on -- but GitHub's pwsh shell appends `exit $LASTEXITCODE`, so
@@ -70,6 +71,7 @@ jobs:
               exit 1
           }
           Write-Host "cargo audit clean." -ForegroundColor Green
+          exit 0
 
       - name: Generate Security Report
         if: always()
@@ -106,6 +108,7 @@ jobs:
                   Write-Host "  Could not check $_" -ForegroundColor Yellow
               }
           }
+          exit 0
 
       # Previously this only coloured the word "Red" and always exited 0, so a
       # workflow missing runs-on could never fail the gate. Now it parses the
@@ -139,6 +142,7 @@ jobs:
               $bad | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
               exit 1
           }
+          exit 0
 
       # Rewritten: the previous version called Split-Path on the markdown link
       # TEXT (e.g. "[boot.TODO.md](boot.TODO.md)"), which throws on the illegal
@@ -206,6 +210,7 @@ jobs:
               exit 1
           }
           Write-Host "All relative documentation links resolve" -ForegroundColor Green
+          exit 0
 
       # Run a weekly software-status snapshot so drift between the registry and
       # the installed versions is surfaced in the maintenance report.
@@ -312,6 +317,7 @@ jobs:
               exit 0
           }
           Write-Host "PowerShell 5.1 compatibility holds at the recorded baseline." -ForegroundColor Green
+          exit 0
 
       # The version comes from [workspace.package] rust-version in
       # Native/pcai_core/Cargo.toml, so the gate cannot drift away from the
@@ -340,19 +346,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Every `shell: pwsh` / `shell: powershell` step here ends with an
+      # explicit exit. GitHub appends `exit $LASTEXITCODE` to the script, so a
+      # stale non-zero left behind by ANY native command earlier in the step
+      # fails a step whose logic succeeded -- that is exactly how the
+      # PowerShell 5.1 job reported failure while printing "compatibility holds
+      # at the recorded baseline".
       - name: Run Doc Pipeline
         shell: pwsh
         run: |
-          if (Test-Path ".\Tools\Invoke-DocPipeline.ps1") {
-            .\Tools\Invoke-DocPipeline.ps1 -Mode Full -SkipRust
+          if (-not (Test-Path ".\Tools\Invoke-DocPipeline.ps1")) {
+            Write-Host "Invoke-DocPipeline.ps1 not found; nothing to run." -ForegroundColor Yellow
+            exit 0
           }
+          .\Tools\Invoke-DocPipeline.ps1 -Mode Full -SkipRust
+          exit $LASTEXITCODE
 
       - name: Generate Auto Docs
         shell: pwsh
         run: |
-          if (Test-Path ".\Tools\generate-auto-docs.ps1") {
-            .\Tools\generate-auto-docs.ps1 -BuildDocs
+          if (-not (Test-Path ".\Tools\generate-auto-docs.ps1")) {
+            Write-Host "generate-auto-docs.ps1 not found; nothing to run." -ForegroundColor Yellow
+            exit 0
           }
+          .\Tools\generate-auto-docs.ps1 -BuildDocs
+          exit $LASTEXITCODE
 
       - name: Upload Reports
         uses: actions/upload-artifact@v4

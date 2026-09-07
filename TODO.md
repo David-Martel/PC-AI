@@ -4,8 +4,66 @@ This is the active high-level backlog for `PC_AI`. Completed historical work
 should be recorded in the relevant report, context snapshot, or specialized
 ledger instead of left here as active work.
 
-Last reconciled: 2026-04-30, after the boot/sync/Process Lasso/OneDrive tooling
-pass and Dependabot/security cleanup.
+Last reconciled: 2026-09-07, after a CI/tooling repair pass. The previous
+reconciliation was 2026-04-30.
+
+## 2026-09-07 Reconciliation
+
+Verified by running the checks, not by reading the ledger.
+
+**Validation anchors** (the commands at the bottom of this file) — all
+re-executed on 2026-09-07:
+
+| Anchor | Result |
+|---|---|
+| Boot/session Pester (`Tests\Boot\*`) | 28 passed, 0 failed, 1 skipped (85s) |
+| CargoTools `Test-BuildEnvironment -Detailed` | pass; one advisory — no Defender exclusions on `T:\RustCache` |
+| C# bridge `dotnet build PcaiNative.csproj` | succeeds, 1 warning (unresolved XML cref `pcai_media_free_string`) |
+| Rust MSRV | now declared: `rust-version = "1.85"` in `[workspace.package]`, verified by `cargo +1.85 check` |
+| LLM evaluation | not run — needs a local GGUF model, not available unattended |
+
+**Evidence freshness under `Reports\`** — the items in section 1 below name
+four verification tools. Their newest evidence:
+
+| Tool | Newest evidence | Age at reconciliation |
+|---|---|---|
+| `Test-SyncProviderHealth.ps1` | 2026-06-06 (`workstation-audit-20260606-124859\direct-pass-20260606\`) | 3 months |
+| `Test-BootMountHealth.ps1` | 2026-06-06 (`workstation-audit-20260606-124859\boot-mount-health-refresh.txt`) | 3 months |
+| `Test-ProcessLassoBootSafety.ps1` | 2026-09-07 (`processlasso-governor-watchdog.json`) | current |
+| `Collect-DrivePerformanceSyncRisk.ps1` | 2026-04-30 (`drive-performance-sync-risk\20260430-153629\`) | 4 months |
+
+`boot.TODO.md`'s 2026-06-06 block already records that
+`Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru` passes for
+OneDrive/GoogleDrive with only a stale iCloud warning, and that
+`Test-BootMountHealth.ps1` passes with `PostRebootFailureCount = 0`. The first
+two items in section 1 below were therefore satisfied as of 2026-06-06; they
+are kept open only because the evidence has aged past a reboot cycle and
+`Collect-DrivePerformanceSyncRisk.ps1` has not been re-run since April.
+
+**Path references checked** — every `Tools\`/`Tests\`/`Modules\`/`Config\`/
+`Deploy\` path named across the six ledgers was resolved with `Test-Path`
+(47 paths). One is genuinely stale:
+
+- `Tests\Evaluation\Invoke-FunctionGemmaEval.ps1`, a validation anchor in
+  `llm.TODO.md`, does not exist and never has. The script is at
+  `Tools\Invoke-FunctionGemmaEval.ps1` (also exported from
+  `Modules\PC-AI.LLM\Public\`). Corrected in `llm.TODO.md`.
+
+Two others resolved on closer inspection and are NOT defects:
+`Tools\Collect-BinScriptRisk.ps1` is a *proposed* script inside an open
+checkbox in `boot.TODO.md`, not a reference to something missing; and
+`CargoTools` is present at both `%LOCALAPPDATA%\PowerShell\Modules\` and
+`~\Documents\PowerShell\Modules\`, so `optimization.TODO.md`'s path is right.
+
+**Superseded by fleet policy**: section 5's `rag-redis` integration items
+(here and in `Deploy\rust-functiongemma-train\TODO.md`) conflict with the
+workstation-level instruction that `rag-redis` is retired and must not be
+reintroduced. Left in place but marked, pending an explicit decision.
+
+**CI/tooling state**: five Weekly Maintenance checks and the Jules Review
+workflow had been failing since at least 2026-08-24, and `release-cuda.yml` was
+not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
+`git log --grep "never actually run"`.
 
 ## Recently Reconciled
 
@@ -22,8 +80,13 @@ pass and Dependabot/security cleanup.
 - Task Scheduler and selected system-modifying scripts from `C:\Scripts`,
   `~\.machine`, `~\.local\bin`, `~\bin`, OneDrive PowerShell script folders,
   and UDM startup folders are centralized under `Tools\SystemScripts`.
-- Recent dependency-security work is merged to `main`; no open Dependabot PRs
-  or alerts were present at the last validation.
+- ~~Recent dependency-security work is merged to `main`; no open Dependabot PRs
+  or alerts were present at the last validation.~~ **No longer true as of
+  2026-09-07**: 6 Dependabot PRs are open (oldest 2026-06-23), GitHub reports 1
+  high-severity alert on `main`, and `cargo audit` found 3 live RUSTSEC
+  advisories — which had gone unseen because the Security Scan job could never
+  reach its Cargo Audit step. The 3 advisories are fixed on this branch; the
+  open PRs still need triage.
 
 ## Active Priorities
 
@@ -48,6 +111,39 @@ pass and Dependabot/security cleanup.
 - [ ] Harden or quarantine high-risk `~\bin` startup/network/archive/RAG scripts
   before any new boot/logon use; migrated copies now live under
   `Tools\SystemScripts`; see `Reports\bin-script-risk-review-20260430.md`.
+
+### 1a. CI And Test-Suite Debt (opened 2026-09-07)
+
+Surfaced by the CI repair pass; each item is a real measurement, not a
+suspicion.
+
+- [ ] Reduce the Windows PowerShell 5.1 failure count. Baseline is 456 failed /
+  888 total, recorded in `Tests\powershell-51-baseline.json`; the Weekly
+  Maintenance job now gates against regression only. The bulk of it is 42 test
+  files that cannot even load, because `PC-AI.LLM.psm1` and
+  `PC-AI.Virtualization.psm1` declare `#Requires -PSEdition Core`. Decide per
+  module: drop the Core-only requirement where PS7 features are not actually
+  used, or tag those suites so 5.1 skips them instead of counting failures.
+- [ ] Fix the pre-existing PowerShell 7 unit-test failures first documented in
+  commit `15f999a` (broken test-to-module contracts in PC-AI.LLM logging and
+  process-idle filtering). The WSL vsock bridge share of those is fixed
+  (`Install-WSLVsockBridge.Tests.ps1` is now 20/20); the rest are not.
+- [ ] Triage the 6 open Dependabot PRs (#50, #51, #52, #53, #62, #64) and the
+  1 high-severity GitHub alert on `main`. #62 (quinn-proto) is already
+  superseded by the lockfile update on this branch.
+- [ ] Decide the fate of the two stale WIP-preservation PRs, #65
+  (`preserve/local-work-20260819`) and #57 (`chore/land-wip-vllm-...`).
+- [ ] `Tools\Invoke-DocPipeline.ps1` still reports the FunctionGemma router
+  dataset step as an error locally: the CargoTools `cargo` shim's mandatory
+  auto-fix phase invokes `cargo fix` with a stray `-` argument. CI is
+  unaffected (no CargoTools on the runners), so this is a workstation-only
+  break in `Build.ps1 -Component functiongemma-router-data`.
+- [ ] `Portable CI (Linux)` takes 30+ minutes, not the "~4-6 min" its comment
+  claimed, because `cargo test --workspace` builds all seven crates. A
+  `timeout-minutes: 60` now bounds it; consider narrowing the workspace scope.
+- [ ] `release-cuda.yml` is now valid YAML but has still never executed — the
+  repo has no tags at all. Cut a throwaway pre-release tag to prove the
+  4-variant CUDA/CPU release path actually works end to end.
 
 ### 2. Native-First Architecture
 
@@ -95,10 +191,13 @@ pass and Dependabot/security cleanup.
 
 ### 5. Memory And RAG Integrations
 
-- [ ] Integrate `rag-redis` from `W:\dropbox-local\rag-redis` with Redis
-  endpoints `6379`/`6380` for tool memory and retrieval.
+- [ ] **DECISION NEEDED — conflicts with fleet policy.** Integrate `rag-redis`
+  from `W:\dropbox-local\rag-redis` with Redis endpoints `6379`/`6380` for tool
+  memory and retrieval. The workstation-level instructions state `rag-redis` is
+  retired and must not be reintroduced; either drop these two items or record
+  why PC_AI is an exception.
 - [ ] Convert RAG Redis startup tooling to loud, delayed, recoverable automation
-  before considering any logon/startup re-enablement.
+  before considering any logon/startup re-enablement. (Same decision as above.)
 - [ ] Evaluate SIMD distance kernels such as `simsimd` for local vector
   similarity.
 - [ ] Add optional Postgres/MS SQL backed memory storage for long-term tool

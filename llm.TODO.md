@@ -66,7 +66,9 @@ Last reconciled: 2026-04-30.
 ## Validation Anchors
 
 - `pwsh .\Tests\Evaluation\Invoke-InferenceEvaluation.ps1 -Backend llamacpp-bin -Dataset diagnostic`
-- `pwsh .\Tests\Evaluation\Invoke-FunctionGemmaEval.ps1`
+- `pwsh .\Tools\Invoke-FunctionGemmaEval.ps1`
+  (was `.\Tests\Evaluation\Invoke-FunctionGemmaEval.ps1`, which has never
+  existed at that path; corrected 2026-09-07)
 - `cargo test --manifest-path Native\pcai_core\Cargo.toml`
 - `dotnet build .\Native\PcaiNative\PcaiNative.csproj --no-restore`
 - `pwsh .\Tools\Invoke-LlmPerfBenchmark.ps1 -Suite quick`

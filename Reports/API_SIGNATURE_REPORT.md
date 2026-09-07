@@ -1,6 +1,6 @@
 # API_SIGNATURE_REPORT
 
-Generated: 2026-09-07 17:46:05
+Generated: 2026-09-07 18:05:51
 
 PowerShell functions: 237
 Missing help blocks: 172

@@ -69,13 +69,30 @@ function Get-SystemEvents {
             $startTime = (Get-Date).AddDays(-$Days)
             $levels = if ($IncludeInfo) { @(1, 2, 3, 4) } else { @(1, 2, 3) }
 
-            $events = Get-WinEvent -FilterHashtable @{
-                LogName   = 'System'
-                Level     = $levels
-                StartTime = $startTime
-            } -ErrorAction SilentlyContinue | Where-Object {
-                $_.ProviderName -match 'disk|storahci|nvme|usbhub|USB|nvstor|iaStor|stornvme|partmgr|ntfs|volmgr'
-            } | Select-Object -First $MaxEvents
+            # Get-WinEvent raises a terminating error for the perfectly normal
+            # case of a filter matching nothing, which is why this used to be
+            # -ErrorAction SilentlyContinue. But that also swallowed real
+            # failures -- a locked or inaccessible event log looked exactly
+            # like a quiet machine, and the caller's -ErrorAction Stop was
+            # ignored because nothing reached the catch below. Ask for
+            # terminating errors, then treat only the benign "no events" case
+            # as empty and let everything else surface.
+            try {
+                $events = Get-WinEvent -FilterHashtable @{
+                    LogName   = 'System'
+                    Level     = $levels
+                    StartTime = $startTime
+                } -ErrorAction Stop | Where-Object {
+                    $_.ProviderName -match 'disk|storahci|nvme|usbhub|USB|nvstor|iaStor|stornvme|partmgr|ntfs|volmgr'
+                } | Select-Object -First $MaxEvents
+            } catch {
+                if ($_.Exception.Message -match 'No events were found') {
+                    Write-Verbose 'No matching system events in the requested window.'
+                    $events = @()
+                } else {
+                    throw
+                }
+            }
 
             if ($events) {
                 foreach ($ev in $events) {

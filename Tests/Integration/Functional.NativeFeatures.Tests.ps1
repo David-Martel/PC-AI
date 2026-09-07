@@ -8,7 +8,7 @@ Describe "PC-AI Native Integration & Utilization (Phase 7)" {
             throw "Cannot find test helper: $resolveHelper"
         }
         $script:PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
-        Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1") -Force
+        Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1") -Force
         Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.USB\PC-AI.USB.psd1") -Force
         Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Network\PC-AI.Network.psd1") -Force
         Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Performance\PC-AI.Performance.psd1") -Force

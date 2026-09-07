@@ -2,7 +2,7 @@
 
 BeforeAll {
     $script:ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $script:ModulePath = Join-Path $script:ProjectRoot 'Modules\PC-AI.Gpu\PC-AI.Gpu.psm1'
+    $script:ModulePath = Join-Path $script:ProjectRoot 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
     $script:PsdPath = Join-Path $script:ProjectRoot 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
 
     $script:TempDir = Join-Path $env:TEMP "pcai_gpu_tests_$(New-Guid)"
@@ -88,6 +88,14 @@ BeforeAll {
 }
 '@ | Set-Content -Path $script:SoftwareRegistryPath -Encoding UTF8
 
+    # Evict any copy already loaded by an earlier suite before importing.
+    # `Import-Module -Force` re-imports, but it does NOT remove a copy that
+    # was loaded from a different path, so two modules of the same name can
+    # coexist. Pester then refuses to mock into either -- "Multiple script or
+    # manifest modules named 'X' are currently loaded" -- and every mocked
+    # call falls through to the real cmdlet. That is why these files pass in
+    # isolation and fail in a full run.
+    Get-Module 'PC-AI.Gpu' -All | Remove-Module -Force -ErrorAction SilentlyContinue
     Import-Module $script:ModulePath -Force -ErrorAction Stop
 }
 

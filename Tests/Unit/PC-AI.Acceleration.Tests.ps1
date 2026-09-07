@@ -4,7 +4,15 @@
 #>
 
 BeforeAll {
-    $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1'
+    $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1'
+    # Evict any copy already loaded by an earlier suite before importing.
+    # `Import-Module -Force` re-imports, but it does NOT remove a copy that
+    # was loaded from a different path, so two modules of the same name can
+    # coexist. Pester then refuses to mock into either -- "Multiple script or
+    # manifest modules named 'X' are currently loaded" -- and every mocked
+    # call falls through to the real cmdlet. That is why these files pass in
+    # isolation and fail in a full run.
+    Get-Module 'PC-AI.Acceleration' -All | Remove-Module -Force -ErrorAction SilentlyContinue
     Import-Module $ModulePath -Force -ErrorAction Stop
 }
 

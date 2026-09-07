@@ -207,7 +207,15 @@ function Set-LLMConfig {
             Set-ConfigValue -Object $projectConfig -Name 'fallbackOrder' -Value $fallbackOrder
 
             $projectJson = $projectConfig | ConvertTo-Json -Depth 12
-            [System.IO.File]::WriteAllText($TargetPath, $projectJson, [System.Text.Encoding]::UTF8)
+            # UTF8Encoding($false), NOT [System.Text.Encoding]::UTF8 -- the
+            # latter emits a byte-order mark. Every call here rewrote
+            # Config\llm-config.json with a BOM, and strict JSON parsers reject
+            # one: Rust's serde_json fails outright, so the BOM this used to
+            # write is exactly what silently disabled the FunctionGemma tool
+            # schema (see the BOM fix in c176cb5). PowerShell's own
+            # ConvertFrom-Json tolerates it, which is why it went unnoticed.
+            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText($TargetPath, $projectJson, $utf8NoBom)
         }
     }
 

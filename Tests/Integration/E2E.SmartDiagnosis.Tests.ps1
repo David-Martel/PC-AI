@@ -13,7 +13,7 @@ Describe "PC-AI Smart Diagnosis E2E" {
         $script:PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
 
         # Load necessary modules
-        Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1") -Force
+        Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1") -Force
         Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.LLM\PC-AI.LLM.psd1") -Force
     }
 

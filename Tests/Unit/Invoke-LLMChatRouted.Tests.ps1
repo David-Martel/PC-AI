@@ -1,7 +1,7 @@
 #Requires -Modules @{ ModuleName='Pester'; ModuleVersion='5.0.0' }
 
 BeforeAll {
-    $ModulePath = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Modules\PC-AI.LLM\PC-AI.LLM.psm1'
+    $ModulePath = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Modules\PC-AI.LLM\PC-AI.LLM.psd1'
     Import-Module $ModulePath -Force
 }
 

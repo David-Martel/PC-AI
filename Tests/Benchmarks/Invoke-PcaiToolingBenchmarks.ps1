@@ -608,7 +608,7 @@ $ConfigPath = (Resolve-Path -Path $ConfigPath -ErrorAction Stop).Path
 $moduleImports = @(
     Join-Path $PcaiRoot 'Modules\PC-AI.Common\PC-AI.Common.psm1'
     Join-Path $PcaiRoot 'Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1'
-    Join-Path $PcaiRoot 'Modules\PC-AI.CLI\PC-AI.CLI.psm1'
+    Join-Path $PcaiRoot 'Modules\PC-AI.CLI\PC-AI.CLI.psd1'
 )
 $script:ImportedModules = @{}
 foreach ($modulePath in $moduleImports) {

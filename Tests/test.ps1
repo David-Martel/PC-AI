@@ -15,7 +15,7 @@ param(
 $PesterRoot = $PSScriptRoot
 $PcaiRoot = Split-Path $PesterRoot -Parent
 $BinPath = Join-Path $PcaiRoot "bin"
-$ModulePath = Join-Path $PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1"
+$ModulePath = Join-Path $PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1"
 
 Write-Host "--- PC-AI Test Orchestration ---" -ForegroundColor Cyan
 Write-Host "Root: $PcaiRoot"

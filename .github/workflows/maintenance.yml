@@ -144,7 +144,19 @@ jobs:
           $repoRoot = (Get-Location).Path
           $broken = @()
           $checked = 0
-          Get-ChildItem -Path $repoRoot -Recurse -Include *.md -Depth 2 -File | ForEach-Object {
+          # Reports/ is machine-generated. DOC_STATUS.md in particular quotes
+          # source lines verbatim, so the markdown links inside it are other
+          # files' text, not links this report owns -- checking them produced
+          # 10 false positives on the first real run. third_party/, .tmp/ and
+          # Models/ are vendored: their READMEs' links are upstream's problem.
+          $skipDirs = @('Reports', '.pcai', 'worktrees', 'node_modules', '.venv',
+              'Release', '.git', '.tmp', 'third_party', 'Models', 'auto')
+          # No -Depth limit: with -Depth 2 this only reached 22 links out of the
+          # repo's 63, which is not a check worth having.
+          Get-ChildItem -Path $repoRoot -Recurse -Include *.md -File | Where-Object {
+              $segments = $_.FullName.Substring($repoRoot.Length).TrimStart('\', '/') -split '[\\/]'
+              -not ($segments | Where-Object { $skipDirs -contains $_ })
+          } | ForEach-Object {
               $docPath = $_.FullName
               $docDir = $_.DirectoryName
               $content = Get-Content -LiteralPath $docPath -Raw -ErrorAction SilentlyContinue
@@ -172,6 +184,14 @@ jobs:
               }
           }
           Write-Host "Checked $checked relative links" -ForegroundColor Cyan
+          if ($checked -lt 10) {
+              # The repo's own markdown (vendored trees excluded) carries ~22
+              # relative links. A near-zero count means the matcher or the file
+              # walk broke, not that the docs shrank -- and a link check that
+              # checked nothing is not a check.
+              Write-Host "Only $checked links were checked; the scan is broken." -ForegroundColor Red
+              exit 1
+          }
           if ($broken) {
               Write-Host "Broken relative documentation links:" -ForegroundColor Red
               $broken | Sort-Object -Unique | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
@@ -278,8 +298,10 @@ jobs:
               exit 1
           }
           if ($result.FailedCount -lt $baseline.FailedCount) {
-              Write-Host "PowerShell 5.1 compatibility improved ($($baseline.FailedCount) -> $($result.FailedCount)). Update Tests/powershell-51-baseline.json to lock the gain in." -ForegroundColor Yellow
-              exit 1
+              # An improvement is not a failure, but the baseline must be lowered
+              # or the gate quietly loses sensitivity. Warn loudly, stay green.
+              Write-Host "::warning::PowerShell 5.1 compatibility improved ($($baseline.FailedCount) -> $($result.FailedCount)). Lower FailedCount in Tests/powershell-51-baseline.json to lock the gain in."
+              exit 0
           }
           Write-Host "PowerShell 5.1 compatibility holds at the recorded baseline." -ForegroundColor Green
 

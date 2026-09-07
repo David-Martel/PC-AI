@@ -30,6 +30,14 @@ jobs:
   # candle-based media crates. With no timeout-minutes the job inherited
   # GitHub's 6-hour default, so a genuine hang would burn six hours of runner
   # time before anyone noticed.
+  #
+  # MEASURED 2026-09-07 (run on 447d838): with the full workspace this job was
+  # KILLED by the 60-minute cap -- so "over an hour" is the real figure, not an
+  # estimate. Two changes below address the cause rather than the symptom:
+  # Swatinem/rust-cache for a cache that actually restores, and excluding the
+  # three candle-based pcai-media* crates from the Rust steps. The 60-minute
+  # cap is deliberately left in place as a backstop; once a run completes,
+  # lower it to something near the real duration so a hang is caught early.
   # ──────────────────────────────────────────────────────────────
 
   portable-tests:
@@ -50,17 +58,15 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      # Cache keyed on Cargo.lock so a lockfile change busts the cache cleanly.
-      - name: Cache Cargo
-        uses: actions/cache@v4
+      # Swatinem/rust-cache rather than a hand-rolled actions/cache: it keys on
+      # the lockfile AND the toolchain, prunes stale artefacts instead of
+      # growing without bound, and skips caching the workspace crates' own
+      # build output (which must be rebuilt anyway). The hand-rolled version it
+      # replaces cached `target/` wholesale, which restores slowly and can
+      # exceed the cache size limit.
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            Native/pcai_core/target
-          key: ${{ runner.os }}-cargo-portable-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-portable-
+          workspaces: Native/pcai_core
 
       # ── .NET toolchain ────────────────────────────────────────
       - uses: actions/setup-dotnet@v4
@@ -84,17 +90,31 @@ jobs:
       # ── Rust: clippy ──────────────────────────────────────────
       # -A clippy::type_complexity suppresses the one lint that trips on generated
       # FFI struct layouts where a complex type is unavoidable.
+      #
+      # The three pcai-media* crates are excluded from BOTH Rust steps here.
+      # They pull the candle stack (candle-core/nn/transformers + tokenizers),
+      # which this job then compiles twice -- once for clippy, once for the test
+      # binaries. That is what pushed the job past an hour: the 2026-09-07 run
+      # on 447d838 was killed by the 60-minute cap with the full workspace.
+      # They are GPU/CUDA-oriented and not what a Linux portability gate is
+      # for, and they are NOT going unchecked -- rust-guidelines.yml and
+      # ci.yml's `Build.ps1 -Component lint` both cover the whole workspace on
+      # Windows. If this job ever needs to cover them, give them their own job
+      # so a slow media build cannot mask a portability regression.
       - name: Rust Clippy
         working-directory: Native/pcai_core
         run: >
           cargo clippy --workspace --all-targets --no-deps
+          --exclude pcai-media --exclude pcai-media-model --exclude pcai-media-server
           -- -D warnings -A clippy::type_complexity
 
       # ── Rust: unit tests (no GPU, no backend) ─────────────────
       # Uses the same feature set as the Windows CI to keep coverage comparable.
       - name: Rust Tests
         working-directory: Native/pcai_core
-        run: cargo test --workspace --no-default-features --features server,ffi --lib
+        run: >
+          cargo test --workspace --no-default-features --features server,ffi --lib
+          --exclude pcai-media --exclude pcai-media-model --exclude pcai-media-server
 
       # ── C#: build (best-effort, DLLs not present on Linux) ────
       # Deliberately non-blocking: Windows-only APIs fail to resolve without

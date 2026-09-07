@@ -786,7 +786,11 @@ switch ($Action) {
             }
 
             $patchPath = Join-Path $script:PatchDir $patchName
-            [System.IO.File]::WriteAllText($patchPath, $patchContent, [System.Text.Encoding]::UTF8)
+            # BOM-less: [System.Text.Encoding]::UTF8 writes a byte-order mark, and
+            # `git apply` rejects a patch that starts with one as a corrupt patch.
+            # These files exist to be applied, so the BOM made them unusable for
+            # the one thing they are for.
+            [System.IO.File]::WriteAllText($patchPath, $patchContent, (New-Object System.Text.UTF8Encoding($false)))
             $writtenFiles.Add($patchPath)
             Write-Verbose "Wrote patch: $patchPath"
         }

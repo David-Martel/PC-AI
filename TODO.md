@@ -279,10 +279,48 @@ Still open:
   runtime with nothing reporting a problem. Both files rewritten without a BOM,
   the writer that reintroduced it fixed, and two Rust regression tests added --
   one naming the failure mode, one asserting the real committed schema loads.
-- [ ] Sweep the rest of the repo's JSON for BOMs, and prefer
-  `New-Object System.Text.UTF8Encoding($false)` over
-  `[System.Text.Encoding]::UTF8` anywhere PowerShell writes a file that a
-  non-PowerShell reader will parse.
+- [x] Swept all 261 tracked `.json` / `.jsonl` files. Three more carried a BOM:
+  `Deploy\rust-functiongemma-train\data\training_data.jsonl`,
+  `Reports\pcai-chat.json`, and `Modules\PC-AI.LLM\llm-config.json`. The first
+  two were rewritten BOM-less; the third was deleted, see below. Re-swept: zero
+  remaining.
+- [x] `Modules\PC-AI.LLM\llm-config.json` was an orphan. All fourteen call sites
+  across five modules resolve `Config\llm-config.json`; nothing referenced the
+  copy inside the module, it was in no manifest, and its content had diverged
+  from the real one. Editing it would have had no effect while looking like the
+  authoritative config for that module. Deleted.
+- [x] Fixed the two live writers that produced BOMs where they do real damage:
+  `Tools\Invoke-JulesSession.ps1` wrote `.patch` files with one, and `git apply`
+  rejects those as corrupt -- so the patches were unusable for their only
+  purpose; and `Tools\Invoke-AstGrepAutoFix.ps1` rewrites SOURCE FILES in place,
+  adding a BOM to every file it touched regardless of whether the autofix was
+  right.
+- [ ] **7 tracked `.json` files are zero bytes** — 6 of the 17 in
+  `Reports\workstation-audit-20260606-124859\` plus
+  `Reports\system-assessment-20260606\02-system-notable-events.json`. Zero bytes
+  is not valid JSON, and it is not evidence either: a non-empty sibling is a JSON
+  array of captured lines, so an empty capture should have written `[]`. This
+  survived because PowerShell's `ConvertFrom-Json` accepts empty input without
+  error, so nothing ever complained. The fix belongs in whatever wrote them
+  (write `[]`, or do not create the file), not in the artifacts — re-running the
+  capture is a decision about the audit record, not a cleanup. Listed here rather
+  than silently rewritten.
+- [ ] **git-guard's JSON gate is locale-dependent and will block commits here.**
+  `qa_gate.sh:768` runs `json.load(open(f))` with no `encoding=`, so `open()`
+  uses the Windows locale codepage (cp1252). Any *valid* UTF-8 JSON containing a
+  non-Latin-1 character therefore fails to decode and is reported as "invalid
+  JSON", blocking the commit. Hit on `Reports\pcai-chat.json`, whose only sin was
+  curly quotes; worked around by re-emitting that file with `ensure_ascii=True`
+  so it is pure ASCII with identical decoded content. This is upstream shared
+  fleet infrastructure and was deliberately NOT edited from this repo — but any
+  future JSON with non-ASCII text will hit it, and the real fix is
+  `encoding="utf-8"` in that one call.
+- [ ] Remaining `[System.Text.Encoding]::UTF8` writers are in
+  `Tools\SystemScripts\Machine\*` (log append) and the gitignored `Release\`
+  packaging copy. Lower impact -- `AppendAllText` only writes the preamble when
+  creating the file, and `Release\` is build output -- but the same substitution
+  applies if those are touched. Note `.GetBytes()` and `StringContent` uses are
+  NOT affected: only `WriteAllText`/`WriteAllLines` emit the preamble.
 
 ### 1e. FunctionGemma Cargo Workspace (opened 2026-09-07)
 

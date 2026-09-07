@@ -49,19 +49,27 @@ jobs:
               }
           }
 
+      # This step used to print "Rust dependency vulnerabilities found" and
+      # carry on -- but GitHub's pwsh shell appends `exit $LASTEXITCODE`, so
+      # cargo audit's non-zero exit failed the step anyway. Stated intent and
+      # actual behaviour disagreed. Failing IS the right behaviour for a
+      # vulnerability, so the code now says so explicitly and clears
+      # $LASTEXITCODE deliberately on the paths that should not fail.
       - name: Cargo Audit (Rust Dependencies)
         shell: pwsh
         run: |
-          if (Get-Command cargo -ErrorAction SilentlyContinue) {
-              cargo install cargo-audit --quiet 2>$null
-              Set-Location Native/pcai_core
-              cargo audit 2>&1 | Tee-Object -Variable auditOutput
-              if ($LASTEXITCODE -ne 0) {
-                  Write-Host "Rust dependency vulnerabilities found" -ForegroundColor Yellow
-              }
-          } else {
+          if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
               Write-Host "Rust not available, skipping cargo audit" -ForegroundColor Yellow
+              exit 0
           }
+          cargo install cargo-audit --quiet 2>$null
+          Set-Location Native/pcai_core
+          cargo audit
+          if ($LASTEXITCODE -ne 0) {
+              Write-Host "cargo audit reported vulnerabilities; fix or add an accepted exception to audit.toml." -ForegroundColor Red
+              exit 1
+          }
+          Write-Host "cargo audit clean." -ForegroundColor Green
 
       - name: Generate Security Report
         if: always()

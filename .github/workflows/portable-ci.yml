@@ -22,12 +22,20 @@ env:
 
 jobs:
   # ──────────────────────────────────────────────────────────────
-  # Single job: keeps the feedback loop fast (~4-6 min total)
+  # Single job.
+  #
+  # The "~4-6 min total" this comment used to claim was never measured. A
+  # dispatched run on 2026-09-07 spent over 40 minutes in `Rust Tests` alone,
+  # because `cargo test --workspace` builds all seven crates including the
+  # candle-based media crates. With no timeout-minutes the job inherited
+  # GitHub's 6-hour default, so a genuine hang would burn six hours of runner
+  # time before anyone noticed.
   # ──────────────────────────────────────────────────────────────
 
   portable-tests:
     name: Cross-Platform Quality Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: .
@@ -89,17 +97,29 @@ jobs:
         run: cargo test --workspace --no-default-features --features server,ffi --lib
 
       # ── C#: build (best-effort, DLLs not present on Linux) ────
-      # The || true allows the step to "warn not fail" when Windows-only APIs
-      # cause resolution errors in the absence of native DLLs.
+      # Deliberately non-blocking: Windows-only APIs fail to resolve without
+      # the native DLLs. `|| true` alone made the outcome invisible, so a
+      # regression here looked identical to a pass. Now it still does not fail
+      # the gate, but a failure is reported as an annotation.
       - name: C# Build
-        run: dotnet build Native/PcaiNative/PcaiNative.csproj --nologo -v q || true
+        run: |
+          if dotnet build Native/PcaiNative/PcaiNative.csproj --nologo -v q; then
+            echo "C# build succeeded on Linux."
+          else
+            echo "::warning::C# build failed on Linux (non-blocking: Windows-only APIs are expected to be unresolvable here)."
+          fi
 
       # ── C#: P/Invoke signature tests ──────────────────────────
-      # Cross-platform reflection tests — no native DLLs loaded.
+      # Cross-platform reflection tests — no native DLLs loaded. Same reasoning
+      # as above: kept non-blocking, but no longer silent.
       - name: C# P/Invoke Signature Tests
         run: |
-          dotnet test Native/PcaiNative.Tests/PcaiNative.Tests.csproj \
-            --nologo --logger "console;verbosity=normal" || true
+          if dotnet test Native/PcaiNative.Tests/PcaiNative.Tests.csproj \
+              --nologo --logger "console;verbosity=normal"; then
+            echo "P/Invoke signature tests passed."
+          else
+            echo "::warning::P/Invoke signature tests failed on Linux (non-blocking). These are pure reflection tests, so a failure here is most likely a real signature mismatch."
+          fi
 
       # ── PowerShell: static analysis ───────────────────────────
       # Emit warnings rather than failing the gate so Linux-specific false

@@ -19,21 +19,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # PowerShell escapes a single quote inside a single-quoted string by
+      # DOUBLING it ('') -- a backslash does not escape. The previous patterns
+      # used ["\'] , which terminated the string at \' and made every scheduled
+      # run die with "Unexpected token ']'". The scan had therefore never
+      # executed. Patterns below use [""''] and are positive-control tested.
       - name: Credential Scan
         shell: pwsh
         run: |
           $patterns = @(
-              'password\s*=\s*["\'][^"\']+["\']',
-              'api[_-]?key\s*=\s*["\'][^"\']+["\']',
-              'secret\s*=\s*["\'][^"\']+["\']',
-              'token\s*=\s*["\'][^"\']+["\']',
+              'password\s*=\s*["''][^"'']+["'']',
+              'api[_-]?key\s*=\s*["''][^"'']+["'']',
+              'secret\s*=\s*["''][^"'']+["'']',
+              'token\s*=\s*["''][^"'']+["'']',
               'ConvertTo-SecureString.*-AsPlainText',
               'PSCredential.*@\(',
-              'APIKey\s*=\s*["\'][A-Za-z0-9]{20,}["\']'
+              'APIKey\s*=\s*["''][A-Za-z0-9]{20,}["'']'
           )
+
+          # Positive control: the scanner must prove it can still find a secret,
+          # otherwise a regex regression silently turns this into a no-op gate.
+          $canary = Join-Path $env:RUNNER_TEMP 'credscan-canary.ps1'
+          Set-Content -LiteralPath $canary -Encoding UTF8 -Value '$password = "hunter2-canary"'  # pragma: allowlist secret
+          $canaryHit = $false
+          $canaryText = Get-Content -LiteralPath $canary -Raw
+          foreach ($pattern in $patterns) {
+              if ($canaryText -match $pattern) { $canaryHit = $true }
+          }
+          Remove-Item -LiteralPath $canary -Force
+          if (-not $canaryHit) {
+              Write-Host "Credential scanner failed its own positive control - patterns are broken" -ForegroundColor Red
+              exit 1
+          }
+          Write-Host "Positive control OK: scanner detects a planted secret" -ForegroundColor Green
+
           $findings = @()
-          Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 | ForEach-Object {
-              $content = Get-Content $_.FullName -Raw
+          Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 -File | ForEach-Object {
+              $content = Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue
+              if (-not $content) { return }
               foreach ($pattern in $patterns) {
                   if ($content -match $pattern) {
                       $findings += "$($_.FullName): $pattern"
@@ -45,7 +68,7 @@ jobs:
               $findings | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
               exit 1
           }
-          Write-Host "No credentials found" -ForegroundColor Green
+          Write-Host "No credentials found ($((Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 -File).Count) files scanned)" -ForegroundColor Green
 
       - name: Validate Module Manifests
         shell: pwsh
@@ -110,33 +133,84 @@ jobs:
               }
           }
 
+      # Previously this only coloured the word "Red" and always exited 0, so a
+      # workflow missing runs-on could never fail the gate. Now it parses the
+      # YAML where a parser is available and returns a real exit code.
       - name: Validate Workflow YAML
         shell: pwsh
         run: |
-          Get-ChildItem -Path .github/workflows -Filter *.yml | ForEach-Object {
+          $bad = @()
+          $hasYamlParser = [bool](Get-Command ConvertFrom-Yaml -ErrorAction SilentlyContinue)
+          if (-not $hasYamlParser) {
+              Write-Host "powershell-yaml not present - structural check only" -ForegroundColor Yellow
+          }
+          Get-ChildItem -Path .github/workflows -Filter *.yml -File | ForEach-Object {
               $content = Get-Content $_.FullName -Raw
-              if ($content -notmatch 'runs-on:') {
-                  Write-Host "  $($_.Name) - Missing runs-on" -ForegroundColor Red
+              if ($hasYamlParser) {
+                  try {
+                      $null = ConvertFrom-Yaml -Yaml $content -ErrorAction Stop
+                  } catch {
+                      $bad += "$($_.Name) - YAML parse error: $($_.Exception.Message)"
+                      return
+                  }
+              }
+              if ($content -notmatch '(?m)^\s*runs-on:') {
+                  $bad += "$($_.Name) - missing runs-on:"
               } else {
                   Write-Host "  $($_.Name) - Valid" -ForegroundColor Green
               }
           }
+          if ($bad) {
+              Write-Host "Invalid workflows:" -ForegroundColor Red
+              $bad | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+              exit 1
+          }
 
+      # Rewritten: the previous version called Split-Path on the markdown link
+      # TEXT (e.g. "[boot.TODO.md](boot.TODO.md)"), which throws on the illegal
+      # '[' character. GitHub's pwsh shell sets $ErrorActionPreference='Stop',
+      # so that threw and killed the job every week -- and the loop body was
+      # empty, so it had never actually checked a link. This resolves each
+      # relative link against its OWN file's directory and reports the misses.
       - name: Check Documentation Links
         shell: pwsh
         run: |
+          $repoRoot = (Get-Location).Path
           $broken = @()
-          Get-ChildItem -Recurse -Include *.md -Depth 2 | ForEach-Object {
-              $content = Get-Content $_.FullName -Raw
-              [regex]::Matches($content, '\[([^\]]+)\]\(([^\)]+)\)') | ForEach-Object {
-                  $url = $_.Groups[2].Value
-                  if ($url -notmatch '^https?://' -and $url -notmatch '^#') {
-                      $target = Join-Path (Split-Path $_.Groups[0].Value) $url -ErrorAction SilentlyContinue
-                      # Only check root-level relative links
+          $checked = 0
+          Get-ChildItem -Path $repoRoot -Recurse -Include *.md -Depth 2 -File | ForEach-Object {
+              $docPath = $_.FullName
+              $docDir = $_.DirectoryName
+              $content = Get-Content -LiteralPath $docPath -Raw -ErrorAction SilentlyContinue
+              if (-not $content) { return }
+              foreach ($match in [regex]::Matches($content, '\[([^\]]*)\]\(([^)]+)\)')) {
+                  $url = $match.Groups[2].Value.Trim()
+                  # Skip absolute URLs, in-page anchors, other schemes, and
+                  # template placeholders such as <owner>/<repo> or ${{ }}.
+                  if ($url -match '^[A-Za-z][A-Za-z0-9+.-]*:' -or $url.StartsWith('#') -or $url -match '[<>{}$*|]') { continue }
+                  # Drop any trailing #anchor and optional "link title".
+                  $path = ($url -split '#', 2)[0].Trim()
+                  $path = ($path -split '\s+"', 2)[0].Trim()
+                  if (-not $path) { continue }
+                  $checked++
+                  $resolved = if ($path.StartsWith('/')) {
+                      Join-Path $repoRoot $path.TrimStart('/')
+                  } else {
+                      Join-Path $docDir $path
+                  }
+                  if (-not (Test-Path -LiteralPath $resolved)) {
+                      $rel = $docPath.Substring($repoRoot.Length).TrimStart('\', '/')
+                      $broken += "$rel -> $url"
                   }
               }
           }
-          Write-Host "Link check completed" -ForegroundColor Green
+          Write-Host "Checked $checked relative links" -ForegroundColor Cyan
+          if ($broken) {
+              Write-Host "Broken relative documentation links:" -ForegroundColor Red
+              $broken | Sort-Object -Unique | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+              exit 1
+          }
+          Write-Host "All relative documentation links resolve" -ForegroundColor Green
 
       # Run a weekly software-status snapshot so drift between the registry and
       # the installed versions is surfaced in the maintenance report.
@@ -191,26 +265,51 @@ jobs:
         include:
           - name: "PowerShell 5.1"
             type: powershell
-          - name: "Rust MSRV 1.75"
+          - name: "Rust MSRV"
             type: rust-msrv
     steps:
       - uses: actions/checkout@v4
 
+      # `shell: pwsh` is PowerShell 7 -- this job was named "PowerShell 5.1"
+      # but had never executed under 5.1, so the compatibility claim was
+      # unverified. `shell: powershell` is Windows PowerShell 5.1 on the
+      # windows-* runners. Pester is pinned below 6 because Pester 6 dropped
+      # Windows PowerShell 5.1 support.
       - name: PowerShell 5.1 Tests
         if: matrix.type == 'powershell'
-        shell: pwsh
+        shell: powershell
         run: |
-          Install-Module Pester -MinimumVersion 5.6.1 -Force -Scope CurrentUser
+          $PSVersionTable.PSVersion | Out-String | Write-Host
+          if ($PSVersionTable.PSVersion.Major -ne 5) {
+              Write-Host "Expected Windows PowerShell 5.1, got $($PSVersionTable.PSVersion)" -ForegroundColor Red
+              exit 1
+          }
+          Install-PackageProvider -Name NuGet -Force -Scope CurrentUser | Out-Null
+          Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -SkipPublisherCheck -Scope CurrentUser
           if (Test-Path ".\Tests\.pester.ps1") {
               .\Tests\.pester.ps1 -CI
           }
 
+      # The version comes from [workspace.package] rust-version in
+      # Native/pcai_core/Cargo.toml, so the gate cannot drift away from the
+      # declared MSRV again. The previous hard-coded 1.75 predated Cargo.lock
+      # v4 (needs >= 1.78) and failed every week on "lock file version `4`".
       - name: Rust MSRV Check
         if: matrix.type == 'rust-msrv'
         shell: pwsh
         run: |
-          rustup install 1.75.0
-          rustup run 1.75.0 cargo check --manifest-path Native/pcai_core/pcai_inference/Cargo.toml --no-default-features --features server,ffi
+          $manifest = 'Native/pcai_core/Cargo.toml'
+          $line = Select-String -Path $manifest -Pattern '^\s*rust-version\s*=\s*"([^"]+)"' | Select-Object -First 1
+          if (-not $line) {
+              Write-Host "No rust-version declared in $manifest - MSRV gate has nothing to enforce" -ForegroundColor Red
+              exit 1
+          }
+          $msrv = $line.Matches[0].Groups[1].Value
+          Write-Host "Declared MSRV: $msrv" -ForegroundColor Cyan
+          rustup toolchain install $msrv --profile minimal --no-self-update
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          rustup run $msrv cargo check --manifest-path Native/pcai_core/pcai_inference/Cargo.toml --no-default-features --features server,ffi
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   documentation:
     name: Documentation Pipeline

@@ -119,6 +119,15 @@ jobs:
       - name: Install PSScriptAnalyzer
         shell: pwsh
         run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+      # PSScriptAnalyzer never sees PowerShell that lives inside a workflow's
+      # `run:` block, which is how a Credential Scan with a broken regex string
+      # and an unparseable release-cuda.yml both reached main and stayed there.
+      - name: Validate Workflow Syntax
+        shell: pwsh
+        run: |
+          Install-Module powershell-yaml -Force -Scope CurrentUser
+          .\Tools\Test-WorkflowSyntax.ps1
+          if ($LASTEXITCODE -ne 0) { throw "Workflow syntax validation failed" }
       - name: Run Lint
         shell: pwsh
         run: |

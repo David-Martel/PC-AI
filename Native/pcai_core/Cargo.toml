@@ -14,6 +14,12 @@ members = [
 version = "0.1.0"
 authors = ["David Martel"]
 edition = "2021"
+# Verified floor, not aspiration: `cargo +1.85 check -p pcai-inference
+# --no-default-features --features server,ffi` passes clean. 1.85 is also the
+# floor Cargo.lock v4 (>=1.78) and `[workspace.lints]` (>=1.74) already imply,
+# and it matches the fleet-wide clippy MSRV. The maintenance workflow reads
+# this key rather than hard-coding a version, so the gate cannot drift again.
+rust-version = "1.85"
 license = "MIT"
 repository = "https://github.com/David-Martel/PC-AI"
 

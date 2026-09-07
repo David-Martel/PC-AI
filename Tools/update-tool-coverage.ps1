@@ -47,14 +47,18 @@ foreach ($tool in $toolData.tools) {
     }
 }
 
-# Fallback: also check Invoke-FunctionGemmaReAct.ps1 for hardcoded patterns
+# Fallback: also check Invoke-FunctionGemmaReAct.ps1 for hardcoded patterns.
+#
+# This used to shell out to ripgrep unconditionally. ripgrep is not installed
+# on GitHub-hosted runners, so the call raised CommandNotFoundException and, in
+# the doc pipeline's -ErrorAction Stop context, took down the whole Generate
+# Auto Docs step. Select-String does the same job in-process with no external
+# dependency; there is nothing here that needs ripgrep's speed on one file.
 if (Test-Path $toolMappingPath) {
-    $rgOut = & rg -n "'pcai_[^']+'" $toolMappingPath 2>$null
-    if ($LASTEXITCODE -eq 0 -and $rgOut) {
-        foreach ($line in $rgOut) {
-            if ($line -match "'(?<name>pcai_[^']+)'" ) {
-                $mappedTools += $Matches['name']
-            }
+    $mappingMatches = Select-String -LiteralPath $toolMappingPath -Pattern "'(?<name>pcai_[^']+)'" -AllMatches
+    foreach ($mappingMatch in $mappingMatches) {
+        foreach ($m in $mappingMatch.Matches) {
+            $mappedTools += $m.Groups['name'].Value
         }
     }
 }

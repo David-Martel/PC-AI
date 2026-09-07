@@ -1,17 +1,57 @@
 # DOC_STATUS
 
-Generated: 2026-02-22 16:21:11
+Generated: 2026-09-07 13:39:33
 
 ## Counts
-- @status: 1
-- DEPRECATED: 2
-- FIXME: 2
+- @status: 5
+- DEPRECATED: 81
+- FIXME: 3
 - INCOMPLETE: 2
-- TODO: 317
+- TODO: 318
 
 ## Matches
-- AGENTS.md:201 ## Known gaps / TODOs
-- CLAUDE.md:104 - `DOC_STATUS.md` — TODO/FIXME/DEPRECATED markers across codebase
+- AGENTS.md:53 `TODO.md` and `optimization.TODO.md`:
+- AGENTS.md:99 - `boot.TODO.md`
+- AGENTS.md:308 ordering, and `~\bin` script hardening from `boot.TODO.md`
+- AGENTS.md:321 For workstation hardening changes, update `boot.TODO.md`, the relevant
+- CLAUDE.TODO.md:1 # PC_AI Development TODO
+- CLAUDE.TODO.md:7 For the current reconciled high-level backlog, use [TODO.md](TODO.md). For
+- CLAUDE.TODO.md:8 remaining LLM/runtime work, use [llm.TODO.md](llm.TODO.md). For boot, OneDrive,
+- CLAUDE.TODO.md:10 [boot.TODO.md](boot.TODO.md).
+- CLAUDE.TODO.md:34 | Q4_K + CUDA Graphs (+30%) | 3.5 GB | 166 tok/s | 58 tok/s | TODO |
+- CLAUDE.TODO.md:35 | Q4_K + improved efficiency (50%) | 3.5 GB | 128 tok/s | **64 tok/s** | TODO |
+- CLAUDE.TODO.md:36 | Speculative decoding (7B draft=12/32) | 3.5 GB | +1.5x | **96 tok/s** | TODO |
+- CLAUDE.TODO.md:37 | Q4_K + spec decode + CUDA Graphs | 3.5 GB | — | **~120-150 tok/s** | TODO |
+- CLAUDE.TODO.md:62 ### Phase 3: Quantization — TODO
+- CLAUDE.TODO.md:118 ## Architectural Enhancements — TODO
+- CLAUDE.md:104 Use [boot.TODO.md](boot.TODO.md) as the live ledger for this surface. Do not
+- CLAUDE.md:160 - `DOC_STATUS.md` — TODO/FIXME/DEPRECATED markers across codebase
+- boot.TODO.md:1 # Boot, Mount, Sync, and UI Responsiveness TODO
+- boot.TODO.md:267 - Consolidated machine issues: see [machine-reliability.TODO.md](machine-reliability.TODO.md).
+- boot.TODO.md:568 - Updated: `README.md`, `TODO.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+- boot.TODO.md:569 `Config\PROJECT_CONTEXT.md`, `llm.TODO.md`, and `CLAUDE.TODO.md`.
+- boot.TODO.md:572 top-level TODO noise.
+- .claude\plans\git-gpg-github-agent-robustness-proposal.md:123 - Dedup + severity-rank → append to a ledger (`Reports/upstream-reviews/` or `*.TODO.md`) so nothing is lost.
+- lefthook.yml:28 # --- No TODO expects in Rust ---
+- lefthook.yml:29 # Fail if any staged .rs file contains generic TODO expects.
+- lefthook.yml:33 run: "if grep -rn 'TODO: Verify unwrap' {staged_files} 2>/dev/null; then exit 1; else exit 0; fi"
+- lefthook.yml:34 fail_text: "Generic TODO expects found. Use descriptive expect messages."
+- llm.TODO.md:1 # LLM, Preflight, And FunctionGemma TODO
+- GEMINI.md:14 OneDrive, or touchpad/UI responsiveness work, consult `boot.TODO.md` and
+- machine-reliability.TODO.md:1 # Machine Reliability TODO — DTM-P1GEN7 (ThinkPad P1 Gen 7)
+- machine-reliability.TODO.md:5 [boot.TODO.md](boot.TODO.md). Toolkit: `Tools/InputDiagnostics/`.
+- .github\workflows\maintenance.yml:136 # TEXT (e.g. "[boot.TODO.md](boot.TODO.md)"), which throws on the illegal
+- Deploy\rust-functiongemma-train\TODO.md:1 # TODO - Rust FunctionGemma (PC_AI)
+- Deploy\rust-functiongemma-train\TODO.md:3 This TODO captures the minimum work required to reach feature parity with
+- Config\PROJECT_CONTEXT.md:121 large-context/offload work from `llm.TODO.md`.
+- Deploy\rust-functiongemma-train\README.md:20 - FunctionGemma model inference with tool-call parsing (TODO)
+- Deploy\rust-functiongemma-train\README.md:26 - LoRA/QLoRA fine-tuning (TODO)
+- Deploy\rust-functiongemma-train\README.md:27 - Eval harness + regression checks (TODO)
+- Deploy\rust-functiongemma-train\README.md:174 with the Python pipeline and has several TODOs (see TODO.md).
+- docs\superpowers\plans\2026-03-27-jules-integration.md:712 - `git grep -c "TODO\|FIXME\|HACK" -- "Native/" "Modules/"` — count markers per directory
+- docs\superpowers\plans\2026-03-27-jules-integration.md:947 - [ ] **Step 3: Update CLAUDE.TODO.md header**
+- docs\superpowers\plans\2026-03-27-jules-integration.md:966 git add CLAUDE.md CLAUDE.TODO.md .gitignore
+- docs\superpowers\plans\2026-03-27-jules-integration.md:967 git commit -m "docs: update CLAUDE.md with Jules tooling, update TODO header"
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:788 prompt_tokens: 0, // TODO: Implement token counting
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:937 // TODO: Implement actual model loading with llama-cpp-2
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:948 architecture: "unknown".into(), // TODO: Read from GGUF metadata
@@ -21,317 +61,362 @@ Generated: 2026-02-22 16:21:11
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:1142 // TODO: Implement actual mistralrs model loading
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:1191 // TODO: Implement actual mistralrs generation
 - docs\plans\2026-01-30-pcai-inference-dual-backend.md:1224 // TODO: Implement streaming with mistralrs
-- Deploy\rust-functiongemma-train\TODO.md:1 # TODO - Rust FunctionGemma (PC_AI)
-- Deploy\rust-functiongemma-train\TODO.md:3 This TODO captures the minimum work required to reach feature parity with
-- Deploy\rust-functiongemma-core\src\config.rs:322 let _guard = ENV_LOCK.lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\lora_utils.rs:178 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\lora_utils.rs:184 fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\lora_utils.rs:196 fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\lora_utils.rs:201 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\lora_utils.rs:212 fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\lora_utils.rs:217 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\safetensors_utils.rs:178 let data = varmap.data().lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\safetensors_utils.rs:239 let data = varmap.data().lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\safetensors_utils.rs:348 std::fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\model.rs:316 let mut cache = self.cache.lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-core\src\prompt.rs:45 Value::Number(serde_json::Number::from_f64(n).expect("TODO: Verify unwrap"))
+- README.md:179 The current ledger is [boot.TODO.md](boot.TODO.md), with primary evidence under
+- optimization.TODO.md:1 # Optimization TODO
+- optimization.TODO.md:7 now lives in [boot.TODO.md](boot.TODO.md); this file remains focused on
+- docs\superpowers\specs\2026-03-27-jules-integration-design.md:474 - TODO/FIXME markers (`grep -rn "TODO\|FIXME\|HACK" Native/ Modules/`)
 - Deploy\rust-functiongemma-train\examples\checkpoint_usage.md:75 // TODO: Restore optimizer state and RNG
 - Deploy\rust-functiongemma-train\examples\checkpoint_usage.md:105 optimizer_state: vec![0.1, 0.2, 0.3], // TODO: Serialize actual optimizer
 - Deploy\rust-functiongemma-train\examples\checkpoint_usage.md:106 rng_state: Some(rand::random()), // TODO: Get actual RNG state
-- Deploy\rust-functiongemma-train\tests\router_dataset.rs:40 fs::write(&tools_path, serde_json::to_string(&tools).expect("TODO: Verify unwrap")).expect("write tools");
-- Deploy\rust-functiongemma-train\tests\router_dataset.rs:53 })).expect("TODO: Verify unwrap"),
-- Deploy\rust-functiongemma-train\tests\lora_test.rs:13 let lora = LoraLinear::new(768, 768, &config, &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\lora_test.rs:14 let input = Tensor::randn(0f32, 1f32, (2, 10, 768), &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\lora_test.rs:15 let output = lora.forward(&input).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\README.md:20 - FunctionGemma model inference with tool-call parsing (TODO)
-- Deploy\rust-functiongemma-train\README.md:26 - LoRA/QLoRA fine-tuning (TODO)
-- Deploy\rust-functiongemma-train\README.md:27 - Eval harness + regression checks (TODO)
-- Deploy\rust-functiongemma-train\README.md:174 with the Python pipeline and has several TODOs (see TODO.md).
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:66 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:78 checkpoint.save(&ckpt_path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:81 let loaded = Checkpoint::load(&ckpt_path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:190 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:207 checkpoint.save(&ckpt_path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\full_training_test.rs:211 Checkpoint::cleanup_old(&checkpoint_config).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:6 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:17 original.save(&checkpoint_path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:18 let loaded = Checkpoint::load(&checkpoint_path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:29 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:39 ckpt.save(&temp_dir.path().join(format!("checkpoint-{}", step))).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:42 let latest = Checkpoint::find_latest(temp_dir.path()).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:48 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:59 ckpt.save(&temp_dir.path().join(format!("checkpoint-{}", step))).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:68 Checkpoint::cleanup_old(&config).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:71 let remaining: Vec<_> = std::fs::read_dir(temp_dir.path()).expect("TODO: Verify unwrap")
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:84 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\tests\checkpoint_test.rs:91 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\trainer.rs:178 let data = self.varmap.data().lock().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\trainer.rs:606 for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
-- Deploy\rust-functiongemma-train\src\trainer.rs:632 for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
-- Deploy\rust-functiongemma-train\src\trainer.rs:700 for (name, var) in self.varmap.data().lock().expect("TODO: Verify unwrap").iter() {
-- Deploy\rust-functiongemma-train\src\trainer.rs:712 optimizer_state: vec![], // TODO: Save optimizer state if needed
-- Deploy\rust-functiongemma-train\src\trainer.rs:713 rng_state: None, // TODO: Save RNG state for reproducibility
-- Deploy\rust-functiongemma-train\src\trainer.rs:738 if let Some(var) = self.varmap.data().lock().expect("TODO: Verify unwrap").get_mut(&name) {
-- Deploy\rust-functiongemma-train\src\schema_utils.rs:11 let props = props.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\schema_utils.rs:68 let key = serde_json::to_string(&set).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\schema_utils.rs:103 values.into_iter().map(|v| Value::Number(serde_json::Number::from_f64(v).expect("TODO: Verify unwrap"))).collect()
-- Deploy\rust-functiongemma-train\src\main.rs:778 let total_vars = varmap.data().lock().expect("TODO: Verify unwrap").len();
-- Deploy\rust-functiongemma-train\src\lora.rs:180 let lora = LoraLinear::new(768, 768, &config, &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\lora.rs:197 let lora = LoraLinear::new(512, 256, &config, &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\lora.rs:204 let sum = lora_b.sum_all().unwrap().to_scalar::<f32>().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\lib.rs:42 let tensor = Tensor::zeros((2, 3), candle_core::DType::F32, &device).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\eval.rs:463 ).expect("TODO: Verify unwrap");
 - rules\typescript\enforce-prime-directive.yml:6 pattern: "// TODO: Create $FILE"
-- Deploy\rust-functiongemma-train\src\dataset.rs:641 write_cache_header(&mut buf, &hash).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:644 validate_cache_header(&buf, &hash).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:664 write_cache_header(&mut buf, &hash).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:679 write_cache_header(&mut buf, &hash_a).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:701 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:703 std::fs::write(&path, b"test tokenizer content").expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:704 let hash1 = compute_tokenizer_hash(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:705 let hash2 = compute_tokenizer_hash(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:711 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:714 std::fs::write(&path_a, b"tokenizer A").expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:715 std::fs::write(&path_b, b"tokenizer B").expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:716 let hash_a = compute_tokenizer_hash(&path_a).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\dataset.rs:717 let hash_b = compute_tokenizer_hash(&path_b).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\checkpoint.rs:130 let (_, latest) = checkpoints.into_iter().last().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\checkpoint.rs:196 let json = serde_json::to_string(&checkpoint).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\checkpoint.rs:197 let deserialized: Checkpoint = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:178 scenarios_val.as_array().expect("TODO: Verify unwrap").clone()
-- Deploy\rust-functiongemma-train\src\data_gen.rs:317 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:322 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:324 let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:332 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:338 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:340 let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:347 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:352 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:354 let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:361 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:366 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:368 let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:375 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:380 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:382 let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:384 let tc = items[0].messages[1].tool_calls.as_ref().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:385 let arr = tc.as_array().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:393 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:398 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:400 let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:406 .as_array().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:412 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:417 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:419 let items = gen.generate_from_scenarios(&path).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:420 let content = items[0].messages[1].content.as_deref().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:430 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:434 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:438 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:439 std::fs::write(dir.path().join("not.txt"), "ignored").expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:441 let items = gen.generate_from_scenario_dir(dir.path()).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:447 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:449 let items = gen.generate_from_scenario_dir(dir.path()).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:455 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:459 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:463 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-train\src\data_gen.rs:465 let items = gen.generate_from_scenario_dir(dir.path()).expect("TODO: Verify unwrap");
 - rules\core\doc-status.yml:7 - pattern: "TODO"
 - rules\core\doc-status.yml:8 - pattern: "FIXME"
 - rules\core\doc-status.yml:9 - pattern: "INCOMPLETE"
 - rules\core\doc-status.yml:10 - pattern: "DEPRECATED"
+- rules\rust\panics\todo-macro.yml:7 fix: 'candle_core::bail!("TODO: $$$ARGS - not yet implemented")
+- Tests\Unit\RustGuidelines.Compliance.Tests.ps1:127 # ─── Tech Debt: No expect("TODO") markers ────────────────────────────────────
+- Tests\Unit\RustGuidelines.Compliance.Tests.ps1:129 Describe "Tech Debt: No TODO expect markers" -Tag 'Unit', 'RustGuidelines', 'Fast', 'Portable' {
+- Tests\Unit\RustGuidelines.Compliance.Tests.ps1:130 It "Should have zero expect('TODO: Verify unwrap') in all Rust files" {
+- Tests\Unit\RustGuidelines.Compliance.Tests.ps1:133 $todoExpects = @($allRs | Select-String -Pattern 'expect\("TODO: Verify unwrap"\)')
+- Tests\Unit\RustGuidelines.Compliance.Tests.ps1:134 $todoExpects.Count | Should -Be 0 -Because "all TODO expects should have descriptive messages"
+- rules\rust\avoid-unwrap.yml:7 fix: '$EXPR.expect("TODO: Verify unwrap")'
+- Tools\Update-NvidiaSoftware.ps1:46 Software = @(Get-NvidiaSoftwareStatus @statusParams)
 - Tools\update-doc-status.ps1:8 Scans the repo for TODO/FIXME/INCOMPLETE/@status/DEPRECATED markers and writes:
 - Tools\update-doc-status.ps1:66 $markers = 'TODO|FIXME|INCOMPLETE|@status|DEPRECATED'
-- Tools\update-doc-status.ps1:154 if ($_.Match -match 'TODO') { 'TODO' }
-- Tools\update-doc-status.ps1:155 elseif ($_.Match -match 'FIXME') { 'FIXME' }
-- Tools\update-doc-status.ps1:156 elseif ($_.Match -match 'INCOMPLETE') { 'INCOMPLETE' }
-- Tools\update-doc-status.ps1:157 elseif ($_.Match -match '@status') { '@status' }
-- Tools\update-doc-status.ps1:158 elseif ($_.Match -match 'DEPRECATED') { 'DEPRECATED' }
-- rules\rust\avoid-unwrap.yml:7 fix: '$EXPR.expect("TODO: Verify unwrap")'
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:129 let json = serde_json::to_string(&req).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:130 let deserialized: GenerateRequest = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:147 let json = serde_json::to_string(&resp).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:148 let deserialized: GenerateResponse = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:163 let json = serde_json::to_string(&reason).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:166 let deserialized: FinishReason = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:243 let backend = backend_result.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:254 let backend = backend_result.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:271 backend.load_model("dummy.gguf").await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:275 backend.unload_model().await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:282 backend.load_model("dummy.gguf").await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:292 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:349 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:360 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:376 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:387 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:416 let backend = CString::new("unknown_backend").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:433 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:453 let backend = CString::new("mistralrs").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:474 let path = CString::new("/nonexistent/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:502 let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:519 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:524 let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:567 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:572 let path = CString::new(model_path).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:585 let prompt = CString::new("The capital of France is").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:590 let text = result_str.to_str().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:615 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:626 let response = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:643 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:653 let _ = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:654 backend.unload_model().await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:661 backend.load_model(&model_path).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:671 let _ = backend.generate(request).await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\integration_test.rs:672 backend.unload_model().await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:29 let invalid = CString::new("invalid_backend").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:51 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:57 let backend = CString::new("mistralrs").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:70 let empty = CString::new("").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:88 let long = CString::new(long_string).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:103 let unicode = CString::new("backend_日本語").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:128 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\memory_safety.rs:146 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- rules\rust\panics\todo-macro.yml:7 fix: 'candle_core::bail!("TODO: $$$ARGS - not yet implemented")
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:22 let backend = CString::new("unknown_backend_12345").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:49 let path = CString::new("/test/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:82 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:87 let nonexistent = CString::new("/nonexistent/path/to/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:117 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:122 let prompt = CString::new("Test prompt").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:156 let backend = CString::new(backend_name).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:185 let invalid = CString::new("invalid").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:197 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:242 let unknown = CString::new("unknown_backend").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:260 let path = CString::new("/test/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:272 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:277 let prompt = CString::new("Test").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:291 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:296 let nonexistent = CString::new("/nonexistent/path/model.gguf").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\error_propagation.rs:321 let prompt_cstr = CString::new(large_prompt).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:41 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:47 let backend = CString::new(format!("test_{}", i)).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:67 let invalid = CString::new("invalid").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:100 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:129 let backend = CString::new("llamacpp").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\ffi\concurrent_access.rs:137 let prompt = CString::new(format!("Test prompt {}", i)).expect("TODO: Verify unwrap");
+- Tools\update-doc-status.ps1:86 # report was other people's TODOs.
+- Tools\update-doc-status.ps1:181 # artifacts and worktrees/ and inflated DEPRECATED from 176 to 3480.
+- Tools\update-doc-status.ps1:229 if ($_.Match -match 'TODO') { 'TODO' }
+- Tools\update-doc-status.ps1:230 elseif ($_.Match -match 'FIXME') { 'FIXME' }
+- Tools\update-doc-status.ps1:231 elseif ($_.Match -match 'INCOMPLETE') { 'INCOMPLETE' }
+- Tools\update-doc-status.ps1:232 elseif ($_.Match -match '@status') { '@status' }
+- Tools\update-doc-status.ps1:233 elseif ($_.Match -match 'DEPRECATED') { 'DEPRECATED' }
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\tests\test-grad0.c:312 // TODO: clean-up this ..
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\llama.h:30 #    define DEPRECATED(func, hint) func __attribute__((deprecated(hint)))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\llama.h:32 #    define DEPRECATED(func, hint) __declspec(deprecated(hint)) func
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\llama.h:34 #    define DEPRECATED(func, hint) func
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\llama.h:67 // TODO: show sample usage
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\llama.h:205 // TODO: not great API - very likely to change
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\llama.h:228 LLAMA_API DEPRECATED(struct llama_context * llama_init_from_file(
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\llama.h:248 LLAMA_API DEPRECATED(int llama_apply_lora_from_file(
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\llama.h:313 // TODO: not sure if correct
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:148 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:153 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:158 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:163 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:168 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:566 // TODO: temporary until model loading of ggml examples is refactored
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:843 // TODO: double-check this computation is correct
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:876 // TODO: eps is hardcoded to 1e-5 for now
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:897 // TODO: update with configurable eps
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:1006 // TODO: when we start computing gradient, make a copy instead of view
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:1013 // TODO: when we start computing gradient, make a copy instead of view
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:1026 // TODO: when we start computing gradient, make a copy instead of view
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\spm-headers\ggml.h:1155 // TODO: avoid creating a new tensor every time
 - TODO.md:1 # TODO
-- Native\pcai_core\pcai_inference\tests\backend_selection_test.rs:44 let json = serde_json::to_string(&reason).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\backend_selection_test.rs:128 let llamacpp = BackendType::LlamaCpp.create().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\tests\backend_selection_test.rs:129 let mistralrs = BackendType::MistralRs.create().expect("TODO: Verify unwrap");
-- Tools\Invoke-DocPipeline.ps1:142 # Step 1: Generate DOC_STATUS report (TODO/FIXME/DEPRECATED markers)
-- Native\pcai_core\pcai_inference\build.rs:27 let out_dir = env::var_os("OUT_DIR").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\http\mod.rs:1064 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\http\mod.rs:1101 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\http\mod.rs:1113 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\http\mod.rs:1123 let prompt = build_chat_prompt(&messages).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\ffi\mod.rs:1108 let version = version_str.to_str().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\ffi\mod.rs:1161 let prompt = CString::new("test").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\ffi\mod.rs:1174 let prompt_cstr = CString::new(large_prompt).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\ffi\mod.rs:1183 let err_text = err_str.to_str().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\ffi\mod.rs:1203 let prompt = CString::new("hello").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\ffi\mod.rs:1219 let cstr = CString::new(large).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\config.rs:167 let json = serde_json::to_string(&defaults).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\config.rs:168 let deserialized: GenerationDefaults = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\config.rs:182 let json = serde_json::to_string(&config).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\config.rs:183 let deserialized: ModelConfig = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\config.rs:198 let dir = tempfile::tempdir().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\config.rs:200 std::fs::write(&path, "not valid json {{{").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\config.rs:220 let deserialized: GenerationDefaults = serde_json::from_str(json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\config.rs:231 let config: ModelConfig = serde_json::from_str(json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:125 let req: GenerateRequest = serde_json::from_str(json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:142 let json = serde_json::to_string(&req).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:143 let deserialized: GenerateRequest = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:158 let json = serde_json::to_string(&resp).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:159 let deserialized: GenerateResponse = serde_json::from_str(&json).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:174 let stop: FinishReason = serde_json::from_str("\"stop\"").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:176 let length: FinishReason = serde_json::from_str("\"length\"").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:178 let error: FinishReason = serde_json::from_str("\"error\"").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mod.rs:184 let req: GenerateRequest = serde_json::from_str(r#"{"prompt": "x"}"#).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_inference\src\backends\mistralrs.rs:220 // TODO: Implement a custom RequestLike to support full sampling control.
-- Native\pcai_core\pcai_inference\src\backends\mistralrs.rs:269 let (model_id, filename) = result.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\tokenizer.rs:18 ").unwrap_or_else(|_| Regex::new(".").expect("TODO: Verify unwrap")) // Fallback to safe catch-all
+- TODO.md:21 [boot.TODO.md](boot.TODO.md).
+- Tools\Invoke-JulesOrchestrator.ps1:8 AnalyzeAndDispatch  Gather repo signals (clippy, git diff, TODOs, issues), build an
+- Tools\Invoke-JulesOrchestrator.ps1:306 # 3. TODO/FIXME/HACK markers
+- Tools\Invoke-JulesOrchestrator.ps1:307 Write-Verbose 'Counting TODO markers…'
+- Tools\Invoke-JulesOrchestrator.ps1:308 $todoOut   = git -C $script:RepoRoot grep -c 'TODO\|FIXME\|HACK' -- 'Native/' 'Modules/' 2>$null
+- Tools\Invoke-DocPipeline.ps1:149 # Step 1: Generate DOC_STATUS report (TODO/FIXME/DEPRECATED markers)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\Makefile:71 # TODO: support Windows
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\Makefile:129 # TODO: probably these flags need to be tweaked on some architectures
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.h:30 #    define DEPRECATED(func, hint) func __attribute__((deprecated(hint)))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.h:32 #    define DEPRECATED(func, hint) __declspec(deprecated(hint)) func
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.h:34 #    define DEPRECATED(func, hint) func
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.h:67 // TODO: show sample usage
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.h:205 // TODO: not great API - very likely to change
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.h:228 LLAMA_API DEPRECATED(struct llama_context * llama_init_from_file(
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.h:248 LLAMA_API DEPRECATED(int llama_apply_lora_from_file(
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.h:313 // TODO: not sure if correct
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:77 // TODO: dynamically determine these sizes
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:155 { MODEL_70B, 1536ull * kB }, // TODO (likely can be reduced)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:170 { MODEL_70B, 416ull }, // TODO (likely can be reduced)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:187 // TODO: load from model data hparams
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:372 // TODO: move in llama_state
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:528 // TODO: read from header
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:1030 // TODO: read from file
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:1051 // TODO: temporary until GGUF
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:1699 // offload_func_nr(cur); // TODO CPU + GPU mirrored backend
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:1725 // TODO: disabled until #2413 is resolved
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:1741 // TODO: avoid these syncs via shared memory (ref #1696)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:3541 // TODO: this should be in a destructor, it will leak on failure
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:3920 // TODO: fix this
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\llama.cpp:3942 // TODO: fix this
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\k_quants.c:405 // TODO - collect histograms - although, at a second thought, I don't really care about them
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\k_quants.c:621 // TODO - collect histograms - although, at a second thought, I don't really care about them
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\k_quants.c:781 (void)hist; // TODO: collect histograms
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\k_quants.c:1122 (void)hist; // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\k_quants.c:1629 // TODO: optimize this
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\k_quants.c:1681 // TODO: optimize this
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\k_quants.c:3150 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:148 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:153 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:158 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:163 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:168 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:566 // TODO: temporary until model loading of ggml examples is refactored
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:843 // TODO: double-check this computation is correct
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:876 // TODO: eps is hardcoded to 1e-5 for now
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:897 // TODO: update with configurable eps
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:1006 // TODO: when we start computing gradient, make a copy instead of view
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:1013 // TODO: when we start computing gradient, make a copy instead of view
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:1026 // TODO: when we start computing gradient, make a copy instead of view
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.h:1155 // TODO: avoid creating a new tensor every time
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:1916 // TODO: is this optimal ?
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:2173 // TODO: Does this work?
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:2197 // TODO: is this optimal ?
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:2641 // TODO: add WASM SIMD
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:2861 // TODO: check if unrolling this is better
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:3109 // TODO: check if unrolling this is better
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:3991 sched_yield(); // TODO: reconsider this
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:3996 // TODO: make this somehow automatically executed
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:4063 // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:4495 // TODO: implement a better way
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:4498 // TODO: again, need to find a better way
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:4592 // TODO: for recoverable errors, we would need to free the data allocated from the scratch buffer here
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:4616 // TODO: this should not be needed as long as we don't rely on aligned SIMD loads
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:5078 // TODO: support less-strict constraint
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:5085 // TODO: support backward pass for broadcasting
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:5257 // TODO: support less-strict constraint
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:5264 // TODO: support backward pass for broadcasting
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:5494 GGML_ASSERT(false); // TODO: implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:5736 // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:5759 GGML_ASSERT(false); // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:5765 // TODO: maybe store epsilon here?
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:5829 // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6477 // TODO: implement non F32 return
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6505 // TODO: implement non F32 return
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6664 is_node = true; // TODO : implement backward pass
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6771 is_node = false; // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6798 GGML_ASSERT(false); // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6802 // TODO: when implement backward, fix this:
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6827 GGML_ASSERT(false); // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6831 // TODO: when implement backward, fix this:
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6862 GGML_ASSERT(false); // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6900 GGML_ASSERT(false); // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6954 GGML_ASSERT(false); // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:6990 GGML_ASSERT(false); // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7020 // TODO: check if vT can be multiplied by (k*qT)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7053 // TODO: more checks
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7085 // TODO: check if vT can be multiplied by (k*qT)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7153 GGML_ASSERT(false); // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7192 GGML_ASSERT(false); // TODO: implement backward
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7590 // TODO: add more special-case implementations for tensor shapes/strides that can benefit from memcpy
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7652 GGML_ASSERT(false); // TODO: implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7694 GGML_ASSERT(false); // TODO: implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7811 GGML_ASSERT(false); // TODO: implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7862 // TODO: simplify
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7899 GGML_ASSERT(false); // TODO: implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:7941 GGML_ASSERT(false); // TODO: implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:8060 GGML_ASSERT(false); // TODO: implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:9411 // TODO: support for transposed / permuted tensors
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:9415 // TODO: maybe this is not optimal?
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:9472 // TODO: support for transposed / permuted tensors
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:9490 // TODO: maybe this is not optimal?
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10080 const float eps = 1e-5f; // TODO: make this a parameter
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10082 // TODO: optimize
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10149 // TODO: optimize
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10212 const float eps = 1e-6f; // TODO: make this a parameter
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10214 // TODO: optimize
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10384 // TODO: find the optimal values for these
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10438 // TODO: handle case when src0 is broadcast-able into src1 across 2nd,3rd dimension
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10452 // TODO: handle case when src0 is broadcast-able into src1 across 2nd,3rd dimension
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10562 // TODO: this is a bit of a hack, we should probably have a better way to handle this
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10627 // TODO: #if defined(GGML_USE_CUBLAS) ggml_cuda_out_prod
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:10628 // TODO: #if defined(GGML_USE_ACCELERATE) || defined(GGML_USE_OPENBLAS) || defined(GGML_USE_CLBLAST)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:11220 // TODO: handle transposed/permuted matrices
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:11297 // TODO: handle transposed/permuted matrices
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:11364 // TODO: handle transposed/permuted matrices
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:11456 // TODO: handle transposed/permuted matrices
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:11582 // TODO: k*nb2 or k*nb3
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:11645 // TODO: k*nb2 or k*nb3
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:11876 // TODO: this is probably wrong, but I can't figure it out ..
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:12005 // TODO: this is probably wrong, but I can't figure it out ..
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:12290 GGML_ASSERT(ne00 % 2 == 1); // TODO: support even kernel sizes
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:12295 // TODO: fix this memset (wsize is overestimated)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:12381 GGML_ASSERT(ne00 % 2 == 1); // TODO: support even kernel sizes
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:12386 // TODO: fix this memset (wsize is overestimated)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:12493 GGML_ASSERT(ne00 % 2 == 1); // TODO: support even kernel sizes
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:12498 // TODO: fix this memset (wsize is overestimated)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:12584 GGML_ASSERT(ne00 % 2 == 1); // TODO: support even kernel sizes
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:12589 // TODO: fix this memset (wsize is overestimated)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:13542 GGML_ASSERT(false); // TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:13940 // TODO: optimize / multi-thread
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:14006 // TODO: optimize / multi-thread
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:14316 // TODO: handle transposed/permuted matrices
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:14439 // TODO: handle transposed/permuted matrices
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:14890 ggml_mean(ctx, tensor->grad), // TODO: should probably be sum instead of mean
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15030 GGML_ASSERT(false); // TODO: implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15045 // TODO: test this
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15054 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15058 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15072 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15122 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15297 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15301 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15338 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15379 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15383 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15387 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15391 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15395 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15399 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15603 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15607 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15622 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15626 GGML_ASSERT(false); // TODO: not implemented
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:15969 // TODO: Windows etc.
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16065 // TODO: maybe push node_n to the atomic but if other threads see n_tasks is 1,
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16223 // TODO: use different scheduling for different matrix sizes
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16235 n_tasks = 1; // TODO: this actually is doing nothing
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16240 n_tasks = 1; // TODO: this actually is doing nothing
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16247 n_tasks = 1; // TODO: this actually is doing nothing
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16290 n_tasks = 1; //TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16294 n_tasks = 1; //TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16375 cur  = sizeof(float)*ne11*n_tasks; // TODO: this can become (n_tasks-1)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16380 cur  = sizeof(float)*ne11*n_tasks; // TODO: this can become (n_tasks-1)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16393 cur  = sizeof(float)*node->src[1]->ne[1]*n_tasks; // TODO: this can become (n_tasks-1)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16398 cur  = sizeof(float)*node->src[1]->ne[1]*n_tasks; // TODO: this can become (n_tasks-1)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16414 cur  = sizeof(float)*mxDn*n_tasks; // TODO: this can become (n_tasks-1)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16419 cur  = sizeof(float)*mxDn*n_tasks; // TODO: this can become (n_tasks-1)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16632 // TODO: does not take into account scratch buffers !!!!
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:16729 // TODO: pad this to 32 byte boundary
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:17011 // TODO: handle inplace ops - currently a copy is always made
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:17016 // TODO: implement other view ops
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:17284 // TODO: add function to set tensor from array
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:17295 // TODO: add function to get all elements at once
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml.c:17306 // TODO: add function to get all elements at once
+- Tests\Benchmarks\Measure-CodeQuality.ps1:121 Select-String -Pattern 'TODO|FIXME|HACK' -ErrorAction SilentlyContinue).Count
+- Tests\Benchmarks\Measure-CodeQuality.ps1:225 "| TODO/FIXME/HACK | $todoCount |"
+- Tests\Benchmarks\Measure-CodeQuality.ps1:266 Write-Host "  TODO/FIXME/HACK:  $todoCount"
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-opencl.cpp:1588 // TODO: use multiple threads
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-opencl.cpp:1780 // TODO: find the optimal values for these
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-opencl.cpp:1807 // TODO: this is not always the best choice due to the overhead of converting to fp16
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-mpi.c:104 // TODO: there are many improvements that can be done to this implementation
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-mpi.c:176 // TODO: not great - should be able to do this without modifying the compute graph (see next TODO below)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-mpi.c:186 // TODO: instead of rearranging the nodes, we should be able to execute a subset of the compute graph
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\train-text-from-scratch\train-text-from-scratch.cpp:3168 // TODO: use std::vector<uint8_t> intead of "new"
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-metal.metal:650 // TODO: implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-metal.m:48 GGML_METAL_DECL_KERNEL(add_row); // TODO: avoid this extra kernel, instead extend the "add" kernel to support broadcast
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-metal.m:50 GGML_METAL_DECL_KERNEL(mul_row); // TODO: avoid this extra kernel, instead extend the "mul" kernel to support broadcast
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-metal.m:85 // TODO: move the contents here when ready
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-metal.m:475 // TODO: is this the best way to start threads?
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-metal.m:718 // TODO: needs to be updated after PR: https://github.com/ggerganov/ggml/pull/224
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-metal.m:750 // TODO: is there a way to do this in parallel - currently very slow ..
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-metal.m:751 // TODO: might be possible to offload part of the computation to ANE using Accelerate's CBLAS
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-cuda.h:19 // TODO: export these with GGML_API
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-cuda.cu:3604 ggml_cuda_op(src0, src1, dst, ggml_cuda_op_mul, true, false); // TODO ggml_cuda_op needs modification for flatten
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-cuda.cu:3633 // TODO: find the optimal values for these
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\ggml-cuda.cu:3798 ggml_cuda_op(src0, src1, dst, ggml_cuda_op_rope, true, false); // FIXME flatten changes results
+- Modules\PC-AI.Acceleration\Tests\Benchmarks\Measure-PcaiCommandMatrix.ps1:38 "    Write-Output 'TODO item $i'"
+- Modules\PC-AI.Acceleration\Tests\Benchmarks\Measure-PcaiCommandMatrix.ps1:69 Search-ContentFast -Path $srcRoot -LiteralPattern 'TODO item' -FilePattern '*.ps1' | Out-Null
+- Modules\PC-AI.Acceleration\Tests\Benchmarks\Measure-PcaiCommandMatrix.ps1:74 Search-WithParallelSelectString -Path $path -LiteralPattern 'TODO item' -SearchPattern ([regex]::Escape('TODO item')) -FilePattern @('*.ps1') -Context 0 -CaseSensitive:$false -Whol [... omitted end of long line]
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1200 #if defined(JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1201 #undef JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1204 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1206 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("warning(disable:1478 1786)")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1208 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED __pragma(warning(disable:1478 1786))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1210 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("diag_suppress 1215,1216,1444,1445")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1212 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("diag_suppress 1215,1444")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1214 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1216 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED __pragma(warning(disable:4996))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1218 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("diag_suppress 1215,1444")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1231 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("diag_suppress 1291,1718")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1233 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("error_messages(off,E_DEPRECATED_ATT,E_DEPRECATED_ATT_MESS)")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1235 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("error_messages(off,symdeprecated,symdeprecated2)")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1237 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("diag_suppress=Pe1444,Pe1215")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1239 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED _Pragma("warn(disable:2241)")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1241 #define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1335 #if defined(JSON_HEDLEY_DEPRECATED)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1336 #undef JSON_HEDLEY_DEPRECATED
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1338 #if defined(JSON_HEDLEY_DEPRECATED_FOR)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1339 #undef JSON_HEDLEY_DEPRECATED_FOR
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1344 #define JSON_HEDLEY_DEPRECATED(since) __declspec(deprecated("Since " # since))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1345 #define JSON_HEDLEY_DEPRECATED_FOR(since, replacement) __declspec(deprecated("Since " #since "; use " #replacement))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1359 #define JSON_HEDLEY_DEPRECATED(since) __attribute__((__deprecated__("Since " #since)))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1360 #define JSON_HEDLEY_DEPRECATED_FOR(since, replacement) __attribute__((__deprecated__("Since " #since "; use " #replacement)))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1362 #define JSON_HEDLEY_DEPRECATED(since) JSON_HEDLEY_DIAGNOSTIC_DISABLE_CPP98_COMPAT_WRAP_([[deprecated("Since " #since)]])
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1363 #define JSON_HEDLEY_DEPRECATED_FOR(since, replacement) JSON_HEDLEY_DIAGNOSTIC_DISABLE_CPP98_COMPAT_WRAP_([[deprecated("Since " #since "; use " #replacement)]])
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1381 #define JSON_HEDLEY_DEPRECATED(since) __attribute__((__deprecated__))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1382 #define JSON_HEDLEY_DEPRECATED_FOR(since, replacement) __attribute__((__deprecated__))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1387 #define JSON_HEDLEY_DEPRECATED(since) __declspec(deprecated)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1388 #define JSON_HEDLEY_DEPRECATED_FOR(since, replacement) __declspec(deprecated)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1390 #define JSON_HEDLEY_DEPRECATED(since) _Pragma("deprecated")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1391 #define JSON_HEDLEY_DEPRECATED_FOR(since, replacement) _Pragma("deprecated")
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1393 #define JSON_HEDLEY_DEPRECATED(since)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:1394 #define JSON_HEDLEY_DEPRECATED_FOR(since, replacement)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:10927 get();  // TODO(niels): may we ignore N here?
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:13761 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, to_string())
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:14542 JSON_HEDLEY_DEPRECATED_FOR(3.11.2, operator==(json_pointer))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:14620 JSON_HEDLEY_DEPRECATED_FOR(3.11.2, operator==(json_pointer, json_pointer))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:14629 JSON_HEDLEY_DEPRECATED_FOR(3.11.2, operator==(json_pointer, json_pointer))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:14645 JSON_HEDLEY_DEPRECATED_FOR(3.11.2, operator!=(json_pointer, json_pointer))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:14654 JSON_HEDLEY_DEPRECATED_FOR(3.11.2, operator!=(json_pointer, json_pointer))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:21541 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, basic_json::json_pointer or nlohmann::json_pointer<basic_json::string_t>) // NOLINT(readability/alt_tokens)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:21552 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, basic_json::json_pointer or nlohmann::json_pointer<basic_json::string_t>) // NOLINT(readability/alt_tokens)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:21918 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, basic_json::json_pointer or nlohmann::json_pointer<basic_json::string_t>) // NOLINT(readability/alt_tokens)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:22032 JSON_HEDLEY_DEPRECATED_FOR(3.1.0, items())
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:22043 JSON_HEDLEY_DEPRECATED_FOR(3.1.0, items())
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:22913 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, undef JSON_USE_LEGACY_DISCARDED_VALUE_COMPARISON)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:22934 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, undef JSON_USE_LEGACY_DISCARDED_VALUE_COMPARISON)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23166 JSON_HEDLEY_DEPRECATED_FOR(3.0.0, operator<<(std::ostream&, const basic_json&))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23212 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, parse(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23242 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, accept(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23285 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, sax_parse(ptr, ptr + len, ...))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23306 JSON_HEDLEY_DEPRECATED_FOR(3.0.0, operator>>(std::istream&, basic_json&))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23537 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, from_cbor(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23548 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, from_cbor(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23594 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, from_msgpack(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23603 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, from_msgpack(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23648 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, from_ubjson(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23657 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, from_ubjson(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23733 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, from_bson(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23742 JSON_HEDLEY_DEPRECATED_FOR(3.8.0, from_bson(ptr, ptr + len))
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23771 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, basic_json::json_pointer or nlohmann::json_pointer<basic_json::string_t>) // NOLINT(readability/alt_tokens)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23785 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, basic_json::json_pointer or nlohmann::json_pointer<basic_json::string_t>) // NOLINT(readability/alt_tokens)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23799 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, basic_json::json_pointer or nlohmann::json_pointer<basic_json::string_t>) // NOLINT(readability/alt_tokens)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:23813 JSON_HEDLEY_DEPRECATED_FOR(3.11.0, basic_json::json_pointer or nlohmann::json_pointer<basic_json::string_t>) // NOLINT(readability/alt_tokens)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:24471 #undef JSON_HEDLEY_DEPRECATED
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:24472 #undef JSON_HEDLEY_DEPRECATED_FOR
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\json.hpp:24475 #undef JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\httplib.h:3172 // TODO: 'Accept-Encoding' has br, not br;q=0
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\httplib.h:3178 // TODO: 'Accept-Encoding' has gzip, not gzip;q=0
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\httplib.h:4025 // TODO: support 'filename*'
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\httplib.h:4446 // TODO: check if Content-Length is set
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\httplib.h:6064 // TODO: Increase FD_SETSIZE statically (libzmq), dynamically (MySQL).
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\httplib.h:6397 // TODO: refactoring
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\httplib.h:6595 // TODO: Brotli support
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\httplib.h:6747 // TODO: Brotli support
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\server\httplib.h:6914 // TODO this requires a not-entirely-obvious chain of calls to be correct
 - Modules\PC-AI.Acceleration\Public\Search-ContentFast.ps1:40 Search-ContentFast -Path "." -LiteralPattern "TODO:" -Context 2
 - Modules\PC-AI.Acceleration\Public\Search-ContentFast.ps1:41 Finds TODO comments with context
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:402 let dir = tempdir().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:404 let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:405 writeln!(file, "Line 1: normal content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:406 writeln!(file, "Line 2: ERROR something failed").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:407 writeln!(file, "Line 3: more normal content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:408 writeln!(file, "Line 4: ERROR another failure").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:409 writeln!(file, "Line 5: final line").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:432 let dir = tempdir().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:434 let mut file = File::create(&log_path).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:435 writeln!(file, "error lowercase").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:436 writeln!(file, "ERROR uppercase").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\system\logs.rs:437 writeln!(file, "Error mixed").expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:7 let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:8 let addr = listener.local_addr().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:10 axum::serve(listener, app).await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:28 .await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:35 .to_str().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:42 let body = resp.text().await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:53 let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:54 let addr = listener.local_addr().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:56 axum::serve(listener, app).await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:68 .await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:80 .await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:90 let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:91 let addr = listener.local_addr().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:93 axum::serve(listener, app).await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:132 .await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:136 let name = tool_calls[0]["function"]["name"].as_str().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:143 let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:144 let addr = listener.local_addr().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:146 axum::serve(listener, app).await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:168 .await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:170 let content = resp["choices"][0]["message"]["content"].as_str().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:181 let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:182 let addr = listener.local_addr().expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:184 axum::serve(listener, app).await.expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\tests\http_router.rs:202 .await.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\build.rs:7 let out_dir = env::var_os("OUT_DIR").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\build.rs:19 ).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\src\model_support.rs:84 std::fs::create_dir_all(&dir).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\src\model_support.rs:85 std::fs::write(dir.join("config.json"), "{}").expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\src\model_support.rs:87 let result = resolve_model_path(dir.to_str().expect("TODO: Verify unwrap"));
-- Deploy\rust-functiongemma-runtime\src\model_support.rs:98 std::fs::create_dir_all(&model_dir).expect("TODO: Verify unwrap");
-- Deploy\rust-functiongemma-runtime\src\model_support.rs:100 std::env::set_var("PCAI_MODELS_DIR", base.to_str().expect("TODO: Verify unwrap"));
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:252 let mut all = all_matches.lock().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:402 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:407 ).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:411 ).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:412 fs::write(dir.path().join("data.json"), r#"{"key": "value"}"#).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:415 fs::create_dir(&subdir).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:416 fs::write(subdir.join("nested.txt"), "Hello from nested").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:425 let regex = Regex::new("Hello").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:447 let regex = Regex::new("Error").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:448 let glob = Glob::new("*.log").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:470 let regex = Regex::new("test").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:496 let regex = Regex::new("Hello|Error").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\content.rs:518 let regex = Regex::new("Hello").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:246 let temp_dir = TempDir::new().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:250 let mut file1 = File::create(temp_path.join("file1.txt")).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:251 file1.write_all(b"Hello, World!").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:253 let mut file2 = File::create(temp_path.join("file2.txt")).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:254 file2.write_all(b"Test content here").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:258 fs::create_dir(&subdir).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:259 let mut file3 = File::create(subdir.join("file3.txt")).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:260 file3.write_all(b"Subdirectory content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:262 let result = get_disk_usage(temp_path.to_str().expect("TODO: Verify unwrap"), 10);
-- Native\pcai_core\pcai_core_lib\src\performance\disk.rs:265 let (stats, entries) = result.expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:233 let mut map = hash_map.lock().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:341 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:344 fs::write(dir.path().join("file1.txt"), "duplicate content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:345 fs::write(dir.path().join("file2.txt"), "duplicate content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:346 fs::write(dir.path().join("unique.txt"), "unique content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:350 fs::create_dir(&subdir).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:351 fs::write(subdir.join("file3.txt"), "duplicate content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:352 fs::write(subdir.join("other.txt"), "other content").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:381 fs::write(dir.path().join("tiny.txt"), "x").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:382 fs::write(dir.path().join("tiny2.txt"), "x").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:399 let dir = TempDir::new().expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:401 fs::write(&path, "hello world").expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\duplicates.rs:403 let hash = hash_file(&path).expect("TODO: Verify unwrap");
-- Native\pcai_core\pcai_core_lib\src\search\files.rs:176 found_files_clone.lock().expect("TODO: Verify unwrap").push(file_info);
-- Native\pcai_core\pcai_core_lib\src\search\files.rs:184 let mut files = std::mem::take(&mut *found_files.lock().expect("TODO: Verify unwrap"));
-- Native\pcai_core\pcai_core_lib\src\performance\process.rs:222 let p = process.expect("TODO: Verify unwrap");
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\quantize\README.md:3 TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\perplexity\README.md:3 TODO
+- Release\PowerShell\PC-AI\Modules\PC-AI.Acceleration\Tests\Benchmarks\Measure-PcaiCommandMatrix.ps1:38 "    Write-Output 'TODO item $i'"
+- Release\PowerShell\PC-AI\Modules\PC-AI.Acceleration\Tests\Benchmarks\Measure-PcaiCommandMatrix.ps1:69 Search-ContentFast -Path $srcRoot -LiteralPattern 'TODO item' -FilePattern '*.ps1' | Out-Null
+- Release\PowerShell\PC-AI\Modules\PC-AI.Acceleration\Tests\Benchmarks\Measure-PcaiCommandMatrix.ps1:74 Search-WithParallelSelectString -Path $path -LiteralPattern 'TODO item' -SearchPattern ([regex]::Escape('TODO item')) -FilePattern @('*.ps1') -Context 0 -CaseSensitive:$false -Whol [... omitted end of long line]
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\main\main.cpp:97 // TODO: determine the actual max context of the model (e.g. 4096 for LLaMA v2) and use that instead of 2048
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\main\main.cpp:370 // TODO: replace with ring-buffer
+- Modules\PC-AI.Gpu\Public\Update-NvidiaSoftwareRegistry.ps1:255 $statusResults = Get-NvidiaSoftwareStatus @statusParams
+- Modules\PC-AI.Gpu\Public\Install-NvidiaSoftware.ps1:164 $currentStatus        = Get-NvidiaSoftwareStatus @statusParams | Select-Object -First 1
+- Modules\PC-AI.Gpu\Public\Install-NvidiaSoftware.ps1:396 $postStatus           = Get-NvidiaSoftwareStatus @statusParams | Select-Object -First 1
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\convert-lora-to-ggml.py:106 # TODO: these seem to be layers that have been trained but without lora.
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\CMakeLists.txt:17 # TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\CMakeLists.txt:400 # TODO: probably these flags need to be tweaked on some architectures
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\CMakeLists.txt:421 # TODO: arm msvc?
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\CMakeLists.txt:488 #TODO: Add  targets for Power8/Power9 (Altivec/VSX) and Power10(MMA) and query for big endian systems (ppc64/le/be)
+- Release\PowerShell\PC-AI\Modules\PC-AI.Acceleration\Public\Search-ContentFast.ps1:40 Search-ContentFast -Path "." -LiteralPattern "TODO:" -Context 2
+- Release\PowerShell\PC-AI\Modules\PC-AI.Acceleration\Public\Search-ContentFast.ps1:41 Finds TODO comments with context
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\chat-persistent.sh:133 # TODO get both messages in one go
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\common.cpp:65 //TODO: Implement
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\common.cpp:611 // TODO: not great allocating this every time
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\embedding\README.md:3 TODO
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\common.h:30 int32_t n_gqa                           = 1;    // grouped-query attention factor (TODO: move to hparams)
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\examples\embd-input\embd-input-lib.cpp:169 // TODO: Apply penalties
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\convert-pth-to-ggml.py:8 description="""[DEPRECATED - use `convert.py` instead]
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\.github\workflows\build.yml:330 # TODO(green-sky): _dev seems to fail, and non dev are not enought
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\.github\workflows\build.yml:361 # TODO(green-sky): paths are cuda 12 specific
+- Native\pcai_core\third_party\ggml-sys\llama-cpp\.github\workflows\build.yml:372 # TODO(green-sky): paths are cuda 11 specific
+- Release\PowerShell\PC-AI\Config\PROJECT_CONTEXT.md:121 large-context/offload work from `llm.TODO.md`.
 

@@ -1,9 +1,9 @@
 # API_SIGNATURE_REPORT
 
-Generated: 2026-03-28 00:46:44
+Generated: 2026-09-07 13:10:07
 
-PowerShell functions: 234
-Missing help blocks: 171
+PowerShell functions: 237
+Missing help blocks: 172
 C# DllImports: 58
 Missing Rust exports: 0
 
@@ -124,6 +124,8 @@ Missing Rust exports: 0
 - Get-NvidiaSoftwareStatus: missing RegistryPath, ComponentId
 - Initialize-NvidiaEnvironment: missing Scope, PreferredCudaVersion, SkipBackup, Quiet
 - Install-NvidiaSoftware: missing ComponentId, InstallerPath, DownloadOnly, Force, RegistryPath, TimeoutSeconds
+- Initialize-PreflightInteropType: missing DllPath
+- Test-PcaiGpuReadiness: missing ModelPath, ContextLength, RequiredMB, AsJson
 - Update-NvidiaSoftwareRegistry: missing ComponentId, LatestVersion, DownloadUrl, Sha256, RefreshFromSystem, RegistryPath
 - Get-DeviceErrors: missing IncludeOK, Class
 - Get-HardwarePnpDevicesNative: missing Class

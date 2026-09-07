@@ -1,0 +1,15 @@
+{
+  "_comment": "Windows PowerShell 5.1 compatibility baseline for the Weekly Maintenance compatibility matrix. Until 2026-09-07 that job ran `shell: pwsh` (PowerShell 7), so the 5.1 compatibility claim had never been tested. This is the FIRST measurement under a real 5.1 host. It is a regression gate, not a pass mark: CI fails if FailedCount rises above this number, and also fails if it drops below it without this file being updated, so the baseline cannot silently go stale.",
+  "RecordedAt": "2026-09-07",
+  "RecordedFromRun": "https://github.com/David-Martel/PC-AI/actions/runs/34147793137",
+  "PSVersion": "5.1.26100.33296",
+  "PesterVersion": "5.x",
+  "FailedCount": 444,
+  "FailedBlocksCount": 9,
+  "FailedContainersCount": 42,
+  "Notes": [
+    "42 failed containers means those test FILES could not even load under 5.1 -- most likely PowerShell 7-only syntax (ternary, null-coalescing, pipeline chain operators) or #Requires -Version 7.",
+    "Reducing this number is tracked work, not a CI fix. Lower the baseline as files are made 5.1-clean.",
+    "The same suite under PowerShell 7 has a much smaller failure count; see commit 15f999a for that separate, pre-existing test-contract debt."
+  ]
+}

@@ -1,6 +1,6 @@
 # TOOL_SCHEMA_REPORT
 
-Generated: 2026-03-14 19:35:02
+Generated: 2026-09-07 13:39:35
 
 - Tool schema count: 31
 - Tool mapping count: 31

@@ -1,74 +1,107 @@
 {
-  "generated": "2026-02-22 13:39:18",
-  "mode": "DocsOnly",
-  "duration": "00:03",
+  "generated": "2026-09-07 13:10:39",
+  "mode": "Full",
+  "duration": "00:42",
   "steps": [
     {
       "Name": "CmakeEnv",
       "Status": "Success",
-      "Output": "CMAKE_ROOT=C:/Program Files/CMake/share/cmake-4.2",
+      "Output": "CMAKE_ROOT=C:/Strawberry/c/share/cmake-3.29",
       "Error": "",
-      "Timestamp": "13:39:14"
+      "Timestamp": "13:10:00"
     },
     {
       "Name": "CudaEnv",
       "Status": "Success",
       "Output": "CUDA_PATH=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1",
       "Error": "",
-      "Timestamp": "13:39:15"
+      "Timestamp": "13:10:01"
     },
     {
       "Name": "DOC_STATUS",
       "Status": "Success",
-      "Output": "C:\\Users\\david\\PC_AI\\Reports\\DOC_STATUS.md",
+      "Output": "C:\\codedev\\PC_AI\\Reports\\DOC_STATUS.md",
       "Error": "",
-      "Timestamp": "13:39:15"
+      "Timestamp": "13:10:04"
     },
     {
       "Name": "ToolSchema",
       "Status": "Success",
-      "Output": "C:\\Users\\david\\PC_AI\\Deploy\\rust-functiongemma\\TOOLS.md",
+      "Output": "C:\\codedev\\PC_AI\\Deploy\\rust-functiongemma\\TOOLS.md",
       "Error": "",
-      "Timestamp": "13:39:15"
+      "Timestamp": "13:10:04"
     },
     {
       "Name": "RustDocs",
       "Status": "Skipped",
       "Output": "",
       "Error": "",
-      "Timestamp": "13:39:15"
+      "Timestamp": "13:10:04"
     },
     {
       "Name": "PowerShellDocs",
       "Status": "Success",
-      "Output": "C:\\Users\\david\\PC_AI\\Reports\\POWERSHELL_EXPORTS.json",
+      "Output": "C:\\codedev\\PC_AI\\Reports\\POWERSHELL_EXPORTS.json",
       "Error": "",
-      "Timestamp": "13:39:16"
+      "Timestamp": "13:10:04"
     },
     {
       "Name": "ApiSignatures",
       "Status": "Success",
-      "Output": "C:\\Users\\david\\PC_AI\\Reports\\API_SIGNATURE_REPORT.md",
+      "Output": "C:\\codedev\\PC_AI\\Reports\\API_SIGNATURE_REPORT.md",
       "Error": "",
-      "Timestamp": "13:39:17"
+      "Timestamp": "13:10:07"
     },
     {
       "Name": "ToolsCatalog",
       "Status": "Success",
-      "Output": "C:\\Users\\david\\PC_AI\\Reports\\TOOLS_CATALOG.md",
+      "Output": "C:\\codedev\\PC_AI\\Reports\\TOOLS_CATALOG.md",
       "Error": "",
-      "Timestamp": "13:39:18"
+      "Timestamp": "13:10:09"
+    },
+    {
+      "Name": "LithoExtract",
+      "Status": "Success",
+      "Output": "C:\\codedev\\PC_AI\\Reports\\LITHO_EXTRACT.json",
+      "Error": "",
+      "Timestamp": "13:10:14"
+    },
+    {
+      "Name": "LithoDocs",
+      "Status": "Success",
+      "Output": "C:\\codedev\\PC_AI\\docs\\auto\\litho",
+      "Error": "",
+      "Timestamp": "13:10:16"
+    },
+    {
+      "Name": "TrainingData",
+      "Status": "Error",
+      "Output": "",
+      "Error": "Router dataset generation failed (exit 1)",
+      "Timestamp": "13:10:39"
+    },
+    {
+      "Name": "Validation",
+      "Status": "Success",
+      "Output": "Router dataset + vectors validated",
+      "Error": "",
+      "Timestamp": "13:10:39"
     }
   ],
   "outputs": [
-    "CMAKE_ROOT=C:/Program Files/CMake/share/cmake-4.2",
+    "CMAKE_ROOT=C:/Strawberry/c/share/cmake-3.29",
     "CUDA_PATH=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1",
-    "C:\\Users\\david\\PC_AI\\Reports\\DOC_STATUS.md",
-    "C:\\Users\\david\\PC_AI\\Deploy\\rust-functiongemma\\TOOLS.md",
-    "C:\\Users\\david\\PC_AI\\Reports\\POWERSHELL_EXPORTS.json",
-    "C:\\Users\\david\\PC_AI\\Reports\\API_SIGNATURE_REPORT.md",
-    "C:\\Users\\david\\PC_AI\\Reports\\TOOLS_CATALOG.md"
+    "C:\\codedev\\PC_AI\\Reports\\DOC_STATUS.md",
+    "C:\\codedev\\PC_AI\\Deploy\\rust-functiongemma\\TOOLS.md",
+    "C:\\codedev\\PC_AI\\Reports\\POWERSHELL_EXPORTS.json",
+    "C:\\codedev\\PC_AI\\Reports\\API_SIGNATURE_REPORT.md",
+    "C:\\codedev\\PC_AI\\Reports\\TOOLS_CATALOG.md",
+    "C:\\codedev\\PC_AI\\Reports\\LITHO_EXTRACT.json",
+    "C:\\codedev\\PC_AI\\docs\\auto\\litho",
+    "Router dataset + vectors validated"
   ],
-  "errors": [],
-  "success": true
+  "errors": [
+    "Router dataset generation failed (exit 1)"
+  ],
+  "success": false
 }

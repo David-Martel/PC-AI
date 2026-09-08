@@ -99,8 +99,10 @@ not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
   reach its Cargo Audit step.~~ **Cleared 2026-09-08.** The advisories are fixed
   on `main`, the backlog is drained (see the triage item below), and
   `cargo audit` on `Native/pcai_core` is exit 0 — 776 dependencies, 0
-  vulnerabilities, 5 advisory warnings (unmaintained/yanked: `core2`, `fxhash`,
-  `number_prefix`, `paste`).
+  vulnerabilities, and 5 advisory warnings across 4 crates: `core2`, `fxhash`,
+  `number_prefix` and `paste` are all unmaintained, and `core2` is additionally
+  yanked, so it accounts for two of the five. `cargo audit` fails on
+  vulnerabilities, not warnings, which is why the exit code is 0.
 
 ## Active Priorities
 

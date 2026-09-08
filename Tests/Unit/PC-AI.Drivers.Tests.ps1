@@ -366,17 +366,29 @@ Describe "Get-DriverReport" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
             $script:TempRegistryPath = Join-Path $TestDrive 'driver-registry.json'
             $script:MockRegistryJson | Set-Content -Path $script:TempRegistryPath -Encoding UTF8
 
-            Mock Get-PnpDeviceInventory {
+            # Get-DriverReport calls Get-PnpDevice and Get-PnpDeviceProperty
+            # DIRECTLY, despite its doc comment claiming it "Orchestrates
+            # Get-PnpDeviceInventory". Mocking the inventory function had no effect
+            # whatsoever -- the real PnP enumeration ran, and this assertion was
+            # decided by whatever hardware the host happens to have. On this
+            # workstation a real Realtek 0BDA:8156 adapter reports exactly the
+            # registry's latestVersion, so Status came back 'Current' against an
+            # expected 'Outdated'. Mock what the function actually calls.
+            Mock Get-PnpDevice {
                 @([PSCustomObject]@{
-                    Name          = 'Realtek RTL8156'
-                    VID           = '0BDA'
-                    PID           = '8156'
-                    PnpClass      = 'Net'
-                    DriverVersion = '1.0.0.0'
-                    InstanceId    = 'USB\VID_0BDA&PID_8156\1'
-                    Manufacturer  = 'Realtek'
-                    Status        = 'OK'
-                })
+                        InstanceId   = 'USB\VID_0BDA&PID_8156\1'
+                        FriendlyName = 'Realtek RTL8156'
+                        Class        = 'Net'
+                        Status       = 'OK'
+                    })
+            } -ModuleName PC-AI.Drivers
+
+            Mock Get-PnpDeviceProperty {
+                switch ($KeyName) {
+                    'DEVPKEY_Device_DriverVersion' { [PSCustomObject]@{ Data = '1.0.0.0' } }
+                    'DEVPKEY_Device_Manufacturer' { [PSCustomObject]@{ Data = 'Realtek' } }
+                    default { $null }
+                }
             } -ModuleName PC-AI.Drivers
         }
 

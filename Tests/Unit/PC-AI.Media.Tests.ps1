@@ -358,12 +358,21 @@ namespace PcaiNativeDummy {
         }
 
         It 'Accepts a local absolute directory path' {
-            InModuleScope PcaiMedia {
+            # Import-PcaiMediaModel deliberately rejects an absolute path that does
+            # not exist, because the Rust DLL would otherwise treat a value with no
+            # '/' as a HuggingFace repo id. The path here was hardcoded to
+            # C:\Models\Janus-Pro-1B, so on any machine without that folder this
+            # asserted the SUCCESS path while actually exercising the rejection
+            # path -- it threw before reaching a single Should.
+            $localPath = Join-Path $TestDrive 'Janus-Pro-1B'
+            New-Item -ItemType Directory -Path $localPath -Force | Out-Null
+
+            InModuleScope PcaiMedia -Parameters @{ LocalPath = $localPath } {
+                param($LocalPath)
                 $script:Initialized = $true
-                $localPath = 'C:\Models\Janus-Pro-1B'
-                $result = Import-PcaiMediaModel -ModelPath $localPath -GpuLayers 0
+                $result = Import-PcaiMediaModel -ModelPath $LocalPath -GpuLayers 0
                 $result.Success   | Should -BeTrue
-                $result.ModelPath | Should -Be $localPath
+                $result.ModelPath | Should -Be $LocalPath
                 $result.GpuLayers | Should -Be 0
             }
         }

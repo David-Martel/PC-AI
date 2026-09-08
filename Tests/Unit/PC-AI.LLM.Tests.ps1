@@ -107,7 +107,11 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
                 return [PSCustomObject]@{
                     model   = 'llama3.2:latest'
                     created = 123
-                    choices = @(@{ text = 'OK' })
+                    # Must match the shape Invoke-OllamaNativeChat actually returns.
+                    # Send-OllamaRequest reads $response.message.content; the previous
+                    # OpenAI-completions shape (choices[].text) is never produced by
+                    # this code path, so .Response came back $null.
+                    message = [PSCustomObject]@{ content = 'OK' }
                     usage   = @{ prompt_tokens = 5; completion_tokens = 5; total_tokens = 10 }
                 }
             } -ModuleName PC-AI.LLM
@@ -156,7 +160,11 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
                 return [PSCustomObject]@{
                     model   = 'nonexistent:latest'
                     created = 123
-                    choices = @(@{ text = 'OK' })
+                    # Must match the shape Invoke-OllamaNativeChat actually returns.
+                    # Send-OllamaRequest reads $response.message.content; the previous
+                    # OpenAI-completions shape (choices[].text) is never produced by
+                    # this code path, so .Response came back $null.
+                    message = [PSCustomObject]@{ content = 'OK' }
                 }
             } -ModuleName PC-AI.LLM
             Mock Write-Warning {} -ModuleName PC-AI.LLM
@@ -184,7 +192,11 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
                 return [PSCustomObject]@{
                     model   = 'llama3.2:latest'
                     created = 123
-                    choices = @(@{ text = 'OK' })
+                    # Must match the shape Invoke-OllamaNativeChat actually returns.
+                    # Send-OllamaRequest reads $response.message.content; the previous
+                    # OpenAI-completions shape (choices[].text) is never produced by
+                    # this code path, so .Response came back $null.
+                    message = [PSCustomObject]@{ content = 'OK' }
                 }
             } -ModuleName PC-AI.LLM
         }
@@ -214,7 +226,11 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
                 return [PSCustomObject]@{
                     model   = 'llama3.2:latest'
                     created = 123
-                    choices = @(@{ text = 'OK' })
+                    # Must match the shape Invoke-OllamaNativeChat actually returns.
+                    # Send-OllamaRequest reads $response.message.content; the previous
+                    # OpenAI-completions shape (choices[].text) is never produced by
+                    # this code path, so .Response came back $null.
+                    message = [PSCustomObject]@{ content = 'OK' }
                 }
             } -ModuleName PC-AI.LLM
         }

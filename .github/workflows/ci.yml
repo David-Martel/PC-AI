@@ -185,11 +185,13 @@ jobs:
       # The same step succeeded minutes later on run 34250438288, so it was a
       # transient service fault.
       #
-      # The cost was not just a red badge. build/integration-test declare
-      # `needs: rust-test`, so both were skipped -- one flaky diagnostic upload
-      # suppressed the two most expensive real checks in the workflow and failed
-      # the gate. Coverage enforcement is unaffected: the threshold is a separate
-      # step above and still blocks.
+      # The cost was not just a red badge. build-llamacpp declares
+      # `needs: rust-test`, and integration-tests declares `needs:
+      # [build-llamacpp, powershell-test]` -- so the failure skipped
+      # build-llamacpp directly and integration-tests through it. One flaky
+      # diagnostic upload suppressed the two most expensive real checks in the
+      # workflow and then failed the gate on their absence. Coverage enforcement
+      # is unaffected: the threshold is a separate step above and still blocks.
       - name: Upload LCOV Artifact
         if: always()
         continue-on-error: true

@@ -353,6 +353,60 @@ jobs:
           }
 
   # ──────────────────────────────────────────────────────────────
+  # .NET
+  # ──────────────────────────────────────────────────────────────
+  # No job built any .NET project before this one. dependabot watches all five
+  # csproj files (.github/dependabot.yml), so a bump to PcaiServiceHost or to
+  # either test project could satisfy every gate while leaving that project
+  # unable to restore or compile -- nothing compiled it. The only .NET build
+  # that ever ran was in portable-ci.yml, which built PcaiNative alone, on
+  # Linux, and turned failures into warnings.
+  dotnet-build:
+    name: .NET Build
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # Both SDKs: four projects target net8.0, but PcaiChatTui.Tests targets
+      # net10.0 -- a test project on a newer TFM than the code it exercises.
+      # That builds locally where the 10.x SDK is installed and would fail on a
+      # runner given only 8.0.x, which is part of why this gap went unnoticed.
+      # Installing both makes the gate work today; aligning the TFMs is a
+      # separate decision.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Build every .NET project
+        shell: pwsh
+        run: |
+          $projects = @(Get-ChildItem -Path Native -Recurse -Filter *.csproj |
+              Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
+          # Positive control: a discovery glob that silently matches nothing is
+          # not a gate. Fail loudly if the project set shrinks unexpectedly.
+          if ($projects.Count -lt 5) {
+              throw "Expected at least 5 .csproj files under Native/, found $($projects.Count)"
+          }
+          Write-Host "Building $($projects.Count) projects" -ForegroundColor Cyan
+          foreach ($p in $projects) {
+              Write-Host "== $($p.Name)" -ForegroundColor Cyan
+              dotnet build $p.FullName -c Release --nologo -v minimal
+              if ($LASTEXITCODE -ne 0) { throw "dotnet build failed: $($p.Name)" }
+          }
+      - name: Run .NET test projects
+        shell: pwsh
+        run: |
+          $tests = @(Get-ChildItem -Path Native -Recurse -Filter *.Tests.csproj |
+              Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
+          if ($tests.Count -lt 1) { throw "Expected at least 1 .NET test project, found 0" }
+          foreach ($t in $tests) {
+              Write-Host "== $($t.Name)" -ForegroundColor Cyan
+              dotnet test $t.FullName -c Release --nologo -v minimal
+              if ($LASTEXITCODE -ne 0) { throw "dotnet test failed: $($t.Name)" }
+          }
+
+  # ──────────────────────────────────────────────────────────────
   # Gate (required status check for branch protection)
   # ──────────────────────────────────────────────────────────────
 
@@ -370,6 +424,7 @@ jobs:
       - powershell-test
       - build-llamacpp
       - integration-tests
+      - dotnet-build
     steps:
       - name: Evaluate Results
         shell: pwsh
@@ -382,7 +437,8 @@ jobs:
             '${{ needs.rust-test.result }}',
             '${{ needs.powershell-test.result }}',
             '${{ needs.build-llamacpp.result }}',
-            '${{ needs.integration-tests.result }}'
+            '${{ needs.integration-tests.result }}',
+            '${{ needs.dotnet-build.result }}'
           )
           # 'success' only. No job here carries an `if:`, so the only way a
           # gated job skips is an upstream `needs` failing -- and that upstream
@@ -394,4 +450,4 @@ jobs:
             Write-Host "Non-success results: $($failed -join ', ')" -ForegroundColor Red
             exit 1
           }
-          Write-Host "CI Gate PASSED - all 8 checks succeeded" -ForegroundColor Green
+          Write-Host "CI Gate PASSED - all 9 checks succeeded" -ForegroundColor Green

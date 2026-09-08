@@ -200,6 +200,22 @@ jobs:
           if (Test-Path "Tests/PesterConfiguration.psd1") {
               $config = New-PesterConfiguration -Hashtable (Import-PowerShellDataFile Tests/PesterConfiguration.psd1)
           }
+          # This job has no download-artifact step, no Rust toolchain and no
+          # rust-cache, so it can neither find the native DLLs that
+          # Tests/Integration needs nor build them cheaply. Running them here
+          # cost ~50 min of uncached cargo compile (via
+          # RustBuild.Integration.Tests.ps1) and pushed the job past its own
+          # 60-minute timeout. Tests/Unit alone: 708 passed / 9 failed in 6.2 min.
+          #
+          # Set here rather than in Tests/PesterConfiguration.psd1, which is
+          # shared with Tests/.pester.ps1 and maintenance.yml -- narrowing the
+          # config would silently narrow the local full-suite run too. The
+          # limitation belongs to this job, so it lives in this job.
+          #
+          # Tests/Integration belongs in integration-tests, which does download
+          # the artifacts; moving it there is a follow-up, as those 22 suites
+          # have never executed against a real DLL and will surface real gaps.
+          $config.Run.Path = @('Tests/Unit')
           $config.Run.Exit = $true
           $config.CodeCoverage.Enabled = $true
           $config.CodeCoverage.OutputFormat = 'JaCoCo'

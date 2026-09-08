@@ -92,12 +92,15 @@ not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
   `~\.machine`, `~\.local\bin`, `~\bin`, OneDrive PowerShell script folders,
   and UDM startup folders are centralized under `Tools\SystemScripts`.
 - ~~Recent dependency-security work is merged to `main`; no open Dependabot PRs
-  or alerts were present at the last validation.~~ **No longer true as of
+  or alerts were present at the last validation.~~ ~~**No longer true as of
   2026-09-07**: 6 Dependabot PRs are open (oldest 2026-06-23), GitHub reports 1
   high-severity alert on `main`, and `cargo audit` found 3 live RUSTSEC
   advisories — which had gone unseen because the Security Scan job could never
-  reach its Cargo Audit step. The 3 advisories are fixed on this branch; the
-  open PRs still need triage.
+  reach its Cargo Audit step.~~ **Cleared 2026-09-08.** The advisories are fixed
+  on `main`, the backlog is drained (see the triage item below), and
+  `cargo audit` on `Native/pcai_core` is exit 0 — 776 dependencies, 0
+  vulnerabilities, 5 advisory warnings (unmaintained/yanked: `core2`, `fxhash`,
+  `number_prefix`, `paste`).
 
 ## Active Priorities
 
@@ -144,9 +147,18 @@ suspicion.
   commit `15f999a` (broken test-to-module contracts in PC-AI.LLM logging and
   process-idle filtering). The WSL vsock bridge share of those is fixed
   (`Install-WSLVsockBridge.Tests.ps1` is now 20/20); the rest are not.
-- [ ] Triage the 6 open Dependabot PRs (#50, #51, #52, #53, #62, #64) and the
-  1 high-severity GitHub alert on `main`. #62 (quinn-proto) is already
-  superseded by the lockfile update on this branch.
+- [x] ~~Triage the 6 open Dependabot PRs (#50, #51, #52, #53, #62, #64) and the
+  1 high-severity GitHub alert on `main`.~~ **Done 2026-09-08 — backlog drained
+  to zero.** The alert is fixed and `cargo audit` is clean. Grouping landed in
+  #71, so minor+patch now arrive as one PR per ecosystem instead of one per
+  crate. Of the PRs that followed: #85 took the 17-update grouped bump
+  (`510cbd27`), #86 the four .NET test-package majors (`09935ad2`), #87 held
+  `sha2` below 0.11 (`62ec1498`). #84 was refused on evidence — RustCrypto 0.11
+  moves digest output to `hybrid-array::Array`, which lacks `LowerHex`, and two
+  transitive deps still need the 0.10 line, so it breaks three call sites *and*
+  duplicates sha2. #83/#78/#80/#81/#82/#91/#92 were closed as superseded.
+  #88/#89/#90 were deferred, not judged: they target `Deploy`, which does not
+  compile on `main` and which no CI job builds (see the `Deploy` items below).
 - [ ] Decide the fate of the two stale WIP-preservation PRs, #65
   (`preserve/local-work-20260819`) and #57 (`chore/land-wip-vllm-...`).
 - [ ] `Tools\Invoke-DocPipeline.ps1` still reports the FunctionGemma router
@@ -154,13 +166,26 @@ suspicion.
   auto-fix phase invokes `cargo fix` with a stray `-` argument. CI is
   unaffected (no CargoTools on the runners), so this is a workstation-only
   break in `Build.ps1 -Component functiongemma-router-data`.
-- [ ] `Portable CI (Linux)` takes far longer than the "~4-6 min" its comment
+  **Second instance found 2026-09-08:** the same preflight also breaks
+  `cargo test --manifest-path <path> -p <crate>`, constructing an invalid
+  `cargo fmt` call that dies with a rustfmt usage dump — a failure that looks
+  like the crate under test but is entirely the shim. `Get-Command cargo`
+  resolves to `~\bin\cargo.ps1`, not rustup's. Workaround for scoped builds is
+  to call rustup's binary directly, `$env:USERPROFILE\.cargo\bin\cargo.exe`,
+  and set `RUSTC_WRAPPER=sccache` yourself. Both instances are one bug in the
+  shim's preflight argument construction.
+- [x] ~~`Portable CI (Linux)` takes far longer than the "~4-6 min" its comment
   claimed, because `cargo test --workspace` builds all seven crates. The
   60-minute cap added on 2026-09-07 is an upper bound, NOT a measurement:
   every dispatched run so far was cancelled by a newer push before it
   finished, the longest reaching 21+ minutes still inside `Rust Tests`. Let
   one run to completion, then set the cap from the real number and consider
-  narrowing the workspace scope.
+  narrowing the workspace scope.~~ **Moot — the workflow was deleted
+  2026-09-08.** This repo targets Windows by design; a Linux job running the
+  PowerShell suite was a misconfiguration, not coverage. Its one piece of
+  genuine coverage, workspace-wide `cargo` checks, moved to
+  `rust-guidelines.yml`, which runs on `windows-latest`. See the platform-scope
+  note in `CLAUDE.md`.
 - [ ] **This is what actually holds the `CI Gate` red, and neither half is new.**
   Measured on run 34152812699 and confirmed identical on run 32283624611 from
   2026-08-19, before any of this session's work:

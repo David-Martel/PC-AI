@@ -18,6 +18,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\PcaiNative\pcai_core_lib.dll" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Condition matches PcaiNative.csproj, which already guards its identical
+         copies. Without it this project hard-required a Rust build artifact
+         that is not in git: MSB3030 "Could not copy ... pcai_core_lib.dll
+         because it was not found" on any clean checkout. It only ever built on
+         machines that happened to have run the Rust build first, which is why
+         nothing noticed until a CI job actually compiled this project. The DLL
+         is still copied whenever it is present. -->
+    <None Include="..\PcaiNative\pcai_core_lib.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\PcaiNative\pcai_core_lib.dll')" />
   </ItemGroup>
 </Project>

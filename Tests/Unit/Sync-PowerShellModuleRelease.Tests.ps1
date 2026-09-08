@@ -27,7 +27,18 @@ Describe 'Sync-PowerShellModuleRelease' -Tag 'Unit', 'Fast', 'Portable' {
             Test-Path -LiteralPath (Join-Path $destinationOne 'Demo.Module\Demo.Module.psd1') | Should -BeTrue
             Test-Path -LiteralPath (Join-Path $destinationTwo 'Demo.Module\Demo.Module.psm1') | Should -BeTrue
             $result.SyncResults.Count | Should -Be 2
-            ($result.SyncResults | Where-Object DestinationRoot -eq $destinationOne).Updated | Should -BeTrue
+
+            # Sync-PowerShellModuleRelease.ps1 stores
+            # DestinationRoot = [System.IO.Path]::GetFullPath($destinationRoot),
+            # so comparing against the RAW path only matches when $env:TEMP is
+            # already canonical. It is on this workstation and is not on the CI
+            # runner, where this Where-Object matched nothing and .Updated came
+            # back $null ("Expected $true, but got $null"). Normalise both sides
+            # the same way the script does.
+            $expectedOne = [System.IO.Path]::GetFullPath($destinationOne)
+            $oneResult = @($result.SyncResults | Where-Object { $_.DestinationRoot -eq $expectedOne })
+            $oneResult.Count | Should -Be 1
+            $oneResult[0].Updated | Should -BeTrue
         } finally {
             Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
         }

@@ -1,6 +1,16 @@
 #Requires -Version 7.0
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
 
+BeforeDiscovery {
+    # The NativeDll Describe below says it "require[s] a built DLL to run" and is
+    # tagged 'Windows' rather than 'Portable' -- but a tag is only a label, and
+    # nothing in CI filters on it, so the block ran anyway and asserted three
+    # backends where a runner without the DLL can only produce 'powershell'.
+    # Compute real availability here so -Skip: can act on it at discovery time.
+    $script:NativeCoreDll = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'bin\pcai_core_lib.dll'
+    $script:HasNativeCore = Test-Path $script:NativeCoreDll
+}
+
 BeforeAll {
     $script:ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $script:BenchmarkScript = Join-Path $script:ProjectRoot 'Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1'
@@ -52,7 +62,7 @@ Describe "Invoke-PcaiToolingBenchmarks" -Tag 'Unit', 'Benchmarks', 'Acceleration
 
 # These benchmark cases invoke the native pcai_core_lib.dll (direct-core-probe, content-search).
 # Intentionally tagged Windows (not Portable) — require a built DLL to run.
-Describe "Invoke-PcaiToolingBenchmarks - NativeDll" -Tag 'Unit', 'Benchmarks', 'Acceleration', 'Windows' {
+Describe "Invoke-PcaiToolingBenchmarks - NativeDll" -Tag 'Unit', 'Benchmarks', 'Acceleration', 'Windows' -Skip:(-not $script:HasNativeCore) {
     It "records memory metrics for the direct Rust probe case" {
         $result = & $script:BenchmarkScript -CaseId 'direct-core-probe' -SkipCapabilities -PassThru
         $report = Get-Content -Path $result.JsonReportPath -Raw -Encoding UTF8 | ConvertFrom-Json

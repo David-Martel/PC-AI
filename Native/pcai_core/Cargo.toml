@@ -62,7 +62,7 @@ walkdir = "2.5"
 parking_lot = "0.12"
 
 # Windows Registry access
-winreg = "0.55"
+winreg = "0.56"
 
 # Utility dependencies
 path-slash = "0.2"

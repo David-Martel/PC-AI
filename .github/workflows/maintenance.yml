@@ -219,7 +219,11 @@ jobs:
       - name: NVIDIA Software Status Snapshot
         shell: pwsh
         run: |
-          $manifestPath = 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
+          # Absolute, for the same reason as nvidia-validation.yml: Import-Module
+          # treats a bare relative path as a module NAME. Here the failure was
+          # invisible -- the import sits in a try/catch that tolerates a GPU-less
+          # runner, so this reported "not available" instead of a broken path.
+          $manifestPath = Join-Path $PWD 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
           if (-not (Test-Path $manifestPath)) {
               Write-Host "PC-AI.Gpu module not found at $manifestPath — skipping NVIDIA status snapshot" -ForegroundColor Yellow
               exit 0

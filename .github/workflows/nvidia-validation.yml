@@ -55,7 +55,11 @@ jobs:
       - name: Import PC-AI.Gpu Module
         shell: pwsh
         run: |
-          $manifestPath = 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
+          # Must be absolute (or .\-prefixed). Import-Module treats a bare
+          # relative path as a module NAME and searches PSModulePath, so it
+          # reports "no valid module file was found in any module directory"
+          # for a manifest that Test-Path just confirmed exists.
+          $manifestPath = Join-Path $PWD 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
           if (-not (Test-Path $manifestPath)) {
             Write-Error "Module manifest not found: $manifestPath"
             exit 1

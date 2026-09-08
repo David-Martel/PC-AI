@@ -5,6 +5,17 @@ BeforeAll {
     $script:ModulePath = Join-Path $script:ProjectRoot 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
     $script:PsdPath = Join-Path $script:ProjectRoot 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
 
+    # Pester's Mock binds to an EXISTING command to copy its parameter metadata,
+    # so `Mock nvidia-smi.exe` throws "Could not find Command nvidia-smi.exe" on a
+    # machine with no NVIDIA driver -- which is every GitHub windows-latest runner.
+    # These tests therefore only ever passed on a box that has the real driver.
+    # Declare a global stub when the real exe is absent so Mock has something to
+    # replace. It is defined here, before any Mock of Get-Command is in effect,
+    # because a mocked Get-Command would otherwise fake the availability answer.
+    if (-not (Get-Command 'nvidia-smi.exe' -ErrorAction SilentlyContinue)) {
+        function global:nvidia-smi.exe { throw 'nvidia-smi.exe stub invoked without a mock' }
+    }
+
     $script:TempDir = Join-Path $env:TEMP "pcai_gpu_tests_$(New-Guid)"
     New-Item -ItemType Directory -Path $script:TempDir -Force | Out-Null
 

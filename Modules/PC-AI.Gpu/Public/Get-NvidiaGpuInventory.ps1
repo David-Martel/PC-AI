@@ -243,10 +243,17 @@ function Get-NvidiaGpuInventory {
             )
 
             Write-Verbose "Querying nvidia-smi: $nvidiaSmi $($smiArgs -join ' ')"
+            # Zero it first: $LASTEXITCODE is process-wide and sticky, so without
+            # this a failure from any earlier native command silently diverts this
+            # function to the CIM fallback. Picking a different data source because
+            # of an unrelated command is not a graceful degradation -- it is a
+            # wrong answer that looks like a right one.
+            $global:LASTEXITCODE = 0
             $rawLines = & $nvidiaSmi @smiArgs 2>&1
+            $smiExitCode = $LASTEXITCODE
 
-            if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-                Write-Verbose "nvidia-smi exited with code $LASTEXITCODE — falling back to CIM."
+            if ($null -ne $smiExitCode -and $smiExitCode -ne 0) {
+                Write-Verbose "nvidia-smi exited with code $smiExitCode — falling back to CIM."
             }
             else {
                 $results = [System.Collections.Generic.List[PSCustomObject]]::new()

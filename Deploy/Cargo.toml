@@ -54,7 +54,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 minijinja = "2"
 tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"] }
-hf-hub = "0.3"
+hf-hub = "1.0"
 safetensors = "0.4"
 candle-core = { version = "0.9.2", features = ["cuda"] }
 candle-nn = { version = "0.9.2", features = ["cuda"] }

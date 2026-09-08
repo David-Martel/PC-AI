@@ -305,6 +305,25 @@ Still open:
   (write `[]`, or do not create the file), not in the artifacts — re-running the
   capture is a decision about the audit record, not a cleanup. Listed here rather
   than silently rewritten.
+
+  > **Producers fixed 2026-09-08**, artifacts still untouched by design. Both
+  > writers — `Collect-RemainingEventSources.ps1` and `Collect-RefreshEvidence.ps1`
+  > in `Reports\workstation-audit-20260606-124859\` — had two compounding bugs:
+  > `Get-WinEvent -ErrorAction SilentlyContinue` collapsed *"query succeeded,
+  > matched nothing"* and *"query failed"* into the same empty result (Get-WinEvent
+  > raises "No events were found" as an error, so both looked alike), and
+  > `ConvertTo-Json` on an **empty pipeline emits nothing at all**, so `Out-File`
+  > wrote zero bytes. They now distinguish the two outcomes: an empty-but-successful
+  > query writes `[]`, a failed one writes a `captureStatus` record naming the error.
+  >
+  > Note `,$rows | ConvertTo-Json` is the only correct form here —
+  > `@() | ConvertTo-Json -AsArray` yields an empty string (the cmdlet never runs)
+  > and `ConvertTo-Json -InputObject @() -AsArray` yields `[[]]`.
+  >
+  > An attempt to rewrite the seven artifacts to `[]` was made and **reverted**:
+  > for a capture whose query may have failed, `[]` asserts "nothing was logged",
+  > which the run cannot support. Whether to re-run the capture or accept the gap
+  > remains an audit-record decision for the owner, exactly as recorded above.
 - [ ] **git-guard's JSON gate is locale-dependent and will block commits here.**
   `qa_gate.sh:768` runs `json.load(open(f))` with no `encoding=`, so `open()`
   uses the Windows locale codepage (cp1252). Any *valid* UTF-8 JSON containing a
@@ -406,6 +425,13 @@ table; Cargo requires a top-level `[lints]` table, so it silently reported
 `unused manifest key: package.lints` and dropped the entire policy. The
 `clippy -D warnings` gate in `portable-ci.yml` was therefore only ever
 enforcing clippy's built-in defaults.
+
+> **Update 2026-09-08:** `portable-ci.yml` has since been deleted — this repo is
+> Windows-only by design and that job ran the PowerShell suite on Linux, a
+> non-goal it had never passed. The workspace-wide `clippy -- -D warnings` gate
+> that enforces `[workspace.lints]` now lives in `rust-guidelines.yml`, on
+> `windows-latest`, against the same virtual-workspace root. The policy below is
+> unaffected; only the workflow hosting the gate changed.
 
 The key is now in the right place and the gate is green, verified with a
 positive control: an unused-lifetime canary fails the gate, and was reverted.

@@ -50,12 +50,39 @@ try {
         'Application Error',
         'Windows Error Reporting'
     )
-    Get-WinEvent -FilterHashtable @{ LogName = @('System','Application'); StartTime = $start; Level = 1,2,3 } -ErrorAction SilentlyContinue |
+    # See Collect-RemainingEventSources.ps1 for the full rationale. In short:
+    # -ErrorAction SilentlyContinue made a FAILED query look identical to a
+    # successful one that matched nothing, and ConvertTo-Json on an empty
+    # pipeline emits nothing, so Out-File wrote a zero-byte file that is not
+    # valid JSON. Keep the two outcomes distinguishable, and always write JSON.
+    $refreshPath = Join-Path $reportRoot 'events-refresh-samples.json'
+    $queryError = $null
+    $events = @()
+    try {
+        $events = @(Get-WinEvent -FilterHashtable @{ LogName = @('System', 'Application'); StartTime = $start; Level = 1, 2, 3 } -ErrorAction Stop)
+    } catch {
+        if ($_.Exception.Message -notmatch 'No events were found') {
+            $queryError = $_.Exception.Message
+        }
+    }
+
+    $rows = @($events |
         Where-Object { $providers -contains $_.ProviderName } |
         Sort-Object TimeCreated -Descending |
-        Select-Object -First 80 TimeCreated,ProviderName,Id,LevelDisplayName,Message |
-        ConvertTo-Json -Depth 5 |
-        Out-File -Encoding utf8 -LiteralPath (Join-Path $reportRoot 'events-refresh-samples.json')
+        Select-Object -First 80 TimeCreated, ProviderName, Id, LevelDisplayName, Message)
+
+    if ($queryError) {
+        [pscustomobject]@{
+            captureStatus = 'failed'
+            queryError    = $queryError
+            events        = $rows
+        } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $refreshPath -Encoding utf8
+    } else {
+        # The leading comma is load-bearing: an empty pipeline makes
+        # ConvertTo-Json emit nothing, and -AsArray does not help because the
+        # cmdlet is never invoked. `,$rows` passes the array as a single object.
+        , $rows | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $refreshPath -Encoding utf8
+    }
 
     Write-Step 'Docker storage'
     docker system df | Out-File -Encoding utf8 -LiteralPath (Join-Path $reportRoot 'docker-system-df-refresh.txt')

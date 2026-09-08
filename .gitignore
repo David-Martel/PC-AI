@@ -65,6 +65,12 @@ obj/
 Native/PcaiChatTui/bin/
 Native/PcaiNative/bin/
 Native/PcaiServiceHost/bin/
+# The two .Tests projects were missed here, so their build output showed up as
+# untracked rather than ignored -- the same "only half the projects were listed"
+# gap that left PcaiServiceHost unwatched by dependabot. It matters more now
+# that ci.yml's dotnet-build job compiles and tests all five.
+Native/PcaiChatTui.Tests/bin/
+Native/PcaiNative.Tests/bin/
 Native/PcaiChatTui/obj/
 Native/PcaiNative/obj/
 Native/PcaiServiceHost/obj/

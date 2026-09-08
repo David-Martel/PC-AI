@@ -14,7 +14,7 @@ on:
       - 'Tools/Sync-NvidiaDriverVersion.ps1'
       - 'Tools/Initialize-CudaEnvironment.ps1'
   push:
-    branches: [develop]
+    branches: [main, develop]
     paths:
       - 'Modules/PC-AI.Gpu/**'
       - 'Config/nvidia-software-registry.json'

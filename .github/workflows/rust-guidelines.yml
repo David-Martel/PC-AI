@@ -8,7 +8,7 @@ on:
       - '**/Cargo.toml'
       - '**/Cargo.lock'
   push:
-    branches: [develop]
+    branches: [main, develop]
     paths:
       - '**.rs'
       - '**/Cargo.toml'

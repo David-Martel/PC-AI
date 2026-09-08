@@ -1,12 +1,30 @@
 version: 2
+
+# Grouping note
+# ─────────────
+# Every ecosystem below groups its minor+patch updates into ONE pull request.
+# Before this, each bump arrived as its own PR: the 2026-09 batch produced six
+# open PRs (#49 memmap2, #51 tokenizers, #52 mimalloc, #53 windows, #64
+# System.Text.Json, #69 log) plus three more against /Deploy. They then sat
+# long enough to fall 61 commits behind main, and each carried its own stale
+# Cargo.lock. Replaying those lockfiles individually would have reverted the
+# quinn-proto 0.11.17 fix for alert #28 that landed on main in the meantime.
+#
+# One grouped PR per ecosystem resolves a single lockfile against current main
+# and is gated once. Major bumps stay ungrouped so they keep an individual,
+# reviewable PR -- those are the ones that break APIs.
+
 updates:
-  # Rust dependencies (pcai_core workspace)
+  # ── Rust: pcai_core workspace ────────────────────────────────
   - package-ecosystem: "cargo"
     directory: "/Native/pcai_core"
     schedule:
       interval: "weekly"
       day: "tuesday"
     open-pull-requests-limit: 5
+    groups:
+      cargo-pcai-core:
+        update-types: ["minor", "patch"]
     labels:
       - "dependencies"
       - "rust"
@@ -15,13 +33,35 @@ updates:
     commit-message:
       prefix: "chore(deps):"
 
-  # Rust dependencies (FunctionGemma workspace)
+  # ── Rust: FunctionGemma workspace ────────────────────────────
+  # NOTE: no CI job builds this workspace. rust-guidelines.yml has it
+  # commented out ("FunctionGemma workspaces require CUDA bindgen"), so
+  # nothing here is gated. Bumps must be verified locally in a VS
+  # developer environment before merging.
   - package-ecosystem: "cargo"
     directory: "/Deploy"
     schedule:
       interval: "weekly"
       day: "tuesday"
     open-pull-requests-limit: 3
+    groups:
+      cargo-deploy:
+        update-types: ["minor", "patch"]
+    ignore:
+      # The candle stack is pinned to 0.9.2 to match the vendored CUDA
+      # kernels under Deploy/vendor/ (candle-kernels-0.9.2,
+      # candle-flash-attn-0.9.2), which the workspace [patch] table points
+      # at. Dependabot raised candle-transformers 0.9.2 -> 0.11.0 (#66) on
+      # its own, which would have left rust-functiongemma-core depending on
+      # candle-core 0.9.2 and candle-transformers 0.11.0 at the same time --
+      # two semver-incompatible copies of Tensor in one crate, a guaranteed
+      # compile error. Moving candle requires re-vendoring the kernels too,
+      # so it is a deliberate coordinated change, not a dependabot bump.
+      - dependency-name: "candle-core"
+      - dependency-name: "candle-nn"
+      - dependency-name: "candle-transformers"
+      - dependency-name: "candle-flash-attn"
+      - dependency-name: "candle-kernels"
     labels:
       - "dependencies"
       - "rust"
@@ -30,13 +70,21 @@ updates:
     commit-message:
       prefix: "chore(deps):"
 
-  # .NET dependencies (PcaiNative)
+  # ── .NET ─────────────────────────────────────────────────────
+  # PcaiServiceHost and both test projects were previously absent from this
+  # file, so nothing ever raised a PR for them. PcaiServiceHost had drifted
+  # to System.Text.Json 10.0.7 while PcaiNative (which IS covered) sat at
+  # 10.0.9 -- two versions of one package in a single solution, invisible
+  # because only half the projects were watched.
   - package-ecosystem: "nuget"
     directory: "/Native/PcaiNative"
     schedule:
       interval: "weekly"
       day: "tuesday"
     open-pull-requests-limit: 3
+    groups:
+      nuget-pcainative:
+        update-types: ["minor", "patch"]
     labels:
       - "dependencies"
       - "dotnet"
@@ -45,13 +93,32 @@ updates:
     commit-message:
       prefix: "chore(deps):"
 
-  # .NET dependencies (PcaiChatTui)
+  - package-ecosystem: "nuget"
+    directory: "/Native/PcaiServiceHost"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 3
+    groups:
+      nuget-servicehost:
+        update-types: ["minor", "patch"]
+    labels:
+      - "dependencies"
+      - "dotnet"
+    reviewers:
+      - "David-Martel"
+    commit-message:
+      prefix: "chore(deps):"
+
   - package-ecosystem: "nuget"
     directory: "/Native/PcaiChatTui"
     schedule:
       interval: "weekly"
       day: "tuesday"
     open-pull-requests-limit: 2
+    groups:
+      nuget-chattui:
+        update-types: ["minor", "patch"]
     labels:
       - "dependencies"
       - "dotnet"
@@ -60,13 +127,50 @@ updates:
     commit-message:
       prefix: "chore(deps):"
 
-  # GitHub Actions versions
+  - package-ecosystem: "nuget"
+    directory: "/Native/PcaiNative.Tests"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 2
+    groups:
+      nuget-pcainative-tests:
+        update-types: ["minor", "patch"]
+    labels:
+      - "dependencies"
+      - "dotnet"
+    reviewers:
+      - "David-Martel"
+    commit-message:
+      prefix: "chore(deps):"
+
+  - package-ecosystem: "nuget"
+    directory: "/Native/PcaiChatTui.Tests"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 2
+    groups:
+      nuget-chattui-tests:
+        update-types: ["minor", "patch"]
+    labels:
+      - "dependencies"
+      - "dotnet"
+    reviewers:
+      - "David-Martel"
+    commit-message:
+      prefix: "chore(deps):"
+
+  # ── GitHub Actions ───────────────────────────────────────────
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "tuesday"
     open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        update-types: ["minor", "patch"]
     labels:
       - "dependencies"
       - "ci"

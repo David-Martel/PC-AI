@@ -16,7 +16,11 @@ BeforeDiscovery {
     $PcaiNativeDll = Join-Path $BinDir "PcaiNative.dll"
 
     $script:SystemAvailable = $false
-    if (Test-Path $PcaiNativeDll) {
+    # Presence of the DLL, kept separate from whether it loads. Presence decides
+    # whether this suite applies at all; loading is what the DLL Loading tests
+    # assert. Collapsing the two would make those tests unable to fail.
+    $script:SystemDllPresent = Test-Path $PcaiNativeDll
+    if ($script:SystemDllPresent) {
         try {
             Add-Type -Path $PcaiNativeDll -ErrorAction Stop
         }
@@ -43,12 +47,14 @@ BeforeAll {
     $PcaiNativeDll = Join-Path $BinDir "PcaiNative.dll"
     $SystemDll = Join-Path $BinDir "pcai_core_lib.dll"
 
-    if (-not (Test-Path $PcaiNativeDll)) {
-        throw "PcaiNative.dll not found at: $PcaiNativeDll"
-    }
-
-    if (-not (Test-Path $SystemDll)) {
-        throw "pcai_system.dll not found at: $SystemDll"
+    # A missing DLL is not a test failure. This file also runs in `powershell-test`,
+    # which builds nothing, so the DLL is legitimately absent there. Throwing in
+    # BeforeAll fails every It in the file -- including the ~20 that already carry
+    # -Skip: and would have skipped cleanly. Leave the flag false and let the
+    # per-It skips do the job they were already written to do.
+    if (-not (Test-Path $PcaiNativeDll) -or -not (Test-Path $SystemDll)) {
+        $script:SystemAvailable = $false
+        return
     }
 
     # Load the assembly
@@ -70,7 +76,7 @@ BeforeAll {
     }
 }
 
-Describe "System Module - DLL Loading" -Tag "FFI", "System", "Unit" {
+Describe "System Module - DLL Loading" -Tag "FFI", "System", "Unit" -Skip:(-not $script:SystemDllPresent) {
     It "Should have pcai_core_lib.dll in bin directory" {
         $dll = Join-Path $PSScriptRoot "..\..\bin\pcai_core_lib.dll"
         $dll | Should -Exist
@@ -235,7 +241,7 @@ Describe "System Module - Log Search" -Tag "FFI", "System", "LogSearch" {
     }
 }
 
-Describe "System Module - Utility Functions" -Tag "FFI", "System", "Utility" {
+Describe "System Module - Utility Functions" -Tag "FFI", "System", "Utility" -Skip:(-not $script:SystemDllPresent) {
     It "Should format bytes correctly - Bytes" {
         $result = [PcaiNative.SystemModule]::FormatBytes(512)
         $result | Should -Be "512 B"

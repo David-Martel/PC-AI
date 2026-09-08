@@ -174,8 +174,25 @@ jobs:
           files: Native/pcai_core/pcai_inference/lcov.info
           flags: rust-inference
           fail_ci_if_error: false
+      # Diagnostic only -- nothing downstream consumes this artifact, unlike the
+      # DLL upload in the build job, which Integration Tests downloads and which
+      # therefore stays blocking.
+      #
+      # It was blocking, and on 2026-09-08 that cost two red runs on main for no
+      # reason: runs 34249684140 and 34250282010 passed unit tests, the coverage
+      # report AND the --fail-under-lines 70 gate, then failed here with
+      # "Failed to FinalizeArtifact: (403) Forbidden" from the artifact service.
+      # The same step succeeded minutes later on run 34250438288, so it was a
+      # transient service fault.
+      #
+      # The cost was not just a red badge. build/integration-test declare
+      # `needs: rust-test`, so both were skipped -- one flaky diagnostic upload
+      # suppressed the two most expensive real checks in the workflow and failed
+      # the gate. Coverage enforcement is unaffected: the threshold is a separate
+      # step above and still blocks.
       - name: Upload LCOV Artifact
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: rust-lcov-${{ github.sha }}

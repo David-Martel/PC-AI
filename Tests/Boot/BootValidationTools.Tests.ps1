@@ -14,6 +14,12 @@ BeforeAll {
         Join-Path $script:RepoRoot 'Tools\Repair-OneDriveSync.ps1'
         Join-Path $script:RepoRoot 'Tools\Test-BootMountHealth.ps1'
         Join-Path $script:RepoRoot 'Tools\Test-SyncProviderHealth.ps1'
+        # Cloud-client boot gating. Deliberately NOT in DiagnosticToolPaths --
+        # Install-CloudClientBootGating.ps1 calls Register-ScheduledTask, which
+        # that list's read-only assertion blocks by design.
+        Join-Path $script:RepoRoot 'Tools\Start-CloudClientsAfterVHDX.ps1'
+        Join-Path $script:RepoRoot 'Tools\Install-CloudClientBootGating.ps1'
+        Join-Path $script:RepoRoot 'Tools\Restore-CloudCacheLayout.ps1'
     )
     $script:DiagnosticToolPaths = @(
         Join-Path $script:RepoRoot 'Tools\Collect-BootDiagnostics.ps1'
@@ -32,6 +38,12 @@ BeforeAll {
         Join-Path $script:RepoRoot 'Tools\Repair-OneDriveSync.ps1'
         Join-Path $script:RepoRoot 'Tools\Test-BootMountHealth.ps1'
         Join-Path $script:RepoRoot 'Tools\Test-SyncProviderHealth.ps1'
+        # Cloud-client boot gating. All three mutate real state -- Task Scheduler,
+        # registry Run keys, and folders on the F: cloud-cache volume -- so they
+        # are bound by the same -h/--help/-DryRun contract as the rest.
+        Join-Path $script:RepoRoot 'Tools\Start-CloudClientsAfterVHDX.ps1'
+        Join-Path $script:RepoRoot 'Tools\Install-CloudClientBootGating.ps1'
+        Join-Path $script:RepoRoot 'Tools\Restore-CloudCacheLayout.ps1'
     )
     $script:ExternalWindowsScripts = @(
         'C:\Users\david\unifi_api\scripts\windows\Start-UDMDriveStack.ps1'

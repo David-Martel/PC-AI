@@ -28,8 +28,18 @@ Also require the newest AutoMount result JSON to report ExitCode 0.
 .PARAMETER WhatIf
 Validate and report without launching anything.
 
+.PARAMETER DryRun
+Non-mutating preview: validate the volume and report which clients would be
+launched, without launching any and without creating the log directory or
+writing a log file. The long CLI form `--DryRun` is also accepted.
+
+.PARAMETER Help
+Print script help and exit. The aliases `-h` and `--help` are also accepted.
+
 .EXAMPLE
 pwsh -File .\Tools\Start-CloudClientsAfterVHDX.ps1 -WhatIf
+.EXAMPLE
+pwsh -File .\Tools\Start-CloudClientsAfterVHDX.ps1 -DryRun
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
@@ -38,21 +48,52 @@ param(
     [int]$TimeoutSeconds = 180,
     [int]$PollSeconds = 3,
     [switch]$RequireMountLog,
+    [switch]$AllowElevated,
     [string]$MountLogRoot = 'C:\codedev\PC_AI\Logs\VHDMount\AutoMount_VHDX_cloud-cache-disk',
-    [string]$LogRoot = 'C:\codedev\PC_AI\Logs\CloudClientStart'
+    [string]$LogRoot = 'C:\codedev\PC_AI\Logs\CloudClientStart',
+    [switch]$DryRun,
+    [Alias('h', '?')]
+    [switch]$Help,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$CliArgs
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
-if (-not (Test-Path $LogRoot)) { New-Item -ItemType Directory -Path $LogRoot -Force | Out-Null }
-$logFile = Join-Path $LogRoot ('{0}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+# CLI contract (AGENTS.md). Handled before the log directory is created, so
+# `-h` and `-DryRun` do not leave a directory behind on a machine that was only
+# ever asked for help.
+$CliArgs = @($CliArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if (@($CliArgs) -contains '--help') {
+    $Help = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--help' })
+}
+if (@($CliArgs) -contains '--DryRun') {
+    $DryRun = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--DryRun' })
+}
+if ($Help) {
+    $helpMatch = [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>')
+    if ($helpMatch.Success) { $helpMatch.Groups[1].Value.Trim() } else { Get-Help -Detailed $PSCommandPath }
+    return
+}
+if ($DryRun) { $WhatIfPreference = $true }
+
+# The log file is the one side effect NOT behind ShouldProcess, so -DryRun has
+# to suppress it explicitly. AGENTS.md requires dry run to suppress file writes,
+# and a "preview" that creates a directory and a log file is not a preview.
+$logFile = $null
+if (-not $DryRun) {
+    if (-not (Test-Path $LogRoot)) { New-Item -ItemType Directory -Path $LogRoot -Force | Out-Null }
+    $logFile = Join-Path $LogRoot ('{0}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+}
 
 function Write-Log {
     param([string]$Message, [string]$Level = 'INFO')
     $line = '{0} [{1}] {2}' -f (Get-Date -Format 'HH:mm:ss'), $Level, $Message
     Write-Host $line
-    Add-Content -LiteralPath $logFile -Value $line
+    if ($logFile) { Add-Content -LiteralPath $logFile -Value $line }
 }
 
 # Clients to launch once the volume is ready. Order matters only cosmetically.
@@ -68,6 +109,18 @@ $clients = @(
        Args    = '/systemstartup'
        Glob    = 'C:\Program Files (x86)\Dropbox\Client\Dropbox.exe' }
 )
+
+# Cloud sync clients refuse to run elevated (Google Drive exits immediately, and
+# an elevated Dropbox would own the sync root as Administrator). The scheduled
+# task runs Limited; this guard catches a manual run from an elevated shell.
+$isElevated = (New-Object Security.Principal.WindowsPrincipal(
+    [Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator)
+if ($isElevated -and -not $AllowElevated) {
+    Write-Log 'Running ELEVATED. Cloud clients must start unelevated - Google Drive exits on launch.' 'ERROR'
+    Write-Log 'Use the CloudClients-AfterVHDX scheduled task, or pass -AllowElevated to override.' 'ERROR'
+    exit 4
+}
 
 Write-Log "Waiting for volume '$ExpectedLabel' (max ${TimeoutSeconds}s)"
 $sw = [System.Diagnostics.Stopwatch]::StartNew()

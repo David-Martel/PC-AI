@@ -20,8 +20,18 @@ Use -Rollback to restore the Run keys and remove the task.
 .PARAMETER Rollback
 Undo: restore Run keys from the backup and unregister the task.
 
+.PARAMETER DryRun
+Non-mutating preview: report the task registration and Run-key changes without
+making them. The long CLI form `--DryRun` is also accepted. Equivalent to
+-WhatIf, exposed under the name the repo's session-script contract requires.
+
+.PARAMETER Help
+Print script help and exit. The aliases `-h` and `--help` are also accepted.
+
 .EXAMPLE
 pwsh -File .\Tools\Install-CloudClientBootGating.ps1 -WhatIf
+.EXAMPLE
+pwsh -File .\Tools\Install-CloudClientBootGating.ps1 -DryRun
 .EXAMPLE
 pwsh -File .\Tools\Install-CloudClientBootGating.ps1 -Rollback
 #>
@@ -30,11 +40,38 @@ param(
     [string]$TaskName = 'CloudClients-AfterVHDX',
     [string]$LauncherPath = 'C:\codedev\PC_AI\Tools\Start-CloudClientsAfterVHDX.ps1',
     [string]$BackupPath = 'C:\codedev\PC_AI\Logs\CloudClientStart\runkey-backup.json',
-    [switch]$Rollback
+    [switch]$Rollback,
+    [switch]$DryRun,
+    [Alias('h', '?')]
+    [switch]$Help,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$CliArgs
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
+
+# CLI contract (AGENTS.md). Help is handled before anything else resolves paths
+# or touches Task Scheduler, so `-h` works on a machine where this script could
+# not actually run.
+$CliArgs = @($CliArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if (@($CliArgs) -contains '--help') {
+    $Help = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--help' })
+}
+if (@($CliArgs) -contains '--DryRun') {
+    $DryRun = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--DryRun' })
+}
+if ($Help) {
+    $helpMatch = [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>')
+    if ($helpMatch.Success) { $helpMatch.Groups[1].Value.Trim() } else { Get-Help -Detailed $PSCommandPath }
+    return
+}
+# Task registration, task execution and every Run-key write are ShouldProcess-
+# guarded, so forcing $WhatIfPreference makes -DryRun genuinely non-mutating --
+# it cannot register a task, start one, or delete a Run key.
+if ($DryRun) { $WhatIfPreference = $true }
 
 $pwsh = 'C:\Program Files\PowerShell\7\pwsh.exe'
 if (-not (Test-Path $pwsh)) { $pwsh = (Get-Command powershell.exe).Source }
@@ -67,6 +104,14 @@ if ($Rollback) {
             }
         }
     } else { Write-Warning "No backup at $BackupPath - Run keys not restored." }
+
+    $drivePolicy = 'HKLM:\SOFTWARE\Policies\Google\DriveFS'
+    if ((Test-Path $drivePolicy) -and (Test-Elevated)) {
+        if ($PSCmdlet.ShouldProcess($drivePolicy, 'Remove AutoStartOnLogin policy')) {
+            Remove-ItemProperty -Path $drivePolicy -Name 'AutoStartOnLogin' -Force -ErrorAction SilentlyContinue
+            Write-Host '  removed AutoStartOnLogin policy (Drive resumes its own autostart)'
+        }
+    }
 
     if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
         if ($PSCmdlet.ShouldProcess($TaskName, 'Unregister task')) {
@@ -119,6 +164,21 @@ if (-not $proved) {
     return
 }
 
+# Google Drive re-creates its own HKCU Run key every time it starts, so simply
+# deleting the value does not stick. The supported way to stop that is the
+# AutoStartOnLogin policy. Set under Policies\ so it is an enforced override.
+# Ref: https://support.google.com/a/answer/7644837
+$drivePolicy = 'HKLM:\SOFTWARE\Policies\Google\DriveFS'
+if (Test-Elevated) {
+    if ($PSCmdlet.ShouldProcess($drivePolicy, 'Set AutoStartOnLogin=0')) {
+        if (-not (Test-Path $drivePolicy)) { New-Item -Path $drivePolicy -Force | Out-Null }
+        New-ItemProperty -Path $drivePolicy -Name 'AutoStartOnLogin' -Value 0 -PropertyType DWord -Force | Out-Null
+        Write-Host '  policy set: AutoStartOnLogin=0 (Drive will stop re-adding its Run key)' -ForegroundColor Green
+    }
+} else {
+    Write-Warning '  AutoStartOnLogin policy needs elevation - Google Drive will keep re-adding its Run key.'
+}
+
 $backup = @()
 foreach ($rk in $runKeys) {
     $existing = Get-ItemProperty -Path $rk.Hive -Name $rk.Name -ErrorAction SilentlyContinue
@@ -136,11 +196,25 @@ foreach ($rk in $runKeys) {
     }
 }
 
-if ($backup.Count -gt 0 -and $PSCmdlet.ShouldProcess($BackupPath, 'Write Run key backup')) {
+# MERGE with any existing backup. Re-running the installer finds already-removed
+# keys "not present", so a plain overwrite would silently drop entries captured by
+# an earlier run and leave -Rollback unable to restore them.
+if ($PSCmdlet.ShouldProcess($BackupPath, 'Write/merge Run key backup')) {
     $dir = Split-Path $BackupPath -Parent
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $backup | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $BackupPath -Encoding UTF8
-    Write-Host "  backup written: $BackupPath"
+
+    $merged = @{}
+    if (Test-Path $BackupPath) {
+        $prior = Get-Content $BackupPath -Raw | ConvertFrom-Json
+        foreach ($e in @($prior)) { if ($e) { $merged["$($e.Hive)|$($e.Name)"] = $e } }
+    }
+    foreach ($e in $backup) { $merged["$($e.Hive)|$($e.Name)"] = $e }
+
+    if ($merged.Count -gt 0) {
+        @($merged.Values) | ConvertTo-Json -Depth 4 -AsArray |
+            Set-Content -LiteralPath $BackupPath -Encoding UTF8
+        Write-Host "  backup written: $BackupPath ($($merged.Count) entr$(if($merged.Count -eq 1){'y'}else{'ies'}))"
+    }
 }
 
 Write-Host ''

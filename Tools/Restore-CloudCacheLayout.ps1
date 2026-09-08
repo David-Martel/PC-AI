@@ -14,17 +14,53 @@ folder whose sync client is still actively using it.
 .PARAMETER WhatIf
 Show what would move without moving it.
 
+.PARAMETER DryRun
+Non-mutating preview: report every planned move without performing it. The long
+CLI form `--DryRun` is also accepted. Equivalent to -WhatIf, exposed under the
+name the repo's session-script contract requires.
+
+.PARAMETER Help
+Print script help and exit. The aliases `-h` and `--help` are also accepted.
+
 .EXAMPLE
 pwsh -File .\Tools\Restore-CloudCacheLayout.ps1 -WhatIf
+.EXAMPLE
+pwsh -File .\Tools\Restore-CloudCacheLayout.ps1 -DryRun
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [string]$ArchiveRoot = 'F:\_archive',
-    [string]$Stamp = (Get-Date -Format 'yyyyMMdd')
+    [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
+    [switch]$DryRun,
+    [Alias('h', '?')]
+    [switch]$Help,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$CliArgs
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
+
+# CLI contract (AGENTS.md): long forms first, and help BEFORE any environment
+# guard -- otherwise `-h` on a machine without F: mounted would throw instead of
+# printing help, which defeats the point of a help switch.
+$CliArgs = @($CliArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if (@($CliArgs) -contains '--help') {
+    $Help = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--help' })
+}
+if (@($CliArgs) -contains '--DryRun') {
+    $DryRun = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--DryRun' })
+}
+if ($Help) {
+    $helpMatch = [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>')
+    if ($helpMatch.Success) { $helpMatch.Groups[1].Value.Trim() } else { Get-Help -Detailed $PSCommandPath }
+    return
+}
+# Every mutation below is ShouldProcess-guarded, so forcing $WhatIfPreference is
+# what makes -DryRun genuinely non-mutating rather than merely advisory.
+if ($DryRun) { $WhatIfPreference = $true }
 
 # --- Guard: F: must be the real cloud-cache-disk, not some other volume ---
 $vol = Get-Volume -DriveLetter F -ErrorAction SilentlyContinue

@@ -427,10 +427,18 @@ git push origin v1.0.0
 - SM 89: Ada Lovelace (RTX 40 series, RTX 2000 Ada)
 - SM 120: Blackwell (RTX 50 series)
 
+**Platform scope — Windows only, by design.** This repo targets Windows/PC and is
+aggressively optimized for it. Cross-platform portability is **not a goal**, and the
+PowerShell modules, tests, and diagnostics are free to depend on Windows-only cmdlets
+(`Get-CimInstance`, `Get-PnpDevice`, registry providers, drive letters). Linux is used
+only where a Docker/WSL build, test, or deploy requirement demands it — never as a
+general portability target. Do not add cross-platform gates or "fix" tests to run on
+Linux; a Linux CI job that runs the PowerShell suite is a misconfiguration, not coverage.
+
 **CI/CD Workflows (`.github/workflows/`):**
 | Workflow | Trigger |
 |----------|---------|
-| `ci.yml` | PR/push to develop — unified gate: security, lint, Rust+PS test, build |
+| `ci.yml` | PR/push to main — unified gate: security, lint, Rust+PS test, build |
 | `release-cuda.yml` | Tag push (`v*`) — builds 4 CUDA/CPU release ZIPs |
 | `release.yml` | Tag push — PowerShell module release package |
 | `maintenance.yml` | Weekly Monday — security scan, dep health, PS 5.1 + MSRV compat |
@@ -439,7 +447,6 @@ git push origin v1.0.0
 | `tooling-automation.yml` | Manual — doc/FG/LLM tooling |
 | `rust-guidelines.yml` | PR/push (Rust files) — format, clippy, test, audit for .rs/Cargo changes |
 | `nvidia-validation.yml` | PR/push (GPU files) — NVIDIA stack validation for PC-AI.Gpu changes |
-| `portable-ci.yml` | PR to main/develop — Portable CI (Linux) cross-platform gate |
 | `jules-review.yml` | Weekly Monday 06:00 UTC + manual — Jules automated review |
 
 ## Diagnostic Categories
@@ -543,7 +550,7 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 
 ### Git Hooks (lefthook)
 
-Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. On staged Rust files the hooks run `cargo fmt --all --check` (`pcai-rust-fmt`, rooted at `Native/pcai_core/`) plus an ast-grep scan and a TODO-expect check. They do **not** run clippy — that is enforced in CI only (portable-ci, rust-guidelines, nvidia-validation, and `ci.yml` via `Build.ps1 -Component lint`). See `.qa-gate.conf` for why the git-guard Rust gate is off in this repo.
+Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. On staged Rust files the hooks run `cargo fmt --all --check` (`pcai-rust-fmt`, rooted at `Native/pcai_core/`) plus an ast-grep scan and a TODO-expect check. They do **not** run clippy — that is enforced in CI only (rust-guidelines, nvidia-validation, and `ci.yml` via `Build.ps1 -Component lint`). See `.qa-gate.conf` for why the git-guard Rust gate is off in this repo.
 
 ### PowerShell Requirements
 

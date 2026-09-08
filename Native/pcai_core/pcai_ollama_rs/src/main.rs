@@ -1,4 +1,5 @@
 use std::fs;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -20,7 +21,7 @@ use ollama_rs::models::{LocalModel, ModelOptions};
 use ollama_rs::Ollama;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use url::Url;
+use url::{Host, Url};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -375,11 +376,56 @@ fn arg_value(args: &[String], name: &str) -> Option<String> {
         .map(|window| window[1].clone())
 }
 
+/// Parse an Ollama endpoint, tolerating the scheme-less `host:port` form.
+///
+/// `OLLAMA_HOST` is conventionally written the way Ollama documents it --
+/// `0.0.0.0:11434`, with no scheme -- which `Url::parse` rejects outright.
+/// The `has_host` guard matters for the other direction: `localhost:11434`
+/// *does* parse, as scheme `localhost` with path `11434` and no host at all,
+/// so accepting it unchecked would yield a client pointed at nothing.
+fn parse_ollama_url(raw: &str) -> Option<Url> {
+    let accept = |url: Url| url.has_host().then_some(url);
+    Url::parse(raw)
+        .ok()
+        .and_then(accept)
+        .or_else(|| Url::parse(&format!("http://{raw}")).ok().and_then(accept))
+}
+
+/// `OLLAMA_HOST` does double duty: it tells the server what to bind and tells
+/// clients where to connect. `0.0.0.0` is the unspecified address -- meaningful
+/// as "bind every interface", not as a destination -- so a client reading it
+/// verbatim is relying on the OS to reinterpret it. Resolve it to loopback.
+fn client_host(host: Host<&str>) -> String {
+    match host {
+        Host::Ipv4(addr) if addr.is_unspecified() => Ipv4Addr::LOCALHOST.to_string(),
+        Host::Ipv6(addr) if addr.is_unspecified() => format!("[{}]", Ipv6Addr::LOCALHOST),
+        other => other.to_string(),
+    }
+}
+
+/// Split an Ollama base URL into the `scheme://host` and port that the client
+/// builder expects, falling back to the default URL if `base_url` is unusable.
+///
+/// Uses `Url::host()` rather than `host_str()`: the latter returns a bare `::1`
+/// for an IPv6 literal, so pasting it into `"{}://{}"` yields `http://::1`,
+/// which is not a valid URL. `Host`'s `Display` re-adds the brackets.
+fn split_base_url(base_url: &str) -> Result<(String, u16)> {
+    let parsed = parse_ollama_url(base_url)
+        .or_else(|| parse_ollama_url(&default_ollama_url()))
+        .ok_or_else(|| anyhow!("neither '{base_url}' nor OLLAMA_HOST is a usable Ollama endpoint"))?;
+    let host = parsed
+        .host()
+        .map(|host| format!("{}://{}", parsed.scheme(), client_host(host)))
+        .unwrap_or_else(|| format!("{}://{}", parsed.scheme(), Ipv4Addr::LOCALHOST));
+    Ok((host, parsed.port().unwrap_or(11434)))
+}
+
 fn build_client(base_url: &str) -> Result<Ollama> {
-    let parsed = Url::parse(base_url).or_else(|_| Url::parse(&default_ollama_url()))?;
-    let host = format!("{}://{}", parsed.scheme(), parsed.host_str().unwrap_or("127.0.0.1"));
-    let port = parsed.port().unwrap_or(11434);
-    Ok(Ollama::new(host, port))
+    let (host, port) = split_base_url(base_url)?;
+    // ollama-rs 0.3.6 deprecated `Ollama::new` in favour of the builder, and
+    // `-D warnings` turns that deprecation into a build error. `build()`
+    // returns `Ollama` directly, not a Result.
+    Ok(Ollama::builder().host(host).port(port).build())
 }
 
 fn model_names(models: &[LocalModel]) -> Vec<String> {
@@ -753,5 +799,84 @@ fn resolve_repo_path(repo_root: &Path, raw: &str) -> PathBuf {
         path
     } else {
         repo_root.join(path)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::split_base_url;
+
+    #[test]
+    fn splits_ipv4_host_and_explicit_port() {
+        let (host, port) = split_base_url("http://127.0.0.1:11434").unwrap();
+        assert_eq!(host, "http://127.0.0.1");
+        assert_eq!(port, 11434);
+    }
+
+    #[test]
+    fn keeps_brackets_around_ipv6_literals() {
+        // host_str() returns a bare `::1` here, which would produce `http://::1`.
+        let (host, port) = split_base_url("http://[::1]:11434").unwrap();
+        assert_eq!(host, "http://[::1]");
+        assert_eq!(port, 11434);
+    }
+
+    #[test]
+    fn defaults_the_port_when_the_url_omits_it() {
+        let (host, port) = split_base_url("http://ollama.internal").unwrap();
+        assert_eq!(host, "http://ollama.internal");
+        assert_eq!(port, 11434);
+    }
+
+    #[test]
+    fn preserves_a_non_default_scheme_and_port() {
+        let (host, port) = split_base_url("https://gpu-box.lan:8443").unwrap();
+        assert_eq!(host, "https://gpu-box.lan");
+        assert_eq!(port, 8443);
+    }
+
+    #[test]
+    fn accepts_the_scheme_less_form_ollama_documents() {
+        // `OLLAMA_HOST=0.0.0.0:11434` is how Ollama documents it, and it is what
+        // this workstation actually sets. `Url::parse` rejects it outright, so
+        // before the http:// retry this returned Err and no client could be built.
+        // 0.0.0.0 is a bind address, so it resolves to loopback for a client.
+        let (host, port) = split_base_url("0.0.0.0:11434").unwrap();
+        assert_eq!(host, "http://127.0.0.1");
+        assert_eq!(port, 11434);
+    }
+
+    #[test]
+    fn resolves_the_unspecified_ipv6_address_to_loopback() {
+        let (host, port) = split_base_url("http://[::]:11434").unwrap();
+        assert_eq!(host, "http://[::1]");
+        assert_eq!(port, 11434);
+    }
+
+    #[test]
+    fn leaves_a_routable_address_alone() {
+        // Only the unspecified address is rewritten; a real remote host is not.
+        let (host, port) = split_base_url("http://192.168.50.79:11434").unwrap();
+        assert_eq!(host, "http://192.168.50.79");
+        assert_eq!(port, 11434);
+    }
+
+    #[test]
+    fn treats_localhost_port_as_a_host_not_a_scheme() {
+        // `localhost:11434` parses cleanly as scheme `localhost`, path `11434`,
+        // and *no host*. Without the has_host guard it would be accepted and
+        // point the client at nothing.
+        let (host, port) = split_base_url("localhost:11434").unwrap();
+        assert_eq!(host, "http://localhost");
+        assert_eq!(port, 11434);
+    }
+
+    #[test]
+    fn falls_back_to_the_default_url_when_parsing_fails() {
+        // Not a URL at all, and not rescuable by prefixing a scheme either,
+        // so the OLLAMA_HOST/default fallback branch is taken.
+        let (host, port) = split_base_url("not a url").unwrap();
+        assert!(host.starts_with("http://"), "unexpected fallback host: {host}");
+        assert!(port > 0);
     }
 }

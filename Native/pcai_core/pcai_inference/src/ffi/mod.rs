@@ -1500,6 +1500,10 @@ mod tests {
     // Lifecycle guards before initialisation
     // ---------------------------------------------------------------
 
+    // Reads process-wide state, so it holds only while no other test in this
+    // binary successfully initialises a backend. Nothing here does today. If you
+    // add a test that inits for real, this one needs serialising against it
+    // rather than deleting -- the guarantee it checks is real.
     #[test]
     fn test_is_initialized_is_false_without_backend() {
         assert_eq!(pcai_is_initialized(), 0);
@@ -1533,6 +1537,15 @@ mod tests {
         assert!(last_error_text().is_some(), "a rejected init must record why");
     }
 
+    // Only meaningful when no backend is compiled in. With `llamacpp` (or
+    // `mistralrs-backend`) enabled, pcai_init("llamacpp") SUCCEEDS, so the
+    // assertion below is false by construction -- and worse, the call leaves the
+    // process-wide runtime initialised, which then breaks
+    // test_is_initialized_is_false_without_backend as a side effect. One
+    // ungated test, two failures. This never surfaced because the llamacpp test
+    // run had never actually executed: Build.ps1 threw on a StrictMode `.Count`
+    // before reaching it.
+    #[cfg(not(any(feature = "llamacpp", feature = "mistralrs-backend")))]
     #[test]
     fn test_init_without_backend_feature_reports_invalid_input() {
         let name = c("llamacpp");

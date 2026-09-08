@@ -5,7 +5,7 @@ name: NVIDIA Stack Validation
 # on every PR.
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'Modules/PC-AI.Gpu/**'
       - 'Config/nvidia-software-registry.json'
@@ -14,7 +14,7 @@ on:
       - 'Tools/Sync-NvidiaDriverVersion.ps1'
       - 'Tools/Initialize-CudaEnvironment.ps1'
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'Modules/PC-AI.Gpu/**'
       - 'Config/nvidia-software-registry.json'

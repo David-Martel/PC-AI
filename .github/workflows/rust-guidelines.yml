@@ -2,13 +2,13 @@ name: Rust Guidelines
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - '**.rs'
       - '**/Cargo.toml'
       - '**/Cargo.lock'
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - '**.rs'
       - '**/Cargo.toml'

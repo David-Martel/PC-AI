@@ -49,8 +49,12 @@ function Get-NvidiaDriverVersion {
 
     if ($nvidiaSmi) {
         try {
+            # Zero first -- see Get-NvidiaGpuUtilization. A stale non-zero code
+            # here discards perfectly good driver output.
+            $global:LASTEXITCODE = 0
             $smiOutput = & $nvidiaSmi --query-gpu=driver_version --format=csv,noheader,nounits 2>&1
-            if ($LASTEXITCODE -eq 0 -and $smiOutput) {
+            $smiExitCode = $LASTEXITCODE
+            if ($smiExitCode -eq 0 -and $smiOutput) {
                 # Sanitize output by removing empty/noise lines
                 $sanitized = @($smiOutput | Where-Object { $_.Trim() -ne '' })
                 if ($sanitized.Count -gt 0) {

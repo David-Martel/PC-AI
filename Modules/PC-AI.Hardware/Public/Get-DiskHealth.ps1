@@ -56,8 +56,15 @@ function Get-DiskHealth {
             $nativeAvailable = $true
         }
 
-        # Supplement or fallback with CIM information
-        $cimDisks = Get-CimInstance -ClassName Win32_DiskDrive -ErrorAction SilentlyContinue
+        # Supplement or fallback with CIM information.
+        # -ErrorAction Stop, not SilentlyContinue: failing to enumerate
+        # Win32_DiskDrive means we could not look at the disks at all, which is
+        # not the same as "the disks are fine". Swallowing it here returned a
+        # partial or empty report that read as a clean bill of health, and also
+        # meant the caller's own -ErrorAction Stop was ignored because nothing
+        # ever reached the catch below. Unlike Get-WinEvent there is no benign
+        # "nothing found" error for this query, so anything raised here is real.
+        $cimDisks = Get-CimInstance -ClassName Win32_DiskDrive -ErrorAction Stop
 
         if ($nativeAvailable) {
             # Supplement native results with CIM metadata (Size, Partitions, etc.)

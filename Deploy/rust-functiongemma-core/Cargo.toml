@@ -34,8 +34,3 @@ nvml = ["dep:nvml-wrapper"]
 [dev-dependencies]
 rand = "0.8.5"
 
-[patch.crates-io]
-# Patched build.rs: adds --compiler-options /Zc:preprocessor for CUDA 13+ CCCL on MSVC.
-# Without this, nvcc fails with "MSVC/cl.exe with traditional preprocessor is used."
-candle-kernels = { path = "../vendor/candle-kernels-0.9.2" }
-candle-flash-attn = { path = "../vendor/candle-flash-attn-0.9.2" }

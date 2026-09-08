@@ -240,9 +240,9 @@ foreach ($scenario in $scenarios) {
 # Compute metrics
 # ---------------------------------------------------------------------------
 $total = $results.Count
-$toolCorrectCount = ($results | Where-Object { $_.ToolCorrect }).Count
-$argsCorrectCount = ($results | Where-Object { $_.ArgsCorrect }).Count
-$errorCount = ($results | Where-Object { $_.Error }).Count
+$toolCorrectCount = @($results | Where-Object { $_.ToolCorrect }).Count
+$argsCorrectCount = @($results | Where-Object { $_.ArgsCorrect }).Count
+$errorCount = @($results | Where-Object { $_.Error }).Count
 
 $toolAccuracy = if ($total -gt 0) { [Math]::Round($toolCorrectCount / $total * 100, 1) } else { 0 }
 $argsAccuracy = if ($total -gt 0) { [Math]::Round($argsCorrectCount / $total * 100, 1) } else { 0 }
@@ -252,8 +252,8 @@ $modes = $results | Group-Object Mode
 $modeMetrics = @{}
 foreach ($group in $modes) {
     $modeTotal = $group.Count
-    $modeToolOk = ($group.Group | Where-Object { $_.ToolCorrect }).Count
-    $modeArgsOk = ($group.Group | Where-Object { $_.ArgsCorrect }).Count
+    $modeToolOk = @($group.Group | Where-Object { $_.ToolCorrect }).Count
+    $modeArgsOk = @($group.Group | Where-Object { $_.ArgsCorrect }).Count
     $modeMetrics[$group.Name] = @{
         total          = $modeTotal
         tool_accuracy  = if ($modeTotal -gt 0) { [Math]::Round($modeToolOk / $modeTotal * 100, 1) } else { 0 }

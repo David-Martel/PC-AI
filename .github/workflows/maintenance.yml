@@ -19,33 +19,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The scan now lives in Tools/Test-CredentialScan.ps1 so it can be run and
+      # tested locally. It carries its own positive controls (planted secrets
+      # must be detected) AND negative controls (this repo's known-benign lines
+      # -- %ProgramFiles% substitution tokens, test fixtures, a SecureString
+      # built from a variable -- must stay quiet), because a gate that is always
+      # red gets muted just as fast as one that is always green.
+      #
+      # The version this replaces used ["\'] inside a single-quoted PowerShell
+      # string. PowerShell escapes ' by DOUBLING it, so the string terminated at
+      # \' and every scheduled run died on "Unexpected token ']'" -- the scan
+      # had never once executed.
       - name: Credential Scan
         shell: pwsh
         run: |
-          $patterns = @(
-              'password\s*=\s*["\'][^"\']+["\']',
-              'api[_-]?key\s*=\s*["\'][^"\']+["\']',
-              'secret\s*=\s*["\'][^"\']+["\']',
-              'token\s*=\s*["\'][^"\']+["\']',
-              'ConvertTo-SecureString.*-AsPlainText',
-              'PSCredential.*@\(',
-              'APIKey\s*=\s*["\'][A-Za-z0-9]{20,}["\']'
-          )
-          $findings = @()
-          Get-ChildItem -Recurse -Include *.ps1,*.psm1,*.psd1 | ForEach-Object {
-              $content = Get-Content $_.FullName -Raw
-              foreach ($pattern in $patterns) {
-                  if ($content -match $pattern) {
-                      $findings += "$($_.FullName): $pattern"
-                  }
-              }
-          }
-          if ($findings) {
-              Write-Host "Security Issues:" -ForegroundColor Red
-              $findings | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
-              exit 1
-          }
-          Write-Host "No credentials found" -ForegroundColor Green
+          .\Tools\Test-CredentialScan.ps1
+          exit $LASTEXITCODE
 
       - name: Validate Module Manifests
         shell: pwsh
@@ -59,20 +48,30 @@ jobs:
                   exit 1
               }
           }
+          exit 0
 
+      # This step used to print "Rust dependency vulnerabilities found" and
+      # carry on -- but GitHub's pwsh shell appends `exit $LASTEXITCODE`, so
+      # cargo audit's non-zero exit failed the step anyway. Stated intent and
+      # actual behaviour disagreed. Failing IS the right behaviour for a
+      # vulnerability, so the code now says so explicitly and clears
+      # $LASTEXITCODE deliberately on the paths that should not fail.
       - name: Cargo Audit (Rust Dependencies)
         shell: pwsh
         run: |
-          if (Get-Command cargo -ErrorAction SilentlyContinue) {
-              cargo install cargo-audit --quiet 2>$null
-              Set-Location Native/pcai_core
-              cargo audit 2>&1 | Tee-Object -Variable auditOutput
-              if ($LASTEXITCODE -ne 0) {
-                  Write-Host "Rust dependency vulnerabilities found" -ForegroundColor Yellow
-              }
-          } else {
+          if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
               Write-Host "Rust not available, skipping cargo audit" -ForegroundColor Yellow
+              exit 0
           }
+          cargo install cargo-audit --quiet 2>$null
+          Set-Location Native/pcai_core
+          cargo audit
+          if ($LASTEXITCODE -ne 0) {
+              Write-Host "cargo audit reported vulnerabilities; fix or add an accepted exception to audit.toml." -ForegroundColor Red
+              exit 1
+          }
+          Write-Host "cargo audit clean." -ForegroundColor Green
+          exit 0
 
       - name: Generate Security Report
         if: always()
@@ -109,34 +108,109 @@ jobs:
                   Write-Host "  Could not check $_" -ForegroundColor Yellow
               }
           }
+          exit 0
 
+      # Previously this only coloured the word "Red" and always exited 0, so a
+      # workflow missing runs-on could never fail the gate. Now it parses the
+      # YAML where a parser is available and returns a real exit code.
       - name: Validate Workflow YAML
         shell: pwsh
         run: |
-          Get-ChildItem -Path .github/workflows -Filter *.yml | ForEach-Object {
+          $bad = @()
+          $hasYamlParser = [bool](Get-Command ConvertFrom-Yaml -ErrorAction SilentlyContinue)
+          if (-not $hasYamlParser) {
+              Write-Host "powershell-yaml not present - structural check only" -ForegroundColor Yellow
+          }
+          Get-ChildItem -Path .github/workflows -Filter *.yml -File | ForEach-Object {
               $content = Get-Content $_.FullName -Raw
-              if ($content -notmatch 'runs-on:') {
-                  Write-Host "  $($_.Name) - Missing runs-on" -ForegroundColor Red
+              if ($hasYamlParser) {
+                  try {
+                      $null = ConvertFrom-Yaml -Yaml $content -ErrorAction Stop
+                  } catch {
+                      $bad += "$($_.Name) - YAML parse error: $($_.Exception.Message)"
+                      return
+                  }
+              }
+              if ($content -notmatch '(?m)^\s*runs-on:') {
+                  $bad += "$($_.Name) - missing runs-on:"
               } else {
                   Write-Host "  $($_.Name) - Valid" -ForegroundColor Green
               }
           }
+          if ($bad) {
+              Write-Host "Invalid workflows:" -ForegroundColor Red
+              $bad | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+              exit 1
+          }
+          exit 0
 
+      # Rewritten: the previous version called Split-Path on the markdown link
+      # TEXT (e.g. "[boot.TODO.md](boot.TODO.md)"), which throws on the illegal
+      # '[' character. GitHub's pwsh shell sets $ErrorActionPreference='Stop',
+      # so that threw and killed the job every week -- and the loop body was
+      # empty, so it had never actually checked a link. This resolves each
+      # relative link against its OWN file's directory and reports the misses.
       - name: Check Documentation Links
         shell: pwsh
         run: |
+          $repoRoot = (Get-Location).Path
           $broken = @()
-          Get-ChildItem -Recurse -Include *.md -Depth 2 | ForEach-Object {
-              $content = Get-Content $_.FullName -Raw
-              [regex]::Matches($content, '\[([^\]]+)\]\(([^\)]+)\)') | ForEach-Object {
-                  $url = $_.Groups[2].Value
-                  if ($url -notmatch '^https?://' -and $url -notmatch '^#') {
-                      $target = Join-Path (Split-Path $_.Groups[0].Value) $url -ErrorAction SilentlyContinue
-                      # Only check root-level relative links
+          $checked = 0
+          # Reports/ is machine-generated. DOC_STATUS.md in particular quotes
+          # source lines verbatim, so the markdown links inside it are other
+          # files' text, not links this report owns -- checking them produced
+          # 10 false positives on the first real run. third_party/, .tmp/ and
+          # Models/ are vendored: their READMEs' links are upstream's problem.
+          $skipDirs = @('Reports', '.pcai', 'worktrees', 'node_modules', '.venv',
+              'Release', '.git', '.tmp', 'third_party', 'Models', 'auto')
+          # No -Depth limit: with -Depth 2 this only reached 22 links out of the
+          # repo's 63, which is not a check worth having.
+          Get-ChildItem -Path $repoRoot -Recurse -Include *.md -File | Where-Object {
+              $segments = $_.FullName.Substring($repoRoot.Length).TrimStart('\', '/') -split '[\\/]'
+              -not ($segments | Where-Object { $skipDirs -contains $_ })
+          } | ForEach-Object {
+              $docPath = $_.FullName
+              $docDir = $_.DirectoryName
+              $content = Get-Content -LiteralPath $docPath -Raw -ErrorAction SilentlyContinue
+              if (-not $content) { return }
+              foreach ($match in [regex]::Matches($content, '\[([^\]]*)\]\(([^)]+)\)')) {
+                  $url = $match.Groups[2].Value.Trim()
+                  # Skip absolute URLs, in-page anchors, other schemes, and
+                  # template placeholders such as <owner>/<repo> or Actions
+                  # expression syntax.
+                  if ($url -match '^[A-Za-z][A-Za-z0-9+.-]*:' -or $url.StartsWith('#') -or $url -match '[<>{}$*|]') { continue }
+                  # Drop any trailing #anchor and optional "link title".
+                  $path = ($url -split '#', 2)[0].Trim()
+                  $path = ($path -split '\s+"', 2)[0].Trim()
+                  if (-not $path) { continue }
+                  $checked++
+                  $resolved = if ($path.StartsWith('/')) {
+                      Join-Path $repoRoot $path.TrimStart('/')
+                  } else {
+                      Join-Path $docDir $path
+                  }
+                  if (-not (Test-Path -LiteralPath $resolved)) {
+                      $rel = $docPath.Substring($repoRoot.Length).TrimStart('\', '/')
+                      $broken += "$rel -> $url"
                   }
               }
           }
-          Write-Host "Link check completed" -ForegroundColor Green
+          Write-Host "Checked $checked relative links" -ForegroundColor Cyan
+          if ($checked -lt 10) {
+              # The repo's own markdown (vendored trees excluded) carries ~22
+              # relative links. A near-zero count means the matcher or the file
+              # walk broke, not that the docs shrank -- and a link check that
+              # checked nothing is not a check.
+              Write-Host "Only $checked links were checked; the scan is broken." -ForegroundColor Red
+              exit 1
+          }
+          if ($broken) {
+              Write-Host "Broken relative documentation links:" -ForegroundColor Red
+              $broken | Sort-Object -Unique | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+              exit 1
+          }
+          Write-Host "All relative documentation links resolve" -ForegroundColor Green
+          exit 0
 
       # Run a weekly software-status snapshot so drift between the registry and
       # the installed versions is surfaced in the maintenance report.
@@ -145,16 +219,23 @@ jobs:
       - name: NVIDIA Software Status Snapshot
         shell: pwsh
         run: |
-          $manifestPath = 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
+          # Absolute, for the same reason as nvidia-validation.yml: Import-Module
+          # treats a bare relative path as a module NAME. Here the failure was
+          # invisible -- the import sits in a try/catch that tolerates a GPU-less
+          # runner, so this reported "not available" instead of a broken path.
+          $manifestPath = Join-Path $PWD 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
           if (-not (Test-Path $manifestPath)) {
               Write-Host "PC-AI.Gpu module not found at $manifestPath — skipping NVIDIA status snapshot" -ForegroundColor Yellow
               exit 0
           }
 
-          Import-Module $manifestPath -Force -ErrorAction Stop
           Write-Host "=== NVIDIA Software Status (weekly snapshot) ===" -ForegroundColor Cyan
 
           try {
+              # Import must be INSIDE the try. It was outside, so a module that
+              # cannot load on a GPU-less runner failed the job outright --
+              # exactly the case the catch below was written to tolerate.
+              Import-Module $manifestPath -Force -ErrorAction Stop
               # Get-NvidiaSoftwareStatus returns a structured object; emit it as
               # formatted text for the step log and as JSON for the artifact.
               $status = Get-NvidiaSoftwareStatus -ErrorAction Stop
@@ -191,26 +272,82 @@ jobs:
         include:
           - name: "PowerShell 5.1"
             type: powershell
-          - name: "Rust MSRV 1.75"
+          - name: "Rust MSRV"
             type: rust-msrv
     steps:
       - uses: actions/checkout@v4
 
+      # `shell: pwsh` is PowerShell 7 -- this job was named "PowerShell 5.1"
+      # but had never executed under 5.1, so the compatibility claim was
+      # unverified. `shell: powershell` is Windows PowerShell 5.1 on the
+      # windows-* runners. Pester is pinned below 6 because Pester 6 dropped
+      # Windows PowerShell 5.1 support.
+      # The first run under a real 5.1 host recorded 444 failures across 42
+      # containers. Failing on any failure would leave this job permanently red,
+      # which is how a gate stops being read. It is therefore a REGRESSION gate:
+      # it fails only if compatibility gets worse than the recorded baseline,
+      # and it also fails if the count improves without the baseline being
+      # updated, so the number cannot quietly drift out of date.
+      # Baseline: Tests/powershell-51-baseline.json
       - name: PowerShell 5.1 Tests
         if: matrix.type == 'powershell'
-        shell: pwsh
+        shell: powershell
         run: |
-          Install-Module Pester -MinimumVersion 5.6.1 -Force -Scope CurrentUser
-          if (Test-Path ".\Tests\.pester.ps1") {
-              .\Tests\.pester.ps1 -CI
+          $PSVersionTable.PSVersion | Out-String | Write-Host
+          if ($PSVersionTable.PSVersion.Major -ne 5) {
+              Write-Host "Expected Windows PowerShell 5.1, got $($PSVersionTable.PSVersion)" -ForegroundColor Red
+              exit 1
           }
+          Install-PackageProvider -Name NuGet -Force -Scope CurrentUser | Out-Null
+          Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -SkipPublisherCheck -Scope CurrentUser
+          Import-Module Pester -MinimumVersion 5.6.1
+          $config = New-PesterConfiguration -Hashtable (Import-PowerShellDataFile Tests/PesterConfiguration.psd1)
+          $config.CodeCoverage.Enabled = $false
+          $config.Run.Exit = $false
+          $config.Run.PassThru = $true
+          $config.Output.Verbosity = 'Normal'
+          # This gate measures 5.1 COMPATIBILITY, so wall-clock assertions must not
+          # count toward it. "Module Performance" in ModuleLoading.Tests.ps1 asserts
+          # module loads finish in 5s/15s; on a slow runner that reddens the gate
+          # with no code change at all. Tagged 'Performance','Slow' -- excluded.
+          $config.Filter.ExcludeTag = @('Performance', 'Slow')
+          $result = Invoke-Pester -Configuration $config
 
+          $baseline = Get-Content Tests/powershell-51-baseline.json -Raw | ConvertFrom-Json
+          Write-Host "PowerShell 5.1: $($result.FailedCount) failed / $($result.TotalCount) total (baseline: $($baseline.FailedCount))"
+          if ($result.FailedCount -gt $baseline.FailedCount) {
+              Write-Host "REGRESSION: PowerShell 5.1 failures rose from $($baseline.FailedCount) to $($result.FailedCount)." -ForegroundColor Red
+              exit 1
+          }
+          if ($result.FailedCount -lt $baseline.FailedCount) {
+              # An improvement is not a failure, but the baseline must be lowered
+              # or the gate quietly loses sensitivity. Warn loudly, stay green.
+              Write-Host "::warning::PowerShell 5.1 compatibility improved ($($baseline.FailedCount) -> $($result.FailedCount)). Lower FailedCount in Tests/powershell-51-baseline.json to lock the gain in."
+              exit 0
+          }
+          Write-Host "PowerShell 5.1 compatibility holds at the recorded baseline." -ForegroundColor Green
+          exit 0
+
+      # The version comes from [workspace.package] rust-version in
+      # Native/pcai_core/Cargo.toml, so the gate cannot drift away from the
+      # declared MSRV again. The previous hard-coded 1.75 predated Cargo.lock
+      # v4 (needs >= 1.78) and failed every week on "lock file version `4`".
       - name: Rust MSRV Check
         if: matrix.type == 'rust-msrv'
         shell: pwsh
         run: |
-          rustup install 1.75.0
-          rustup run 1.75.0 cargo check --manifest-path Native/pcai_core/pcai_inference/Cargo.toml --no-default-features --features server,ffi
+          $manifest = 'Native/pcai_core/Cargo.toml'
+          $line = Select-String -Path $manifest -Pattern '^\s*rust-version\s*=\s*"([^"]+)"' | Select-Object -First 1
+          if (-not $line) {
+              Write-Host "No rust-version declared in $manifest - MSRV gate has nothing to enforce" -ForegroundColor Red
+              exit 1
+          }
+          $msrv = $line.Matches[0].Groups[1].Value
+          Write-Host "Declared MSRV: $msrv" -ForegroundColor Cyan
+          rustup toolchain install $msrv --profile minimal --no-self-update
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          rustup run $msrv cargo check --manifest-path Native/pcai_core/pcai_inference/Cargo.toml --no-default-features --features server,ffi
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   documentation:
     name: Documentation Pipeline
@@ -218,19 +355,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Every `shell: pwsh` / `shell: powershell` step here ends with an
+      # explicit exit. GitHub appends `exit $LASTEXITCODE` to the script, so a
+      # stale non-zero left behind by ANY native command earlier in the step
+      # fails a step whose logic succeeded -- that is exactly how the
+      # PowerShell 5.1 job reported failure while printing "compatibility holds
+      # at the recorded baseline".
       - name: Run Doc Pipeline
         shell: pwsh
         run: |
-          if (Test-Path ".\Tools\Invoke-DocPipeline.ps1") {
-            .\Tools\Invoke-DocPipeline.ps1 -Mode Full -SkipRust
+          if (-not (Test-Path ".\Tools\Invoke-DocPipeline.ps1")) {
+            Write-Host "Invoke-DocPipeline.ps1 not found; nothing to run." -ForegroundColor Yellow
+            exit 0
           }
+          .\Tools\Invoke-DocPipeline.ps1 -Mode Full -SkipRust
+          exit $LASTEXITCODE
 
       - name: Generate Auto Docs
         shell: pwsh
         run: |
-          if (Test-Path ".\Tools\generate-auto-docs.ps1") {
-            .\Tools\generate-auto-docs.ps1 -BuildDocs
+          if (-not (Test-Path ".\Tools\generate-auto-docs.ps1")) {
+            Write-Host "generate-auto-docs.ps1 not found; nothing to run." -ForegroundColor Yellow
+            exit 0
           }
+          .\Tools\generate-auto-docs.ps1 -BuildDocs
+          exit $LASTEXITCODE
 
       - name: Upload Reports
         uses: actions/upload-artifact@v4

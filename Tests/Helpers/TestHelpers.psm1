@@ -162,14 +162,29 @@ function Resolve-InferenceDllPath {
         $ProjectRoot = Get-ProjectRoot -StartPath $PSScriptRoot
     }
 
-    $candidates = @(
-        (Join-Path $ProjectRoot "bin\pcai_inference.dll"),
-        (Join-Path $ProjectRoot "bin\Release\pcai_inference.dll"),
-        (Join-Path $ProjectRoot "bin\Debug\pcai_inference.dll"),
-        (Join-Path $env:USERPROFILE ".local\bin\pcai_inference.dll"),
-        (Join-Path $env:CARGO_TARGET_DIR "release\pcai_inference.dll"),
-        'T:\RustCache\cargo-target\release\pcai_inference.dll'
-    ) | Where-Object { $_ }
+    # Build the candidate list defensively. `Join-Path` THROWS on a null first
+    # argument -- it does not return null -- so an unset environment variable
+    # here aborts the whole function. The trailing `Where-Object { $_ }` cannot
+    # save it, because the array is fully evaluated before the filter runs.
+    #
+    # That was a real outage, not a hypothetical: CARGO_TARGET_DIR is unset on
+    # the GitHub runners (and on any machine not using the T:\RustCache
+    # layout), so this threw inside Get-TestPaths, which every FFI suite calls
+    # from BeforeAll -- and a throwing BeforeAll fails every test in the file,
+    # including assertions as trivial as "the crate directory exists".
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    if ($ProjectRoot) {
+        $candidates.Add((Join-Path $ProjectRoot 'bin\pcai_inference.dll'))
+        $candidates.Add((Join-Path $ProjectRoot 'bin\Release\pcai_inference.dll'))
+        $candidates.Add((Join-Path $ProjectRoot 'bin\Debug\pcai_inference.dll'))
+    }
+    if ($env:USERPROFILE) {
+        $candidates.Add((Join-Path $env:USERPROFILE '.local\bin\pcai_inference.dll'))
+    }
+    if ($env:CARGO_TARGET_DIR) {
+        $candidates.Add((Join-Path $env:CARGO_TARGET_DIR 'release\pcai_inference.dll'))
+    }
+    $candidates.Add('T:\RustCache\cargo-target\release\pcai_inference.dll')
 
     foreach ($candidate in $candidates) {
         if (Test-Path $candidate) {

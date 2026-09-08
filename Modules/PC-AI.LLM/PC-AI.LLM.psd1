@@ -8,9 +8,14 @@
     Copyright = '(c) 2026 PC-AI Project. All rights reserved.'
     Description = 'PowerShell module for integrating pcai-inference LLM with PC diagnostics and analysis'
 
-    # CompatiblePSEditions requires PowerShellVersion >= 5.1 per PowerShell docs;
-    # Test-ModuleManifest fails on older PS without this pairing.
-    PowerShellVersion = '5.1'
+    # PC-AI.LLM.psm1 opens with `#Requires -PSEdition Core`, so this module
+    # cannot load on Windows PowerShell 5.1 at all. Advertising
+    # PowerShellVersion = '5.1' was a contract the module could not honour: the
+    # first real 5.1 compatibility run failed with "cannot be run because it
+    # contained a #requires statement for PowerShell editions 'Core'".
+    # CompatiblePSEditions requires PowerShellVersion >= 5.1 per the docs; 7.0
+    # satisfies that and states the actual floor.
+    PowerShellVersion = '7.0'
     CompatiblePSEditions = @('Core')
 
     # Functions to export

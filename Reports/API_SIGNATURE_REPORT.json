@@ -1,8 +1,8 @@
 {
-  "Generated": "2026-03-28 00:46:44",
+  "Generated": "2026-09-07 19:12:53",
   "PowerShell": {
-    "FunctionCount": 234,
-    "MissingHelpCount": 171,
+    "FunctionCount": 237,
+    "MissingHelpCount": 172,
     "MissingHelpParameters": [
       {
         "Name": "Compare-ToolPerformance",
@@ -2427,6 +2427,42 @@
         ],
         "ExtraHelpParameters": [],
         "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.Gpu\\Public\\Install-NvidiaSoftware.ps1"
+      },
+      {
+        "Name": "Initialize-PreflightInteropType",
+        "Synopsis": "Emit an Add-Type C# class that P/Invokes the preflight FFI exports\nfrom pcai_core_lib.dll.  Idempotent -- safe to call multiple times.",
+        "Description": "",
+        "Parameters": [
+          "DllPath"
+        ],
+        "HelpPresent": true,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "DllPath"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.Gpu\\Public\\Test-PcaiGpuReadiness.ps1"
+      },
+      {
+        "Name": "Test-PcaiGpuReadiness",
+        "Synopsis": "",
+        "Description": "",
+        "Parameters": [
+          "ModelPath",
+          "ContextLength",
+          "RequiredMB",
+          "AsJson"
+        ],
+        "HelpPresent": false,
+        "HelpParameters": [],
+        "MissingHelpParameters": [
+          "ModelPath",
+          "ContextLength",
+          "RequiredMB",
+          "AsJson"
+        ],
+        "ExtraHelpParameters": [],
+        "SourcePath": "C:\\codedev\\PC_AI\\Modules\\PC-AI.Gpu\\Public\\Test-PcaiGpuReadiness.ps1"
       },
       {
         "Name": "Update-NvidiaSoftwareRegistry",

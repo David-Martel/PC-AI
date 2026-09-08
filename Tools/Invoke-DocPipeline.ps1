@@ -80,6 +80,7 @@ $pipelineState = [PSCustomObject]@{
     Mode = $Mode
     Steps = @()
     Errors = @()
+    Warnings = @()
     Outputs = @()
 }
 
@@ -94,7 +95,13 @@ function Add-PipelineStep {
     }
     $pipelineState.Steps += $step
     if ($Output) { $pipelineState.Outputs += $Output }
-    if ($Error) { $pipelineState.Errors += $Error }
+    # -Error carries the detail text for BOTH Warning and Error steps, so
+    # routing it all into .Errors made the summary claim "5 error(s)" when only
+    # one step had actually failed. Bucket by Status instead.
+    if ($Error) {
+        if ($Status -eq 'Error') { $pipelineState.Errors += "${Name}: $Error" }
+        else { $pipelineState.Warnings += "${Name}: $Error" }
+    }
 
     $color = switch ($Status) {
         'Success' { 'Green' }
@@ -585,10 +592,21 @@ Invoke-PipelineSummary
 
 # Final status
 Write-Host "`n" -NoNewline
-if ($pipelineState.Errors.Count -eq 0) {
-    Write-Host "✅ Pipeline completed successfully" -ForegroundColor Green
-} else {
-    Write-Host "❌ Pipeline completed with $($pipelineState.Errors.Count) error(s)" -ForegroundColor Red
+if ($pipelineState.Warnings.Count -gt 0) {
+    Write-Host "$($pipelineState.Warnings.Count) warning(s):" -ForegroundColor Yellow
+    $pipelineState.Warnings | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
 }
 Write-Host "Duration: $($pipelineState.Duration)" -ForegroundColor Gray
 Write-Host "Reports: $reportsDir" -ForegroundColor Gray
+
+# The pipeline used to print the failure banner and still exit 0, so CI stayed
+# green while doc generation was broken. Errors now set a real exit code;
+# warnings (skipped optional generators, absent CUDA/Litho) do not.
+if ($pipelineState.Errors.Count -eq 0) {
+    Write-Host "OK Pipeline completed successfully" -ForegroundColor Green
+    exit 0
+}
+
+Write-Host "FAIL Pipeline completed with $($pipelineState.Errors.Count) error(s):" -ForegroundColor Red
+$pipelineState.Errors | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+exit 1

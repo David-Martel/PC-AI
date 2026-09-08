@@ -16,7 +16,11 @@ BeforeDiscovery {
     $PcaiNativeDll = Join-Path $BinDir "PcaiNative.dll"
 
     $script:PerformanceAvailable = $false
-    if (Test-Path $PcaiNativeDll) {
+    # Presence of the DLL, kept separate from whether it loads. Presence decides
+    # whether this suite applies at all; loading is what the DLL Loading tests
+    # assert. Collapsing the two would make those tests unable to fail.
+    $script:PerformanceDllPresent = Test-Path $PcaiNativeDll
+    if ($script:PerformanceDllPresent) {
         try {
             Add-Type -Path $PcaiNativeDll -ErrorAction Stop
         }
@@ -43,12 +47,14 @@ BeforeAll {
     $PcaiNativeDll = Join-Path $BinDir "PcaiNative.dll"
     $PerformanceDll = Join-Path $BinDir "pcai_core_lib.dll"
 
-    if (-not (Test-Path $PcaiNativeDll)) {
-        throw "PcaiNative.dll not found at: $PcaiNativeDll"
-    }
-
-    if (-not (Test-Path $PerformanceDll)) {
-        throw "pcai_performance.dll not found at: $PerformanceDll"
+    # A missing DLL is not a test failure. This file also runs in `powershell-test`,
+    # which builds nothing, so the DLL is legitimately absent there. Throwing in
+    # BeforeAll fails every It in the file -- including the ~21 that already carry
+    # -Skip: and would have skipped cleanly. Leave the flag false and let the
+    # per-It skips do the job they were already written to do.
+    if (-not (Test-Path $PcaiNativeDll) -or -not (Test-Path $PerformanceDll)) {
+        $script:PerformanceAvailable = $false
+        return
     }
 
     # Load the assembly
@@ -70,7 +76,7 @@ BeforeAll {
     }
 }
 
-Describe "Performance Module - DLL Loading" -Tag "FFI", "Performance", "Unit" {
+Describe "Performance Module - DLL Loading" -Tag "FFI", "Performance", "Unit" -Skip:(-not $script:PerformanceDllPresent) {
     It "Should have pcai_core_lib.dll in bin directory" {
         $dll = Join-Path $PSScriptRoot "..\..\bin\pcai_core_lib.dll"
         $dll | Should -Exist
@@ -232,7 +238,7 @@ Describe "Performance Module - Memory Stats" -Tag "FFI", "Performance", "Memory"
     }
 }
 
-Describe "Performance Module - Utility Functions" -Tag "FFI", "Performance", "Utility" {
+Describe "Performance Module - Utility Functions" -Tag "FFI", "Performance", "Utility" -Skip:(-not $script:PerformanceDllPresent) {
     It "Should format bytes correctly - Bytes" {
         $result = [PcaiNative.PerformanceModule]::FormatBytes(512)
         $result | Should -Be "512 B"

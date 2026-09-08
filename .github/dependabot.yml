@@ -17,7 +17,7 @@ updates:
 
   # Rust dependencies (FunctionGemma workspace)
   - package-ecosystem: "cargo"
-    directory: "/Deploy/rust-functiongemma"
+    directory: "/Deploy"
     schedule:
       interval: "weekly"
       day: "tuesday"

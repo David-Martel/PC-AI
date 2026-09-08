@@ -1,3 +1,4 @@
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '', Justification = 'Entry-point installer: the SMB password is passed verbatim as a positional argument to the remote samba setup shell script over SSH; a plaintext value is genuinely required downstream and SecureString would break the pass-through.')]
 param(
     [string]$Target = "root@192.168.1.1",
     [string]$ShareName = "udmpro_data",

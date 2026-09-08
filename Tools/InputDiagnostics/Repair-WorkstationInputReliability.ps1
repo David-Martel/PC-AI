@@ -136,6 +136,7 @@ function Add-Summary {
 # 2. Helper: run external command with ShouldProcess guard
 # ---------------------------------------------------------------------------
 function Invoke-ExternalIfShouldProcess {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$Target,
         [string]$Operation,

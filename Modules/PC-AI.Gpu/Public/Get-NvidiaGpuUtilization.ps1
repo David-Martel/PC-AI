@@ -102,9 +102,20 @@ function Get-NvidiaGpuUtilization {
             '--format=csv,noheader,nounits'
         )
 
+        # Reset before the call. $LASTEXITCODE is process-wide and sticky: it
+        # holds the exit code of the last NATIVE command run anywhere in this
+        # session, and nothing clears it. Without this, any earlier native
+        # command that happened to fail makes the check below fire and this
+        # function report "no GPUs" while blaming an exit code that never came
+        # from nvidia-smi -- a silent false negative in a diagnostics tool,
+        # which is worse than an error. Its sibling Get-NvidiaGpuInventory
+        # survives the same staleness only because it falls back to CIM instead
+        # of returning empty.
+        $global:LASTEXITCODE = 0
         $rawLines = & $smi @smiArgs 2>&1
-        if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-            Write-Warning "nvidia-smi utilization query exited with code $LASTEXITCODE."
+        $smiExitCode = $LASTEXITCODE
+        if ($null -ne $smiExitCode -and $smiExitCode -ne 0) {
+            Write-Warning "nvidia-smi utilization query exited with code $smiExitCode."
             return @()
         }
 

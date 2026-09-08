@@ -1,12 +1,7 @@
 //! pcai-mistralrs HTTP server
 //! Specialized binary for the mistral.rs backend.
 
-use pcai_inference_lib::{
-    backends::BackendType,
-    config::{InferenceConfig, ServerConfig},
-    http::run_server,
-    version,
-};
+use pcai_inference_lib::{backends::BackendType, config::InferenceConfig, http::run_server, version};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 fn extract_config_path(args: &[String]) -> Option<String> {

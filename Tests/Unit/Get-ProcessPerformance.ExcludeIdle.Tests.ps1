@@ -17,6 +17,27 @@
 BeforeAll {
     $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Performance\PC-AI.Performance.psd1'
     Import-Module $ModulePath -Force -ErrorAction Stop
+
+    # Defined here, not at file top level. A top-level definition exists only
+    # during Pester's discovery pass; the Mock scriptblocks below run in the
+    # run pass, so the helper was undefined and every mocked Get-Process call
+    # failed with "The term 'New-MockProcess' is not recognized".
+    function New-MockProcess {
+        param([string]$Name, [int]$Id, [double]$Cpu = 0, [long]$MemoryBytes = 100MB)
+        [PSCustomObject]@{
+            ProcessName        = $Name
+            Id                 = $Id
+            CPU                = $Cpu
+            TotalProcessorTime = [TimeSpan]::FromSeconds($Cpu)
+            StartTime          = (Get-Date).AddMinutes(-10)
+            WorkingSet64       = $MemoryBytes
+            Threads            = @(1)
+            HandleCount        = 100
+            Path               = if ($Name -eq 'Idle') { $null } else { "C:\fake\$Name.exe" }
+            MainModule         = $null
+            PriorityClass      = 'Normal'
+        }
+    }
 }
 
 AfterAll {

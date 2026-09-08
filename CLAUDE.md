@@ -38,8 +38,9 @@ PC_AI/
 ├── Native/PcaiServiceHost/            # C# Windows service host for inference
 ├── External: C:\codedev\nukenul\      # Standalone Rust/C# utility for null-file removal
 ├── AI-Media/                          # Python Janus-Pro media agent (CUDA)
-├── Deploy/
-│   ├── rust-functiongemma/            # Rust workspace root (includes core/runtime/train)
+├── Deploy/                            # Cargo workspace ROOT for the FunctionGemma crates
+│   ├── Cargo.toml                     # workspace manifest (+ [patch] for vendored CUDA kernels)
+│   ├── rust-functiongemma/            # FunctionGemma docs + build/test scripts (no manifest)
 │   ├── rust-functiongemma-core/       # Shared library (model, GPU, prompt, config, LoRA)
 │   ├── rust-functiongemma-runtime/    # Router runtime (axum HTTP, port 8000)
 │   ├── rust-functiongemma-train/      # Router dataset + training pipeline
@@ -542,7 +543,7 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 
 ### Git Hooks (lefthook)
 
-Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. Hooks run `cargo fmt --check` and `cargo clippy` on staged Rust files.
+Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. On staged Rust files the hooks run `cargo fmt --all --check` (`pcai-rust-fmt`, rooted at `Native/pcai_core/`) plus an ast-grep scan and a TODO-expect check. They do **not** run clippy — that is enforced in CI only (portable-ci, rust-guidelines, nvidia-validation, and `ci.yml` via `Build.ps1 -Component lint`). See `.qa-gate.conf` for why the git-guard Rust gate is off in this repo.
 
 ### PowerShell Requirements
 

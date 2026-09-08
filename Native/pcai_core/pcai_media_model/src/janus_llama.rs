@@ -361,7 +361,7 @@ impl PreAllocKvCache {
                 (0..h).flat_map(move |_h| {
                     (0..s).flat_map(move |p| {
                         let pos = (seq_pos + p) as u32;
-                        std::iter::repeat(pos).take(d)
+                        std::iter::repeat_n(pos, d)
                     })
                 })
             })
@@ -1216,7 +1216,7 @@ mod tests {
         assert_eq!(cache.seq_len(), 0, "fresh cache should be empty");
 
         // 2 layers × 2 (K+V) × 1 × 4 × 32 × 16 × 4 bytes
-        let expected = 2 * 2 * 1 * 4 * 32 * 16 * 4;
+        let expected = 2 * 2 * 4 * 32 * 16 * 4;
         assert_eq!(cache.allocated_bytes(), expected);
     }
 

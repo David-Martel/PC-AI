@@ -11,7 +11,7 @@ Describe "PC-AI Agentic Verification (Phase 6)" {
         $script:ModulePath = Join-Path $script:PcaiRoot "Modules\PC-AI.LLM\PC-AI.LLM.psd1"
 
         # Load dependencies first
-        Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1") -Force
+        Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1") -Force
         Import-Module (Join-Path $script:PcaiRoot "Modules\PC-AI.Virtualization\PC-AI.Virtualization.psd1") -Force
         Import-Module $script:ModulePath -Force
     }

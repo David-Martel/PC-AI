@@ -360,6 +360,7 @@ function Invoke-BitwardenUnlock {
     #>
     [CmdletBinding(SupportsShouldProcess)]
     [OutputType([string])]
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '', Justification = 'Master password originates as plaintext from the BW_PASSWORD env var and must be written to a plaintext temp file for the Bitwarden CLI (bw unlock --passwordfile); SecureString would be round-tripped back to plaintext here and add no protection.')]
     param(
         [Parameter(Mandatory)]
         [string]$MasterPassword

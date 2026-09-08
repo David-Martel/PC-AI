@@ -928,7 +928,15 @@ function Invoke-Build {
     $featureString = ($features | Select-Object -Unique) -join ','
     Write-Host "  Features: $featureString" -ForegroundColor Cyan
 
-    $cargoArgs = @('build', '--bin', $binName, '--features', $featureString, '--message-format=json')
+    # --lib as well as --bin. The crate declares crate-type = ["cdylib", "rlib"],
+    # and the cdylib IS the FFI surface -- pcai_inference_lib.dll is what the
+    # PowerShell P/Invoke layer and every FFI.* test suite load. `cargo build
+    # --bin` alone does not build it: the binary links the rlib, so the cdylib
+    # was never produced by any build this repo runs. Copy-CompiledArtifacts has
+    # always listed that DLL among the artifacts to collect and never found one,
+    # and CI's Integration Tests downloads it as an artifact -- which is why that
+    # job could not have passed even once it started running.
+    $cargoArgs = @('build', '--bin', $binName, '--lib', '--features', $featureString, '--message-format=json')
     if ($Configuration -eq 'Release') { $cargoArgs += '--release' }
 
     # Configure log files in .pcai/build/logs directory
@@ -1033,6 +1041,29 @@ function Invoke-Build {
                             $lastPkg = $pkg
                             $script:BuildLastPkg = $pkg
                         }
+                    } elseif ($msg -and $msg.reason -eq 'compiler-message') {
+                        # Under --message-format=json every diagnostic arrives as
+                        # a compiler-message record, NOT as plain text. Dropping
+                        # these left CI showing only cargo's final "could not
+                        # compile ... due to 2 previous errors" summary with the
+                        # two errors themselves nowhere in the log, which makes a
+                        # red build undiagnosable without reproducing locally.
+                        $rendered = $msg.message.rendered
+                        if ($rendered) {
+                            # Levels seen in practice: error, warning, note, help,
+                            # failure-note, and ICEs. Allow-list only 'warning' as
+                            # non-fatal and treat everything else as diagnostic
+                            # output worth keeping -- a deny-list would silently
+                            # drop any level rustc adds later, which is the class
+                            # of bug this branch exists to fix.
+                            if ($msg.message.level -eq 'warning') {
+                                $rendered | Out-File $logFile -Append
+                                Write-Host $rendered -ForegroundColor Yellow
+                            } else {
+                                $rendered | Out-File $errorLogFile -Append
+                                Write-Host $rendered -ForegroundColor Red
+                            }
+                        }
                     }
                 } catch {}
             } else {
@@ -1056,11 +1087,23 @@ function Invoke-Build {
             throw "Build failed for $BackendName"
         }
     } finally {
-        if ($heartbeatTimer) { $heartbeatTimer.Stop() }
-        if ($heartbeatEvent -and $heartbeatEvent.SourceIdentifier) {
-            Unregister-Event -SourceIdentifier $heartbeatEvent.SourceIdentifier -ErrorAction SilentlyContinue
+        # Nothing in here may throw. An exception raised in finally REPLACES the
+        # exception that caused us to get here, so a cleanup slip silently
+        # substitutes itself for the real build failure -- which is exactly what
+        # happened: CI reported "The property 'SourceIdentifier' cannot be found
+        # on this object" instead of the compile error that actually failed the
+        # build. Register-ObjectEvent -Action returns a PSEventJob, whose
+        # identifier is .Name; it has no .SourceIdentifier, and StrictMode makes
+        # reading a missing property a terminating error.
+        try {
+            if ($heartbeatTimer) { $heartbeatTimer.Stop() }
+            if ($heartbeatEvent -and $heartbeatEvent.Name) {
+                Unregister-Event -SourceIdentifier $heartbeatEvent.Name -ErrorAction SilentlyContinue
+            }
+            if ($heartbeatTimer) { $heartbeatTimer.Dispose() }
+        } catch {
+            Write-Host "  (heartbeat cleanup: $($_.Exception.Message))" -ForegroundColor DarkGray
         }
-        if ($heartbeatTimer) { $heartbeatTimer.Dispose() }
         $ErrorActionPreference = $prevErrorActionPreference
         Pop-Location
         $duration = (Get-Date) - $startTime
@@ -1078,7 +1121,37 @@ function Copy-CompiledArtifacts {
 
     Write-BuildSection 'Collecting Artifacts'
 
-    $targetRoot = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $ProjectRoot 'target' }
+    # Ask cargo where its output actually goes instead of guessing. The old guess
+    # -- CARGO_TARGET_DIR, else "$ProjectRoot/target" -- was wrong in every
+    # configuration this repo is built in, because $ProjectRoot is the crate
+    # directory and pcai_inference is a WORKSPACE MEMBER: cargo never writes to a
+    # member's own target/. On CI it writes to the workspace root
+    # (Native/pcai_core/target); on the dev boxes .cargo/config.toml redirects it
+    # to T:\RustCache\cargo-target, which the guess did not consider at all.
+    # So the "Target directory not found" warning fired every run and artifact
+    # collection silently did nothing -- the build reported success having
+    # collected nothing. `cargo metadata` resolves CARGO_TARGET_DIR, the config
+    # target-dir, and the workspace layout in one answer.
+    $targetRoot = $null
+    try {
+        $meta = & $script:cargoExe metadata --no-deps --format-version 1 --manifest-path (Join-Path $ProjectRoot 'Cargo.toml') 2>$null
+        if ($LASTEXITCODE -eq 0 -and $meta) {
+            $targetRoot = ($meta | ConvertFrom-Json).target_directory
+        }
+    } catch {
+        Write-BuildStatus "cargo metadata failed while resolving the target dir: $($_.Exception.Message)" 'Warning'
+    }
+    if (-not $targetRoot) {
+        # Fallbacks, most specific first, for when cargo cannot be consulted.
+        $targetRoot = if ($env:CARGO_TARGET_DIR) {
+            $env:CARGO_TARGET_DIR
+        } elseif (Test-Path (Join-Path (Split-Path $ProjectRoot -Parent) 'target')) {
+            Join-Path (Split-Path $ProjectRoot -Parent) 'target'   # workspace root
+        } else {
+            Join-Path $ProjectRoot 'target'
+        }
+    }
+
     $configDir = if ($Configuration -eq 'Debug') { 'debug' } else { 'release' }
     $targetDir = Join-Path $targetRoot $configDir
 
@@ -1086,6 +1159,7 @@ function Copy-CompiledArtifacts {
         Write-BuildStatus "Target directory not found: $targetDir" 'Warning'
         return
     }
+    Write-BuildStatus "Collecting from $targetDir" 'Info'
 
     # Ensure output directories exist
     $localBin = Join-Path $env:USERPROFILE '.local\bin'
@@ -1102,12 +1176,23 @@ function Copy-CompiledArtifacts {
         if (-not (Test-Path $mistralrsArtifacts)) { New-Item -ItemType Directory -Path $mistralrsArtifacts -Force | Out-Null }
     }
 
+    $backendArtifacts = switch ($BackendBuilt) {
+        'llamacpp' { $llamacppArtifacts }
+        'mistralrs' { $mistralrsArtifacts }
+        default { $llamacppArtifacts }
+    }
+
     $artifacts = @(
         @{ Name = 'pcai-llamacpp.exe'; Backend = 'llamacpp'; Dir = $llamacppArtifacts },
         @{ Name = 'pcai-mistralrs.exe'; Backend = 'mistralrs'; Dir = $mistralrsArtifacts },
-        @{ Name = 'pcai_inference.dll'; Backend = 'shared'; Dir = $null },
-        @{ Name = 'pcai_inference_lib.dll'; Backend = 'shared'; Dir = $null },
-        @{ Name = 'pcai_core_lib.dll'; Backend = 'shared'; Dir = $null }
+        # The FFI DLLs go to the backend artifact directory too, not only to
+        # ~/.local/bin. CI packages .pcai\build\artifacts\pcai-<backend>\ and
+        # Integration Tests consumes the DLL from there, so leaving Dir = $null
+        # meant the artifact directory never contained the one file that job
+        # needs. $backendArtifacts is whichever backend was just built.
+        @{ Name = 'pcai_inference.dll'; Backend = 'shared'; Dir = $backendArtifacts },
+        @{ Name = 'pcai_inference_lib.dll'; Backend = 'shared'; Dir = $backendArtifacts },
+        @{ Name = 'pcai_core_lib.dll'; Backend = 'shared'; Dir = $backendArtifacts }
     )
 
     $copiedCount = 0
@@ -1117,14 +1202,21 @@ function Copy-CompiledArtifacts {
             # Copy to ~/.local/bin
             Copy-Item -Path $source -Destination $localBin -Force
             $copiedCount++
+            $destinations = @('~/.local/bin')
 
             # Copy to build artifacts if applicable
             if ($artifact.Dir -and (Test-Path (Split-Path $artifact.Dir -Parent))) {
                 Copy-Item -Path $source -Destination $artifact.Dir -Force
+                $destinations += $artifact.Dir
             }
 
+            # Name every destination. The old message read "-> ~/.local/bin"
+            # regardless of what else it had just written, so a build that did
+            # populate the artifact directory looked identical to one that did
+            # not -- which is precisely what made the DLL routing above appear
+            # to do nothing when it was in fact working.
             $size = [math]::Round((Get-Item $source).Length / 1MB, 2)
-            Write-BuildStatus "$($artifact.Name) -> ~/.local/bin ($size MB)" 'Success'
+            Write-BuildStatus "$($artifact.Name) -> $($destinations -join ' + ') ($size MB)" 'Success'
         }
     }
 

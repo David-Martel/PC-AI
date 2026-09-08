@@ -56,9 +56,14 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Navigate to test directory
+# Tests/PesterConfiguration.psd1 declares every path relative to the REPO ROOT
+# (Run.Path = 'Tests/Unit', CodeCoverage.Path = './Modules/**'), because that is
+# the working directory ci.yml invokes Invoke-Pester from. This runner must use
+# the same cwd or coverage resolution dies with
+# "Cannot find path '<repo>\Tests\Modules' because it does not exist".
 $TestRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-Push-Location $TestRoot
+$RepoRoot = Split-Path -Parent $TestRoot
+Push-Location $RepoRoot
 
 try {
     # Check Pester version
@@ -84,22 +89,30 @@ try {
     # Configure paths based on test type
     switch ($Type) {
         'Unit' {
-            $config.Run.Path = @('Unit')
+            $config.Run.Path = @('Tests/Unit')
             Write-Host "Running unit tests only" -ForegroundColor Yellow
         }
         'Integration' {
-            $config.Run.Path = @('Integration')
+            $config.Run.Path = @('Tests/Integration')
             Write-Host "Running integration tests only" -ForegroundColor Yellow
         }
         'All' {
-            $config.Run.Path = @('Unit', 'Integration')
+            $config.Run.Path = @('Tests/Unit', 'Tests/Integration')
             Write-Host "Running all tests" -ForegroundColor Yellow
         }
     }
 
-    # Configure coverage
+    # Configure coverage. The base configuration enables it, so -Coverage is an
+    # explicit opt-in here and its absence must actually turn coverage off --
+    # otherwise every plain run pays the instrumentation cost and the -Coverage
+    # switch is decorative.
+    $config.CodeCoverage.Enabled = [bool]$Coverage
     if ($Coverage) {
-        $config.CodeCoverage.Enabled = $true
+        # OutputPath is repo-root relative; Pester will not create the parent.
+        $coverageDir = Split-Path -Parent $config.CodeCoverage.OutputPath.Value
+        if ($coverageDir -and -not (Test-Path $coverageDir)) {
+            New-Item -ItemType Directory -Path $coverageDir -Force | Out-Null
+        }
         Write-Host "Code coverage enabled (target: 85%)" -ForegroundColor Green
     }
 

@@ -8,9 +8,34 @@
 Describe 'Initialize-InferenceBackend fallback behavior' -Tag 'Unit', 'Inference', 'Fallback', 'Portable' {
     BeforeAll {
         $ScriptPath = Join-Path $PSScriptRoot '..\..\PC-AI.ps1'
+
+        # Dot-sourcing the CLI defines its whole surface into this session and
+        # never took it back out. Among those definitions is Get-ProcessPerformance,
+        # which then SHADOWS the PC-AI.Performance module's function -- so later
+        # suites calling it reach a different function entirely and their
+        # `-ModuleName PC-AI.Performance` mocks never apply. Running this file
+        # immediately before PC-AI.Performance.Tests.ps1 fails 25 of its 26 tests;
+        # in the full suite the surviving symptom was
+        # "Should handle process retrieval errors". Snapshot first so AfterAll can
+        # put the session back.
+        $script:FunctionsBeforeDotSource = @(Get-ChildItem 'Function:\' | Select-Object -ExpandProperty Name)
+        $script:ModulesBeforeDotSource = @(Get-Module | Select-Object -ExpandProperty Name)
+
         . $ScriptPath -Command 'help' | Out-Null
 
         $script:PcaiInferenceModulePath = Join-Path $script:ModulesPath 'PcaiInference.psm1'
+    }
+
+    AfterAll {
+        # Remove only what the dot-source added, so nothing this file loaded can
+        # shadow a module function for the suites that run after it.
+        Get-ChildItem 'Function:\' |
+            Where-Object { $_.Name -notin $script:FunctionsBeforeDotSource } |
+            ForEach-Object { Remove-Item "Function:\$($_.Name)" -Force -ErrorAction SilentlyContinue }
+
+        Get-Module |
+            Where-Object { $_.Name -notin $script:ModulesBeforeDotSource } |
+            ForEach-Object { Remove-Module $_.Name -Force -ErrorAction SilentlyContinue }
     }
 
     BeforeEach {

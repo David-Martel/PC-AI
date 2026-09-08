@@ -59,7 +59,7 @@ function AutoFix-WindowsUpdate {
     )
     foreach ($cmd in $cmds) {
         Log $cmd
-        Invoke-Expression $cmd
+        & cmd.exe /c $cmd
     }
 }
 

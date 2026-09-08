@@ -1,6 +1,7 @@
 # tcp-listener-server.ps1
 # Run this on the SERVER (10.10.20.214) to enable fallback remote command execution
 
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '', Justification = 'Purpose-built remote command listener: executes an arbitrary command line received over the IP-allowlisted socket; there is no fixed command+args to refactor to the call operator.')]
 param(
     [int]$Port = 9999,
     [string[]]$AllowedIPs = @("10.10.15.150", "10.10.20.199")

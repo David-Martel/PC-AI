@@ -1,22 +1,27 @@
 [
   {
-    "Project": "PcaiNative",
-    "Path": "C:\\Users\\david\\PC_AI\\Native\\PcaiNative\\PcaiNative.csproj",
-    "DocXml": "C:\\Users\\david\\PC_AI\\Native\\PcaiNative\\bin\\Any CPU\\Release\\net8.0\\win-x64\\PcaiNative.xml"
+    "Project": "PcaiChatTui",
+    "Path": "C:\\codedev\\PC_AI\\Native\\PcaiChatTui\\PcaiChatTui.csproj",
+    "DocXml": null
   },
   {
-    "Project": "PcaiChatTui",
-    "Path": "C:\\Users\\david\\PC_AI\\Native\\PcaiChatTui\\PcaiChatTui.csproj",
-    "DocXml": "C:\\Users\\david\\PC_AI\\Native\\PcaiChatTui\\bin\\Release\\net8.0\\win-x64\\PcaiChatTui.xml"
+    "Project": "PcaiChatTui.Tests",
+    "Path": "C:\\codedev\\PC_AI\\Native\\PcaiChatTui.Tests\\PcaiChatTui.Tests.csproj",
+    "DocXml": null
+  },
+  {
+    "Project": "PcaiNative",
+    "Path": "C:\\codedev\\PC_AI\\Native\\PcaiNative\\PcaiNative.csproj",
+    "DocXml": "C:\\codedev\\PC_AI\\Native\\PcaiNative\\bin\\Debug\\net8.0\\win-x64\\PcaiNative.xml"
+  },
+  {
+    "Project": "PcaiNative.Tests",
+    "Path": "C:\\codedev\\PC_AI\\Native\\PcaiNative.Tests\\PcaiNative.Tests.csproj",
+    "DocXml": null
   },
   {
     "Project": "PcaiServiceHost",
-    "Path": "C:\\Users\\david\\PC_AI\\Native\\PcaiServiceHost\\PcaiServiceHost.csproj",
-    "DocXml": "C:\\Users\\david\\PC_AI\\Native\\PcaiServiceHost\\obj\\Release\\net8.0\\PcaiServiceHost.xml"
-  },
-  {
-    "Project": "NukeNul",
-    "Path": "C:\\Users\\david\\PC_AI\\Native\\NukeNul\\NukeNul.csproj",
-    "DocXml": "C:\\Users\\david\\PC_AI\\Native\\NukeNul\\bin\\Release\\net8.0\\win-x64\\NukeNul.xml"
+    "Path": "C:\\codedev\\PC_AI\\Native\\PcaiServiceHost\\PcaiServiceHost.csproj",
+    "DocXml": null
   }
 ]

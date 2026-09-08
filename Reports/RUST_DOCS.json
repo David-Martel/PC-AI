@@ -1,10 +1,10 @@
 [
   {
-    "Workspace": "C:\\Users\\david\\PC_AI\\Native\\pcai_core",
-    "DocIndex": "T:\\RustCache\\cargo-target\\doc"
+    "Workspace": "C:\\codedev\\PC_AI\\Native\\pcai_core",
+    "DocIndex": null
   },
   {
-    "Workspace": "C:\\Users\\david\\PC_AI\\Native\\NukeNul\\nuker_core",
-    "DocIndex": "T:\\RustCache\\cargo-target\\doc"
+    "Workspace": "C:\\codedev\\nukenul\\nuker_core",
+    "DocIndex": null
   }
 ]

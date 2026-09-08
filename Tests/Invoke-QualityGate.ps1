@@ -146,7 +146,7 @@ foreach ($m in $metricDefs) {
 }
 
 $overall = if ($regressions.Count -gt 0) { 'REGRESSED' }
-           elseif (($deltas.Values | Where-Object Status -eq 'improved').Count -gt 0) { 'IMPROVED' }
+           elseif (@($deltas.Values | Where-Object Status -eq 'improved').Count -gt 0) { 'IMPROVED' }
            else { 'UNCHANGED' }
 
 # --- persist results ----------------------------------------------------------

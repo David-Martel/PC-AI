@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["PC_AI Team"]
 description = "Dual-backend LLM inference engine for PC diagnostics (llama.cpp and mistral.rs)"
 license = "MIT"
-lints.workspace = true
+rust-version.workspace = true
 
 [lib]
 name = "pcai_inference_lib"
@@ -31,7 +31,11 @@ tower-http = { workspace = true, optional = true }
 
 # Backend: llama-rs/llm (optional)
 llm = { workspace = true, optional = true }
-rand = { workspace = true, optional = true }
+# NOT the workspace rand (0.9). The only use of rand in this crate is the StdRng
+# handed to llm's `infer`, and llm-base is pinned to rand 0.8.6 -- a 0.9 StdRng
+# does not implement 0.8's RngCore, so the llamacpp backend fails to compile
+# against the workspace version. This must track llm's rand, not ours.
+rand = { version = "0.8", optional = true }
 
 # Backend: mistral.rs (optional)
 # Switched from local path to external crate as per USER directive
@@ -66,3 +70,6 @@ required-features = ["llamacpp", "server"]
 name = "pcai-mistralrs"
 path = "src/bin/mistralrs.rs"
 required-features = ["mistralrs-backend", "server"]
+
+[lints]
+workspace = true

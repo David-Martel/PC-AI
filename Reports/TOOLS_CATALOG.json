@@ -1,188 +1,482 @@
 [
   {
+    "Name": "Apply-ProcessLassoUiSyncTuning.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Apply-ProcessLassoUiSyncTuning.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "bench-media-pipeline.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\bench-media-pipeline.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Bootstrap-ThunderboltPeerRemote.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Bootstrap-ThunderboltPeerRemote.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Collect-BootDiagnostics.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Collect-BootDiagnostics.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Collect-DetailedProcessData.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Collect-DetailedProcessData.ps1",
+    "Synopsis": "Collects detailed process data focused on LLM agent terminals and memory hogs.",
+    "Description": ""
+  },
+  {
+    "Name": "Collect-DrivePerformanceSyncRisk.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Collect-DrivePerformanceSyncRisk.ps1",
+    "Synopsis": "Collects drive-performance and cloud-sync risk evidence.",
+    "Description": "Captures read-only evidence for registry tuning, sync providers, Task\nScheduler, Process Lasso, Defender, Windows Search, filter drivers, disk state,\nand recent OneDrive/storage events. Use this before and after registry or script\nchanges to validate the effect on OneDrive and UI responsiveness."
+  },
+  {
+    "Name": "Collect-SystemPerformanceData.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Collect-SystemPerformanceData.ps1",
+    "Synopsis": "Collects comprehensive system performance data for RAM optimization analysis.",
+    "Description": "Gathers memory usage, process details, GPU info, page file config, performance\ncounters, and terminal/LLM process analysis. Outputs structured JSON report."
+  },
+  {
+    "Name": "Collect-UiGlitchDiagnostics.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Collect-UiGlitchDiagnostics.ps1",
+    "Synopsis": "Collects UI responsiveness, OneDrive, Process Lasso, and filter-driver evidence.",
+    "Description": "Writes a timestamped diagnostic bundle under Reports\\ui-glitch-diagnostics by\ncapturing process state, Process Lasso logs, OneDrive sync diagnostics, filter\nstate, and recent event-log evidence."
+  },
+  {
+    "Name": "Ensure-ProcessLassoGovernor.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Ensure-ProcessLassoGovernor.ps1",
+    "Synopsis": "Ensures the Process Lasso governor is running.",
+    "Description": "Checks for ProcessGovernor.exe and starts it when missing. The script writes a\nstructured result object, optional JSON report, and Windows Application events\nwhen a restart or failure occurs. Dry-run mode performs all checks without\nstarting processes or writing event-log/report output."
+  },
+  {
     "Name": "Export-OllamaModels.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Export-OllamaModels.ps1",
-    "Synopsis": "Export Ollama model blobs as hardlinked GGUF files into the repo.",
-    "Description": "Reads Ollama manifests under %USERPROFILE%\\.ollama\\models\\manifests and hardlinks the model blob (sha256-*) into a usable .gguf filename under the repo's Models\\ollama directory."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Export-OllamaModels.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Find-ThunderboltPeer.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Find-ThunderboltPeer.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "generate-api-signature-report.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\generate-api-signature-report.ps1",
-    "Synopsis": "Generates API signature alignment reports for PowerShell, C#, and Rust.",
-    "Description": "- Parses PowerShell public functions and compares parameters to help blocks - Compares C# DllImport declarations to Rust exported functions - Compares PowerShell wrapper calls to available C# methods Writes Reports\\API_SIGNATURE_REPORT.json and Reports\\API_SIGNATURE_REPORT.md"
+    "Path": "C:\\codedev\\PC_AI\\Tools\\generate-api-signature-report.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "generate-auto-docs.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\generate-auto-docs.ps1",
-    "Synopsis": "Unified auto-documentation generator for PC_AI (PowerShell, C#, Rust, ast-grep).",
-    "Description": "- Runs ast-grep-based doc status + tool coverage reports - Optionally runs global ast-grep rules from ~/.config/ast-grep - Builds PowerShell module command index - Optionally generates C# XML docs and Rust docs - Links outputs to PCAI_BUILD_VERSION (from Native\\build.ps1)"
+    "Path": "C:\\codedev\\PC_AI\\Tools\\generate-auto-docs.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "generate-functiongemma-tool-docs.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\generate-functiongemma-tool-docs.ps1",
-    "Synopsis": "Generate FunctionGemma tool documentation from pcai-tools.json.",
-    "Description": "Produces a markdown doc that lists tool names, descriptions, parameters, and the negative examples used for NO_TOOL routing."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\generate-functiongemma-tool-docs.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "Generate-HelpGapsPriority.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Generate-HelpGapsPriority.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Generate-HelpGapsPriority.ps1",
     "Synopsis": "Generates a prioritized help documentation gaps report",
-    "Description": "Analyzes API signature report to identify functions missing help documentation, organized by module with priority ordering"
+    "Description": "Analyzes API signature report to identify functions missing help documentation,\norganized by module with priority ordering"
   },
   {
     "Name": "generate-tools-catalog.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\generate-tools-catalog.ps1",
-    "Synopsis": "Generate a catalog of PowerShell helper scripts under Tools/.",
-    "Description": "Scans Tools/*.ps1 for comment-based help and emits a Markdown + JSON catalog with synopsis/description for LLM-friendly documentation."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\generate-tools-catalog.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "Get-BuildVersion.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Get-BuildVersion.ps1",
-    "Synopsis": "Generate build version information from git metadata.",
-    "Description": "Extracts version information from git tags, commits, and timestamps for embedding into compiled binaries and build manifests. Version Format: {semver}-{commits}+{hash}.{timestamp} Example: 0.2.0-15+abc1234.20260201T143000Z"
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Get-BuildVersion.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Get-JanusProModel.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Get-JanusProModel.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Get-JulesPRStatus.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Get-JulesPRStatus.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Get-PcaiDataServicesStatus.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Get-PcaiDataServicesStatus.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Get-PcaiModuleStatus.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Get-PcaiModuleStatus.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Get-RustAnalyzerStatus.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Get-RustAnalyzerStatus.ps1",
+    "Synopsis": "Checks rust-analyzer and lspmux status, configuration, and all LSP clients.",
+    "Description": ""
   },
   {
     "Name": "Initialize-CacheEnvironment.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Initialize-CacheEnvironment.ps1",
-    "Synopsis": "Configure build caches (sccache/ccache) for Rust and C/C++ builds.",
-    "Description": null
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Initialize-CacheEnvironment.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "Initialize-CmakeEnvironment.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Initialize-CmakeEnvironment.ps1",
-    "Synopsis": "Normalizes CMake environment variables for the current session.",
-    "Description": "Ensures CMAKE_ROOT points to the installed CMake share directory that matches the active cmake.exe version. Also aligns CMAKE_PREFIX_PATH and CMAKE_PROGRAM when they are missing or stale. Intended for build/doc pipelines."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Initialize-CmakeEnvironment.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "Initialize-CudaEnvironment.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Initialize-CudaEnvironment.ps1",
-    "Synopsis": "Initializes CUDA environment variables for the current PowerShell session.",
-    "Description": "Detects installed CUDA toolkits using a preferred version list and common environment variables, then sets CUDA_PATH/CUDA_HOME and updates PATH with CUDA bin and nvvm/bin. Intended for build and doc pipelines (non-destructive)."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Initialize-CudaEnvironment.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Initialize-ThunderboltLink.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Initialize-ThunderboltLink.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Install-InfDriver.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Install-InfDriver.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Install-LlvmFromSource.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Install-LlvmFromSource.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Install-PcaiDevModules.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Install-PcaiDevModules.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Install-PcaiRedisCache.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Install-PcaiRedisCache.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-AstGrepAutoFix.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-AstGrepAutoFix.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "Invoke-DocPipeline.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Invoke-DocPipeline.ps1",
-    "Synopsis": "Unified documentation generation and FunctionGemma training data pipeline.",
-    "Description": "Master orchestrator that: 1. Generates documentation from code (Rust, PowerShell, C#) 2. Exports structured training data for FunctionGemma 3. Validates training data format 4. Updates Reports/ with current status"
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-DocPipeline.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-FunctionGemmaEval.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-FunctionGemmaEval.ps1",
+    "Synopsis": "Router eval harness for FunctionGemma against a running runtime instance.",
+    "Description": "Sends test scenarios from scenarios.json to the FunctionGemma runtime's\nOpenAI-compatible /v1/chat/completions endpoint and evaluates response\naccuracy across three dimensions:\n\n- Tool call accuracy: does the response contain the correct tool name?\n- Argument accuracy: do the returned arguments match expected values?\n- NO_TOOL accuracy: does the model correctly return NO_TOOL for chat inputs?\n\nReports per-category accuracy, overall accuracy, and latency statistics.\n\nThis script complements Tools/run-functiongemma-eval.ps1, which runs the\nRust-native eval binary. This harness instead exercises the live HTTP API,\nmaking it suitable for integration testing and runtime regression checks."
   },
   {
     "Name": "Invoke-FunctionGemmaTrain.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Invoke-FunctionGemmaTrain.ps1",
-    "Synopsis": "Run Rust FunctionGemma LoRA fine-tuning with sensible defaults.",
-    "Description": "Routes rust-functiongemma-train via Build.ps1 and prefers token caches and packed sequences for faster training."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-FunctionGemmaTrain.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-JanusGpuSmoke.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-JanusGpuSmoke.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-JulesBatchReview.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-JulesBatchReview.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-JulesOrchestrator.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-JulesOrchestrator.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-JulesSession.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-JulesSession.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-LlmPerfBenchmark.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-LlmPerfBenchmark.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-LocalLLMReview.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-LocalLLMReview.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "Invoke-ModelDiscovery.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Invoke-ModelDiscovery.ps1",
-    "Synopsis": "Discover local LLM model files and generate MODELS.md.",
-    "Description": "Uses PC-AI search tooling (Find-FilesFast) to scan common locations and/or fixed drives for model files (GGUF, SafeTensors, etc). Produces a markdown inventory suitable for LLM agents."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-ModelDiscovery.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-NetworkDiscovery.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-NetworkDiscovery.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-PcaiMappedTool.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-PcaiMappedTool.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-ProcessLassoAnalysis.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-ProcessLassoAnalysis.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "Invoke-RustBuild.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Invoke-RustBuild.ps1",
-    "Synopsis": "Rust build helper that routes through CargoTools.",
-    "Description": "Standardizes Rust builds with CargoTools env setup, sccache, and optional lld-link configuration. Intended for repeatable, LLM-friendly builds."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-RustBuild.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-RustProfile.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-RustProfile.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Invoke-ThunderboltNetworking.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-ThunderboltNetworking.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "Link-ModelInventory.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Link-ModelInventory.ps1",
-    "Synopsis": "Create links/junctions under Models/ for discovered model files and folders.",
-    "Description": "Reads MODELS.md (from Invoke-ModelDiscovery) and creates hardlinks or symlinks to model files under Models\\linked. Also creates junctions for HF-style model directories (detected via config.json)."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Link-ModelInventory.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "llm-router.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\llm-router.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\llm-router.ps1",
     "Synopsis": "Lightweight Ollama-compatible router with LM Studio fallback.",
-    "Description": "Listens on a local port and forwards Ollama API requests to Ollama when available. If Ollama is down, it converts requests to LM Studio's OpenAI-compatible API."
+    "Description": "Listens on a local port and forwards Ollama API requests to Ollama when available.\nIf Ollama is down, it converts requests to LM Studio's OpenAI-compatible API."
   },
   {
     "Name": "llm-validate.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\llm-validate.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\llm-validate.ps1",
     "Synopsis": "Validates PC_AI LLM flows using DIAGNOSE.md + DIAGNOSE_LOGIC.md system prompts.",
-    "Description": "Runs Invoke-PCDiagnosis with a small synthetic report and Invoke-SmartDiagnosis against a target path. Fails fast if Ollama/Router is not reachable."
+    "Description": "Runs Invoke-PCDiagnosis with a small synthetic report and Invoke-SmartDiagnosis\nagainst a target path. Fails fast if Ollama/Router is not reachable."
+  },
+  {
+    "Name": "Migrate-SystemScriptsIntoRepo.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Migrate-SystemScriptsIntoRepo.ps1",
+    "Synopsis": "Moves workstation system scripts into this repo and repoints scheduled tasks.",
+    "Description": "Centralizes PowerShell and command scripts that are used by Task Scheduler or\nthat can modify workstation startup, network, sync, WSL/Docker, RAG Redis, or\ndeveloper-tool state. The script preserves source provenance under\nTools\\SystemScripts and can run in dry-run mode before any move."
+  },
+  {
+    "Name": "Mount-PersistentVHDX.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "New-PcaiPowerShellRelease.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\New-PcaiPowerShellRelease.ps1",
-    "Synopsis": null,
-    "Description": null
+    "Path": "C:\\codedev\\PC_AI\\Tools\\New-PcaiPowerShellRelease.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "normalize-help-blocks.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\normalize-help-blocks.ps1",
-    "Synopsis": "Normalize comment-based help blocks for public functions.",
-    "Description": "Ensures each top-level public function has a single well-formed help block. Preserves existing non-auto-generated help and inserts missing .PARAMETER entries. Rebuilds malformed or auto-generated blocks."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\normalize-help-blocks.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Optimize-InferenceConfig.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Optimize-InferenceConfig.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "PcaiModuleBootstrap.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\PcaiModuleBootstrap.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "prepare-functiongemma-router-data.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\prepare-functiongemma-router-data.ps1",
-    "Synopsis": "Build FunctionGemma router datasets using the Rust pipeline.",
-    "Description": "Routes rust-functiongemma-train prepare-router through Build.ps1 so this workflow remains inside the unified build orchestration layer while matching the Python I/O contract (tool_calls or NO_TOOL). Optional: Use PcaiNative.dll to run the same dataset generation via native FFI."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\prepare-functiongemma-router-data.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "prepare-functiongemma-token-cache.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\prepare-functiongemma-token-cache.ps1",
-    "Synopsis": "Build token cache for FunctionGemma training (Rust).",
-    "Description": "Routes rust-functiongemma-train prepare-cache through Build.ps1 to pre-tokenize JSONL datasets under the unified build workflow."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\prepare-functiongemma-token-cache.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Register-PersistentVHDXTasks.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Register-PersistentVHDXTasks.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Register-ProcessLassoGovernorWatchdog.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Register-ProcessLassoGovernorWatchdog.ps1",
+    "Synopsis": "Registers a Process Lasso governor watchdog scheduled task.",
+    "Description": "Creates or updates a delayed logon scheduled task that runs\nEnsure-ProcessLassoGovernor.ps1. The watchdog checks whether\nProcessGovernor.exe is running, starts it when missing, and writes loud\nApplication event-log entries for remediation/failure cases."
+  },
+  {
+    "Name": "Repair-OneDriveSync.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Repair-OneDriveSync.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "run-functiongemma-eval.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\run-functiongemma-eval.ps1",
-    "Synopsis": "Runs a FunctionGemma evaluation pass via Build.ps1 and writes a metrics report.",
-    "Description": null
+    "Path": "C:\\codedev\\PC_AI\\Tools\\run-functiongemma-eval.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "run-functiongemma-tests.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\run-functiongemma-tests.ps1",
-    "Synopsis": "Runs FunctionGemma fine-tuning test suite and tool coverage reports.",
-    "Description": null
+    "Path": "C:\\codedev\\PC_AI\\Tools\\run-functiongemma-tests.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
-    "Name": "run-psscriptanalyzer.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\run-psscriptanalyzer.ps1",
-    "Synopsis": "Run PSScriptAnalyzer and export results to Reports\\PSSCRIPTANALYZER.json/.md",
-    "Description": null
+    "Name": "Show-PerfSummary.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Show-PerfSummary.ps1",
+    "Synopsis": "Displays summary of collected performance data.",
+    "Description": ""
   },
   {
-    "Name": "Set-CudaBuildEnv.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Set-CudaBuildEnv.ps1",
-    "Synopsis": "Sets CUDA build environment for Rust/Candle compilation.",
-    "Description": "Prefers CUDA 13.1 by default for current pc-ai CUDA builds, auto-detects the newest MSVC x64 toolchain, and updates process-scoped environment variables for immediate build use."
+    "Name": "Sync-NvidiaDriverVersion.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Sync-NvidiaDriverVersion.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
-    "Name": "Set-CudaEnvironment.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Set-CudaEnvironment.ps1",
-    "Synopsis": "Sets CUDA environment variables for Rust/Candle compilation.",
-    "Description": "Configures CUDA_PATH plus PATH/include/lib entries. Defaults to process scope for safety; use -Scope Machine for persistent system updates."
+    "Name": "Sync-PowerShellModuleRelease.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Sync-PowerShellModuleRelease.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Test-BootMountHealth.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Test-BootMountHealth.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "test-janus-quick.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\test-janus-quick.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "test-media-dll.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\test-media-dll.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Test-Optimizer.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Test-Optimizer.ps1",
+    "Synopsis": "Tests the optimizer cmdlets (PowerShell fallback path).",
+    "Description": ""
   },
   {
     "Name": "Test-PcaiReleaseModule.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\Test-PcaiReleaseModule.ps1",
-    "Synopsis": null,
-    "Description": null
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Test-PcaiReleaseModule.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Test-ProcessLassoBootSafety.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Test-ProcessLassoBootSafety.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Test-SyncProviderHealth.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Test-SyncProviderHealth.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "update-doc-status.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\update-doc-status.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\update-doc-status.ps1",
     "Synopsis": "Generate documentation/status reports using ast-grep (sg) with rg fallback.",
-    "Description": "Scans the repo for TODO/FIXME/INCOMPLETE/@status/DEPRECATED markers and writes: - Reports\\DOC_STATUS.json (raw sg json when available) - Reports\\DOC_STATUS.md (human summary + matches)"
+    "Description": "Scans the repo for TODO/FIXME/INCOMPLETE/@status/DEPRECATED markers and writes:\n- Reports\\DOC_STATUS.json (raw sg json when available)\n- Reports\\DOC_STATUS.md (human summary + matches)"
+  },
+  {
+    "Name": "Update-Drivers.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Update-Drivers.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "update-help-parameters.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\update-help-parameters.ps1",
-    "Synopsis": "Auto-fills missing .PARAMETER blocks in PowerShell help comments.",
-    "Description": "Scans Public functions in Modules, compares parameter lists, and inserts missing .PARAMETER sections into the nearest comment-based help block. If no help block exists, generates a minimal help block above the function."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\update-help-parameters.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Update-NvidiaSoftware.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Update-NvidiaSoftware.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "update-tool-coverage.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\update-tool-coverage.ps1",
-    "Synopsis": "Analyze tool schema coverage against PC_AI tool implementations.",
-    "Description": "Loads Config\\pcai-tools.json and compares tool names with the tool-mapping in Invoke-FunctionGemmaReAct.ps1. Uses ast-grep (sg) if available, with rg fallback. Writes Reports\\TOOL_SCHEMA_REPORT.json and Reports\\TOOL_SCHEMA_REPORT.md."
+    "Path": "C:\\codedev\\PC_AI\\Tools\\update-tool-coverage.ps1",
+    "Synopsis": "",
+    "Description": ""
+  },
+  {
+    "Name": "Update-UsbDrivers.ps1",
+    "Path": "C:\\codedev\\PC_AI\\Tools\\Update-UsbDrivers.ps1",
+    "Synopsis": "",
+    "Description": ""
   },
   {
     "Name": "validate-doc-accuracy.ps1",
-    "Path": "C:\\codedev\\pc-ai\\Tools\\validate-doc-accuracy.ps1",
-    "Synopsis": null,
-    "Description": null
+    "Path": "C:\\codedev\\PC_AI\\Tools\\validate-doc-accuracy.ps1",
+    "Synopsis": "",
+    "Description": ""
   }
 ]

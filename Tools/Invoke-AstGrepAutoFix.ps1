@@ -120,9 +120,13 @@ if ($Mode -eq 'Apply') {
         if ($PSCmdlet.ShouldProcess("$rel line $($r.Line)", "Apply fix for $($r.Rule)")) {
             $src = [System.IO.File]::ReadAllText($r.File)
             if ($src.Contains($r.Original.Trim())) {
+                # BOM-less. This rewrites SOURCE FILES in place, and
+                # [System.Text.Encoding]::UTF8 emits a byte-order mark -- so every
+                # file this tool touched gained a BOM it did not have before,
+                # whether or not the autofix itself was correct.
                 [System.IO.File]::WriteAllText($r.File,
                     $src.Replace($r.Original.Trim(), $r.ProposedFix.Trim()),
-                    [System.Text.Encoding]::UTF8)
+                    (New-Object System.Text.UTF8Encoding($false)))
                 Write-Host "  Applied." -ForegroundColor Green
             } else {
                 Write-Warning "  Snippet not found verbatim in $($r.File) — skipped."

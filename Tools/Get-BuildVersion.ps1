@@ -190,7 +190,16 @@ function Get-BuildVersion {
         IsDirty         = $false
         BuildType       = 'dev'
         Features        = @()
+        GitDescribe     = ''
+        ReleaseTag      = ''
+        AssemblyVersion = '0.1.0.0'
+        FileVersion     = '0.1.0.0'
+        InformationalVersion = ''
     }
+
+    # Declared before the try so the GitDescribe assignment below is always
+    # defined, including when the git calls throw and are swallowed.
+    $tagInfo = $null
 
     # Get git information
     try {
@@ -284,7 +293,22 @@ function Get-BuildVersion {
     }
     $result.Version = $version
 
-    return [PSCustomObject]$result
+    # Fields the CargoTools object supplies and this fallback previously did not.
+    # Without them the two code paths returned DIFFERENT SHAPES: the CargoTools
+    # path produced ReleaseTag/AssemblyVersion/FileVersion/InformationalVersion,
+    # this one produced GitTag and stopped. Build.ps1 reads .ReleaseTag, so on any
+    # machine without CargoTools -- every CI runner -- it threw
+    # "The property 'ReleaseTag' cannot be found on this object" under StrictMode,
+    # after a successful build, in the Manifest phase.
+    $result.GitDescribe = if ($tagInfo) { [string]$tagInfo } else { '' }
+    $result.ReleaseTag = $result.GitTag
+    $result.AssemblyVersion = "$($result.Major).$($result.Minor).$($result.Patch).0"
+    $result.FileVersion = "$($result.Major).$($result.Minor).$($result.Patch).$($result.CommitsSinceTag)"
+    $result.InformationalVersion = $result.Version
+
+    # Return through the same converter the CargoTools path uses, so the contract
+    # has exactly one definition instead of two that have to be kept in sync.
+    return ConvertTo-PcaiVersionInfo -VersionInfo ([PSCustomObject]$result)
 }
 
 # Get version information

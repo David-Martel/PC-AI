@@ -22,12 +22,28 @@ env:
 
 jobs:
   # ──────────────────────────────────────────────────────────────
-  # Single job: keeps the feedback loop fast (~4-6 min total)
+  # Single job.
+  #
+  # The "~4-6 min total" this comment used to claim was never measured. A
+  # dispatched run on 2026-09-07 spent over 40 minutes in `Rust Tests` alone,
+  # because `cargo test --workspace` builds all seven crates including the
+  # candle-based media crates. With no timeout-minutes the job inherited
+  # GitHub's 6-hour default, so a genuine hang would burn six hours of runner
+  # time before anyone noticed.
+  #
+  # MEASURED 2026-09-07 (run on 447d838): with the full workspace this job was
+  # KILLED by the 60-minute cap -- so "over an hour" is the real figure, not an
+  # estimate. Two changes below address the cause rather than the symptom:
+  # Swatinem/rust-cache for a cache that actually restores, and excluding the
+  # three candle-based pcai-media* crates from the Rust steps. The 60-minute
+  # cap is deliberately left in place as a backstop; once a run completes,
+  # lower it to something near the real duration so a hang is caught early.
   # ──────────────────────────────────────────────────────────────
 
   portable-tests:
     name: Cross-Platform Quality Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: .
@@ -42,17 +58,15 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      # Cache keyed on Cargo.lock so a lockfile change busts the cache cleanly.
-      - name: Cache Cargo
-        uses: actions/cache@v4
+      # Swatinem/rust-cache rather than a hand-rolled actions/cache: it keys on
+      # the lockfile AND the toolchain, prunes stale artefacts instead of
+      # growing without bound, and skips caching the workspace crates' own
+      # build output (which must be rebuilt anyway). The hand-rolled version it
+      # replaces cached `target/` wholesale, which restores slowly and can
+      # exceed the cache size limit.
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            Native/pcai_core/target
-          key: ${{ runner.os }}-cargo-portable-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-portable-
+          workspaces: Native/pcai_core
 
       # ── .NET toolchain ────────────────────────────────────────
       - uses: actions/setup-dotnet@v4
@@ -65,7 +79,14 @@ jobs:
         shell: pwsh
         run: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
+          # -MinimumVersion pins nothing: it installs the NEWEST version at or
+          # above the floor, and Pester 6 is published. This job was running
+          # Pester 6 against a suite that declares ModuleVersion 5.0.0, so
+          # PC-AI.Robustness and PC-AI.Router died at discovery with
+          # "A 'break' or 'continue' statement ... escaped from your code",
+          # taking whole files at once. Same fix as ci.yml (4b45f2b); this call
+          # site was missed.
+          Install-Module -Name Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser
           Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
 
       # ── Rust: format ──────────────────────────────────────────
@@ -76,30 +97,56 @@ jobs:
       # ── Rust: clippy ──────────────────────────────────────────
       # -A clippy::type_complexity suppresses the one lint that trips on generated
       # FFI struct layouts where a complex type is unavoidable.
+      #
+      # The three pcai-media* crates are excluded from BOTH Rust steps here.
+      # They pull the candle stack (candle-core/nn/transformers + tokenizers),
+      # which this job then compiles twice -- once for clippy, once for the test
+      # binaries. That is what pushed the job past an hour: the 2026-09-07 run
+      # on 447d838 was killed by the 60-minute cap with the full workspace.
+      # They are GPU/CUDA-oriented and not what a Linux portability gate is
+      # for, and they are NOT going unchecked -- rust-guidelines.yml and
+      # ci.yml's `Build.ps1 -Component lint` both cover the whole workspace on
+      # Windows. If this job ever needs to cover them, give them their own job
+      # so a slow media build cannot mask a portability regression.
       - name: Rust Clippy
         working-directory: Native/pcai_core
         run: >
           cargo clippy --workspace --all-targets --no-deps
+          --exclude pcai-media --exclude pcai-media-model --exclude pcai-media-server
           -- -D warnings -A clippy::type_complexity
 
       # ── Rust: unit tests (no GPU, no backend) ─────────────────
       # Uses the same feature set as the Windows CI to keep coverage comparable.
       - name: Rust Tests
         working-directory: Native/pcai_core
-        run: cargo test --workspace --no-default-features --features server,ffi --lib
+        run: >
+          cargo test --workspace --no-default-features --features server,ffi --lib
+          --exclude pcai-media --exclude pcai-media-model --exclude pcai-media-server
 
       # ── C#: build (best-effort, DLLs not present on Linux) ────
-      # The || true allows the step to "warn not fail" when Windows-only APIs
-      # cause resolution errors in the absence of native DLLs.
+      # Deliberately non-blocking: Windows-only APIs fail to resolve without
+      # the native DLLs. `|| true` alone made the outcome invisible, so a
+      # regression here looked identical to a pass. Now it still does not fail
+      # the gate, but a failure is reported as an annotation.
       - name: C# Build
-        run: dotnet build Native/PcaiNative/PcaiNative.csproj --nologo -v q || true
+        run: |
+          if dotnet build Native/PcaiNative/PcaiNative.csproj --nologo -v q; then
+            echo "C# build succeeded on Linux."
+          else
+            echo "::warning::C# build failed on Linux (non-blocking: Windows-only APIs are expected to be unresolvable here)."
+          fi
 
       # ── C#: P/Invoke signature tests ──────────────────────────
-      # Cross-platform reflection tests — no native DLLs loaded.
+      # Cross-platform reflection tests — no native DLLs loaded. Same reasoning
+      # as above: kept non-blocking, but no longer silent.
       - name: C# P/Invoke Signature Tests
         run: |
-          dotnet test Native/PcaiNative.Tests/PcaiNative.Tests.csproj \
-            --nologo --logger "console;verbosity=normal" || true
+          if dotnet test Native/PcaiNative.Tests/PcaiNative.Tests.csproj \
+              --nologo --logger "console;verbosity=normal"; then
+            echo "P/Invoke signature tests passed."
+          else
+            echo "::warning::P/Invoke signature tests failed on Linux (non-blocking). These are pure reflection tests, so a failure here is most likely a real signature mismatch."
+          fi
 
       # ── PowerShell: static analysis ───────────────────────────
       # Emit warnings rather than failing the gate so Linux-specific false

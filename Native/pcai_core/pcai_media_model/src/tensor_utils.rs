@@ -209,14 +209,16 @@ mod tests {
                 assert_eq!(got, expected, "mask[{i}][{j}] expected {expected} got {got}");
             }
         }
-        // Spot-check: diagonal must be 0.
-        assert_eq!(data[0 * size + 0], 0);
-        assert_eq!(data[1 * size + 1], 0);
+        // Spot-check via a `(row, col)` indexer into the flattened `size × size` mask.
+        let at = |row: usize, col: usize| data[row * size + col];
+        // Diagonal must be 0.
+        assert_eq!(at(0, 0), 0);
+        assert_eq!(at(1, 1), 0);
         // Above diagonal must be 1.
-        assert_eq!(data[0 * size + 1], 1);
-        assert_eq!(data[0 * size + 3], 1);
+        assert_eq!(at(0, 1), 1);
+        assert_eq!(at(0, 3), 1);
         // Below diagonal must be 0.
-        assert_eq!(data[2 * size + 0], 0);
-        assert_eq!(data[3 * size + 1], 0);
+        assert_eq!(at(2, 0), 0);
+        assert_eq!(at(3, 1), 0);
     }
 }

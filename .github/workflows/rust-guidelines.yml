@@ -32,7 +32,7 @@ jobs:
           - path: Native/pcai_core
             features: "--no-default-features --features server,ffi"
           # FunctionGemma workspaces require CUDA bindgen — skip in CI for now
-          # - path: Deploy/rust-functiongemma
+          # - path: Deploy
           #   features: ""
     steps:
       - uses: actions/checkout@v4

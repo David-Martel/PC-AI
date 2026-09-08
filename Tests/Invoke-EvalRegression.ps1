@@ -109,7 +109,7 @@ function Get-KeywordScore {
     $expWords = ($Expected.ToLower() -split '\W+') | Where-Object { $_.Length -gt 3 } | Sort-Object -Unique
     if ($expWords.Count -eq 0) { return 1.0 }
     $gotLower = $Got.ToLower()
-    $hits = ($expWords | Where-Object { $gotLower -contains $_ -or $gotLower -match [regex]::Escape($_) }).Count
+    $hits = @($expWords | Where-Object { $gotLower -contains $_ -or $gotLower -match [regex]::Escape($_) }).Count
     return [math]::Round($hits / $expWords.Count, 4)
 }
 

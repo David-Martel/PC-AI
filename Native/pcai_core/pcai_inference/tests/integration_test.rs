@@ -30,7 +30,7 @@
 //! Alternatively, install a model via Ollama or LM Studio, and the tests
 //! will automatically discover it.
 
-use pcai_inference::{backends::*, config::*, Error, Result};
+use pcai_inference_lib::{backends::*, config::*, Error, Result};
 
 #[cfg(feature = "ffi")]
 use std::ffi::CString;
@@ -44,7 +44,7 @@ mod common;
 /// Macro to skip tests that require a real model file
 ///
 /// Usage:
-/// ```
+/// ```ignore
 /// #[test]
 /// fn test_with_model() {
 ///     require_model!();
@@ -207,7 +207,7 @@ fn test_error_types() {
 #[cfg(feature = "llamacpp")]
 #[test]
 fn test_llamacpp_backend_creation() {
-    use pcai_inference::backends::llamacpp::LlamaCppBackend;
+    use pcai_inference_lib::backends::llamacpp::LlamaCppBackend;
 
     let backend = LlamaCppBackend::new();
     assert_eq!(backend.backend_name(), "llama.cpp");
@@ -217,7 +217,7 @@ fn test_llamacpp_backend_creation() {
 #[cfg(feature = "llamacpp")]
 #[test]
 fn test_llamacpp_backend_with_config() {
-    use pcai_inference::backends::llamacpp::LlamaCppBackend;
+    use pcai_inference_lib::backends::llamacpp::LlamaCppBackend;
 
     let backend = LlamaCppBackend::with_config(32, 4096, 512);
     assert_eq!(backend.backend_name(), "llama.cpp");
@@ -227,7 +227,7 @@ fn test_llamacpp_backend_with_config() {
 #[cfg(feature = "mistralrs-backend")]
 #[test]
 fn test_mistralrs_backend_creation() {
-    use pcai_inference::backends::mistralrs::MistralRsBackend;
+    use pcai_inference_lib::backends::mistralrs::MistralRsBackend;
 
     let backend = MistralRsBackend::new();
     assert_eq!(backend.backend_name(), "mistral.rs");
@@ -321,7 +321,7 @@ async fn test_backend_generate_without_model_fails() {
 #[cfg(feature = "llamacpp")]
 #[tokio::test]
 async fn test_llamacpp_load_nonexistent_file_fails() {
-    use pcai_inference::backends::llamacpp::LlamaCppBackend;
+    use pcai_inference_lib::backends::llamacpp::LlamaCppBackend;
 
     let mut backend = LlamaCppBackend::new();
     let result = backend.load_model("/nonexistent/model.gguf").await;
@@ -331,7 +331,7 @@ async fn test_llamacpp_load_nonexistent_file_fails() {
 #[cfg(feature = "mistralrs-backend")]
 #[tokio::test]
 async fn test_mistralrs_load_nonexistent_file_fails() {
-    use pcai_inference::backends::mistralrs::MistralRsBackend;
+    use pcai_inference_lib::backends::mistralrs::MistralRsBackend;
 
     let mut backend = MistralRsBackend::new();
     let result = backend.load_model("/nonexistent/model.gguf").await;
@@ -345,7 +345,7 @@ async fn test_mistralrs_load_nonexistent_file_fails() {
 #[cfg(feature = "llamacpp")]
 #[tokio::test]
 async fn test_llamacpp_generate_with_model() {
-    use pcai_inference::backends::llamacpp::LlamaCppBackend;
+    use pcai_inference_lib::backends::llamacpp::LlamaCppBackend;
 
     require_model!();
 
@@ -375,7 +375,7 @@ async fn test_llamacpp_generate_with_model() {
 #[cfg(feature = "mistralrs-backend")]
 #[tokio::test]
 async fn test_mistralrs_generate_with_model() {
-    use pcai_inference::backends::mistralrs::MistralRsBackend;
+    use pcai_inference_lib::backends::mistralrs::MistralRsBackend;
 
     require_model!();
 
@@ -408,7 +408,7 @@ async fn test_mistralrs_generate_with_model() {
 #[cfg(feature = "ffi")]
 mod ffi_tests {
     use super::*;
-    use pcai_inference::ffi::*;
+    use pcai_inference_lib::ffi::*;
 
     #[test]
     fn test_ffi_init_null_backend() {
@@ -554,7 +554,7 @@ mod ffi_tests {
 
     #[test]
     fn test_ffi_last_error_no_error() {
-        use pcai_inference::ffi::pcai_last_error;
+        use pcai_inference_lib::ffi::pcai_last_error;
 
         // Clear any previous errors by calling shutdown
         pcai_shutdown();
@@ -618,7 +618,7 @@ mod ffi_tests {
 #[tokio::test]
 #[ignore]
 async fn stress_test_sequential_generations() {
-    use pcai_inference::backends::llamacpp::LlamaCppBackend;
+    use pcai_inference_lib::backends::llamacpp::LlamaCppBackend;
 
     require_model!();
 
@@ -653,7 +653,7 @@ async fn stress_test_backend_switching() {
 
     // Test llamacpp
     {
-        use pcai_inference::backends::llamacpp::LlamaCppBackend;
+        use pcai_inference_lib::backends::llamacpp::LlamaCppBackend;
         let mut backend = LlamaCppBackend::new();
         backend
             .load_model(&model_path)
@@ -674,7 +674,7 @@ async fn stress_test_backend_switching() {
 
     // Test mistralrs
     {
-        use pcai_inference::backends::mistralrs::MistralRsBackend;
+        use pcai_inference_lib::backends::mistralrs::MistralRsBackend;
         let mut backend = MistralRsBackend::new();
         backend
             .load_model(&model_path)

@@ -1,0 +1,68 @@
+[workspace]
+resolver = "2"
+
+# The three FunctionGemma crates. These paths are why this manifest lives at
+# Deploy/ rather than at Deploy/rust-functiongemma/, where it used to be: Cargo
+# requires every workspace member to be hierarchically BELOW the workspace root,
+# and the old root listed its members as "../rust-functiongemma-*". That is not a
+# style problem -- it is a hard error, and the workspace did not resolve at all:
+#
+#   error: workspace member `...\rust-functiongemma-runtime\Cargo.toml` is not
+#          hierarchically below the workspace root `...\rust-functiongemma\Cargo.toml`
+#
+# Everything that pointed at that root inherited the failure: Build.ps1's
+# 'functiongemma-workspace' lint/build target, the Dependabot cargo entry for
+# /Deploy/rust-functiongemma (which therefore never produced an update PR for any
+# of these crates), and the rust-guidelines workflow entry, which had been
+# commented out rather than fixed.
+members = [
+    "rust-functiongemma-core",
+    "rust-functiongemma-runtime",
+    "rust-functiongemma-train",
+]
+
+# Deploy/vendor holds `cargo vendor` output (candle-flash-attn, candle-kernels),
+# which carries its own Cargo.toml files. Without this they would be pulled in as
+# path dependencies of the workspace and conflict with the registry versions.
+exclude = ["vendor"]
+
+# Hoisted here from rust-functiongemma-core and rust-functiongemma-train, which
+# each carried an identical copy. Cargo only honours [patch] at the workspace
+# root and warns that it is "ignored" anywhere else, so once these crates became
+# real members their local copies would have stopped applying -- silently
+# swapping the patched CUDA kernels for the unpatched crates.io ones.
+[patch.crates-io]
+# Patched build.rs: adds --compiler-options /Zc:preprocessor for CUDA 13+ CCCL on MSVC.
+# Without this, nvcc fails with "MSVC/cl.exe with traditional preprocessor is used."
+candle-kernels = { path = "vendor/candle-kernels-0.9.2" }
+candle-flash-attn = { path = "vendor/candle-flash-attn-0.9.2" }
+
+# NOTE: not one of the three members currently uses `workspace = true` for any
+# dependency -- every crate declares its own versions -- so this table is inert.
+# It is kept because it records the intended shared versions, but do not read it
+# as something Cargo is enforcing today. Either the members adopt
+# `dep.workspace = true` or this table should go; leaving policy that looks
+# applied but is not is the same trap that hid the crate lint policy for months.
+# Tracked in TODO.md.
+[workspace.dependencies]
+anyhow = "1.0.100"
+axum = "0.7"
+tokio = { version = "1.41", features = ["rt-multi-thread", "macros"] }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.149"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+minijinja = "2"
+tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"] }
+hf-hub = "0.3"
+safetensors = "0.4"
+candle-core = { version = "0.9.2", features = ["cuda"] }
+candle-nn = { version = "0.9.2", features = ["cuda"] }
+candle-transformers = { version = "0.9.2", features = ["cuda"] }
+clap = { version = "4.5.23", features = ["derive"] }
+itertools = "0.14.0"
+rand = "0.8.5"
+memmap2 = "0.9.5"
+reqwest = { version = "0.12", features = ["json"] }
+rust-functiongemma-train = { path = "rust-functiongemma-train" }
+sysinfo = "0.38"

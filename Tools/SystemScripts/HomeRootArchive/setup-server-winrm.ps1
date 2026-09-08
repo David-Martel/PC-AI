@@ -369,8 +369,7 @@ function Set-WinRMSettings {
 
     foreach ($s in $settings) {
         try {
-            $cmd = "winrm set $($s.Path) '@{$($s.Setting)=`"$($s.Value)`"}' 2>&1"
-            $result = Invoke-Expression $cmd
+            $result = & winrm set $s.Path "@{$($s.Setting)=`"$($s.Value)`"}" 2>&1
 
             if ($result -match 'cannot be changed.*GPO|controlled by policies') {
                 Write-Status "$($s.Setting) is GPO-controlled - skipped" -Type Warning

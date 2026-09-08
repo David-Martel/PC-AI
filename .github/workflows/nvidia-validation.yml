@@ -50,12 +50,16 @@ jobs:
       - name: Install Pester 5
         shell: pwsh
         # Pin to the same minimum version used in ci.yml for consistency.
-        run: Install-Module Pester -MinimumVersion 5.6.1 -Force -Scope CurrentUser
+        run: Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser
 
       - name: Import PC-AI.Gpu Module
         shell: pwsh
         run: |
-          $manifestPath = 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
+          # Must be absolute (or .\-prefixed). Import-Module treats a bare
+          # relative path as a module NAME and searches PSModulePath, so it
+          # reports "no valid module file was found in any module directory"
+          # for a manifest that Test-Path just confirmed exists.
+          $manifestPath = Join-Path $PWD 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
           if (-not (Test-Path $manifestPath)) {
             Write-Error "Module manifest not found: $manifestPath"
             exit 1

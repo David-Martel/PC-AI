@@ -6,7 +6,12 @@
     CompanyName = 'PC_AI'
     Copyright = '(c) 2025 PC_AI Framework. All rights reserved.'
     Description = 'WSL2, Hyper-V, and Docker diagnostics and optimization for PC-AI framework.'
-    PowerShellVersion = '5.1'
+    # PC-AI.Virtualization.psm1 opens with `#Requires -PSEdition Core`, so this
+    # module cannot load on Windows PowerShell 5.1. The manifest previously
+    # claimed 5.1 with no CompatiblePSEditions, which is a contract the module
+    # cannot honour -- the first real 5.1 run failed on that #requires.
+    PowerShellVersion = '7.0'
+    CompatiblePSEditions = @('Core')
     FunctionsToExport = @(
         'Get-WSLStatus',
         'Optimize-WSLConfig',

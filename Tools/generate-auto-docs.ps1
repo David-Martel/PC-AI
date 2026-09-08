@@ -241,7 +241,14 @@ if ($IncludePowerShell) {
 # C# docs (XML)
 # -----------------------------------------------------------------------------
 if ($IncludeCSharp) {
-    $csproj = rg --files -g '*.csproj' (Join-Path $RepoRoot 'Native')
+    # `rg --files` was used purely to enumerate .csproj files. ripgrep is not
+    # installed on GitHub-hosted runners, so this raised CommandNotFoundException
+    # and took down the Generate Auto Docs step. Get-ChildItem needs no external
+    # binary and there is no performance argument for one directory.
+    $csproj = @(
+        Get-ChildItem -Path (Join-Path $RepoRoot 'Native') -Recurse -Filter '*.csproj' -File -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty FullName
+    )
     $csDocs = @()
     foreach ($proj in $csproj) {
         $projectName = [System.IO.Path]::GetFileNameWithoutExtension($proj)

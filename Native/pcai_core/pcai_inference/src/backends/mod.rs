@@ -207,10 +207,7 @@ mod tests {
     fn test_backend_type_no_features() {
         // With no backend features enabled, BackendType has no variants,
         // so we can't construct one. The enum is effectively empty.
-        // This test verifies the module compiles correctly without backends.
-        assert!(
-            true,
-            "BackendType correctly has no constructible variants without features"
-        );
+        // This test verifies the module compiles correctly without backends —
+        // reaching this point at runtime is the assertion.
     }
 }

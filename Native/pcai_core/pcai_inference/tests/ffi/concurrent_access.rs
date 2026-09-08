@@ -10,7 +10,7 @@ use std::ffi::CString;
 use std::sync::Arc;
 use std::thread;
 
-use pcai_inference::ffi::{pcai_init, pcai_last_error, pcai_shutdown};
+use pcai_inference_lib::ffi::{pcai_init, pcai_last_error, pcai_shutdown};
 
 /// Test that concurrent shutdown calls don't crash
 #[test]
@@ -118,7 +118,7 @@ fn test_rapid_init_shutdown_cycling() {
 #[cfg(feature = "llamacpp")]
 mod llamacpp_concurrent_tests {
     use super::*;
-    use pcai_inference::ffi::pcai_generate;
+    use pcai_inference_lib::ffi::pcai_generate;
     use std::ffi::CString;
     use std::ptr;
 

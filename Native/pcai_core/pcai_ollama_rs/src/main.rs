@@ -27,8 +27,6 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Debug, Deserialize, Default)]
 struct RootConfig {
-    #[serde(default, rename = "fallbackOrder")]
-    fallback_order: Vec<String>,
     #[serde(default)]
     ollama: OllamaConfig,
     #[serde(default)]
@@ -62,13 +60,7 @@ struct RouterConfig {
 #[derive(Debug, Deserialize, Default, Clone)]
 struct OllamaConfig {
     #[serde(default)]
-    enabled: bool,
-    #[serde(default)]
     model: String,
-    #[serde(default, rename = "tool_model")]
-    tool_model: String,
-    #[serde(default, rename = "summary_model")]
-    summary_model: String,
     #[serde(default, rename = "base_url")]
     base_url: String,
     #[serde(default, rename = "timeout_ms")]
@@ -109,18 +101,10 @@ struct OllamaConfig {
     tfs_z: f32,
     #[serde(default, rename = "seed")]
     seed: i32,
-    #[serde(default, rename = "auto_detect_models")]
-    auto_detect_models: bool,
-    #[serde(default, rename = "required_models")]
-    required_models: Vec<String>,
-    #[serde(default, rename = "warm_models_on_start")]
-    warm_models_on_start: bool,
     #[serde(default, rename = "auto_pull_missing_models")]
     auto_pull_missing_models: bool,
     #[serde(default, rename = "strict_model_selection")]
     strict_model_selection: bool,
-    #[serde(default, rename = "cliSearchPaths")]
-    cli_search_paths: Vec<String>,
     #[serde(default, rename = "toolInvokerPath")]
     tool_invoker_path: String,
 }
@@ -279,21 +263,6 @@ struct TimingSummary {
     prompt_eval_count: u64,
     eval_count: u64,
     eval_duration_ns: u64,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct ToolCatalog {
-    tools: Vec<ConfiguredTool>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct ConfiguredTool {
-    function: ConfiguredFunction,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct ConfiguredFunction {
-    name: String,
 }
 
 fn read_json_text(path: &Path) -> Result<String> {

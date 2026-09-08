@@ -43,9 +43,7 @@ param(
 )
 
 function Test-Admin {
-    $isAdmin = ([Security.Principal.WindowsPrincipal]
-        [Security.Principal.WindowsIdentity]::GetCurrent()
-    ).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
     if (-not $isAdmin) { throw "This script must be run as Administrator." }
 }
 
@@ -63,7 +61,7 @@ function Get-VolumeInfo {
         $_.DriveType -eq 'Fixed' -and $_.FileSystem -in @('NTFS','ReFS')
     }
 
-    foreach ($v in $vols) {
+    $(foreach ($v in $vols) {
         $diskNumber = $null; $busType = $null; $mediaType = $null
         try {
             if ($v.DriveLetter) {
@@ -90,7 +88,7 @@ function Get-VolumeInfo {
             MediaType     = $mediaType
             IsSsdLike     = $isSsdLike
         }
-    } | Sort-Object DriveLetter, Path
+    }) | Sort-Object DriveLetter, Path
 }
 
 function Optimize-OneVolume {
@@ -114,7 +112,7 @@ function Optimize-OneVolume {
                 if ($Vol.DriveLetter) { Optimize-Volume -DriveLetter $Vol.DriveLetter -Analyze -Verbose -ErrorAction Stop }
                 else                  { Optimize-Volume -Path $Vol.Path -Analyze -Verbose -ErrorAction Stop }
             } catch {
-                Write-Warning "Analyze failed on $target: $($_.Exception.Message)"
+                Write-Warning "Analyze failed on ${target}: $($_.Exception.Message)"
             }
         }
     }
@@ -131,7 +129,7 @@ function Optimize-OneVolume {
                     if ($Vol.DriveLetter) { Optimize-Volume -DriveLetter $Vol.DriveLetter -Verbose -ErrorAction Stop }
                     else                  { Optimize-Volume -Path $Vol.Path -Verbose -ErrorAction Stop }
                 } catch {
-                    Write-Error "Optimize failed on $target: $($_.Exception.Message)"
+                    Write-Error "Optimize failed on ${target}: $($_.Exception.Message)"
                 }
             }
         }
@@ -142,7 +140,7 @@ function Optimize-OneVolume {
                 if ($Vol.DriveLetter) { Optimize-Volume -DriveLetter $Vol.DriveLetter -Verbose -ErrorAction Stop }
                 else                  { Optimize-Volume -Path $Vol.Path -Verbose -ErrorAction Stop }
             } catch {
-                Write-Error "Optimize failed on $target: $($_.Exception.Message)"
+                Write-Error "Optimize failed on ${target}: $($_.Exception.Message)"
             }
         }
     }

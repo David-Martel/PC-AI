@@ -11,7 +11,7 @@ Describe "PC-AI USB High-Fidelity Diagnostics (Phase 6)" {
             throw "Cannot find test helper: $resolveHelper"
         }
         $PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
-        Import-Module (Join-Path $PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1") -Force
+        Import-Module (Join-Path $PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1") -Force
         Import-Module (Join-Path $PcaiRoot "Modules\PC-AI.USB\PC-AI.USB.psd1") -Force
     }
 

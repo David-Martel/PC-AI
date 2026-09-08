@@ -259,6 +259,10 @@ function Test-PcaiGpuReadiness {
             }
 
             Write-Verbose "Preflight CLI: $perfExe $($cliArgs -join ' ')"
+            # Zero first -- see Get-NvidiaGpuUtilization. Without it a stale code
+            # greater than 2 makes the throw below fire for a command that never
+            # ran, turning an unrelated earlier failure into a GPU readiness error.
+            $global:LASTEXITCODE = 0
             $rawOutput = & $perfExe @cliArgs 2>&1
 
             # pcai-perf exits 0=go, 1=warn, 2=fail -- all are valid.

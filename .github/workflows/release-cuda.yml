@@ -209,51 +209,67 @@ jobs:
             Copy-Item "$targetDir\pcai_inference_lib.dll" -Destination $stagingDir -Force
           }
 
-          # Create README
-          $cudaText = if ($cuda) { @"
+          # Create README.
+          #
+          # DO NOT use a PowerShell here-string here. A here-string terminator
+          # ("@) must sit at column 0, which breaks out of this YAML block
+          # scalar and makes the whole file invalid YAML -- the previous version
+          # of this step did exactly that, so release-cuda.yml could never be
+          # loaded and this release workflow had never run once. Build the text
+          # from an indented array instead.
+          $readmeLines = @(
+            "# PC-AI Inference Engine - $backend ($variant)"
+            ''
+            'Pre-compiled binary for Windows x64.'
+            ''
+            '## Files'
+            "- $binName.exe - Main inference server executable"
+            '- pcai_inference*.dll - Shared library for FFI integration'
+            ''
+            '## Usage'
+            ''
+            'Start the server:'
+            '```powershell'
+            ".\$binName.exe --model path\to\model.gguf --port 8080"
+            '```'
+            ''
+            'Check health:'
+            '```powershell'
+            'Invoke-RestMethod http://127.0.0.1:8080/health'
+            '```'
+          )
 
-## CUDA Requirements
-- NVIDIA GPU (RTX 20/30/40 series or newer)
-- CUDA Toolkit 13.x runtime (cudart64_13.dll)
-- Supported GPU architectures: SM 75 (Turing), SM 80/86 (Ampere), SM 89 (Ada)
-"@ } else { '' }
+          if ($cuda) {
+            $readmeLines += @(
+              ''
+              '## CUDA Requirements'
+              '- NVIDIA GPU (RTX 20/30/40 series or newer)'
+              '- CUDA Toolkit 13.x runtime (cudart64_13.dll)'
+              '- Supported GPU architectures: SM 75 (Turing), SM 80/86 (Ampere), SM 89 (Ada), SM 120 (Blackwell)'
+            )
+          }
 
-          $readme = @"
-# PC-AI Inference Engine - $backend ($variant)
+          $readmeLines += @(
+            ''
+            '## System Requirements'
+            '- Windows 10/11 x64'
+            '- x64 CPU with AVX2 support'
+          )
+          if (-not $cuda) { $readmeLines += '- No GPU required' }
 
-Pre-compiled binary for Windows x64.
+          $readmeLines += @(
+            ''
+            '## API Endpoints'
+            '- GET  /health - Health check'
+            '- GET  /v1/models - List loaded models'
+            '- POST /v1/completions - Generate completions'
+            '- POST /v1/chat/completions - Chat completions (OpenAI-compatible)'
+            ''
+            '## More Information'
+            'See https://github.com/${{ github.repository }} for full documentation.'
+          )
 
-## Files
-- $binName.exe - Main inference server executable
-- pcai_inference*.dll - Shared library for FFI integration
-
-## Usage
-
-Start the server:
-``````powershell
-.\$binName.exe --model path\to\model.gguf --port 8080
-``````
-
-Check health:
-``````powershell
-Invoke-RestMethod http://127.0.0.1:8080/health
-``````
-$cudaText
-
-## System Requirements
-- Windows 10/11 x64
-- x64 CPU with AVX2 support$(if (-not $cuda) { "`n- No GPU required" })
-
-## API Endpoints
-- GET  /health - Health check
-- GET  /v1/models - List loaded models
-- POST /v1/completions - Generate completions
-- POST /v1/chat/completions - Chat completions (OpenAI-compatible)
-
-## More Information
-See https://github.com/${{ github.repository }} for full documentation.
-"@
-
+          $readme = $readmeLines -join "`r`n"
           $readme | Out-File -FilePath "$stagingDir\README.txt" -Encoding UTF8
 
           # Create ZIP

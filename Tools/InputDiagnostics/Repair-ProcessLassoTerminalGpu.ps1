@@ -41,6 +41,8 @@ function Test-IsElevated {
         ).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
 function Restart-Governor {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
     $svc = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'ProcessGovernor|Lasso' } | Select-Object -First 1
     if ($svc) {
         if ($PSCmdlet.ShouldProcess($svc.Name, 'Restart Process Governor')) {

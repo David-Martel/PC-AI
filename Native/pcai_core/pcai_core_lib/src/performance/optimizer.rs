@@ -737,8 +737,10 @@ mod tests {
 
     #[test]
     fn test_memory_pressure_to_json_label() {
-        let mut report = MemoryPressureReport::default();
-        report.status = PcaiStatus::Success;
+        let mut report = MemoryPressureReport {
+            status: PcaiStatus::Success,
+            ..Default::default()
+        };
 
         report.pressure_level = 0;
         assert_eq!(memory_pressure_to_json(&report).pressure_label, "low");

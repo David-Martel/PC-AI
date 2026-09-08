@@ -2,8 +2,19 @@
 
 BeforeAll {
     $script:ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $script:ModulePath = Join-Path $script:ProjectRoot 'Modules\PC-AI.Gpu\PC-AI.Gpu.psm1'
+    $script:ModulePath = Join-Path $script:ProjectRoot 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
     $script:PsdPath = Join-Path $script:ProjectRoot 'Modules\PC-AI.Gpu\PC-AI.Gpu.psd1'
+
+    # Pester's Mock binds to an EXISTING command to copy its parameter metadata,
+    # so `Mock nvidia-smi.exe` throws "Could not find Command nvidia-smi.exe" on a
+    # machine with no NVIDIA driver -- which is every GitHub windows-latest runner.
+    # These tests therefore only ever passed on a box that has the real driver.
+    # Declare a global stub when the real exe is absent so Mock has something to
+    # replace. It is defined here, before any Mock of Get-Command is in effect,
+    # because a mocked Get-Command would otherwise fake the availability answer.
+    if (-not (Get-Command 'nvidia-smi.exe' -ErrorAction SilentlyContinue)) {
+        function global:nvidia-smi.exe { throw 'nvidia-smi.exe stub invoked without a mock' }
+    }
 
     $script:TempDir = Join-Path $env:TEMP "pcai_gpu_tests_$(New-Guid)"
     New-Item -ItemType Directory -Path $script:TempDir -Force | Out-Null
@@ -88,6 +99,14 @@ BeforeAll {
 }
 '@ | Set-Content -Path $script:SoftwareRegistryPath -Encoding UTF8
 
+    # Evict any copy already loaded by an earlier suite before importing.
+    # `Import-Module -Force` re-imports, but it does NOT remove a copy that
+    # was loaded from a different path, so two modules of the same name can
+    # coexist. Pester then refuses to mock into either -- "Multiple script or
+    # manifest modules named 'X' are currently loaded" -- and every mocked
+    # call falls through to the real cmdlet. That is why these files pass in
+    # isolation and fail in a full run.
+    Get-Module 'PC-AI.Gpu' -All | Remove-Module -Force -ErrorAction SilentlyContinue
     Import-Module $script:ModulePath -Force -ErrorAction Stop
 }
 
@@ -193,6 +212,13 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast', 'Portable' {
             Mock -CommandName Get-CudaVersionFromPath -ModuleName 'PC-AI.Gpu' -MockWith { '13.2.0' }
             Mock -CommandName Get-CudnnVersionFromHeader -ModuleName 'PC-AI.Gpu' -MockWith { '9.8.0' }
             Mock -CommandName Get-TensorRtVersionFromHeader -ModuleName 'PC-AI.Gpu' -MockWith { '10.9.0' }
+            # Get-NvidiaSoftwareStatus guards the side-by-side scan with
+            # `if (Test-Path $cudaRoot)`, so mocking Get-ChildItem alone is not
+            # enough: without a real CUDA install at the canonical path the guard
+            # is false and the mock below is never reached, leaving
+            # SideBySideCount at 0. That made this assertion pass only on a
+            # machine that happens to have CUDA installed.
+            Mock -CommandName Test-Path -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Path -eq 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA' } -MockWith { $true }
             Mock -CommandName Get-ChildItem -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Path -eq 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA' } -MockWith {
                 @(
                     [pscustomobject]@{ Name = 'v13.1' },

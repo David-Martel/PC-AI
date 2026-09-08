@@ -20,6 +20,12 @@ Describe 'Get-LLMStatus' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
     Context 'When pcai-inference is running and accessible' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $true } -ModuleName PC-AI.LLM
+            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
+            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
+            # latter was mocked, so the real connection probe ran and threw "Cannot
+            # reach the native Ollama runner". Mock both so the intent -- connection
+            # reachable or not -- actually reaches the code under test.
+            Mock Test-OllamaConnection { $true } -ModuleName PC-AI.LLM
             Mock Get-OllamaModels {
                 @(
                     [PSCustomObject]@{ Name = 'pcai-inference' }
@@ -44,6 +50,12 @@ Describe 'Get-LLMStatus' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
     Context 'When pcai-inference is not running' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $false } -ModuleName PC-AI.LLM
+            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
+            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
+            # latter was mocked, so the real connection probe ran and threw "Cannot
+            # reach the native Ollama runner". Mock both so the intent -- connection
+            # reachable or not -- actually reaches the code under test.
+            Mock Test-OllamaConnection { $false } -ModuleName PC-AI.LLM
         }
 
         It 'Should detect pcai-inference is not available' {
@@ -56,6 +68,12 @@ Describe 'Get-LLMStatus' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
     Context 'When checking available models' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $true } -ModuleName PC-AI.LLM
+            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
+            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
+            # latter was mocked, so the real connection probe ran and threw "Cannot
+            # reach the native Ollama runner". Mock both so the intent -- connection
+            # reachable or not -- actually reaches the code under test.
+            Mock Test-OllamaConnection { $true } -ModuleName PC-AI.LLM
             Mock Get-OllamaModels {
                 @(
                     [PSCustomObject]@{ Name = 'llama3.2:latest' }
@@ -76,6 +94,12 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
     Context 'When sending a successful request' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $true } -ModuleName PC-AI.LLM
+            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
+            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
+            # latter was mocked, so the real connection probe ran and threw "Cannot
+            # reach the native Ollama runner". Mock both so the intent -- connection
+            # reachable or not -- actually reaches the code under test.
+            Mock Test-OllamaConnection { $true } -ModuleName PC-AI.LLM
             Mock Get-OllamaModels {
                 @([PSCustomObject]@{ Name = 'llama3.2:latest' })
             } -ModuleName PC-AI.LLM
@@ -83,7 +107,11 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
                 return [PSCustomObject]@{
                     model   = 'llama3.2:latest'
                     created = 123
-                    choices = @(@{ text = 'OK' })
+                    # Must match the shape Invoke-OllamaNativeChat actually returns.
+                    # Send-OllamaRequest reads $response.message.content; the previous
+                    # OpenAI-completions shape (choices[].text) is never produced by
+                    # this code path, so .Response came back $null.
+                    message = [PSCustomObject]@{ content = 'OK' }
                     usage   = @{ prompt_tokens = 5; completion_tokens = 5; total_tokens = 10 }
                 }
             } -ModuleName PC-AI.LLM
@@ -119,6 +147,12 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
     Context 'When model is not available' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $true } -ModuleName PC-AI.LLM
+            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
+            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
+            # latter was mocked, so the real connection probe ran and threw "Cannot
+            # reach the native Ollama runner". Mock both so the intent -- connection
+            # reachable or not -- actually reaches the code under test.
+            Mock Test-OllamaConnection { $true } -ModuleName PC-AI.LLM
             Mock Get-OllamaModels {
                 @([PSCustomObject]@{ Name = 'llama3.2:latest' })
             } -ModuleName PC-AI.LLM
@@ -126,7 +160,11 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
                 return [PSCustomObject]@{
                     model   = 'nonexistent:latest'
                     created = 123
-                    choices = @(@{ text = 'OK' })
+                    # Must match the shape Invoke-OllamaNativeChat actually returns.
+                    # Send-OllamaRequest reads $response.message.content; the previous
+                    # OpenAI-completions shape (choices[].text) is never produced by
+                    # this code path, so .Response came back $null.
+                    message = [PSCustomObject]@{ content = 'OK' }
                 }
             } -ModuleName PC-AI.LLM
             Mock Write-Warning {} -ModuleName PC-AI.LLM
@@ -141,6 +179,12 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
     Context 'When using system message' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $true } -ModuleName PC-AI.LLM
+            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
+            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
+            # latter was mocked, so the real connection probe ran and threw "Cannot
+            # reach the native Ollama runner". Mock both so the intent -- connection
+            # reachable or not -- actually reaches the code under test.
+            Mock Test-OllamaConnection { $true } -ModuleName PC-AI.LLM
             Mock Get-OllamaModels {
                 @([PSCustomObject]@{ Name = 'llama3.2:latest' })
             } -ModuleName PC-AI.LLM
@@ -148,7 +192,11 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
                 return [PSCustomObject]@{
                     model   = 'llama3.2:latest'
                     created = 123
-                    choices = @(@{ text = 'OK' })
+                    # Must match the shape Invoke-OllamaNativeChat actually returns.
+                    # Send-OllamaRequest reads $response.message.content; the previous
+                    # OpenAI-completions shape (choices[].text) is never produced by
+                    # this code path, so .Response came back $null.
+                    message = [PSCustomObject]@{ content = 'OK' }
                 }
             } -ModuleName PC-AI.LLM
         }
@@ -165,6 +213,12 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
     Context 'When setting temperature' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $true } -ModuleName PC-AI.LLM
+            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
+            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
+            # latter was mocked, so the real connection probe ran and threw "Cannot
+            # reach the native Ollama runner". Mock both so the intent -- connection
+            # reachable or not -- actually reaches the code under test.
+            Mock Test-OllamaConnection { $true } -ModuleName PC-AI.LLM
             Mock Get-OllamaModels {
                 @([PSCustomObject]@{ Name = 'llama3.2:latest' })
             } -ModuleName PC-AI.LLM
@@ -172,7 +226,11 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
                 return [PSCustomObject]@{
                     model   = 'llama3.2:latest'
                     created = 123
-                    choices = @(@{ text = 'OK' })
+                    # Must match the shape Invoke-OllamaNativeChat actually returns.
+                    # Send-OllamaRequest reads $response.message.content; the previous
+                    # OpenAI-completions shape (choices[].text) is never produced by
+                    # this code path, so .Response came back $null.
+                    message = [PSCustomObject]@{ content = 'OK' }
                 }
             } -ModuleName PC-AI.LLM
         }
@@ -189,6 +247,12 @@ Describe 'Send-OllamaRequest' -Tag 'Unit', 'LLM', 'Slow', 'Portable' {
     Context 'When Ollama is not responding' {
         BeforeAll {
             Mock Test-PcaiInferenceConnection { $false } -ModuleName PC-AI.LLM
+            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
+            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
+            # latter was mocked, so the real connection probe ran and threw "Cannot
+            # reach the native Ollama runner". Mock both so the intent -- connection
+            # reachable or not -- actually reaches the code under test.
+            Mock Test-OllamaConnection { $false } -ModuleName PC-AI.LLM
         }
 
         It 'Should handle timeout errors' {
@@ -375,8 +439,37 @@ WDC HDD: Pred Fail
 Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
     Context 'When configuring LLM settings' {
         BeforeAll {
+            # Set-LLMConfig WRITES its target file. Left alone, these tests
+            # rewrote the repo's own Config\llm-config.json -- six times per
+            # run -- serialising it from the module's model and so dropping
+            # every key that model does not carry (tool_model, summary_model,
+            # toolInvokerPath, the num_gpu tuning block...). Mocking Test-Path
+            # only convinced the module the file was absent; it did not stop
+            # the write. Point the module at a temp file instead, and put the
+            # real path back afterwards.
+            $script:LlmConfigTempDir = Join-Path ([System.IO.Path]::GetTempPath()) "pcai-llm-config-$([guid]::NewGuid())"
+            New-Item -ItemType Directory -Path $script:LlmConfigTempDir -Force | Out-Null
+            $script:LlmConfigTempPath = Join-Path $script:LlmConfigTempDir 'llm-config.json'
+
+            $script:LlmConfigSaved = InModuleScope PC-AI.LLM -Parameters @{ TempPath = $script:LlmConfigTempPath } {
+                param($TempPath)
+                $saved = @{
+                    ConfigPath        = $script:ModuleConfig.ConfigPath
+                    ProjectConfigPath = $script:ModuleConfig.ProjectConfigPath
+                }
+                $script:ModuleConfig.ConfigPath = $TempPath
+                $script:ModuleConfig.ProjectConfigPath = $TempPath
+                $saved
+            }
+
             Mock Test-Path { $false } -ModuleName PC-AI.LLM -ParameterFilter { $Path -match 'config' }
             Mock Test-PcaiInferenceConnection { $false } -ModuleName PC-AI.LLM
+            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
+            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
+            # latter was mocked, so the real connection probe ran and threw "Cannot
+            # reach the native Ollama runner". Mock both so the intent -- connection
+            # reachable or not -- actually reaches the code under test.
+            Mock Test-OllamaConnection { $false } -ModuleName PC-AI.LLM
         }
 
         It 'Should save configuration and return config object' {
@@ -436,6 +529,19 @@ Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
 }
 
 AfterAll {
+    # Put the real config path back before unloading, and clean up the temp
+    # file, so a later suite in the same run cannot inherit the redirect.
+    if ($script:LlmConfigSaved -and (Get-Module PC-AI.LLM)) {
+        InModuleScope PC-AI.LLM -Parameters @{ Saved = $script:LlmConfigSaved } {
+            param($Saved)
+            $script:ModuleConfig.ConfigPath = $Saved.ConfigPath
+            $script:ModuleConfig.ProjectConfigPath = $Saved.ProjectConfigPath
+        }
+    }
+    if ($script:LlmConfigTempDir -and (Test-Path $script:LlmConfigTempDir)) {
+        Remove-Item $script:LlmConfigTempDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     Remove-Module PC-AI.LLM -Force -ErrorAction SilentlyContinue
     Remove-Module MockData -Force -ErrorAction SilentlyContinue
 }

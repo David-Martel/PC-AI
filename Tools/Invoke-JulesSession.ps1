@@ -537,8 +537,8 @@ switch ($Action) {
     }
 
     'GetSource' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SourceId -ParamName 'SourceId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
         $url    = Get-JulesApiUrl -Endpoint 'sources' -Id $SourceId
         $result = Invoke-JulesApi -Url $url -Method 'GET' -ApiKey $apiKey
         if ($Format -eq 'Table') {
@@ -591,8 +591,8 @@ switch ($Action) {
     # Create session
     # -----------------------------------------------------------------------
     'New' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $Prompt -ParamName 'Prompt' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
 
         $body   = New-JulesSessionBody -PromptText $Prompt -SourceName $Source `
                       -BranchName $Branch -SessionTitle $Title `
@@ -606,8 +606,8 @@ switch ($Action) {
     # Session status
     # -----------------------------------------------------------------------
     'Status' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId -ParamName 'SessionId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
 
         $url    = Get-JulesApiUrl -Endpoint 'sessions' -Id $SessionId
         $result = Invoke-JulesApi -Url $url -Method 'GET' -ApiKey $apiKey
@@ -618,8 +618,8 @@ switch ($Action) {
     # Delete session
     # -----------------------------------------------------------------------
     'Delete' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId -ParamName 'SessionId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
 
         $url = Get-JulesApiUrl -Endpoint 'sessions' -Id $SessionId
         Invoke-JulesApi -Url $url -Method 'DELETE' -ApiKey $apiKey | Out-Null
@@ -630,8 +630,8 @@ switch ($Action) {
     # Approve plan
     # -----------------------------------------------------------------------
     'Approve' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId -ParamName 'SessionId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
 
         $url    = Get-JulesApiUrl -Endpoint 'sessions' -Id $SessionId -UrlAction 'approvePlan'
         $result = Invoke-JulesApi -Url $url -Method 'POST' -ApiKey $apiKey
@@ -642,8 +642,8 @@ switch ($Action) {
     # Send message to session
     # -----------------------------------------------------------------------
     'Message' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId -ParamName 'SessionId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $Prompt    -ParamName 'Prompt'    -ForAction $Action
 
         $body   = @{ message = $Prompt }
@@ -656,8 +656,8 @@ switch ($Action) {
     # List activities for a session
     # -----------------------------------------------------------------------
     'ListActivities' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId -ParamName 'SessionId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
 
         $url    = Get-JulesApiUrl -Endpoint 'sessions' -Id $SessionId -Sub 'activities'
         $result = Invoke-JulesApi -Url $url -Method 'GET' -ApiKey $apiKey
@@ -675,8 +675,8 @@ switch ($Action) {
     # Get a specific activity
     # -----------------------------------------------------------------------
     'GetActivity' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId  -ParamName 'SessionId'  -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $ActivityId -ParamName 'ActivityId' -ForAction $Action
 
         $url    = Get-JulesApiUrl -Endpoint 'sessions' -Id $SessionId -Sub "activities/$ActivityId"
@@ -688,8 +688,8 @@ switch ($Action) {
     # Compound: extract plan from activities
     # -----------------------------------------------------------------------
     'GetPlan' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId -ParamName 'SessionId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
 
         $url    = Get-JulesApiUrl -Endpoint 'sessions' -Id $SessionId -Sub 'activities'
         $result = Invoke-JulesApi -Url $url -Method 'GET' -ApiKey $apiKey
@@ -731,8 +731,8 @@ switch ($Action) {
     # Compound: extract patch files from changeSet artifacts
     # -----------------------------------------------------------------------
     'GetPatch' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId -ParamName 'SessionId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
 
         $url    = Get-JulesApiUrl -Endpoint 'sessions' -Id $SessionId -Sub 'activities'
         $result = Invoke-JulesApi -Url $url -Method 'GET' -ApiKey $apiKey
@@ -786,7 +786,11 @@ switch ($Action) {
             }
 
             $patchPath = Join-Path $script:PatchDir $patchName
-            [System.IO.File]::WriteAllText($patchPath, $patchContent, [System.Text.Encoding]::UTF8)
+            # BOM-less: [System.Text.Encoding]::UTF8 writes a byte-order mark, and
+            # `git apply` rejects a patch that starts with one as a corrupt patch.
+            # These files exist to be applied, so the BOM made them unusable for
+            # the one thing they are for.
+            [System.IO.File]::WriteAllText($patchPath, $patchContent, (New-Object System.Text.UTF8Encoding($false)))
             $writtenFiles.Add($patchPath)
             Write-Verbose "Wrote patch: $patchPath"
         }
@@ -798,8 +802,8 @@ switch ($Action) {
     # Compound: extract bash output artifacts
     # -----------------------------------------------------------------------
     'GetBashOutput' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId -ParamName 'SessionId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
 
         $url    = Get-JulesApiUrl -Endpoint 'sessions' -Id $SessionId -Sub 'activities'
         $result = Invoke-JulesApi -Url $url -Method 'GET' -ApiKey $apiKey
@@ -844,8 +848,8 @@ switch ($Action) {
     # Compound: extract media artifacts
     # -----------------------------------------------------------------------
     'GetMedia' {
-        $apiKey = Get-RequiredApiKey -ForAction $Action
         Assert-JulesParam -Value $SessionId -ParamName 'SessionId' -ForAction $Action
+        $apiKey = Get-RequiredApiKey -ForAction $Action
 
         $url    = Get-JulesApiUrl -Endpoint 'sessions' -Id $SessionId -Sub 'activities'
         $result = Invoke-JulesApi -Url $url -Method 'GET' -ApiKey $apiKey

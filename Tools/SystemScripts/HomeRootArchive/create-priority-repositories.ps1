@@ -186,7 +186,7 @@ Scope: Complete project codebase"
         return $true
     }
     catch {
-        Write-Warning "❌ Failed to initialize git for $Name: $_"
+        Write-Warning "❌ Failed to initialize git for ${Name}: $_"
         return $false
     }
     finally {

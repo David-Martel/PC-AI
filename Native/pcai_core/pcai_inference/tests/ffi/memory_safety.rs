@@ -11,7 +11,7 @@
 use std::ffi::{CStr, CString};
 use std::ptr;
 
-use pcai_inference::ffi::{pcai_free_string, pcai_init, pcai_last_error, pcai_shutdown, PcaiErrorCode};
+use pcai_inference_lib::ffi::{pcai_free_string, pcai_init, pcai_last_error, pcai_shutdown, PcaiErrorCode};
 
 /// Test that pcai_free_string handles null safely
 #[test]
@@ -118,7 +118,7 @@ fn test_utf8_error_handling() {
 #[cfg(feature = "llamacpp")]
 mod llamacpp_memory_tests {
     use super::*;
-    use pcai_inference::ffi::{pcai_generate, pcai_load_model};
+    use pcai_inference_lib::ffi::{pcai_generate, pcai_load_model};
 
     /// Test that generate with null prompt returns null safely
     #[test]

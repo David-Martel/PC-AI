@@ -1390,4 +1390,272 @@ mod tests {
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
         assert_eq!(pcai_last_error_code(), -3);
     }
+    // ---------------------------------------------------------------
+    // Helpers
+    //
+    // These tests deliberately exercise the *error* paths. The crate is
+    // compiled here with `--features server,ffi` and no backend feature, so
+    // `pcai_init` can never succeed and the global state never acquires a
+    // backend. That makes "not initialised" the deterministic steady state,
+    // which is what lets these run in parallel: LAST_ERROR is thread-local,
+    // and nothing below ever mutates GLOBAL_STATE into a different shape.
+    // ---------------------------------------------------------------
+
+    fn c(s: &str) -> CString {
+        CString::new(s).expect("test: fixture string must not contain an interior NUL")
+    }
+
+    fn last_error_text() -> Option<String> {
+        let ptr = pcai_last_error();
+        if ptr.is_null() {
+            return None;
+        }
+        Some(
+            unsafe { CStr::from_ptr(ptr) }
+                .to_str()
+                .expect("test: stored error must be valid UTF-8")
+                .to_string(),
+        )
+    }
+
+    // ---------------------------------------------------------------
+    // c_str_from_ptr
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_c_str_from_ptr_rejects_null() {
+        let result = unsafe { c_str_from_ptr(std::ptr::null()) };
+        assert!(result.is_err(), "a null pointer must not be treated as a string");
+    }
+
+    #[test]
+    fn test_c_str_from_ptr_accepts_valid_string() {
+        let owned = c("hello ffi");
+        let result = unsafe { c_str_from_ptr(owned.as_ptr()) };
+        assert_eq!(result.expect("test: valid C string must parse"), "hello ffi");
+    }
+
+    #[test]
+    fn test_c_str_from_ptr_rejects_invalid_utf8() {
+        // 0xFF is not valid UTF-8; the trailing 0 terminates the C string.
+        let raw: [c_char; 3] = [-1i8 as c_char, 0x41 as c_char, 0];
+        let result = unsafe { c_str_from_ptr(raw.as_ptr()) };
+        assert!(
+            result.is_err(),
+            "invalid UTF-8 must be rejected rather than silently lossy-converted"
+        );
+    }
+
+    // ---------------------------------------------------------------
+    // estimate_prompt_tokens
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_estimate_prompt_tokens_empty_is_zero() {
+        assert_eq!(estimate_prompt_tokens(""), 0);
+    }
+
+    #[test]
+    fn test_estimate_prompt_tokens_single_char_is_at_least_one() {
+        assert_eq!(estimate_prompt_tokens("a"), 1);
+    }
+
+    #[test]
+    fn test_estimate_prompt_tokens_uses_word_count_when_larger() {
+        // Eight single-character words: char/4 = 4, word count = 8 -> 8 wins.
+        assert_eq!(estimate_prompt_tokens("a b c d e f g h"), 8);
+    }
+
+    #[test]
+    fn test_estimate_prompt_tokens_uses_char_count_when_larger() {
+        // One long word: char/4 dominates the single-word count.
+        let text = "x".repeat(40);
+        assert_eq!(estimate_prompt_tokens(&text), 10);
+    }
+
+    // ---------------------------------------------------------------
+    // Error storage and codes
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_set_last_error_with_code_roundtrips() {
+        clear_last_error();
+        set_last_error_with_code("backend blew up", PcaiErrorCode::BackendError);
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::BackendError as i32);
+        assert_eq!(last_error_text().as_deref(), Some("backend blew up"));
+        clear_last_error();
+        assert!(last_error_text().is_none());
+    }
+
+    #[test]
+    fn test_enrich_with_gpu_state_preserves_original_message() {
+        let enriched = enrich_with_gpu_state("out of memory");
+        assert!(
+            enriched.contains("out of memory"),
+            "enrichment must not discard the original error: {enriched}"
+        );
+    }
+
+    // ---------------------------------------------------------------
+    // Lifecycle guards before initialisation
+    // ---------------------------------------------------------------
+
+    // Reads process-wide state, so it holds only while no other test in this
+    // binary successfully initialises a backend. Nothing here does today. If you
+    // add a test that inits for real, this one needs serialising against it
+    // rather than deleting -- the guarantee it checks is real.
+    #[test]
+    fn test_is_initialized_is_false_without_backend() {
+        assert_eq!(pcai_is_initialized(), 0);
+    }
+
+    #[test]
+    fn test_is_model_loaded_is_false_without_backend() {
+        assert_eq!(pcai_is_model_loaded(), 0);
+    }
+
+    #[test]
+    fn test_get_backend_name_is_null_without_backend() {
+        assert!(pcai_get_backend_name().is_null());
+    }
+
+    #[test]
+    fn test_shutdown_is_safe_when_never_initialised() {
+        // Must not panic or deadlock.
+        pcai_shutdown();
+        assert_eq!(pcai_is_initialized(), 0);
+    }
+
+    // ---------------------------------------------------------------
+    // pcai_init
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_init_rejects_null_backend_name() {
+        let code = pcai_init(std::ptr::null());
+        assert_eq!(code, PcaiErrorCode::InvalidInput as i32);
+        assert!(last_error_text().is_some(), "a rejected init must record why");
+    }
+
+    // Only meaningful when no backend is compiled in. With `llamacpp` (or
+    // `mistralrs-backend`) enabled, pcai_init("llamacpp") SUCCEEDS, so the
+    // assertion below is false by construction -- and worse, the call leaves the
+    // process-wide runtime initialised, which then breaks
+    // test_is_initialized_is_false_without_backend as a side effect. One
+    // ungated test, two failures. This never surfaced because the llamacpp test
+    // run had never actually executed: Build.ps1 threw on a StrictMode `.Count`
+    // before reaching it.
+    #[cfg(not(any(feature = "llamacpp", feature = "mistralrs-backend")))]
+    #[test]
+    fn test_init_without_backend_feature_reports_invalid_input() {
+        let name = c("llamacpp");
+        let code = pcai_init(name.as_ptr());
+        assert_eq!(code, PcaiErrorCode::InvalidInput as i32);
+        let err = last_error_text().expect("test: failed init must record an error");
+        assert!(err.contains("backend"), "error should name the backend problem: {err}");
+    }
+
+    #[test]
+    fn test_init_rejects_unknown_backend_name() {
+        let name = c("definitely-not-a-backend");
+        assert_eq!(pcai_init(name.as_ptr()), PcaiErrorCode::InvalidInput as i32);
+    }
+
+    // ---------------------------------------------------------------
+    // pcai_load_model
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_load_model_rejects_null_path() {
+        let code = pcai_load_model(std::ptr::null(), 0);
+        assert!(code < 0, "null model path must be an error, got {code}");
+    }
+
+    #[test]
+    fn test_load_model_without_init_is_error() {
+        let path = c("C:/models/does-not-exist.gguf");
+        let code = pcai_load_model(path.as_ptr(), 0);
+        assert!(code < 0, "loading without an initialised backend must fail, got {code}");
+    }
+
+    // ---------------------------------------------------------------
+    // pcai_generate
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_generate_rejects_null_prompt() {
+        let out = pcai_generate(std::ptr::null(), 16, 0.7);
+        assert!(out.is_null());
+        assert!(last_error_text().is_some());
+    }
+
+    #[test]
+    fn test_generate_without_init_returns_null() {
+        let prompt = c("hello");
+        let out = pcai_generate(prompt.as_ptr(), 16, 0.7);
+        assert!(out.is_null(), "generation without a backend must not return a string");
+    }
+
+    #[test]
+    fn test_generate_rejects_oversized_prompt() {
+        let huge = c(&"x".repeat(100 * 1024 + 1));
+        let out = pcai_generate(huge.as_ptr(), 16, 0.7);
+        assert!(out.is_null());
+        let err = last_error_text().expect("test: oversized prompt must record an error");
+        assert!(
+            err.contains("too large"),
+            "error should say the prompt was too large: {err}"
+        );
+    }
+
+    // ---------------------------------------------------------------
+    // Async surface
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_generate_async_rejects_null_prompt() {
+        assert_eq!(pcai_generate_async(std::ptr::null(), 16, 0.7), -1);
+    }
+
+    #[test]
+    fn test_generate_async_rejects_oversized_prompt() {
+        let huge = c(&"y".repeat(100 * 1024 + 1));
+        assert_eq!(pcai_generate_async(huge.as_ptr(), 16, 0.7), -1);
+    }
+
+    #[test]
+    fn test_generate_async_without_init_is_error() {
+        let prompt = c("hello");
+        let id = pcai_generate_async(prompt.as_ptr(), 16, 0.7);
+        assert!(id < 0, "async generation without a backend must fail, got {id}");
+    }
+
+    #[test]
+    fn test_poll_result_for_unknown_request_has_no_text() {
+        let result = pcai_poll_result(i64::MAX);
+        assert!(result.text.is_null(), "an unknown request id must not yield text");
+        assert_eq!(result.tokens_generated, 0);
+    }
+
+    #[test]
+    fn test_cancel_unknown_request_is_error() {
+        assert_eq!(pcai_cancel(i64::MAX), -1);
+    }
+
+    // ---------------------------------------------------------------
+    // pcai_free_string
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_free_string_null_is_noop() {
+        // Must not panic; freeing a null pointer is a documented no-op.
+        pcai_free_string(std::ptr::null_mut());
+    }
+
+    #[test]
+    fn test_free_string_releases_owned_allocation() {
+        let owned = c("to be freed").into_raw();
+        pcai_free_string(owned);
+        // Reaching here without a crash under the test allocator is the assertion.
+    }
 }

@@ -76,6 +76,16 @@
   },
   {
     "Module": "PC-AI.Acceleration",
+    "Function": "Get-ProcessLassoSnapshot",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Acceleration",
+    "Function": "New-ProcessLassoOverlay",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Acceleration",
     "Function": "Invoke-PcaiNativeDuplicates",
     "Type": "Exported"
   },
@@ -90,6 +100,41 @@
     "Type": "Exported"
   },
   {
+    "Module": "PC-AI.Acceleration",
+    "Function": "Invoke-PcaiNativeDirectoryManifest",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Acceleration",
+    "Function": "Invoke-PcaiNativeSystemInfo",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Acceleration",
+    "Function": "Test-PcaiResourceSafety",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Acceleration",
+    "Function": "Get-UnifiedHardwareReportJson",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Acceleration",
+    "Function": "Invoke-PcaiNativeUnifiedHardwareReport",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Acceleration",
+    "Function": "Invoke-PcaiNativeEstimateTokens",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Acceleration",
+    "Function": "Invoke-PcaiNativeProcessLassoSnapshot",
+    "Type": "Exported"
+  },
+  {
     "Module": "PC-AI.Cleanup",
     "Function": "Get-PathDuplicates",
     "Type": "Exported"
@@ -97,6 +142,11 @@
   {
     "Module": "PC-AI.Cleanup",
     "Function": "Repair-MachinePath",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Cleanup",
+    "Function": "Optimize-PathCompression",
     "Type": "Exported"
   },
   {
@@ -141,12 +191,67 @@
   },
   {
     "Module": "PC-AI.CLI",
-    "Function": "Parse-PCArguments",
+    "Function": "ConvertTo-PCArgumentMap",
     "Type": "Exported"
   },
   {
     "Module": "PC-AI.CLI",
     "Function": "Resolve-PCArguments",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Get-PnpDeviceInventory",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Get-DriverRegistry",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Compare-DriverVersion",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Get-DriverReport",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Install-DriverUpdate",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Update-DriverRegistry",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Get-NetworkDiscoverySnapshot",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Find-ThunderboltPeer",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Get-ThunderboltNetworkStatus",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Connect-ThunderboltPeer",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Drivers",
+    "Function": "Set-ThunderboltNetworkOptimization",
     "Type": "Exported"
   },
   {
@@ -196,7 +301,7 @@
   },
   {
     "Module": "PC-AI.Evaluation",
-    "Function": "Evaluate-DiagnosticQuality",
+    "Function": "Measure-DiagnosticQuality",
     "Type": "Exported"
   },
   {
@@ -307,6 +412,51 @@
   {
     "Module": "PC-AI.Evaluation",
     "Function": "Measure-Groundedness",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Gpu",
+    "Function": "Get-NvidiaGpuInventory",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Gpu",
+    "Function": "Get-NvidiaSoftwareRegistry",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Gpu",
+    "Function": "Get-NvidiaSoftwareStatus",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Gpu",
+    "Function": "Get-NvidiaGpuUtilization",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Gpu",
+    "Function": "Get-NvidiaCompatibilityMatrix",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Gpu",
+    "Function": "Initialize-NvidiaEnvironment",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Gpu",
+    "Function": "Install-NvidiaSoftware",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Gpu",
+    "Function": "Update-NvidiaSoftwareRegistry",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Gpu",
+    "Function": "Test-PcaiGpuReadiness",
     "Type": "Exported"
   },
   {
@@ -487,6 +637,21 @@
   {
     "Module": "PC-AI.Performance",
     "Function": "Get-PcaiMemoryStat",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Performance",
+    "Function": "Get-PcaiMemoryPressure",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Performance",
+    "Function": "Get-PcaiProcessCategories",
+    "Type": "Exported"
+  },
+  {
+    "Module": "PC-AI.Performance",
+    "Function": "Get-PcaiOptimizationPlan",
     "Type": "Exported"
   },
   {

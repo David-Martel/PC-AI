@@ -126,7 +126,7 @@ pub fn find_duplicates(
     }
 
     // Sort by wasted bytes descending
-    results.sort_by(|a, b| b.wasted_bytes.cmp(&a.wasted_bytes));
+    results.sort_by_key(|r| std::cmp::Reverse(r.wasted_bytes));
 
     Ok(DuplicateResult {
         status: "Success".to_string(),

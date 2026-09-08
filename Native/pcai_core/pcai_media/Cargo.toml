@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Janus-Pro media pipeline with FFI and HTTP support"
 license = "MIT"
-lints.workspace = true
+rust-version.workspace = true
 
 [lib]
 name = "pcai_media"
@@ -20,9 +20,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tracing = "0.1"
 
-candle-core = { version = "0.9" }
+candle-core = { version = "0.10" }
 candle-nn = "0.10"
-candle-transformers = "0.9"
+candle-transformers = "0.10"
 safetensors = "0.7"
 tokenizers = "0.22"
 image = "0.25"
@@ -74,3 +74,6 @@ optional = true
 
 [dev-dependencies]
 tempfile = "3"
+
+[lints]
+workspace = true

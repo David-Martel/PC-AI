@@ -10,6 +10,14 @@
 
 BeforeAll {
     $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Drivers\PC-AI.Drivers.psd1'
+    # Evict any copy already loaded by an earlier suite before importing.
+    # `Import-Module -Force` re-imports, but it does NOT remove a copy that
+    # was loaded from a different path, so two modules of the same name can
+    # coexist. Pester then refuses to mock into either -- "Multiple script or
+    # manifest modules named 'X' are currently loaded" -- and every mocked
+    # call falls through to the real cmdlet. That is why these files pass in
+    # isolation and fail in a full run.
+    Get-Module 'PC-AI.Drivers' -All | Remove-Module -Force -ErrorAction SilentlyContinue
     Import-Module $ModulePath -Force -ErrorAction Stop
 
     # Build a minimal registry fixture from the real schema
@@ -358,17 +366,29 @@ Describe "Get-DriverReport" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
             $script:TempRegistryPath = Join-Path $TestDrive 'driver-registry.json'
             $script:MockRegistryJson | Set-Content -Path $script:TempRegistryPath -Encoding UTF8
 
-            Mock Get-PnpDeviceInventory {
+            # Get-DriverReport calls Get-PnpDevice and Get-PnpDeviceProperty
+            # DIRECTLY, despite its doc comment claiming it "Orchestrates
+            # Get-PnpDeviceInventory". Mocking the inventory function had no effect
+            # whatsoever -- the real PnP enumeration ran, and this assertion was
+            # decided by whatever hardware the host happens to have. On this
+            # workstation a real Realtek 0BDA:8156 adapter reports exactly the
+            # registry's latestVersion, so Status came back 'Current' against an
+            # expected 'Outdated'. Mock what the function actually calls.
+            Mock Get-PnpDevice {
                 @([PSCustomObject]@{
-                    Name          = 'Realtek RTL8156'
-                    VID           = '0BDA'
-                    PID           = '8156'
-                    PnpClass      = 'Net'
-                    DriverVersion = '1.0.0.0'
-                    InstanceId    = 'USB\VID_0BDA&PID_8156\1'
-                    Manufacturer  = 'Realtek'
-                    Status        = 'OK'
-                })
+                        InstanceId   = 'USB\VID_0BDA&PID_8156\1'
+                        FriendlyName = 'Realtek RTL8156'
+                        Class        = 'Net'
+                        Status       = 'OK'
+                    })
+            } -ModuleName PC-AI.Drivers
+
+            Mock Get-PnpDeviceProperty {
+                switch ($KeyName) {
+                    'DEVPKEY_Device_DriverVersion' { [PSCustomObject]@{ Data = '1.0.0.0' } }
+                    'DEVPKEY_Device_Manufacturer' { [PSCustomObject]@{ Data = 'Realtek' } }
+                    default { $null }
+                }
             } -ModuleName PC-AI.Drivers
         }
 

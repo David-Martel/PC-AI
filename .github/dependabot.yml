@@ -25,6 +25,21 @@ updates:
     groups:
       cargo-pcai-core:
         update-types: ["minor", "patch"]
+    ignore:
+      # sha2 is held on the 0.10 line. RustCrypto 0.11 moves digest output
+      # from generic-array::GenericArray to hybrid-array::Array, which does
+      # not implement LowerHex, so every `format!("{:x}", hasher.finalize())`
+      # stops compiling -- three call sites here (pcai_core_lib hash.rs and
+      # search/duplicates.rs, pcai_perf_cli main.rs). Dependabot raised
+      # 0.10.9 -> 0.11.0 as #84; it failed to build.
+      #
+      # The bump also would not consolidate anything: cudaforge and
+      # openai-harmony still require 0.10, so taking 0.11 directly compiles
+      # two SHA-2 implementations instead of one. 0.10.9 carries no advisory.
+      # Revisit when the 0.11 line has reached the rest of the tree, as a
+      # deliberate migration rather than a bump.
+      - dependency-name: "sha2"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
       - "rust"

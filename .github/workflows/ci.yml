@@ -191,7 +191,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Pester
         shell: pwsh
-        run: Install-Module Pester -MinimumVersion 5.6.1 -Force -Scope CurrentUser
+        run: Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser
       - name: Run Tests with Coverage
         shell: pwsh
         run: |
@@ -315,7 +315,7 @@ jobs:
           path: bin
       - name: Install Pester
         shell: pwsh
-        run: Install-Module Pester -MinimumVersion 5.6.1 -Force -Scope CurrentUser
+        run: Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser
       - name: FFI Integration Tests
         shell: pwsh
         run: |

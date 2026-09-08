@@ -379,7 +379,10 @@ fn build_client(base_url: &str) -> Result<Ollama> {
     let parsed = Url::parse(base_url).or_else(|_| Url::parse(&default_ollama_url()))?;
     let host = format!("{}://{}", parsed.scheme(), parsed.host_str().unwrap_or("127.0.0.1"));
     let port = parsed.port().unwrap_or(11434);
-    Ok(Ollama::new(host, port))
+    // ollama-rs 0.3.6 deprecated `Ollama::new` in favour of the builder, and
+    // `-D warnings` turns that deprecation into a build error. `build()`
+    // returns `Ollama` directly, not a Result.
+    Ok(Ollama::builder().host(host).port(port).build())
 }
 
 fn model_names(models: &[LocalModel]) -> Vec<String> {

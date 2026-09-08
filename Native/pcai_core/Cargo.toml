@@ -100,7 +100,7 @@ mistralrs = "0.7"
 mistralrs-core = "0.7"
 rand = "0.9.3"
 ollama-rs = { version = "0.3.4", features = ["stream"] }
-schemars = "0.8.22"
+schemars = "1.2.2"
 url = "2.5"
 
 [profile.release]

@@ -407,6 +407,13 @@ table; Cargo requires a top-level `[lints]` table, so it silently reported
 `clippy -D warnings` gate in `portable-ci.yml` was therefore only ever
 enforcing clippy's built-in defaults.
 
+> **Update 2026-09-08:** `portable-ci.yml` has since been deleted — this repo is
+> Windows-only by design and that job ran the PowerShell suite on Linux, a
+> non-goal it had never passed. The workspace-wide `clippy -- -D warnings` gate
+> that enforces `[workspace.lints]` now lives in `rust-guidelines.yml`, on
+> `windows-latest`, against the same virtual-workspace root. The policy below is
+> unaffected; only the workflow hosting the gate changed.
+
 The key is now in the right place and the gate is green, verified with a
 positive control: an unused-lifetime canary fails the gate, and was reverted.
 Because the policy had never run, roughly 960 accumulated warnings surfaced at

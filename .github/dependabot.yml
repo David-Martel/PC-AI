@@ -38,8 +38,16 @@ updates:
       # two SHA-2 implementations instead of one. 0.10.9 carries no advisory.
       # Revisit when the 0.11 line has reached the rest of the tree, as a
       # deliberate migration rather than a bump.
+      #
+      # Expressed as a version range, not `update-types:
+      # version-update:semver-major`. Dependabot classifies an update by which
+      # SemVer *component* changed, and 0.10.9 -> 0.11.0 changes the minor
+      # component -- the major component stays 0. A semver-major ignore would
+      # therefore never match this bump, and because cargo-pcai-core groups
+      # minor and patch, the broken update could be folded into the grouped PR
+      # and block an otherwise good batch. A range cannot be misclassified.
       - dependency-name: "sha2"
-        update-types: ["version-update:semver-major"]
+        versions: [">=0.11.0"]
     labels:
       - "dependencies"
       - "rust"

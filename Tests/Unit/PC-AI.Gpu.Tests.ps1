@@ -212,6 +212,13 @@ Describe 'PC-AI.Gpu Module' -Tag 'Unit', 'Gpu', 'Fast', 'Portable' {
             Mock -CommandName Get-CudaVersionFromPath -ModuleName 'PC-AI.Gpu' -MockWith { '13.2.0' }
             Mock -CommandName Get-CudnnVersionFromHeader -ModuleName 'PC-AI.Gpu' -MockWith { '9.8.0' }
             Mock -CommandName Get-TensorRtVersionFromHeader -ModuleName 'PC-AI.Gpu' -MockWith { '10.9.0' }
+            # Get-NvidiaSoftwareStatus guards the side-by-side scan with
+            # `if (Test-Path $cudaRoot)`, so mocking Get-ChildItem alone is not
+            # enough: without a real CUDA install at the canonical path the guard
+            # is false and the mock below is never reached, leaving
+            # SideBySideCount at 0. That made this assertion pass only on a
+            # machine that happens to have CUDA installed.
+            Mock -CommandName Test-Path -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Path -eq 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA' } -MockWith { $true }
             Mock -CommandName Get-ChildItem -ModuleName 'PC-AI.Gpu' -ParameterFilter { $Path -eq 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA' } -MockWith {
                 @(
                     [pscustomobject]@{ Name = 'v13.1' },

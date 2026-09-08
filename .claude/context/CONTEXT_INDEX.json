@@ -1,7 +1,20 @@
 {
   "schema_version": "2.0",
-  "latest": "ctx-pcai-ci-restoration-20260718",
+  "latest": "ctx-pcai-dependabot-ci-20260908",
   "contexts": [
+    {
+      "id": "ctx-pcai-dependabot-ci-20260908",
+      "file": "pcai-context-20260908-dependabot-ci-consolidation.md",
+      "created": "2026-09-08T14:30:00Z",
+      "project": "PC_AI",
+      "agents_involved": [
+        "general-purpose",
+        "Copilot(review bot)",
+        "chatgpt-codex-connector(review bot)"
+      ],
+      "summary": "Merged PR #58. Consolidated a 9-PR dependabot backlog into #71; salvaged #57 into #72; corrected my own bad change in #74. Fixed push triggers that had never fired (develop does not exist), deleted portable-ci.yml after the owner confirmed cross-platform is a non-goal, and added the repo's first .NET build gate. Found: Deploy workspace does not compile on main (qlora-rs drifted to candle 0.11); a data-loss bug in the rclone archive tool; PcaiServiceHost hard-required an untracked Rust DLL. CI Gate still not a required check.",
+      "status": "active"
+    },
     {
       "id": "ctx-pcai-ci-restoration-20260718",
       "file": "pcai-context-20260718-ci-restoration.md",
@@ -12,7 +25,7 @@
         "general-purpose"
       ],
       "summary": "Re-enabled Actions; root-caused+fixed 7 pre-existing CI gate failures (PR #58). Discovered CI is not a merge gate; 65 pre-existing PS Unit-test failures surfaced (not caused) by Pester fix.",
-      "status": "active"
+      "status": "superseded"
     },
     {
       "id": "ctx-pcai-gitops-syshard-20260606",
@@ -59,7 +72,7 @@
         "Explore",
         "general-purpose"
       ],
-      "summary": "Re-investigated shift-key + touchpad lockup from scratch. Device topology: Shift=PS/2 LEN0071/i8042 (parent 7E02), Touchpad=Sensel SNSL002D HID-over-I2C (parent 7E78) \u2014 DIFFERENT buses = two independent root causes (corrected prior 'Synaptics' mislabel; Synaptics=fingerprint, ELAN=TrackPoint). Verdicts: H1 FilterKeys REFUTED (off+disarmed now), H3 shared-bus REFUTED, H4 ProcessLasso REFUTED (protects input), H6 power SUPPORTS touchpad (MSPower_DeviceEnable=True live on SNSL002D + parent I2C 7E78 x Modern Standby = resume-lockup). Shift has NO OS-layer evidence -> needs Test-KeyInput trace. dwm.exe 62x crash 05-26 cross-links open NVIDIA Code 31. NEW: Watch-InputGlitch.ps1 Gate-C eval harness; touchpad fix T1 (power-down off). Also: CLAUDE.md doc reconciliation (Tools 89->81, +2 workflows, Litho status), doc-tooling eval report (validate-doc-accuracy caught TOOLS.md 31-vs-28 drift; Litho C4 never generated). Cleanup: 44 empty dirs + __pycache__; gitignored eval output + 12.9MB profile dump; surfaced 934MB OneDrive .db for user decision.",
+      "summary": "Re-investigated shift-key + touchpad lockup from scratch. Device topology: Shift=PS/2 LEN0071/i8042 (parent 7E02), Touchpad=Sensel SNSL002D HID-over-I2C (parent 7E78) — DIFFERENT buses = two independent root causes (corrected prior 'Synaptics' mislabel; Synaptics=fingerprint, ELAN=TrackPoint). Verdicts: H1 FilterKeys REFUTED (off+disarmed now), H3 shared-bus REFUTED, H4 ProcessLasso REFUTED (protects input), H6 power SUPPORTS touchpad (MSPower_DeviceEnable=True live on SNSL002D + parent I2C 7E78 x Modern Standby = resume-lockup). Shift has NO OS-layer evidence -> needs Test-KeyInput trace. dwm.exe 62x crash 05-26 cross-links open NVIDIA Code 31. NEW: Watch-InputGlitch.ps1 Gate-C eval harness; touchpad fix T1 (power-down off). Also: CLAUDE.md doc reconciliation (Tools 89->81, +2 workflows, Litho status), doc-tooling eval report (validate-doc-accuracy caught TOOLS.md 31-vs-28 drift; Litho C4 never generated). Cleanup: 44 empty dirs + __pycache__; gitignored eval output + 12.9MB profile dump; surfaced 934MB OneDrive .db for user decision.",
       "tags": [
         "input-stack",
         "shift-key",
@@ -116,7 +129,7 @@
       "agents_involved": [
         "general-purpose"
       ],
-      "summary": "NVIDIA Option B (filtered staged 595.97 Lenovo Enterprise install for DEV_28B8) executed via Tools/Install-InfDriver.ps1 loop. 6 INFs (nvltwi/nvblwi/nvdmwi/nvfmwi/nvmiwi/nvmsowi) installed cleanly, RTX 2000 Ada Code 31 RESOLVED (now OK on 32.0.15.9597, nvidia-smi visible). REGRESSION: RTX 5060 Ti flipped to Code 31 \u2014 same WDDM kernel-mismatch pattern, cards swapped. Local recovery exhausted (no GRD on disk newer than 591.86 oem387). Decision pending: reboot, Option C (manual nvidia.com download), or rollback.",
+      "summary": "NVIDIA Option B (filtered staged 595.97 Lenovo Enterprise install for DEV_28B8) executed via Tools/Install-InfDriver.ps1 loop. 6 INFs (nvltwi/nvblwi/nvdmwi/nvfmwi/nvmiwi/nvmsowi) installed cleanly, RTX 2000 Ada Code 31 RESOLVED (now OK on 32.0.15.9597, nvidia-smi visible). REGRESSION: RTX 5060 Ti flipped to Code 31 — same WDDM kernel-mismatch pattern, cards swapped. Local recovery exhausted (no GRD on disk newer than 591.86 oem387). Decision pending: reboot, Option C (manual nvidia.com download), or rollback.",
       "tags": [
         "nvidia",
         "drivers",
@@ -137,7 +150,7 @@
         "Explore",
         "general-purpose"
       ],
-      "summary": "LLM optimization Phase 2: 36 tok/s (2.0x), critical quality fix (argmax\u2192multinomial), PreAllocKvCache wired, GPU Gumbel sampling, repetition penalty, understanding pipeline fixed, multi-token research complete (Jacobi 1.5-2x next), 235 tests pass, CUDA binaries deployed.",
+      "summary": "LLM optimization Phase 2: 36 tok/s (2.0x), critical quality fix (argmax→multinomial), PreAllocKvCache wired, GPU Gumbel sampling, repetition penalty, understanding pipeline fixed, multi-token research complete (Jacobi 1.5-2x next), 235 tests pass, CUDA binaries deployed.",
       "supersedes": [
         "ctx-pcai-20260319-llm-optimization"
       ],
@@ -156,7 +169,7 @@
         "Explore",
         "Jules"
       ],
-      "summary": "LLM inference optimization: 17.9 \u2192 30 tok/s (1.67x), flash-attn Windows research (Linux-only), cuDNN SDPA as alternative, FunctionGemma flash-attn enabled, Build.ps1 cuda-optimized defaults, ring crate eliminated, 36 commits pushed.",
+      "summary": "LLM inference optimization: 17.9 → 30 tok/s (1.67x), flash-attn Windows research (Linux-only), cuDNN SDPA as alternative, FunctionGemma flash-attn enabled, Build.ps1 cuda-optimized defaults, ring crate eliminated, 36 commits pushed.",
       "supersedes": [
         "ctx-pcai-20260318-nvidia-complete"
       ],
@@ -711,7 +724,7 @@
   ],
   "active_blockers": [
     {
-      "blocker": "cuda:auto GPU fallback \u2014 RTX 5060 Ti (Blackwell SM 120) init fails",
+      "blocker": "cuda:auto GPU fallback — RTX 5060 Ti (Blackwell SM 120) init fails",
       "severity": "medium",
       "status": "fix in progress",
       "notes": "Driver updated to 582.41, toolkit 12.9. cudarc/candle cannot open RTX 5060 Ti; resolve_auto_cuda_device now falls back to next GPU. RTX 2000 Ada (SM 89) works fine.",

@@ -62,7 +62,7 @@ walkdir = "2.5"
 parking_lot = "0.12"
 
 # Windows Registry access
-winreg = "0.55"
+winreg = "0.56"
 
 # Utility dependencies
 path-slash = "0.2"
@@ -71,7 +71,7 @@ anyhow = "1.0.102"
 thiserror = "2.0"
 tokio = { version = "1.50", features = ["full"] }
 reqwest = { version = "0.12", features = ["json", "blocking"] }
-base64 = "0.22"
+base64 = "0.23"
 hex = "0.4"
 memmap2 = "0.9.10"
 num_cpus = "1.16"
@@ -98,9 +98,9 @@ tower-http = { version = "0.6", features = ["trace", "cors"] }
 llm = { git = "https://github.com/rustformers/llama-rs.git", rev = "b11ffb14fde039f068c808df8dcbd1257a01b8db", default-features = false, features = ["models"] }
 mistralrs = "0.7"
 mistralrs-core = "0.7"
-rand = "0.9.3"
+rand = "0.10.2"
 ollama-rs = { version = "0.3.4", features = ["stream"] }
-schemars = "0.8.22"
+schemars = "1.2.2"
 url = "2.5"
 
 [profile.release]

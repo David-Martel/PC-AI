@@ -61,8 +61,11 @@ try {
     try {
         $events = @(Get-WinEvent -FilterHashtable @{ LogName = @('System', 'Application'); StartTime = $start; Level = 1, 2, 3 } -ErrorAction Stop)
     } catch {
-        if ($_.Exception.Message -notmatch 'No events were found') {
-            $queryError = $_.Exception.Message
+        # Stable error id, not localized message text -- see the note in
+        # Collect-RemainingEventSources.ps1. A message match would classify a
+        # successful empty query as a failure on non-English Windows.
+        if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound,*') {
+            $queryError = '{0} [{1}]' -f $_.Exception.Message, $_.FullyQualifiedErrorId
         }
     }
 

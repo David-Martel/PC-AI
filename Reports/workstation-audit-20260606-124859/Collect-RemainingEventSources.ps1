@@ -33,16 +33,31 @@ $providers = @('Bonjour Service','Netwaw18','Microsoft-Windows-DistributedCOM','
 #     @()  | ConvertTo-Json -AsArray               -> '' (empty pipeline again)
 #     ConvertTo-Json -InputObject @() -AsArray     -> '[[]]' (double wrapped)
 #     ,$rows | ConvertTo-Json                      -> '[]', '[{...}]' correctly
-$allEvents = @()
-$queryFailures = @()
+# A List rather than `+=`: `$a += @(...)` reallocates and copies the whole
+# array on every iteration, which is wasteful when a busy System log returns
+# tens of thousands of events.
+$allEvents = [System.Collections.Generic.List[object]]::new()
+$queryFailures = [System.Collections.Generic.List[object]]::new()
 foreach ($logName in @('System', 'Application')) {
     try {
-        $allEvents += @(Get-WinEvent -FilterHashtable @{ LogName = $logName; StartTime = $start; Level = 1, 2, 3 } -ErrorAction Stop)
+        $allEvents.AddRange(@(Get-WinEvent -FilterHashtable @{ LogName = $logName; StartTime = $start; Level = 1, 2, 3 } -ErrorAction Stop))
     } catch {
-        if ($_.Exception.Message -match 'No events were found') {
+        # Classify on the STABLE FullyQualifiedErrorId, never on message text.
+        # Get-WinEvent's "No events were found that match the specified
+        # selection criteria." is localized, so a message match would record a
+        # successful empty query as a FAILURE on any non-English Windows --
+        # converting a locale difference into false evidence, which is the
+        # exact failure mode this rewrite exists to prevent. Id verified by
+        # triggering the case directly:
+        #   NoMatchingEventsFound,Microsoft.PowerShell.Commands.GetWinEventCommand
+        if ($_.FullyQualifiedErrorId -like 'NoMatchingEventsFound,*') {
             continue   # successful query, zero matches
         }
-        $queryFailures += [pscustomobject]@{ LogName = $logName; Error = $_.Exception.Message }
+        $queryFailures.Add([pscustomobject]@{
+                LogName = $logName
+                Error   = $_.Exception.Message
+                ErrorId = $_.FullyQualifiedErrorId
+            })
     }
 }
 

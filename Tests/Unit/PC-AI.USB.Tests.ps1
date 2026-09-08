@@ -16,8 +16,26 @@ BeforeAll {
     Import-Module $MockDataPath -Force -ErrorAction Stop
 }
 
+BeforeDiscovery {
+    # $IsWindows exists on PowerShell 6+; treat a missing value as Windows so
+    # Windows PowerShell 5.1 keeps running these.
+    $script:OnWindows = if ($null -eq $IsWindows) { $true } else { [bool]$IsWindows }
+}
+
 Describe "Get-UsbDeviceList" -Tag 'Unit', 'USB', 'Fast', 'Portable' {
-    Context "When usbipd is available" {
+    # NOT portable, despite the Describe tag. This Context mocks Get-Command
+    # unconditionally so Test-UsbIpdInstalled returns true, which drives
+    # Get-UsbDeviceList into `& usbipd list`. On Windows that is usbipd.exe and a
+    # `list` subcommand that returns. On Linux `usbipd` is the USB/IP DAEMON: it
+    # runs in the foreground and never exits, so the Portable CI job hung here for
+    # 57 minutes and was killed at its 60-minute timeout. That workflow has never
+    # once succeeded -- 23 cancelled and 7 failed across its last 30 runs.
+    #
+    # Production is unaffected: Test-UsbIpdInstalled looks for 'usbipd.exe', which
+    # does not resolve on Linux, so the real module never takes this path. Only
+    # the test forces it. Mocking Invoke-Expression below does nothing either --
+    # the module invokes the binary directly, not through Invoke-Expression.
+    Context "When usbipd is available" -Skip:(-not $script:OnWindows) {
         BeforeAll {
             # Mock the private helper function that checks for usbipd
             Mock Get-Command {

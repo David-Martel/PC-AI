@@ -79,7 +79,14 @@ jobs:
         shell: pwsh
         run: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
+          # -MinimumVersion pins nothing: it installs the NEWEST version at or
+          # above the floor, and Pester 6 is published. This job was running
+          # Pester 6 against a suite that declares ModuleVersion 5.0.0, so
+          # PC-AI.Robustness and PC-AI.Router died at discovery with
+          # "A 'break' or 'continue' statement ... escaped from your code",
+          # taking whole files at once. Same fix as ci.yml (4b45f2b); this call
+          # site was missed.
+          Install-Module -Name Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser
           Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
 
       # ── Rust: format ──────────────────────────────────────────

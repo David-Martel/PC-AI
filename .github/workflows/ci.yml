@@ -267,15 +267,19 @@ jobs:
           } catch { }
           if (-not $targetRoot) { $targetRoot = "Native\pcai_core\target" }
 
-          $paths = @(
-              ".pcai\build\artifacts\pcai-llamacpp\pcai_inference.dll",
-              (Join-Path $targetRoot "release\pcai_inference.dll")
-          )
+          # Accept either name. The crate's lib is `pcai_inference_lib`, so cargo
+          # emits pcai_inference_lib.dll; the tests and this workflow both want
+          # bin\pcai_inference.dll, so normalise on copy rather than depending on
+          # the internal crate name staying put.
+          $names = @("pcai_inference.dll", "pcai_inference_lib.dll")
+          $dirs  = @(".pcai\build\artifacts\pcai-llamacpp", (Join-Path $targetRoot "release"))
+          $paths = foreach ($d in $dirs) { foreach ($n in $names) { Join-Path $d $n } }
+
           $copied = $false
           foreach ($p in $paths) {
               if (Test-Path $p) {
-                  Copy-Item $p -Destination bin/ -Force
-                  Write-Host "Copied $p"
+                  Copy-Item $p -Destination "bin\pcai_inference.dll" -Force
+                  Write-Host "Copied $p -> bin\pcai_inference.dll"
                   $copied = $true
                   break
               }
@@ -364,10 +368,14 @@ jobs:
             '${{ needs.build-llamacpp.result }}',
             '${{ needs.integration-tests.result }}'
           )
-          $failed = $results | Where-Object { $_ -notin @('success', 'skipped') }
+          # 'success' only. No job here carries an `if:`, so the only way a
+          # gated job skips is an upstream `needs` failing -- and that upstream
+          # already fails the gate. Accepting 'skipped' bought nothing and let a
+          # job that quietly stopped running report green indefinitely.
+          $failed = $results | Where-Object { $_ -ne 'success' }
           if ($failed) {
             Write-Host "CI Gate FAILED" -ForegroundColor Red
-            Write-Host "Failed jobs: $($failed -join ', ')" -ForegroundColor Red
+            Write-Host "Non-success results: $($failed -join ', ')" -ForegroundColor Red
             exit 1
           }
-          Write-Host "CI Gate PASSED - all checks succeeded or were skipped" -ForegroundColor Green
+          Write-Host "CI Gate PASSED - all 8 checks succeeded" -ForegroundColor Green

@@ -928,7 +928,15 @@ function Invoke-Build {
     $featureString = ($features | Select-Object -Unique) -join ','
     Write-Host "  Features: $featureString" -ForegroundColor Cyan
 
-    $cargoArgs = @('build', '--bin', $binName, '--features', $featureString, '--message-format=json')
+    # --lib as well as --bin. The crate declares crate-type = ["cdylib", "rlib"],
+    # and the cdylib IS the FFI surface -- pcai_inference_lib.dll is what the
+    # PowerShell P/Invoke layer and every FFI.* test suite load. `cargo build
+    # --bin` alone does not build it: the binary links the rlib, so the cdylib
+    # was never produced by any build this repo runs. Copy-CompiledArtifacts has
+    # always listed that DLL among the artifacts to collect and never found one,
+    # and CI's Integration Tests downloads it as an artifact -- which is why that
+    # job could not have passed even once it started running.
+    $cargoArgs = @('build', '--bin', $binName, '--lib', '--features', $featureString, '--message-format=json')
     if ($Configuration -eq 'Release') { $cargoArgs += '--release' }
 
     # Configure log files in .pcai/build/logs directory
@@ -1168,12 +1176,23 @@ function Copy-CompiledArtifacts {
         if (-not (Test-Path $mistralrsArtifacts)) { New-Item -ItemType Directory -Path $mistralrsArtifacts -Force | Out-Null }
     }
 
+    $backendArtifacts = switch ($BackendBuilt) {
+        'llamacpp' { $llamacppArtifacts }
+        'mistralrs' { $mistralrsArtifacts }
+        default { $llamacppArtifacts }
+    }
+
     $artifacts = @(
         @{ Name = 'pcai-llamacpp.exe'; Backend = 'llamacpp'; Dir = $llamacppArtifacts },
         @{ Name = 'pcai-mistralrs.exe'; Backend = 'mistralrs'; Dir = $mistralrsArtifacts },
-        @{ Name = 'pcai_inference.dll'; Backend = 'shared'; Dir = $null },
-        @{ Name = 'pcai_inference_lib.dll'; Backend = 'shared'; Dir = $null },
-        @{ Name = 'pcai_core_lib.dll'; Backend = 'shared'; Dir = $null }
+        # The FFI DLLs go to the backend artifact directory too, not only to
+        # ~/.local/bin. CI packages .pcai\build\artifacts\pcai-<backend>\ and
+        # Integration Tests consumes the DLL from there, so leaving Dir = $null
+        # meant the artifact directory never contained the one file that job
+        # needs. $backendArtifacts is whichever backend was just built.
+        @{ Name = 'pcai_inference.dll'; Backend = 'shared'; Dir = $backendArtifacts },
+        @{ Name = 'pcai_inference_lib.dll'; Backend = 'shared'; Dir = $backendArtifacts },
+        @{ Name = 'pcai_core_lib.dll'; Backend = 'shared'; Dir = $backendArtifacts }
     )
 
     $copiedCount = 0
@@ -1183,14 +1202,21 @@ function Copy-CompiledArtifacts {
             # Copy to ~/.local/bin
             Copy-Item -Path $source -Destination $localBin -Force
             $copiedCount++
+            $destinations = @('~/.local/bin')
 
             # Copy to build artifacts if applicable
             if ($artifact.Dir -and (Test-Path (Split-Path $artifact.Dir -Parent))) {
                 Copy-Item -Path $source -Destination $artifact.Dir -Force
+                $destinations += $artifact.Dir
             }
 
+            # Name every destination. The old message read "-> ~/.local/bin"
+            # regardless of what else it had just written, so a build that did
+            # populate the artifact directory looked identical to one that did
+            # not -- which is precisely what made the DLL routing above appear
+            # to do nothing when it was in fact working.
             $size = [math]::Round((Get-Item $source).Length / 1MB, 2)
-            Write-BuildStatus "$($artifact.Name) -> ~/.local/bin ($size MB)" 'Success'
+            Write-BuildStatus "$($artifact.Name) -> $($destinations -join ' + ') ($size MB)" 'Success'
         }
     }
 

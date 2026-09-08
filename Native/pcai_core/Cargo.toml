@@ -34,7 +34,7 @@ rayon = "1.10"
 ignore = "0.4"
 
 # SHA-256 hashing
-sha2 = "0.10"
+sha2 = "0.11"
 
 # Glob pattern matching
 globset = "0.4"

@@ -32,5 +32,5 @@ flash-attn = ["candle-flash-attn"]
 nvml = ["dep:nvml-wrapper"]
 
 [dev-dependencies]
-rand = "0.8.5"
+rand = "0.9.5"
 

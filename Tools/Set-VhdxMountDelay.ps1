@@ -5,7 +5,7 @@ Shrinks the boot delay on the cloud-cache-disk VHDX automount task.
 
 .DESCRIPTION
 AutoMount_VHDX_cloud-cache-disk fires at boot with a startup delay before it
-attaches D:\vm\cloud-cache-disk.vhdx. Cloud sync clients autostart from Run keys
+attaches T:\vm\cloud-cache-disk.vhdx. Cloud sync clients autostart from Run keys
 at logon, so the mount must win that race. On 2026-09-07 the margin was only
 ~70s (mount 09:13:29, logon 09:14:39).
 
@@ -31,7 +31,7 @@ Both the trigger delay and the script's own -StartupDelaySeconds argument are
 updated together - changing only one leaves the other still sleeping.
 
 .PARAMETER DelaySeconds
-New startup delay. Default 5.
+New startup delay in seconds. Default 90. A 5-second delay is what originally re-broke the mount, so going lower must be deliberate.
 
 .PARAMETER DryRun
 Non-mutating preview. The long CLI form `--DryRun` is also accepted.

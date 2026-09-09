@@ -159,7 +159,16 @@ if ($RequireMountLog) {
     # satisfy the gate on a boot where the mount actually failed - the exact
     # inversion this gate exists to prevent. Observed 2026-09-09, when this
     # directory held an 08:00:22 success alongside two later failures.
-    $bootTime = (Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue).LastBootUpTime
+    # Assign the CIM object first and test it before dereferencing. Under
+    # Set-StrictMode -Version 2.0 (line 61), `(Get-CimInstance ... -EA
+    # SilentlyContinue).LastBootUpTime` THROWS when the query returns nothing,
+    # so the "could not read boot time" branch below was unreachable - the gate
+    # crashed instead of taking it.
+    $bootTime = $null
+    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+    if ($null -ne $os -and $os.PSObject.Properties.Name -contains 'LastBootUpTime') {
+        $bootTime = $os.LastBootUpTime
+    }
     $newest = Get-ChildItem $MountLogRoot -Filter '*.result.json' -ErrorAction SilentlyContinue |
               Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if (-not $newest) {
@@ -174,7 +183,12 @@ if ($RequireMountLog) {
         try { $mountStartedAt = [datetime]$res.StartedAt } catch { $mountStartedAt = $null }
     }
     if (-not $bootTime) {
-        Write-Log 'Could not read LastBootUpTime - cannot prove mount log freshness.' 'WARN'
+        # Fail CLOSED. Without a boot time the staleness comparison cannot run,
+        # so continuing would start the cloud clients on a mount log that might
+        # belong to a previous boot - precisely the inversion this gate exists
+        # to prevent. A WARN-and-continue here defeated the whole check.
+        Write-Log 'Could not read LastBootUpTime - cannot prove mount log freshness, clients NOT started.' 'ERROR'
+        exit 3
     } elseif (-not $mountStartedAt) {
         Write-Log "Mount log $($newest.Name) has no usable StartedAt - clients NOT started." 'ERROR'
         exit 3

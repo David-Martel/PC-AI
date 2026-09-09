@@ -7,11 +7,19 @@
 
 ## The F: drive
 
-`F:` is a **dynamic VHDX** at `D:\vm\cloud-cache-disk.vhdx`, label `cloud-cache-disk`,
-2,200 GB, NTFS. It is attached at boot by the scheduled task
-`AutoMount_VHDX_cloud-cache-disk` -> `Tools\Mount-PersistentVHDX.ps1`
-(boot trigger + 30s delay, SYSTEM, RunLevel Highest). That task is healthy and was
-**not modified**; its last runs all report `ExitCode 0`.
+> **⚠ Superseded 2026-09-09.** The description immediately below is a snapshot of
+> the layout *before* the F: relocation and is retained for provenance. It is no
+> longer the current state: `cloud-cache-disk.vhdx` now lives on **internal
+> `T:\vm\`** at 500 GB dynamic, and the mount task **was** modified (delay
+> `PT5S` → `PT1M30S`, plus `-WaitForVhdSeconds 15`). See
+> [`F-DRIVE-BOOT-DIAGNOSIS-20260909.md`](F-DRIVE-BOOT-DIAGNOSIS-20260909.md) for
+> why depending on a removable Thunderbolt disk in the boot path was the defect.
+
+*Historical, as of 2026-09-08:* `F:` was a **dynamic VHDX** at
+`D:\vm\cloud-cache-disk.vhdx`, label `cloud-cache-disk`, 2,200 GB, NTFS, attached
+at boot by the scheduled task `AutoMount_VHDX_cloud-cache-disk` ->
+`Tools\Mount-PersistentVHDX.ps1` (boot trigger + 30s delay, SYSTEM, RunLevel
+Highest). At the time that task was healthy and unmodified, reporting `ExitCode 0`.
 
 ## What was found
 

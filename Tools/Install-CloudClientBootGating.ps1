@@ -230,7 +230,7 @@ if (-not $proved) {
 #     buy what it was set for.
 # Net effect was a broken Google Drive, so Drive keeps managing its own Run key.
 # Consequence: Drive re-adds that key on each start, so gating is fully durable
-# for Dropbox only. This is documented in Docs\CLOUD_CACHE_F_DRIVE.md.
+# for Dropbox only. This is documented in docs/CLOUD_CACHE_F_DRIVE.md.
 
 $backup = @()
 foreach ($rk in $runKeys) {

@@ -22,9 +22,37 @@ nothing on T: but gets the smaller, safer move done and verified first.
 param(
     [switch]$DryRun,
     [string]$TargetDir = 'T:\vm',
-    [int]$RequiredHeadroomGB = 150
+    [int]$RequiredHeadroomGB = 150,
+    # Drive letter of the source enclosure, e.g. 'E'. Omit to locate it by
+    # identity (the NTFS volume on a disk larger than 7 TB). The letter D: is
+    # NOT assumed: it is already held by a different, FAT32 disk, so the
+    # returning enclosure gets whatever letter is free. Hard-wiring D: made this
+    # script's own documented recovery unreachable.
+    [string]$SourceDriveLetter,
+    [Alias('h', '?')]
+    [switch]$Help,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$CliArgs
 )
 Set-StrictMode -Version 2.0
+
+# CLI contract (AGENTS.md): -h/--help and --DryRun long forms, handled before
+# anything resolves a path or queries a disk.
+$CliArgs = @($CliArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if (@($CliArgs) -contains '--help') {
+    $Help = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--help' })
+}
+if (@($CliArgs) -contains '--DryRun') {
+    $DryRun = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--DryRun' })
+}
+if ($Help) {
+    $helpMatch = [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>')
+    if ($helpMatch.Success) { $helpMatch.Groups[1].Value.Trim() } else { Get-Help -Detailed $PSCommandPath }
+    return
+}
+if (@($CliArgs).Count -gt 0) { throw "Unknown CLI argument(s): $($CliArgs -join ', ')" }
 $ErrorActionPreference = 'Stop'
 if ($DryRun) { $WhatIfPreference = $true }
 
@@ -39,18 +67,45 @@ Say 'STEP 0 - survey the source volume before touching anything'
 # holding audiometric calibration data. A guard that only checks `Test-Path D:\`
 # passes on that wrong disk. Verify the volume can plausibly BE the source:
 # NTFS (FAT32 caps files at 4 GB, so it cannot hold a 2.2 TB VHDX) and large enough.
-if (-not (Test-Path 'D:\')) { throw 'D: is not attached. Connect the ACASIS TBU405Pro enclosure first.' }
-$srcVol = Get-Volume -DriveLetter D -ErrorAction Stop
-Say ("  D: = label '{0}' {1} {2:N1} GB" -f $srcVol.FileSystemLabel, $srcVol.FileSystem, ($srcVol.Size / 1GB))
+if ($PSBoundParameters.ContainsKey('SourceDriveLetter') -and -not [string]::IsNullOrWhiteSpace($SourceDriveLetter)) {
+    $srcLetter = $SourceDriveLetter.TrimEnd(':', '\')
+    Say "  using caller-supplied source drive ${srcLetter}:"
+} else {
+    # Locate by identity, not by letter. Every disk over 7 TB with a lettered
+    # partition is a candidate; the NTFS + size checks below still have to pass,
+    # so a wrong guess fails loudly rather than copying to the wrong place.
+    Say '  locating the source enclosure by size (>7 TB), since D: is not a reliable identity...'
+    $candidates = @(
+        Get-Disk -ErrorAction SilentlyContinue |
+            Where-Object { $_.Size -gt 7TB } |
+            Get-Partition -ErrorAction SilentlyContinue |
+            Where-Object { $_.DriveLetter } |
+            ForEach-Object { [string]$_.DriveLetter }
+    )
+    if ($candidates.Count -eq 0) {
+        throw ('No disk larger than 7 TB with a lettered partition is attached. Connect the ACASIS ' +
+            'TBU405Pro enclosure, or pass -SourceDriveLetter explicitly. NOTE: do NOT assume D: - ' +
+            'that letter is held by a different, FAT32 disk.')
+    }
+    if ($candidates.Count -gt 1) {
+        throw ("Multiple disks over 7 TB have lettered partitions ($($candidates -join ', ')). " +
+            'Disambiguate with -SourceDriveLetter.')
+    }
+    $srcLetter = $candidates[0]
+    Say "  found source enclosure at ${srcLetter}:"
+}
+
+if (-not (Test-Path "${srcLetter}:\")) { throw "${srcLetter}: is not attached. Connect the source enclosure first." }
+$srcVol = Get-Volume -DriveLetter $srcLetter -ErrorAction Stop
+Say ("  {0}: = label '{1}' {2} {3:N1} GB" -f $srcLetter, $srcVol.FileSystemLabel, $srcVol.FileSystem, ($srcVol.Size / 1GB))
 if ($srcVol.FileSystem -ne 'NTFS') {
-    throw ("D: is $($srcVol.FileSystem), not NTFS (label '$($srcVol.FileSystemLabel)'). " +
-        'This is NOT the enclosure that holds the VHDXs - FAT32 cannot store a file over 4 GB. ' +
-        'The 8 TB disk likely came back on a different letter because D: was already taken; ' +
-        'find it with: Get-Disk | Where-Object Size -gt 7TB | Get-Partition')
+    throw ("${srcLetter}: is $($srcVol.FileSystem), not NTFS (label '$($srcVol.FileSystemLabel)'). " +
+        'This is NOT the enclosure that holds the VHDXs - FAT32 cannot store a file over 4 GB.')
 }
 if ($srcVol.Size -lt 2TB) {
-    throw ("D: is only {0:N0} GB - too small to be the 8 TB source enclosure. Wrong disk." -f ($srcVol.Size / 1GB))
+    throw ("${srcLetter}: is only {0:N0} GB - too small to be the 8 TB source enclosure. Wrong disk." -f ($srcVol.Size / 1GB))
 }
+$SourceRoot = "${srcLetter}:\vm"
 
 # W: ONLY. cloud-cache-disk was deliberately REMOVED from this list on 2026-09-09.
 #
@@ -61,7 +116,7 @@ if ($srcVol.Size -lt 2TB) {
 # depend on. shared-dev.vhdx is different: 710,352 files of real, non-reproducible
 # data, which is why it is still worth recovering.
 $items = @(
-    @{ Name = 'shared-dev'; Src = 'D:\vm\shared-dev.vhdx'; Task = 'AutoMount_VHDX_shared-dev'; Letter = 'W'; Label = 'WSL-Shared-Dev'; Delay = 'PT1M'; StartupDelay = 60 }
+    @{ Name = 'shared-dev'; Src = (Join-Path $SourceRoot 'shared-dev.vhdx'); Task = 'AutoMount_VHDX_shared-dev'; Letter = 'W'; Label = 'WSL-Shared-Dev'; Delay = 'PT1M'; StartupDelay = 60 }
 )
 
 # Belt and braces: refuse outright if a working cloud-cache-disk is mounted, in case
@@ -106,9 +161,17 @@ Say 'STEP 2 - compact in place on D: (cheap there; avoids moving dead space)'
 foreach ($i in $items) {
     $before = (Get-Item -LiteralPath $i.Src).Length / 1GB
     if ($PSCmdlet.ShouldProcess($i.Src, 'Optimize-VHD -Mode Full')) {
+        # Optimize-VHD -Mode Full requires the VHDX to be ATTACHED read-only.
+        # Dismounting first does not error - it silently degrades to Prezeroed
+        # and reclaims less, which matters because the fit check below throws if
+        # the result does not fit on the target. Keep the mount across the
+        # optimize and release it in finally so a failure cannot strand it.
         Mount-VHD -Path $i.Src -ReadOnly -NoDriveLetter
-        Dismount-VHD -Path $i.Src
-        Optimize-VHD -Path $i.Src -Mode Full
+        try {
+            Optimize-VHD -Path $i.Src -Mode Full
+        } finally {
+            Dismount-VHD -Path $i.Src -ErrorAction SilentlyContinue
+        }
     }
     $after = if ($DryRun) { $before } else { (Get-Item -LiteralPath $i.Src).Length / 1GB }
     Say ("  {0}: {1:N1} -> {2:N1} GB (reclaimed {3:N1})" -f $i.Name, $before, $after, ($before - $after))

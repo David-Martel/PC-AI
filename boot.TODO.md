@@ -1137,3 +1137,34 @@ Applied:
   even if older INF binds. Requires separate written consent + Lenovo Support
   consultation.
 - iaLPSS2 / ETDHSA pnputil rollback — explicitly removed per V1 verification.
+
+## Scheduled-task health surface (2026-09-09)
+
+Task Scheduler has no health surface: a task can fail every run, or stop firing
+entirely, and nothing surfaces it. `AgentHubRunner` sat terminated for five
+weeks and `ProfileLogSync` failed hourly since February, both undetected.
+
+Baseline and method: [`Reports\scheduled-task-health-20260909.md`](Reports/scheduled-task-health-20260909.md).
+
+```
+pwsh -File Tools\Test-ScheduledTaskHealth.ps1 -LocalOnly
+pwsh -File Tools\Test-ScheduledTaskHealth.ps1 -LocalOnly -FailOnIssue -OutputJson Reports\scheduled-task-health.json
+```
+
+- [x] Read-only reporter classifying every non-Microsoft task on result code and
+  staleness, failing closed if Task Scheduler cannot be enumerated.
+- [x] `ProfileLogSync` — abandoned `.sync.lock` from 2026-02-21 broke every
+  hourly run; stale locks are now broken on age. Returns `0x0`.
+- [x] `CloudCache-MountWatchdog` — its 15-minute repetition never armed, because
+  a repetition pattern arms only when its trigger fires and the task was
+  registered after boot. Now armed at install time.
+- [ ] **`AgentHubRunner` has no trigger and cannot self-start** (dead since
+  2026-08-04, `0x41306`). Decide whether it should run as a Windows service or
+  carry a boot trigger. Note `agent-bus health` passing refers to the AgentHub
+  *service*, not this GitHub Actions *runner*; workflows targeting it queue
+  indefinitely. Same class: `RmeRunner`, `Sam3TestbedRunner`.
+- [ ] `Gemini-CLI-Update-stable` returns `0x1` — undiagnosed.
+- [ ] `AutoMount_VHDX_shared-dev` returns `0x33` until the 8 TB enclosure
+  returns and `Restore-DrivesToInternal.ps1` moves the VHDX to `T:\vm\`.
+- [ ] Consider scheduling the reporter itself with `-FailOnIssue` so a newly
+  broken task surfaces within a day instead of a month.

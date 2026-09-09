@@ -1,23 +1,23 @@
 {
-  "GeneratedAt": "2026-09-09T14:40:29.4691439-04:00",
+  "GeneratedAt": "2026-09-09T15:59:54.8353115-04:00",
   "Computer": "DTM-P1GEN7",
-  "DevicesTotal": 1416,
+  "DevicesTotal": 1412,
   "DevicesPresent": 608,
-  "Errors": 6,
+  "Errors": 3,
   "Warnings": 1,
   "NvidiaGpus": [
     {
       "Name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
-      "Status": "Error",
+      "Status": "OK",
       "Driver": "32.0.16.1088",
-      "Inf": "oem411.inf",
+      "Inf": "oem48.inf",
       "DeviceId": "DEV_28B8"
     },
     {
       "Name": "NVIDIA GeForce RTX 5060 Ti",
       "Status": "OK",
-      "Driver": "32.0.15.9636",
-      "Inf": "oem7.inf",
+      "Driver": "32.0.16.1088",
+      "Inf": "oem267.inf",
       "DeviceId": "DEV_2D04"
     }
   ],
@@ -44,13 +44,6 @@
       "Remedy": "Device reported a fault. Often a failed USB enumeration on a hub or dock port rather than the peripheral itself."
     },
     {
-      "Severity": "ERROR",
-      "Area": "Device",
-      "Item": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
-      "Detail": "Display - problem 31 : Windows cannot load the drivers required for this device",
-      "Remedy": "Driver failed to load. If another device of the same vendor works, compare driver versions - a mixed-version install is the usual cause."
-    },
-    {
       "Severity": "INFO",
       "Area": "Hello",
       "Item": "Biometric devices",
@@ -58,25 +51,25 @@
       "Remedy": ""
     },
     {
-      "Severity": "ERROR",
-      "Area": "Hello",
-      "Item": "WbioSrvc",
-      "Detail": "Windows Biometric Service is Stopped (StartType Automatic).",
-      "Remedy": "Start-Service WbioSrvc. If StartType is Automatic, being stopped is a fault, not idling."
-    },
-    {
       "Severity": "WARN",
       "Area": "Hello",
       "Item": "NGC credential store",
       "Detail": "Zero containers - no Windows Hello credential is enrolled.",
-      "Remedy": "Enrol interactively: Settings > Accounts > Sign-in options. Cannot be scripted."
+      "Remedy": "Enrol interactively: Settings > Accounts > Sign-in options. Cannot be scripted - Windows requires the account password in person."
     },
     {
-      "Severity": "ERROR",
+      "Severity": "INFO",
+      "Area": "Hello",
+      "Item": "WbioSrvc",
+      "Detail": "Stopped, which is expected while nothing is enrolled - it idle-stops with no work to do.",
+      "Remedy": "No action. It starts on demand once a credential is enrolled; starting it by hand before that does not stick."
+    },
+    {
+      "Severity": "INFO",
       "Area": "GPU",
-      "Item": "NVIDIA driver branches are incompatible",
-      "Detail": "Mixed versions across 2 NVIDIA GPUs (32.0.16.1088, 32.0.15.9636) and NO installed package lists every device present (DEV_28B8, DEV_2D04). These GPUs are served by different NVIDIA branches - typically GeForce vs RTX/professional.",
-      "Remedy": "nvlddmkm.sys is a single shared kernel driver, so only one branch can load: one GPU will stay at problem 31. Reinstalling an existing package cannot fix this. Either obtain one package that lists every device ID above, or decide which GPU to keep and disable the other so it stops erroring."
+      "Item": "NVIDIA driver versions",
+      "Detail": "2 NVIDIA GPU(s), all on 32.0.16.1088",
+      "Remedy": ""
     }
   ]
 }

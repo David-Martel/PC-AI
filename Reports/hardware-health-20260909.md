@@ -11,6 +11,37 @@ pwsh -File Tools\Test-HardwareHealth.ps1 -OutputJson Reports\hardware-health-202
 
 ## 1. The internal dGPU is dead, and it is a driver-version conflict
 
+> ## ✅ RESOLVED 2026-09-09 — both GPUs now work, on one driver
+>
+> ```
+> index, name,                                      driver_version, memory.total
+> 0,     NVIDIA RTX 2000 Ada Generation Laptop GPU, 610.88,          8188 MiB
+> 1,     NVIDIA GeForce RTX 5060 Ti,                610.88,         16311 MiB
+> ```
+>
+> Both report `status=OK, problem=0`. CUDA sees **both**, 24.5 GB total, up from
+> 16 GB with the Ada dead.
+>
+> **What actually fixed it, and the rule worth keeping:** the fault was a
+> *version* split, not a *branch* incompatibility. `nvlddmkm.sys` is one shared
+> kernel driver, so two packages from different releases (596.36 and 610.88)
+> cannot both load and the loser reports problem 31. Installing the single 610.88
+> release put both GPUs on one kernel driver.
+>
+> **Different INFs are a red herring.** One NVIDIA release ships ~45 OEM-specific
+> INFs and *no single one of them lists every device*: here `DEV_28B8` is served
+> by `nvltsi.inf` and `DEV_2D04` by `nv_dispsi.inf`, from the **same** 610.88
+> package, and both work. Chasing "one INF containing every device" is chasing
+> something that does not exist.
+>
+> **Immediately after the install the eGPU reported problem 12** ("cannot find
+> enough free resources") — PCIe MMIO/BAR allocation, not an unsupported device.
+> Re-enumerating the enclosure cleared it with **no reboot required**.
+>
+> The earlier conclusion in this section — that the two GPUs were on incompatible
+> GeForce-vs-professional branches and could never coexist — was **wrong**, and is
+> kept below only as provenance.
+
 | GPU | Bus | Driver | Status |
 |---|---|---|---|
 | NVIDIA RTX 5060 Ti (eGPU, Razer Core X V2) | 38 | `32.0.15.9636` | OK |

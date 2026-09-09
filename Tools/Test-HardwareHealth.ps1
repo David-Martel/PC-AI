@@ -193,34 +193,47 @@ if ($bio.Count -eq 0) {
     }
 }
 
-$wbio = Get-Service -Name WbioSrvc -ErrorAction SilentlyContinue
-if ($null -eq $wbio) {
-    Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'WbioSrvc' -Detail 'Service not installed.'
-} elseif ($wbio.Status -ne 'Running') {
-    # AUTO_START and stopped is a genuine fault. Do not confuse this with a
-    # trigger-start service that idles until first use.
-    Add-Finding -Severity 'ERROR' -Area 'Hello' -Item 'WbioSrvc' `
-        -Detail "Windows Biometric Service is $($wbio.Status) (StartType $($wbio.StartType))." `
-        -Remedy 'Start-Service WbioSrvc. If StartType is Automatic, being stopped is a fault, not idling.'
-} else {
-    Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'WbioSrvc' -Detail 'Running.'
-}
-
-# NGC holds the Hello credential containers. Empty means nothing is enrolled,
-# which no amount of service or driver repair will fix.
+# NGC holds the Hello credential containers. Establish enrolment FIRST, because
+# it decides whether a stopped biometric service is a fault or just idle.
 $ngc = Join-Path $env:SystemRoot 'ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc'
+$enrolled = $null   # $null = unknown, otherwise a count
 if (Test-Path -LiteralPath $ngc) {
     $containers = @(Get-ChildItem -LiteralPath $ngc -Force -Directory -ErrorAction SilentlyContinue)
-    if ($containers.Count -eq 0) {
+    $enrolled = $containers.Count
+    if ($enrolled -eq 0) {
         Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'NGC credential store' `
             -Detail 'Zero containers - no Windows Hello credential is enrolled.' `
-            -Remedy 'Enrol interactively: Settings > Accounts > Sign-in options. Cannot be scripted.'
+            -Remedy 'Enrol interactively: Settings > Accounts > Sign-in options. Cannot be scripted - Windows requires the account password in person.'
     } else {
         Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'NGC credential store' `
-            -Detail "$($containers.Count) container(s) enrolled."
+            -Detail "$enrolled container(s) enrolled."
     }
 } else {
     Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'NGC credential store' -Detail 'Path not found.'
+}
+
+$wbio = Get-Service -Name WbioSrvc -ErrorAction SilentlyContinue
+if ($null -eq $wbio) {
+    Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'WbioSrvc' -Detail 'Service not installed.'
+} elseif ($wbio.Status -eq 'Running') {
+    Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'WbioSrvc' -Detail 'Running.'
+} elseif ($enrolled -eq 0) {
+    # NOT a fault. WbioSrvc is Start=2 (AUTO_START) but also carries RPC-interface
+    # start triggers, so Windows idle-stops it when it has nothing to serve. With
+    # zero enrolled credentials that is the expected resting state - it stops
+    # silently, with no SCM error event. Measured here 2026-09-09: started by
+    # hand, found Stopped again hours later with nothing logged.
+    # Calling this an ERROR sends the operator to Start-Service, which appears to
+    # work and then silently un-does itself.
+    Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'WbioSrvc' `
+        -Detail "Stopped, which is expected while nothing is enrolled - it idle-stops with no work to do." `
+        -Remedy 'No action. It starts on demand once a credential is enrolled; starting it by hand before that does not stick.'
+} else {
+    # Stopped WITH credentials enrolled is a genuine fault - something that
+    # should be serving Hello is not running.
+    Add-Finding -Severity 'ERROR' -Area 'Hello' -Item 'WbioSrvc' `
+        -Detail "Windows Biometric Service is $($wbio.Status) despite $enrolled enrolled credential container(s)." `
+        -Remedy 'Start-Service WbioSrvc, then check Microsoft-Windows-Biometrics/Operational for sensor errors (1609 = secure-connection failure).'
 }
 
 # ------------------------------------------------------ NVIDIA driver parity ---
@@ -257,19 +270,25 @@ if ($distinct.Count -gt 1) {
     }
     $covering = @($covering)
 
-    if ($covering.Count -gt 0) {
-        Add-Finding -Severity 'ERROR' -Area 'GPU' -Item 'NVIDIA driver versions' `
-            -Detail ("Mixed versions across $($nvInfo.Count) NVIDIA GPUs: " + ($distinct -join ', ')) `
-            -Remedy ("One installed package DOES cover every NVIDIA device present ($($covering -join ', ')). Reinstalling that single driver should resolve the mismatch.")
+    # The fault is the VERSION SPLIT, not the INF split. nvlddmkm.sys is a single
+    # shared kernel driver, so two packages from different RELEASES cannot both
+    # load and whichever loses reports problem 31. Different INFs at the SAME
+    # version are completely normal - one NVIDIA release ships ~45 OEM-specific
+    # INFs (nv_dispsi, nvltsi, nvmisi ...) and no single one of them lists every
+    # device. Verified on this machine 2026-09-09: an RTX 2000 Ada (nvltsi) and a
+    # GeForce RTX 5060 Ti (nv_dispsi) were served by DIFFERENT INFs from the SAME
+    # 610.88 package and both reported OK once the version split was removed.
+    $coverNote = if ($covering.Count -gt 0) {
+        "One installed package covers every device ($($covering -join ', '))."
     } else {
-        Add-Finding -Severity 'ERROR' -Area 'GPU' -Item 'NVIDIA driver branches are incompatible' `
-            -Detail ("Mixed versions across $($nvInfo.Count) NVIDIA GPUs (" + ($distinct -join ', ') +
-                     ") and NO installed package lists every device present (" + ($wantIds -join ', ') +
-                     "). These GPUs are served by different NVIDIA branches - typically GeForce vs RTX/professional.") `
-            -Remedy ('nvlddmkm.sys is a single shared kernel driver, so only one branch can load: one GPU will stay at problem 31. ' +
-                     'Reinstalling an existing package cannot fix this. Either obtain one package that lists every device ID above, ' +
-                     'or decide which GPU to keep and disable the other so it stops erroring.')
+        "No single INF lists every device ($($wantIds -join ', ')) - which is normal; NVIDIA splits device coverage across many OEM-specific INFs within one release."
     }
+    Add-Finding -Severity 'ERROR' -Area 'GPU' -Item 'NVIDIA driver version split' `
+        -Detail ("$($nvInfo.Count) NVIDIA GPUs are on DIFFERENT driver versions: " + ($distinct -join ', ') + ". $coverNote") `
+        -Remedy ('Install ONE NVIDIA release that supports every GPU present, so all of them share a single nvlddmkm.sys. ' +
+                 'Do not chase a single INF containing every device - that is not how NVIDIA packages are laid out. ' +
+                 'After installing, an externally-attached GPU may need its enclosure re-enumerated (or a reboot) to reallocate PCIe resources; ' +
+                 'problem 12 immediately after a driver swap means resource allocation, not an unsupported device.')
 } elseif ($nvInfo.Count -gt 0) {
     Add-Finding -Severity 'INFO' -Area 'GPU' -Item 'NVIDIA driver versions' `
         -Detail ("$($nvInfo.Count) NVIDIA GPU(s), all on $($distinct -join ', ')")

@@ -16,21 +16,32 @@ Three checks, chosen because each has bitten this machine:
                     43 (device reported a problem) are the ones that appear here
                     and mean very different things.
 
-  Windows Hello     The biometric devices can all report OK while Hello still
-                    does not work, because readiness needs three separate
-                    things: healthy sensors, a RUNNING WbioSrvc, and at least
-                    one enrolled NGC credential container. WbioSrvc is
-                    AUTO_START, so finding it stopped is a real fault, not a
-                    trigger-start service idling. An empty NGC store means
-                    nothing is enrolled and no amount of service fixing will
-                    help - that needs interactive enrolment.
+  Windows Hello     Reported from sources that are actually READABLE, which is
+                    the whole difficulty. The obvious one is not: the NGC
+                    credential directory is ACL'd to SYSTEM and NgcCtnrSvc only,
+                    so even an elevated enumeration is denied - and with
+                    -ErrorAction SilentlyContinue that denial returns an empty
+                    collection indistinguishable from "nothing is enrolled". On
+                    2026-09-09 that produced a confidently wrong verdict ("no
+                    Hello credential enrolled") on a machine where PIN and Face
+                    both worked. Enrolment is therefore read from WinBio
+                    AccountInfo\<SID>\EnrolledFactors instead.
 
-  NVIDIA drivers    Windows ships ONE NVIDIA driver package per system. If two
-                    NVIDIA display devices report different driver versions,
-                    one of them will typically fail to load with problem 31.
-                    That is exactly the state found on 2026-09-09: an eGPU on
-                    32.0.15.9636 working while the internal laptop dGPU sat on
-                    32.0.16.1088 in error, invisible to CUDA.
+                    WbioSrvc state is reported as CONTEXT, never as a verdict.
+                    It is Start=2 but carries RPC start triggers: LogonUI starts
+                    it on demand at the lock screen and it idle-stops after, so
+                    Stopped is its normal resting state mid-session and starting
+                    it by hand does not stick. Recent 1609 sensor errors ARE
+                    diagnostic and are surfaced instead.
+
+  NVIDIA drivers    The fault to look for is a VERSION split, not a "branch"
+                    incompatibility. nvlddmkm.sys is one shared kernel driver,
+                    so two packages from different releases cannot both load and
+                    the loser reports problem 31. Different INFs at the same
+                    version are normal - one release ships ~45 OEM-specific INFs
+                    and none lists every device. Verified 2026-09-09: an RTX 2000
+                    Ada (nvltsi.inf) and a GeForce RTX 5060 Ti (nv_dispsi.inf)
+                    from the SAME 610.88 package both work.
 
 .PARAMETER PassThru
 Emit the finding objects to the pipeline.
@@ -198,18 +209,65 @@ if ($bio.Count -eq 0) {
 $ngc = Join-Path $env:SystemRoot 'ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc'
 $enrolled = $null   # $null = unknown, otherwise a count
 if (Test-Path -LiteralPath $ngc) {
-    $containers = @(Get-ChildItem -LiteralPath $ngc -Force -Directory -ErrorAction SilentlyContinue)
-    $enrolled = $containers.Count
-    if ($enrolled -eq 0) {
-        Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'NGC credential store' `
-            -Detail 'Zero containers - no Windows Hello credential is enrolled.' `
-            -Remedy 'Enrol interactively: Settings > Accounts > Sign-in options. Cannot be scripted - Windows requires the account password in person.'
-    } else {
+    # -ErrorAction Stop, not SilentlyContinue. The NGC store is ACL'd to SYSTEM
+    # and NgcCtnrSvc, so an unelevated or restricted run gets an access denial -
+    # which SilentlyContinue would turn into an empty collection, i.e. "nothing
+    # enrolled". That is a false negative twice over: it hides real enrolments
+    # AND it downgrades a genuinely stopped WbioSrvc from ERROR to INFO.
+    # $enrolled stays $null on failure so downstream checks know it is UNKNOWN.
+    $containers = $null
+    try {
+        $containers = @(Get-ChildItem -LiteralPath $ngc -Force -Directory -ErrorAction Stop)
+    } catch {
+        # Expected, and NOT worth a warning. The ACL grants SYSTEM and
+        # NgcCtnrSvc only - Administrators are excluded - so elevation does not
+        # help and telling the operator to re-run elevated wastes their time.
+        # Recorded as context purely so nobody mistakes the denial for an empty
+        # store again. Enrolment comes from WinBio AccountInfo below.
         Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'NGC credential store' `
-            -Detail "$enrolled container(s) enrolled."
+            -Detail 'Not enumerable (ACL grants SYSTEM/NgcCtnrSvc only). Expected - enrolment is read from WinBio instead, never from this count.'
+    }
+    if ($null -ne $containers) {
+        $enrolled = $containers.Count
+        Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'NGC credential store' `
+            -Detail "$enrolled container(s) readable."
     }
 } else {
     Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'NGC credential store' -Detail 'Path not found.'
+}
+
+# The NGC directory is ACL'd to SYSTEM and NgcCtnrSvc ONLY - not Administrators -
+# so even an elevated run cannot enumerate it. Reading "0 containers" from it is
+# therefore an access denial wearing a costume, and treating that as "nothing is
+# enrolled" is exactly the false negative that produced a wrong verdict here on
+# 2026-09-09 (reported "no Hello credential enrolled" on a machine with PIN and
+# Face both working). Authoritative, readable sources instead:
+#   WinBio AccountInfo\<SID>\EnrolledFactors - biometric factors, per user
+#   Passport KSP key list                    - PIN (uvkey-*) and FIDO passkeys
+$factors = 0
+$bioAccounts = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WinBio\AccountInfo'
+$mySid = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Value
+if (Test-Path -LiteralPath $bioAccounts) {
+    $mine = Get-ItemProperty -Path (Join-Path $bioAccounts $mySid) -ErrorAction SilentlyContinue
+    $factors = if ($mine -and $mine.PSObject.Properties.Name -contains 'EnrolledFactors') { [int]$mine.EnrolledFactors } else { 0 }
+    # WINBIO_TYPE_* bitmask: 2 = FacialFeatures, 8 = Fingerprint.
+    $names = @()
+    if ($factors -band 2) { $names += 'Face' }
+    if ($factors -band 8) { $names += 'Fingerprint' }
+    if ($factors -eq 0) {
+        Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'Biometric enrolment' `
+            -Detail 'No biometric factor enrolled for the current user.' `
+            -Remedy 'Settings > Accounts > Sign-in options. Enrolment is interactive by design.'
+    } else {
+        $missing = @()
+        if (-not ($factors -band 2)) { $missing += 'Face' }
+        if (-not ($factors -band 8)) { $missing += 'Fingerprint' }
+        $detail = "Enrolled: $($names -join ', ') (EnrolledFactors=$factors)."
+        if ($missing.Count -gt 0) { $detail += " Not enrolled: $($missing -join ', ')." }
+        Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'Biometric enrolment' -Detail $detail
+    }
+} else {
+    Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'Biometric enrolment' -Detail 'WinBio AccountInfo key absent.'
 }
 
 $wbio = Get-Service -Name WbioSrvc -ErrorAction SilentlyContinue
@@ -217,23 +275,34 @@ if ($null -eq $wbio) {
     Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'WbioSrvc' -Detail 'Service not installed.'
 } elseif ($wbio.Status -eq 'Running') {
     Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'WbioSrvc' -Detail 'Running.'
-} elseif ($enrolled -eq 0) {
-    # NOT a fault. WbioSrvc is Start=2 (AUTO_START) but also carries RPC-interface
-    # start triggers, so Windows idle-stops it when it has nothing to serve. With
-    # zero enrolled credentials that is the expected resting state - it stops
-    # silently, with no SCM error event. Measured here 2026-09-09: started by
-    # hand, found Stopped again hours later with nothing logged.
-    # Calling this an ERROR sends the operator to Start-Service, which appears to
-    # work and then silently un-does itself.
-    Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'WbioSrvc' `
-        -Detail "Stopped, which is expected while nothing is enrolled - it idle-stops with no work to do." `
-        -Remedy 'No action. It starts on demand once a credential is enrolled; starting it by hand before that does not stick.'
 } else {
-    # Stopped WITH credentials enrolled is a genuine fault - something that
-    # should be serving Hello is not running.
-    Add-Finding -Severity 'ERROR' -Area 'Hello' -Item 'WbioSrvc' `
-        -Detail "Windows Biometric Service is $($wbio.Status) despite $enrolled enrolled credential container(s)." `
-        -Remedy 'Start-Service WbioSrvc, then check Microsoft-Windows-Biometrics/Operational for sensor errors (1609 = secure-connection failure).'
+    # Service state is NOT a health verdict here, and three attempts to make it
+    # one all produced false positives. WbioSrvc is Start=2 but carries
+    # RPC-interface start triggers: LogonUI starts it at the lock screen when a
+    # biometric is actually needed, and it idle-stops afterwards. So Stopped is
+    # its normal resting state DURING a session, whether or not anything is
+    # enrolled, and starting it by hand does not stick.
+    # Report it as context. The real signals are enrolment (below), device status,
+    # and recent Microsoft-Windows-Biometrics/Operational errors.
+    Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'WbioSrvc' `
+        -Detail "Stopped (StartType $($wbio.StartType)). Not diagnostic - it is trigger-started by LogonUI on demand and idle-stops after."
+}
+# Recent sensor errors ARE diagnostic, unlike service state. 1609 is the
+# secure-component connection failure that blocks biometric enrolment and
+# sign-in; a burst of them is worth surfacing, a stale pair from days ago is not.
+$since = (Get-Date).AddDays(-2)
+$bioErr = @()
+try {
+    $bioErr = @(Get-WinEvent -FilterHashtable @{
+            LogName = 'Microsoft-Windows-Biometrics/Operational'; Id = 1609; StartTime = $since
+        } -ErrorAction Stop)
+} catch {
+    # No matching events is thrown, not returned empty - that is the healthy case.
+}
+if ($bioErr.Count -gt 0) {
+    Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'Biometric sensor errors' `
+        -Detail ("$($bioErr.Count) secure-connection failure(s) (event 1609) in the last 2 days, newest $($bioErr[0].TimeCreated).") `
+        -Remedy 'The sensor could not establish its secure channel. Re-seat/re-enumerate it, and check the sensor driver version.'
 }
 
 # ------------------------------------------------------ NVIDIA driver parity ---
@@ -247,6 +316,16 @@ $nvInfo = foreach ($g in $nv) {
     [pscustomobject]@{ Name = $g.FriendlyName; Status = $g.Status; Driver = $ver; Inf = $inf; DeviceId = $devId }
 }
 $nvInfo = @($nvInfo)
+# A GPU whose DriverVersion could not be read must NOT be silently dropped from
+# the parity comparison - doing so can hide the very version split this check
+# exists to find (two GPUs, one unreadable, "all on one version").
+$unreadable = @($nvInfo | Where-Object { -not $_.Driver })
+if ($unreadable.Count -gt 0) {
+    Add-Finding -Severity 'WARN' -Area 'GPU' -Item 'Driver version unreadable' `
+        -Detail ("Could not read DriverVersion for: " + (($unreadable | ForEach-Object { $_.Name }) -join '; ') +
+                 ". Version parity below is computed from the remaining GPUs only and may be incomplete.") `
+        -Remedy 'Usually means the device is in a fault state. Resolve its device error first, then re-run.'
+}
 $distinct = @($nvInfo | Where-Object { $_.Driver } | Select-Object -ExpandProperty Driver -Unique)
 
 if ($distinct.Count -gt 1) {

@@ -1,10 +1,10 @@
 {
-  "GeneratedAt": "2026-09-09T15:59:54.8353115-04:00",
+  "GeneratedAt": "2026-09-09T16:10:26.9247475-04:00",
   "Computer": "DTM-P1GEN7",
   "DevicesTotal": 1412,
   "DevicesPresent": 608,
   "Errors": 3,
-  "Warnings": 1,
+  "Warnings": 0,
   "NvidiaGpus": [
     {
       "Name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
@@ -51,18 +51,25 @@
       "Remedy": ""
     },
     {
-      "Severity": "WARN",
+      "Severity": "INFO",
       "Area": "Hello",
       "Item": "NGC credential store",
-      "Detail": "Zero containers - no Windows Hello credential is enrolled.",
-      "Remedy": "Enrol interactively: Settings > Accounts > Sign-in options. Cannot be scripted - Windows requires the account password in person."
+      "Detail": "Not enumerable (ACL grants SYSTEM/NgcCtnrSvc only). Expected - enrolment is read from WinBio instead, never from this count.",
+      "Remedy": ""
+    },
+    {
+      "Severity": "INFO",
+      "Area": "Hello",
+      "Item": "Biometric enrolment",
+      "Detail": "Enrolled: Face (EnrolledFactors=2). Not enrolled: Fingerprint.",
+      "Remedy": ""
     },
     {
       "Severity": "INFO",
       "Area": "Hello",
       "Item": "WbioSrvc",
-      "Detail": "Stopped, which is expected while nothing is enrolled - it idle-stops with no work to do.",
-      "Remedy": "No action. It starts on demand once a credential is enrolled; starting it by hand before that does not stick."
+      "Detail": "Stopped (StartType Automatic). Not diagnostic - it is trigger-started by LogonUI on demand and idle-stops after.",
+      "Remedy": ""
     },
     {
       "Severity": "INFO",

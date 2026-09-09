@@ -7,7 +7,7 @@ Captured with `Tools\Test-HardwareHealth.ps1`. Machine-readable companion:
 pwsh -File Tools\Test-HardwareHealth.ps1 -OutputJson Reports\hardware-health-20260909.json
 ```
 
-606 devices present · **5 errors** · 1 warning.
+608 devices present · **3 errors** · 0 warnings (regenerated 2026-09-09 after the GPU fix and the Hello correction; matches the companion JSON).
 
 ## 1. The internal dGPU is dead, and it is a driver-version conflict
 
@@ -94,7 +94,44 @@ Plausibly also a boot cost: `nvWmi64.exe` appears in the post-boot slow list at
 **Remedy (needs a human, not a script):** a clean reinstall of a single NVIDIA
 driver covering both GPUs. Not done here — it is a reboot-affecting change.
 
-## 2. Windows Hello — three separate things, only one of them fixed
+## 2. Windows Hello — CORRECTED: it was already working
+
+> ## ⚠ The section below is WRONG and is kept only as provenance
+>
+> It claims zero Hello credentials are enrolled. **That verdict came from a
+> swallowed access denial, not from an empty store.**
+>
+> The NGC credential directory is ACL'd to `SYSTEM` and `NgcCtnrSvc` **only** —
+> Administrators are excluded — so enumerating it fails *even elevated*. With
+> `-ErrorAction SilentlyContinue`, that denial returns an empty collection which
+> is indistinguishable from "nothing is enrolled". The check could not fail
+> loudly, so it failed quietly and confidently.
+>
+> **What is actually enrolled**, read from sources that are readable:
+>
+> | Factor | Source | State |
+> |---|---|---|
+> | PIN | Passport KSP — `uvkey-E9F2E36D…` | ✅ enrolled |
+> | Face | `WinBio AccountInfo\<SID>\EnrolledFactors = 2` | ✅ enrolled |
+> | Fingerprint | bit 8 of the same value, unset | ❌ not enrolled |
+> | FIDO passkeys | Passport KSP | 4 registered, incl. `GOOGLE_ACCOUNT:107425477980575938280` |
+>
+> So Hello has been working for this account all along. **The only real gap is
+> fingerprint**, and the Synaptics sensor is healthy (`status=OK`, driver
+> 6.0.69.1136, 2026-05-24) — the two `1609` secure-connection errors were a
+> single 40-second episode on 09-03, not a standing fault. Adding fingerprint is
+> an interactive enrolment, nothing more.
+>
+> `WbioSrvc` being Stopped is **not** a fault either, and was misreported as one
+> twice. It is `Start=2` but carries RPC start triggers: LogonUI starts it on
+> demand at the lock screen and it idle-stops afterwards, so Stopped is its
+> normal resting state mid-session. Starting it by hand does not stick — verified
+> by doing exactly that and finding it stopped again hours later.
+>
+> The tool now reads enrolment from WinBio, reports service state as context
+> only, and surfaces recent `1609` events instead.
+
+### Original (incorrect) section, retained for provenance
 
 Readiness needs all three. Reporting only the sensors is how "the hardware is
 fine so Hello should work" happens.

@@ -47,6 +47,9 @@ param(
 #region Configuration
 $script:MachineId = $null
 $script:SyncLockTimeout = 5000  # 5 seconds max wait for lock
+# A lock older than this is treated as abandoned and broken. Well beyond any
+# legitimate profile-log sync, which completes in seconds.
+$script:SyncLockStaleMinutes = 30
 $script:MaxRetries = 3
 #endregion
 
@@ -306,6 +309,7 @@ function Acquire-SyncLock {
     $lockFile = Join-Path $LockPath '.sync.lock'
     $waited = 0
     $interval = 100
+    $breakAttempted = $false
 
     while ($waited -lt $script:SyncLockTimeout) {
         try {
@@ -326,16 +330,86 @@ function Acquire-SyncLock {
 
             $bytes = [System.Text.Encoding]::UTF8.GetBytes($lockInfo)
             $stream.Write($bytes, 0, $bytes.Length)
+            # Flush so the lock is readable by anyone diagnosing a stuck sync.
+            # Without this the bytes sit in the stream buffer and a killed
+            # process leaves a zero-byte lock nobody can attribute -- which is
+            # exactly what was found on this machine.
+            $stream.Flush()
 
             return $stream
         } catch [System.IO.IOException] {
-            # Lock exists, wait
+            # The lock exists. Before waiting on it, decide whether anyone still
+            # holds it. CreateNew fails forever against an abandoned lock file,
+            # so without this check one killed run poisons every future run
+            # permanently. Measured on this machine: a lock left at 2026-02-21
+            # failed every hourly sync for over six months, entirely silently.
+            if (-not $breakAttempted) {
+                $breakAttempted = $true
+                if (Test-StaleSyncLock -LockFile $lockFile) {
+                    try {
+                        [System.IO.File]::Delete($lockFile)
+                        Write-Verbose "Broke a stale sync lock at $lockFile"
+                        continue   # retry immediately against the cleared path
+                    } catch {
+                        # Someone else won the race and recreated it; fall
+                        # through and wait like a normal contender.
+                        Write-Verbose "Could not break stale lock: $($_.Exception.Message)"
+                    }
+                }
+            }
             Start-Sleep -Milliseconds $interval
             $waited += $interval
         }
     }
 
     return $null
+}
+
+function Test-StaleSyncLock {
+    <#
+    .SYNOPSIS
+        Decide whether an existing lock file has been abandoned.
+    .DESCRIPTION
+        Age is the primary signal and the only universally valid one: this lock
+        lives in OneDrive and is shared between machines, so a PID from another
+        host means nothing here. A lock older than SyncLockStaleMinutes is
+        treated as abandoned regardless of content.
+
+        Content is used only to strengthen the decision, never to keep a lock
+        alive -- an unreadable or empty lock is exactly what a killed process
+        leaves behind, so it must not be allowed to block forever.
+    #>
+    param([string]$LockFile)
+
+    try {
+        $item = Get-Item -LiteralPath $LockFile -Force -ErrorAction Stop
+    } catch {
+        return $false   # vanished between the failure and here; just retry
+    }
+
+    $ageMinutes = ([DateTime]::UtcNow - $item.LastWriteTimeUtc).TotalMinutes
+    if ($ageMinutes -lt $script:SyncLockStaleMinutes) { return $false }
+
+    # Old enough to be abandoned. If it happens to name a live process on THIS
+    # machine, respect it anyway -- a genuinely long sync should not be broken.
+    try {
+        $raw = Get-Content -LiteralPath $LockFile -Raw -ErrorAction Stop
+        if (-not [string]::IsNullOrWhiteSpace($raw)) {
+            $info = $raw | ConvertFrom-Json -ErrorAction Stop
+            $sameMachine = ($info.PSObject.Properties.Name -contains 'Machine') -and
+                           ($info.Machine -eq (Get-MachineId))
+            $hasPid = $info.PSObject.Properties.Name -contains 'Pid'
+            if ($sameMachine -and $hasPid) {
+                if (Get-Process -Id ([int]$info.Pid) -ErrorAction SilentlyContinue) {
+                    return $false
+                }
+            }
+        }
+    } catch {
+        # Empty or malformed lock. Age already says abandoned.
+    }
+
+    return $true
 }
 
 function Release-SyncLock {

@@ -42,10 +42,14 @@ pwsh -File Tools\Test-HardwareHealth.ps1 -OutputJson Reports\hardware-health-202
 > GeForce-vs-professional branches and could never coexist — was **wrong**, and is
 > kept below only as provenance.
 
+State **before** the fix, captured with `-IncludeAbsent` (the invocation at the top of
+this file omits that switch, so the absent row below does not appear in the current
+report or its JSON):
+
 | GPU | Bus | Driver | Status |
 |---|---|---|---|
 | NVIDIA RTX 5060 Ti (eGPU, Razer Core X V2) | 38 | `32.0.15.9636` | OK |
-| NVIDIA RTX 5060 Ti (stale enumeration) | 82 | `32.0.15.9636` | not present |
+| NVIDIA RTX 5060 Ti (stale enumeration, `-IncludeAbsent` only) | 82 | `32.0.15.9636` | not present |
 | **NVIDIA RTX 2000 Ada (internal laptop dGPU)** | 1 | **`32.0.16.1088`** | **Error, problem 31** |
 | Intel Arc Pro Graphics | 0 | `32.0.101.8517` | OK |
 

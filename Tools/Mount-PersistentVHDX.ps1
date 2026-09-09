@@ -51,6 +51,13 @@ param(
     [string]$ExpectedState = 'Volume',
     [string]$TaskName = 'Manual-PersistentVHDXMount',
     [int]$StartupDelaySeconds = 0,
+    # Bounded wait for the backing file to appear before declaring it missing.
+    # Default 0 preserves the original fail-fast behaviour; callers whose VHDX
+    # lives on a late-enumerating disk opt in explicitly.
+    [ValidateRange(0, 900)]
+    [int]$WaitForVhdSeconds = 0,
+    [ValidateRange(1, 60)]
+    [int]$WaitForVhdPollSeconds = 3,
     [int]$MountTimeoutSeconds = 120,
     [int]$FilterManagerEventLookbackSeconds = 300,
     [string]$LogRoot = (Join-Path $PSScriptRoot '..\Logs\VHDMount'),
@@ -413,6 +420,10 @@ function Invoke-PersistentVHDXMount {
         [string]$ExpectedState = 'Volume',
         [string]$TaskName = 'Manual-PersistentVHDXMount',
         [int]$StartupDelaySeconds = 0,
+        [ValidateRange(0, 900)]
+        [int]$WaitForVhdSeconds = 0,
+        [ValidateRange(1, 60)]
+        [int]$WaitForVhdPollSeconds = 3,
         [int]$MountTimeoutSeconds = 120,
         [int]$FilterManagerEventLookbackSeconds = 300,
         [string]$LogRoot = (Join-Path $PSScriptRoot '..\Logs\VHDMount'),
@@ -453,11 +464,32 @@ function Invoke-PersistentVHDXMount {
             return [pscustomobject]$result
         }
 
+        # A backing file on a hot-plugged disk (external Thunderbolt/USB4 NVMe)
+        # can appear tens of seconds after boot - well after a boot-trigger delay
+        # has elapsed. Failing on the first Test-Path turns a slow enumeration into
+        # a whole session without the volume, because Task Scheduler's
+        # restart-on-failure does not re-fire on a nonzero exit code.
+        $result.WaitedForVhdSeconds = 0
+        if ($WaitForVhdSeconds -gt 0 -and -not (Test-Path -LiteralPath $VhdPath)) {
+            Write-PersistentVHDXEvent -EntryType Information -EventId 1000 -Message ("VHDX not present yet; waiting up to {0}s for {1}" -f $WaitForVhdSeconds, $VhdPath)
+            $waitSw = [System.Diagnostics.Stopwatch]::StartNew()
+            while ($waitSw.Elapsed.TotalSeconds -lt $WaitForVhdSeconds) {
+                Start-Sleep -Seconds $WaitForVhdPollSeconds
+                if (Test-Path -LiteralPath $VhdPath) { break }
+            }
+            $waitSw.Stop()
+            $result.WaitedForVhdSeconds = [math]::Round($waitSw.Elapsed.TotalSeconds, 1)
+            if (Test-Path -LiteralPath $VhdPath) {
+                Write-PersistentVHDXEvent -EntryType Information -EventId 1000 -Message ("VHDX appeared after {0}s: {1}" -f $result.WaitedForVhdSeconds, $VhdPath)
+            }
+        }
+
         if (-not (Test-Path -LiteralPath $VhdPath)) {
             $result.Status = 'Failed'
             $result.ExitCode = $script:VhdMountExitCodes.MissingVhd
-            Add-PersistentVHDXIssue -Result $result -Message ("Missing VHDX file: {0}" -f $VhdPath)
-            Write-PersistentVHDXEvent -EntryType Error -EventId 3000 -Message ("VHDX mount failed because the file is missing: {0}" -f $VhdPath)
+            $waitNote = if ($result.WaitedForVhdSeconds -gt 0) { (" after waiting {0}s" -f $result.WaitedForVhdSeconds) } else { '' }
+            Add-PersistentVHDXIssue -Result $result -Message ("Missing VHDX file: {0}{1}" -f $VhdPath, $waitNote)
+            Write-PersistentVHDXEvent -EntryType Error -EventId 3000 -Message ("VHDX mount failed because the file is missing: {0}{1}" -f $VhdPath, $waitNote)
             return [pscustomobject]$result
         }
 
@@ -617,9 +649,23 @@ if ($MyInvocation.InvocationName -ne '.') {
     $mountParameters.Remove('Help')
     $mountParameters.Remove('CliArgs')
     $mountParameters['LogRoot'] = $LogRoot
-    $runResult = Invoke-PersistentVHDXMount @mountParameters
+    # A throw inside the mount used to leave $runResult unset, and `exit
+    # $runResult.ExitCode` then failed in a way that exited the process with 0 -
+    # a crashed mount reported SUCCESS to Task Scheduler, and to any gate reading
+    # the exit code. Fail closed instead.
+    $runResult = $null
+    try {
+        $runResult = Invoke-PersistentVHDXMount @mountParameters
+    } catch {
+        Write-Error ("VHDX mount aborted: {0}" -f $_.Exception.Message)
+        exit $script:VhdMountExitCodes.UnhandledException
+    }
     if ($PassThru) {
         $runResult
+    }
+    if (-not $runResult -or $null -eq $runResult.ExitCode) {
+        Write-Error 'VHDX mount returned no result - treating as failure.'
+        exit $script:VhdMountExitCodes.UnhandledException
     }
     exit $runResult.ExitCode
 }

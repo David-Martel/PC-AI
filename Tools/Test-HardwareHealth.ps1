@@ -226,16 +226,50 @@ if (Test-Path -LiteralPath $ngc) {
 # ------------------------------------------------------ NVIDIA driver parity ---
 $nv = @($devices | Where-Object { $_.Class -eq 'Display' -and $_.Present -and $_.FriendlyName -match 'NVIDIA' })
 $nvInfo = foreach ($g in $nv) {
-    $ver = $null
+    $ver = $null; $inf = $null; $hw = $null
     try { $ver = (Get-PnpDeviceProperty -InstanceId $g.InstanceId -KeyName 'DEVPKEY_Device_DriverVersion' -ErrorAction Stop).Data } catch { }
-    [pscustomobject]@{ Name = $g.FriendlyName; Status = $g.Status; Driver = $ver }
+    try { $inf = (Get-PnpDeviceProperty -InstanceId $g.InstanceId -KeyName 'DEVPKEY_Device_DriverInfPath' -ErrorAction Stop).Data } catch { }
+    try { $hw = @((Get-PnpDeviceProperty -InstanceId $g.InstanceId -KeyName 'DEVPKEY_Device_HardwareIds' -ErrorAction Stop).Data)[0] } catch { }
+    $devId = if ($hw -match 'DEV_([0-9A-Fa-f]{4})') { "DEV_$($Matches[1].ToUpper())" } else { $null }
+    [pscustomobject]@{ Name = $g.FriendlyName; Status = $g.Status; Driver = $ver; Inf = $inf; DeviceId = $devId }
 }
 $nvInfo = @($nvInfo)
 $distinct = @($nvInfo | Where-Object { $_.Driver } | Select-Object -ExpandProperty Driver -Unique)
+
 if ($distinct.Count -gt 1) {
-    Add-Finding -Severity 'ERROR' -Area 'GPU' -Item 'NVIDIA driver versions' `
-        -Detail ("Mixed versions across $($nvInfo.Count) NVIDIA GPUs: " + ($distinct -join ', ')) `
-        -Remedy 'Windows ships one NVIDIA package per system. Reinstall a single driver (clean install) covering every NVIDIA GPU; a mixed install is the usual cause of problem 31.'
+    # Mixed versions is the symptom. The question that decides the remedy is
+    # whether any ONE installed package covers every NVIDIA device present.
+    # NVIDIA splits GeForce (consumer) from RTX/Quadro (professional) into
+    # separate driver branches with DISJOINT device lists, while nvlddmkm.sys is
+    # a single shared kernel driver - so on a machine mixing the two, no
+    # reinstall of an existing package can make both work. Saying "just
+    # reinstall one driver" there sends the operator after something impossible.
+    $infDirs = @(Get-ChildItem (Join-Path $env:SystemRoot 'System32\DriverStore\FileRepository') -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^nv.*\.inf_' })
+    $wantIds = @($nvInfo | Where-Object { $_.DeviceId } | Select-Object -ExpandProperty DeviceId -Unique)
+    $covering = foreach ($dir in $infDirs) {
+        $infFile = @(Get-ChildItem $dir.FullName -Filter '*.inf' -File -ErrorAction SilentlyContinue)[0]
+        if (-not $infFile) { continue }
+        $text = Get-Content -LiteralPath $infFile.FullName -Raw -ErrorAction SilentlyContinue
+        if (-not $text) { continue }
+        $missing = @($wantIds | Where-Object { $text -notmatch [regex]::Escape($_) })
+        if ($missing.Count -eq 0) { $infFile.Name }
+    }
+    $covering = @($covering)
+
+    if ($covering.Count -gt 0) {
+        Add-Finding -Severity 'ERROR' -Area 'GPU' -Item 'NVIDIA driver versions' `
+            -Detail ("Mixed versions across $($nvInfo.Count) NVIDIA GPUs: " + ($distinct -join ', ')) `
+            -Remedy ("One installed package DOES cover every NVIDIA device present ($($covering -join ', ')). Reinstalling that single driver should resolve the mismatch.")
+    } else {
+        Add-Finding -Severity 'ERROR' -Area 'GPU' -Item 'NVIDIA driver branches are incompatible' `
+            -Detail ("Mixed versions across $($nvInfo.Count) NVIDIA GPUs (" + ($distinct -join ', ') +
+                     ") and NO installed package lists every device present (" + ($wantIds -join ', ') +
+                     "). These GPUs are served by different NVIDIA branches - typically GeForce vs RTX/professional.") `
+            -Remedy ('nvlddmkm.sys is a single shared kernel driver, so only one branch can load: one GPU will stay at problem 31. ' +
+                     'Reinstalling an existing package cannot fix this. Either obtain one package that lists every device ID above, ' +
+                     'or decide which GPU to keep and disable the other so it stops erroring.')
+    }
 } elseif ($nvInfo.Count -gt 0) {
     Add-Finding -Severity 'INFO' -Area 'GPU' -Item 'NVIDIA driver versions' `
         -Detail ("$($nvInfo.Count) NVIDIA GPU(s), all on $($distinct -join ', ')")

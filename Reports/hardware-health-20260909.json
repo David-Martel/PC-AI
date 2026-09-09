@@ -1,20 +1,24 @@
 {
-  "GeneratedAt": "2026-09-09T14:12:40.6048261-04:00",
+  "GeneratedAt": "2026-09-09T14:40:29.4691439-04:00",
   "Computer": "DTM-P1GEN7",
   "DevicesTotal": 1416,
-  "DevicesPresent": 606,
+  "DevicesPresent": 608,
   "Errors": 6,
   "Warnings": 1,
   "NvidiaGpus": [
     {
       "Name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
       "Status": "Error",
-      "Driver": "32.0.16.1088"
+      "Driver": "32.0.16.1088",
+      "Inf": "oem411.inf",
+      "DeviceId": "DEV_28B8"
     },
     {
       "Name": "NVIDIA GeForce RTX 5060 Ti",
       "Status": "OK",
-      "Driver": "32.0.15.9636"
+      "Driver": "32.0.15.9636",
+      "Inf": "oem7.inf",
+      "DeviceId": "DEV_2D04"
     }
   ],
   "Findings": [
@@ -70,9 +74,9 @@
     {
       "Severity": "ERROR",
       "Area": "GPU",
-      "Item": "NVIDIA driver versions",
-      "Detail": "Mixed versions across 2 NVIDIA GPUs: 32.0.16.1088, 32.0.15.9636",
-      "Remedy": "Windows ships one NVIDIA package per system. Reinstall a single driver (clean install) covering every NVIDIA GPU; a mixed install is the usual cause of problem 31."
+      "Item": "NVIDIA driver branches are incompatible",
+      "Detail": "Mixed versions across 2 NVIDIA GPUs (32.0.16.1088, 32.0.15.9636) and NO installed package lists every device present (DEV_28B8, DEV_2D04). These GPUs are served by different NVIDIA branches - typically GeForce vs RTX/professional.",
+      "Remedy": "nvlddmkm.sys is a single shared kernel driver, so only one branch can load: one GPU will stay at problem 31. Reinstalling an existing package cannot fix this. Either obtain one package that lists every device ID above, or decide which GPU to keep and disable the other so it stops erroring."
     }
   ]
 }

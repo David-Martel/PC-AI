@@ -19,8 +19,37 @@ pwsh -File Tools\Test-HardwareHealth.ps1 -OutputJson Reports\hardware-health-202
 | Intel Arc Pro Graphics | 0 | `32.0.101.8517` | OK |
 
 Problem 31 is "Windows cannot load the drivers required for this device".
-Windows ships **one** NVIDIA driver package per system, so two NVIDIA devices on
-different versions is the ordinary cause: the second one cannot load.
+
+> **⚠ Corrected 2026-09-09 18:35.** The first version of this section said the
+> remedy was "reinstall a single driver covering every NVIDIA GPU". **That is not
+> achievable on this machine**, and the correction matters because it sends you
+> after something impossible. Verified by reading the driver-store INFs directly:
+>
+> | Package | `DEV_28B8` (RTX 2000 Ada) | `DEV_2D04` (RTX 5060 Ti) |
+> |---|---|---|
+> | `nv_dispsi.inf` 596.36 — GeForce branch | **absent** | present |
+> | `nvltwi.inf` 610.88 — Lenovo/RTX professional branch | present | **absent** |
+>
+> **Neither installed package lists both devices**, and `nvlddmkm.sys` is a
+> single shared kernel driver — so only one branch can ever be loaded and one GPU
+> stays at problem 31 regardless of how many times either is reinstalled. This is
+> not a botched install; it is a consequence of pairing a **professional** internal
+> GPU (RTX 2000 Ada, served by the RTX/Quadro branch) with a **consumer** eGPU
+> (GeForce RTX 5060 Ti, served by the GeForce branch).
+>
+> Real options, none of which a script should pick:
+> 1. **Keep the eGPU** (status quo). CUDA already runs on it, and at 16 GB it is
+>    the more capable card. Cost: no NVIDIA GPU when the Core X is detached — the
+>    laptop falls back to Intel Arc. Disabling the Ada device stops it erroring
+>    and should remove the `nvWmi64.exe` retry cost.
+> 2. **Keep the internal Ada** — remove the GeForce package. Cost: the eGPU stops
+>    working, and you lose 16 GB of VRAM for the Rust CUDA workloads.
+> 3. **Find a single package listing both device IDs.** Not confirmed to exist;
+>    would need checking against NVIDIA's driver catalogue.
+>
+> `Tools\Test-HardwareHealth.ps1` now determines this automatically — it scans the
+> driver store and reports whether *any* installed package covers every NVIDIA
+> device present, rather than assuming a reinstall will help.
 
 Confirmed from the CUDA side — `nvidia-smi` (driver 596.36, CUDA 13.2) enumerates
 **only** the 5060 Ti. The RTX 2000 Ada is invisible to CUDA, so every CUDA feature

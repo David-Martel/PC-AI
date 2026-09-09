@@ -31,11 +31,10 @@ Describe 'Test-HardwareHealth' {
             # call. Only actual command invocations count.
             $ast = [System.Management.Automation.Language.Parser]::ParseFile(
                 $script:ToolPath, [ref]$null, [ref]$null)
-            $invoked = $ast.FindAll(
-                { param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true) |
-                ForEach-Object { $_.GetCommandName() } |
-                Where-Object { $_ } |
-                Sort-Object -Unique
+            $commands = @($ast.FindAll(
+                { param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true))
+            $invoked = @($commands | ForEach-Object { $_.GetCommandName() } |
+                Where-Object { $_ } | Sort-Object -Unique)
 
             $forbidden = 'Start-Service', 'Stop-Service', 'Set-Service', 'Restart-Service',
                          'Enable-PnpDevice', 'Disable-PnpDevice', 'Remove-PnpDevice',
@@ -44,6 +43,27 @@ Describe 'Test-HardwareHealth' {
 
             foreach ($f in $forbidden) {
                 $invoked | Should -Not -Contain $f -Because "$f mutates system state"
+            }
+
+            # GetCommandName() returns $null for `& $someVariable ...`, so the
+            # filter above silently DROPS every variable-invoked native command -
+            # a blind spot in the one check whose entire job is to fail. Anything
+            # invoked that way is therefore listed explicitly and reviewed here,
+            # so a NEW variable invocation breaks the test until someone looks at
+            # it. Fail-closed by construction rather than by vigilance.
+            $allowedVariableInvocations = @('certutil')  # read-only: -user -key lists keys
+
+            $variableInvoked = @($commands |
+                Where-Object { -not $_.GetCommandName() } |
+                ForEach-Object { $_.CommandElements[0].Extent.Text })
+
+            foreach ($v in $variableInvoked) {
+                $name = $v.TrimStart('$')
+                $allowedVariableInvocations | Should -Contain $name -Because @"
+'$v' is invoked as a native command through a variable, which GetCommandName()
+cannot resolve. Confirm it is read-only, then add it to
+`$allowedVariableInvocations above.
+"@
             }
         }
 

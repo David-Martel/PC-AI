@@ -1168,3 +1168,70 @@ pwsh -File Tools\Test-ScheduledTaskHealth.ps1 -LocalOnly -FailOnIssue -OutputJso
   returns and `Restore-DrivesToInternal.ps1` moves the VHDX to `T:\vm\`.
 - [ ] Consider scheduling the reporter itself with `-FailOnIssue` so a newly
   broken task surfaces within a day instead of a month.
+
+## Machine configuration state (2026-09-09)
+
+Companion to [`Reports\hardware-health-20260909.md`](Reports/hardware-health-20260909.md).
+Re-derive any of this with `pwsh -File Tools\Test-HardwareHealth.ps1`.
+
+### A true reboot IS still required — for the page file, and only for it
+
+The eGPU and monitor were power-cycled, which cleared the post-driver-install
+problem 12. That is **not** the same as a reboot, and one thing genuinely needs one:
+
+| | Value |
+|---|---|
+| Registry (`Memory Management\PagingFiles`) | `c:\pagefile.sys 32768 131072` |
+| Live `Win32_PageFileUsage.AllocatedBaseSize` | **17,415 MB** |
+
+The 32 GB floor was written but **has not been applied** — Windows materialises a
+page file's initial size at boot. `PendingFileRenameOperations` also holds 4,228
+entries (Visual Studio installer temp cleanup), which confirms the pending-reboot
+state but is harmless in itself. No CBS or Windows Update reboot flag is set.
+
+**Live risk, not just a post-reboot chore:** commit is **72.3 GB against an 80.5 GB
+limit — 90%, ~8 GB of headroom**, with `vmmemWSL` alone holding 8 GB. Windows will
+extend the page file toward the 128 GB maximum under pressure and C: has 702 GB
+free, so this is not a hard ceiling — but extension is lazy, and a fast allocation
+spike can reach the limit before it grows. Until the reboot, a large WSL or CUDA
+allocation is the plausible failure.
+
+### Both GPUs work, on one driver — no reboot needed for this
+
+`nvidia-smi` reports **610.88 on both**, 24.5 GB total (RTX 2000 Ada 8,188 MiB +
+RTX 5060 Ti 16,311 MiB), both `status=OK, problem=0`. The fault was a **version**
+split, not a branch incompatibility: `nvlddmkm.sys` is one shared kernel driver, so
+596.36 and 610.88 could not both load and the loser reported problem 31. Different
+INFs at the same version are normal and were a red herring — `DEV_28B8` is served
+by `nvltsi.inf` and `DEV_2D04` by `nv_dispsi.inf` from the *same* 610.88 package.
+
+### Windows Hello — was already working; only fingerprint is missing
+
+| Factor | State | Source |
+|---|---|---|
+| PIN | **enrolled** | Passport KSP `uvkey-*` |
+| Face | **enrolled** | `WinBio AccountInfo\<SID>\EnrolledFactors = 2` |
+| Fingerprint | not enrolled | bit 8 of the same value, unset |
+| FIDO passkeys | 11 registered | Passport KSP (14 keys total) |
+
+The earlier "zero credentials enrolled" verdict was a swallowed access denial: the
+NGC container directory is ACL'd to `SYSTEM` and `NgcCtnrSvc` only, so it cannot be
+enumerated **even elevated**, and `-ErrorAction SilentlyContinue` turned that into
+an empty collection. Never read enrolment from NGC.
+
+`WbioSrvc` being Stopped is **not** a fault — it is `Start=2` but trigger-started by
+LogonUI and idle-stops afterwards. Starting it by hand does not stick.
+
+**There are no other accounts to extend Hello to.** `dsregcmd` reports
+`AzureAdJoined: NO`, `WorkplaceJoined: NO`, `DomainJoined: NO`, and the only
+interactive profile is `DTM-P1GEN7\david`; the rest are IIS APPPOOL / NT SERVICE /
+`WsiAccount` / `DevToolsUser` / `CodexSandboxOffline` service accounts. (`dsregcmd`'s
+`NgcSet: NO` describes the *Azure AD* NGC key, not local Hello — do not read it as a
+Hello verdict.)
+
+- [ ] **Reboot** to apply the 32 GB page-file floor and flush the pending renames.
+- [ ] Enrol fingerprint — interactive only, Settings > Accounts > Sign-in options.
+      The Synaptics sensor is healthy (`status=OK`, driver 6.0.69.1136).
+- [ ] Remove the `Cisco AnyConnect Virtual Miniport Adapter` — reports Error with no
+      CM problem code, the signature of a virtual adapter left by an uninstalled VPN
+      client. One of the three remaining device errors.

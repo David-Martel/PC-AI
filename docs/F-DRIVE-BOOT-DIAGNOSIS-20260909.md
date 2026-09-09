@@ -43,6 +43,25 @@ The boot mount task is single-shot, and Task Scheduler's restart-on-failure does
 on a nonzero exit — measured: `ExitCode 51` with `RestartCount=3` and `LastRunTime` never
 advancing. So one missed mount used to cost the whole session. Now the worst case is ~3 minutes.
 
+> **⚠ Corrected 2026-09-09 12:40 — the "~3 minutes" claim above did NOT hold as first
+> installed.** A repetition pattern only arms when its trigger *fires*. The watchdog was
+> registered with boot and logon triggers only, after this session's boot had already
+> happened, so it armed nothing: it ran once at 11:35 and at 12:26 still had `NextRunTime`
+> empty on a nominal 15-minute interval. Between installing the watchdog and the next
+> reboot the worst case was **unbounded**, not 3 minutes — the exact window the watchdog
+> exists to cover. Fixed by adding a third, already-fired trigger so the cycle arms at
+> install time; `NextRunTime` went from empty to 12:42:59 on re-registration. The ~3 minute
+> figure is correct only from the next boot onward, or after that fix.
+>
+> Ruled out, so nobody re-litigates it: this was **not** `StopAtDurationEnd`. That element
+> defaults to `true` while `Duration` is left empty, which looks wrong. An A/B on a
+> throwaway task with a time trigger showed *both* `true` and `false` schedule a NextRun 15
+> minutes out — empty `Duration` repeats indefinitely, as documented. Trigger type was the
+> whole story.
+>
+> Found by `Tools\Test-ScheduledTaskHealth.ps1`, which flagged the watchdog as stalled on
+> its first run.
+
 Design rules it obeys:
 - Identifies the volume by **label, never drive letter** (a removable can take F:).
 - Only mounts from **internal** `T:\vm\cloud-cache-disk.vhdx`. If the label appears backed by
@@ -93,7 +112,9 @@ Three gaps found by review after the above was already "verified":
    a rebuild from the repo would have silently lost self-healing. Now registered by
    `Install-CloudClientBootGating.ps1` **STEP 1b** (and removed by `-Rollback`). Verified by
    registering a throwaway copy from the installer's own code and diffing it against the running
-   task: principal and both triggers match exactly. Gotcha preserved in a comment — the repetition
+   task: principal and triggers match exactly. *(Re-verified 2026-09-09 12:45 after the trigger
+   fix below — the task now carries **three** triggers, not two, and the live task and the
+   installer's output are byte-identical once registration timestamps are normalised.)* Gotcha preserved in a comment — the repetition
    `Duration` must be `''` (empty = indefinite); `[TimeSpan]::MaxValue` produces
    `P99999999DT23H59M59S`, which `Register-ScheduledTask` rejects outright.
 

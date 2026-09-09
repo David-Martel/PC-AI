@@ -31,11 +31,10 @@ Describe 'Test-HardwareHealth' {
             # call. Only actual command invocations count.
             $ast = [System.Management.Automation.Language.Parser]::ParseFile(
                 $script:ToolPath, [ref]$null, [ref]$null)
-            $invoked = $ast.FindAll(
-                { param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true) |
-                ForEach-Object { $_.GetCommandName() } |
-                Where-Object { $_ } |
-                Sort-Object -Unique
+            $commands = @($ast.FindAll(
+                { param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true))
+            $invoked = @($commands | ForEach-Object { $_.GetCommandName() } |
+                Where-Object { $_ } | Sort-Object -Unique)
 
             $forbidden = 'Start-Service', 'Stop-Service', 'Set-Service', 'Restart-Service',
                          'Enable-PnpDevice', 'Disable-PnpDevice', 'Remove-PnpDevice',
@@ -44,6 +43,47 @@ Describe 'Test-HardwareHealth' {
 
             foreach ($f in $forbidden) {
                 $invoked | Should -Not -Contain $f -Because "$f mutates system state"
+            }
+
+            # GetCommandName() returns $null for `& $someVariable ...`, so the
+            # filter above silently DROPS every variable-invoked native command -
+            # a blind spot in the one check whose entire job is to fail.
+            #
+            # Allowlisting the variable NAME is not enough, and reviewers were
+            # right to say so: `$certutil = 'pnputil.exe'` still yields the name
+            # `certutil`, and a second `& $certutil -delete ...` would inherit the
+            # exemption from the first. The name constrains nothing. So both ends
+            # are pinned instead - the exact invocation (verb, flags and all) and
+            # the exact expression the variable is assigned.
+            $allowedInvocations = @(
+                # certutil -user -key LISTS keys; it has no mutating effect.
+                "& `$certutil -user -key -csp 'Microsoft Passport Key Storage Provider' 2>&1"
+            )
+            $allowedAssignments = @{
+                certutil = "Join-Path `$env:SystemRoot 'System32\certutil.exe'"
+            }
+
+            $norm = { param($t) ($t -replace '\s+', ' ').Trim() }
+            $variableInvoked = @($commands | Where-Object { -not $_.GetCommandName() })
+
+            foreach ($c in $variableInvoked) {
+                $text = & $norm $c.Extent.Text
+                $allowedInvocations | Should -Contain $text -Because @"
+This is invoked as a native command through a variable, which GetCommandName()
+cannot resolve, so the forbidden-name check above cannot see it. Confirm the WHOLE
+invocation is read-only, then add its exact text to `$allowedInvocations.
+"@
+                # The invocation text is only trustworthy if the variable still
+                # points where it did when the invocation was reviewed.
+                $varName = $c.CommandElements[0].Extent.Text.TrimStart('$')
+                $assignments = @($ast.FindAll({
+                        param($n) $n -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+                                  $n.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+                                  $n.Left.VariablePath.UserPath -eq $varName
+                    }, $true))
+                $assignments.Count | Should -Be 1 -Because "`$$varName must be assigned exactly once, or the reviewed target is not the one invoked"
+                (& $norm $assignments[0].Right.Extent.Text) | Should -Be $allowedAssignments[$varName] `
+                    -Because "`$$varName was reassigned; the allowlisted invocation no longer describes what runs"
             }
         }
 

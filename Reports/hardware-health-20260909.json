@@ -1,0 +1,89 @@
+{
+  "GeneratedAt": "2026-09-09T16:23:28.3167026-04:00",
+  "Computer": "DTM-P1GEN7",
+  "DevicesTotal": 1412,
+  "DevicesPresent": 608,
+  "Errors": 3,
+  "Warnings": 0,
+  "NvidiaGpus": [
+    {
+      "Name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+      "Status": "OK",
+      "Driver": "32.0.16.1088",
+      "Inf": "oem48.inf",
+      "DeviceId": "DEV_28B8"
+    },
+    {
+      "Name": "NVIDIA GeForce RTX 5060 Ti",
+      "Status": "OK",
+      "Driver": "32.0.16.1088",
+      "Inf": "oem267.inf",
+      "DeviceId": "DEV_2D04"
+    }
+  ],
+  "Findings": [
+    {
+      "Severity": "ERROR",
+      "Area": "Device",
+      "Item": "Unknown USB Device (Port Reset Failed)",
+      "Detail": "USB - problem 43 : Windows stopped this device because it reported problems",
+      "Remedy": "Device reported a fault. Often a failed USB enumeration on a hub or dock port rather than the peripheral itself."
+    },
+    {
+      "Severity": "ERROR",
+      "Area": "Device",
+      "Item": "Cisco AnyConnect Virtual Miniport Adapter for Windows x64",
+      "Detail": "Net - problem not reported : Device reports Error but exposes no CM problem code",
+      "Remedy": "Often a virtual adapter left behind by an uninstalled VPN or hypervisor client. Remove it if the product is gone."
+    },
+    {
+      "Severity": "ERROR",
+      "Area": "Device",
+      "Item": "Unknown USB Device (Device Descriptor Request Failed)",
+      "Detail": "USB - problem 43 : Windows stopped this device because it reported problems",
+      "Remedy": "Device reported a fault. Often a failed USB enumeration on a hub or dock port rather than the peripheral itself."
+    },
+    {
+      "Severity": "INFO",
+      "Area": "Hello",
+      "Item": "Biometric devices",
+      "Detail": "2 present, all OK",
+      "Remedy": ""
+    },
+    {
+      "Severity": "INFO",
+      "Area": "Hello",
+      "Item": "NGC credential store",
+      "Detail": "Not enumerable (ACL grants SYSTEM/NgcCtnrSvc only). Expected - enrolment is read from WinBio instead, never from this count.",
+      "Remedy": ""
+    },
+    {
+      "Severity": "INFO",
+      "Area": "Hello",
+      "Item": "Biometric enrolment",
+      "Detail": "Enrolled: Face (EnrolledFactors=2). Not enrolled: Fingerprint.",
+      "Remedy": ""
+    },
+    {
+      "Severity": "INFO",
+      "Area": "Hello",
+      "Item": "PIN and passkeys",
+      "Detail": "PIN enrolled (uvkey protector present). 11 FIDO passkey(s) registered; 14 Passport key(s) total.",
+      "Remedy": ""
+    },
+    {
+      "Severity": "INFO",
+      "Area": "Hello",
+      "Item": "WbioSrvc",
+      "Detail": "Stopped (StartType Automatic). Not diagnostic - it is trigger-started by LogonUI on demand and idle-stops after.",
+      "Remedy": ""
+    },
+    {
+      "Severity": "INFO",
+      "Area": "GPU",
+      "Item": "NVIDIA driver versions",
+      "Detail": "2 NVIDIA GPU(s), all on 32.0.16.1088",
+      "Remedy": ""
+    }
+  ]
+}

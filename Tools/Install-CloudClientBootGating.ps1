@@ -40,6 +40,8 @@ param(
     [string]$TaskName = 'CloudClients-AfterVHDX',
     [string]$LauncherPath = 'C:\codedev\PC_AI\Tools\Start-CloudClientsAfterVHDX.ps1',
     [string]$BackupPath = 'C:\codedev\PC_AI\Logs\CloudClientStart\runkey-backup.json',
+    [string]$WatchdogTaskName = 'CloudCache-MountWatchdog',
+    [string]$WatchdogPath = 'C:\codedev\PC_AI\Tools\Repair-CloudCacheMount.ps1',
     [switch]$Rollback,
     [switch]$DryRun,
     [Alias('h', '?')]
@@ -105,18 +107,22 @@ if ($Rollback) {
         }
     } else { Write-Warning "No backup at $BackupPath - Run keys not restored." }
 
+    # Defensive: an older revision of this script set this policy and it breaks
+    # Google Drive (see the note in the install path). Clear it if present.
     $drivePolicy = 'HKLM:\SOFTWARE\Policies\Google\DriveFS'
     if ((Test-Path $drivePolicy) -and (Test-Elevated)) {
         if ($PSCmdlet.ShouldProcess($drivePolicy, 'Remove AutoStartOnLogin policy')) {
             Remove-ItemProperty -Path $drivePolicy -Name 'AutoStartOnLogin' -Force -ErrorAction SilentlyContinue
-            Write-Host '  removed AutoStartOnLogin policy (Drive resumes its own autostart)'
+            Write-Host '  cleared AutoStartOnLogin policy (Drive resumes its own autostart)'
         }
     }
 
-    if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
-        if ($PSCmdlet.ShouldProcess($TaskName, 'Unregister task')) {
-            Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
-            Write-Host "  unregistered task $TaskName"
+    foreach ($tn in @($TaskName, $WatchdogTaskName)) {
+        if (Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue) {
+            if ($PSCmdlet.ShouldProcess($tn, 'Unregister task')) {
+                Unregister-ScheduledTask -TaskName $tn -Confirm:$false
+                Write-Host "  unregistered task $tn"
+            }
         }
     }
     Write-Host 'Rollback complete.' -ForegroundColor Green
@@ -142,6 +148,47 @@ if ($PSCmdlet.ShouldProcess($TaskName, 'Register scheduled task')) {
     Write-Host "  registered $TaskName" -ForegroundColor Green
 }
 
+Write-Host '=== STEP 1b: register the self-healing watchdog ===' -ForegroundColor Cyan
+# Why this is not optional: the mount task is single-shot and Task Scheduler's
+# restart-on-failure does NOT re-fire on a nonzero exit code (measured 2026-09-09 -
+# AutoMount_VHDX_cloud-cache-disk sat at ExitCode 51 with RestartCount=3 and
+# LastRunTime never advancing). Without this, one missed mount costs the whole
+# session. Runs as SYSTEM so the MOUNT half works with nobody logged on.
+if (-not (Test-Path $WatchdogPath)) {
+    Write-Warning "  watchdog script not found: $WatchdogPath - skipping (F: will NOT self-heal)"
+}
+elseif (-not (Test-Elevated)) {
+    Write-Warning '  not elevated - cannot register the SYSTEM watchdog. Re-run elevated for self-healing.'
+}
+else {
+    $wdAction = New-ScheduledTaskAction -Execute $pwsh `
+        -Argument ('-NoLogo -NoProfile -ExecutionPolicy Bypass -File "{0}"' -f $WatchdogPath)
+    # Boot+3min catches a failed boot mount; logon catches resume/late logon. Both
+    # repeat every 15 min indefinitely - an empty Duration means "no end", where
+    # [TimeSpan]::MaxValue produces a Duration Register-ScheduledTask rejects.
+    $wdBoot = New-ScheduledTaskTrigger -AtStartup
+    $wdBoot.Delay = 'PT3M'
+    $wdLogon = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+    foreach ($trg in @($wdBoot, $wdLogon)) {
+        $rep = New-CimInstance -CimClass (Get-CimClass MSFT_TaskRepetitionPattern root/Microsoft/Windows/TaskScheduler) `
+            -ClientOnly
+        $rep.Interval = 'PT15M'
+        $rep.Duration = ''
+        $trg.Repetition = $rep
+    }
+    $wdPrincipal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+    $wdSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+        -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
+
+    if ($PSCmdlet.ShouldProcess($WatchdogTaskName, 'Register scheduled task')) {
+        Register-ScheduledTask -TaskName $WatchdogTaskName -Action $wdAction -Trigger @($wdBoot, $wdLogon) `
+            -Principal $wdPrincipal -Settings $wdSettings `
+            -Description 'Re-mounts the F: cloud-cache-disk VHDX if it is missing, and restarts the cloud clients only if it actually repaired it.' `
+            -Force | Out-Null
+        Write-Host "  registered $WatchdogTaskName (boot+3min and logon, then every 15 min)" -ForegroundColor Green
+    }
+}
+
 Write-Host '=== STEP 2: prove the task runs before touching Run keys ===' -ForegroundColor Cyan
 $proved = $false
 if ($PSCmdlet.ShouldProcess($TaskName, 'Start task once and verify')) {
@@ -164,20 +211,17 @@ if (-not $proved) {
     return
 }
 
-# Google Drive re-creates its own HKCU Run key every time it starts, so simply
-# deleting the value does not stick. The supported way to stop that is the
-# AutoStartOnLogin policy. Set under Policies\ so it is an enforced override.
-# Ref: https://support.google.com/a/answer/7644837
-$drivePolicy = 'HKLM:\SOFTWARE\Policies\Google\DriveFS'
-if (Test-Elevated) {
-    if ($PSCmdlet.ShouldProcess($drivePolicy, 'Set AutoStartOnLogin=0')) {
-        if (-not (Test-Path $drivePolicy)) { New-Item -Path $drivePolicy -Force | Out-Null }
-        New-ItemProperty -Path $drivePolicy -Name 'AutoStartOnLogin' -Value 0 -PropertyType DWord -Force | Out-Null
-        Write-Host '  policy set: AutoStartOnLogin=0 (Drive will stop re-adding its Run key)' -ForegroundColor Green
-    }
-} else {
-    Write-Warning '  AutoStartOnLogin policy needs elevation - Google Drive will keep re-adding its Run key.'
-}
+# DO NOT set HKLM\SOFTWARE\Policies\Google\DriveFS\AutoStartOnLogin=0 here.
+# It was tried and reverted on 2026-09-08. Measured behaviour on this machine:
+#   * with the policy at 0, launching GoogleDriveFS.exe --startup_mode makes the
+#     process exit immediately - the flag means "this is a login start", which
+#     the policy forbids - so the gated launcher could no longer start Drive;
+#   * dropping --startup_mode let the process live but G: and J: never mounted;
+#   * and Drive re-created its HKCU Run key anyway, so the policy did not even
+#     buy what it was set for.
+# Net effect was a broken Google Drive, so Drive keeps managing its own Run key.
+# Consequence: Drive re-adds that key on each start, so gating is fully durable
+# for Dropbox only. This is documented in Docs\CLOUD_CACHE_F_DRIVE.md.
 
 $backup = @()
 foreach ($rk in $runKeys) {

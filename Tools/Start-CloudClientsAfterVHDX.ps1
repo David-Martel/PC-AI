@@ -152,18 +152,43 @@ if ($letter -ne $ExpectedDriveLetter) {
 }
 
 if ($RequireMountLog) {
+    # The result JSON must be from THIS boot. Picking "newest by LastWriteTime"
+    # alone is not enough: the mount task and this task both fire at logon, so on
+    # a fast auto-logon this boot's JSON may not exist yet and the newest file on
+    # disk is the PREVIOUS boot's. If that one succeeded, a stale ExitCode 0 would
+    # satisfy the gate on a boot where the mount actually failed - the exact
+    # inversion this gate exists to prevent. Observed 2026-09-09, when this
+    # directory held an 08:00:22 success alongside two later failures.
+    $bootTime = (Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue).LastBootUpTime
     $newest = Get-ChildItem $MountLogRoot -Filter '*.result.json' -ErrorAction SilentlyContinue |
               Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if (-not $newest) {
-        Write-Log 'RequireMountLog set but no mount result JSON found.' 'WARN'
-    } else {
-        $res = Get-Content $newest.FullName -Raw | ConvertFrom-Json
-        if ($res.ExitCode -ne 0) {
-            Write-Log "Mount reported ExitCode $($res.ExitCode) ($($newest.Name)) - clients NOT started." 'ERROR'
-            exit 3
-        }
-        Write-Log "Mount log OK (ExitCode 0, $($newest.Name))"
+        # Absence of evidence is not evidence of a good mount.
+        Write-Log 'RequireMountLog set but no mount result JSON found - clients NOT started.' 'ERROR'
+        exit 3
     }
+    $res = Get-Content $newest.FullName -Raw | ConvertFrom-Json
+
+    $mountStartedAt = $null
+    if ($res.PSObject.Properties.Name -contains 'StartedAt') {
+        try { $mountStartedAt = [datetime]$res.StartedAt } catch { $mountStartedAt = $null }
+    }
+    if (-not $bootTime) {
+        Write-Log 'Could not read LastBootUpTime - cannot prove mount log freshness.' 'WARN'
+    } elseif (-not $mountStartedAt) {
+        Write-Log "Mount log $($newest.Name) has no usable StartedAt - clients NOT started." 'ERROR'
+        exit 3
+    } elseif ($mountStartedAt -lt $bootTime) {
+        Write-Log ("Mount log {0} is STALE (StartedAt {1:yyyy-MM-dd HH:mm:ss} predates boot {2:yyyy-MM-dd HH:mm:ss}) - clients NOT started." -f `
+            $newest.Name, $mountStartedAt, $bootTime) 'ERROR'
+        exit 3
+    }
+
+    if ($res.ExitCode -ne 0) {
+        Write-Log "Mount reported ExitCode $($res.ExitCode) ($($newest.Name)) - clients NOT started." 'ERROR'
+        exit 3
+    }
+    Write-Log "Mount log OK (ExitCode 0, this boot, $($newest.Name))"
 }
 
 $started = 0; $skipped = 0; $failed = 0

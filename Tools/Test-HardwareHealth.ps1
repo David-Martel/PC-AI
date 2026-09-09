@@ -270,6 +270,44 @@ if (Test-Path -LiteralPath $bioAccounts) {
     Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'Biometric enrolment' -Detail 'WinBio AccountInfo key absent.'
 }
 
+# PIN is the PRIMARY Hello factor - a machine with a PIN and no biometric still
+# has working Hello - so a report that only reads WinBio understates enrolment.
+# The PIN protector and every FIDO passkey live as Passport KSP keys, which the
+# current user CAN enumerate (unlike the NGC container directory above).
+#
+#   uvkey-<hex>          the PIN protector
+#   FIDO_AUTHENTICATOR//  a passkey, relying party hex-encoded after the '_'
+#
+# GOTCHA, and the reason an earlier count of these was wrong: certutil emits
+# LEADING WHITESPACE on every key line, so a '^S-1-5-21' anchor matches nothing
+# and silently reports zero keys. Trim first. Called by full path because
+# ~/bin shadows many system commands on this fleet.
+$certutil = Join-Path $env:SystemRoot 'System32\certutil.exe'
+if (Test-Path -LiteralPath $certutil) {
+    $kspOk = $false
+    $kspLines = @()
+    try {
+        $kspLines = @(& $certutil -user -key -csp 'Microsoft Passport Key Storage Provider' 2>&1 |
+            ForEach-Object { "$_".Trim() })
+        $kspOk = ($LASTEXITCODE -eq 0)
+    } catch { $kspOk = $false }
+
+    if (-not $kspOk) {
+        # Fail loudly. A silent zero here would repeat the NGC mistake exactly.
+        Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'PIN and passkeys' `
+            -Detail 'Could not enumerate the Passport KSP key store - PIN/passkey enrolment is UNKNOWN, not absent.' `
+            -Remedy 'Run: certutil -user -key -csp "Microsoft Passport Key Storage Provider"'
+    } else {
+        $keys = @($kspLines | Where-Object { $_ -like 'S-1-5-*' })
+        $pin = @($keys | Where-Object { $_ -match 'uvkey-' })
+        $fido = @($keys | Where-Object { $_ -match 'FIDO_AUTHENTICATOR//' })
+        $detail = if ($pin.Count -gt 0) { 'PIN enrolled (uvkey protector present).' }
+                  else { 'No PIN protector found for this user.' }
+        $detail += " $($fido.Count) FIDO passkey(s) registered; $($keys.Count) Passport key(s) total."
+        Add-Finding -Severity 'INFO' -Area 'Hello' -Item 'PIN and passkeys' -Detail $detail
+    }
+}
+
 $wbio = Get-Service -Name WbioSrvc -ErrorAction SilentlyContinue
 if ($null -eq $wbio) {
     Add-Finding -Severity 'WARN' -Area 'Hello' -Item 'WbioSrvc' -Detail 'Service not installed.'

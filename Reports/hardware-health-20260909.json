@@ -1,5 +1,5 @@
 {
-  "GeneratedAt": "2026-09-09T16:10:26.9247475-04:00",
+  "GeneratedAt": "2026-09-09T16:23:28.3167026-04:00",
   "Computer": "DTM-P1GEN7",
   "DevicesTotal": 1412,
   "DevicesPresent": 608,
@@ -62,6 +62,13 @@
       "Area": "Hello",
       "Item": "Biometric enrolment",
       "Detail": "Enrolled: Face (EnrolledFactors=2). Not enrolled: Fingerprint.",
+      "Remedy": ""
+    },
+    {
+      "Severity": "INFO",
+      "Area": "Hello",
+      "Item": "PIN and passkeys",
+      "Detail": "PIN enrolled (uvkey protector present). 11 FIDO passkey(s) registered; 14 Passport key(s) total.",
       "Remedy": ""
     },
     {

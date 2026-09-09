@@ -118,7 +118,14 @@ driver covering both GPUs. Not done here — it is a reboot-affecting change.
 > | PIN | Passport KSP — `uvkey-E9F2E36D…` | ✅ enrolled |
 > | Face | `WinBio AccountInfo\<SID>\EnrolledFactors = 2` | ✅ enrolled |
 > | Fingerprint | bit 8 of the same value, unset | ❌ not enrolled |
-> | FIDO passkeys | Passport KSP | 4 registered, incl. `GOOGLE_ACCOUNT:107425477980575938280` |
+> | FIDO passkeys | Passport KSP | **11 registered**, incl. two `GOOGLE_ACCOUNT:` keys |
+
+> **Count corrected 2026-09-09 20:10.** An earlier revision of this table said "4
+> registered". `certutil -user -key -csp "Microsoft Passport Key Storage
+> Provider"` emits **leading whitespace** on every key line, so a `^S-1-5-21`
+> anchor matches nothing and a loose filter matches only some. The full key list
+> is 14 entries: 1 PIN `uvkey-*`, 11 FIDO passkeys, a `Bitwarden` key, and one
+> opaque container. Trim before matching.
 >
 > So Hello has been working for this account all along. **The only real gap is
 > fingerprint**, and the Synaptics sensor is healthy (`status=OK`, driver

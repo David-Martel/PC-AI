@@ -39,13 +39,26 @@ Describe 'Test-ScheduledTaskHealth' {
             $content | Should -Not -Match '\[int\]\$info\.LastTaskResult'
         }
 
+        It 'never enumerates tasks with -ErrorAction SilentlyContinue (must fail closed)' {
+            # Regression guard. Silencing the enumeration turns a Task Scheduler
+            # provider fault into an empty set, which then reports "all healthy"
+            # and exits 0 under -FailOnIssue - a health check that cannot report
+            # its own failure. It must fail loudly instead.
+            $content = Get-Content -LiteralPath $script:ToolPath -Raw
+            $content | Should -Not -Match 'Get-ScheduledTask\s+-ErrorAction\s+SilentlyContinue'
+            $content | Should -Match 'Get-ScheduledTask\s+-ErrorAction\s+Stop'
+        }
+
         It 'supports --help without touching the system' {
             $out = & pwsh -NoLogo -NoProfile -File $script:ToolPath '--help' 2>&1
             ($out | Out-String) | Should -Match 'SYNOPSIS'
         }
     }
 
-    Context 'Live behaviour' {
+    # Every assertion below queries the live Task Scheduler through CIM, which
+    # exists only on Windows. Without this guard the whole context fails on a
+    # Linux runner at the first Get-Content of a JSON the script never wrote.
+    Context 'Live behaviour' -Skip:(-not $IsWindows -or -not (Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue)) {
 
         BeforeAll {
             # Assert against the JSON report, not -PassThru. The script ends in

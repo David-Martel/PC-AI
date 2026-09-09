@@ -143,9 +143,12 @@ $KnownFailureCodes = @{
     '0x32'       = 'Not supported'
     '0x33'       = 'Resource not available (used here as a script exit code)'
     '0x41306'    = 'Terminated before completion'
-    '0x8004131F' = 'An instance is already running'
+    # 0x8004131F is SCHED_E_ALREADY_RUNNING - the TASK. 0x80070420 wraps Win32
+    # 1056 ERROR_SERVICE_ALREADY_RUNNING - a SERVICE the action tried to start.
+    # Same words, different subject and different fix, so name them apart.
+    '0x8004131F' = 'This task is already running'
     '0x800710E0' = 'Operator or administrator refused the request'
-    '0x80070420' = 'An instance is already running'
+    '0x80070420' = 'A service the action starts is already running'
     '0xC000013A' = 'Terminated by Ctrl+C / killed'
 }
 # Terminated is "informational" to Task Scheduler but is a real failure for a
@@ -270,7 +273,22 @@ try {
 }
 
 $now = Get-Date
-$tasks = @(Get-ScheduledTask -ErrorAction SilentlyContinue)
+# -ErrorAction Stop, NOT SilentlyContinue. Silencing this turns a Task Scheduler
+# provider or service fault into an EMPTY set, which then reports "all healthy"
+# and exits 0 under -FailOnIssue - a health check that cannot report its own
+# failure, which is the exact defect this tool exists to catch. Fail loudly.
+try {
+    $tasks = @(Get-ScheduledTask -ErrorAction Stop)
+} catch {
+    Write-Host "FATAL: could not enumerate scheduled tasks - $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host '       This is NOT a clean result. Task Scheduler could not be queried.'
+    exit 2
+}
+if ($tasks.Count -eq 0) {
+    # Windows always ships tasks. Zero means the query silently returned nothing.
+    Write-Host 'FATAL: Get-ScheduledTask returned no tasks at all - refusing to report health.' -ForegroundColor Red
+    exit 2
+}
 if (-not $IncludeMicrosoft) {
     $tasks = @($tasks | Where-Object { $_.TaskPath -notlike '\Microsoft\*' })
 }
@@ -331,12 +349,17 @@ $results = foreach ($task in $tasks) {
             'Interval' {
                 $budget = $expectation.Interval * $StaleFactor
                 if ($null -eq $lastRun) {
-                    if ($null -ne $lastResult -and $lastResult -eq 0x41303) {
-                        $staleness = 'never run'
+                    # "Has not run" (0x41303) used to be accepted unconditionally,
+                    # which let an interval task that never fires sit Healthy
+                    # forever. A newly registered task legitimately has not run
+                    # yet - the thing that distinguishes the two is whether a
+                    # next run is actually scheduled.
+                    $staleness = 'never run'
+                    if ($null -ne $nextRun -and $nextRun -gt $now) {
+                        $staleness = "never run; first run due {0:yyyy-MM-dd HH:mm}" -f $nextRun
                     } else {
-                        $staleness = 'never run'
                         if ($status -eq 'Healthy') { $status = 'Stalled' }
-                        $reasons.Add("Has a $([math]::Round($expectation.Interval.TotalMinutes)) min cadence but has never run")
+                        $reasons.Add("Has a $([math]::Round($expectation.Interval.TotalMinutes)) min cadence, has never run, and has no future run scheduled")
                     }
                 } else {
                     $age = $now - $lastRun

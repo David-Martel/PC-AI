@@ -26,6 +26,16 @@ jobs:
   guidelines-check:
     name: Microsoft Rust Guidelines
     runs-on: windows-latest
+    # Without this the job inherits the 6-hour default; the stuck-looking
+    # 45-minute audit step on #85 was indistinguishable from a hang.
+    #
+    # 90, not 45. A cold run has to build cargo-audit from source, which on #85
+    # took ~37 minutes on top of ~7 for checkout/setup/fmt/clippy/tests. A
+    # 45-minute cap would have killed the first run mid-install -- and since a
+    # cancelled job cannot save its cache, every subsequent run would repeat the
+    # cold build and die the same way. The tight bound belongs on the audit step
+    # itself, which is fast once the binary is cached.
+    timeout-minutes: 90
     strategy:
       matrix:
         workspace:
@@ -65,12 +75,52 @@ jobs:
         working-directory: ${{ matrix.workspace.path }}
         run: cargo test ${{ matrix.workspace.features }} --lib
 
+      # cargo-audit was rebuilt from source on every single run. The Cache Cargo
+      # step above does not cover ~/.cargo/bin, and its key is the Cargo.lock
+      # hash -- which every dependency PR changes by definition, so the one kind
+      # of PR that most needs an audit was guaranteed a cold build. On a Windows
+      # runner that step alone ran 20+ minutes; PR #85 sat on it for 45.
+      #
+      # Cached separately under a stable key so the binary survives lockfile
+      # churn. Bump -v2 to force a rebuild.
+      # Split restore/save rather than actions/cache, so the binary is cached
+      # the moment it is built -- before `cargo audit` runs. A single
+      # actions/cache step only saves in its post-job phase, which does not run
+      # if the job later fails or is cancelled. That would have been a deadlock:
+      # a cold run slow enough to hit the job timeout would die before saving,
+      # so the next run is cold too, forever. Saving up front breaks the cycle
+      # even if the audit itself fails.
+      - name: Restore cargo-audit
+        id: audit-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit.exe
+          key: ${{ runner.os }}-cargo-audit-v1
+
+      - name: Install cargo-audit
+        if: steps.audit-cache.outputs.cache-hit != 'true'
+        run: cargo install cargo-audit --locked
+
+      - name: Save cargo-audit
+        if: steps.audit-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit.exe
+          key: ${{ runner.os }}-cargo-audit-v1
+
+      # `continue-on-error: true` meant this could not fail -- a security gate
+      # that cannot fail is not a gate. Verified before removing it: cargo audit
+      # on Native/pcai_core is exit 0 today, 776 dependencies, zero
+      # vulnerabilities and 5 advisory warnings (unmaintained/yanked). cargo
+      # audit does not fail on warnings, only on vulnerabilities, so this does
+      # not red the repo on the existing set.
       - name: Audit Dependencies
         working-directory: ${{ matrix.workspace.path }}
+        shell: pwsh
+        timeout-minutes: 10
         run: |
-          cargo install cargo-audit --locked 2>$null
           cargo audit
-        continue-on-error: true
+          exit $LASTEXITCODE
 
       - name: Guidelines Compliance Scan
         shell: pwsh

@@ -269,9 +269,11 @@ $results = foreach ($task in $tasks) {
     try { $info = $task | Get-ScheduledTaskInfo -ErrorAction Stop } catch { }
 
     $lastRun = $null
+    $nextRun = $null
     $lastResult = $null
     $missed = 0
     if ($null -ne $info) {
+        if ($info.NextRunTime -and $info.NextRunTime.Year -gt 1999) { $nextRun = $info.NextRunTime }
         # Task Scheduler reports "never run" as a sentinel date near 1899/1601.
         if ($info.LastRunTime -and $info.LastRunTime.Year -gt 1999) { $lastRun = $info.LastRunTime }
         # [int64], never [int]: LastTaskResult is a uint32 and 0xC000013A
@@ -329,6 +331,13 @@ $results = foreach ($task in $tasks) {
                         if ($status -eq 'Healthy') { $status = 'Stalled' }
                         $reasons.Add(("Last ran {0:N1} h ago but its cadence is {1:N1} h (allowed {2}x = {3:N1} h)" -f `
                             $age.TotalHours, $expectation.Interval.TotalHours, $StaleFactor, $budget.TotalHours))
+                        # The cause is almost always this: a repetition pattern
+                        # only arms when its trigger FIRES. A task registered
+                        # with boot/logon triggers after the current boot has
+                        # armed nothing and will not repeat until the next one.
+                        if ($null -eq $nextRun) {
+                            $reasons.Add('No next run is scheduled - its repetition is not armed, so it will not run again until a trigger fires (e.g. the next boot or logon)')
+                        }
                     }
                 }
             }
@@ -364,6 +373,7 @@ $results = foreach ($task in $tasks) {
         State       = [string]$task.State
         Status      = $status
         LastRunTime = $lastRun
+        NextRunTime = $nextRun
         LastResult  = $lastResult
         ResultText  = $resultText
         Cadence     = $expectation.Kind

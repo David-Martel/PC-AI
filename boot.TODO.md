@@ -1172,7 +1172,24 @@ pwsh -File Tools\Test-ScheduledTaskHealth.ps1 -LocalOnly -FailOnIssue -OutputJso
 ## Machine configuration state (2026-09-09)
 
 Companion to [`Reports\hardware-health-20260909.md`](Reports/hardware-health-20260909.md).
-Re-derive any of this with `pwsh -File Tools\Test-HardwareHealth.ps1`.
+**How to re-derive each claim.** `Test-HardwareHealth.ps1` covers only the device,
+Hello and GPU-parity rows — it does **not** read the page file, commit headroom,
+pending-reboot flags or the account inventory, so re-running it cannot confirm that
+the reboot applied the page-file floor. Use the command that actually produces each
+number:
+
+| Claim | Command |
+|---|---|
+| Devices, Hello, GPU parity | `pwsh -File Tools\Test-HardwareHealth.ps1` |
+| Page file configured vs live | `Get-ItemPropertyValue 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' PagingFiles` and `Get-CimInstance Win32_PageFileUsage \| Select Name,AllocatedBaseSize` |
+| Commit headroom | `Get-Counter '\Memory\Commit Limit','\Memory\Committed Bytes'` |
+| Pending reboot | `Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' PendingFileRenameOperations`; `Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'` |
+| GPU driver from the CUDA side | `nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv` |
+| Join state / other accounts | `dsregcmd /status` and `Get-CimInstance Win32_UserProfile` |
+
+**After the reboot, the page-file check is the one that matters**: `AllocatedBaseSize`
+must be at least 32,768 MB. If it is not, the setting did not take and the floor is
+still unapplied — a successful boot is not by itself evidence.
 
 ### A true reboot IS still required — for the page file, and only for it
 
@@ -1235,3 +1252,7 @@ Hello verdict.)
 - [ ] Remove the `Cisco AnyConnect Virtual Miniport Adapter` — reports Error with no
       CM problem code, the signature of a virtual adapter left by an uninstalled VPN
       client. One of the three remaining device errors.
+- [ ] Teach `Test-HardwareHealth.ps1` the memory and reboot-state rows above (page
+      file configured vs live, commit headroom, pending-reboot flags) so the table
+      of hand-run commands can go away. A machine that is one allocation from its
+      commit limit is a hardware-health finding, not a footnote.

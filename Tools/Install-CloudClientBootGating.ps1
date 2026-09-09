@@ -169,7 +169,16 @@ else {
     $wdBoot = New-ScheduledTaskTrigger -AtStartup
     $wdBoot.Delay = 'PT3M'
     $wdLogon = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
-    foreach ($trg in @($wdBoot, $wdLogon)) {
+    # A repetition pattern only arms when its trigger FIRES. Registering a task
+    # whose triggers are boot and logon therefore arms nothing: the boot for this
+    # session has already happened and no new logon is pending, so NextRunTime
+    # stays empty and the watchdog does not repeat until the machine is next
+    # rebooted. Measured on the first install - registered 11:34, run once at
+    # 11:35, and at 12:26 still no next run scheduled on a 15-minute interval.
+    # A third trigger that has already fired arms the cycle immediately, so
+    # self-healing starts at install time rather than at the next reboot.
+    $wdNow = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(-1)
+    foreach ($trg in @($wdBoot, $wdLogon, $wdNow)) {
         $rep = New-CimInstance -CimClass (Get-CimClass MSFT_TaskRepetitionPattern root/Microsoft/Windows/TaskScheduler) `
             -ClientOnly
         $rep.Interval = 'PT15M'
@@ -181,7 +190,7 @@ else {
         -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
 
     if ($PSCmdlet.ShouldProcess($WatchdogTaskName, 'Register scheduled task')) {
-        Register-ScheduledTask -TaskName $WatchdogTaskName -Action $wdAction -Trigger @($wdBoot, $wdLogon) `
+        Register-ScheduledTask -TaskName $WatchdogTaskName -Action $wdAction -Trigger @($wdBoot, $wdLogon, $wdNow) `
             -Principal $wdPrincipal -Settings $wdSettings `
             -Description 'Re-mounts the F: cloud-cache-disk VHDX if it is missing, and restarts the cloud clients only if it actually repaired it.' `
             -Force | Out-Null

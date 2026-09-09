@@ -186,6 +186,20 @@ function Get-TaskOwner {
             if ([string]::IsNullOrWhiteSpace($root)) { continue }
             if ($haystack -like "*$root*") { return 'Local' }
         }
+
+        # Second signal: the action runs a SCRIPT from somewhere that is not a
+        # vendor install root. Vendors ship compiled executables; a loose .ps1 or
+        # .py on this machine is almost always ours. This catches the tasks an
+        # explicit root list misses - Update-BwArchive.ps1 under ~\.machine,
+        # linklocal-guard.ps1 under C:\ProgramData\dtm-netfix, recruitment_job.py
+        # under %LOCALAPPDATA%\vigil - without needing every such directory
+        # enumerated in advance, which is what would rot.
+        if ($haystack -match '(?i)([A-Z]:\\[^"'']*?\.(?:ps1|py|cmd|bat|sh))') {
+            $scriptPath = $Matches[1]
+            if ($scriptPath -notmatch '(?i)^[A-Z]:\\(?:Program Files( \(x86\))?|Windows)\\') {
+                return 'Local'
+            }
+        }
     }
     return 'Vendor'
 }

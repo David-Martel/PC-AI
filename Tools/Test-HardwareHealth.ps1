@@ -368,9 +368,22 @@ if ($distinct.Count -gt 1) {
                  'Do not chase a single INF containing every device - that is not how NVIDIA packages are laid out. ' +
                  'After installing, an externally-attached GPU may need its enclosure re-enumerated (or a reboot) to reallocate PCIe resources; ' +
                  'problem 12 immediately after a driver swap means resource allocation, not an unsupported device.')
+} elseif ($distinct.Count -eq 0 -and $nvInfo.Count -gt 0) {
+    # Every version lookup failed. "all on " with an empty version is worse than
+    # useless - it reads as a clean parity result. Say what is actually known.
+    Add-Finding -Severity 'WARN' -Area 'GPU' -Item 'NVIDIA driver versions' `
+        -Detail ("$($nvInfo.Count) NVIDIA GPU(s) present but NO driver version could be read for any of them - parity is UNKNOWN, not confirmed.") `
+        -Remedy 'Re-run once the devices are out of a fault state; a version that cannot be read is usually a symptom of one.'
 } elseif ($nvInfo.Count -gt 0) {
-    Add-Finding -Severity 'INFO' -Area 'GPU' -Item 'NVIDIA driver versions' `
-        -Detail ("$($nvInfo.Count) NVIDIA GPU(s), all on $($distinct -join ', ')")
+    # Parity is only asserted over the GPUs whose version was actually readable.
+    # With any unreadable GPU present, "all" would be a claim the data does not
+    # support - the WARN above already names them, and the count here is scoped.
+    $detail = if ($unreadable.Count -gt 0) {
+        "$($nvInfo.Count - $unreadable.Count) of $($nvInfo.Count) NVIDIA GPU(s) report a driver version, and those agree on $($distinct -join ', '). The remaining $($unreadable.Count) could not be read, so full parity is unconfirmed."
+    } else {
+        "$($nvInfo.Count) NVIDIA GPU(s), all on $($distinct -join ', ')"
+    }
+    Add-Finding -Severity 'INFO' -Area 'GPU' -Item 'NVIDIA driver versions' -Detail $detail
 }
 
 # ------------------------------------------------------------------ output ---

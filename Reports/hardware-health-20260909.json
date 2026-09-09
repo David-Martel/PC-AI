@@ -1,0 +1,78 @@
+{
+  "GeneratedAt": "2026-09-09T14:12:40.6048261-04:00",
+  "Computer": "DTM-P1GEN7",
+  "DevicesTotal": 1416,
+  "DevicesPresent": 606,
+  "Errors": 6,
+  "Warnings": 1,
+  "NvidiaGpus": [
+    {
+      "Name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+      "Status": "Error",
+      "Driver": "32.0.16.1088"
+    },
+    {
+      "Name": "NVIDIA GeForce RTX 5060 Ti",
+      "Status": "OK",
+      "Driver": "32.0.15.9636"
+    }
+  ],
+  "Findings": [
+    {
+      "Severity": "ERROR",
+      "Area": "Device",
+      "Item": "Unknown USB Device (Port Reset Failed)",
+      "Detail": "USB - problem 43 : Windows stopped this device because it reported problems",
+      "Remedy": "Device reported a fault. Often a failed USB enumeration on a hub or dock port rather than the peripheral itself."
+    },
+    {
+      "Severity": "ERROR",
+      "Area": "Device",
+      "Item": "Cisco AnyConnect Virtual Miniport Adapter for Windows x64",
+      "Detail": "Net - problem not reported : Device reports Error but exposes no CM problem code",
+      "Remedy": "Often a virtual adapter left behind by an uninstalled VPN or hypervisor client. Remove it if the product is gone."
+    },
+    {
+      "Severity": "ERROR",
+      "Area": "Device",
+      "Item": "Unknown USB Device (Device Descriptor Request Failed)",
+      "Detail": "USB - problem 43 : Windows stopped this device because it reported problems",
+      "Remedy": "Device reported a fault. Often a failed USB enumeration on a hub or dock port rather than the peripheral itself."
+    },
+    {
+      "Severity": "ERROR",
+      "Area": "Device",
+      "Item": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+      "Detail": "Display - problem 31 : Windows cannot load the drivers required for this device",
+      "Remedy": "Driver failed to load. If another device of the same vendor works, compare driver versions - a mixed-version install is the usual cause."
+    },
+    {
+      "Severity": "INFO",
+      "Area": "Hello",
+      "Item": "Biometric devices",
+      "Detail": "2 present, all OK",
+      "Remedy": ""
+    },
+    {
+      "Severity": "ERROR",
+      "Area": "Hello",
+      "Item": "WbioSrvc",
+      "Detail": "Windows Biometric Service is Stopped (StartType Automatic).",
+      "Remedy": "Start-Service WbioSrvc. If StartType is Automatic, being stopped is a fault, not idling."
+    },
+    {
+      "Severity": "WARN",
+      "Area": "Hello",
+      "Item": "NGC credential store",
+      "Detail": "Zero containers - no Windows Hello credential is enrolled.",
+      "Remedy": "Enrol interactively: Settings > Accounts > Sign-in options. Cannot be scripted."
+    },
+    {
+      "Severity": "ERROR",
+      "Area": "GPU",
+      "Item": "NVIDIA driver versions",
+      "Detail": "Mixed versions across 2 NVIDIA GPUs: 32.0.16.1088, 32.0.15.9636",
+      "Remedy": "Windows ships one NVIDIA package per system. Reinstall a single driver (clean install) covering every NVIDIA GPU; a mixed install is the usual cause of problem 31."
+    }
+  ]
+}

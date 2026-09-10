@@ -28,7 +28,10 @@
         'Get-NetworkDiagnostics',
         'Optimize-VSock',
         'Watch-VSockPerformance',
-        'Test-WSLConnectivity'
+        'Test-WSLConnectivity',
+        'Get-StableNetAdapter',
+        'Repair-UsbNetAdapter',
+        'Test-NetPathHealth'
     )
 
     # Cmdlets to export from this module
@@ -43,7 +46,7 @@
     # Private data to pass to the module
     PrivateData = @{
         PSData = @{
-            Tags = @('Network', 'Diagnostics', 'VSock', 'WSL', 'PC-AI')
+            Tags = @('Network', 'Diagnostics', 'VSock', 'WSL', 'USB', 'Thunderbolt', 'Roaming', 'PC-AI')
             LicenseUri = 'https://github.com/David-Martel/PC-AI/blob/main/LICENSE'
             ProjectUri = 'https://github.com/David-Martel/PC-AI'
         }

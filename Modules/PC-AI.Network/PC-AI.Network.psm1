@@ -40,5 +40,8 @@ Export-ModuleMember -Function @(
     'Get-NetworkDiagnostics',
     'Optimize-VSock',
     'Watch-VSockPerformance',
-    'Test-WSLConnectivity'
+    'Test-WSLConnectivity',
+    'Get-StableNetAdapter',
+    'Repair-UsbNetAdapter',
+    'Test-NetPathHealth'
 )

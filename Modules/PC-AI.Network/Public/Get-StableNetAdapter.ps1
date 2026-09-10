@@ -104,12 +104,21 @@ function Get-StableNetAdapter {
     # netsh is authoritative for the IPv4 subinterface MTU. Get-NetAdapter's MtuSize
     # and the *JumboPacket keyword can BOTH read 9000/9014 while IPv4 still runs at
     # 1500, so a check that consults only Get-NetAdapter can report success wrongly.
+    # Match the interface name EXACTLY. A substring match is wrong here: netsh names
+    # overlap, so 'Wi-Fi' matches the 'Wi-Fi', 'Wi-Fi 3' and 'Wi-Fi 4' rows on this
+    # host, and taking the first would report an unrelated adapter's MTU as if it
+    # were this one's. The layout is four numeric columns then the name, which may
+    # itself contain spaces and brackets -- e.g. 'vEthernet (WSL (Hyper-V firewall))'.
     $ipv4Mtu = $null
     try {
-        $ipv4Mtu = netsh interface ipv4 show subinterfaces |
-            Select-String -SimpleMatch $a.Name |
-            ForEach-Object { ($_ -split '\s+' | Where-Object { $_ })[0] } |
-            Select-Object -First 1
+        foreach ($row in (netsh interface ipv4 show subinterfaces)) {
+            if ($row -match '^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(.+?)\s*$') {
+                if ($Matches[5] -eq $a.Name) { $ipv4Mtu = $Matches[1]; break }
+            }
+        }
+        if ($null -eq $ipv4Mtu) {
+            Write-Verbose "no netsh subinterface row exactly named '$($a.Name)'"
+        }
     } catch { Write-Verbose "netsh subinterface query failed: $_" }
 
     $out = [ordered]@{

@@ -27,6 +27,12 @@
     Second peer, also running an iperf3 server, used to localise the deficit.
     Choose one that is idle and reached over the same local interface.
 
+    The control must PROVE it can exceed the threshold before any attribution is
+    made: a control that is itself limited (a 1 GbE host beside a 5 GbE peer, or a
+    loaded one) would otherwise make both measurements look slow and get the local
+    endpoint blamed for the control's own ceiling. When the control never
+    demonstrates the rate, the verdict is INCONCLUSIVE rather than an attribution.
+
 .PARAMETER Port
     iperf3 port on both peers. Default 5201.
 
@@ -112,6 +118,7 @@ function Test-NetPathHealth {
         LocalToPeerMbits = $tx.Mbits
         PeerToLocalMbits = $rx.Mbits
         ControlMbits    = $null
+        ControlCapabilityMbits = $null
         Asymmetric      = $false
         Ratio           = $null
         Verdict         = ''
@@ -143,42 +150,77 @@ function Test-NetPathHealth {
         return [PSCustomObject]$result
     }
 
-    # Hold the slow direction's SENDER constant, vary the receiver.
+    # Localisation needs a control that is PROVEN capable, not merely present.
+    # If the control host is itself limited -- a 1 GbE box beside a 5 GbE peer, or a
+    # busy one -- then both measurements land below the threshold and a naive reading
+    # blames the local endpoint for the control's own ceiling. So before attributing
+    # anything, the control must first demonstrate it can exceed the threshold in the
+    # opposite direction. If it never does, the honest answer is INCONCLUSIVE.
+    $threshold = $hi / $AsymmetryFactor
+
     if ($slowDirection -eq 'peer-to-local') {
-        # Peer was sending. Have the peer send to the control host instead: we do that
-        # by measuring control -> local is NOT equivalent, so instead compare this host's
-        # receive against a different sender. Both isolate the local receive path.
+        # Suspect: this host's RECEIVE path. Establish the control's capability by
+        # sending TO it first -- that exercises the same segment and proves the
+        # control and the path can carry the rate. Only then does a slow
+        # control-to-local measurement implicate our receive path.
+        Write-Verbose "control capability: local -> $ControlPeer"
+        $ctlCap = Invoke-Iperf -Target $ControlPeer
+        Start-Sleep -Seconds 2
         Write-Verbose "control: $ControlPeer -> local"
         $ctl = Invoke-Iperf -Target $ControlPeer -Reverse
         $result.ControlMbits = $ctl.Mbits
-        if ($null -eq $ctl.Mbits) {
-            $result.Verdict = "ASYMMETRIC $($result.Ratio)x but the control test against $ControlPeer failed: $($ctl.Error)"
-            return [PSCustomObject]$result
+        $result.ControlCapabilityMbits = $ctlCap.Mbits
+
+        if ($null -eq $ctl.Mbits -or $null -eq $ctlCap.Mbits) {
+            $result.Verdict = "ASYMMETRIC $($result.Ratio)x, but the control test against $ControlPeer did not complete: $($ctl.Error)$($ctlCap.Error)"
         }
-        $result.Verdict = if ($ctl.Mbits -lt ($hi / $AsymmetryFactor)) {
-            ('LOCALISED TO THIS HOST''S RECEIVE PATH: {0} -> local is {1} Mbit/s and {2} -> local is {3} Mbit/s. ' -f
-             $Peer, $lo, $ControlPeer, $ctl.Mbits) +
-            'Two different senders are both slow into this machine, so the receiver is the constraint. ' +
-            'Check RSS queue count and RSC operational state with Get-StableNetAdapter -Detailed.'
-        } else {
-            ('LOCALISED TO THE PEER OR THE PATH: {0} -> local is {1} Mbit/s but {2} -> local is {3} Mbit/s. ' -f
-             $Peer, $lo, $ControlPeer, $ctl.Mbits) +
-            'This host receives fine from another sender, so the deficit is not local.'
+        elseif ($ctlCap.Mbits -lt $threshold) {
+            $result.Verdict = ('INCONCLUSIVE: {0} never exceeded {1} Mbit/s in either direction (best {2}), so it is not a usable control. ' -f
+                               $ControlPeer, [math]::Round($threshold), $ctlCap.Mbits) +
+                              'Its slow send proves nothing about this host. Choose an idle control peer known to reach the primary peer''s rate.'
         }
-    } else {
+        elseif ($ctl.Mbits -lt $threshold) {
+            $result.Verdict = ('LOCALISED TO THIS HOST''S RECEIVE PATH: {0} -> local is {1} Mbit/s and {2} -> local is {3} Mbit/s, ' -f
+                               $Peer, $lo, $ControlPeer, $ctl.Mbits) +
+                              ('while local -> {0} reached {1} Mbit/s, which proves that control and path can carry the rate. ' -f
+                               $ControlPeer, $ctlCap.Mbits) +
+                              'Two proven-capable senders are both slow into this machine, so the receiver is the constraint. ' +
+                              'Check RSS queue count and RSC operational state with Get-StableNetAdapter -Detailed.'
+        }
+        else {
+            $result.Verdict = ('LOCALISED TO THE PEER OR THE PATH TO IT: {0} -> local is {1} Mbit/s but {2} -> local is {3} Mbit/s. ' -f
+                               $Peer, $lo, $ControlPeer, $ctl.Mbits) +
+                              'This host receives fine from another sender, so the deficit is not local.'
+        }
+    }
+    else {
+        # Suspect: this host's TRANSMIT path. Establish capability by receiving FROM
+        # the control before reading anything into a slow send toward it.
+        Write-Verbose "control capability: $ControlPeer -> local"
+        $ctlCap = Invoke-Iperf -Target $ControlPeer -Reverse
+        Start-Sleep -Seconds 2
         Write-Verbose "control: local -> $ControlPeer"
         $ctl = Invoke-Iperf -Target $ControlPeer
         $result.ControlMbits = $ctl.Mbits
-        if ($null -eq $ctl.Mbits) {
-            $result.Verdict = "ASYMMETRIC but the control test against $ControlPeer failed: $($ctl.Error)"
-            return [PSCustomObject]$result
+        $result.ControlCapabilityMbits = $ctlCap.Mbits
+
+        if ($null -eq $ctl.Mbits -or $null -eq $ctlCap.Mbits) {
+            $result.Verdict = "ASYMMETRIC $($result.Ratio)x, but the control test against $ControlPeer did not complete: $($ctl.Error)$($ctlCap.Error)"
         }
-        $result.Verdict = if ($ctl.Mbits -lt ($hi / $AsymmetryFactor)) {
-            ('LOCALISED TO THIS HOST''S TRANSMIT PATH: local -> {0} is {1} Mbit/s and local -> {2} is {3} Mbit/s. ' -f
-             $Peer, $lo, $ControlPeer, $ctl.Mbits)
-        } else {
-            ('LOCALISED TO THE PEER''S RECEIVE PATH: local -> {0} is {1} Mbit/s but local -> {2} is {3} Mbit/s over the same transmit path. ' -f
-             $Peer, $lo, $ControlPeer, $ctl.Mbits)
+        elseif ($ctlCap.Mbits -lt $threshold) {
+            $result.Verdict = ('INCONCLUSIVE: {0} never exceeded {1} Mbit/s in either direction (best {2}), so it is not a usable control. ' -f
+                               $ControlPeer, [math]::Round($threshold), $ctlCap.Mbits) +
+                              'Choose an idle control peer known to reach the primary peer''s rate.'
+        }
+        elseif ($ctl.Mbits -lt $threshold) {
+            $result.Verdict = ('LOCALISED TO THIS HOST''S TRANSMIT PATH: local -> {0} is {1} Mbit/s and local -> {2} is {3} Mbit/s, ' -f
+                               $Peer, $lo, $ControlPeer, $ctl.Mbits) +
+                              ('while {0} -> local reached {1} Mbit/s, which proves that control and path can carry the rate.' -f
+                               $ControlPeer, $ctlCap.Mbits)
+        }
+        else {
+            $result.Verdict = ('LOCALISED TO THE PEER''S RECEIVE PATH: local -> {0} is {1} Mbit/s but local -> {2} is {3} Mbit/s over the same transmit path. ' -f
+                               $Peer, $lo, $ControlPeer, $ctl.Mbits)
         }
     }
 

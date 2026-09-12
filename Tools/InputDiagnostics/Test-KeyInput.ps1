@@ -27,7 +27,7 @@
     Author: input-stack investigation (Claude Code) - 2026-05-30. Passive monitor only.
 #>
 [CmdletBinding()]
-param([int]$Seconds = 20)
+param([ValidateRange(1, 600)][int]$Seconds = 20)
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -Namespace KbMon -Name Hook -MemberDefinition @"
@@ -57,6 +57,7 @@ $proc = [KbMon.Hook+HookProc]{
     return [KbMon.Hook]::CallNextHookEx($script:hookId, $nCode, $wParam, $lParam)
 }
 
+try {
 $hMod = [KbMon.Hook]::GetModuleHandleW($null)
 $script:hookId = [KbMon.Hook]::SetWindowsHookExW($WH_KEYBOARD_LL, $proc, $hMod, 0)
 if ($script:hookId -eq [IntPtr]::Zero) { Write-Error "Failed to install hook (LastError=$([System.Runtime.InteropServices.Marshal]::GetLastWin32Error()))"; return }
@@ -67,7 +68,15 @@ while ($sw.Elapsed.TotalSeconds -lt $Seconds) {
     [System.Windows.Forms.Application]::DoEvents()
     Start-Sleep -Milliseconds 8
 }
-[void][KbMon.Hook]::UnhookWindowsHookEx($script:hookId)
+} finally {
+    if ($script:hookId -ne [IntPtr]::Zero) {
+        if (-not [KbMon.Hook]::UnhookWindowsHookEx($script:hookId)) {
+            Write-Warning "UnhookWindowsHookEx failed (LastError=$([System.Runtime.InteropServices.Marshal]::GetLastWin32Error()))"
+        }
+        $script:hookId = [IntPtr]::Zero
+    }
+    [GC]::KeepAlive($proc)
+}
 
 Write-Host "`n===== CAPTURED KEY EVENTS ($($events.Count)) =====" -ForegroundColor Cyan
 $events | ForEach-Object { Write-Host $_ }

@@ -11,6 +11,13 @@ test ruled hardware out were stronger than the evidence. The June ordering tool'
 12%/13% figures inferred intent from nearby events; they are not measured failure rates.
 Use [the renewed investigation](Reports/keyboard-investigation-20260912/README.md).
 
+Latest: Shift recovered locally and in RDP, then Lenovo Right failed in both while
+USB Right worked; user now reports native Left/Down/Right all fail. See the
+[software follow-up](Reports/keyboard-investigation-20260912/software-interference.md)
+and [exact-model hardware review](Reports/keyboard-investigation-20260912/hardware-review.md).
+Down subsequently recovered after a hard press; inspect the physical assembly and
+connections before repeating broad software changes. Travel is frequent; cause unknown.
+
 - [x] Re-read historical captures/tooling and current hardware/software state.
 - [x] Preserve [live failure-window evidence](Reports/keyboard-investigation-20260912/live-incident.md):
   confirmed internal non-Shift input reached Raw Input while both Lenovo Shift keys
@@ -23,11 +30,20 @@ Use [the renewed investigation](Reports/keyboard-investigation-20260912/README.m
   chords. Instrument the reported internal-fails/USB-works contrast; record whether
   failure is selective or whole-keyboard, sleep/dock/load state and pointer/UI response.
   Prepare collection before the episode; modifiers-only capture is insufficient.
-- [ ] Add raw-read error counts, device-name resolution health/retry, monotonic
-  timestamps and trial markers; reconcile final JSON with live JSONL before verdicts.
+- [x] Add raw-read error counts, device-name resolution health/retry, monotonic
+  timestamps, foreground PID and navigation-only capture; reconcile final JSON
+  with live JSONL and clean up both collectors on exceptions. Nine new tests pass.
+- [ ] Add labeled trial markers and a focused application outcome harness.
 - [ ] Run controlled A/B/A trials: Keyboard Manager off/on, then other input utilities
   separately; compare a plain app and the affected app under the same conditions.
 - [ ] Correlate a failure with bounded WPR/ETW scheduling, DPC/ISR and input evidence.
+- [x] Audit reachable profiles and input-capable binaries; restore individual Lenovo
+  accessory, UltraslimOSD and Logitech isolation trials. No reported improvement;
+  timing/control limitations prevent conclusive exclusion.
+- [x] Review exact-model service diagrams: keyboard connectors4/5, two cables,
+  substantial keyboard replacement access. No verified electrical matrix map.
+- [ ] Inspect actual key travel/obstruction and service-check keyboard cables/latches;
+  consider known-good keyboard assembly substitution if the failure persists.
 - [ ] Review model-specific Lenovo and Windows Update applicability; do not downgrade
   the currently observed BIOS 1.22 to the older 1.20/1.21 cited by historical pages.
 - [ ] Run Lenovo UEFI keyboard tests during/near the symptom; retain intermittent

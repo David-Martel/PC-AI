@@ -9,6 +9,13 @@ The initial research pass did not reproduce the fault. A subsequent live session
 captured internal non-Shift input and USB Shift while the user reported both Lenovo
 Shift keys failing. See [live incident evidence and limitations](live-incident.md).
 
+Later, Shift recovered locally and in RDP; Lenovo Right Arrow failed in both while
+USB Right Arrow worked. The latest report expands the failed keys to Left, Down
+and Right. See the [software/profile follow-up](software-interference.md) and
+[exact-model hardware review](hardware-review.md). Reboots over months have not
+resolved this. Initial snapshots and non-mutation boundaries below are historical;
+later reversible utility trials were restored.
+
 Prioritize the internal keyboard, connection, EC/firmware and native input path,
 while retaining device-specific software interference. The working USB control
 makes a complete system-wide input outage less consistent with that episode; it
@@ -50,7 +57,7 @@ aggregate replay evidence and remaining diagnostic limitations.
 - Windows Update's configured service returned zero uninstalled, nonhidden driver
   offers in a successful bounded query. Vendor-only, hidden or policy-excluded
   packages are outside that result. [Driver-review evidence](driver-research.md)
-- PowerToys Keyboard Manager is enabled and running, with all six observed remap
+- At the initial snapshot, PowerToys Keyboard Manager was enabled and running, with all six observed remap
   arrays empty. Installed version 0.101.2362.0 matches GitHub's latest release result
   at this check. Logitech Options+ and Lenovo input/accessory utilities also run.
   This establishes software to test, not culpability. Microsoft documents Keyboard
@@ -139,9 +146,9 @@ and can bugcheck; it is not the first collection step on this active laptop.
 - Snapshot validation and current probe results are recorded in `validation.md`.
 - The subsequent [live incident](live-incident.md) adds device-correlated evidence;
   fully labeled trials and synchronized application outcomes remain outstanding.
-- No driver installation, registry/power adjustment, service stop, device restart,
-  firmware update or reboot was performed. The controlled symptom experiment and
-  UEFI test still require physical participation/a recurrence.
+- The initial research pass made no device changes. Later utility trials were
+  restored; an attempted native-device restart returned reboot-required, without
+  a subsequent reboot. No firmware update followed. See linked live/software reports.
 
 Next implementation: a labeled focused-input harness, monotonic capture metadata,
 explicit session exposure, capture-health signals and an incident bundle that joins

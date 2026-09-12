@@ -68,6 +68,9 @@ pwsh -File .\Test-NvidiaDualGpuDriverHealth.ps1 -FailOnIssue
 pwsh -File .\Test-KeyInput.ps1 -Seconds 20
 #   ...device-aware (which keyboard?) — run in background, reproduce in your real app:
 pwsh -File .\Trace-ShiftKeySource.ps1 -Seconds 45        # -AllKeys to log every key
+pwsh -NoProfile -File .\Trace-ShiftKeySource.ps1 -Seconds 45 -NavigationKeys
+# Modifiers + arrows/Home/End/Page/Insert/Delete only; no ordinary typing.
+# Compare labeled native/USB trials and app results; inspect JSON health counters.
 
 # 6. Keep a before/after symptom ledger for touchpad + Shift fixes:
 pwsh -File .\Watch-InputGlitch.ps1 -Mode Snapshot -Symptom none

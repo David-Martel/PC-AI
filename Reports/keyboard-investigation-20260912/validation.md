@@ -33,6 +33,27 @@ the follow-up captured device-correlated input during a user-reported failure.
 
 ## Boundaries
 
+### September 12 continuation: collector and software audit
+
+The four InputDiagnostics suites (existing contracts, analyzer, snapshot and new
+collector tests) passed **131/131**, with zero failed, skipped, inconclusive or
+not-run tests. Repository-configured PSScriptAnalyzer reported zero findings for
+both changed collectors and the new tests. `git diff --check` passed.
+
+Nine added collector regressions exercise the real packet parser/filter/cache and
+PowerShell orchestration with native boundaries replaced: navigation privacy,
+truncated input, device-name retry, timestamp/foreground preservation, correct
+modifier naming, final-pump persistence, output-failure teardown and exception-safe
+LL unhooking. Baseline exception injection produced zero unhook calls; fixed code
+produced one. A one-second passive navigation smoke registered and stopped with
+13 filtered keyboard packets, zero saved events and zero reported read/name or
+unregister errors. This establishes startup/cleanup, not physical key delivery.
+
+The historical boundaries below describe the initial research pass only. Subsequent
+utility stops/restoration and current symptoms are in [software-interference.md](software-interference.md).
+The user later reported Down recovering after a hard press; see
+[hardware-review.md](hardware-review.md). There is still no established root cause.
+
 No physical failing trial, matched software A/B/A, out-of-Windows key test, WPR
 failure trace, driver replacement, firmware flash, service change or reboot occurred.
 Diagnostic tests validate the tools; they do not establish a root cause or cure.

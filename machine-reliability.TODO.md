@@ -12,6 +12,9 @@ test ruled hardware out were stronger than the evidence. The June ordering tool'
 Use [the renewed investigation](Reports/keyboard-investigation-20260912/README.md).
 
 - [x] Re-read historical captures/tooling and current hardware/software state.
+- [x] Preserve [live failure-window evidence](Reports/keyboard-investigation-20260912/live-incident.md):
+  confirmed internal non-Shift input reached Raw Input while both Lenovo Shift keys
+  reportedly failed; USB Shift was observed in the overlapping session. Cause unresolved.
 - [x] Replace misleading Shift-count/failure heuristics and add a sanitized snapshot
   collector with explicit unknown states. 122 targeted tests passed; this validates
   diagnostics, not a keyboard cure.
@@ -20,6 +23,8 @@ Use [the renewed investigation](Reports/keyboard-investigation-20260912/README.m
   chords. Instrument the reported internal-fails/USB-works contrast; record whether
   failure is selective or whole-keyboard, sleep/dock/load state and pointer/UI response.
   Prepare collection before the episode; modifiers-only capture is insufficient.
+- [ ] Add raw-read error counts, device-name resolution health/retry, monotonic
+  timestamps and trial markers; reconcile final JSON with live JSONL before verdicts.
 - [ ] Run controlled A/B/A trials: Keyboard Manager off/on, then other input utilities
   separately; compare a plain app and the affected app under the same conditions.
 - [ ] Correlate a failure with bounded WPR/ETW scheduling, DPC/ISR and input evidence.

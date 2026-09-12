@@ -1,5 +1,9 @@
 # Keyboard diagnostics validation — September 12, 2026
 
+Later live-session evidence is recorded in [live-incident.md](live-incident.md).
+The initial validation boundaries below describe the earlier tooling/research pass;
+the follow-up captured device-correlated input during a user-reported failure.
+
 ## Completed
 
 - `Tests/InputDiagnostics/InputDiagnostics.Tests.ps1` plus

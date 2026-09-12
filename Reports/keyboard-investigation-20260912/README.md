@@ -5,8 +5,9 @@ internal keyboard. Historical reports describe intermittent bare Shift failures,
 sometimes with Ctrl+Shift still working, plus partly separate touchpad/UI incidents.
 The user now confirms that **other keys or the whole internal keyboard also fail**,
 and that **an external USB keyboard worked normally during a recent failure**.
-This is a user-observed comparison, not yet an instrumented trial. No fault was
-reproduced during this research pass.
+The initial research pass did not reproduce the fault. A subsequent live session
+captured internal non-Shift input and USB Shift while the user reported both Lenovo
+Shift keys failing. See [live incident evidence and limitations](live-incident.md).
 
 Prioritize the internal keyboard, connection, EC/firmware and native input path,
 while retaining device-specific software interference. The working USB control
@@ -136,6 +137,8 @@ and can bugcheck; it is not the first collection step on this active laptop.
   exited successfully. It captured zero events; it proves startup only, not delivery
   or a successful physical-key test.
 - Snapshot validation and current probe results are recorded in `validation.md`.
+- The subsequent [live incident](live-incident.md) adds device-correlated evidence;
+  fully labeled trials and synchronized application outcomes remain outstanding.
 - No driver installation, registry/power adjustment, service stop, device restart,
   firmware update or reboot was performed. The controlled symptom experiment and
   UEFI test still require physical participation/a recurrence.

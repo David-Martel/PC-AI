@@ -59,7 +59,7 @@ BeforeAll {
         $errors = $null
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$tokens, [ref]$errors)
         [pscustomobject]@{
-            Ast = $ast
+            Ast    = $ast
             Errors = $errors
         }
     }
@@ -98,9 +98,9 @@ Describe 'Boot validation tooling scripts' -Tag 'Unit', 'Boot', 'Portable' {
         foreach ($path in $script:DiagnosticToolPaths) {
             $parsed = Get-ScriptAst -Path $path
             $commands = $parsed.Ast.FindAll({
-                param($node)
-                $node -is [System.Management.Automation.Language.CommandAst]
-            }, $true) | ForEach-Object { $_.GetCommandName() } | Where-Object { $_ }
+                    param($node)
+                    $node -is [System.Management.Automation.Language.CommandAst]
+                }, $true) | ForEach-Object { $_.GetCommandName() } | Where-Object { $_ }
 
             foreach ($blocked in $blockedCommands) {
                 $commands | Should -Not -Contain $blocked
@@ -137,9 +137,9 @@ Describe 'Boot validation tooling scripts' -Tag 'Unit', 'Boot', 'Portable' {
 
     It 'health scripts can return machine-readable PassThru objects' {
         foreach ($path in @(
-            (Join-Path $script:RepoRoot 'Tools\Test-BootMountHealth.ps1'),
-            (Join-Path $script:RepoRoot 'Tools\Test-SyncProviderHealth.ps1')
-        )) {
+                (Join-Path $script:RepoRoot 'Tools\Test-BootMountHealth.ps1'),
+                (Join-Path $script:RepoRoot 'Tools\Test-SyncProviderHealth.ps1')
+            )) {
             $content = Get-Content -LiteralPath $path -Raw
             $content | Should -Match '\[switch\]\$PassThru'
             $content | Should -Match '\[switch\]\$FailOnIssue'
@@ -233,6 +233,7 @@ IncludeCommandLines=false
         $output = & pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File $registerScript -DryRun 2>&1
         $LASTEXITCODE | Should -Be 0
         ($output | Out-String) | Should -Match 'would register scheduled task'
+        ($output | Out-String) | Should -Match '(?m)^\s+action: .* -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File '
     }
 
     It 'dry-runs OneDrive repair without downloading installer or mutating sync state' {

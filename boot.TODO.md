@@ -2,7 +2,10 @@
 
 ## Internal keyboard follow-up (2026-09-12): still unresolved
 
-The user reports continuing intermittent interference. Historical EC, software-clean
+The user confirms failures beyond Shift, involving other keys or the whole internal
+keyboard, with external USB input working during a recent episode. Prioritize the
+internal device/path and sleep/dock transitions; this does not prove a hardware cause.
+Historical EC, software-clean
 and typing-timing verdicts below are unproven. Current BIOS is 1.22; the old 1.20 update
 recommendation is stale. PowerToys Keyboard Manager currently runs with empty mappings.
 Use [the current investigation](Reports/keyboard-investigation-20260912/README.md)

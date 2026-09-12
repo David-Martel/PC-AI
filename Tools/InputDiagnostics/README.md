@@ -6,7 +6,10 @@ Created 2026-05-30; diagnostic interpretation corrected 2026-09-12.
 
 ## Current keyboard investigation: unresolved
 
-The ongoing internal-keyboard symptom has no established root cause. Prior declarations
+The user confirms failures of other keys or the whole internal keyboard while an
+external USB keyboard worked normally during a recent failure. Root cause remains
+unestablished. Prepare fixed-input trials across the keyboard; modifiers-only captures
+cannot characterize this broader symptom. Prior declarations
 of software exoneration, hardware failure and a proven typing-timing explanation were
 not justified. Short successful captures cannot exclude intermittent faults; a healthy
 PnP status or empty error log does not validate key delivery. See the
@@ -14,7 +17,8 @@ PnP status or empty error log does not validate key delivery. See the
 
 Prior workload, power, display and startup observations are useful hypotheses. They
 require symptom-correlated measurements and controlled interventions before attribution.
-Likewise, a USB keyboard succeeding at another time does not exclude shared software.
+The working USB control prioritizes the internal device/path, while device-specific
+software effects remain possible; instrument this user-reported contrast next.
 
 ### Device topology
 Keyboard = `ACPI\LEN0071` (PS/2), TrackPoint = `ACPI\LEN032A`, touchpad = Sensel

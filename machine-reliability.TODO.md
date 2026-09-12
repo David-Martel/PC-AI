@@ -2,7 +2,10 @@
 
 ## Current keyboard status — September 12, 2026: unresolved
 
-The user reports continuing intermittent internal-keyboard interference. Earlier
+The user confirms that other keys or the whole internal keyboard also fail, while
+an external USB keyboard worked normally during a recent failure. This broadens
+the current symptom beyond the historical bare-Shift issue and prioritizes the
+internal device/path investigation without establishing hardware causation. Earlier
 claims that software was "proven clean", hardware was defective, or a short hold
 test ruled hardware out were stronger than the evidence. The June ordering tool's
 12%/13% figures inferred intent from nearby events; they are not measured failure rates.
@@ -13,7 +16,10 @@ Use [the renewed investigation](Reports/keyboard-investigation-20260912/README.m
   collector with explicit unknown states. 122 targeted tests passed; this validates
   diagnostics, not a keyboard cure.
 - [ ] Capture a labeled failed trial with device-attributed Raw Input and actual app
-  result; distinguish left/right Shift, internal/USB, single-key/chord and sleep/load state.
+  result; start with ordinary keys across the keyboard, then left/right Shift and
+  chords. Instrument the reported internal-fails/USB-works contrast; record whether
+  failure is selective or whole-keyboard, sleep/dock/load state and pointer/UI response.
+  Prepare collection before the episode; modifiers-only capture is insufficient.
 - [ ] Run controlled A/B/A trials: Keyboard Manager off/on, then other input utilities
   separately; compare a plain app and the affected app under the same conditions.
 - [ ] Correlate a failure with bounded WPR/ETW scheduling, DPC/ISR and input evidence.

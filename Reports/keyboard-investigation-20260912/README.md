@@ -3,8 +3,18 @@
 **Status: unresolved.** The user reports continuing interference with the laptop's
 internal keyboard. Historical reports describe intermittent bare Shift failures,
 sometimes with Ctrl+Shift still working, plus partly separate touchpad/UI incidents.
-The current exact symptom and a matched external-keyboard comparison remain to be
-confirmed. No fault was reproduced during this research pass.
+The user now confirms that **other keys or the whole internal keyboard also fail**,
+and that **an external USB keyboard worked normally during a recent failure**.
+This is a user-observed comparison, not yet an instrumented trial. No fault was
+reproduced during this research pass.
+
+Prioritize the internal keyboard, connection, EC/firmware and native input path,
+while retaining device-specific software interference. The working USB control
+makes a complete system-wide input outage less consistent with that episode; it
+does not prove hardware failure or exclude software. Record whether each episode
+affects particular keys or the whole keyboard, its onset/recovery, app, sleep/dock
+state and whether pointer/UI activity remains responsive. Shift-only monitoring
+cannot characterize the broader symptom.
 
 ## What the existing evidence actually supports
 
@@ -57,7 +67,7 @@ These are priorities for investigation, not probability estimates.
 
 | Candidate | Why it remains plausible | Evidence that would help separate it |
 | --- | --- | --- |
-| Internal key matrix/contact, connection, EC or i8042 path | Longstanding device-specific report; brief successful samples cannot exclude it | Same physical key failure in Lenovo UEFI, or a labeled internal failure with a simultaneous working USB control; account for capture health |
+| Internal key matrix/contact, connection, EC or i8042 path | Broader internal-key failures with a user-reported working USB control increase this lane's priority; brief successful samples cannot exclude it | Same physical key failure in Lenovo UEFI, or instrument the reported internal/USB contrast in matched trials; account for capture health |
 | User-mode hooks/input utilities | Keyboard Manager, Options+ and Lenovo utilities are active; empty mappings lower the likelihood of intentional remapping | Repeat identical trials with one utility disabled, restored, then disabled again; compare failure counts and observed exposure |
 | App focus, shortcut handling, IME/text-input path | Raw receipt and rendered text are different observations | Compare a plain local app with the affected app; record exact expected outcome and received/rendered result for each labeled trial |
 | Sleep, docking, power or firmware interaction | Historical resume/co-glitch reports | Matched trials before/after sleep, dock/AC changes; record precise onset/recovery and concurrent device state |
@@ -76,11 +86,15 @@ Different buses do not prove either independent faults or one shared cause.
    reports empty, unavailable, error or timeout separately. Optional `-OutputPath`
    creates a new JSON file in an existing directory; `-DryRun` and `-h` do no probing
    or writing. It captures no keyboard input and changes no device settings.
-2. **Labeled physical trials.** Predeclare the test: left Shift held before A,
-   right Shift held before A, ordinary A, and the specific Ctrl+Shift action in a
-   neutral test context. Record intended action, device, trial start/end, observed
+2. **Labeled physical trials.** Start with fixed ordinary letters, digits, Space,
+   Enter and arrow keys across the keyboard to distinguish selective failure from
+   a whole-keyboard outage. Add left/right Shift and the historical Ctrl+Shift
+   action in a neutral test context. Record intended action, device, trial start/end, observed
    application outcome, symptom marker and modifier state. Test internal and USB
-   under the same app/load conditions. Use fixed test input, not private text.
+   under the same app/load conditions, alternating promptly during the episode.
+   Prepare collection while input works and retain USB/pointer access for marking
+   a failure. Broad-key capture is explicit and limited to fixed test input, never
+   private text; the default modifiers-only capture is insufficient for this symptom.
 3. **Correlate observer layers.** Use the existing device-aware Raw Input capture
    alongside a focused application observer. Raw Input supplies device-attributed
    events; it does not supply physical intent or rendered text. A future focused

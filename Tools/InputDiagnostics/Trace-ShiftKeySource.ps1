@@ -283,9 +283,13 @@ try {
         throw "RegisterRawInputDevices failed (LastError=$([RawKb]::Health.RegistrationError))"
     }
 
-Write-Host "Device-aware Shift trace running for $Seconds s. Switch to your normal app and press:" -ForegroundColor Cyan
-Write-Host "  internal Left Shift, internal Right Shift, internal Shift+A  -- and reproduce the failure." -ForegroundColor Cyan
-Write-Host "  If a USB keyboard is attached, press its Shift too (control)." -ForegroundColor Cyan
+Write-Host "Device-aware keyboard trace running for $Seconds s. Switch to your test app." -ForegroundColor Cyan
+if ($NavigationKeys) {
+    Write-Host '  Compare labeled internal/USB arrow trials, including the affected directions.' -ForegroundColor Cyan
+    Write-Host '  Modifiers and other navigation keys are included; ordinary typing is excluded unless AllKeys is set.' -ForegroundColor Cyan
+} else {
+    Write-Host '  Compare internal Left Shift, Right Shift and Shift+A with USB Shift controls.' -ForegroundColor Cyan
+}
 
 # Live JSONL log so a background capture is observable in real time (tail the file).
 $null = New-Item -ItemType Directory -Path $OutputDir -Force -ErrorAction Stop

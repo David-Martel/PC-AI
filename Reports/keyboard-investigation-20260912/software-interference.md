@@ -20,6 +20,9 @@ interactive command classification, a guard that blocks reload and survives part
 initialization, and a bootstrap marked loaded before its file is found. These
 undermine startup reliability and profile experiments; none is an established cause
 of missing native-keyboard input. See the validation report for repair status.
+The [local profile repairs](profile-fixes/README.md) are deployed and pass 32 isolated
+regressions, including actual process-exit history cleanup. Existing shells were
+not reloaded; these repairs do not establish a keyboard cure.
 
 The installed Lenovo accessory/display HookDll has a global low-level keyboard
 hook. It synchronously messages a helper window before forwarding. Start overwrites

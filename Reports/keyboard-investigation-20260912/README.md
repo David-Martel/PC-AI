@@ -15,6 +15,10 @@ and Right. See the [software/profile follow-up](software-interference.md) and
 [exact-model hardware review](hardware-review.md). Reboots over months have not
 resolved this. Initial snapshots and non-mutation boundaries below are historical;
 later reversible utility trials were restored.
+Down then recovered after a hard press. Physical contact/assembly inspection is now
+a priority; this single pressure-associated recovery remains insufficient to name
+the failed component. A [service-request draft](service-request-draft.md) is ready
+for review and has not been submitted.
 
 Prioritize the internal keyboard, connection, EC/firmware and native input path,
 while retaining device-specific software interference. The working USB control

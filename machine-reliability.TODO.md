@@ -40,6 +40,12 @@ connections before repeating broad software changes. Travel is frequent; cause u
 - [x] Audit reachable profiles and input-capable binaries; restore individual Lenovo
   accessory, UltraslimOSD and Logitech isolation trials. No reported improvement;
   timing/control limitations prevent conclusive exclusion.
+- [x] Repair deployed profile opt-out, invocation classification, retry/reload,
+  bootstrap and owned exit-history cleanup. 32 isolated regressions pass, including
+  actual child exit. [Patch and evidence](Reports/keyboard-investigation-20260912/profile-fixes/README.md).
+  Existing user shells were not reloaded; no keyboard causation established.
+- [ ] Reconcile canonical profile source/deployment coverage: current sync preserves
+  the Documents/OneDrive loaders but does not deploy the `.config` profile body.
 - [x] Review exact-model service diagrams: keyboard connectors4/5, two cables,
   substantial keyboard replacement access. No verified electrical matrix map.
 - [ ] Inspect actual key travel/obstruction and service-check keyboard cables/latches;

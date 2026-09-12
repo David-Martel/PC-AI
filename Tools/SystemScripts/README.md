@@ -50,6 +50,20 @@ post-repair sync-health window.
 - `unifi_api`: UDM Windows and on-boot helper scripts required by the migrated
   UDM drive-stack task.
 
+## Bitwarden archive maintenance
+
+`Machine/Update-BwArchive.ps1` is the canonical archive entrypoint; the installed
+`~/.machine/Update-BwArchive.ps1` forwards to it. `-DryRun`, `-WhatIf`, and `--help`
+return before vault access. A real run validates the unlocked session, protects
+and verifies archive storage ACLs, then synchronizes and exports into private
+staging before publishing the timestamped and latest archives. Native failures
+and timeouts leave the previous latest archive intact.
+
+Run the Windows fixture suite in `Tests/LocalMachine` after changing the archive
+or installed machine credential modules. It does not access the real vault.
+Plain JSON remains the compatibility default. Do not change scheduled jobs to
+encrypted exports until their recovery procedure has been validated separately.
+
 ## Safety Rules
 
 - Treat migrated scripts as production workstation automation, not scratch

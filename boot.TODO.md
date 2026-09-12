@@ -1286,3 +1286,35 @@ Hello verdict.)
       file configured vs live, commit headroom, pending-reboot flags) so the table
       of hand-run commands can go away. A machine that is one allocation from its
       commit limit is a hardware-health finding, not a footnote.
+
+## Verified boot/storage follow-up — September 12, 2026
+
+- [x] Restored W: through the maintained shared-dev task using the historically
+  verified D:\vm\shared-dev.vhdx. Read-only inspection matched disk ID, NTFS
+  label and volume GUID before normal attachment. Task result is now 0.
+- [x] Fixed cross-disk Filter Manager attribution, dry-run writes, and foreign
+  disk acceptance through drive-letter fallback; aligned registration and
+  diagnostic inventories with the verified backing path.
+- [x] Disabled the retired Gemini updater after XML backup. Its wrapper exists
+  but the original updater is missing; no update task was executed.
+- [x] Correlated the old invalid-VHD-state event to a different Windows Containers
+  disk that used number 3 before F: was attached. Fixed attachment-time
+  attribution while retaining older evidence conservatively for already-attached
+  disks. Fresh F: validation returned 0 without remounting; CloudClients' actual
+  gate passed a dry run with zero client launches.
+- [ ] Verify the next naturally occurring boot's ordering and receipts. Do not
+  reboot or dismount active disks solely to clear historical task results.
+
+The older **page-file reboot requirement is superseded**: current
+Win32_PageFileUsage reports AllocatedBaseSize 32768 MB, CurrentUsage 3442 MB,
+and PeakUsage 7772 MB, matching the configured 32768–131072 MB range. The
+coordinating agent measured commit 65,636,626,432 / 102,551,883,776 bytes
+(about 64%, approximately 34 GiB headroom). No reboot is needed merely to apply
+that page-file floor. These are a dated sample, not a future capacity guarantee.
+
+The older **Cisco AnyConnect adapter removal recommendation is unsafe without
+an exact device-identity audit and is superseded**. The working RDP route uses
+Cisco Ethernet 13. The coordinating agent's current PnP error query returned
+zero devices. No network adapter was removed or disabled.
+
+Evidence and rollback: [boot storage review](Reports/boot-storage-review-20260912.md).

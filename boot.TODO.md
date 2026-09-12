@@ -1,5 +1,14 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Internal keyboard follow-up (2026-09-12): still unresolved
+
+The user reports continuing intermittent interference. Historical EC, software-clean
+and typing-timing verdicts below are unproven. Current BIOS is 1.22; the old 1.20 update
+recommendation is stale. PowerToys Keyboard Manager currently runs with empty mappings.
+Use [the current investigation](Reports/keyboard-investigation-20260912/README.md)
+and [machine-reliability.TODO.md](machine-reliability.TODO.md) for the controlled
+reproduction, driver review and diagnostic-tool corrections. No keyboard fix is claimed.
+
 ## Bitwarden command selection follow-up (2026-09-12)
 
 - [x] Prefer the installed native Bitwarden CLI before stale CMD/Node wrappers.

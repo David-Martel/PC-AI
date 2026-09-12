@@ -1,4 +1,10 @@
-> **UPDATE 2026-06-19 (rev 2) — Shift branch tested with hardware-in-the-loop; hardware-defect
+> **September 12 correction: keyboard issue remains unresolved.** The June ordering
+> heuristic inferred intent and cannot establish failure rates or equivalence. A short
+> successful hold does not rule out intermittent hardware or software faults. The
+> historical conclusions below are superseded by the
+> [current investigation](../keyboard-investigation-20260912/README.md).
+
+> **Historical UPDATE 2026-06-19 (rev 2) — Shift branch tested with hardware-in-the-loop; hardware-defect
 > hypothesis REFUTED.** A device-aware Raw Input capture during live reproduction showed: (1) a
 > 20.9 s continuous internal-Shift hold with **zero contact dropouts** (switch is mechanically sound);
 > (2) the wrong-case events are Shift/letter **timing races** during fast typing, occurring at **equal

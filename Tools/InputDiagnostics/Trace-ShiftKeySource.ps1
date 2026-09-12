@@ -7,8 +7,8 @@
     i8042/PS-2) from any USB keyboard.
 
 .DESCRIPTION
-    This is the decisive discriminator for the "internal Shift is intermittent but USB
-    Shift always works" symptom on the ThinkPad P1 Gen 7. The existing Test-KeyInput.ps1
+    This supplies device-attributed evidence for the "internal Shift is intermittent"
+    symptom on the ThinkPad P1 Gen 7. The existing Test-KeyInput.ps1
     installs a WH_KEYBOARD_LL hook, which sees the MERGED input stream and CANNOT tell
     which keyboard sent a key. Raw Input exposes RAWINPUTHEADER.hDevice, which this script
     resolves to a device name and classifies as INTERNAL vs USB.
@@ -17,13 +17,14 @@
     focused -- type into your normal app (editor, browser) and reproduce the Shift loss
     while this runs in the background.
 
-    Interpretation when the internal Shift "fails" during the window:
-      - Internal Shift DOWN/UP events ARE present for the internal device  -> scancodes
-        reach Windows; the loss is above the driver (focused app / IME / a hook). Software.
-      - Internal Shift events are ABSENT while internal letter keys still appear, AND a USB
-        keyboard's Shift appears fine -> the internal Shift scancode never reaches Windows.
-        Embedded-controller (EC) firmware or a physical keyboard-matrix/contact fault.
-        Next step: Lenovo BIOS/EC update (Commercial Vantage) + EC reset, then warranty.
+    A received event proves receipt at this observer for that event only. Correlate
+    the exact failed trial, device, modifier state and application outcome. Missing
+    events can reflect an unperformed trial, capture limitations, drivers or hardware;
+    their absence alone does not identify an EC or physical fault. A successful hold
+    does not exclude an intermittent failure outside the observed interval.
+
+    Timestamps are user-mode receipt times, not hardware interrupt timestamps.
+    Use known test input; -AllKeys records key codes that can reveal typed content.
 
     Read-only: registers a passive raw-input sink; never blocks, injects, or remaps keys.
 
@@ -49,7 +50,7 @@
 #>
 [CmdletBinding()]
 param(
-    [int]$Seconds = 30,
+    [ValidateRange(1, 600)][int]$Seconds = 30,
     [string]$OutputDir = "$PSScriptRoot\..\..\Logs\input-diagnostics",
     [switch]$AllKeys
 )
@@ -240,20 +241,18 @@ $internalShift = ($shift | Where-Object Class -eq 'INTERNAL').Count
 $usbShift      = ($shift | Where-Object Class -ne 'INTERNAL').Count
 $internalAny   = ($events | Where-Object Class -eq 'INTERNAL').Count
 
-Write-Host "`n===== VERDICT =====" -ForegroundColor Cyan
+Write-Host "`n===== OBSERVATION (ROOT CAUSE UNDETERMINED) =====" -ForegroundColor Cyan
 if ($internalShift -gt 0) {
-    Write-Host "Internal Shift scancodes DID reach Windows ($internalShift). If Shift still 'failed'" -ForegroundColor Green
-    Write-Host "in your app during this window, the loss is ABOVE the driver (focused app / IME / a hook)." -ForegroundColor Green
+    Write-Host "Observed $internalShift internal Shift events in this capture."
+    Write-Host "Correlate the exact failed trial and app outcome; other failures remain possible."
 } elseif ($internalAny -gt 0) {
-    Write-Host "Internal keyboard produced events ($internalAny modifier events) but ZERO internal Shift." -ForegroundColor Red
-    Write-Host "=> The internal Shift scancode is NOT reaching Windows while the keyboard is otherwise alive." -ForegroundColor Red
-    Write-Host "=> Embedded-controller (EC) firmware or physical matrix/contact fault. Update Lenovo BIOS/EC" -ForegroundColor Red
-    Write-Host "   (Commercial Vantage), do an EC reset (power-drain), then pursue warranty if it persists." -ForegroundColor Red
+    Write-Host "Observed internal input ($internalAny events), but no internal Shift events."
+    Write-Host "Verify a Shift trial occurred and the observer was healthy before localizing the fault."
 } else {
     Write-Host "No internal-keyboard events captured. Re-run and ensure you press keys on the BUILT-IN keyboard" -ForegroundColor Yellow
     Write-Host "during the window (and that you actually reproduced the failure)." -ForegroundColor Yellow
 }
-if ($usbShift -gt 0) { Write-Host "USB/HID Shift events seen: $usbShift (control path healthy)." -ForegroundColor Green }
+if ($usbShift -gt 0) { Write-Host "Other-device Shift events observed: $usbShift; this alone does not validate the control trial." }
 
 # ---- Persist JSON ----
 $outFile = Join-Path $OutputDir "shift-source-trace-$stamp.json"

@@ -1,5 +1,17 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Credential archive follow-up (2026-09-12)
+
+- [x] Maintain the Bitwarden archive entrypoint under `Tools/SystemScripts/Machine`.
+- [x] Protect and verify archive storage before writing, check native failures and
+      timeouts, and restrict retention to timestamped archives.
+- [x] Add nonsecret Windows regression fixtures for archive safety and installed
+      machine credential initialization; see `Tests/LocalMachine/README.md`.
+- [ ] Validate an encrypted-export recovery procedure before changing archive
+      defaults or scheduled-task format. No real vault export is part of these tests.
+
+Evidence: `Reports/credential-archive-20260912.md`.
+
 Purpose: harden boot/logon automation that mounts virtual disks, starts sync
 providers, and initializes workstation services. The current implementation
 focuses on making filesystem/filter failures visible, reducing startup

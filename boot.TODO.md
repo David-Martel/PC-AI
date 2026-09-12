@@ -1297,10 +1297,13 @@ Hello verdict.)
   diagnostic inventories with the verified backing path.
 - [x] Disabled the retired Gemini updater after XML backup. Its wrapper exists
   but the original updater is missing; no update task was executed.
-- [ ] Diagnose the actual F: invalid-VHD-state event. Preserve CloudClients'
-  conservative gate. Current F: filter instances are present; the old event is
-  not proof that all filters are currently absent. Do not reboot or dismount
-  active disks solely to clear historical task results.
+- [x] Correlated the old invalid-VHD-state event to a different Windows Containers
+  disk that used number 3 before F: was attached. Fixed attachment-time
+  attribution while retaining older evidence conservatively for already-attached
+  disks. Fresh F: validation returned 0 without remounting; CloudClients' actual
+  gate passed a dry run with zero client launches.
+- [ ] Verify the next naturally occurring boot's ordering and receipts. Do not
+  reboot or dismount active disks solely to clear historical task results.
 
 The older **page-file reboot requirement is superseded**: current
 Win32_PageFileUsage reports AllocatedBaseSize 32768 MB, CurrentUsage 3442 MB,

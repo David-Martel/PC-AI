@@ -31,10 +31,13 @@ The maintained mount task restored W: successfully at 18:02:41 Eastern, with
 1. Mount dry runs now suppress directory, transcript, JSON, and Windows event
    writes across successful and failing paths, while retaining meaningful exit
    codes. They do not mount detached disks.
-2. Filter Manager events naming a different physical disk are retained under
-   `UnrelatedEventId3` instead of degrading this disk. Matching and unclassified
-   events remain conservative failures. This distinguishes disk 3 from disk 4
-   without discarding unknown `HarddiskVolume` evidence.
+2. Filter Manager events during the inspection naming a different physical disk
+   are retained under `UnrelatedEventId3`. For a newly attached VHD, events
+   predating the actual Mount-VHD call are retained under
+   `BeforeAttachmentEventId3`: Windows can reuse an earlier disk number.
+   Already-attached disks retain older events conservatively because their
+   earlier disk number is not proven. Matching and unclassified events,
+   including unknown timestamps and `HarddiskVolume` names, remain failures.
 3. Expected-drive fallback resolves the partition and verifies its disk number
    before accepting the volume. A different disk with the same letter and label
    cannot validate the VHD under inspection.
@@ -49,25 +52,43 @@ that element and therefore defaulted to enabled. No updater was executed.
 
 ## Validation and remaining limits
 
-- Persistent VHD/planner suite: 28 passed, zero failed or skipped, including
+- Persistent VHD/planner suite: 34 passed, zero failed or skipped, including
   disk attribution, wrong-disk rejection, dry-run failure paths, and actual
   diagnostic preview output. Healthy partition fixtures use real client-only
-  CIM instances so they exercise the cmdlet's binding contract.
+  CIM instances so they exercise the cmdlet's binding contract. Temporal
+  regressions cover pre-attachment, at-attachment, and post-attachment events,
+  and conservative handling of earlier events on already-attached disks.
 - Boot validation tools: 14 passed, zero failed, one existing skip.
 - PowerShell parsing and `git diff --check` passed. Unconfigured analyzer output
   retains the same three preexisting mount-script advisories; none were added.
-- Actual dry runs against attached F: and ext4, using a lookback covering this
-  boot, wrote no logs and attempted no mounts. F: remained degraded (40); ext4
-  passed (0), retaining the disk-3 event separately.
+- Actual dry runs against attached F: and ext4 wrote no logs and attempted no
+  mounts. The first implementation separated their disk numbers; further event
+  correlation demonstrated number reuse. The final implementation preserves
+  older events conservatively for already-attached disks and separates events
+  predating a new attachment, as covered by the temporal regressions.
 
-The boot-wide health report still reports failures for the historical F:/ext4
-task results and the 10:51 Filter Manager event. Neither task was rerun merely
-to overwrite those results. CloudClients' result 3 gate was preserved and no
-cloud clients were launched. Current filter instances on F: include FsDepends,
-UCPD, WdFilter, bfs, Wof, and FileInfo; the historical event does not establish
-that all filters are absent now. Its underlying invalid-VHD-state cause remains
-unresolved. No reboot, unrelated dismount, adapter removal, service reset, or
-active-build interruption was performed.
+The initial boot-wide health receipt retained the historical F:/ext4 task
+results and the 10:51 Filter Manager event. Further VHDMP correlation identified
+a different Windows Containers disk using number 3 before F: was attached.
+After confirming the current VHD identity and filter instances, the coordinating
+agent ran the existing cloud-cache validation task at 18:20:19 Eastern. It
+returned 0, with `AlreadyAttached=true` and `MountAttempted=false`; receipt
+`Logs/VHDMount/AutoMount_VHDX_cloud-cache-disk/20260912-182020-30383ee3.result.json`.
+This validated current state without remounting or changing the gate.
+
+The coordinating agent then ran CloudClients with `-DryRun -RequireMountLog
+-AllowElevated -TimeoutSeconds 10`: exit 0, current-boot mount receipt accepted,
+Google Drive already running, Dropbox only proposed, and counts started 0 /
+skipped 1 / failed 0. No client was launched. Correlation and current-state
+receipts are in `~/.codex/backups/machine-boot-rdp-20260912/`:
+`cloud-cache-event-correlation.json`, `cloud-cache-validation-result.json`, and
+`cloud-startup-dryrun.txt`.
+
+Current filter instances on F: include FsDepends, UCPD, WdFilter, bfs, Wof, and
+FileInfo. The historical event does not establish that F: lacks filters now.
+Historical task results and the original event remain preserved. No reboot,
+unrelated dismount, adapter removal, service reset, or active-build interruption
+was performed.
 
 ## Rollback and handoff
 

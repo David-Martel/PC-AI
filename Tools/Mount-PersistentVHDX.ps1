@@ -148,6 +148,8 @@ function New-PersistentVHDXRunResult {
             EventId3 = @()
             UnrelatedEventId3Count = 0
             UnrelatedEventId3 = @()
+            BeforeAttachmentEventId3Count = 0
+            BeforeAttachmentEventId3 = @()
             Error = $null
         }
         DegradedReasons = @()
@@ -530,6 +532,7 @@ function Invoke-PersistentVHDXMount {
                 return [pscustomobject]$result
             }
             $result.MountAttempted = $true
+            $mountStart = Get-Date
             Mount-VHD -Path $VhdPath -ErrorAction Stop
             $vhd = Wait-PersistentVHDXAttached -Path $VhdPath -TimeoutSeconds $MountTimeoutSeconds
             $result.Vhd = ConvertTo-PersistentVHDXSimpleObject -InputObject $vhd
@@ -601,12 +604,23 @@ function Invoke-PersistentVHDXMount {
         $observedFilterEvents = @(Get-PersistentVHDXFilterManagerEventId3 -StartTime $mountStart -LookbackSeconds $FilterManagerEventLookbackSeconds)
         $filterEvents = @()
         $unrelatedFilterEvents = @()
+        $beforeAttachmentEvents = @()
         foreach ($filterEvent in $observedFilterEvents) {
+            $hasKnownEventTime = $filterEvent.TimeCreated -is [datetime]
+            $predatesInspection = $hasKnownEventTime -and $filterEvent.TimeCreated -lt $mountStart
+            if ($predatesInspection -and $result.MountAttempted) {
+                # Disk numbers can be reused. An error before this invocation's
+                # attachment cannot describe this newly attached VHD, even if
+                # Windows reused the same disk number for it.
+                $beforeAttachmentEvents += $filterEvent
+                continue
+            }
             # Exclude only an explicitly identified different physical disk. Unknown
-            # targets (including HarddiskVolume names) remain conservative failures.
+            # targets and events predating an already-attached disk inspection
+            # remain conservative failures: its earlier number is not proven.
             $target = [regex]::Match([string]$filterEvent.Message, '\\Device\\Harddisk(?<DiskNumber>\d+)\\DR\d+(?!\d)', 'IgnoreCase')
             $targetDiskNumber = 0
-            if ($target.Success -and [int]::TryParse($target.Groups['DiskNumber'].Value, [ref]$targetDiskNumber) -and
+            if ($hasKnownEventTime -and -not $predatesInspection -and $target.Success -and [int]::TryParse($target.Groups['DiskNumber'].Value, [ref]$targetDiskNumber) -and
                 $null -ne $disk -and $targetDiskNumber -ne $disk.Number) {
                 $unrelatedFilterEvents += $filterEvent
             } else {
@@ -615,6 +629,8 @@ function Invoke-PersistentVHDXMount {
         }
         $result.FilterManager.UnrelatedEventId3Count = $unrelatedFilterEvents.Count
         $result.FilterManager.UnrelatedEventId3 = @($unrelatedFilterEvents)
+        $result.FilterManager.BeforeAttachmentEventId3Count = $beforeAttachmentEvents.Count
+        $result.FilterManager.BeforeAttachmentEventId3 = @($beforeAttachmentEvents)
         $result.FilterManager.EventId3Count = $filterEvents.Count
         $result.FilterManager.EventId3 = @($filterEvents)
         if ($filterEvents.Count -gt 0) {

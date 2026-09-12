@@ -277,6 +277,38 @@ Describe 'PersistentVHDX attribution and dry-run contracts' -Tag 'Unit', 'Boot',
         Should -Invoke Get-Volume -Times 0
         Should -Invoke Mount-VHD -Times 0
     }
+
+    It 'respects attachment identity for <Case>' -ForEach @(
+        @{ Case = 'new mount, previous disk number'; AlreadyAttached = $false; EventOffset = -1; EventDisk = 7; ExpectedExit = 0; PriorCount = 1 }
+        @{ Case = 'new mount, at attachment'; AlreadyAttached = $false; EventOffset = 0; EventDisk = 7; ExpectedExit = 40; PriorCount = 0 }
+        @{ Case = 'new mount, after attachment'; AlreadyAttached = $false; EventOffset = 1; EventDisk = 7; ExpectedExit = 40; PriorCount = 0 }
+        @{ Case = 'already attached, earlier same number'; AlreadyAttached = $true; EventOffset = -1; EventDisk = 7; ExpectedExit = 40; PriorCount = 0 }
+        @{ Case = 'already attached, earlier different number'; AlreadyAttached = $true; EventOffset = -1; EventDisk = 3; ExpectedExit = 40; PriorCount = 0 }
+        @{ Case = 'already attached, unknown timestamp'; AlreadyAttached = $true; EventOffset = 0; EventDisk = 3; ExpectedExit = 40; PriorCount = 0 }
+    ) {
+        $script:ClockNow = [datetime]'2026-09-12T12:00:00'
+        $script:EventTime = $script:ClockNow.AddSeconds($EventOffset)
+        if ($Case -eq 'already attached, unknown timestamp') { $script:EventTime = $null }
+        $script:EventDisk = $EventDisk
+        $script:InitiallyAttached = $AlreadyAttached
+        $script:AttachmentReads = 0
+        Mock Get-Date { $script:ClockNow }
+        Mock Get-VHD {
+            $script:AttachmentReads++
+            [pscustomobject]@{ Path = $Path; Attached = ($script:InitiallyAttached -or $script:AttachmentReads -gt 1); DiskNumber = 7; DiskIdentifier = 'disk-7' }
+        }
+        Mock Mount-VHD {}
+        Mock Get-WinEvent {
+            [pscustomobject]@{ TimeCreated = $script:EventTime; ProviderName = 'Microsoft-Windows-FilterManager'; Id = 3; LevelDisplayName = 'Error'; Message = "Filter attach failed for \Device\Harddisk$script:EventDisk\DR$script:EventDisk." }
+        }
+        $result = Invoke-PersistentVHDXMount -VhdPath $script:FixtureVhd -ExpectedDriveLetter F -LogRoot $script:PreviewLogs
+        $result.ExitCode | Should -Be $ExpectedExit
+        $result.FilterManager.BeforeAttachmentEventId3Count | Should -Be $PriorCount
+        $result.FilterManager.EventId3Count | Should -Be (1 - $PriorCount)
+        $result.FilterManager.UnrelatedEventId3Count | Should -Be 0
+        $result.MountAttempted | Should -Be (-not $AlreadyAttached)
+        Should -Invoke Mount-VHD -Times ([int](-not $AlreadyAttached))
+    }
 }
 
 Describe 'Register-PersistentVHDXTasks planner' -Tag 'Unit', 'Boot', 'VHD' {

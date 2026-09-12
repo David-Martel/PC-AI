@@ -1,0 +1,96 @@
+{
+  "Version": "before",
+  "Passed": 10,
+  "Failed": 22,
+  "Skipped": 0,
+  "FailedTests": [
+    {
+      "Name": "honors the accelerator opt-out before module import",
+      "Error": "Expected Import-Module to be called 0 times exactly, but was called 1 times"
+    },
+    {
+      "Name": "classifies host arguments without running the payload: implicit file",
+      "Error": "Expected $true, but got $false."
+    },
+    {
+      "Name": "classifies host arguments without running the payload: unknown switch stays minimal",
+      "Error": "Expected $true, but got $false."
+    },
+    {
+      "Name": "classifies host arguments without running the payload: NoExit Command",
+      "Error": "Expected $false, but got $true."
+    },
+    {
+      "Name": "classifies host arguments without running the payload: NoExit short command",
+      "Error": "Expected $false, but got $true."
+    },
+    {
+      "Name": "classifies host arguments without running the payload: literal standalone noninteractive payload",
+      "Error": "Expected $false, but got $true."
+    },
+    {
+      "Name": "classifies host arguments without running the payload: option value is not host command",
+      "Error": "Expected $false, but got $true."
+    },
+    {
+      "Name": "classifies host arguments without running the payload: explicit short noninteractive",
+      "Error": "Expected $true, but got $false."
+    },
+    {
+      "Name": "classifies host arguments without running the payload: payload does not become a host switch",
+      "Error": "Expected $false, but got $true."
+    },
+    {
+      "Name": "clears partial initialization guards after a terminating failure and permits retry",
+      "Error": "Expected $false, but got $true."
+    },
+    {
+      "Name": "does not reenter while initialization is in progress",
+      "Error": "Expected Invoke-ProfileTestBoundary to be called 0 times exactly, but was called 1 times"
+    },
+    {
+      "Name": "reloads through the real reload function after an earlier successful load",
+      "Error": "Expected 1, but got 0."
+    },
+    {
+      "Name": "rejects ordinary invocation before reload changes scope or guards",
+      "Error": "Expected an exception with message like '*caller scope*' to be thrown, but no exception was thrown."
+    },
+    {
+      "Name": "closes owned writer and removes only owned exit resources before reload even when accelerator skipped",
+      "Error": "Expected Close-JsonlAccelerator to be called at least 1 times, but was called 0 times"
+    },
+    {
+      "Name": "does not mark a minimal trace failure as completed",
+      "Error": "Expected $false, but got $true."
+    },
+    {
+      "Name": "replaces real owned event registration while preserving an unrelated subscriber",
+      "Error": "Expected a value, but got $null or empty."
+    },
+    {
+      "Name": "fires actual child-process exit with captured history state: writer owned True",
+      "Error": "Expected 0, but got 1."
+    },
+    {
+      "Name": "fires actual child-process exit with captured history state: writer owned False",
+      "Error": "Expected 0, but got 1."
+    },
+    {
+      "Name": "does not mark a missing optional bootstrap loaded",
+      "Error": "Expected $false, but got $true."
+    },
+    {
+      "Name": "marks a successful bootstrap loaded and restores its context",
+      "Error": "Expected strings to be the same, but they were different.\nExpected length: 13\nActual length:   9\nStrings differ at index 0.\nExpected: 'prior-context'\nBut was:  'extension'\n           ^"
+    },
+    {
+      "Name": "leaves failed bootstrap retryable and restores context: terminating",
+      "Error": "Expected $false, but got $true."
+    },
+    {
+      "Name": "leaves failed bootstrap retryable and restores context: nonterminating",
+      "Error": "Expected an exception with message like '*fixture bootstrap failure*' to be thrown, but no exception was thrown."
+    }
+  ]
+}

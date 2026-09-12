@@ -1,5 +1,25 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Internal keyboard follow-up (2026-09-12): still unresolved
+
+The user confirms failures beyond Shift, involving other keys or the whole internal
+keyboard, with external USB input working during a recent episode. Prioritize the
+internal device/path and sleep/dock transitions; this does not prove a hardware cause.
+Historical EC, software-clean
+and typing-timing verdicts below are unproven. Current BIOS is 1.22; the old 1.20 update
+recommendation is stale. PowerToys ran with empty mappings at the initial snapshot
+but was absent during later failures. Shift recovered locally and in RDP; native
+Right failed in both while USB Right worked. Latest report: native Left/Down/Right
+all fail. Reboots over months have not resolved this. See the
+[software/profile follow-up](Reports/keyboard-investigation-20260912/software-interference.md)
+and [connector/mechanical review](Reports/keyboard-investigation-20260912/hardware-review.md).
+The canonical PowerShell profile's startup/reload/exit defects are now repaired;
+[32 passing regressions and the patch](Reports/keyboard-investigation-20260912/profile-fixes/README.md)
+are preserved separately from the unresolved keyboard diagnosis.
+Use [the current investigation](Reports/keyboard-investigation-20260912/README.md)
+and [machine-reliability.TODO.md](machine-reliability.TODO.md) for the controlled
+reproduction, driver review and diagnostic-tool corrections. No keyboard fix is claimed.
+
 ## Bitwarden command selection follow-up (2026-09-12)
 
 - [x] Prefer the installed native Bitwarden CLI before stale CMD/Node wrappers.

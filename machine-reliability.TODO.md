@@ -1,5 +1,62 @@
 # Machine Reliability TODO — DTM-P1GEN7 (ThinkPad P1 Gen 7)
 
+## Current keyboard status — September 12, 2026: unresolved
+
+The user confirms that other keys or the whole internal keyboard also fail, while
+an external USB keyboard worked normally during a recent failure. This broadens
+the current symptom beyond the historical bare-Shift issue and prioritizes the
+internal device/path investigation without establishing hardware causation. Earlier
+claims that software was "proven clean", hardware was defective, or a short hold
+test ruled hardware out were stronger than the evidence. The June ordering tool's
+12%/13% figures inferred intent from nearby events; they are not measured failure rates.
+Use [the renewed investigation](Reports/keyboard-investigation-20260912/README.md).
+
+Latest: Shift recovered locally and in RDP, then Lenovo Right failed in both while
+USB Right worked; user now reports native Left/Down/Right all fail. See the
+[software follow-up](Reports/keyboard-investigation-20260912/software-interference.md)
+and [exact-model hardware review](Reports/keyboard-investigation-20260912/hardware-review.md).
+Down subsequently recovered after a hard press; inspect the physical assembly and
+connections before repeating broad software changes. Travel is frequent; cause unknown.
+
+- [x] Re-read historical captures/tooling and current hardware/software state.
+- [x] Preserve [live failure-window evidence](Reports/keyboard-investigation-20260912/live-incident.md):
+  confirmed internal non-Shift input reached Raw Input while both Lenovo Shift keys
+  reportedly failed; USB Shift was observed in the overlapping session. Cause unresolved.
+- [x] Replace misleading Shift-count/failure heuristics and add a sanitized snapshot
+  collector with explicit unknown states. 122 targeted tests passed; this validates
+  diagnostics, not a keyboard cure.
+- [ ] Capture a labeled failed trial with device-attributed Raw Input and actual app
+  result; start with ordinary keys across the keyboard, then left/right Shift and
+  chords. Instrument the reported internal-fails/USB-works contrast; record whether
+  failure is selective or whole-keyboard, sleep/dock/load state and pointer/UI response.
+  Prepare collection before the episode; modifiers-only capture is insufficient.
+- [x] Add raw-read error counts, device-name resolution health/retry, monotonic
+  timestamps, foreground PID and navigation-only capture; reconcile final JSON
+  with live JSONL and clean up both collectors on exceptions. Nine new tests pass.
+- [ ] Add labeled trial markers and a focused application outcome harness.
+- [ ] Run controlled A/B/A trials: Keyboard Manager off/on, then other input utilities
+  separately; compare a plain app and the affected app under the same conditions.
+- [ ] Correlate a failure with bounded WPR/ETW scheduling, DPC/ISR and input evidence.
+- [x] Audit reachable profiles and input-capable binaries; restore individual Lenovo
+  accessory, UltraslimOSD and Logitech isolation trials. No reported improvement;
+  timing/control limitations prevent conclusive exclusion.
+- [x] Repair deployed profile opt-out, invocation classification, retry/reload,
+  bootstrap and owned exit-history cleanup. 32 isolated regressions pass, including
+  actual child exit. [Patch and evidence](Reports/keyboard-investigation-20260912/profile-fixes/README.md).
+  Existing user shells were not reloaded; no keyboard causation established.
+- [ ] Reconcile canonical profile source/deployment coverage: current sync preserves
+  the Documents/OneDrive loaders but does not deploy the `.config` profile body.
+- [x] Review exact-model service diagrams: keyboard connectors4/5, two cables,
+  substantial keyboard replacement access. No verified electrical matrix map.
+- [ ] Inspect actual key travel/obstruction and service-check keyboard cables/latches;
+  consider known-good keyboard assembly substitution if the failure persists.
+- [ ] Review model-specific Lenovo and Windows Update applicability; do not downgrade
+  the currently observed BIOS 1.22 to the older 1.20/1.21 cited by historical pages.
+- [ ] Run Lenovo UEFI keyboard tests during/near the symptom; retain intermittent
+  hardware/EC and Windows driver paths until matched evidence separates them.
+
+The dated notes below are historical observations, not a current root-cause verdict.
+
 Consolidated issues + resolutions from the 2026-05-30 input-stack investigation
 (Shift / trackpad / fingerprint / eGPU / Terminal / Process Lasso). Companion to
 [boot.TODO.md](boot.TODO.md). Toolkit: `Tools/InputDiagnostics/`.
@@ -18,11 +75,11 @@ NVIDIA RTX 2000 Ada (internal), **NVIDIA RTX 5060 Ti = eGPU in Razer Core X V2 (
 - [x] Accessibility activation hotkeys disabled (FilterKeys/StickyKeys) — was never the cause but cleaned.
   - Backups: `Tools/InputDiagnostics/backups/`. Logs: `Logs/elevated/`. Revert via each script's `-Revert`.
 
-## ROOT CAUSES (validated)
+## Historical hypotheses and applied changes (May 30; keyboard not validated)
 - **Shift "doesn't register" (bare Shift fails, Ctrl+Shift works, both keys, intermittent):**
-  software stack PROVEN CLEAN (no hooks/remaps/filters/accessibility). TrackPoint always works
-  (separate EC/PS2 path) while touchpad (Synaptics I2C-HID) glitches → **ThinkPad EC / keyboard
-  firmware** is the leading cause, triggered under the high-load eGPU+Terminal+contention state.
+  the prior EC/firmware attribution remains a hypothesis. Empty remap settings and
+  healthy device enumeration do not prove the software path clean. The independent
+  keyboard/touchpad buses do not establish either a shared or separate root cause.
 - **Touchpad glitch (TrackPoint immune):** **Sensel `SNSL002D`** HID-over-I2C specific (NOT Synaptics —
   Synaptics is the fingerprint `VID_06CB`; ELAN is the TrackPoint). PL is NOT throttling it
   (touchpad services are Above-Normal/IO-3/ProBalance-excluded). I2C/EC under load.
@@ -35,11 +92,11 @@ NVIDIA RTX 2000 Ada (internal), **NVIDIA RTX 5060 Ti = eGPU in Razer Core X V2 (
 ## PENDING — USER ACTIONS (hands-on / hardware / can't be scripted here)
 - [ ] **Sign out / sign back in (or reboot)** — applies HID/USB power changes AND reloads Process
       Lasso with the new config. (Single most important next step.)
-- [ ] **Shift hardware confirmation**: when Shift next fails, run EC power-drain reset (AC off +
-      hold power 30s / P1 Gen 7 emergency-reset pinhole), then `Test-KeyInput.ps1` (do Shift events
-      reach the OS?), and test an external USB keyboard.
-- [ ] **Lenovo Vantage**: update **BIOS/EC firmware** (1.20 → newer) + **Synaptics touchpad driver**
-      + **NVIDIA driver**. The durable Shift+touchpad fix.
+- [ ] **Shift localization**: capture the failing state before resetting it, compare
+      internal/USB devices in labeled trials, then use model-specific Lenovo diagnostics.
+      Any EC reset follows the exact machine manual after evidence capture.
+- [ ] **Lenovo Vantage**: review current applicable BIOS/EC, Sensel touchpad and GPU
+      updates. Installed BIOS is now 1.22. An available update is not a proven fix.
 - [ ] **eGPU link**: keep Core X V2 on a dedicated TB4/USB4 port with a certified cable; monitor WHEA.
 - [ ] **Behavioral validation**: after sign-in, run a heavy eGPU+Terminal workload and confirm the
       Shift/touchpad/Terminal-lag issues no longer occur (the PL fix should remove the contention trigger).
@@ -54,8 +111,8 @@ NVIDIA RTX 2000 Ada (internal), **NVIDIA RTX 5060 Ti = eGPU in Razer Core X V2 (
 ## 2026-06-06 RE-INVESTIGATION (read-only; evidence in `Reports/input-stack-investigation-20260606/`)
 Re-ran the input-stack diagnosis from scratch (systematic-debugging). New/updated findings:
 - **Device topology corrected:** Shift = `ACPI\LEN0071` PS/2 (i8042, parent PCI `7E02`); Touchpad =
-  Sensel `SNSL002D` HID-over-I2C (`hidi2c`, parent Intel I2C `7E78`). **Different buses → two independent
-  root causes.** Full analysis + ranked fixes + eval protocol in `…/FINDINGS.md`.
+  Sensel `SNSL002D` HID-over-I2C (`hidi2c`, parent Intel I2C `7E78`). **Different buses;
+  cause linkage remains unresolved.** Full historical analysis is in `…/FINDINGS.md`.
 - **NEW actionable touchpad fix (T1):** "Allow the computer to turn off this device" (`MSPower_DeviceEnable`)
   is **still ON** for BOTH the Sensel touchpad AND its parent I2C controller `7E78` (confirmed live today).
   With Modern Standby (Kernel-Power 506/507 observed), this is the classic I2C-HID resume-lockup mechanism.
@@ -80,7 +137,7 @@ Re-ran the input-stack diagnosis from scratch (systematic-debugging). New/update
 |--------|---------|-----------|
 | `Invoke-InputStackDiagnostics.ps1` | read-only full diagnostic snapshot | no |
 | `Reset-AccessibilityKeysLive.ps1` | live FilterKeys/StickyKeys off + remap check | no |
-| `Test-KeyInput.ps1` | raw WH_KEYBOARD_LL monitor (does Shift reach OS?) | no |
+| `Test-KeyInput.ps1` | merged WH_KEYBOARD_LL observations; no hardware verdict | no |
 | `Watch-InputGlitch.ps1` | Gate-C glitch capture + glitches/day before/after a fix (read-only) | no |
 | `Optimize-StartupLoad.ps1` | login-storm report/trim (HKCU) | no |
 | `Repair-InputStackQuickWins.ps1` | accessibility + USB suspend + crash dump | partial |

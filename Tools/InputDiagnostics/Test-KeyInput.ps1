@@ -1,21 +1,19 @@
 #Requires -Version 7.0
-#Requires -Version 7.0
 <#
 .SYNOPSIS
-    Raw low-level keyboard monitor. Installs a WH_KEYBOARD_LL hook and logs every
+    Merged low-level keyboard monitor. Installs a WH_KEYBOARD_LL hook and logs every
     key event (vkCode, scanCode, up/down) for -Seconds, with special highlighting of
-    LSHIFT/RSHIFT/SHIFT. Definitively answers: "does pressing Shift reach the OS?"
+    LSHIFT/RSHIFT/SHIFT. Reports events received by this observer.
 
 .DESCRIPTION
     Run this in an INTERACTIVE terminal, then press keys (especially Left Shift and
     Right Shift, alone and with letters) during the capture window.
 
-      - If Shift keydown/keyup events APPEAR here  -> the keyboard/EC hardware and OS
-        input queue are fine; the failure is higher up (focused app, IME, or a hook
-        ABOVE this one swallowing it before apps).
-      - If Shift events DO NOT appear while other keys do -> the scancodes are not
-        reaching Windows: keyboard hardware / ThinkPad EC / keyboard firmware (BIOS).
-        That points to a Lenovo BIOS/EC or keyboard issue, not software.
+    The merged hook stream cannot attribute devices or determine physical intent.
+    Missing callbacks do not establish hardware failure: another hook, timeout,
+    desktop/session mismatch or an unperformed trial may explain them. Received
+    events do not exclude intermittent faults. Correlate Raw Input and app outcomes.
+    Use known test input only; this monitor displays key codes for every key.
 
     Read-only: installs a passive hook, never blocks or remaps keys.
 
@@ -29,7 +27,7 @@
     Author: input-stack investigation (Claude Code) - 2026-05-30. Passive monitor only.
 #>
 [CmdletBinding()]
-param([int]$Seconds = 20)
+param([ValidateRange(1, 600)][int]$Seconds = 20)
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -Namespace KbMon -Name Hook -MemberDefinition @"
@@ -59,6 +57,7 @@ $proc = [KbMon.Hook+HookProc]{
     return [KbMon.Hook]::CallNextHookEx($script:hookId, $nCode, $wParam, $lParam)
 }
 
+try {
 $hMod = [KbMon.Hook]::GetModuleHandleW($null)
 $script:hookId = [KbMon.Hook]::SetWindowsHookExW($WH_KEYBOARD_LL, $proc, $hMod, 0)
 if ($script:hookId -eq [IntPtr]::Zero) { Write-Error "Failed to install hook (LastError=$([System.Runtime.InteropServices.Marshal]::GetLastWin32Error()))"; return }
@@ -69,14 +68,22 @@ while ($sw.Elapsed.TotalSeconds -lt $Seconds) {
     [System.Windows.Forms.Application]::DoEvents()
     Start-Sleep -Milliseconds 8
 }
-[void][KbMon.Hook]::UnhookWindowsHookEx($script:hookId)
+} finally {
+    if ($script:hookId -ne [IntPtr]::Zero) {
+        if (-not [KbMon.Hook]::UnhookWindowsHookEx($script:hookId)) {
+            Write-Warning "UnhookWindowsHookEx failed (LastError=$([System.Runtime.InteropServices.Marshal]::GetLastWin32Error()))"
+        }
+        $script:hookId = [IntPtr]::Zero
+    }
+    [GC]::KeepAlive($proc)
+}
 
 Write-Host "`n===== CAPTURED KEY EVENTS ($($events.Count)) =====" -ForegroundColor Cyan
 $events | ForEach-Object { Write-Host $_ }
 $shiftSeen = ($events | Where-Object { $_ -match 'SHIFT' } | Measure-Object).Count
 Write-Host "`nShift events seen: $shiftSeen" -ForegroundColor Yellow
 if ($shiftSeen -gt 0) {
-    Write-Host "=> Shift IS reaching the OS. Hardware/EC fine. Cause is higher (focused app / a hook above this one)." -ForegroundColor Green
+    Write-Host "Shift events reached this observer. Device identity and root cause remain undetermined."
 } else {
-    Write-Host "=> NO Shift events while you pressed Shift => scancodes not reaching Windows => keyboard hardware / ThinkPad EC / BIOS firmware. Update Lenovo BIOS/EC, test an external keyboard." -ForegroundColor Red
+    Write-Host "No Shift events observed. Verify the trial and capture health; this is not a hardware verdict."
 }

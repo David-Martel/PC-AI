@@ -110,6 +110,7 @@ $reportPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Reports\processlasso
 $arguments = @(
     '-NoLogo',
     '-NoProfile',
+    '-WindowStyle', 'Hidden',
     '-ExecutionPolicy', 'Bypass',
     '-File', "`"$ScriptPath`"",
     '-ReportPath', "`"$reportPath`""

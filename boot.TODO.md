@@ -1,5 +1,14 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Watchdog window follow-up (2026-09-12)
+
+- [x] Add `-WindowStyle Hidden` to the Process Lasso governor watchdog action.
+- [x] Verify the live task differs only in its action arguments, preserving its
+      schedule, principal and settings; do not start it during the repair.
+- [x] Assert the hidden action in the existing real registration dry-run test.
+
+Evidence: `Reports/watchdog-window-20260912.md`.
+
 ## Credential archive follow-up (2026-09-12)
 
 - [x] Maintain the Bitwarden archive entrypoint under `Tools/SystemScripts/Machine`.

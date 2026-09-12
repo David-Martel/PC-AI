@@ -7,6 +7,14 @@ Shift worked, then confirmed both Lenovo Shift keys still failed. Earlier in the
 session the user also reported failures beyond Shift. Do not generalize this
 particular capture to every historical episode.
 
+In the post-test reply, the user explicitly confirmed that **only USB Shift worked**
+in the requested Shift+A comparison. This supplies a reported application outcome
+consistent with the captured events; it is not a synchronized per-trial recording.
+The follow-up reply identified USB as the source of the initial mixed-case test
+text and confirmed that ordinary lowercase A works on Lenovo. Together with the
+prior confirmation that both Lenovo Shift keys fail, this establishes the reported
+selective symptom and device-to-text mapping. No recovery time was reported.
+
 Read-only collection preserved the episode without resetting accessibility state,
 stopping applications, restarting devices or installing drivers. The initial
 120-second modifiers-only capture contained zero events, including zero USB events,

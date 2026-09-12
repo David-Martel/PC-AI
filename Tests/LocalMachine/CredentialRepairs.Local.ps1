@@ -9,6 +9,29 @@ BeforeAll {
     . (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Update-BwArchive.ps1')
 }
 
+Describe 'Installed Bitwarden command selection' {
+    It 'prefers a native executable over stale CMD wrappers and Node installations' {
+        Mock Get-Command { [pscustomobject]@{ Source = 'C:\fixture\bw.exe' } } -ParameterFilter { $Name -eq 'bw.exe' }
+        Mock Get-Command { throw 'Native selection must not inspect Node' } -ParameterFilter { $Name -eq 'node' }
+        Mock Test-Path { $true }
+        $spec = Get-BitwardenCliProcessSpec
+        $spec.Kind | Should -Be 'native-executable'
+        $spec.FilePath | Should -Be 'C:\fixture\bw.exe'
+        @($spec.ArgumentPrefix).Count | Should -Be 0
+        Should -Invoke Get-Command -Times 1 -Exactly -ParameterFilter { $Name -eq 'bw.exe' -and $CommandType -eq 'Application' }
+        Should -Invoke Get-Command -Times 0 -Exactly -ParameterFilter { $Name -eq 'node' }
+    }
+    It 'retains direct Node execution when the native CLI is absent' {
+        Mock Get-Command { $null } -ParameterFilter { $Name -eq 'bw.exe' }
+        Mock Get-Command { [pscustomobject]@{ Source = 'C:\fixture\node.exe' } } -ParameterFilter { $Name -eq 'node' }
+        Mock Test-Path { $true }
+        $spec = Get-BitwardenCliProcessSpec
+        $spec.Kind | Should -Be 'node-script'
+        $spec.FilePath | Should -Be 'C:\fixture\node.exe'
+        @($spec.ArgumentPrefix) | Should -Be @((Join-Path $env:APPDATA 'npm\node_modules\@bitwarden\cli\build\bw.js'))
+    }
+}
+
 Describe 'Archive ACL identity normalization' {
     It 'deduplicates SYSTEM before ACL construction and verification' {
         $system = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')

@@ -28,8 +28,8 @@ Volume requires a Windows volume. AttachedDiskOnly only requires the VHDX to be
 attached and discoverable as a disk.
 
 .PARAMETER DryRun
-Validate inputs and inspect current VHD state without calling Mount-VHD or
-writing Windows event-log entries. The long CLI form `--DryRun` is also
+Validate inputs and inspect current VHD state without mounting, creating log
+directories, writing transcripts/results, or writing Windows events. The long CLI form `--DryRun` is also
 accepted.
 
 .PARAMETER Help
@@ -107,7 +107,8 @@ function New-PersistentVHDXRunResult {
     param(
         [string]$VhdPath,
         [string]$TaskName,
-        [string]$LogRoot
+        [string]$LogRoot,
+        [switch]$DryRun
     )
 
     $started = Get-Date
@@ -116,7 +117,7 @@ function New-PersistentVHDXRunResult {
     $runId = '{0}-{1}' -f $stamp, ([guid]::NewGuid().ToString('N').Substring(0, 8))
     $runRoot = Join-Path $LogRoot $safeTaskName
 
-    if (-not (Test-Path -LiteralPath $runRoot)) {
+    if (-not $DryRun -and -not (Test-Path -LiteralPath $runRoot)) {
         New-Item -Path $runRoot -ItemType Directory -Force | Out-Null
     }
 
@@ -145,6 +146,8 @@ function New-PersistentVHDXRunResult {
             MountedVolumeVisible = $null
             EventId3Count = 0
             EventId3 = @()
+            UnrelatedEventId3Count = 0
+            UnrelatedEventId3 = @()
             Error = $null
         }
         DegradedReasons = @()
@@ -310,11 +313,16 @@ function Resolve-PersistentVHDXVolumes {
         }
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($ExpectedDriveLetter)) {
+    if ($null -ne $Disk -and -not [string]::IsNullOrWhiteSpace($ExpectedDriveLetter)) {
         try {
-            $expectedVolume = Get-Volume -DriveLetter $ExpectedDriveLetter -ErrorAction Stop
-            if ($null -ne $expectedVolume -and -not ($volumes | Where-Object { $_.Path -eq $expectedVolume.Path })) {
-                $volumes += $expectedVolume
+            # A drive letter can belong to another disk. Bind the fallback to
+            # this VHD's partition before accepting its volume or label.
+            $expectedPartitions = @(Get-Partition -DriveLetter $ExpectedDriveLetter -ErrorAction Stop)
+            if ($expectedPartitions.Count -eq 1 -and $expectedPartitions[0].DiskNumber -eq $Disk.Number) {
+                $expectedVolume = Get-Volume -Partition $expectedPartitions[0] -ErrorAction Stop
+                if ($null -ne $expectedVolume -and -not ($volumes | Where-Object { $_.Path -eq $expectedVolume.Path })) {
+                    $volumes += $expectedVolume
+                }
             }
         } catch {
             Write-Verbose ("Expected drive {0}: was not resolved: {1}" -f $ExpectedDriveLetter, $_.Exception.Message)
@@ -431,7 +439,7 @@ function Invoke-PersistentVHDXMount {
         [switch]$DryRun
     )
 
-    $result = New-PersistentVHDXRunResult -VhdPath $VhdPath -TaskName $TaskName -LogRoot $LogRoot
+    $result = New-PersistentVHDXRunResult -VhdPath $VhdPath -TaskName $TaskName -LogRoot $LogRoot -DryRun:$DryRun
     $result.Expected = [ordered]@{
         VolumeLabel = $ExpectedVolumeLabel
         DriveLetter = $ExpectedDriveLetter
@@ -444,11 +452,13 @@ function Invoke-PersistentVHDXMount {
 
     $transcriptStarted = $false
     try {
-        try {
-            Start-Transcript -Path $result.Logs.Transcript -Force -ErrorAction Stop | Out-Null
-            $transcriptStarted = $true
-        } catch {
-            Add-PersistentVHDXIssue -Result $result -Message ("Transcript failed to start: {0}" -f $_.Exception.Message) -Degraded
+        if (-not $DryRun) {
+            try {
+                Start-Transcript -Path $result.Logs.Transcript -Force -ErrorAction Stop | Out-Null
+                $transcriptStarted = $true
+            } catch {
+                Add-PersistentVHDXIssue -Result $result -Message ("Transcript failed to start: {0}" -f $_.Exception.Message) -Degraded
+            }
         }
 
         if (-not $DryRun) {
@@ -460,7 +470,7 @@ function Invoke-PersistentVHDXMount {
             $result.Status = 'Failed'
             $result.ExitCode = $script:VhdMountExitCodes.InvalidInput
             Add-PersistentVHDXIssue -Result $result -Message 'VhdPath is required.'
-            Write-PersistentVHDXEvent -EntryType Error -EventId 3000 -Message 'VHDX mount failed: VhdPath is required.'
+            if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Error -EventId 3000 -Message 'VHDX mount failed: VhdPath is required.' }
             return [pscustomobject]$result
         }
 
@@ -471,7 +481,7 @@ function Invoke-PersistentVHDXMount {
         # restart-on-failure does not re-fire on a nonzero exit code.
         $result.WaitedForVhdSeconds = 0
         if ($WaitForVhdSeconds -gt 0 -and -not (Test-Path -LiteralPath $VhdPath)) {
-            Write-PersistentVHDXEvent -EntryType Information -EventId 1000 -Message ("VHDX not present yet; waiting up to {0}s for {1}" -f $WaitForVhdSeconds, $VhdPath)
+            if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Information -EventId 1000 -Message ("VHDX not present yet; waiting up to {0}s for {1}" -f $WaitForVhdSeconds, $VhdPath) }
             $waitSw = [System.Diagnostics.Stopwatch]::StartNew()
             while ($waitSw.Elapsed.TotalSeconds -lt $WaitForVhdSeconds) {
                 Start-Sleep -Seconds $WaitForVhdPollSeconds
@@ -480,7 +490,7 @@ function Invoke-PersistentVHDXMount {
             $waitSw.Stop()
             $result.WaitedForVhdSeconds = [math]::Round($waitSw.Elapsed.TotalSeconds, 1)
             if (Test-Path -LiteralPath $VhdPath) {
-                Write-PersistentVHDXEvent -EntryType Information -EventId 1000 -Message ("VHDX appeared after {0}s: {1}" -f $result.WaitedForVhdSeconds, $VhdPath)
+                if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Information -EventId 1000 -Message ("VHDX appeared after {0}s: {1}" -f $result.WaitedForVhdSeconds, $VhdPath) }
             }
         }
 
@@ -489,7 +499,7 @@ function Invoke-PersistentVHDXMount {
             $result.ExitCode = $script:VhdMountExitCodes.MissingVhd
             $waitNote = if ($result.WaitedForVhdSeconds -gt 0) { (" after waiting {0}s" -f $result.WaitedForVhdSeconds) } else { '' }
             Add-PersistentVHDXIssue -Result $result -Message ("Missing VHDX file: {0}{1}" -f $VhdPath, $waitNote)
-            Write-PersistentVHDXEvent -EntryType Error -EventId 3000 -Message ("VHDX mount failed because the file is missing: {0}{1}" -f $VhdPath, $waitNote)
+            if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Error -EventId 3000 -Message ("VHDX mount failed because the file is missing: {0}{1}" -f $VhdPath, $waitNote) }
             return [pscustomobject]$result
         }
 
@@ -500,7 +510,7 @@ function Invoke-PersistentVHDXMount {
             $result.Status = 'Failed'
             $result.ExitCode = $script:VhdMountExitCodes.MissingHyperV
             Add-PersistentVHDXIssue -Result $result -Message 'Hyper-V PowerShell commands Get-VHD and Mount-VHD are required.'
-            Write-PersistentVHDXEvent -EntryType Error -EventId 3004 -Message 'VHDX mount failed because Hyper-V PowerShell commands are unavailable.'
+            if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Error -EventId 3004 -Message 'VHDX mount failed because Hyper-V PowerShell commands are unavailable.' }
             return [pscustomobject]$result
         }
 
@@ -527,7 +537,7 @@ function Invoke-PersistentVHDXMount {
                 $result.Status = 'Failed'
                 $result.ExitCode = $script:VhdMountExitCodes.MountTimeout
                 Add-PersistentVHDXIssue -Result $result -Message ("Timed out waiting for VHDX attachment after {0} seconds: {1}" -f $MountTimeoutSeconds, $VhdPath)
-                Write-PersistentVHDXEvent -EntryType Error -EventId 3005 -Message ("VHDX mount timed out after {0} seconds: {1}" -f $MountTimeoutSeconds, $VhdPath)
+                if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Error -EventId 3005 -Message ("VHDX mount timed out after {0} seconds: {1}" -f $MountTimeoutSeconds, $VhdPath) }
                 return [pscustomobject]$result
             }
         }
@@ -537,7 +547,7 @@ function Invoke-PersistentVHDXMount {
             $result.Status = 'Failed'
             $result.ExitCode = $script:VhdMountExitCodes.VerificationFailed
             Add-PersistentVHDXIssue -Result $result -Message 'Attached VHDX could not be resolved to a Windows disk.'
-            Write-PersistentVHDXEvent -EntryType Error -EventId 3000 -Message ("VHDX verification failed because no Windows disk was resolved: {0}" -f $VhdPath)
+            if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Error -EventId 3000 -Message ("VHDX verification failed because no Windows disk was resolved: {0}" -f $VhdPath) }
             return [pscustomobject]$result
         }
 
@@ -553,7 +563,7 @@ function Invoke-PersistentVHDXMount {
         if ($ExpectedState -eq 'Volume') {
             if (@($resolved.Volumes).Count -eq 0) {
                 Add-PersistentVHDXIssue -Result $result -Message 'Expected a Windows volume but none was resolved.'
-                Write-PersistentVHDXEvent -EntryType Error -EventId 3002 -Message ("VHDX verification failed because no Windows volume was resolved: {0}" -f $VhdPath)
+                if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Error -EventId 3002 -Message ("VHDX verification failed because no Windows volume was resolved: {0}" -f $VhdPath) }
             }
 
             $selectedVolume = $null
@@ -561,7 +571,7 @@ function Invoke-PersistentVHDXMount {
                 $selectedVolume = @($resolved.Volumes | Where-Object { [string]$_.DriveLetter -ieq $ExpectedDriveLetter }) | Select-Object -First 1
                 if ($null -eq $selectedVolume) {
                     Add-PersistentVHDXIssue -Result $result -Message ("Expected drive letter {0}: was not present." -f $ExpectedDriveLetter)
-                    Write-PersistentVHDXEvent -EntryType Error -EventId 3003 -Message ("VHDX verification failed for {0}: expected drive {1}: was not present." -f $VhdPath, $ExpectedDriveLetter)
+                    if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Error -EventId 3003 -Message ("VHDX verification failed for {0}: expected drive {1}: was not present." -f $VhdPath, $ExpectedDriveLetter) }
                 }
             } elseif (@($resolved.Volumes).Count -gt 0) {
                 $selectedVolume = @($resolved.Volumes)[0]
@@ -588,12 +598,28 @@ function Invoke-PersistentVHDXMount {
             Add-PersistentVHDXIssue -Result $result -Message ("fltmc volumes query failed: {0}" -f $filterVisibility.Error) -Degraded
         }
 
-        $filterEvents = @(Get-PersistentVHDXFilterManagerEventId3 -StartTime $mountStart -LookbackSeconds $FilterManagerEventLookbackSeconds)
+        $observedFilterEvents = @(Get-PersistentVHDXFilterManagerEventId3 -StartTime $mountStart -LookbackSeconds $FilterManagerEventLookbackSeconds)
+        $filterEvents = @()
+        $unrelatedFilterEvents = @()
+        foreach ($filterEvent in $observedFilterEvents) {
+            # Exclude only an explicitly identified different physical disk. Unknown
+            # targets (including HarddiskVolume names) remain conservative failures.
+            $target = [regex]::Match([string]$filterEvent.Message, '\\Device\\Harddisk(?<DiskNumber>\d+)\\DR\d+(?!\d)', 'IgnoreCase')
+            $targetDiskNumber = 0
+            if ($target.Success -and [int]::TryParse($target.Groups['DiskNumber'].Value, [ref]$targetDiskNumber) -and
+                $null -ne $disk -and $targetDiskNumber -ne $disk.Number) {
+                $unrelatedFilterEvents += $filterEvent
+            } else {
+                $filterEvents += $filterEvent
+            }
+        }
+        $result.FilterManager.UnrelatedEventId3Count = $unrelatedFilterEvents.Count
+        $result.FilterManager.UnrelatedEventId3 = @($unrelatedFilterEvents)
         $result.FilterManager.EventId3Count = $filterEvents.Count
         $result.FilterManager.EventId3 = @($filterEvents)
         if ($filterEvents.Count -gt 0) {
-            Add-PersistentVHDXIssue -Result $result -Message ("FilterManager Event ID 3 occurred {0} time(s) after the mount window." -f $filterEvents.Count) -Degraded
-            Write-PersistentVHDXEvent -EntryType Warning -EventId 3001 -Message ("FilterManager Event ID 3 occurred after mounting {0}. See JSON result: {1}" -f $VhdPath, $result.Logs.Json)
+            Add-PersistentVHDXIssue -Result $result -Message ("FilterManager Event ID 3 has {0} relevant or unclassified event(s) in the mount lookback window." -f $filterEvents.Count) -Degraded
+            if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Warning -EventId 3001 -Message ("FilterManager Event ID 3 occurred after mounting {0}. See JSON result: {1}" -f $VhdPath, $result.Logs.Json) }
         }
 
         if (@($result.Errors).Count -gt 0) {
@@ -621,13 +647,15 @@ function Invoke-PersistentVHDXMount {
         $result.Status = 'Failed'
         $result.ExitCode = $script:VhdMountExitCodes.UnhandledException
         Add-PersistentVHDXIssue -Result $result -Message ("Unhandled exception: {0}" -f $_.Exception.Message)
-        Write-PersistentVHDXEvent -EntryType Error -EventId 3099 -Message ("Unhandled VHDX mount exception for {0}: {1}" -f $VhdPath, $_.Exception.Message)
+        if (-not $DryRun) { Write-PersistentVHDXEvent -EntryType Error -EventId 3099 -Message ("Unhandled VHDX mount exception for {0}: {1}" -f $VhdPath, $_.Exception.Message) }
         return [pscustomobject]$result
     } finally {
-        try {
-            Save-PersistentVHDXRunResult -Result $result
-        } catch {
-            Write-Warning ("Unable to save VHDX JSON result: {0}" -f $_.Exception.Message)
+        if (-not $DryRun) {
+            try {
+                Save-PersistentVHDXRunResult -Result $result
+            } catch {
+                Write-Warning ("Unable to save VHDX JSON result: {0}" -f $_.Exception.Message)
+            }
         }
 
         if ($transcriptStarted) {

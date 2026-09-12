@@ -22,7 +22,8 @@ Describe 'Mount-PersistentVHDX wrapper' -Tag 'Unit', 'Boot', 'VHD' {
         Mock Get-WinEvent { @() }
         Mock fltmc { "\\?\Volume{abc}\ F:" }
         Mock Get-Disk { [pscustomobject]@{ Number = 7; UniqueId = 'disk-7'; FriendlyName = 'Microsoft Virtual Disk' } }
-        Mock Get-Partition { [pscustomobject]@{ DiskNumber = 7; PartitionNumber = 1; DriveLetter = 'F' } }
+        $script:FixturePartition = New-CimInstance -Namespace root/Microsoft/Windows/Storage -ClassName MSFT_Partition -ClientOnly -Property @{ DiskNumber = [uint32]7; PartitionNumber = [uint32]1; DriveLetter = [char]'F' }
+        Mock Get-Partition { $script:FixturePartition }
         Mock Get-Volume { [pscustomobject]@{ DriveLetter = 'F'; FileSystemLabel = 'cloud-cache-disk'; FileSystem = 'NTFS'; Path = '\\?\Volume{abc}\' } }
         Mock Mount-VHD {}
     }
@@ -191,6 +192,93 @@ Describe 'Mount-PersistentVHDX wrapper' -Tag 'Unit', 'Boot', 'VHD' {
     }
 }
 
+Describe 'PersistentVHDX attribution and dry-run contracts' -Tag 'Unit', 'Boot', 'VHD' {
+    BeforeEach {
+        $script:FixtureRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $script:FixtureRoot | Out-Null
+        $script:FixtureVhd = Join-Path $script:FixtureRoot 'disk.vhdx'
+        New-Item -ItemType File -Path $script:FixtureVhd | Out-Null
+        $script:PreviewLogs = Join-Path $script:FixtureRoot 'must-not-exist'
+        Mock Register-PersistentVHDXEventSource {}
+        Mock Write-PersistentVHDXEvent {}
+        Mock Start-Transcript {}
+        Mock Stop-Transcript {}
+        Mock Get-WinEvent { @() }
+        Mock fltmc { '\\?\Volume{abc}\ F:' }
+        Mock Get-VHD { [pscustomobject]@{ Path = $Path; Attached = $true; DiskNumber = 7; DiskIdentifier = 'disk-7' } }
+        Mock Get-Disk { [pscustomobject]@{ Number = 7; UniqueId = 'disk-7' } }
+        $script:FixturePartition = New-CimInstance -Namespace root/Microsoft/Windows/Storage -ClassName MSFT_Partition -ClientOnly -Property @{ DiskNumber = [uint32]7; PartitionNumber = [uint32]1; DriveLetter = [char]'F' }
+        Mock Get-Partition { $script:FixturePartition }
+        Mock Get-Volume { [pscustomobject]@{ DriveLetter = 'F'; FileSystemLabel = 'cloud-cache-disk'; FileSystem = 'NTFS'; Path = '\\?\Volume{abc}\' } }
+        Mock Mount-VHD { throw 'No mount operation is allowed in this fixture' }
+    }
+
+    It 'attributes <Target> conservatively: relevant=<Relevant>' -ForEach @(
+        @{ Target = '\Device\Harddisk7\DR7'; Relevant = $true }
+        @{ Target = '\Device\Harddisk70\DR70'; Relevant = $false }
+        @{ Target = '\Device\Harddisk3\DR3'; Relevant = $false }
+        @{ Target = '\Device\HarddiskVolume9'; Relevant = $true }
+        @{ Target = 'unclassified failure'; Relevant = $true }
+    ) {
+        Mock Get-WinEvent {
+            [pscustomobject]@{ TimeCreated = Get-Date; ProviderName = 'Microsoft-Windows-FilterManager'; Id = 3; LevelDisplayName = 'Error'; Message = "Filter attach failed for $Target." }
+        }
+        $result = Invoke-PersistentVHDXMount -VhdPath $script:FixtureVhd -ExpectedDriveLetter F -LogRoot $script:PreviewLogs -DryRun
+        $result.ExitCode | Should -Be $(if ($Relevant) { 40 } else { 0 })
+        $result.FilterManager.EventId3Count | Should -Be ([int]$Relevant)
+        $result.FilterManager.UnrelatedEventId3Count | Should -Be ([int](-not $Relevant))
+        $allEvents = @($result.FilterManager.EventId3) + @($result.FilterManager.UnrelatedEventId3)
+        $allEvents.Count | Should -Be 1
+        $allEvents[0].Message | Should -Be "Filter attach failed for $Target."
+        Test-Path -LiteralPath $script:PreviewLogs | Should -BeFalse
+        Should -Invoke Write-PersistentVHDXEvent -Times 0
+        Should -Invoke Mount-VHD -Times 0
+    }
+
+    It 'suppresses all writes for dry-run <Case> while retaining exit <ExpectedExit>' -ForEach @(
+        @{ Case = 'attached'; ExpectedExit = 0 }
+        @{ Case = 'detached'; ExpectedExit = 0 }
+        @{ Case = 'invalid'; ExpectedExit = 50 }
+        @{ Case = 'missing'; ExpectedExit = 51 }
+        @{ Case = 'unavailable'; ExpectedExit = 52 }
+        @{ Case = 'exception'; ExpectedExit = 99 }
+        @{ Case = 'wrong-letter'; ExpectedExit = 54 }
+    ) {
+        $path = $script:FixtureVhd
+        $letter = 'F'
+        switch ($Case) {
+            'detached' { Mock Get-VHD { [pscustomobject]@{ Path = $Path; Attached = $false; DiskNumber = 7 } } }
+            'invalid' { $path = '' }
+            'missing' { $path = Join-Path $script:FixtureRoot 'missing.vhdx' }
+            'unavailable' { Mock Test-PersistentVHDXHyperVCommands { [pscustomobject]@{ GetVHD = $false; MountVHD = $false; Available = $false } } }
+            'exception' { Mock Get-VHD { throw 'fixture read failure' } }
+            'wrong-letter' { $letter = 'W' }
+        }
+        $result = Invoke-PersistentVHDXMount -VhdPath $path -ExpectedDriveLetter $letter -LogRoot $script:PreviewLogs -DryRun
+        $result.ExitCode | Should -Be $ExpectedExit
+        Test-Path -LiteralPath $script:PreviewLogs | Should -BeFalse
+        Should -Invoke Mount-VHD -Times 0
+        Should -Invoke Register-PersistentVHDXEventSource -Times 0
+        Should -Invoke Write-PersistentVHDXEvent -Times 0
+        Should -Invoke Start-Transcript -Times 0
+        Should -Invoke Stop-Transcript -Times 0
+    }
+
+    It 'rejects a matching letter and label belonging to a different disk' {
+        Mock Get-Partition { @() } -ParameterFilter { $DiskNumber -eq 7 }
+        Mock Get-Partition { [pscustomobject]@{ DiskNumber = 9; PartitionNumber = 1; DriveLetter = 'F' } } -ParameterFilter { $DriveLetter -eq 'F' }
+        # This foreign volume has the exact expected label and letter; accepting
+        # it by letter alone would falsely validate disk 7, which has no volume.
+        Mock Get-Volume { [pscustomobject]@{ DriveLetter = 'F'; FileSystemLabel = 'cloud-cache-disk'; FileSystem = 'NTFS'; Path = '\\?\Volume{foreign}\' } }
+        $result = Invoke-PersistentVHDXMount -VhdPath $script:FixtureVhd -ExpectedVolumeLabel cloud-cache-disk -ExpectedDriveLetter F -ExpectedFileSystem NTFS -LogRoot $script:PreviewLogs -DryRun
+        $result.ExitCode | Should -Be 54
+        $result.Volumes.Count | Should -Be 0
+        ($result.Errors -join '; ') | Should -Match 'Expected drive letter F: was not present'
+        Should -Invoke Get-Volume -Times 0
+        Should -Invoke Mount-VHD -Times 0
+    }
+}
+
 Describe 'Register-PersistentVHDXTasks planner' -Tag 'Unit', 'Boot', 'VHD' {
     BeforeEach {
         Mock New-ScheduledTaskTrigger {
@@ -237,6 +325,17 @@ Describe 'Register-PersistentVHDXTasks planner' -Tag 'Unit', 'Boot', 'VHD' {
             $plan.Argument | Should -Not -Match 'New-PersistentVHDX'
             $plan.Argument | Should -Not -Match 'Mount-VHD'
         }
+    }
+
+    It 'registers the verified shared-dev backing path without changing other disk paths' {
+        $plans = @(New-PersistentVHDXTaskPlan -ScriptPath $script:MountScript -LogRoot 'C:\Logs\VHDMount' -PowerShellExe 'pwsh.exe')
+        ($plans | Where-Object TaskName -eq 'AutoMount_VHDX_shared-dev').Argument | Should -Match ([regex]::Escape('-VhdPath "D:\vm\shared-dev.vhdx"'))
+        ($plans | Where-Object TaskName -eq 'AutoMount_VHDX_cloud-cache-disk').Argument | Should -Match ([regex]::Escape('-VhdPath "T:\vm\cloud-cache-disk.vhdx"'))
+        ($plans | Where-Object TaskName -eq 'AutoMount_VHDX_share-ext4').Argument | Should -Match ([regex]::Escape('-VhdPath "T:\vm\share-ext4.vhdx"'))
+        $previewRoot = Join-Path $TestDrive 'diagnostic-preview-no-writes'
+        $preview = & (Join-Path $script:RepoRoot 'Tools\Collect-BootDiagnostics.ps1') -DryRun -OutputRoot $previewRoot
+        ($preview.ExpectedVhds | Where-Object Name -eq 'shared-dev').Path | Should -Be 'D:\vm\shared-dev.vhdx'
+        Test-Path -LiteralPath $previewRoot | Should -BeFalse
     }
 
     It 'sets retry, execution limit, principal, and descriptions' {

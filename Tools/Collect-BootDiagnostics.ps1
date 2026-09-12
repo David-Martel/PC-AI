@@ -78,7 +78,7 @@ $interestingTaskPatterns = @(
 $expectedVhds = @(
     [pscustomobject]@{ Name = 'cloud-cache-disk'; Path = 'T:\vm\cloud-cache-disk.vhdx'; ExpectedDriveLetter = 'F'; ExpectedState = 'mounted-volume' },
     [pscustomobject]@{ Name = 'share-ext4'; Path = 'T:\vm\share-ext4.vhdx'; ExpectedDriveLetter = $null; ExpectedState = 'attached-disk-only' },
-    [pscustomobject]@{ Name = 'shared-dev'; Path = 'T:\vm\shared-dev.vhdx'; ExpectedDriveLetter = 'W'; ExpectedState = 'mounted-volume' }
+    [pscustomobject]@{ Name = 'shared-dev'; Path = 'D:\vm\shared-dev.vhdx'; ExpectedDriveLetter = 'W'; ExpectedState = 'mounted-volume' }
 )
 
 if ($DryRun) {

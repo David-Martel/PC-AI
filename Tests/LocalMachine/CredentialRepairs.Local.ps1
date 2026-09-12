@@ -12,6 +12,7 @@ BeforeAll {
 Describe 'Installed Bitwarden command selection' {
     It 'prefers a native executable over stale CMD wrappers and Node installations' {
         Mock Get-Command { [pscustomobject]@{ Source = 'C:\fixture\bw.exe' } } -ParameterFilter { $Name -eq 'bw.exe' }
+        Mock Get-Command { [pscustomobject]@{ Source = 'C:\fixture\bw.cmd' } } -ParameterFilter { $Name -eq 'bw' }
         Mock Get-Command { throw 'Native selection must not inspect Node' } -ParameterFilter { $Name -eq 'node' }
         Mock Test-Path { $true }
         $spec = Get-BitwardenCliProcessSpec
@@ -20,6 +21,7 @@ Describe 'Installed Bitwarden command selection' {
         @($spec.ArgumentPrefix).Count | Should -Be 0
         Should -Invoke Get-Command -Times 1 -Exactly -ParameterFilter { $Name -eq 'bw.exe' -and $CommandType -eq 'Application' }
         Should -Invoke Get-Command -Times 0 -Exactly -ParameterFilter { $Name -eq 'node' }
+        Should -Invoke Get-Command -Times 0 -Exactly -ParameterFilter { $Name -eq 'bw' }
     }
     It 'retains direct Node execution when the native CLI is absent' {
         Mock Get-Command { $null } -ParameterFilter { $Name -eq 'bw.exe' }

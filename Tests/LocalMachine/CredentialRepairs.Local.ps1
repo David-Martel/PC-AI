@@ -9,6 +9,21 @@ BeforeAll {
     . (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Update-BwArchive.ps1')
 }
 
+Describe 'Archive ACL identity normalization' {
+    It 'deduplicates SYSTEM before ACL construction and verification' {
+        $system = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')
+        $actual = @(Get-BwArchiveAllowedSid -CurrentUser $system)
+        $actual.Count | Should -Be 2
+        $actual.Value | Should -Be @('S-1-5-18', 'S-1-5-32-544')
+    }
+    It 'preserves a distinct user alongside SYSTEM and Administrators' {
+        $userSid = 'S-1-5-21-1-2-3-1001'
+        $actual = @(Get-BwArchiveAllowedSid -CurrentUser ([Security.Principal.SecurityIdentifier]::new($userSid)))
+        $actual.Count | Should -Be 3
+        $actual.Value | Should -Be @($userSid, 'S-1-5-18', 'S-1-5-32-544')
+    }
+}
+
 Describe 'Actual SecretsTier initializer' {
     InModuleScope SecretsTier {
         BeforeEach {

@@ -18,6 +18,16 @@ param(
     [Alias('h', '-help')][switch]$Help
 )
 
+function Get-BwArchiveAllowedSid {
+    [OutputType([Security.Principal.SecurityIdentifier])]
+    param(
+        [Security.Principal.SecurityIdentifier]$CurrentUser = [Security.Principal.WindowsIdentity]::GetCurrent().User
+    )
+    @($CurrentUser.Value, 'S-1-5-18', 'S-1-5-32-544') |
+        Select-Object -Unique |
+        ForEach-Object { [Security.Principal.SecurityIdentifier]::new($_) }
+}
+
 function Set-BwArchiveAcl {
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][string]$LiteralPath)
@@ -25,11 +35,7 @@ function Set-BwArchiveAcl {
     if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
         throw 'Archive storage must not be a reparse point.'
     }
-    $sids = @(
-        [Security.Principal.WindowsIdentity]::GetCurrent().User,
-        [Security.Principal.SecurityIdentifier]::new('S-1-5-18'),
-        [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
-    )
+    $sids = @(Get-BwArchiveAllowedSid)
     $acl = if ($item.PSIsContainer) { [Security.AccessControl.DirectorySecurity]::new() }
     else { [Security.AccessControl.FileSecurity]::new() }
     $acl.SetAccessRuleProtection($true, $false)

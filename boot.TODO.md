@@ -1,5 +1,14 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Bitwarden command selection follow-up (2026-09-12)
+
+- [x] Prefer the installed native Bitwarden CLI before stale CMD/Node wrappers.
+- [x] Preserve direct Node execution when no native executable is available.
+- [x] Run all 28 private fixture tests and confirm the live status helper reports
+      the actual locked vault state without authenticating or exporting data.
+
+Evidence: `Reports/credential-selection-20260912.md`.
+
 ## Watchdog window follow-up (2026-09-12)
 
 - [x] Add `-WindowStyle Hidden` to the Process Lasso governor watchdog action.

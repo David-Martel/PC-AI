@@ -14,26 +14,44 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
+#[allow(missing_docs)] // TODO: Document public items
 pub mod error;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod fs;
 #[cfg(feature = "functiongemma")]
+#[allow(missing_docs)] // TODO: Document public items
 pub mod functiongemma;
 #[cfg(feature = "nvml")]
+#[allow(missing_docs)] // TODO: Document public items
 pub mod gpu;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod hash;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod json;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod path;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod performance;
 #[cfg(feature = "nvml")]
+#[allow(missing_docs)] // TODO: Document public items
 pub mod preflight;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod process_lasso;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod prompt_engine;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod result;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod search;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod string;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod system;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod telemetry;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod tokenizer;
+#[allow(missing_docs)] // TODO: Document public items
 pub mod vmm_health;
 
 pub use error::PcaiStatus;
@@ -47,21 +65,29 @@ include!(concat!(env!("OUT_DIR"), "/version.rs"));
 /// Magic number for DLL verification
 pub const MAGIC_NUMBER: u32 = 0x5043_4149;
 
+/// Returns the core version string.
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_core_version() -> *const c_char {
     VERSION_CSTR.as_ptr() as *const c_char
 }
 
+/// Returns the core test magic number.
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_core_test() -> u32 {
     MAGIC_NUMBER
 }
 
+/// Returns the search module version string.
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_search_version() -> *const c_char {
     pcai_core_version()
 }
 
+/// Frees a string allocated by Rust.
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_free_string(buffer: *mut c_char) {
     if !buffer.is_null() {
@@ -71,6 +97,8 @@ pub extern "C" fn pcai_free_string(buffer: *mut c_char) {
     }
 }
 
+/// Copies a string to a new allocation.
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_string_copy(input: *const c_char) -> *mut c_char {
     if input.is_null() {
@@ -92,6 +120,7 @@ pub extern "C" fn pcai_string_copy(input: *const c_char) -> *mut c_char {
 ///
 /// This function is safe to call from any thread.
 #[cfg(feature = "nvml")]
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_gpu_utilization_json(device_index: u32) -> *mut c_char {
     match gpu::gpu_utilization(device_index) {
@@ -112,6 +141,7 @@ pub extern "C" fn pcai_gpu_utilization_json(device_index: u32) -> *mut c_char {
 ///
 /// This function is safe to call from any thread.
 #[cfg(feature = "nvml")]
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_cuda_driver_version_json() -> *mut c_char {
     match gpu::cuda_driver_version() {
@@ -129,6 +159,7 @@ pub extern "C" fn pcai_cuda_driver_version_json() -> *mut c_char {
     }
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_cpu_count() -> u32 {
     std::thread::available_parallelism()
@@ -136,6 +167,7 @@ pub extern "C" fn pcai_cpu_count() -> u32 {
         .unwrap_or(1)
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_estimate_tokens(text: *const c_char) -> usize {
     let text = unsafe {
@@ -151,6 +183,7 @@ pub extern "C" fn pcai_estimate_tokens(text: *const c_char) -> usize {
     }
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_check_resource_safety(gpu_limit: f32) -> i32 {
     if telemetry::check_resource_safety(gpu_limit) {
@@ -160,6 +193,7 @@ pub extern "C" fn pcai_check_resource_safety(gpu_limit: f32) -> i32 {
     }
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_get_system_telemetry_json() -> *mut c_char {
     let tel = telemetry::collect_telemetry();
@@ -169,6 +203,7 @@ pub extern "C" fn pcai_get_system_telemetry_json() -> *mut c_char {
     }
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_get_vmm_health_json() -> *mut c_char {
     let health = vmm_health::check_vmm_health();
@@ -178,6 +213,7 @@ pub extern "C" fn pcai_get_vmm_health_json() -> *mut c_char {
     }
 }
 
+/// FFI export.
 #[no_mangle]
 /// Return a Process Lasso snapshot as JSON.
 ///
@@ -203,6 +239,7 @@ pub unsafe extern "C" fn pcai_get_process_lasso_snapshot_json(
     }
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_query_full_context_json() -> *mut c_char {
     // Aggregates everything for the LLM context
@@ -225,6 +262,7 @@ pub extern "C" fn pcai_query_full_context_json() -> *mut c_char {
     }
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_get_usb_deep_diagnostics_json() -> *mut c_char {
     #[cfg(windows)]
@@ -239,6 +277,7 @@ pub extern "C" fn pcai_get_usb_deep_diagnostics_json() -> *mut c_char {
     rust_str_to_c("[]")
 }
 
+/// FFI export.
 #[no_mangle]
 /// Return a JSON array of PNP devices.
 ///
@@ -265,6 +304,7 @@ pub unsafe extern "C" fn pcai_get_pnp_devices_json(class_filter: *const c_char) 
     rust_str_to_c("[]")
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_get_disk_health_json() -> *mut c_char {
     #[cfg(windows)]
@@ -279,6 +319,7 @@ pub extern "C" fn pcai_get_disk_health_json() -> *mut c_char {
     rust_str_to_c("[]")
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_sample_hardware_events_json(days: u32, max_events: u32) -> *mut c_char {
     let _ = days;
@@ -295,6 +336,7 @@ pub extern "C" fn pcai_sample_hardware_events_json(days: u32, max_events: u32) -
     rust_str_to_c("[]")
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_get_network_throughput_json() -> *mut c_char {
     #[cfg(windows)]
@@ -309,6 +351,7 @@ pub extern "C" fn pcai_get_network_throughput_json() -> *mut c_char {
     rust_str_to_c("[]")
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_get_process_history_json() -> *mut c_char {
     #[cfg(windows)]
@@ -323,16 +366,19 @@ pub extern "C" fn pcai_get_process_history_json() -> *mut c_char {
     rust_str_to_c("[]")
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_query_prompt_assembly(template: *const c_char, json_vars: *const c_char) -> PcaiStringBuffer {
     prompt_engine::pcai_assemble_prompt(template, json_vars)
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_get_usb_problem_info(code: u32) -> *mut c_char {
     pcai_get_pnp_problem_info(code)
 }
 
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_get_pnp_problem_info(code: u32) -> *mut c_char {
     match telemetry::device_codes::get_problem_info(code) {
@@ -364,6 +410,7 @@ pub extern "C" fn pcai_get_pnp_problem_info(code: u32) -> *mut c_char {
 /// This function is safe to call from any thread; it does not access
 /// raw pointer arguments.
 #[cfg(feature = "nvml")]
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_gpu_count() -> i32 {
     match gpu::gpu_count() {
@@ -384,6 +431,7 @@ pub extern "C" fn pcai_gpu_count() -> i32 {
 ///
 /// This function is safe to call from any thread.
 #[cfg(feature = "nvml")]
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_gpu_info_json() -> *mut c_char {
     let gpus = gpu::gpu_inventory().unwrap_or_default();
@@ -403,6 +451,7 @@ pub extern "C" fn pcai_gpu_info_json() -> *mut c_char {
 ///
 /// This function is safe to call from any thread.
 #[cfg(feature = "nvml")]
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_driver_version() -> *mut c_char {
     match gpu::driver_version() {
@@ -439,6 +488,7 @@ pub extern "C" fn pcai_driver_version() -> *mut c_char {
 ///
 /// `model_path` must be null or a valid null-terminated UTF-8 C string.
 #[cfg(feature = "nvml")]
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_gpu_preflight_json(
     model_path: *const c_char,
@@ -498,6 +548,7 @@ pub extern "C" fn pcai_gpu_preflight_json(
 /// This function is safe to call from any thread; it does not accept pointer
 /// arguments.
 #[cfg(feature = "nvml")]
+/// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_gpu_roofline_json(
     model_params_billions: f64,

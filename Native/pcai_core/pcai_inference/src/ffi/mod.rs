@@ -5,12 +5,8 @@
 //!
 //! # Safety
 //!
-//! All FFI functions accept raw pointers from C callers. The safety requirements are
-//! documented on each function. This module allows `clippy::not_unsafe_ptr_arg_deref`
-//! because marking FFI functions as `unsafe` doesn't help C/C#/PowerShell callers
-//! who cannot see Rust's `unsafe` keyword.
-
-#![allow(clippy::not_unsafe_ptr_arg_deref)]
+//! FFI functions that accept raw pointers from C callers are marked as `unsafe`.
+//! The safety requirements are documented on each function.
 //!
 //! ## Thread Safety
 //!
@@ -262,7 +258,7 @@ fn estimate_prompt_tokens(text: &str) -> u32 {
 /// * `backend_name` must be a valid null-terminated C string
 /// * Must be called before any other functions except pcai_last_error
 #[no_mangle]
-pub extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
+pub unsafe extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
     clear_last_error();
 
     // Parse backend name
@@ -343,7 +339,7 @@ pub extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
 /// * `model_path` must be a valid null-terminated C string
 /// * Must call pcai_init first
 #[no_mangle]
-pub extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) -> i32 {
+pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) -> i32 {
     clear_last_error();
 
     // Parse model path
@@ -451,7 +447,7 @@ pub extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) ->
 /// * Caller must free the returned string with pcai_free_string
 /// * Must call pcai_load_model first
 #[no_mangle]
-pub extern "C" fn pcai_generate(prompt: *const c_char, max_tokens: u32, temperature: f32) -> *mut c_char {
+pub unsafe extern "C" fn pcai_generate(prompt: *const c_char, max_tokens: u32, temperature: f32) -> *mut c_char {
     clear_last_error();
 
     // Parse prompt
@@ -579,7 +575,7 @@ pub type TokenCallback = extern "C" fn(token: *const c_char, user_data: *mut c_v
 // unused_variables actually triggers; with the feature on, the params are used
 // and `#[expect]`/`#[allow]` would be unfulfilled under `-D warnings`.
 #[cfg_attr(not(feature = "llamacpp"), allow(unused_variables))]
-pub extern "C" fn pcai_generate_streaming(
+pub unsafe extern "C" fn pcai_generate_streaming(
     prompt: *const c_char,
     max_tokens: u32,
     temperature: f32,
@@ -693,7 +689,7 @@ pub extern "C" fn pcai_generate_streaming(
 /// * `s` must be a pointer returned by pcai_generate or null
 /// * Must not be called twice on the same pointer
 #[no_mangle]
-pub extern "C" fn pcai_free_string(s: *mut c_char) {
+pub unsafe extern "C" fn pcai_free_string(s: *mut c_char) {
     if s.is_null() {
         return;
     }
@@ -881,7 +877,7 @@ pub extern "C" fn pcai_version() -> *const c_char {
 /// * `prompt` must be a valid null-terminated C string
 /// * Must call `pcai_load_model` before submitting requests
 #[no_mangle]
-pub extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: u32, temperature: f32) -> i64 {
+pub unsafe extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: u32, temperature: f32) -> i64 {
     clear_last_error();
 
     let prompt_str = match unsafe { c_str_from_ptr(prompt) } {

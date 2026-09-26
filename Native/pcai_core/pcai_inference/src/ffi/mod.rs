@@ -1242,7 +1242,7 @@ mod tests {
 
     #[test]
     fn test_init_null_backend() {
-        let result = pcai_init(std::ptr::null());
+        let result = unsafe { pcai_init(std::ptr::null()) };
         assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
         assert!(!pcai_last_error().is_null());
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
@@ -1254,7 +1254,7 @@ mod tests {
         pcai_shutdown();
 
         let prompt = CString::new("test").expect("test: CString::new must not fail for a simple ASCII prompt");
-        let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
+        let result = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.7) };
         assert!(result.is_null());
         assert!(!pcai_last_error().is_null());
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
@@ -1269,7 +1269,7 @@ mod tests {
         let prompt_cstr =
             CString::new(large_prompt).expect("test: CString::new must not fail for a repeated-ASCII oversized prompt");
 
-        let result = pcai_generate(prompt_cstr.as_ptr(), 10, 0.7);
+        let result = unsafe { pcai_generate(prompt_cstr.as_ptr(), 10, 0.7) };
         assert!(result.is_null());
 
         let err_ptr = pcai_last_error();
@@ -1299,14 +1299,14 @@ mod tests {
         pcai_shutdown();
 
         let prompt = CString::new("hello").expect("test: CString::new must not fail for a simple ASCII prompt");
-        let id = pcai_generate_async(prompt.as_ptr(), 10, 0.7);
+        let id = unsafe { pcai_generate_async(prompt.as_ptr(), 10, 0.7) };
         assert_eq!(id, -1, "Should fail when no backend is initialised");
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
     }
 
     #[test]
     fn test_async_generate_null_prompt() {
-        let id = pcai_generate_async(std::ptr::null(), 10, 0.7);
+        let id = unsafe { pcai_generate_async(std::ptr::null(), 10, 0.7) };
         assert_eq!(id, -1, "Should fail on null prompt");
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
     }
@@ -1315,7 +1315,7 @@ mod tests {
     fn test_async_generate_prompt_too_large() {
         let large = "x".repeat(101 * 1024);
         let cstr = CString::new(large).expect("test: CString::new must not fail for a repeated-ASCII oversized prompt");
-        let id = pcai_generate_async(cstr.as_ptr(), 10, 0.7);
+        let id = unsafe { pcai_generate_async(cstr.as_ptr(), 10, 0.7) };
         assert_eq!(id, -1, "Should fail on oversized prompt");
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
     }
@@ -1365,7 +1365,7 @@ mod tests {
     #[test]
     fn test_free_string_null_safe() {
         // Calling pcai_free_string with null should not crash
-        pcai_free_string(std::ptr::null_mut());
+        unsafe { pcai_free_string(std::ptr::null_mut()) };
     }
 
     #[test]
@@ -1528,7 +1528,7 @@ mod tests {
 
     #[test]
     fn test_init_rejects_null_backend_name() {
-        let code = pcai_init(std::ptr::null());
+        let code = unsafe { pcai_init(std::ptr::null()) };
         assert_eq!(code, PcaiErrorCode::InvalidInput as i32);
         assert!(last_error_text().is_some(), "a rejected init must record why");
     }
@@ -1545,7 +1545,7 @@ mod tests {
     #[test]
     fn test_init_without_backend_feature_reports_invalid_input() {
         let name = c("llamacpp");
-        let code = pcai_init(name.as_ptr());
+        let code = unsafe { pcai_init(name.as_ptr()) };
         assert_eq!(code, PcaiErrorCode::InvalidInput as i32);
         let err = last_error_text().expect("test: failed init must record an error");
         assert!(err.contains("backend"), "error should name the backend problem: {err}");
@@ -1554,7 +1554,7 @@ mod tests {
     #[test]
     fn test_init_rejects_unknown_backend_name() {
         let name = c("definitely-not-a-backend");
-        assert_eq!(pcai_init(name.as_ptr()), PcaiErrorCode::InvalidInput as i32);
+        assert_eq!(unsafe { pcai_init(name.as_ptr()) }, PcaiErrorCode::InvalidInput as i32);
     }
 
     // ---------------------------------------------------------------
@@ -1563,14 +1563,14 @@ mod tests {
 
     #[test]
     fn test_load_model_rejects_null_path() {
-        let code = pcai_load_model(std::ptr::null(), 0);
+        let code = unsafe { pcai_load_model(std::ptr::null(), 0) };
         assert!(code < 0, "null model path must be an error, got {code}");
     }
 
     #[test]
     fn test_load_model_without_init_is_error() {
         let path = c("C:/models/does-not-exist.gguf");
-        let code = pcai_load_model(path.as_ptr(), 0);
+        let code = unsafe { pcai_load_model(path.as_ptr(), 0) };
         assert!(code < 0, "loading without an initialised backend must fail, got {code}");
     }
 
@@ -1580,7 +1580,7 @@ mod tests {
 
     #[test]
     fn test_generate_rejects_null_prompt() {
-        let out = pcai_generate(std::ptr::null(), 16, 0.7);
+        let out = unsafe { pcai_generate(std::ptr::null(), 16, 0.7) };
         assert!(out.is_null());
         assert!(last_error_text().is_some());
     }
@@ -1588,14 +1588,14 @@ mod tests {
     #[test]
     fn test_generate_without_init_returns_null() {
         let prompt = c("hello");
-        let out = pcai_generate(prompt.as_ptr(), 16, 0.7);
+        let out = unsafe { pcai_generate(prompt.as_ptr(), 16, 0.7) };
         assert!(out.is_null(), "generation without a backend must not return a string");
     }
 
     #[test]
     fn test_generate_rejects_oversized_prompt() {
         let huge = c(&"x".repeat(100 * 1024 + 1));
-        let out = pcai_generate(huge.as_ptr(), 16, 0.7);
+        let out = unsafe { pcai_generate(huge.as_ptr(), 16, 0.7) };
         assert!(out.is_null());
         let err = last_error_text().expect("test: oversized prompt must record an error");
         assert!(
@@ -1610,19 +1610,19 @@ mod tests {
 
     #[test]
     fn test_generate_async_rejects_null_prompt() {
-        assert_eq!(pcai_generate_async(std::ptr::null(), 16, 0.7), -1);
+        assert_eq!(unsafe { pcai_generate_async(std::ptr::null(), 16, 0.7) }, -1);
     }
 
     #[test]
     fn test_generate_async_rejects_oversized_prompt() {
         let huge = c(&"y".repeat(100 * 1024 + 1));
-        assert_eq!(pcai_generate_async(huge.as_ptr(), 16, 0.7), -1);
+        assert_eq!(unsafe { pcai_generate_async(huge.as_ptr(), 16, 0.7) }, -1);
     }
 
     #[test]
     fn test_generate_async_without_init_is_error() {
         let prompt = c("hello");
-        let id = pcai_generate_async(prompt.as_ptr(), 16, 0.7);
+        let id = unsafe { pcai_generate_async(prompt.as_ptr(), 16, 0.7) };
         assert!(id < 0, "async generation without a backend must fail, got {id}");
     }
 
@@ -1645,13 +1645,13 @@ mod tests {
     #[test]
     fn test_free_string_null_is_noop() {
         // Must not panic; freeing a null pointer is a documented no-op.
-        pcai_free_string(std::ptr::null_mut());
+        unsafe { pcai_free_string(std::ptr::null_mut()) };
     }
 
     #[test]
     fn test_free_string_releases_owned_allocation() {
         let owned = c("to be freed").into_raw();
-        pcai_free_string(owned);
+        unsafe { pcai_free_string(owned) };
         // Reaching here without a crash under the test allocator is the assertion.
     }
 }

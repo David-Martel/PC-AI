@@ -20,7 +20,7 @@ fn test_unknown_backend_error() {
     pcai_shutdown();
 
     let backend = CString::new("unknown_backend_12345").expect("CString should accept valid test input");
-    let result = pcai_init(backend.as_ptr());
+    let result = unsafe { pcai_init(backend.as_ptr()) };
 
     assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
 
@@ -51,7 +51,7 @@ fn test_not_initialized_error() {
     #[cfg(feature = "ffi")]
     {
         use pcai_inference_lib::ffi::pcai_load_model;
-        let result = pcai_load_model(path.as_ptr(), 0);
+        let result = unsafe { pcai_load_model(path.as_ptr(), 0) };
         assert_eq!(result, -1);
 
         let err_ptr = pcai_last_error();
@@ -80,7 +80,7 @@ mod llamacpp_error_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if pcai_init(backend.as_ptr()) != 0 {
+        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
             return; // Skip if llamacpp not available
         }
 
@@ -116,7 +116,7 @@ mod llamacpp_error_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if pcai_init(backend.as_ptr()) != 0 {
+        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
             return; // Skip if llamacpp not available
         }
 
@@ -155,7 +155,7 @@ mod llamacpp_error_tests {
 
         for (backend_name, _description) in test_cases {
             let backend = CString::new(backend_name).expect("CString should accept valid test input");
-            let result = pcai_init(backend.as_ptr());
+            let result = unsafe { pcai_init(backend.as_ptr()) };
 
             if result == -1 {
                 let err_ptr = pcai_last_error();
@@ -184,7 +184,7 @@ fn test_success_clears_error() {
 
     // First, cause an error
     let invalid = CString::new("invalid").expect("CString should accept valid test input");
-    let _ = pcai_init(invalid.as_ptr());
+    let _ = unsafe { pcai_init(invalid.as_ptr()) };
 
     // Verify error is set
     let err_ptr = pcai_last_error();
@@ -196,7 +196,7 @@ fn test_success_clears_error() {
     #[cfg(feature = "llamacpp")]
     {
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        let result = pcai_init(backend.as_ptr());
+        let result = unsafe { pcai_init(backend.as_ptr()) };
 
         if result == 0 {
             // After success, error should be cleared or contain no error
@@ -235,13 +235,13 @@ fn test_error_codes() {
     pcai_shutdown();
 
     // Test invalid input error
-    let result = pcai_init(std::ptr::null());
+    let result = unsafe { pcai_init(std::ptr::null()) };
     assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
     assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
 
     // Test unknown backend error (also InvalidInput)
     let unknown = CString::new("unknown_backend").expect("CString should accept valid test input");
-    let result = pcai_init(unknown.as_ptr());
+    let result = unsafe { pcai_init(unknown.as_ptr()) };
     assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
     assert_eq!(pcai_last_error_code(), PcaiErrorCode::InvalidInput as i32);
 
@@ -259,7 +259,7 @@ mod error_code_tests {
         pcai_shutdown();
 
         let path = CString::new("/test/model.gguf").expect("CString should accept valid test input");
-        let result = pcai_load_model(path.as_ptr(), 0);
+        let result = unsafe { pcai_load_model(path.as_ptr(), 0) };
 
         assert_eq!(result, PcaiErrorCode::NotInitialized as i32);
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
@@ -271,7 +271,7 @@ mod error_code_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if pcai_init(backend.as_ptr()) != 0 {
+        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
             return; // Skip if llamacpp not available
         }
 
@@ -290,7 +290,7 @@ mod error_code_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if pcai_init(backend.as_ptr()) != 0 {
+        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
             return; // Skip if llamacpp not available
         }
 
@@ -321,7 +321,7 @@ fn test_prompt_too_large() {
     let large_prompt = "x".repeat(101 * 1024);
     let prompt_cstr = CString::new(large_prompt).expect("CString should accept valid test input");
 
-    let result = pcai_generate(prompt_cstr.as_ptr(), 10, 0.7);
+    let result = unsafe { pcai_generate(prompt_cstr.as_ptr(), 10, 0.7) };
     assert!(result.is_null());
 
     let err_ptr = pcai_last_error();

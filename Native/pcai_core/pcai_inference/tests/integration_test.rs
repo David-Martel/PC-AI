@@ -412,7 +412,7 @@ mod ffi_tests {
 
     #[test]
     fn test_ffi_init_null_backend() {
-        let result = pcai_init(std::ptr::null());
+        let result = unsafe { pcai_init(std::ptr::null()) };
         // InvalidInput error code = -3
         assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
 
@@ -426,7 +426,7 @@ mod ffi_tests {
     #[test]
     fn test_ffi_init_unknown_backend() {
         let backend = CString::new("unknown_backend").expect("CString should accept valid test input");
-        let result = pcai_init(backend.as_ptr());
+        let result = unsafe { pcai_init(backend.as_ptr()) };
         // InvalidInput error code = -3
         assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
 
@@ -443,7 +443,7 @@ mod ffi_tests {
         pcai_shutdown(); // Clean state
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        let result = pcai_init(backend.as_ptr());
+        let result = unsafe { pcai_init(backend.as_ptr()) };
 
         if result != 0 {
             let err = pcai_last_error();
@@ -463,7 +463,7 @@ mod ffi_tests {
         pcai_shutdown(); // Clean state
 
         let backend = CString::new("mistralrs").expect("CString should accept valid test input");
-        let result = pcai_init(backend.as_ptr());
+        let result = unsafe { pcai_init(backend.as_ptr()) };
         assert_eq!(result, 0);
 
         pcai_shutdown();
@@ -471,7 +471,7 @@ mod ffi_tests {
 
     #[test]
     fn test_ffi_load_model_null_path() {
-        let result = pcai_load_model(std::ptr::null(), 0);
+        let result = unsafe { pcai_load_model(std::ptr::null(), 0) };
         // InvalidInput error code = -3
         assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
 
@@ -484,7 +484,7 @@ mod ffi_tests {
         pcai_shutdown(); // Ensure no backend initialized
 
         let path = CString::new("/nonexistent/model.gguf").expect("CString should accept valid test input");
-        let result = pcai_load_model(path.as_ptr(), 0);
+        let result = unsafe { pcai_load_model(path.as_ptr(), 0) };
         // NotInitialized error code = -1
         assert_eq!(result, PcaiErrorCode::NotInitialized as i32);
 
@@ -497,7 +497,7 @@ mod ffi_tests {
 
     #[test]
     fn test_ffi_generate_null_prompt() {
-        let result = pcai_generate(std::ptr::null(), 10, 0.7);
+        let result = unsafe { pcai_generate(std::ptr::null(), 10, 0.7) };
         assert!(result.is_null());
 
         let err = pcai_last_error();
@@ -512,7 +512,7 @@ mod ffi_tests {
         pcai_shutdown(); // Ensure no backend initialized
 
         let prompt = CString::new("Test prompt").expect("CString should accept valid test input");
-        let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
+        let result = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.7) };
         assert!(result.is_null());
 
         let err = pcai_last_error();
@@ -529,12 +529,12 @@ mod ffi_tests {
 
         // Initialize backend
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        let init_result = pcai_init(backend.as_ptr());
+        let init_result = unsafe { pcai_init(backend.as_ptr()) };
         assert_eq!(init_result, 0);
 
         // Try to generate without loading model
         let prompt = CString::new("Test prompt").expect("CString should accept valid test input");
-        let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
+        let result = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.7) };
         assert!(result.is_null());
 
         let err = pcai_last_error();
@@ -549,7 +549,7 @@ mod ffi_tests {
     #[test]
     fn test_ffi_free_string_null() {
         // Should not crash
-        pcai_free_string(std::ptr::null_mut());
+        unsafe { pcai_free_string(std::ptr::null_mut()) };
     }
 
     #[test]
@@ -577,12 +577,12 @@ mod ffi_tests {
 
         // Initialize
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        assert_eq!(pcai_init(backend.as_ptr()), 0);
+        assert_eq!(unsafe { pcai_init(backend.as_ptr()) }, 0);
 
         // Load model
         let model_path = common::require_test_model();
         let path = CString::new(model_path).expect("CString should accept valid test input");
-        let load_result = pcai_load_model(path.as_ptr(), 0);
+        let load_result = unsafe { pcai_load_model(path.as_ptr(), 0) };
 
         if load_result != 0 {
             let err = pcai_last_error();

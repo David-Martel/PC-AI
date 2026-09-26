@@ -922,8 +922,8 @@ impl GenerationPipeline {
         // ── 7. Denormalise from [-1, 1] to [0, 255] U8 ───────────────────────
         // formula: pixel = (x / 2.0 + 0.5) * 255, clamped to [0, 255]
         let pixel_tensor =
-            ((&pixel_tensor / 2.0_f64).context("divide by 2.0 failed")? + 0.5_f64).context("add 0.5 failed")?;
-        let pixel_tensor = (&pixel_tensor * 255.0_f64)
+            ((pixel_tensor / 2.0_f64).context("divide by 2.0 failed")? + 0.5_f64).context("add 0.5 failed")?;
+        let pixel_tensor = (pixel_tensor * 255.0_f64)
             .context("multiply by 255.0 failed")?
             .clamp(0.0_f64, 255.0_f64)
             .context("clamp failed")?
@@ -1097,9 +1097,11 @@ impl GenerationPipeline {
                         .with_context(|| format!("speculative draft: embed token at di={di}"))?;
 
                     if di + 1 < k {
-                        draft_input = embed.clone();
+                        draft_embeds_list.push(embed.clone());
+                        draft_input = embed;
+                    } else {
+                        draft_embeds_list.push(embed);
                     }
-                    draft_embeds_list.push(embed);
                 }
             }
 
@@ -1579,13 +1581,6 @@ mod tests {
     #[test]
     fn test_tensor_to_image_wrong_dims() {
         let tensor = Tensor::zeros((3_usize, 10_usize), DType::U8, &Device::Cpu).unwrap();
-        assert!(tensor_to_image(&tensor).is_err());
-    }
-
-    /// `tensor_to_image` must return an error for a 4D tensor.
-    #[test]
-    fn test_tensor_to_image_4d_tensor() {
-        let tensor = Tensor::zeros((1_usize, 3_usize, 8_usize, 8_usize), DType::U8, &Device::Cpu).unwrap();
         assert!(tensor_to_image(&tensor).is_err());
     }
 

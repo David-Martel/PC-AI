@@ -53,7 +53,7 @@ windows-sys = "0.61"
 widestring = "1.1"
 
 # System information (cross-platform)
-sysinfo = "0.38"
+sysinfo = "0.39"
 
 # Directory walking
 walkdir = "2.5"

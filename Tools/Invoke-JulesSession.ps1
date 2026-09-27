@@ -398,6 +398,16 @@ function Invoke-JulesCli {
 }
 
 # ---------------------------------------------------------------------------
+# Helper: ConvertTo-JulesStateEnum
+#   -State takes PascalCase (InProgress); the API reports UPPER_SNAKE
+#   (IN_PROGRESS). Insert '_' at each lower->upper boundary, then upcase.
+# ---------------------------------------------------------------------------
+function ConvertTo-JulesStateEnum {
+    param([Parameter(Mandatory)][string]$State)
+    return ($State -creplace '(?<=[a-z])(?=[A-Z])', '_').ToUpperInvariant()
+}
+
+# ---------------------------------------------------------------------------
 # Helper: Format-JulesSessionTable
 #   Converts raw session API objects into table-friendly PSCustomObjects.
 #   Extracts SessionId from the 'name' field (last path segment), Created
@@ -499,6 +509,7 @@ if ($Action -eq '__test_load__') {
         'Invoke-JulesApi',
         'Invoke-JulesCli',
         'Format-JulesSessionTable',
+        'ConvertTo-JulesStateEnum',
         'Get-RequiredApiKey',
         'Ensure-JulesDirectory',
         'Assert-JulesParam'
@@ -560,7 +571,6 @@ switch ($Action) {
         do {
             $queryParts = @("pageSize=$PageSize")
             if ($Filter)    { $queryParts += "filter=$([Uri]::EscapeDataString($Filter))" }
-            if ($State)     { $queryParts += "filter=state=$State" }
             if ($pageToken) { $queryParts += "pageToken=$([Uri]::EscapeDataString($pageToken))" }
 
             $qs  = if ($queryParts.Count -gt 0) { '?' + ($queryParts -join '&') } else { '' }
@@ -579,11 +589,19 @@ switch ($Action) {
         } while ($All -and $pageToken)
 
         $output = @($allSessions)
+        if ($State) {
+            # Applied here because the API rejects every server-side state
+            # filter with HTTP 400. Without -All this narrows one page only.
+            $wanted = ConvertTo-JulesStateEnum -State $State
+            $output = @($output | Where-Object { $_.PSObject.Properties['state'] -and $_.state -eq $wanted })
+        }
 
         if ($Format -eq 'Table') {
             Format-JulesSessionTable -Sessions $output | Format-Table -AutoSize
         } else {
-            $output | ConvertTo-Json -Depth 10
+            # -InputObject, not the pipeline: an empty pipeline emits nothing
+            # instead of [], and a single session would lose its array brackets.
+            ConvertTo-Json -InputObject $output -Depth 10
         }
     }
 

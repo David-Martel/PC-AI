@@ -25,7 +25,8 @@ param(
     [string]  $ChangedSinceTag,
 
     [int]    $MaxSessions = 5,
-    [switch] $RequirePlanApproval = $true,
+    # Plan approval is required by default; opt out explicitly.
+    [switch] $SkipPlanApproval,
     [switch] $DryRun,
     [ValidateSet('Table', 'Json')]
     [string] $Format = 'Table'
@@ -81,7 +82,7 @@ foreach ($entry in $queue) {
     } else {
         try {
             $params = @{ Action = 'New'; Prompt = $mod.prompt; AutomationMode = 'AutoCreatePR'; Format = 'Json' }
-            if ($RequirePlanApproval) { $params['RequirePlanApproval'] = $true }
+            if (-not $SkipPlanApproval) { $params['RequirePlanApproval'] = $true }
             $raw = & $sessionPs1 @params 2>&1
             $rawStr = ($raw | Out-String).Trim()
             $parsed = $rawStr | ConvertFrom-Json -ErrorAction Stop

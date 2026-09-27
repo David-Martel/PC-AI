@@ -25,6 +25,10 @@ param(
     [string]  $ChangedSinceTag,
 
     [int]    $MaxSessions = 5,
+    # AUTO_CREATE_PR only acts after the plan is approved, which stays required
+    # by default; pass None to keep results in the Jules session instead.
+    [ValidateSet('AutoCreatePR', 'None')]
+    [string] $AutomationMode = 'AutoCreatePR',
     # Plan approval is required by default; opt out explicitly.
     [switch] $SkipPlanApproval,
     [switch] $DryRun,
@@ -81,7 +85,8 @@ foreach ($entry in $queue) {
         $r.Status = 'DryRun'
     } else {
         try {
-            $params = @{ Action = 'New'; Prompt = $mod.prompt; AutomationMode = 'AutoCreatePR'; Format = 'Json' }
+            $params = @{ Action = 'New'; Prompt = $mod.prompt; Format = 'Json' }
+            if ($AutomationMode -ne 'None') { $params['AutomationMode'] = $AutomationMode }
             if (-not $SkipPlanApproval) { $params['RequirePlanApproval'] = $true }
             $raw = & $sessionPs1 @params 2>&1
             $rawStr = ($raw | Out-String).Trim()

@@ -39,14 +39,14 @@ fn test_concurrent_init_calls() {
                 #[cfg(feature = "llamacpp")]
                 {
                     let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-                    let _ = pcai_init(backend.as_ptr());
+                    let _ = unsafe { pcai_init(backend.as_ptr()) };
                 }
 
                 #[cfg(not(feature = "llamacpp"))]
                 {
                     let backend =
                         CString::new(format!("test_{}", i)).expect("CString should accept formatted test input");
-                    let _ = pcai_init(backend.as_ptr());
+                    let _ = unsafe { pcai_init(backend.as_ptr()) };
                 }
             })
         })
@@ -66,7 +66,7 @@ fn test_concurrent_error_access() {
 
     // Cause an error
     let invalid = CString::new("invalid").expect("CString should accept valid test input");
-    let _ = pcai_init(invalid.as_ptr());
+    let _ = unsafe { pcai_init(invalid.as_ptr()) };
 
     let handles: Vec<_> = (0..10)
         .map(|_| {
@@ -99,7 +99,7 @@ fn test_rapid_init_shutdown_cycling() {
                     #[cfg(feature = "llamacpp")]
                     {
                         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-                        let _ = pcai_init(backend.as_ptr());
+                        let _ = unsafe { pcai_init(backend.as_ptr()) };
                     }
 
                     pcai_shutdown();
@@ -128,7 +128,7 @@ mod llamacpp_concurrent_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if pcai_init(backend.as_ptr()) != 0 {
+        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
             return; // Skip if init fails
         }
 

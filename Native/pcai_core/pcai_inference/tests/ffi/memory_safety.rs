@@ -17,7 +17,7 @@ use pcai_inference_lib::ffi::{pcai_free_string, pcai_init, pcai_last_error, pcai
 #[test]
 fn test_free_string_null_safety() {
     // Should not panic or crash
-    pcai_free_string(ptr::null_mut());
+    unsafe { pcai_free_string(ptr::null_mut()) };
 }
 
 /// Test that error strings can be read without crash
@@ -27,7 +27,7 @@ fn test_error_string_access() {
 
     // Cause an error
     let invalid = CString::new("invalid_backend").expect("CString should accept valid test input");
-    let _ = pcai_init(invalid.as_ptr());
+    let _ = unsafe { pcai_init(invalid.as_ptr()) };
 
     // Read error
     let err_ptr = pcai_last_error();
@@ -68,7 +68,7 @@ fn test_init_empty_string() {
     pcai_shutdown();
 
     let empty = CString::new("").expect("CString should accept valid test input");
-    let result = pcai_init(empty.as_ptr());
+    let result = unsafe { pcai_init(empty.as_ptr()) };
 
     // Should fail gracefully, not crash
     assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
@@ -86,7 +86,7 @@ fn test_init_long_string() {
 
     let long_string: String = "a".repeat(10000);
     let long = CString::new(long_string).expect("CString should accept valid test input");
-    let result = pcai_init(long.as_ptr());
+    let result = unsafe { pcai_init(long.as_ptr()) };
 
     // Should fail gracefully
     assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
@@ -101,7 +101,7 @@ fn test_utf8_error_handling() {
 
     // Try to init with unicode string
     let unicode = CString::new("backend_日本語").expect("CString should accept valid test input");
-    let result = pcai_init(unicode.as_ptr());
+    let result = unsafe { pcai_init(unicode.as_ptr()) };
 
     assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
 

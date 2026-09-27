@@ -14,21 +14,34 @@ use sha2::{Digest, Sha256};
 use crate::PcaiStatus;
 
 #[derive(Serialize)]
+/// Represents a group of duplicate files
 pub struct DuplicateGroup {
+    /// File hash
     pub hash: String,
+    /// File size
     pub size: u64,
+    /// List of paths
     pub paths: Vec<String>,
+    /// Wasted bytes
     pub wasted_bytes: u64,
 }
 
 #[derive(Serialize)]
+/// Represents the result of a duplicate finding operation
 pub struct DuplicateResult {
+    /// Status message
     pub status: String,
+    /// Number of files scanned
     pub files_scanned: usize,
+    /// Number of duplicate groups
     pub duplicate_groups: usize,
+    /// Total number of duplicate files
     pub duplicate_files: usize,
+    /// Wasted bytes
     pub wasted_bytes: u64,
+    /// Duplicate groups found
     pub results: Vec<DuplicateGroup>,
+    /// Operation duration
     pub elapsed_ms: u64,
 }
 

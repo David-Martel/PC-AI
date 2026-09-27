@@ -922,8 +922,8 @@ impl GenerationPipeline {
         // ── 7. Denormalise from [-1, 1] to [0, 255] U8 ───────────────────────
         // formula: pixel = (x / 2.0 + 0.5) * 255, clamped to [0, 255]
         let pixel_tensor =
-            ((pixel_tensor / 2.0_f64).context("divide by 2.0 failed")? + 0.5_f64).context("add 0.5 failed")?;
-        let pixel_tensor = (pixel_tensor * 255.0_f64)
+            ((&pixel_tensor / 2.0_f64).context("divide by 2.0 failed")? + 0.5_f64).context("add 0.5 failed")?;
+        let pixel_tensor = (&pixel_tensor * 255.0_f64)
             .context("multiply by 255.0 failed")?
             .clamp(0.0_f64, 255.0_f64)
             .context("clamp failed")?
@@ -1097,11 +1097,9 @@ impl GenerationPipeline {
                         .with_context(|| format!("speculative draft: embed token at di={di}"))?;
 
                     if di + 1 < k {
-                        draft_embeds_list.push(embed.clone());
-                        draft_input = embed;
-                    } else {
-                        draft_embeds_list.push(embed);
+                        draft_input = embed.clone();
                     }
+                    draft_embeds_list.push(embed);
                 }
             }
 

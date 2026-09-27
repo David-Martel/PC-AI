@@ -126,3 +126,47 @@ Describe 'List action JSON output' -Tag 'Unit', 'Portable' {
         $source | Should -Match 'ConvertTo-Json -InputObject \$output'
     }
 }
+
+# Key lookup must never block on a locked Bitwarden vault, and must not read
+# ~/.machine/*.json: that folder is writable by sandbox accounts, and no file
+# in it has ever held the key (audited 2026-09-27).
+Describe 'Get-JulesApiKey key sources' -Tag 'Unit', 'Portable' {
+    BeforeEach {
+        $script:savedKey = $env:JULES_API_KEY
+        Remove-Item env:JULES_API_KEY -ErrorAction SilentlyContinue
+        $global:JulesBwCalls = [System.Collections.Generic.List[object]]::new()
+        function global:bw { $global:JulesBwCalls.Add(@($args)); $global:LASTEXITCODE = 1 }
+    }
+    AfterEach {
+        Remove-Item function:global:bw -ErrorAction SilentlyContinue
+        if ($script:savedKey) { $env:JULES_API_KEY = $script:savedKey }
+    }
+
+    It 'calls bw with --nointeraction so a locked vault fails fast' {
+        Get-JulesApiKey | Out-Null
+        $global:JulesBwCalls.Count | Should -Be 1
+        $global:JulesBwCalls[0] | Should -Contain '--nointeraction'
+    }
+    It 'returns the value bw prints' {
+        function global:bw { $global:LASTEXITCODE = 0; 'key-from-bw' }
+        Get-JulesApiKey | Should -Be 'key-from-bw'
+    }
+    It 'does not read ~/.machine JSON files' {
+        (Get-Command Get-JulesApiKey).Definition | Should -Not -Match '\.machine'
+    }
+    It 'names every supported key source when the key is missing' {
+        { Get-RequiredApiKey -ForAction 'List' } | Should -Throw '*JULES_API_KEY*.env*Bitwarden*'
+    }
+}
+
+Describe 'Invoke-JulesBatchReview parameters' -Tag 'Unit', 'Portable' {
+    BeforeAll { $script:BatchPath = Join-Path $script:ProjectRoot 'Tools' 'Invoke-JulesBatchReview.ps1' }
+    It 'has no switch parameter that defaults to true' {
+        @(Invoke-ScriptAnalyzer -Path $script:BatchPath -IncludeRule PSAvoidDefaultValueSwitchParameter).Count | Should -Be 0
+    }
+    It 'requires plan approval unless -SkipPlanApproval is given' {
+        $params = (Get-Command $script:BatchPath).Parameters
+        $params.ContainsKey('SkipPlanApproval') | Should -BeTrue
+        $params.ContainsKey('RequirePlanApproval') | Should -BeFalse
+    }
+}

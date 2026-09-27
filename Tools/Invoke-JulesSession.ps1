@@ -153,9 +153,10 @@ $script:SessionLogDir = Join-Path $script:RepoRoot '.pcai\jules\sessions'
 # Helper: Get-JulesApiKey
 #   Reads the Jules API key from (in order):
 #   1. $env:JULES_API_KEY
-#   2. ~/.machine/*.json files (machine-local secrets store)
-#   3. .env file in the repository root
-#   4. Bitwarden CLI (bw get notes "JULES_API_KEY")
+#   2. .env file in the repository root
+#   3. Bitwarden CLI (bw get notes "JULES_API_KEY" --nointeraction)
+#   ~/.machine/*.json is deliberately not scanned: that folder is writable
+#   by sandbox accounts, so any JSON dropped there could supply the key.
 #   Returns the key string or $null.
 # ---------------------------------------------------------------------------
 function Get-JulesApiKey {
@@ -168,19 +169,7 @@ function Get-JulesApiKey {
         return $env:JULES_API_KEY
     }
 
-    # 2. ~/.machine/*.json files
-    $machineDir = Join-Path $HOME '.machine'
-    if (Test-Path -LiteralPath $machineDir) {
-        foreach ($f in Get-ChildItem -LiteralPath $machineDir -Filter '*.json' -File) {
-            try {
-                $data = Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json -Depth 5
-                if ($data.JULES_API_KEY) { return $data.JULES_API_KEY }
-                if ($data.jules_api_key) { return $data.jules_api_key }
-            } catch { <# skip malformed files #> }
-        }
-    }
-
-    # 3. .env file in repository root
+    # 2. .env file in repository root
     $envFile = Join-Path $script:RepoRoot '.env'
     if (Test-Path -LiteralPath $envFile) {
         foreach ($line in [System.IO.File]::ReadAllLines($envFile)) {
@@ -191,10 +180,11 @@ function Get-JulesApiKey {
         }
     }
 
-    # 4. Bitwarden CLI (bw)
+    # 3. Bitwarden CLI (bw). --nointeraction: a locked vault must fail fast
+    #    instead of waiting on a password prompt nobody can answer.
     if (Get-Command 'bw' -ErrorAction SilentlyContinue) {
         try {
-            $bwResult = bw get notes 'JULES_API_KEY' 2>$null
+            $bwResult = bw get notes 'JULES_API_KEY' --nointeraction 2>$null
             if ($bwResult -and $bwResult.Trim()) { return $bwResult.Trim() }
         } catch { <# bw not unlocked or item not found #> }
     }
@@ -488,7 +478,7 @@ function Get-RequiredApiKey {
     param([string]$ForAction)
     $key = Get-JulesApiKey
     if (-not $key) {
-        throw "JULES_API_KEY is not set. Export it as an environment variable or add JULES_API_KEY=<key> to the .env file in the repository root. (Required for '$ForAction' action.)"
+        throw "JULES_API_KEY is not set. Export it as an environment variable, add JULES_API_KEY=<key> to the .env file in the repository root, or store it as the notes of a Bitwarden item named JULES_API_KEY in an unlocked vault. (Required for '$ForAction' action.)"
     }
     return $key
 }

@@ -86,3 +86,43 @@ Describe 'Parameter validation' -Tag 'Unit', 'Portable' {
     It 'rejects New without Prompt' { { & $script:ScriptPath -Action New } | Should -Throw '*Prompt*' }
     It 'rejects Status without SessionId' { { & $script:ScriptPath -Action Status } | Should -Throw '*SessionId*' }
 }
+
+# The Jules API rejects every server-side state filter with HTTP 400
+# (`filter=state=COMPLETED`, `state = "COMPLETED"`, `state:COMPLETED` all
+# verified 2026-09-27), and reports states as UPPER_SNAKE (`IN_PROGRESS`)
+# while -State takes PascalCase (`InProgress`). -State is applied client-side.
+Describe 'ConvertTo-JulesStateEnum' -Tag 'Unit', 'Portable' {
+    It 'maps <State> to <Expected>' -TestCases @(
+        @{ State = 'Completed';            Expected = 'COMPLETED' }
+        @{ State = 'InProgress';           Expected = 'IN_PROGRESS' }
+        @{ State = 'Failed';               Expected = 'FAILED' }
+        @{ State = 'AwaitingPlanApproval'; Expected = 'AWAITING_PLAN_APPROVAL' }
+        @{ State = 'AwaitingUserFeedback'; Expected = 'AWAITING_USER_FEEDBACK' }
+        @{ State = 'Queued';               Expected = 'QUEUED' }
+        @{ State = 'Planning';             Expected = 'PLANNING' }
+        @{ State = 'Paused';               Expected = 'PAUSED' }
+    ) {
+        ConvertTo-JulesStateEnum -State $State | Should -Be $Expected
+    }
+
+    It 'covers every value the -State parameter accepts' {
+        $cmd = Get-Command $script:ScriptPath
+        $valid = ($cmd.Parameters['State'].Attributes |
+            Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }).ValidValues
+        foreach ($v in $valid) { ConvertTo-JulesStateEnum -State $v | Should -Match '^[A-Z]+(_[A-Z]+)*$' }
+    }
+}
+
+Describe 'List action state filtering' -Tag 'Unit', 'Portable' {
+    It 'does not send a state filter to the API' {
+        $source = Get-Content -Raw $script:ScriptPath
+        $source | Should -Not -Match 'filter=state='
+    }
+}
+
+Describe 'List action JSON output' -Tag 'Unit', 'Portable' {
+    It 'serializes with -InputObject so an empty result is [] rather than nothing' {
+        $source = Get-Content -Raw $script:ScriptPath
+        $source | Should -Match 'ConvertTo-Json -InputObject \$output'
+    }
+}

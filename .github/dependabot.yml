@@ -35,6 +35,15 @@ updates:
       candle:
         patterns: ["candle-*"]
         update-types: ["major", "minor", "patch"]
+      # Same trap for mistralrs: #126 moved mistralrs to 0.8.1 and #141 moved
+      # mistralrs-core to 0.8.1, each alone. With the two on different lines,
+      # backends/mistralrs.rs fails with E0308 (mistralrs::StopTokens vs
+      # mistralrs_core::StopTokens). CI builds only `server,ffi`, so it never
+      # compiles this backend -- verify a grouped PR locally with
+      # `--features mistralrs-backend,server,ffi`.
+      mistralrs:
+        patterns: ["mistralrs", "mistralrs-*"]
+        update-types: ["major", "minor", "patch"]
       cargo-pcai-core:
         update-types: ["minor", "patch"]
     ignore:

@@ -22,6 +22,12 @@ Hardware-Diagnostics-Report.txt
 # Runtime state files
 Reports/*.addr
 Reports/*.port
+# Live status written by the "PC-AI Process Lasso Governor Watchdog" scheduled
+# task on every run (Tools/Register-ProcessLassoGovernorWatchdog.ps1). Tracked,
+# it left the tree permanently dirty and was committed as churn five times.
+# Copy it into a dated evidence folder when a snapshot is needed; judge its
+# age by the GeneratedAt field, not mtime (see TODO.md).
+Reports/processlasso-governor-watchdog.json
 
 # Cleanup-archive dry-run manifests + rclone transfer logs (transient; keep the
 # executed .jsonl manifest as evidence, drop the dry-run scratch and logs)

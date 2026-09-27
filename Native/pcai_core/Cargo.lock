@@ -3587,25 +3587,26 @@ dependencies = [
 
 [[package]]
 name = "mistralrs"
-version = "0.7.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b94ffe881c76d6531a334c729743db91a255267a097e9b20b52f66d8531296d1"
+checksum = "9bb0a83340b4492ebba9760ba6845364de369c7e10c1f91af8733d574c7405fa"
 dependencies = [
  "anyhow",
- "candle-core 0.9.2",
- "candle-nn 0.9.2",
+ "candle-core 0.10.2",
+ "candle-nn 0.10.2",
  "clap",
  "either",
  "futures",
  "image",
  "indexmap 2.13.0",
- "mistralrs-core",
+ "mistralrs-core 0.8.1",
  "mistralrs-macros",
  "rand 0.9.3",
  "reqwest 0.13.1",
  "schemars 1.2.2",
  "serde",
  "serde_json",
+ "thiserror 2.0.21",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3617,6 +3618,18 @@ name = "mistralrs-audio"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a78dd99327fca9c2c59ac8e5aa0a922db076645e4b46a1dbe6cfbb9fe11443b"
+dependencies = [
+ "anyhow",
+ "apodize",
+ "hound",
+ "symphonia",
+]
+
+[[package]]
+name = "mistralrs-audio"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ac5d36f634c7c20c45845bc995be3b6387ab01048410386a5b180cfeaf89c72"
 dependencies = [
  "anyhow",
  "apodize",
@@ -3670,11 +3683,11 @@ dependencies = [
  "lrtable",
  "minijinja",
  "minijinja-contrib",
- "mistralrs-audio",
- "mistralrs-mcp",
- "mistralrs-paged-attn",
- "mistralrs-quant",
- "mistralrs-vision",
+ "mistralrs-audio 0.7.0",
+ "mistralrs-mcp 0.7.0",
+ "mistralrs-paged-attn 0.7.0",
+ "mistralrs-quant 0.7.0",
+ "mistralrs-vision 0.7.0",
  "num-traits",
  "openai-harmony",
  "ordered-float",
@@ -3720,10 +3733,106 @@ dependencies = [
 ]
 
 [[package]]
-name = "mistralrs-macros"
-version = "0.7.0"
+name = "mistralrs-core"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c4805bae591126918a68c86cb541498ee64e4a584451127e6044643f2fafc1b"
+checksum = "a2b8b9e5c94491d9ceeded3a30291cb6af6ae74810a5776dd55e3bbb8b3429d4"
+dependencies = [
+ "ahash",
+ "akin",
+ "anyhow",
+ "apodize",
+ "as-any",
+ "async-trait",
+ "base64 0.22.1",
+ "bm25",
+ "bytemuck",
+ "bytemuck_derive",
+ "candle-core 0.10.2",
+ "candle-nn 0.10.2",
+ "cfgrammar",
+ "chrono",
+ "clap",
+ "csv",
+ "cudaforge",
+ "derive-new",
+ "derive_more",
+ "dirs 6.0.0",
+ "either",
+ "float8 0.7.0",
+ "futures",
+ "galil-seiferas",
+ "half",
+ "hashbrown 0.16.1",
+ "hf-hub 0.4.3",
+ "hound",
+ "html2text",
+ "http",
+ "image",
+ "indexmap 2.13.0",
+ "indicatif 0.18.3",
+ "interprocess",
+ "itertools 0.14.0",
+ "libc",
+ "llguidance",
+ "lrtable",
+ "minijinja",
+ "minijinja-contrib",
+ "mistralrs-audio 0.8.1",
+ "mistralrs-mcp 0.8.1",
+ "mistralrs-paged-attn 0.8.1",
+ "mistralrs-quant 0.8.1",
+ "mistralrs-vision 0.8.1",
+ "num-traits",
+ "openai-harmony",
+ "ordered-float",
+ "parking_lot",
+ "radix_trie",
+ "rand 0.9.3",
+ "rand_distr 0.5.1",
+ "rand_isaac",
+ "rayon",
+ "regex",
+ "regex-automata",
+ "reqwest 0.13.1",
+ "rubato",
+ "rust-mcp-schema",
+ "rustc-hash 2.1.1",
+ "rustfft",
+ "safetensors 0.7.0",
+ "schemars 1.2.2",
+ "scraper",
+ "serde",
+ "serde-big-array",
+ "serde-saphyr",
+ "serde_json",
+ "serde_plain",
+ "statrs",
+ "strum",
+ "symphonia",
+ "sysinfo 0.36.1",
+ "thiserror 2.0.21",
+ "tokenizers 0.21.4",
+ "tokio",
+ "tokio-rayon",
+ "tokio-tungstenite",
+ "toktrie",
+ "toktrie_hf_tokenizers",
+ "toml",
+ "tqdm",
+ "tracing",
+ "tracing-subscriber",
+ "urlencoding",
+ "uuid 1.26.1",
+ "variantly",
+ "vob",
+]
+
+[[package]]
+name = "mistralrs-macros"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5aa9b4794322d3f89fe61d21f33f67be494c16d5bd869604b111218f32544d32"
 dependencies = [
  "darling 0.23.0",
  "proc-macro2",
@@ -3753,6 +3862,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "mistralrs-mcp"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fa97d4e3189ed80ebbc730b7da5b2356df0ae004ab489066249340c33c089ab"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures-util",
+ "http",
+ "reqwest 0.13.1",
+ "rust-mcp-schema",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "utoipa",
+ "uuid 1.26.1",
+]
+
+[[package]]
 name = "mistralrs-paged-attn"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3762,6 +3892,20 @@ dependencies = [
  "bindgen_cuda",
  "candle-core 0.9.2",
  "float8 0.6.0",
+ "half",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "mistralrs-paged-attn"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e53ddf1537426997b46abdadbe6ca8a7ce7668004ed2b7cf00115016558bae8"
+dependencies = [
+ "anyhow",
+ "candle-core 0.10.2",
+ "cudaforge",
+ "float8 0.7.0",
  "half",
  "thiserror 2.0.21",
 ]
@@ -3794,12 +3938,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "mistralrs-quant"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "980715493d252e9aaf0779c4c101576d67ef4dd9812bfd77a54987f6f17526f4"
+dependencies = [
+ "byteorder",
+ "candle-core 0.10.2",
+ "candle-nn 0.10.2",
+ "cudaforge",
+ "float8 0.7.0",
+ "half",
+ "hf-hub 0.4.3",
+ "lazy_static",
+ "memmap2 0.9.11",
+ "paste",
+ "rayon",
+ "regex",
+ "safetensors 0.7.0",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "yoke 0.8.1",
+]
+
+[[package]]
 name = "mistralrs-vision"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d79247946a50fdac4300e80504bc6950e298a9c2e7e1a2bcd948fe91852b8a7b"
 dependencies = [
  "candle-core 0.9.2",
+ "image",
+ "rayon",
+]
+
+[[package]]
+name = "mistralrs-vision"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10046a3da2de5b702d3e829b5ddef7aa829ad454819dcc4876dea481a6cb5456"
+dependencies = [
+ "candle-core 0.10.2",
  "image",
  "rayon",
 ]
@@ -4332,7 +4514,7 @@ dependencies = [
  "futures",
  "llm",
  "mistralrs",
- "mistralrs-core",
+ "mistralrs-core 0.7.0",
  "rand 0.8.6",
  "reqwest 0.12.28",
  "serde",

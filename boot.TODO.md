@@ -537,7 +537,8 @@ Open (need elevation / user action — preserve evidence per repo convention):
   - Scheduled task: `PC-AI Process Lasso Governor Watchdog`.
   - Task last run result: `0`.
   - Reports:
-    - `Reports\processlasso-governor-watchdog.json`.
+    - `Reports\processlasso-governor-watchdog.json` (live status rewritten by
+      the task on each run; gitignored since 2026-09-27, read `GeneratedAt`).
     - `Reports\processlasso-governor-watchdog-manual.json`.
 
 - [x] Apply Process Lasso touchpad/UI responsiveness tuning.

@@ -13,35 +13,36 @@ use sha2::{Digest, Sha256};
 
 use crate::PcaiStatus;
 
+/// Files that share one SHA-256 content hash.
 #[derive(Serialize)]
-/// Represents a group of duplicate files
 pub struct DuplicateGroup {
-    /// File hash
+    /// Hex-encoded SHA-256 of the file contents.
     pub hash: String,
-    /// File size
+    /// Size of each file in the group, in bytes.
     pub size: u64,
-    /// List of paths
+    /// Paths of every file in the group.
     pub paths: Vec<String>,
-    /// Wasted bytes
+    /// Bytes reclaimable by keeping one copy: `size * (paths.len() - 1)`.
     pub wasted_bytes: u64,
 }
 
+/// Outcome of a duplicate-file scan, serialized to JSON for the FFI caller.
 #[derive(Serialize)]
-/// Represents the result of a duplicate finding operation
 pub struct DuplicateResult {
-    /// Status message
+    /// Always `"Success"`; failures are returned as `Err(PcaiStatus)` instead.
     pub status: String,
-    /// Number of files scanned
+    /// Directory-walk entries visited, including directories and unreadable
+    /// entries -- not only files that were hashed.
     pub files_scanned: usize,
-    /// Number of duplicate groups
+    /// Number of hash groups containing more than one file.
     pub duplicate_groups: usize,
-    /// Total number of duplicate files
+    /// Redundant copies: the sum over groups of `paths.len() - 1`.
     pub duplicate_files: usize,
-    /// Wasted bytes
+    /// Total reclaimable bytes across all groups.
     pub wasted_bytes: u64,
-    /// Duplicate groups found
+    /// The duplicate groups found.
     pub results: Vec<DuplicateGroup>,
-    /// Operation duration
+    /// Wall-clock duration of the scan, in milliseconds.
     pub elapsed_ms: u64,
 }
 

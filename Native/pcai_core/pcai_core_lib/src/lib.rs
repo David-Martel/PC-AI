@@ -10,6 +10,11 @@
               making the dereference safe even though the function is not marked \
               `unsafe` (matching the `extern \"C\"` calling convention requirement)"
 )]
+// rustc leaves missing_docs at `allow`, so without this line every
+// `#[allow(missing_docs)]` below was suppressing a lint that never fired.
+// Enabled here, each remaining per-module allow marks real documentation
+// backlog, and removing one is enforced by `clippy -D warnings`.
+#![warn(missing_docs)]
 
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
@@ -24,7 +29,6 @@ pub mod functiongemma;
 #[cfg(feature = "nvml")]
 #[allow(missing_docs)] // TODO: Document public items
 pub mod gpu;
-#[allow(missing_docs)] // TODO: Document public items
 pub mod hash;
 #[allow(missing_docs)] // TODO: Document public items
 pub mod json;

@@ -19,6 +19,16 @@ function Get-NetworkDiscoverySnapshot {
     $scriptBlock = {
         param([bool]$IncludeRaw)
 
+        # @($table[$key]) is a one-element array holding $null when the key is
+        # absent (a disabled adapter has no IP-interface or neighbor rows), which
+        # breaks StrictMode property access and makes .Count report 1. A $null key
+        # (a physical adapter without NetConnectionID) throws outright. Defined in
+        # the script block so it also exists on the remote side of Invoke-Command.
+        function Get-AliasRows([hashtable]$Table, $Alias) {
+            if ($null -eq $Alias -or -not $Table.ContainsKey($Alias)) { return , @() }
+            return , @($Table[$Alias])
+        }
+
         $adapters = @(Get-CimInstance Win32_NetworkAdapter -ErrorAction SilentlyContinue |
             Where-Object { $_.NetConnectionID -or $_.PhysicalAdapter })
 
@@ -60,7 +70,7 @@ function Get-NetworkDiscoverySnapshot {
 
         $adapterRows = foreach ($adapter in $adapters | Sort-Object NetConnectionID, Name) {
             $cfg = $configs[$adapter.Index]
-            $ifaceRows = @($ipInterfaces[$adapter.NetConnectionID])
+            $ifaceRows = Get-AliasRows $ipInterfaces $adapter.NetConnectionID
             $ipv4Metric = ($ifaceRows | Where-Object { $_.AddressFamily -eq 2 } | Select-Object -First 1 -ExpandProperty InterfaceMetric)
             $ipv6Metric = ($ifaceRows | Where-Object { $_.AddressFamily -eq 23 } | Select-Object -First 1 -ExpandProperty InterfaceMetric)
             $ipv4Mtu = ($ifaceRows | Where-Object { $_.AddressFamily -eq 2 } | Select-Object -First 1 -ExpandProperty NlMtu)
@@ -85,7 +95,7 @@ function Get-NetworkDiscoverySnapshot {
                 IPv6Metric       = $ipv6Metric
                 IPv4Mtu          = $ipv4Mtu
                 IPv6Mtu          = $ipv6Mtu
-                NeighborCount    = @($neighbors[$adapter.NetConnectionID]).Count
+                NeighborCount    = (Get-AliasRows $neighbors $adapter.NetConnectionID).Count
             }
         }
 

@@ -365,7 +365,7 @@ impl UnderstandingPipeline {
                 // No prefix: [image | after]
                 match after_embeds {
                     Some(a) => Tensor::cat(&[&image_embeds, &a], 1).context("cat [image | after] failed")?,
-                    None => image_embeds.clone(),
+                    None => image_embeds,
                 }
             } else {
                 let before_tensor = Tensor::from_slice(before_ids, (1_usize, before_ids.len()), embed_device)
@@ -557,7 +557,7 @@ fn apply_repetition_penalty(logits: &Tensor, generated_ids: &[u32], penalty: f64
     }
 
     // Transfer logits to CPU for scalar modification, then move back.
-    let device = logits.device().clone();
+    let device = logits.device();
     let mut logits_vec: Vec<f32> = logits
         .to_dtype(DType::F32)
         .context("repetition_penalty: dtype cast")?
@@ -583,7 +583,7 @@ fn apply_repetition_penalty(logits: &Tensor, generated_ids: &[u32], penalty: f64
         }
     }
 
-    Tensor::from_slice(&logits_vec, logits.dims(), &device).context("repetition_penalty: rebuild tensor")
+    Tensor::from_slice(&logits_vec, logits.dims(), device).context("repetition_penalty: rebuild tensor")
 }
 
 /// Greedy argmax: return the index of the maximum logit in the first row.

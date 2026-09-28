@@ -301,7 +301,9 @@ mod error_code_tests {
         let error_code = pcai_last_error_code();
         // The error code could be NotInitialized if pcai_init fails, or IoError/BackendError
         assert!(
-            error_code == PcaiErrorCode::NotInitialized as i32 || error_code == PcaiErrorCode::IoError as i32 || error_code == PcaiErrorCode::BackendError as i32,
+            error_code == PcaiErrorCode::NotInitialized as i32
+                || error_code == PcaiErrorCode::IoError as i32
+                || error_code == PcaiErrorCode::BackendError as i32,
             "Expected NotInitialized, IoError or BackendError, got {}",
             error_code
         );

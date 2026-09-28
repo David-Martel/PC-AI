@@ -408,8 +408,7 @@ impl GenerationPipeline {
 
         // 6. Build native Janus vision tower for understanding.
         let (vision_tower, vision_device, vision_dtype) =
-            Self::load_vision_tower(&model_config, &device, dtype, &shards)
-                .context("failed to load vision tower")?;
+            Self::load_vision_tower(&model_config, &device, dtype, &shards).context("failed to load vision tower")?;
 
         Ok(Self {
             model,
@@ -551,7 +550,8 @@ impl GenerationPipeline {
         cfg_scale: Option<f64>,
         temperature: Option<f64>,
     ) -> Result<RgbImage> {
-        let (image, _telemetry) = self.generate_inner(prompt, cfg_scale, temperature)
+        let (image, _telemetry) = self
+            .generate_inner(prompt, cfg_scale, temperature)
             .context("generate_inner failed")?;
         Ok(image)
     }
@@ -784,7 +784,11 @@ impl GenerationPipeline {
                 //    hidden is already [B, hidden_size] (last position extracted by forward_hidden).
                 let img_logits = self
                     .model
-                    .project_to_image_vocab(&hidden.unsqueeze(1).with_context(|| format!("step {step}: hidden.unsqueeze(1) failed"))?)
+                    .project_to_image_vocab(
+                        &hidden
+                            .unsqueeze(1)
+                            .with_context(|| format!("step {step}: hidden.unsqueeze(1) failed"))?,
+                    )
                     .map_err(|e| anyhow::anyhow!("step {step}: project_to_image_vocab failed: {e}"))?
                     .squeeze(1)
                     .map_err(|e| anyhow::anyhow!("step {step}: squeeze failed: {e}"))?;
@@ -816,7 +820,8 @@ impl GenerationPipeline {
                                     .and_then(|t| t.unsqueeze(0))
                                     .map_err(|e| anyhow::anyhow!("step {step}: cond row {i}: {e}"))
                             })
-                            .collect::<Result<_, _>>().context("step {step}: failed to collect cond_rows")?;
+                            .collect::<Result<_, _>>()
+                            .context("step {step}: failed to collect cond_rows")?;
                         let uncond_rows: Vec<Tensor> = (1..batch_size)
                             .step_by(2)
                             .map(|i| {
@@ -825,7 +830,8 @@ impl GenerationPipeline {
                                     .and_then(|t| t.unsqueeze(0))
                                     .map_err(|e| anyhow::anyhow!("step {step}: uncond row {i}: {e}"))
                             })
-                            .collect::<Result<_, _>>().context("step {step}: failed to collect uncond_rows")?;
+                            .collect::<Result<_, _>>()
+                            .context("step {step}: failed to collect uncond_rows")?;
                         (
                             Tensor::cat(&cond_rows, 0).with_context(|| format!("step {step}: concat cond_rows"))?,
                             Tensor::cat(&uncond_rows, 0).with_context(|| format!("step {step}: concat uncond_rows"))?,
@@ -1051,9 +1057,9 @@ impl GenerationPipeline {
                 .take()
                 .ok_or_else(|| anyhow::anyhow!("speculative_generate_loop: last_hidden unavailable at pos {pos}"))?;
 
-            let first_tok =
-                self.sample_from_hidden(&last_hidden_val, use_cfg, batch_size, guidance_scale, temperature, pos)
-                    .context("speculative_generate_loop: sample_from_hidden failed for first token")?;
+            let first_tok = self
+                .sample_from_hidden(&last_hidden_val, use_cfg, batch_size, guidance_scale, temperature, pos)
+                .context("speculative_generate_loop: sample_from_hidden failed for first token")?;
             generated.push(first_tok);
             if generated.len() >= num_image_tokens {
                 break;
@@ -1086,14 +1092,16 @@ impl GenerationPipeline {
                         .with_context(|| format!("speculative draft: step {di} pos {}", draft_start_pos + di))?;
 
                     // Sample a draft token from the draft hidden state.
-                    let draft_tok = self.sample_from_hidden(
-                        &draft_hidden,
-                        use_cfg,
-                        batch_size,
-                        guidance_scale,
-                        temperature,
-                        draft_start_pos + di,
-                    ).context("speculative_generate_loop: sample_from_hidden failed for draft token")?;
+                    let draft_tok = self
+                        .sample_from_hidden(
+                            &draft_hidden,
+                            use_cfg,
+                            batch_size,
+                            guidance_scale,
+                            temperature,
+                            draft_start_pos + di,
+                        )
+                        .context("speculative_generate_loop: sample_from_hidden failed for draft token")?;
                     draft_tokens.push(draft_tok);
 
                     // Build the embedding for the draft token — will be batched for verify.
@@ -1179,14 +1187,16 @@ impl GenerationPipeline {
                 // Bug 1 fix: sample (not greedy) verify token so the
                 // comparison against the draft token is fair — both draw from
                 // the same stochastic distribution.
-                let verify_tok = self.sample_from_hidden(
-                    &verify_hidden_j,
-                    use_cfg,
-                    batch_size,
-                    guidance_scale,
-                    temperature,
-                    pos + j,
-                ).context("speculative_generate_loop: sample_from_hidden failed for verify token")?;
+                let verify_tok = self
+                    .sample_from_hidden(
+                        &verify_hidden_j,
+                        use_cfg,
+                        batch_size,
+                        guidance_scale,
+                        temperature,
+                        pos + j,
+                    )
+                    .context("speculative_generate_loop: sample_from_hidden failed for verify token")?;
 
                 if draft_tok == verify_tok {
                     accept_count += 1;
@@ -1572,8 +1582,8 @@ mod tests {
 
     #[test]
     fn test_load_vision_tower_empty_shards() {
-        use std::path::PathBuf;
         use pcai_media_model::config::JanusConfig;
+        use std::path::PathBuf;
 
         let cfg = JanusConfig::janus_pro_1b();
         let device = Device::Cpu;

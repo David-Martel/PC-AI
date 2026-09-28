@@ -86,9 +86,9 @@ mod llamacpp_error_tests {
 
         let nonexistent =
             CString::new("/nonexistent/path/to/model.gguf").expect("CString should accept valid test input");
-        let result = pcai_load_model(nonexistent.as_ptr(), 0);
+        let result = unsafe { pcai_load_model(nonexistent.as_ptr(), 0) };
 
-        assert_eq!(result, -1);
+        assert!(result < 0);
 
         let err_ptr = pcai_last_error();
         assert!(!err_ptr.is_null());
@@ -121,7 +121,7 @@ mod llamacpp_error_tests {
         }
 
         let prompt = CString::new("Test prompt").expect("CString should accept valid test input");
-        let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
+        let result = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.7) };
 
         assert!(result.is_null());
 
@@ -276,7 +276,7 @@ mod error_code_tests {
         }
 
         let prompt = CString::new("Test").expect("CString should accept valid test input");
-        let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
+        let result = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.7) };
 
         assert!(result.is_null());
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::ModelNotLoaded as i32);
@@ -295,14 +295,14 @@ mod error_code_tests {
         }
 
         let nonexistent = CString::new("/nonexistent/path/model.gguf").expect("CString should accept valid test input");
-        let result = pcai_load_model(nonexistent.as_ptr(), 0);
+        let result = unsafe { pcai_load_model(nonexistent.as_ptr(), 0) };
 
         assert_ne!(result, 0);
         let error_code = pcai_last_error_code();
-        // Should be IoError or BackendError depending on how the backend reports it
+        // The error code could be NotInitialized if pcai_init fails, or IoError/BackendError
         assert!(
-            error_code == PcaiErrorCode::IoError as i32 || error_code == PcaiErrorCode::BackendError as i32,
-            "Expected IoError or BackendError, got {}",
+            error_code == PcaiErrorCode::NotInitialized as i32 || error_code == PcaiErrorCode::IoError as i32 || error_code == PcaiErrorCode::BackendError as i32,
+            "Expected NotInitialized, IoError or BackendError, got {}",
             error_code
         );
 

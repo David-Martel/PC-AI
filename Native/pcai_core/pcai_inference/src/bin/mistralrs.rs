@@ -63,10 +63,7 @@ async fn main() -> anyhow::Result<()> {
         #[cfg(feature = "mistralrs-backend")]
         pcai_inference_lib::config::BackendConfig::MistralRs { .. } => BackendType::MistralRs,
 
-        #[expect(
-            unreachable_patterns,
-            reason = "fallthrough guard: reachable when mistralrs-backend feature is disabled at compile time"
-        )]
+        #[allow(unreachable_patterns)]
         _ => {
             return Err(anyhow::anyhow!(
                 "Invalid backend type in configuration. pcai-mistralrs requires mistral_rs configuration."

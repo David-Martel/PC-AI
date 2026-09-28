@@ -63,10 +63,7 @@ async fn main() -> anyhow::Result<()> {
         #[cfg(feature = "llamacpp")]
         pcai_inference_lib::config::BackendConfig::LlamaCpp { .. } => BackendType::LlamaCpp,
 
-        #[expect(
-            unreachable_patterns,
-            reason = "fallthrough guard: reachable when llamacpp feature is disabled at compile time"
-        )]
+        #[allow(unreachable_patterns)]
         _ => {
             return Err(anyhow::anyhow!(
                 "Invalid backend type in configuration. pcai-llamacpp requires llama_cpp configuration."

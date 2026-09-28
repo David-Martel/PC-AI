@@ -353,7 +353,7 @@ async fn test_llamacpp_generate_with_model() {
     let mut backend = LlamaCppBackend::new();
 
     backend
-        .load_model(&model_path)
+        .load_model(model_path.to_str().unwrap())
         .await
         .expect("async operation should succeed");
     assert!(backend.is_loaded());
@@ -383,7 +383,7 @@ async fn test_mistralrs_generate_with_model() {
     let mut backend = MistralRsBackend::new();
 
     backend
-        .load_model(&model_path)
+        .load_model(model_path.to_str().unwrap())
         .await
         .expect("async operation should succeed");
     assert!(backend.is_loaded());
@@ -581,7 +581,7 @@ mod ffi_tests {
 
         // Load model
         let model_path = common::require_test_model();
-        let path = CString::new(model_path).expect("CString should accept valid test input");
+        let path = CString::new(model_path.to_str().unwrap()).expect("CString should accept valid test input");
         let load_result = unsafe { pcai_load_model(path.as_ptr(), 0) };
 
         if load_result != 0 {
@@ -595,7 +595,7 @@ mod ffi_tests {
 
         // Generate
         let prompt = CString::new("The capital of France is").expect("CString should accept valid test input");
-        let result_ptr = pcai_generate(prompt.as_ptr(), 10, 0.1);
+        let result_ptr = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.1) };
         assert!(!result_ptr.is_null());
 
         let result_str = unsafe { std::ffi::CStr::from_ptr(result_ptr) };
@@ -603,7 +603,7 @@ mod ffi_tests {
         assert!(!text.is_empty());
 
         // Free result
-        pcai_free_string(result_ptr);
+        unsafe { pcai_free_string(result_ptr) };
 
         // Shutdown
         pcai_shutdown();
@@ -625,7 +625,7 @@ async fn stress_test_sequential_generations() {
     let model_path = common::require_test_model();
     let mut backend = LlamaCppBackend::new();
     backend
-        .load_model(&model_path)
+        .load_model(model_path.to_str().unwrap())
         .await
         .expect("async operation should succeed");
 
@@ -656,7 +656,7 @@ async fn stress_test_backend_switching() {
         use pcai_inference_lib::backends::llamacpp::LlamaCppBackend;
         let mut backend = LlamaCppBackend::new();
         backend
-            .load_model(&model_path)
+            .load_model(model_path.to_str().unwrap())
             .await
             .expect("async operation should succeed");
 
@@ -677,7 +677,7 @@ async fn stress_test_backend_switching() {
         use pcai_inference_lib::backends::mistralrs::MistralRsBackend;
         let mut backend = MistralRsBackend::new();
         backend
-            .load_model(&model_path)
+            .load_model(model_path.to_str().unwrap())
             .await
             .expect("async operation should succeed");
 

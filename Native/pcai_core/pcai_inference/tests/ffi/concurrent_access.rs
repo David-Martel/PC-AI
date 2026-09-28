@@ -34,7 +34,7 @@ fn test_concurrent_init_calls() {
     pcai_shutdown();
 
     let handles: Vec<_> = (0..5)
-        .map(|i| {
+        .map(|_i| {
             thread::spawn(move || {
                 #[cfg(feature = "llamacpp")]
                 {
@@ -120,7 +120,6 @@ mod llamacpp_concurrent_tests {
     use super::*;
     use pcai_inference_lib::ffi::pcai_generate;
     use std::ffi::CString;
-    use std::ptr;
 
     /// Test concurrent generate calls (should be serialized by mutex)
     #[test]
@@ -137,7 +136,7 @@ mod llamacpp_concurrent_tests {
                 thread::spawn(move || {
                     let prompt =
                         CString::new(format!("Test prompt {}", i)).expect("CString should accept formatted test input");
-                    let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
+                    let result = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.7) };
                     // Should return null (no model loaded) but not crash
                     assert!(result.is_null());
                 })

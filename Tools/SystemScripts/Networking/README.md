@@ -101,3 +101,44 @@ final evidence writes fail. Optional Intel `tbtools` binaries are used only for
 read-only inventories. Neither capture helper rebinds a driver, flashes firmware
 or configures network addresses. Empty trace data is an observation, not proof
 of a cable defect or a working connection.
+
+## Public ASUS NFS share on Windows
+
+`Mount-VigilFleetShare.ps1` uses Windows Client for NFS to mount only
+`/srv/vigil-share` at the preferred unused drive `N:`. The server export enforces
+read-only access for Windows. The helper checks the approved source addresses on
+an Up local interface and probes TCP 2049 with a deadline: `192.168.50.42/24`
+to `192.168.50.2`, then `10.60.4.4/29` to `10.60.4.1`. It skips mounting when
+neither LAN is reachable. It preserves foreign drives and private backup exports.
+An existing recognized public-share mount stays mounted during a network outage.
+Its status becomes `ExistingEndpointUnavailable` when the original endpoint
+cannot be reached. Automatic triggers preserve that mapping; switching an active
+mount to the other LAN requires an explicit Unmount followed by Mount.
+
+```powershell
+./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1
+./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -Action Mount -DryRun
+./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -Action Mount -Apply
+./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -Action Unmount -Apply
+```
+
+Status is the default. Help and DryRun start no native process and write no files;
+state changes require Apply and honor WhatIf. Native mount/umount invocations use
+soft mounts, one-second RPC timeouts, one retry, captured output, hidden windows,
+and a bounded process lifetime. Mount and unmount success require observed NFS
+mapping state. No credentials, SMB settings, registry edits or task registration
+are performed by this helper.
+
+For a reviewed per-user login/network refresh task, `-ShowTaskTemplate` returns
+task XML as data. Its login and NetworkProfile connection triggers call
+`-Action Mount -Apply` with hidden, noninteractive PowerShell, least privilege,
+and an interactive user token so the drive belongs to the logged-in user.
+Concurrent triggers are ignored; execution is capped at one minute. Inspect the
+XML before registering it and preserve any existing task with the same name.
+The helper never registers the task itself.
+
+```powershell
+$plan = ./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -ShowTaskTemplate
+$plan.Xml
+Invoke-Pester ./Tests/Unit/VigilFleetShare.Tests.ps1 -Output Detailed
+```

@@ -1,0 +1,77 @@
+{
+  "profiles": [
+    {
+      "ssid": "COGROB_ASUS",
+      "id": "VIGIL-COGROB_ASUS",
+      "uuid": "289ccee2-9aa0-51f1-b9bd-952493550cb8",
+      "windows_auth": "WPA3SAE",
+      "key_mgmt": "wpa-psk",
+      "imported": true,
+      "credential_present": true,
+      "owner_uid": 0,
+      "mode": "0o600",
+      "reason": "WPA2/WPA3 personal profile; WPA2 currently advertised by visible ASUS AP"
+    },
+    {
+      "ssid": "COGROB_ASUS_5G-1",
+      "id": "VIGIL-COGROB_ASUS_5G-1",
+      "uuid": "d594de9a-960b-5171-b817-47df2c631822",
+      "windows_auth": "WPA3SAE",
+      "key_mgmt": "wpa-psk",
+      "imported": true,
+      "credential_present": true,
+      "owner_uid": 0,
+      "mode": "0o600",
+      "reason": "WPA2/WPA3 personal profile; WPA2 currently advertised by visible ASUS AP"
+    },
+    {
+      "ssid": "COGROB_ASUS_5G-2",
+      "id": "VIGIL-COGROB_ASUS_5G-2",
+      "uuid": "883d2da2-326a-579b-823e-33d2109c92a4",
+      "windows_auth": "WPA3SAE",
+      "key_mgmt": "wpa-psk",
+      "imported": true,
+      "credential_present": true,
+      "owner_uid": 0,
+      "mode": "0o600",
+      "reason": "WPA2/WPA3 personal profile; WPA2 currently advertised by visible ASUS AP"
+    },
+    {
+      "ssid": "MWireless",
+      "windows_auth": "WPA3ENT",
+      "imported": false,
+      "reason": "Enterprise EAP secret is absent from Windows WLAN export; existing profiles preserved"
+    },
+    {
+      "ssid": "eduroam",
+      "windows_auth": "WPA2",
+      "imported": false,
+      "reason": "Enterprise EAP secret is absent from Windows WLAN export; existing profiles preserved"
+    }
+  ],
+  "secrets_in_receipt": false,
+  "active_wifi_unchanged": false,
+  "activation": {
+    "connection": "VIGIL-COGROB_ASUS_5G-2",
+    "success": true,
+    "backup_wired_route_preserved": true,
+    "temporary_exports_retained_private": true
+  },
+  "at": "2026-10-02T21:54:59.972656+00:00",
+  "enterprise": {
+    "profiles": [
+      "VIGIL-eduroam",
+      "VIGIL-MWireless"
+    ],
+    "ca": "/etc/ssl/certs/USERTrust_RSA_Certification_Authority.pem",
+    "server_suffix": "radius.umnet.umich.edu",
+    "eap": "peap",
+    "inner": "mschapv2",
+    "eduroam_attempt_succeeded": false,
+    "credential_provider": "Existing Windows Bitwarden MWireless secure note, one attempt only",
+    "autoconnect": false,
+    "stale_secret_cleared": true,
+    "existing_mwireless_preserved": true,
+    "current_credential_needed": true
+  }
+}

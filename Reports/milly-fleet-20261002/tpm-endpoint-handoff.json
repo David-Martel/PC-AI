@@ -1,0 +1,349 @@
+{
+  "schemaVersion": 1,
+  "collectedUtc": "2026-10-02T21:49:50.0058857Z",
+  "role": "optional external rendering/control endpoint candidate",
+  "hostname": "millylaptop1",
+  "recipient": "codex-dtm-p1gen7",
+  "threadId": "milly-display-surface-20261002",
+  "intakeStatus": "handoff sent; awaiting fresh TPM owner acknowledgement",
+  "tpmDiscovery": {
+    "repo": "C:/codedev/vigil_ai",
+    "head": "d19f77f8f5d0114173d87574f2bce858e7f4e451",
+    "branch": "codex/repo-closeout-20261002",
+    "dirtyFiles": [
+      ".claude/AGENT_CURRENT_STATE.md",
+      ".claude/context/LATEST_CONTEXT.md",
+      "FINISHED.md",
+      "TODO.md",
+      "docs/audits/crossrepo-pr-review-2026-10-02.md",
+      "uv.lock"
+    ],
+    "foreignWorktreesPreserved": 8,
+    "writesPerformed": false
+  },
+  "messageReceipts": [
+    {
+      "id": "01a0fe95-428a-7288-907b-a7b93acd3fd5",
+      "streamId": "1790977589898-0",
+      "to": "codex-dtm-p1gen7",
+      "utc": "2026-10-02T21:46:29.898671Z",
+      "requestAck": true
+    },
+    {
+      "id": "01a0fe96-d692-718c-aacd-0a8b100b7c2e",
+      "streamId": "1790977693330-0",
+      "to": "codex-asus",
+      "utc": "2026-10-02T21:48:13.330603Z"
+    },
+    {
+      "utc": "2026-10-02T21:50:36.783008Z",
+      "scope": "Historical initial14binding delivery superseded by reproducible codec packet",
+      "streamId": "1790977836783-0",
+      "to": "codex-dtm-p1gen7",
+      "id": "01a0fe99-06ee-733b-aaa6-160de55354cc"
+    }
+  ],
+  "existingOwnerResponse": {
+    "id": "01a0fe81-634e-7661-8773-a3463172eeb0",
+    "utc": "2026-10-02T21:24:47.566934Z",
+    "from": "codex-dtm-p1gen7",
+    "to": "codex-asus",
+    "scope": "Existing requirement anchors, supporting candidate mappings only; no acceptance. Optional absence must not be a required-rig failure. Latency thresholds remain TBD where already TBD."
+  },
+  "canonicalPaths": {
+    "requirements": "C:/codedev/vigil_ai/vigil_ai_tpm/templates/requirements.csv",
+    "sources": "C:/codedev/vigil_ai/vigil_ai_tpm/templates/source_registry.csv",
+    "supportingSignals": "C:/codedev/vigil_ai/vigil_ai_tpm/templates/tracker_source_signals.csv",
+    "intake": "C:/codedev/vigil_ai/docs/FLEET_EVIDENCE_INTAKE.md",
+    "closedLoop": "C:/codedev/vigil_ai/docs/TRACEABILITY_CLOSED_LOOP_CONTRACT.md"
+  },
+  "candidateMappings": [
+    {
+      "req_id": "REQ-P1-023",
+      "requirement_text": "Project body-aligned guidance onto the patient for the cardiac case, adapting to body surface and movement.",
+      "foundational_criterion": "projector guidance projects body-aligned cues that re-track the surface under patient movement (demonstrated May-18)",
+      "aspirational_criterion": "alignment error < TBD<PI> mm/px under motion",
+      "verification_method": "projection re-alignment replay test on tracked-surface bag",
+      "wi_ids": "WI-043;WI-044;WI-053;WI-078;WI-081;WI-082;WI-105"
+    },
+    {
+      "req_id": "REQ-P1-005",
+      "requirement_text": "Systematically deploy updated UX/UI guidelines prior to formal user studies/testing.",
+      "foundational_criterion": "each UI state in {idle,listening,thinking,error,abstain,fallback,stale,missing} has one defined visual, deployed before the formal study",
+      "aspirational_criterion": "screenshot/golden-image diff test per state in CI",
+      "verification_method": "per-state screenshot diff test",
+      "wi_ids": "WI-076;WI-077;WI-078;WI-079"
+    },
+    {
+      "req_id": "REQ-P1-022",
+      "requirement_text": "Determine which interface/visualization to render across available CDP devices (projector, screen, tablet, speaker, headphone).",
+      "foundational_criterion": "each CDP device (projector/screen/tablet/speaker/headphone) receives its routed stream (display backend demonstrated)",
+      "aspirational_criterion": "frame-age < TBD<PI> ms per device",
+      "verification_method": ".testrunner display round-trip per device",
+      "wi_ids": "WI-076;WI-077;WI-078;WI-079"
+    },
+    {
+      "req_id": "REQ-P1-054",
+      "requirement_text": "Track the patient chair/table surface (via markers) and align projector guidance to adapt to different perspectives.",
+      "foundational_criterion": "Patient chair/table surface marker-tracking + projector alignment conform to the named Design Guide clause for projected-guidance surface registration -- design-review conformance checklist 100%. Falsifiable design-conformance gate (verified by design review, not a rosbag).",
+      "aspirational_criterion": "",
+      "verification_method": "design-guideline conformance review",
+      "wi_ids": "WI-078"
+    },
+    {
+      "req_id": "REQ-P1-045",
+      "requirement_text": "Run a pre-procedure POST-like self-test confirming all required hardware (RealSense, GoPro, projector, Clarius) is attached and functional.",
+      "foundational_criterion": "pre-procedure POST self-test exits non-zero on any missing device (RealSense/GoPro/projector/Clarius) and blocks start",
+      "aspirational_criterion": "per-device health detail + auto-remediation hints",
+      "verification_method": "vigil doctor --profile per-device probe; assert non-zero on missing",
+      "wi_ids": "WI-020"
+    }
+  ],
+  "observations": {
+    "qt": "Saved PySide6 6.11.2 xcb Xvfb receipt: two pixel assertions; no actual Cog graphical session claim",
+    "egl": "NVIDIA EGL1.5 GL4.6 renderer RTX5000AdaLaptop driver580.178.04 red pixel255,0,0 error0; two DRI2 warnings preserved",
+    "codec": {
+      "commands": [
+        {
+          "command": [
+            "ffmpeg",
+            "-nostdin",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "warning",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=640x360:rate=30",
+            "-t",
+            "1",
+            "-c:v",
+            "h264_nvenc",
+            "-preset",
+            "p4",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/synthetic-nvenc.h264"
+          ],
+          "start_utc": "2026-10-02T17:54:10.20934-04:00",
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "ffmpeg",
+            "-nostdin",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-threads",
+            "2",
+            "-i",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/synthetic-nvenc.h264",
+            "-pix_fmt",
+            "yuv420p",
+            "-f",
+            "framemd5",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/cpu.framemd5"
+          ],
+          "start_utc": "2026-10-02T17:54:12.589098-04:00",
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "ffmpeg",
+            "-nostdin",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-threads",
+            "2",
+            "-hwaccel",
+            "cuda",
+            "-hwaccel_output_format",
+            "cuda",
+            "-i",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/synthetic-nvenc.h264",
+            "-vf",
+            "hwdownload,format=nv12,format=yuv420p",
+            "-f",
+            "framemd5",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/nvdec.framemd5"
+          ],
+          "start_utc": "2026-10-02T17:54:12.665482-04:00",
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        }
+      ],
+      "input": "Synthetic testsrc2 640x360 30fps 1second; no fleet/camera data",
+      "allFrameRowsIdentical": true,
+      "encodedBitstreamCustody": "Resolved: validation/synthetic-nvenc.h264 hash matches owner receipt",
+      "receipt": "validation/receipt.json",
+      "nvdecFrames": 30,
+      "initialFailurePreserved": "validation/nvdec-default-threads-failed.txt: CUDA_ERROR_INVALID_VALUE at33 decode surfaces with default16 threads",
+      "runtime": {
+        "kernel": "6.8.0-138-generic",
+        "hostname": "millylaptop1",
+        "gpu": "NVIDIA RTX 5000 Ada Generation Laptop GPU, 580.178.04"
+      },
+      "successCommandAndExitCustody": "Resolved: exact3 argv arrays and start times bound; all exit0 and empty stdout/stderr",
+      "cpuFrames": 30
+    },
+    "display": "Owner metadata eDP3840x2400; EDID hash preserved; no actual physical screen witness",
+    "os": "Owner snapshot Ubuntu22.04.5, systemPython3.10.12; separate Python3.12/3.13/3.14; existing Humble versus isolated ROS environments must be kept distinct",
+    "maintenance": "Backup initial copy in progress at owner snapshot; release upgrade not started; repeat runtime probes after maintenance",
+    "wifi": {
+      "source": "Owner-produced non-secret receipt plus direct parent report",
+      "eduroam": "One Bitwarden note credential attempt failed; attempted password cleared and autoconnect disabled; fresh enterprise readiness pending",
+      "receipt": "wifi-import-receipt.json",
+      "savedPersonalProfiles": 3,
+      "temporaryExportCustody": "Private temporary exports retained after automatic approval review rejected deletion; no secret contents copied into this handoff",
+      "personalProfileProtection": "root uid0/mode0600 recorded",
+      "cogrob5g2": "Authenticated VIGIL-COGROB_ASUS_5G-2; wired backup route preserved",
+      "credentialsInHandoff": false,
+      "mWireless": "Legacy profile preserved; fresh enterprise authentication not established",
+      "metadataVerifiedUtc": "2026-10-02T21:57:52.4811961Z",
+      "privateExportProtection": {
+        "automaticApprovalRejection": "Parent reported blocked by policy with no further reason; no alternate writer retry",
+        "linuxFiles": 5,
+        "linuxFileMode": "0600",
+        "networkManagerProfiles": "Three root0:0/mode0600",
+        "secretContentsRead": false,
+        "windowsFiles": 5,
+        "linuxDirectoryMode": "0700",
+        "windowsOnlyCurrentUserFullControl": true,
+        "windowsDirectoryInheritanceDisabled": true,
+        "cleanupCompleted": false
+      }
+    }
+  },
+  "requiredFutureChecks": [
+    "Owner selects exact source/release/configuration/profile and OS/ROS/Python ABI; record installed/loaded identities separately from source pins",
+    "Join, leave, reconnect and missing optional endpoint preserve required local operator UX and required-device POST; wrong-host and wrong-device controls",
+    "Per-state golden images for idle/listening/thinking/error/abstain/fallback/stale/missing; stale-session refusal and authoritative command acknowledgement/readback",
+    "Headed source-to-presentation/decode-to-paint and input-to-applied-state measurements with timestamps/clock uncertainty, drops/queue bounds and CPU/GPU load; thresholds remain pending owner disposition",
+    "Ethernet and Wi-Fi are distinct profiles; unavailable Thunderbolt peer cannot count as tested transport",
+    "Before/during/after physical local UI and actual Nebula3 projector continuity witnesses; EDID/remote screenshot is insufficient",
+    "Independent TPM review before adding source/signal records or accepting a result; use existing IDs and registries"
+  ],
+  "exclusions": [
+    "No fleet runtime member, placement eligibility, required release target or permanent DDS peer enrollment",
+    "No actual headed fleet UI streaming, input/control session, browser HTTP/SSE adapter or projector test",
+    "No HIL, procedure, clinical, requirement, transition or release acceptance",
+    "AMT present but unprovisioned; no out-of-band management readiness",
+    "Thunderbolt peer absent; no USB4NET claim",
+    "No source result transferred across hosts/ABIs/OS maintenance"
+  ],
+  "receiptContract": "Exact repository/commit; selected config blob/hash/release/TPM pin/profile/native step; host/role/OS/ROS/Python ABI; installed/device/model identities; assertion/test/scenario/oracle/run/command; raw verdict/value/skip; times; immutable refs/hashes; positive/negative controls; witness/reviewer/disposition. Unknowns remain unknown.",
+  "evidence": [
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2235,
+      "relativePath": "endpoint-before-os-upgrade.json",
+      "sha256": "120948239f7b093db691ffd876541d1d7ee48de53e9e0498d5b5c2e63361e876"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 192,
+      "relativePath": "qt-render.json",
+      "sha256": "35d4b8603d8948f50cc3d0858cc99e1622f7d5d7def7f7e4592f92f29e628cbd"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 232,
+      "relativePath": "egl-result-groups.txt",
+      "sha256": "a27184675e744beec00445259253b82f95f6c99b08a3393fea9c07ef64f6e87e"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 98,
+      "relativePath": "display-edid.sha256",
+      "sha256": "3437502db9e736c749e1f0c8906e729c77ded9c2feee721d7ec6992e76f1cbad"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 8676,
+      "relativePath": "functional-validation.json",
+      "sha256": "06602e573fe8b5e8e08c2d267945fa7cd274e8302aa87bde77224252f7af13e7"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 20940,
+      "relativePath": "fleet-tooling-provenance.json",
+      "sha256": "8556d0fa00bf81e2b8837d2d7bb2145c9cb03d63a23776a0f00be780284863fa"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2615,
+      "relativePath": "validation/nvdec.framemd5",
+      "sha256": "1eb034c00596b22991e7acb6c5d6ab0a61590759f56cfc156dd979c4f73f74c2"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 686,
+      "relativePath": "validation/nvdec-default-threads-failed.txt",
+      "sha256": "686db15952430e5b35f1ecbca057e5864849e5f47630d9959b9dc940d5853c6e"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2928,
+      "relativePath": "validation/egl_device_probe.c",
+      "sha256": "37327dba07aefcb57892055577dabc7a02cbd57dd83005d96b58244e50215035"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 0,
+      "relativePath": "validation/egl-build.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 0,
+      "relativePath": "validation/nvenc.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 0,
+      "relativePath": "validation/nvdec.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 262,
+      "relativePath": "validation/qt-render.png",
+      "sha256": "9fa562cb99a190823489ecb0f2a45f029fab1a0a39a1f8298ccf225630e512a3"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2539,
+      "relativePath": "validation/receipt.json",
+      "sha256": "d0cc6ff4a8ced5d914b8b17fa2758832611b63ffcecd1efbe6c0372e2e9b553e"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 267584,
+      "relativePath": "validation/synthetic-nvenc.h264",
+      "sha256": "41009bfaa2daadb9d1f4802a758abdb71064b3a89f14d51ac94eb87b606be37a"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2615,
+      "relativePath": "validation/cpu.framemd5",
+      "sha256": "1eb034c00596b22991e7acb6c5d6ab0a61590759f56cfc156dd979c4f73f74c2"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2416,
+      "relativePath": "wifi-import-receipt.json",
+      "sha256": "dc2cf6deaa15fa4c41501853639d61360af94f8427e31436f09d79342197d0e7"
+    }
+  ],
+  "sharedTpmEditsAuthorized": false,
+  "updatedUtc": "2026-10-02T21:56:58.2246342Z"
+}

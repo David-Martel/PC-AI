@@ -1,0 +1,36 @@
+millylaptop1
+6.8.0-138-generic
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+wlp0s20f3        UP             35.3.41.148/16 fe80::ecdc:b151:3d35:bbad/64
+enx002427892147  UP             192.168.50.43/24 fe80::1eb8:c702:f7ab:45b1/64
+default via 192.168.50.1 dev enx002427892147 proto dhcp metric 100
+default via 35.3.0.1 dev wlp0s20f3 proto dhcp metric 600
+35.3.0.0/16 dev wlp0s20f3 proto kernel scope link src 35.3.41.148 metric 600
+169.254.0.0/16 dev wlp0s20f3 scope link metric 1000
+192.168.50.0/24 dev enx002427892147 proto kernel scope link src 192.168.50.43 metric 100
+thunderbolt_net        49152  0
+thunderbolt           516096  1 thunderbolt_net
+total 0
+lrwxrwxrwx 1 root root 0 Oct  2 11:54 0-0 -> ../../../devices/pci0000:00/0000:00:1d.0/0000:20:00.0/0000:21:00.0/0000:22:00.0/domain0/0-0
+lrwxrwxrwx 1 root root 0 Oct  2 11:54 domain0 -> ../../../devices/pci0000:00/0000:00:1d.0/0000:20:00.0/0000:21:00.0/0000:22:00.0/domain0
+/:  Bus 04.Port 1: Dev 1, Class=root_hub, Driver=xhci_hcd/2p, 10000M
+    |__ Port 1: Dev 3, If 0, Class=Communications, Driver=cdc_ncm, 10000M
+    |__ Port 1: Dev 3, If 1, Class=CDC Data, Driver=cdc_ncm, 10000M
+/:  Bus 03.Port 1: Dev 1, Class=root_hub, Driver=xhci_hcd/2p, 480M
+/:  Bus 02.Port 1: Dev 1, Class=root_hub, Driver=xhci_hcd/10p, 20000M/x2
+/:  Bus 01.Port 1: Dev 1, Class=root_hub, Driver=xhci_hcd/16p, 480M
+    |__ Port 3: Dev 2, If 0, Class=Vendor Specific Class, Driver=, 12M
+    |__ Port 4: Dev 3, If 3, Class=Video, Driver=uvcvideo, 480M
+    |__ Port 4: Dev 3, If 1, Class=Video, Driver=uvcvideo, 480M
+    |__ Port 4: Dev 3, If 4, Class=Application Specific Interface, Driver=, 480M
+    |__ Port 4: Dev 3, If 2, Class=Video, Driver=uvcvideo, 480M
+    |__ Port 4: Dev 3, If 0, Class=Video, Driver=uvcvideo, 480M
+    |__ Port 8: Dev 4, If 0, Class=Human Interface Device, Driver=usbhid, 12M
+    |__ Port 14: Dev 5, If 0, Class=Wireless, Driver=btusb, 12M
+    |__ Port 14: Dev 5, If 1, Class=Wireless, Driver=btusb, 12M
+Enable
+Oct 02 14:48:28 millylaptop1 kernel: usb usb4-port2: Cannot enable. Maybe the USB cable is bad?
+Oct 02 14:48:28 millylaptop1 kernel: usb usb4-port2: config error
+Oct 02 14:48:32 millylaptop1 kernel: usb usb4-port2: Cannot enable. Maybe the USB cable is bad?
+Oct 02 14:48:32 millylaptop1 kernel: usb usb4-port2: config error
+Oct 02 14:48:33 millylaptop1 kernel: usb usb4-port2: config error

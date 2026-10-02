@@ -1,0 +1,16 @@
+{
+  "NewTests": {
+    "Failed": 0,
+    "Total": 34,
+    "Skipped": 0,
+    "Passed": 34
+  },
+  "ExistingThunderboltTests": {
+    "Failed": 0,
+    "Total": 20,
+    "Skipped": 0,
+    "Passed": 20,
+    "Discovered": 48
+  },
+  "AnalyzerDiagnostics": 0
+}

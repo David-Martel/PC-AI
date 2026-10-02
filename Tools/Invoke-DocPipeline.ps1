@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Unified documentation generation and FunctionGemma training data pipeline.
@@ -34,6 +34,13 @@
 .PARAMETER NoToolCoverage
     Skip auto-generated tool coverage examples.
 
+.PARAMETER RustWorkspaceRoots
+    Select explicit Cargo roots, relative to this repository or absolute.
+    Requested missing roots and failed generators cause a failed pipeline.
+
+.PARAMETER AllowExternalRustRoots
+    Opt in to explicitly selected Cargo workspaces outside this repository.
+
 .EXAMPLE
     .\Invoke-DocPipeline.ps1 -Mode Full
 
@@ -54,7 +61,9 @@ param(
     [switch]$Force,
     [switch]$UseNativeRouter,
     [int]$RouterMaxCases = 24,
-    [switch]$NoToolCoverage
+    [switch]$NoToolCoverage,
+    [string[]]$RustWorkspaceRoots,
+    [switch]$AllowExternalRustRoots
 )
 
 Set-StrictMode -Version Latest
@@ -62,7 +71,6 @@ $ErrorActionPreference = 'Stop'
 
 # Paths
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$configDir = Join-Path $repoRoot 'Config'
 $reportsDir = Join-Path $repoRoot 'Reports'
 $deployDir = Join-Path $repoRoot 'Deploy'
 $toolsDir = $PSScriptRoot
@@ -72,25 +80,32 @@ $toolsDir = $PSScriptRoot
     if (-not (Test-Path $_)) { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
 }
 
+# Snapshot options used by nested generators and the dot-sourced library.
+$pipelineOptions = @{
+    OutputFormat = $OutputFormat; SkipRust = $SkipRust; SkipTraining = $SkipTraining
+    UseNativeRouter = $UseNativeRouter; RouterMaxCases = $RouterMaxCases; NoToolCoverage = $NoToolCoverage
+    RustWorkspaceRoots = $RustWorkspaceRoots; AllowExternalRustRoots = $AllowExternalRustRoots
+}
+if ($Force) { Write-Verbose 'Generators overwrite their own reports; -Force is retained for CLI compatibility.' }
 # Pipeline state
 $pipelineState = [PSCustomObject]@{
     StartTime = Get-Date
-    EndTime = $null
-    Duration = ''
-    Mode = $Mode
-    Steps = @()
-    Errors = @()
-    Warnings = @()
-    Outputs = @()
+    EndTime   = $null
+    Duration  = ''
+    Mode      = $Mode
+    Steps     = @()
+    Errors    = @()
+    Warnings  = @()
+    Outputs   = @()
 }
 
 function Add-PipelineStep {
-    param([string]$Name, [string]$Status, [string]$Output = '', [string]$Error = '')
+    param([string]$Name, [string]$Status, [string]$Output = '', [Alias('Error')][string]$ErrorMessage = '')
     $step = [PSCustomObject]@{
-        Name = $Name
-        Status = $Status
-        Output = $Output
-        Error = $Error
+        Name      = $Name
+        Status    = $Status
+        Output    = $Output
+        Error     = $ErrorMessage
         Timestamp = Get-Date -Format 'HH:mm:ss'
     }
     $pipelineState.Steps += $step
@@ -98,19 +113,12 @@ function Add-PipelineStep {
     # -Error carries the detail text for BOTH Warning and Error steps, so
     # routing it all into .Errors made the summary claim "5 error(s)" when only
     # one step had actually failed. Bucket by Status instead.
-    if ($Error) {
-        if ($Status -eq 'Error') { $pipelineState.Errors += "${Name}: $Error" }
-        else { $pipelineState.Warnings += "${Name}: $Error" }
+    if ($ErrorMessage) {
+        if ($Status -eq 'Error') { $pipelineState.Errors += "${Name}: $ErrorMessage" }
+        else { $pipelineState.Warnings += "${Name}: $ErrorMessage" }
     }
 
-    $color = switch ($Status) {
-        'Success' { 'Green' }
-        'Warning' { 'Yellow' }
-        'Error' { 'Red' }
-        'Skipped' { 'Gray' }
-        default { 'White' }
-    }
-    Write-Host "[$($step.Timestamp)] $Name : $Status" -ForegroundColor $color
+    Write-Information "[$($step.Timestamp)] $Name : $Status" -InformationAction Continue
 }
 
 # Initialize CMake environment (fix stale CMAKE_ROOT/CMAKE_PREFIX_PATH)
@@ -121,10 +129,12 @@ if (Test-Path $cmakeHelper) {
     $script:CmakeInfo = Initialize-CmakeEnvironment -Quiet
     if ($script:CmakeInfo.Found) {
         Add-PipelineStep -Name 'CmakeEnv' -Status 'Success' -Output "CMAKE_ROOT=$($script:CmakeInfo.CmakeRoot)"
-    } else {
+    }
+    else {
         Add-PipelineStep -Name 'CmakeEnv' -Status 'Warning' -Error 'cmake.exe not found; CMake-dependent docs may fail'
     }
-} else {
+}
+else {
     Add-PipelineStep -Name 'CmakeEnv' -Status 'Warning' -Error "CMake helper not found at $cmakeHelper"
 }
 
@@ -136,11 +146,13 @@ if (Test-Path $cudaHelper) {
     $script:CudaInfo = Initialize-CudaEnvironment -Quiet
     if ($script:CudaInfo.Found) {
         Add-PipelineStep -Name 'CudaEnv' -Status 'Success' -Output "CUDA_PATH=$($script:CudaInfo.CudaPath)"
-    } else {
+    }
+    else {
         Add-PipelineStep -Name 'CudaEnv' -Status 'Warning' -Error 'CUDA not detected; GPU-only steps will be skipped'
         $env:LLAMA_CUDA = '0'
     }
-} else {
+}
+else {
     Add-PipelineStep -Name 'CudaEnv' -Status 'Warning' -Error "CUDA helper not found at $cudaHelper"
     $env:LLAMA_CUDA = '0'
 }
@@ -149,7 +161,7 @@ if (Test-Path $cudaHelper) {
 # Step 1: Generate DOC_STATUS report (TODO/FIXME/DEPRECATED markers)
 # ============================================================================
 function Invoke-DocStatusGeneration {
-    Write-Host "`n=== Generating DOC_STATUS report ===" -ForegroundColor Cyan
+    Write-Information "`n=== Generating DOC_STATUS report ===" -InformationAction Continue
 
     $script = Join-Path $toolsDir 'update-doc-status.ps1'
     if (-not (Test-Path $script)) {
@@ -170,7 +182,7 @@ function Invoke-DocStatusGeneration {
 # Step 2: Generate Tool Schema documentation
 # ============================================================================
 function Invoke-ToolSchemaGeneration {
-    Write-Host "`n=== Generating Tool Schema documentation ===" -ForegroundColor Cyan
+    Write-Information "`n=== Generating Tool Schema documentation ===" -InformationAction Continue
 
     $script = Join-Path $toolsDir 'generate-functiongemma-tool-docs.ps1'
     if (-not (Test-Path $script)) {
@@ -191,64 +203,42 @@ function Invoke-ToolSchemaGeneration {
 # Step 3: Generate Rust documentation (cargo doc)
 # ============================================================================
 function Invoke-RustDocGeneration {
-    if ($SkipRust) {
+    if ($pipelineOptions.SkipRust) {
         Add-PipelineStep -Name 'RustDocs' -Status 'Skipped'
         return
     }
 
-    Write-Host "`n=== Generating Rust documentation ===" -ForegroundColor Cyan
+    Write-Information "`n=== Generating Rust documentation ===" -InformationAction Continue
 
-    $workspaces = @(
-        (Join-Path $repoRoot 'Native\pcai_core'),
-        (Join-Path $repoRoot 'Native\pcai_core\pcai_inference'),
-        (Join-Path $repoRoot 'Deploy\rust-functiongemma-runtime'),
-        (Join-Path $repoRoot 'Deploy\rust-functiongemma-train')
-    )
-
-    $cudaRequired = @(
-        (Join-Path $repoRoot 'Deploy\rust-functiongemma-train')
-    )
-    $cudaAvailable = ($script:CudaInfo -and $script:CudaInfo.Found)
-
-    $found = $false
-    foreach ($rustWorkspace in $workspaces) {
-        if (-not (Test-Path $rustWorkspace)) {
-            continue
-        }
-        $found = $true
-        if (($cudaRequired -contains $rustWorkspace) -and (-not $cudaAvailable)) {
-            Add-PipelineStep -Name 'RustDocs' -Status 'Skipped' -Error "$rustWorkspace requires CUDA"
-            continue
-        }
-
-        try {
-            Push-Location $rustWorkspace
-            $cargoDoc = cargo doc --no-deps --document-private-items 2>&1
-            Pop-Location
-
-            if ($LASTEXITCODE -eq 0) {
-                $docDir = if ($env:CARGO_TARGET_DIR) { "$env:CARGO_TARGET_DIR\doc" } else { "$rustWorkspace\target\doc" }
-                Add-PipelineStep -Name 'RustDocs' -Status 'Success' -Output "$rustWorkspace -> $docDir"
-            } else {
-                Add-PipelineStep -Name 'RustDocs' -Status 'Warning' -Error ("$($rustWorkspace): " + ($cargoDoc | Select-Object -Last 5 | Out-String))
+    try {
+        $requestedRoots = $pipelineOptions.RustWorkspaceRoots
+        $allowExternal = $pipelineOptions.AllowExternalRustRoots
+        . (Join-Path $toolsDir 'generate-auto-docs.ps1') -RepoRoot $repoRoot -LibraryOnly
+        $workspaces = @(Get-DocumentationWorkspace -Repository $repoRoot -Roots $requestedRoots -AllowExternal:$allowExternal -DefaultRoots @('Native/pcai_core', 'Deploy/rust-functiongemma-runtime', 'Deploy/rust-functiongemma-train'))
+        if ($workspaces.Count -eq 0) { throw 'No Rust workspaces found for requested documentation build' }
+        foreach ($rustWorkspace in $workspaces) {
+            if (-not $requestedRoots -and $rustWorkspace -eq (Join-Path $repoRoot 'Deploy/rust-functiongemma-train') -and -not ($script:CudaInfo -and $script:CudaInfo.Found)) {
+                Add-PipelineStep -Name 'RustDocs' -Status 'Skipped' -Error "$rustWorkspace requires CUDA"
+                continue
+            }
+            try {
+                $result = Invoke-RustDocumentation -Workspace $rustWorkspace -Build -DocumentPrivateItems
+                Add-PipelineStep -Name 'RustDocs' -Status 'Success' -Output ($result.DocIndexes -join '; ')
+            }
+            catch {
+                Add-PipelineStep -Name 'RustDocs' -Status 'Error' -Error $_.Exception.Message
             }
         }
-        catch {
-            Pop-Location -ErrorAction SilentlyContinue
-            Add-PipelineStep -Name 'RustDocs' -Status 'Error' -Error ("$($rustWorkspace): " + $_.Exception.Message)
-        }
     }
-
-    if (-not $found) {
-        Add-PipelineStep -Name 'RustDocs' -Status 'Warning' -Error 'No Rust workspaces found'
+    catch {
+        Add-PipelineStep -Name 'RustDocs' -Status 'Error' -Error $_.Exception.Message
     }
 }
-
 # ============================================================================
 # Step 4: Generate PowerShell module documentation
 # ============================================================================
 function Invoke-PowerShellDocGeneration {
-    Write-Host "`n=== Generating PowerShell documentation ===" -ForegroundColor Cyan
+    Write-Information "`n=== Generating PowerShell documentation ===" -InformationAction Continue
 
     $modules = Get-ChildItem -Path (Join-Path $repoRoot 'Modules') -Directory -ErrorAction SilentlyContinue
     $apiSignatures = @()
@@ -262,14 +252,14 @@ function Invoke-PowerShellDocGeneration {
 
                 foreach ($fn in $exports) {
                     $apiSignatures += [PSCustomObject]@{
-                        Module = $module.Name
+                        Module   = $module.Name
                         Function = $fn
-                        Type = 'Exported'
+                        Type     = 'Exported'
                     }
                 }
             }
             catch {
-                # Skip invalid manifests
+                Add-PipelineStep -Name 'PowerShellDocs' -Status 'Error' -Error $_.Exception.Message
             }
         }
     }
@@ -283,7 +273,7 @@ function Invoke-PowerShellDocGeneration {
 # Step 4b: Generate API signature alignment report
 # ============================================================================
 function Invoke-ApiSignatureReport {
-    Write-Host "`n=== Generating API signature report ===" -ForegroundColor Cyan
+    Write-Information "`n=== Generating API signature report ===" -InformationAction Continue
 
     $script = Join-Path $toolsDir 'generate-api-signature-report.ps1'
     if (-not (Test-Path $script)) {
@@ -304,7 +294,7 @@ function Invoke-ApiSignatureReport {
 # Step 4c: Generate Tools catalog
 # ============================================================================
 function Invoke-ToolsCatalogGeneration {
-    Write-Host "`n=== Generating Tools catalog ===" -ForegroundColor Cyan
+    Write-Information "`n=== Generating Tools catalog ===" -InformationAction Continue
 
     $script = Join-Path $toolsDir 'generate-tools-catalog.ps1'
     if (-not (Test-Path $script)) {
@@ -325,7 +315,7 @@ function Invoke-ToolsCatalogGeneration {
 # Step 4d: Litho AST extraction (tree-sitter based)
 # ============================================================================
 function Invoke-LithoExtraction {
-    Write-Host "`n=== Litho AST Extraction ===" -ForegroundColor Cyan
+    Write-Information "`n=== Litho AST Extraction ===" -InformationAction Continue
 
     $lithoExe = Get-Command litho -ErrorAction SilentlyContinue
     if (-not $lithoExe) {
@@ -355,7 +345,7 @@ function Invoke-LithoExtraction {
 function Invoke-LithoDocGeneration {
     if ($Mode -ne 'Full') { return }
 
-    Write-Host "`n=== Litho Documentation Generation ===" -ForegroundColor Cyan
+    Write-Information "`n=== Litho Documentation Generation ===" -InformationAction Continue
 
     $lithoExe = Get-Command litho -ErrorAction SilentlyContinue
     if (-not $lithoExe) {
@@ -385,12 +375,12 @@ function Invoke-LithoDocGeneration {
 # Step 5: Generate FunctionGemma training data
 # ============================================================================
 function Invoke-TrainingDataGeneration {
-    if ($SkipTraining -or $Mode -eq 'DocsOnly') {
+    if ($pipelineOptions.SkipTraining -or $Mode -eq 'DocsOnly') {
         Add-PipelineStep -Name 'TrainingData' -Status 'Skipped'
         return
     }
 
-    Write-Host "`n=== Generating FunctionGemma router dataset ===" -ForegroundColor Cyan
+    Write-Information "`n=== Generating FunctionGemma router dataset ===" -InformationAction Continue
 
     $script = Join-Path $toolsDir 'prepare-functiongemma-router-data.ps1'
     if (-not (Test-Path $script)) {
@@ -399,16 +389,16 @@ function Invoke-TrainingDataGeneration {
     }
 
     try {
-        if (-not $UseNativeRouter -and -not ($script:CudaInfo -and $script:CudaInfo.Found)) {
+        if (-not $pipelineOptions.UseNativeRouter -and -not ($script:CudaInfo -and $script:CudaInfo.Found)) {
             Add-PipelineStep -Name 'TrainingData' -Status 'Warning' -Error 'CUDA not detected; skipping router dataset generation (rust-functiongemma-train requires CUDA)'
             return
         }
 
         $routerParams = @{
-            MaxCases = $RouterMaxCases
+            MaxCases = $pipelineOptions.RouterMaxCases
         }
-        if ($UseNativeRouter) { $routerParams.UseNative = $true }
-        if ($NoToolCoverage) { $routerParams.NoToolCoverage = $true }
+        if ($pipelineOptions.UseNativeRouter) { $routerParams.UseNative = $true }
+        if ($pipelineOptions.NoToolCoverage) { $routerParams.NoToolCoverage = $true }
 
         & $script @routerParams
         if ($LASTEXITCODE -ne 0) {
@@ -435,7 +425,7 @@ function Invoke-TrainingDataValidation {
         return
     }
 
-    Write-Host "`n=== Validating training data ===" -ForegroundColor Cyan
+    Write-Information "`n=== Validating training data ===" -InformationAction Continue
 
     $datasetPath = Join-Path $deployDir 'rust-functiongemma-train\data\rust_router_train.jsonl'
     $vectorsPath = Join-Path $deployDir 'rust-functiongemma-train\data\test_vectors.json'
@@ -446,12 +436,13 @@ function Invoke-TrainingDataValidation {
     }
 
     $errors = @()
-    $lineNum = 0
+
 
     $firstLine = Get-Content $datasetPath -TotalCount 1
     if (-not $firstLine) {
         $errors += "Router dataset is empty: $datasetPath"
-    } else {
+    }
+    else {
         try {
             $obj = $firstLine | ConvertFrom-Json
             if (-not ($obj.PSObject.Properties.Name -contains 'messages')) {
@@ -483,7 +474,8 @@ function Invoke-TrainingDataValidation {
 
     if ($errors.Count -eq 0) {
         Add-PipelineStep -Name 'Validation' -Status 'Success' -Output "Router dataset + vectors validated"
-    } else {
+    }
+    else {
         Add-PipelineStep -Name 'Validation' -Status 'Error' -Error ($errors | Select-Object -First 5 | Out-String)
     }
 }
@@ -492,19 +484,19 @@ function Invoke-TrainingDataValidation {
 # Step 7: Generate pipeline summary report
 # ============================================================================
 function Invoke-PipelineSummary {
-    Write-Host "`n=== Generating pipeline summary ===" -ForegroundColor Cyan
+    Write-Information "`n=== Generating pipeline summary ===" -InformationAction Continue
 
     $pipelineState.EndTime = Get-Date
     $pipelineState.Duration = ($pipelineState.EndTime - $pipelineState.StartTime).ToString('mm\:ss')
 
     $summary = [PSCustomObject]@{
         generated = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-        mode = $Mode
-        duration = $pipelineState.Duration
-        steps = $pipelineState.Steps
-        outputs = $pipelineState.Outputs
-        errors = $pipelineState.Errors
-        success = ($pipelineState.Errors.Count -eq 0)
+        mode      = $Mode
+        duration  = $pipelineState.Duration
+        steps     = $pipelineState.Steps
+        outputs   = $pipelineState.Outputs
+        errors    = $pipelineState.Errors
+        success   = ($pipelineState.Errors.Count -eq 0)
     }
 
     # Write JSON report
@@ -512,7 +504,7 @@ function Invoke-PipelineSummary {
     $summary | ConvertTo-Json -Depth 5 | Set-Content -Path $jsonPath -Encoding UTF8
 
     # Write Markdown summary
-    if ($OutputFormat -in @('Markdown', 'Both')) {
+    if ($pipelineOptions.OutputFormat -in @('Markdown', 'Both')) {
         $md = @"
 # Documentation Pipeline Report
 
@@ -547,14 +539,14 @@ $($pipelineState.Errors | ForEach-Object { "- $_" } | Out-String)"
 # ============================================================================
 # Main execution
 # ============================================================================
-Write-Host @"
+Write-Information @"
 
 ╔══════════════════════════════════════════════════════════════════╗
 ║  PC_AI Documentation Pipeline                                     ║
 ║  Mode: $Mode
 ╚══════════════════════════════════════════════════════════════════╝
 
-"@ -ForegroundColor Cyan
+"@ -InformationAction Continue
 
 switch ($Mode) {
     'Full' {
@@ -591,22 +583,22 @@ switch ($Mode) {
 Invoke-PipelineSummary
 
 # Final status
-Write-Host "`n" -NoNewline
+Write-Information "" -InformationAction Continue
 if ($pipelineState.Warnings.Count -gt 0) {
-    Write-Host "$($pipelineState.Warnings.Count) warning(s):" -ForegroundColor Yellow
-    $pipelineState.Warnings | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
+    Write-Information "$($pipelineState.Warnings.Count) warning(s):" -InformationAction Continue
+    $pipelineState.Warnings | ForEach-Object { Write-Information "  - $_" -InformationAction Continue }
 }
-Write-Host "Duration: $($pipelineState.Duration)" -ForegroundColor Gray
-Write-Host "Reports: $reportsDir" -ForegroundColor Gray
+Write-Information "Duration: $($pipelineState.Duration)" -InformationAction Continue
+Write-Information "Reports: $reportsDir" -InformationAction Continue
 
 # The pipeline used to print the failure banner and still exit 0, so CI stayed
 # green while doc generation was broken. Errors now set a real exit code;
 # warnings (skipped optional generators, absent CUDA/Litho) do not.
 if ($pipelineState.Errors.Count -eq 0) {
-    Write-Host "OK Pipeline completed successfully" -ForegroundColor Green
+    Write-Information "OK Pipeline completed successfully" -InformationAction Continue
     exit 0
 }
 
-Write-Host "FAIL Pipeline completed with $($pipelineState.Errors.Count) error(s):" -ForegroundColor Red
-$pipelineState.Errors | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+Write-Information "FAIL Pipeline completed with $($pipelineState.Errors.Count) error(s):" -InformationAction Continue
+$pipelineState.Errors | ForEach-Object { Write-Information "  - $_" -InformationAction Continue }
 exit 1

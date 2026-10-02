@@ -68,3 +68,36 @@ never invokes real sudo or NetworkManager:
 $env:PCAI_TB_TEST_SSH_ALIAS = 'millylaptop1'
 Invoke-Pester ./Tests/Integration/ThunderboltLinuxProfile.Tests.ps1 -Output Detailed
 ```
+
+## Controller discovery traces
+
+When no peer interface exists, packet capture cannot diagnose the missing
+interdomain tunnel. `Invoke-Usb4DiscoveryTrace.ps1` captures the two Microsoft
+USB4 router discovery providers instead. It plans by default; `-Apply` requires
+elevation and an explicit report directory. Duration is bounded to 1–60 seconds
+and the circular ETL to 32–128 MiB. Each run owns a unique collector, removes it
+before decoding, and retains native failure output. DryRun, WhatIf and help have
+no side effects. This captures router metadata rather than network payloads.
+
+```powershell
+./Tools/SystemScripts/Networking/Invoke-Usb4DiscoveryTrace.ps1 -DryRun
+./Tools/SystemScripts/Networking/Invoke-Usb4DiscoveryTrace.ps1 -ReportDirectory C:/Reports/usb4 -DurationSeconds 20 -Apply
+```
+
+On Linux, deploy `capture_thunderbolt_peer_trace.py` to the authorized peer and
+run its default plan before opting into a root capture:
+
+```bash
+python3 capture_thunderbolt_peer_trace.py --dry-run
+sudo python3 capture_thunderbolt_peer_trace.py --apply --expected-hostname millylaptop1 --duration 20 --tools-dir /home/cog/.local/bin --output-dir /home/cog/.cache/pcai/thunderbolt-trace-new
+```
+
+The output directory must be new. The helper uses its own tracefs instance with
+only supported UCSI and Thunderbolt networking events. It temporarily enables
+previously disabled Thunderbolt dynamic-debug printing, restores those exact
+callsites, removes its instance and verifies global tracing was unchanged.
+Cleanup and evidence failures return failure; signal handlers restore even if
+final evidence writes fail. Optional Intel `tbtools` binaries are used only for
+read-only inventories. Neither capture helper rebinds a driver, flashes firmware
+or configures network addresses. Empty trace data is an observation, not proof
+of a cable defect or a working connection.

@@ -1,0 +1,438 @@
+[
+  {
+    "KeyName": "DEVPKEY_Device_DeviceDesc",
+    "Type": 18,
+    "Data": "USB4 Router"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_HardwareIds",
+    "Type": 8210,
+    "Data": [
+      "USB4\\VID_8087&PID_5786&REV_0084",
+      "USB4\\VID_8087&PID_5786"
+    ]
+  },
+  {
+    "KeyName": "DEVPKEY_Device_CompatibleIds",
+    "Type": 8210,
+    "Data": [
+      "USB4\\DEVICE_ROUTER"
+    ]
+  },
+  {
+    "KeyName": "DEVPKEY_Device_Service",
+    "Type": 18,
+    "Data": "Usb4DeviceRouter"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_Class",
+    "Type": 18,
+    "Data": "USB"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_ClassGuid",
+    "Type": 13,
+    "Data": "{36FC9E60-C465-11CF-8056-444553540000}"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_Driver",
+    "Type": 18,
+    "Data": "{36fc9e60-c465-11cf-8056-444553540000}\\0018"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_ConfigFlags",
+    "Type": 7,
+    "Data": 0
+  },
+  {
+    "KeyName": "DEVPKEY_Device_Manufacturer",
+    "Type": 18,
+    "Data": "Generic USB4 Device Router"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_FriendlyName",
+    "Type": 18,
+    "Data": "USB4 Router (2.0), CalDigit. Inc. - Element 5 Hub"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_PDOName",
+    "Type": 18,
+    "Data": "\\Device\\000000b1"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_Capabilities",
+    "Type": 7,
+    "Data": 0
+  },
+  {
+    "KeyName": "DEVPKEY_Device_EnumeratorName",
+    "Type": 18,
+    "Data": "USB4"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_PowerData",
+    "Type": 4099,
+    "Data": [
+      56,
+      0,
+      0,
+      0,
+      4,
+      0,
+      0,
+      0,
+      137,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      4,
+      0,
+      0,
+      0,
+      4,
+      0,
+      0,
+      0,
+      5,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "KeyName": "DEVPKEY_Device_RemovalPolicy",
+    "Type": 7,
+    "Data": 1
+  },
+  {
+    "KeyName": "DEVPKEY_Device_RemovalPolicyDefault",
+    "Type": 7,
+    "Data": 1
+  },
+  {
+    "KeyName": "DEVPKEY_Device_InstallState",
+    "Type": 7,
+    "Data": 0
+  },
+  {
+    "KeyName": "DEVPKEY_Device_BaseContainerId",
+    "Type": 13,
+    "Data": "{00000000-0000-0000-FFFF-FFFFFFFFFFFF}"
+  },
+  {
+    "KeyName": "DEVPKEY_NAME",
+    "Type": 18,
+    "Data": "USB4 Router (2.0), CalDigit. Inc. - Element 5 Hub"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_InstanceId",
+    "Type": 18,
+    "Data": "USB4\\VID_8087&PID_5786\\5&2D101DC1&3&1"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_DevNodeStatus",
+    "Type": 7,
+    "Data": 25165834
+  },
+  {
+    "KeyName": "DEVPKEY_Device_ProblemCode",
+    "Type": 7,
+    "Data": 0
+  },
+  {
+    "KeyName": "DEVPKEY_Device_BusRelations",
+    "Type": 8210,
+    "Data": [
+      "USB4\\VID_8087&PID_5786\\6&2a377a77&0&7",
+      "USB4\\VID_8086&PID_15EF\\6&2a377a77&0&5"
+    ]
+  },
+  {
+    "KeyName": "DEVPKEY_Device_Parent",
+    "Type": 18,
+    "Data": "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_7EC2\\4&1f6645ca&0&0"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_Children",
+    "Type": 8210,
+    "Data": [
+      "USB4\\VID_8087&PID_5786\\6&2a377a77&0&7",
+      "USB4\\VID_8086&PID_15EF\\6&2a377a77&0&5"
+    ]
+  },
+  {
+    "KeyName": "DEVPKEY_Device_Siblings",
+    "Type": 8210,
+    "Data": [
+      "USB4\\VID_8087&PID_0B26\\5&2d101dc1&3&3"
+    ]
+  },
+  {
+    "KeyName": "DEVPKEY_Device_SafeRemovalRequired",
+    "Type": 17,
+    "Data": false
+  },
+  {
+    "KeyName": "DEVPKEY_Device_ContainerId",
+    "Type": 13,
+    "Data": "{00000000-0000-0000-FFFF-FFFFFFFFFFFF}"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_IsPresent",
+    "Type": 17,
+    "Data": true
+  },
+  {
+    "KeyName": "DEVPKEY_Device_HasProblem",
+    "Type": 17,
+    "Data": false
+  },
+  {
+    "KeyName": "{83DA6326-97A6-4088-9453-A1923F573B29} 15",
+    "Type": 17,
+    "Data": true
+  },
+  {
+    "KeyName": "DEVPKEY_Device_IsRebootRequired",
+    "Type": 17,
+    "Data": false
+  },
+  {
+    "KeyName": "DEVPKEY_Device_ReportedDeviceIdsHash",
+    "Type": 7,
+    "Data": 1228526180
+  },
+  {
+    "KeyName": "DEVPKEY_Device_InLocalMachineContainer",
+    "Type": 17,
+    "Data": true
+  },
+  {
+    "KeyName": "DEVPKEY_Device_Stack",
+    "Type": 8210,
+    "Data": [
+      "\\Driver\\Usb4DeviceRouter",
+      "\\Driver\\Usb4DeviceRouter"
+    ]
+  },
+  {
+    "KeyName": "{A8B865DD-2E3D-4094-AD97-E593A70C75D6} 26",
+    "Type": 17,
+    "Data": false
+  },
+  {
+    "KeyName": "{3464F7A4-2444-40B1-980A-E0903CB6D912} 10",
+    "Type": 7,
+    "Data": 3
+  },
+  {
+    "KeyName": "DEVPKEY_Device_ConfigurationId",
+    "Type": 18,
+    "Data": "usb4devicerouter.inf:USB4\\DEVICE_ROUTER,Usb4DeviceRouter_Device.NT"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_FirmwareVersion",
+    "Type": 18,
+    "Data": "61.1"
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 2",
+    "Type": 7,
+    "Data": 15
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 7",
+    "Type": 7,
+    "Data": 0
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 8",
+    "Type": 17,
+    "Data": false
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 9",
+    "Type": 18,
+    "Data": "CalDigit, Inc."
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 10",
+    "Type": 18,
+    "Data": "Element 5 Hub"
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 11",
+    "Type": 4099,
+    "Data": [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 12",
+    "Type": 7,
+    "Data": 5046273
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 13",
+    "Type": 5,
+    "Data": 8584
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 14",
+    "Type": 5,
+    "Data": 40
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 15",
+    "Type": 3,
+    "Data": 2
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 16",
+    "Type": 5,
+    "Data": 32903
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 17",
+    "Type": 5,
+    "Data": 22406
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 18",
+    "Type": 5,
+    "Data": 132
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 19",
+    "Type": 7,
+    "Data": 64
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 20",
+    "Type": 7,
+    "Data": 4
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 21",
+    "Type": 7,
+    "Data": 2
+  },
+  {
+    "KeyName": "{5DF7E321-1C1B-4CE2-B4FA-55F4A5BC2CB6} 24",
+    "Type": 7,
+    "Data": 0
+  },
+  {
+    "KeyName": "{80497100-8C73-48B9-AAD9-CE387E19C56E} 6",
+    "Type": 7,
+    "Data": 0
+  },
+  {
+    "KeyName": "{80497100-8C73-48B9-AAD9-CE387E19C56E} 7",
+    "Type": 9,
+    "Data": 0
+  },
+  {
+    "KeyName": "{83DA6326-97A6-4088-9453-A1923F573B29} 3",
+    "Type": 18,
+    "Data": "usb4devicerouter.inf:8c92016348ba1d64:Usb4DeviceRouter_Device.NT:10.0.26100.9549:USB4\\DEVICE_ROUTER"
+  },
+  {
+    "KeyName": "{83DA6326-97A6-4088-9453-A1923F573B29} 10",
+    "Type": 18,
+    "Data": "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_7EC2\\4&1f6645ca&0&0"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_InstallDate",
+    "Type": 16,
+    "Data": "2026-09-23T11:41:13.451499-04:00"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_FirstInstallDate",
+    "Type": 16,
+    "Data": "2025-12-16T22:42:40.047994-05:00"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_LastArrivalDate",
+    "Type": 16,
+    "Data": "2026-09-30T11:52:28.989311-04:00"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_DriverDate",
+    "Type": 16,
+    "Data": "2026-09-16T20:00:00-04:00"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_DriverVersion",
+    "Type": 18,
+    "Data": "10.0.26100.9549"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_DriverDesc",
+    "Type": 18,
+    "Data": "USB4 Router"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_DriverInfPath",
+    "Type": 18,
+    "Data": "usb4devicerouter.inf"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_DriverInfSection",
+    "Type": 18,
+    "Data": "Usb4DeviceRouter_Device.NT"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_MatchingDeviceId",
+    "Type": 18,
+    "Data": "USB4\\DEVICE_ROUTER"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_DriverProvider",
+    "Type": 18,
+    "Data": "Microsoft"
+  },
+  {
+    "KeyName": "DEVPKEY_Device_DriverRank",
+    "Type": 7,
+    "Data": 16719872
+  }
+]

@@ -250,8 +250,7 @@ async fn generate_image(
         let guard = state.read().await;
         let pipeline = guard.pipeline.as_ref().expect("pipeline presence checked above");
 
-        tokio::task::block_in_place(|| pipeline.generate(&prompt))
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        tokio::task::block_in_place(|| pipeline.generate(&prompt)).map_err(|e| generation_error_response(&e))?
     };
 
     // Encode the ImageBuffer to PNG bytes.
@@ -270,6 +269,11 @@ async fn generate_image(
         width,
         height,
     }))
+}
+
+/// Return the HTTP status and complete generation diagnostic.
+fn generation_error_response(error: &anyhow::Error) -> (StatusCode, String) {
+    (StatusCode::INTERNAL_SERVER_ERROR, format!("{error:#}"))
 }
 
 /// `POST /v1/images/understand` — run the Janus-Pro image-understanding pipeline.
@@ -441,6 +445,33 @@ async fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn test_generation_error_response_preserves_complete_chain() {
+        let error = anyhow::Error::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "invalid image token",
+        ))
+        .context("step 7: projection failed")
+        .context("generate_inner failed");
+        let (status, message) = generation_error_response(&error);
+        let expected = "generate_inner failed: step 7: projection failed: invalid image token";
+        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(message, expected);
+        let response = (status, message).into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        let body = axum::body::to_bytes(response.into_body(), 4096)
+            .await
+            .expect("error response body should be readable");
+        assert_eq!(body.as_ref(), expected.as_bytes());
+        assert_eq!(
+            error
+                .downcast_ref::<std::io::Error>()
+                .expect("typed cause must be retained")
+                .kind(),
+            std::io::ErrorKind::InvalidData
+        );
+    }
 
     /// `encode_png` must produce a non-empty byte buffer for a minimal 1x1 image.
     #[test]

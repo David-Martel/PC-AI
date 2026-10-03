@@ -1,0 +1,1391 @@
+{
+  "Devices" : [
+    {
+      "Name" : "13th Gen Intel Core™ i9-13950HX",
+      "DeviceId" : "4bde70ba4e39b28f9eab1628f9dd6e6244c03027",
+      "InstanceIds" : [
+        "CPUID\\PRO_0&FAM_06&MOD_B7",
+        "CPUID\\PRO_0&FAM_06&MOD_B7&STP_1"
+      ],
+      "Guid" : [
+        "3d4645d8-13fe-541a-ac5c-7d9d944e4500",
+        "988c4cf1-ace4-5eb5-b26c-905ff236f412"
+      ],
+      "Plugin" : "cpu",
+      "Flags" : [
+        "internal"
+      ],
+      "Vendor" : "Intel",
+      "VersionFormat" : "hex",
+      "Icons" : [
+        "computer"
+      ],
+      "Created" : 1790959130
+    },
+    {
+      "Name" : "Battery",
+      "DeviceId" : "9f8c6c29fb9e7a37d843c97ba61be510fa29db5e",
+      "Guid" : [
+        "f2848377-3062-4b07-acd3-ed0d213cd4f5"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "supported",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "Vendor" : "Lenovo",
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "1.3.32769",
+      "VersionLowest" : "0.0.1",
+      "VersionFormat" : "triplet",
+      "VersionRaw" : 17006593,
+      "VersionLowestRaw" : 1,
+      "Created" : 1790959130,
+      "UpdateState" : 2,
+      "Releases" : [
+        {
+          "AppstreamId" : "com.lenovo.ThinkPadN3TBL_000100D4.firmware",
+          "ReleaseId" : "56309",
+          "RemoteId" : "lvfs",
+          "Name" : "ThinkPad P16 Gen 2",
+          "Summary" : "Lenovo ThinkPad P16 Gen 2 Battery Firmware",
+          "Description" : "<p>Lenovo-ThinkPad-P16-Gen-2-BatteryFirmware-259.0.0.32769</p><p>The-computer-will-be-restarted-automatically-after-updating-firmware-completely.Do-not-turn-off-your-computer-or-remove-the-AC-adaptor-while-update-is-in-progress.</p><p>CHANGES IN THIS RELEASE Added support for ThinkPad P16 Gen 2/(Machine Types: 21FA) ThinkPad P16 Gen 2/(Machine Types: 21FB)</p><p>Problem fixes: Improved charging performance for the following battery FRU P/N: 5B10W51894 (ASM P/N: SB10W51995)</p>",
+          "Version" : "1.3.32769",
+          "Filename" : "Lenovo-ThinkPad-P16-Gen-2-BatteryFirmware-259.0.0.32769.cab",
+          "Protocol" : "org.uefi.capsule",
+          "Categories" : [
+            "X-Battery",
+            "X-Device"
+          ],
+          "Checksum" : [
+            "65e849c47150e05df25107752074ad5aa345ca4d",
+            "281077610843e6af45a54b504a9a9fd35f3ec178f902f18f36b80d5f2373551e"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 229152,
+          "Created" : 1702339200,
+          "Locations" : [
+            "https://fwupd.org/downloads/281077610843e6af45a54b504a9a9fd35f3ec178f902f18f36b80d5f2373551e-Lenovo-ThinkPad-P16-Gen-2-BatteryFirmware-259.0.0.32769.cab"
+          ],
+          "Homepage" : "http://www.lenovo.com/",
+          "DetailsUrl" : "https://pcsupport.lenovo.com/de/en/search?query=N3TBL02W",
+          "Vendor" : "Lenovo",
+          "Flags" : [
+            "trusted-metadata",
+            "trusted-report"
+          ],
+          "Reports" : [
+            {
+              "DeviceName" : "LENOVO ThinkPad P16 Gen 2",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "20.04",
+              "VersionOld" : "1.1.29441",
+              "Vendor" : "Lenovo",
+              "RemoteId" : "lvfs",
+              "VendorId" : 84,
+              "Flags" : [
+                "from-oem",
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "1.7.9"
+            },
+            {
+              "DeviceName" : "LENOVO ThinkPad P16 Gen 2",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "20.04",
+              "VersionOld" : "1.2.32768",
+              "Vendor" : "Lenovo",
+              "RemoteId" : "lvfs",
+              "VendorId" : 84,
+              "Flags" : [
+                "from-oem",
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "1.5.11"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name" : "Embedded Controller",
+      "DeviceId" : "1edffe0587b79f7ddc892dc28fe93f88d17613d5",
+      "Guid" : [
+        "aeac80f9-74a0-4eec-a10d-2752805147b0"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "supported",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "Vendor" : "Lenovo",
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "0.1.1",
+      "VersionLowest" : "0.1.1",
+      "VersionFormat" : "triplet",
+      "VersionRaw" : 65537,
+      "VersionLowestRaw" : 65537,
+      "Created" : 1790959130,
+      "UpdateState" : 2,
+      "Releases" : [
+        {
+          "AppstreamId" : "com.lenovo.ThinkPadN3THT.firmware",
+          "ReleaseId" : "90598",
+          "RemoteId" : "lvfs",
+          "Name" : "ThinkPad P16 Gen 2",
+          "Summary" : "Lenovo ThinkPad P16 Gen 2 Embedded controller Firmware",
+          "Description" : "<p>This stable release modifies the following items:</p><ul><li>Improve the BIOS backup process.</li><li>Improve the process of status flag data store to rom.</li></ul>",
+          "Version" : "0.1.50",
+          "Filename" : "Lenovo-ThinkPad-P16Gen2-EmbeddedControllerFirmware-1.50.cab",
+          "Protocol" : "org.uefi.capsule",
+          "Categories" : [
+            "X-EmbeddedController"
+          ],
+          "Checksum" : [
+            "840a71f5e6882bea54f3986c6fe6f098cf95052b",
+            "814be1e5d51644e5d72e6576f7ebd1f80ef9207a27d4170da51e475dcd1f2919"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 1178144,
+          "Created" : 1704758400,
+          "Locations" : [
+            "https://fwupd.org/downloads/814be1e5d51644e5d72e6576f7ebd1f80ef9207a27d4170da51e475dcd1f2919-Lenovo-ThinkPad-P16Gen2-EmbeddedControllerFirmware-1.50.cab"
+          ],
+          "Homepage" : "http://www.lenovo.com/",
+          "Vendor" : "Lenovo",
+          "Flags" : [
+            "trusted-metadata",
+            "is-upgrade",
+            "trusted-report"
+          ],
+          "Reports" : [
+            {
+              "DeviceName" : "LENOVO ThinkPad P16 Gen 2",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "20.04",
+              "VersionOld" : "0.1.42",
+              "Vendor" : "Lenovo",
+              "RemoteId" : "lvfs",
+              "VendorId" : 84,
+              "Flags" : [
+                "from-oem",
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "1.7.9"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name" : "KEK CA",
+      "DeviceId" : "b7a1d3d90faa1f6275d9a98da4fb3be7118e61c7",
+      "ParentDeviceId" : "2a4c23bfb79b5dabe474cb7b1b3e604645d6f9c6",
+      "CompositeId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "InstanceIds" : [
+        "UEFI\\VENDOR_Microsoft&NAME_Microsoft-KEK-CA",
+        "UEFI\\CRT_9F402B1CC0243CBEDC58A525789816CCCA7687A9"
+      ],
+      "Guid" : [
+        "814e950f-1449-566a-a190-42c9d3a3a2df",
+        "dfa66406-6568-5bdf-bb8e-b53ddb4be4cf"
+      ],
+      "Plugin" : "uefi_kek",
+      "Protocols" : [
+        "org.uefi.dbx2"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "needs-reboot",
+        "usable-during-update",
+        "signed-payload",
+        "can-emulation-tag"
+      ],
+      "Vendor" : "Microsoft",
+      "VendorIds" : [
+        "UEFI:Microsoft"
+      ],
+      "Version" : "2011",
+      "VersionFormat" : "number",
+      "VersionRaw" : 2011,
+      "Icons" : [
+        "application-certificate"
+      ],
+      "Created" : 1790959130,
+      "Releases" : [
+        {
+          "AppstreamId" : "com.microsoft.kek.lenovo.b3774bc6.firmware",
+          "ReleaseId" : "114062",
+          "RemoteId" : "lvfs",
+          "Name" : "Secure Boot KEK",
+          "NameVariantSuffix" : "Lenovo",
+          "Summary" : "UEFI Secure Boot Key Exchange Key",
+          "Description" : "<p>This updates the UEFI Signature Database (the &quot;KEK&quot;) to the latest release from Microsoft, signed by Lenovo Ltd.PK CA 2012.</p>",
+          "Version" : "2023",
+          "Filename" : "KEK-Lenovo.cab",
+          "Protocol" : "org.uefi.dbx2",
+          "Categories" : [
+            "X-Configuration",
+            "X-System"
+          ],
+          "Checksum" : [
+            "527f0e07759715d6ace822cfa8e3ef973c217af9",
+            "168b8c108e18a0b61ff8228d56d28d4739eff055ef26022c64c9335e78a2dc33"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 2948,
+          "Created" : 1745884800,
+          "Locations" : [
+            "https://fwupd.org/downloads/168b8c108e18a0b61ff8228d56d28d4739eff055ef26022c64c9335e78a2dc33-KEK-Lenovo.cab"
+          ],
+          "Homepage" : "https://fwupd.github.io/libfwupdplugin/uefi-db.html",
+          "Vendor" : "Linux Foundation",
+          "Flags" : [
+            "trusted-metadata",
+            "is-upgrade"
+          ]
+        }
+      ]
+    },
+    {
+      "Name" : "KEK CA",
+      "DeviceId" : "1d7ed610471d175df43bc895f9bda7c47d8dae3c",
+      "ParentDeviceId" : "2a4c23bfb79b5dabe474cb7b1b3e604645d6f9c6",
+      "CompositeId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "InstanceIds" : [
+        "UEFI\\VENDOR_Lenovo&NAME_Lenovo-KEK-CA",
+        "UEFI\\CRT_FC8101E5585E1C8093A3BF0FEC728C6C22AB3C90"
+      ],
+      "Guid" : [
+        "955078db-02bc-510f-875c-65c0167f06fa",
+        "daf7dd1a-f55b-51fa-8815-2a3921d5d8e5"
+      ],
+      "Plugin" : "uefi_kek",
+      "Protocols" : [
+        "org.uefi.dbx2"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "needs-reboot",
+        "usable-during-update",
+        "signed-payload",
+        "can-emulation-tag"
+      ],
+      "Vendor" : "Lenovo",
+      "VendorIds" : [
+        "UEFI:Lenovo"
+      ],
+      "Version" : "2012",
+      "VersionFormat" : "number",
+      "VersionRaw" : 2012,
+      "Icons" : [
+        "application-certificate"
+      ],
+      "Created" : 1790959130
+    },
+    {
+      "Name" : "PK CA",
+      "DeviceId" : "6924110cde4fa051bfdc600a60620dc7aa9d3c6a",
+      "ParentDeviceId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "CompositeId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "InstanceIds" : [
+        "UEFI\\VENDOR_Lenovo&NAME_Lenovo-PK-CA",
+        "UEFI\\CRT_B3774BC6C8B48919DD686E9CAEB68AF6DE0B4ED9"
+      ],
+      "Guid" : [
+        "77aa207b-e13e-55f1-9f07-bec1957a61df",
+        "6c200e38-b742-59d4-8928-51274abd4b8c"
+      ],
+      "Summary" : "UEFI Platform Key",
+      "Plugin" : "uefi_pk",
+      "Flags" : [
+        "internal"
+      ],
+      "Vendor" : "Lenovo",
+      "Version" : "2012",
+      "VersionFormat" : "number",
+      "VersionRaw" : 2012,
+      "Icons" : [
+        "application-certificate"
+      ],
+      "Created" : 1790959130
+    },
+    {
+      "Name" : "System Firmware",
+      "DeviceId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "Guid" : [
+        "e286e826-12ed-41fd-9417-2f47d31f4bcb"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "supported",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "Vendor" : "Lenovo",
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "0.1.3",
+      "VersionFormat" : "triplet",
+      "VersionRaw" : 65539,
+      "Icons" : [
+        "computer"
+      ],
+      "Created" : 1790959130,
+      "UpdateState" : 2,
+      "Releases" : [
+        {
+          "AppstreamId" : "com.lenovo.ThinkPadN3TET.firmware",
+          "ReleaseId" : "138993",
+          "RemoteId" : "lvfs",
+          "Name" : "ThinkPad P16 Gen 2",
+          "Summary" : "Lenovo ThinkPad P16 Gen 2 System System Firmware",
+          "Description" : "<p>This stable release fixes the following issues</p><ul><li>pdated legal headers and copyright metadata to current 2026 standards.</li></ul>",
+          "Version" : "0.2.00",
+          "Filename" : "Lenovo-ThinkPad-P16Gen2-SystemFirmware-2.00.cab",
+          "Protocol" : "org.uefi.capsule",
+          "Categories" : [
+            "X-System"
+          ],
+          "Checksum" : [
+            "fdb2742b22ee198737a10459034eadfe569d32e0",
+            "1e5bab9a315b9e57a779dc4f2c7faa62251a5b51e0a3cc89a265fee072384993"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 28843840,
+          "Created" : 1770877817,
+          "Locations" : [
+            "https://fwupd.org/downloads/1e5bab9a315b9e57a779dc4f2c7faa62251a5b51e0a3cc89a265fee072384993-Lenovo-ThinkPad-P16Gen2-SystemFirmware-2.00.cab"
+          ],
+          "Homepage" : "http://www.lenovo.com/",
+          "Vendor" : "Lenovo",
+          "Flags" : [
+            "trusted-metadata",
+            "is-upgrade",
+            "trusted-report"
+          ],
+          "Reports" : [
+            {
+              "DeviceName" : "LENOVO ThinkPad P16 Gen 2",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "25.04",
+              "VersionOld" : "0.1.99",
+              "Vendor" : "Lenovo",
+              "RemoteId" : "lvfs",
+              "VendorId" : 84,
+              "Flags" : [
+                "from-oem",
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.7"
+            }
+          ]
+        },
+        {
+          "AppstreamId" : "com.lenovo.ThinkPadN3TET.firmware",
+          "ReleaseId" : "136651",
+          "RemoteId" : "lvfs",
+          "Name" : "ThinkPad P16 Gen 2",
+          "Summary" : "Lenovo ThinkPad P16 Gen 2 System System Firmware",
+          "Description" : "<p>This stable release fixes the following issues:</p><ul><li>This BIOS can't roll back to a previous version.</li><li>Updated Absolute Notice Message in BIOS setup when activated.</li><li>Updated FIT's InROM diagnosticsVersion to version 04.44.000.</li><li>Update AOADriver Vresion v02.00.002</li><li>Add new RootCA for Lenovo Cloud.</li><li>Adding TBT5 Dock PXE support.</li><li>Enable smart card during pre boot.</li><li>Update EC firmware to N3THT58W.</li><li>Fixed an issue where 'ME ON in Host Sleep State' value bar display incomplete.</li></ul>",
+          "Version" : "0.1.99",
+          "Filename" : "Lenovo-ThinkPad-P16Gen2-SystemFirmware-1.99.cab",
+          "Protocol" : "org.uefi.capsule",
+          "Categories" : [
+            "X-System"
+          ],
+          "Issues" : [
+            "LEN-198949",
+            "CVE-2025-10237"
+          ],
+          "Checksum" : [
+            "3d0b7aede0d847cddf3b2eae320f8b84687517a6",
+            "62a9794cba70ab15aadd121927fa6c25890ecde0466395bc18495805bda85e54"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 28843840,
+          "Created" : 1766462091,
+          "Locations" : [
+            "https://fwupd.org/downloads/62a9794cba70ab15aadd121927fa6c25890ecde0466395bc18495805bda85e54-Lenovo-ThinkPad-P16Gen2-SystemFirmware-1.99.cab"
+          ],
+          "Homepage" : "http://www.lenovo.com/",
+          "Vendor" : "Lenovo",
+          "Flags" : [
+            "trusted-metadata",
+            "is-upgrade",
+            "trusted-report"
+          ],
+          "Reports" : [
+            {
+              "DeviceName" : "LENOVO ThinkPad P16 Gen 2",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "25.04",
+              "VersionOld" : "0.1.98",
+              "Vendor" : "Lenovo",
+              "RemoteId" : "lvfs",
+              "VendorId" : 84,
+              "Flags" : [
+                "from-oem",
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.7"
+            }
+          ]
+        },
+        {
+          "AppstreamId" : "com.lenovo.ThinkPadN3TET.firmware",
+          "ReleaseId" : "86592",
+          "RemoteId" : "lvfs",
+          "Name" : "ThinkPad P16 Gen 2",
+          "Summary" : "Lenovo ThinkPad P16 Gen 2 System System Firmware",
+          "Description" : "<p>Lenovo Lenovo ThinkPad P16 Gen 2 System Firmware Version 1.51Updated Realtek Driver.Updated the microcode.Update Diagnostics module to version 04.32.Fixed an issue where Dock Mac address isn't cloned to system when enable MAC Pass through.Fixed an issue where Fnlock was switched in Quick Clean Mode.</p>",
+          "Version" : "0.1.51",
+          "Filename" : "Lenovo-ThinkPad-P16Gen2-SystemFirmware-1.51.cab",
+          "Protocol" : "org.uefi.capsule",
+          "Categories" : [
+            "X-System"
+          ],
+          "Checksum" : [
+            "b0c15a4247701aab7b8e85dc85e112209f7e70e4",
+            "51eac91201dc7242aa3e597f44ceb0b72b6ce7cfade2d0069331bb7807d4ae55"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 28843840,
+          "Created" : 1709510400,
+          "Locations" : [
+            "https://fwupd.org/downloads/51eac91201dc7242aa3e597f44ceb0b72b6ce7cfade2d0069331bb7807d4ae55-Lenovo-ThinkPad-P16Gen2-SystemFirmware-1.51.cab"
+          ],
+          "Homepage" : "http://www.lenovo.com/",
+          "Vendor" : "Lenovo",
+          "Flags" : [
+            "trusted-metadata",
+            "is-upgrade",
+            "trusted-report"
+          ],
+          "Reports" : [
+            {
+              "DeviceName" : "LENOVO ThinkPad P16 Gen 2",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "22.04",
+              "VersionOld" : "0.1.18",
+              "Vendor" : "Lenovo",
+              "RemoteId" : "lvfs",
+              "VendorId" : 84,
+              "Flags" : [
+                "from-oem",
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "1.7.9"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name" : "ThinkPad Product CA",
+      "DeviceId" : "a296b1dd86b8c548adbf0412d995e69e2154bfe5",
+      "ParentDeviceId" : "0352a8acc949c7df21fec16e566ba9a74e797a97",
+      "CompositeId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "InstanceIds" : [
+        "UEFI\\VENDOR_Lenovo&NAME_ThinkPad-Product-CA",
+        "UEFI\\CRT_373EE20565D7F1E05A19ABE0BE1278309068DE5E"
+      ],
+      "Guid" : [
+        "d9087fb0-a15e-564e-9307-c9fc954a69fd",
+        "792101a9-8a7e-5612-be00-7447ad96be66"
+      ],
+      "Plugin" : "uefi_db",
+      "Protocols" : [
+        "org.uefi.dbx2"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "needs-reboot",
+        "signed-payload",
+        "can-emulation-tag"
+      ],
+      "Vendor" : "Lenovo",
+      "VendorIds" : [
+        "UEFI:Lenovo"
+      ],
+      "Version" : "2012",
+      "VersionFormat" : "number",
+      "VersionRaw" : 2012,
+      "Icons" : [
+        "application-certificate"
+      ],
+      "Created" : 1790959130
+    },
+    {
+      "Name" : "UEFI CA",
+      "DeviceId" : "163c5a91853ab68fd09dd15bef3c13dc9a9c1d15",
+      "ParentDeviceId" : "0352a8acc949c7df21fec16e566ba9a74e797a97",
+      "CompositeId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "InstanceIds" : [
+        "UEFI\\VENDOR_Lenovo&NAME_Lenovo-UEFI-CA",
+        "UEFI\\CRT_DAD2D12C61D6878808FB095EB66C42752BCCE557"
+      ],
+      "Guid" : [
+        "6e98b506-553c-57f1-9020-ed7a1db2c014",
+        "ae9d1031-26a3-56aa-b118-b3977d8129d6"
+      ],
+      "Plugin" : "uefi_db",
+      "Protocols" : [
+        "org.uefi.dbx2"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "needs-reboot",
+        "signed-payload",
+        "can-emulation-tag"
+      ],
+      "Vendor" : "Lenovo",
+      "VendorIds" : [
+        "UEFI:Lenovo"
+      ],
+      "Version" : "2014",
+      "VersionFormat" : "number",
+      "VersionRaw" : 2014,
+      "Icons" : [
+        "application-certificate"
+      ],
+      "Created" : 1790959130
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "81568164782039dbd4a74856cacb9800f408d44e",
+      "Guid" : [
+        "4e88068b-41b2-4e05-893c-db0b43f7d348"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "70159",
+      "VersionFormat" : "number",
+      "VersionRaw" : 70159,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "7dccda75b1f76a97e675b08e7e0f8ab9924ad9ce",
+      "Guid" : [
+        "69585d92-b50a-4ad7-b265-2eb1ae066574"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "1",
+      "VersionLowest" : "1",
+      "VersionFormat" : "number",
+      "VersionRaw" : 1,
+      "VersionLowestRaw" : 1,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "57a08124acf3b12bbcbba9cafd54d96f9e52a59b",
+      "Guid" : [
+        "2be5b026-5c79-4bf5-8651-811b805d70af"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "1",
+      "VersionLowest" : "1",
+      "VersionFormat" : "number",
+      "VersionRaw" : 1,
+      "VersionLowestRaw" : 1,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "44b7179a44385bc147215c6f4f404ae5b4440976",
+      "Guid" : [
+        "d77726f7-2944-4e57-af12-7181cb8db37e"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "66305",
+      "VersionLowest" : "66305",
+      "VersionFormat" : "number",
+      "VersionRaw" : 66305,
+      "VersionLowestRaw" : 66305,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "b21f319969ff4ad868e5322d26d7365646197d0c",
+      "Guid" : [
+        "347efe23-9f9a-4b26-b4db-e2414872dd14"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "18417740",
+      "VersionFormat" : "number",
+      "VersionRaw" : 18417740,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "f905a7bd8805851b14be474d006372f37cc9342d",
+      "Guid" : [
+        "76ca0ad8-4a14-4389-b7e5-fd88791762ad"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "1",
+      "VersionFormat" : "number",
+      "VersionRaw" : 1,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "7e6427fb78fdb31553c3589b14cf9a40bd2e1f2e",
+      "Guid" : [
+        "626d93db-2c42-48c3-915a-71f968a81b04"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "1",
+      "VersionFormat" : "number",
+      "VersionRaw" : 1,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "91d63a93b9cb996729094a1ad77944f2cbfbc7af",
+      "Guid" : [
+        "7c8c8f35-30c9-0050-1a00-5d471111746b"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "4361",
+      "VersionFormat" : "number",
+      "VersionRaw" : 4361,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "071b9eeefca13dbd269fcc44271321a1ab7b5dbe",
+      "Guid" : [
+        "54cb734c-975c-4a74-9556-57ae6d9a2229"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "196608",
+      "VersionLowest" : "57374",
+      "VersionFormat" : "number",
+      "VersionRaw" : 196608,
+      "VersionLowestRaw" : 57374,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "69d9bcda96be973eb6bb1a6ea66c1ed032e9b846",
+      "Guid" : [
+        "dac9c0a3-a120-4992-a784-d097c0d2e3f8"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "4",
+      "VersionFormat" : "number",
+      "VersionRaw" : 4,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Device Firmware",
+      "DeviceId" : "941b08ac32b432f52d2d8a11d3dc5133850e4b39",
+      "Guid" : [
+        "cb2fc5ab-1304-45a7-8c87-df6a526c1471"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "18417740",
+      "VersionLowest" : "1",
+      "VersionFormat" : "number",
+      "VersionRaw" : 18417740,
+      "VersionLowestRaw" : 1,
+      "Created" : 1790959130,
+      "UpdateState" : 2
+    },
+    {
+      "Name" : "UEFI Key Exchange Key",
+      "DeviceId" : "2a4c23bfb79b5dabe474cb7b1b3e604645d6f9c6",
+      "ParentDeviceId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "CompositeId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "Plugin" : "uefi_kek",
+      "Flags" : [
+        "internal"
+      ],
+      "Icons" : [
+        "application-certificate"
+      ],
+      "Created" : 1790959130
+    },
+    {
+      "Name" : "UEFI Signature Database",
+      "DeviceId" : "0352a8acc949c7df21fec16e566ba9a74e797a97",
+      "ParentDeviceId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "CompositeId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "Plugin" : "uefi_db",
+      "Flags" : [
+        "internal"
+      ],
+      "Icons" : [
+        "application-certificate"
+      ],
+      "Created" : 1790959130
+    },
+    {
+      "Name" : "UEFI dbx",
+      "DeviceId" : "362301da643102b9f38477387e2193e57abaa590",
+      "ParentDeviceId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "CompositeId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "InstanceIds" : [
+        "UEFI\\CRT_A9087D1044AD18F7A94916D284CBC01827CF23CD8F60B79072C9CAA1FEF4D649&ARCH_X64",
+        "UEFI\\CRT_A1117F516A32CEFCBA3F2D1ACE10A87972FD6BBE8FE0D0B996E09E65D802A503&ARCH_X64"
+      ],
+      "Guid" : [
+        "5971a208-da00-5fce-b5f5-1234342f9cf7",
+        "f8ba2887-9411-5c36-9cee-88995bb39731"
+      ],
+      "Summary" : "UEFI revocation database",
+      "Plugin" : "uefi_dbx",
+      "Protocols" : [
+        "org.uefi.dbx2"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "supported",
+        "needs-reboot",
+        "usable-during-update",
+        "only-version-upgrade",
+        "signed-payload",
+        "can-emulation-tag"
+      ],
+      "Checksums" : [
+        "90aec5c4995674a849c1d1384463f3b02b5aa625a5c320fc4fe7d9bb58a62398"
+      ],
+      "Vendor" : "Microsoft",
+      "VendorIds" : [
+        "UEFI:Microsoft"
+      ],
+      "Version" : "20220801",
+      "VersionLowest" : "20220801",
+      "VersionFormat" : "number",
+      "Icons" : [
+        "application-certificate"
+      ],
+      "InstallDuration" : 1,
+      "Created" : 1790959130,
+      "Releases" : [
+        {
+          "AppstreamId" : "com.microsoft.dbx.x64.firmware",
+          "ReleaseId" : "143971",
+          "RemoteId" : "lvfs",
+          "Name" : "Secure Boot dbx",
+          "NameVariantSuffix" : "x64",
+          "Summary" : "UEFI Secure Boot Forbidden Signature Database",
+          "Description" : "<p>This updates the list of forbidden signatures (the &quot;dbx&quot;) to the latest release from Microsoft.</p><p>Some insecure bootloaders were added, due to security vulnerabilities that allowed an attacker to bypass UEFI Secure Boot. The additional entries were from:</p><ul><li>Baramanudi Management Suite</li><li>EAZ EasyFix</li><li>Finland Matriculation Examination Board</li><li>NTC IT ROSA Linux</li><li>PC-Doctor</li><li>Spyrus WTGCreator</li><li>WhiteCanyon blancco</li><li>Some ancient shim releases for OpenSUSE, Oracle and Red Hat</li></ul>",
+          "Version" : "20260402",
+          "Filename" : "DBXUpdate-20260402-x64.cab",
+          "Protocol" : "org.uefi.dbx2",
+          "Categories" : [
+            "X-Configuration",
+            "X-System"
+          ],
+          "Issues" : [
+            "616257",
+            "CVE-2026-8863"
+          ],
+          "Checksum" : [
+            "699ad9c1e22655ebe0325ca9f6237b12bcffd8cc",
+            "9edea8bc287bf9bf4659856b28cf421f330eb2f658c163eab0a03512a98c0e78"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 24629,
+          "Created" : 1756771200,
+          "Locations" : [
+            "https://fwupd.org/downloads/9edea8bc287bf9bf4659856b28cf421f330eb2f658c163eab0a03512a98c0e78-DBXUpdate-20260402-x64.cab"
+          ],
+          "Homepage" : "https://uefi.org/revocationlistfile",
+          "Vendor" : "Linux Foundation",
+          "Flags" : [
+            "trusted-metadata",
+            "is-upgrade"
+          ],
+          "InstallDuration" : 1,
+          "Reports" : [
+            {
+              "DeviceName" : "Alienware Alienware 15 DA15260",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "24.04",
+              "VersionOld" : "20250507",
+              "Vendor" : "Wistron",
+              "RemoteId" : "lvfs",
+              "VendorId" : 98,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.20"
+            },
+            {
+              "DeviceName" : "LENOVO Yoga Pro 7 15ASH11",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "24.04",
+              "VersionOld" : "20250902",
+              "Vendor" : "LCFUTURECENTER",
+              "RemoteId" : "lvfs",
+              "VendorId" : 4431,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.20"
+            },
+            {
+              "DeviceName" : "LENOVO Yoga Pro 7 15ASH11",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "24.04",
+              "VersionOld" : "20250902",
+              "Vendor" : "LCFUTURECENTER",
+              "RemoteId" : "lvfs",
+              "VendorId" : 4431,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.20"
+            },
+            {
+              "DeviceName" : "LENOVO Yoga Pro 7 15ASH11",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "24.04",
+              "VersionOld" : "20250902",
+              "Vendor" : "LCFUTURECENTER",
+              "RemoteId" : "lvfs",
+              "VendorId" : 4431,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.20"
+            },
+            {
+              "DeviceName" : "LENOVO VXXX",
+              "DistroId" : "rhel",
+              "DistroVersion" : "10.0",
+              "VersionOld" : "20160809",
+              "Vendor" : "Lenovo",
+              "RemoteId" : "lvfs",
+              "VendorId" : 25,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.19"
+            }
+          ]
+        },
+        {
+          "AppstreamId" : "com.microsoft.dbx.x64.firmware",
+          "ReleaseId" : "130035",
+          "RemoteId" : "lvfs",
+          "Name" : "Secure Boot dbx",
+          "NameVariantSuffix" : "x64",
+          "Summary" : "UEFI Secure Boot Forbidden Signature Database",
+          "Description" : "<p>This updates the list of forbidden signatures (the &quot;dbx&quot;) to the latest release from Microsoft.</p><p>Some insecure versions of the IGEL bootloader were added, due to a security vulnerability that allowed an attacker to bypass UEFI Secure Boot.</p>",
+          "Version" : "20250902",
+          "Filename" : "DBXUpdate-20250902-x64.cab",
+          "Protocol" : "org.uefi.dbx2",
+          "Categories" : [
+            "X-Configuration",
+            "X-System"
+          ],
+          "Issues" : [
+            "CVE-2025-47827"
+          ],
+          "Checksum" : [
+            "554bcc51746a5372babea54b3772c855b48c3bd3",
+            "7178302fa23fcb875e7540900e299fb30a76758663efb7e1c56edc25cd3f316a"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 24053,
+          "Created" : 1756771200,
+          "Locations" : [
+            "https://fwupd.org/downloads/7178302fa23fcb875e7540900e299fb30a76758663efb7e1c56edc25cd3f316a-DBXUpdate-20250902-x64.cab"
+          ],
+          "Homepage" : "https://uefi.org/revocationlistfile",
+          "Vendor" : "Linux Foundation",
+          "Flags" : [
+            "trusted-metadata",
+            "is-upgrade",
+            "trusted-report"
+          ],
+          "InstallDuration" : 1,
+          "Reports" : [
+            {
+              "DeviceName" : "LENOVO ThinkPad P53",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "26.04",
+              "VersionOld" : "20230501",
+              "Vendor" : "Lenovo",
+              "RemoteId" : "lvfs",
+              "VendorId" : 84,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.1.1"
+            },
+            {
+              "DeviceName" : "LENOVO ThinkPad P15v Gen 1",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "25.10",
+              "VersionOld" : "20230501",
+              "Vendor" : "Lenovo",
+              "RemoteId" : "lvfs",
+              "VendorId" : 84,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.16"
+            },
+            {
+              "DeviceName" : "Star Labs LabTop",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "25.10",
+              "VersionOld" : "20230501",
+              "Vendor" : "Star Labs",
+              "RemoteId" : "lvfs",
+              "VendorId" : 115,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.18"
+            },
+            {
+              "DeviceName" : "Star Labs StarFighter",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "25.10",
+              "VersionOld" : "20230501",
+              "Vendor" : "Star Labs",
+              "RemoteId" : "lvfs",
+              "VendorId" : 115,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.17"
+            },
+            {
+              "DeviceName" : "ASUS System Product Name",
+              "DistroId" : "fedora",
+              "DistroVariant" : "workstation",
+              "DistroVersion" : "42",
+              "VersionOld" : "20250507",
+              "Vendor" : "Linux Foundation",
+              "RemoteId" : "lvfs",
+              "VendorId" : 199,
+              "Flags" : [
+                "from-oem",
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.17"
+            },
+            {
+              "DeviceName" : "Nerv NRV-HX521",
+              "DistroId" : "fedora",
+              "DistroVariant" : "kde",
+              "DistroVersion" : "43",
+              "VersionOld" : "20230501",
+              "Vendor" : "OnLogic",
+              "RemoteId" : "lvfs",
+              "VendorId" : 2946,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.16"
+            }
+          ]
+        },
+        {
+          "AppstreamId" : "com.microsoft.dbx.x64.firmware",
+          "ReleaseId" : "115586",
+          "RemoteId" : "lvfs",
+          "Name" : "Secure Boot dbx",
+          "NameVariantSuffix" : "x64",
+          "Summary" : "UEFI Secure Boot Forbidden Signature Database",
+          "Description" : "<p>This updates the list of forbidden signatures (the &quot;dbx&quot;) to the latest release from Microsoft.</p><p>Some insecure versions of BiosFlashShell and Dtbios by DT Research Inc were added, due to a security vulnerability that allowed an attacker to bypass UEFI Secure Boot.</p>",
+          "Version" : "20250507",
+          "Filename" : "DBXUpdate-20250507-x64.cab",
+          "Protocol" : "org.uefi.dbx2",
+          "Categories" : [
+            "X-Configuration",
+            "X-System"
+          ],
+          "Issues" : [
+            "806555",
+            "CVE-2025-3052"
+          ],
+          "Checksum" : [
+            "ba051e72126cffa054a9dca6f935c3d9d943dff5",
+            "40d3a4630619b83026f66bc64d97a582bbd9223ad53aa3f519ff5e2121d11ca6"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 24005,
+          "Created" : 1737072000,
+          "Locations" : [
+            "https://fwupd.org/downloads/40d3a4630619b83026f66bc64d97a582bbd9223ad53aa3f519ff5e2121d11ca6-DBXUpdate-20250507-x64.cab"
+          ],
+          "Homepage" : "https://uefi.org/revocationlistfile",
+          "Vendor" : "Linux Foundation",
+          "Flags" : [
+            "trusted-metadata",
+            "is-upgrade",
+            "trusted-report"
+          ],
+          "InstallDuration" : 1,
+          "Reports" : [
+            {
+              "DeviceName" : "Framework Laptop 16 (AMD Ryzen 7040 Series)",
+              "DistroId" : "fedora",
+              "DistroVariant" : "workstation",
+              "DistroVersion" : "42",
+              "VersionOld" : "20230501",
+              "Vendor" : "Framework",
+              "RemoteId" : "lvfs",
+              "VendorId" : 438,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.16"
+            },
+            {
+              "DeviceName" : "LENOVO ThinkPad P16v Gen 1",
+              "DistroId" : "fedora",
+              "DistroVariant" : "workstation",
+              "DistroVersion" : "42",
+              "VersionOld" : "20241101",
+              "Vendor" : "Linux Foundation",
+              "RemoteId" : "lvfs",
+              "VendorId" : 199,
+              "Flags" : [
+                "from-oem",
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "2.0.11"
+            }
+          ]
+        },
+        {
+          "AppstreamId" : "com.microsoft.dbx.x64.firmware",
+          "ReleaseId" : "105821",
+          "RemoteId" : "lvfs",
+          "Name" : "Secure Boot dbx",
+          "NameVariantSuffix" : "x64",
+          "Summary" : "UEFI Secure Boot Forbidden Signature Database",
+          "Description" : "<p>This updates the list of forbidden signatures (the &quot;dbx&quot;) to the latest release from Microsoft.</p><p>An insecure version of Howyar's SysReturn software was added, due to a security vulnerability that allowed an attacker to bypass UEFI Secure Boot.</p>",
+          "Version" : "20241101",
+          "Filename" : "DBXUpdate-20241101-x64.cab",
+          "Protocol" : "org.uefi.dbx2",
+          "Categories" : [
+            "X-Configuration",
+            "X-System"
+          ],
+          "Issues" : [
+            "529659",
+            "CVE-2024-7344"
+          ],
+          "Checksum" : [
+            "78b4e7cc928e9f7a3052d4c9103e4141f96fcf56",
+            "093e6913dfecefbdaa9374a2e1caee7bf7e74c7eda847624e456e344884ba5f6"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 15125,
+          "Created" : 1737072000,
+          "Locations" : [
+            "https://fwupd.org/downloads/093e6913dfecefbdaa9374a2e1caee7bf7e74c7eda847624e456e344884ba5f6-DBXUpdate-20241101-x64.cab"
+          ],
+          "Homepage" : "https://uefi.org/revocationlistfile",
+          "Vendor" : "Linux Foundation",
+          "Flags" : [
+            "trusted-metadata",
+            "is-upgrade"
+          ],
+          "InstallDuration" : 1,
+          "Reports" : [
+            {
+              "DeviceName" : "LENOVO ThinkPad",
+              "DistroId" : "ubuntu",
+              "DistroVersion" : "24.04",
+              "VersionOld" : "20230501",
+              "Vendor" : "Wistron",
+              "RemoteId" : "lvfs",
+              "VendorId" : 98,
+              "Flags" : [
+                "is-upgrade"
+              ],
+              "RuntimeVersion(org.freedesktop.fwupd)" : "1.9.28"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name" : "Windows Production PCA",
+      "DeviceId" : "ad7e00ec37f005ae10492bdb7f73aef0d2e20488",
+      "ParentDeviceId" : "0352a8acc949c7df21fec16e566ba9a74e797a97",
+      "CompositeId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "InstanceIds" : [
+        "UEFI\\VENDOR_Microsoft&NAME_Microsoft-Windows-Production-PCA",
+        "UEFI\\CRT_1A8B6903D64CC9AD09D12FCB355663A458A09EF0"
+      ],
+      "Guid" : [
+        "675d2184-6c9a-59f1-a6f1-3c229b5dbb79",
+        "0611d85d-99a4-5c50-8c17-fc5196226f85"
+      ],
+      "Plugin" : "uefi_db",
+      "Protocols" : [
+        "org.uefi.dbx2"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "needs-reboot",
+        "signed-payload",
+        "can-emulation-tag"
+      ],
+      "Vendor" : "Microsoft",
+      "VendorIds" : [
+        "UEFI:Microsoft"
+      ],
+      "Version" : "2011",
+      "VersionFormat" : "number",
+      "VersionRaw" : 2011,
+      "Icons" : [
+        "application-certificate"
+      ],
+      "Created" : 1790959130
+    }
+  ]
+}

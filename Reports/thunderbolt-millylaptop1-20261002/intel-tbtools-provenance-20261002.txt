@@ -1,0 +1,17 @@
+2026-10-02T19:39:24Z
+upstream=https://github.com/intel/tbtools.git
+commit=aa0b1be590443d7074e799ebd6c72e308c5bdd02
+rustc 1.99.0 (b940084d7 2026-09-28)
+cargo 1.99.0 (5f94df478 2026-08-27)
+stable-x86_64-unknown-linux-gnu (default)
+build=cargo build --locked --release --bin tblist --bin tbadapters --bin tbdump --bin tbget --bin tbmonitor --bin tbtrace --bin tbtunnels
+native_dependencies=existing gcc pkg-config libudev-dev; no apt installation
+rustup_install=--no-modify-path --profile minimal --default-toolchain stable
+7d0ea0f8eba7fa1ebfe998091cd7ec4501e33ec5ca6b884eb4d894d7da5170af  /home/cog/.local/src/rustup-init-tbtools.sh
+e770c41cce54a62c3e26d41705d2b71541aba8ad938d51aea3d106080e1da7c1  /home/cog/.local/bin/tblist
+621161fe98c248297f08638512781b1de8ded54138a71b6d88716f91a7505983  /home/cog/.local/bin/tbadapters
+5d213a7c789fa2da1f2b3cb73c40e550c93c204b244ec42475c8e73a21424661  /home/cog/.local/bin/tbdump
+c15004c902dd116ab30eac594604a0bd3da52fe2bf1b2967be9bebbf2d2333a0  /home/cog/.local/bin/tbget
+267ecfe0a80fdf7de8313c19aa7a217685aebccd30d5eef9bebfee9c90589a5a  /home/cog/.local/bin/tbmonitor
+4be0b597d72bdcf0a12f671122b484e90b17d63b6c58ad9e0f3f86b9fd64896e  /home/cog/.local/bin/tbtrace
+bd5eab00fbfe299f1e21c7cbb538ddd070988c4f3080a6d3d8c5aa4136af4623  /home/cog/.local/bin/tbtunnels

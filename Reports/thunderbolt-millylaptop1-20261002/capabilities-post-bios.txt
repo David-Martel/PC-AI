@@ -1,0 +1,49 @@
+CPU
+CPU(s):                                  32
+On-line CPU(s) list:                     0-31
+Model name:                              13th Gen Intel(R) Core(TM) i9-13950HX
+Thread(s) per core:                      2
+Core(s) per socket:                      24
+Socket(s):                               1
+Virtualization:                          VT-x
+NUMA node0 CPU(s):                       0-31
+Memory
+               total        used        free      shared  buff/cache   available
+Mem:            62Gi       1.8Gi        58Gi       609Mi       2.0Gi        59Gi
+Swap:          2.0Gi          0B       2.0Gi
+KVM
+crw-rw----+ 1 root kvm 10, 232 Oct  2 16:07 /dev/kvm
+CPU virtualization flag count=32
+IOMMU group count=23
+Storage
+NAME      SIZE MODEL                  TRAN
+loop0       4K
+loop1    55.5M
+loop2    55.5M
+loop3    63.8M
+loop4    63.8M
+loop5      74M
+loop6      74M
+loop7    66.8M
+loop8    66.8M
+loop9   250.1M
+loop10  250.4M
+loop11  346.3M
+loop12  349.7M
+loop13    516M
+loop14  516.2M
+loop15  669.8M
+loop16   91.7M
+loop17    395M
+loop18    402M
+loop19   12.9M
+loop20   12.2M
+loop21   50.8M
+loop22   50.9M
+loop23    576K
+loop24    828K
+loop25  321.1M
+loop26  321.1M
+loop27  484.1M
+loop28  422.8M
+nvme0n1 953.9G KXG8AZNV1T02 LA KIOXIA nvme

@@ -1,0 +1,11 @@
+{
+  "BeforeCount": 2,
+  "AfterCount": 2,
+  "Added": [],
+  "ExistingRules": [
+    "PSAvoidUsingEmptyCatchBlock",
+    "PSUseBOMForUnicodeEncodedFile"
+  ],
+  "ParseErrors": [],
+  "Comparison": "Rule/message multiset with backup basename normalized; original UTF8 no BOM preserved"
+}

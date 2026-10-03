@@ -1,0 +1,202 @@
+{
+  "schema": "pcai.milly.post26.stability.readonly.v1",
+  "reviewed_at_utc": "2026-10-03T01:53:43Z",
+  "host": "millylaptop1",
+  "reviewer": "codex independent child milly_optional_review",
+  "scope": {
+    "remote": "read-only session/service status, sanitized crash metadata and scoped process journals; no raw crash dump, credentials, desktop/input interaction, playback/recording, service restart or package/config changes",
+    "writes": "only private Windows post26-stability-review receipt"
+  },
+  "current_session": {
+    "id": "53",
+    "user": "cog",
+    "uid": 1002,
+    "type": "wayland",
+    "seat": "seat0",
+    "tty": "tty2",
+    "state": "active",
+    "active": true,
+    "started_local": "2026-10-02 21:43:02 EDT",
+    "gnome_shell_pid": 12320,
+    "greeter_gnome_shell_process_seen": false,
+    "screen_reader_enabled": false,
+    "orca_process_seen": false,
+    "orca_user_unit": {
+      "state": "inactive",
+      "substate": "dead",
+      "result": "success",
+      "restarts": 0
+    }
+  },
+  "audio_services": [
+    {
+      "name": "wireplumber",
+      "pid": 9807,
+      "state": "active",
+      "substate": "running",
+      "result": "success",
+      "restarts": 0,
+      "exec_main_status": 0,
+      "active_since_local": "2026-10-02 21:39:25 EDT"
+    },
+    {
+      "name": "pipewire",
+      "pid": 9788,
+      "state": "active",
+      "substate": "running",
+      "result": "success",
+      "restarts": 0,
+      "exec_main_status": 0,
+      "active_since_local": "2026-10-02 21:39:25 EDT"
+    },
+    {
+      "name": "pipewire-pulse",
+      "pid": 9792,
+      "state": "active",
+      "substate": "running",
+      "result": "success",
+      "restarts": 0,
+      "exec_main_status": 0,
+      "active_since_local": "2026-10-02 21:39:25 EDT"
+    }
+  ],
+  "read_only_audio_probes": {
+    "pactl_info": {
+      "exit": 0,
+      "pipewire_server": true,
+      "default_sink_set": true,
+      "default_source_set": true
+    },
+    "pactl_short_sinks": {
+      "exit": 0,
+      "count": 4
+    },
+    "pactl_short_sources": {
+      "exit": 0,
+      "count": 6
+    },
+    "wpctl_status": {
+      "exit": 0,
+      "nonempty_stdout": true
+    },
+    "limits": "Control-plane and device enumeration succeeded. No audible output, recording, streaming session, hardware loopback, or latency test performed."
+  },
+  "packages": {
+    "gnome-shell": "50.1-0ubuntu1.3",
+    "orca": "50.2-0ubuntu0.1",
+    "pipewire:amd64": "1.6.2-1ubuntu1.2",
+    "pipewire-pulse": "1.6.2-1ubuntu1.2",
+    "wireplumber": "0.5.13-1ubuntu1"
+  },
+  "historical_crashes": [
+    {
+      "path": "/var/crash/_usr_bin_wireplumber.1002.crash",
+      "problem_type": "Crash",
+      "executable": "/usr/bin/wireplumber",
+      "signal": 6,
+      "pid": 6600,
+      "intrinsic_date_local": "2026-10-02 21:12:07 EDT",
+      "report_size": 1440780,
+      "file_mtime_epoch": 1790991779.0244026,
+      "short_functions": [
+        "g_assertion_message_expr",
+        "g_closure_invalidate",
+        "__pthread_kill_implementation",
+        "__pthread_kill_internal",
+        "__GI___pthread_kill",
+        "__GI_raise",
+        "__GI_abort",
+        "g_object_unref"
+      ],
+      "verified_journal_cause": "GLib-GObject invalid_closure_notify assertion failed (handler != NULL), followed by abort",
+      "classification": "Earlier process; report mtime approximately30min later is not actual crash time; currentPID9807 differs.",
+      "underlying_defect": "Exact trigger/ownership not established by scoped logs and short stack. No speculative source patch."
+    },
+    {
+      "path": "/var/crash/_usr_bin_gnome-shell.60578.crash",
+      "problem_type": "Crash",
+      "executable": "/usr/bin/gnome-shell",
+      "signal": 11,
+      "pid": 2975,
+      "intrinsic_date_local": "2026-10-02 21:42:56 EDT",
+      "report_size": 10604887,
+      "file_mtime_epoch": 1790991781.0774138,
+      "short_functions": [],
+      "classification": "GreeterUID60578 crash immediately before active Cog session; no current GDM shell process. Cog shellPID12320 remains running.",
+      "underlying_defect": "No useful short stack or scoped journal cause. Signal11 is a symptom, not a proven NVIDIA/GNOME cause."
+    },
+    {
+      "path": "/var/crash/_usr_bin_orca.1002.crash",
+      "problem_type": "Crash",
+      "executable": "/usr/bin/orca",
+      "signal": null,
+      "pid": 105222,
+      "intrinsic_date_local": "2026-10-02 21:09:26 EDT",
+      "report_size": 119158,
+      "file_mtime_epoch": 1790989930.6041014,
+      "short_python_functions": [
+        "orca.py:_glib_shutdown_handler",
+        "orca.py:shutdown",
+        "clipboard.py:deactivate"
+      ],
+      "classification": "Historical shutdown path, before current desktop. Current screen reader disabled and no Orca process.",
+      "underlying_defect": "Exception class/message could not be recovered through constrained extraction; no raw traceback/dump output and no source-root-cause claim."
+    }
+  ],
+  "scoped_current_logs": {
+    "since_local": "2026-10-02 21:39:00 EDT",
+    "until_local": "2026-10-02 21:56:00 EDT (query future upper bound; actual observation about21:52)",
+    "journal_exit": 0,
+    "filtered_entry_counts": {
+      "wireplumber": 10,
+      "gnome-shell": 234
+    },
+    "flagged_diagnostics": [
+      {
+        "pid": 9807,
+        "process": "wireplumber",
+        "reason": "libcamera DmaBufAllocator could not open any dma-buf provider",
+        "priority": 6,
+        "utc_us": "1790991565167262",
+        "interpretation": "Distinct camera-buffer capability warning/error; audio remains responsive. Camera import/provider permission and hardware capability not validated."
+      },
+      {
+        "pid": 12320,
+        "process": "gnome-shell",
+        "reason": "Geolocation portal permission lookup NotFound: no entry for geolocation",
+        "priority": 5,
+        "utc_us": "1790991784381647",
+        "interpretation": "No observed desktop crash or service failure associated with this message."
+      }
+    ],
+    "no_current_assertion_or_core_signal_detected": true,
+    "no_historical_greeter_cause_found": true
+  },
+  "recommendation": {
+    "current_desktop": "Operational by active Wayland login and running Cog shell, with root-render validation outside this child receipt.",
+    "current_audio": "Operational control-plane and enumerated devices; physical playback remains unvalidated.",
+    "accessibility": "Screen reader currently disabled; historical Orca crash does not establish an active accessibility service fault. Accessibility usability is not accepted.",
+    "immediate_change": "None justified by this read-only evidence. Avoid restarting the healthy desktop/audio session solely because recent crash-file mtimes appear alarming.",
+    "follow_up": [
+      "Retain crash reports and ASUS backup through user validation; report historical failures separately from current health.",
+      "If Wireplumber closure assertion recurs in currentPID, capture a sanitized version-bound shortstack/journal receipt and reproduce in a bounded maintenance window before selecting an upstream fix.",
+      "Investigate libcamera DMA-buffer provider separately if camera capture is required; audio success is not a camera capability test.",
+      "If accessibility is required, user-authorized screen-reader lifecycle test is needed; do not enable Orca merely to generate an acceptance result.",
+      "Greeter SIGSEGV cause remains unresolved; monitor later greeter lifecycle rather than claiming a GPU driver cause."
+    ]
+  },
+  "probe_integrity": {
+    "initial_shell_probe": "Earlier dangling quote failed after partial useful output; corrected commands subsequently passed.",
+    "crash_read_probe": "Initial unprivileged GDM crash read correctly failed PermissionError; repeated narrowly scoped sudo read-only extraction passed.",
+    "javascript_probe": "One local script construction ReferenceError from an unescaped dpkg format template prevented execution; corrected default dpkg query passed.",
+    "final_successful_scoped_probes": 3,
+    "no_failed_probe_reported_as_pass": true
+  },
+  "limitations": [
+    "Snapshot only; no long-duration stability proof.",
+    "No GUI interaction, streaming/input, camera, accessibility or audible audio acceptance.",
+    "No unrestricted crash dump or credential output.",
+    "apport-autoreport upload timeout explanation was root-provided context, not independently revalidated in this bounded process audit.",
+    "Current NVIDIA render pass was root evidence, not rerun here."
+  ]
+}

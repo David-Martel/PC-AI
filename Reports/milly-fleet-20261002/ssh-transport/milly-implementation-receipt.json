@@ -1,0 +1,227 @@
+{
+  "observedUtc": "2026-10-02T23:57:27.333296+00:00",
+  "host": "millylaptop1",
+  "user": "cog",
+  "appliedFile": "/home/cog/.ssh/vigil-transport.conf",
+  "appliedSha256": "17a91d6916a8c22fc62e515e1945f8308c52b899903469be8fcac7bfc445138d",
+  "configSha256": "bac85f2e0c50b73b2b00c9313432db27b1f6a81c0ebe444cc2ac95bac0a4bd93",
+  "originalConfigSha256": "d9c0e337050aa6eb085b84ac0bac41f966f11935c51e6bab4e59ca343dc16c4c",
+  "originalFleetIncludeSha256": "97370f860905febe57ea139acc7bd237b8ace4df47fb445c498cc55dd3866277",
+  "existingFleetIncludeBytesUnchanged": true,
+  "originalConfigRetainedPrivately": "/home/cog/.cache/pcai/ssh-transport-backups-20261002/config.before",
+  "controlDirectoryMode": "0o700",
+  "controlDirectoryOwnerUid": 1002,
+  "exactAliases": [
+    "asuspro13",
+    "spark-0060",
+    "spark-3066"
+  ],
+  "changes": [
+    {
+      "alias": "asuspro13",
+      "removed": [
+        "controlmaster false",
+        "serveraliveinterval 300",
+        "connecttimeout 8",
+        "controlpersist no"
+      ],
+      "added": [
+        "controlmaster auto",
+        "serveraliveinterval 30",
+        "controlpath /home/cog/.ssh/cm/vigil-asuspro13-e879f591f73d7435e3a7dd5fc849f549ef821e58",
+        "connecttimeout 10",
+        "controlpersist 120"
+      ]
+    },
+    {
+      "alias": "spark-0060",
+      "removed": [
+        "controlmaster false",
+        "serveraliveinterval 300",
+        "connecttimeout 8",
+        "controlpersist no"
+      ],
+      "added": [
+        "controlmaster auto",
+        "serveraliveinterval 30",
+        "controlpath /home/cog/.ssh/cm/vigil-spark-0060-d441ca3e5030066efb58e9c51a2010489c98bb3b",
+        "connecttimeout 10",
+        "controlpersist 120"
+      ]
+    },
+    {
+      "alias": "spark-3066",
+      "removed": [
+        "controlmaster false",
+        "serveraliveinterval 300",
+        "connecttimeout 8",
+        "controlpersist no"
+      ],
+      "added": [
+        "controlmaster auto",
+        "serveraliveinterval 30",
+        "controlpath /home/cog/.ssh/cm/vigil-spark-3066-0a8f22d1eb1e3a074ab0a0ee8e2cb51cc4f809c2",
+        "connecttimeout 10",
+        "controlpersist 120"
+      ]
+    },
+    {
+      "alias": "github.com",
+      "removed": [],
+      "added": []
+    }
+  ],
+  "before": {
+    "asuspro13": [
+      "user damartel",
+      "hostname 192.168.50.2",
+      "port 22",
+      "batchmode yes",
+      "compression no",
+      "controlmaster false",
+      "identitiesonly yes",
+      "stricthostkeychecking true",
+      "connectionattempts 1",
+      "serveralivecountmax 3",
+      "serveraliveinterval 300",
+      "hostkeyalias asuspro13",
+      "identityfile /home/cog/.ssh/id_ed25519_millylaptop1",
+      "forwardagent no",
+      "connecttimeout 8",
+      "controlpersist no"
+    ],
+    "spark-0060": [
+      "user damartel",
+      "hostname 192.168.50.86",
+      "port 22",
+      "batchmode yes",
+      "compression no",
+      "controlmaster false",
+      "identitiesonly yes",
+      "stricthostkeychecking true",
+      "connectionattempts 1",
+      "serveralivecountmax 3",
+      "serveraliveinterval 300",
+      "hostkeyalias spark-0060",
+      "identityfile /home/cog/.ssh/id_ed25519_millylaptop1",
+      "forwardagent no",
+      "connecttimeout 8",
+      "controlpersist no"
+    ],
+    "spark-3066": [
+      "user damartel",
+      "hostname 10.60.4.3",
+      "port 22",
+      "batchmode yes",
+      "compression no",
+      "controlmaster false",
+      "identitiesonly yes",
+      "stricthostkeychecking true",
+      "connectionattempts 1",
+      "serveralivecountmax 3",
+      "serveraliveinterval 300",
+      "hostkeyalias spark-3066",
+      "identityfile /home/cog/.ssh/id_ed25519_millylaptop1",
+      "forwardagent no",
+      "connecttimeout 8",
+      "controlpersist no",
+      "proxyjump asuspro13"
+    ],
+    "github.com": [
+      "user git",
+      "hostname github.com",
+      "port 22",
+      "batchmode yes",
+      "compression no",
+      "controlmaster false",
+      "identitiesonly yes",
+      "stricthostkeychecking true",
+      "connectionattempts 1",
+      "serveralivecountmax 3",
+      "serveraliveinterval 300",
+      "identityfile /home/cog/.ssh/id_ed25519_millylaptop1",
+      "forwardagent no",
+      "connecttimeout 8",
+      "controlpersist no"
+    ]
+  },
+  "after": {
+    "asuspro13": [
+      "user damartel",
+      "hostname 192.168.50.2",
+      "port 22",
+      "batchmode yes",
+      "compression no",
+      "controlmaster auto",
+      "identitiesonly yes",
+      "stricthostkeychecking true",
+      "connectionattempts 1",
+      "serveralivecountmax 3",
+      "serveraliveinterval 30",
+      "controlpath /home/cog/.ssh/cm/vigil-asuspro13-e879f591f73d7435e3a7dd5fc849f549ef821e58",
+      "hostkeyalias asuspro13",
+      "identityfile /home/cog/.ssh/id_ed25519_millylaptop1",
+      "forwardagent no",
+      "connecttimeout 10",
+      "controlpersist 120"
+    ],
+    "spark-0060": [
+      "user damartel",
+      "hostname 192.168.50.86",
+      "port 22",
+      "batchmode yes",
+      "compression no",
+      "controlmaster auto",
+      "identitiesonly yes",
+      "stricthostkeychecking true",
+      "connectionattempts 1",
+      "serveralivecountmax 3",
+      "serveraliveinterval 30",
+      "controlpath /home/cog/.ssh/cm/vigil-spark-0060-d441ca3e5030066efb58e9c51a2010489c98bb3b",
+      "hostkeyalias spark-0060",
+      "identityfile /home/cog/.ssh/id_ed25519_millylaptop1",
+      "forwardagent no",
+      "connecttimeout 10",
+      "controlpersist 120"
+    ],
+    "spark-3066": [
+      "user damartel",
+      "hostname 10.60.4.3",
+      "port 22",
+      "batchmode yes",
+      "compression no",
+      "controlmaster auto",
+      "identitiesonly yes",
+      "stricthostkeychecking true",
+      "connectionattempts 1",
+      "serveralivecountmax 3",
+      "serveraliveinterval 30",
+      "controlpath /home/cog/.ssh/cm/vigil-spark-3066-0a8f22d1eb1e3a074ab0a0ee8e2cb51cc4f809c2",
+      "hostkeyalias spark-3066",
+      "identityfile /home/cog/.ssh/id_ed25519_millylaptop1",
+      "forwardagent no",
+      "connecttimeout 10",
+      "controlpersist 120",
+      "proxyjump asuspro13"
+    ],
+    "github.com": [
+      "user git",
+      "hostname github.com",
+      "port 22",
+      "batchmode yes",
+      "compression no",
+      "controlmaster false",
+      "identitiesonly yes",
+      "stricthostkeychecking true",
+      "connectionattempts 1",
+      "serveralivecountmax 3",
+      "serveraliveinterval 300",
+      "identityfile /home/cog/.ssh/id_ed25519_millylaptop1",
+      "forwardagent no",
+      "connecttimeout 8",
+      "controlpersist no"
+    ]
+  },
+  "unrelatedGithubAllEffectiveFieldsUnchanged": true,
+  "protectedIdentityPinAndRouteFieldsUnchanged": true
+}

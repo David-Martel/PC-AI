@@ -1,0 +1,23 @@
+import datetime,json,os,pathlib,shlex,subprocess,time
+b=pathlib.Path('/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation');r=[]
+e=os.environ.copy();e['PATH']=str(pathlib.Path.home()/'.local/bin')+':'+e['PATH']
+def run(name,argv,env=None):
+ p=subprocess.run(argv,text=True,capture_output=True,env=env or e,timeout=45)
+ r.append({'name':name,'argv':argv,'exit':p.returncode,'stdout':p.stdout,'stderr':p.stderr});print(name,p.returncode,flush=True);return p
+q=e.copy();q.update(ROS_DOMAIN_ID='231',ROS_LOCALHOST_ONLY='1',QT_QPA_PLATFORM='offscreen',PYTHONPATH='/home/cog/dev/repos/vigil-spark/src/display')
+run('vigil-source-widget',['/home/cog/.local/share/vigil-endpoint/ui-py313/bin/python',str(b/'widget/validate-widget.py')],q)
+code='import sys,rclpy; rclpy.init(); n=rclpy.create_node("isolated_milly_qa"); n.destroy_node(); rclpy.shutdown(); print(sys.version.split()[0])'
+for dist,digest in [('jazzy','066420e07f60aa18262f2479981def87ebcfcec42eefb0c0c57c4a46098348ca'),('lyrical','f79cd486fa218596747c45d00ca42101b0303fc6d94ed5adb72145cd6f54b86c')]:
+ run(dist+'-container-isolated',['podman','run','--rm','--pull=never','--network=none','-e','ROS_DOMAIN_ID=231','docker.io/library/ros@sha256:'+digest,'bash','-c','source /opt/ros/'+dist+'/setup.bash; exec python3 -c '+shlex.quote(code)])
+sock=str(b/'ssh-master-corrected');args=['ssh','-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','ForwardAgent=no','-o','Compression=no','-S',sock]
+try:
+ run('ssh-master-start',args+['-o','ControlMaster=yes','-o','ControlPersist=20','-Nf','asuspro13'])
+ run('ssh-master-check',args+['-O','check','asuspro13'])
+ p=run('ssh-reused-hostname',args+['-vv','asuspro13','hostname'])
+ assert 'mux_client_request_session' in p.stderr and 'Master refused' not in p.stderr
+ assert p.stdout.strip()=='asuspro13'
+finally:
+ run('ssh-owned-master-exit',args+['-O','exit','asuspro13'])
+report={'observedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'scope':'Corrections to harness module path/container shell quoting/duplicate -M; original failures retained','checks':r,'actualReuseVerified':True,'allExitZero':all(x['exit']==0 for x in r)}
+(b/'functional-corrections.json').write_text(json.dumps(report,indent=2)+'\n')
+raise SystemExit(not report['allExitZero'])

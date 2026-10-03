@@ -1,0 +1,29 @@
+python3 - <<'PY'
+import socket,threading,subprocess,time,json,datetime,os
+listener=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+listener.bind(('127.0.0.1',0)); listener.listen(1); listener.settimeout(3)
+port=listener.getsockname()[1]; accepted=threading.Event(); stop=threading.Event(); failures=[]
+def serve():
+ try:
+  conn,_=listener.accept()
+  with conn:
+   accepted.set()
+   stop.wait(5) # Intentionally withhold the SSH banner; never send bytes.
+ except Exception as exc:
+  failures.append(type(exc).__name__+': '+str(exc))
+thread=threading.Thread(target=serve,name='pcai-owned-banner-timeout-probe',daemon=False); thread.start()
+args=['ssh','-F','/dev/null','-S','none','-n','-T','-o','BatchMode=yes','-o','ConnectionAttempts=1','-o','ConnectTimeout=1','-p',str(port),'127.0.0.1','true']
+start=time.perf_counter(); client=None; timed_out=False
+try:
+ client=subprocess.run(args,capture_output=True,text=True,timeout=4)
+ elapsed=round((time.perf_counter()-start)*1000,3)
+except subprocess.TimeoutExpired:
+ timed_out=True; elapsed=round((time.perf_counter()-start)*1000,3)
+finally:
+ stop.set(); listener.close(); thread.join(timeout=2)
+version=subprocess.run(['ssh','-V'],capture_output=True,text=True,timeout=3).stderr.strip()
+passed=bool(client is not None and client.returncode!=0 and accepted.is_set() and 'timed out' in client.stderr.lower() and 700<=elapsed<3000 and not timed_out and not thread.is_alive() and listener.fileno()==-1 and not failures)
+receipt={'observedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'host':os.uname().nodename,'sshVersion':version,'test':'accepted TCP connection with SSH banner deliberately withheld','bindAddress':'127.0.0.1','ephemeralPort':port,'clientArgs':args,'acceptedTcp':accepted.is_set(),'serverSentAnyBytes':False,'configuredConnectTimeoutSeconds':1,'outerClientDeadlineSeconds':4,'outerDeadlineFired':timed_out,'elapsedMs':elapsed,'clientExit':None if client is None else client.returncode,'clientStdout':None if client is None else client.stdout,'clientStderr':None if client is None else client.stderr,'ownedListenerClosed':listener.fileno()==-1,'ownedServerThreadStopped':not thread.is_alive(),'serverErrors':failures,'passed':passed,'productionSocketOrMasterTouched':False,'networkRouteFirewallOrPackageChanges':False}
+print(json.dumps(receipt,indent=2))
+if not passed: raise SystemExit(1)
+PY

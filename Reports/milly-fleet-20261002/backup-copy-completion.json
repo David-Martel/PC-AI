@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "observedUtc": "2026-10-02T22:53:11.3896152+00:00",
+  "sourceHost": "millylaptop1",
+  "destinationHost": "asuspro13",
+  "privateDestination": "/srv/vigil-backups/millylaptop1/20261002",
+  "initialCopy": {
+    "completedUtc": "2026-10-02T22:47:10Z",
+    "serviceResult": "success",
+    "totalFileBytes": 780466873159,
+    "transferredFileBytes": 773005477354
+  },
+  "finalDelta": {
+    "completedUtc": "2026-10-02T22:51:35Z",
+    "serviceResult": "success",
+    "totalFileBytes": 789737621693,
+    "transferredFileBytes": 8372550564,
+    "deletesPerformed": 0,
+    "efiFiles": 9,
+    "efiBytes": 6401625,
+    "stateCacheExcluded": "/home/cog/.cache/pcai/fleet-backup/***",
+    "originalUserProcessesAbsent": [
+      "yayuanli",
+      "millyptg"
+    ],
+    "nonGreeterGraphicalSessions": 0,
+    "initialGuardRace": "First attempt stopped before copying because a listed SSH session ended; retry confirms session disappearance and preserves both logs"
+  },
+  "maintenance": {
+    "priorUserAutologinDisabled": true,
+    "originalGdmConfigPreserved": true,
+    "keyOnlyRecoverySshPort": 1022,
+    "recoverySshTested": true,
+    "sleepInhibitorActive": true
+  },
+  "validationStatus": "Full included-data checksum and restore validation started; not yet accepted",
+  "rebootOrFirmwareAuthorizedAfter": "Successful backup integrity and restore validation; no upgrade started",
+  "cleanupAllowed": false
+}

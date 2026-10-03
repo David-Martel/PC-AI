@@ -1,0 +1,125 @@
+{
+  "observedUtc": "2026-10-03T01:09:00.522050+00:00",
+  "host": "millylaptop1",
+  "stage": "Resolute installed; post-Postfix repair, pre-reboot",
+  "originalUpgraderExit": 1,
+  "repair": "Removed only unused inactive unconfigured postfix; mail queues empty and no other packages removed",
+  "postfixRemovalExit": 0,
+  "checks": [
+    {
+      "argv": [
+        "cat",
+        "/etc/os-release"
+      ],
+      "exit": 0,
+      "stdout": "PRETTY_NAME=\"Ubuntu 26.04.1 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"26.04\"\nVERSION=\"26.04.1 LTS (Resolute Raccoon)\"\nVERSION_CODENAME=resolute\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=resolute\nLOGO=ubuntu-logo\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "dpkg",
+        "--audit"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "apt-get",
+        "check"
+      ],
+      "exit": 0,
+      "stdout": "Reading package lists...\nBuilding dependency tree...\nReading state information...\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "sshd",
+        "-t"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "dkms",
+        "status"
+      ],
+      "exit": 0,
+      "stdout": "nvidia/580.178.04, 6.8.0-134-generic, x86_64: installed\nnvidia/580.178.04, 6.8.0-138-generic, x86_64: installed\nnvidia/580.178.04, 6.8.0-146-generic, x86_64: installed\nnvidia/580.178.04, 7.0.0-38-generic, x86_64: installed\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "systemctl",
+        "is-active",
+        "ssh",
+        "gdm3",
+        "NetworkManager"
+      ],
+      "exit": 0,
+      "stdout": "active\nactive\nactive\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "id",
+        "-u"
+      ],
+      "exit": 0,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=name,driver_version,memory.total",
+        "--format=csv,noheader"
+      ],
+      "exit": 0,
+      "stdout": "NVIDIA RTX 5000 Ada Generation Laptop GPU, 580.178.04, 16376 MiB\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "cat",
+        "/sys/class/power_supply/AC/online"
+      ],
+      "exit": 0,
+      "stdout": "1\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "systemctl",
+        "show",
+        "pcai-milly-post-os-home-verification-20261003",
+        "-p",
+        "ActiveState",
+        "-p",
+        "ExecMainStatus"
+      ],
+      "exit": 0,
+      "stdout": "ActiveState=inactive\nExecMainStatus=0\n",
+      "stderr": ""
+    }
+  ],
+  "postbootValidated": false,
+  "backupKept": true
+}

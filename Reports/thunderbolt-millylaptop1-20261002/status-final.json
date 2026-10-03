@@ -1,0 +1,480 @@
+{
+  "Action": "Status",
+  "Peer": "millylaptop1",
+  "State": "Blocked",
+  "Applied": false,
+  "Profile": {
+    "sshAlias": "millylaptop1",
+    "expectedHostname": "millylaptop1",
+    "localAddress": "172.31.240.1",
+    "peerAddress": "172.31.240.2",
+    "prefixLength": 30,
+    "mtuBytes": 1500,
+    "notes": "LAN SSH remains the recovery path. Requires an enumerated Thunderbolt peer link."
+  },
+  "WindowsAdapters": [
+    {
+      "Name": "vSwitch (WSL (Hyper-V firewall))",
+      "InterfaceDescription": "Hyper-V Virtual Switch Extension Adapter #3",
+      "Status": "Up",
+      "ifIndex": 81,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Local Area Connection* 3",
+      "InterfaceDescription": "WAN Miniport (L2TP)",
+      "Status": "Disconnected",
+      "ifIndex": 41,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Wi-Fi 2",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Not Present",
+      "ifIndex": 40,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Local Area Connection 2",
+      "InterfaceDescription": "Wintun Userspace Tunnel",
+      "Status": "Disconnected",
+      "ifIndex": 38,
+      "LinkSpeed": "100 Gbps",
+      "MacAddress": null
+    },
+    {
+      "Name": "vSwitch (WSL)",
+      "InterfaceDescription": "Hyper-V Virtual Switch Extension Adapter #2",
+      "Status": "Up",
+      "ifIndex": 36,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Ethernet (Kernel Debugger)",
+      "InterfaceDescription": "Microsoft Kernel Debug Network Adapter",
+      "Status": "Not Present",
+      "ifIndex": 35,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Bluetooth Network Connection",
+      "InterfaceDescription": "Bluetooth Device (Personal Area Network)",
+      "Status": "Disconnected",
+      "ifIndex": 34,
+      "LinkSpeed": "3 Mbps",
+      "MacAddress": "6C-2F-80-8E-80-9A"
+    },
+    {
+      "Name": "vEthernet (WSL (Hyper-V firewall))",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter #3",
+      "Status": "Up",
+      "ifIndex": 84,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": "00-15-5D-56-75-4A"
+    },
+    {
+      "Name": "Local Area Connection* 7",
+      "InterfaceDescription": "WAN Miniport (IPv6)",
+      "Status": "Up",
+      "ifIndex": 33,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Ethernet 8",
+      "InterfaceDescription": "Realtek Gaming USB 2.5GbE Family Controller",
+      "Status": "Up",
+      "ifIndex": 30,
+      "LinkSpeed": "1 Gbps",
+      "MacAddress": "8C-AE-4C-BC-FE-12"
+    },
+    {
+      "Name": "vEthernet (Default Switch)",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter",
+      "Status": "Up",
+      "ifIndex": 24,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": "00-15-5D-F4-7C-00"
+    },
+    {
+      "Name": "Teredo Tunneling Pseudo-Interface",
+      "InterfaceDescription": "",
+      "Status": "Up",
+      "ifIndex": 28,
+      "LinkSpeed": "100 Kbps",
+      "MacAddress": "00-00-00-00-00-00-00-E0-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00"
+    },
+    {
+      "Name": "Local Area Connection* 5",
+      "InterfaceDescription": "WAN Miniport (PPPOE)",
+      "Status": "Disconnected",
+      "ifIndex": 27,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Wi-Fi",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Disconnected",
+      "ifIndex": 22,
+      "LinkSpeed": "1.2 Gbps",
+      "MacAddress": "6C-2F-80-8E-80-96"
+    },
+    {
+      "Name": "Local Area Connection* 4",
+      "InterfaceDescription": "WAN Miniport (PPTP)",
+      "Status": "Disconnected",
+      "ifIndex": 21,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Ethernet 13",
+      "InterfaceDescription": "Cisco AnyConnect Virtual Miniport Adapter for Windows x64",
+      "Status": "Not Present",
+      "ifIndex": 20,
+      "LinkSpeed": "0 bps",
+      "MacAddress": "00-05-9A-3C-7A-00"
+    },
+    {
+      "Name": "Wi-Fi 5",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Not Present",
+      "ifIndex": 18,
+      "LinkSpeed": "0 bps",
+      "MacAddress": "6E-2F-80-8E-80-97"
+    },
+    {
+      "Name": "vEthernet (WSL)",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter #2",
+      "Status": "Up",
+      "ifIndex": 17,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": "00-15-5D-15-20-07"
+    },
+    {
+      "Name": "Local Area Connection* 6",
+      "InterfaceDescription": "WAN Miniport (IP)",
+      "Status": "Up",
+      "ifIndex": 16,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Npcap Loopback Adapter",
+      "InterfaceDescription": "Npcap Loopback Adapter",
+      "Status": "Up",
+      "ifIndex": 15,
+      "LinkSpeed": "1.2 Gbps",
+      "MacAddress": "02-00-4C-4F-4F-50"
+    },
+    {
+      "Name": "Tailscale",
+      "InterfaceDescription": "Tailscale Tunnel",
+      "Status": "Up",
+      "ifIndex": 77,
+      "LinkSpeed": "100 Gbps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Microsoft IP-HTTPS Platform Interface",
+      "InterfaceDescription": "",
+      "Status": "Not Present",
+      "ifIndex": 14,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Local Area Connection* 2",
+      "InterfaceDescription": "WAN Miniport (IKEv2)",
+      "Status": "Disconnected",
+      "ifIndex": 13,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Wi-Fi 4",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Disconnected",
+      "ifIndex": 12,
+      "LinkSpeed": "0 bps",
+      "MacAddress": "6E-2F-80-8E-80-96"
+    },
+    {
+      "Name": "Ethernet 15",
+      "InterfaceDescription": "Realtek USB 5GbE Family Controller",
+      "Status": "Up",
+      "ifIndex": 11,
+      "LinkSpeed": "5 Gbps",
+      "MacAddress": "84-BA-59-36-9E-6C"
+    },
+    {
+      "Name": "vSwitch (Default Switch)",
+      "InterfaceDescription": "Hyper-V Virtual Switch Extension Adapter",
+      "Status": "Up",
+      "ifIndex": 7,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Wi-Fi 3",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Disconnected",
+      "ifIndex": 8,
+      "LinkSpeed": "0 bps",
+      "MacAddress": "6C-2F-80-8E-80-97"
+    },
+    {
+      "Name": "Local Area Connection* 1",
+      "InterfaceDescription": "WAN Miniport (SSTP)",
+      "Status": "Disconnected",
+      "ifIndex": 5,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "6to4 Adapter",
+      "InterfaceDescription": "",
+      "Status": "Not Present",
+      "ifIndex": 4,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    },
+    {
+      "Name": "Local Area Connection* 8",
+      "InterfaceDescription": "WAN Miniport (Network Monitor)",
+      "Status": "Up",
+      "ifIndex": 2,
+      "LinkSpeed": "0 bps",
+      "MacAddress": null
+    }
+  ],
+  "Linux": {
+    "hostname": "millylaptop1",
+    "interfaces": [],
+    "thunderboltDevices": [
+      {
+        "name": "domain0",
+        "path": "/sys/devices/pci0000:00/0000:00:1d.0/0000:20:00.0/0000:21:00.0/0000:22:00.0/domain0"
+      },
+      {
+        "name": "0-0",
+        "path": "/sys/devices/pci0000:00/0000:00:1d.0/0000:20:00.0/0000:21:00.0/0000:22:00.0/domain0/0-0"
+      }
+    ],
+    "addresses": [
+      {
+        "ifindex": 1,
+        "ifname": "lo",
+        "flags": [
+          "LOOPBACK",
+          "UP",
+          "LOWER_UP"
+        ],
+        "mtu": 65536,
+        "qdisc": "noqueue",
+        "operstate": "UNKNOWN",
+        "group": "default",
+        "txqlen": 1000,
+        "addr_info": [
+          {
+            "family": "inet",
+            "local": "127.0.0.1",
+            "prefixlen": 8,
+            "scope": "host",
+            "label": "lo",
+            "valid_life_time": 4294967295,
+            "preferred_life_time": 4294967295
+          }
+        ]
+      },
+      {
+        "ifindex": 2,
+        "ifname": "wlp0s20f3",
+        "flags": [
+          "BROADCAST",
+          "MULTICAST",
+          "UP",
+          "LOWER_UP"
+        ],
+        "mtu": 1500,
+        "qdisc": "noqueue",
+        "operstate": "UP",
+        "group": "default",
+        "txqlen": 1000,
+        "addr_info": [
+          {
+            "family": "inet",
+            "local": "35.3.41.148",
+            "prefixlen": 16,
+            "broadcast": "35.3.255.255",
+            "scope": "global",
+            "dynamic": true,
+            "noprefixroute": true,
+            "label": "wlp0s20f3",
+            "valid_life_time": 3057,
+            "preferred_life_time": 3057
+          }
+        ]
+      },
+      {
+        "ifindex": 4,
+        "ifname": "enx002427892147",
+        "flags": [
+          "BROADCAST",
+          "MULTICAST",
+          "UP",
+          "LOWER_UP"
+        ],
+        "mtu": 1500,
+        "qdisc": "fq_codel",
+        "operstate": "UP",
+        "group": "default",
+        "txqlen": 1000,
+        "addr_info": [
+          {
+            "family": "inet",
+            "local": "192.168.50.43",
+            "prefixlen": 24,
+            "broadcast": "192.168.50.255",
+            "scope": "global",
+            "dynamic": true,
+            "noprefixroute": true,
+            "label": "enx002427892147",
+            "valid_life_time": 82222,
+            "preferred_life_time": 82222
+          }
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "dst": "default",
+        "gateway": "192.168.50.1",
+        "dev": "enx002427892147",
+        "protocol": "dhcp",
+        "metric": 100,
+        "flags": []
+      },
+      {
+        "dst": "default",
+        "gateway": "35.3.0.1",
+        "dev": "wlp0s20f3",
+        "protocol": "dhcp",
+        "metric": 600,
+        "flags": []
+      },
+      {
+        "dst": "35.3.0.0/16",
+        "dev": "wlp0s20f3",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "35.3.41.148",
+        "metric": 600,
+        "flags": []
+      },
+      {
+        "dst": "169.254.0.0/16",
+        "dev": "wlp0s20f3",
+        "scope": "link",
+        "metric": 1000,
+        "flags": []
+      },
+      {
+        "dst": "192.168.50.0/24",
+        "dev": "enx002427892147",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "192.168.50.43",
+        "metric": 100,
+        "flags": []
+      },
+      {
+        "type": "local",
+        "dst": "35.3.41.148",
+        "dev": "wlp0s20f3",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "host",
+        "prefsrc": "35.3.41.148",
+        "flags": []
+      },
+      {
+        "type": "broadcast",
+        "dst": "35.3.255.255",
+        "dev": "wlp0s20f3",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "35.3.41.148",
+        "flags": []
+      },
+      {
+        "type": "local",
+        "dst": "127.0.0.0/8",
+        "dev": "lo",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "host",
+        "prefsrc": "127.0.0.1",
+        "flags": []
+      },
+      {
+        "type": "local",
+        "dst": "127.0.0.1",
+        "dev": "lo",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "host",
+        "prefsrc": "127.0.0.1",
+        "flags": []
+      },
+      {
+        "type": "broadcast",
+        "dst": "127.255.255.255",
+        "dev": "lo",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "127.0.0.1",
+        "flags": []
+      },
+      {
+        "type": "local",
+        "dst": "192.168.50.43",
+        "dev": "enx002427892147",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "host",
+        "prefsrc": "192.168.50.43",
+        "flags": []
+      },
+      {
+        "type": "broadcast",
+        "dst": "192.168.50.255",
+        "dev": "enx002427892147",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "192.168.50.43",
+        "flags": []
+      }
+    ],
+    "moduleLoaded": true,
+    "iperf3Available": true,
+    "networkManagerAvailable": true
+  },
+  "Blockers": [
+    "Blocked: expected exactly one genuine Thunderbolt peer adapter; found 0.",
+    "Blocked: Linux needs one thunderbolt-net interface with carrier."
+  ],
+  "Plan": [],
+  "Measurements": [],
+  "SshRecoveryAlias": "millylaptop1",
+  "ThunderboltSsh": null
+}

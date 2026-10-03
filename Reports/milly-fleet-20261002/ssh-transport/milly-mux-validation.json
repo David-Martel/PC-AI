@@ -1,0 +1,119 @@
+{
+  "observedUtc": "2026-10-03T00:01:51.637287+00:00",
+  "host": "millylaptop1",
+  "sshVersion": "OpenSSH_8.9p1 Ubuntu-3ubuntu0.17, OpenSSL 3.0.2 15 Mar 2022",
+  "disposableRuntimeDirectory": "/run/user/1002/vigil-ssh-review-gjy55uq7",
+  "socketDirectoryMode": "0o700",
+  "measurements": {
+    "mux": {
+      "masterCheck": "Master running (pid=12381)",
+      "cold": [
+        {
+          "elapsedMs": 218.362,
+          "exit": 0
+        },
+        {
+          "elapsedMs": 212.913,
+          "exit": 0
+        },
+        {
+          "elapsedMs": 193.78,
+          "exit": 0
+        }
+      ],
+      "reused": [
+        {
+          "elapsedMs": 92.437,
+          "exit": 0
+        },
+        {
+          "elapsedMs": 16.847,
+          "exit": 0
+        },
+        {
+          "elapsedMs": 16.72,
+          "exit": 0
+        }
+      ],
+      "coldMedianMs": 212.913,
+      "reusedMedianMs": 16.847,
+      "debugEvidence": [
+        "debug1: auto-mux: Trying existing master",
+        "debug1: mux_client_request_session: master session id: 2",
+        "debug1: auto-mux: Trying existing master",
+        "debug1: mux_client_request_session: master session id: 2",
+        "debug1: auto-mux: Trying existing master",
+        "debug1: mux_client_request_session: master session id: 2"
+      ],
+      "sameMasterVerified": true
+    },
+    "spark-0060Reachability": {
+      "exit": 0,
+      "elapsedMs": 500.02
+    },
+    "spark-3066Reachability": {
+      "exit": 0,
+      "elapsedMs": 489.819
+    },
+    "aliasUserSeparation": {
+      "distinctPaths": 3,
+      "expected": 3,
+      "passed": true
+    },
+    "missingSocketFallback": {
+      "exit": 0,
+      "passed": true,
+      "evidence": [
+        "debug1: Control socket \"/run/user/1002/vigil-ssh-review-gjy55uq7/missing\" does not exist",
+        "Authenticated to 192.168.50.2 ([192.168.50.2]:22) using \"publickey\"."
+      ]
+    },
+    "staleSocketFallback": {
+      "exit": 0,
+      "passed": true,
+      "evidence": [
+        "debug1: Stale control socket /run/user/1002/vigil-ssh-review-gjy55uq7/stale, unlinking",
+        "Authenticated to 192.168.50.2 ([192.168.50.2]:22) using \"publickey\"."
+      ]
+    },
+    "idleExpiry": {
+      "persistSeconds": 2,
+      "waitSeconds": 3,
+      "beforeExit": 0,
+      "afterExit": 255,
+      "passed": true
+    },
+    "wrongPinRefused": {
+      "exit": 255,
+      "usedFreshHandshake": true,
+      "passed": true,
+      "evidence": "Host key verification failed"
+    },
+    "unreachableBoundedFailure": {
+      "target": "loopback port 1; no fleet scan",
+      "exit": 255,
+      "elapsedMs": 3.882,
+      "outerDeadlineSeconds": 3,
+      "passed": true,
+      "failure": "connection refused"
+    }
+  },
+  "verboseDiagnosticStderrUsesPrivateFiles": true,
+  "cleanupOfExclusivelyOwnedSockets": [
+    {
+      "ownedSocket": "/run/user/1002/vigil-ssh-review-gjy55uq7/warm",
+      "exit": 0
+    },
+    {
+      "ownedSocket": "/run/user/1002/vigil-ssh-review-gjy55uq7/missing",
+      "exit": 0
+    },
+    {
+      "ownedSocket": "/run/user/1002/vigil-ssh-review-gjy55uq7/stale",
+      "exit": 0
+    }
+  ],
+  "ownedMasterSocketsRemaining": [],
+  "bulkOrGpuLoadTestsPerformed": false,
+  "productionSocketTerminationPerformed": false
+}

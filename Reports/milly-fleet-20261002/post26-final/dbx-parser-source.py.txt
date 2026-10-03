@@ -1,0 +1,70 @@
+import collections
+import gzip
+import hashlib
+import json
+import struct
+import uuid
+from pathlib import Path
+
+ROOT = Path(__file__).parent
+MS_OWNER = '77fa9abd-0359-4d32-bd60-28f4e78f784b'
+
+
+def parse_esl(blob, offset):
+    entries = []
+    lists = []
+    while offset < len(blob):
+        if len(blob) - offset < 28:
+            raise ValueError(f'Truncated EFI signature list at {offset}')
+        kind = str(uuid.UUID(bytes_le=blob[offset:offset + 16]))
+        total, header, stride = struct.unpack_from('<III', blob, offset + 16)
+        if total < 28 + header or stride <= 16 or offset + total > len(blob):
+            raise ValueError(f'Invalid list dimensions at {offset}')
+        payload_length = total - 28 - header
+        if payload_length % stride:
+            raise ValueError(f'Invalid signature alignment at {offset}')
+        count = payload_length // stride
+        lists.append({'offset': offset, 'type': kind, 'bytes': total, 'signatureBytes': stride, 'count': count})
+        for start in range(offset + 28 + header, offset + total, stride):
+            owner = str(uuid.UUID(bytes_le=blob[start:start + 16]))
+            data = blob[start + 16:start + stride]
+            entries.append((kind, owner, data.hex()))
+        offset += total
+    return entries, lists
+
+
+def load(name, authentication=False):
+    data = (ROOT / name).read_bytes()
+    if authentication:
+        cert_length = struct.unpack_from('<I', data, 16)[0]
+        cert_revision, cert_type = struct.unpack_from('<HH', data, 20)
+        cert_guid = str(uuid.UUID(bytes_le=data[24:40]))
+        if cert_length < 24 or cert_revision != 0x0200 or cert_type != 0x0EF1:
+            raise ValueError('Invalid EFI_VARIABLE_AUTHENTICATION_2 certificate header')
+        offset = 16 + cert_length
+        envelope = {'certificateLength': cert_length, 'certificateRevision': cert_revision, 'certificateType': cert_type, 'certificateGuid': cert_guid}
+    else:
+        offset = 4
+        envelope = {'efivarAttributes': struct.unpack_from('<I', data, 0)[0]}
+    entries, lists = parse_esl(data, offset)
+    ms_entries = [entry for entry in entries if entry[1] == MS_OWNER]
+    result = {'file': name, 'sha256': hashlib.sha256(data).hexdigest(), 'bytes': len(data), 'eslOffset': offset, 'envelope': envelope, 'signatureLists': lists, 'entryCount': len(entries), 'uniqueEntryCount': len(set(entries)), 'owners': dict(collections.Counter(entry[1] for entry in entries)), 'lastMicrosoftEntry': ms_entries[-1][2] if ms_entries else None, 'lastMicrosoftEntryDataSha256': hashlib.sha256(bytes.fromhex(ms_entries[-1][2])).hexdigest() if ms_entries else None}
+    return entries, result
+
+
+def compare(expected, actual):
+    missing = sorted(set(expected) - set(actual))
+    semantic_missing = sorted({(kind, data) for kind, owner, data in expected} - {(kind, data) for kind, owner, data in actual})
+    return {'expectedCount': len(expected), 'expectedUniqueCount': len(set(expected)), 'exactOwnerTypeDataMissingCount': len(missing), 'typeDataMissingCount': len(semantic_missing), 'missingEntries': missing}
+
+
+current, current_info = load('current-dbx.efivar')
+payload, payload_info = load('cab-extracted/DBXUpdate-20260707.x64.bin', True)
+ubuntu, ubuntu_info = load('ubuntu-dbxupdate_x64.bin', True)
+quirks = gzip.decompress((ROOT / 'installed-builtin.quirk.gz').read_bytes()).decode()
+last = current_info['lastMicrosoftEntry']
+result = {'schema': 'milly.dbx-entry-comparison.v1', 'current': current_info, 'officialCabPayload': payload_info, 'ubuntuBootUpdatePayload': ubuntu_info, 'officialPayloadInCurrent': compare(payload, current), 'ubuntuPayloadInCurrent': compare(ubuntu, current), 'currentContainsAdditionalToOfficialPayloadCount': len(set(current) - set(payload)), 'currentContainsAdditionalToPayloadUnionCount': len(set(current) - (set(payload) | set(ubuntu))), 'currentLastMicrosoftChecksumPresentInInstalledQuirks': last is not None and last.upper() in quirks.upper(), 'version20260707PresentInInstalledQuirks': '20260707' in quirks, 'entriesQualification': 'Entries compare exact signature type, owner GUID and data. Both signature list structure and authenticated payload envelope were validated locally; no firmware or EFI writes.'}
+(ROOT / 'comparison.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
+print(json.dumps({key: value for key, value in result.items() if key not in ('current', 'officialCabPayload', 'ubuntuBootUpdatePayload')}, indent=2))
+for name, info in [('current', current_info), ('official', payload_info), ('ubuntu', ubuntu_info)]:
+    print(name, json.dumps({k: info[k] for k in ('sha256', 'bytes', 'entryCount', 'uniqueEntryCount', 'lastMicrosoftEntry', 'owners')}))

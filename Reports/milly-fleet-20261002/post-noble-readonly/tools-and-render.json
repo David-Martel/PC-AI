@@ -1,0 +1,435 @@
+{
+  "tools": [
+    {
+      "argv": [
+        "/home/cog/.local/bin/uv",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "uv 0.12.22 (x86_64-unknown-linux-musl)",
+      "stderr": "",
+      "name": "uv",
+      "path": "/home/cog/.local/bin/uv",
+      "resolved": "/home/cog/.local/opt/vigil-tools/uv/0.12.22/uv",
+      "sha256": "2536e6332d029bfc7b3d971fe40d0daab841a0b066e2ee482fee6ce3e035b037"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/uvx",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "uvx 0.12.22 (x86_64-unknown-linux-musl)",
+      "stderr": "",
+      "name": "uvx",
+      "path": "/home/cog/.local/bin/uvx",
+      "resolved": "/home/cog/.local/opt/vigil-tools/uv/0.12.22/uvx",
+      "sha256": "3c9fcfd26e8db73cfebaf4ba8e73f31ed332906e0d31e479f2ed637b34ac4dfa"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/ninja",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "1.13.2",
+      "stderr": "",
+      "name": "ninja",
+      "path": "/home/cog/.local/bin/ninja",
+      "resolved": "/home/cog/.local/opt/vigil-tools/ninja/1.13.2/ninja",
+      "sha256": "607e668f90dd6cd82e1a42ae572647ad1b1fd43063964295b9547836d8c15d99"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/sccache",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "sccache 0.18.0",
+      "stderr": "",
+      "name": "sccache",
+      "path": "/home/cog/.local/bin/sccache",
+      "resolved": "/home/cog/.local/opt/vigil-tools/sccache/0.18.0/sccache",
+      "sha256": "973cb15f6a986d84ca334bbed3bbe2eb8f1ee8fd81bf9e115b8539a293bf8d59"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/cargo-nextest",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: x86_64-unknown-linux-musl",
+      "stderr": "",
+      "name": "cargo-nextest",
+      "path": "/home/cog/.local/bin/cargo-nextest",
+      "resolved": "/home/cog/.local/opt/vigil-tools/cargo-nextest/0.9.146/cargo-nextest",
+      "sha256": "c38a2df61834a9d19e95c6a39e084b482f0dce555829a19b8348f64360586ecc"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/just",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "just 1.58.0",
+      "stderr": "",
+      "name": "just",
+      "path": "/home/cog/.local/bin/just",
+      "resolved": "/home/cog/.local/opt/vigil-tools/just/1.58.0/just",
+      "sha256": "3ad66571feae522db2cad31b9613bf21035b8a06d2738d6fc8fe6089856f2042"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/ruff",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "ruff 0.16.10",
+      "stderr": "",
+      "name": "ruff",
+      "path": "/home/cog/.local/bin/ruff",
+      "resolved": "/home/cog/.local/opt/vigil-tools/uv-tools/ruff/bin/ruff",
+      "sha256": "14704de5ea0d07038512de127bd52d6a169fb70bd70ddfa25bf39e21fed6b2b6"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/ty",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "ty 0.0.84",
+      "stderr": "",
+      "name": "ty",
+      "path": "/home/cog/.local/bin/ty",
+      "resolved": "/home/cog/.local/opt/vigil-tools/uv-tools/ty/bin/ty",
+      "sha256": "16f565f7578d58c017bf00caf2f41db3e6cc5e7469e5fe439a5fc322b159d69a"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/basedpyright",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "basedpyright 1.40.1\nbased on pyright 1.1.414",
+      "stderr": "",
+      "name": "basedpyright",
+      "path": "/home/cog/.local/bin/basedpyright",
+      "resolved": "/home/cog/.local/opt/vigil-tools/uv-tools/basedpyright/bin/basedpyright",
+      "sha256": "735987054936cc2dfd6072c0e34d1964b8ae9a96fb3aa667b5c04ddd42b3bb37"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/pytest",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "pytest 9.1.1",
+      "stderr": "",
+      "name": "pytest",
+      "path": "/home/cog/.local/bin/pytest",
+      "resolved": "/home/cog/.local/opt/vigil-tools/uv-tools/pytest/bin/pytest",
+      "sha256": "3dd518b5110bfecfdbf8ed19ea5517733a9d4ed1a18997207d7b2a0195f79bc5"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/cmake",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "cmake version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+      "stderr": "",
+      "name": "cmake",
+      "path": "/home/cog/.local/bin/cmake",
+      "resolved": "/home/cog/.local/opt/vigil-tools/uv-tools/cmake/bin/cmake",
+      "sha256": "2b37373aab8695d95d43b53648dd644b371ab9e559c55d08383dbbf40b2b478d"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/lychee",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "lychee 0.24.2",
+      "stderr": "",
+      "name": "lychee",
+      "path": "/home/cog/.local/bin/lychee",
+      "resolved": "/home/cog/.local/opt/vigil-tools/lychee/0.24.2/lychee",
+      "sha256": "5c44b077feb43359fb7ad0fd60452e33e1ed8a7bfdbfe6fdad029a020252943b"
+    },
+    {
+      "argv": [
+        "/home/cog/.local/bin/grpcurl",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "grpcurl v1.9.4",
+      "name": "grpcurl",
+      "path": "/home/cog/.local/bin/grpcurl",
+      "resolved": "/home/cog/.local/opt/vigil-tools/grpcurl/1.9.4/grpcurl",
+      "sha256": "32a5cc701c4d2c84980ed348c6383926a8b397d96a4cd9303769ee868cac2251"
+    },
+    {
+      "argv": [
+        "/home/cog/.cargo/bin/rustc",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "stderr": "",
+      "name": "rustc",
+      "path": "/home/cog/.cargo/bin/rustc",
+      "resolved": "/home/cog/.cargo/bin/rustup",
+      "sha256": "dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71"
+    },
+    {
+      "argv": [
+        "/home/cog/.cargo/bin/cargo",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "stderr": "",
+      "name": "cargo",
+      "path": "/home/cog/.cargo/bin/cargo",
+      "resolved": "/home/cog/.cargo/bin/rustup",
+      "sha256": "dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71"
+    },
+    {
+      "argv": [
+        "/usr/bin/gh",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "gh version 2.102.0 (2026-09-30)\nhttps://github.com/cli/cli/releases/tag/v2.102.0",
+      "stderr": "",
+      "name": "gh",
+      "path": "/usr/bin/gh",
+      "resolved": "/usr/bin/gh",
+      "sha256": "7469124f706944133d6a169691dd1c6c3511b12e85878d255e044e2948df4c9b"
+    }
+  ],
+  "pythonBinaries": [
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.13-linux-x86_64-gnu/bin/python3.13",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.13-linux-x86_64-gnu/bin/python3.13",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "Python 3.13.16",
+      "stderr": ""
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.13-linux-x86_64-gnu/bin/python3.13-config",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.13-linux-x86_64-gnu/bin/python3.13-config",
+        "--version"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Usage: /home/cog/.local/opt/vigil-tools/python/cpython-3.13-linux-x86_64-gnu/bin/python3.13-config --prefix|--exec-prefix|--includes|--libs|--cflags|--ldflags|--extension-suffix|--help|--abiflags|--configdir|--embed"
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.12-linux-x86_64-gnu/bin/python3.12",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.12-linux-x86_64-gnu/bin/python3.12",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "Python 3.12.15",
+      "stderr": ""
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.12-linux-x86_64-gnu/bin/python3.12-config",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.12-linux-x86_64-gnu/bin/python3.12-config",
+        "--version"
+      ],
+      "exit": 1,
+      "stdout": "Usage: /home/cog/.local/opt/vigil-tools/python/cpython-3.12-linux-x86_64-gnu/bin/python3.12-config --prefix|--exec-prefix|--includes|--libs|--cflags|--ldflags|--extension-suffix|--help|--abiflags|--configdir|--embed",
+      "stderr": ""
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.12.15-linux-x86_64-gnu/bin/python3.12",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.12.15-linux-x86_64-gnu/bin/python3.12",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "Python 3.12.15",
+      "stderr": ""
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.12.15-linux-x86_64-gnu/bin/python3.12-config",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.12.15-linux-x86_64-gnu/bin/python3.12-config",
+        "--version"
+      ],
+      "exit": 1,
+      "stdout": "Usage: /home/cog/.local/opt/vigil-tools/python/cpython-3.12.15-linux-x86_64-gnu/bin/python3.12-config --prefix|--exec-prefix|--includes|--libs|--cflags|--ldflags|--extension-suffix|--help|--abiflags|--configdir|--embed",
+      "stderr": ""
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.14.8-linux-x86_64-gnu/bin/python3.14",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.14.8-linux-x86_64-gnu/bin/python3.14",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "Python 3.14.8",
+      "stderr": ""
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.14.8-linux-x86_64-gnu/bin/python3.14-config",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.14.8-linux-x86_64-gnu/bin/python3.14-config",
+        "--version"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Usage: /home/cog/.local/opt/vigil-tools/python/cpython-3.14.8-linux-x86_64-gnu/bin/python3.14-config --prefix|--exec-prefix|--includes|--libs|--cflags|--ldflags|--extension-suffix|--help|--abiflags|--configdir|--embed"
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.14-linux-x86_64-gnu/bin/python3.14",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.14-linux-x86_64-gnu/bin/python3.14",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "Python 3.14.8",
+      "stderr": ""
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.14-linux-x86_64-gnu/bin/python3.14-config",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.14-linux-x86_64-gnu/bin/python3.14-config",
+        "--version"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Usage: /home/cog/.local/opt/vigil-tools/python/cpython-3.14-linux-x86_64-gnu/bin/python3.14-config --prefix|--exec-prefix|--includes|--libs|--cflags|--ldflags|--extension-suffix|--help|--abiflags|--configdir|--embed"
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.13.16-linux-x86_64-gnu/bin/python3.13",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.13.16-linux-x86_64-gnu/bin/python3.13",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "Python 3.13.16",
+      "stderr": ""
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.13.16-linux-x86_64-gnu/bin/python3.13-config",
+      "argv": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.13.16-linux-x86_64-gnu/bin/python3.13-config",
+        "--version"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Usage: /home/cog/.local/opt/vigil-tools/python/cpython-3.13.16-linux-x86_64-gnu/bin/python3.13-config --prefix|--exec-prefix|--includes|--libs|--cflags|--ldflags|--extension-suffix|--help|--abiflags|--configdir|--embed"
+    }
+  ],
+  "mediaPaths": [
+    {
+      "name": "moonlight_launcher",
+      "path": "/home/cog/.local/bin/moonlight",
+      "exists": true,
+      "sha256": "43b8fffb08497ffc6e94406991804bcf6dcd701f2829efd3acf663fbd98afbb0",
+      "executable": true
+    },
+    {
+      "name": "moonlight_binary",
+      "path": "/home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/moonlight",
+      "exists": true,
+      "sha256": "66bf1f178660dfa5980dcec509f2810887a66bbc8662a837b7ecb34d4b95b4a8",
+      "executable": true
+    },
+    {
+      "name": "bw_launcher",
+      "path": "/home/cog/.local/bin/bw",
+      "exists": true,
+      "sha256": "34a67a7641cf7b2d7b35c22dd54fd878977c6f33f07072b8242d494fc854fc2b",
+      "executable": true
+    },
+    {
+      "name": "bw_binary",
+      "path": "/home/cog/.local/opt/bitwarden-cli/2026.9.1/bw",
+      "exists": true,
+      "sha256": "36a952f0632814b79ee4a125b3dacb85d11be20c8b63eb19ca42b686cc90e20b",
+      "executable": true
+    }
+  ],
+  "environments": [
+    {
+      "path": "/home/cog/dev/repos/vigil-spark/.venv",
+      "exists": true,
+      "pyvenvCfg": "home = /home/cog/.local/share/uv/python/cpython-3.13-linux-x86_64-gnu/bin\nimplementation = CPython\nuv = 0.12.22\nversion_info = 3.13\ninclude-system-site-packages = false\nprompt = vigil-spark\n",
+      "metadata": []
+    },
+    {
+      "path": "/home/cog/dev/repos/vigil-spark/.venv-ros-py312",
+      "exists": false,
+      "metadata": []
+    },
+    {
+      "path": "/home/cog/.local/opt/vigil-ui-venv",
+      "exists": false,
+      "metadata": []
+    }
+  ],
+  "gpu": {
+    "argv": [
+      "nvidia-smi",
+      "--query-gpu=name,driver_version",
+      "--format=csv,noheader"
+    ],
+    "exit": 0,
+    "stdout": "NVIDIA RTX 5000 Ada Generation Laptop GPU, 580.178.04",
+    "stderr": ""
+  },
+  "moonlightDependencies": {
+    "argv": [
+      "ldd",
+      "/home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/moonlight"
+    ],
+    "exit": 0,
+    "stdout": "linux-vdso.so.1 (0x00007881bf270000)\n\tlibssl.so.1.1 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libssl.so.1.1 (0x00007881bef67000)\n\tlibcrypto.so.1.1 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libcrypto.so.1.1 (0x00007881bec00000)\n\tlibSDL2_ttf-2.0.so.0 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libSDL2_ttf-2.0.so.0 (0x00007881bea22000)\n\tlibSDL2-2.0.so.0 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libSDL2-2.0.so.0 (0x00007881be600000)\n\tlibopus.so.0 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libopus.so.0 (0x00007881bef07000)\n\tlibavcodec.so.61 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libavcodec.so.61 (0x00007881be000000)\n\tlibavutil.so.59 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libavutil.so.59 (0x00007881bce00000)\n\tlibswscale.so.8 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libswscale.so.8 (0x00007881be98b000)\n\tlibplacebo.so.349 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libplacebo.so.349 (0x00007881be8a0000)\n\tlibX11.so.6 => /lib/x86_64-linux-gnu/libX11.so.6 (0x00007881bccc3000)\n\tlibva-x11.so.2 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libva-x11.so.2 (0x00007881bf232000)\n\tlibva.so.2 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libva.so.2 (0x00007881be868000)\n\tlibQt5QuickControls2.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5QuickControls2.so.5 (0x00007881be831000)\n\tlibQt5Svg.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5Svg.so.5 (0x00007881be5a3000)\n\tlibQt5Gui.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5Gui.so.5 (0x00007881bc400000)\n\tlibQt5Qml.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5Qml.so.5 (0x00007881bbe00000)\n\tlibQt5Network.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5Network.so.5 (0x00007881bcaf9000)\n\tlibQt5Core.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5Core.so.5 (0x00007881bb800000)\n\tlibGL.so.1 => /lib/x86_64-linux-gnu/libGL.so.1 (0x00007881be51c000)\n\tlibpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007881bf22b000)\n\tlibEGL.so.1 => /lib/x86_64-linux-gnu/libEGL.so.1 (0x00007881beef5000)\n\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007881bb400000)\n\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007881bc317000)\n\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007881bdfd2000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007881bb000000)\n\tlibdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007881beef0000)\n\tlibva-drm.so.2 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libva-drm.so.2 (0x00007881be516000)\n\tlibvdpau.so.1 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libvdpau.so.1 (0x00007881be50f000)\n\tlibdrm.so.2 => /lib/x86_64-linux-gnu/libdrm.so.2 (0x00007881bdfbb000)\n\tlibshaderc_shared.so.1 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libshaderc_shared.so.1 (0x00007881ba600000)\n\tlibvulkan.so.1 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libvulkan.so.1 (0x00007881bdf42000)\n\tlibxcb.so.1 => /lib/x86_64-linux-gnu/libxcb.so.1 (0x00007881bc2ee000)\n\tlibXext.so.6 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libXext.so.6 (0x00007881bdf2b000)\n\tlibXfixes.so.3 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libXfixes.so.3 (0x00007881be506000)\n\tlibX11-xcb.so.1 => /lib/x86_64-linux-gnu/libX11-xcb.so.1 (0x00007881bdf26000)\n\tlibxcb-dri3.so.0 => /lib/x86_64-linux-gnu/libxcb-dri3.so.0 (0x00007881bdf1f000)\n\tlibQt5Quick.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5Quick.so.5 (0x00007881ba000000)\n\tlibQt5QuickTemplates2.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5QuickTemplates2.so.5 (0x00007881bb271000)\n\tlibQt5Widgets.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5Widgets.so.5 (0x00007881b9800000)\n\tlibz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x00007881bc2d2000)\n\tlibpng16.so.16 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libpng16.so.16 (0x00007881bb7c6000)\n\tlibharfbuzz.so.0 => /lib/x86_64-linux-gnu/libharfbuzz.so.0 (0x00007881bb6b9000)\n\tlibicui18n.so.66 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libicui18n.so.66 (0x00007881b9400000)\n\tlibicuuc.so.66 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libicuuc.so.66 (0x00007881b9000000)\n\tlibpcre2-16.so.0 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libpcre2-16.so.0 (0x00007881baf7b000)\n\tlibglib-2.0.so.0 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libglib-2.0.so.0 (0x00007881b9ecc000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007881bf272000)\n\tlibGLdispatch.so.0 => /lib/x86_64-linux-gnu/libGLdispatch.so.0 (0x00007881baec3000)\n\tlibGLX.so.0 => /lib/x86_64-linux-gnu/libGLX.so.0 (0x00007881bb686000)\n\tlibXau.so.6 => /lib/x86_64-linux-gnu/libXau.so.6 (0x00007881bcaf3000)\n\tlibXdmcp.so.6 => /lib/x86_64-linux-gnu/libXdmcp.so.6 (0x00007881bcaeb000)\n\tlibQt5QmlModels.so.5 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libQt5QmlModels.so.5 (0x00007881ba575000)\n\tlibfreetype.so.6 => /lib/x86_64-linux-gnu/libfreetype.so.6 (0x00007881b9334000)\n\tlibgraphite2.so.3 => /lib/x86_64-linux-gnu/libgraphite2.so.3 (0x00007881bb24b000)\n\tlibicudata.so.66 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libicudata.so.66 (0x00007881b7400000)\n\tlibpcre.so.3 => /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/usr/bin/../lib/libpcre.so.3 (0x00007881b978c000)\n\tlibbsd.so.0 => /lib/x86_64-linux-gnu/libbsd.so.0 (0x00007881bc2bc000)\n\tlibbz2.so.1.0 => /lib/x86_64-linux-gnu/libbz2.so.1.0 (0x00007881bb237000)\n\tlibbrotlidec.so.1 => /lib/x86_64-linux-gnu/libbrotlidec.so.1 (0x00007881bb229000)\n\tlibmd.so.0 => /lib/x86_64-linux-gnu/libmd.so.0 (0x00007881bb21a000)\n\tlibbrotlicommon.so.1 => /lib/x86_64-linux-gnu/libbrotlicommon.so.1 (0x00007881baea0000)",
+    "stderr": ""
+  },
+  "os": "PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+  "kernel": {
+    "argv": [
+      "uname",
+      "-r"
+    ],
+    "exit": 0,
+    "stdout": "7.0.0-38-generic",
+    "stderr": ""
+  },
+  "repoHead": {
+    "argv": [
+      "git",
+      "-C",
+      "/home/cog/dev/repos/vigil-spark",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "0201a3c9ac9fdc081dd1c481e2fd11748c25fd0b",
+    "stderr": ""
+  },
+  "repoStatus": {
+    "argv": [
+      "git",
+      "-C",
+      "/home/cog/dev/repos/vigil-spark",
+      "status",
+      "--short"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+}

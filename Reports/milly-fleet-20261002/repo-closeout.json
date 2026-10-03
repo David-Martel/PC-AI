@@ -1,11 +1,11 @@
 {
   "schema": "pcai.repository-closeout.v1",
-  "observedUtc": "2026-10-03T02:49:24.1622577Z",
+  "observedUtc": "2026-10-03T03:27:41.0715181Z",
   "repository": "David-Martel/PC-AI",
   "branch": "feat/thunderbolt-linux-peers",
   "reviewedMaintenanceHead": "48b78c34eb7aac57f299bfec91aae65d01373809",
   "base": "ca8a95b337e52566b83ea9703995912382a72551",
-  "integrationStatus": "review repairs in progress; not merged",
+  "integrationStatus": "PR163 published; signed review repairs validated, final exact-head CI required before merge",
   "validation": {
     "originalPesterUnitPassed": 101,
     "initialIntegrationConfigurationFailure": "Explicit runtime suite requires PCAI_TB_TEST_SSH_ALIAS; first invocation lacked it",
@@ -18,23 +18,28 @@
     "wholeRepositoryPowerShellLint": "Build.ps1 -Component lint -LintProfile powershell passed",
     "custodyBindings": 100,
     "frozenCaptureWhitespace": "Whole-branch git diff --check reports intentional source-capture whitespace; captured bytes retained. Working-tree source edits checked separately.",
-    "finalUnitTestsPassed": 111,
+    "finalUnitTestsPassed": 113,
     "finalUnitTestsSkipped": 0,
     "finalChangedPowerShellAnalyzerFindings": 0,
-    "initialFormatterFailures": "Unsupported -Path parameter and mixed line endings were rejected before writes; corrected with ScriptDefinition and normalized owned-source line endings, then seven files formatted and 111 tests passed"
+    "initialFormatterFailures": "Unsupported -Path parameter and mixed line endings were rejected before writes; corrected with ScriptDefinition and normalized owned-source line endings, then seven files formatted and 111 tests passed",
+    "documentationWindowsPassed": 26,
+    "documentationAsusLinuxPassed": 26,
+    "initialLinuxDocumentationFailure": "25 passed,1 failed: optional Litho fallback used missing USERPROFILE and aborted before the pipeline failure report. Portable HOME/platform executable fallback repaired; exact final Windows and Linux suites pass26/26,0skips. Initial log preserved privately."
   },
   "feedback": {
     "tpmModernizationDecisionPR": 1587,
     "tpmSourceHandoffPR": 1588,
     "tpmSourceHandoffMergedCommit": "eb920136c36dcdbcf8ccf82f46e2e09959f52e08",
     "optionalEndpointPR": 2462,
-    "optionalEndpointRepairStatus": "Exact707e02d route-aware SSH repair independently reviewed; process deadline followup in progress before push",
+    "optionalEndpointRepairStatus": "MERGED after exact1c2c4693 signed source review,89 real tests and exacthead tooling/aarch64/release-scope CI",
     "inventoryJsonPR": 2456,
     "inventoryJsonHead": "e543404cdebdd474e26823fe050db03fb9e33794",
     "inventoryJsonStatus": "MERGED after exact e543 independent review and fresh tooling/aarch64/release-scope QA",
     "sunshineProvider": "Owner request delivered; custody decision not received",
     "toolingPilot": "Corrected F2 matrix and named first derived-Needs implementer requested",
-    "inventoryJsonMergedCommit": "b88307353ea21cf24f9bb414788f4e8072a91a49"
+    "inventoryJsonMergedCommit": "b88307353ea21cf24f9bb414788f4e8072a91a49",
+    "optionalEndpointMergedCommit": "758553f7e8f32cdeae27405f8f9347fefc1dc689",
+    "optionalEndpointCleanup": "Owned ASUS worktree registration/path absent;26479 QA entries archived and hash verified. Normal removal permission failure retained; exact leftover moved atomically to private custody;16foreign registrations and shared stash unchanged."
   },
   "worktrees": [
     {
@@ -63,5 +68,14 @@
     "Supported university Wi-Fi credentials and association",
     "Original-user/browser and Cog database semantics",
     "AMT credential/network provisioning and physical/HIL validation"
-  ]
+  ],
+  "sourceReviewRepairs": {
+    "networkProcess": "a7236d888a395d9f6366ecdbcfdd1d1b5f2f7a75",
+    "nfsFixture": "6671437ddddcbcc904f5f8fcd9e3b935b933f05e",
+    "portableDocumentation": "5c75f3f9935a20d4c4b31cdbe00c635d3fb0552c",
+    "keyboardPR116": "138 input tests plus32 original profile tests; valid help/dry-run feedback repaired in owned tree, root16/16 collector review passed; signed publication and refreshedCI pending",
+    "rustPR157158": "Unsigned original heads held; code-preserving signed replacements in owned tree with actual CPU validation, no model/performance acceptance",
+    "dependencyPR147": "Actual optional NVML validation rerunning with persistent exit receipts",
+    "coverletPR160161": "Independent strict local6+9tests pass with reviewed XMLdoc fix; merge after PR163 integration"
+  }
 }

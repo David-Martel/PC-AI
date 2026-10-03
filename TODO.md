@@ -17,13 +17,15 @@ component results; they do not establish fleet or physical acceptance.
   install rendering/development tools, and validate isolated ROS/build/GPU/SSH paths.
 - [x] Preserve the private ASUS backup and unrelated worktree/untracked data.
 - [x] Independently review the six signed maintenance commits against current main.
-- [ ] Repair native-process deadlines for blocked stdin and inherited output pipes,
-  validate owned-process cleanup, and merge the exact reviewed maintenance PR.
+- [x] Repair native-process deadlines for blocked stdin and inherited output pipes,
+  and validate owned-process cleanup and portable native documentation controls.
+- [ ] Merge PC-AI PR163 after the final exact reviewed head passes refreshed CI.
 - [ ] Review and integrate safe existing PC-AI PRs; retain qualified CUDA/dependency
   blockers and owner-held worktrees. Refresh current branch/PR dispositions in the
   repository closeout receipt rather than treating cached refs as custody proof.
-- [ ] Complete VIGIL optional endpoint PR2462 routed-SSH reachability repair and
-  exact-head review/CI. PR2456 is merged after exact-head independent review and fresh required QA.
+- [x] Merge VIGIL optional endpoint PR2462 after routed-SSH/process-lifetime repair,
+  independent source review,89 real tests and exact-head CI. PR2456 is also merged.
+  Remove the owned endpoint worktree while preserving verified private QA custody.
 - [ ] Obtain the existing Sunshine provider reference and affected seat/firewall
   scope from its owner, then validate authenticated video/input/reconnect and the
   full VIGIL UI with matching production ROS message packages.

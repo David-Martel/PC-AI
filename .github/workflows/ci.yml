@@ -426,6 +426,68 @@ jobs:
           }
 
   # ──────────────────────────────────────────────────────────────
+  # Deploy is a separate workspace; Native checks cannot validate its lockfile
+  # or the runtime's HTTP tests. This CPU profile excludes model/CUDA features.
+  # GPU/model acceptance remains a separate gate with actual hardware fixtures.
+  # ──────────────────────────────────────────────────────────────
+
+  deploy-runtime:
+    name: Deploy Runtime (CPU)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Deploy
+      - name: Check runtime targets
+        working-directory: Deploy
+        shell: pwsh
+        run: |
+          cargo check -p rust-functiongemma-runtime --all-targets --no-default-features --locked
+          if ($LASTEXITCODE -ne 0) { throw "Deploy runtime check failed" }
+      - name: Test runtime and HTTP contracts
+        working-directory: Deploy
+        shell: pwsh
+        run: |
+          cargo test -p rust-functiongemma-runtime --lib --tests --no-default-features --locked -- --test-threads=1
+          if ($LASTEXITCODE -ne 0) { throw "Deploy runtime tests failed" }
+      - name: Restore cargo-audit
+        id: deploy-audit-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit.exe
+          key: ${{ runner.os }}-cargo-audit-0.22.2-v1
+          restore-keys: ${{ runner.os }}-cargo-audit-v1
+      - name: Ensure reviewed cargo-audit version
+        shell: pwsh
+        run: |
+          $tool = Get-Command cargo-audit -ErrorAction SilentlyContinue
+          $version = if ($tool) { & $tool.Source --version } else { '' }
+          if ($version -ne 'cargo-audit 0.22.2') {
+            cargo install cargo-audit --version 0.22.2 --locked --force
+            if ($LASTEXITCODE -ne 0) { throw "cargo-audit installation failed" }
+          }
+          $version = cargo-audit --version
+          if ($LASTEXITCODE -ne 0 -or $version -ne 'cargo-audit 0.22.2') {
+            throw "Unexpected cargo-audit version: $version"
+          }
+      - name: Save cargo-audit
+        if: steps.deploy-audit-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit.exe
+          key: ${{ runner.os }}-cargo-audit-0.22.2-v1
+      - name: Audit Deploy dependencies
+        working-directory: Deploy
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          cargo audit --file Cargo.lock
+          if ($LASTEXITCODE -ne 0) { throw "Deploy dependency audit failed" }
+
+  # ──────────────────────────────────────────────────────────────
   # Gate (required status check for branch protection)
   # ──────────────────────────────────────────────────────────────
 
@@ -444,6 +506,7 @@ jobs:
       - build-llamacpp
       - integration-tests
       - dotnet-build
+      - deploy-runtime
     steps:
       - name: Evaluate Results
         shell: pwsh
@@ -457,7 +520,8 @@ jobs:
             '${{ needs.powershell-test.result }}',
             '${{ needs.build-llamacpp.result }}',
             '${{ needs.integration-tests.result }}',
-            '${{ needs.dotnet-build.result }}'
+            '${{ needs.dotnet-build.result }}',
+            '${{ needs.deploy-runtime.result }}'
           )
           # 'success' only. No job here carries an `if:`, so the only way a
           # gated job skips is an upstream `needs` failing -- and that upstream
@@ -469,4 +533,4 @@ jobs:
             Write-Host "Non-success results: $($failed -join ', ')" -ForegroundColor Red
             exit 1
           }
-          Write-Host "CI Gate PASSED - all 9 checks succeeded" -ForegroundColor Green
+          Write-Host "CI Gate PASSED - all 10 checks succeeded" -ForegroundColor Green

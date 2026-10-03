@@ -200,15 +200,26 @@ Validation note:
   need scalar Rust DLL checks or token counts and do not need the C# bridge.
 - [ ] Keep full `Get-PcaiCapabilities` / `Get-PcaiNativeStatus` only for callers
   that need live C# bridge state, module coverage, or service details.
-- [ ] Add a small Pester contract test around probe shape and path resolution.
+- [x] Add Pester regression coverage for manifest-relative repository/native
+  discovery, checkout precedence and environment fallback. Five new tests plus
+  three portable bootstrap tests pass; see
+  `Reports/tooling-maintenance-20261003.md`. Native availability is verified
+  against installed binaries; correspondence to current Rust source is open.
 
 #### Stage 2: Import-Latency Reduction
 
+- [x] Restore installed interactive profile/history acceleration on dtm-p1gen7:
+  fix the raw-tail type guard and enable acceleration by default in both local
+  profile shims, preserving explicit opt-out. Five native data cases and the
+  startup verifier's injected-delay control pass; see the October 3 report.
 - [ ] Split `PC-AI.Acceleration` into a thin loader and nested command groups.
 - [ ] Benchmark import costs per imported file / command group.
 - [ ] Stop dot-sourcing the full public/private tree on every import.
 - [ ] Add import-phase timing hooks so cold-start regressions are easier to pin
   down.
+- [ ] Repair `Invoke-RustProfile.ps1` crate names, absolute output paths,
+  `RUSTC_WRAPPER` restoration and failed-command propagation before treating
+  its fallback timing or memory deltas as acceptance evidence.
 
 #### Stage 2.5: Benchmark Integrity And Memory Tracking
 

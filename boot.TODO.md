@@ -1339,3 +1339,26 @@ Cisco Ethernet 13. The coordinating agent's current PnP error query returned
 zero devices. No network adapter was removed or disabled.
 
 Evidence and rollback: [boot storage review](Reports/boot-storage-review-20260912.md).
+
+## Live validation refresh - October 3, 2026
+
+- [x] Existing sync-provider validator passes its clean 60-minute window: exit 0,
+  no OneDrive/FileSyncHelper WER events, failures or warnings. This does not prove
+  a decreasing queue or close stale scheduled-task result triage.
+- [x] Reapply the existing Process Lasso UI/sync tuning after its five-field
+  preview and hash-verified rollback backup. The initial validator failed on two
+  missing OneDrive exclusions and two disabled logging flags; the final validator
+  passes all six checks, exit 0, with the same governor PID and no restart.
+  Existing conservative process defaults and OneDrive I/O priority are restored;
+  watchdog recovery and future-boot ordering remain untested.
+- [x] Validate W: restoration through the existing shared-dev mount task. Initial
+  boot validator failed: detached disk and historical task result 51 (backing file
+  absent during September 30 boot). Current disk identity, virtual/backing sizes,
+  free W:, no VM reference and exclusive read-only open pass preflight.
+  Task result is now 0; healthy NTFS W: matches the historical volume GUID.
+  Fresh boot mount validator returns 0, with zero failures and the retained stale
+  diagnostic-report warning. No reboot, dismount or task configuration change.
+
+Current private receipt hashes and remaining boundaries are recorded in
+`Reports/milly-fleet-20261002/repo-closeout.json` under `followUpEasyWins`.
+Historical results above retain their original scope and date.

@@ -28,6 +28,24 @@ component results; they do not establish fleet or physical acceptance.
 - [x] Merge VIGIL optional endpoint PR2462 after routed-SSH/process-lifetime repair,
   independent source review,89 real tests and exact-head CI. PR2456 is also merged.
   Remove the owned endpoint worktree while preserving verified private QA custody.
+- [x] Remove obsolete duplicate cloud-init logrotate and stale Postfix rsyslog
+  configuration from active scans, preserve hashed private rollback copies, and
+  validate logrotate execution and rsyslog restart. Reclaim about 6.6 GiB of
+  downloaded APT archives; current package audit and available-upgrade checks pass.
+- [x] Validate all nine Firefox profile databases structurally, including WAL-aware
+  private copies for original users, and establish preservation of Cog's empty
+  address book against its backup. Original-user acceptance remains pending.
+- [x] Refresh six held dependency PRs and coordinate proposed Candle consolidation
+  with the source owner; preserve feature/build blockers and the foreign worktree.
+- [x] Reapply existing Windows Process Lasso tuning after reviewed preview and
+  hashed rollback backup; its six current-state checks now pass without restart.
+- [x] Restore expected W: through its existing mount task after exact identity and
+  no-use preflight; task and fresh boot mount validator return 0. Future-boot
+  ordering and the stale diagnostic-report warning remain pending.
+- [ ] Resolve the inherited apport-autoreport vendor upload failure through an
+  appropriate supported path; preserve crash reports and existing telemetry policy.
+- [ ] Retire the deregistered CargoTools junction remnants and Python bytecode cache
+  once automatic approval review permits the exact guarded filesystem deletions.
 - [ ] Reconcile the default Windows media-server CRT profile at the native build
   configuration layer; static-profile CPU passes do not close the MD/MT link failure.
 - [ ] Obtain the existing Sunshine provider reference and affected seat/firewall
@@ -37,7 +55,7 @@ component results; they do not establish fleet or physical acceptance.
   is observed through the current CalDigit topology.
 - [ ] Validate eduroam/MWireless using usable supported credentials, provision
   AMT with its own management credentials/network, and qualify physical HIL paths.
-- [ ] Validate original-user/browser data and the Cog desktop database migration
+- [ ] Validate original-user/browser behavior and remaining Cog revision provenance
   before deleting the retained ASUS backup.
 - [ ] Obtain Claude's corrected F2 tooling matrix. Codex TPM has acknowledged
   ownership of the next fixture-only derived-Needs proposal using existing CSV
@@ -156,9 +174,10 @@ not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
 
 ### 1. OneDrive, Boot, And UI Responsiveness
 
-- [ ] Monitor OneDrive after installer repair and reset until at least one clean
+- [x] Monitor OneDrive after installer repair and reset until at least one clean
   60 minute `Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru` run
-  shows no new OneDrive/FileSyncHelper WER events.
+  shows no new OneDrive/FileSyncHelper WER events. Refreshed 2026-10-03: exit 0,
+  no WER events, failures or warnings; sync-progress trends remain separate.
 - [ ] Validate registry rollback after a clean reboot using
   `Tools\Collect-DrivePerformanceSyncRisk.ps1`, `Tools\Test-BootMountHealth.ps1`,
   `Tools\Test-SyncProviderHealth.ps1`, and

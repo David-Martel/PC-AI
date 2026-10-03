@@ -1,11 +1,11 @@
 {
   "schema": "pcai.repository-closeout.v1",
-  "observedUtc": "2026-10-03T06:21:03.0067660Z",
+  "observedUtc": "2026-10-03T07:14:03.0485675Z",
   "repository": "David-Martel/PC-AI",
-  "branch": "codex/fleet-final-closeout-20261003",
+  "branch": "codex/milly-easywins-20261003",
   "reviewedMaintenanceHead": "48b78c34eb7aac57f299bfec91aae65d01373809",
   "base": "ca8a95b337e52566b83ea9703995912382a72551",
-  "integrationStatus": "Maintenance163, keyboard116, reqwest120, NVML147, coverlet160/161, inference164, TLS/required Deploy CI165, media166 and custody167 merged at independently reviewed exact heads after hosted CI. Final derived ledger closure in progress; hardware/provider/userdata and owner-held dependency gates remain.",
+  "integrationStatus": "Prior maintenance and source integrations, including final ledger PR168, are merged. This follow-up records validated Milly cleanup and read-only profile checks; dependency, hardware/provider and original-user acceptance gates remain.",
   "validation": {
     "originalPesterUnitPassed": 101,
     "initialIntegrationConfigurationFailure": "Explicit runtime suite requires PCAI_TB_TEST_SSH_ALIAS; first invocation lacked it",
@@ -275,19 +275,19 @@
     "qualification": "No model/GPU workload or measured memory-leak/performance acceptance"
   },
   "currentMilly": {
-    "observedUtc": "2026-10-03T05:40:44.8837587Z",
+    "observedUtc": "2026-10-03T07:12:42Z",
     "os": "Ubuntu26.04.1 LTS",
     "kernel": "7.0.0-38-generic",
-    "cogDesktop": "seat0 session53 present; latest listing does not establish active property",
+    "cogDesktop": "seat0 session53: Name=cog, Active=yes, State=active",
     "services": "display-manager,ssh,NetworkManager active",
     "dpkgAudit": "empty",
     "nvidiaDriver": "595.91.07",
     "wiredAddress": "192.168.50.43",
     "wifiAddress": "192.168.50.192",
-    "wifiSsid": "COGROB_ASUS_5G-2",
+    "wifiSsid": "COGROB_ASUS_5G-2 (active profile VIGIL-COGROB_ASUS_5G-2)",
     "thunderbolt": "Only domain0/0-0; no peer NIC",
-    "availableRootStorage": "141GiB available,85% used",
-    "qualification": "Fresh readonly check: Cog seat0 session53 present, desktop/SSH/network services active, package audit empty; no new firmware, session or runtime changes during repository closure."
+    "availableRootStorage": "148GiB available,84% used",
+    "qualification": "Live SSH,desktop,network and rsyslog services active; package audit empty and no APT upgrades after successful metadata refresh. No reboot, firmware or fleet-runtime changes in this follow-up."
   },
   "nvmlIntegration": {
     "pr": 147,
@@ -334,5 +334,240 @@
     "pr": 166,
     "originalPr": 157,
     "localDoctests": 9
+  },
+  "followUpEasyWins": {
+    "observedUtc": "2026-10-03T07:12:42Z",
+    "githubPermissions": "Live repository admin,maintain,push,pull,triage=true; signed-commit/PR/resolved-conversation rules preserved",
+    "baseMain": "2dd175567d5350a00cb856e86e6aff855fb3820b",
+    "logging": {
+      "obsoleteCloudInit": "Obsolete cloud-init conffile duplicated current cloud-init-base byte-for-byte; moved out of logrotate.d",
+      "obsoletePostfix": "Removed Postfix left rsyslog socket configuration for missing spool directory; moved out of rsyslog.d",
+      "rollbackDirectory": "/var/lib/vigil-maintenance/easywins-20261003",
+      "rollbackDirectoryMode": "0700",
+      "rollbackFiles": [
+        {
+          "sha256": "3c7a69b73e00ac06bba19a793ddc4de167df1efe4f621171642a49932ac795c7",
+          "name": "cloud-init.logrotate.active-removed"
+        },
+        {
+          "sha256": "68038ed3b6330bce225a87abf33c8049506b50568bbb07f13127e6eebda73faf",
+          "name": "postfix.rsyslog.active-removed"
+        }
+      ],
+      "logrotateDebugExit": 0,
+      "logrotateServiceResult": "success",
+      "logrotateServiceExit": 0,
+      "rsyslogConfigExit": 0,
+      "rsyslogAfterRestart": "active; no stale Postfix socket error in fresh journal",
+      "remainingFailedUnit": "apport-autoreport.service: inherited vendor upload failure retained; reports preserved; no retry/upload/telemetry change or failure reset"
+    },
+    "packageCache": {
+      "operation": "apt-get clean",
+      "beforeAllocatedBytes": 7099326424,
+      "immediatelyAfterAllocatedBytes": 0,
+      "laterAllocatedBytes": 352256,
+      "reclaimedGiBAtCleanup": 6.612,
+      "aptMetadataRefreshExit": 0,
+      "availableUpgrades": 0,
+      "fwupdmgrUpdates": "Devices=[] in tool result; no forced metadata refresh",
+      "autoremove": "Simulation reviewed but not applied: includes development/UI/runtime packages and fallback kernels"
+    },
+    "ssh": {
+      "cogAuthorizedKeyEntries": 4,
+      "duplicateLines": 0,
+      "asusEffectiveConfig": "StrictHostKeyChecking yes; ForwardAgent no; Compression no; ControlMaster auto; ControlPersist120; keepalive30/3",
+      "privateModes": "SSH directory/cm0700,config0600",
+      "qualification": "No credential copying or new fleet-wide SSH policy change; ASUS policy owner ACK still pending"
+    },
+    "browserIntegrity": {
+      "users": [
+        "cog",
+        "yayuanli",
+        "millyptg"
+      ],
+      "databasesPerUser": [
+        "places.sqlite",
+        "favicons.sqlite",
+        "cookies.sqlite"
+      ],
+      "quickChecksPassed": 9,
+      "sourceUnchanged": true,
+      "journalAwarePrivateCopies": 6,
+      "firefoxAbsentBeforeAndAfter": true,
+      "qualification": "Structural SQLite integrity only; original-user UI, credentials, history completeness and acceptance remain pending; retained ASUS backup is not eligible for deletion"
+    },
+    "cogAddressbook": {
+      "component": "Evolution system contacts.db",
+      "currentSchema": 13,
+      "backupSchema": 12,
+      "contactRowsCurrent": 0,
+      "contactRowsBackup": 0,
+      "auxiliaryContactRowsCurrent": 0,
+      "auxiliaryContactRowsBackup": 0,
+      "newCategoriesRows": 0,
+      "quickChecksPassed": 2,
+      "metadataDifferences": "Only folders.version and keys.revision values differ; other shared columns/key values hash-equal",
+      "installedEds": "3.56.2-8 (current t64 libraries); legacy3.44.4 libraries remain installed",
+      "sourceUrls": [
+        "https://github.com/GNOME/evolution-data-server/blob/3.56.2/src/addressbook/libedata-book/e-book-sqlite.c",
+        "https://github.com/GNOME/evolution-data-server/blob/3.56.2/src/addressbook/backends/file/e-book-backend-file.c"
+      ],
+      "sourceFindings": "FOLDER_VERSION13 and schema12 locale-data rebuild are explicit; backend creates categories and bumps revision after successful set_locale. These paths explain possible metadata changes, not the exact historical event.",
+      "qualification": "Empty addressbook contact preservation and integrity pass; precise revision-change event is not independently proven. This does not close original-user/browser acceptance or backup retention."
+    },
+    "cleanupBoundaries": {
+      "redundantRollbackCopies": "Two cmp-equal redundant Linux rollback copies removed; two unique hash-verified originals retained",
+      "windowsDeletion": "Fresh guarded deletions of deregistered CargoTools junction/directory remnants and one exact-hashed Python bytecode file were rejected by automatic approval review: blocked by policy. Retained; no alternate deletion mechanism used.",
+      "preserved": "Foreign Claude ws5-candle worktree, all eight captured untracked/ignored files, private ASUS backup, development/runtime packages and fallback kernels",
+      "deployment": "No container runner or new rendering listener activated; existing provider/schema/auth/TLS, HIL and Thunderbolt gates remain"
+    },
+    "dependencyReview": {
+      "prs": [
+        {
+          "number": 145,
+          "disposition": "HOLD: Mistral0.8/direct mistralrs-core0.7 type boundary",
+          "head": "f1e1b8ffd63fb7255645b3250f1bd33e4f1c286b"
+        },
+        {
+          "number": 146,
+          "disposition": "HOLD: mixed Candle compilation fails; consolidate only after verified156 integration",
+          "head": "016aa158092b8fd3d23f3ba334f61cac35e3ad79"
+        },
+        {
+          "number": 148,
+          "disposition": "HOLD: Pester setup/Gate failure; feature validation missing",
+          "head": "0c7bde21e73502dbf6e5e52422425d8226fe86f4"
+        },
+        {
+          "number": 156,
+          "disposition": "DRAFT:154 CPU tests pass,3 ignored,LNK4098 warnings; CUDA/FlashAttention/cuDNN excluded. Requires explicit narrowed scope or feature qualification",
+          "head": "9dc14855707247119f00e38fde72b877a413ebc5"
+        },
+        {
+          "number": 159,
+          "disposition": "HOLD:12 green checks do not compile changed cudarc/default CUDA/train profiles",
+          "head": "3745bd59b7750956d90ec8e2c162f9209d52561d"
+        },
+        {
+          "number": 162,
+          "disposition": "HOLD: subset of156; close only after verified coordinated replacement",
+          "head": "7ea0e953f418943033a3daca4d64c62e54a531e2"
+        }
+      ],
+      "ownerRequest": "01a10088-7b09-7650-8a46-621a3c838e53; no response in bounded07:10Z refresh",
+      "runnerPr343": "Head7f9b47016a9d6ffa644300758b040e93685c72d1 retains unsafe existing-container policy reuse and preserved-registration/missing-container repair defects; source review06:47Z confirms latter. No deployment."
+    },
+    "privateReceiptHashes": [
+      {
+        "sha256": "2d5bd07fdce76a742c39cf4a92657e95674be034190f0e989e356681c9a92820",
+        "privateReceipt": "milly-easywin-preflight-20261003.txt"
+      },
+      {
+        "sha256": "857fb40c9e3107e87f5d2c446ddab1e5fd1051a2d3b43b5171731a6be639bb45",
+        "privateReceipt": "milly-cleanup-candidates-20261003.txt"
+      },
+      {
+        "sha256": "df99aa74f473544fb589aeffa271b50e96772c499ef548c25a0c1c3861770ce1",
+        "privateReceipt": "milly-easywin-applied-20261003.txt"
+      },
+      {
+        "sha256": "2bb55913634709e48a80320fbe0bf6ed256bae175cdbb4345106924c94c96d48",
+        "privateReceipt": "milly-easywin-final-validation-20261003.txt"
+      },
+      {
+        "sha256": "61933eb56d09083dd11b2bf8cfa736c7aac287f201f1b5328dfc6efc797cbb83",
+        "privateReceipt": "milly-browser-integrity-20261003.json"
+      },
+      {
+        "sha256": "f716d5b9618f898323f21938115295ed471105eccb8ee9f5aeb08c8ba4a59f8f",
+        "privateReceipt": "milly-browser-journal-integrity-20261003.json"
+      },
+      {
+        "sha256": "b1fb8e412483034383c5afaaa811bac451f21cb0fee235975fcc6f8e4416ff5c",
+        "privateReceipt": "cog-contact-migration-current-20261003.json"
+      },
+      {
+        "sha256": "a194f68baa10d6fae3e6b36c1fac220c2aee917a05ef00e1ed0edcc55d360779",
+        "privateReceipt": "cog-contact-migration-backup-20261003.json"
+      },
+      {
+        "sha256": "46d30d1c5dc264974441369bace67edd00d1cfbe5653eaa7685679b9bb86934c",
+        "privateReceipt": "cog-contact-migration-current-metadata.json"
+      },
+      {
+        "sha256": "40dfaf2b2c52bfc0a235223263d8ccbdc086ccd0411353b29961b218b80bef6f",
+        "privateReceipt": "cog-contact-migration-backup-metadata.json"
+      },
+      {
+        "sha256": "2ee3e050a6d217f1d5048c505247ce1011f9ac6141184dc76d91613d666bc4fc",
+        "privateReceipt": "eds-3.56.2-e-book-sqlite.c"
+      },
+      {
+        "sha256": "69bde5e1e1ede380e229f2b6504c2db4f663775014311113547bbf64f19e8545",
+        "privateReceipt": "eds-3.56.2-e-book-backend-file.c"
+      },
+      {
+        "sha256": "3d27a1612e4d47249d4724b958d0b2165f8d17be128bd51e344c1d37895c091a",
+        "privateReceipt": "milly-eds-installed-version-20261003.txt"
+      },
+      {
+        "sha256": "30dd4674cc0c7befd660b39e8c5a9a683bb24d795361b3a626688b22dd9f7128",
+        "privateReceipt": "easywins-windows-sync-validation.txt"
+      },
+      {
+        "sha256": "a1b617c37c2f53789c08f22e0da0aa3ebdf016b4d079e14f742d214424c7959b",
+        "privateReceipt": "easywins-windows-mount-validation.txt"
+      },
+      {
+        "sha256": "7ab65bd5ef7cc7e6b86c752faf1b5cc94cef62e6dcb281380830c609f8ff11e0",
+        "privateReceipt": "easywins-windows-lasso-validation.txt"
+      },
+      {
+        "sha256": "4a9967e827d44ca067b5c7196df022a4cb17fce9d3a057edd8b6aa31743ad932",
+        "privateReceipt": "easywins-lasso-tuning-preview.json"
+      },
+      {
+        "sha256": "10febff62a549d5e2d4d8f3828f9c73f8b8f56b16bf1ef4fc91bdcd939d5b3d7",
+        "privateReceipt": "easywins-lasso-tuning-preview.txt"
+      },
+      {
+        "sha256": "7182ead0101f75fb821100e43128b24466c7c1ec014d0dcccce62c06eb124cdf",
+        "privateReceipt": "easywins-lasso-tuning-applied.json"
+      },
+      {
+        "sha256": "ad29a9fe9ae83a39b3469a8333ade304d34444f2bd645416fcd642afdaefd592",
+        "privateReceipt": "easywins-lasso-tuning-applied.txt"
+      },
+      {
+        "sha256": "693c446cd9c9b71fe56451620a9803fd9f292deab2d85045ac82b6a88026ef53",
+        "privateReceipt": "easywins-windows-lasso-after-validation.txt"
+      },
+      {
+        "sha256": "f2029c1bfb5e6041c7531b92535d5371ec4c0872507de4e26065e6223e2cfb56",
+        "privateReceipt": "easywins-lasso-rollback-receipt.json"
+      },
+      {
+        "sha256": "d1bb599d86a71ddef5e9088f9c691b7af11efa508bdfd88901a8b2e50ab6a293",
+        "privateReceipt": "easywins-shared-dev-preflight.json"
+      },
+      {
+        "sha256": "32c7c29e1f0390375b9b70a7987c68eba18ebb6df6c17ca21b206353f81b6c0d",
+        "privateReceipt": "easywins-windows-mount-after-validation.txt"
+      },
+      {
+        "sha256": "779f10e16985fb920e53aefa5b62688645f45f8e24e5ac08a2768cfc717c29ae",
+        "privateReceipt": "easywins-shared-dev-mount-receipt.json"
+      }
+    ],
+    "windowsValidation": {
+      "observedUtc": "2026-10-03T07:24:26.2927393Z",
+      "sync60Minute": "Pass exit0,0failures,0warnings,no OneDrive/FileSyncHelper WER events. Progress trend and task-result triage remain separate",
+      "mountInitial": "Fail exit1: shared-dev detached and prior task51; existing Sep30 receipt shows backing file unavailable after15.1s at boot",
+      "processLassoInitial": "Fail exit1: missing OneDrive*/OneDrive.exe ProBalance exclusions and execution/terminationlogging disabled",
+      "processLassoRepair": "Existing Apply-ProcessLassoUiSyncTuning applied5reviewed fields with timestamped rollback matching pre-change hash. Added12 existing conservative process defaults, restored OneDrive I/O priority1, exclusions and two logging flags",
+      "processLassoAfter": "Pass exit0, all6reported checks true; governor PID68312 unchanged; no restart. Watchdog recovery/future-boot ordering not exercised",
+      "mountAfter": "Existing AutoMount_VHDX_shared-dev task returned0; expected VHD identity and NTFS label/volume GUID match, W:Healthy. Fresh boot mount validator exit0 with0failures; stale boot-diagnostics warning retained. No reboot/dismount/task configuration change.",
+      "mountReceipt": "Logs/VHDMount/AutoMount_VHDX_shared-dev/20261003-032328-d5c74325.result.json"
+    }
   }
 }

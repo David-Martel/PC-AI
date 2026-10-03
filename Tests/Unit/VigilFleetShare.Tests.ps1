@@ -55,6 +55,14 @@ Describe 'NFS mount identity and changes' {
         $script:nfsRemote = '192.168.50.2:/srv/vigil-share'
         $script:nativeFailure = $false
         $script:occupied = @()
+        # Optional Windows feature presence is external I/O, like the native
+        # mount command below. Hosted runners do not install Client for NFS.
+        Mock Test-Path { $true } -ParameterFilter {
+            $PathType -eq 'Leaf' -and $LiteralPath -in @(
+                (Join-Path $env:WINDIR 'System32/mount.exe'),
+                (Join-Path $env:WINDIR 'System32/umount.exe')
+            )
+        }
         Mock Get-VigilDriveLetter { $script:occupied }
         Mock Get-NetIPAddress {
             [pscustomobject]@{ IPAddress = '192.168.50.42'; PrefixLength = 24; InterfaceIndex = 30; AddressState = 'Preferred' }
@@ -85,6 +93,14 @@ Describe 'NFS mount identity and changes' {
         (Invoke-VigilFleetShare -Action Mount -Apply -DryRun).State | Should -Be 'Plan'
         Should -Invoke Invoke-VigilNfsNative -Exactly 0
         Should -Invoke Get-NetIPAddress -Exactly 0
+        Should -Invoke Test-VigilNfsPort -Exactly 0
+    }
+    It 'fails closed without native or network calls when Client for NFS is absent' {
+        Mock Test-Path { $false } -ParameterFilter {
+            $LiteralPath -eq (Join-Path $env:WINDIR 'System32/mount.exe')
+        }
+        { Invoke-VigilFleetShare -Action Mount -Apply } | Should -Throw '*Client for NFS mount.exe is unavailable*'
+        Should -Invoke Invoke-VigilNfsNative -Exactly 0
         Should -Invoke Test-VigilNfsPort -Exactly 0
     }
     It 'requires Apply and honors WhatIf for both state changes' {

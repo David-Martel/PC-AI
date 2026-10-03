@@ -42,6 +42,13 @@
     Include arrows, Home, End, Page Up/Down, Insert and Delete alongside modifiers.
     Does not include letters, digits or text. Alias: NavKeys.
 
+.PARAMETER DryRun
+    Preview the capture options without loading native code, registering an input
+    sink, or creating the output directory or capture files.
+
+.PARAMETER Help
+    Display usage without starting a capture or writing files. Aliases: -h, --help.
+
 .EXAMPLE
     pwsh -File .\Trace-ShiftKeySource.ps1 -Seconds 45
     # Then, in your normal app, press internal Left/Right Shift, Shift+A, and (if attached)
@@ -52,13 +59,43 @@
     Author: input-stack investigation (Claude Code) - 2026-06-19.
     Companion to Test-KeyInput.ps1 (LL hook, device-agnostic) and Watch-InputGlitch.ps1.
 #>
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [ValidateRange(1, 600)][int]$Seconds = 30,
     [string]$OutputDir = "$PSScriptRoot\..\..\Logs\input-diagnostics",
     [switch]$AllKeys,
-    [Alias('NavKeys')][switch]$NavigationKeys
+    [Alias('NavKeys')][switch]$NavigationKeys,
+    [switch]$DryRun,
+    [Alias('h')][switch]$Help,
+    [Parameter(ValueFromRemainingArguments)][string[]]$RemainingArguments
 )
+
+if ($RemainingArguments -contains '--help') {
+    $Help = $true
+    $RemainingArguments = @($RemainingArguments | Where-Object { $_ -ne '--help' })
+}
+if ($RemainingArguments -and $RemainingArguments.Count) { throw 'Unsupported argument. Use -h or --help for usage.' }
+if ($Help) {
+    @'
+Trace-ShiftKeySource.ps1 [-Seconds 30] [-OutputDir <directory>] [-NavigationKeys|-NavKeys] [-AllKeys] [-DryRun] [-h|--help]
+Capture modifiers, optionally navigation keys, with device and capture-health metadata.
+-DryRun previews options without loading native code, registering input, or writing files.
+-AllKeys includes ordinary key codes that can reveal typed content; use known test input.
+'@
+    return
+}
+if ($DryRun) {
+    [pscustomobject][ordered]@{
+        Mode                        = 'DryRun'
+        DurationSeconds             = $Seconds
+        OutputDirectory             = $OutputDir
+        AllKeys                     = [bool]$AllKeys
+        NavigationKeys              = [bool]$NavigationKeys
+        NativeRegistrationRequested = $false
+        WritesRequested             = $false
+    }
+    return
+}
 
 $cs = @'
 using System;

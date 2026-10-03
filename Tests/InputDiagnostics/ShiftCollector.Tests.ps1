@@ -66,6 +66,106 @@ namespace KbMonFixture {
     }
 }
 
+Describe 'Collector help and dry-run suppress capture side effects' {
+    It 'returns the requested preview without loading native code or creating an output directory' {
+        $output = Join-Path $TestDrive 'preview-must-stay-absent'
+        Mock Add-Type { throw 'Preview loaded native code' }
+        Mock New-Item { throw 'Preview created a directory' }
+        Mock Add-Content { throw 'Preview appended a capture' }
+        Mock Set-Content { throw 'Preview wrote a capture' }
+        $preview = & $script:CollectorPath -DryRun -Seconds 17 -OutputDir $output -AllKeys -NavKeys
+        $preview.Mode | Should -Be 'DryRun'
+        $preview.DurationSeconds | Should -Be 17
+        $preview.OutputDirectory | Should -Be $output
+        $preview.AllKeys | Should -BeTrue
+        $preview.NavigationKeys | Should -BeTrue
+        $preview.NativeRegistrationRequested | Should -BeFalse
+        $preview.WritesRequested | Should -BeFalse
+        Test-Path -LiteralPath $output | Should -BeFalse
+        Should -Invoke Add-Type -Times 0
+        Should -Invoke New-Item -Times 0
+        Should -Invoke Add-Content -Times 0
+        Should -Invoke Set-Content -Times 0
+    }
+
+    It 'rejects unsupported arguments before native loading or output writes' {
+        $output = Join-Path $TestDrive 'invalid-must-stay-absent'
+        Mock Add-Type { throw 'Invalid request loaded native code' }
+        { & $script:CollectorPath --unknown -OutputDir $output } | Should -Throw '*Unsupported argument*'
+        Should -Invoke Add-Type -Times 0
+        Test-Path -LiteralPath $output | Should -BeFalse
+    }
+
+    It 'runs the actual script in a fresh process without loading the native collector: <Mode>' -ForEach @(
+        @{ Mode = 'DryRun'; ExistingDirectory = $false }
+        @{ Mode = 'DryRun'; ExistingDirectory = $true }
+        @{ Mode = 'Help'; ExistingDirectory = $false }
+        @{ Mode = 'ShortHelp'; ExistingDirectory = $false }
+        @{ Mode = 'LongHelp'; ExistingDirectory = $false }
+    ) {
+        $runner = Join-Path $TestDrive 'preview-runner.ps1'
+        $output = Join-Path $TestDrive ('capture-' + $Mode + '-' + $ExistingDirectory)
+        if ($ExistingDirectory) {
+            $null = New-Item -ItemType Directory -Path $output
+            [IO.File]::WriteAllText((Join-Path $output 'existing.jsonl'), 'existing capture must be preserved')
+        }
+        $before = if ($ExistingDirectory) { (Get-FileHash -LiteralPath (Join-Path $output 'existing.jsonl')).Hash } else { $null }
+        @'
+param([string]$CollectorPath, [string]$OutputDir, [string]$Mode)
+if ('RawKb' -as [type]) { throw 'Fresh preview process already has a collector type.' }
+$result = switch ($Mode) {
+    DryRun { & $CollectorPath -DryRun -OutputDir $OutputDir -Seconds 17 -NavigationKeys -AllKeys }
+    Help { & $CollectorPath -Help -OutputDir $OutputDir }
+    ShortHelp { & $CollectorPath -h -OutputDir $OutputDir }
+    LongHelp { & $CollectorPath --help -OutputDir $OutputDir }
+    default { throw 'Unknown fixture mode.' }
+}
+if ('RawKb' -as [type]) { throw 'Preview loaded the native collector type.' }
+$result | ConvertTo-Json -Depth 4 -Compress
+'@ | Set-Content -LiteralPath $runner
+        $start = [Diagnostics.ProcessStartInfo]::new((Get-Command pwsh).Source)
+        $start.UseShellExecute = $false
+        $start.CreateNoWindow = $true
+        $start.RedirectStandardOutput = $true
+        $start.RedirectStandardError = $true
+        foreach ($argument in @('-NoLogo', '-NoProfile', '-File', $runner, '-CollectorPath', $script:CollectorPath, '-OutputDir', $output, '-Mode', $Mode)) {
+            $start.ArgumentList.Add($argument)
+        }
+        $process = [Diagnostics.Process]::Start($start)
+        try {
+            $stdout = $process.StandardOutput.ReadToEndAsync()
+            $stderr = $process.StandardError.ReadToEndAsync()
+            if (-not $process.WaitForExit(10000)) {
+                $process.Kill($true)
+                throw 'Collector preview exceeded ten seconds.'
+            }
+            $process.ExitCode | Should -Be 0
+            $stderr.GetAwaiter().GetResult() | Should -BeNullOrEmpty
+            $result = $stdout.GetAwaiter().GetResult() | ConvertFrom-Json
+            if ($Mode -eq 'DryRun') {
+                $result.Mode | Should -Be 'DryRun'
+                $result.DurationSeconds | Should -Be 17
+                $result.OutputDirectory | Should -Be $output
+                $result.AllKeys | Should -BeTrue
+                $result.NavigationKeys | Should -BeTrue
+                $result.NativeRegistrationRequested | Should -BeFalse
+                $result.WritesRequested | Should -BeFalse
+            }
+            else {
+                $result | Should -Match 'Trace-ShiftKeySource.ps1.*-DryRun.*--help'
+            }
+            if ($ExistingDirectory) {
+                @(Get-ChildItem -LiteralPath $output -Force).Count | Should -Be 1
+                (Get-FileHash -LiteralPath (Join-Path $output 'existing.jsonl')).Hash | Should -Be $before
+            }
+            else {
+                Test-Path -LiteralPath $output | Should -BeFalse
+            }
+        }
+        finally { $process.Dispose() }
+    }
+}
+
 Describe 'Collector orchestration cleanup and persistence' {
     BeforeEach { Mock Write-Host {} }
     It 'drains events from the final pump into both live JSONL and final JSON' {

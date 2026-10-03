@@ -219,6 +219,38 @@ Describe 'USB4 trace application and failure cleanup' {
 }
 
 Describe 'USB4 native process exit handling' {
+    It 'kills the owned process when it exceeds the native deadline' {
+        $pidFile = Join-Path $TestDrive 'usb4-stalled.pid'
+        $command = "[IO.File]::WriteAllText('$($pidFile.Replace("'", "''"))', [string]`$PID); Start-Sleep -Seconds 30"
+        $clock = [Diagnostics.Stopwatch]::StartNew()
+        $result = Invoke-Usb4TraceNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $command) -WorkingDirectory $TestDrive -TimeoutSeconds 2
+        $result.ExitCode | Should -Be -1
+        $result.StandardError | Should -Match 'timed out.*process tree terminated'
+        $clock.Elapsed.TotalSeconds | Should -BeLessThan 4
+        Test-Path -LiteralPath $pidFile | Should -BeTrue
+        Get-Process -Id ([int](Get-Content -LiteralPath $pidFile -Raw)) -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+    It 'captures parent output promptly and kills an exited parents pipe-inheriting descendant' {
+        $pidFile = Join-Path $TestDrive 'usb4-orphan.pid'
+        $pwshPath = Join-Path $PSHOME 'pwsh.exe'
+        $command = @"
+`$start = [Diagnostics.ProcessStartInfo]::new()
+`$start.FileName = '$($pwshPath.Replace("'", "''"))'
+`$start.UseShellExecute = `$false
+`$start.CreateNoWindow = `$true
+foreach (`$value in @('-NoProfile', '-Command', 'Start-Sleep -Seconds 30')) { `$start.ArgumentList.Add(`$value) }
+`$child = [Diagnostics.Process]::Start(`$start)
+[IO.File]::WriteAllText('$($pidFile.Replace("'", "''"))', [string]`$child.Id)
+[Console]::Write('usb4-parent-receipt')
+exit 0
+"@
+        $clock = [Diagnostics.Stopwatch]::StartNew()
+        $result = Invoke-Usb4TraceNative -FilePath $pwshPath -Arguments @('-NoProfile', '-Command', $command) -WorkingDirectory $TestDrive -TimeoutSeconds 3
+        $result.ExitCode | Should -Be 0
+        $result.StandardOutput | Should -BeExactly 'usb4-parent-receipt'
+        $clock.Elapsed.TotalSeconds | Should -BeLessThan 3
+        Get-Process -Id ([int](Get-Content -LiteralPath $pidFile -Raw)) -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
     It 'returns actual native failure output and exit status without hiding it' {
         $result = Invoke-Usb4TraceNative -FilePath (Join-Path $PSHOME 'pwsh.exe') `
             -Arguments @('-NoProfile', '-Command', '[Console]::Error.WriteLine("native controlled failure"); exit 7') -WorkingDirectory $TestDrive

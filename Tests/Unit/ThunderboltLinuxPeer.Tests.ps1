@@ -204,4 +204,19 @@ Describe 'Benchmark route and native failures' {
     It 'terminates an actual native timeout' {
         { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', 'Start-Sleep 10') -TimeoutSeconds 1 } | Should -Throw '*timed out*'
     }
+    It 'bounds a large stdin write when the actual child never reads it' {
+        $pidFile = Join-Path $TestDrive 'nonreading-child.pid'
+        $child = '$PID | Set-Content -LiteralPath ''' + $pidFile.Replace("'", "''") + '''; Start-Sleep 15'
+        $timer = [Diagnostics.Stopwatch]::StartNew()
+        { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText ('x' * 1048576) -TimeoutSeconds 2 } | Should -Throw '*timed out*'
+        $timer.Elapsed.TotalSeconds | Should -BeLessThan 5
+        Test-Path -LiteralPath $pidFile | Should -BeTrue
+        $childId = [int](Get-Content -LiteralPath $pidFile)
+        Get-Process -Id $childId -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+    It 'preserves large stdin and simultaneous output without deadlock' {
+        $text = 'z' * 1048576
+        $child = '[Console]::Error.WriteLine("e" * 131072); $inputText = [Console]::In.ReadToEnd(); [Console]::Out.Write($inputText.Length)'
+        Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText $text -TimeoutSeconds 10 | Should -Be '1048576'
+    }
 }

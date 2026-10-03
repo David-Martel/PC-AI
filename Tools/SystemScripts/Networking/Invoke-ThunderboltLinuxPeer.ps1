@@ -28,36 +28,18 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Invoke-VigilBoundedProcess.ps1')
 
 function Invoke-TbNative {
     [CmdletBinding()]
-    param([string]$FilePath, [string[]]$Arguments, [string]$InputText, [int]$TimeoutSeconds = 30)
-    $start = [Diagnostics.ProcessStartInfo]::new()
-    $start.FileName = $FilePath
-    $start.UseShellExecute = $false
-    $start.RedirectStandardOutput = $true
-    $start.RedirectStandardError = $true
-    $start.RedirectStandardInput = $true
-    $start.CreateNoWindow = $true
-    foreach ($argument in $Arguments) { $start.ArgumentList.Add($argument) }
-    $process = [Diagnostics.Process]::new()
-    $process.StartInfo = $start
-    try {
-        if (-not $process.Start()) { throw "Could not start $FilePath." }
-        $stdout = $process.StandardOutput.ReadToEndAsync()
-        $stderr = $process.StandardError.ReadToEndAsync()
-        if ($InputText) { $process.StandardInput.Write($InputText.Replace("`r`n", "`n")) }
-        $process.StandardInput.Close()
-        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-            $process.Kill($true)
-            throw "$FilePath timed out after $TimeoutSeconds seconds."
-        }
-        $output = $stdout.GetAwaiter().GetResult()
-        $errorOutput = $stderr.GetAwaiter().GetResult()
-        if ($process.ExitCode -ne 0) { throw "$FilePath exited $($process.ExitCode): $errorOutput $output" }
-        return $output
+    param([string]$FilePath, [string[]]$Arguments = @(), [string]$InputText = '',
+        [ValidateRange(1, 3600)][int]$TimeoutSeconds = 30)
+    $result = Invoke-VigilBoundedProcess -FilePath $FilePath -Arguments $Arguments `
+        -InputText $InputText.Replace("`r`n", "`n") -TimeoutSeconds $TimeoutSeconds
+    if ($result.ExitCode -ne 0) {
+        throw "$FilePath exited $($result.ExitCode): $($result.Stderr) $($result.Stdout)"
     }
-    finally { $process.Dispose() }
+    return $result.Stdout
 }
 
 function Invoke-TbSsh {

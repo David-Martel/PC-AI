@@ -35,6 +35,7 @@ $ErrorActionPreference = 'Stop'
 
 function Test-Usb4TraceAdministrator {
     [CmdletBinding()]
+    [OutputType([bool])]
     param()
     if (-not $IsWindows) { return $false }
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -48,42 +49,15 @@ function Test-Usb4TraceAdministrator {
 function Invoke-Usb4TraceNative {
     [CmdletBinding()]
     param([string]$FilePath, [string[]]$Arguments, [string]$WorkingDirectory, [int]$TimeoutSeconds = 30)
-    $startInfo = [Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = $FilePath
-    $startInfo.WorkingDirectory = $WorkingDirectory
-    $startInfo.UseShellExecute = $false
-    $startInfo.CreateNoWindow = $true
-    $startInfo.RedirectStandardOutput = $true
-    $startInfo.RedirectStandardError = $true
-    foreach ($argument in $Arguments) { $startInfo.ArgumentList.Add($argument) }
-    $process = [Diagnostics.Process]::new()
-    $process.StartInfo = $startInfo
-    $started = $false
+    . (Join-Path $PSScriptRoot 'Invoke-VigilBoundedProcess.ps1')
     try {
-        $started = $process.Start()
-        if (-not $started) { throw "Could not start $FilePath." }
-        $stdout = $process.StandardOutput.ReadToEndAsync()
-        $stderr = $process.StandardError.ReadToEndAsync()
-        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-            $process.Kill($true)
-            $process.WaitForExit()
-            return [pscustomobject]@{ ExitCode = -1; StandardOutput = $stdout.GetAwaiter().GetResult();
-                StandardError = "$FilePath timed out after $TimeoutSeconds seconds. " + $stderr.GetAwaiter().GetResult()
-            }
-        }
-        return [pscustomobject]@{ ExitCode = $process.ExitCode; StandardOutput = $stdout.GetAwaiter().GetResult();
-            StandardError = $stderr.GetAwaiter().GetResult()
-        }
+        $result = Invoke-VigilBoundedProcess -FilePath $FilePath -Arguments $Arguments -WorkingDirectory $WorkingDirectory -TimeoutSeconds $TimeoutSeconds
+        return [pscustomobject]@{ ExitCode = $result.ExitCode; StandardOutput = $result.Stdout; StandardError = $result.Stderr }
     }
     catch {
-        return [pscustomobject]@{ ExitCode = -1; StandardOutput = ''; StandardError = $_.Exception.Message }
-    }
-    finally {
-        if ($started -and -not $process.HasExited) { $process.Kill($true) }
-        $process.Dispose()
+        return [pscustomobject]@{ ExitCode = -1; StandardOutput = ''; StandardError = $_.Exception.GetBaseException().Message }
     }
 }
-
 function Invoke-Usb4TraceCommand {
     [CmdletBinding()]
     param([object]$Command, [string]$Directory, [string]$LogPath)

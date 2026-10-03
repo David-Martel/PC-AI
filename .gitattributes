@@ -42,3 +42,6 @@
 *.7z binary
 *.tar binary
 *.gz binary
+
+# Preserve captured Milly evidence bytes and custody hashes verbatim.
+Reports/milly-fleet-20261002/** -text -eol

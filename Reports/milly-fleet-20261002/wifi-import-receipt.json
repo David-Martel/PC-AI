@@ -57,7 +57,7 @@
     "backup_wired_route_preserved": true,
     "temporary_exports_retained_private": true
   },
-  "at": "2026-10-02T21:54:59.972656+00:00",
+  "at": "2026-10-02T22:47:36.5689085+00:00",
   "enterprise": {
     "profiles": [
       "VIGIL-eduroam",
@@ -68,10 +68,34 @@
     "eap": "peap",
     "inner": "mschapv2",
     "eduroam_attempt_succeeded": false,
-    "credential_provider": "Existing Windows Bitwarden MWireless secure note, one attempt only",
+    "credential_provider": "Windows Bitwarden MWireless note and distinct U-M login candidate; bounded attempts only; none proven current on Ubuntu",
     "autoconnect": false,
-    "stale_secret_cleared": true,
     "existing_mwireless_preserved": true,
-    "current_credential_needed": true
+    "current_credential_needed": true,
+    "attempts": [
+      {
+        "identity": "damartel@umich.edu",
+        "outcome": "Association timeout then NetworkManager no-secrets; credential rejection not conclusively observed"
+      },
+      {
+        "identity": "damartel",
+        "peap_version": "0",
+        "outcome": "Association timeout then NetworkManager no-secrets; credential rejection not conclusively observed"
+      },
+      {
+        "identity": "damartel@umich.edu",
+        "provider": "Existing Bitwarden U-M login items, last revised 2021-03-22; matching candidate in both items",
+        "outcome": "Did not connect within bounded attempt; candidate cleared and COGROB restored; password validity not established"
+      }
+    ],
+    "attempted_secret_cleared": true,
+    "windows_credential_manager": {
+      "target": "MWireless",
+      "type": "Domain Password",
+      "username": "damartel",
+      "password_readable_by_supported_api": false,
+      "windows_cached_mwireless_authenticated": true,
+      "windows_auth": "WPA3-Enterprise FT"
+    }
   }
 }

@@ -1,0 +1,77 @@
+python3 - <<'PY'
+import os,pathlib,tempfile,subprocess,time,json,socket,datetime,statistics
+base=pathlib.Path('/run/user')/str(os.getuid())
+if not base.is_dir(): base=pathlib.Path('/tmp')
+work=pathlib.Path(tempfile.mkdtemp(prefix='vigil-ssh-review-',dir=base)); os.chmod(work,0o700)
+common=['ssh','-n','-T','-o','BatchMode=yes','-o','UpdateHostKeys=no','-o','ForwardAgent=no','-o','ConnectionAttempts=1']
+owned=[]; results={}; cold=[]; warm=[]; counter=0; cleanup=[]
+def run(args,timeout=8,input_data=None):
+ global counter
+ counter+=1; log=work/f'stderr-{counter}.log'; fd=os.open(log,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+ start=time.perf_counter()
+ with os.fdopen(fd,'w') as err:
+  p=subprocess.run(args,input=input_data,stdout=subprocess.PIPE,stderr=err,text=True,timeout=timeout)
+ return {'exit':p.returncode,'elapsedMs':round((time.perf_counter()-start)*1000,3),'stdout':p.stdout,'stderr':log.read_text()}
+def check(socket_path): return run(common+['-S',str(socket_path),'-O','check','asuspro13'])
+def master(name,persist):
+ path=work/name; owned.append(path)
+ r=run(common+['-S',str(path),'-M','-N','-f','-o',f'ControlPersist={persist}','asuspro13'])
+ if r['exit']: raise RuntimeError('Master startup failed: '+r['stderr'])
+ return path
+try:
+ for _ in range(3):
+  r=run(common+['-S','none','-o','ControlMaster=no','asuspro13','true']); cold.append({'elapsedMs':r['elapsedMs'],'exit':r['exit']})
+  if r['exit']: raise RuntimeError('Cold probe failed')
+ path=master('warm',20); first=check(path)
+ if first['exit'] or 'Master running' not in first['stderr']: raise RuntimeError('Master check failed')
+ debug=[]
+ for _ in range(3):
+  r=run(common+['-v','-S',str(path),'asuspro13','true']); warm.append({'elapsedMs':r['elapsedMs'],'exit':r['exit']})
+  selected=[x for x in r['stderr'].splitlines() if any(y in x for y in ['mux_client_request_session','auto-mux','mux_client_hello_exchange'])]; debug.extend(selected)
+  if r['exit'] or not any('mux_client_request_session' in x for x in selected): raise RuntimeError('Actual mux reuse not evidenced')
+ last=check(path)
+ if last['exit'] or first['stderr']!=last['stderr']: raise RuntimeError('Master PID changed')
+ results['mux']={'masterCheck':first['stderr'].strip(),'cold':cold,'reused':warm,'coldMedianMs':statistics.median([r['elapsedMs'] for r in cold]),'reusedMedianMs':statistics.median([r['elapsedMs'] for r in warm]),'debugEvidence':debug,'sameMasterVerified':True}
+ for host in ['spark-0060','spark-3066']:
+  r=run(common+['-S','none','-o','ControlMaster=no',host,'true'],timeout=15)
+  if r['exit']: raise RuntimeError('Protected fleet reachability failed '+host+': '+r['stderr'])
+  results[host+'Reachability']={'exit':r['exit'],'elapsedMs':r['elapsedMs']}
+ fake='''Host profile-one profile-two
+ HostName 192.168.50.2
+ User damartel
+ ControlMaster auto
+ ControlPath ~/.ssh/cm/vigil-%n-%C
+ ControlPersist 120s
+'''
+ paths=[]
+ for alias,user in [('profile-one',None),('profile-two',None),('profile-one','ssh-review-other-user')]:
+  args=['ssh','-G','-F','/dev/stdin']; args+=['-o','User='+user] if user else []; args.append(alias)
+  r=run(args,input_data=fake); paths.append(next(x.split(' ',1)[1] for x in r['stdout'].splitlines() if x.startswith('controlpath ')))
+ if len(set(paths))!=3: raise RuntimeError('Alias/user control paths collide')
+ results['aliasUserSeparation']={'distinctPaths':len(set(paths)),'expected':3,'passed':True}
+ for name,stale in [('missing',False),('stale',True)]:
+  target=work/name; owned.append(target)
+  if stale:
+   s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM); s.bind(str(target)); s.close()
+  r=run(common+['-v','-S',str(target),'-o','ControlMaster=auto','-o','ControlPersist=20s','asuspro13','true'])
+  if r['exit']: raise RuntimeError(name+' fallback failed '+r['stderr'])
+  evidence=[x for x in r['stderr'].splitlines() if any(y in x for y in ['Stale control socket','Authenticated to','does not exist','Control socket connect'])]
+  if not any('Authenticated to' in x for x in evidence): raise RuntimeError('Fallback transport was not authenticated')
+  results[name+'SocketFallback']={'exit':r['exit'],'passed':True,'evidence':evidence}
+ expiry=master('expiry',2); before_expiry=check(expiry); time.sleep(3); after_expiry=check(expiry)
+ if before_expiry['exit'] or after_expiry['exit']==0: raise RuntimeError('Disposable idle expiry failed')
+ results['idleExpiry']={'persistSeconds':2,'waitSeconds':3,'beforeExit':before_expiry['exit'],'afterExit':after_expiry['exit'],'passed':True}
+ pub=(pathlib.Path.home()/'.ssh/id_ed25519_millylaptop1.pub').read_text().split(); wrong=work/'wrong-known-hosts'; wrong.write_text('asuspro13 '+pub[0]+' '+pub[1]+'\n'); os.chmod(wrong,0o600)
+ r=run(common+['-S','none','-o','ControlMaster=no','-o','UserKnownHostsFile='+str(wrong),'-o','GlobalKnownHostsFile=/dev/null','-o','StrictHostKeyChecking=yes','asuspro13','true'])
+ if r['exit']!=255 or 'Host key verification failed' not in r['stderr']: raise RuntimeError('Wrong pin did not refuse')
+ results['wrongPinRefused']={'exit':r['exit'],'usedFreshHandshake':True,'passed':True,'evidence':'Host key verification failed'}
+ r=run(['ssh','-F','none','-S','none','-n','-o','BatchMode=yes','-o','ConnectionAttempts=1','-o','ConnectTimeout=1','-p','1','127.0.0.1','true'],timeout=3)
+ if r['exit']==0 or r['elapsedMs']>=3000: raise RuntimeError('Unreachable endpoint did not fail within outer deadline')
+ results['unreachableBoundedFailure']={'target':'loopback port 1; no fleet scan','exit':r['exit'],'elapsedMs':r['elapsedMs'],'outerDeadlineSeconds':3,'passed':True,'failure':'connection refused' if 'Connection refused' in r['stderr'] else 'other refusal/timeout'}
+finally:
+ for path in owned:
+  if path.exists():
+   r=run(common+['-S',str(path),'-O','exit','asuspro13'],timeout=3); cleanup.append({'ownedSocket':str(path),'exit':r['exit']})
+ if any(x['exit'] for x in cleanup): raise RuntimeError('Exclusive master cleanup failed')
+print(json.dumps({'observedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'host':os.uname().nodename,'sshVersion':run(['ssh','-V'])['stderr'].strip(),'disposableRuntimeDirectory':str(work),'socketDirectoryMode':oct(work.stat().st_mode&0o777),'measurements':results,'verboseDiagnosticStderrUsesPrivateFiles':True,'cleanupOfExclusivelyOwnedSockets':cleanup,'ownedMasterSocketsRemaining':[str(p) for p in owned if p.exists()],'bulkOrGpuLoadTestsPerformed':False,'productionSocketTerminationPerformed':False},indent=2))
+PY

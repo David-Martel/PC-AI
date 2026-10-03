@@ -196,31 +196,10 @@
     },
     "display": "Owner metadata eDP3840x2400; EDID hash preserved; no actual physical screen witness",
     "os": "Owner snapshot Ubuntu22.04.5, systemPython3.10.12; separate Python3.12/3.13/3.14; existing Humble versus isolated ROS environments must be kept distinct",
-    "maintenance": "Backup initial copy in progress at owner snapshot; release upgrade not started; repeat runtime probes after maintenance",
-    "wifi": {
-      "source": "Owner-produced non-secret receipt plus direct parent report",
-      "eduroam": "One Bitwarden note credential attempt failed; attempted password cleared and autoconnect disabled; fresh enterprise readiness pending",
-      "receipt": "wifi-import-receipt.json",
-      "savedPersonalProfiles": 3,
-      "temporaryExportCustody": "Private temporary exports retained after automatic approval review rejected deletion; no secret contents copied into this handoff",
-      "personalProfileProtection": "root uid0/mode0600 recorded",
-      "cogrob5g2": "Authenticated VIGIL-COGROB_ASUS_5G-2; wired backup route preserved",
-      "credentialsInHandoff": false,
-      "mWireless": "Legacy profile preserved; fresh enterprise authentication not established",
-      "metadataVerifiedUtc": "2026-10-02T21:57:52.4811961Z",
-      "privateExportProtection": {
-        "automaticApprovalRejection": "Parent reported blocked by policy with no further reason; no alternate writer retry",
-        "linuxFiles": 5,
-        "linuxFileMode": "0600",
-        "networkManagerProfiles": "Three root0:0/mode0600",
-        "secretContentsRead": false,
-        "windowsFiles": 5,
-        "linuxDirectoryMode": "0700",
-        "windowsOnlyCurrentUserFullControl": true,
-        "windowsDirectoryInheritanceDisabled": true,
-        "cleanupCompleted": false
-      }
-    }
+    "maintenance": "Qualified recovery backup verified: three homes and EFI zero checksum differences; all nonvolatile system data and metadata match, seven classified live exceptions. ME firmware applied and reboot recovered. Noble package installation is underway; normal SSH22 refused and recovery1022 reset during library/package replacement. User attached local tmux and reports setting-up progress. No reboot requested; post-upgrade validation remains pending. Normal SSH recovered at00:17UTC; an authenticated administrative session is held and the1022listener was restarted and key-tested at00:19UTC. Upgrade continues; no final OS acceptance.",
+    "wifi": "COGROB connected; original MWireless preserved. Windows cached MWireless authenticated. Supported Credential Manager API does not expose protected domain password. Three bounded Ubuntu attempts across two identities and two candidate sources have not connected; validity unresolved, secrets cleared, retries disabled.",
+    "actualVigilWidget": "Current-source CaptureProgressBar: 10 pixel assertions in isolated offscreen Qt, explicit ROS domain231, no ROS imports or fleet graph. display-readiness/RECEIPT.json",
+    "sharedAsusDisplay": "Latest owner reservation covers Clarius0545 non-imaging radios; 0546 fault preserved. No RESOURCE_DONE or Sunshine provider response observed. Existing pinned authentication probe401 retained; no pairing, reset, stream or input."
   },
   "requiredFutureChecks": [
     "Owner selects exact source/release/configuration/profile and OS/ROS/Python ABI; record installed/loaded identities separately from source pins",
@@ -339,11 +318,125 @@
     },
     {
       "origin": "Copied owner-produced component evidence; this lane rehashed locally",
-      "bytes": 2416,
+      "bytes": 3569,
       "relativePath": "wifi-import-receipt.json",
-      "sha256": "dc2cf6deaa15fa4c41501853639d61360af94f8427e31436f09d79342197d0e7"
+      "sha256": "7afa1b5fa6f47aa88d9074f43c615733eaab34abb44718b0d36927a89c30ac97"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 1180,
+      "relativePath": "display-readiness/AUTH-PROBE.json",
+      "sha256": "c256b4a102761eb6c44fcba100905786a03eb678d80cddc38b2f485a509b739b"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 236,
+      "relativePath": "display-readiness/capture-capturing.png",
+      "sha256": "a67da32b855c831a55936bd203c066e67a9088fd90eafc93c307a8f85276052e"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 227,
+      "relativePath": "display-readiness/capture-complete.png",
+      "sha256": "129681aaee3e0f99f283a2a5e572f70e24ae5f5e801b5d1ca93befab2c6eb323"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 240,
+      "relativePath": "display-readiness/capture-ok.png",
+      "sha256": "d204452477bd7e5b0c1bdc99642b8624199ae968da641d6f49b54e8a5e21c915"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 913,
+      "relativePath": "display-readiness/LOCAL-SHA256SUMS",
+      "sha256": "4852640315428b53ce1134daace460f3d4eb40be51b91283d11c7aeed6c95577"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 613,
+      "relativePath": "display-readiness/OWNER-HOLD.json",
+      "sha256": "1dad8338c5ffee1a2cafa92906047abca269e1723436f5adb87282751087aea6"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 2308,
+      "relativePath": "display-readiness/RECEIPT.json",
+      "sha256": "9ba0e1f06e43c0afc601eb878fa1acac90e2981cb5654b72a12ee06002e6513e"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 575,
+      "relativePath": "display-readiness/SHA256SUMS",
+      "sha256": "389aea804b2494b412c553072d7235adda38f49f82051567a91a4c2d2d84b1ed"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 0,
+      "relativePath": "display-readiness/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 2308,
+      "relativePath": "display-readiness/stdout.json",
+      "sha256": "9ba0e1f06e43c0afc601eb878fa1acac90e2981cb5654b72a12ee06002e6513e"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 498,
+      "relativePath": "display-readiness/UFW-DRY-RUN.txt",
+      "sha256": "15c6ad3ac391fb5bf7984ff94786ff20c8431d99a5e75049f0cc1622dd207276"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 3557,
+      "relativePath": "display-readiness/validate-widget.py.txt",
+      "sha256": "09078e0fc6a9828f69f19da52b6b7728b3ca7107040115611f7800fae81d256a"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 7566,
+      "relativePath": "backup-validation.json",
+      "sha256": "6a658c81e2c282a7719baec068ee4136636cf6cb7d5b4241d0396025ac1acccc"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 509,
+      "relativePath": "me-firmware-applied.json",
+      "sha256": "677ebe52c8e8c931c51853c6dea7d6d92b4f6eda20d8e4d4f50cae8a55c2e1a8"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 14899,
+      "relativePath": "ssh-transport/PROPOSAL.md",
+      "sha256": "58958f447c028070c910413fc62d3a391c304befc838e753870790176ed9d2bb"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 3231,
+      "relativePath": "ssh-transport/milly-mux-validation.json",
+      "sha256": "91ff9c754ae1713266ddd4bcd56eba7a4c51d36bea37ede13d2305ee535d847b"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 1091,
+      "relativePath": "ssh-transport/milly-banner-timeout-validation.json",
+      "sha256": "f1f0a6d26e72272fba1a022b787fca73b960439a6f0736a8be2ad05fde2257b3"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 2582,
+      "relativePath": "ssh-transport/windows-implementation-receipt.json",
+      "sha256": "e90a82319dbef67e9e50719f1dcbbeac09fd425e7fcff4405125a92ad27ea56d"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 980,
+      "relativePath": "tooling-modernization/windows-docs-validation/implementation-receipt.json",
+      "sha256": "4ab3ceea9af6b38fec73889c1e97b9f421516add8d381155e9da9f8c5d8a67c4"
     }
   ],
   "sharedTpmEditsAuthorized": false,
-  "updatedUtc": "2026-10-02T21:56:58.2246342Z"
+  "updatedUtc": "2026-10-03T00:19:40.251245Z"
 }

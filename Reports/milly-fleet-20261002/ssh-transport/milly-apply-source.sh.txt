@@ -1,0 +1,51 @@
+python3 - <<'PY'
+import os, pathlib, subprocess, hashlib, json, datetime, stat
+home=pathlib.Path.home(); ssh=home/'.ssh'; config=ssh/'config'; transport=ssh/'vigil-transport.conf'; cm=ssh/'cm'
+aliases=['asuspro13','spark-0060','spark-3066','github.com']
+def effective(alias):
+ p=subprocess.run(['ssh','-G',alias],capture_output=True,text=True,timeout=10,check=True)
+ return p.stdout.splitlines()
+def digest(data): return hashlib.sha256(data).hexdigest()
+before={a:effective(a) for a in aliases}; original=config.read_bytes(); fleet=ssh/'vigil-fleet.conf'; fleet_before=fleet.read_bytes()
+if original != b'Include /home/cog/.ssh/vigil-fleet.conf\n': raise RuntimeError('Unexpected config bytes; no blind replacement')
+if transport.exists(): raise RuntimeError('Owned transport target already exists')
+backup=home/'.cache/pcai/ssh-transport-backups-20261002'; backup.mkdir(mode=0o700,parents=True,exist_ok=True)
+if stat.S_IMODE(backup.stat().st_mode)!=0o700 or backup.stat().st_uid!=os.getuid(): raise RuntimeError('Private backup permissions invalid')
+for name,data in [('config.before',original),('vigil-fleet.conf.before',fleet_before)]:
+ target=backup/name
+ fd=os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+ with os.fdopen(fd,'wb') as f: f.write(data)
+if not cm.exists(): cm.mkdir(mode=0o700)
+if not cm.is_dir() or cm.is_symlink() or cm.stat().st_uid!=os.getuid() or stat.S_IMODE(cm.stat().st_mode)!=0o700: raise RuntimeError('Control directory is not private and owned')
+content=b'''# Cog-only VIGIL fleet session reuse. Linux OpenSSH client; three exact aliases.
+# Private per-alias socket; keep bulk/credential checks separate with -S none.
+Host asuspro13 spark-0060 spark-3066
+    ControlMaster auto
+    ControlPath ~/.ssh/cm/vigil-%n-%C
+    ControlPersist 120s
+    ConnectTimeout 10
+    ConnectionAttempts 1
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
+    Compression no
+    ForwardAgent no
+'''
+fd=os.open(transport,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+with os.fdopen(fd,'wb') as f: f.write(content)
+if config.read_bytes()!=original: raise RuntimeError('Concurrent config change detected')
+tmp=ssh/'config.pcai-transport-tmp'; fd=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+with os.fdopen(fd,'wb') as f: f.write(b'Include /home/cog/.ssh/vigil-transport.conf\n'+original)
+os.replace(tmp,config)
+after={a:effective(a) for a in aliases}; permitted={'controlmaster','controlpath','controlpersist','connecttimeout','connectionattempts','serveraliveinterval','serveralivecountmax','compression','forwardagent'}; changes=[]
+for alias in aliases:
+ removed=[s for s in before[alias] if s not in after[alias]]; added=[s for s in after[alias] if s not in before[alias]]
+ if alias=='github.com' and (removed or added): raise RuntimeError('Unrelated GitHub effective configuration changed')
+ if any(s.split()[0] not in permitted for s in removed+added): raise RuntimeError('Protected identity, route, or key-policy field changed')
+ if alias!='github.com':
+  for required in ['controlmaster auto','controlpersist 120','connecttimeout 10','connectionattempts 1','serveraliveinterval 30','serveralivecountmax 3','compression no','forwardagent no','identitiesonly yes','stricthostkeychecking true']:
+   if required not in after[alias]: raise RuntimeError(f'Missing {required} for {alias}')
+ changes.append({'alias':alias,'removed':removed,'added':added})
+if fleet.read_bytes()!=fleet_before: raise RuntimeError('Existing fleet include changed')
+fields={'hostname','user','port','identityfile','identityagent','identitiesonly','stricthostkeychecking','hostkeyalias','controlmaster','controlpath','controlpersist','compression','serveraliveinterval','serveralivecountmax','connecttimeout','connectionattempts','forwardagent','proxyjump','batchmode'}
+print(json.dumps({'observedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'host':os.uname().nodename,'user':os.getlogin() if False else 'cog','appliedFile':str(transport),'appliedSha256':digest(content),'configSha256':digest(config.read_bytes()),'originalConfigSha256':digest(original),'originalFleetIncludeSha256':digest(fleet_before),'existingFleetIncludeBytesUnchanged':True,'originalConfigRetainedPrivately':str(backup/'config.before'),'controlDirectoryMode':oct(stat.S_IMODE(cm.stat().st_mode)),'controlDirectoryOwnerUid':cm.stat().st_uid,'exactAliases':aliases[:3],'changes':changes,'before':{a:[s for s in v if s.split()[0] in fields] for a,v in before.items()},'after':{a:[s for s in v if s.split()[0] in fields] for a,v in after.items()},'unrelatedGithubAllEffectiveFieldsUnchanged':True,'protectedIdentityPinAndRouteFieldsUnchanged':True},indent=2))
+PY

@@ -579,6 +579,11 @@ still listed although upstream removed it in favour of `implicit_clone`.
 
 ### 3. Acceleration And Startup Cost
 
+- [x] Resolve the acceleration probe's repository from the module checkout,
+  retaining a PC_AI marker check before selecting native binaries. Regression
+  tests reproduce three failures before repair and pass afterward; measured
+  results and remaining workstation pressure are recorded in
+  `Reports/tooling-maintenance-20261003.md`.
 - [ ] Update status/reporting and agent-facing tooling to use
   `Get-PcaiAccelerationProbe`, `Get-PcaiDirectCoreProbe`, or
   `Get-PcaiDirectTokenEstimate` when they only need scalar/status data.

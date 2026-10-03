@@ -34,11 +34,17 @@
 
 .PARAMETER PollTimeoutMinutes
     Maximum minutes to wait for Jules to revise a plan. Default: 10.
+
+.PARAMETER AutoApprove
+    Approve plans that pass the keyword pre-screen. Off by default: the
+    pre-screen only matches words in step titles and descriptions, so without
+    this switch a passing plan is left awaiting a deliberate approval. Jules
+    expires sessions whose plans wait too long (about 10 minutes).
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('AnalyzeAndDispatch', 'ReviewPlans', 'ReviewPlan')]
+    [ValidateSet('AnalyzeAndDispatch', 'ReviewPlans', 'ReviewPlan', '__test_load__')]
     [string]$Action,
 
     [string]$SessionId,
@@ -47,7 +53,8 @@ param(
     [ValidateSet('Table', 'Json', 'Report')][string]$Format = 'Json',
     [int]$MaxFeedbackRounds     = 3,
     [int]$PollIntervalSeconds   = 30,
-    [int]$PollTimeoutMinutes    = 10
+    [int]$PollTimeoutMinutes    = 10,
+    [switch]$AutoApprove
 )
 
 $ErrorActionPreference = 'Stop'
@@ -229,7 +236,15 @@ function Invoke-ReviewPlanAction {
         }
 
         if ($result.Recommendation -eq 'approve') {
-            Invoke-Jules @{ Action = 'Approve'; SessionId = $TargetSessionId } | Out-Null
+            # The pre-screen matches keywords in step titles; it cannot tell a
+            # sound plan from a plausible-sounding one, so it never approves on
+            # its own authority.
+            if ($AutoApprove) {
+                Invoke-Jules @{ Action = 'Approve'; SessionId = $TargetSessionId } | Out-Null
+            } else {
+                Write-Warning ("Pre-screen passed for $TargetSessionId; plan left awaiting approval. " +
+                    "Read it, then run: Tools\Invoke-JulesSession.ps1 -Action Approve -SessionId $TargetSessionId")
+            }
             break
         }
         if ($result.Recommendation -eq 'reject') { break }

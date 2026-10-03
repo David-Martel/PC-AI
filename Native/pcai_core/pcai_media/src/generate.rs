@@ -1584,6 +1584,13 @@ mod tests {
         assert!(tensor_to_image(&tensor).is_err());
     }
 
+    /// `tensor_to_image` must return an error for a 4D tensor.
+    #[test]
+    fn test_tensor_to_image_4d_tensor() {
+        let tensor = Tensor::zeros((1_usize, 3_usize, 8_usize, 8_usize), DType::U8, &Device::Cpu).unwrap();
+        assert!(tensor_to_image(&tensor).is_err());
+    }
+
     /// `tensor_to_image` must return an error when C != 3.
     #[test]
     fn test_tensor_to_image_wrong_channels() {

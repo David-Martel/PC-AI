@@ -1,0 +1,9 @@
+compression no
+controlmaster auto
+connectionattempts 1
+serveralivecountmax 3
+serveraliveinterval 30
+controlpath /home/damartel/.ssh/cm/vigil-spark-0060-044e1262563b94ea648684cbd2e8d22f3ec5225f
+connecttimeout 8
+controlpersist 120
+

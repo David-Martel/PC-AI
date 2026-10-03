@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "endpoint": "https://localhost:47990/api/clients/list",
+  "method": "GET",
+  "provider": "Windows maintained Bitwarden backend, existing ASUS RDP item",
+  "http_status": 401,
+  "certificate_pin_verified": true,
+  "credential_exposed": false,
+  "state_changes": false,
+  "paired_client_identities_recorded": false,
+  "boundary": "One existing canonical-role fallback credential; no password guesses, credential resets, pairing, or service changes",
+  "recorded_at_utc": "2026-10-02T18:14:55.703174-04:00",
+  "probe_execution_time": "Not separately recorded; observed tool result predates this evidence recording.",
+  "username_source": "Actual sunshine_state.json.username read immediately before the authenticated request.",
+  "username_matches_configured_sunshine_username": true,
+  "username_default_or_rdp_used": false,
+  "username_value_recorded": false,
+  "retry_performed": false,
+  "clarification_recorded_at_utc": "2026-10-02T22:34:33.6437739+00:00",
+  "status_interpretation": "Existing RDP fallback credential was rejected with the actual configured Sunshine username; reason for rejection not otherwise diagnosed."
+}

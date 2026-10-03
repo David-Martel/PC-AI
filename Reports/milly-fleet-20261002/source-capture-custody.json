@@ -1,0 +1,38 @@
+{
+  "createdUtc": "2026-10-03T00:26:00.9398654Z",
+  "policy": "Preserve original source capture bytes; original manifests retain producer names. Local manifests bind stored captures.",
+  "files": [
+    {
+      "originalCapturedName": "display-readiness/validate-widget.py",
+      "storedCapture": "display-readiness/validate-widget.py.txt",
+      "bytes": 3557,
+      "sha256": "09078e0fc6a9828f69f19da52b6b7728b3ca7107040115611f7800fae81d256a",
+      "contentModified": false,
+      "kind": "Byte-exact source/stdin capture, not maintained executable source"
+    },
+    {
+      "originalCapturedName": "ssh-transport/milly-apply-source.sh",
+      "storedCapture": "ssh-transport/milly-apply-source.sh.txt",
+      "bytes": 4644,
+      "sha256": "6a0dc70a83860e5219c1b9f51d1ff3116264b99f2593d6ee8f040085d9bf17c0",
+      "contentModified": false,
+      "kind": "Byte-exact source/stdin capture, not maintained executable source"
+    },
+    {
+      "originalCapturedName": "ssh-transport/milly-mux-validation-source.sh",
+      "storedCapture": "ssh-transport/milly-mux-validation-source.sh.txt",
+      "bytes": 6452,
+      "sha256": "6adeb0f88c1226c46edb01ac162acb98ad58ff557a9171b2721b80feeea5f98d",
+      "contentModified": false,
+      "kind": "Byte-exact source/stdin capture, not maintained executable source"
+    },
+    {
+      "originalCapturedName": "ssh-transport/milly-banner-timeout-source.sh",
+      "storedCapture": "ssh-transport/milly-banner-timeout-source.sh.txt",
+      "bytes": 2370,
+      "sha256": "f8410c119fb81844372d0556661cd02b0bc52a8f05b3f2df2638e6bfcc42227a",
+      "contentModified": false,
+      "kind": "Byte-exact source/stdin capture, not maintained executable source"
+    }
+  ]
+}

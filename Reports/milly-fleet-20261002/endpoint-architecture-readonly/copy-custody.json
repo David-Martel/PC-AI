@@ -1,0 +1,10 @@
+{
+  "schema": "milly.endpoint-architecture-copy-custody.v1",
+  "observedUtc": "2026-10-03T00:41:52.3253262Z",
+  "sourcePath": "C:/Users/david/AppData/Local/Temp/milly-endpoint-architecture-readonly-20261002/receipt.json",
+  "destinationPath": "C:\\codedev\\PC_AI\\Reports\\milly-fleet-20261002\\endpoint-architecture-readonly\\receipt.json",
+  "sha256": "BB334E01156221C9E9145BFD60C7E61E678228B8A675F967F8058AB1EAA802BB",
+  "byteLength": 9461,
+  "sourceReceiptRewritten": false,
+  "interpretation": "Byte-preserved copy of source-only read-only architecture receipt. Source claims and validation exclusions retained; no new endpoint runtime acceptance claimed."
+}

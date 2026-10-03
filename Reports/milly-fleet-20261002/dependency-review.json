@@ -1,0 +1,496 @@
+{
+  "schema_version": 1,
+  "captured_utc": "2026-10-03T02:47:56.5352705Z",
+  "repository": "David-Martel/PC-AI",
+  "scope": "Independent review of five dependency PRs; no merges performed by reviewer",
+  "prs": [
+    {
+      "number": 160,
+      "head": "21aaab10cd740952a1e9efc6b3cf443a2aed6e30",
+      "state": "OPEN",
+      "mergeable": "MERGEABLE",
+      "merge_state": "CLEAN",
+      "signature": {
+        "reason": "valid",
+        "verified": true
+      },
+      "checks": [
+        {
+          "name": "Security Scan",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109506494261"
+        },
+        {
+          "name": "Rust Format",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109506494048"
+        },
+        {
+          "name": "PowerShell Lint",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109506494230"
+        },
+        {
+          "name": ".NET Build",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109506494309"
+        },
+        {
+          "name": "Rust Check + Clippy",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109506723003"
+        },
+        {
+          "name": "PowerShell Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109507913700"
+        },
+        {
+          "name": "Rust Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109507304904"
+        },
+        {
+          "name": "Build (llamacpp CPU)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109508156702"
+        },
+        {
+          "name": "Integration Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109509366497"
+        },
+        {
+          "name": "CI Gate",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597620829/job/109509697732"
+        }
+      ]
+    },
+    {
+      "number": 161,
+      "head": "d67efbfc5bdaa04d6cdb92ed24b8169ae2d009bd",
+      "state": "OPEN",
+      "mergeable": "MERGEABLE",
+      "merge_state": "CLEAN",
+      "signature": {
+        "reason": "valid",
+        "verified": true
+      },
+      "checks": [
+        {
+          "name": "Security Scan",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109506588824"
+        },
+        {
+          "name": "Rust Format",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109506588735"
+        },
+        {
+          "name": "PowerShell Lint",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109506588385"
+        },
+        {
+          "name": ".NET Build",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109506589061"
+        },
+        {
+          "name": "Rust Check + Clippy",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109506847570"
+        },
+        {
+          "name": "PowerShell Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109507958358"
+        },
+        {
+          "name": "Rust Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109507348973"
+        },
+        {
+          "name": "Build (llamacpp CPU)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109508224029"
+        },
+        {
+          "name": "Integration Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109509558879"
+        },
+        {
+          "name": "CI Gate",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597649805/job/109509962497"
+        }
+      ]
+    },
+    {
+      "number": 159,
+      "head": "037a262237bd7382eec6241c717d03bfe37f16ca",
+      "state": "OPEN",
+      "mergeable": "MERGEABLE",
+      "merge_state": "CLEAN",
+      "signature": {
+        "reason": "valid",
+        "verified": true
+      },
+      "checks": [
+        {
+          "name": "Security Scan",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109506307534"
+        },
+        {
+          "name": "Microsoft Rust Guidelines (Native/pcai_core, --no-default-features --features server,ffi)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566875/job/109506308997"
+        },
+        {
+          "name": "Rust Format",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109506307466"
+        },
+        {
+          "name": "PowerShell Lint",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109506307536"
+        },
+        {
+          "name": ".NET Build",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109506307223"
+        },
+        {
+          "name": "Rust Check + Clippy",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109506553953"
+        },
+        {
+          "name": "PowerShell Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109507796700"
+        },
+        {
+          "name": "Rust Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109507124795"
+        },
+        {
+          "name": "Build (llamacpp CPU)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109508053831"
+        },
+        {
+          "name": "Integration Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109509394899"
+        },
+        {
+          "name": "CI Gate",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597566882/job/109509808209"
+        }
+      ]
+    },
+    {
+      "number": 147,
+      "head": "d19a146da5b31a3074c38f40ca8e5338b7e19307",
+      "state": "OPEN",
+      "mergeable": "MERGEABLE",
+      "merge_state": "CLEAN",
+      "signature": {
+        "reason": "valid",
+        "verified": true
+      },
+      "checks": [
+        {
+          "name": "Security Scan",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108576066820"
+        },
+        {
+          "name": "Microsoft Rust Guidelines (Native/pcai_core, --no-default-features --features server,ffi)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694563/job/108576066576"
+        },
+        {
+          "name": "Rust Format",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108576066863"
+        },
+        {
+          "name": "PowerShell Lint",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108576066743"
+        },
+        {
+          "name": ".NET Build",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108576066866"
+        },
+        {
+          "name": "Rust Check + Clippy",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108576131470"
+        },
+        {
+          "name": "PowerShell Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108576576702"
+        },
+        {
+          "name": "Rust Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108576435620"
+        },
+        {
+          "name": "Build (llamacpp CPU)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108576808195"
+        },
+        {
+          "name": "Integration Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108577611550"
+        },
+        {
+          "name": "CI Gate",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36303694610/job/108577731289"
+        }
+      ]
+    },
+    {
+      "number": 145,
+      "head": "f1e1b8ffd63fb7255645b3250f1bd33e4f1c286b",
+      "state": "OPEN",
+      "mergeable": "MERGEABLE",
+      "merge_state": "CLEAN",
+      "signature": {
+        "reason": "valid",
+        "verified": true
+      },
+      "checks": [
+        {
+          "name": "Security Scan",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109505695695"
+        },
+        {
+          "name": "Microsoft Rust Guidelines (Native/pcai_core, --no-default-features --features server,ffi)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389458/job/109505695519"
+        },
+        {
+          "name": "Rust Format",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109505695541"
+        },
+        {
+          "name": "PowerShell Lint",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109505695982"
+        },
+        {
+          "name": ".NET Build",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109505695031"
+        },
+        {
+          "name": "Rust Check + Clippy",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109505882339"
+        },
+        {
+          "name": "PowerShell Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109507099875"
+        },
+        {
+          "name": "Rust Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109506845586"
+        },
+        {
+          "name": "Build (llamacpp CPU)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109508673347"
+        },
+        {
+          "name": "Integration Tests",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109510666704"
+        },
+        {
+          "name": "CI Gate",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/David-Martel/PC-AI/actions/runs/36597389519/job/109510985947"
+        }
+      ]
+    }
+  ],
+  "review_verdicts": [
+    {
+      "reason": "One-line test collector version update; exact-head collection 6/6 tests; strict build passes with separate baseline XML cref fix",
+      "pr": 160,
+      "runtime_acceptance": false,
+      "verdict": "APPROVE_DEPENDENCY_QUALIFIED"
+    },
+    {
+      "reason": "One-line test collector version update; exact-head collection 9/9 tests; strict build passes with separate baseline XML cref fix",
+      "pr": 161,
+      "runtime_acceptance": false,
+      "verdict": "APPROVE_DEPENDENCY_QUALIFIED"
+    },
+    {
+      "reason": "Deploy workspace and CUDA/flash-attention paths not exercised by green hosted CI; rust-guidelines Deploy matrix commented out",
+      "pr": 159,
+      "remaining": "Locked Deploy CUDA build/tests and representative runtime validation",
+      "verdict": "HOLD"
+    },
+    {
+      "reason": "Optional nvml feature not exercised by hosted CI; original enabled-check tool session expired before exit capture",
+      "pr": 147,
+      "remaining": "Capture completed enabled-feature command and runtime inventory/process validation",
+      "verdict": "HOLD"
+    },
+    {
+      "reason": "mistralrs upgraded to0.8 while direct mistralrs-core stays0.7; mixed types at two backend API boundaries",
+      "boundaries": [
+        "RequestBuilder.set_sampler_stop_toks receives mistralrs_core0.7 StopTokens, API expects0.8.1",
+        "Model.send_chat_request returns core0.8.1 ChatCompletionResponse passed to map_response expecting core0.7"
+      ],
+      "pr": 145,
+      "remaining": "Align both direct versions; migrate APIs; enabled backend CPU/CUDA builds/tests",
+      "verdict": "MUST_FIX"
+    }
+  ],
+  "coverlet_validation": {
+    "baseline_failure": {
+      "path": "Native/PcaiNative/MediaModule.cs",
+      "strict_exit_code": 1,
+      "preexisting": true,
+      "line": 32,
+      "diagnostic": "CS1574"
+    },
+    "command": "dotnet test <project> -c Release --nologo -v minimal --collect:XPlat Code Coverage /p:TreatWarningsAsErrors=true",
+    "baseline_fix": {
+      "path": "Native/PcaiNative/MediaModule.cs",
+      "change": "Qualify cref to MediaModule.pcai_media_free_string",
+      "runtime_change": false,
+      "primary_edit_authorized": true
+    },
+    "source_qualification": "Strict tests used exact dependency head archive plus identical one-line separately authorized baseline documentation fix; not an unmodified exact-head strict success",
+    "tests": [
+      {
+        "coverage_qualification": "Metadata-only tests; not core runtime coverage",
+        "failed": 0,
+        "pr": 160,
+        "strict_with_baseline_fix_passed": 6,
+        "strict_exit_code": 0,
+        "coverage_lines_covered": 0,
+        "exact_head_ordinary_passed": 6,
+        "exact_coverage_sha256": "7f6360fc8e3244f4e45eda4f97343f3306d7e6015cf864d9b35016ae41537c03",
+        "coverage_lines_valid": 1561,
+        "warning_count": 0,
+        "skipped": 0
+      },
+      {
+        "failed": 0,
+        "pr": 161,
+        "strict_with_baseline_fix_passed": 9,
+        "strict_exit_code": 0,
+        "coverage_lines_covered": 23,
+        "exact_head_ordinary_passed": 9,
+        "exact_coverage_sha256": "2d73c32d72f5ee7cc5e864a28137c080eb639e03825bf3b78bca4dca0ed7ace3",
+        "coverage_lines_valid": 2567,
+        "warning_count": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "nvml_validation": {
+    "original_exit_code": null,
+    "source_comparison": {
+      "changed_paths": [],
+      "archived_files": 459
+    },
+    "original_session": 53909,
+    "requested_command": "check --manifest-path Native/pcai_core/Cargo.toml --package pcai_core_lib --no-default-features --features nvml --locked",
+    "runtime_gpu_inventory_tested": false,
+    "original_status": "UNAVAILABLE_SESSION_EXPIRED",
+    "qualification": "Completed fingerprint/rmeta recovered but not a captured successful command; two attempted cached checks began recompilation and were stopped only in owned process trees to obey bounded scope",
+    "cached_fingerprint_features": [
+      "nvml"
+    ],
+    "cached_rmeta_present": true
+  },
+  "rules": {
+    "default_branch": true,
+    "pull_request_required": true,
+    "required_approvals": 0,
+    "ruleset_id": 17356124,
+    "enforcement": "active",
+    "required_signatures": true,
+    "review_thread_resolution_required": true
+  }
+}

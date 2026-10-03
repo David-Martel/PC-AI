@@ -153,9 +153,10 @@ $script:SessionLogDir = Join-Path $script:RepoRoot '.pcai\jules\sessions'
 # Helper: Get-JulesApiKey
 #   Reads the Jules API key from (in order):
 #   1. $env:JULES_API_KEY
-#   2. ~/.machine/*.json files (machine-local secrets store)
-#   3. .env file in the repository root
-#   4. Bitwarden CLI (bw get notes "JULES_API_KEY")
+#   2. .env file in the repository root
+#   3. Bitwarden CLI (bw get notes "JULES_API_KEY" --nointeraction)
+#   ~/.machine/*.json is deliberately not scanned: that folder is writable
+#   by sandbox accounts, so any JSON dropped there could supply the key.
 #   Returns the key string or $null.
 # ---------------------------------------------------------------------------
 function Get-JulesApiKey {
@@ -168,19 +169,7 @@ function Get-JulesApiKey {
         return $env:JULES_API_KEY
     }
 
-    # 2. ~/.machine/*.json files
-    $machineDir = Join-Path $HOME '.machine'
-    if (Test-Path -LiteralPath $machineDir) {
-        foreach ($f in Get-ChildItem -LiteralPath $machineDir -Filter '*.json' -File) {
-            try {
-                $data = Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json -Depth 5
-                if ($data.JULES_API_KEY) { return $data.JULES_API_KEY }
-                if ($data.jules_api_key) { return $data.jules_api_key }
-            } catch { <# skip malformed files #> }
-        }
-    }
-
-    # 3. .env file in repository root
+    # 2. .env file in repository root
     $envFile = Join-Path $script:RepoRoot '.env'
     if (Test-Path -LiteralPath $envFile) {
         foreach ($line in [System.IO.File]::ReadAllLines($envFile)) {
@@ -191,10 +180,11 @@ function Get-JulesApiKey {
         }
     }
 
-    # 4. Bitwarden CLI (bw)
+    # 3. Bitwarden CLI (bw). --nointeraction: a locked vault must fail fast
+    #    instead of waiting on a password prompt nobody can answer.
     if (Get-Command 'bw' -ErrorAction SilentlyContinue) {
         try {
-            $bwResult = bw get notes 'JULES_API_KEY' 2>$null
+            $bwResult = bw get notes 'JULES_API_KEY' --nointeraction 2>$null
             if ($bwResult -and $bwResult.Trim()) { return $bwResult.Trim() }
         } catch { <# bw not unlocked or item not found #> }
     }
@@ -398,6 +388,16 @@ function Invoke-JulesCli {
 }
 
 # ---------------------------------------------------------------------------
+# Helper: ConvertTo-JulesStateEnum
+#   -State takes PascalCase (InProgress); the API reports UPPER_SNAKE
+#   (IN_PROGRESS). Insert '_' at each lower->upper boundary, then upcase.
+# ---------------------------------------------------------------------------
+function ConvertTo-JulesStateEnum {
+    param([Parameter(Mandatory)][string]$State)
+    return ($State -creplace '(?<=[a-z])(?=[A-Z])', '_').ToUpperInvariant()
+}
+
+# ---------------------------------------------------------------------------
 # Helper: Format-JulesSessionTable
 #   Converts raw session API objects into table-friendly PSCustomObjects.
 #   Extracts SessionId from the 'name' field (last path segment), Created
@@ -478,7 +478,7 @@ function Get-RequiredApiKey {
     param([string]$ForAction)
     $key = Get-JulesApiKey
     if (-not $key) {
-        throw "JULES_API_KEY is not set. Export it as an environment variable or add JULES_API_KEY=<key> to the .env file in the repository root. (Required for '$ForAction' action.)"
+        throw "JULES_API_KEY is not set. Export it as an environment variable, add JULES_API_KEY=<key> to the .env file in the repository root, or store it as the notes of a Bitwarden item named JULES_API_KEY in an unlocked vault. (Required for '$ForAction' action.)"
     }
     return $key
 }
@@ -499,6 +499,7 @@ if ($Action -eq '__test_load__') {
         'Invoke-JulesApi',
         'Invoke-JulesCli',
         'Format-JulesSessionTable',
+        'ConvertTo-JulesStateEnum',
         'Get-RequiredApiKey',
         'Ensure-JulesDirectory',
         'Assert-JulesParam'
@@ -560,7 +561,6 @@ switch ($Action) {
         do {
             $queryParts = @("pageSize=$PageSize")
             if ($Filter)    { $queryParts += "filter=$([Uri]::EscapeDataString($Filter))" }
-            if ($State)     { $queryParts += "filter=state=$State" }
             if ($pageToken) { $queryParts += "pageToken=$([Uri]::EscapeDataString($pageToken))" }
 
             $qs  = if ($queryParts.Count -gt 0) { '?' + ($queryParts -join '&') } else { '' }
@@ -579,11 +579,19 @@ switch ($Action) {
         } while ($All -and $pageToken)
 
         $output = @($allSessions)
+        if ($State) {
+            # Applied here because the API rejects every server-side state
+            # filter with HTTP 400. Without -All this narrows one page only.
+            $wanted = ConvertTo-JulesStateEnum -State $State
+            $output = @($output | Where-Object { $_.PSObject.Properties['state'] -and $_.state -eq $wanted })
+        }
 
         if ($Format -eq 'Table') {
             Format-JulesSessionTable -Sessions $output | Format-Table -AutoSize
         } else {
-            $output | ConvertTo-Json -Depth 10
+            # -InputObject, not the pipeline: an empty pipeline emits nothing
+            # instead of [], and a single session would lose its array brackets.
+            ConvertTo-Json -InputObject $output -Depth 10
         }
     }
 

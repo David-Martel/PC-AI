@@ -1,0 +1,31 @@
+Making check in src
+make[1]: Entering directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22/src'
+make  check-TESTS
+make[2]: Entering directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22/src'
+make[3]: Entering directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22/src'
+PASS: t_timer
+PASS: t_units
+PASS: t_uuid
+PASS: t_api
+PASS: t_auth
+============================================================================
+Testsuite summary for iperf 3.22
+============================================================================
+# TOTAL: 5
+# PASS:  5
+# SKIP:  0
+# XFAIL: 0
+# FAIL:  0
+# XPASS: 0
+# ERROR: 0
+============================================================================
+make[3]: Leaving directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22/src'
+make[2]: Leaving directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22/src'
+make[1]: Leaving directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22/src'
+Making check in examples
+make[1]: Entering directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22/examples'
+make[1]: Nothing to be done for 'check'.
+make[1]: Leaving directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22/examples'
+make[1]: Entering directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22'
+make[1]: Nothing to be done for 'check-am'.
+make[1]: Leaving directory '/home/cog/.cache/pcai/iperf3-3.22-source/iperf-3.22'

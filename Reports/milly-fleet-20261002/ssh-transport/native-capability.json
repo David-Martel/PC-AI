@@ -1,0 +1,12 @@
+{
+  "observedUtc": "2026-10-02T23:33:40.3762772Z",
+  "ssh": "OpenSSH_for_Windows_9.5p2",
+  "fileVersion": "9.5.6.3",
+  "probe": "ssh -O check -S <nonexistent private temporary path> -o BatchMode=yes -o ConnectionAttempts=1 millylaptop1",
+  "result": "getsockname failed: Not a socket; Read from remote host 192.168.50.43: Unknown error",
+  "exit": -1,
+  "configParserAcceptsControlOptions": true,
+  "nativeMuxRecommended": false,
+  "puttyVersion": "0.84",
+  "changesApplied": false
+}

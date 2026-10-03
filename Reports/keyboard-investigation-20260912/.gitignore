@@ -1,0 +1,3 @@
+# Retain machine-specific runtime evidence locally; publish reviewed summaries.
+*.json
+capture-smoke/

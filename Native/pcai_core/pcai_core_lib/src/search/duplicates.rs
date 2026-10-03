@@ -230,7 +230,7 @@ fn find_duplicates_impl(config: &DuplicateConfig) -> DuplicateResult {
 
     files_to_hash.par_iter().for_each(|file_info| {
         if let Ok(hash) = hash_file(&file_info.path) {
-            let mut map = hash_map.lock().expect("duplicate hash map mutex poisoned");
+            let mut map = hash_map.lock().unwrap_or_else(|e| e.into_inner());
             map.entry(hash)
                 .or_default()
                 .push((file_info.path.clone(), file_info.size));

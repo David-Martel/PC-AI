@@ -1,0 +1,3 @@
+# Exact recognition data from upstream fwupd 2.1.8; remove once distribution data includes this checksum.
+[UEFI\CSUM_2EA557C44B83C0AD6B71EFB7EDCC18B6337AD1C1D682155DD9451B051B62FF40]
+Version = 20260707

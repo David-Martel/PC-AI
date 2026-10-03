@@ -243,8 +243,9 @@ if (Test-Path $analyzerSettings) {
         Write-Host "`nRunning code quality check..." -ForegroundColor Cyan
         $issues = Invoke-ScriptAnalyzer -Path $PSScriptRoot -Settings $analyzerSettings -Recurse
 
-        $errors = $issues | Where-Object { $_.Severity -eq 'Error' }
-        $warnings = $issues | Where-Object { $_.Severity -eq 'Warning' }
+        # @() so .Count works under StrictMode when a severity has zero hits (a clean run otherwise throws).
+        $errors = @($issues | Where-Object { $_.Severity -eq 'Error' })
+        $warnings = @($issues | Where-Object { $_.Severity -eq 'Warning' })
 
         Write-Host "  Errors: $($errors.Count)" -ForegroundColor $(if ($errors.Count -eq 0) { 'Green' } else { 'Red' })
         Write-Host "  Warnings: $($warnings.Count)" -ForegroundColor $(if ($warnings.Count -eq 0) { 'Green' } else { 'Yellow' })

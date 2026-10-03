@@ -1,0 +1,81 @@
+{
+  "created_at": "2026-10-02T23:04:27.827488+00:00",
+  "source_class": "source-only; not adopted, installed, fleet-qualified or HIL",
+  "base": "333284b669442536b5757ca2903cf1cec0f185c7",
+  "commit": "ae84e33279ee8c0202d402818e93f989e1cdeca9",
+  "tree": "64f5ff48a700f775f42b1d022e0a87b29fd52c19",
+  "signature": "G",
+  "worktree": "/home/damartel/dev/repos/git-guard/worktrees/fleet-version-adapter-20261002",
+  "branch": "codex/fleet-version-adapter-20261002",
+  "source_files": {
+    "README.md": "6130c77fa7898504a1eeba6285988f2a6a9cef42a04edfd3200a3feb013a3bf5",
+    "bin/git-guard": "04b1ea998c79ce9086314281b6ea86ccbbbf38dab3ca5b43a1c22d1079a56345",
+    "docs/QA_TOOLING.md": "9bf3d9f741006b5f25c89ccaf6b063eda638420d438f8092f0f536146cd2f807",
+    "hooks/common/fleet_versions.sh": "5266905d7bc620de014d315dee83580a1ce1806b89fd604c3ad8d51eb0c27229",
+    "tests/21-fleet-versions.t.sh": "abab76a4d4667a9797b3b6206dd90274c375c874c9519315649d87b4e74d261d",
+    "tests/run.sh": "163622b6ddeb1565ff4f78817797b7f6d831b0bf0d686e6a1f02fd74071a6159"
+  },
+  "image": "sha256:fc97d3ef9025ca46de288f8de9fcda5f1726e450ee5502f713d2f60bd7354a98",
+  "test_environment": {
+    "network": "none",
+    "cpus": 2,
+    "memory": "2GiB",
+    "source": "private container clone with exact candidate overlay; no host test environment"
+  },
+  "validation": {
+    "full_suite_log": "full-suite-v4.log",
+    "outer_pass": 247,
+    "outer_fail": 0,
+    "outer_skip": 4,
+    "adapter_methods": 14,
+    "skips": [
+      "Windows WSL",
+      "nested Docker engine",
+      "PowerShell",
+      "git-lfs"
+    ],
+    "shellcheck": "-S warning passed; unchanged repository CI severity",
+    "real_canonical_commit": "a2bea934a08ae594f596a2dbc82e80593096a176",
+    "real_canonical_log": "real-canonical-v3.log",
+    "fixture_results": {
+      "compliant": {
+        "enforce_exit": 0,
+        "report_exit": 0,
+        "ok": 13,
+        "unresolved": 1
+      },
+      "violating": {
+        "enforce_exit": 1,
+        "report_exit": 0,
+        "violations": 14,
+        "unresolved": 1
+      }
+    },
+    "wall_seconds": [
+      0.349177,
+      0.3616,
+      0.371082,
+      0.370585
+    ],
+    "timing_scope": "four calls, whole real provider plus small committed fixture target, warm local caches; not Spark benchmark"
+  },
+  "first_failures": {
+    "red.log": "before adapter implementation: missing feature;18 assertions failed across10 test methods",
+    "full-suite-v1.log": "default shellcheck informational findings on unchanged source; canonical CI uses warning threshold",
+    "full-suite-v2.log": "26 inherited test failures because linked .git admin path not mounted; corrected with private self-contained clone"
+  },
+  "hooks": {
+    "normal_commit": "commit.log",
+    "routing": "process-local PATH wrappers preserve arguments/stdin/status for shellcheck and ast-grep via private network-none container; host Git/signing unchanged",
+    "private_rule_cache": "hook-rule-cache",
+    "container_removed": true,
+    "advisory": "prefer-uv-python warning retained; stdlib isolated interpreter deliberately avoids environment resolution"
+  },
+  "limits": [
+    "Canonical prerelease/floating refs/unresolved/floor semantics unchanged",
+    "Clean byte-identical snapshots only; excludes smudged LFS/autocrlf/submodules/external symlinks",
+    "Explicit enforce propagates canonical result, not proof of complete inventory or runtime conformance",
+    "No host/fleet adoption, hook installation, dependency or policy changes",
+    "Not pushed; root exact-head review required"
+  ]
+}

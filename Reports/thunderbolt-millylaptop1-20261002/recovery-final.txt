@@ -1,0 +1,11 @@
+utc=2026-10-02T20:22:16Z
+hostname=millylaptop1
+ssh_user=cog
+passwordless_sudo_uid=0
+bios=N3TET64W (2.00 )
+combined_iso_sha256=1099918bf220309c21a7bfa0febf6052d60f1e3ec8a48fbf57c3d64e8904650a  /home/cog/.cache/pcai/firmware/n3tur13w.iso
+nhi_runtime_policy=auto
+owned_nm_profiles=0
+network=lo               UNKNOWN        127.0.0.1/8 ::1/128
+wlp0s20f3        UP             35.3.41.148/16 fe80::ecdc:b151:3d35:bbad/64
+enx002427892147  UP             192.168.50.43/24 fe80::1eb8:c702:f7ab:45b1/64

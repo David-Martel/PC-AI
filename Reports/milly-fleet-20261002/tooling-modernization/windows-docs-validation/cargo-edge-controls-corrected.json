@@ -1,0 +1,36 @@
+[
+  {
+    "case": "feature-gated-bin",
+    "passed": true,
+    "provenance": "Generated",
+    "indexes": [
+      "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\feature-gated-bin\\target\\pcai-docs\\538e80528e7f4cf2a4a7abd26348c136\\doc\\review_docs_fixture\\index.html"
+    ],
+    "selectedTargets": [
+      {
+        "PackageId": "path+file:///C:/Users/david/AppData/Local/Temp/pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d/feature-gated-bin#review_docs_fixture@0.1.0",
+        "Target": "review_docs_fixture",
+        "Features": [],
+        "Index": "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\feature-gated-bin\\target\\pcai-docs\\538e80528e7f4cf2a4a7abd26348c136\\doc\\review_docs_fixture\\index.html"
+      }
+    ],
+    "generatorHash": "659C3D635BB2235346601DC3A1761FE2C1B2F17B45676320FEA1DE44FB30F26D"
+  },
+  {
+    "case": "explicit-target",
+    "passed": true,
+    "provenance": "Generated",
+    "indexes": [
+      "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\explicit-target\\target\\pcai-docs\\d8eaafd640a04d77b77a8afca5c99c96\\x86_64-pc-windows-msvc\\doc\\review_docs_fixture\\index.html"
+    ],
+    "selectedTargets": [
+      {
+        "PackageId": "path+file:///C:/Users/david/AppData/Local/Temp/pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d/explicit-target#review_docs_fixture@0.1.0",
+        "Target": "review_docs_fixture",
+        "Features": [],
+        "Index": "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\explicit-target\\target\\pcai-docs\\d8eaafd640a04d77b77a8afca5c99c96\\x86_64-pc-windows-msvc\\doc\\review_docs_fixture\\index.html"
+      }
+    ],
+    "generatorHash": "659C3D635BB2235346601DC3A1761FE2C1B2F17B45676320FEA1DE44FB30F26D"
+  }
+]

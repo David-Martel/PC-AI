@@ -82,7 +82,9 @@ function Get-PersistentVHDXTaskConfig {
         }
         [pscustomobject]@{
             TaskName = 'AutoMount_VHDX_shared-dev'
-            VhdPath = 'T:\vm\shared-dev.vhdx'
+            # September 12 read-only inspection matched the historical W: disk
+            # identifier and volume GUID on D:. No replacement exists on T:.
+            VhdPath = 'D:\vm\shared-dev.vhdx'
             ExpectedVolumeLabel = 'WSL-Shared-Dev'
             ExpectedDriveLetter = 'W'
             ExpectedFileSystem = 'NTFS'

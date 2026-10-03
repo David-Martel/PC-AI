@@ -347,11 +347,15 @@ Jules runs in a short-lived Ubuntu VM. Adapt accordingly:
 - Refactoring the media pipeline tensor operations without benchmark data
 
 ### Plan approval expectations
-All Jules sessions on this repo use `requirePlanApproval: true`. Plans are reviewed by an LLM orchestrator (Claude/Codex) against:
+Sessions dispatched by `Tools/Invoke-JulesBatchReview.ps1` use `requirePlanApproval: true` (opt out only with `-SkipPlanApproval`). `Tools/Invoke-JulesOrchestrator.ps1` runs a **keyword pre-screen** over plan step titles and descriptions — scope paths, test steps, `unwrap`/`unsafe` wording — and sends feedback when it fails. It does not read the plan's reasoning, so it never approves on its own: a passing plan waits for a deliberate approval (`Tools/Invoke-JulesSession.ps1 -Action Approve -SessionId <id>`) unless the orchestrator is run with `-AutoApprove`. A reviewer approving a plan should check:
 1. Does the plan modify files consistent with its stated goal?
 2. Does it add or update tests?
 3. Does it follow the benchmark-first principle (AGENTS.md section 1)?
 4. Are file modifications scoped (no unnecessary drive-by refactors)?
+
+Jules expires sessions whose plans wait too long (about 10 minutes), so review promptly or re-dispatch.
+
+The `jules-review.yml` issue job starts only when the repository owner applies the `jules` label, and the issue text is passed to Jules fenced as untrusted data.
 
 ### Code conventions
 - Rust: edition 2021, `cargo fmt` + `cargo clippy -- -D warnings`, see `[lints]` in Cargo.toml

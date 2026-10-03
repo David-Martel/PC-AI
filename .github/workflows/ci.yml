@@ -434,7 +434,10 @@ jobs:
   deploy-runtime:
     name: Deploy Runtime (CPU)
     runs-on: windows-latest
-    timeout-minutes: 40
+    # A cold Windows cargo-audit source build previously took about 37 minutes.
+    # Allow runtime compilation/tests plus that install, as in rust-guidelines.
+    # The actual network/advisory audit keeps its separate ten-minute bound.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

@@ -19,13 +19,17 @@ component results; they do not establish fleet or physical acceptance.
 - [x] Independently review the six signed maintenance commits against current main.
 - [x] Repair native-process deadlines for blocked stdin and inherited output pipes,
   and validate owned-process cleanup and portable native documentation controls.
-- [ ] Merge PC-AI PR163 after the final exact reviewed head passes refreshed CI.
-- [ ] Review and integrate safe existing PC-AI PRs; retain qualified CUDA/dependency
+- [x] Merge PC-AI PR163 after the final exact reviewed head passes refreshed CI.
+- [x] Finish safe PC-AI dependency/source PR integration; PR116, PR120, PR147,
+  PR160, PR161, PR164, PR165, PR166 and PR167 are merged.
+  Retain qualified CUDA/dependency
   blockers and owner-held worktrees. Refresh current branch/PR dispositions in the
   repository closeout receipt rather than treating cached refs as custody proof.
 - [x] Merge VIGIL optional endpoint PR2462 after routed-SSH/process-lifetime repair,
   independent source review,89 real tests and exact-head CI. PR2456 is also merged.
   Remove the owned endpoint worktree while preserving verified private QA custody.
+- [ ] Reconcile the default Windows media-server CRT profile at the native build
+  configuration layer; static-profile CPU passes do not close the MD/MT link failure.
 - [ ] Obtain the existing Sunshine provider reference and affected seat/firewall
   scope from its owner, then validate authenticated video/input/reconnect and the
   full VIGIL UI with matching production ROS message packages.
@@ -35,8 +39,18 @@ component results; they do not establish fleet or physical acceptance.
   AMT with its own management credentials/network, and qualify physical HIL paths.
 - [ ] Validate original-user/browser data and the Cog desktop database migration
   before deleting the retained ASUS backup.
-- [ ] Obtain Claude's corrected F2 tooling matrix and named first derived-Needs
-  pilot implementer; the TPM decision/source handoffs are already merged.
+- [ ] Obtain Claude's corrected F2 tooling matrix. Codex TPM has acknowledged
+  ownership of the next fixture-only derived-Needs proposal using existing CSV
+  and requirements_dag/sync_docs, preserving IDs and publication boundaries.
+- [ ] Implement and validate the proposed read-only synthetic rendering adapter
+  after source-owner schema/auth/TLS selection. Core.js currently requires local
+  Qt WebChannel; Foxglove WebSocket is not a guidance HTTP/SSE listener. Record
+  stale/reconnect and no-command controls in the existing closeout receipt.
+
+- [ ] Review Claude's exact optional CI-runner profile PR and Podman/Docker choice;
+  preserve rendering responsiveness with opt-in resource limits, enforce live policy
+  during existing-container restart, and validate storage
+  and stop/drain behavior before changing Milly's installed container engine or role.
 
 These remaining acceptance items keep their existing HOLD/Pending boundaries.
 No production compute placement, release quorum or static DDS membership changed.

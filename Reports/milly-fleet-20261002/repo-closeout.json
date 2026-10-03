@@ -1,11 +1,11 @@
 {
   "schema": "pcai.repository-closeout.v1",
-  "observedUtc": "2026-10-03T03:27:41.0715181Z",
+  "observedUtc": "2026-10-03T06:21:03.0067660Z",
   "repository": "David-Martel/PC-AI",
-  "branch": "feat/thunderbolt-linux-peers",
+  "branch": "codex/fleet-final-closeout-20261003",
   "reviewedMaintenanceHead": "48b78c34eb7aac57f299bfec91aae65d01373809",
   "base": "ca8a95b337e52566b83ea9703995912382a72551",
-  "integrationStatus": "PR163 published; signed review repairs validated, final exact-head CI required before merge",
+  "integrationStatus": "Maintenance163, keyboard116, reqwest120, NVML147, coverlet160/161, inference164, TLS/required Deploy CI165, media166 and custody167 merged at independently reviewed exact heads after hosted CI. Final derived ledger closure in progress; hardware/provider/userdata and owner-held dependency gates remain.",
   "validation": {
     "originalPesterUnitPassed": 101,
     "initialIntegrationConfigurationFailure": "Explicit runtime suite requires PCAI_TB_TEST_SSH_ALIAS; first invocation lacked it",
@@ -35,18 +35,89 @@
     "inventoryJsonPR": 2456,
     "inventoryJsonHead": "e543404cdebdd474e26823fe050db03fb9e33794",
     "inventoryJsonStatus": "MERGED after exact e543 independent review and fresh tooling/aarch64/release-scope QA",
-    "sunshineProvider": "Owner request delivered; custody decision not received",
-    "toolingPilot": "Corrected F2 matrix and named first derived-Needs implementer requested",
+    "sunshineProvider": "Claude reference received: local Sunshine state is hashes and pairing certificates/keys, not an approved programmatic password provider. No Sunshine Bitwarden item is in the broker allowlist; propose metadata/allowlist via a vigil-spark ops PR. Seat/firewall/pairing scope ACK still missing.",
+    "toolingPilot": "Named owner ACK01a10052-d516-77da-bc90-b2926d6e31a9 received2026-10-03T05:53:10Z: Codex TPM lane owns next scoped proposal after current closeout, requirements_dag/sync_docs over canonical requirements.csv, fixture-only, existing publication boundaries, no parallel IDs or framework migration. Corrected F2 matrix still source-owner pending.",
     "inventoryJsonMergedCommit": "b88307353ea21cf24f9bb414788f4e8072a91a49",
     "optionalEndpointMergedCommit": "758553f7e8f32cdeae27405f8f9347fefc1dc689",
-    "optionalEndpointCleanup": "Owned ASUS worktree registration/path absent;26479 QA entries archived and hash verified. Normal removal permission failure retained; exact leftover moved atomically to private custody;16foreign registrations and shared stash unchanged."
+    "optionalEndpointCleanup": "Owned ASUS worktree registration/path absent;26479 QA entries archived and hash verified. Normal removal permission failure retained; exact leftover moved atomically to private custody;16foreign registrations and shared stash unchanged.",
+    "ownerReply": {
+      "id": "01a0ffd3-10ac-76a3-8258-1dfee3bf62ab",
+      "observedUtc": "2026-10-03T03:33:37.580782Z",
+      "recipient": "codex-milly-onboarding",
+      "thread": "git-hygiene-20261002",
+      "qualification": "Reference and ownership routing only; no seat/firewall/pairing ACK or complete F2 matrix"
+    },
+    "readPathCorrection": "A one-message JSON array was unrolled to a singleton object by PowerShell parsing; refreshed review preserves the envelope/array explicitly. Earlier empty-filter result is excluded as absence evidence.",
+    "proposalDelivered": {
+      "claudeMessageId": "01a10004-29dd-75ac-8257-52924d1462d8",
+      "tpmMessageId": "01a10004-29fc-7322-a63f-bea1de6e1c86",
+      "scope": "Additive canonical-CSV Needs pilot, corrected F2 recipes, opt-in allowlisted Sunshine provider and separate seat/firewall/pairing evidence",
+      "qualification": "Historical04:27 proposal delivery only; named TPM owner ACK received separately05:53 and recorded in toolingPilotOwnerAck. Provider/seat ACK remains missing."
+    },
+    "ciRunnerProposal": {
+      "ownerMessageId": "01a1001c-1829-7418-bf78-d6dce2aac2ba",
+      "decisionMessageId": "01a10027-d7aa-71c5-b5a1-59a6c8815636",
+      "decision": "Source-only profile planning acknowledged; exact PR/head and existing Podman compatibility or Docker justification requested. No engine/group/registration changes applied.",
+      "proposedOptInAggregateBudget": "4 CPU threads / 8 GiB total, no GPU or socket, on-demand",
+      "qualification": "Rendering/control endpoint duty retained; proposed higher always-on CI role not inferred as deployed or accepted",
+      "refreshedPr": 343,
+      "refreshedHead": "7f9b47016a9d6ffa644300758b040e93685c72d1",
+      "ownerReplyId": "01a10036-255e-740e-9a49-14f7f4d55b45",
+      "sourceReviewComment": "https://github.com/David-Martel/vigil-utils/pull/343#issuecomment-5965981452",
+      "runtimeHold": "Actual cmd_up reused matching-label container without live policy checks. Isolated actual handler repro starts unsafe existing container; owner requested fail-closed repair. No image load, registration or runtime start applied.",
+      "latestRootReminderId": "01a10060-f7c0-759a-a85c-e9a306699c46"
+    },
+    "visualizationHandoff": {
+      "ownerReplyId": "01a1004f-676d-7197-880c-085d07f129c6",
+      "owner": "codex-asus",
+      "planMessageId": "01a10051-a541-7050-b4f2-2e83a30a5a40",
+      "fleetMember": false,
+      "scope": "Fixture-only read-only rendering adapter proposal; current Core requires local Qt WebChannel. Future authenticated LAN transport is pending source owner selection.",
+      "pending": "No authenticated general guidance HTTP/SSE listener exists in owner evidence. Foxglove8765 is WebSocket positive control only; adapter schema/auth/TLS/publication scope require owner selection before LAN deployment.",
+      "qualification": "Source audit and proposal delivered; no adapter implementation, pilot deployment, headed UI, operator or active-fleet acceptance inferred",
+      "contractReplyId": "01a10053-b1dd-7094-95ab-3141298fef10",
+      "sourceAudit": {
+        "paths": [
+          "src/ui/ui/web/scripts/Core.js",
+          "src/ui/ui/windows/VigilWindow.py",
+          "src/ui/ui/util/DisplayWebBridge.py",
+          "src/display/display/display_surfaces.py"
+        ],
+        "result": "Core initializes only qt.webChannelTransport and returns if qt missing; VigilWindow registers local DisplayWebBridge. Signals carry render state; display_surfaces resolves physical EDID roles and window mode, not network transport.",
+        "head": "87badf7f57e0527759a6bf1f51baa1fefc3a8c6a",
+        "copiedSourceCustodySha256": "32b603dc219534615ee09c92270fcd056fc2d0ea0793f28e061e6a2a9e0a62be",
+        "sourceRepositoryPath": "/home/damartel/dev/repos/vigil-spark"
+      },
+      "fixturePilotProposal": {
+        "pending": "Owner schema/auth/TLS/publication scope and actual implementation PR; proposed timing targets not measured results",
+        "scope": "Read-only adapter dispatches approved render callbacks for synthetic state; no bridge commands, ROS publisher, live-fleet connection or deployed listener",
+        "acceptance": "Proposed2Hz sequence/heartbeat; stale indication within2seconds; malformed/out-of-order/oversize denial; reconnect within5seconds of isolated test transport restoration; event/pixel evidence and zero outbound commands",
+        "input": "Versioned bounded synthetic events for title,steps,current-step,phase,guidance,VQA and configuration; video/auth separate",
+        "traceability": "Bind source/config/fixture hash, receiver version, host/display, run timing and negative-control receipt to existing TPM requirements; component result only"
+      },
+      "sourceAuditProposalMessageId": "01a10060-f73d-75ef-820c-fc676ecae185"
+    },
+    "toolingPilotOwnerAck": {
+      "implementation": "Next scoped fixture-only proposal after current PR/worktree closeout",
+      "owner": "codex-dtm-p1gen7 / Codex TPM",
+      "observedUtc": "2026-10-03T05:53:10.934936Z",
+      "rootReplyId": "01a10060-f771-765d-aaad-2f32082512a4",
+      "constraints": "Existing requirements_dag/sync_docs and canonical CSV; unchanged IDs, authored boundaries and acceptance status; no framework migration",
+      "id": "01a10052-d516-77da-bc90-b2926d6e31a9"
+    },
+    "crossLanePerformancePlan": {
+      "ownerMessageId": "01a10061-0690-705a-9fe9-6ae20be1b13c",
+      "status": "Owner-reported documentation planning only",
+      "scope": "Compare useful sensor-to-guidance/display outcomes across CPU/GPU/mixed placements under shared load using existing benchmark/HIL tools; bind placement/copies/queues/clocks/output quality before timing",
+      "qualification": "No whole-pipeline speedup or deployment inferred from component frame rate"
+    }
   },
   "worktrees": [
     {
       "path": "C:/codedev/PC_AI",
-      "purpose": "Milly maintenance and tooling integration",
+      "purpose": "Signed closeout/security integration and exact-head review",
       "owner": "codex root",
-      "nextReview": "exact PR head before merge"
+      "nextReview": "final exact PR head, then main fast-forward and owned cleanup"
     },
     {
       "nextReview": "owner draft/cleanup disposition; no removal by root",
@@ -57,7 +128,7 @@
       "head": "9dc14855707247119f00e38fde72b877a413ebc5"
     }
   ],
-  "foreignWip": "Seven pre-existing unrelated untracked files preserved",
+  "foreignWip": "Eight unrelated or retained cache files hash-preserved through main fast-forward; ignored source captures preserved as captured",
   "agentProducedRetainedCache": "Tools/SystemScripts/Networking/__pycache__/capture_thunderbolt_peer_trace.cpython-313.pyc: path-verified deletion rejected by automatic review (blocked by policy), retained",
   "backupMustRemain": true,
   "fleetAcceptance": false,
@@ -67,15 +138,201 @@
     "Full VIGIL UI production ROS message compatibility",
     "Supported university Wi-Fi credentials and association",
     "Original-user/browser and Cog database semantics",
-    "AMT credential/network provisioning and physical/HIL validation"
+    "AMT credential/network provisioning and physical/HIL validation",
+    "Default Windows media-server CRT consistency: reconcile esaxx MT and mimalloc MD at native build configuration layer; qualified static-CRT CPU tests do not close the default-profile link failure"
   ],
   "sourceReviewRepairs": {
     "networkProcess": "a7236d888a395d9f6366ecdbcfdd1d1b5f2f7a75",
     "nfsFixture": "6671437ddddcbcc904f5f8fcd9e3b935b933f05e",
     "portableDocumentation": "5c75f3f9935a20d4c4b31cdbe00c635d3fb0552c",
-    "keyboardPR116": "138 input tests plus32 original profile tests; valid help/dry-run feedback repaired in owned tree, root16/16 collector review passed; signed publication and refreshedCI pending",
-    "rustPR157158": "Unsigned original heads held; code-preserving signed replacements in owned tree with actual CPU validation, no model/performance acceptance",
-    "dependencyPR147": "Actual optional NVML validation rerunning with persistent exit receipts",
-    "coverletPR160161": "Independent strict local6+9tests pass with reviewed XMLdoc fix; merge after PR163 integration"
+    "keyboardPR116": "MERGED b8771907 reviewed head, merge 16d3bd00354cebc1fd8b724595fb3674978afa84; 138 input tests, 32 original profile tests, independent collector 16/16; exact CI passed",
+    "rustPR157158": "Replacement164 merged/original158closed; replacement166 merged66de5e2 ->59637b5493a92d3fdf3eea115adec05cd94f80d7 after all12 checks, original157closed. Initial159/22 receipts separate from overlapping finalstatic116/9, not summed.",
+    "dependencyPR147": "MERGED cf402d11 reviewed head / merge13e35131c8ceea24158701203fffc5e2e2807fd3 after all hosted checks. Optional NVML101tests, actual two-GPU telemetry, strict all-target Clippy/fmt0warnings and461/461 exact-source/config custody pass; Windows driver610.88 scope, no fleetwide/model/CUDA acceptance.",
+    "coverletPR160161": "MERGED PR160 head3434b809 / merge1cb71c25 and PR161 head573d2161 / merge2f1733b6 after exact review and all hosted checks; local strict 6 Native and 9 TUI tests passed, collection not broad coverage acceptance"
+  },
+  "integratedMaintenance": {
+    "pr": 163,
+    "head": "051fc882b0ea051a9850d547b7e5d64076608fbd",
+    "mergeCommit": "0c1c202b40f28eceee6d82f90dc0f03aabc70346",
+    "ciRun": 37093344142,
+    "hostedPassed": 860,
+    "hostedSkipped": 48,
+    "coveragePercent": 40.33,
+    "coverageTargetPercent": 85,
+    "qualification": "Existing skips and baseline coverage gap retained; source integration is not full fleet acceptance"
+  },
+  "deploySecurityPatch": {
+    "dependency": "rustls",
+    "before": "0.23.44",
+    "after": "0.23.45",
+    "advisory": "RUSTSEC-2026-0285",
+    "source": "https://rustsec.org/advisories/RUSTSEC-2026-0285.html",
+    "scope": "Only version and checksum in Deploy/Cargo.lock",
+    "auditVulnerabilities": 0,
+    "auditExistingUnmaintainedWarnings": [
+      "number_prefix 0.4.0",
+      "paste 1.0.15"
+    ],
+    "lockedMetadata": "passed",
+    "actualRustlsCheck": "Initial transitive selection attempt failed before compilation with Cargo resolver panic; actual Deploy runtime CPU all-targets --locked check then PASSED exit0,zero compiler warnings in4m39s. No direct TLS workload qualification."
+  },
+  "dependencyDisposition": {
+    "120": "MERGED exact18ff1707 after independent review and all12 hosted checks; merge4b855f1dfca74e5f20c1f8a3563c0d3b199e467e. Deploy all-target check0compilerwarnings,5HTTPpasses,420-dependency audit0vulnerabilities/2existingwarnings; Cargo PDB collision retained. HTTPS/CUDA/models/overload excluded.",
+    "145": "HOLD: coordinated Mistral/Candle API migration and actual backend validation required",
+    "146": "HOLD: lone Candle bump has failed CI and conflicts with coordinated owner train",
+    "148": "HOLD: lone Candle bump has failed CI and conflicts with coordinated owner train",
+    "156": "Owner-held draft: coordinated Candle CPU checks passed, CUDA/flash compatibility not compiled; preserve Claude worktree",
+    "159": "HOLD at3745bd59b7750956d90ec8e2c162f9209d52561d: signed lock-only clap4.6.7/derive4.6.7,thiserror2.0.21,cudarc0.19.10; rustls0.23.45 retained. New Deploy runtime CPU job111143393929 passed locked check,5HTTPtests,420-dependency audit; this profile excludes optional core/Candle/CUDA and does not compile cudarc. Exact default core and train CUDA/flash builds plus device/memory dynamic-link smoke required. Native NVML/Guidelines/release-CUDA jobs do not qualify affected Deploy GPU consumers.",
+    "162": "HOLD: mixed Candle graph requires coordinated owner train validation"
+  },
+  "preservation": {
+    "foreignAndRetainedCacheFiles": 8,
+    "hashesBeforeAfterMainEqual": true,
+    "ownedIntegratedBranchBundleSha256": "4b9f00a1b7037dc20948e81d08cfe8159edffa4816e5b4a08e3e2307d2882f30",
+    "ownedKeyboardWorktreeRemoved": true,
+    "foreignClaudeWorktreeRetained": true,
+    "privateBackupsRetained": true,
+    "ownedKeyboardLocalBranchRetired": true,
+    "rootSourceAndCustodyBundleSha256": "c98e73dafcaac8e7bdb0a119cb7ebf086ca087c7aec5382190bb1b994ab1dd66",
+    "rootIntegratedOwnedRefsRetired": 2,
+    "ownedRustWorktreeDeregistered": true,
+    "ownedRustRefsRetired": 2,
+    "ownedRustRepairBundleSha256": "c37afa0f1bcfd60c66989d155ef3930bf863efcabe6db423afb8a75f0a04f4d5",
+    "ownedRustPhysicalRemnants": "Deregistered path worktrees/pcai-rust-pr-repairs contains empty directories and two CargoTools junctions to external T: caches, no regular files. Contained nonrecursive junction/empty-directory deletion rejected by automatic review: blocked by policy. No alternate deletion attempted; external caches preserved.",
+    "ownedRustRetirementReceiptSha256": "1d8c60ac89c82dcab94bead814892516e2321c61ef3a7fbf79af3fb8961f21e3",
+    "ownedRustResidualEntries": 8
+  },
+  "ciGapRepair": {
+    "scope": "Required Windows Deploy Runtime CPU job, separate workspace, locked all-target check, real HTTP tests, full Deploy dependency audit",
+    "sourceReview": "Independent review found no new gate wiring blocker",
+    "workflowFilesParsed": 10,
+    "embeddedPowerShellStepsParsed": 74,
+    "existingCoverageDebt": "Existing test_returns_429_when_queue_full sends a normal request and asserts200; it does not qualify overload/429 behavior",
+    "auditToolVersion": "0.22.2",
+    "auditToolCache": "Versioned key, explicit binary version validation, current advisory DB refreshed",
+    "actualExecution": "PR165 exact f971f7bc merged after all12 hosted checks; final Deploy job111128938507 locked CPU all-target check and5HTTPtests pass. Local and final-hosted Cargo PDB filename collision retained; zero compiler warnings is bounded to check output. Full audit0vulnerabilities/2existingunmaintained warnings.",
+    "initialHostedDeployJob": {
+      "head": "e80aa353a57f4c4736ee8e74973a7bacfde03c55",
+      "result": "SUCCESS",
+      "runtimeHttpTestsPassed": 5,
+      "runtimeTestsFailed": 0,
+      "runtimeTestsIgnored": 0,
+      "compilerWarnings": 0,
+      "existingAuditWarnings": 2,
+      "hostedActionNodeDeprecationWarnings": "Existing cache action emitted punycode/url.parse deprecations; retained",
+      "qualification": "Initial reviewed head job passes; final PR head and full gate still required"
+    },
+    "localRuntimeTests": {
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "exitCode": 0,
+      "qualification": "Cargo1.98.1 emitted a pre-existing bin/lib PDB output collision diagnostic under the machine profile; retained raw output. Hosted current compiler tests had zero compiler warnings."
+    },
+    "coldInstallTimeoutRepair": "Review P1 fixed: job90 minutes includes cold source audit installation; actual audit step remains10 minutes. Signed f971f7bc, fresh exact CI required.",
+    "mediaReviewRepair": "PR166 signed66de5e2 published: approved full4file source, complete generation chain at all4 terminal boundaries; actual static-CRT102media+14server tests,0fail/ignore,9doctests(3executed/6compile-only), same-profile strict all-target check/Clippy0compilerwarnings. Actual nativeobjects bothMT; original dynamicCRT link and first receipt harness failure retained. P2thread resolved after published source; all12 final exact hosted checks passed; merged59637b5493a92d3fdf3eea115adec05cd94f80d7.",
+    "integratedPR165": {
+      "head": "f971f7bc8a11b200befce40d2f10aea063d5bdc1",
+      "mergeCommit": "e1c6ae31281b27c4dadc6f067da260cdbf3ab84d",
+      "checksPassed": 12,
+      "finalDeployJob": 111128938507,
+      "cargoPdbCollisionDiagnostic": "Present in final hosted baseline; retained, no blanket zero-warning claim"
+    }
+  },
+  "worktreeInventory": {
+    "generatedUtc": "2026-10-03T06:17:21.8844800Z",
+    "generation": "24f187f3-19ea-4697-a68f-e8796d2bee1d",
+    "mode": "fast",
+    "registeredPcaiWorktrees": 2,
+    "liveGitRegistrationDifferences": 0,
+    "jsonSha256": "82e80686ebfcb4ad48256ebf93776524ca743fcf37b6fd0d39073b30d3a4f45d",
+    "markdownSha256": "73b72390ca1dfb21f6ac9429128bca1a5b4e36d49db1360a965aae9e9fccf4f0",
+    "qualification": "Owner mappings unknown, upstream refs cached; historical removed paths retained; cached filesystem discovery has gaps. No foreign cleanup authorized by these records.",
+    "summary": {
+      "worktrees": 539,
+      "repository_groups": 372,
+      "clean": 305,
+      "dirty": 89,
+      "unknown": 145,
+      "review_items": 539,
+      "locations_inspected": 657,
+      "pending_locations": 0,
+      "timeouts": 1
+    },
+    "pointInTimeRootHead": "59637b5493a92d3fdf3eea115adec05cd94f80d7"
+  },
+  "inferenceReplacement": {
+    "pr": 164,
+    "head": "1ac063d1f1c010f236b7edba04db5251ca84a333",
+    "mergedCommit": "1d5882781bc3278cfadc58a10cac8df958e53230",
+    "originalPr": 158,
+    "originalStatus": "CLOSED superseded after verified replacement merge",
+    "hostedChecksPassed": 11,
+    "cpuExecutedPasses": 173,
+    "llamaModelFreeExecutedPasses": 192,
+    "fixtureEarlyReturns": 2,
+    "ignoredStressCases": 1,
+    "qualification": "No model/GPU workload or measured memory-leak/performance acceptance"
+  },
+  "currentMilly": {
+    "observedUtc": "2026-10-03T05:40:44.8837587Z",
+    "os": "Ubuntu26.04.1 LTS",
+    "kernel": "7.0.0-38-generic",
+    "cogDesktop": "seat0 session53 present; latest listing does not establish active property",
+    "services": "display-manager,ssh,NetworkManager active",
+    "dpkgAudit": "empty",
+    "nvidiaDriver": "595.91.07",
+    "wiredAddress": "192.168.50.43",
+    "wifiAddress": "192.168.50.192",
+    "wifiSsid": "COGROB_ASUS_5G-2",
+    "thunderbolt": "Only domain0/0-0; no peer NIC",
+    "availableRootStorage": "141GiB available,85% used",
+    "qualification": "Fresh readonly check: Cog seat0 session53 present, desktop/SSH/network services active, package audit empty; no new firmware, session or runtime changes during repository closure."
+  },
+  "nvmlIntegration": {
+    "pr": 147,
+    "head": "cf402d11e867baff345a28990ac6547fd511e7b9",
+    "mergeCommit": "13e35131c8ceea24158701203fffc5e2e2807fd3",
+    "testsPassed": 101,
+    "failed": 0,
+    "ignored": 0,
+    "compilerWarnings": 0,
+    "exactCustodyFiles": 461,
+    "actualGpuCount": 2,
+    "driver": "610.88",
+    "receiptSha256": "9b1145dcb886b69cc52c4752fe4fad99678c62343f91d0818f3a0f1b0d6e3675"
+  },
+  "custodyRepair": {
+    "pr": 167,
+    "head": "b79007b71569792a79c8d0ae555a3bdf02776333",
+    "status": "MERGED b79007b reviewed head -> b7f66af62860468f4fb2a79887f876014e42f9b0 after all11 hosted checks",
+    "changedCaptures": 16,
+    "uniqueBoundFiles": 76,
+    "bindings": 100,
+    "priorCommittedBindingMismatches": 19,
+    "priorCheckoutBindingMismatches": 72,
+    "workingMismatches": 0,
+    "stagedMismatches": 0,
+    "autocrlfTrueCheckoutMismatches": 0,
+    "autocrlfInputCheckoutMismatches": 0,
+    "normalizedContentChanged": false,
+    "expectedHashesChanged": false,
+    "receiptSha256": "a9709e29a51c2b5f645752539757dbd86653cf1896adb8bf70edba27d9feb28a",
+    "qualification": "Earlier100/100 working-file claim preceded Git add/checkout normalization; committed artifact byte custody required this explicit repair. Original expected hashes retained, recovered bytes match exactly.",
+    "mergeCommit": "b7f66af62860468f4fb2a79887f876014e42f9b0",
+    "finalWorkingRefresh": "2026-10-03 final ledger check:100/100 binding hashes,76 unique paths,0 mismatches"
+  },
+  "mediaReplacement": {
+    "head": "66de5e263d42ff64b3315b42913778706aad2618",
+    "doctestsExecuted": 3,
+    "hostedChecksPassed": 12,
+    "localStaticCrtUnitTests": 116,
+    "doctestsCompileOnly": 6,
+    "originalStatus": "CLOSED superseded after verified replacement merge",
+    "qualification": "Initial159units/22doctests are overlapping separate receipt, not summed. Default Windows CRT link and first receipt-harness failure retained; no real model/GPU/performance qualification.",
+    "mergeCommit": "59637b5493a92d3fdf3eea115adec05cd94f80d7",
+    "pr": 166,
+    "originalPr": 157,
+    "localDoctests": 9
   }
 }

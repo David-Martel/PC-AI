@@ -1,15 +1,33 @@
-# Milly optional endpoint: component evidence handoff
+# Milly optional endpoint evidence handoff
 
-Sent to the active TPM owner `codex-dtm-p1gen7` as message `01a0fe95-428a-7288-907b-a7b93acd3fd5` at 21:46:29 UTC; stream `1790977589898-0`, existing thread `milly-display-surface-20261002`. Fresh owner acknowledgement is pending. ASUS implementation owner was notified as `01a0fe96-d692-718c-aacd-0a8b100b7c2e`.
+Updated 2026-10-03 UTC. The adjacent JSON preserves the original requirement
+mappings, owner messages and historical discovery and adds the current qualified
+post-OS packet. Supporting observations do not establish requirement, HIL,
+clinical, release or fleet acceptance. Milly remains an optional external surface.
 
-Existing TPM owner response `01a0fe81-634e-7661-8773-a3463172eeb0` selects supporting candidate anchors REQ-P1-022 / WI-076/077/078/079 (cross-device routing), REQ-P1-005 (UI states), REQ-P1-023/054 (physical projector guidance) and REQ-P1-045 / WI-020 (required hardware POST). It explicitly preserves pending latency thresholds and requires configuration, parity, join/leave/reconnect and stale-session receipts. No new requirement IDs or acceptance links are justified by these probes.
+Ubuntu26.04.1/kernel7.0/NVIDIA595-open recovered after reboot. BIOS/ME and SSD5108APLA
+are applied. UEFI dbx20260707's291 signed entries are present; exact upstream
+recognition data fixes fwupd's missing mapping with unchanged EFI bytes and original
+failed history retained. Cog is logged into local Wayland; automatic login restored
+to disabled. Local rendering/codecs, isolated ROS ABIs, developer-tool tests, network
+CLI JSON and real post-OS SSH reuse pass. See README and post26-final/qualified-result.json.
 
-Use the existing `C:/codedev/vigil_ai/docs/FLEET_EVIDENCE_INTAKE.md` and `docs/TRACEABILITY_CLOSED_LOOP_CONTRACT.md`; canonical input files are `vigil_ai_tpm/templates/requirements.csv`, `source_registry.csv` and `tracker_source_signals.csv`. TPM source registry admission belongs to that owner. The primary is `codex/repo-closeout-20261002` at `d19f77f8`; six dirty files and eight foreign worktrees were preserved. This lane made no TPM edits.
+Preserve existing REQ-P1-022/WI-076/077/078/079 cross-device routing, REQ-P1-005 UI
+states, REQ-P1-023/054 physical projector guidance and REQ-P1-045/WI-020 hardware
+POST anchors, with their current HOLD/Pending criteria and latency TBDs. Canonical
+intake remains docs/FLEET_EVIDENCE_INTAKE.md and TRACEABILITY_CLOSED_LOOP_CONTRACT.md
+in vigil_ai; CSV requirement/source/signal registries and owner intake remain
+canonical. No new IDs, thresholds, acceptance links or parallel tracker were added.
 
-The local JSON binds copied artifact hashes and the current requirements. The saved Qt Xvfb receipt reports two pixel assertions; NVIDIA EGL reports red pixel255,0,0 and retains two DRI2 warnings. Independent comparison confirms 30 CPU and NVDEC decoded frame rows agree, including equal full-file hashes. The first default-thread NVDEC failure is preserved. The successor validation/receipt.json now binds exact NVENC, CPU decode and CUDA NVDEC argv arrays, start times and three exit0 results with empty stderr. The copied synthetic-nvenc.h264 and both30-frame checksum files match their declared SHA256 hashes. Synthetic testsrc2 is640x360 at30fps for one second; h264_nvenc presetp4 and both decoders use bounded two-thread decode. This replaces the earlier missing codec command/bitstream custody.
+Native hardware owner's earlier Clarius hold was released/sealed. Sunshine
+credential-provider, affected seat/firewall scope and pairing decisions remain
+unresolved. No authenticated stream, input/reconnect, full ROS operator UI,
+Thunderbolt peer, physical/projector/HIL witness or final user-data acceptance is
+claimed. Keep the ASUS recovery backup. Current user services work; historic crashes,
+qualification gaps and failed native/harness receipts remain in the packet.
 
-These are component observations before OS maintenance. The current snapshot keeps Milly an external development/operator endpoint with no production membership. Backup and OS upgrade remain pending. Actual headed UI streaming, input/control, reconnect/stale tests, per-transport latency/load, local UX continuity and physical Nebula3 projector witness have not been performed by this lane. AMT is unprovisioned and no Thunderbolt peer is present. No HIL, clinical, requirement, transition or release acceptance follows.
-
-Credential readiness: COGROB_ASUS_5G-2 authenticated and three personal profiles are saved with root ownership/mode0600; the wired backup route is preserved. Legacy MWireless remains preserved. Full-email and bare-uniqname eduroam attempts timed out during association; password rejection was not conclusively observed. The attempted secret was cleared and autoconnect disabled. Windows cached MWireless authentication succeeded, while its protected domain password remains unavailable through the supported read API. Private temporary exports remain retained following an automatic approval review rejection of deletion; no secret values enter this packet.
-
-Successor display-readiness evidence adds ten real VIGIL widget pixel assertions and source hashes. The ASUS owner reports live Clarius0546 HIL and explicitly holds all streaming/input/seat changes until RESOURCE_DONE. One pinned read-only Sunshine authentication probe returned HTTP401; no resets or pairing occurred. All local packet artifact bindings were refreshed after this update.
+TPM received current status as message01a0ff71-8cfd-7548-add7-4b2860c2e52a at01:47Z.
+The current read-only local TPM checkout is3393c23eb1ffdd1a9ca90a1858aace7a3a650d44,
+branch codex/acceptance-criteria-20261003; its WIP was preserved. Latest artifact
+hashes are in the adjacent handoff JSON and post26-final/SHA256-CUSTODY.json. Owner
+admission and exact source/configuration/run/receipt joins still precede acceptance.

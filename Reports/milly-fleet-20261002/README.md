@@ -1,218 +1,193 @@
 # Milly fleet endpoint maintenance
 
-Checkpoint: 2026-10-03 00:16 UTC. This report records work in progress. The
-qualified backup is verified; Intel ME firmware applied and reboot recovered.
-Operating-system migration, graphical login, paired stream and final system
-data validation are not complete.
+Updated 2026-10-03 UTC. Milly has recovered from the final OS, graphics-driver and
+firmware reboot. Cog is logged into its local Wayland desktop; temporary GDM
+autologin was restored to disabled afterward. Local component validation is
+complete with the qualifications below. Thunderbolt peer networking, authenticated
+Sunshine streaming and full VIGIL operator-UI acceptance remain pending.
 
-## Current machine and access
+## Installed system and capability
 
-`millylaptop1` is a Lenovo P16 Gen 2 with an i9-13950HX, 64 GB RAM, RTX 5000 Ada
-Laptop GPU with 16 GB VRAM, and a 3840x2400 panel. It currently runs Ubuntu
-22.04.5 with kernel 6.8.0-138 and NVIDIA 580.178.04. `cog` has working SSH keys,
-passwordless sudo, its own fleet/GitHub authentication key, and independently
-verified SSH Git signing. Private keys were not copied from another host.
+Milly is a Lenovo ThinkPad P16 Gen 2: Intel i9-13950HX, 64 GB RAM, NVIDIA RTX 5000
+Ada Laptop GPU with 16 GB VRAM, and a 3840x2400 panel. It now runs Ubuntu 26.04.1
+LTS, kernel 7.0.0-38, system Python 3.14.4, and Ubuntu's recommended NVIDIA
+595.91.07 open driver. Cog has its own SSH/fleet/GitHub key, passwordless sudo and
+verified SSH Git signing. Private keys were not copied between hosts.
 
-The endpoint is an external development and operator surface. It is not added
-to the production fleet membership, compute placement, release quorum, or
-static DDS peer set. Native Humble was removed before the OS migration. Current VIGIL
-contracts use Jazzy/Python 3.12; separately validated, pinned Jazzy and Lyrical
-containers preserve their respective ROS/Python ABI. Managed Python 3.14 is
-available alongside 3.12 and 3.13. The system Python was not replaced.
+The endpoint remains optional: no production compute placement, release quorum,
+required-host membership or static DDS peer was added. VIGIL currently requires
+Python >=3.12,<3.14 and Jazzy; native Lyrical/Python 3.14 is a separate development
+installation. Pinned Jazzy/Python 3.12 and Lyrical/Python 3.14 containers both pass
+network-isolated initialization checks. No production ROS domain was used.
 
-## Backup and maintenance boundary
+Managed Python 3.12.15, 3.13.16 and3.14.8 remain available. An isolated3.15.0rc2
+preview now passes SSL/SQLite checks; it does not replace system Python or VIGIL's
+ABI. The installed uv catalog offers rc2; upstream released rc3 on Oct2 and plans
+final3.15 for Oct9, so this preview is explicitly not the latest upstream candidate.
+See [Python's release notice](https://www.python.org/downloads/release/python-3150rc3/).
 
-The private recovery copy is at
-`asuspro13:/srv/vigil-backups/millylaptop1/20261002`, outside the NFS export,
-with root-owned private parent directories. The source baseline is
-775,325,002,378 bytes (775.325 GB or 722.078 GiB), including all three home
-directories and a separate EFI copy. The original copy completed at 22:47:10 UTC;
-the final incremental copy completed at 22:51:35 UTC with 789,737,621,693 total
-file bytes and no destination deletions. Nine restore samples passed, including
-byte/metadata/symlink checks, a capability attribute and a hardlink pair.
-Full checksums match all three homes and EFI with zero differences; all nonvolatile
-system data and metadata match. Seven classified live logging/NetworkManager/timer
-exceptions remain, so this is not an exact frozen whole-system snapshot.
-The hash-bound backup-validation.json records the qualification and controls.
+## Firmware, storage and maintenance
 
-The user approved logout and maintenance; the prior desktop user was logged
-out and quiescence checked. Previous-user autologin is disabled during maintenance,
-with its original configuration preserved. An independently tested key-only
-recovery SSH listener and sleep inhibitor support maintenance.
-The recovery listener was recreated and tested after the ME reboot. Ubuntu
-24.04 maintenance is underway. The first upgrader attempt stopped on incompatible
-ROS Humble; a reviewed removal affected only its 282 packages, then the upgrade
-was restarted. No automatic obsolete-package removal was requested.
-The approved upgrade path is
-22.04 to 24.04 to 26.04, validating SSH, packages, NVIDIA, and desktop behavior
-at each step. Backup cleanup waits for successful post-upgrade data validation.
+BIOS 2.00 N3TET64W and Intel ME 1.42.2872 were applied and reboot-verified earlier.
+Kioxia SSD 5108APLA is now active: LVFS's release fixes a specific host-write-pattern
+hang. NVMe SMART reports zero media/errors, zero critical warnings and100% spare.
+The TRIM timer is active; its dry-run succeeds. The existing balanced power profile
+is preserved; performance is available without degraded status. No overclock,
+undervolt or speculative global networking/storage tuning was applied.
 
-## Installed and exercised tooling
+UEFI dbx 20260707 is present. Native fwupd 2.1.1 initially reported a postboot
+expected-version/null failure because its recognition data lacks this release.
+Independent exact signature-type/owner/data comparison finds291/291 signed
+update entries and371/371 Ubuntu boot-update entries in the live database.
+Four parser controls pass, including missing-entry, changed-owner and truncated
+input rejection. A two-line exact checksum/version mapping from pinned upstream
+fwupd 2.1.8 was installed through the documented local quirks directory. Fresh
+fwupd now reports20260707; EFI bytes stayed unchanged. Original failed history
+is retained. Secure Boot remains disabled, so entry presence is not enforcement.
 
-Managed tooling includes uv, Python 3.12/3.13/3.14, Rust with clippy/rustfmt,
-Clang 23 alongside existing compilers, GCC/G++ 12, CMake/CTest/CPack, Ninja,
-sccache/ccache, nextest, just, Ruff, ty, basedpyright, pytest, Git LFS, protobuf,
-grpcurl, lychee, rootless Podman, and hardware/network debugging tools.
-Provenance and exact versions are in the adjacent JSON receipts.
+The migration followed22.04→24.04→26.04. Native Humble's282 incompatible packages
+were removed after reviewing their scope. The26 upgrader returned1 on unused
+Postfix's missing-configuration migration. A reviewed removal of only Postfix
+resolved it; dpkg audit, apt dependency checks and subsequent reboot passed.
+No obsolete-package autoremove or backup deletion was performed. Captured native
+failure and repair receipts are preserved beside the final evidence.
 
-Functional checks include 20 tool commands, six pytest cases, a CTest case,
-a nextest case, invalid-input checks for linters/type checkers, two build-cache
-hits, and 14,840 managed-Python RECORD file hashes. Agent-bus was built locally
-for this host's glibc, rather than copying an incompatible fleet binary.
+## vPro and remote recovery
 
-Qt painting and NVIDIA EGL rendering produced asserted pixels. A reproducible
-synthetic NVENC/NVDEC check has three exact commands, zero exit statuses, empty
-stderr, and 30 decoded frame records matching the CPU reference. Its bitstream,
-input description, timestamps, host/kernel/driver and hashes are retained in
-`validation/receipt.json`. The earlier default-thread NVDEC failure is retained:
-explicitly limiting decoder threads to two avoids requesting 33 decode surfaces.
-The earlier broad EGL enumeration's DRI2 warnings are retained.
+Milly's AMTControl BIOS setting remains enabled. The earlier capability check
+found AMT unprovisioned; no working out-of-band power/KVM path is claimed. Its
+ordinary USB Ethernet adapter cannot substitute for an AMT-supported Intel path.
+Use SSH for OS telemetry and the selected media client for normal UI. A future
+MEBx/TLS provisioning step needs distinct vault-managed AMT credentials, an approved
+Intel wired/dock or managed Wi-Fi profile, and explicit AC/sleep/off recovery tests;
+see vpro-findings-and-sources.json for primary vendor guidance.
 
-Moonlight is installed. A real VIGIL CaptureProgressBar component passed ten
-pixel assertions against current source without ROS imports. Full native ROS
-operator nodes have not been started in the Python 3.13 UI environment; they
-require matching rclpy and generated messages. Component probes do not prove a
-headed fleet application or a paired remote stream.
+Fresh ASUS discovery identifies NUC13ANKH7 and an i7-13620H CPU. Do not assume
+AMT from its hostname or a general vPro label; no ASUS AMT recovery path was
+verified or provisioned. The CPU specification's Thunderbolt4 support alone does
+not establish an AMT capability or a negotiated Thunderbolt peer link.
+## Installed tools and live checks
 
-## Wireless and shared storage
+New native tools include Lyrical desktop/dev-tools/CycloneDDS, clangd/lldb 21,
+fio 3.41, OBS 32.2 from its Resolute PPA, Nsight Systems 2026.3.2 and NVIDIA Container
+Toolkit 1.20.1 from official signed repositories. NVIDIA's profiling repository is
+pinned to permit Nsight packages while excluding its driver/CUDA packages.
+Podman's CDI spec regenerated successfully at boot and a network-isolated pinned
+container sees the595 GPU. Missing IMEX utilities are retained diagnostic warnings
+for a facility this laptop does not use. No Docker runtime or fleet compute role
+was enabled. [NVIDIA documents CDI for Podman](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
-Three Windows COGROB profiles were imported into root-owned mode-0600
-NetworkManager keyfiles. `COGROB_ASUS_5G-2` authenticated and obtained
-192.168.50.192. The backup route remained wired, sourced from 192.168.50.43.
-The original MWireless profile was preserved and had authenticated before
-switching to COGROB. New enterprise templates require PEAP/MSCHAPv2, the
-USERTrust CA, and the expected RADIUS hostname. Bounded eduroam attempts with
-both `damartel@umich.edu` and `damartel` timed out during association; this does
-not establish that the password was wrong. The attempted secret was cleared
-and automatic retries disabled while the current credential provider is
-identified. Windows authenticated to MWireless using its cached enterprise
-profile. Its Credential Manager entry uses `damartel`, but the supported read
-API does not expose that protected domain password.
+Existing uv/Rust/Clang 23/CMake/Ninja/sccache/nextest/just, Python analysis/testing,
+BLE/network/storage tools, Moonlight 6.1, Qt 6.11.2 and BitwardenCLI remain installed.
+Post-upgrade native C++ build/CTest, six Python tests and Rust nextest pass. EGL
+compiles with -Wall/-Wextra/-Werror and verifies an actual GPU-rendered red pixel;
+its two DRI2 diagnostics remain disclosed. Synthetic NVENC H.264 encode and CPU/
+NVDEC decode pass with all30 decoded frames identical. Qt's two pixel assertions
+and the actual VIGIL progress widget's ten assertions pass.
 
-Temporary cleartext Windows WLAN exports remain in private directories on
-Windows and Milly. Automatic approval review rejected their removal with
-"blocked by policy" and no further reason. No alternate removal path was used.
-These exports and NetworkManager secrets are excluded from public reports.
+Native Lyrical/CycloneDDS publishes/subscribes three exact messages inside a
+private network namespace/domain231. Pinned Jazzy and Lyrical containers initialize
+with network=none. These are ABI/component checks, not cross-distro fleet DDS
+interop. Podman retains its legacy BoltDB warning; no destructive reset was used.
+A synthetic Nsight capture generated a125KB report with no collection errors.
 
-Windows `N:` mounts only the read-only public `/srv/vigil-share` export through
-the approved direct LAN. `Mount-VigilFleetShare.ps1` detects approved local
-addresses and bounded TCP reachability, preserves foreign/offline mappings,
-verifies native mount results, and skips unavailable networks. All 26 tests
-pass, including real process/descendant deadlines and failed native results.
-The registered per-user hidden logon/network task completed with result zero.
-Milly's NFSv4.2 automount was also opened successfully over its wired LAN:
-read-only, an eight-second mount deadline, and five-minute idle unmount. The
-primary ASUS LAN still needs its Windows NFS firewall/RPC policy resolved before
-claiming that Windows route works; the direct-LAN route was observed working.
+OBS reaches startup-complete and detects NVIDIA H.264/HEVC/AV1 encoders. VLC's
+library/base plugins were added for its media-source support. The first temporary
+startup opened default desktop/microphone audio inputs for 8 seconds; no streaming
+or file-recording command was used. The owned process stopped. Those audio sources
+were removed from the private test scene, and the second startup asserts no audio
+input started. Optional AJA/DeckLink-without-hardware and Xvfb EGL/EWMH/VAAPI
+warnings remain; this is startup validation, not a physical recording session.
 
-## Firmware and Thunderbolt
+Cog's current GNOME shell and audio services run normally, with zero audio-service
+restarts and four audio control probes passing. Historical WirePlumber, greeter
+and Orca crash evidence remains. The automatic crash uploader timed out; it was
+not reset to manufacture a passing service state. Physical audio, accessibility,
+camera DMA-buffer support, input and full operator UI remain unvalidated.
 
-The earlier BIOS update to 2.00 recovered successfully. Intel ME
-16.1.42.2872 was installed from the verified payload in a real interactive terminal.
-After reboot, fwupd reports current version 1.42.2872 and success state 2 without
-an update error. SSH, wired/Wi-Fi addressing, NVIDIA and the package audit recovered.
-AMT is enabled but unprovisioned. The current USB Ethernet adapter cannot
-provide AMT out-of-band networking.
+Initial final-test commands contained a module-path error, container shell-quoting
+error and duplicate SSH-M/ControlMaster option. Their failure receipt is retained;
+corrected targeted checks pass. The system discovery receipt's firmware-pending
+expectedExit2 is a harness annotation error: JSON mode returned0 with an empty
+Devices list. It is not a firmware failure or a blanket all-checks acceptance.
 
-Neither host has detected a Thunderbolt peer through the present CalDigit
-connection. Prepared addressing and reusable capture/configuration tools are
-not activated as a working link. The Realtek RTL8157 uses CDC-NCM; current
-r8152 lacks its device ID. The official newer driver download requires CAPTCHA
-and was not obtained. No Ethernet driver change is attempted during backup.
+## Data custody
 
-## Coordination and remaining validation
+Keep the private ASUS backup at
+`/srv/vigil-backups/millylaptop1/20261002`, outside the public NFS export. Its final
+pre-upgrade copy contains789,737,621,693 file bytes; all three homes and EFI had
+zero checksum differences, nine restore samples passed, and seven bounded live
+system-log/timer/NetworkManager exceptions were qualified. It is not an exact
+frozen whole-system snapshot.
 
-ASUS Codex was asked for an approved optional video/input surface, a firewall
-rule scoped to Milly, and the existing Sunshine authentication provider.
-Sunshine is active but currently allowed only over Tailscale; Milly's LAN
-port probes timed out. Active Clarius work and another Codex agent's ASUS seat
-ownership require display coordination before any stream or input. No Sunshine
-credentials, firewall policy, or service state were reset. The signed
-optional-endpoint source exists on a remote
-branch; its PR publication was rejected by automatic policy, and no alternate
-publication path was used.
+Post-OS checksum dry-runs describe57 yayuanli and59 millyptg differences, all
+confined to Firefox7355→8995 revision migration and parent-directory time. No
+unexpected original-user path was found. Cog's863 paths are narrowly accounted
+for; five SSH and two GPG files match the backup, six repositories remain clean
+at their baseline heads, and prior shell history is retained as an exact prefix.
+One desktop database's schema/metadata migration remains semantically unqualified;
+Millyptg retains inherited unresolved Firefox theme links. These checks combine
+frozen post-OS logs and later narrow live probes, not a fresh frozen whole-home
+snapshot after final GUI login. User/browser/data validation still precedes cleanup.
 
-The TPM owner was contacted in the existing Milly display thread. The
-hash-bound `tpm-endpoint-handoff.json` and its Markdown companion identify
-existing requirement anchors and the canonical fleet evidence intake. They
-preserve pending latency thresholds and exclusions. No clinical, HIL,
-requirement, release or fleet acceptance is inferred from component checks.
+## Network and rendering boundary
 
-After backup and OS validation: log `cog` into the actual desktop, establish
-the authenticated stream, verify hardware decoding and video/input behavior,
-measure latency/load and reconnect/stale-session behavior, and verify existing
-ASUS display routing remains intact. Recheck Thunderbolt discovery under the
-updated OS. Keep the private backup until the installed system and user data
-have been validated.
+Wired192.168.50.43 and COGROB Wi-Fi192.168.50.192 are connected. Three protected
+COG profiles were installed; existing MWireless was preserved. Eduroam/MWireless
+have not successfully associated in the bounded tests. University profiles retain
+CA/server validation and do not autoconnect with unverified credentials. No secret
+was placed in the reports or agent bus.
 
-## Tooling and documentation proposal review
+Windows N: mounting probes LAN availability with bounded failure, preserves foreign
+mappings and offers the read-only fabric fallback. Its26 tests and analyzer pass.
+Milly's read-only NFSv4.2 mount works. Private backups remain outside that share.
 
-The exact Claude F2 research snapshot and independent review are in
-`tooling-modernization/owner-consensus/REVIEW.md`. The original proposal is preserved as a research
-artifact; its unverified benchmark, safety, version and configuration statements
-are not adopted as facts.
+Both final machines still expose no Thunderbolt peer/network adapter through the
+CalDigit/Apple cable. Linux thunderbolt and thunderbolt_net are loaded. Windows
+native USB4 inventory and reusable peer-profile tooling are prepared; no unsupported
+adapter binding, guessed vendor driver or claimed40Gb/s throughput was introduced.
+The observed iperf results are Ethernet, not Thunderbolt. A direct-cable isolation
+or verified peer-capable topology is still needed. CalDigit's vendor updater did
+not recognize Element5; no hub flash/reset was performed. Active Windows storage
+and other owners' hardware sessions are preserved.
 
-TPM and ASUS owners agree on an additive Sphinx-Needs publishing pilot over the
-existing CSV registries and graph, with ID/text/status/link parity, strict warning
-and duplicate/dangling-ID rejection, stable anchors and source/tool hashes. Existing
-Sphinx/MyST/rosdoc2 and Vale remain the documentation foundation. StrictDoc migration,
-replacement tool managers, shared Redis cache and live labgrid deployment are deferred.
+Moonlight is installed and tested. ASUS Sunshine's existing LAN/firewall, seat and
+credential-provider decisions remain pending; no authentication reset, stream,
+input injection or firewall change was performed. Full native VIGIL UI also needs
+matching Jazzy rclpy/vigil_msgs/vigil_c2 build artifacts; generic PySide installation
+does not satisfy that contract. The architecture review names existing entrypoints
+and the streaming route; the browser-control gateway is not deployed.
 
-The Windows documentation gates now reject requested native build failures and
-stale/wrong-target artifacts. Rust defaults stay within the repository; external
-roots require explicit opt-in. Cargo JSON selects actual enabled feature-gated
-targets and configured target-triple paths. All 25 tests pass, both analyzers report
-zero findings, and independent native controls pass 2/2. New-function coverage is
-94.24%; full legacy-generator coverage remains limited at 37.20%. Existing Build.ps1,
-CargoTools, platyPS, C# XML and rustdoc remain in use.
+## SSH and project coordination
 
-Tool acceleration needs pinned, architecture-specific source/toolchain receipts,
-cold/warm/no-op/one-file-change comparisons and cache-disabled correctness parity.
-No speedup is promised. Keep independent test parallelism separate from physical
-hardware custody. F1 host-probe, empty-selector and colcon-interpreter findings must
-be corrected and reviewed before enforcing tooling floors. Claude's corrected
-adoption matrix, source-owner acknowledgement and first-change ownership are pending.
-No modernization rollout was performed by this review.
-## SSH transport optimization
+[The SSH proposal](ssh-transport/PROPOSAL.md) records applied host-scoped policies.
+Windows retains native OpenSSH with bounded connect/keepalive behavior on four
+fleet aliases; its multiplexing probe is unsupported. Cog's Linux profiles reuse
+private control sockets for ASUS and both Sparks. Actual reuse passed again after
+OpenSSH 10.2. Initial three-command ASUS samples measured median212.913 ms fresh
+versus16.847 ms reused, not bulk bandwidth. Pins, keys and the3066 jump are retained.
+Missing/stale sockets, idle expiry, wrong-pin refusal and a1.006 s stalled-banner
+timeout passed earlier. Compression stays off for LAN/media. Separate bulk and
+control transports and measure payload-specific compression/buffering before tuning.
 
-The applied settings and research are in `ssh-transport/PROPOSAL.md`, with
-sanitized before/after policies, implementation receipts and file hashes.
-Windows native OpenSSH uses four exact fleet aliases with a ten-second connection
-timeout, one attempt and 30-second keepalives. All four pinned hostname checks
-passed. Native Windows multiplexing remains disabled; batch remote scripts or
-SFTP operations in one process to amortize connection setup.
+ASUS→Milly, Windows→Milly/Sparks and Milly→ASUS/bothSparks key access pass. ASUS
+multiplexing/agent-forwarding policy remains with its owner; no owner's live socket
+was terminated. The [TPM handoff](tpm-endpoint-handoff.md) binds supporting evidence
+to existing requirements/HOLD/Pending states without new acceptance or thresholds.
 
-Cog on Milly uses host-scoped Linux ControlMaster auto, ControlPersist 120 seconds
-and owner-only control sockets for ASUS and both Sparks. Existing identities,
-host-key pins, routes and the Spark3066 jump are preserved. Three fresh ASUS
-commands had median 212.913 ms; three verified reused commands had median
-16.847 ms. First reuse was 92.437 ms. These small command samples measure setup
-latency, not bulk bandwidth. Idle expiry, missing/stale socket fallback,
-alias/account separation and incorrect-pin refusal all passed. A refused local port verifies bounded immediate failure; a separate owned
-server accepted TCP and withheld its SSH banner. SSH itself timed out after
-1005.981 ms, before the four-second outer deadline. Network reboot/reconnect
-behavior under active bulk load still needs a separate test. Brief policy/reuse checks must be repeated after the OS
-and OpenSSH upgrade.
+Claude's exact tooling proposal was reviewed with TPM/ASUS: adopt an additive
+Sphinx-Needs view of canonical CSV/schema/DAG with parity, stable anchors, negative
+controls and source/tool hashes. Keep Sphinx/MyST/rosdoc2/Vale and existing Windows
+Build.ps1/CargoTools/platyPS/C#XML/rustdoc. Defer global tool managers/shared Redis
+cache/StrictDoc migration/labgrid/GPU floors. Invalid Cargo/ccache/colcon and
+cargo-llvm-cov recipes plus unreceipted speedups need correction; a named first
+publishing implementer remains pending. Windows fail-closed docs fixes are signed
+and pass25 tests, both analyzers and2 native failure controls; new-function coverage
+is94.24%, full legacy coverage37.20%. Do not infer rollout/performance from those checks.
 
-Compression stays off on the LAN. Compare payload-specific rsync compression,
-whole-file versus delta, SFTP batching and request buffers only with actual data.
-Use separate bulk/control profiles, including separate jump-host transports when
-needed. Keep streaming on the media transport. Existing authenticated HTTP/gRPC
-pooling, Mosh with tmux, WSL OpenSSH and Plink sharing are future options with
-owner-specific identity, lifecycle and firewall review. No new pool daemon,
-global cipher pinning or ASUS forwarding-policy change was applied.
-
-Upgrade status: package installation continues. During SSH/library replacement,
-port22 refused connections and recovery1022 reset; they share system libraries.
-The user opened Cog desktop and attached the persistent maintenance tmux, reporting
-setting-up progress. This is a user-observed login, not final deployment validation.
-Keep power connected and do not reboot until the upgrade completes. For the next
-maintenance stage, hold an authenticated administrative session and use a recovery
-transport independent of the libraries being replaced.
-
-Normal SSH returned at00:17 UTC. The authenticated administrative session is now
-held; recovery1022 was restarted and key-tested at00:19 UTC. Installation continues.
-
-Captured diagnostic source/stdin is stored with `.txt` suffixes. Its original
-bytes are unchanged; source-capture-custody.json maps producer names to local
-captures. Upstream manifests remain unchanged; local manifests bind stored paths.
+Evidence is in `post26-final/`, with original failures and SHA256 custody bindings.
+Local support is validated; paired streaming, Thunderbolt, university Wi-Fi,
+physical rendering/control/HIL and user-data cleanup remain explicitly pending.
+Private Windows WLAN-export cleanup was rejected by automatic approval policy
+("blocked by policy", no more specific reason supplied); the exports remain under
+private ACLs and no alternate deletion path was used.

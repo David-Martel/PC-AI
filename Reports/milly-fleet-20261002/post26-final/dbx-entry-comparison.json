@@ -1,0 +1,131 @@
+{
+  "schema": "milly.dbx-entry-comparison.v1",
+  "current": {
+    "file": "current-dbx.efivar",
+    "sha256": "9ecccdab326ded5df85a0c2df2a8c085302f26fc14557d87f505a5ee6ee5aa75",
+    "bytes": 27012,
+    "eslOffset": 4,
+    "envelope": {
+      "efivarAttributes": 39
+    },
+    "signatureLists": [
+      {
+        "offset": 4,
+        "type": "a5c059a1-94e4-4aa7-87b5-ab155c2bf072",
+        "bytes": 1104,
+        "signatureBytes": 1076,
+        "count": 1
+      },
+      {
+        "offset": 1108,
+        "type": "a5c059a1-94e4-4aa7-87b5-ab155c2bf072",
+        "bytes": 812,
+        "signatureBytes": 784,
+        "count": 1
+      },
+      {
+        "offset": 1920,
+        "type": "c1c41626-504c-4092-aca9-41f936934328",
+        "bytes": 14140,
+        "signatureBytes": 48,
+        "count": 294
+      },
+      {
+        "offset": 16060,
+        "type": "c1c41626-504c-4092-aca9-41f936934328",
+        "bytes": 7516,
+        "signatureBytes": 48,
+        "count": 156
+      },
+      {
+        "offset": 23576,
+        "type": "c1c41626-504c-4092-aca9-41f936934328",
+        "bytes": 3436,
+        "signatureBytes": 48,
+        "count": 71
+      }
+    ],
+    "entryCount": 523,
+    "uniqueEntryCount": 496,
+    "owners": {
+      "77fa9abd-0359-4d32-bd60-28f4e78f784b": 523
+    },
+    "lastMicrosoftEntry": "2ea557c44b83c0ad6b71efb7edcc18b6337ad1c1d682155dd9451b051b62ff40",
+    "lastMicrosoftEntryDataSha256": "2b727799ca49f8cb2a9b15966ada1dadbe7753cee50235b9bf6162b41965ea5d"
+  },
+  "officialCabPayload": {
+    "file": "cab-extracted/DBXUpdate-20260707.x64.bin",
+    "sha256": "524c796ade42db0048b656f6cf3863832174ae7f58cad6986d1ccae1e3d3ecd1",
+    "bytes": 17256,
+    "eslOffset": 3260,
+    "envelope": {
+      "certificateLength": 3244,
+      "certificateRevision": 512,
+      "certificateType": 3825,
+      "certificateGuid": "4aafd29d-68df-49ee-8aa9-347d375665a7"
+    },
+    "signatureLists": [
+      {
+        "offset": 3260,
+        "type": "c1c41626-504c-4092-aca9-41f936934328",
+        "bytes": 13996,
+        "signatureBytes": 48,
+        "count": 291
+      }
+    ],
+    "entryCount": 291,
+    "uniqueEntryCount": 291,
+    "owners": {
+      "77fa9abd-0359-4d32-bd60-28f4e78f784b": 291
+    },
+    "lastMicrosoftEntry": "2ea557c44b83c0ad6b71efb7edcc18b6337ad1c1d682155dd9451b051b62ff40",
+    "lastMicrosoftEntryDataSha256": "2b727799ca49f8cb2a9b15966ada1dadbe7753cee50235b9bf6162b41965ea5d"
+  },
+  "ubuntuBootUpdatePayload": {
+    "file": "ubuntu-dbxupdate_x64.bin",
+    "sha256": "3e56c3d9e5b12edbd9e4006413d87fba099de1eba33d2bea566e742166cb366a",
+    "bytes": 21170,
+    "eslOffset": 3334,
+    "envelope": {
+      "certificateLength": 3318,
+      "certificateRevision": 512,
+      "certificateType": 3825,
+      "certificateGuid": "4aafd29d-68df-49ee-8aa9-347d375665a7"
+    },
+    "signatureLists": [
+      {
+        "offset": 3334,
+        "type": "c1c41626-504c-4092-aca9-41f936934328",
+        "bytes": 17836,
+        "signatureBytes": 48,
+        "count": 371
+      }
+    ],
+    "entryCount": 371,
+    "uniqueEntryCount": 371,
+    "owners": {
+      "77fa9abd-0359-4d32-bd60-28f4e78f784b": 371
+    },
+    "lastMicrosoftEntry": "13a1f37bedfb5417b6b737e2a3816c8fd587d74d836914b2b2edc9fd6ca30e58",
+    "lastMicrosoftEntryDataSha256": "a0068b489528b54193dc9e4eab625600af5e56fa40e45cef170aec8a594399ce"
+  },
+  "officialPayloadInCurrent": {
+    "expectedCount": 291,
+    "expectedUniqueCount": 291,
+    "exactOwnerTypeDataMissingCount": 0,
+    "typeDataMissingCount": 0,
+    "missingEntries": []
+  },
+  "ubuntuPayloadInCurrent": {
+    "expectedCount": 371,
+    "expectedUniqueCount": 371,
+    "exactOwnerTypeDataMissingCount": 0,
+    "typeDataMissingCount": 0,
+    "missingEntries": []
+  },
+  "currentContainsAdditionalToOfficialPayloadCount": 205,
+  "currentContainsAdditionalToPayloadUnionCount": 54,
+  "currentLastMicrosoftChecksumPresentInInstalledQuirks": false,
+  "version20260707PresentInInstalledQuirks": false,
+  "entriesQualification": "Entries compare exact signature type, owner GUID and data. Both signature list structure and authenticated payload envelope were validated locally; no firmware or EFI writes."
+}

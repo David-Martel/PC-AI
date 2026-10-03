@@ -1,0 +1,22 @@
+import datetime,json,os,pathlib,signal,subprocess,time
+b=pathlib.Path('/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation')
+e=os.environ.copy()
+for k,d in [('XDG_CONFIG_HOME','obs-config'),('XDG_CACHE_HOME','obs-cache'),('XDG_DATA_HOME','obs-data')]:
+ p=b/d;p.mkdir(mode=0o700,exist_ok=True);e[k]=str(p)
+a=['xvfb-run','-a','obs','--multi','--only-bundled-plugins','--disable-missing-files-check']
+p=subprocess.Popen(a,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,env=e,start_new_session=True)
+time.sleep(8)
+alive=p.poll() is None
+if alive:os.killpg(p.pid,signal.SIGTERM)
+try:o,s=p.communicate(timeout=15)
+except subprocess.TimeoutExpired:
+ os.killpg(p.pid,signal.SIGKILL);o,s=p.communicate();raise
+r={'observedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'argv':a,'runningAfter8Seconds':alive,'explicitTermination':'SIGTERM of owned temporary Xvfb/OBS group','exit':p.returncode,'stdout':o,'stderr':s,'scope':'Synthetic display startup only; separate temporary XDG state, no stream/record/camera/microphone initiated; no physical GUI acceptance'}
+(b/'obs-startup-second-attempt.json').write_text(json.dumps(r,indent=2)+'\n')
+assert 'pulse-input: Started recording' not in o, 'Unexpected audio input started'
+assert 'Startup complete' in o
+assert 'obs_nvenc_av1_tex' in o
+assert 'Couldn'+chr(39)+'t find VLC installation' not in o
+print('OBS running at8s:',alive,'exit afterownedTERM:',p.returncode)
+print('\n'.join(x for x in (o+'\n'+s).splitlines() if any(w in x.lower() for w in ['error','failed','nvenc','startup','initializ','loaded modules'])))
+assert alive

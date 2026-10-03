@@ -157,6 +157,25 @@ fn set_error(msg: impl Into<String>, code: PcaiMediaErrorCode) {
     LAST_ERROR_CODE.with(|c| *c.borrow_mut() = code);
 }
 
+/// Render every operation and cause in a generation failure.
+fn generation_error_message(error: &anyhow::Error) -> String {
+    format!("{error:#}")
+}
+
+/// Store the complete generation diagnostic at synchronous FFI boundaries.
+fn report_generation_error(error: &anyhow::Error) -> i32 {
+    set_error(
+        format!("Image generation failed: {}", generation_error_message(error)),
+        PcaiMediaErrorCode::GenerationError,
+    );
+    PcaiMediaErrorCode::GenerationError as i32
+}
+
+/// Preserve the complete diagnostic in an asynchronous terminal status.
+fn generation_failure_status(error: &anyhow::Error) -> MediaRequestStatus {
+    MediaRequestStatus::Failed(generation_error_message(error))
+}
+
 /// Clear the last error for the current thread (called at the start of each
 /// exported function).
 fn clear_error() {
@@ -439,11 +458,7 @@ pub extern "C" fn pcai_media_generate_image(
     let image = match generate_result {
         Ok(img) => img,
         Err(e) => {
-            set_error(
-                format!("Image generation failed: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
-            return PcaiMediaErrorCode::GenerationError as i32;
+            return report_generation_error(&e);
         }
     };
 
@@ -647,11 +662,7 @@ pub extern "C" fn pcai_media_generate_image_bytes(
     let image = match pipeline.generate_with_overrides(&prompt_str, override_cfg, override_temp) {
         Ok(img) => img,
         Err(e) => {
-            set_error(
-                format!("Image generation failed: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
-            return PcaiMediaErrorCode::GenerationError as i32;
+            return report_generation_error(&e);
         }
     };
 
@@ -835,7 +846,7 @@ pub extern "C" fn pcai_media_generate_image_async(
                     }
                 }
                 Err(e) => {
-                    g.requests.insert(id, MediaRequestStatus::Failed(format!("{e}")));
+                    g.requests.insert(id, generation_failure_status(&e));
                 }
             }
         }
@@ -1141,6 +1152,62 @@ pub extern "C" fn pcai_media_free_bytes(data: *mut u8, len: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn chained_generation_error() -> anyhow::Error {
+        anyhow::Error::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "invalid image token",
+        ))
+        .context("step 7: projection failed")
+        .context("generate_inner failed")
+    }
+
+    #[test]
+    fn test_sync_generation_error_preserves_complete_chain() {
+        let error = chained_generation_error();
+        assert_eq!(
+            report_generation_error(&error),
+            PcaiMediaErrorCode::GenerationError as i32
+        );
+        assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::GenerationError as i32);
+        let pointer = pcai_media_last_error();
+        assert!(!pointer.is_null(), "generation failure must provide a diagnostic");
+        // SAFETY: the non-null thread-local CString stays live until the next FFI call.
+        let message = unsafe { CStr::from_ptr(pointer) }
+            .to_str()
+            .expect("diagnostic should be UTF-8");
+        assert_eq!(
+            message,
+            "Image generation failed: generate_inner failed: step 7: projection failed: invalid image token"
+        );
+        assert_eq!(
+            error
+                .downcast_ref::<std::io::Error>()
+                .expect("typed cause must be retained")
+                .kind(),
+            std::io::ErrorKind::InvalidData
+        );
+        clear_error();
+    }
+
+    #[test]
+    fn test_async_generation_failure_preserves_complete_chain() {
+        let error = chained_generation_error();
+        match generation_failure_status(&error) {
+            MediaRequestStatus::Failed(message) => assert_eq!(
+                message,
+                "generate_inner failed: step 7: projection failed: invalid image token"
+            ),
+            _ => panic!("generation error must produce a failed terminal status"),
+        }
+        assert_eq!(
+            error
+                .downcast_ref::<std::io::Error>()
+                .expect("typed cause must be retained")
+                .kind(),
+            std::io::ErrorKind::InvalidData
+        );
+    }
     use std::ffi::CString;
 
     // ── Error code enum values ────────────────────────────────────────────

@@ -7,6 +7,38 @@ ledger instead of left here as active work.
 Last reconciled: 2026-09-07, after a CI/tooling repair pass. The previous
 reconciliation was 2026-04-30.
 
+## 2026-10-03 Fleet and repository closeout
+
+The Milly maintenance evidence is in `Reports/milly-fleet-20261002/README.md`.
+Local OS, firmware, rendering/toolchain and Cog desktop checks are qualified
+component results; they do not establish fleet or physical acceptance.
+
+- [x] Recover Ubuntu 26.04.1, update firmware and the recommended NVIDIA driver,
+  install rendering/development tools, and validate isolated ROS/build/GPU/SSH paths.
+- [x] Preserve the private ASUS backup and unrelated worktree/untracked data.
+- [x] Independently review the six signed maintenance commits against current main.
+- [ ] Repair native-process deadlines for blocked stdin and inherited output pipes,
+  validate owned-process cleanup, and merge the exact reviewed maintenance PR.
+- [ ] Review and integrate safe existing PC-AI PRs; retain qualified CUDA/dependency
+  blockers and owner-held worktrees. Refresh current branch/PR dispositions in the
+  repository closeout receipt rather than treating cached refs as custody proof.
+- [ ] Complete VIGIL optional endpoint PR2462 routed-SSH reachability repair and
+  exact-head review/CI. PR2456 is merged after exact-head independent review and fresh required QA.
+- [ ] Obtain the existing Sunshine provider reference and affected seat/firewall
+  scope from its owner, then validate authenticated video/input/reconnect and the
+  full VIGIL UI with matching production ROS message packages.
+- [ ] Identify a Thunderbolt peer and measure its actual throughput; no peer NIC
+  is observed through the current CalDigit topology.
+- [ ] Validate eduroam/MWireless using usable supported credentials, provision
+  AMT with its own management credentials/network, and qualify physical HIL paths.
+- [ ] Validate original-user/browser data and the Cog desktop database migration
+  before deleting the retained ASUS backup.
+- [ ] Obtain Claude's corrected F2 tooling matrix and named first derived-Needs
+  pilot implementer; the TPM decision/source handoffs are already merged.
+
+These remaining acceptance items keep their existing HOLD/Pending boundaries.
+No production compute placement, release quorum or static DDS membership changed.
+
 ## 2026-09-07 Reconciliation
 
 Verified by running the checks, not by reading the ledger.

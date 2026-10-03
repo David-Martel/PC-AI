@@ -1,0 +1,67 @@
+{
+  "schema": "pcai.repository-closeout.v1",
+  "observedUtc": "2026-10-03T02:49:24.1622577Z",
+  "repository": "David-Martel/PC-AI",
+  "branch": "feat/thunderbolt-linux-peers",
+  "reviewedMaintenanceHead": "48b78c34eb7aac57f299bfec91aae65d01373809",
+  "base": "ca8a95b337e52566b83ea9703995912382a72551",
+  "integrationStatus": "review repairs in progress; not merged",
+  "validation": {
+    "originalPesterUnitPassed": 101,
+    "initialIntegrationConfigurationFailure": "Explicit runtime suite requires PCAI_TB_TEST_SSH_ALIAS; first invocation lacked it",
+    "configuredLinuxRuntimePassed": 5,
+    "timeoutRegressionSuitePassed": 31,
+    "pythonTestsPassed": 7,
+    "pythonSubtestsPassed": 4,
+    "credentialScanner": "751 files, no hard-coded credentials; positive/negative controls pass",
+    "workflowSyntax": "10 workflows and 70 embedded PowerShell steps pass",
+    "wholeRepositoryPowerShellLint": "Build.ps1 -Component lint -LintProfile powershell passed",
+    "custodyBindings": 100,
+    "frozenCaptureWhitespace": "Whole-branch git diff --check reports intentional source-capture whitespace; captured bytes retained. Working-tree source edits checked separately.",
+    "finalUnitTestsPassed": 111,
+    "finalUnitTestsSkipped": 0,
+    "finalChangedPowerShellAnalyzerFindings": 0,
+    "initialFormatterFailures": "Unsupported -Path parameter and mixed line endings were rejected before writes; corrected with ScriptDefinition and normalized owned-source line endings, then seven files formatted and 111 tests passed"
+  },
+  "feedback": {
+    "tpmModernizationDecisionPR": 1587,
+    "tpmSourceHandoffPR": 1588,
+    "tpmSourceHandoffMergedCommit": "eb920136c36dcdbcf8ccf82f46e2e09959f52e08",
+    "optionalEndpointPR": 2462,
+    "optionalEndpointRepairStatus": "Exact707e02d route-aware SSH repair independently reviewed; process deadline followup in progress before push",
+    "inventoryJsonPR": 2456,
+    "inventoryJsonHead": "e543404cdebdd474e26823fe050db03fb9e33794",
+    "inventoryJsonStatus": "MERGED after exact e543 independent review and fresh tooling/aarch64/release-scope QA",
+    "sunshineProvider": "Owner request delivered; custody decision not received",
+    "toolingPilot": "Corrected F2 matrix and named first derived-Needs implementer requested",
+    "inventoryJsonMergedCommit": "b88307353ea21cf24f9bb414788f4e8072a91a49"
+  },
+  "worktrees": [
+    {
+      "path": "C:/codedev/PC_AI",
+      "purpose": "Milly maintenance and tooling integration",
+      "owner": "codex root",
+      "nextReview": "exact PR head before merge"
+    },
+    {
+      "nextReview": "owner draft/cleanup disposition; no removal by root",
+      "status": "CPU source review conditionally passes; CUDA compatibility unvalidated; owner response pending",
+      "pr": 156,
+      "path": "C:/codedev/PC_AI/worktrees/ws5-candle",
+      "owner": "claude",
+      "head": "9dc14855707247119f00e38fde72b877a413ebc5"
+    }
+  ],
+  "foreignWip": "Seven pre-existing unrelated untracked files preserved",
+  "agentProducedRetainedCache": "Tools/SystemScripts/Networking/__pycache__/capture_thunderbolt_peer_trace.cpython-313.pyc: path-verified deletion rejected by automatic review (blocked by policy), retained",
+  "backupMustRemain": true,
+  "fleetAcceptance": false,
+  "remaining": [
+    "Thunderbolt physical peer and measured throughput",
+    "Sunshine owner provider/seat/firewall scope plus video/input/reconnect",
+    "Full VIGIL UI production ROS message compatibility",
+    "Supported university Wi-Fi credentials and association",
+    "Original-user/browser and Cog database semantics",
+    "AMT credential/network provisioning and physical/HIL validation"
+  ]
+}

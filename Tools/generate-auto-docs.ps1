@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 
 <#+
 .SYNOPSIS
@@ -82,12 +82,13 @@ function Get-DocumentationWorkspace {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Repository, [string[]]$Roots, [switch]$AllowExternal, [string[]]$DefaultRoots = @('Native/pcai_core'))
     $repositoryPath = [IO.Path]::GetFullPath($Repository).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $comparison = if ([IO.Path]::DirectorySeparatorChar -eq '\') { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
     $explicitRoots = $null -ne $Roots -and $Roots.Count -gt 0
     if (-not $explicitRoots) { $Roots = $DefaultRoots }
     foreach ($root in $Roots) {
         $path = if ([IO.Path]::IsPathRooted($root)) { [IO.Path]::GetFullPath($root) } else { [IO.Path]::GetFullPath((Join-Path $repositoryPath $root)) }
         $prefix = $repositoryPath + [IO.Path]::DirectorySeparatorChar
-        if (-not $AllowExternal -and $path -ne $repositoryPath -and -not $path.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+        if (-not $AllowExternal -and -not $path.Equals($repositoryPath, $comparison) -and -not $path.StartsWith($prefix, $comparison)) {
             throw "External Rust workspace requires -AllowExternalRustRoots: $path"
         }
         if (-not (Test-Path -LiteralPath (Join-Path $path 'Cargo.toml') -PathType Leaf)) {
@@ -107,7 +108,7 @@ function Invoke-RustDocumentation {
     Push-Location -LiteralPath $Workspace
     try {
         $manifest = Join-Path $Workspace 'Cargo.toml'
-        $metadata = Invoke-DocumentationCommand -Tool cargo.exe -ArgumentList @('metadata', '--format-version', '1', '--no-deps', '--manifest-path', $manifest) | ConvertFrom-Json
+        $metadata = Invoke-DocumentationCommand -Tool cargo -ArgumentList @('metadata', '--format-version', '1', '--no-deps', '--manifest-path', $manifest) | ConvertFrom-Json
         $targetDirectory = $metadata.target_directory
         $state = 'ExistingUnverified'
         $documentedTargets = @()
@@ -117,7 +118,7 @@ function Invoke-RustDocumentation {
             $targetDirectory = Join-Path $targetDirectory ('pcai-docs/' + [Guid]::NewGuid().ToString('N'))
             $arguments = @('doc', '--workspace', '--no-deps', '--message-format=json', '--manifest-path', $manifest, '--target-dir', $targetDirectory)
             if ($DocumentPrivateItems) { $arguments += '--document-private-items' }
-            $output = Invoke-DocumentationCommand -Tool cargo.exe -ArgumentList $arguments
+            $output = Invoke-DocumentationCommand -Tool cargo -ArgumentList $arguments
             $messages = @(
                 foreach ($line in ($output -split '\r?\n')) {
                     if ($line.TrimStart().StartsWith('{')) { $line | ConvertFrom-Json -ErrorAction Stop }
@@ -126,6 +127,7 @@ function Invoke-RustDocumentation {
             $finished = @($messages | Where-Object reason -EQ 'build-finished')
             if ($finished.Count -ne 1 -or -not $finished[0].success) { throw 'Cargo documentation did not report a successful build-finished event' }
             $prefix = [IO.Path]::GetFullPath($targetDirectory).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+            $comparison = if ([IO.Path]::DirectorySeparatorChar -eq '\') { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
             $indexes = @(
                 foreach ($message in $messages) {
                     if ($message.reason -ne 'compiler-artifact' -or $metadata.workspace_members -notcontains $message.package_id) { continue }
@@ -133,7 +135,7 @@ function Invoke-RustDocumentation {
                     foreach ($filename in $message.filenames) {
                         if ([IO.Path]::GetFileName($filename) -ne 'index.html') { continue }
                         $index = [IO.Path]::GetFullPath($filename)
-                        if (-not $index.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { throw "Rust documentation artifact is outside this run's target directory: $index" }
+                        if (-not $index.StartsWith($prefix, $comparison)) { throw "Rust documentation artifact is outside this run's target directory: $index" }
                         if (-not (Test-Path -LiteralPath $index -PathType Leaf)) { throw "Required Rust documentation artifact missing: $index" }
                         if ((Get-Item -LiteralPath $index).Length -eq 0) { throw "Empty Rust documentation artifact: $index" }
                         $documentedTargets += [pscustomobject]@{ PackageId = $message.package_id; Target = $message.target.name; Features = $message.features; Index = $index }
@@ -188,7 +190,7 @@ function Invoke-CSharpDocumentation {
         $outputDirectory = Join-Path $ReportDirectory ('csharp-docs/' + [Guid]::NewGuid().ToString('N'))
         $null = New-Item -ItemType Directory -Path $outputDirectory
         $docFile = Join-Path $outputDirectory "$projectName.xml"
-        $null = Invoke-DocumentationCommand -Tool dotnet.exe -ArgumentList @('build', $Project, '-c', 'Release', '-p:GenerateDocumentationFile=true', "-p:DocumentationFile=$docFile", '-p:NoWarn=1591')
+        $null = Invoke-DocumentationCommand -Tool dotnet -ArgumentList @('build', $Project, '-c', 'Release', '-p:GenerateDocumentationFile=true', "-p:DocumentationFile=$docFile", '-p:NoWarn=1591')
         if (-not (Test-Path -LiteralPath $docFile -PathType Leaf)) { throw "Required C# documentation artifact missing: $docFile" }
         [xml]$document = [IO.File]::ReadAllText($docFile)
         if (-not $document.doc.assembly.name) { throw "Invalid C# documentation artifact: $docFile" }
@@ -196,7 +198,7 @@ function Invoke-CSharpDocumentation {
     }
     else {
         # MSBuild resolves the assembly name and configuration-specific paths.
-        $candidate = Invoke-DocumentationCommand -Tool dotnet.exe -ArgumentList @('msbuild', $Project, '-nologo', '-p:Configuration=Release', '-p:GenerateDocumentationFile=true', '-getProperty:DocumentationFile')
+        $candidate = Invoke-DocumentationCommand -Tool dotnet -ArgumentList @('msbuild', $Project, '-nologo', '-p:Configuration=Release', '-p:GenerateDocumentationFile=true', '-getProperty:DocumentationFile')
         if ($candidate) {
             $candidate = if ([IO.Path]::IsPathRooted($candidate)) { $candidate } else { Join-Path (Split-Path -Parent $Project) $candidate }
             if (Test-Path -LiteralPath $candidate -PathType Leaf) { $docFile = $candidate }

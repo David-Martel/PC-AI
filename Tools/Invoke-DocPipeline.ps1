@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Unified documentation generation and FunctionGemma training data pipeline.
@@ -319,7 +319,8 @@ function Invoke-LithoExtraction {
 
     $lithoExe = Get-Command litho -ErrorAction SilentlyContinue
     if (-not $lithoExe) {
-        $lithoPath = Join-Path $env:USERPROFILE 'bin\litho.exe'
+        $lithoName = if ([IO.Path]::DirectorySeparatorChar -eq '\') { 'litho.exe' } else { 'litho' }
+        $lithoPath = Join-Path $HOME (Join-Path 'bin' $lithoName)
         if (Test-Path $lithoPath) { $lithoExe = $lithoPath }
     }
 
@@ -349,7 +350,8 @@ function Invoke-LithoDocGeneration {
 
     $lithoExe = Get-Command litho -ErrorAction SilentlyContinue
     if (-not $lithoExe) {
-        $lithoPath = Join-Path $env:USERPROFILE 'bin\litho.exe'
+        $lithoName = if ([IO.Path]::DirectorySeparatorChar -eq '\') { 'litho.exe' } else { 'litho' }
+        $lithoPath = Join-Path $HOME (Join-Path 'bin' $lithoName)
         if (Test-Path $lithoPath) { $lithoExe = $lithoPath }
     }
 

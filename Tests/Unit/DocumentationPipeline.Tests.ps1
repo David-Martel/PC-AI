@@ -1,4 +1,4 @@
-﻿#Requires -Version 7.0
+#Requires -Version 7.0
 
 BeforeAll {
     $script:repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -32,12 +32,12 @@ BeforeAll {
     }
     [IO.File]::AppendAllText((Join-Path $script:rustFeature 'Cargo.toml'), "[features]`naccelerated = []`n[[bin]]`nname = 'conditional_viewer'`npath = 'src/viewer.rs'`nrequired-features = ['accelerated']`n")
     [IO.File]::WriteAllText((Join-Path $script:rustFeature 'src/viewer.rs'), 'fn main() {}')
-    $compilerVersion = Invoke-DocumentationCommand -Tool rustc.exe -ArgumentList @('-vV')
+    $compilerVersion = Invoke-DocumentationCommand -Tool rustc -ArgumentList @('-vV')
     if ($compilerVersion -notmatch '(?m)^host:\s*(.+)$') { throw 'Rust compiler did not report its host target' }
     $script:hostTriple = $Matches[1].Trim()
     $script:csRoot = Join-Path $script:fixtureRoot 'csharp'
     $null = New-Item -ItemType Directory $script:csRoot
-    $sdkVersion = Invoke-DocumentationCommand -Tool dotnet.exe -ArgumentList @('--version')
+    $sdkVersion = Invoke-DocumentationCommand -Tool dotnet -ArgumentList @('--version')
     $framework = 'net' + ($sdkVersion -split '\.')[0] + '.0'
     $script:csProject = Join-Path $script:csRoot 'DocumentationFixture.csproj'
     [IO.File]::WriteAllText($script:csProject, "<Project Sdk=`"Microsoft.NET.Sdk`"><PropertyGroup><TargetFramework>$framework</TargetFramework><AssemblyName>ExactFixtureAssembly</AssemblyName><TreatWarningsAsErrors>true</TreatWarningsAsErrors></PropertyGroup></Project>")
@@ -67,6 +67,22 @@ Describe 'Documentation workspace boundaries' {
     It 'fails on a missing explicit workspace but allows absent optional defaults' {
         { Get-DocumentationWorkspace -Repository $script:fixtureRoot -Roots 'missing' } | Should -Throw '*Cargo.toml not found*'
         @(Get-DocumentationWorkspace -Repository $script:csRoot).Count | Should -Be 0
+    }
+    It 'uses platform path semantics for case-variant repository and descendant roots' {
+        $repository = Join-Path $script:fixtureRoot 'CaseRepository'
+        $caseVariant = Join-Path $script:fixtureRoot 'caserepository'
+        $external = Join-Path $caseVariant 'external'
+        $null = New-Item -ItemType Directory $repository, $external -Force
+        foreach ($root in @($caseVariant, $external)) {
+            [IO.File]::WriteAllText((Join-Path $root 'Cargo.toml'), '[workspace]')
+            if ([IO.Path]::DirectorySeparatorChar -eq '\') {
+                @(Get-DocumentationWorkspace -Repository $repository -Roots $root) | Should -Be @($root)
+            }
+            else {
+                { Get-DocumentationWorkspace -Repository $repository -Roots $root } | Should -Throw '*requires -AllowExternalRustRoots*'
+            }
+            @(Get-DocumentationWorkspace -Repository $repository -Roots $root -AllowExternal) | Should -Be @($root)
+        }
     }
     It 'rejects a requested missing native tool' {
         { Invoke-DocumentationCommand -Tool pcai-documentation-tool-does-not-exist.exe -ArgumentList @('--version') } | Should -Throw
@@ -191,7 +207,7 @@ Describe 'Real native documentation generation' {
         [IO.File]::WriteAllText($stale, 'STALE-731')
         [IO.File]::WriteAllText((Join-Path $script:csRoot 'Broken.cs'), 'this is not valid C#;')
         try {
-            { Invoke-CSharpDocumentation -Project $script:csProject -ReportDirectory $script:fixtureRoot -Build } | Should -Throw '*dotnet.exe failed (exit*'
+            { Invoke-CSharpDocumentation -Project $script:csProject -ReportDirectory $script:fixtureRoot -Build } | Should -Throw '*dotnet failed (exit*'
             [IO.File]::ReadAllText($stale) | Should -Be 'STALE-731'
         }
         finally { Remove-Item -LiteralPath (Join-Path $script:csRoot 'Broken.cs') }
@@ -211,13 +227,13 @@ Describe 'Real native documentation generation' {
 Describe 'Production script failure propagation' {
     It 'fails a requested C# build when no projects are present' {
         $repo = Join-Path $script:fixtureRoot 'missing csharp'
-        $output = & pwsh.exe -NoLogo -NoProfile -File $script:generator -RepoRoot $repo -IncludeCSharp -BuildDocs 2>&1
+        $output = & pwsh -NoLogo -NoProfile -File $script:generator -RepoRoot $repo -IncludeCSharp -BuildDocs 2>&1
         $LASTEXITCODE | Should -Be 1
         ($output | Out-String) | Should -Match 'No C# projects found for requested documentation build'
     }
     It 'returns zero and writes attributable reports from the actual auto-docs script' {
         $repo = Join-Path $script:fixtureRoot 'successful script'
-        $output = & pwsh.exe -NoLogo -NoProfile -File $script:generator -RepoRoot $repo -IncludeRust -BuildDocs -RustWorkspaceRoots $script:rustGood -AllowExternalRustRoots 2>&1
+        $output = & pwsh -NoLogo -NoProfile -File $script:generator -RepoRoot $repo -IncludeRust -BuildDocs -RustWorkspaceRoots $script:rustGood -AllowExternalRustRoots 2>&1
         $LASTEXITCODE | Should -Be 0
         ($output | Out-String) | Should -Match 'Wrote:'
         $report = [IO.File]::ReadAllText((Join-Path $repo 'Reports/RUST_DOCS.json')) | ConvertFrom-Json
@@ -226,7 +242,7 @@ Describe 'Production script failure propagation' {
         Test-Path (Join-Path $repo 'Reports/AUTO_DOCS_SUMMARY.md') | Should -BeTrue
     }
     It 'returns nonzero from the actual auto-docs script on failed Rust generation' {
-        $output = & pwsh.exe -NoLogo -NoProfile -File $script:generator -RepoRoot $script:fixtureRoot -IncludeRust -BuildDocs -RustWorkspaceRoots $script:rustBad 2>&1
+        $output = & pwsh -NoLogo -NoProfile -File $script:generator -RepoRoot $script:fixtureRoot -IncludeRust -BuildDocs -RustWorkspaceRoots $script:rustBad 2>&1
         $code = $LASTEXITCODE
         $code | Should -Be 1
         ($output | Out-String) | Should -Match 'intentional documentation child failure'
@@ -236,7 +252,7 @@ Describe 'Production script failure propagation' {
         $fixtureTools = Join-Path $script:fixtureRoot 'pipeline/Tools'
         $null = New-Item -ItemType Directory $fixtureTools -Force
         Copy-Item -LiteralPath $script:pipeline, $script:generator -Destination $fixtureTools
-        $output = & pwsh.exe -NoLogo -NoProfile -File (Join-Path $fixtureTools 'Invoke-DocPipeline.ps1') -Mode DocsOnly -RustWorkspaceRoots $script:rustBad -AllowExternalRustRoots 2>&1
+        $output = & pwsh -NoLogo -NoProfile -File (Join-Path $fixtureTools 'Invoke-DocPipeline.ps1') -Mode DocsOnly -RustWorkspaceRoots $script:rustBad -AllowExternalRustRoots 2>&1
         $code = $LASTEXITCODE
         $code | Should -Be 1
         $report = [IO.File]::ReadAllText((Join-Path $script:fixtureRoot 'pipeline/Reports/DOC_PIPELINE_REPORT.json')) | ConvertFrom-Json
@@ -253,7 +269,7 @@ Describe 'Production script failure propagation' {
         Copy-Item -LiteralPath $script:pipeline -Destination $tools
         [IO.File]::WriteAllText((Join-Path $data 'rust_router_train.jsonl'), '{"messages":[],"tools":[]}')
         [IO.File]::WriteAllText((Join-Path $data 'test_vectors.json'), '[{"tool":"fixture","arguments":{}}]')
-        $output = & pwsh.exe -NoLogo -NoProfile -File (Join-Path $tools 'Invoke-DocPipeline.ps1') -Mode Validate 2>&1
+        $output = & pwsh -NoLogo -NoProfile -File (Join-Path $tools 'Invoke-DocPipeline.ps1') -Mode Validate 2>&1
         $LASTEXITCODE | Should -Be 0
         $report = [IO.File]::ReadAllText((Join-Path $fixture 'Reports/DOC_PIPELINE_REPORT.json')) | ConvertFrom-Json
         $report.success | Should -BeTrue

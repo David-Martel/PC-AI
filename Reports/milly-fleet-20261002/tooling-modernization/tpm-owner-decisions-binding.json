@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "sourceRepo": "David-Martel/vigil-ai-tpm",
+  "sourcePath": "docs/audits/toolchain-modernization-review-2026-10-02.md",
+  "observedHead": "70a6f4d15961ee5535278f50219ae86673a81632",
+  "signatureStatus": "G",
+  "reviewedUtc": "2026-10-02T23:10:18.9023724+00:00",
+  "sha256": "aa50fa8cfe65d1f1f89d82b60f442cbcc71c10271f99d6b8ac7b469e6636377c",
+  "copiedArtifact": "tpm-owner-decisions.md",
+  "pr": "https://github.com/David-Martel/vigil-ai-tpm/pull/1587",
+  "status": "Signed owner decision proposal; review and implementation gates retained",
+  "globalPathChange": false,
+  "acceptance": false
+}

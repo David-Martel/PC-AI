@@ -1,0 +1,1645 @@
+[
+  {
+    "Event": "RundownStart",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {}
+  },
+  {
+    "Event": "HostRouterInformationPci",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "DomainID": "0x4D0001",
+      "DeviceInstancePath": "PCI\\VEN_8086&DEV_7EC2&SUBSYS_223417AA&REV_02&USB4_MS_CM\\3&11583659&1&6A",
+      "BusNumber": "0x0",
+      "DeviceNumber": "0xD",
+      "FunctionNumber": "0x2",
+      "VendorId": "0x8086",
+      "DeviceId": "0x7EC2",
+      "RevisionId": "0x2",
+      "SubVendorId": "0x17AA",
+      "SubSystemId": "0x2234",
+      "AcpiBiosDeviceName": "\\_SB_.PC00.TDM0"
+    }
+  },
+  {
+    "Event": "DomainSleepInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "DeviceInstancePath": "PCI\\VEN_8086&DEV_7EC2&SUBSYS_223417AA&REV_02&USB4_MS_CM\\3&11583659&1&6A",
+      "DomainID": "0x4D0001",
+      "IsDomainPoweredDown": "0",
+      "NumberOfDomainPowerDownRequests": "       0"
+    }
+  },
+  {
+    "Event": "TunnelInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1"
+    }
+  },
+  {
+    "Event": "TunnelInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1"
+    }
+  },
+  {
+    "Event": "TunnelInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1"
+    }
+  },
+  {
+    "Event": "TunnelInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1"
+    }
+  },
+  {
+    "Event": "TunnelInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1"
+    }
+  },
+  {
+    "Event": "TunnelInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1"
+    }
+  },
+  {
+    "Event": "TunnelInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1"
+    }
+  },
+  {
+    "Event": "TunnelInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1"
+    }
+  },
+  {
+    "Event": "DPBandwidthAllocation",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "6",
+      "TunnelHandle": "0x36FB658DC8D8",
+      "RequestedBandwidthInDpUnits": "4",
+      "AllocatedBandwidthInDpUnits": "4",
+      "EstimatedBandwidthInDpUnits": "71",
+      "Granularity": "1"
+    }
+  },
+  {
+    "Event": "RundownComplete",
+    "Provider": "Microsoft.Windows.USB.USB4.HostRouter",
+    "Data": {}
+  },
+  {
+    "Event": "RundownStart",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {}
+  },
+  {
+    "Event": "DeviceRouterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "DeviceInstancePath": "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_7EC2\\4&1f6645ca&0&0",
+      "RouterUSB4Version": "0x20",
+      "ConnectionManagerUSB4Version": "0x10",
+      "VendorID": "0x8087",
+      "ProductID": "0x7EC2",
+      "AsciiVendorName": "Intel",
+      "AsciiModelName": "Gen14",
+      "DeviceID": "0x8087",
+      "ModelID": "0x7EB2",
+      "UUID": "0x8087D983A43A6440",
+      "DeviceFirmwareVersion": "0x1602",
+      "HostFirmwareVersion": "0x1682",
+      "CableInfo": "0x0",
+      "LastPowerUpTimeInMs": "0x0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "1",
+      "Lane0AdapterNumber": "1",
+      "Lane1AdapterNumber": "2",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x4D0001",
+      "DownstreamRouterTopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xC",
+      "SupportedLinkWidths": "0x3",
+      "CurrentLinkSpeed": "0x4",
+      "NegotiatedLinkWidth": "0x2",
+      "TargetLinkSpeed": "0xC",
+      "TargetLinkWidth": "0x3",
+      "AdapterState": "0x2",
+      "Lane1AdapterState": "0x2",
+      "LaneBonded": "1",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x10",
+      "LinkCLxSupport": "1",
+      "Tbt3CompatibleMode": "0",
+      "CLxSupport": "0x7",
+      "CLxEnable": "0x0",
+      "IsLastPort": "0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "1",
+      "Lane0AdapterNumber": "3",
+      "Lane1AdapterNumber": "4",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x4D0001",
+      "DownstreamRouterTopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xC",
+      "SupportedLinkWidths": "0x3",
+      "CurrentLinkSpeed": "0x4",
+      "NegotiatedLinkWidth": "0x2",
+      "TargetLinkSpeed": "0xC",
+      "TargetLinkWidth": "0x3",
+      "AdapterState": "0x2",
+      "Lane1AdapterState": "0x2",
+      "LaneBonded": "1",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x10",
+      "LinkCLxSupport": "1",
+      "Tbt3CompatibleMode": "0",
+      "CLxSupport": "0x7",
+      "CLxEnable": "0x0",
+      "IsLastPort": "1"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "5",
+      "AdapterType": "0x10E0101",
+      "IsDPOut": "0",
+      "IsTunneled": "0",
+      "MaximalLinkRate": "0x3",
+      "MaximalLinkCount": "0x2",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "6",
+      "AdapterType": "0x10E0101",
+      "IsDPOut": "0",
+      "IsTunneled": "1",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "8",
+      "AdapterType": "0x1100101",
+      "IsDownstream": "1",
+      "IsTunneled": "1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "9",
+      "AdapterType": "0x1100101",
+      "IsDownstream": "1",
+      "IsTunneled": "1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "12",
+      "AdapterType": "0x1200101",
+      "IsDownstream": "1",
+      "IsTunneled": "1",
+      "ActualLinkRate": "0x1",
+      "MaximumSupportedLinkRate": "0x1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "13",
+      "AdapterType": "0x1200101",
+      "IsDownstream": "1",
+      "IsTunneled": "1",
+      "ActualLinkRate": "0x0",
+      "MaximumSupportedLinkRate": "0x1",
+      "IsLastAdapter": "1"
+    }
+  },
+  {
+    "Event": "DeviceRouterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "DeviceInstancePath": "USB4\\VID_8087&PID_5786\\5&2d101dc1&3&1",
+      "RouterUSB4Version": "0x40",
+      "ConnectionManagerUSB4Version": "0x20",
+      "VendorID": "0x8087",
+      "ProductID": "0x5786",
+      "AsciiVendorName": "CalDigit, Inc.",
+      "AsciiModelName": "Element 5 Hub",
+      "DeviceID": "0x2188",
+      "ModelID": "0x28",
+      "UUID": "0x8087C69DD299A700",
+      "DeviceFirmwareVersion": "0x6101",
+      "HostFirmwareVersion": "0x0",
+      "CableInfo": "0x18900091",
+      "LastPowerUpTimeInMs": "0x0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "0",
+      "IsUSB4v2Supported": "1",
+      "Lane0AdapterNumber": "1",
+      "Lane1AdapterNumber": "2",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x0",
+      "DownstreamRouterTopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xE",
+      "SupportedLinkWidths": "0xF",
+      "CurrentLinkSpeed": "0x4",
+      "NegotiatedLinkWidth": "0x2",
+      "TargetLinkSpeed": "0xE",
+      "TargetLinkWidth": "0x3",
+      "AdapterState": "0x2",
+      "Lane1AdapterState": "0x2",
+      "LaneBonded": "1",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x10",
+      "LinkCLxSupport": "1",
+      "Tbt3CompatibleMode": "0",
+      "CLxSupport": "0x7",
+      "CLxEnable": "0x3",
+      "Gen4AsymmetricSupport": "0x3",
+      "CableAsymmetricSupport": "0x1",
+      "CableCLxSupport": "1",
+      "TargetAsymmetricLink": "0x0",
+      "IsQueryRetimersInitiated": "0",
+      "LastPortOperationTimedOut": "0",
+      "NumberOfRetimers": "0",
+      "IsLastPort": "0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "1",
+      "IsUSB4v2Supported": "1",
+      "Lane0AdapterNumber": "3",
+      "Lane1AdapterNumber": "4",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x0",
+      "DownstreamRouterTopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xE",
+      "SupportedLinkWidths": "0xF",
+      "CurrentLinkSpeed": "0x4",
+      "NegotiatedLinkWidth": "0x2",
+      "TargetLinkSpeed": "0xE",
+      "TargetLinkWidth": "0x3",
+      "AdapterState": "0x2",
+      "Lane1AdapterState": "0x2",
+      "LaneBonded": "1",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x1",
+      "LinkCLxSupport": "0",
+      "Tbt3CompatibleMode": "1",
+      "CLxSupport": "0x0",
+      "CLxEnable": "0x0",
+      "Gen4AsymmetricSupport": "0x3",
+      "CableAsymmetricSupport": "0x0",
+      "CableCLxSupport": "1",
+      "TargetAsymmetricLink": "0x0",
+      "IsQueryRetimersInitiated": "0",
+      "LastPortOperationTimedOut": "0",
+      "NumberOfRetimers": "0",
+      "IsLastPort": "0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "1",
+      "IsUSB4v2Supported": "1",
+      "Lane0AdapterNumber": "5",
+      "Lane1AdapterNumber": "6",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x4D0001",
+      "DownstreamRouterTopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xE",
+      "SupportedLinkWidths": "0xF",
+      "CurrentLinkSpeed": "0x4",
+      "NegotiatedLinkWidth": "0x2",
+      "TargetLinkSpeed": "0xE",
+      "TargetLinkWidth": "0x3",
+      "AdapterState": "0x2",
+      "Lane1AdapterState": "0x2",
+      "LaneBonded": "1",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x1",
+      "LinkCLxSupport": "0",
+      "Tbt3CompatibleMode": "1",
+      "CLxSupport": "0x0",
+      "CLxEnable": "0x0",
+      "Gen4AsymmetricSupport": "0x3",
+      "CableAsymmetricSupport": "0x0",
+      "CableCLxSupport": "1",
+      "TargetAsymmetricLink": "0x0",
+      "IsQueryRetimersInitiated": "0",
+      "LastPortOperationTimedOut": "0",
+      "NumberOfRetimers": "0",
+      "IsLastPort": "0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "1",
+      "IsUSB4v2Supported": "1",
+      "Lane0AdapterNumber": "7",
+      "Lane1AdapterNumber": "8",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x4D0001",
+      "DownstreamRouterTopologyID": [
+        "1",
+        "7",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xE",
+      "SupportedLinkWidths": "0xF",
+      "CurrentLinkSpeed": "0x4",
+      "NegotiatedLinkWidth": "0x2",
+      "TargetLinkSpeed": "0xE",
+      "TargetLinkWidth": "0x3",
+      "AdapterState": "0x2",
+      "Lane1AdapterState": "0x2",
+      "LaneBonded": "1",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x10",
+      "LinkCLxSupport": "0",
+      "Tbt3CompatibleMode": "0",
+      "CLxSupport": "0x0",
+      "CLxEnable": "0x0",
+      "Gen4AsymmetricSupport": "0x3",
+      "CableAsymmetricSupport": "0x0",
+      "CableCLxSupport": "1",
+      "TargetAsymmetricLink": "0x0",
+      "IsQueryRetimersInitiated": "0",
+      "LastPortOperationTimedOut": "0",
+      "NumberOfRetimers": "0",
+      "IsLastPort": "1"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "9",
+      "AdapterType": "0x1100102",
+      "IsDownstream": "0",
+      "IsUSB4v2Supported": "1",
+      "IsTunneled": "1",
+      "IsExtendedEncapsulationEnabled": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "10",
+      "AdapterType": "0x1100101",
+      "IsDownstream": "1",
+      "IsUSB4v2Supported": "1",
+      "IsTunneled": "0",
+      "IsExtendedEncapsulationEnabled": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "11",
+      "AdapterType": "0x10E0102",
+      "IsDPOut": "1",
+      "IsTunneled": "0",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "12",
+      "AdapterType": "0x10E0102",
+      "IsDPOut": "1",
+      "IsTunneled": "0",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "17",
+      "AdapterType": "0x1100101",
+      "IsDownstream": "1",
+      "IsUSB4v2Supported": "1",
+      "IsTunneled": "1",
+      "IsExtendedEncapsulationEnabled": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "18",
+      "AdapterType": "0x1100101",
+      "IsDownstream": "1",
+      "IsUSB4v2Supported": "1",
+      "IsTunneled": "1",
+      "IsExtendedEncapsulationEnabled": "1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "19",
+      "AdapterType": "0x10E0102",
+      "IsDPOut": "1",
+      "IsTunneled": "0",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "20",
+      "AdapterType": "0x1200102",
+      "IsDownstream": "0",
+      "IsTunneled": "1",
+      "ActualLinkRate": "0x1",
+      "MaximumSupportedLinkRate": "0x1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "21",
+      "AdapterType": "0x1200101",
+      "IsDownstream": "1",
+      "IsTunneled": "0",
+      "ActualLinkRate": "0x1",
+      "MaximumSupportedLinkRate": "0x1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "22",
+      "AdapterType": "0x1200101",
+      "IsDownstream": "1",
+      "IsTunneled": "0",
+      "ActualLinkRate": "0x1",
+      "MaximumSupportedLinkRate": "0x1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "23",
+      "AdapterType": "0x1200101",
+      "IsDownstream": "1",
+      "IsTunneled": "1",
+      "ActualLinkRate": "0x1",
+      "MaximumSupportedLinkRate": "0x1",
+      "IsLastAdapter": "1"
+    }
+  },
+  {
+    "Event": "DeviceRouterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "DeviceInstancePath": "USB4\\VID_8087&PID_0B26\\5&2d101dc1&3&3",
+      "RouterUSB4Version": "0x20",
+      "ConnectionManagerUSB4Version": "0x10",
+      "VendorID": "0x8087",
+      "ProductID": "0xB26",
+      "AsciiVendorName": "Plugable",
+      "AsciiModelName": "TBT4-UDZ",
+      "DeviceID": "0x2230",
+      "ModelID": "0x2021",
+      "UUID": "0x8087FD6CA4292F00",
+      "DeviceFirmwareVersion": "0x4001",
+      "HostFirmwareVersion": "0x0",
+      "CableInfo": "0x168000D1",
+      "LastPowerUpTimeInMs": "0x0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "0",
+      "Lane0AdapterNumber": "1",
+      "Lane1AdapterNumber": "2",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x0",
+      "DownstreamRouterTopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xC",
+      "SupportedLinkWidths": "0x3",
+      "CurrentLinkSpeed": "0x4",
+      "NegotiatedLinkWidth": "0x2",
+      "TargetLinkSpeed": "0xC",
+      "TargetLinkWidth": "0x3",
+      "AdapterState": "0x2",
+      "Lane1AdapterState": "0x2",
+      "LaneBonded": "1",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x10",
+      "LinkCLxSupport": "1",
+      "Tbt3CompatibleMode": "0",
+      "CLxSupport": "0x3",
+      "CLxEnable": "0x3",
+      "IsLastPort": "1"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "9",
+      "AdapterType": "0x1100102",
+      "IsDownstream": "0",
+      "IsTunneled": "1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "13",
+      "AdapterType": "0x10E0102",
+      "IsDPOut": "1",
+      "IsTunneled": "1",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "14",
+      "AdapterType": "0x10E0102",
+      "IsDPOut": "1",
+      "IsTunneled": "0",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "16",
+      "AdapterType": "0x1200102",
+      "IsDownstream": "0",
+      "IsTunneled": "1",
+      "ActualLinkRate": "0x0",
+      "MaximumSupportedLinkRate": "0x0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "17",
+      "AdapterType": "0x1200101",
+      "IsDownstream": "1",
+      "IsTunneled": "0",
+      "ActualLinkRate": "0x0",
+      "MaximumSupportedLinkRate": "0x0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "18",
+      "AdapterType": "0x1200101",
+      "IsDownstream": "1",
+      "IsTunneled": "0",
+      "ActualLinkRate": "0x0",
+      "MaximumSupportedLinkRate": "0x0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "3",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "19",
+      "AdapterType": "0x1200101",
+      "IsDownstream": "1",
+      "IsTunneled": "0",
+      "ActualLinkRate": "0x0",
+      "MaximumSupportedLinkRate": "0x0",
+      "IsLastAdapter": "1"
+    }
+  },
+  {
+    "Event": "DeviceRouterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "7",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "DeviceInstancePath": "USB4\\VID_8087&PID_5786\\6&2a377a77&0&7",
+      "RouterUSB4Version": "0x40",
+      "ConnectionManagerUSB4Version": "0x20",
+      "VendorID": "0x8087",
+      "ProductID": "0x5786",
+      "AsciiVendorName": "Razer",
+      "AsciiModelName": "Core X V2",
+      "DeviceID": "0x1532",
+      "ModelID": "0x125B",
+      "UUID": "0x8087ECE471DE2100",
+      "DeviceFirmwareVersion": "0x5902",
+      "HostFirmwareVersion": "0x0",
+      "CableInfo": "0x16C00095",
+      "LastPowerUpTimeInMs": "0x0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "7",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "0",
+      "IsUSB4v2Supported": "1",
+      "Lane0AdapterNumber": "1",
+      "Lane1AdapterNumber": "2",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x0",
+      "DownstreamRouterTopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xE",
+      "SupportedLinkWidths": "0xF",
+      "CurrentLinkSpeed": "0x4",
+      "NegotiatedLinkWidth": "0x2",
+      "TargetLinkSpeed": "0xE",
+      "TargetLinkWidth": "0x3",
+      "AdapterState": "0x2",
+      "Lane1AdapterState": "0x2",
+      "LaneBonded": "1",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x10",
+      "LinkCLxSupport": "1",
+      "Tbt3CompatibleMode": "0",
+      "CLxSupport": "0x7",
+      "CLxEnable": "0x0",
+      "Gen4AsymmetricSupport": "0x3",
+      "CableAsymmetricSupport": "0x0",
+      "CableCLxSupport": "1",
+      "TargetAsymmetricLink": "0x0",
+      "IsQueryRetimersInitiated": "0",
+      "LastPortOperationTimedOut": "0",
+      "NumberOfRetimers": "0",
+      "IsLastPort": "1"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "7",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "9",
+      "AdapterType": "0x1100102",
+      "IsDownstream": "0",
+      "IsUSB4v2Supported": "1",
+      "IsTunneled": "1",
+      "IsExtendedEncapsulationEnabled": "1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "USB3AdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "7",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "20",
+      "AdapterType": "0x1200102",
+      "IsDownstream": "0",
+      "IsTunneled": "1",
+      "ActualLinkRate": "0x1",
+      "MaximumSupportedLinkRate": "0x1",
+      "IsLastAdapter": "1"
+    }
+  },
+  {
+    "Event": "DeviceRouterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "DeviceInstancePath": "USB4\\VID_8086&PID_15EF\\6&2a377a77&0&5",
+      "RouterUSB4Version": "0x10",
+      "ConnectionManagerUSB4Version": "0x0",
+      "VendorID": "0x8086",
+      "ProductID": "0x15EF",
+      "AsciiVendorName": "ACASIS",
+      "AsciiModelName": "TBU405Pro",
+      "DeviceID": "0x25",
+      "ModelID": "0x1",
+      "UUID": "0x25B1011899D700",
+      "DeviceFirmwareVersion": "0x67",
+      "HostFirmwareVersion": "0x0",
+      "CableInfo": "0x16010003",
+      "LastPowerUpTimeInMs": "0x0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "0",
+      "Lane0AdapterNumber": "1",
+      "Lane1AdapterNumber": "2",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x0",
+      "DownstreamRouterTopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xC",
+      "SupportedLinkWidths": "0x3",
+      "CurrentLinkSpeed": "0x4",
+      "NegotiatedLinkWidth": "0x2",
+      "TargetLinkSpeed": "0xC",
+      "TargetLinkWidth": "0x3",
+      "AdapterState": "0x2",
+      "Lane1AdapterState": "0x2",
+      "LaneBonded": "1",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x0",
+      "LinkCLxSupport": "0",
+      "Tbt3CompatibleMode": "0",
+      "CLxSupport": "0x7",
+      "CLxEnable": "0x0",
+      "IsLastPort": "0"
+    }
+  },
+  {
+    "Event": "PortInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "IsDFP": "1",
+      "Lane0AdapterNumber": "3",
+      "Lane1AdapterNumber": "4",
+      "Lane0AdapterVersion": "0",
+      "DownstreamRouterDomainID": "0x0",
+      "DownstreamRouterTopologyID": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "HECError": "0",
+      "FlowControlError": "0",
+      "HECErrors": "       0",
+      "SupportedLinkSpeeds": "0xC",
+      "SupportedLinkWidths": "0x3",
+      "CurrentLinkSpeed": "0x0",
+      "NegotiatedLinkWidth": "0x0",
+      "TargetLinkSpeed": "0x0",
+      "TargetLinkWidth": "0x0",
+      "AdapterState": "0x0",
+      "Lane1AdapterState": "0x0",
+      "LaneBonded": "0",
+      "Lane0AdapterLogicalLayerErrors": "0x0",
+      "Lane1AdapterLogicalLayerErrors": "0x0",
+      "CableUsb4Version": "0x0",
+      "LinkCLxSupport": "0",
+      "Tbt3CompatibleMode": "0",
+      "CLxSupport": "0x0",
+      "CLxEnable": "0x0",
+      "IsLastPort": "1"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "5",
+      "AdapterType": "0x10E0101",
+      "IsDPOut": "0",
+      "IsTunneled": "0",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "6",
+      "AdapterType": "0x10E0101",
+      "IsDPOut": "0",
+      "IsTunneled": "0",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "8",
+      "AdapterType": "0x1100102",
+      "IsDownstream": "0",
+      "IsTunneled": "1",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "PCIeAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "9",
+      "AdapterType": "0x1100101",
+      "IsDownstream": "1",
+      "IsTunneled": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "10",
+      "AdapterType": "0x10E0102",
+      "IsDPOut": "1",
+      "IsTunneled": "0",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "0"
+    }
+  },
+  {
+    "Event": "DPAdapterInformation",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {
+      "IsRundownEvent": "1",
+      "IsNewDeviceRouter": "0",
+      "DomainID": "0x4D0001",
+      "TopologyID": [
+        "1",
+        "5",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "AdapterNumber": "11",
+      "AdapterType": "0x10E0102",
+      "IsDPOut": "1",
+      "IsTunneled": "0",
+      "MaximalLinkRate": "0x0",
+      "MaximalLinkCount": "0x0",
+      "DPTxBwAllocationModeEnable": "0",
+      "IsLastAdapter": "1"
+    }
+  },
+  {
+    "Event": "RundownComplete",
+    "Provider": "Microsoft.Windows.USB.USB4.DeviceRouter",
+    "Data": {}
+  }
+]

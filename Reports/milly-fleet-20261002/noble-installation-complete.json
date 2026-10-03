@@ -1,0 +1,61 @@
+{
+  "observedUtc": "2026-10-03T00:27:45.083128+00:00",
+  "host": "millylaptop1",
+  "stage": "Noble installation complete, pre-reboot",
+  "upgradeExit": 0,
+  "obsoleteRemovalDeclined": true,
+  "checks": [
+    {
+      "argv": [
+        "cat",
+        "/etc/os-release"
+      ],
+      "exit": 0,
+      "stdout": "PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "dpkg",
+        "--audit"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "apt-get",
+        "check"
+      ],
+      "exit": 0,
+      "stdout": "Reading package lists...\nBuilding dependency tree...\nReading state information...\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "dkms",
+        "status"
+      ],
+      "exit": 0,
+      "stdout": "nvidia/580.178.04, 6.8.0-134-generic, x86_64: installed\nnvidia/580.178.04, 6.8.0-138-generic, x86_64: installed\nnvidia/580.178.04, 6.8.0-146-generic, x86_64: installed\nnvidia/580.178.04, 7.0.0-38-generic, x86_64: installed\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "systemctl",
+        "is-active",
+        "ssh",
+        "gdm3",
+        "NetworkManager"
+      ],
+      "exit": 0,
+      "stdout": "active\nactive\nactive\n",
+      "stderr": ""
+    }
+  ]
+}

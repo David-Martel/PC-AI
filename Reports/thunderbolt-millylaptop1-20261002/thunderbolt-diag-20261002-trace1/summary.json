@@ -1,0 +1,36 @@
+{
+  "hostname": "millylaptop1",
+  "startedAt": "2026-10-02T19:46:19.703420+00:00",
+  "durationSeconds": 20,
+  "outputDirectory": "/home/cog/.cache/pcai/thunderbolt-diag-20261002-trace1",
+  "instance": "/sys/kernel/tracing/instances/pcai-tb-3f9414d3a6e24c3a9d371dd58ed92be6",
+  "enabledEvents": [
+    "thunderbolt_net:tbnet_alloc_rx_frame",
+    "thunderbolt_net:tbnet_alloc_tx_frame",
+    "thunderbolt_net:tbnet_free_frame",
+    "thunderbolt_net:tbnet_rx_ip_frame",
+    "thunderbolt_net:tbnet_invalid_rx_ip_frame",
+    "thunderbolt_net:tbnet_tx_ip_frame",
+    "thunderbolt_net:tbnet_rx_skb",
+    "thunderbolt_net:tbnet_tx_skb",
+    "thunderbolt_net:tbnet_consume_skb",
+    "ucsi:ucsi_run_command",
+    "ucsi:ucsi_reset_ppm",
+    "ucsi:ucsi_connector_change",
+    "ucsi:ucsi_register_port",
+    "ucsi:ucsi_register_altmode"
+  ],
+  "globalTracingBefore": "1",
+  "traceDataLines": 0,
+  "restoration": {
+    "printingRestored": true,
+    "errors": [],
+    "instanceRemoved": true,
+    "instanceErrors": [],
+    "globalTracingUnchanged": true
+  },
+  "globalTracingAfter": "1",
+  "changedCallsiteSelectors": 264,
+  "finishedAt": "2026-10-02T19:46:40.543027+00:00",
+  "captureError": null
+}

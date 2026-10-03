@@ -1,0 +1,8 @@
+[h264 @ 0x64af32f27c40] decoder->cvdl->cuvidCreateDecoder(&decoder->decoder, params) failed -> CUDA_ERROR_INVALID_VALUE: invalid argument
+[h264 @ 0x64af32f27c40] Using more than 32 (33) decode surfaces might cause nvdec to fail.
+[h264 @ 0x64af32f27c40] Try lowering the amount of threads. Using 16 right now.
+[h264 @ 0x64af32f27c40] Failed setup for format cuda: hwaccel initialisation returned error.
+Impossible to convert between the formats supported by the filter 'graph 0 input from stream 0:0' and the filter 'auto_scaler_0'
+Error reinitializing filters!
+Failed to inject frame into filter network: Function not implemented
+Error while processing the decoded data for stream #0:0

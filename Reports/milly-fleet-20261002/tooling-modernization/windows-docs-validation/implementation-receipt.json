@@ -1,0 +1,27 @@
+{
+  "ReceiptDirectory": "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-verification-421de411cf9c4217a57a37912dabcc9e",
+  "Passed": 25,
+  "Failed": 0,
+  "Skipped": 0,
+  "DurationSeconds": 28.6977506,
+  "NewFunctionsExecuted": 131,
+  "NewFunctionsMissed": 8,
+  "NewFunctionsCoveragePercent": 94.24,
+  "WholeGeneratorCoveragePercent": 37.1967654986523,
+  "DefaultAnalyzerFindings": 0,
+  "RepositoryAnalyzerFindings": 0,
+  "SourceHashes": [
+    {
+      "Path": "C:\\codedev\\PC_AI\\Tools\\generate-auto-docs.ps1",
+      "Hash": "659C3D635BB2235346601DC3A1761FE2C1B2F17B45676320FEA1DE44FB30F26D"
+    },
+    {
+      "Path": "C:\\codedev\\PC_AI\\Tools\\Invoke-DocPipeline.ps1",
+      "Hash": "73E157A757138A7D64B4446C8C23031B087300D6173D4DF5E18527C6951CBF67"
+    },
+    {
+      "Path": "C:\\codedev\\PC_AI\\Tests\\Unit\\DocumentationPipeline.Tests.ps1",
+      "Hash": "042DB3784F8B507609EA1D56C7BC3DDA97CD0AD4829C6EBAC11CDC9AF75B18D3"
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "schema": "vigil.independent-docs-tooling-review.v1",
+  "reviewer": "codex/milly_optional_review",
+  "reviewedAt": "2026-10-02T22:52:36.3192634Z",
+  "repositories": [
+    {
+      "path": "C:/codedev/PC_AI",
+      "head": "12e749273c5c588a02b0f57acbaf11208f03fafb",
+      "status": [
+        "## feat/thunderbolt-linux-peers",
+        " M Reports/milly-fleet-20261002/README.md",
+        " M Reports/milly-fleet-20261002/tpm-endpoint-handoff.json",
+        " M Reports/milly-fleet-20261002/tpm-endpoint-handoff.md",
+        " M Reports/milly-fleet-20261002/wifi-import-receipt.json",
+        "?? .litho/qmd/index.sqlite3",
+        "?? Reports/bitwarden-boot-task-20260927/boot-task.after.xml",
+        "?? Reports/bitwarden-boot-task-20260927/boot-task.before.xml",
+        "?? Reports/keyboard-investigation-20260912/capture-smoke/shift-source-live-20260912-172412.jsonl",
+        "?? Reports/keyboard-investigation-20260912/capture-smoke/shift-source-trace-20260912-172412.json",
+        "?? Reports/keyboard-investigation-20260912/current-snapshot.json",
+        "?? Reports/milly-fleet-20261002/display-readiness/AUTH-PROBE.json",
+        "?? Reports/milly-fleet-20261002/display-readiness/LOCAL-SHA256SUMS",
+        "?? Reports/milly-fleet-20261002/display-readiness/OWNER-HOLD.json",
+        "?? Reports/milly-fleet-20261002/display-readiness/RECEIPT.json",
+        "?? Reports/milly-fleet-20261002/display-readiness/SHA256SUMS",
+        "?? Reports/milly-fleet-20261002/display-readiness/UFW-DRY-RUN.txt",
+        "?? Reports/milly-fleet-20261002/display-readiness/capture-capturing.png",
+        "?? Reports/milly-fleet-20261002/display-readiness/capture-complete.png",
+        "?? Reports/milly-fleet-20261002/display-readiness/capture-ok.png",
+        "?? Reports/milly-fleet-20261002/display-readiness/stdout.json",
+        "?? Reports/milly-fleet-20261002/display-readiness/validate-widget.py",
+        "?? Reports/milly-fleet-20261002/me-firmware-staging.json",
+        "?? Reports/milly-fleet-20261002/os-upgrade-source-review.json",
+        "?? Reports/milly-fleet-20261002/os-upgrade-staging-manifest.json",
+        "?? Reports/milly-fleet-20261002/upgrade-preflight.json",
+        "?? Reports/milly-fleet-20261002/vigilnet-json-runtime.json"
+      ]
+    },
+    {
+      "path": "C:/codedev/vigil_ai",
+      "head": "8357961087c139ffd4f6487eac10918f297a9caf",
+      "status": [
+        "## main...origin/main"
+      ]
+    }
+  ],
+  "proposalSHA": "2d0d766a50ab729b2e427f962db29801b7795bcb2f5137a85a8ed046d0dd8a4b",
+  "scope": "Read-only source, configuration, installed-package and executable inventory. No project edits, installs, pipeline builds, HIL, service or deployment mutations.",
+  "proposalPath": "C:/Users/david/AppData/Local/Temp/toolchain-proposal-review-20261002/toolchain-research-20261002.md",
+  "sparkSourceHead": "3537b2f6c5c9005de174c1bc2103844426944745",
+  "recommendations": {
+    "needs": "Approve bounded publishing pilot over existing CSV/DAG-generated requirements. Extension not currently enabled/installed. Keep CSV registries authoritative and existing assigned-once IDs.",
+    "strictdoc": "Defer migration or parallel authoring store. Evaluate lossless one-way/export adapters only for a demonstrated unmet need. Development Markdown support must be checked against selected stable release.",
+    "rosdoc2": "Reuse existing installed/locked 0.2.1 and package allow-list wrapper; proposed 8.2.6 not verified.",
+    "mkdocs": "Preserve existing site; EOL claim unverified.",
+    "mise": "Defer replacement of apt, micromamba, uv, rustup or Windows CargoTools. Scoped auxiliary-tool pilot only after ownership/PATH/build parity.",
+    "labgrid": "Disposable isolated pilot adapter to existing resource claims only. No second independent lock authority or live exporters.",
+    "buildTools": "Extend checksum-pinned Ansible user_tools or Windows maintained installer owners after active campaign; no cache-server restart during build.",
+    "nvidiaToolkit": "Separate GB10/driver/container compatibility gate; no generic tool rollout mutation.",
+    "redis": "Defer shared cache pending valid config, credential ownership, outage/miss/disk-pressure tests and actual measured benefit."
+  },
+  "verifiedInventory": {
+    "tpmPackages": {
+      "sphinx": "9.1.0",
+      "mystParser": "5.1.0",
+      "rosdoc2": "0.2.1",
+      "sphinxNeeds": null,
+      "strictdoc": null,
+      "labgrid": null
+    },
+    "tpmInstrument": "uv run --frozen --no-sync python -c importlib.metadata; same-pass positive/absent controls.",
+    "windows": {
+      "uv": "0.12.19",
+      "just": "1.58.0",
+      "sccache": "0.15.0",
+      "ccache": "4.13.6",
+      "ninja": "1.12.1",
+      "nextest": "0.9.146",
+      "cargoBinstall": "1.24.0",
+      "pandoc": "3.11",
+      "doxygen": "1.18.0",
+      "CargoTools": "0.9.0",
+      "PC_AI_Acceleration": "1.0.0",
+      "platyPS": "0.14.2"
+    },
+    "windowsModuleCaution": "Documents and OneDrive variants both appear; inventory alone does not authorize duplicate deletion/PATH changes.",
+    "sparkPins": [
+      "ops/fleet/group_vars/all.yml:450 Ninja1.13.2",
+      "ops/fleet/group_vars/all.yml:454 nextest0.9.140"
+    ],
+    "tpmPaths": [
+      "docs/sphinx/conf.py:16-25 existing MyST/autodoc/intersphinx extensions; no sphinx_needs",
+      "requirements_dag/sphinx_needs.py:28 CSV RequirementRow to req/WI/risk/instrument blocks",
+      "requirements_dag/sync_docs.py:25 bounded SPHINX-NEEDS anchors",
+      "justfile:942-979 docs-site/API/Sphinx-strict/ROS2/docs-all",
+      "vigil_ai_tpm/templates/documentation_tool_registry.csv DOC-TOOL-008/009/010 active",
+      "scripts/build_sphinx_docs.py:75 strict fail-on-warning command and upstream checks",
+      "TRACEABILITY_FRAMEWORK.md:87 assigned-once registry IDs"
+    ],
+    "pcaiPaths": [
+      "Build.ps1",
+      "Tools/Initialize-CacheEnvironment.ps1",
+      "Tools/Invoke-DocPipeline.ps1",
+      "Tools/generate-auto-docs.ps1",
+      "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1:118-134 iterations/warmup/median measurement",
+      "Config/pcai-tooling-benchmarks.json"
+    ],
+    "sparkPaths": [
+      "ops/fleet/roles/user_tools/tasks/main.yml",
+      "ops/build_cache_setup.sh",
+      "docs/build-acceleration.md",
+      "ops/ci_runner_yield.sh:32-59 controller single-session lock and renewable lease",
+      "scripts/fleet_graph_controller.py:6826,6931-6939 resource-claim receipt before media acceptance"
+    ]
+  },
+  "mustFixProposal": [
+    "Invalid Cargo [build] rustc-link-arg configuration",
+    "Unverified colcon --profile and ad-hoc ccache [remote] config; stale hardcoded ASUS address",
+    "cargo-nextest does not execute colcon/ROS Python/C++ suites",
+    "Unreceipted benchmark and blanket no-breaking-change/risk-none claims",
+    "Automatic Class A/SOUP/no-traceability claims are unsupported project classification",
+    "Invented BUILD-/TEST-/TRACE- IDs must follow existing registry namespaces",
+    "Labgrid no-existing-locks and universal automatic teardown assertions overstate evidence"
+  ],
+  "existingDocsReliabilityFindings": [
+    {
+      "path": "Tools/generate-auto-docs.ps1:256,298",
+      "finding": "dotnet build/cargo doc child statuses not checked before finding potentially stale generated output",
+      "evidence": "Static source review only",
+      "gate": "Requested generator child failure returns nonzero and prior output cannot satisfy fresh build"
+    },
+    {
+      "path": "Tools/Invoke-DocPipeline.ps1:233",
+      "finding": "Requested rustdoc failure recorded Warning while final exit gates only Errors",
+      "evidence": "Static source review only",
+      "gate": "Distinguish optional unavailable skips from requested generator errors; failure has nonzero exit"
+    }
+  ],
+  "acceptance": {
+    "docs": [
+      "Exact CSV IDs/text/status/WI/risk/instrument/evidence link parity",
+      "Duplicate/dangling IDs reject with nonzero exit",
+      "Pending/Missing/HOLD never promoted by rendering",
+      "Idempotent byte-stable generated anchors preserve surrounding text",
+      "Strict Sphinx warnings fail; existing graph/schema/living-doc facts/index cascade stays authoritative",
+      "Output receipts bind CSV/source SHA/tool lock/package allow-list",
+      "No hardware initialization or production ROS discovery through autodoc"
+    ],
+    "builds": [
+      "Matched cold/warm/no-op/one-source-change benchmarks on amd64/arm64; elapsed distribution/hit-miss/memory/disk metrics",
+      "Cache on/off output/native-symbol/import correctness parity",
+      "Cache outage/full disk/invalid options/failed link remain visible; no accepted stale binaries",
+      "Dry-run, idempotence and recoverable installer artifacts; preserve cache state",
+      "Keep Windows MSVC/CargoTools and Linux native contracts separate"
+    ],
+    "hil": [
+      "Disposable acquire/use/release positive control",
+      "Contending acquisition records visible owner and rejects/queues",
+      "Client/exporter death/coordinator restart/orphan state tested",
+      "Existing claim authority and release receipt enforced",
+      "No live force-kick, device rebind, seat action or production ROS probe"
+    ]
+  },
+  "officialSources": [
+    "https://sphinx-needs.readthedocs.io/en/stable/installation.html",
+    "https://github.com/useblocks/sphinx-needs/blob/master/packages/sphinx-needs/docs/schema/index.rst",
+    "https://github.com/useblocks/sphinx-needs/blob/master/packages/sphinx-needs/docs/changelog.rst",
+    "https://strictdoc.readthedocs.io/en/stable/stable/docs/strictdoc_01_user_guide.html",
+    "https://github.com/strictdoc-project/strictdoc/blob/main/README.md",
+    "https://github.com/labgrid-project/labgrid/blob/master/labgrid/remote/coordinator.py",
+    "https://github.com/jdx/mise/blob/main/docs/dev-tools/comparison-to-asdf.md"
+  ],
+  "uncertainties": [
+    "No proposed modernization installed or benchmarked; speedups unmeasured",
+    "ROS docs website served anti-bot page; local lock/install verified directly",
+    "Context7 includes development branch features; pin-specific pilot needed",
+    "Labgrid disconnect does not prove acquired-place auto-release; official source indicates explicit release/kick path",
+    "No regulatory classification/clinical acceptance claim",
+    "ASUS active HIL resource ownership blocks live exporter/session changes"
+  ],
+  "memoryUsed": {
+    "path": "MEMORY.md",
+    "lines": "300-308",
+    "rolloutId": "01a0e399-6737-7432-b560-f053af270b0e",
+    "note": "Use existing registry/backlog spine and preserve acceptance exclusions; verified against current TPM source"
+  }
+}

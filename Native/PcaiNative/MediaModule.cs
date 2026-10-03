@@ -29,7 +29,7 @@ namespace PcaiNative
     /// <para>
     /// All native calls use <see cref="CallingConvention.Cdecl"/>.
     /// Heap-allocated string pointers returned by the native layer <b>must</b> be
-    /// freed with <see cref="pcai_media_free_string"/>; the high-level wrappers
+    /// freed with <see cref="MediaModule.pcai_media_free_string"/>; the high-level wrappers
     /// handle this automatically.
     /// </para>
     /// </remarks>

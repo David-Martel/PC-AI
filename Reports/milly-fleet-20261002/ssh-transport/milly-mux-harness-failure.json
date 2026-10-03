@@ -1,0 +1,13 @@
+{
+  "observedUtc": "2026-10-03T00:01:45.7323059Z",
+  "state": "failed",
+  "stage": "missing disposable control socket fallback",
+  "failure": "subprocess.TimeoutExpired after 8 seconds: verbose background ControlPersist master retained inherited stderr PIPE",
+  "remoteTrueOutcome": "Not claimed from this failed harness",
+  "warmAndMissingExclusiveMasterCleanupExit": [
+    0,
+    0
+  ],
+  "foreignMasterTerminationPerformed": false,
+  "nextAction": "Use private stderr files, capture process exit independently from master lifetime, rerun all controls"
+}

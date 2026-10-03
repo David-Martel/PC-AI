@@ -1,0 +1,100 @@
+{
+  "schema": "milly.endpoint-architecture-readonly.v1",
+  "scope": "Read-only SSH source inspection. No ROS commands/imports, tests on host, package/service/deployment changes, file edits or broad resource use.",
+  "host": "millylaptop1",
+  "user": "cog",
+  "sourceRoot": "/home/cog/dev/repos/vigil-spark",
+  "sourceHead": "0201a3c9ac9fdc081dd1c481e2fd11748c25fd0b",
+  "sourceStatus": "clean at first and final reads",
+  "guidance": {
+    "absent": [
+      "/home/cog/CLAUDE.md",
+      "/home/cog/.claude/CLAUDE.md",
+      "/home/cog/AGENTS.md"
+    ],
+    "positiveControl": "/home/cog/dev/repos/vigil-spark/CLAUDE.md exists and read",
+    "read": [
+      "AGENTS.md",
+      "CODEX.md",
+      "CLAUDE.md"
+    ]
+  },
+  "recommendation": "Use existing fleet Sunshine hosts and a Milly Moonlight Qt client for remote video and keyboard/mouse session. Native VIGIL ROS is not needed for that role. Keep optional endpoint excluded from compute placement, release/quorum eligibility and static DDS production membership. Host Ubuntu26/Lyrical/Python3.14 development can coexist separately; do not retarget the current VIGIL runtime.",
+  "sourceEvidence": {
+    "pyproject.toml": "requires-python >=3.12,<3.14; ros-image-runtime includes PySide6>=6.8,<7 and application/heavy dependencies",
+    "CLAUDE.md": "Runtime Ubuntu24/Jazzy CPython3.12; tooling/model environments CPython3.13",
+    "AGENTS.md:472": "Source /opt/ros/jazzy/setup.bash before install/setup.bash; preserve system Python paths; UV_PYTHON3.13 conflicts with Jazzy rclpy ABI",
+    "src/ui/setup.py": "core_display = ui.nodes.coredisplaynode:main; information_display = ui.nodes.informationdisplaynode:main",
+    "src/display/setup.py": "visualizationdisplay, guidancedisplay, debugdisplay, cardiacguidancerenderer, qtoperatorconsole console entrypoints",
+    "src/ui/package.xml": "rclpy, ament_index_python, std_msgs, vigil_msgs, vigil_c2, vigil_utils, display",
+    "src/ui/ui/nodes/displaynode.py": "rclpy Node; vigil_c2 OperatorConsole; vigil_msgs.srv InputHandler; input-handler services are real ROS participation",
+    "src/ui/ui/windows/VigilWindow.py": "PySide6 QtWebEngine, QtWebChannel, Qt GUI/widgets, ament share resources, display screen-role/EDID layout",
+    "src/ui/ui/nodes/informationdisplaynode.py": "OpenCV, numpy and vigil_msgs subscriptions",
+    "ops/fleet/roles/user_tools/files/session.bash": "Maintained gfx/session helper directs real GPU-composited remote desktop over Sunshine/Moonlight; no installation or reconfiguration",
+    "ops/fleet/roles/remote_desktop/defaults/main.yml": "Sunshine role is a streaming HOST using ubuntu24.04-arm64 deb and NVENC/nvfbc; inappropriate client provisioning for Intel amd64 Milly",
+    "Dockerfile": "Multiarch amd64/arm64 ros:jazzy-perception-noble digest-pinned dependency image; asserts CPython3.12 and imports rclpy; source/install overlay supplied separately by deployment",
+    "ops/setup_ros_runtime_overlay.sh": "Defaults .venv-ros-py312 and /opt/ros/jazzy; hardcoded Python3.12 native binding paths; not validated general Lyrical overlay",
+    "shell_scripts/vigil-fleet-runtime-env.sh": "Sealed environment validator and Cyclone middleware checks; not a license to invent static DDS membership",
+    "scripts/foxglove_fleet.sh": "Remote bridge starts ROS on Spark domain42, tunnels to local8766 without local colcon. Default start mutates remote runtime; do not launch during active HIL",
+    "docs/remote-procedure-browser-roadmap-20260910.md": "Browser typed procedure control/leases/reconnect are future implementation milestones. Foxglove can provide developer observation but writes need explicit capability restrictions; desktop control is separate from semantic control."
+  },
+  "runtimeFiles": {
+    "absent": [
+      "/opt/ros/jazzy/setup.bash",
+      "/opt/ros/lyrical/setup.bash",
+      ".venv-ros-py312/bin/python"
+    ],
+    "positiveControl": ".venv/bin/python exists",
+    "qualification": "Existence inspection only; no package inventory or imports performed."
+  },
+  "minimalPlan": [
+    "After OS maintenance, reuse/update the existing Moonlight Qt client if installed; otherwise use official packaged distribution such as com.moonlight_stream.Moonlight. Preserve pairing material in cog profile; no Sunshine host role or compute/model groups needed on Milly.",
+    "Keep existing fleet source/ABI intact. Host Lyrical/Python3.14 developer tools stay outside repo .venv and PYTHONPATH; repo tooling follows source Python3.13. Python3.15 is not a published Lyrical baseline.",
+    "Install only client-side decoder/graphics diagnostics through the OS-maintenance owner if missing. Verify Intel VAAPI codec support and actual decoder use after desktop login; do not assume support from CPU model.",
+    "Once ASUS owner returns RESOURCE_DONE, resolve enrolled endpoint addresses and allow only exact required management admission under existing fleet policy; then pair Moonlight to existing ASUS/Spark Sunshine host and exercise chosen desktop app.",
+    "Keep optional endpoint flags false for required release/quorum/compute/DDS. Do not run whole-fleet install/build/operator-launch on Milly.",
+    "Native local VIGIL UI is optional future work: preserve matching Jazzy CPython3.12 container, exact candidate message generation/install overlay plus UI/display/vigil_c2/vigil_utils and transitive dependencies. Validate Qt graphics access and ABI there before any owner-approved production-domain42 use.",
+    "Do not interpret host Lyrical installation as permission to import old Jazzy extensions into Python3.14 or to widen requires-python. A Lyrical VIGIL port requires source, lock, message ABI and integration evidence in an owned change."
+  ],
+  "validationPlan": {
+    "notRun": "No local tests executed in this source-only lane; no rendering/input/DDS acceptance claimed.",
+    "containerQA": "In an existing isolated approved Linux QA container with --network=none, ROS_DOMAIN_ID=231, PYTHONDONTWRITEBYTECODE=1 and PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, read-only exact-head source and writable /tmp: pytest -q -p no:cacheprovider --basetemp=/tmp/milly-endpoint-tests tests/test_ui_package_wiring.py tests/test_foxglove_fleet.py tests/test_fleet_links.py tests/test_fleet_netcheck.py. Optional endpoint tests must bind corrected optional tree, not this base checkout.",
+    "negativeControls": [
+      "Reject forbidden quorum/compute or malformed optional profile; preserve exactly3 required production members.",
+      "UI static wiring tests detect nonexistent imported messages, missing console entrypoints and broken resource paths.",
+      "Foxglove hermetic dry-run tests reject invalid host/domain/ports without SSH or live bridge.",
+      "If native container chosen: ABI/import smoke in networknone/domain231, Qt offscreen fixture with actual output sentinel, and missing overlay/type mismatch must fail."
+    ],
+    "postMaintenanceHIL": "Owner-coordinated real stream after RESOURCE_DONE: record source and client versions, codec/resolution/fps/bitrate, route, decoder identity, frame drops/latency and CPU/GPU use; test keyboard/mouse exact known effect plus reconnect/sleep. Blank image, software fallback and unavailable peer reported explicitly. Remote video does not establish physical projector or clinical acceptance."
+  },
+  "officialSources": [
+    {
+      "url": "https://raw.githubusercontent.com/ros2/ros2_documentation/lyrical/source/Releases/lyrical/supported-platforms.rst",
+      "claim": "Ubuntu26.04 amd64 Tier1; Python3.14.3 release baseline; language range3.12-3.14. Versions are release low-watermark, not installed-current."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/ros2/ros2_documentation/jazzy/source/How-To-Guides/Using-Python-Packages.rst",
+      "claim": "Interpreter for binary ROS packages must match interpreter used to build them."
+    },
+    {
+      "url": "https://github.com/moonlight-stream/moonlight-qt",
+      "claim": "Official client supports Sunshine, hardware decoding, desktop mouse and keyboard, and Linux packaged distributions."
+    },
+    {
+      "url": "https://flathub.org/en/apps/com.moonlight_stream.Moonlight",
+      "claim": "Official-linked x86_64/aarch64 client distribution; VAAPI decoding and desktop input support."
+    }
+  ],
+  "context7": "Resolved /moonlight-stream/moonlight-qt and queried official client implementation/documentation; Qt client has pair/list/stream/quit commands and hardware-decoder selection. No claim installed client CLI was executed.",
+  "sourceHashes": {
+    "pyproject.toml": "c4aa92ef823326eb121d2851f4f931af2b38d52f3e5fff9890b3809bd0518596",
+    "src/ui/setup.py": "8c07f61268fc2e8c3dcb3e0d888942db565a5a4c8eef65ec56d3299279d92315",
+    "src/ui/package.xml": "9c94d47e40d7ea4f8945a8093b8c9f35ca77aad3e93bc412072d130990560db5",
+    "src/ui/ui/nodes/displaynode.py": "9683d0a57166b4973aa2f25d8d7b941c460314bff3ef7be140c546579bda78e1",
+    "ops/setup_ros_runtime_overlay.sh": "4b946c1827aad537531e4e7eb1605c1a60ca3fcebfd05d913981ebb2af717574",
+    "Dockerfile": "85bd53d5058e424ba92eea39efee4a5b90df5d6e211939a1ae59e275e5270d12",
+    "ops/fleet/roles/user_tools/files/session.bash": "5ddd0e9218a6cc2506df6ccefa951d80d13fa17a803f0930112737f4d1674e99",
+    "scripts/foxglove_fleet.sh": "286534d6f152a24332695d31ffdf20f10ed8361d0279951bd84ae71333a3fac7",
+    "docs/remote-procedure-browser-roadmap-20260910.md": "3ea57178e651fafb07fa52d17a417ce56c972fc6034cc1b63f6bd158d072a13f"
+  }
+}

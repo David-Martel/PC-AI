@@ -1,0 +1,20 @@
+[
+  {
+    "case": "feature-gated-bin",
+    "result": "threw",
+    "detail": "Required Rust documentation artifact missing: C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\feature-gated-bin\\target\\pcai-docs\\3e4b060c72f2448e8a0bf52c96526048\\doc\\conditional_viewer\\index.html",
+    "actualGeneratedIndexes": [
+      "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\feature-gated-bin\\target\\pcai-docs\\3e4b060c72f2448e8a0bf52c96526048\\doc\\review_docs_fixture\\index.html"
+    ],
+    "project": "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\feature-gated-bin"
+  },
+  {
+    "case": "explicit-target",
+    "result": "threw",
+    "detail": "Required Rust documentation artifact missing: C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\explicit-target\\target\\pcai-docs\\9a2c3014641140dda308877473e4128b\\doc\\review_docs_fixture\\index.html",
+    "actualGeneratedIndexes": [
+      "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\explicit-target\\target\\pcai-docs\\9a2c3014641140dda308877473e4128b\\x86_64-pc-windows-msvc\\doc\\review_docs_fixture\\index.html"
+    ],
+    "project": "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-documentation-independent-review-5d3edd0c234a4ec38eaff00ecb0d085d\\explicit-target"
+  }
+]

@@ -1,0 +1,373 @@
+[
+  {
+    "File": "caldigit-updater-discovery.json",
+    "OriginalFile": "raw-originals/caldigit-updater-discovery.json",
+    "OriginalSha256": "2a8f85e1031f655562463f5bc4aab1ebd8a7eb77b473b23e5a43344e5192cfa7",
+    "NormalizedSha256": "d0c14523035e8eb05871197d82341440d6ef78b7fa26a8c2bae7739c1863fc98",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "capture-pester-verification.json",
+    "OriginalFile": "raw-originals/capture-pester-verification.json",
+    "OriginalSha256": "b0e8f032eddb3406f2fb29b43c28efaedbe8b8b7e3a53e08f2534d93fb6659d7",
+    "NormalizedSha256": "3ebf4b925c33fd60293ac932abb76cb26ce0b2063166ee5591805e02e8a9e4f6",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "configure-post-bios-error.txt",
+    "OriginalFile": "raw-originals/configure-post-bios-error.txt",
+    "OriginalSha256": "2113dab283c5be08aa5867cc175d3f6f0df14bca166a6ebb4f754e9f5b51c2ae",
+    "NormalizedSha256": "1ca4b3a5a38c22320332a8d6ffdd44d226042d6745e48c4aeba5665036139f43",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "existing-thunderbolt-post-bios-verification.json",
+    "OriginalFile": "raw-originals/existing-thunderbolt-post-bios-verification.json",
+    "OriginalSha256": "0493c0d67471a89e2d570d54b52e111a7c1ba2bef33fa1f42e39333956b71540",
+    "NormalizedSha256": "b8765c800f516e7f1bb5bb3c6cc0e6d35006e81dda57ccf0011543867be83d15",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "firmware-custody.json",
+    "OriginalFile": "raw-originals/firmware-custody.json",
+    "OriginalSha256": "0eb5e2afb787bdc29c6852d4ddf7d821e0f875c5ce50c8a4576a77b27dd7c0d0",
+    "NormalizedSha256": "cb832ef1fe3fb4e3c9faf22e16efa2f4c8c3052cf891dc1b0d57afcd565555c1",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "fwupd-devices-low-level.json",
+    "OriginalFile": "raw-originals/fwupd-devices-low-level.json",
+    "OriginalSha256": "3ed2aec9d0e02b7619b9e597486d379a5839e94b08d0ff8d864c49809ac0e2a7",
+    "NormalizedSha256": "f2a622d5a17bc1189d7601f57d4256095dde65273bb38701ed36e0bfcdc091d0",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "intel-tbtools-validation-20261002.txt",
+    "OriginalFile": "raw-originals/intel-tbtools-validation-20261002.txt",
+    "OriginalSha256": "4ab7e74a62af2883c54ea924c3c409661072a2fbcbb4c1005b91b07886ab7ec5",
+    "NormalizedSha256": "cfd377d11b9b6cbf2bb1fd1a1bf321f319ebaa7954715b780260f63b7696af79",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "lan-baseline-linux-to-windows.json",
+    "OriginalFile": "raw-originals/lan-baseline-linux-to-windows.json",
+    "OriginalSha256": "0525eacc6d8f5480fe615dfc725673abdc32842f6adb6e255975946d4d85dc1d",
+    "NormalizedSha256": "0fc7db1f5f1efe1e1ac67da0c58d6a5d3389933cbc20765f1e65b08b40bcd6de",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "lan-baseline-server-linux-to-windows.json",
+    "OriginalFile": "raw-originals/lan-baseline-server-linux-to-windows.json",
+    "OriginalSha256": "779eb2442f98e2705bc49ff8ec44b8c20eacb57ff09f40b845d0773712bc695a",
+    "NormalizedSha256": "7fd63f1a51f0bef84bae3b994bac1c16032c629318548b6cf60d8e256b799e8c",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "lan-baseline-server-windows-to-linux.json",
+    "OriginalFile": "raw-originals/lan-baseline-server-windows-to-linux.json",
+    "OriginalSha256": "0cc0bd0c9b59aaf6587c329da38fb354b4fa0a6334a024cac02e1ef84a70afd2",
+    "NormalizedSha256": "82590627c96b027cb9b6a496bef0d3aeac9a729cae6b7cd1e9d24ce7ef17a16a",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "lan-baseline-windows-to-linux.json",
+    "OriginalFile": "raw-originals/lan-baseline-windows-to-linux.json",
+    "OriginalSha256": "79b386bb4565a86204500a2012784a3c63bf2c2429778fbfee6f316f0e043016",
+    "NormalizedSha256": "a73d30d72253f8f73fe93e50b0e880b880a2a6970bedfb0afc73340f670a1526",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "linux-alternate-port.txt",
+    "OriginalFile": "raw-originals/linux-alternate-port.txt",
+    "OriginalSha256": "0445ef82142e916e202d52dd99a3eef6ee1853cd42ffb432b2c0566d8f860586",
+    "NormalizedSha256": "e72afbf71e913399de1e4b358673e0c3d3d892535dcc58457e2c85672cb54cfd",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "linux-final-safety.txt",
+    "OriginalFile": "raw-originals/linux-final-safety.txt",
+    "OriginalSha256": "e264acb99fc0511d5cc6143b3a40414189c093aac86e0ee64f3704af1c21bc8c",
+    "NormalizedSha256": "48c32a477c34f46ca11dee720cb7f17bc7b2e4f276680b28a2806c1f6d8c10fc",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "linux-power-and-lan.txt",
+    "OriginalFile": "raw-originals/linux-power-and-lan.txt",
+    "OriginalSha256": "8429a30515323565ddf3f2c7b4e5262e387768de9e0950bc7dbaea80db9d45d8",
+    "NormalizedSha256": "253f42b9d875e20aa7e204f7fd82d9166e3e0ddcd2a3b8c01b0a32018fb87ddb",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "linux-pre-maintenance.txt",
+    "OriginalFile": "raw-originals/linux-pre-maintenance.txt",
+    "OriginalSha256": "5bf013b8fa040f9f97c7a391285eeb6e176f160721e219b6e3cef5a2b4d42241",
+    "NormalizedSha256": "7facd08047f5e9a8a0df847ca52f9f2242b15558dfb994e16f765984c81cbb68",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "linux-rebind-preflight.txt",
+    "OriginalFile": "raw-originals/linux-rebind-preflight.txt",
+    "OriginalSha256": "650d6318d5e0f4e6431eb23bbf1d6c7d91cefe0f54226dacabb707840bc05451",
+    "NormalizedSha256": "077c21ae5fb20cc0607464a24968f96840d55147806d65af22b4c3c2d1bd86b0",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "linux-rebind-result.txt",
+    "OriginalFile": "raw-originals/linux-rebind-result.txt",
+    "OriginalSha256": "39b2a1752ff5c9f063b3aea371930ae3ed7fb2bc4eca50896e34dbeee83328f2",
+    "NormalizedSha256": "7644a6d5a8bf1e60447fc2322793376c56464ce4f9f1333b317eb78669fb9d5d",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "low-level-verification.json",
+    "OriginalFile": "raw-originals/low-level-verification.json",
+    "OriginalSha256": "c6d8b1617d1eaba32ff9837503b5d367f9b986ce2181b510ef8241815b20d48a",
+    "NormalizedSha256": "6f549b6b51f43afeca4dd6e26f9d6ec64b78e38b6db8e66a65c616d2ddfa7d4e",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "profile-post-bios-verification.json",
+    "OriginalFile": "raw-originals/profile-post-bios-verification.json",
+    "OriginalSha256": "92336ccbf06ec524b4bc2fb4f414702bcd6fc10673420901f4445de4ef6c9b1b",
+    "NormalizedSha256": "c53f9c15f6f8ae7ba7a4aa2f8ae92ce3fbdf097dc95a1b16a5cfadfd53b172c5",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "raw-capture-custody.json",
+    "OriginalFile": "raw-originals/raw-capture-custody.json",
+    "OriginalSha256": "bf7231f948c2b81cfcbefedcaaa963e3601ff5bc2c9a0359cb7984695fd24d08",
+    "NormalizedSha256": "0b257b1628226f7757539f8926848cd154fe5d5aa30f27ea84ea487b19a06e4d",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "status-alternate-port.json",
+    "OriginalFile": "raw-originals/status-alternate-port.json",
+    "OriginalSha256": "bf2b5391e54926aa24afba24520fe1c7565686600da3c5e364d59c3778403d98",
+    "NormalizedSha256": "28f0ab53a9831e9b06422478c51f03b4308f7dfa8e853a73df0b9aeec9c7393b",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "status-post-bios.json",
+    "OriginalFile": "raw-originals/status-post-bios.json",
+    "OriginalSha256": "c583f2ae97a721a2edb9db9e4ae33d0451ef141efb67c00921abc1ae64d20a76",
+    "NormalizedSha256": "31a3f1ce756a65043e32460b8436ecc53881cdc45116c2bcf314e10224597d63",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thinkpad-after-bios-reboot.txt",
+    "OriginalFile": "raw-originals/thinkpad-after-bios-reboot.txt",
+    "OriginalSha256": "b4c35e659c5fb2bcf809f69205b674440e5c8c92c72a14f7a328d683604d7bfa",
+    "NormalizedSha256": "016b4b35f955f2d887397c7987403df5e8c006d22f61f57ff459288f06e97960",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thinkpad-before-reboot.txt",
+    "OriginalFile": "raw-originals/thinkpad-before-reboot.txt",
+    "OriginalSha256": "98166590cf7f1e5bf074a53c7e7354a19c553042c29b01c2b97bdb0e65132939",
+    "NormalizedSha256": "9d91e3888b23419fe386742df9efb1290594719e069f5774bcbbb2055801d1b0",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thinkpad-ec-after-bios.txt",
+    "OriginalFile": "raw-originals/thinkpad-ec-after-bios.txt",
+    "OriginalSha256": "952eb3a14d95229fa23388809fa5a070e3fff12f8e19bb35bf554ef5de5a9a9a",
+    "NormalizedSha256": "ef21ee8a7a2b1ea5dd10918e3c29aa3450ebd5d39431fe16c12d2f7209bc071c",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thinkpad-firmware-cab-details.txt",
+    "OriginalFile": "raw-originals/thinkpad-firmware-cab-details.txt",
+    "OriginalSha256": "feef6a8a74e01a2fbe97f3eb3857ad81343d54b6f7a5d15f7829012e69ec9202",
+    "NormalizedSha256": "d12411062385053dd15e78b68b0f02b38154a0bb5468ed6038b7871d4ad9b729",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thinkpad-firmware-plan.json",
+    "OriginalFile": "raw-originals/thinkpad-firmware-plan.json",
+    "OriginalSha256": "5309484a03b3db6b49cbfaa481a1768b973c2a2a71e59b80518552c18b805772",
+    "NormalizedSha256": "9933f7a5f5f613768624f5ea6ab323a1a7474a73a2b8aa55d11a1c463fbba673",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thinkpad-firmware-stage-result.txt",
+    "OriginalFile": "raw-originals/thinkpad-firmware-stage-result.txt",
+    "OriginalSha256": "a4f5a9407be2e4b860238858354a7713671f946ea6ff61fd9814be84b2e488d3",
+    "NormalizedSha256": "7f76cbd01d397114194e0920ae085bfe83ae3f0c7af09b7c1dbf30d4b52666fb",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-rebind\\after.json",
+    "OriginalFile": "raw-originals/thunderbolt-diag-20261002-rebind\\after.json",
+    "OriginalSha256": "ca16b6bffc7562217f642585e9e451629deb8c64c070b0f1f6dc463b90c19cb9",
+    "NormalizedSha256": "7d42f2ca331eddf576f039af465c45c0c4719de8d4b651cb5554425bcefffe82",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-rebind\\before.json",
+    "OriginalFile": "raw-originals/thunderbolt-diag-20261002-rebind\\before.json",
+    "OriginalSha256": "64df6bc324c24587d8af480d68cabd2e470cf088ee355eda81858569014c4e43",
+    "NormalizedSha256": "e83adf47bd6ddd4b842c617b0aa97666b94ca995ae8a78a52853afa668013520",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-rebind\\summary.json",
+    "OriginalFile": "raw-originals/thunderbolt-diag-20261002-rebind\\summary.json",
+    "OriginalSha256": "54b24dcd53157fd0a2f779e8a7811d08a2d45b50a4b04f8ff18b53a80fdeed27",
+    "NormalizedSha256": "f12bf3d2a81b9fa876efe8a3f819c418aca518c14175b116d3b81cf144006798",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-trace1\\after.json",
+    "OriginalFile": "raw-originals/thunderbolt-diag-20261002-trace1\\after.json",
+    "OriginalSha256": "a886fa5df2ecca6b9564c73f0928a81843638a13467874df80201ac0c017a09a",
+    "NormalizedSha256": "1120cf9095eef63fc925c8167982203738bfa8d4a0157647e5d96756939c8286",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-trace1\\before.json",
+    "OriginalFile": "raw-originals/thunderbolt-diag-20261002-trace1\\before.json",
+    "OriginalSha256": "b73e5d28de8dcb4590f5e9310df366bdd746abfaa6d77bf1c71f366bd69fe7f1",
+    "NormalizedSha256": "2d8ce92320fc7d2038082f5c479f7fa063747133024489e153c5b011ea4c1a9a",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-trace1\\summary.json",
+    "OriginalFile": "raw-originals/thunderbolt-diag-20261002-trace1\\summary.json",
+    "OriginalSha256": "d5dc897df2073896ce03af272459a5fd7a5466adf20e74948ce72e8e13b4ecd0",
+    "NormalizedSha256": "5a14f166ed54bdee8114dfcd941e89673a319765f77161d6bc4f3b4dd4c2e12e",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-alternate-port-result.json",
+    "OriginalFile": "raw-originals/windows-alternate-port-result.json",
+    "OriginalSha256": "e6a0d053f7752d8cbea62330a4bfca7d61e8c0610a55c0ce08b01cdc958d4565",
+    "NormalizedSha256": "c7cddbd1a52ca56eac95fbae51a30a691671feed598617c5b29aa38fd4b75d44",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-alternate-port-router-rundown.json",
+    "OriginalFile": "raw-originals/windows-alternate-port-router-rundown.json",
+    "OriginalSha256": "2c75c52af54c4678c0b7733a8cc36b904e19df1ac5460f0a5731710218fcdf80",
+    "NormalizedSha256": "cbf11803e8ed79a126b26dd8eb0fd395bb2e25769168c9eefed58daf15d04c8b",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.native.jsonl",
+    "OriginalFile": "raw-originals/windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.native.jsonl",
+    "OriginalSha256": "e963e8d7740432da4ee53df4bb3201acf292fca6f1ed48519bea59c938294bb8",
+    "NormalizedSha256": "8b3124f4d73b69210e74eaef67e1c9c20e01b5d247a6ebd0dc59f0cb0643d59a",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.providers.txt",
+    "OriginalFile": "raw-originals/windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.providers.txt",
+    "OriginalSha256": "cb69728542e71311bdf8b54b137aa652c39f6f5eccc00f1ddd45500ec2e33511",
+    "NormalizedSha256": "6608c9c63bb3ab601070d99050b5518a73166a091c6bbcb19543549f3947dfc5",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.summary.txt",
+    "OriginalFile": "raw-originals/windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.summary.txt",
+    "OriginalSha256": "6cc3efd6ae9c339fc0899874bbd39d1f0f1c79d25c2c061a1321a2d90ad97169",
+    "NormalizedSha256": "80af509aaaeb323e6761227da0484a9eb4be8a225c50cdf1cf14e29446a02de7",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-bios.json",
+    "OriginalFile": "raw-originals/windows-bios.json",
+    "OriginalSha256": "477ec1e7b65584807e280ae67720bf5de96219075c8aba9f72a6e6211bdf8b3a",
+    "NormalizedSha256": "fb18c9ca81a4258c09fabf4257dd7dcd11958c3814997fa5ecea401341d132cc",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-capture-drivers.json",
+    "OriginalFile": "raw-originals/windows-capture-drivers.json",
+    "OriginalSha256": "c4c56385f07f1de2e3550d79446be1254a2769d20f97ce59c906d676548e84e0",
+    "NormalizedSha256": "e9168ddc9951c9c54858ff76a09cb3157c4c83a8f4aa01e545699b35ab4ca268",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-discovery\\initial-summary.txt",
+    "OriginalFile": "raw-originals/windows-discovery\\initial-summary.txt",
+    "OriginalSha256": "ad08d775e2b3dbe95fc05d5b999631ba75d3df9efe6f87cd294ebd7d52324a42",
+    "NormalizedSha256": "a776d2987f48926a7f02afd82affff197bb3f12436ec698d7c6be49a0dc49948",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-discovery\\pcai-usb4-b6deb53d49a84ef29273c40396d659e8.native.jsonl",
+    "OriginalFile": "raw-originals/windows-discovery\\pcai-usb4-b6deb53d49a84ef29273c40396d659e8.native.jsonl",
+    "OriginalSha256": "c6394e93cbed5a7f670c40ed6b589d5699da7db4ad336db33a572723ccdc48b8",
+    "NormalizedSha256": "ff249482f73cc30d69321bfa130c588c2ba4239e38f59584cad5e763cef06680",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-discovery\\pcai-usb4-b6deb53d49a84ef29273c40396d659e8.providers.txt",
+    "OriginalFile": "raw-originals/windows-discovery\\pcai-usb4-b6deb53d49a84ef29273c40396d659e8.providers.txt",
+    "OriginalSha256": "cb69728542e71311bdf8b54b137aa652c39f6f5eccc00f1ddd45500ec2e33511",
+    "NormalizedSha256": "6608c9c63bb3ab601070d99050b5518a73166a091c6bbcb19543549f3947dfc5",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-element5-properties.json",
+    "OriginalFile": "raw-originals/windows-element5-properties.json",
+    "OriginalSha256": "20c2e0aff340d53eb0de8b4cbf1d257f0a335e38e0e711c09f288dcbccdb3624",
+    "NormalizedSha256": "3dee16f431b2ceded5af08b76c23a480b8dc6f418c1f01c002dc36ab98e1c28b",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-reboot-discovery-result.json",
+    "OriginalFile": "raw-originals/windows-reboot-discovery-result.json",
+    "OriginalSha256": "0b36338fbd1d6b179b561b65047a8aeaa24c50bc3361944a41830bc2e972eef6",
+    "NormalizedSha256": "765cf80b0dd17d2778a08fc6013b84ed1dfd02ea624360ad76b221c0b8e57404",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-reboot-discovery\\pcai-usb4-2132a99857914383919ed77ac40ac617.native.jsonl",
+    "OriginalFile": "raw-originals/windows-reboot-discovery\\pcai-usb4-2132a99857914383919ed77ac40ac617.native.jsonl",
+    "OriginalSha256": "d29d02c71750431d709b2dec336c5ab8be296ae427091c851f5d7cbc8bbdfd90",
+    "NormalizedSha256": "60f24a6ec6d2ae824f397991f4fb74996586e0eada7c633494142efb82c39218",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-reboot-discovery\\pcai-usb4-2132a99857914383919ed77ac40ac617.providers.txt",
+    "OriginalFile": "raw-originals/windows-reboot-discovery\\pcai-usb4-2132a99857914383919ed77ac40ac617.providers.txt",
+    "OriginalSha256": "cb69728542e71311bdf8b54b137aa652c39f6f5eccc00f1ddd45500ec2e33511",
+    "NormalizedSha256": "6608c9c63bb3ab601070d99050b5518a73166a091c6bbcb19543549f3947dfc5",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-reboot-discovery\\pcai-usb4-2132a99857914383919ed77ac40ac617.summary.txt",
+    "OriginalFile": "raw-originals/windows-reboot-discovery\\pcai-usb4-2132a99857914383919ed77ac40ac617.summary.txt",
+    "OriginalSha256": "4a86ff1a97b090a6266e6bdef43233448ef12e1f2a8125f2e9978d54f52358ec",
+    "NormalizedSha256": "7ad3fa072315fa73f7cdb2d6dc68b5b64a5d71815848ccf7dc023d6d48f81fa3",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-reboot-router-rundown.json",
+    "OriginalFile": "raw-originals/windows-reboot-router-rundown.json",
+    "OriginalSha256": "2c75c52af54c4678c0b7733a8cc36b904e19df1ac5460f0a5731710218fcdf80",
+    "NormalizedSha256": "cbf11803e8ed79a126b26dd8eb0fd395bb2e25769168c9eefed58daf15d04c8b",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-router-rundown.json",
+    "OriginalFile": "raw-originals/windows-router-rundown.json",
+    "OriginalSha256": "2c75c52af54c4678c0b7733a8cc36b904e19df1ac5460f0a5731710218fcdf80",
+    "NormalizedSha256": "cbf11803e8ed79a126b26dd8eb0fd395bb2e25769168c9eefed58daf15d04c8b",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "windows-tshark-interfaces.txt",
+    "OriginalFile": "raw-originals/windows-tshark-interfaces.txt",
+    "OriginalSha256": "a3b25d551dd91de1a2ffe630c35108380efca69f7f1caaa74f859d96793b755d",
+    "NormalizedSha256": "5d19e8b2db612a9b339ccfc6ab81f85d0ff37a53baa949d9239387819e9ca925",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  },
+  {
+    "File": "recovery-final.txt",
+    "OriginalFile": "raw-originals/recovery-final.txt",
+    "OriginalSha256": "cefc030596e2699e05ad06c70a5b659e7a53571cb8f5752f292f5d6cbb0af98a",
+    "NormalizedSha256": "e669a78b652d15381e55b1b2947d556c9cc14d3664aff965b3134b6a385b429b",
+    "Normalization": "CRLF to LF; trim line-ending spaces and final blank lines"
+  }
+]

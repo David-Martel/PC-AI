@@ -1,0 +1,112 @@
+{
+  "observedUtc": "2026-10-03T01:56:58.924123+00:00",
+  "host": "millylaptop1",
+  "checks": [
+    {
+      "argv": [
+        "uv",
+        "run",
+        "-p",
+        "3.15.0rc2",
+        "--managed-python",
+        "--no-project",
+        "python",
+        "-c",
+        "import sys,ssl,sqlite3; assert sys.version_info[:3]==(3,15,0) and sys.version_info.releaselevel==\"candidate\"; db=sqlite3.connect(\":memory:\"); db.execute(\"create table q(n int)\"); db.execute(\"insert into q values(42)\"); assert db.execute(\"select n from q\").fetchone()==(42,); print(sys.version,ssl.OPENSSL_VERSION)"
+      ],
+      "exit": 0,
+      "stdout": "3.15.0rc2 (main, Oct  1 2026, 21:02:53) [Clang 22.1.3 ] OpenSSL 3.5.9 29 Sep 2026\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "systemctl",
+        "--user",
+        "is-active",
+        "graphical-session.target",
+        "pipewire",
+        "pipewire-pulse",
+        "wireplumber"
+      ],
+      "exit": 0,
+      "stdout": "active\nactive\nactive\nactive\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "dpkg",
+        "--audit"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "apt-get",
+        "check"
+      ],
+      "exit": 0,
+      "stdout": "Reading package lists...\nBuilding dependency tree...\nReading state information...\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "apt-get",
+        "-s",
+        "dist-upgrade"
+      ],
+      "exit": 0,
+      "stdout": "NOTE: This is only a simulation!\n      apt-get needs root privileges for real execution.\n      Keep also in mind that locking is deactivated,\n      so don't depend on the relevance to the real current situation!\nReading package lists...\nBuilding dependency tree...\nReading state information...\nCalculating upgrade...\nThe following packages were automatically installed and are no longer required:\n  acpi-support acpid aisleriot apg apturl apturl-common attr branding-ubuntu\n  catch2 cheese cheese-common dctrl-tools dh-elpa-helper dracut-core endeavour\n  endeavour-common eog fonts-kacst fonts-kacst-one fonts-khmeros-core\n  fonts-lao fonts-liberation2 fonts-lklug-sinhala fonts-sil-abyssinica\n  fonts-sil-padauk fonts-thai-tlwg fonts-tibetan-machine fonts-tlwg-garuda\n  fonts-tlwg-garuda-ttf fonts-tlwg-kinnari fonts-tlwg-kinnari-ttf\n  fonts-tlwg-laksaman fonts-tlwg-laksaman-ttf fonts-tlwg-loma\n  fonts-tlwg-loma-ttf fonts-tlwg-mono fonts-tlwg-mono-ttf fonts-tlwg-norasi\n  fonts-tlwg-norasi-ttf fonts-tlwg-purisa fonts-tlwg-purisa-ttf\n  fonts-tlwg-sawasdee fonts-tlwg-sawasdee-ttf fonts-tlwg-typewriter\n  fonts-tlwg-typewriter-ttf fonts-tlwg-typist fonts-tlwg-typist-ttf\n  fonts-tlwg-typo fonts-tlwg-typo-ttf fonts-tlwg-umpush fonts-tlwg-umpush-ttf\n  fonts-tlwg-waree fonts-tlwg-waree-ttf freeglut3 gcc-12-base:i386\n  gcc-14-base:i386 gedit gedit-common genisoimage gir1.2-amtk-5 gir1.2-gck-1\n  gir1.2-gcr-3 gir1.2-girepository-2.0 gir1.2-goa-1.0 gir1.2-gtksource-300\n  gir1.2-gtksource-4 gir1.2-gweather-3.0 gir1.2-javascriptcoregtk-4.0\n  gir1.2-javascriptcoregtk-6.0 gir1.2-json-1.0 gir1.2-nma-1.0 gir1.2-snapd-1\n  gir1.2-soup-2.4 gir1.2-tepl-6 gir1.2-totem-1.0 gir1.2-totemplparser-1.0\n  gir1.2-webkit-6.0 gir1.2-webkit2-4.0 gkbd-capplet gnome-bluetooth\n  gnome-bluetooth-common gnome-mahjongg gnome-mines gnome-power-manager\n  gnome-sudoku gnome-system-monitor gnome-todo gnome-video-effects google-mock\n  grilo-plugins-0.3-base gstreamer1.0-clutter-3.0 gstreamer1.0-pulseaudio\n  guile-2.2-libs irqbalance isc-dhcp-client isc-dhcp-common kerneloops\n  libabsl20210324 libabsl20220623t64 libamd-comgr2 libann0 libappstream4\n  libapt-pkg6.0t64 libarmadillo10 libarmadillo12 libassimp5 libassuan0\n  libatk1.0-data libatkmm-1.6-1v5 libatm1t64 libavcodec58 libavcodec60\n  libavdevice58 libavdevice60 libavfilter7 libavfilter9 libavformat58\n  libavformat60 libavutil56 libavutil58 libblockdev-crypto2 libblockdev-fs2\n  libblockdev-loop2 libblockdev-part-err2 libblockdev-part2 libblockdev-swap2\n  libblockdev-utils2 libblockdev2 libbluray2 libboost-atomic1.74.0\n  libboost-atomic1.83.0 libboost-chrono1.74.0t64 libboost-chrono1.83.0t64\n  libboost-container1.74.0 libboost-container1.83.0 libboost-context1.74.0\n  libboost-context1.83.0 libboost-coroutine1.74.0 libboost-coroutine1.83.0\n  libboost-date-time1.74.0 libboost-date-time1.83.0 libboost-fiber1.74.0\n  libboost-fiber1.83.0 libboost-filesystem1.74.0 libboost-filesystem1.83.0\n  libboost-graph-parallel1.74.0 libboost-graph-parallel1.83.0\n  libboost-graph1.74.0 libboost-graph1.83.0 libboost-iostreams1.74.0\n  libboost-iostreams1.83.0 libboost-json1.83.0 libboost-locale1.74.0\n  libboost-locale1.83.0 libboost-log1.74.0 libboost-log1.83.0\n  libboost-math1.74.0 libboost-math1.83.0 libboost-mpi1.74.0\n  libboost-mpi1.83.0 libboost-nowide1.74.0 libboost-nowide1.83.0\n  libboost-numpy1.74.0 libboost-numpy1.83.0 libboost-program-options1.74.0\n  libboost-program-options1.83.0 libboost-python1.74.0 libboost-random1.74.0\n  libboost-random1.83.0 libboost-regex1.74.0 libboost-regex1.83.0\n  libboost-serialization1.74.0 libboost-serialization1.83.0\n  libboost-stacktrace1.74.0 libboost-stacktrace1.83.0 libboost-system1.74.0\n  libboost-system1.83.0 libboost-test1.74.0 libboost-test1.83.0\n  libboost-thread1.74.0 libboost-thread1.83.0 libboost-timer1.74.0\n  libboost-timer1.83.0 libboost-type-erasure1.74.0 libboost-type-erasure1.83.0\n  libboost-url1.83.0 libboost-wave1.74.0 libboost-wave1.83.0 libbpf0\n  libbullet3.06 libcairomm-1.0-1v5 libcamel-1.2-63 libcamera0.2\n  libcanberra-gtk3-0t64 libcatch2-dev libcbor0.8 libcdt5 libcephfs2\n  libcfitsio9 libcgraph6 libcharls-dev libcheese-gtk25 libcheese8\n  libclang-cpp11 libclang1-11 libclang1-15t64 libclutter-1.0-0\n  libclutter-1.0-common libclutter-gst-3.0-0 libclutter-gtk-1.0-0\n  libcodec2-1.0 libcogl-common libcogl-pango20 libcogl-path20 libcogl20\n  libcolamd2 libcolord-gtk1t64 libcupsfilters1 libdav1d5 libdazzle-1.0-0\n  libdazzle-common libdbus-glib-1-2 libde265-dev libdirectfb-1.7-7t64\n  libdmapsharing-3.0-2 libdns-export1110 libdraco-dev libdraco4 libdraco8\n  libebackend-1.2-10 libebook-1.2-20 libebook-contacts-1.2-3 libecal-2.0-1\n  libedata-book-1.2-26 libedata-cal-2.0-1 libedataserver-1.2-26\n  libedataserverui-1.2-3 libevdocument3-4t64 libevview3-3t64 libflac12t64\n  libflac8 libfmt8 libfmt9 libfontembed1 libfreerdp-client2-2t64\n  libfreerdp-server2-2t64 libfreerdp2-2t64 libfuse3-3 libgail-common\n  libgail18t64 libgdal30 libgdal34t64 libgdata-common libgdata22\n  libgedit-amtk-5-0 libgedit-amtk-5-common libgedit-gfls-1-0\n  libgedit-gfls-common libgedit-gtksourceview-300-0\n  libgedit-gtksourceview-300-3 libgedit-gtksourceview-300-common\n  libgedit-tepl-6-3 libgedit-tepl-common libgeocode-glib0 libgeos3.10.2\n  libgeos3.12.1t64 libglibmm-2.4-1t64 libgnome-bluetooth13t64\n  libgnome-games-support-1-3 libgnome-games-support-common libgnome-rr-4-2t64\n  libgnome-todo libgnomekbd-common libgnomekbd8 libgoa-backend-1.0-1\n  libgpgme11t64 libgpgmepp6t64 libgspell-1-2 libgspell-1-3 libgspell-1-common\n  libgssdp-1.2-0 libgtk2.0-0t64 libgtk2.0-bin libgtk2.0-common\n  libgtkmm-3.0-1t64 libgtksourceview-4-0 libgtksourceview-4-common\n  libgupnp-1.2-1 libgupnp-igd-1.0-4 libgweather-3-16 libgweather-common\n  libhdf4-0-alt libhdf5-103-1t64 libhdf5-cpp-103-1t64 libhdf5-fortran-102t64\n  libhdf5-hl-100t64 libhdf5-hl-cpp-100t64 libhdf5-hl-fortran-100t64\n  libhdf5-openmpi-103-1t64 libhdf5-openmpi-cpp-103-1t64\n  libhdf5-openmpi-fortran-102t64 libhdf5-openmpi-hl-100t64\n  libhdf5-openmpi-hl-cpp-100t64 libhdf5-openmpi-hl-fortran-100t64\n  libhidapi-hidraw0 libhiredis0.14 libicu70 libicu74:i386\n  libignition-cmake2-dev libignition-math6 libignition-math6-dev libilmbase25\n  libipsec-mb1 libisc-export1105 libjavascriptcoregtk-4.0-18 libjs-underscore\n  libjsoncpp25 libjxl0.7 liblab-gamut1 liblbfgsb0 libldap-2.5-0 liblept5\n  liblldb-23 libllvm11 libllvm15t64 libllvm17t64 libllvm19 libllvm20\n  libllvm20:i386 liblua5.2-0 liblua5.3-0 libmagickcore-6.q16-7-extra\n  libmagickcore-6.q16-7t64 libmagickwand-6.q16-7t64 libmanette-0.2-0\n  libmbedcrypto7t64 libmbedtls14t64 libmbedx509-1t64 libmessaging-menu0\n  libmfx1 libminiupnpc17 libmjpegutils-2.1-0t64 libmng2 libmozjs-115-0t64\n  libmozjs-91-0 libmpdec3 libmpeg2encpp-2.1-0t64 libmplex2-2.1-0t64\n  libmsgraph-0-1 libmysqlclient21 libnautilus-extension1a libnetcdf-c++4\n  libnetcdf-cxx-legacy-dev libnetcdf19t64 libnetplan0 libnfs13 libnghttp3-3\n  libnsl-dev libnsl2 libogdi-dev libogdi4.1 libopencore-amrwb0\n  libopencv-calib3d406t64 libopencv-contrib406t64 libopencv-core406t64\n  libopencv-dnn406t64 libopencv-features2d406t64 libopencv-flann406t64\n  libopencv-highgui406t64 libopencv-imgcodecs406t64 libopencv-imgproc406t64\n  libopencv-ml406t64 libopencv-objdetect406t64 libopencv-photo406t64\n  libopencv-shape406t64 libopencv-stitching406t64 libopencv-superres406t64\n  libopencv-video406t64 libopencv-videoio406t64 libopencv-videostab406t64\n  libopencv406-jni libopenexr25 libopenh264-6 libopenh264-7 libopenmpi3t64\n  liborcus-0.17-0 liborcus-0.18-0 liborcus-parser-0.17-0\n  liborcus-parser-0.18-0 libpangomm-1.4-1v5 libpaper1 libparted-fs-resize0t64\n  libpcl-common1.12 libpcl-common1.14 libpcl-features1.12 libpcl-features1.14\n  libpcl-filters1.12 libpcl-filters1.14 libpcl-kdtree1.12 libpcl-kdtree1.14\n  libpcl-keypoints1.12 libpcl-keypoints1.14 libpcl-ml1.12 libpcl-ml1.14\n  libpcl-octree1.12 libpcl-octree1.14 libpcl-outofcore1.12\n  libpcl-outofcore1.14 libpcl-people1.12 libpcl-people1.14\n  libpcl-registration1.12 libpcl-registration1.14 libpcl-sample-consensus1.12\n  libpcl-sample-consensus1.14 libpcl-search1.12 libpcl-search1.14\n  libpcl-segmentation1.12 libpcl-segmentation1.14 libpcl-stereo1.12\n  libpcl-stereo1.14 libpcl-tracking1.12 libpcl-tracking1.14 libpcre16-3\n  libpcre3-dev libpcre32-3 libpcrecpp0v5 libperl5.34 libperl5.38t64\n  libpkgconf3 libplacebo338 libplist3 libpocketsphinx3 libpoppler-cpp0t64\n  libpoppler118 libpoppler134 libpostproc55 libpostproc57 libproj22\n  libprotobuf23 libprotoc23 libproxy1-plugin-gsettings\n  libproxy1-plugin-networkmanager libpsm-infinipath1 libpthread-stubs0-dev\n  libpython3-all-dev libpython3.10 libpython3.10-dev libpython3.10-minimal\n  libpython3.10-stdlib libpython3.12-dev libqpdf28 libqpdf29t64 libqqwing2v5\n  libqt5designercomponents5 libqt5positioning5 libqt5qmlworkerscript5\n  libqt5quickparticles5 libqt5quickshapes5 libqt5quicktest5\n  libqt5quickwidgets5 libqt5sensors5 libqt5webchannel5 librav1e0 libraw20\n  libreoffice-pdfimport librest-0.7-0 librhash0 libroc0.3 librubberband2\n  librygel-core-2.6-2 librygel-db-2.6-2 librygel-renderer-2.6-2\n  librygel-server-2.6-2 libsframe1 libsgutils2-1.46-2 libsigc++-2.0-0v5\n  libsigsegv2 libsnapd-glib1 libsoup-2.4-1 libsoup-gnome-2.4-1\n  libsoup2.4-common libspatialite7 libspdlog1.12 libsphinxbase3t64\n  libsrt1.4-gnutls libsrt1.4-openssl libssh-gcrypt-4 libsubid4\n  libsuitesparseconfig5 libsuperlu5 libsuperlu6 libsvtav1enc1d1 libswresample3\n  libswresample4 libswscale5 libswscale7 libsysmetrics1 libtag1v5\n  libtag1v5-vanilla libtesseract4 libtheora0 libtiff5 libtiffxx5\n  libtinyxml-dev libtinyxml2-10 libtinyxml2-9 libtirpc-dev libtotem0\n  libu2f-udev libudfread0 libunibreak5 libunistring2 libunistring2:i386\n  libusbmuxd6 libutempter0 libvncserver1 libvpx7 libvpx9 libwebkit2gtk-4.0-37\n  libwebrtc-audio-processing1 libwinpr2-2t64 libwireplumber-0.4-0\n  libwireshark15 libwireshark17t64 libwiretap12 libwiretap14t64\n  libwmf0.2-7-gtk libwoff1 libwsutil13 libwsutil15t64 libx264-163 libx264-164\n  libx265-199 libx265-dev libxatracker2 libxcb-damage0 libxklavier16\n  libxml2:i386 libxsimd-dev libyaml-cpp0.7 libyelp0 libzxingcore1\n  linux-headers-generic-hwe-24.04 linux-hwe-6.8-headers-6.8.0-134\n  linux-hwe-6.8-headers-6.8.0-138 linux-hwe-6.8-tools-6.8.0-134\n  linux-hwe-6.8-tools-6.8.0-138 linux-hwe-7.0-headers-7.0.0-38\n  linux-hwe-7.0-tools-7.0.0-38 linux-image-6.8.0-134-generic\n  linux-image-generic-hwe-24.04 linux-modules-6.8.0-134-generic\n  linux-modules-extra-6.8.0-134-generic linux-tools-6.8.0-134\n  linux-tools-6.8.0-134-generic lld-14 lld-18 lp-solve mousetweaks\n  nautilus-share network-manager-applet network-manager-gnome\n  networkd-dispatcher nvidia-firmware-580-580.178.04 openjdk-11-jdk\n  openjdk-11-jdk-headless openjdk-21-jdk openjdk-21-jdk-headless\n  perl-modules-5.34 perl-modules-5.38 pocketsphinx-en-us pybind11-dev\n  pyqt5-dev python3-all-dev python3-appdirs python3-beniget python3-colorama\n  python3-fs python3-gast python3-lockfile python3-macaroonbakery\n  python3-markdown python3-netifaces python3-pip-whl python3-py\n  python3-pyatspi python3-pymacaroons python3-pyqt5.qtsvg python3-pyrsistent\n  python3-pythran python3-pytz python3-rfc3339 python3-roman\n  python3-setuptools-whl python3-six python3-tz python3.10 python3.10-dev\n  python3.10-minimal python3.12 python3.12-dev python3.12-minimal qdoc-qt5\n  qhelpgenerator-qt5 qt5-assistant qt6-image-formats-plugins\n  qtattributionsscanner-qt5 qtdeclarative5-dev qtdeclarative5-dev-tools\n  qttools5-dev qttools5-dev-tools qttools5-private-dev samba\n  samba-ad-provision samba-dsdb-modules samba-vfs-ceph samba-vfs-modules\n  session-migration shiboken2 sip-dev software-properties-gtk systemd-dev\n  totem totem-common totem-plugins totem-video-thumbnailer tracker\n  tracker-extract tracker-miner-fs ubuntu-advantage-tools ubuntu-mono\n  vdpau-driver-all x11-apps x11-session-utils xbitmaps xinit xorg\n  xserver-xorg-video-vmware xtl-dev\nUse 'apt autoremove' to remove them.\n0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "fwupdmgr",
+        "get-updates",
+        "--json"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"Devices\": [\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nmcli",
+        "-g",
+        "GENERAL.STATE,GENERAL.CONNECTION",
+        "device",
+        "show",
+        "wlp0s20f3"
+      ],
+      "exit": 0,
+      "stdout": "100 (connected)\nVIGIL-COGROB_ASUS_5G-2\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "powerprofilesctl",
+        "get"
+      ],
+      "exit": 0,
+      "stdout": "balanced\n",
+      "stderr": ""
+    }
+  ],
+  "uefiDbxVersion": "20260707",
+  "dbxEfiSha256": "9ecccdab326ded5df85a0c2df2a8c085302f26fc14557d87f505a5ee6ee5aa75",
+  "quirkSha256": "c7fa848012febafe8ab79ec0b72893a8f2cf29a7182e49fb183213eb0581c9ae",
+  "upstreamQuirkCommit": "3b7eca282bbe6cb4e8d5b4e42f984d2a1679977f",
+  "historicalFwupdState3Preserved": true,
+  "nsightReportBytes": 127681,
+  "nsightReportSha256": "cfe6d76bc4696001f384b5fcc77ceede1bccc0c448ac7503b64ffac5cfb672fd",
+  "nsightProfileStdout": "Collecting data...\nGenerating '/tmp/nsys-cog/nsys-report-5cdf.qdstrm'\n\n[1/1] [0%                          ] nsight-synthetic.nsys-rep\n[1/1] [0%                          ] nsight-synthetic.nsys-rep\n[1/1] [1%                          ] nsight-synthetic.nsys-rep\n[1/1] [2%                          ] nsight-synthetic.nsys-rep\n[1/1] [5%                          ] nsight-synthetic.nsys-rep\n[1/1] [=15%                        ] nsight-synthetic.nsys-rep\n[1/1] [==19%                       ] nsight-synthetic.nsys-rep\n[1/1] [==20%                       ] nsight-synthetic.nsys-rep\n[1/1] [=====32%                    ] nsight-synthetic.nsys-rep\n[1/1] [===========51%              ] nsight-synthetic.nsys-rep\n[1/1] [=======================96%  ] nsight-synthetic.nsys-rep\n[1/1] [========================98% ] nsight-synthetic.nsys-rep\n[1/1] [========================100%] nsight-synthetic.nsys-rep\n[1/1] [========================100%] nsight-synthetic.nsys-rep\nGenerated:\n\t/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/nsight-synthetic.nsys-rep\n",
+  "nsightProfileStderr": "",
+  "scope": "Followup after VLC library/plugins and recognition-data backport; Python3.15rc2 is isolated preview, no production ABI/default changes"
+}

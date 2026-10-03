@@ -72,7 +72,7 @@ if ($skOn) { Write-Host "  >>> StickyKeys is ACTIVE - Shift may be latched/locke
 # Live modifier key state (is a Shift latched down right now?)
 $VK_LSHIFT=0xA0; $VK_RSHIFT=0xA1
 $ls=[Win32.Acc]::GetKeyState($VK_LSHIFT); $rs=[Win32.Acc]::GetKeyState($VK_RSHIFT)
-Write-Host ("  GetKeyState LSHIFT=0x{0:X4} RSHIFT=0x{1:X4} (low bit set = currently down/latched)" -f ($ls -band 0xFFFF),($rs -band 0xFFFF))
+Write-Host ("  GetKeyState LSHIFT=0x{0:X4} RSHIFT=0x{1:X4} (high bit = down; low bit = toggled; calling-thread queue state)" -f ($ls -band 0xFFFF),($rs -band 0xFFFF))
 
 Write-Host "`n===== KEYBOARD REMAP CAUSES (flags can't explain these) =====" -ForegroundColor Cyan
 $scm = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layout' -Name 'Scancode Map' -ErrorAction SilentlyContinue).'Scancode Map'
@@ -103,4 +103,4 @@ $sk2 = New-Object Win32.Acc+STICKYKEYS; $sk2.cbSize=[uint32][System.Runtime.Inte
 Write-Host ("  FilterKeys dwFlags=0x{0:X} ON={1}" -f $fk2.dwFlags,[bool]($fk2.dwFlags -band $FKF_ON))
 Write-Host ("  StickyKeys dwFlags=0x{0:X} ON={1}" -f $sk2.dwFlags,[bool]($sk2.dwFlags -band $FKF_ON))
 Write-Host "`nDone. FilterKeys/StickyKeys/ToggleKeys are OFF in the live session and persisted." -ForegroundColor Green
-Write-Host "If Shift is STILL broken, the cause is a remap (see above) or hardware - not accessibility." -ForegroundColor Yellow
+Write-Host "If Shift still fails, capture the exact trial and recheck live state; this reset does not identify its cause." -ForegroundColor Yellow

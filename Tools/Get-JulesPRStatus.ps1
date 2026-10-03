@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    PR triage dashboard for jules[bot] pull requests with CI status.
+    PR triage dashboard for pull requests Jules contributed to, with CI status.
 .PARAMETER State
     Lifecycle filter: open (default), closed, merged, all.
 .PARAMETER Format
@@ -15,7 +15,14 @@ param(
     [string]$State = 'open',
 
     [ValidateSet('Table', 'Json')]
-    [string]$Format = 'Table'
+    [string]$Format = 'Table',
+
+    # Most recent PRs fetched before the Jules filter is applied. Capped at 40:
+    # `gh pr list --json commits` asks for commits(100) x authors(100) per PR,
+    # plus ~102 status-check nodes, about 10,200 nodes per PR, and GitHub rejects
+    # queries over 500,000 nodes (50 PRs = 510,100). 40 leaves headroom.
+    [ValidateRange(1, 40)]
+    [int]$Limit = 40
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,18 +32,24 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     throw 'gh CLI is not on PATH. Install from https://cli.github.com/ and authenticate with `gh auth login`.'
 }
 
-# 2. Fetch PRs authored by jules[bot]
-$fields = 'number,title,state,mergeable,statusCheckRollup,changedFiles,headRefName,createdAt,url'
-$raw = gh pr list --state $State --author 'jules[bot]' --json $fields 2>&1
+# 2. Fetch PRs and keep those Jules contributed to. Jules opens PRs under the
+#    repository owner's account, so the PR author is never jules; the stable
+#    marker is a commit authored by google-labs-jules[bot].
+$julesLogin = 'google-labs-jules[bot]'
+$fields = 'number,title,state,mergeable,statusCheckRollup,changedFiles,headRefName,createdAt,url,commits'
+$raw = gh pr list --state $State --limit $Limit --json $fields 2>&1
 if ($LASTEXITCODE -ne 0) {
     throw "gh pr list failed: $raw"
 }
 
-$parsed = $raw | ConvertFrom-Json -ErrorAction SilentlyContinue
-[array]$prs = if ($parsed) { @($parsed) } else { @() }
+$parsed = ($raw | Out-String) | ConvertFrom-Json -ErrorAction SilentlyContinue
+[array]$prs = @($parsed | Where-Object {
+        $_ -and @($_.commits | ForEach-Object { $_.authors.login }) -contains $julesLogin
+    })
 
 # 3. Handle empty result
 if ($prs.Count -eq 0) {
+    if ($Format -eq 'Json') { return '[]' }
     Write-Output "No Jules PRs found (state=$State)."
     return
 }
@@ -68,7 +81,8 @@ $results = $prs | ForEach-Object {
 
 # 6. Output
 if ($Format -eq 'Json') {
-    $results | ConvertTo-Json -Depth 3
+    # -InputObject keeps a single PR wrapped in an array.
+    ConvertTo-Json -InputObject @($results) -Depth 3
 } else {
     $results | Format-Table PR, Title, State, Mergeable, CI, Files, Branch, Created -AutoSize
     Write-Output "  URL lookup: pipe with -Format Json or access .URL property directly."

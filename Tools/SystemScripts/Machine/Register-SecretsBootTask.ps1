@@ -4,16 +4,13 @@
 .DESCRIPTION
     Creates a scheduled task that runs Initialize-SecretsAtBoot.ps1 at user logon
 .NOTES
-    Run this script once with administrator privileges to register the task
+    Registers a Limited-privilege task for the current user; no elevation is needed.
 #>
 
 $taskName = "Initialize-MachineSecrets"
 $taskPath = "\Bitwarden\"
 $scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $scriptPath = Join-Path $scriptRoot "Initialize-SecretsAtBoot.ps1"
-
-# Check if running as admin (recommended but not required)
-$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 Write-Host "=== Registering Secrets Boot Task ===" -ForegroundColor Cyan
 Write-Host ""
@@ -27,7 +24,11 @@ if ($existingTask) {
 }
 
 # Create the action
-$action = New-ScheduledTaskAction -Execute "pwsh.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`" -Silent" -WorkingDirectory $scriptRoot
+# Absolute path from the running PowerShell. A bare "pwsh.exe" is resolved
+# through the user's PATH at every logon, where user folders such as ~\bin
+# come early and could shadow it; this costs nothing in convenience.
+$pwshPath = Join-Path $PSHOME 'pwsh.exe'
+$action = New-ScheduledTaskAction -Execute $pwshPath -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`" -Silent" -WorkingDirectory $scriptRoot
 
 # Create the trigger - at user logon
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME

@@ -2,22 +2,28 @@
 
 Reusable toolkit for the **Shift-key / trackpad / fingerprint freezing & glitching**
 investigation on this machine (Lenovo **ThinkPad P1 Gen 7**, Win 11 26200, 64 GB RAM).
-Created 2026-05-30. All findings grounded in the Microsoft docs linked below.
+Created 2026-05-30; diagnostic interpretation corrected 2026-09-12.
 
-## TL;DR diagnosis (two unrelated tiers)
+## Current keyboard investigation: unresolved
 
-| Tier | Symptom | Root cause (evidence) | Confidence |
-|------|---------|------------------------|------------|
-| **2 — chronic** (your real complaint) | Everyday Shift + trackpad + fingerprint glitches | **Login storm** (40+ autostarts incl. Docker/Ollama/LM Studio/4× cloud-sync/6× USB-audio panels) + **USB selective suspend ON (AC+DC)** + **pro-audio ASIO DPC-latency** + **accidental FilterKeys/StickyKeys hotkeys** (`DelayBeforeAcceptance=1000ms`) | High |
-| **1 — acute** (one bad evening) | Total hard freezes | **5/29 only**: 6× `Kernel-Power 41` in 32 min + 7× `nvlddmkm` + 1 WHEA corrected HW error, **no crash dump** despite dumps enabled. *Not* chronic (0 other days in 90d). Hardware-vs-software undecidable without a dump. | Medium |
+The user confirms failures of other keys or the whole internal keyboard while an
+external USB keyboard worked normally during a recent failure. Root cause remains
+unestablished. Prepare fixed-input trials across the keyboard; modifiers-only captures
+cannot characterize this broader symptom. Prior declarations
+of software exoneration, hardware failure and a proven typing-timing explanation were
+not justified. Short successful captures cannot exclude intermittent faults; a healthy
+PnP status or empty error log does not validate key delivery. See the
+[September investigation](../../Reports/keyboard-investigation-20260912/README.md).
 
-### What was **ruled out**
-- **Process Lasso** — *exonerated*. Live `prolasso.ini` shields `dwm.exe`/`explorer.exe` from ProBalance, no throttle/affinity rules on input/UI processes. It protects interactivity.
-- **OneDrive** — minor I/O-filter overhead only.
-- **GPU TDR** — *no* `Display` 4101/4109 events in 30d, so the `nvlddmkm 14` entries are **not** classic TDR.
+Prior workload, power, display and startup observations are useful hypotheses. They
+require symptom-correlated measurements and controlled interventions before attribution.
+The working USB control prioritizes the internal device/path, while device-specific
+software effects remain possible; instrument this user-reported contrast next.
 
-### Device topology (why Shift + trackpad freeze *together*)
-Keyboard = `ACPI\LEN0071` (EC), TrackPoint = `ACPI\LEN032A`, Touchpad = Synaptics **I2C-HID** `SNSL002D`, Fingerprint = Synaptics **USB** `VID_06CB`. Keyboard and touchpad are on **different buses**, so a single hardware fault can't freeze both — the co-freeze must be **system-wide** (DPC latency / contention).
+### Device topology
+Keyboard = `ACPI\LEN0071` (PS/2), TrackPoint = `ACPI\LEN032A`, touchpad = Sensel
+I2C-HID `SNSL002D`, fingerprint = Synaptics USB `VID_06CB`. Different buses help
+localize tests; they do not prove independent causes or exclude shared system effects.
 
 ## Scripts
 
@@ -27,9 +33,10 @@ Keyboard = `ACPI\LEN0071` (EC), TrackPoint = `ACPI\LEN032A`, Touchpad = Synaptic
 | `Repair-InputStackQuickWins.ps1` | Applies the safe, reversible fixes (backup + `-Revert`). | Yes (HKCU part works without) |
 | `Start-LoadCapture.ps1` | Native `powercfg` thermal/power/latency capture during heavy ML load; drives HWiNFO/LatencyMon if installed. | Yes |
 | `Test-KeyInput.ps1` | Passive WH_KEYBOARD_LL monitor for Shift-key press/release events. Device-AGNOSTIC (sees the merged stream). Use interactively while reproducing the Shift symptom. | No |
-| `Trace-ShiftKeySource.ps1` | **Device-AWARE** Raw Input (WM_INPUT/RIDEV_INPUTSINK) trace: tags every key event with its source device and classifies INTERNAL (`ACPI\LEN0071`) vs USB/HID. The decisive discriminator for "internal Shift intermittent but USB Shift always works" — proves whether the internal Shift scancode reaches Windows. Writes a live JSONL + final JSON to `Logs\input-diagnostics`. **Must run FOREGROUND** (a background `Start-Job` runspace has no interactive desktop and captures nothing). | No |
-| `Measure-ShiftOrdering.ps1` | Per-device Shift/letter ORDERING metric on a `shift-source-live-*.jsonl`: for each shifted letter, computes `letterDown - shiftDown` ms; negative = letter-before-shift (the timing-race signature). Reports failure rate per device for internal-vs-USB comparison. | No |
-| `Analyze-ShiftTrace.ps1` | Reconstructs the typed text from a capture with raw Shift state applied, and counts Shift make/break balance — used to expose stuck-shift / dropped-key-up vs auto-repeat. | No |
+| `Trace-ShiftKeySource.ps1` | Device-attributed Raw Input observations from an interactive desktop. Runs unfocused through INPUTSINK; verifies neither physical intent nor application output. Default captures modifiers; `-AllKeys` can reveal typed content, so use controlled test input. | No |
+| `Measure-ShiftOrdering.ps1` | Compatibility entrypoint to the conservative Shift-state analyzer; the former timing/failure heuristic is retired. | No |
+| `Analyze-ShiftTrace.ps1` | Per-device/side Shift state and repeat/boundary aggregates. Does not reconstruct typed content or infer hardware loss from make/break counts. | No |
+| `Get-KeyboardDiagnosticSnapshot.ps1` | Repeatable sanitized snapshot with explicit probe failures, current accessibility/software/device/driver evidence; no key capture or device changes. | No |
 | `Watch-InputGlitch.ps1` | Read-only symptom ledger and snapshot tool for Shift/touchpad co-freeze events. Use before/after driver or firmware changes. | No |
 | `Test-NvidiaDualGpuDriverHealth.ps1` | Read-only NVIDIA internal/eGPU health check; reports driver-version split, Code 31, `nvidia-smi`, local NVIDIA App/update artifacts, and can fail automation with `-FailOnIssue`. | No |
 | `Repair-TouchpadPowerManagement.ps1` | Applies/reverts the targeted Sensel `SNSL002D` + Intel `7E78` I2C power-down fix when `Watch-InputGlitch.ps1` shows `CanPowerDown=true`; opt-in `-IncludeHumanPresenceSensor` also hardens the nearby Elliptic `VEN_ELAS&DEV_B41A` sensor when WUDF timeouts implicate it. | Yes |
@@ -61,6 +68,9 @@ pwsh -File .\Test-NvidiaDualGpuDriverHealth.ps1 -FailOnIssue
 pwsh -File .\Test-KeyInput.ps1 -Seconds 20
 #   ...device-aware (which keyboard?) — run in background, reproduce in your real app:
 pwsh -File .\Trace-ShiftKeySource.ps1 -Seconds 45        # -AllKeys to log every key
+pwsh -NoProfile -File .\Trace-ShiftKeySource.ps1 -Seconds 45 -NavigationKeys
+# Modifiers + arrows/Home/End/Page/Insert/Delete only; no ordinary typing.
+# Compare labeled native/USB trials and app results; inspect JSON health counters.
 
 # 6. Keep a before/after symptom ledger for touchpad + Shift fixes:
 pwsh -File .\Watch-InputGlitch.ps1 -Mode Snapshot -Symptom none

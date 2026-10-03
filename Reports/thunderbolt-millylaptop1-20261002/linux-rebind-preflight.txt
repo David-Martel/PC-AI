@@ -1,0 +1,42 @@
+NHI driver=/sys/bus/pci/drivers/thunderbolt
+LAN device=/sys/devices/pci0000:00/0000:00:1d.0/0000:20:00.0/0000:21:02.0/0000:48:00.0/usb4/4-1/4-1:2.0
+TB topology
+domain0
+0-0
+PCI parentage
+-[0000:00]-+-00.0
+           +-01.0-[01-05]--+-00.0
+           |               \-00.1
+           +-02.0
+           +-04.0
+           +-14.0
+           +-14.2
+           +-14.3
+           +-15.0
+           +-16.0
+           +-16.3
+           +-1c.0-[1c]--
+           +-1c.4-[0a]----00.0
+           +-1d.0-[20-6d]----00.0-[21-6d]--+-00.0-[22]----00.0
+           |                               +-01.0-[23-47]--
+           |                               +-02.0-[48]----00.0
+           |                               \-03.0-[49-6d]--
+           +-1d.4-[07]----00.0
+           +-1f.0
+           +-1f.3
+           +-1f.4
+           \-1f.5
+ESRT firmware classes
+/sys/firmware/efi/esrt/entries/entry0 4e88068b-41b2-4e05-893c-db0b43f7d348 70162
+/sys/firmware/efi/esrt/entries/entry1 69585d92-b50a-4ad7-b265-2eb1ae066574 1
+/sys/firmware/efi/esrt/entries/entry10 f2848377-3062-4b07-acd3-ed0d213cd4f5 17006593
+/sys/firmware/efi/esrt/entries/entry11 2be5b026-5c79-4bf5-8651-811b805d70af 1
+/sys/firmware/efi/esrt/entries/entry12 d77726f7-2944-4e57-af12-7181cb8db37e 66305
+/sys/firmware/efi/esrt/entries/entry2 76ca0ad8-4a14-4389-b7e5-fd88791762ad 1
+/sys/firmware/efi/esrt/entries/entry3 626d93db-2c42-48c3-915a-71f968a81b04 1
+/sys/firmware/efi/esrt/entries/entry4 7c8c8f35-30c9-0050-1a00-5d471111746b 4361
+/sys/firmware/efi/esrt/entries/entry5 54cb734c-975c-4a74-9556-57ae6d9a2229 196608
+/sys/firmware/efi/esrt/entries/entry6 d72bd93d-099b-4d2b-8b71-0e5d49f72976 18417740
+/sys/firmware/efi/esrt/entries/entry7 dac9c0a3-a120-4992-a784-d097c0d2e3f8 4
+/sys/firmware/efi/esrt/entries/entry8 e286e826-12ed-41fd-9417-2f47d31f4bcb 131072
+/sys/firmware/efi/esrt/entries/entry9 cb2fc5ab-1304-45a7-8c87-df6a526c1471 18417740

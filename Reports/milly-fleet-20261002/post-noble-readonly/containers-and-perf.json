@@ -1,0 +1,33 @@
+{
+  "runtimeCaches": [
+    {
+      "path": "/home/cog/.cache/pcai/ui-validation",
+      "directories": [
+        "reproducible-codec"
+      ],
+      "venvs": []
+    },
+    {
+      "path": "/home/cog/.cache/pcai/milly-display-readiness-20261002",
+      "directories": [],
+      "venvs": []
+    },
+    {
+      "path": "/home/cog/.cache/pcai/ros-container-validation",
+      "directories": [
+        "20261002T205113Z"
+      ],
+      "venvs": []
+    }
+  ],
+  "podmanImages": {
+    "exit": 0,
+    "stdout": "[\n    {\n        \"Id\": \"bec94f16b7711f3e2d9f3b0bc641a3515190c0377ce50ef249fd81f19be415d1\",\n        \"ParentId\": \"\",\n        \"RepoTags\": null,\n        \"RepoDigests\": [\n            \"docker.io/library/ros@sha256:16d9b64d0bee68954a46be5c0d039802fe58da834758d8a9de6e4e03216d9923\",\n            \"docker.io/library/ros@sha256:f79cd486fa218596747c45d00ca42101b0303fc6d94ed5adb72145cd6f54b86c\"\n        ],\n        \"Size\": 1053922069,\n        \"SharedSize\": 0,\n        \"VirtualSize\": 1053922069,\n        \"Labels\": {\n            \"org.opencontainers.image.created\": \"2026-09-27T10:25:52.887617+00:00\",\n            \"org.opencontainers.image.description\": \"The Ubuntu container image maintained by Canonical\\n\\nUbuntu is a Debian-based Linux operating system that runs from the desktop to the cloud, to all your internet connected things.\\nIt is the world's most popular operating system across public clouds and OpenStack clouds.\\nIt is the number one platform for containers; from Docker to Kubernetes to LXD, Ubuntu can run your containers at scale.\\nFast, secure and simple, Ubuntu powers millions of PCs worldwide.\\n\",\n            \"org.opencontainers.image.title\": \"ubuntu\",\n            \"org.opencontainers.image.version\": \"26.04\"\n        },\n        \"Containers\": 0,\n        \"Names\": [\n            \"docker.io/library/ros:lyrical-ros-base-resolute\"\n        ],\n        \"Digest\": \"sha256:f79cd486fa218596747c45d00ca42101b0303fc6d94ed5adb72145cd6f54b86c\",\n        \"History\": [\n            \"docker.io/library/ros:lyrical-ros-base-resolute\"\n        ],\n        \"Created\": 1790908261,\n        \"CreatedAt\": \"2026-10-02T02:31:01Z\"\n    },\n    {\n        \"Id\": \"04b9d24bad695363d48418c1109d23e9738774b88a2017ec6d01ff9df4c3072c\",\n        \"ParentId\": \"\",\n        \"RepoTags\": null,\n        \"RepoDigests\": [\n            \"docker.io/library/ros@sha256:066420e07f60aa18262f2479981def87ebcfcec42eefb0c0c57c4a46098348ca\",\n            \"docker.io/library/ros@sha256:a5426de405f6f0a82b0f3def3bbd3bce2a71a91421fe980c17613b4e51ef38d9\"\n        ],\n        \"Size\": 918676541,\n        \"SharedSize\": 0,\n        \"VirtualSize\": 918676541,\n        \"Labels\": {\n            \"org.opencontainers.image.version\": \"24.04\"\n        },\n        \"Containers\": 0,\n        \"Names\": [\n            \"docker.io/library/ros:jazzy-ros-base-noble\"\n        ],\n        \"Digest\": \"sha256:066420e07f60aa18262f2479981def87ebcfcec42eefb0c0c57c4a46098348ca\",\n        \"History\": [\n            \"docker.io/library/ros:jazzy-ros-base-noble\"\n        ],\n        \"Created\": 1790908250,\n        \"CreatedAt\": \"2026-10-02T02:30:50Z\"\n    },\n    {\n        \"Id\": \"018ec4498c12c5b2d240c86c4c5cfc077be58d1824fdb7fd88470e1a88481c5d\",\n        \"ParentId\": \"\",\n        \"RepoTags\": null,\n        \"RepoDigests\": [\n            \"ghcr.io/astral-sh/uv@sha256:1ef55995db4c39f741868196311a3a670a338aaa8e71322dcc38131de1c17cc4\",\n            \"ghcr.io/astral-sh/uv@sha256:50c2c6427e32b25d5cf49cb4062236d1e98abff52b1c8d06d0251d7a0708b51d\"\n        ],\n        \"Size\": 1189025969,\n        \"SharedSize\": 0,\n        \"VirtualSize\": 1189025969,\n        \"Labels\": {\n            \"org.opencontainers.image.created\": \"2026-10-01T23:42:10.720Z\",\n            \"org.opencontainers.image.description\": \"An extremely fast Python package and project manager, written in Rust.\",\n            \"org.opencontainers.image.licenses\": \"Apache-2.0\",\n            \"org.opencontainers.image.revision\": \"70fe1196a546e49148a73b1c592b2f74c33af80e\",\n            \"org.opencontainers.image.source\": \"https://github.com/astral-sh/uv\",\n            \"org.opencontainers.image.title\": \"uv\",\n            \"org.opencontainers.image.url\": \"https://github.com/astral-sh/uv\",\n            \"org.opencontainers.image.version\": \"0.12.22-python3.13-trixie\"\n        },\n        \"Containers\": 0,\n        \"Names\": [\n            \"ghcr.io/astral-sh/uv:python3.13-trixie\"\n        ],\n        \"Digest\": \"sha256:1ef55995db4c39f741868196311a3a670a338aaa8e71322dcc38131de1c17cc4\",\n        \"History\": [\n            \"ghcr.io/astral-sh/uv:python3.13-trixie\"\n        ],\n        \"Created\": 1790898161,\n        \"CreatedAt\": \"2026-10-01T23:42:41Z\"\n    }\n]\n",
+    "stderr": ""
+  },
+  "perfVersion": {
+    "exit": 0,
+    "stdout": "perf version 7.0.14\n",
+    "stderr": ""
+  }
+}

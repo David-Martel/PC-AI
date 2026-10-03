@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+import datetime,hashlib,json,os,pathlib,subprocess,sys,time
+base=pathlib.Path('/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation')
+base.mkdir(mode=0o700,exist_ok=True)
+checks=[]
+def run(name,argv,timeout=50,env=None,expected=0):
+ t=time.monotonic()
+ p=subprocess.run(argv,text=True,capture_output=True,timeout=timeout,env=env)
+ row={'name':name,'argv':argv,'exit':p.returncode,'expectedExit':expected,'elapsedSeconds':round(time.monotonic()-t,4),'stdout':p.stdout,'stderr':p.stderr}
+ checks.append(row)
+ print(name,p.returncode,flush=True)
+ return p
+run('os',['cat','/etc/os-release'])
+run('kernel',['uname','-r'])
+run('system-python',['python3','--version'])
+run('ssh',['ssh','-V'])
+run('sudo',['sudo','-n','id','-u'])
+run('dpkg-audit',['sudo','-n','dpkg','--audit'])
+run('apt-check',['sudo','-n','apt-get','check'])
+run('pending-packages',['apt-get','-s','dist-upgrade'])
+run('services',['systemctl','is-active','ssh','NetworkManager','gdm3','fstrim.timer'])
+run('gpu',['nvidia-smi','--query-gpu=name,driver_version,memory.total,temperature.gpu,power.limit','--format=csv,noheader'])
+run('dkms',['dkms','status'])
+run('network',['ip','-brief','address'])
+run('thunderbolt',['bash','-c','ls /sys/bus/thunderbolt/devices; ip -brief link'])
+run('nvme-health',['sudo','-n','nvme','smart-log','/dev/nvme0'])
+run('nvme-controller',['sudo','-n','nvme','id-ctrl','/dev/nvme0'])
+run('firmware-devices',['sudo','-n','fwupdmgr','get-devices','--json'])
+run('firmware-history',['sudo','-n','fwupdmgr','get-history','--json'])
+run('firmware-pending',['sudo','-n','fwupdmgr','get-updates','--json'],expected=2)
+run('obs-version',['obs','--version'])
+run('nsight-version',['nsys','--version'])
+run('container-toolkit',['nvidia-ctk','--version'])
+run('cdi-service',['systemctl','status','nvidia-cdi-refresh.service','--no-pager'],expected=3)
+run('cdi-list',['nvidia-ctk','cdi','list'])
+run('clangd',['clangd','--version'])
+run('lldb',['lldb','--version'])
+run('fio',['fio','--version'])
+run('snap-refresh',['snap','refresh','--list'])
+run('filesystem',['df','-h','/'])
+run('sessions',['loginctl','list-sessions','--no-legend'])
+run('developer-tools',['bash','-c','export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"; for x in uv rustc cargo sccache cargo-nextest just cmake ninja; do "$x" --version || exit; done'])
+# Commands may legitimately use diagnostic exit2/3; keep every observation, not a blanket passing claim.
+receipt={'observedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'host':os.uname().nodename,'scope':'Post595+SSD+dbx reboot component discovery before rendering/GUI acceptance','checks':checks}
+(base/'system.json').write_text(json.dumps(receipt,indent=2)+'\n')
+for row in checks:
+ if row['name'].startswith('firmware-'):
+  try:
+   obj,end=json.JSONDecoder().raw_decode(row['stdout'].lstrip())
+   (base/(row['name']+'-parsed.json')).write_text(json.dumps({'decodedFirstJsonObject':obj,'trailingHumanText':row['stdout'].lstrip()[end:]},indent=2)+'\n')
+  except json.JSONDecodeError as e:
+   print(row['name'],'not JSON:',e)
+print('receipt',base/'system.json')

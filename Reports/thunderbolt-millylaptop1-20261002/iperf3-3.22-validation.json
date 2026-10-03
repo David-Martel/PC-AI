@@ -1,0 +1,46 @@
+{
+  "observedUtc": "2026-10-02T20:32:50.255096+00:00",
+  "sourceUrl": "https://downloads.es.net/pub/iperf/iperf-3.22.tar.gz",
+  "sourceSha256": "1c0d0fb02c52626111d6e132db80edfbf27bbaff8bd9245df2a371dcb0b35a92",
+  "prefix": "/opt/pcai/iperf3/3.22",
+  "binarySha256": "3afa5115fb801951b076759abc5eef799bbabad8c630d8eacb6476c020c8e7ab",
+  "packagedBinaryPreserved": "/usr/bin/iperf3",
+  "buildWarnings": 0,
+  "upstreamTests": {
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0
+  },
+  "loopbackValidation": [
+    {
+      "direction": "forward",
+      "streams": 4,
+      "bytesReceived": 233896673280,
+      "receiverBitsPerSecond": 264628998110.71555,
+      "endpoint": "127.0.0.1",
+      "listenerCleanedUp": true
+    },
+    {
+      "direction": "reverse",
+      "streams": 4,
+      "bytesReceived": 68237787136,
+      "receiverBitsPerSecond": 272805470422.79422,
+      "endpoint": "127.0.0.1",
+      "listenerCleanedUp": true
+    }
+  ],
+  "physicalThroughputMeasured": false,
+  "freshNoninteractiveSshExecutable": "/usr/local/bin/iperf3",
+  "freshNoninteractiveSshResolvedExecutable": "/opt/pcai/iperf3/3.22/bin/iperf3",
+  "freshNoninteractiveSshVersion": "3.22",
+  "serviceState": {
+    "loadState": "not-found",
+    "activeState": "inactive",
+    "createdOrStarted": false
+  },
+  "packagedBinarySha256": "2c54c89b4d9016b9fe59ba83518348477fb290fdb6fc7ae12cb6773ecb9b1910",
+  "notes": [
+    "Loopback validation does not measure the physical Thunderbolt path.",
+    "New isolated build supports POSIX threads and GSO/GRO; SCTP is absent because optional SCTP development libraries were not installed."
+  ]
+}

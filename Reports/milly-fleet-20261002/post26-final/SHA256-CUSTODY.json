@@ -1,0 +1,127 @@
+{
+  "schema": "pcai.post26-artifact-custody.v1",
+  "observedUtc": "2026-10-03T02:05:26.8035127Z",
+  "scope": "Root-owned final receipts/captured sources. Frozen bytes preserved; qualified-result explains corrected scope. Local copies of private reviewer and authenticated SSH receipts.",
+  "artifacts": [
+    {
+      "relativePath": "cog-desktop-login.json",
+      "bytes": 310,
+      "sha256": "0e7217cb051b2c2a26d40e41ec0a85d5bea87423d0e9d0abaa9da03bd446a77e"
+    },
+    {
+      "relativePath": "dbx-entry-comparison.json",
+      "bytes": 4261,
+      "sha256": "ff318e3c102abffdb1ec3c625b38166de3f62f4a286d21b01122f9196523eda1"
+    },
+    {
+      "relativePath": "dbx-entry-review.json",
+      "bytes": 17412,
+      "sha256": "125ac2bae178a9f2d325dc87de746914148c30fc56a13a60cf3c608023a7ca0e"
+    },
+    {
+      "relativePath": "dbx-parser-source.py.txt",
+      "bytes": 4692,
+      "sha256": "84020d80ec9c2b18752597d8d9eb93b8d3f845c4a55dad5d036a98be926b8602"
+    },
+    {
+      "relativePath": "dbx-parser-tests.py.txt",
+      "bytes": 1787,
+      "sha256": "3a4fbc668cb956904a7e289a3791e42040b1c72d1efa526bb2e495ee0b116dac"
+    },
+    {
+      "relativePath": "desktop-stability-review.json",
+      "bytes": 8520,
+      "sha256": "db6d6ea6f81d5caf115a6f78286d22a01d66c03da4c25b1d7feddc94689c15b3"
+    },
+    {
+      "relativePath": "final-followup-source.py.txt",
+      "bytes": 2538,
+      "sha256": "99064ef5cea9a18041fa55f2c3a7d7f9eee73b4cd8517626d492fc846d6fb219"
+    },
+    {
+      "relativePath": "final-followup.json",
+      "bytes": 16117,
+      "sha256": "1933e2e333e0b5474ab49813fa068e2a42e896abab4be7bbde9a4944d3128d7b"
+    },
+    {
+      "relativePath": "functional-corrections-source.py.txt",
+      "bytes": 2279,
+      "sha256": "f93d0be82cc923cec224871deac928b3117649432ecd1d52ba665f4552617fdc"
+    },
+    {
+      "relativePath": "functional-corrections.json",
+      "bytes": 8155,
+      "sha256": "a11cba8b23cf04bd312d78551ea154d4ec4af9179e5c618401b16320ea6d5c13"
+    },
+    {
+      "relativePath": "functional-first-attempt.json",
+      "bytes": 19948,
+      "sha256": "a74b58abe2f7feeb5dd6745cd833ff46b59397bbe6d6b72df5d3438ef834c695"
+    },
+    {
+      "relativePath": "functional-source.py.txt",
+      "bytes": 5035,
+      "sha256": "ea3ce6ca18c5f7295a77c8d6e136cf21826a9df39f632b57e6dc083fa8c6fd7e"
+    },
+    {
+      "relativePath": "fwupd-20260707.quirk.txt",
+      "bytes": 202,
+      "sha256": "c7fa848012febafe8ab79ec0b72893a8f2cf29a7182e49fb183213eb0581c9ae"
+    },
+    {
+      "relativePath": "fwupd-after-recognition-data.json.txt",
+      "bytes": 48153,
+      "sha256": "06297c69b3fe829230cabf4b5e42bfd7f24d809dfbe80ecc70c594f100a89c96"
+    },
+    {
+      "relativePath": "obs-recheck-source.py.txt",
+      "bytes": 1603,
+      "sha256": "66d7d7749226c3e0c18bd3f83df704748bdb332638dd0b5014f3118318ab2ee4"
+    },
+    {
+      "relativePath": "obs-startup-first-attempt.json",
+      "bytes": 9015,
+      "sha256": "05691367a255349bb69d6d569ed586b5385de4b8a1ed58507edee0e365f08e7c"
+    },
+    {
+      "relativePath": "obs-startup-second-attempt.json",
+      "bytes": 6828,
+      "sha256": "533a88ef83f63f582f9bf1c3ea0022a99f636a2f7b0b14781c09e6daa374a74c"
+    },
+    {
+      "relativePath": "obs-startup-source.py.txt",
+      "bytes": 1383,
+      "sha256": "f1a3c2744e09272cc957b46cc339ef126c3cdd2a1bc46ca319a36961afa3f249"
+    },
+    {
+      "relativePath": "post-os-home-review.json",
+      "bytes": 13867,
+      "sha256": "f44cf1a1036efd78b2b7c518c5960725c7c407ee2c75815a42e5ef44c90385fe"
+    },
+    {
+      "relativePath": "qualified-result.json",
+      "bytes": 3948,
+      "sha256": "37a6d2f0e17539819b6c38fb229969417032ef95e8af0dbcc3d0cb5130a2733f"
+    },
+    {
+      "relativePath": "ros-test-source.py.txt",
+      "bytes": 920,
+      "sha256": "f4234956b4b0eebd885905ee3097e5dd562e3f42c4fe3969589f1b749fde3e95"
+    },
+    {
+      "relativePath": "system-source.py.txt",
+      "bytes": 3118,
+      "sha256": "34f2f7b380dfbf2191e4e9b4589ad17bd94d67bbb8cea651d707a325f910f865"
+    },
+    {
+      "relativePath": "system.json",
+      "bytes": 152581,
+      "sha256": "9a22d1feee3f3453fcb17aba3791cda47ea69090f21093f4dd250a9e3535d0a7"
+    },
+    {
+      "relativePath": "vigil-widget.json",
+      "bytes": 2308,
+      "sha256": "a81e292e37d8299c5013f816308384bed5d37a1c82471a0a9a45e47f80c341b3"
+    }
+  ]
+}

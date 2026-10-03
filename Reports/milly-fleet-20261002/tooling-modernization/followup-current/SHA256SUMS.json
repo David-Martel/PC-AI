@@ -1,0 +1,26 @@
+{
+  "schema": "vigil.artifact-sha256-manifest.v1",
+  "createdAt": "2026-10-03T00:02:55.6711278Z",
+  "files": [
+    {
+      "path": "tpm-toolchain-modernization-review-2026-10-02.md",
+      "bytes": 12681,
+      "sha256": "e2feaf147c7d4615aff0e0f1e97d49325ac9eb72e1312cfb1aa6e57966783a89"
+    },
+    {
+      "path": "git-guard-version-adapter-RECEIPT.json",
+      "bytes": 3562,
+      "sha256": "020ce74f1a7885fc8f16107aabf9d7c8ccede129808d4f216f6996f13dd1daa4"
+    },
+    {
+      "path": "spark-shadow-SHADOW-RECEIPT.json",
+      "bytes": 2895,
+      "sha256": "65709aae6f96e2fe6a707aa4502953ce61d51be25007635a4155bafd6c44d7c7"
+    },
+    {
+      "path": "SOURCE_BINDINGS.json",
+      "bytes": 4468,
+      "sha256": "d24366b22b8ebb563e915994a0d5d5ed2c595067646f149a0e8780ad2868499c"
+    }
+  ]
+}

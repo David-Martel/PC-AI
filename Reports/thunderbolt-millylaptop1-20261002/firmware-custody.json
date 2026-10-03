@@ -1,0 +1,37 @@
+[
+  {
+    "File": "firmware-staging/Lenovo-ThinkPad-P16Gen2-SystemFirmware-2.00.cab",
+    "Source": "https://fwupd.org/downloads/1e5bab9a315b9e57a779dc4f2c7faa62251a5b51e0a3cc89a265fee072384993-Lenovo-ThinkPad-P16Gen2-SystemFirmware-2.00.cab",
+    "State": "Installed and verified BIOS2.00",
+    "SizeBytes": 28875284,
+    "Sha256": "1e5bab9a315b9e57a779dc4f2c7faa62251a5b51e0a3cc89a265fee072384993"
+  },
+  {
+    "File": "firmware-staging/Lenovo-ThinkPad-P16Gen2-EmbeddedControllerFirmware-1.50.cab",
+    "Source": "LVFS trusted metadata in thinkpad-firmware-plan.json",
+    "State": "Not applied; EC GUID absent after BIOS update; current combined package EC1.58",
+    "SizeBytes": 1184528,
+    "Sha256": "814be1e5d51644e5d72e6576f7ebd1f80ef9207a27d4170da51e475dcd1f2919"
+  },
+  {
+    "File": "firmware-staging/n3tur13w.iso",
+    "Source": "https://download.lenovo.com/pccbbs/mobiles/n3tur13w.iso",
+    "State": "Staged locally and on ThinkPad; checksum verified; not booted",
+    "SizeBytes": 68530176,
+    "Sha256": "1099918bf220309c21a7bfa0febf6052d60f1e3ec8a48fbf57c3d64e8904650a"
+  },
+  {
+    "File": "firmware-staging/CalDigit-TBT-Firmware-Updater-v7.5.zip",
+    "Source": "https://downloads.caldigit.com/CalDigit-TBT-Firmware-Updater-v7.5.zip",
+    "State": "Signed updater inspected; Element5 not enumerated; no flash",
+    "SizeBytes": 38948515,
+    "Sha256": "cb674c099481d2f91b20a0630d8ba07f98721daf7119e665fbecba88b9a89476"
+  },
+  {
+    "File": "firmware-staging/unpacked/CalDigit-TBT-Firmware-Updater-v7.5/Element5-Hub/v71.71/CalDigit_Element5_Hub_71.71.bin",
+    "Source": "Official CalDigit updater archive",
+    "State": "Staged; correct product file only; not flashed",
+    "SizeBytes": 590336,
+    "Sha256": "e1ae72992a6b9f6dddd3c11d97740660815641484262560b8d691de9184bdf1b"
+  }
+]

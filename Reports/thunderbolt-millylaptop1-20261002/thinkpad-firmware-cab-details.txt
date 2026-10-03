@@ -1,0 +1,145 @@
+814be1e5d51644e5d72e6576f7ebd1f80ef9207a27d4170da51e475dcd1f2919  /home/cog/.cache/pcai/firmware/Lenovo-ThinkPad-P16Gen2-EmbeddedControllerFirmware-1.50.cab
+1e5bab9a315b9e57a779dc4f2c7faa62251a5b51e0a3cc89a265fee072384993  /home/cog/.cache/pcai/firmware/Lenovo-ThinkPad-P16Gen2-SystemFirmware-2.00.cab
+{
+  "Devices" : [
+    {
+      "Name" : "System Firmware",
+      "DeviceId" : "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+      "Guid" : [
+        "e286e826-12ed-41fd-9417-2f47d31f4bcb"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "supported",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "Vendor" : "Lenovo",
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "0.1.3",
+      "VersionFormat" : "triplet",
+      "VersionRaw" : 65539,
+      "Icons" : [
+        "computer"
+      ],
+      "Created" : 1790959130,
+      "UpdateState" : 2,
+      "Releases" : [
+        {
+          "AppstreamId" : "com.lenovo.ThinkPadN3TET.firmware",
+          "Name" : "ThinkPad P16 Gen 2",
+          "Summary" : "Lenovo ThinkPad P16 Gen 2 System System Firmware",
+          "Description" : "<p>This stable release fixes the following issues</p><ul><li>pdated legal headers and copyright metadata to current 2026 standards.</li></ul>",
+          "Version" : "0.2.00",
+          "Protocol" : "org.uefi.capsule",
+          "Categories" : [
+            "X-System"
+          ],
+          "Checksum" : [
+            "fdb2742b22ee198737a10459034eadfe569d32e0",
+            "1e5bab9a315b9e57a779dc4f2c7faa62251a5b51e0a3cc89a265fee072384993"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 28843840,
+          "Homepage" : "http://www.lenovo.com/",
+          "Vendor" : "Lenovo",
+          "Flags" : [
+            "trusted-payload",
+            "trusted-metadata"
+          ],
+          "UpdateMessage" : "Do not turn off your computer or remove the AC adapter while the update is in progress."
+        },
+        {
+          "RemoteId" : "lvfs",
+          "Checksum" : [
+            "1e5bab9a315b9e57a779dc4f2c7faa62251a5b51e0a3cc89a265fee072384993",
+            "fdb2742b22ee198737a10459034eadfe569d32e0"
+          ]
+        }
+      ]
+    }
+  ]
+}
+{
+  "Devices" : [
+    {
+      "Name" : "Embedded Controller",
+      "DeviceId" : "1edffe0587b79f7ddc892dc28fe93f88d17613d5",
+      "Guid" : [
+        "aeac80f9-74a0-4eec-a10d-2752805147b0"
+      ],
+      "Summary" : "UEFI System Resource Table device (updated via NVRAM)",
+      "Plugin" : "uefi_capsule",
+      "Protocols" : [
+        "org.uefi.capsule"
+      ],
+      "Flags" : [
+        "internal",
+        "updatable",
+        "require-ac",
+        "supported",
+        "needs-reboot",
+        "usable-during-update"
+      ],
+      "RequestFlags" : [
+        "allow-generic-message"
+      ],
+      "Vendor" : "Lenovo",
+      "VendorIds" : [
+        "DMI:LENOVO"
+      ],
+      "Version" : "0.1.1",
+      "VersionLowest" : "0.1.1",
+      "VersionFormat" : "triplet",
+      "VersionRaw" : 65537,
+      "VersionLowestRaw" : 65537,
+      "Created" : 1790959130,
+      "UpdateState" : 2,
+      "Releases" : [
+        {
+          "AppstreamId" : "com.lenovo.ThinkPadN3THT.firmware",
+          "Name" : "ThinkPad P16 Gen 2",
+          "Summary" : "Lenovo ThinkPad P16 Gen 2 Embedded controller Firmware",
+          "Description" : "<p>This stable release modifies the following items:</p><ul><li>Improve the BIOS backup process.</li><li>Improve the process of status flag data store to rom.</li></ul>",
+          "Version" : "0.1.50",
+          "Protocol" : "org.uefi.capsule",
+          "Categories" : [
+            "X-EmbeddedController"
+          ],
+          "Checksum" : [
+            "840a71f5e6882bea54f3986c6fe6f098cf95052b",
+            "814be1e5d51644e5d72e6576f7ebd1f80ef9207a27d4170da51e475dcd1f2919"
+          ],
+          "License" : "LicenseRef-proprietary",
+          "Size" : 1178144,
+          "Homepage" : "http://www.lenovo.com/",
+          "Vendor" : "Lenovo",
+          "Flags" : [
+            "trusted-payload",
+            "trusted-metadata"
+          ],
+          "UpdateMessage" : "Do not turn off your computer or remove the AC adapter while the update is in progress."
+        },
+        {
+          "RemoteId" : "lvfs",
+          "Checksum" : [
+            "814be1e5d51644e5d72e6576f7ebd1f80ef9207a27d4170da51e475dcd1f2919",
+            "840a71f5e6882bea54f3986c6fe6f098cf95052b"
+          ]
+        }
+      ]
+    }
+  ]
+}

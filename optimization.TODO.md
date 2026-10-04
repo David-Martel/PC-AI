@@ -20,10 +20,19 @@ baseline for this loaded session.
       unchanged. Runtime memory/CPU gains remain unmeasured.
 - [ ] Investigate Wyvrn/Razer HapticService's repeated roughly one-core CPU use with
       service-owner input and controlled before/after evidence. Do not stop it blindly.
-- [ ] Reconcile the host/process CPU accounting gap with a bounded ETW/WPR capture
-      during an agreed observation window before assigning the entire load to a process.
+- [x] Capture and analyze bounded light ETW/WPR CPU evidence: zero lost events/buffers;
+      selected pre-stop 8.8 s averaged about 79.7% utilization. Two decoder warnings
+      outside that interval remain recorded. The larger verbose trace lost events and
+      was excluded. This separate window does not close the earlier accounting gap.
+- [ ] Reconcile kernel/function attribution and the earlier accounting gap before
+      assigning all load to one process/driver. HapticService again used about 0.82
+      logical cores; Defender, System, desktop and WMI also contributed.
 - [ ] Review runner/client startup cadence with owners after their jobs finish; preserve
       active usability, Clarius and fleet deployment workloads.
+- [ ] Reconcile GitOps monitor routing and duplicate launches: its default BusUrl still
+      targets localhost:8400 rather than the configured fleet authority, and the launcher
+      starts a detached worker per push. Review bounded publication and per-repo reuse
+      before changing shared monitoring behavior; no measured gain is established.
 - [ ] Benchmark cold/login and steady-state resource use after validated fixes in a
       comparable workload window; do not label uncontrolled timings as speedup evidence.
 

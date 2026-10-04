@@ -25,6 +25,21 @@ windows. Its executable identifies Wyvrn/Razer, not the Sensel touchpad. Active
 Python work was attributable to live usability/Clarius owners. No priority change,
 service stop or termination was performed on that evidence.
 
+A separate light WPR CPU trace reported zero lost events/buffers. The selected
+8.8-second interval preceded WPR stop and averaged about 79.69% utilization;
+sampled non-idle weight was 79.50%. Leading host CPU shares were Defender 6.43%,
+System 6.27%, DWM 3.88%, HapticService 3.71% and WMI 3.62%. Haptic's own executable
+accounted for most of its share, about 0.82 logical cores. Kernel-module attribution
+spans many processes; no driver/function root cause is established without symbols.
+This different observation window does not close the earlier accounting gap.
+
+The initial verbose trace dropped 2,997,732 events and was excluded from quantitative
+analysis. The light trace was about 173 MiB, versus about 2.13 GiB for the excluded
+trace, but recording durations/settings differ: this is not a performance benchmark.
+xperf reported two decoder InvalidEvent warnings during WPR stop, outside the selected
+interval. Both warnings and the decoder/OS version difference remain in private
+evidence. WPR was confirmed not recording after each save; no symbols were downloaded.
+
 Docker had 18 running containers and one created container; aggregate sampled CPU
 was approximately 0.60% in Docker's CPU units. Seven Discord MCP containers sampled
 about 273 MiB combined and 0.01% CPU. This does not support Docker as the main cause
@@ -94,6 +109,19 @@ local and remote OneDrive shim hashes differ, and no local canonical runtime is
 installed on DTM-WORK. Preserve sync/source custody before profile replacement.
 The Super-NUC's actual identity/owner is not yet established.
 
+Read-only discovery through DTM-WORK resolved dtm-super-nuc to a home-network
+endpoint with port 22 open, and authenticated SSH returned dtm-super-nuc.
+The former LAN routing hint did not answer the tested SSH ports. A dedicated
+dtm-super-nuc-vpn alias now uses dtm-work-vpn as ProxyJump and strict verification
+of the captured first-use key in an isolated machine-local known-hosts file.
+Authenticated ComputerName is DTM-SUPER-NUC. The host runs Windows 11 on an i7-1370P
+with approximately 64 GB RAM and live Codex/MCP clients; no local AgentHub service
+or answering health endpoint was found on the two tested ports. The inspected
+client config/route variables did not select an HTTP fleet endpoint; further
+coordination/backend qualification remains open. No remote services or routes were changed.
+This establishes the named endpoint, not whether it is the user's possible
+supernuc-two or its remote agent custody.
+
 The public agentbus.dtmventures.com health request received a Cloudflare 403
 challenge. The coordinator reports a deployed Worker, but machine-client access
 is not validated. Preserve authenticated fleet coordination and resolve this with
@@ -146,3 +174,18 @@ hashes and verified eight before/after task XML hashes. Publication and subseque
 runtime follow-ups are tracked separately in private receipts and the maintained
 backlog. Private receipts are held under the operator's cache
 load-maintenance-20261004 directory; exported XML provides task rollback custody.
+
+The helper/test/backlog integration was reviewed and [PR #171](https://github.com/David-Martel/PC-AI/pull/171)
+merged after all 11 hosted checks passed on its exact source head. The squash tree
+matched the source tree and a verified source bundle was retained. Foreign files
+and the Candle worktree were preserved.
+
+The installed git-guard primary was cleanly fast-forwarded to the existing upstream
+canonical Codex-attribution release, retaining the prior source bundle and QA
+overlay. A disposable normal signed commit through the actual installed hooks
+passed with exactly one Agent: codex and canonical Codex coauthor. A broader native
+suite nevertheless reported 266 passing, 20 failing and two skipped checks,
+including verbose editor/amend attribution and Windows install/path fixtures.
+No full deployment qualification is claimed. The active source owner has received
+the corrective handoff; acknowledgment remains pending. Hook paths/configuration
+remained unchanged after testing; no bypass or global comment-setting change was used.

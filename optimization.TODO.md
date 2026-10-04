@@ -1,5 +1,25 @@
 # Optimization TODO
 
+## Latest input and runner pressure review (2026-10-04)
+
+See [the maintenance evidence](Reports/input-runner-maintenance-20261004.md).
+
+- [x] Recover the hung Interhaptics service after a guarded stop trial failed.
+      Two short follow-up samples had zero CPU delta, compared with about 0.80
+      logical cores beforehand. This is not a workstation speedup benchmark.
+- [x] Revalidate Process Lasso boot safety and UI/WSL/Docker priority policies;
+      current policies pass, so no blanket tuning was reapplied.
+- [x] Distinguish historical container memory-cap hits from current starvation:
+      all four sampled runner containers had zero OOM kills and zero sampled
+      cgroup pressure averages. Historical cap counts alone do not prove OOM.
+- [ ] Capture a comparable unloaded/loaded host baseline. Latest selected samples
+      were about 91% CPU busy, 87% committed memory and 6.5 GB available, with
+      substantial paging; these are later samples than the review below.
+- [ ] With runner-owner custody, reconcile 19 aggregate CPU quotas with the
+      18-vCPU WSL guest and workload concurrency; no quota changes during jobs.
+- [ ] Explain secondary listener generation changes without inferring container
+      restarts: sampled restart counts were zero and the primary job is held.
+
 ## Current process-generation and resource follow-up (2026-10-04)
 
 See [the selected live evidence](Reports/workstation-load-20261004.md) and
@@ -18,8 +38,9 @@ baseline for this loaded session.
       MCP_DOCKER is already disabled in the current Codex configuration. Both CLI
       list checks passed, four optional servers were disabled and config hash was
       unchanged. Runtime memory/CPU gains remain unmeasured.
-- [ ] Investigate Wyvrn/Razer HapticService's repeated roughly one-core CPU use with
-      service-owner input and controlled before/after evidence. Do not stop it blindly.
+- [x] Investigate and recover Wyvrn/Razer HapticService's repeated roughly one-core
+      CPU use with exact process custody. See the latest recovery above; the
+      attempted A/B/A trial aborted, and long-term/comparable-load validation remains.
 - [x] Capture and analyze bounded light ETW/WPR CPU evidence: zero lost events/buffers;
       selected pre-stop 8.8 s averaged about 79.7% utilization. Two decoder warnings
       outside that interval remain recorded. The larger verbose trace lost events and

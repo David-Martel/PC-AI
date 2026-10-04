@@ -1,5 +1,24 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Input and task oversight closeout (2026-10-04)
+
+See [the maintenance receipt](Reports/input-runner-maintenance-20261004.md).
+
+- [x] Make missing task inspection metadata fail closed: 17 regression and 14
+      existing cases pass across two runs; parser/analyzer findings are zero.
+- [x] Install and execute a read-only SYSTEM task-health monitor every 30 minutes,
+      with IgnoreNew, a three-minute limit, no retries and no wake request.
+- [ ] Resolve the preserved AgentHubRunner, Sam3TestbedRunner and
+      Bitwarden-Archive-Refresh alerts with their owners. Do not trigger legacy
+      runners or change vault credentials to make the report green.
+- [x] Recover the exact hung Interhaptics HapticService process with identity guards;
+      automatic service restored, temporary recovery tasks removed.
+- [ ] Diagnose native Shift/Left/Right/Down failure; USB works and touchpad works.
+      Service recovery did not fix it. Use Lenovo UEFI tests near the symptom and
+      inspect the keyboard assembly/cables if necessary.
+- [ ] Review runner concurrency after the active TPM job releases custody. Keep
+      Docker policies and Process Lasso priorities unchanged during active jobs.
+
 ## Current process, startup and drive maintenance (2026-10-04)
 
 This is the current work queue; dated investigations below remain historical.

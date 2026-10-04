@@ -1,6 +1,34 @@
 # Machine Reliability TODO — DTM-P1GEN7 (ThinkPad P1 Gen 7)
 
-## Current keyboard status — September 12, 2026: unresolved
+## Current keyboard status — October 4, 2026: unresolved
+
+The user reports that both native Shift keys and native Down/Left/Right fail,
+while a USB keyboard and the touchpad work. During an overlapping capture,
+internal Up reached Raw Input and USB Shift/Left reached it; missing native
+events do not establish physical attempt counts or a hardware root cause.
+Interhaptics service recovery did not resolve the reported failure. Keyboard
+Manager was paused and restored without changing settings; the user replied
+that the same native keys still failed during the pause. Exact physical attempt
+times/counts are unrecorded, so this does not conclusively exclude utilities.
+
+The selected 36 PnP devices report no problem codes. Current BIOS is 1.22;
+Serial IO and TrackPoint versions match cached offers, and both NVIDIA GPUs
+currently have healthy, matching drivers. Old driver-failure notes below do
+not establish current applicability. Sensel firmware version representations
+require vendor interpretation before reinstalling or downgrading firmware.
+
+- [x] Collect bounded, healthy navigation/modifier-only input evidence and a
+      sanitized failure-window snapshot. This validates observation, not repair.
+- [x] Restore HapticService and Keyboard Manager after isolation/recovery work;
+      preserve PowerToys settings and remove temporary rollback tasks.
+- [ ] Obtain a labeled native-key/USB comparison with application outcome and
+      correlate it to the exact isolation interval before excluding utilities.
+- [ ] Run Lenovo UEFI keyboard tests during or near the failure; service-check
+      key travel, cables/latches or substitute a known-good keyboard as indicated.
+
+See [the current maintenance evidence](Reports/input-runner-maintenance-20261004.md).
+
+## Earlier keyboard investigation — September 12, 2026
 
 The user confirms that other keys or the whole internal keyboard also fail, while
 an external USB keyboard worked normally during a recent failure. This broadens

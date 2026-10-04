@@ -32,10 +32,24 @@ Evidence and scope: [workstation load review](Reports/workstation-load-20261004.
       aggregate-module autoload trigger. Local/remote OneDrive shims differ; reconcile
       sync/source ownership before replacing either, or deploying an old full profile.
 - [ ] Resolve the Super-NUC's actual identity/access and remote agent ownership.
+      DTM-WORK's home-network DNS resolves dtm-super-nuc to 10.10.15.38 and TCP/22
+      responds there; authenticated SSH returned dtm-super-nuc through DTM-WORK.
+      The old 192.168.1.169 routing hint does not respond. Whether this is the user's
+      possible supernuc-two and which agent owns its work remain unresolved.
+- [x] Validate dtm-super-nuc-vpn strict-key access through dtm-work-vpn with an isolated
+      known-hosts file. Authenticated ComputerName is DTM-SUPER-NUC; existing aliases stay
+      available. The first key was captured on this VPN discovery, without physical attestation.
 - [ ] Coordinate Cloudflare's machine-client challenge/access policy with the deployment
       owner; a 403 challenge is not proof the underlying AgentHub is down.
 - [ ] Capture an actual next-boot baseline before claiming startup-performance gains.
       Existing mount-health validation passes; its boot report is stale.
+- [x] Update the clean installed git-guard source to the existing canonical-attribution
+      release. A normal signed commit through actual hooks has exactly one Agent: codex
+      and canonical noreply@openai.com coauthor. Source and configuration custody retained.
+- [ ] Repair the broader native Windows git-guard failures before claiming deployment-wide
+      qualification: 266 pass / 20 fail / 2 skip. Auto-comment plus verbose editor/amend
+      is among the failures. A corrective source-owner handoff was sent; ACK is pending.
+      Preserve the installed primary while independent corrective work is reviewed.
 
 Fleet holds remain explicit: ASUS/3066 deployment work belongs to its current owner;
 0060 GPU/HIL and physical Thunderbolt peer validation remain held. Foreign worktrees,

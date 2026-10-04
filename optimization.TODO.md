@@ -1,5 +1,32 @@
 # Optimization TODO
 
+## Current process-generation and resource follow-up (2026-10-04)
+
+See [the selected live evidence](Reports/workstation-load-20261004.md) and
+[the startup/drive queue](boot.TODO.md). Historical benchmarks below are not a
+baseline for this loaded session.
+
+- [x] Sample host CPU and memory alongside Docker/process ownership. Six samples
+      averaged 82.3% busy; commit was approximately 80.5%, with about 14 GB available.
+      Docker sampled 0.60% aggregate CPU in Docker's units, not host percentage.
+- [ ] Trace repeated MCP generations under five live Codex clients to session lifecycles
+      before proposing reuse/cleanup. Four simultaneous server generations do not prove
+      a crash/restart loop or orphan process. Selected Node/PowerShell private commit was
+      about 9.1 GB; this is a measurement, not a reclaimable-memory promise.
+- [x] Validate lighter future maintenance configuration with per-command MCP overrides;
+      preserve current clients and required coordination/documentation capabilities.
+      MCP_DOCKER is already disabled in the current Codex configuration. Both CLI
+      list checks passed, four optional servers were disabled and config hash was
+      unchanged. Runtime memory/CPU gains remain unmeasured.
+- [ ] Investigate Wyvrn/Razer HapticService's repeated roughly one-core CPU use with
+      service-owner input and controlled before/after evidence. Do not stop it blindly.
+- [ ] Reconcile the host/process CPU accounting gap with a bounded ETW/WPR capture
+      during an agreed observation window before assigning the entire load to a process.
+- [ ] Review runner/client startup cadence with owners after their jobs finish; preserve
+      active usability, Clarius and fleet deployment workloads.
+- [ ] Benchmark cold/login and steady-state resource use after validated fixes in a
+      comparable workload window; do not label uncontrolled timings as speedup evidence.
+
 This backlog is based on real measurements taken while optimizing the Codex
 context toolkit against `PC-AI.Acceleration` on March 6, 2026.
 

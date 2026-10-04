@@ -1,5 +1,46 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Current process, startup and drive maintenance (2026-10-04)
+
+This is the current work queue; dated investigations below remain historical.
+Evidence and scope: [workstation load review](Reports/workstation-load-20261004.md).
+
+- [x] Inventory live process generations, Docker, startup tasks and volume dependencies.
+      Docker's sampled load does not explain the high host CPU sample; do not prune
+      containers/volumes or terminate live agent clients from process counts alone.
+- [x] Back up and disable four enabled tasks whose vendor actions are missing:
+      NIUpdateServiceCheckTask, NIUpdateServiceStartupTask, RNIdle Task and
+      Lenovo/Vantage/StartupFixPlan. Readback changed only Enabled; XML and
+      Enable-ScheduledTask rollback are retained. Working vendor services remain running.
+- [x] Repair Optimize-StartupLoad's unknown-state handling and prove that Apply/WhatIf
+      suppresses registry and backup-file writes: 105 cases pass, 18 focused cases,
+      92.31% command coverage and zero repository analyzer findings. No live Apply.
+- [x] Validate current C:/D:/T:/F:/W: volume and VHD mount dependencies with existing tools.
+- [ ] Resolve Proton's absent F: sync-root path with provider/data-owner evidence.
+      Preserve the registration and data; healthy F: alone does not establish migration.
+- [ ] Establish custody and independent data parity for the unattached D: cloud-cache VHD.
+      D:/DO-NOT-WIPE.md applies; its size/age do not authorize deletion or compaction.
+- [x] Distinguish the healthy local AgentHub on port 18400 from the authoritative ASUS
+      fleet hub. Preserve configured fleet routing; source roaming is not deployed parity.
+- [ ] Coordinate the watchdog's server_urls support with its owner and retain hub-identity
+      validation. Never make the local island the default to silence an alert.
+- [x] Verify strict-key SSH to DTM-WORK over the existing Tailscale connection.
+- [x] Validate a dedicated dtm-work-vpn include for repeatable strict-key access,
+      preserving existing LAN aliases and avoiding default VPN/route changes.
+- [ ] Reconcile DTM-WORK's missing canonical profile and duplicate evaluation warnings.
+      The unqualified Write-Warning resolves to a PC-AI wrapper and is the likely
+      aggregate-module autoload trigger. Local/remote OneDrive shims differ; reconcile
+      sync/source ownership before replacing either, or deploying an old full profile.
+- [ ] Resolve the Super-NUC's actual identity/access and remote agent ownership.
+- [ ] Coordinate Cloudflare's machine-client challenge/access policy with the deployment
+      owner; a 403 challenge is not proof the underlying AgentHub is down.
+- [ ] Capture an actual next-boot baseline before claiming startup-performance gains.
+      Existing mount-health validation passes; its boot report is stale.
+
+Fleet holds remain explicit: ASUS/3066 deployment work belongs to its current owner;
+0060 GPU/HIL and physical Thunderbolt peer validation remain held. Foreign worktrees,
+active runners, live MCP clients and the Milly backup are preserved.
+
 ## Internal keyboard follow-up (2026-09-12): still unresolved
 
 The user confirms failures beyond Shift, involving other keys or the whole internal

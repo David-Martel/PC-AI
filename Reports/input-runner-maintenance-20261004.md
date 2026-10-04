@@ -29,6 +29,12 @@ when real alerts exist. AgentHubRunner and Sam3TestbedRunner retain prior
 termination alerts; Bitwarden-Archive-Refresh retains its script-failure alert.
 These were not hidden with Expected overrides. A temporary trial restore task
 also appeared in one intermediate report and was subsequently removed.
+The 19:06 UTC snapshot had three alerts. After normalizing only this new monitor's
+script argument to Windows backslashes for LocalOnly ownership recognition, its
+19:17 UTC report includes the monitor itself as Healthy and adds genuine exit-1
+alerts for Codedev-Worktree-Inventory and VIGIL-DashboardRefresh: 36 tasks,
+24 Healthy / 5 Failed / 0 Stalled / 4 Disabled / 3 Ignored. Its completed result
+remains gate 1. No existing task action or policy was changed by that normalization.
 This monitor covers scheduled-task metadata, not full GitHub/Docker heartbeat
 supervision. Rollback removes only this newly installed monitor.
 
@@ -96,7 +102,7 @@ fleet authority. This report does not claim remote deployment/HIL closure.
 1. Run Lenovo UEFI keyboard tests near the failure and inspect key travel and
    keyboard cable/latch/assembly condition as indicated. Keep hardware/EC and
    Windows paths open until matched evidence separates them.
-2. Resolve the three task alerts with their owners; retain the actual gate.
+2. Resolve the five current task alerts with their owners; retain the actual gate.
 3. After job release, review runner concurrency and collect comparable pressure
    samples before making tuning/performance claims.
 4. Preserve outstanding fleet/TB/HIL and native git-guard qualification work;
@@ -108,6 +114,7 @@ Key receipts are `task-health-fix/receipt.json`,
 `input-task-health-independent-review.json`, `input-phase-receipt.json`,
 `P2-resource-receipt.json`, `P3-coordination-receipt.json`,
 `P4-haptic-service-recovery.json`, `P4-keyboard-manager-trial.json`,
-`P4-input-capture-projections.json` and `P4-task-health-monitor-install.json`.
+`P4-input-capture-projections.json`, `P4-task-health-monitor-install.json` and
+`P4-runtime-latest-monitor.json`.
 Runtime follow-up and publication receipts are kept there; secrets, raw events
 and private device identifiers are excluded from this public report.

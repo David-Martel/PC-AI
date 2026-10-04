@@ -8,8 +8,9 @@ See [the maintenance receipt](Reports/input-runner-maintenance-20261004.md).
       existing cases pass across two runs; parser/analyzer findings are zero.
 - [x] Install and execute a read-only SYSTEM task-health monitor every 30 minutes,
       with IgnoreNew, a three-minute limit, no retries and no wake request.
-- [ ] Resolve the preserved AgentHubRunner, Sam3TestbedRunner and
-      Bitwarden-Archive-Refresh alerts with their owners. Do not trigger legacy
+- [ ] Resolve AgentHubRunner, Sam3TestbedRunner, Bitwarden-Archive-Refresh,
+      Codedev-Worktree-Inventory and VIGIL-DashboardRefresh alerts with their
+      owners (latest snapshot 19:17 UTC). Do not trigger legacy
       runners or change vault credentials to make the report green.
 - [x] Recover the exact hung Interhaptics HapticService process with identity guards;
       automatic service restored, temporary recovery tasks removed.

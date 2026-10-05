@@ -12,9 +12,10 @@ Reviewed 2026-10-05; evidence and experiment gates are in
       regressions pass. Include the exact suite in Windows PowerShell 7 CI.
 - [x] Start the authorized 60-minute unchanged-policy baseline; preserve its exact
       launch source separately from the maintained collector revision.
-- [ ] Verify the completed baseline, reconcile closed output paths with hash
-      mappings and qualify scenario coverage. Owner: current review agent; next
-      action: inspect the summary after nominal completion at 19:18 UTC.
+- [x] Verify the completed baseline: 120 samples over 3,600.301 seconds, no gaps
+      above 45 seconds, and nine closed-file migration hashes matched. Preserve
+      separate development/diagnostic windows and no-live-call qualification in
+      [the completed review](Reports/process-lasso-review/baseline-review.md).
 - [ ] Complete the three-workday coverage plan with actual Zoom/Teams calls,
       sharing, useful throughput and quiet periods. Owner: operator with review
       tooling; extend only to fill measured coverage or repeatability gaps.

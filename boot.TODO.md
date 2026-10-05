@@ -1,5 +1,26 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Bitwarden and connectivity closeout (2026-10-05)
+
+See [the qualified maintenance report](Reports/bitwarden-connectivity-20261005.md).
+
+- [x] Replace direct unlock handling with the validated backend adapter and truthful
+      native failure exits; 49/49 actual cases pass, including 28 preserved cases;
+      parser/analyzer findings zero and independent source review clear.
+- [x] Deploy exact reviewed bytes to the installed machine launcher with hash/DACL
+      guards. Help/DryRun/WhatIf pass; live bounded session establishment succeeds
+      without User BW_SESSION persistence. Next-logon task execution remains separate.
+- [x] Repair private ASUS LAN alias and measure ephemeral Linux SSH reuse; keep
+      strict host identity and preserve active network/HIL owners.
+- [x] Qualify and clean up the NUC SSH/RDP transport through DTM-WORK.
+- [ ] Qualify host-specific authenticated NUC RDP and actual UniFi/WireGuard routing.
+- [ ] Reconcile host-local PowerShell deployments without overwriting synced shims.
+- [ ] Coordinate NFS retry-policy migration and production Linux SSH reuse failure
+      controls. No speculative unmount, broad process kill or speedup claim.
+- [ ] Harden IronRDP certificate verification and imported clipboard/authentication
+      policy before direct-VPN credential use; validate an actual current artifact.
+
+
 ## Input and task oversight closeout (2026-10-04)
 
 See [the maintenance receipt](Reports/input-runner-maintenance-20261004.md).

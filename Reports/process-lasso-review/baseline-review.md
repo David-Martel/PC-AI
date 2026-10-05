@@ -24,8 +24,9 @@ owned directory was removed only after the collector generation exited.
 
 Detailed evidence remains local under `baseline60m/`; its summary SHA256 is
 `E1A8A89ED0BEF3612F2B63C7E0A7127D8FE6FE8C3C8FD40D7EBB673DDCBA32F2`.
-Local `analysis/analysis.json` and `analysis/initial-ordinary-window.json`
-contain counts, quantiles, input hashes and provenance. The PNG/SVG overview
+Local `baseline60m/analysis/analysis.json` and
+`baseline60m/analysis/initial-ordinary-window.json` contain counts, quantiles,
+input hashes and provenance. The PNG/SVG overview
 and exact offline analyzer source are alongside them. Raw streams and traces
 are excluded from Git.
 

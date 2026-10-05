@@ -1,0 +1,31 @@
+{
+  "SchemaVersion": 1,
+  "Plan": {
+    "OutputPath": "C:\\codedev\\PC_AI\\Reports\\processlasso-review-20261005\\collector-smoke",
+    "Label": "collector-validation",
+    "DurationMinutes": 0.2,
+    "IntervalSeconds": 2.0,
+    "MaxOutputMB": 512,
+    "RotateMB": 16,
+    "IncludeGpu": false,
+    "Privacy": "No command lines, window titles or remote endpoints",
+    "DryRun": false
+  },
+  "Host": "DTM-P1GEN7",
+  "Processors": [
+    {
+      "Name": "Intel(R) Core(TM) Ultra 7 155H",
+      "NumberOfCores": 16,
+      "NumberOfLogicalProcessors": 22
+    }
+  ],
+  "LogicalProcessors": 22,
+  "TotalPhysicalMemoryBytes": 68192145408,
+  "CollectorPid": 144804,
+  "StartUtc": "2026-10-05T18:04:56.5322119Z",
+  "ProcessIoMeaning": "All process IO including cached/file/device/network IO; not disk/network attribution",
+  "CpuMeaning": "Interval CPU delta divided by elapsed seconds and host logical processors; unknown/new identities are null",
+  "CounterMeaning": "Host counters use a provider sampling window distinct from the process interval, so CPU accounting gaps are diagnostic only. Pages Input/sec includes hard faults, not proof of pagefile swapping. English counter names may be unavailable on localized hosts",
+  "GpuMeaning": "Optional aggregate engine instances; engine sums are not a single GPU utilization percentage",
+  "SummaryMeaning": "Nearest-rank sample quantiles; per-name memory totals sum instances and working sets may contain shared pages"
+}

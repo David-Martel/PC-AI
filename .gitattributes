@@ -45,3 +45,6 @@
 
 # Preserve captured Milly evidence bytes and custody hashes verbatim.
 Reports/milly-fleet-20261002/** -text -eol
+
+# Preserve workload review evidence and the exact launch-source archive.
+Reports/process-lasso-review/** -text -eol

@@ -1,0 +1,412 @@
+{
+  "ActualSeconds": 71.8060332,
+  "CpuRateWindowSeconds": 70.946806,
+  "LogicalProcessors": 22,
+  "Method": "Get-Process interval CPU deltas keyed PID+StartTime; exited/protected processes undercount; host CIM windows nonidentical",
+  "Samples": [
+    {
+      "TimestampUtc": "2026-10-05T18:00:49.0967856Z",
+      "ElapsedSeconds": 0.0047213,
+      "IntervalSeconds": 0.0047213,
+      "CpuPercent": 77,
+      "MatchedProcessCpuPercent": null,
+      "AvailableMiB": 5765,
+      "CommittedBytes": 102119440384,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 3175,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:00:55.1797729Z",
+      "ElapsedSeconds": 5.9181472,
+      "IntervalSeconds": 5.9134259,
+      "CpuPercent": 85,
+      "MatchedProcessCpuPercent": 61.49,
+      "AvailableMiB": 5720,
+      "CommittedBytes": 102207512576,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 4129,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:01.1741326Z",
+      "ElapsedSeconds": 11.9959784,
+      "IntervalSeconds": 6.0778312,
+      "CpuPercent": 91,
+      "MatchedProcessCpuPercent": 56.84,
+      "AvailableMiB": 5559,
+      "CommittedBytes": 102305550336,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 697,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:07.0604726Z",
+      "ElapsedSeconds": 17.9777262,
+      "IntervalSeconds": 5.981747799999999,
+      "CpuPercent": 91,
+      "MatchedProcessCpuPercent": 55.47,
+      "AvailableMiB": 5554,
+      "CommittedBytes": 102318903296,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 267,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:12.889706Z",
+      "ElapsedSeconds": 23.8625764,
+      "IntervalSeconds": 5.884850199999999,
+      "CpuPercent": 84,
+      "MatchedProcessCpuPercent": 49.43,
+      "AvailableMiB": 5655,
+      "CommittedBytes": 102220754944,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 3,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:18.7506589Z",
+      "ElapsedSeconds": 29.6933081,
+      "IntervalSeconds": 5.830731700000001,
+      "CpuPercent": 85,
+      "MatchedProcessCpuPercent": 57.69,
+      "AvailableMiB": 5614,
+      "CommittedBytes": 102226976768,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 7,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:24.8172062Z",
+      "ElapsedSeconds": 35.5527192,
+      "IntervalSeconds": 5.859411099999999,
+      "CpuPercent": 91,
+      "MatchedProcessCpuPercent": 49.65,
+      "AvailableMiB": 5660,
+      "CommittedBytes": 102910676992,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 17727,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:30.6986495Z",
+      "ElapsedSeconds": 41.6189157,
+      "IntervalSeconds": 6.066196500000004,
+      "CpuPercent": 80,
+      "MatchedProcessCpuPercent": 50.95,
+      "AvailableMiB": 5374,
+      "CommittedBytes": 103304318976,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 1179,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:36.6511625Z",
+      "ElapsedSeconds": 47.5052477,
+      "IntervalSeconds": 5.886331999999996,
+      "CpuPercent": 90,
+      "MatchedProcessCpuPercent": 62.55,
+      "AvailableMiB": 5125,
+      "CommittedBytes": 103224901632,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 135,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:42.4922709Z",
+      "ElapsedSeconds": 53.4533564,
+      "IntervalSeconds": 5.948108699999999,
+      "CpuPercent": 83,
+      "MatchedProcessCpuPercent": 58.84,
+      "AvailableMiB": 5227,
+      "CommittedBytes": 102967377920,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 95,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:48.3498551Z",
+      "ElapsedSeconds": 59.2939091,
+      "IntervalSeconds": 5.8405527000000035,
+      "CpuPercent": 83,
+      "MatchedProcessCpuPercent": 63.82,
+      "AvailableMiB": 5426,
+      "CommittedBytes": 102446325760,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 3,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:54.1440698Z",
+      "ElapsedSeconds": 65.1533408,
+      "IntervalSeconds": 5.859431699999995,
+      "CpuPercent": 69,
+      "MatchedProcessCpuPercent": 59.73,
+      "AvailableMiB": 5534,
+      "CommittedBytes": 102249328640,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 1441,
+      "PagesOutputPerSec": 0
+    },
+    {
+      "TimestampUtc": "2026-10-05T18:01:59.9318088Z",
+      "ElapsedSeconds": 70.946806,
+      "IntervalSeconds": 5.7934652,
+      "CpuPercent": 55,
+      "MatchedProcessCpuPercent": 52.57,
+      "AvailableMiB": 5541,
+      "CommittedBytes": 102151626752,
+      "CommitLimit": 118531821568,
+      "PagesInputPerSec": 195,
+      "PagesOutputPerSec": 0
+    }
+  ],
+  "TopCpu": [
+    {
+      "Name": "python",
+      "CpuSeconds": 304.0,
+      "HostCpuPercent": 19.477,
+      "MaximumSingleProcessPrivateGiB": 0.049,
+      "ObservedIdentities": 15
+    },
+    {
+      "Name": "rustc",
+      "CpuSeconds": 90.0,
+      "HostCpuPercent": 5.766,
+      "MaximumSingleProcessPrivateGiB": 0.483,
+      "ObservedIdentities": 4
+    },
+    {
+      "Name": "MsMpEng",
+      "CpuSeconds": 71.0,
+      "HostCpuPercent": 4.549,
+      "MaximumSingleProcessPrivateGiB": 0.62,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "ProcessLasso",
+      "CpuSeconds": 54.0,
+      "HostCpuPercent": 3.46,
+      "MaximumSingleProcessPrivateGiB": 0.095,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "dwm",
+      "CpuSeconds": 48.0,
+      "HostCpuPercent": 3.075,
+      "MaximumSingleProcessPrivateGiB": 1.783,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "WmiPrvSE",
+      "CpuSeconds": 47.0,
+      "HostCpuPercent": 3.011,
+      "MaximumSingleProcessPrivateGiB": 0.075,
+      "ObservedIdentities": 4
+    },
+    {
+      "Name": "System",
+      "CpuSeconds": 45.0,
+      "HostCpuPercent": 2.883,
+      "MaximumSingleProcessPrivateGiB": 0.0,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "explorer",
+      "CpuSeconds": 39.0,
+      "HostCpuPercent": 2.499,
+      "MaximumSingleProcessPrivateGiB": 0.366,
+      "ObservedIdentities": 2
+    },
+    {
+      "Name": "svchost",
+      "CpuSeconds": 37.0,
+      "HostCpuPercent": 2.371,
+      "MaximumSingleProcessPrivateGiB": 0.122,
+      "ObservedIdentities": 122
+    },
+    {
+      "Name": "WindowsTerminal",
+      "CpuSeconds": 25.0,
+      "HostCpuPercent": 1.602,
+      "MaximumSingleProcessPrivateGiB": 0.65,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "vmmemWSL",
+      "CpuSeconds": 24.0,
+      "HostCpuPercent": 1.538,
+      "MaximumSingleProcessPrivateGiB": 15.92,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "claude",
+      "CpuSeconds": 22.0,
+      "HostCpuPercent": 1.41,
+      "MaximumSingleProcessPrivateGiB": 1.168,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "codex",
+      "CpuSeconds": 19.0,
+      "HostCpuPercent": 1.217,
+      "MaximumSingleProcessPrivateGiB": 1.318,
+      "ObservedIdentities": 4
+    },
+    {
+      "Name": "ProcessGovernor",
+      "CpuSeconds": 12.0,
+      "HostCpuPercent": 0.769,
+      "MaximumSingleProcessPrivateGiB": 0.042,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "csrss",
+      "CpuSeconds": 10.0,
+      "HostCpuPercent": 0.641,
+      "MaximumSingleProcessPrivateGiB": 0.006,
+      "ObservedIdentities": 2
+    },
+    {
+      "Name": "Dropbox",
+      "CpuSeconds": 8.0,
+      "HostCpuPercent": 0.513,
+      "MaximumSingleProcessPrivateGiB": 0.629,
+      "ObservedIdentities": 9
+    },
+    {
+      "Name": "Docker Desktop",
+      "CpuSeconds": 7.0,
+      "HostCpuPercent": 0.448,
+      "MaximumSingleProcessPrivateGiB": 0.155,
+      "ObservedIdentities": 5
+    },
+    {
+      "Name": "pwsh",
+      "CpuSeconds": 7.0,
+      "HostCpuPercent": 0.448,
+      "MaximumSingleProcessPrivateGiB": 0.078,
+      "ObservedIdentities": 76
+    },
+    {
+      "Name": "chrome",
+      "CpuSeconds": 5.0,
+      "HostCpuPercent": 0.32,
+      "MaximumSingleProcessPrivateGiB": 0.832,
+      "ObservedIdentities": 59
+    },
+    {
+      "Name": "GoogleDriveFS",
+      "CpuSeconds": 3.0,
+      "HostCpuPercent": 0.192,
+      "MaximumSingleProcessPrivateGiB": 0.152,
+      "ObservedIdentities": 2
+    },
+    {
+      "Name": "com.docker.backend",
+      "CpuSeconds": 2.0,
+      "HostCpuPercent": 0.128,
+      "MaximumSingleProcessPrivateGiB": 0.312,
+      "ObservedIdentities": 2
+    },
+    {
+      "Name": "lsass",
+      "CpuSeconds": 2.0,
+      "HostCpuPercent": 0.128,
+      "MaximumSingleProcessPrivateGiB": 0.059,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "WhatsApp.Root",
+      "CpuSeconds": 1.0,
+      "HostCpuPercent": 0.064,
+      "MaximumSingleProcessPrivateGiB": 0.197,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "OneDrive.Sync.Service",
+      "CpuSeconds": 1.0,
+      "HostCpuPercent": 0.064,
+      "MaximumSingleProcessPrivateGiB": 0.339,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "TextInputHost",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.055,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "iSCSIAgent",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.003,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "OktaVerify",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.243,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "MicrosoftStartFeedProvider",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.012,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "JetBrains.Etw.Collector.Host",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.001,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "PowerToys.Awake",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.076,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "NgcIso",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.001,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "OpenConsole",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.003,
+      "ObservedIdentities": 5
+    },
+    {
+      "Name": "nssm",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.002,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "PowerToys.AdvancedPaste",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.113,
+      "ObservedIdentities": 1
+    },
+    {
+      "Name": "LenovoVantageService",
+      "CpuSeconds": 0.0,
+      "HostCpuPercent": 0.0,
+      "MaximumSingleProcessPrivateGiB": 0.053,
+      "ObservedIdentities": 1
+    }
+  ],
+  "CpuRateQualification": "CPU deltas in this exploratory probe were rounded to integer seconds by Math.Max overload selection; use fractional-interval-profile.json for process CPU rankings. Host memory/counters unaffected."
+}

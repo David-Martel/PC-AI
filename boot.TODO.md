@@ -1,5 +1,27 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Workload profiling and live-media policy review
+
+Reviewed 2026-10-05; evidence and experiment gates are in
+[the Process Lasso proposal](Reports/process-lasso-review/README.md).
+
+- [x] Inventory current priorities, SmartTrim, power, hardware and useful workload
+      context without changing live policy; research vendor-supported controls.
+- [x] Add a bounded process/host interval collector with PID-generation guards,
+      missing-data handling, output limits and observer-cost reporting; 18 focused
+      regressions pass. Include the exact suite in Windows PowerShell 7 CI.
+- [x] Start the authorized 60-minute unchanged-policy baseline; preserve its exact
+      launch source separately from the maintained collector revision.
+- [ ] Verify the completed baseline, reconcile closed output paths with hash
+      mappings and qualify scenario coverage. Owner: current review agent; next
+      action: inspect the summary after nominal completion at 19:18 UTC.
+- [ ] Complete the three-workday coverage plan with actual Zoom/Teams calls,
+      sharing, useful throughput and quiet periods. Owner: operator with review
+      tooling; extend only to fill measured coverage or repeatability gaps.
+- [ ] Compare SmartTrim, live-media protections and owned process reuse one class
+      at a time. Preserve active jobs; promote only with call-quality, throughput
+      and memory/refault evidence. No optimization gain is established yet.
+
 ## Bitwarden and connectivity closeout (2026-10-05)
 
 See [the qualified maintenance report](Reports/bitwarden-connectivity-20261005.md).

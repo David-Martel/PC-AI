@@ -1,0 +1,15 @@
+# Keep ongoing run state and detailed process telemetry local. Curated static
+# observations, pilot summaries and the proposal remain reviewable in Git.
+/baseline60m/
+/baseline60m.*.log
+/baseline-analysis.md
+/collector-*/samples-*.jsonl
+/capture-launch.json
+/validation.json
+/path-migration.json
+/integration-handoff.md
+/session-markers.csv
+/process-roles-snapshot.json
+/integration-receipt.json
+/migration-validation.json
+/pr-body.md

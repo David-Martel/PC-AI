@@ -168,9 +168,32 @@ jobs:
         run: |
           cargo llvm-cov --no-default-features --features server,ffi --lib --lcov --output-path lcov.info
           cargo llvm-cov --no-default-features --features server,ffi --lib --fail-under-lines 70
+      # Pin and verify the official CLI independently of cli.codecov.io. The
+      # action's binary input bypasses its built-in download verification.
+      - name: Prepare Verified Codecov CLI
+        id: prepare-codecov
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { throw 'RUNNER_TEMP is required' }
+          $binaryDirectory = Join-Path $env:RUNNER_TEMP ('codecov-cli-' + [Guid]::NewGuid().ToString('N'))
+          $binaryPath = (Join-Path $binaryDirectory 'codecov.exe').Replace('\', '/')
+          # The upstream Bash wrapper invokes its binary without quoting it.
+          if ($binaryPath -match '\s') { throw 'Codecov binary path must not contain whitespace' }
+          New-Item -ItemType Directory -Path $binaryDirectory -ErrorAction Stop | Out-Null
+          curl.exe --fail --location --proto '=https' --proto-redir '=https' --connect-timeout 15 --max-time 60 --output $binaryPath 'https://github.com/codecov/codecov-cli/releases/download/v11.3.1/codecovcli_windows.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Codecov CLI download failed' }
+          $expectedHash = 'D43733506ED2561533A7182ED5C4C2B23711DDA1F03CBE9D120BCC888AC4E10A'
+          if ((Get-FileHash -LiteralPath $binaryPath -Algorithm SHA256).Hash -ne $expectedHash) { throw 'Codecov CLI SHA256 mismatch' }
+          $version = & $binaryPath --version
+          if ($LASTEXITCODE -ne 0 -or ($version -join "`n").Trim() -cne 'codecovcli, version 11.3.1') { throw 'Codecov CLI version mismatch' }
+          "binary=$binaryPath" >> $env:GITHUB_OUTPUT
       - name: Upload Coverage
-        uses: codecov/codecov-action@v4
+        if: always() && steps.prepare-codecov.outcome == 'success' && steps.prepare-codecov.outputs.binary != ''
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
+          binary: ${{ steps.prepare-codecov.outputs.binary }}
           files: Native/pcai_core/pcai_inference/lcov.info
           flags: rust-inference
           fail_ci_if_error: false
@@ -242,10 +265,39 @@ jobs:
           $config.CodeCoverage.CoveragePercentTarget = 85
           $config.Output.Verbosity = 'Detailed'
           Invoke-Pester -Configuration $config
-      - name: Upload Coverage
+      # Keep the raw report available even while the remote upload is optional.
+      - name: Upload JaCoCo Artifact
         if: always()
-        uses: codecov/codecov-action@v4
+        uses: actions/upload-artifact@v4
         with:
+          name: powershell-jacoco-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: Tests/TestResults/coverage.xml
+          retention-days: 14
+          if-no-files-found: error
+      - name: Prepare Verified Codecov CLI
+        id: prepare-codecov
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { throw 'RUNNER_TEMP is required' }
+          $binaryDirectory = Join-Path $env:RUNNER_TEMP ('codecov-cli-' + [Guid]::NewGuid().ToString('N'))
+          $binaryPath = (Join-Path $binaryDirectory 'codecov.exe').Replace('\', '/')
+          # The upstream Bash wrapper invokes its binary without quoting it.
+          if ($binaryPath -match '\s') { throw 'Codecov binary path must not contain whitespace' }
+          New-Item -ItemType Directory -Path $binaryDirectory -ErrorAction Stop | Out-Null
+          curl.exe --fail --location --proto '=https' --proto-redir '=https' --connect-timeout 15 --max-time 60 --output $binaryPath 'https://github.com/codecov/codecov-cli/releases/download/v11.3.1/codecovcli_windows.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Codecov CLI download failed' }
+          $expectedHash = 'D43733506ED2561533A7182ED5C4C2B23711DDA1F03CBE9D120BCC888AC4E10A'
+          if ((Get-FileHash -LiteralPath $binaryPath -Algorithm SHA256).Hash -ne $expectedHash) { throw 'Codecov CLI SHA256 mismatch' }
+          $version = & $binaryPath --version
+          if ($LASTEXITCODE -ne 0 -or ($version -join "`n").Trim() -cne 'codecovcli, version 11.3.1') { throw 'Codecov CLI version mismatch' }
+          "binary=$binaryPath" >> $env:GITHUB_OUTPUT
+      - name: Upload Coverage
+        if: always() && steps.prepare-codecov.outcome == 'success' && steps.prepare-codecov.outputs.binary != ''
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          binary: ${{ steps.prepare-codecov.outputs.binary }}
           files: ./Tests/TestResults/coverage.xml
           flags: powershell
           fail_ci_if_error: false

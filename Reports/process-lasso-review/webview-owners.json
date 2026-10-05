@@ -1,0 +1,289 @@
+[
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 7352,
+    "OwnerName": "SearchHost.exe",
+    "OwnerPid": 21276,
+    "PrivateBytes": 48381952
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 6336,
+    "OwnerName": "SearchHost.exe",
+    "OwnerPid": 21276,
+    "PrivateBytes": 3203072
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 25452,
+    "OwnerName": "SearchHost.exe",
+    "OwnerPid": 21276,
+    "PrivateBytes": 16568320
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 25460,
+    "OwnerName": "SearchHost.exe",
+    "OwnerPid": 21276,
+    "PrivateBytes": 154267648
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 25576,
+    "OwnerName": "SearchHost.exe",
+    "OwnerPid": 21276,
+    "PrivateBytes": 8511488
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 7244,
+    "OwnerName": "SearchHost.exe",
+    "OwnerPid": 21276,
+    "PrivateBytes": 119349248
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 20528,
+    "OwnerName": "FloatingMenu1.exe",
+    "OwnerPid": 25188,
+    "PrivateBytes": 47575040
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 33684,
+    "OwnerName": "FloatingMenu1.exe",
+    "OwnerPid": 25188,
+    "PrivateBytes": 3211264
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 6940,
+    "OwnerName": "FloatingMenu1.exe",
+    "OwnerPid": 25188,
+    "PrivateBytes": 85430272
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 7184,
+    "OwnerName": "FloatingMenu1.exe",
+    "OwnerPid": 25188,
+    "PrivateBytes": 14450688
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 7644,
+    "OwnerName": "FloatingMenu1.exe",
+    "OwnerPid": 25188,
+    "PrivateBytes": 8093696
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 22176,
+    "OwnerName": "WidgetBoard.exe",
+    "OwnerPid": 20816,
+    "PrivateBytes": 47808512
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 2472,
+    "OwnerName": "WidgetBoard.exe",
+    "OwnerPid": 20816,
+    "PrivateBytes": 3203072
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 8064,
+    "OwnerName": "WidgetBoard.exe",
+    "OwnerPid": 20816,
+    "PrivateBytes": 292065280
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 36856,
+    "OwnerName": "WidgetBoard.exe",
+    "OwnerPid": 20816,
+    "PrivateBytes": 17956864
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 13432,
+    "OwnerName": "WidgetBoard.exe",
+    "OwnerPid": 20816,
+    "PrivateBytes": 10440704
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 23676,
+    "OwnerName": "WidgetBoard.exe",
+    "OwnerPid": 20816,
+    "PrivateBytes": 158187520
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 21596,
+    "OwnerName": "WhatsApp.Root.exe",
+    "OwnerPid": 59460,
+    "PrivateBytes": 55930880
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 59828,
+    "OwnerName": "WhatsApp.Root.exe",
+    "OwnerPid": 59460,
+    "PrivateBytes": 3186688
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 15864,
+    "OwnerName": "WhatsApp.Root.exe",
+    "OwnerPid": 59460,
+    "PrivateBytes": 318595072
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 60112,
+    "OwnerName": "WhatsApp.Root.exe",
+    "OwnerPid": 59460,
+    "PrivateBytes": 16986112
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 31096,
+    "OwnerName": "WhatsApp.Root.exe",
+    "OwnerPid": 59460,
+    "PrivateBytes": 8609792
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 60240,
+    "OwnerName": "WhatsApp.Root.exe",
+    "OwnerPid": 59460,
+    "PrivateBytes": 199344128
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 66276,
+    "OwnerName": "GoogleDriveFS.exe",
+    "OwnerPid": 47464,
+    "PrivateBytes": 45461504
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 62268,
+    "OwnerName": "GoogleDriveFS.exe",
+    "OwnerPid": 47464,
+    "PrivateBytes": 3153920
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 71312,
+    "OwnerName": "GoogleDriveFS.exe",
+    "OwnerPid": 47464,
+    "PrivateBytes": 14598144
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 3692,
+    "OwnerName": "GoogleDriveFS.exe",
+    "OwnerPid": 47464,
+    "PrivateBytes": 135991296
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 7672,
+    "OwnerName": "GoogleDriveFS.exe",
+    "OwnerPid": 47464,
+    "PrivateBytes": 9060352
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 61616,
+    "OwnerName": "GoogleDriveFS.exe",
+    "OwnerPid": 47464,
+    "PrivateBytes": 92602368
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 43120,
+    "OwnerName": "WhatsApp.Root.exe",
+    "OwnerPid": 59460,
+    "PrivateBytes": 9068544
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 25136,
+    "OwnerName": "WhatsApp.Root.exe",
+    "OwnerPid": 59460,
+    "PrivateBytes": 76574720
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 65128,
+    "OwnerName": "FloatingMenu1.exe",
+    "OwnerPid": 25188,
+    "PrivateBytes": 32501760
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 99164,
+    "OwnerName": "ms-teams.exe",
+    "OwnerPid": 67716,
+    "PrivateBytes": 112795648
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 129520,
+    "OwnerName": "ms-teams.exe",
+    "OwnerPid": 67716,
+    "PrivateBytes": 3133440
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 66188,
+    "OwnerName": "ms-teams.exe",
+    "OwnerPid": 67716,
+    "PrivateBytes": 313864192
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 157080,
+    "OwnerName": "ms-teams.exe",
+    "OwnerPid": 67716,
+    "PrivateBytes": 20283392
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 122148,
+    "OwnerName": "ms-teams.exe",
+    "OwnerPid": 67716,
+    "PrivateBytes": 11743232
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 15264,
+    "OwnerName": "ms-teams.exe",
+    "OwnerPid": 67716,
+    "PrivateBytes": 464666624
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 143016,
+    "OwnerName": "ms-teams.exe",
+    "OwnerPid": 67716,
+    "PrivateBytes": 9031680
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 74012,
+    "OwnerName": "ms-teams.exe",
+    "OwnerPid": 67716,
+    "PrivateBytes": 675401728
+  },
+  {
+    "Name": "msedgewebview2.exe",
+    "Pid": 67140,
+    "OwnerName": "ms-teams.exe",
+    "OwnerPid": 67716,
+    "PrivateBytes": 40120320
+  }
+]

@@ -257,7 +257,10 @@ jobs:
           # Tests/Integration belongs in integration-tests, which does download
           # the artifacts; moving it there is a follow-up, as those 22 suites
           # have never executed against a real DLL and will surface real gaps.
-          $config.Run.Path = @('Tests/Unit')
+          # The bounded workload profiler requires PowerShell 7 and Windows
+          # counters. Include its exact suite here without expanding the shared
+          # PowerShell 5.1 compatibility baseline in maintenance.yml.
+          $config.Run.Path = @('Tests/Unit', 'Tests/Boot/WorkloadResourceProfile.Tests.ps1')
           $config.Run.Exit = $true
           $config.CodeCoverage.Enabled = $true
           $config.CodeCoverage.OutputFormat = 'JaCoCo'

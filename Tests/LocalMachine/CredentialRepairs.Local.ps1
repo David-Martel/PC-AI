@@ -177,16 +177,39 @@ Describe 'Actual protected archive flow using nonsecret native I/O fixtures' {
         Should -Invoke Invoke-BitwardenCli -Times 0 -Exactly
         Should -Invoke Initialize-BitwardenSessionFromBackends -Times 0 -Exactly
     }
-    It 'aborts before sync and export when Set-Acl fails' {
-        Mock Set-Acl { throw 'fixture ACL denied' }
-        { Invoke-BwArchiveRefresh -Dir $script:archiveRoot -Quiet } | Should -Throw '*fixture ACL denied*'
-        Should -Invoke Invoke-BitwardenCli -Times 0 -Exactly -ParameterFilter { $Arguments[0] -in @('sync', 'export') }
-        @(Get-ChildItem -LiteralPath $script:archiveRoot -Force).Count | Should -Be 0
+    It 'aborts before authentication when the actual ACL writer target disappears' {
+        $script:actualGetItem = Get-Command Get-Item -CommandType Cmdlet
+        Mock Get-Item {
+            param($LiteralPath)
+            $ownedPath = [IO.Path]::GetFullPath($LiteralPath)
+            $ownedRoot = [IO.Path]::GetFullPath($TestDrive) + [IO.Path]::DirectorySeparatorChar
+            $ownedPath.StartsWith($ownedRoot, [StringComparison]::OrdinalIgnoreCase) | Should -BeTrue
+            $item = & $script:actualGetItem -LiteralPath $LiteralPath -ErrorAction Stop
+            $null = $item.Attributes
+            $item.PSIsContainer | Should -BeTrue
+            [IO.Directory]::Delete($item.FullName)
+            $item
+        } -ParameterFilter { $LiteralPath -eq $script:archiveRoot }
+        { Invoke-BwArchiveRefresh -Dir $script:archiveRoot -Quiet } | Should -Throw '*SetAccessControl*'
+        Should -Invoke Get-Item -Times 1 -Exactly -ParameterFilter { $LiteralPath -eq $script:archiveRoot }
+        Should -Invoke Invoke-BitwardenCli -Times 0 -Exactly
+        Should -Invoke Initialize-BitwardenSessionFromBackends -Times 0 -Exactly
+        Test-Path -LiteralPath $script:archiveRoot | Should -BeFalse
     }
-    It 'detects an ACL operation that returns without applying protection' {
-        Mock Set-Acl {}
+    It 'rejects invalid ACL readback after the actual writer applies protection' {
+        $script:actualWrittenAcl = $null
+        Mock Get-Acl {
+            param($LiteralPath)
+            $LiteralPath | Should -Be $script:archiveRoot
+            $script:actualWrittenAcl = [IO.FileSystemAclExtensions]::GetAccessControl([IO.DirectoryInfo]::new($LiteralPath))
+            [Security.AccessControl.DirectorySecurity]::new()
+        } -ParameterFilter { $LiteralPath -eq $script:archiveRoot }
         { Invoke-BwArchiveRefresh -Dir $script:archiveRoot -Quiet } | Should -Throw '*ACL verification failed*'
-        Should -Invoke Invoke-BitwardenCli -Times 0 -Exactly -ParameterFilter { $Arguments[0] -eq 'export' }
+        $script:actualWrittenAcl.AreAccessRulesProtected | Should -BeTrue
+        @($script:actualWrittenAcl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])).Count | Should -Be 3
+        Should -Invoke Get-Acl -Times 1 -Exactly -ParameterFilter { $LiteralPath -eq $script:archiveRoot }
+        Should -Invoke Invoke-BitwardenCli -Times 0 -Exactly
+        Should -Invoke Initialize-BitwardenSessionFromBackends -Times 0 -Exactly
     }
     It 'does not export stale data or replace latest after sync fails' {
         $null = New-Item -ItemType Directory -Path $script:archiveRoot

@@ -335,3 +335,168 @@ Describe 'Actual Bitwarden bootstrap with nonsecret password/session fixtures' {
         Should -Invoke Invoke-BitwardenCli -Times 0 -Exactly
     }
 }
+
+
+Describe 'Actual canonical Bitwarden launcher without credential I/O' -Tag 'BwLauncher' {
+    BeforeAll {
+        $script:launcherPath = Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Unlock-BwVault.ps1'
+        . $script:launcherPath
+    }
+    BeforeEach {
+        $script:priorLauncherSession = $env:BW_SESSION
+        $env:BW_SESSION = 'explicit-nonsecret-launcher-session'
+        Mock Initialize-BitwardenSessionFromBackends {
+            [pscustomobject]@{ Success = $true; Message = 'fixture-sensitive-message'; Session = 'fixture-sensitive-result' }
+        }
+        Mock Set-BwVaultUserSession {}
+    }
+    AfterEach { $env:BW_SESSION = $script:priorLauncherSession }
+    It 'does no backend loading, initialization, or persistence in DryRun' {
+        Mock Get-Command { throw 'DryRun must not discover backends' }
+        Invoke-BwVaultUnlock -DryRun -PersistSession -Quiet | Should -Be 0
+        $env:BW_SESSION | Should -Be 'explicit-nonsecret-launcher-session'
+        Should -Invoke Get-Command -Times 0 -Exactly
+        Should -Invoke Initialize-BitwardenSessionFromBackends -Times 0 -Exactly
+        Should -Invoke Set-BwVaultUserSession -Times 0 -Exactly
+    }
+    It 'does no backend loading, initialization, or persistence in WhatIf' {
+        Mock Get-Command { throw 'WhatIf must not discover backends' }
+        Invoke-BwVaultUnlock -WhatIf -PersistSession -Quiet | Should -Be 0
+        $env:BW_SESSION | Should -Be 'explicit-nonsecret-launcher-session'
+        Should -Invoke Get-Command -Times 0 -Exactly
+        Should -Invoke Initialize-BitwardenSessionFromBackends -Times 0 -Exactly
+        Should -Invoke Set-BwVaultUserSession -Times 0 -Exactly
+    }
+    It 'preserves an explicit validated process session without forced refresh' {
+        Invoke-BwVaultUnlock -Quiet | Should -Be 0
+        $env:BW_SESSION | Should -Be 'explicit-nonsecret-launcher-session'
+        Should -Invoke Initialize-BitwardenSessionFromBackends -Times 1 -Exactly -ParameterFilter { $Quiet -and -not $Refresh }
+        Should -Invoke Set-BwVaultUserSession -Times 0 -Exactly
+    }
+    It 'maps Force to the existing backend Refresh contract' {
+        Invoke-BwVaultUnlock -Force -Quiet | Should -Be 0
+        Should -Invoke Initialize-BitwardenSessionFromBackends -Times 1 -Exactly -ParameterFilter { $Quiet -and $Refresh }
+    }
+    It 'persists exactly the validated process session only when requested' {
+        Mock Initialize-BitwardenSessionFromBackends {
+            $env:BW_SESSION = 'validated-nonsecret-process-session'
+            [pscustomobject]@{ Success = $true; Session = 'do-not-persist-result-field' }
+        }
+        Invoke-BwVaultUnlock -PersistSession -Quiet | Should -Be 0
+        Should -Invoke Set-BwVaultUserSession -Times 1 -Exactly -ParameterFilter { $Session -eq 'validated-nonsecret-process-session' }
+    }
+    It 'rejects provider failure and restores a previous explicit session' {
+        Mock Initialize-BitwardenSessionFromBackends {
+            $env:BW_SESSION = 'rejected-nonsecret-candidate'
+            [pscustomobject]@{ Success = $false; Message = 'fixture-sensitive-message' }
+        }
+        Invoke-BwVaultUnlock -PersistSession -Quiet -WarningAction SilentlyContinue | Should -Be 1
+        $env:BW_SESSION | Should -Be 'explicit-nonsecret-launcher-session'
+        Should -Invoke Set-BwVaultUserSession -Times 0 -Exactly
+    }
+    It 'rejects a null provider response without persistence' {
+        Mock Initialize-BitwardenSessionFromBackends { $null }
+        Invoke-BwVaultUnlock -PersistSession -Quiet -WarningAction SilentlyContinue | Should -Be 1
+        Should -Invoke Set-BwVaultUserSession -Times 0 -Exactly
+    }
+    It 'rejects a truthy string in place of the required Boolean success' {
+        Mock Initialize-BitwardenSessionFromBackends { [pscustomobject]@{ Success = 'true' } }
+        Invoke-BwVaultUnlock -PersistSession -Quiet -WarningAction SilentlyContinue | Should -Be 1
+        Should -Invoke Set-BwVaultUserSession -Times 0 -Exactly
+    }
+    It 'rejects success with an empty process session and restores the prior session' {
+        Mock Initialize-BitwardenSessionFromBackends { $env:BW_SESSION = ''; [pscustomobject]@{ Success = $true } }
+        Invoke-BwVaultUnlock -PersistSession -Quiet -WarningAction SilentlyContinue | Should -Be 1
+        $env:BW_SESSION | Should -Be 'explicit-nonsecret-launcher-session'
+        Should -Invoke Set-BwVaultUserSession -Times 0 -Exactly
+    }
+    It 'does not expose a reflected credential from a provider exception' {
+        Mock Initialize-BitwardenSessionFromBackends { throw 'fixture-sensitive-exception' }
+        $output = @(Invoke-BwVaultUnlock -PersistSession -Quiet 3>&1)
+        $output.Count | Should -Be 2
+        $output[0] | Should -BeOfType [Management.Automation.WarningRecord]
+        $output[0].Message | Should -Be 'Bitwarden session initialization failed; no session was persisted by this launcher.'
+        $output[-1] | Should -Be 1
+        ($output | Out-String) | Should -Not -Match 'fixture-sensitive'
+        $env:BW_SESSION | Should -Be 'explicit-nonsecret-launcher-session'
+        Should -Invoke Set-BwVaultUserSession -Times 0 -Exactly
+    }
+    It 'suppresses reflected provider diagnostics and result fields' {
+        Mock Initialize-BitwardenSessionFromBackends {
+            Write-Warning 'fixture-sensitive-warning'
+            Write-Information 'fixture-sensitive-information' -InformationAction Continue
+            [pscustomobject]@{ Success = $true; Session = 'fixture-sensitive-result' }
+        }
+        $output = @(Invoke-BwVaultUnlock -Quiet *>&1)
+        $output.Count | Should -Be 1
+        $output[0] | Should -Be 0
+    }
+    It 'reports a failed User environment write without reflecting its input' {
+        Mock Set-BwVaultUserSession { throw 'fixture-sensitive-persistence-error' }
+        $output = @(Invoke-BwVaultUnlock -PersistSession -Quiet 3>&1)
+        $output[-1] | Should -Be 1
+        ($output | Out-String) | Should -Not -Match 'fixture-sensitive'
+        $env:BW_SESSION | Should -Be 'explicit-nonsecret-launcher-session'
+        { Invoke-BwVaultUnlock -PersistSession -Quiet -WarningAction Stop } | Should -Throw '*Bitwarden session initialization failed*'
+        $env:BW_SESSION | Should -Be 'explicit-nonsecret-launcher-session'
+    }
+}
+
+Describe 'Actual launcher child-process exit and nonmutating entry points' -Tag 'BwLauncher' {
+    BeforeAll {
+        $script:launcherPath = Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Unlock-BwVault.ps1'
+        $script:childFixture = Join-Path $TestDrive 'launcher-child.ps1'
+        [IO.File]::WriteAllText($script:childFixture, @'
+param([string]$Source, [string]$Mode)
+$env:BW_SESSION = 'explicit-nonsecret-child-session'
+$env:BWS_ACCESS_TOKEN = $null
+function Initialize-BitwardenSessionFromBackends {
+    [CmdletBinding()]
+    param([switch]$Quiet, [switch]$Refresh)
+    if ($Mode -in @('DryRun', 'WhatIf', 'Help', 'ShortHelp', 'LongHelp')) { throw 'NONMUTATING_BACKEND_CALLED' }
+    if ($Mode -eq 'False') { return [pscustomobject]@{ Success = $false; Message = 'REFLECTED_NONSECRET_FIXTURE' } }
+    if ($Mode -eq 'Throw') { throw 'REFLECTED_NONSECRET_FIXTURE' }
+    if ($Mode -eq 'Null') { return $null }
+    return [pscustomobject]@{ Success = $true }
+}
+$arguments = @{ Quiet = $true }
+if ($Mode -in @('DryRun', 'WhatIf', 'Help')) { $arguments[$Mode] = $true }
+if ($Mode -eq 'ShortHelp') { $arguments['h'] = $true }
+if ($Mode -eq 'LongHelp') { $arguments['-help'] = $true }
+& $Source @arguments
+exit $LASTEXITCODE
+'@)
+    }
+    It 'returns truthful native exit for <Mode> without reflecting credentials' -ForEach @(
+        @{ Mode = 'False'; Expected = 1 }, @{ Mode = 'Throw'; Expected = 1 },
+        @{ Mode = 'Null'; Expected = 1 }, @{ Mode = 'Success'; Expected = 0 },
+        @{ Mode = 'DryRun'; Expected = 0 }, @{ Mode = 'WhatIf'; Expected = 0 },
+        @{ Mode = 'Help'; Expected = 0 }, @{ Mode = 'ShortHelp'; Expected = 0 },
+        @{ Mode = 'LongHelp'; Expected = 0 }
+    ) {
+        $start = [Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME 'pwsh.exe'))
+        $start.UseShellExecute = $false
+        $start.CreateNoWindow = $true
+        $start.RedirectStandardOutput = $true
+        $start.RedirectStandardError = $true
+        foreach ($arg in @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', $script:childFixture, '-Source', $script:launcherPath, '-Mode', $Mode)) {
+            $start.ArgumentList.Add($arg)
+        }
+        $child = [Diagnostics.Process]::new()
+        $child.StartInfo = $start
+        try {
+            $child.Start() | Should -BeTrue
+            $stdout = $child.StandardOutput.ReadToEndAsync()
+            $stderr = $child.StandardError.ReadToEndAsync()
+            if (-not $child.WaitForExit(20000)) {
+                $child.Kill($true)
+                throw 'Owned launcher fixture exceeded its 20-second deadline.'
+            }
+            $child.ExitCode | Should -Be $Expected
+            $combined = $stdout.GetAwaiter().GetResult() + $stderr.GetAwaiter().GetResult()
+            $combined | Should -Not -Match 'REFLECTED_NONSECRET_FIXTURE|NONMUTATING_BACKEND_CALLED|NamedParameterNotFound|parameter cannot be found'
+            if ($Mode -in @('Help', 'ShortHelp', 'LongHelp')) { $combined | Should -Match 'Usage: Unlock-BwVault.ps1' }
+        }
+        finally { $child.Dispose() }
+    }
+}

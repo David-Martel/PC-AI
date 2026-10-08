@@ -14,7 +14,7 @@
             │   ├── pcai-llamacpp/   # llamacpp backend binaries
             │   ├── pcai-mistralrs/  # mistralrs backend binaries
             │   └── manifest.json    # Build manifest with hashes
-            ├── logs/                # Build logs (timestamped)
+            ├── logs/build-rN/       # Retained build log revisions
             └── packages/            # Release packages (ZIPs)
 
 .PARAMETER Component
@@ -47,6 +47,14 @@
 
 .PARAMETER EnableCuda
     Enable CUDA GPU acceleration for supported backends.
+
+.PARAMETER EnableCudnn
+    Opt into cuDNN for media builds after qualifying the host's cuDNN installation.
+    Requires EnableCuda. Plain CUDA builds do not require cuDNN.
+
+.PARAMETER EnableFlashAttention
+    Opt into media FlashAttention kernels after qualifying the GPU and toolkit.
+    Requires EnableCuda. Plain CUDA builds use the standard attention path.
 
 .PARAMETER Clean
     Clean all build artifacts before building.
@@ -173,6 +181,8 @@ param(
     [string]$Configuration = 'Release',
 
     [switch]$EnableCuda,
+    [switch]$EnableCudnn,
+    [switch]$EnableFlashAttention,
     [switch]$Clean,
     [switch]$Package,
     [switch]$RunTests,
@@ -195,6 +205,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if (($EnableCudnn -or $EnableFlashAttention) -and -not $EnableCuda) {
+    throw 'EnableCudnn and EnableFlashAttention require EnableCuda.'
+}
 $script:StartTime = Get-Date
 $script:ProjectRoot = $PSScriptRoot
 $script:ArtifactsRoot = if ($env:PCAI_ARTIFACTS_ROOT) {
@@ -1023,7 +1036,7 @@ function Publish-PcaiNativeBundle {
         'unknown'
     }
 
-    $bundleName = '{0}-{1}' -f (ConvertTo-SafePathLabel -Value $versionLabel), (Get-Date -Format 'yyyyMMdd-HHmmss')
+    $bundleName = '{0}-{1}' -f (ConvertTo-SafePathLabel -Value $versionLabel), $script:BuildRunLabel
     $bundleRoot = Join-Path $bundleParent $bundleName
     if (-not (Test-Path -LiteralPath $bundleRoot)) {
         New-Item -ItemType Directory -Path $bundleRoot -Force | Out-Null
@@ -1101,6 +1114,10 @@ function Publish-PcaiNativeBundle {
 function Initialize-BuildDirectories {
     Write-BuildPhase 'Initialize' 'Setting up build directory structure'
 
+    . (Join-Path $script:ProjectRoot 'Tools/PcaiArtifactDirectories.ps1')
+    $script:BuildLogsDir = New-PcaiArtifactDirectory -Root $script:BuildLogsDir -Name 'build'
+    $script:BuildRunLabel = Split-Path -Leaf $script:BuildLogsDir
+
     $dirs = @(
         $script:BuildRoot,
         $script:BuildArtifactsDir,
@@ -1132,7 +1149,6 @@ function Clear-BuildArtifacts {
 
     $dirsToClean = @(
         $script:BuildArtifactsDir,
-        $script:BuildLogsDir,
         $script:BuildPackagesDir,
         $script:BuildDeployDir
     )
@@ -1531,7 +1547,7 @@ function Invoke-RustQuality {
 
     $success = $true
     foreach ($target in $targets) {
-        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $timestamp = $script:BuildRunLabel
         $logFile = Join-Path $script:BuildLogsDir "quality_rust_${Mode}_$($target.Name)_$timestamp.log"
         $cargoArgs = switch ($Mode) {
             'check' { @('check', '--workspace', '--all-targets') }
@@ -1567,7 +1583,7 @@ function Invoke-RustInferenceQuality {
         return $true
     }
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $commands = @()
     switch ($Mode) {
         'check' {
@@ -1633,7 +1649,7 @@ function Invoke-DotnetFormatQuality {
     $allOk = $true
     foreach ($project in $projects) {
         $name = Split-Path $project -Leaf
-        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $timestamp = $script:BuildRunLabel
         $logFile = Join-Path $script:BuildLogsDir "quality_dotnet_${name}_$timestamp.log"
         $args = @('format', $project, '--no-restore', '--verbosity', 'minimal', '--nologo')
         if (-not $WriteMode) { $args += '--verify-no-changes' }
@@ -1848,7 +1864,7 @@ function Invoke-RustDependencyRefresh {
 
     $ok = $true
     foreach ($target in $targets) {
-        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $timestamp = $script:BuildRunLabel
         $logFile = Join-Path $script:BuildLogsDir "deps_$($target.Name)_$timestamp.log"
 
         if ($script:DependencyStrategy -eq 'update') {
@@ -2038,7 +2054,7 @@ function Invoke-InferenceBuild {
     Write-BuildStep "Building pcai-inference ($Backend)..." 'running'
 
     # Prepare log file
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logDir = $script:BuildLogsDir
     if (-not (Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -2134,7 +2150,7 @@ function Invoke-FunctionGemmaBuild {
 
     Write-BuildStep 'Building FunctionGemma runtime + train crates...' 'running'
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logDir = $script:BuildLogsDir
     if (-not (Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -2213,7 +2229,7 @@ function Invoke-FunctionGemmaOperation {
         return @{ Success = $false; Duration = (Get-Date) - $componentStart; Artifacts = @() }
     }
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "build_functiongemma_${Operation}_$timestamp.log"
     $opLabel = switch ($Operation) {
         'router-data' { 'FunctionGemma router dataset generation' }
@@ -2336,7 +2352,7 @@ function Invoke-TuiBuild {
 
     Write-BuildStep 'Building PcaiChatTui...' 'running'
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logDir = $script:BuildLogsDir
     if (-not (Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -2427,7 +2443,7 @@ function Invoke-DotnetComponentBuild {
 
     Write-BuildStep "Building $ComponentName..." 'running'
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "build_${ComponentName}_$timestamp.log"
     $publishRoot = Join-Path $script:BuildRoot "tmp\$ComponentName-$($Configuration.ToLower())"
 
@@ -2500,6 +2516,24 @@ function Invoke-DotnetComponentBuild {
     }
 }
 
+function Get-MediaBuildFeatures {
+    [CmdletBinding()]
+    param([bool]$Cuda, [bool]$Cudnn, [bool]$FlashAttention)
+
+    if (($Cudnn -or $FlashAttention) -and -not $Cuda) {
+        throw 'Optional GPU kernels require CUDA.'
+    }
+    $library = @('ffi', 'upscale')
+    $server = @()
+    if ($Cuda) {
+        $library += @('cuda', 'nvml')
+        $server += @('cuda', 'nvml')
+    }
+    if ($Cudnn) { $library += 'cudnn'; $server += 'cudnn' }
+    if ($FlashAttention) { $library += 'flash-attn'; $server += 'flash-attn' }
+    return [pscustomobject]@{ Library = $library; Server = $server }
+}
+
 function Invoke-MediaBuild {
     param(
         [string]$Configuration,
@@ -2513,7 +2547,7 @@ function Invoke-MediaBuild {
     $mediaWorkspace = Join-Path $script:ProjectRoot 'Native\pcai_core'
     $mediaLibRoot = Join-Path $mediaWorkspace 'pcai_media'
     $mediaServerRoot = Join-Path $mediaWorkspace 'pcai_media_server'
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "build_media_$timestamp.log"
     $artifactDir = Join-Path $script:BuildArtifactsDir 'pcai-media'
 
@@ -2536,24 +2570,11 @@ function Invoke-MediaBuild {
             $mediaServerArgs += '--release'
         }
 
-        # Always include ffi so the cdylib exports the C FFI surface for P/Invoke.
-        # upscale ships the ONNX Runtime-based RealESRGAN upscaler.
-        $mediaLibFeatures = @('ffi', 'upscale')
-        $mediaServerFeatures = @()
-        if ($EnableCuda) {
-            # Full GPU feature set for release CUDA builds:
-            # cuda      - candle CUDA backend + NVML device selection
-            # cudnn     - cuDNN conv acceleration (forward compat for future fused-attn)
-            # flash-attn - FlashAttention-2 for transformer backbone
-            # nvml      - NVML GPU selection without full CUDA requirement
-            $mediaLibFeatures += 'cuda'
-            $mediaLibFeatures += 'cudnn'
-            $mediaLibFeatures += 'flash-attn'
-            $mediaLibFeatures += 'nvml'
-            # cuda-optimized = cuda + cudnn + nvml (composite feature in pcai-media-server)
-            $mediaServerFeatures += 'cuda-optimized'
-            $mediaServerFeatures += 'flash-attn'
-        }
+        # Optional kernels have separate host/toolkit requirements. Keep their
+        # qualification explicit rather than making every CUDA build require them.
+        $features = Get-MediaBuildFeatures -Cuda $EnableCuda -Cudnn $EnableCudnn -FlashAttention $EnableFlashAttention
+        $mediaLibFeatures = @($features.Library)
+        $mediaServerFeatures = @($features.Server)
         $mediaLibArgs += @('--features', ($mediaLibFeatures -join ','))
         if ($mediaServerFeatures.Count -gt 0) {
             $mediaServerArgs += @('--features', ($mediaServerFeatures -join ','))
@@ -2663,7 +2684,7 @@ function Invoke-MediaConvertBuild {
     $componentStart = Get-Date
     $convertScript = Join-Path $script:ProjectRoot 'Tools\Convert-JanusToGGUF.py'
     $venvPython = Join-Path $script:ProjectRoot 'AI-Media\.venv\Scripts\python.exe'
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "media_convert_$timestamp.log"
 
     Write-BuildPhase 'MediaConvert' 'Running GGUF model conversion for Janus-Pro'
@@ -2733,7 +2754,7 @@ function Invoke-NukeNulBuild {
     }
     $rustDir = Join-Path $nukeRoot 'nuker_core'
     $projectPath = Join-Path $nukeRoot 'NukeNul.csproj'
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "build_nukenul_$timestamp.log"
     $artifactDir = Join-Path $script:BuildArtifactsDir 'nukenul'
 
@@ -2918,7 +2939,7 @@ function Invoke-PostBuildTests {
     Write-BuildPhase 'Test' 'Running post-build test suites'
 
     $testFailures = @()
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
 
     $runInferenceTests = @($BuildTargets | Where-Object { $_ -in @('llamacpp', 'mistralrs') }).Count -gt 0
     if ($runInferenceTests) {
@@ -3062,7 +3083,7 @@ function Invoke-StandaloneTests {
     Write-BuildPhase 'Test' 'Running standalone test suites'
 
     $failures = [System.Collections.Generic.List[string]]::new()
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $shellExe = Resolve-PowerShellExecutable
     $coreWorkspace = Join-Path $script:ProjectRoot 'Native\pcai_core'
 
@@ -3163,7 +3184,7 @@ function Invoke-StandaloneBenchmarks {
         return @{ Success = $false; Duration = [TimeSpan]::Zero }
     }
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "benchmark_media_$timestamp.log"
     $shellExe = Resolve-PowerShellExecutable
 

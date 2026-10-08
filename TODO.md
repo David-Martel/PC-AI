@@ -647,3 +647,9 @@ still listed although upstream removed it in favour of `implicit_clone`.
   `pwsh .\Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick`
 - LLM evaluation:
   `pwsh .\Tests\Evaluation\Invoke-InferenceEvaluation.ps1 -Backend llamacpp-bin -Dataset diagnostic`
+# Fleet runtime integration
+
+The current audit, repairs, validation boundaries and remaining per-host gates are
+recorded in [Reports/fleet-integration-review.md](Reports/fleet-integration-review.md).
+Resolve the recorded endpoint, optional-backend and deployment gates before calling
+the cross-machine checkout and consumer state fully synchronized.

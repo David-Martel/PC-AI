@@ -28,6 +28,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$CaseId = @($CaseId | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
 . (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
 
@@ -652,9 +653,9 @@ $reportRootBase = if ($OutputRoot) {
 if (-not [System.IO.Path]::IsPathRooted($reportRootBase)) {
     $reportRootBase = Join-Path $PcaiRoot $reportRootBase
 }
-$timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-$reportRoot = Join-Path $reportRootBase $timestamp
-New-Item -ItemType Directory -Path $reportRoot -Force | Out-Null
+# Keep observation dates in metadata and allocate distinct repetitions safely.
+. (Join-Path $PcaiRoot 'Tools/PcaiArtifactDirectories.ps1')
+$reportRoot = New-PcaiArtifactDirectory -Root $reportRootBase -Name 'tooling'
 
 $capabilities = $null
 if (-not $SkipCapabilities) {

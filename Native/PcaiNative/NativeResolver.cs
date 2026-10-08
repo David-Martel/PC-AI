@@ -47,6 +47,16 @@ namespace PcaiNative
             Assembly assembly,
             DllImportSearchPath? searchPath)
         {
+            var explicitBundle = Environment.GetEnvironmentVariable("PCAI_NATIVE_BUNDLE_ROOT");
+            if (!string.IsNullOrWhiteSpace(explicitBundle))
+            {
+                var explicitLibrary = Path.Combine(Path.GetFullPath(explicitBundle), dllFileName);
+                if (!File.Exists(explicitLibrary))
+                    throw new DllNotFoundException($"Explicit PCAI native bundle lacks {dllFileName}.");
+                // A selected bundle must not silently use another installed library.
+                return NativeLibrary.Load(explicitLibrary);
+            }
+
             // Try default resolution first (handles PATH, system directories, etc.)
             if (NativeLibrary.TryLoad(libraryName, assembly, searchPath, out IntPtr handle))
                 return handle;

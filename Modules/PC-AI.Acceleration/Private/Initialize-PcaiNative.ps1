@@ -73,7 +73,25 @@ function Initialize-PcaiNative {
         [switch]$Force
     )
 
-    if ($script:PcaiNativeLoaded -and -not $Force) {
+    # An explicit paired bundle must never silently fall back to stale repo binaries.
+    $explicitBundle = $env:PCAI_NATIVE_BUNDLE_ROOT
+    if ($explicitBundle) {
+        try {
+            $explicitBundle = (Resolve-Path -LiteralPath $explicitBundle -ErrorAction Stop).ProviderPath
+            foreach ($leaf in @('pcai_core_lib.dll', 'PcaiNative.dll')) {
+                if (-not (Test-Path -LiteralPath (Join-Path $explicitBundle $leaf) -PathType Leaf)) {
+                    throw "Explicit PCAI native bundle is incomplete: $leaf"
+                }
+            }
+        } catch {
+            Write-Warning "Cannot select explicit PCAI native bundle: $_"
+            $script:PcaiNativeLoaded = $false
+            return $false
+        }
+    }
+
+    if ($script:PcaiNativeLoaded -and -not $Force -and
+        (-not $explicitBundle -or $explicitBundle -eq $script:PcaiNativeDllPath)) {
         Write-Verbose 'PCAI Native already loaded, skipping initialization'
         return $true
     }
@@ -133,7 +151,9 @@ function Initialize-PcaiNative {
         (Join-Path $env:USERPROFILE 'PC_AI\bin')                                          # Legacy compatibility path
     ) | Select-Object -Unique | Where-Object { $_ }
 
-    $searchPaths = Get-PcaiNativeCandidatePaths -BasePaths $baseSearchPaths
+    $searchPaths = if ($explicitBundle) { @($explicitBundle) } else {
+        Get-PcaiNativeCandidatePaths -BasePaths $baseSearchPaths
+    }
 
     $dllPath = $null
     foreach ($searchPath in $searchPaths) {
@@ -156,21 +176,24 @@ function Initialize-PcaiNative {
     $script:PcaiNativeDllPath = $dllPath
 
     try {
+        $wrapperPath = Join-Path $dllPath 'PcaiNative.dll'
+        $loadedAssembly = [System.AppDomain]::CurrentDomain.GetAssemblies() |
+            Where-Object { $_.GetName().Name -eq 'PcaiNative' } |
+            Select-Object -First 1
+        if ($loadedAssembly -and
+            -not [string]::Equals($loadedAssembly.Location, $wrapperPath, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'A different PcaiNative bundle is already loaded; select the desired bundle in a fresh PowerShell process.'
+        }
+
         # CRITICAL: Add the DLL directory to the process PATH so native DLLs can be found
         # This allows the C# wrapper to locate specialized Rust DLLs
         $currentPath = [System.Environment]::GetEnvironmentVariable('PATH', 'Process')
-        if ($currentPath -notlike "*$dllPath*") {
+        if ($dllPath -notin ($currentPath -split [IO.Path]::PathSeparator)) {
             [System.Environment]::SetEnvironmentVariable('PATH', "$dllPath;$currentPath", 'Process')
             Write-Verbose "Added $dllPath to process PATH"
         }
 
         # Load the C# wrapper assembly
-        $wrapperPath = Join-Path $dllPath 'PcaiNative.dll'
-
-        # Check if already loaded
-        $loadedAssembly = [System.AppDomain]::CurrentDomain.GetAssemblies() |
-            Where-Object { $_.GetName().Name -eq 'PcaiNative' }
-
         if (-not $loadedAssembly) {
             Add-Type -Path $wrapperPath -ErrorAction Stop
             Write-Verbose 'Loaded PcaiNative.dll assembly'

@@ -29,7 +29,7 @@ Primary entrypoints:
 
 - `Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1`
 - `Config/pcai-tooling-benchmarks.json`
-- `Reports/tooling-benchmarks/<timestamp>/`
+- `Reports/tooling-benchmarks/tooling-rN/` (timestamps in report metadata)
 - `Reports/TOOL_BACKEND_COVERAGE.md`
 
 Current benchmark guidance from the repo:
@@ -194,6 +194,23 @@ Useful variants:
 .\Build.ps1 -Component llamacpp -EnableCuda
 .\Build.ps1 -Clean -Package -EnableCuda
 ```
+
+CUDA builds no longer implicitly require cuDNN or FlashAttention. Enable these
+optional kernels explicitly with `-EnableCudnn` or `-EnableFlashAttention` after
+qualifying the target host. CPU builds reject either optional kernel switch.
+Build logs use retained `build-rN` revisions; `-Clean` preserves those logs.
+
+`Tools/Install-PcaiDevModules.ps1` defaults to verified copies for the current
+user, retains previous installations in private revision custody, and supports
+non-mutating `-DryRun`/`-WhatIf`. Use `-Mode Junction` only for intentional live
+development bindings. Include CargoTools through an explicitly selected source.
+`Tools/Repair-PcaiProfileStartup.ps1` plans three known profile repairs by default;
+apply requires the observed profile hash and preserves actual displaced bytes.
+Keep each machine's canonical profile and private authentication settings local.
+
+Set `PCAI_NATIVE_BUNDLE_ROOT` to an exact, paired Rust/C# bundle when validating
+or deploying a build. An incomplete explicit bundle fails closed. Select another
+managed bundle in a fresh PowerShell process; loaded assemblies cannot be replaced.
 
 Direct inference builds:
 

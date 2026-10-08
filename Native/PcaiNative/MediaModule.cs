@@ -251,7 +251,12 @@ namespace PcaiNative
         {
             get
             {
-                try { return pcai_media_last_error_code() >= 0; }
+                try
+                {
+                    // Operation errors prove the entry point is callable too.
+                    _ = pcai_media_last_error_code();
+                    return true;
+                }
                 catch (DllNotFoundException) { return false; }
                 catch (EntryPointNotFoundException) { return false; }
             }

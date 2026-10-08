@@ -182,7 +182,7 @@ mod tests {
         let (shape, data) = tensor.try_extract_tensor::<f32>().unwrap();
         let dims: Vec<i64> = shape.iter().copied().collect();
         assert_eq!(dims, vec![1, 3, 6, 8]);
-        assert_eq!(data.len(), 1 * 3 * 6 * 8);
+        assert_eq!(data.len(), 3 * 6 * 8);
     }
 
     #[test]

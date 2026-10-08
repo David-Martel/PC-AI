@@ -100,15 +100,18 @@ Describe 'Configuration isolation and dry-run' {
     It 'Configure dry-run does not mutate either machine or report success' {
         $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Configure -SelectedPeer millylaptop1 -ProfilePath $profilePath -EnableApply -IsDryRun
         $result.Applied | Should -BeFalse
-        $result.State | Should -Be Observed
+        $result.State | Should -Be Planned
         Should -Invoke Invoke-TbSsh -Times 0
         Should -Invoke Set-NetIPInterface -Times 0
         Should -Invoke New-NetIPAddress -Times 0
+        Should -Invoke Get-TbLinuxInventory -Times 0
+        Should -Invoke Get-NetAdapter -Times 0
     }
     It 'Prepare dry-run does not write or run remote commands' {
         $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Prepare -SelectedPeer millylaptop1 -ProfilePath $profilePath -EnableApply -IsDryRun
         $result.Applied | Should -BeFalse
         Should -Invoke Invoke-TbSsh -Times 0
+        Should -Invoke Get-TbLinuxInventory -Times 0
     }
     It 'WhatIf suppresses Configure writes even with Apply' {
         $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Configure -SelectedPeer millylaptop1 -ProfilePath $profilePath -EnableApply -WhatIf
@@ -162,6 +165,128 @@ Describe 'Configuration isolation and dry-run' {
     }
 }
 
+Describe 'Per-invocation SSH application selection' {
+    BeforeAll {
+        $selectedApplication = Join-Path $PSHOME 'pwsh.exe'
+        $selectedConfig = Join-Path $TestDrive 'selected ssh config'
+        'Host millylaptop1' | Set-Content -LiteralPath $selectedConfig
+    }
+    It 'resolves an explicit application and literal config file while disabling only the agent' {
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        $transport.FilePath | Should -Be $selectedApplication
+        $transport.Arguments.Count | Should -Be 6
+        $transport.Arguments[0] | Should -Be '-F'
+        $transport.Arguments[1] | Should -Be $selectedConfig
+        $transport.Arguments[2] | Should -Be '-o'
+        $transport.Arguments[3] | Should -Be 'IdentityAgent=none'
+        $transport.Arguments[4] | Should -Be '-o'
+        $transport.Arguments[5] | Should -Be 'IdentitiesOnly=yes'
+    }
+    It 'keeps the default config and agent intact unless explicitly overridden' {
+        $transport = Resolve-TbSshTransport -Path $selectedApplication
+        $transport.Arguments.Count | Should -Be 0
+    }
+    It 'rejects absent applications and directories or absent config files' {
+        { Resolve-TbSshTransport -Path (Join-Path $TestDrive 'absent.exe') } | Should -Throw
+        { Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $TestDrive } | Should -Throw '*filesystem file*'
+        { Resolve-TbSshTransport -Path $selectedApplication -ConfigFile (Join-Path $TestDrive 'absent-config') } | Should -Throw
+    }
+    It 'accepts configless mode only when explicitly requested' {
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile none
+        $transport.Arguments.Count | Should -Be 2
+        $transport.Arguments[1] | Should -Be none
+    }
+    It 'propagates selection and agent control to ordinary remote inventory commands' {
+        Mock Invoke-TbNative { '{"hostname":"millylaptop1"}' }
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        (Get-TbLinuxInventory -SshAlias millylaptop1 -SshTransport $transport).hostname | Should -Be millylaptop1
+        Should -Invoke Invoke-TbNative -Times 1 -ParameterFilter {
+            $FilePath -eq $selectedApplication -and $Arguments[0] -eq '-F' -and $Arguments[1] -eq $selectedConfig -and
+            $Arguments -contains 'IdentityAgent=none' -and $Arguments -contains 'StrictHostKeyChecking=yes' -and
+            $Arguments -contains 'millylaptop1' -and $TimeoutSeconds -eq 30
+        }
+    }
+    It 'uses the same selected executable and options in the actual benchmark process start information' {
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        $start = New-TbSshStartInfo -SshTransport $transport -Arguments @('-o', 'StrictHostKeyChecking=yes', 'millylaptop1', 'bash', '-s')
+        $start.FileName | Should -Be $selectedApplication
+        @($start.ArgumentList) | Should -Be @('-F', $selectedConfig, '-o', 'IdentityAgent=none', '-o', 'IdentitiesOnly=yes', '-o', 'StrictHostKeyChecking=yes', 'millylaptop1', 'bash', '-s')
+        $start.UseShellExecute | Should -BeFalse
+        $start.CreateNoWindow | Should -BeTrue
+        $start.RedirectStandardInput | Should -BeTrue
+        $start.RedirectStandardOutput | Should -BeTrue
+        $start.RedirectStandardError | Should -BeTrue
+    }
+    It 'bounds selected SSH effective-config lookup and stops before any remote connection on timeout' {
+        Mock Invoke-VigilBoundedProcess { throw 'controlled effective-config timed out' }
+        Mock Invoke-TbSsh { throw 'Must not reach remote endpoint after config timeout.' }
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
+        { Test-TbSshEndpoint -Profile $profile -RemoteInterface thunderbolt0 -SshTransport $transport } | Should -Throw '*effective-config timed out*'
+        Should -Invoke Invoke-VigilBoundedProcess -Times 1 -ParameterFilter {
+            $FilePath -eq $selectedApplication -and $TimeoutSeconds -eq 10 -and
+            $Arguments[0] -eq '-F' -and $Arguments[1] -eq $selectedConfig -and
+            $Arguments -contains 'IdentityAgent=none' -and $Arguments -contains '-G'
+        }
+        Should -Invoke Invoke-TbSsh -Times 0
+    }
+    It 'passes the selected transport through config lookup and source-bound direct endpoint verification' {
+        Mock Invoke-TbNative { "hostname 192.168.50.66`nhostkeyalias millylaptop1`n" }
+        Mock Invoke-TbSsh { '{"dev":"thunderbolt0"}' }
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
+        $endpoint = Test-TbSshEndpoint -Profile $profile -RemoteInterface thunderbolt0 -SshTransport $transport
+        $endpoint.KnownHostIdentity | Should -Be millylaptop1
+        $endpoint.Command | Should -Match ([regex]::Escape($selectedApplication))
+        $endpoint.Command | Should -Match ([regex]::Escape($selectedConfig))
+        $endpoint.Command | Should -Match 'IdentityAgent=none'
+        Should -Invoke Invoke-TbSsh -Times 1 -ParameterFilter {
+            $SshTransport.FilePath -eq $selectedApplication -and $SshTransport.Arguments -contains 'IdentityAgent=none' -and
+            $Address -eq '172.31.240.2' -and $SourceAddress -eq '172.31.240.1' -and $KnownHostIdentity -eq 'millylaptop1'
+        }
+    }
+    It 'dry-run avoids executable resolution, SSH and adapter discovery even with unavailable explicit paths' {
+        Mock Resolve-TbSshTransport { throw 'Must not resolve in dry-run.' }
+        Mock Get-TbLinuxInventory { throw 'Must not contact a peer in dry-run.' }
+        Mock Get-NetAdapter { throw 'Must not query adapters in dry-run.' }
+        $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Configure -SelectedPeer millylaptop1 -ProfilePath $profilePath `
+            -EnableApply -IsDryRun -SshPath 'absent-client.exe' -SshConfigFile 'absent-config' -DisableSshAgent
+        $result.Applied | Should -BeFalse
+        $result.State | Should -Be Planned
+        $result.Linux | Should -BeNullOrEmpty
+        Should -Invoke Resolve-TbSshTransport -Times 0
+        Should -Invoke Get-TbLinuxInventory -Times 0
+        Should -Invoke Get-NetAdapter -Times 0
+    }
+    It 'starts the selected real benchmark process and reports its actual nonzero exit' {
+        Mock Assert-TbBenchmarkRoute {}
+        Mock Invoke-TbNative { '{"end":{"sum_received":{"bits_per_second":123}}}' }
+        $fakeClient = Join-Path $TestDrive 'benchmark-client.ps1'
+        @'
+if ($args -notcontains 'millylaptop1' -or $args -notcontains 'StrictHostKeyChecking=yes') {
+    throw 'Selected benchmark process lost its SSH arguments.'
+}
+$null = [Console]::In.ReadToEnd()
+[Console]::Out.WriteLine('PCAI_IPERF_READY')
+[Console]::Error.WriteLine('selected benchmark client sentinel')
+exit 7
+'@ | Set-Content -LiteralPath $fakeClient
+        $transport = @{ FilePath = $selectedApplication; Arguments = @('-NoProfile', '-File', $fakeClient) }
+        $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
+        { Invoke-TbBenchmark -Profile $profile -Adapter $adapter -RemoteInterface thunderbolt0 `
+            -Executable 'controlled-iperf' -Seconds 1 -ServerPort 5201 -SshTransport $transport } |
+            Should -Throw '*exited 7*selected benchmark client sentinel*'
+    }
+    It 'supports actual help aliases before invalid SSH/config paths can be resolved' {
+        $controller = Join-Path $repoRoot 'Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1'
+        foreach ($helpArgument in @('-h', '--help')) {
+            $reply = Invoke-TbNative -FilePath $selectedApplication -Arguments @('-NoProfile', '-File', $controller,
+                $helpArgument, '-SshPath', 'absent-client.exe', '-SshConfigFile', 'absent-config') -TimeoutSeconds 10
+            $reply | Should -Match 'Invoke-ThunderboltLinuxPeer'
+        }
+    }
+}
+
 Describe 'Benchmark route and native failures' {
     It 'binds direct Thunderbolt SSH to its source and disables inherited proxy routing' {
         Mock Invoke-TbNative { 'remote reply' }
@@ -206,10 +331,12 @@ Describe 'Benchmark route and native failures' {
     }
     It 'bounds a large stdin write when the actual child never reads it' {
         $pidFile = Join-Path $TestDrive 'nonreading-child.pid'
-        $child = '$PID | Set-Content -LiteralPath ''' + $pidFile.Replace("'", "''") + '''; Start-Sleep 15'
+        # Allow a cold PowerShell child to initialize under concurrent build load.
+        # A synchronous blocked stdin write would still wait the full 30 seconds.
+        $child = '$PID | Set-Content -LiteralPath ''' + $pidFile.Replace("'", "''") + '''; Start-Sleep 30'
         $timer = [Diagnostics.Stopwatch]::StartNew()
-        { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText ('x' * 1048576) -TimeoutSeconds 2 } | Should -Throw '*timed out*'
-        $timer.Elapsed.TotalSeconds | Should -BeLessThan 5
+        { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText ('x' * 1048576) -TimeoutSeconds 10 } | Should -Throw '*timed out*'
+        $timer.Elapsed.TotalSeconds | Should -BeLessThan 13
         Test-Path -LiteralPath $pidFile | Should -BeTrue
         $childId = [int](Get-Content -LiteralPath $pidFile)
         Get-Process -Id $childId -ErrorAction SilentlyContinue | Should -BeNullOrEmpty

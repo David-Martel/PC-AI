@@ -160,22 +160,49 @@ function Get-PcaiImageAsyncCompletionState {
     }
 }
 
+function Get-PcaiMediaLoadedBridgePath {
+    $assembly = [AppDomain]::CurrentDomain.GetAssemblies() |
+        Where-Object { $_.GetName().Name -eq 'PcaiNative' } | Select-Object -First 1
+    if ($assembly) { return $assembly.Location }
+}
+
+function Import-PcaiMediaManagedBridge {
+    param([Parameter(Mandatory)][string]$Path)
+    return [Reflection.Assembly]::LoadFrom($Path).Location
+}
+
 function Initialize-PcaiMediaFFI {
     <#
     .SYNOPSIS
-        Loads PcaiNative.dll from the project bin directory.
+        Loads the selected managed bridge without reusing another bundle.
     #>
-    $projectRoot = Get-PcaiProjectRoot
-    $projectBin = Join-Path $projectRoot 'bin'
-
-    $nativeDll = Join-Path $projectBin 'PcaiNative.dll'
-    if (Test-Path $nativeDll) {
-        try {
-            [void][Reflection.Assembly]::LoadFrom($nativeDll)
-            return $true
-        } catch {
-            Write-Warning "Failed to load $($nativeDll): $($_)"
+    try {
+        if ($env:PCAI_NATIVE_BUNDLE_ROOT) {
+            $bundle = Resolve-Path -LiteralPath $env:PCAI_NATIVE_BUNDLE_ROOT -ErrorAction Stop
+            if ($bundle.Provider.Name -ne 'FileSystem') { throw 'Native bundle must be a filesystem directory.' }
+            $nativeDll = Join-Path $bundle.ProviderPath 'PcaiNative.dll'
+            foreach ($leaf in @('PcaiNative.dll', 'pcai_media.dll')) {
+                if (-not (Test-Path -LiteralPath (Join-Path $bundle.ProviderPath $leaf) -PathType Leaf)) {
+                    throw "Explicit native media bundle lacks $leaf."
+                }
+            }
+            $env:PCAI_NATIVE_BUNDLE_ROOT = $bundle.ProviderPath
+        } else {
+            $nativeDll = Join-Path (Join-Path (Get-PcaiProjectRoot) 'bin') 'PcaiNative.dll'
         }
+        if (-not (Test-Path -LiteralPath $nativeDll -PathType Leaf)) { return $false }
+        $nativeDll = (Resolve-Path -LiteralPath $nativeDll -ErrorAction Stop).ProviderPath
+        $loadedPath = Get-PcaiMediaLoadedBridgePath
+        if ($loadedPath -and -not $loadedPath.Equals($nativeDll, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'A different PcaiNative bridge is already loaded. Select the bundle in a fresh process.'
+        }
+        $actualPath = Import-PcaiMediaManagedBridge -Path $nativeDll
+        if (-not $actualPath.Equals($nativeDll, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Managed loading reused another PcaiNative bridge. Use a fresh process.'
+        }
+        return $true
+    } catch {
+        Write-Warning "Failed to select native media bridge: $_"
     }
     return $false
 }

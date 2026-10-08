@@ -1019,24 +1019,12 @@ function Publish-PcaiNativeBundle {
     $repoBinRoot = Join-Path $script:ProjectRoot 'bin'
     $bundleParent = Join-Path $repoBinRoot 'native-bundles'
 
-    $versionLabel = if ($script:VersionInfo) {
-        if ($script:VersionInfo.ReleaseTag) {
-            $script:VersionInfo.ReleaseTag
-        } elseif ($script:VersionInfo.InformationalVersion) {
-            $script:VersionInfo.InformationalVersion
-        } elseif ($script:VersionInfo.SemVer) {
-            $script:VersionInfo.SemVer
-        } else {
-            $script:VersionInfo.FileVersion
-        }
-    } else {
-        'unknown'
-    }
-
     # Allocate at the shared publication root: independent build roots can both
     # have a build-r1 log directory and must never reuse a published bundle.
     . (Join-Path $script:ProjectRoot 'Tools/PcaiArtifactDirectories.ps1')
-    $bundleLabel = 'native-' + ($versionLabel -replace '[^A-Za-z0-9_-]', '_')
+    # Git informational versions may contain timestamps. Keep those in the
+    # manifest; publication paths use purpose/configuration and a revision.
+    $bundleLabel = 'native-' + ($Configuration.ToLowerInvariant() -replace '[^a-z0-9_-]', '_')
     $bundleRoot = New-PcaiArtifactDirectory -Root $bundleParent -Name $bundleLabel
     $bundleName = Split-Path -Leaf $bundleRoot
 
@@ -1147,9 +1135,7 @@ function Clear-BuildArtifacts {
     Write-BuildPhase 'Clean' 'Removing previous build artifacts'
 
     $dirsToClean = @(
-        $script:BuildArtifactsDir,
-        $script:BuildPackagesDir,
-        $script:BuildDeployDir
+        $script:BuildArtifactsDir
     )
 
     foreach ($path in $dirsToClean) {
@@ -3048,26 +3034,20 @@ function New-DeployBundle {
     Write-BuildPhase 'Deploy' 'Creating deploy-ready aggregate bundle'
 
     $variant = if ($EnableCuda) { 'cuda' } else { 'cpu' }
-    $version = if ($env:PCAI_VERSION) { $env:PCAI_VERSION } else { '0.1.0+unknown' }
-    $safeVersion = ($version -replace '[^A-Za-z0-9\.\-\+_]', '_') -replace '\+', '_'
-    $bundleName = "pc-ai-bundle-$safeVersion-$variant-win64"
-    $bundleRoot = Join-Path $script:BuildDeployDir $bundleName
+    . (Join-Path $script:ProjectRoot 'Tools/PcaiArtifactDirectories.ps1')
+    $bundleRoot = New-PcaiArtifactDirectory -Root $script:BuildDeployDir -Name "pc-ai-bundle-$variant-win64"
+    $bundleName = Split-Path -Leaf $bundleRoot
     $bundleZip = Join-Path $script:BuildPackagesDir "$bundleName.zip"
-
-    if (Test-Path $bundleRoot) {
-        Remove-Item $bundleRoot -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $bundleZip) {
+        throw "Existing deploy package requires custody review: $bundleZip"
     }
-    New-Item -ItemType Directory -Path $bundleRoot -Force | Out-Null
 
     Copy-Item -Path (Join-Path $script:BuildArtifactsDir '*') -Destination $bundleRoot -Recurse -Force
     if (Test-Path (Join-Path $script:BuildArtifactsDir 'manifest.json')) {
         Copy-Item -Path (Join-Path $script:BuildArtifactsDir 'manifest.json') -Destination $bundleRoot -Force
     }
 
-    if (Test-Path $bundleZip) {
-        Remove-Item $bundleZip -Force -ErrorAction SilentlyContinue
-    }
-    Compress-Archive -Path (Join-Path $bundleRoot '*') -DestinationPath $bundleZip -Force
+    Compress-Archive -Path (Join-Path $bundleRoot '*') -DestinationPath $bundleZip
     Write-BuildStep "Created deploy bundle: $bundleZip" 'success'
 
     return $bundleZip

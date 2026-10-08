@@ -8,13 +8,15 @@ BeforeAll {
     $errors = $null
     $buildAst = [Management.Automation.Language.Parser]::ParseFile((Join-Path $repoRoot 'Build.ps1'), [ref]$tokens, [ref]$errors)
     if ($errors.Count) { throw 'Build.ps1 must parse before testing publication.' }
-    foreach ($name in @('Publish-PcaiNativeBundle', 'Publish-StagedArtifact')) {
+    foreach ($name in @('Publish-PcaiNativeBundle', 'Publish-StagedArtifact', 'New-DeployBundle', 'Clear-BuildArtifacts')) {
         $functionAst = $buildAst.Find({ param($node)
             $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
         }, $true)
         . ([scriptblock]::Create($functionAst.Extent.Text))
     }
     function Resolve-CargoOutputDirectory { param($ProjectDir, $Configuration) Join-Path $script:ProjectRoot 'absent-target' }
+    function Write-BuildPhase { param($Phase, $Message) }
+    function Write-BuildStep { param($Message, $Status) }
 }
 
 Describe 'Stable artifact revisions preserve evidence' {
@@ -66,7 +68,10 @@ Describe 'Stable artifact revisions preserve evidence' {
         $tools = Join-Path $script:ProjectRoot 'Tools'
         [void](New-Item -ItemType Directory -Path $tools -Force)
         Copy-Item -LiteralPath (Join-Path $repoRoot 'Tools/PcaiArtifactDirectories.ps1') -Destination $tools
-        $script:VersionInfo = $null
+        $script:VersionInfo = [pscustomobject]@{
+            ReleaseTag = ''; SemVer = '0.1.0'; InformationalVersion = '0.1.0+abc1234.20261008T220000Z'
+            Version = '0.1.0+abc1234'; FileVersion = '0.1.0.0'; AssemblyVersion = '0.1.0.0'; GitHashShort = 'abc1234'
+        }
         $script:BuildRunLabel = 'build-r1'
         $publications = @()
         foreach ($sourceName in @('build-root-one', 'build-root-two')) {
@@ -78,15 +83,51 @@ Describe 'Stable artifact revisions preserve evidence' {
             $publications += Publish-PcaiNativeBundle -PublishRoot $source -Configuration Release
         }
         $publications[0].BundleRoot | Should -Not -Be $publications[1].BundleRoot
-        $publications[0].BundleName | Should -Be 'native-unknown-r1'
-        $publications[1].BundleName | Should -Be 'native-unknown-r2'
+        $publications[0].BundleName | Should -Be 'native-release-r1'
+        $publications[1].BundleName | Should -Be 'native-release-r2'
         foreach ($index in 0..1) {
             $manifest = Get-Content -LiteralPath $publications[$index].ManifestPath -Raw | ConvertFrom-Json
+            $manifest.informationalVersion | Should -BeExactly $script:VersionInfo.InformationalVersion
             @($manifest.files).Count | Should -Be 3
             foreach ($entry in $manifest.files) {
                 (Get-FileHash -LiteralPath $entry.DestinationPath).Hash | Should -BeExactly $entry.Sha256
             }
         }
         [IO.File]::ReadAllText((Join-Path $publications[0].BundleRoot 'PcaiNative.dll')) | Should -Be 'build-root-one-PcaiNative.dll'
+    }
+
+    It 'preserves repeated aggregate payloads and packages for the same source version' {
+        $script:ProjectRoot = $repoRoot
+        $script:BuildArtifactsDir = Join-Path $TestDrive 'aggregate-artifacts'
+        $script:BuildDeployDir = Join-Path $TestDrive 'aggregate-deploy'
+        $script:BuildPackagesDir = Join-Path $TestDrive 'aggregate-packages'
+        [void](New-Item -ItemType Directory -Path $script:BuildArtifactsDir, $script:BuildPackagesDir)
+        $payload = Join-Path $script:BuildArtifactsDir 'payload.txt'
+        [IO.File]::WriteAllText($payload, 'first payload')
+        $first = New-DeployBundle -Configuration Release -EnableCuda $false
+        $firstHash = (Get-FileHash -LiteralPath $first).Hash
+        [IO.File]::WriteAllText($payload, 'second payload')
+        $second = New-DeployBundle -Configuration Release -EnableCuda $false
+        $second | Should -Not -Be $first
+        (Split-Path -Leaf $first) | Should -Be 'pc-ai-bundle-cpu-win64-r1.zip'
+        (Get-FileHash -LiteralPath $first).Hash | Should -BeExactly $firstHash
+        [IO.File]::ReadAllText((Join-Path $script:BuildDeployDir 'pc-ai-bundle-cpu-win64-r1/payload.txt')) | Should -BeExactly 'first payload'
+        Clear-BuildArtifacts
+        Test-Path -LiteralPath $first | Should -BeTrue
+        Test-Path -LiteralPath $second | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:BuildDeployDir 'pc-ai-bundle-cpu-win64-r1/payload.txt') | Should -BeTrue
+    }
+
+    It 'refuses an orphaned package collision without changing its bytes' {
+        $script:ProjectRoot = $repoRoot
+        $script:BuildArtifactsDir = Join-Path $TestDrive 'collision-artifacts'
+        $script:BuildDeployDir = Join-Path $TestDrive 'collision-deploy'
+        $script:BuildPackagesDir = Join-Path $TestDrive 'collision-packages'
+        [void](New-Item -ItemType Directory -Path $script:BuildArtifactsDir, $script:BuildPackagesDir)
+        $existing = Join-Path $script:BuildPackagesDir 'pc-ai-bundle-cpu-win64-r1.zip'
+        [IO.File]::WriteAllBytes($existing, [byte[]]@(0, 128, 255))
+        $hash = (Get-FileHash -LiteralPath $existing).Hash
+        { New-DeployBundle -Configuration Release -EnableCuda $false } | Should -Throw '*custody review*'
+        (Get-FileHash -LiteralPath $existing).Hash | Should -BeExactly $hash
     }
 }

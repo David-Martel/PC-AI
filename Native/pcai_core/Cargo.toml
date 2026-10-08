@@ -14,10 +14,11 @@ members = [
 version = "0.1.0"
 authors = ["David Martel"]
 edition = "2021"
-# The complete dependency matrix includes Mistral 0.8 and Candle 0.11 media
-# dependencies requiring Rust 1.88. The server/FFI-only inference subset's
-# older verified floor does not describe these optional production backends.
-rust-version = "1.88"
+# The locked workspace includes sysinfo 0.39 requiring Rust 1.95 and UUID
+# 1.27 requiring 1.89; Candle 0.11 and Mistral 0.8 also require at least 1.88.
+# The older server/FFI subset floor does not describe the complete workspace.
+# Latest-toolchain builds use Rust 1.99; CI reads this declared dependency floor.
+rust-version = "1.95"
 license = "MIT"
 repository = "https://github.com/David-Martel/PC-AI"
 

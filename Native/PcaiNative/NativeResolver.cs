@@ -4,7 +4,6 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using System.Threading;
 
 #nullable enable
 
@@ -18,7 +17,8 @@ namespace PcaiNative
     /// </summary>
     internal static class NativeResolver
     {
-        private static int _registered;
+        private static readonly object RegistrationGate = new();
+        private static bool _registered;
 
         /// <summary>
         /// Ensures the shared resolver is registered exactly once for the given assembly.
@@ -26,8 +26,12 @@ namespace PcaiNative
         /// </summary>
         internal static void EnsureRegistered(Assembly assembly)
         {
-            if (Interlocked.CompareExchange(ref _registered, 1, 0) == 0)
+            lock (RegistrationGate)
+            {
+                if (_registered) return;
                 NativeLibrary.SetDllImportResolver(assembly, Resolve);
+                _registered = true;
+            }
         }
 
         private static IntPtr Resolve(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)

@@ -12,8 +12,11 @@
       - Optional static IPv4 assignment
 
     Without -Apply, the function returns the planned commands and the current adapter
-    state. With -Apply, it stops at the first failed netsh command and verifies
-    the resulting metrics, MTU and optional IPv4 address before returning status.
+    state. With -Apply, fresh OS peer identity and IPv4 conflict checks precede
+    every command. It stops at the first failed netsh command and verifies the
+    resulting metrics, MTU, optional address/prefix and unrelated address/route
+    preservation before returning status. Existing exact address/prefix is
+    retained; unrelated addresses or routes are never automatically removed.
     An explicit alias must match exactly; automatic selection requires one adapter.
 
 .PARAMETER InterfaceAlias
@@ -76,7 +79,7 @@ function Set-ThunderboltNetworkOptimization {
         return ($bytes | ForEach-Object { [int]$_ }) -join '.'
     }
 
-    if ($IPv4Address) {
+    if ($PSBoundParameters.ContainsKey('IPv4Address')) {
         $parsedAddress = $null
         if (-not [System.Net.IPAddress]::TryParse($IPv4Address, [ref]$parsedAddress) -or
             $parsedAddress.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork) {
@@ -86,11 +89,12 @@ function Set-ThunderboltNetworkOptimization {
     }
 
     $status = @(if ([string]::IsNullOrWhiteSpace($InterfaceAlias)) {
-        Get-ThunderboltNetworkStatus
-    } else {
-        Get-ThunderboltNetworkStatus -InterfaceAlias $InterfaceAlias |
-            Where-Object { $_.InterfaceAlias -eq $InterfaceAlias }
-    })
+            Get-ThunderboltNetworkStatus
+        }
+        else {
+            Get-ThunderboltNetworkStatus -InterfaceAlias $InterfaceAlias |
+                Where-Object { $_.InterfaceAlias -eq $InterfaceAlias }
+        })
     if ($status.Count -eq 0) {
         throw 'No Thunderbolt / USB4 interface matched the requested adapter.'
     }
@@ -106,40 +110,40 @@ function Set-ThunderboltNetworkOptimization {
     $plan = [System.Collections.Generic.List[PSCustomObject]]::new()
 
     $plan.Add([PSCustomObject]@{
-        Step        = 'SetIPv4Metric'
-        Description = "Set IPv4 metric on $InterfaceAlias to $InterfaceMetric"
-        Command     = "netsh interface ipv4 set interface name=$InterfaceAlias metric=$InterfaceMetric"
-        Arguments   = @('interface', 'ipv4', 'set', 'interface', "name=$InterfaceAlias", "metric=$InterfaceMetric")
-    })
+            Step        = 'SetIPv4Metric'
+            Description = "Set IPv4 metric on $InterfaceAlias to $InterfaceMetric"
+            Command     = "netsh interface ipv4 set interface name=$InterfaceAlias metric=$InterfaceMetric"
+            Arguments   = @('interface', 'ipv4', 'set', 'interface', "name=$InterfaceAlias", "metric=$InterfaceMetric")
+        })
     $plan.Add([PSCustomObject]@{
-        Step        = 'SetIPv6Metric'
-        Description = "Set IPv6 metric on $InterfaceAlias to $InterfaceMetric"
-        Command     = "netsh interface ipv6 set interface $InterfaceAlias metric=$InterfaceMetric"
-        Arguments   = @('interface', 'ipv6', 'set', 'interface', $InterfaceAlias, "metric=$InterfaceMetric")
-    })
+            Step        = 'SetIPv6Metric'
+            Description = "Set IPv6 metric on $InterfaceAlias to $InterfaceMetric"
+            Command     = "netsh interface ipv6 set interface $InterfaceAlias metric=$InterfaceMetric"
+            Arguments   = @('interface', 'ipv6', 'set', 'interface', $InterfaceAlias, "metric=$InterfaceMetric")
+        })
     $plan.Add([PSCustomObject]@{
-        Step        = 'SetMtu'
-        Description = "Set interface MTU on $InterfaceAlias to $MtuBytes"
-        Command     = "netsh interface ipv4 set subinterface $InterfaceAlias mtu=$MtuBytes store=persistent"
-        Arguments   = @('interface', 'ipv4', 'set', 'subinterface', $InterfaceAlias, "mtu=$MtuBytes", 'store=persistent')
-    })
+            Step        = 'SetMtu'
+            Description = "Set interface MTU on $InterfaceAlias to $MtuBytes"
+            Command     = "netsh interface ipv4 set subinterface $InterfaceAlias mtu=$MtuBytes store=persistent"
+            Arguments   = @('interface', 'ipv4', 'set', 'subinterface', $InterfaceAlias, "mtu=$MtuBytes", 'store=persistent')
+        })
 
     if ($IPv4Address) {
         $mask = ConvertTo-IPv4Mask -Length $PrefixLength
         $plan.Add([PSCustomObject]@{
-            Step        = 'SetStaticIPv4'
-            Description = "Assign static IPv4 $IPv4Address/$PrefixLength to $InterfaceAlias"
-            Command     = "netsh interface ipv4 set address name=$InterfaceAlias source=static address=$IPv4Address mask=$mask gateway=none store=persistent"
-            Arguments   = @('interface', 'ipv4', 'set', 'address', "name=$InterfaceAlias", 'source=static', "address=$IPv4Address", "mask=$mask", 'gateway=none', 'store=persistent')
-        })
+                Step        = 'SetStaticIPv4'
+                Description = "Assign static IPv4 $IPv4Address/$PrefixLength to $InterfaceAlias"
+                Command     = "netsh interface ipv4 set address name=$InterfaceAlias source=static address=$IPv4Address mask=$mask gateway=none store=persistent"
+                Arguments   = @('interface', 'ipv4', 'set', 'address', "name=$InterfaceAlias", 'source=static', "address=$IPv4Address", "mask=$mask", 'gateway=none', 'store=persistent')
+            })
     }
 
     if (-not $Apply) {
         return [PSCustomObject]@{
-            InterfaceAlias    = $InterfaceAlias
-            CurrentStatus     = $current
-            PlannedActions    = @($plan)
-            RecommendedNotes  = @(
+            InterfaceAlias   = $InterfaceAlias
+            CurrentStatus    = $current
+            PlannedActions   = @($plan)
+            RecommendedNotes = @(
                 'Prefer a dedicated /30 for SMB and WinRM on a direct USB4 peer link when both ends are under your control.',
                 'Keep the Thunderbolt / USB4 link isolated from Internet routing. The direct peer interface does not need a default gateway.',
                 'If WinRM remains unavailable after addressing, set the remote USB4 connection profile to Private and enable PSRemoting on that machine.'
@@ -151,10 +155,23 @@ function Set-ThunderboltNetworkOptimization {
         return
     }
 
+    $safetyArguments = @{ InterfaceAlias = $InterfaceAlias; PrefixLength = $PrefixLength }
+    if ($IPv4Address) { $safetyArguments.IPv4Address = $IPv4Address }
+    $baseline = Assert-ThunderboltIPv4Safety @safetyArguments
+    $observedAddresses = @($baseline.Addresses | Where-Object InterfaceIndex -EQ $baseline.InterfaceIndex | Select-Object -ExpandProperty IPAddress | Sort-Object)
+    if ((ConvertTo-Json -InputObject @($current.IPv4Addresses | Sort-Object) -Compress) -cne
+        (ConvertTo-Json -InputObject $observedAddresses -Compress)) {
+        throw 'Adapter status and fresh IPv4 address inventory disagree; refusing before mutation.'
+    }
+
     # Inspect each native exit explicitly, even in shells that otherwise throw on
     # nonzero native exits. Earlier successful steps are not implicitly rolled back.
     $PSNativeCommandUseErrorActionPreference = $false
     foreach ($action in $plan) {
+        if ($action.Step -eq 'SetStaticIPv4') {
+            if ($baseline.AlreadyAssigned) { continue }
+            $null = Assert-ThunderboltIPv4Safety @safetyArguments -Mode Revalidate -Baseline $baseline
+        }
         $arguments = [string[]]$action.Arguments
         $global:LASTEXITCODE = 0
         $output = @(& netsh @arguments 2>&1)
@@ -165,7 +182,7 @@ function Set-ThunderboltNetworkOptimization {
     }
 
     $updated = @(Get-ThunderboltNetworkStatus -InterfaceAlias $InterfaceAlias |
-        Where-Object { $_.InterfaceAlias -eq $InterfaceAlias })
+            Where-Object { $_.InterfaceAlias -eq $InterfaceAlias })
     if ($updated.Count -ne 1) {
         throw 'Thunderbolt optimization commands succeeded, but the selected adapter could not be uniquely verified.'
     }
@@ -178,6 +195,12 @@ function Set-ThunderboltNetworkOptimization {
     )
     if ($mismatches.Count -gt 0) {
         throw "Thunderbolt optimization postcondition failed: $($mismatches -join '; ')."
+    }
+    $postflight = Assert-ThunderboltIPv4Safety @safetyArguments -Mode Postcondition -Baseline $baseline
+    $observedAddresses = @($postflight.Addresses | Where-Object InterfaceIndex -EQ $postflight.InterfaceIndex | Select-Object -ExpandProperty IPAddress | Sort-Object)
+    if ((ConvertTo-Json -InputObject @($verified.IPv4Addresses | Sort-Object) -Compress) -cne
+        (ConvertTo-Json -InputObject $observedAddresses -Compress)) {
+        throw 'Thunderbolt optimization postcondition failed: status and fresh IPv4 address inventory disagree.'
     }
     return $updated
 }

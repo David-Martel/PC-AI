@@ -110,6 +110,7 @@ impl MistralRsBackend {
 
         // Build the model
         let model = GgufModelBuilder::new(&model_id, vec![&gguf_file])
+            .with_device(device)
             .with_logging()
             .build()
             .await
@@ -143,6 +144,7 @@ impl MistralRsBackend {
 
         // Build the model using TextModelBuilder for SafeTensors
         let model = TextModelBuilder::new(path.to_string())
+            .with_device(device)
             .with_logging()
             .build()
             .await
@@ -158,16 +160,15 @@ impl MistralRsBackend {
 
     /// Map ChatCompletionResponse to GenerateResponse
     fn map_response(completion: ChatCompletionResponse) -> Result<GenerateResponse> {
-        let text = completion.choices[0]
-            .message
-            .content
-            .as_ref()
-            .cloned()
-            .unwrap_or_default();
+        let choice = completion
+            .choices
+            .first()
+            .ok_or_else(|| Error::Backend("Model response contained no choices".to_string()))?;
+        let text = choice.message.content.as_ref().cloned().unwrap_or_default();
 
         let tokens_generated = completion.usage.completion_tokens;
 
-        let finish_reason = match completion.choices[0].finish_reason.as_str() {
+        let finish_reason = match choice.finish_reason.as_str() {
             "stop" => FinishReason::Stop,
             "length" => FinishReason::Length,
             _ => FinishReason::Stop,
@@ -257,6 +258,53 @@ impl InferenceBackend for MistralRsBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn response(choices: Vec<mistralrs_core::Choice>) -> ChatCompletionResponse {
+        ChatCompletionResponse {
+            id: "fixture".into(),
+            choices,
+            created: 0,
+            model: "fixture".into(),
+            system_fingerprint: "fixture".into(),
+            object: "chat.completion".into(),
+            usage: mistralrs_core::Usage {
+                completion_tokens: 3,
+                prompt_tokens: 2,
+                total_tokens: 5,
+                avg_tok_per_sec: 0.0,
+                avg_prompt_tok_per_sec: 0.0,
+                avg_compl_tok_per_sec: 0.0,
+                total_time_sec: 0.0,
+                total_prompt_time_sec: 0.0,
+                total_completion_time_sec: 0.0,
+            },
+        }
+    }
+
+    #[test]
+    fn empty_response_returns_error_instead_of_panicking() {
+        let result = MistralRsBackend::map_response(response(vec![]));
+        assert!(matches!(result, Err(Error::Backend(message)) if message.contains("no choices")));
+    }
+
+    #[test]
+    fn response_preserves_text_token_count_and_length_finish() {
+        let completion = response(vec![mistralrs_core::Choice {
+            finish_reason: "length".into(),
+            index: 0,
+            message: mistralrs_core::ResponseMessage {
+                content: Some("fixture text".into()),
+                role: "assistant".into(),
+                tool_calls: None,
+                reasoning_content: None,
+            },
+            logprobs: None,
+        }]);
+        let result = MistralRsBackend::map_response(completion).expect("fixture response must map");
+        assert_eq!(result.text, "fixture text");
+        assert_eq!(result.tokens_generated, 3);
+        assert!(matches!(result.finish_reason, FinishReason::Length));
+    }
 
     #[test]
     fn test_is_gguf_model() {

@@ -14,12 +14,10 @@ members = [
 version = "0.1.0"
 authors = ["David Martel"]
 edition = "2021"
-# Verified floor, not aspiration: `cargo +1.85 check -p pcai-inference
-# --no-default-features --features server,ffi` passes clean. 1.85 is also the
-# floor Cargo.lock v4 (>=1.78) and `[workspace.lints]` (>=1.74) already imply,
-# and it matches the fleet-wide clippy MSRV. The maintenance workflow reads
-# this key rather than hard-coding a version, so the gate cannot drift again.
-rust-version = "1.85"
+# The complete dependency matrix includes Mistral 0.8 and Candle 0.11 media
+# dependencies requiring Rust 1.88. The server/FFI-only inference subset's
+# older verified floor does not describe these optional production backends.
+rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/David-Martel/PC-AI"
 
@@ -96,8 +94,8 @@ tower-http = { version = "0.7", features = ["trace", "cors"] }
 
 # LLM backends
 llm = { git = "https://github.com/rustformers/llama-rs.git", rev = "b11ffb14fde039f068c808df8dcbd1257a01b8db", default-features = false, features = ["models"] }
-mistralrs = "0.7"
-mistralrs-core = "0.7"
+mistralrs = "0.8.1"
+mistralrs-core = "0.8.1"
 rand = "0.10.2"
 ollama-rs = { version = "0.3.4", features = ["stream"] }
 schemars = "1.2.2"

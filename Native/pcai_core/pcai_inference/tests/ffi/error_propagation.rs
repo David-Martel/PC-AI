@@ -52,7 +52,7 @@ fn test_not_initialized_error() {
     {
         use pcai_inference_lib::ffi::pcai_load_model;
         let result = unsafe { pcai_load_model(path.as_ptr(), 0) };
-        assert_eq!(result, -1);
+        assert_eq!(result, PcaiErrorCode::NotInitialized as i32);
 
         let err_ptr = pcai_last_error();
         assert!(!err_ptr.is_null());
@@ -80,15 +80,23 @@ mod llamacpp_error_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
-            return; // Skip if llamacpp not available
-        }
+        // SAFETY: backend remains live and NUL-terminated throughout the call.
+        assert_eq!(
+            unsafe { pcai_init(backend.as_ptr()) },
+            0,
+            "compiled llamacpp backend must initialize"
+        );
 
         let nonexistent =
             CString::new("/nonexistent/path/to/model.gguf").expect("CString should accept valid test input");
-        let result = pcai_load_model(nonexistent.as_ptr(), 0);
+        // SAFETY: nonexistent is a live, NUL-terminated CString for this call.
+        let result = unsafe { pcai_load_model(nonexistent.as_ptr(), 0) };
 
-        assert_eq!(result, -1);
+        assert!(
+            result == PcaiErrorCode::IoError as i32 || result == PcaiErrorCode::BackendError as i32,
+            "Missing model must report an I/O or backend error, got {result}"
+        );
+        assert_eq!(pcai_last_error_code(), result);
 
         let err_ptr = pcai_last_error();
         assert!(!err_ptr.is_null());
@@ -116,12 +124,16 @@ mod llamacpp_error_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
-            return; // Skip if llamacpp not available
-        }
+        // SAFETY: backend remains live and NUL-terminated throughout the call.
+        assert_eq!(
+            unsafe { pcai_init(backend.as_ptr()) },
+            0,
+            "compiled llamacpp backend must initialize"
+        );
 
         let prompt = CString::new("Test prompt").expect("CString should accept valid test input");
-        let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
+        // SAFETY: the CString remains live and NUL-terminated throughout the call.
+        let result = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.7) };
 
         assert!(result.is_null());
 
@@ -271,12 +283,16 @@ mod error_code_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
-            return; // Skip if llamacpp not available
-        }
+        // SAFETY: backend remains live and NUL-terminated throughout the call.
+        assert_eq!(
+            unsafe { pcai_init(backend.as_ptr()) },
+            0,
+            "compiled llamacpp backend must initialize"
+        );
 
         let prompt = CString::new("Test").expect("CString should accept valid test input");
-        let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
+        // SAFETY: the CString remains live and NUL-terminated throughout the call.
+        let result = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.7) };
 
         assert!(result.is_null());
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::ModelNotLoaded as i32);
@@ -290,21 +306,26 @@ mod error_code_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
-            return; // Skip if llamacpp not available
-        }
+        // SAFETY: backend remains live and NUL-terminated throughout the call.
+        assert_eq!(
+            unsafe { pcai_init(backend.as_ptr()) },
+            0,
+            "compiled llamacpp backend must initialize"
+        );
 
         let nonexistent = CString::new("/nonexistent/path/model.gguf").expect("CString should accept valid test input");
-        let result = pcai_load_model(nonexistent.as_ptr(), 0);
+        // SAFETY: the CString remains live and NUL-terminated throughout the call.
+        let result = unsafe { pcai_load_model(nonexistent.as_ptr(), 0) };
 
         assert_ne!(result, 0);
         let error_code = pcai_last_error_code();
-        // Should be IoError or BackendError depending on how the backend reports it
+        // Initialization succeeded, so NotInitialized would be a regression.
         assert!(
             error_code == PcaiErrorCode::IoError as i32 || error_code == PcaiErrorCode::BackendError as i32,
             "Expected IoError or BackendError, got {}",
             error_code
         );
+        assert_eq!(result, error_code);
 
         pcai_shutdown();
     }

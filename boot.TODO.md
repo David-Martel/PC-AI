@@ -1,5 +1,143 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Workload profiling and live-media policy review
+
+Reviewed 2026-10-05; evidence and experiment gates are in
+[the Process Lasso proposal](Reports/process-lasso-review/README.md).
+
+- [x] Inventory current priorities, SmartTrim, power, hardware and useful workload
+      context without changing live policy; research vendor-supported controls.
+- [x] Add a bounded process/host interval collector with PID-generation guards,
+      missing-data handling, output limits and observer-cost reporting; 18 focused
+      regressions pass. Include the exact suite in Windows PowerShell 7 CI.
+- [x] Start the authorized 60-minute unchanged-policy baseline; preserve its exact
+      launch source separately from the maintained collector revision.
+- [ ] Verify the completed baseline, reconcile closed output paths with hash
+      mappings and qualify scenario coverage. Owner: current review agent; next
+      action: inspect the summary after nominal completion at 19:18 UTC.
+- [ ] Complete the three-workday coverage plan with actual Zoom/Teams calls,
+      sharing, useful throughput and quiet periods. Owner: operator with review
+      tooling; extend only to fill measured coverage or repeatability gaps.
+- [ ] Compare SmartTrim, live-media protections and owned process reuse one class
+      at a time. Preserve active jobs; promote only with call-quality, throughput
+      and memory/refault evidence. No optimization gain is established yet.
+
+## Bitwarden and connectivity closeout (2026-10-05)
+
+See [the qualified maintenance report](Reports/bitwarden-connectivity-20261005.md).
+
+- [x] Replace direct unlock handling with the validated backend adapter and truthful
+      native failure exits; 49/49 actual cases pass, including 28 preserved cases;
+      parser/analyzer findings zero and independent source review clear.
+- [x] Deploy exact reviewed bytes to the installed machine launcher with hash/DACL
+      guards. Help/DryRun/WhatIf pass; live bounded session establishment succeeds
+      without User BW_SESSION persistence. Next-logon task execution remains separate.
+- [x] Repair private ASUS LAN alias and measure ephemeral Linux SSH reuse; keep
+      strict host identity and preserve active network/HIL owners.
+- [x] Qualify and clean up the NUC SSH/RDP transport through DTM-WORK.
+- [ ] Qualify host-specific authenticated NUC RDP and actual UniFi/WireGuard routing.
+- [ ] Reconcile host-local PowerShell deployments without overwriting synced shims.
+- [ ] Coordinate NFS retry-policy migration and production Linux SSH reuse failure
+      controls. No speculative unmount, broad process kill or speedup claim.
+- [ ] Harden IronRDP certificate verification and imported clipboard/authentication
+      policy before direct-VPN credential use; validate an actual current artifact.
+
+
+## Input and task oversight closeout (2026-10-04)
+
+See [the maintenance receipt](Reports/input-runner-maintenance-20261004.md).
+
+- [x] Make missing task inspection metadata fail closed: 17 regression and 14
+      existing cases pass across two runs; parser/analyzer findings are zero.
+- [x] Install and execute a read-only SYSTEM task-health monitor every 30 minutes,
+      with IgnoreNew, a three-minute limit, no retries and no wake request.
+- [ ] Resolve AgentHubRunner, Sam3TestbedRunner, Bitwarden-Archive-Refresh,
+      Codedev-Worktree-Inventory and VIGIL-DashboardRefresh alerts with their
+      owners (latest snapshot 19:17 UTC). Do not trigger legacy
+      runners or change vault credentials to make the report green.
+- [x] Recover the exact hung Interhaptics HapticService process with identity guards;
+      automatic service restored, temporary recovery tasks removed.
+- [ ] Diagnose native Shift/Left/Right/Down failure; USB works and touchpad works.
+      Service recovery did not fix it. Use Lenovo UEFI tests near the symptom and
+      inspect the keyboard assembly/cables if necessary.
+- [ ] Review runner concurrency after the active TPM job releases custody. Keep
+      Docker policies and Process Lasso priorities unchanged during active jobs.
+
+## Current process, startup and drive maintenance (2026-10-04)
+
+This is the current work queue; dated investigations below remain historical.
+Evidence and scope: [workstation load review](Reports/workstation-load-20261004.md).
+
+- [x] Inventory live process generations, Docker, startup tasks and volume dependencies.
+      Docker's sampled load does not explain the high host CPU sample; do not prune
+      containers/volumes or terminate live agent clients from process counts alone.
+- [x] Back up and disable four enabled tasks whose vendor actions are missing:
+      NIUpdateServiceCheckTask, NIUpdateServiceStartupTask, RNIdle Task and
+      Lenovo/Vantage/StartupFixPlan. Readback changed only Enabled; XML and
+      Enable-ScheduledTask rollback are retained. Working vendor services remain running.
+- [x] Repair Optimize-StartupLoad's unknown-state handling and prove that Apply/WhatIf
+      suppresses registry and backup-file writes: 105 cases pass, 18 focused cases,
+      92.31% command coverage and zero repository analyzer findings. No live Apply.
+- [x] Validate current C:/D:/T:/F:/W: volume and VHD mount dependencies with existing tools.
+- [ ] Resolve Proton's absent F: sync-root path with provider/data-owner evidence.
+      Preserve the registration and data; healthy F: alone does not establish migration.
+- [ ] Establish custody and independent data parity for the unattached D: cloud-cache VHD.
+      D:/DO-NOT-WIPE.md applies; its size/age do not authorize deletion or compaction.
+- [x] Distinguish the healthy local AgentHub on port 18400 from the authoritative ASUS
+      fleet hub. Preserve configured fleet routing; source roaming is not deployed parity.
+- [ ] Coordinate the watchdog's server_urls support with its owner and retain hub-identity
+      validation. Never make the local island the default to silence an alert.
+- [x] Verify strict-key SSH to DTM-WORK over the existing Tailscale connection.
+- [x] Validate a dedicated dtm-work-vpn include for repeatable strict-key access,
+      preserving existing LAN aliases and avoiding default VPN/route changes.
+- [ ] Reconcile DTM-WORK's missing canonical profile and duplicate evaluation warnings.
+      The unqualified Write-Warning resolves to a PC-AI wrapper and is the likely
+      aggregate-module autoload trigger. Local/remote OneDrive shims differ; reconcile
+      sync/source ownership before replacing either, or deploying an old full profile.
+- [ ] Resolve the Super-NUC's actual identity/access and remote agent ownership.
+      DTM-WORK's home-network DNS resolves dtm-super-nuc to 10.10.15.38 and TCP/22
+      responds there; authenticated SSH returned dtm-super-nuc through DTM-WORK.
+      The old 192.168.1.169 routing hint does not respond. Whether this is the user's
+      possible supernuc-two and which agent owns its work remain unresolved.
+- [x] Validate dtm-super-nuc-vpn strict-key access through dtm-work-vpn with an isolated
+      known-hosts file. Authenticated ComputerName is DTM-SUPER-NUC; existing aliases stay
+      available. The first key was captured on this VPN discovery, without physical attestation.
+- [ ] Coordinate Cloudflare's machine-client challenge/access policy with the deployment
+      owner; a 403 challenge is not proof the underlying AgentHub is down.
+- [ ] Capture an actual next-boot baseline before claiming startup-performance gains.
+      Existing mount-health validation passes; its boot report is stale.
+- [x] Update the clean installed git-guard source to the existing canonical-attribution
+      release. A normal signed commit through actual hooks has exactly one Agent: codex
+      and canonical noreply@openai.com coauthor. Source and configuration custody retained.
+- [ ] Repair the broader native Windows git-guard failures before claiming deployment-wide
+      qualification: 266 pass / 20 fail / 2 skip. Auto-comment plus verbose editor/amend
+      is among the failures. A corrective source-owner handoff was sent; ACK is pending.
+      Preserve the installed primary while independent corrective work is reviewed.
+
+Fleet holds remain explicit: ASUS/3066 deployment work belongs to its current owner;
+0060 GPU/HIL and physical Thunderbolt peer validation remain held. Foreign worktrees,
+active runners, live MCP clients and the Milly backup are preserved.
+
+## Internal keyboard follow-up (2026-09-12): still unresolved
+
+The user confirms failures beyond Shift, involving other keys or the whole internal
+keyboard, with external USB input working during a recent episode. Prioritize the
+internal device/path and sleep/dock transitions; this does not prove a hardware cause.
+Historical EC, software-clean
+and typing-timing verdicts below are unproven. Current BIOS is 1.22; the old 1.20 update
+recommendation is stale. PowerToys ran with empty mappings at the initial snapshot
+but was absent during later failures. Shift recovered locally and in RDP; native
+Right failed in both while USB Right worked. Latest report: native Left/Down/Right
+all fail. Reboots over months have not resolved this. See the
+[software/profile follow-up](Reports/keyboard-investigation-20260912/software-interference.md)
+and [connector/mechanical review](Reports/keyboard-investigation-20260912/hardware-review.md).
+The canonical PowerShell profile's startup/reload/exit defects are now repaired;
+[32 passing regressions and the patch](Reports/keyboard-investigation-20260912/profile-fixes/README.md)
+are preserved separately from the unresolved keyboard diagnosis.
+Use [the current investigation](Reports/keyboard-investigation-20260912/README.md)
+and [machine-reliability.TODO.md](machine-reliability.TODO.md) for the controlled
+reproduction, driver review and diagnostic-tool corrections. No keyboard fix is claimed.
+
 ## Bitwarden command selection follow-up (2026-09-12)
 
 - [x] Prefer the installed native Bitwarden CLI before stale CMD/Node wrappers.
@@ -1319,3 +1457,26 @@ Cisco Ethernet 13. The coordinating agent's current PnP error query returned
 zero devices. No network adapter was removed or disabled.
 
 Evidence and rollback: [boot storage review](Reports/boot-storage-review-20260912.md).
+
+## Live validation refresh - October 3, 2026
+
+- [x] Existing sync-provider validator passes its clean 60-minute window: exit 0,
+  no OneDrive/FileSyncHelper WER events, failures or warnings. This does not prove
+  a decreasing queue or close stale scheduled-task result triage.
+- [x] Reapply the existing Process Lasso UI/sync tuning after its five-field
+  preview and hash-verified rollback backup. The initial validator failed on two
+  missing OneDrive exclusions and two disabled logging flags; the final validator
+  passes all six checks, exit 0, with the same governor PID and no restart.
+  Existing conservative process defaults and OneDrive I/O priority are restored;
+  watchdog recovery and future-boot ordering remain untested.
+- [x] Validate W: restoration through the existing shared-dev mount task. Initial
+  boot validator failed: detached disk and historical task result 51 (backing file
+  absent during September 30 boot). Current disk identity, virtual/backing sizes,
+  free W:, no VM reference and exclusive read-only open pass preflight.
+  Task result is now 0; healthy NTFS W: matches the historical volume GUID.
+  Fresh boot mount validator returns 0, with zero failures and the retained stale
+  diagnostic-report warning. No reboot, dismount or task configuration change.
+
+Current private receipt hashes and remaining boundaries are recorded in
+`Reports/milly-fleet-20261002/repo-closeout.json` under `followUpEasyWins`.
+Historical results above retain their original scope and date.

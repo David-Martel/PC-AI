@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "owner": "codex",
+  "source": "ASUS authenticated agent-bus",
+  "message_id": "01a0feac-1d6a-7507-8bea-0c620f5d36d6",
+  "timestamp_utc": "2026-10-02T22:11:27.722378Z",
+  "boundary": "Live headed Clarius0546 non-human HIL; no remote input, streaming, or seat changes until owned teardown and RESOURCE_DONE",
+  "state": "awaiting owner release",
+  "network_rule_plan": "Two source-address-specific UFW native dry-run plans validated; not applied",
+  "credential_provider": "Existing Windows RDP item authenticates as HTTP401; Sunshine-specific provider still unresolved"
+}

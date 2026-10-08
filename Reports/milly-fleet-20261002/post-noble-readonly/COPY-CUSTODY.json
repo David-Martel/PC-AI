@@ -1,0 +1,32 @@
+[
+  {
+    "name": "baseline-tool-comparison.json",
+    "sha256": "6C8DCBB61C5E7DA4E04E3AADB5504CEBA2E3EC9ABDB798D19BB8535402284EA6",
+    "contentModified": false
+  },
+  {
+    "name": "containers-and-perf.json",
+    "sha256": "A66B1C97DD959A6CDDCF5988F84469457DA6EF76E08E891BC61C7BEEA7E45671",
+    "contentModified": false
+  },
+  {
+    "name": "packages.json",
+    "sha256": "EFD9303825BE4B96B1537C2184D0FC22C94B9CB6AE1A2FD2CF8631D8737C97CE",
+    "contentModified": false
+  },
+  {
+    "name": "receipt.json",
+    "sha256": "424260D6B02155D7DB4AA5C37763F8F28FC27F9F2E8E2A04F1C98C427BDB986C",
+    "contentModified": false
+  },
+  {
+    "name": "tools-and-render.json",
+    "sha256": "58061A6C6D0885E66DA569868D5B2ED9584F13A80E5E9FDEC983A169A3BB7E16",
+    "contentModified": false
+  },
+  {
+    "name": "ui-and-extra-tools.json",
+    "sha256": "66A2C6675D806CA5C07D95D8616B7408F7BCEC9111041BF509A610625A1B9738",
+    "contentModified": false
+  }
+]

@@ -1,0 +1,60 @@
+{
+  "observedUtc": "2026-10-03T00:56:16.1056452+00:00",
+  "host": "millylaptop1",
+  "targetRelease": "Ubuntu 26.04.1 LTS (Resolute Raccoon)",
+  "state": "Package configuration in progress; not postboot acceptance",
+  "backupQualificationSha256": "6a658c81e2c282a7719baec068ee4136636cf6cb7d5b4241d0396025ac1acccc",
+  "guardedScript": "/home/cog/.cache/pcai/fleet-backup/maintenance/upgrade-lyrical.sh",
+  "scriptNamingNote": "Historical filename uses ROS Lyrical name; OS target is Resolute",
+  "approvedPlan": {
+    "upgraded": 2635,
+    "removed": 97,
+    "new": 476,
+    "criticalPackagesRetained": [
+      "openssh-client",
+      "openssh-server",
+      "network-manager",
+      "gdm3",
+      "ubuntu-desktop",
+      "nvidia-driver-580",
+      "dropbear-bin",
+      "tmux",
+      "sudo",
+      "fwupd"
+    ],
+    "downloadMB": 4436
+  },
+  "preflightResolution": {
+    "jammyRosSourcePreservedDisabled": "/etc/apt/sources.list.d/ros2.sources.distUpgrade",
+    "remainingUpdates": 0,
+    "exit": 0,
+    "obsoleteOpenCV45AndTbb2Removed": 20,
+    "updated": [
+      "libtbb12",
+      "libtbbmalloc2",
+      "obs-studio"
+    ],
+    "new": [
+      "libmng2",
+      "libobs0t64",
+      "qt6-image-formats-plugins"
+    ]
+  },
+  "recovery": {
+    "heldAdministrativeShell": "authenticated session maintained and elevated before sudo alternative migration finished",
+    "dynamicLibc": null,
+    "openSslDependency": null,
+    "dropbear": "wired .43:1023; strict separately pinned host key; Cog group/key only; root/password/forwarding disabled",
+    "temporaryMaximumSeconds": 21600
+  },
+  "remaining": [
+    "upgrade completion and dpkg audit",
+    "final reboot and GPU/network/SSH validation",
+    "original user-home checksum comparison and Cog change review",
+    "postupgrade Qt/EGL/media/developer tool tests",
+    "native ROS Lyrical separate from VIGIL Jazzy/Python3.12 ABI",
+    "Cog desktop login after validation",
+    "Sunshine provider/pairing owner reply",
+    "Thunderbolt physical peer negotiation"
+  ]
+}

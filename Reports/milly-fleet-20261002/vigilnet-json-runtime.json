@@ -1,0 +1,22 @@
+{
+  "source_sha": "e543404cdebdd474e26823fe050db03fb9e33794",
+  "wheel": "/home/cog/.cache/pcai/vigilnet-json-fix/wheels/vigil_network-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "a8be46c188439169c2c3205e4a3337ac81c3e3cd93496245ac829de5a01f7aed",
+  "installed_cli": "/home/cog/dev/repos/vigil-spark/ops/vigil-network/.venv/lib/python3.13/site-packages/vigilnet/cli.py",
+  "installed_cli_sha256": "2f5f79c691d7f1aeab599a67b49f8572303cd099cb6efcb537b8c097999b3a53",
+  "source_cli_sha256": "2f5f79c691d7f1aeab599a67b49f8572303cd099cb6efcb537b8c097999b3a53",
+  "distribution_version": "0.1.0",
+  "python": "3.13.16 (main, Oct  1 2026, 20:59:14) [Clang 22.1.3 ]",
+  "inventory_characters": 4689,
+  "inventory_probes": [
+    "ip_addr",
+    "ip_link",
+    "ip_route",
+    "iw_dev",
+    "nmcli_devices"
+  ],
+  "inventory_sha256": "74543ee6df3ecf66b3db6f399374b45b4f93e1a3b333bb5c0b2afd13da9b545b",
+  "qa_image": "ghcr.io/astral-sh/uv@sha256:1ef55995db4c39f741868196311a3a670a338aaa8e71322dcc38131de1c17cc4",
+  "pr_url": "https://github.com/David-Martel/vigil-spark/pull/2456",
+  "caveat": "uv sync can restore the canonical main editable project until this PR is merged"
+}

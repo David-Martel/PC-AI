@@ -49,13 +49,15 @@ fn test_repeated_init_shutdown_no_leak() {
         #[cfg(feature = "llamacpp")]
         {
             let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-            let _ = pcai_init(backend.as_ptr());
+            // SAFETY: backend remains live and NUL-terminated throughout the call.
+            let _ = unsafe { pcai_init(backend.as_ptr()) };
         }
 
         #[cfg(feature = "mistralrs-backend")]
         {
             let backend = CString::new("mistralrs").expect("CString should accept valid test input");
-            let _ = pcai_init(backend.as_ptr());
+            // SAFETY: backend remains live and NUL-terminated throughout the call.
+            let _ = unsafe { pcai_init(backend.as_ptr()) };
         }
 
         pcai_shutdown();
@@ -126,14 +128,23 @@ mod llamacpp_memory_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if pcai_init(backend.as_ptr()) == 0 {
-            let result = pcai_generate(ptr::null(), 10, 0.7);
-            assert!(result.is_null());
+        // SAFETY: backend remains live and NUL-terminated throughout the call.
+        assert_eq!(
+            unsafe { pcai_init(backend.as_ptr()) },
+            0,
+            "compiled llamacpp backend must initialize"
+        );
+        // SAFETY: null is deliberately accepted by the API's validation path.
+        let result = unsafe { pcai_generate(ptr::null(), 10, 0.7) };
+        assert!(result.is_null());
 
-            // Should have set an error
-            let err = pcai_last_error();
-            assert!(!err.is_null());
-        }
+        // Should have set an error
+        let err = pcai_last_error();
+        assert!(!err.is_null());
+        assert_eq!(
+            pcai_inference_lib::ffi::pcai_last_error_code(),
+            PcaiErrorCode::InvalidInput as i32
+        );
 
         pcai_shutdown();
     }
@@ -144,10 +155,16 @@ mod llamacpp_memory_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if pcai_init(backend.as_ptr()) == 0 {
-            let result = pcai_load_model(ptr::null(), 0);
-            assert_eq!(result, -1);
-        }
+        // SAFETY: backend remains live and NUL-terminated throughout the call.
+        assert_eq!(
+            unsafe { pcai_init(backend.as_ptr()) },
+            0,
+            "compiled llamacpp backend must initialize"
+        );
+        // SAFETY: null is deliberately accepted by the API's validation path.
+        let result = unsafe { pcai_load_model(ptr::null(), 0) };
+        assert_eq!(result, PcaiErrorCode::InvalidInput as i32);
+        assert_eq!(pcai_inference_lib::ffi::pcai_last_error_code(), result);
 
         pcai_shutdown();
     }

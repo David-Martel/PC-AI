@@ -1,0 +1,103 @@
+{
+  "at": "2026-10-02T21:54:13.160835+00:00",
+  "hostname": "millylaptop1",
+  "kernel": "6.8.0-138-generic",
+  "gpu": "NVIDIA RTX 5000 Ada Generation Laptop GPU, 580.178.04",
+  "input": "Synthetic testsrc2 640x360 30fps 1second; no fleet/camera data",
+  "commands": [
+    {
+      "command": [
+        "ffmpeg",
+        "-nostdin",
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "warning",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=640x360:rate=30",
+        "-t",
+        "1",
+        "-c:v",
+        "h264_nvenc",
+        "-preset",
+        "p4",
+        "/home/cog/.cache/pcai/ui-validation/reproducible-codec/synthetic-nvenc.h264"
+      ],
+      "start_utc": "2026-10-02T21:54:10.209340+00:00",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "ffmpeg",
+        "-nostdin",
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-threads",
+        "2",
+        "-i",
+        "/home/cog/.cache/pcai/ui-validation/reproducible-codec/synthetic-nvenc.h264",
+        "-pix_fmt",
+        "yuv420p",
+        "-f",
+        "framemd5",
+        "/home/cog/.cache/pcai/ui-validation/reproducible-codec/cpu.framemd5"
+      ],
+      "start_utc": "2026-10-02T21:54:12.589098+00:00",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "ffmpeg",
+        "-nostdin",
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-threads",
+        "2",
+        "-hwaccel",
+        "cuda",
+        "-hwaccel_output_format",
+        "cuda",
+        "-i",
+        "/home/cog/.cache/pcai/ui-validation/reproducible-codec/synthetic-nvenc.h264",
+        "-vf",
+        "hwdownload,format=nv12,format=yuv420p",
+        "-f",
+        "framemd5",
+        "/home/cog/.cache/pcai/ui-validation/reproducible-codec/nvdec.framemd5"
+      ],
+      "start_utc": "2026-10-02T21:54:12.665482+00:00",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "frames": 30,
+  "cpu_nvdec_exact": true,
+  "files": [
+    {
+      "name": "synthetic-nvenc.h264",
+      "bytes": 267584,
+      "sha256": "41009bfaa2daadb9d1f4802a758abdb71064b3a89f14d51ac94eb87b606be37a"
+    },
+    {
+      "name": "cpu.framemd5",
+      "bytes": 2615,
+      "sha256": "1eb034c00596b22991e7acb6c5d6ab0a61590759f56cfc156dd979c4f73f74c2"
+    },
+    {
+      "name": "nvdec.framemd5",
+      "bytes": 2615,
+      "sha256": "1eb034c00596b22991e7acb6c5d6ab0a61590759f56cfc156dd979c4f73f74c2"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "npcap",
+    "State": "Running",
+    "StartMode": "System",
+    "PathName": "C:\\WINDOWS\\system32\\DRIVERS\\npcap.sys"
+  },
+  {
+    "Name": "npcap_wifi",
+    "State": "Stopped",
+    "StartMode": "Disabled",
+    "PathName": "C:\\WINDOWS\\system32\\DRIVERS\\npcap.sys"
+  },
+  {
+    "Name": "Usb4DeviceRouter",
+    "State": "Running",
+    "StartMode": "Manual",
+    "PathName": "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\usb4devicerouter.inf_amd64_25369b7450fbd86d\\Usb4DeviceRouter.sys"
+  },
+  {
+    "Name": "Usb4HostRouter",
+    "State": "Running",
+    "StartMode": "Manual",
+    "PathName": "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\usb4hostrouter.inf_amd64_699a7b1bb9410071\\Usb4HostRouter.sys"
+  },
+  {
+    "Name": "usb4p2pnetadapter",
+    "State": "Stopped",
+    "StartMode": "Manual",
+    "PathName": "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\usb4p2pnetadapter.inf_amd64_029ce742e17357e8\\usb4p2pnetadapter.sys"
+  },
+  {
+    "Name": "USBPcap",
+    "State": "Running",
+    "StartMode": "Manual",
+    "PathName": "C:\\WINDOWS\\system32\\DRIVERS\\USBPcap.sys"
+  }
+]

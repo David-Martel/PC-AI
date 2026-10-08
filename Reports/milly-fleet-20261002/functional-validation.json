@@ -1,0 +1,219 @@
+{
+  "observed_utc": "2026-10-02T20:56:48.975731+00:00",
+  "results": [
+    {
+      "command": [
+        "uv",
+        "python",
+        "find",
+        "3.12.15"
+      ],
+      "exit_code": 0,
+      "stdout": "/home/cog/.local/opt/vigil-tools/python/cpython-3.12.15-linux-x86_64-gnu/bin/python3.12\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.12.15-linux-x86_64-gnu/bin/python3.12",
+        "-c",
+        "import sys,ssl,sqlite3,hashlib,venv; assert sys.version.split()[0]=='3.12.15'; db=sqlite3.connect(':memory:'); db.execute('create table checks (n int)'); db.execute('insert into checks values (42)'); assert db.execute('select n from checks').fetchone()==(42,); print(sys.version.split()[0], ssl.OPENSSL_VERSION)"
+      ],
+      "exit_code": 0,
+      "stdout": "3.12.15 OpenSSL 3.5.9 29 Sep 2026\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "uv",
+        "python",
+        "find",
+        "3.13.16"
+      ],
+      "exit_code": 0,
+      "stdout": "/home/cog/.local/opt/vigil-tools/python/cpython-3.13.16-linux-x86_64-gnu/bin/python3.13\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.13.16-linux-x86_64-gnu/bin/python3.13",
+        "-c",
+        "import sys,ssl,sqlite3,hashlib,venv; assert sys.version.split()[0]=='3.13.16'; db=sqlite3.connect(':memory:'); db.execute('create table checks (n int)'); db.execute('insert into checks values (42)'); assert db.execute('select n from checks').fetchone()==(42,); print(sys.version.split()[0], ssl.OPENSSL_VERSION)"
+      ],
+      "exit_code": 0,
+      "stdout": "3.13.16 OpenSSL 3.5.9 29 Sep 2026\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "uv",
+        "python",
+        "find",
+        "3.14.8"
+      ],
+      "exit_code": 0,
+      "stdout": "/home/cog/.local/opt/vigil-tools/python/cpython-3.14.8-linux-x86_64-gnu/bin/python3.14\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/home/cog/.local/opt/vigil-tools/python/cpython-3.14.8-linux-x86_64-gnu/bin/python3.14",
+        "-c",
+        "import sys,ssl,sqlite3,hashlib,venv; assert sys.version.split()[0]=='3.14.8'; db=sqlite3.connect(':memory:'); db.execute('create table checks (n int)'); db.execute('insert into checks values (42)'); assert db.execute('select n from checks').fetchone()==(42,); print(sys.version.split()[0], ssl.OPENSSL_VERSION)"
+      ],
+      "exit_code": 0,
+      "stdout": "3.14.8 OpenSSL 3.5.9 29 Sep 2026\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cmake",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation",
+        "-B",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/build",
+        "-G",
+        "Ninja"
+      ],
+      "exit_code": 0,
+      "stdout": "-- The CXX compiler identification is GNU 11.4.0\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Configuring done (0.2s)\n-- Generating done (0.0s)\n-- Build files have been written to: /home/cog/.cache/pcai/fleet-tooling-provenance/validation/build\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cmake",
+        "--build",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/build"
+      ],
+      "exit_code": 0,
+      "stdout": "[1/2] Building CXX object CMakeFiles/pcai_check.dir/main.cpp.o\n[2/2] Linking CXX executable pcai_check\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/build",
+        "--output-on-failure"
+      ],
+      "exit_code": 0,
+      "stdout": "Test project /home/cog/.cache/pcai/fleet-tooling-provenance/validation/build\n    Start 1: prints42\n1/1 Test #1: prints42 .........................   Passed    0.00 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   0.00 sec\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cpack",
+        "--config",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/build/CPackConfig.cmake",
+        "-B",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/package"
+      ],
+      "exit_code": 0,
+      "stdout": "CPack: Create package using TGZ\nCPack: Install projects\nCPack: - Install project: pcai_check []\nCPack: Create package\nCPack: - package: /home/cog/.cache/pcai/fleet-tooling-provenance/validation/package/pcai_check-0.1.1-Linux.tar.gz generated.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "ruff",
+        "check",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/math_tools.py",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/test_math_tools.py"
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "ty",
+        "check",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/math_tools.py"
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "basedpyright",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/math_tools.py"
+      ],
+      "exit_code": 0,
+      "stdout": "0 errors, 0 warnings, 0 notes\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "pytest",
+        "-q",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/test_math_tools.py"
+      ],
+      "exit_code": 0,
+      "stdout": "......                                                                   [100%]\n6 passed in 0.01s\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "ty",
+        "check",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/bad_types.py"
+      ],
+      "exit_code": 1,
+      "stdout": "error[invalid-assignment]: Object of type `Literal[\"invalid\"]` is not assignable to `int`\n --> bad_types.py:1:14\n  |\n1 | value: int = \"invalid\"\n  |        ---   ^^^^^^^^^ Incompatible value of type `Literal[\"invalid\"]`\n  |        |\n  |        Declared type\n\nFound 1 diagnostic\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "basedpyright",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/bad_types.py"
+      ],
+      "exit_code": 1,
+      "stdout": "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/bad_types.py\n  /home/cog/.cache/pcai/fleet-tooling-provenance/validation/bad_types.py:1:14 - error: Type \"Literal['invalid']\" is not assignable to declared type \"int\"\n  \u00a0\u00a0\"Literal['invalid']\" is not assignable to \"int\" (reportAssignmentType)\n1 error, 0 warnings, 0 notes\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "ruff",
+        "check",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/bad_lint.py"
+      ],
+      "exit_code": 1,
+      "stdout": "F401 [*] `os` imported but unused\n --> bad_lint.py:1:8\n  |\n1 | import os\n  |        ^^\nhelp: Remove unused import: `os`\n  |\n  - import os\n  |\n\nFound 1 error.\n[*] 1 fixable with the `--fix` option.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "just",
+        "--justfile",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/justfile",
+        "check"
+      ],
+      "exit_code": 0,
+      "stdout": "42\n",
+      "stderr": "./build/pcai_check\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "generate-lockfile",
+        "--manifest-path",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/rust-fixture/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--manifest-path",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/rust-fixture/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "   Compiling pcai-tool-check v0.1.0 (/home/cog/.cache/pcai/fleet-tooling-provenance/validation/rust-fixture)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n Nextest run ID aaaba6de-c550-4238-8fd2-714f3b477a6f with nextest profile: default\n    Starting 1 test across 1 binary\n        PASS [   0.004s] (1/1) pcai-tool-check tests::boundaries\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n     Summary [   0.004s] 1 test run: 1 passed, 0 skipped\n"
+    }
+  ]
+}

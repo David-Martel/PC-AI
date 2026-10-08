@@ -1,0 +1,351 @@
+{
+  "observedUtc": "2026-10-02T18:53:05.3807994Z",
+  "computer": "DTM-P1GEN7",
+  "os": {
+    "Caption": "Microsoft Windows 11 Pro",
+    "Version": "10.0.26200",
+    "BuildNumber": "26200"
+  },
+  "networkAdapters": [
+    {
+      "Name": "vSwitch (WSL (Hyper-V firewall))",
+      "InterfaceDescription": "Hyper-V Virtual Switch Extension Adapter #3",
+      "Status": "Up",
+      "ifIndex": 81,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Local Area Connection* 3",
+      "InterfaceDescription": "WAN Miniport (L2TP)",
+      "Status": "Disconnected",
+      "ifIndex": 41,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Wi-Fi 2",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Not Present",
+      "ifIndex": 40,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Local Area Connection 2",
+      "InterfaceDescription": "Wintun Userspace Tunnel",
+      "Status": "Disconnected",
+      "ifIndex": 38,
+      "LinkSpeed": "100 Gbps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "vSwitch (WSL)",
+      "InterfaceDescription": "Hyper-V Virtual Switch Extension Adapter #2",
+      "Status": "Up",
+      "ifIndex": 36,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Ethernet (Kernel Debugger)",
+      "InterfaceDescription": "Microsoft Kernel Debug Network Adapter",
+      "Status": "Not Present",
+      "ifIndex": 35,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Bluetooth Network Connection",
+      "InterfaceDescription": "Bluetooth Device (Personal Area Network)",
+      "Status": "Disconnected",
+      "ifIndex": 34,
+      "LinkSpeed": "3 Mbps",
+      "MacAddress": "6C-2F-80-8E-80-9A"
+    },
+    {
+      "Name": "vEthernet (WSL (Hyper-V firewall))",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter #3",
+      "Status": "Up",
+      "ifIndex": 84,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": "00-15-5D-56-75-4A"
+    },
+    {
+      "Name": "Local Area Connection* 7",
+      "InterfaceDescription": "WAN Miniport (IPv6)",
+      "Status": "Up",
+      "ifIndex": 33,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Ethernet 8",
+      "InterfaceDescription": "Realtek Gaming USB 2.5GbE Family Controller",
+      "Status": "Up",
+      "ifIndex": 30,
+      "LinkSpeed": "1 Gbps",
+      "MacAddress": "8C-AE-4C-BC-FE-12"
+    },
+    {
+      "Name": "vEthernet (Default Switch)",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter",
+      "Status": "Up",
+      "ifIndex": 24,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": "00-15-5D-F4-7C-00"
+    },
+    {
+      "Name": "Teredo Tunneling Pseudo-Interface",
+      "InterfaceDescription": "",
+      "Status": "Up",
+      "ifIndex": 28,
+      "LinkSpeed": "100 Kbps",
+      "MacAddress": "00-00-00-00-00-00-00-E0-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00"
+    },
+    {
+      "Name": "Local Area Connection* 5",
+      "InterfaceDescription": "WAN Miniport (PPPOE)",
+      "Status": "Disconnected",
+      "ifIndex": 27,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Wi-Fi",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Disconnected",
+      "ifIndex": 22,
+      "LinkSpeed": "1.2 Gbps",
+      "MacAddress": "6C-2F-80-8E-80-96"
+    },
+    {
+      "Name": "Local Area Connection* 4",
+      "InterfaceDescription": "WAN Miniport (PPTP)",
+      "Status": "Disconnected",
+      "ifIndex": 21,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Ethernet 13",
+      "InterfaceDescription": "Cisco AnyConnect Virtual Miniport Adapter for Windows x64",
+      "Status": "Not Present",
+      "ifIndex": 20,
+      "LinkSpeed": "0 bps",
+      "MacAddress": "00-05-9A-3C-7A-00"
+    },
+    {
+      "Name": "Wi-Fi 5",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Not Present",
+      "ifIndex": 18,
+      "LinkSpeed": "0 bps",
+      "MacAddress": "6E-2F-80-8E-80-97"
+    },
+    {
+      "Name": "vEthernet (WSL)",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter #2",
+      "Status": "Up",
+      "ifIndex": 17,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": "00-15-5D-15-20-07"
+    },
+    {
+      "Name": "Local Area Connection* 6",
+      "InterfaceDescription": "WAN Miniport (IP)",
+      "Status": "Up",
+      "ifIndex": 16,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Npcap Loopback Adapter",
+      "InterfaceDescription": "Npcap Loopback Adapter",
+      "Status": "Up",
+      "ifIndex": 15,
+      "LinkSpeed": "1.2 Gbps",
+      "MacAddress": "02-00-4C-4F-4F-50"
+    },
+    {
+      "Name": "Tailscale",
+      "InterfaceDescription": "Tailscale Tunnel",
+      "Status": "Up",
+      "ifIndex": 77,
+      "LinkSpeed": "100 Gbps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Microsoft IP-HTTPS Platform Interface",
+      "InterfaceDescription": "",
+      "Status": "Not Present",
+      "ifIndex": 14,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Local Area Connection* 2",
+      "InterfaceDescription": "WAN Miniport (IKEv2)",
+      "Status": "Disconnected",
+      "ifIndex": 13,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Wi-Fi 4",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Disconnected",
+      "ifIndex": 12,
+      "LinkSpeed": "0 bps",
+      "MacAddress": "6E-2F-80-8E-80-96"
+    },
+    {
+      "Name": "Ethernet 15",
+      "InterfaceDescription": "Realtek USB 5GbE Family Controller",
+      "Status": "Up",
+      "ifIndex": 11,
+      "LinkSpeed": "5 Gbps",
+      "MacAddress": "84-BA-59-36-9E-6C"
+    },
+    {
+      "Name": "vSwitch (Default Switch)",
+      "InterfaceDescription": "Hyper-V Virtual Switch Extension Adapter",
+      "Status": "Up",
+      "ifIndex": 7,
+      "LinkSpeed": "10 Gbps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Wi-Fi 3",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Disconnected",
+      "ifIndex": 8,
+      "LinkSpeed": "0 bps",
+      "MacAddress": "6C-2F-80-8E-80-97"
+    },
+    {
+      "Name": "Local Area Connection* 1",
+      "InterfaceDescription": "WAN Miniport (SSTP)",
+      "Status": "Disconnected",
+      "ifIndex": 5,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "6to4 Adapter",
+      "InterfaceDescription": "",
+      "Status": "Not Present",
+      "ifIndex": 4,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    },
+    {
+      "Name": "Local Area Connection* 8",
+      "InterfaceDescription": "WAN Miniport (Network Monitor)",
+      "Status": "Up",
+      "ifIndex": 2,
+      "LinkSpeed": "0 bps",
+      "MacAddress": ""
+    }
+  ],
+  "usb4": [
+    {
+      "FriendlyName": "USB4 Root Router (1.0)",
+      "InstanceId": "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_7EC2\\4&1F6645CA&0&0",
+      "Status": "OK"
+    },
+    {
+      "FriendlyName": "USB4(TM) Host Router (Microsoft)",
+      "InstanceId": "PCI\\VEN_8086&DEV_7EC2&SUBSYS_223417AA&REV_02&USB4_MS_CM\\3&11583659&1&6A",
+      "Status": "OK"
+    },
+    {
+      "FriendlyName": "USB4 Router (1.0), Plugable - TBT4-UDZ",
+      "InstanceId": "USB4\\VID_8087&PID_0B26\\5&2D101DC1&3&3",
+      "Status": "OK"
+    },
+    {
+      "FriendlyName": "Thunderbolt 3(TM) Router, ACASIS - TBU405Pro",
+      "InstanceId": "USB4\\VID_8086&PID_15EF\\6&2A377A77&0&5",
+      "Status": "OK"
+    },
+    {
+      "FriendlyName": "USB4 Router (2.0), CalDigit. Inc. - Element 5 Hub",
+      "InstanceId": "USB4\\VID_8087&PID_5786\\5&2D101DC1&3&1",
+      "Status": "OK"
+    },
+    {
+      "FriendlyName": "USB4 Router (2.0), Razer - Core X V2",
+      "InstanceId": "USB4\\VID_8087&PID_5786\\6&2A377A77&0&7",
+      "Status": "OK"
+    }
+  ],
+  "ipv4": [
+    {
+      "IPAddress": "10.60.4.4",
+      "PrefixLength": 29,
+      "InterfaceAlias": "Ethernet 15"
+    },
+    {
+      "IPAddress": "169.254.37.107",
+      "PrefixLength": 16,
+      "InterfaceAlias": "Npcap Loopback Adapter"
+    },
+    {
+      "IPAddress": "192.168.240.1",
+      "PrefixLength": 20,
+      "InterfaceAlias": "vEthernet (WSL (Hyper-V firewall))"
+    },
+    {
+      "IPAddress": "192.168.50.42",
+      "PrefixLength": 24,
+      "InterfaceAlias": "Ethernet 8"
+    },
+    {
+      "IPAddress": "169.254.76.173",
+      "PrefixLength": 16,
+      "InterfaceAlias": "vEthernet (WSL)"
+    },
+    {
+      "IPAddress": "172.30.192.1",
+      "PrefixLength": 20,
+      "InterfaceAlias": "vEthernet (Default Switch)"
+    },
+    {
+      "IPAddress": "169.254.172.40",
+      "PrefixLength": 16,
+      "InterfaceAlias": "Wi-Fi 4"
+    },
+    {
+      "IPAddress": "169.254.155.228",
+      "PrefixLength": 16,
+      "InterfaceAlias": "Wi-Fi 3"
+    },
+    {
+      "IPAddress": "169.254.69.157",
+      "PrefixLength": 16,
+      "InterfaceAlias": "Bluetooth Network Connection"
+    },
+    {
+      "IPAddress": "169.254.161.239",
+      "PrefixLength": 16,
+      "InterfaceAlias": "Local Area Connection 2"
+    },
+    {
+      "IPAddress": "169.254.121.151",
+      "PrefixLength": 16,
+      "InterfaceAlias": "Wi-Fi"
+    },
+    {
+      "IPAddress": "100.64.0.1",
+      "PrefixLength": 32,
+      "InterfaceAlias": "Tailscale"
+    },
+    {
+      "IPAddress": "127.0.0.1",
+      "PrefixLength": 8,
+      "InterfaceAlias": "Loopback Pseudo-Interface 1"
+    }
+  ],
+  "usb4NetworkDriverInstalled": true
+}

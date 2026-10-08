@@ -212,9 +212,7 @@ impl LlamaCppBackend {
         #[cfg(not(feature = "cuda-llamacpp"))]
         let use_gpu = false;
 
-        let gpu_layers = if !use_gpu {
-            None
-        } else if self.n_gpu_layers == u32::MAX {
+        let gpu_layers = if !use_gpu || self.n_gpu_layers == u32::MAX {
             None
         } else {
             Some(self.n_gpu_layers as usize)
@@ -411,7 +409,7 @@ impl InferenceBackend for LlamaCppBackend {
         request: GenerateRequest,
         callback: &mut (dyn FnMut(String) + Send),
     ) -> Result<GenerateResponse> {
-        self.generate_streaming_internal(request, |token| callback(token)).await
+        self.generate_streaming_internal(request, callback).await
     }
 
     async fn unload_model(&mut self) -> Result<()> {

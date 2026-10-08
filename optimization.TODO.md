@@ -1,5 +1,62 @@
 # Optimization TODO
 
+## Latest input and runner pressure review (2026-10-04)
+
+See [the maintenance evidence](Reports/input-runner-maintenance-20261004.md).
+
+- [x] Recover the hung Interhaptics service after a guarded stop trial failed.
+      Two short follow-up samples had zero CPU delta, compared with about 0.80
+      logical cores beforehand. This is not a workstation speedup benchmark.
+- [x] Revalidate Process Lasso boot safety and UI/WSL/Docker priority policies;
+      current policies pass, so no blanket tuning was reapplied.
+- [x] Distinguish historical container memory-cap hits from current starvation:
+      all four sampled runner containers had zero OOM kills and zero sampled
+      cgroup pressure averages. Historical cap counts alone do not prove OOM.
+- [ ] Capture a comparable unloaded/loaded host baseline. Latest selected samples
+      were about 91% CPU busy, 87% committed memory and 6.5 GB available, with
+      substantial paging; these are later samples than the review below.
+- [ ] With runner-owner custody, reconcile 19 aggregate CPU quotas with the
+      18-vCPU WSL guest and workload concurrency; no quota changes during jobs.
+- [ ] Explain secondary listener generation changes without inferring container
+      restarts: sampled restart counts were zero and the primary job is held.
+
+## Current process-generation and resource follow-up (2026-10-04)
+
+See [the selected live evidence](Reports/workstation-load-20261004.md) and
+[the startup/drive queue](boot.TODO.md). Historical benchmarks below are not a
+baseline for this loaded session.
+
+- [x] Sample host CPU and memory alongside Docker/process ownership. Six samples
+      averaged 82.3% busy; commit was approximately 80.5%, with about 14 GB available.
+      Docker sampled 0.60% aggregate CPU in Docker's units, not host percentage.
+- [ ] Trace repeated MCP generations under five live Codex clients to session lifecycles
+      before proposing reuse/cleanup. Four simultaneous server generations do not prove
+      a crash/restart loop or orphan process. Selected Node/PowerShell private commit was
+      about 9.1 GB; this is a measurement, not a reclaimable-memory promise.
+- [x] Validate lighter future maintenance configuration with per-command MCP overrides;
+      preserve current clients and required coordination/documentation capabilities.
+      MCP_DOCKER is already disabled in the current Codex configuration. Both CLI
+      list checks passed, four optional servers were disabled and config hash was
+      unchanged. Runtime memory/CPU gains remain unmeasured.
+- [x] Investigate and recover Wyvrn/Razer HapticService's repeated roughly one-core
+      CPU use with exact process custody. See the latest recovery above; the
+      attempted A/B/A trial aborted, and long-term/comparable-load validation remains.
+- [x] Capture and analyze bounded light ETW/WPR CPU evidence: zero lost events/buffers;
+      selected pre-stop 8.8 s averaged about 79.7% utilization. Two decoder warnings
+      outside that interval remain recorded. The larger verbose trace lost events and
+      was excluded. This separate window does not close the earlier accounting gap.
+- [ ] Reconcile kernel/function attribution and the earlier accounting gap before
+      assigning all load to one process/driver. HapticService again used about 0.82
+      logical cores; Defender, System, desktop and WMI also contributed.
+- [ ] Review runner/client startup cadence with owners after their jobs finish; preserve
+      active usability, Clarius and fleet deployment workloads.
+- [ ] Reconcile GitOps monitor routing and duplicate launches: its default BusUrl still
+      targets localhost:8400 rather than the configured fleet authority, and the launcher
+      starts a detached worker per push. Review bounded publication and per-repo reuse
+      before changing shared monitoring behavior; no measured gain is established.
+- [ ] Benchmark cold/login and steady-state resource use after validated fixes in a
+      comparable workload window; do not label uncontrolled timings as speedup evidence.
+
 This backlog is based on real measurements taken while optimizing the Codex
 context toolkit against `PC-AI.Acceleration` on March 6, 2026.
 
@@ -200,15 +257,26 @@ Validation note:
   need scalar Rust DLL checks or token counts and do not need the C# bridge.
 - [ ] Keep full `Get-PcaiCapabilities` / `Get-PcaiNativeStatus` only for callers
   that need live C# bridge state, module coverage, or service details.
-- [ ] Add a small Pester contract test around probe shape and path resolution.
+- [x] Add Pester regression coverage for manifest-relative repository/native
+  discovery, checkout precedence and environment fallback. Five new tests plus
+  three portable bootstrap tests pass; see
+  `Reports/tooling-maintenance-20261003.md`. Native availability is verified
+  against installed binaries; correspondence to current Rust source is open.
 
 #### Stage 2: Import-Latency Reduction
 
+- [x] Restore installed interactive profile/history acceleration on dtm-p1gen7:
+  fix the raw-tail type guard and enable acceleration by default in both local
+  profile shims, preserving explicit opt-out. Five native data cases and the
+  startup verifier's injected-delay control pass; see the October 3 report.
 - [ ] Split `PC-AI.Acceleration` into a thin loader and nested command groups.
 - [ ] Benchmark import costs per imported file / command group.
 - [ ] Stop dot-sourcing the full public/private tree on every import.
 - [ ] Add import-phase timing hooks so cold-start regressions are easier to pin
   down.
+- [ ] Repair `Invoke-RustProfile.ps1` crate names, absolute output paths,
+  `RUSTC_WRAPPER` restoration and failed-command propagation before treating
+  its fallback timing or memory deltas as acceptance evidence.
 
 #### Stage 2.5: Benchmark Integrity And Memory Tracking
 

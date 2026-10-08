@@ -1,0 +1,29 @@
+{
+  "observed": "AMT present and BIOS-enabled, unprovisioned; no working out-of-band management claimed",
+  "transport_findings": [
+    "Current Realtek 0bda:8157 USB Ethernet is an ordinary OS network path; Intel documents AMT over non-vPro peripherals as unsupported",
+    "Intel WiFi is connected; AMT wireless enabled/profile/DHCP/power policy still need deliberate provisioning and validation",
+    "Thunderbolt AMT requires an OEM-supported dock with suitable PCIe Intel LAN, not any USB Ethernet adapter"
+  ],
+  "next_steps": [
+    "Use Lenovo documented ThinkPad Setup Restart > Intel MEBx during a scheduled local-console maintenance session if manual provisioning is chosen",
+    "Create distinct managed AMT credentials and configure TLS, WiFi profile/DHCP and supported AC sleep policy; validate firmware inventory first",
+    "Use SSH for OS telemetry and Moonlight for normal UI; AMT can later provide recovery/power and hardware inventory after configuration"
+  ],
+  "limits": [
+    "No MEBx entry/password change or provisioning attempted",
+    "No remote AMT or power operation tested",
+    "No claim of existing WiFi AMT availability or sleep/off reachability",
+    "No current Lenovo-supported AMT dock identified"
+  ],
+  "sources": {
+    "upstream_checker": "https://github.com/mjg59/mei-amt-check",
+    "lenovo_amt": "https://docs.lenovocdrt.com/ref/bios/settings/thinkpad/intelramt/",
+    "lenovo_mebx": "https://docs.lenovocdrt.com/ref/bios/settings/thinkpad/restart/",
+    "intel_nonvpro_adapter": "https://software.intel.com/sites/manageability/AMT_Implementation_and_Reference_Guide/WordDocuments/wlanwhiledocking.htm",
+    "intel_wifi": "https://www.intel.com/content/www/us/en/docs/active-management-technology/developer-guide/2021/wi-fi-connections.html",
+    "intel_tb_dock": "https://software.intel.com/sites/manageability/AMT_Implementation_and_Reference_Guide/WordDocuments/thunderbolt.htm",
+    "intel_manual_provisioning": "https://software.intel.com/sites/manageability/AMT_Implementation_and_Reference_Guide/WordDocuments/manualsetupandconfigurationfromrelease60.htm",
+    "intel_power_policy": "https://software.intel.com/sites/manageability/AMT_Implementation_and_Reference_Guide/WordDocuments/supportformultiplepowerpolicies.htm"
+  }
+}

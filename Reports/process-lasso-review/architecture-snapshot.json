@@ -1,0 +1,569 @@
+{
+  "CapturedUtc": "2026-10-05T17:59:24.8502346Z",
+  "Computer": {
+    "Manufacturer": "LENOVO",
+    "Model": "21KV0014US",
+    "TotalPhysicalMemory": 68192145408,
+    "NumberOfLogicalProcessors": 22
+  },
+  "Cpu": [
+    {
+      "Name": "Intel(R) Core(TM) Ultra 7 155H",
+      "NumberOfCores": 16,
+      "NumberOfLogicalProcessors": 22,
+      "MaxClockSpeed": 1400
+    }
+  ],
+  "Os": {
+    "Caption": "Microsoft Windows 11 Pro",
+    "Version": "10.0.26200",
+    "BuildNumber": "26200",
+    "LastBootUpTime": "2026-09-30T11:52:07.5-04:00",
+    "FreePhysicalMemory": 6342352,
+    "TotalVisibleMemorySize": 66593892
+  },
+  "Gpu": [
+    {
+      "Name": "Intel(R) Arc(TM) Pro Graphics",
+      "DriverVersion": "32.0.101.8517",
+      "Status": "OK"
+    },
+    {
+      "Name": "LuminonCore IDDCX Adapter",
+      "DriverVersion": "1.0.2018.1204",
+      "Status": "OK"
+    },
+    {
+      "Name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+      "DriverVersion": "32.0.16.1088",
+      "Status": "OK"
+    },
+    {
+      "Name": "NVIDIA GeForce RTX 5060 Ti",
+      "DriverVersion": "32.0.16.1088",
+      "Status": "OK"
+    }
+  ],
+  "PageFile": [
+    {
+      "Name": "C:\\pagefile.sys",
+      "AllocatedBaseSize": 48007,
+      "CurrentUsage": 27970,
+      "PeakUsage": 40736
+    }
+  ],
+  "Disks": [
+    {
+      "FriendlyName": "WD_BLACK SN850X 4000GB",
+      "MediaType": "SSD",
+      "Size": 4000787030016,
+      "HealthStatus": "Healthy"
+    },
+    {
+      "FriendlyName": "Msft Virtual Disk",
+      "MediaType": "SSD",
+      "Size": 274877906944,
+      "HealthStatus": "Healthy"
+    },
+    {
+      "FriendlyName": "WD_BLACK SN850X 8000GB",
+      "MediaType": "SSD",
+      "Size": 8001563222016,
+      "HealthStatus": "Healthy"
+    },
+    {
+      "FriendlyName": "WD_BLACK SN850X 4000GB",
+      "MediaType": "SSD",
+      "Size": 4000787030016,
+      "HealthStatus": "Healthy"
+    },
+    {
+      "FriendlyName": "Msft Virtual Disk",
+      "MediaType": "SSD",
+      "Size": 536870912000,
+      "HealthStatus": "Healthy"
+    }
+  ],
+  "Network": [
+    {
+      "Name": "Wi-Fi 2",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Not Present",
+      "LinkSpeed": "0 bps"
+    },
+    {
+      "Name": "Local Area Connection 2",
+      "InterfaceDescription": "Wintun Userspace Tunnel",
+      "Status": "Disconnected",
+      "LinkSpeed": "100 Gbps"
+    },
+    {
+      "Name": "Bluetooth Network Connection",
+      "InterfaceDescription": "Bluetooth Device (Personal Area Network)",
+      "Status": "Disconnected",
+      "LinkSpeed": "3 Mbps"
+    },
+    {
+      "Name": "vEthernet (WSL (Hyper-V firewall))",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter #3",
+      "Status": "Up",
+      "LinkSpeed": "10 Gbps"
+    },
+    {
+      "Name": "Ethernet 8",
+      "InterfaceDescription": "Realtek Gaming USB 2.5GbE Family Controller",
+      "Status": "Up",
+      "LinkSpeed": "1 Gbps"
+    },
+    {
+      "Name": "vEthernet (Default Switch)",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter",
+      "Status": "Up",
+      "LinkSpeed": "10 Gbps"
+    },
+    {
+      "Name": "Wi-Fi",
+      "InterfaceDescription": "Intel(R) Wi-Fi 7 BE200 320MHz",
+      "Status": "Disconnected",
+      "LinkSpeed": "245 Mbps"
+    },
+    {
+      "Name": "Ethernet 13",
+      "InterfaceDescription": "Cisco AnyConnect Virtual Miniport Adapter for Windows x64",
+      "Status": "Not Present",
+      "LinkSpeed": "0 bps"
+    },
+    {
+      "Name": "vEthernet (WSL)",
+      "InterfaceDescription": "Hyper-V Virtual Ethernet Adapter #2",
+      "Status": "Up",
+      "LinkSpeed": "10 Gbps"
+    },
+    {
+      "Name": "Npcap Loopback Adapter",
+      "InterfaceDescription": "Npcap Loopback Adapter",
+      "Status": "Up",
+      "LinkSpeed": "1.2 Gbps"
+    },
+    {
+      "Name": "Tailscale",
+      "InterfaceDescription": "Tailscale Tunnel",
+      "Status": "Up",
+      "LinkSpeed": "100 Gbps"
+    },
+    {
+      "Name": "Ethernet 15",
+      "InterfaceDescription": "Realtek USB 5GbE Family Controller",
+      "Status": "Up",
+      "LinkSpeed": "5 Gbps"
+    }
+  ],
+  "PowerPlan": [
+    "Power Scheme GUID: 0c5e9497-6914-45ef-bff8-db80da8e7961  (Bitsum Highest Performance)"
+  ],
+  "WslConfig": "[wsl2]\nmemory=32GB\nprocessors=18\nswap=8GB\n# vmIdleTimeout removed 2026-08-04: its only justification was keeping the\n# vigil-tpm WSL runner online, and that runner has been retired (repo policy is\n# Docker-first: see vigil-ai-tpm/.github/workflows/_pick-runner.yml). It was also\n# not actually holding the distro up -- the distro was observed Stopped while the\n# setting was active. Default idle-shutdown now applies, so the WSL VM releases\n# RAM when unused. Runners are started on demand (Start-ScheduledTask), not at boot.\n\n[experimental]\nautoMemoryReclaim=dropCache\n",
+  "Tools": [
+    {
+      "Name": "wpr.exe",
+      "Source": "C:\\WINDOWS\\System32\\wpr.exe"
+    },
+    {
+      "Name": "nvidia-smi.exe",
+      "Source": "C:\\WINDOWS\\System32\\nvidia-smi.exe"
+    }
+  ],
+  "TopPrivate": [
+    {
+      "Name": "vmmemWSL",
+      "Id": 4828,
+      "PrivateMemorySize64": 17097523200,
+      "WorkingSet64": 14666661888,
+      "PriorityClass": 16384
+    },
+    {
+      "Name": "dwm",
+      "Id": 128876,
+      "PrivateMemorySize64": 1900900352,
+      "WorkingSet64": 1360068608,
+      "PriorityClass": 32768
+    },
+    {
+      "Name": "codex",
+      "Id": 94796,
+      "PrivateMemorySize64": 1415639040,
+      "WorkingSet64": 1088974848,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "codex",
+      "Id": 84488,
+      "PrivateMemorySize64": 1381036032,
+      "WorkingSet64": 1001517056,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "claude",
+      "Id": 75420,
+      "PrivateMemorySize64": 1264099328,
+      "WorkingSet64": 693264384,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "codex",
+      "Id": 93796,
+      "PrivateMemorySize64": 1016078336,
+      "WorkingSet64": 1017806848,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "chrome",
+      "Id": 82764,
+      "PrivateMemorySize64": 893202432,
+      "WorkingSet64": 777191424,
+      "PriorityClass": 32768
+    },
+    {
+      "Name": "vmmemCmZygote",
+      "Id": 14288,
+      "PrivateMemorySize64": 886669312,
+      "WorkingSet64": 8192,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "WindowsTerminal",
+      "Id": 50156,
+      "PrivateMemorySize64": 697380864,
+      "WorkingSet64": 579325952,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "git",
+      "Id": 115768,
+      "PrivateMemorySize64": 696602624,
+      "WorkingSet64": 123518976,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "msedgewebview2",
+      "Id": 74012,
+      "PrivateMemorySize64": 684478464,
+      "WorkingSet64": 44990464,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "Dropbox",
+      "Id": 73476,
+      "PrivateMemorySize64": 674013184,
+      "WorkingSet64": 215928832,
+      "PriorityClass": 16384
+    },
+    {
+      "Name": "MsMpEng",
+      "Id": 15888,
+      "PrivateMemorySize64": 621248512,
+      "WorkingSet64": 589438976,
+      "PriorityClass": null
+    },
+    {
+      "Name": "Discord",
+      "Id": 74784,
+      "PrivateMemorySize64": 558419968,
+      "WorkingSet64": 160837632,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "chrome",
+      "Id": 146012,
+      "PrivateMemorySize64": 503721984,
+      "WorkingSet64": 586711040,
+      "PriorityClass": 64
+    },
+    {
+      "Name": "chrome",
+      "Id": 91232,
+      "PrivateMemorySize64": 489422848,
+      "WorkingSet64": 562122752,
+      "PriorityClass": 64
+    },
+    {
+      "Name": "msedgewebview2",
+      "Id": 15264,
+      "PrivateMemorySize64": 464400384,
+      "WorkingSet64": 17661952,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "node",
+      "Id": 49344,
+      "PrivateMemorySize64": 452988928,
+      "WorkingSet64": 427122688,
+      "PriorityClass": 16384
+    },
+    {
+      "Name": "Discord",
+      "Id": 8544,
+      "PrivateMemorySize64": 449990656,
+      "WorkingSet64": 228749312,
+      "PriorityClass": 32768
+    },
+    {
+      "Name": "rustc",
+      "Id": 154388,
+      "PrivateMemorySize64": 411779072,
+      "WorkingSet64": 253014016,
+      "PriorityClass": 16384
+    },
+    {
+      "Name": "logioptionsplus_agent",
+      "Id": 26844,
+      "PrivateMemorySize64": 400035840,
+      "WorkingSet64": 218206208,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "explorer",
+      "Id": 97528,
+      "PrivateMemorySize64": 392867840,
+      "WorkingSet64": 391032832,
+      "PriorityClass": 32768
+    },
+    {
+      "Name": "explorer",
+      "Id": 15500,
+      "PrivateMemorySize64": 373547008,
+      "WorkingSet64": 365961216,
+      "PriorityClass": 32768
+    },
+    {
+      "Name": "PowerToys.EnvironmentVariables",
+      "Id": 24364,
+      "PrivateMemorySize64": 370561024,
+      "WorkingSet64": 87781376,
+      "PriorityClass": 32
+    },
+    {
+      "Name": "OneDrive",
+      "Id": 26108,
+      "PrivateMemorySize64": 365899776,
+      "WorkingSet64": 444211200,
+      "PriorityClass": 16384
+    },
+    {
+      "Name": "OneDrive.Sync.Service",
+      "Id": 46688,
+      "PrivateMemorySize64": 363757568,
+      "WorkingSet64": 358789120,
+      "PriorityClass": 16384
+    },
+    {
+      "Name": "chrome",
+      "Id": 39192,
+      "PrivateMemorySize64": 359424000,
+      "WorkingSet64": 443674624,
+      "PriorityClass": 64
+    },
+    {
+      "Name": "com.docker.backend",
+      "Id": 43612,
+      "PrivateMemorySize64": 351567872,
+      "WorkingSet64": 229023744,
+      "PriorityClass": 16384
+    },
+    {
+      "Name": "Signal",
+      "Id": 109136,
+      "PrivateMemorySize64": 320487424,
+      "WorkingSet64": 262942720,
+      "PriorityClass": 64
+    },
+    {
+      "Name": "chrome",
+      "Id": 106332,
+      "PrivateMemorySize64": 320028672,
+      "WorkingSet64": 481886208,
+      "PriorityClass": 32
+    }
+  ],
+  "Groups": [
+    {
+      "Name": "vmmemWSL",
+      "Count": 1,
+      "PrivateGiB": 15.923,
+      "WorkingGiB": 13.659
+    },
+    {
+      "Name": "chrome",
+      "Count": 58,
+      "PrivateGiB": 6.457,
+      "WorkingGiB": 8.957
+    },
+    {
+      "Name": "pwsh",
+      "Count": 80,
+      "PrivateGiB": 4.137,
+      "WorkingGiB": 8.303
+    },
+    {
+      "Name": "codex",
+      "Count": 4,
+      "PrivateGiB": 3.797,
+      "WorkingGiB": 3.223
+    },
+    {
+      "Name": "msedgewebview2",
+      "Count": 41,
+      "PrivateGiB": 3.465,
+      "WorkingGiB": 1.49
+    },
+    {
+      "Name": "node",
+      "Count": 54,
+      "PrivateGiB": 2.778,
+      "WorkingGiB": 3.266
+    },
+    {
+      "Name": "dwm",
+      "Count": 1,
+      "PrivateGiB": 1.77,
+      "WorkingGiB": 1.267
+    },
+    {
+      "Name": "claude",
+      "Count": 1,
+      "PrivateGiB": 1.177,
+      "WorkingGiB": 0.646
+    },
+    {
+      "Name": "svchost",
+      "Count": 120,
+      "PrivateGiB": 1.129,
+      "WorkingGiB": 1.884
+    },
+    {
+      "Name": "Discord",
+      "Count": 6,
+      "PrivateGiB": 1.109,
+      "WorkingGiB": 0.542
+    },
+    {
+      "Name": "Dropbox",
+      "Count": 9,
+      "PrivateGiB": 0.948,
+      "WorkingGiB": 0.405
+    },
+    {
+      "Name": "Signal",
+      "Count": 6,
+      "PrivateGiB": 0.83,
+      "WorkingGiB": 0.617
+    },
+    {
+      "Name": "vmmemCmZygote",
+      "Count": 1,
+      "PrivateGiB": 0.826,
+      "WorkingGiB": 0.0
+    },
+    {
+      "Name": "explorer",
+      "Count": 2,
+      "PrivateGiB": 0.714,
+      "WorkingGiB": 0.705
+    },
+    {
+      "Name": "git",
+      "Count": 11,
+      "PrivateGiB": 0.711,
+      "WorkingGiB": 0.218
+    },
+    {
+      "Name": "WindowsTerminal",
+      "Count": 1,
+      "PrivateGiB": 0.65,
+      "WorkingGiB": 0.54
+    },
+    {
+      "Name": "MsMpEng",
+      "Count": 1,
+      "PrivateGiB": 0.582,
+      "WorkingGiB": 0.552
+    },
+    {
+      "Name": "Docker Desktop",
+      "Count": 5,
+      "PrivateGiB": 0.49,
+      "WorkingGiB": 0.292
+    },
+    {
+      "Name": "Bitwarden",
+      "Count": 4,
+      "PrivateGiB": 0.43,
+      "WorkingGiB": 0.261
+    },
+    {
+      "Name": "com.docker.backend",
+      "Count": 2,
+      "PrivateGiB": 0.418,
+      "WorkingGiB": 0.252
+    },
+    {
+      "Name": "rustc",
+      "Count": 1,
+      "PrivateGiB": 0.384,
+      "WorkingGiB": 0.236
+    },
+    {
+      "Name": "logioptionsplus_agent",
+      "Count": 1,
+      "PrivateGiB": 0.373,
+      "WorkingGiB": 0.203
+    },
+    {
+      "Name": "PowerToys.EnvironmentVariables",
+      "Count": 1,
+      "PrivateGiB": 0.345,
+      "WorkingGiB": 0.082
+    },
+    {
+      "Name": "OneDrive",
+      "Count": 1,
+      "PrivateGiB": 0.341,
+      "WorkingGiB": 0.414
+    },
+    {
+      "Name": "OneDrive.Sync.Service",
+      "Count": 1,
+      "PrivateGiB": 0.339,
+      "WorkingGiB": 0.334
+    },
+    {
+      "Name": "WINWORD",
+      "Count": 2,
+      "PrivateGiB": 0.328,
+      "WorkingGiB": 0.319
+    },
+    {
+      "Name": "conhost",
+      "Count": 234,
+      "PrivateGiB": 0.302,
+      "WorkingGiB": 1.611
+    },
+    {
+      "Name": "PhoneExperienceHost",
+      "Count": 1,
+      "PrivateGiB": 0.284,
+      "WorkingGiB": 0.201
+    },
+    {
+      "Name": "PowerToys.PowerLauncher",
+      "Count": 1,
+      "PrivateGiB": 0.27,
+      "WorkingGiB": 0.115
+    },
+    {
+      "Name": "ms-teams",
+      "Count": 2,
+      "PrivateGiB": 0.269,
+      "WorkingGiB": 0.053
+    }
+  ]
+}

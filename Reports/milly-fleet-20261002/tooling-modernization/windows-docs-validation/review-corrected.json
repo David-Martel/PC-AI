@@ -1,0 +1,60 @@
+{
+  "schema": "pcai.docs-independent-review.v2",
+  "verdict": "approved-scoped-corrected-documentation-patch",
+  "scope": "Exact frozen three-file code, architecture and test-integrity re-review. Own disposable native fixtures only. No shared source edit, commit, publication or Milly connection.",
+  "repoHead": "12e749273c5c588a02b0f57acbaf11208f03fafb",
+  "repoBranch": "feat/thunderbolt-linux-peers",
+  "sourceHashes": {
+    "Tools/generate-auto-docs.ps1": "659C3D635BB2235346601DC3A1761FE2C1B2F17B45676320FEA1DE44FB30F26D",
+    "Tools/Invoke-DocPipeline.ps1": "73E157A757138A7D64B4446C8C23031B087300D6173D4DF5E18527C6951CBF67",
+    "Tests/Unit/DocumentationPipeline.Tests.ps1": "042DB3784F8B507609EA1D56C7BC3DDA97CD0AD4829C6EBAC11CDC9AF75B18D3"
+  },
+  "hashesLiveRechecked": true,
+  "previousReview": "review-initial.json",
+  "resolvedFindings": [
+    {
+      "severity": "high",
+      "finding": "Metadata target enumeration required disabled required-features binaries",
+      "resolution": "Actual Cargo compiler-artifact messages now select documented workspace targets; disabled bins are omitted by Cargo. Independent original feature-gated-bin fixture succeeds with one actual library index and no enabled features."
+    },
+    {
+      "severity": "high",
+      "finding": "Assumed target-dir/doc ignored configured build target triple",
+      "resolution": "Actual Cargo compiler-artifact filenames now determine generated paths; existing configured-target fixture succeeds with x86_64-pc-windows-msvc directory."
+    }
+  ],
+  "mustFixFindings": [],
+  "independentNativeEvidence": {
+    "path": "cargo-edge-controls-corrected.json",
+    "sha256": "0C8C34284E0421E02FEC6A3D656A813A68ABC16443A499ED53BE323B061A95BB",
+    "passed": 2,
+    "failed": 0,
+    "controls": "Both original failure fixtures rerun through real corrected production helper; Generated provenance, selected target count and identity, actual index existence, sentinel HTML content, features and configured-target path asserted. RUSTDOCFLAGS=-D warnings; real Cargo, no mocking of core."
+  },
+  "workerEvidence": {
+    "receipt": "C:/Users/david/AppData/Local/Temp/pcai-documentation-verification-421de411cf9c4217a57a37912dabcc9e/receipt.json",
+    "receiptIndependentlyRead": true,
+    "passed": 25,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 28.6977506,
+    "newFunctionsCoveragePercent": 94.24,
+    "newFunctionsExecuted": 131,
+    "newFunctionsMissed": 8,
+    "wholeGeneratorCoveragePercent": 37.1967654986523,
+    "defaultAnalyzerFindings": 0,
+    "repositoryAnalyzerFindings": 0,
+    "fullSuiteRerunByReviewer": false
+  },
+  "testIntegrity": "Read native controls for disabled/enabled default-feature bins, .cargo/config build.target and CARGO_BUILD_TARGET. Actual compilation and artifact validation exercised; core implementation not mocked. Existing stale Cargo/dotnet failures remain falsifiable.",
+  "architecture": "Shared helper retains existing public invocation options and protects caller options from dot-source clobbering. Unique per-run native artifact directory and required successful build-finished record prevent stale or failed-build acceptance. Compiler-artifact results require selected workspace package/doc target, actual index path inside fresh target root, nonempty output and at least one generated index. Requested failures remain Error/nonzero. External sibling roots require explicit opt-in.",
+  "risksAndLimits": [
+    "Full heavy CUDA/PC_AI workspace documentation build was not independently run; evidence is scoped to real native fixtures and inspected worker 25-case suite.",
+    "Per-run Cargo target directories incur repeated compilation and storage; no load or retention benchmark claimed.",
+    "Workspace boundary is lexical; junction or symlink physical path custody not independently tested.",
+    "Non-build inspection remains explicitly ExistingUnverified; it does not claim current feature selection or execution.",
+    "Whole legacy generator coverage remains 37.20%; 94.24% refers only to new functions.",
+    "No production configuration, service, network, shared source or deployment changes performed."
+  ],
+  "disposition": "Both prior must-fix findings resolved. Approved for reviewed scope; root retains commit/deployment and broader readiness disposition."
+}

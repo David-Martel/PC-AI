@@ -1,0 +1,420 @@
+{
+  "schema": "milly.dbx-post26-independent-review.v1",
+  "reviewedUtc": "2026-10-03T01:45:37.756329+00:00",
+  "host": "millylaptop1",
+  "firmwareWrites": false,
+  "remoteFileServiceSettingChanges": false,
+  "verdict": "Official 20260707 signed-payload entries are present after reboot; fwupd version recognition is incomplete because the installed checksum mapping is missing. Retain failed native history as observed.",
+  "comparison": {
+    "schema": "milly.dbx-entry-comparison.v1",
+    "current": {
+      "file": "current-dbx.efivar",
+      "sha256": "9ecccdab326ded5df85a0c2df2a8c085302f26fc14557d87f505a5ee6ee5aa75",
+      "bytes": 27012,
+      "eslOffset": 4,
+      "envelope": {
+        "efivarAttributes": 39
+      },
+      "signatureLists": [
+        {
+          "offset": 4,
+          "type": "a5c059a1-94e4-4aa7-87b5-ab155c2bf072",
+          "bytes": 1104,
+          "signatureBytes": 1076,
+          "count": 1
+        },
+        {
+          "offset": 1108,
+          "type": "a5c059a1-94e4-4aa7-87b5-ab155c2bf072",
+          "bytes": 812,
+          "signatureBytes": 784,
+          "count": 1
+        },
+        {
+          "offset": 1920,
+          "type": "c1c41626-504c-4092-aca9-41f936934328",
+          "bytes": 14140,
+          "signatureBytes": 48,
+          "count": 294
+        },
+        {
+          "offset": 16060,
+          "type": "c1c41626-504c-4092-aca9-41f936934328",
+          "bytes": 7516,
+          "signatureBytes": 48,
+          "count": 156
+        },
+        {
+          "offset": 23576,
+          "type": "c1c41626-504c-4092-aca9-41f936934328",
+          "bytes": 3436,
+          "signatureBytes": 48,
+          "count": 71
+        }
+      ],
+      "entryCount": 523,
+      "uniqueEntryCount": 496,
+      "owners": {
+        "77fa9abd-0359-4d32-bd60-28f4e78f784b": 523
+      },
+      "lastMicrosoftEntry": "2ea557c44b83c0ad6b71efb7edcc18b6337ad1c1d682155dd9451b051b62ff40",
+      "lastMicrosoftEntryDataSha256": "2b727799ca49f8cb2a9b15966ada1dadbe7753cee50235b9bf6162b41965ea5d"
+    },
+    "officialCabPayload": {
+      "file": "cab-extracted/DBXUpdate-20260707.x64.bin",
+      "sha256": "524c796ade42db0048b656f6cf3863832174ae7f58cad6986d1ccae1e3d3ecd1",
+      "bytes": 17256,
+      "eslOffset": 3260,
+      "envelope": {
+        "certificateLength": 3244,
+        "certificateRevision": 512,
+        "certificateType": 3825,
+        "certificateGuid": "4aafd29d-68df-49ee-8aa9-347d375665a7"
+      },
+      "signatureLists": [
+        {
+          "offset": 3260,
+          "type": "c1c41626-504c-4092-aca9-41f936934328",
+          "bytes": 13996,
+          "signatureBytes": 48,
+          "count": 291
+        }
+      ],
+      "entryCount": 291,
+      "uniqueEntryCount": 291,
+      "owners": {
+        "77fa9abd-0359-4d32-bd60-28f4e78f784b": 291
+      },
+      "lastMicrosoftEntry": "2ea557c44b83c0ad6b71efb7edcc18b6337ad1c1d682155dd9451b051b62ff40",
+      "lastMicrosoftEntryDataSha256": "2b727799ca49f8cb2a9b15966ada1dadbe7753cee50235b9bf6162b41965ea5d"
+    },
+    "ubuntuBootUpdatePayload": {
+      "file": "ubuntu-dbxupdate_x64.bin",
+      "sha256": "3e56c3d9e5b12edbd9e4006413d87fba099de1eba33d2bea566e742166cb366a",
+      "bytes": 21170,
+      "eslOffset": 3334,
+      "envelope": {
+        "certificateLength": 3318,
+        "certificateRevision": 512,
+        "certificateType": 3825,
+        "certificateGuid": "4aafd29d-68df-49ee-8aa9-347d375665a7"
+      },
+      "signatureLists": [
+        {
+          "offset": 3334,
+          "type": "c1c41626-504c-4092-aca9-41f936934328",
+          "bytes": 17836,
+          "signatureBytes": 48,
+          "count": 371
+        }
+      ],
+      "entryCount": 371,
+      "uniqueEntryCount": 371,
+      "owners": {
+        "77fa9abd-0359-4d32-bd60-28f4e78f784b": 371
+      },
+      "lastMicrosoftEntry": "13a1f37bedfb5417b6b737e2a3816c8fd587d74d836914b2b2edc9fd6ca30e58",
+      "lastMicrosoftEntryDataSha256": "a0068b489528b54193dc9e4eab625600af5e56fa40e45cef170aec8a594399ce"
+    },
+    "officialPayloadInCurrent": {
+      "expectedCount": 291,
+      "expectedUniqueCount": 291,
+      "exactOwnerTypeDataMissingCount": 0,
+      "typeDataMissingCount": 0,
+      "missingEntries": []
+    },
+    "ubuntuPayloadInCurrent": {
+      "expectedCount": 371,
+      "expectedUniqueCount": 371,
+      "exactOwnerTypeDataMissingCount": 0,
+      "typeDataMissingCount": 0,
+      "missingEntries": []
+    },
+    "currentContainsAdditionalToOfficialPayloadCount": 205,
+    "currentContainsAdditionalToPayloadUnionCount": 54,
+    "currentLastMicrosoftChecksumPresentInInstalledQuirks": false,
+    "version20260707PresentInInstalledQuirks": false,
+    "entriesQualification": "Entries compare exact signature type, owner GUID and data. Both signature list structure and authenticated payload envelope were validated locally; no firmware or EFI writes."
+  },
+  "nativeDbxDevice": [
+    {
+      "Name": "UEFI dbx",
+      "Plugin": "uefi_dbx",
+      "DeviceId": "362301da643102b9f38477387e2193e57abaa590",
+      "Version": null,
+      "UpdateState": null,
+      "UpdateError": null,
+      "Checksums": [
+        "2ea557c44b83c0ad6b71efb7edcc18b6337ad1c1d682155dd9451b051b62ff40"
+      ]
+    }
+  ],
+  "nativeDbxHistory": [
+    {
+      "Name": "UEFI dbx",
+      "Plugin": "uefi_dbx",
+      "DeviceId": "362301da643102b9f38477387e2193e57abaa590",
+      "Version": "20230501",
+      "UpdateState": 3,
+      "UpdateError": "failed to run update on reboot: expected 20260707 and got (null)",
+      "Checksums": null
+    }
+  ],
+  "historicalBefore26DbxMetadata": [
+    {
+      "Name": "UEFI dbx",
+      "Plugin": "uefi_dbx",
+      "DeviceId": "362301da643102b9f38477387e2193e57abaa590",
+      "Version": "20220801",
+      "UpdateState": null,
+      "UpdateError": null,
+      "Checksums": [
+        "90aec5c4995674a849c1d1384463f3b02b5aa625a5c320fc4fe7d9bb58a62398"
+      ]
+    }
+  ],
+  "secureBootObservedByte": 0,
+  "secureBootQualification": "Secure Boot remains disabled. Presence of revocation entries does not claim enforced Secure Boot protection or an executable rejection acceptance test.",
+  "ubuntuBootUpdate": "Read-only boot journal shows secureboot-db.service invoked sbkeysync using /usr/share/secureboot/updates at 2026-10-02 21:33:53 EDT. All 371 entries in that packaged payload are present too. No historical pre-update EFI byte snapshot exists in this lane, so exact writer attribution/append chronology is not claimed.",
+  "supportedLocalMappingPlan": {
+    "status": "Read-only plan; root may apply scoped vendor-data backport after review. No implementation here.",
+    "destination": "/var/lib/fwupd/quirks.d/pcai-dbx-20260707.quirk",
+    "modeOwner": "root:root 0644",
+    "stanza": "[UEFI\\CSUM_2EA557C44B83C0AD6B71EFB7EDCC18B6337AD1C1D682155DD9451B051B62FF40]\nVersion = 20260707\n",
+    "sourceTag": "2.1.8",
+    "sourceCommit": "3b7eca282bbe6cb4e8d5b4e42f984d2a1679977f",
+    "sourceUrl": "https://raw.githubusercontent.com/fwupd/fwupd/3b7eca282bbe6cb4e8d5b4e42f984d2a1679977f/plugins/uefi-dbx/uefi-dbx.quirk",
+    "quirkGroup": "UEFI\\CSUM_2EA557C44B83C0AD6B71EFB7EDCC18B6337AD1C1D682155DD9451B051B62FF40",
+    "expectedQuirkOnlyLookupGuid": "60f60ccc-3056-56d2-9e04-1d54aea21294",
+    "publicDeviceIdUnchanged": "362301da643102b9f38477387e2193e57abaa590",
+    "guidQualification": "Derived using the RFC4122 UUIDv5 DNS algorithm specified by fwupd2.1.1 fwupd_guid_hash_string. Checksum identity is QUIRKS-only and need not appear in public get-devices GUID list.",
+    "supportEvidence": "fwupd2.1.1 fu-quirks.c documents local directory and loads .quirk/.quirk.gz from system and local directories; fu-device.c accepts Version by setting device version; fu-uefi-dbx-device.c computes last Microsoft-owned signature checksum and builds the UEFI\\CSUM_ quirks identity.",
+    "reloadPlan": "After confirming no in-progress firmware operation, root can restart fwupd.service to force fresh quirk enumeration and device probe. File watches exist for loaded files; restart is preferred for a newly added file. Do not replay install, use force, clear history or edit EFI variables.",
+    "acceptance": "Fresh fwupdmgr get-devices --json should report Version20260707 for same DeviceId and checksum2ea557c4...62ff40; independently confirm EFI dbx hash/entry inclusion unchanged and preserve historical UpdateState3 error.",
+    "rollback": "Remove only this newly owned local .quirk file, restart fwupd.service when idle; recognition returns to the original state without changing EFI payload.",
+    "qualification": "Sufficiency is inferred from exact matching upstream data plus fwupd2.1.1 source; not yet executed on the daemon. Verify actual recognition before claiming resolved."
+  },
+  "parserValidation": {
+    "command": "uv run --no-project python -m unittest test_compare_dbx -v",
+    "passed": 4,
+    "failed": 0,
+    "negativeControls": [
+      "truncated actual signature list rejected",
+      "one missing actual payload entry detected",
+      "changed owner rejected by exact comparison"
+    ],
+    "knownVector": "Explicit GUID, owner GUID and bytes0..31 fixture verified"
+  },
+  "sources": [
+    {
+      "file": "fwupd-2.1.1-dbx-device.c",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/2.1.1/plugins/uefi-dbx/fu-uefi-dbx-device.c",
+      "sha256": "39BA1223EDFCF8A086BE4B70856DA30046B7D6302D50EDF580F477037CA8D8AA",
+      "downloadedUtc": "2026-10-03T01:41:38.1285404Z"
+    },
+    {
+      "file": "fwupd-2.1.1-dbx.quirk",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/2.1.1/plugins/uefi-dbx/uefi-dbx.quirk",
+      "sha256": "370447D217B80763F5825EAA8F8C803FDFB044B4811D1EF9C3BCE5B440E300E6",
+      "downloadedUtc": "2026-10-03T01:41:38.2350537Z"
+    },
+    {
+      "file": "fwupd-main-dbx.quirk",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/main/plugins/uefi-dbx/uefi-dbx.quirk",
+      "sha256": "20AAF0B75FAE8FE9BD7D33651C84B59183ABEEB42EE42DE86623828D1DDC4683",
+      "downloadedUtc": "2026-10-03T01:41:38.3463422Z"
+    },
+    {
+      "file": "official-20260707-metainfo.xml",
+      "source": "https://raw.githubusercontent.com/fwupd/dbx-firmware/main/DBXUpdate-20260707.x64.metainfo.xml",
+      "sha256": "3BF7286B71CFDA7ECD2445C39A5652B537B60729687DF35402E2641D7812C711",
+      "downloadedUtc": "2026-10-03T01:41:38.5389372Z"
+    },
+    {
+      "file": "fwupd-main-dbx-readme.md",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/main/plugins/uefi-dbx/README.md",
+      "sha256": "5B347D6D74FA30E29D4510E9CBC5B3DC998314CBECA08AE9CFA08E3D26EB9BC0",
+      "downloadedUtc": "2026-10-03T01:41:38.6386099Z"
+    },
+    {
+      "file": "fwupd-2.1.1-quirks.c",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/2.1.1/libfwupdplugin/fu-quirks.c",
+      "sha256": "0A5873F20FFFC357C4522198B95065016CD584FD2A955A44FFF92B6820524239",
+      "downloadedUtc": "2026-10-03T01:43:07.6384843Z"
+    },
+    {
+      "file": "fwupd-2.1.8-dbx.quirk",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/2.1.8/plugins/uefi-dbx/uefi-dbx.quirk",
+      "sha256": "ED90D6BA6CCC446A55550E197FA804127EFC53B73468D716E1B3CD507558798B",
+      "downloadedUtc": "2026-10-03T01:43:07.8580231Z"
+    },
+    {
+      "file": "fwupd-2.1.1-common.c",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/2.1.1/libfwupd/fwupd-common.c",
+      "sha256": "19449A221F7D31193FB1319EEB4AC7F7E98F4561A30B4BE6F20879924871B73D",
+      "downloadedUtc": "2026-10-03T01:43:07.9777849Z"
+    },
+    {
+      "file": "fwupd-2.1.1-device.c",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/2.1.1/libfwupdplugin/fu-device.c",
+      "sha256": "5C9A888B2FC976DAC2BD8695EDCCBE22D096EA52827411E50CECE82511DA3DE7",
+      "downloadedUtc": "2026-10-03T01:43:08.1338317Z"
+    },
+    {
+      "file": "fwupd-2.1.1-path-store.c",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/2.1.1/libfwupdplugin/fu-path-store.c",
+      "sha256": "23A96E9F51BEAE2AF941688C13FFF59E60C6CB53C0CAE4F9D1FD6CE65F00CB95",
+      "downloadedUtc": "2026-10-03T01:43:08.2502749Z"
+    },
+    {
+      "file": "fwupd-2.1.1-efi-signature.c",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/2.1.1/libfwupdplugin/fu-efi-signature.c",
+      "sha256": "0970D63BC2603BE0CB1B858365139165004C073C7DB9D24D4A69172449E7755D",
+      "downloadedUtc": "2026-10-03T01:43:08.3508841Z"
+    },
+    {
+      "file": "fwupd-pinned-dbx.quirk",
+      "source": "https://raw.githubusercontent.com/fwupd/fwupd/3b7eca282bbe6cb4e8d5b4e42f984d2a1679977f/plugins/uefi-dbx/uefi-dbx.quirk",
+      "sha256": "ED90D6BA6CCC446A55550E197FA804127EFC53B73468D716E1B3CD507558798B",
+      "downloadedUtc": "2026-10-03T01:45:37.5405223Z",
+      "tagBytesMatch": true
+    }
+  ],
+  "copiedArtifacts": [
+    {
+      "file": "boot-secureboot-fwupd-journal.txt",
+      "bytes": 146448,
+      "sha256": "2986e66e50142a739149d8101ac7ce2d06b029e4549506b740515a9e1bca8da0"
+    },
+    {
+      "file": "compare_dbx.py",
+      "bytes": 4692,
+      "sha256": "84020d80ec9c2b18752597d8d9eb93b8d3f845c4a55dad5d036a98be926b8602"
+    },
+    {
+      "file": "comparison.json",
+      "bytes": 4261,
+      "sha256": "ff318e3c102abffdb1ec3c625b38166de3f62f4a286d21b01122f9196523eda1"
+    },
+    {
+      "file": "current-dbx.efivar",
+      "bytes": 27012,
+      "sha256": "9ecccdab326ded5df85a0c2df2a8c085302f26fc14557d87f505a5ee6ee5aa75"
+    },
+    {
+      "file": "dbx-20260707.cab",
+      "bytes": 41456,
+      "sha256": "1bf2dd354e35e86138478f17c83724be644e0dc4c2b82fa95a2cfc7ebfad13d5"
+    },
+    {
+      "file": "firmware-devices-parsed.json",
+      "bytes": 51206,
+      "sha256": "21fbb1469413572ee652917353e206da3bce8bb58a571a4726191ea5262c7984"
+    },
+    {
+      "file": "firmware-history-parsed.json",
+      "bytes": 67923,
+      "sha256": "4205dd03cb952c70b87349742716e03b8fe4c04de2978d42b3d2d78adfaf4c3b"
+    },
+    {
+      "file": "fwupd-2.1.1-common.c",
+      "bytes": 15982,
+      "sha256": "19449a221f7d31193fb1319eeb4ac7f7e98f4561a30b4be6f20879924871b73d"
+    },
+    {
+      "file": "fwupd-2.1.1-dbx-device.c",
+      "bytes": 10090,
+      "sha256": "39ba1223edfcf8a086be4b70856da30046b7d6302d50edf580f477037ca8d8aa"
+    },
+    {
+      "file": "fwupd-2.1.1-dbx.quirk",
+      "bytes": 8895,
+      "sha256": "370447d217b80763f5825eaa8f8c803fdfb044b4811d1ef9c3bce5b440e300e6"
+    },
+    {
+      "file": "fwupd-2.1.1-device.c",
+      "bytes": 245777,
+      "sha256": "5c9a888b2fc976dac2bd8695edccbe22d096ea52827411e50cece82511da3de7"
+    },
+    {
+      "file": "fwupd-2.1.1-efi-signature.c",
+      "bytes": 7313,
+      "sha256": "0970d63bc2603be0cb1b858365139165004c073c7db9d24d4a69172449e7755d"
+    },
+    {
+      "file": "fwupd-2.1.1-path-store.c",
+      "bytes": 14282,
+      "sha256": "23a96e9f51beae2af941688c13fff59e60c6cb53c0cae4f9d1fd6ce65f00cb95"
+    },
+    {
+      "file": "fwupd-2.1.1-quirks.c",
+      "bytes": 34734,
+      "sha256": "0a5873f20fffc357c4522198b95065016cd584fd2a955a44fff92b6820524239"
+    },
+    {
+      "file": "fwupd-2.1.8-dbx.quirk",
+      "bytes": 9305,
+      "sha256": "ed90d6ba6ccc446a55550e197fa804127efc53b73468d716e1b3cd507558798b"
+    },
+    {
+      "file": "fwupd-2.1.8-tag-reference.txt",
+      "bytes": 119,
+      "sha256": "e804096bf7dff9b7dd2d45f7778d7e5a44ef0db7b1f169890e07ed1e01bcca10"
+    },
+    {
+      "file": "fwupd-before26.json",
+      "bytes": 50895,
+      "sha256": "97afdc19bb838df25162f0a284494f7873dda707c27f96719fb4834a7addd26b"
+    },
+    {
+      "file": "fwupd-main-dbx-readme.md",
+      "bytes": 3693,
+      "sha256": "5b347d6d74fa30e29d4510e9cbc5b3dc998314cbeca08ae9cfa08e3d26eb9bc0"
+    },
+    {
+      "file": "fwupd-main-dbx.quirk",
+      "bytes": 9386,
+      "sha256": "20aaf0b75fae8fe9bd7d33651c84b59183abeeb42ee42de86623828d1ddc4683"
+    },
+    {
+      "file": "fwupd-pinned-dbx.quirk",
+      "bytes": 9305,
+      "sha256": "ed90d6ba6ccc446a55550e197fa804127efc53b73468d716e1b3cd507558798b"
+    },
+    {
+      "file": "installed-builtin.quirk.gz",
+      "bytes": 23974,
+      "sha256": "89c9f4675645046c22931059ed31dd2c737243a914650ed00aef4616caabce6c"
+    },
+    {
+      "file": "make_review_receipt.py",
+      "bytes": 5587,
+      "sha256": "6f5a519840a0856e5a150eb9eba8784158dc53457b7ed00da75ea8d715745fa6"
+    },
+    {
+      "file": "official-20260707-metainfo.xml",
+      "bytes": 2167,
+      "sha256": "3bf7286b71cfda7ecd2445c39a5652b537b60729687df35402e2641d7812c711"
+    },
+    {
+      "file": "official-source-custody.json",
+      "bytes": 3525,
+      "sha256": "efebbe080e88e01a4ba14f57e2cceb1462b79d31b932b8e3fae4876586a50abc"
+    },
+    {
+      "file": "pcai-dbx-20260707.quirk",
+      "bytes": 98,
+      "sha256": "a245070e1bf4bfd0ca42dec53d584a9a18f0c7329fa9a3ff30233061f2b0a8ff"
+    },
+    {
+      "file": "test_compare_dbx.py",
+      "bytes": 1787,
+      "sha256": "3a4fbc668cb956904a7e289a3791e42040b1c72d1efa526bb2e495ee0b116dac"
+    },
+    {
+      "file": "ubuntu-dbxupdate_x64.bin",
+      "bytes": 21170,
+      "sha256": "3e56c3d9e5b12edbd9e4006413d87fba099de1eba33d2bea566e742166cb366a"
+    }
+  ]
+}

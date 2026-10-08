@@ -1,0 +1,118 @@
+{
+  "observed_utc": "2026-10-02T21:31:16.208075+00:00",
+  "state": {
+    "Result": "success",
+    "ExecMainPID": "22658",
+    "ExecMainStatus": "0",
+    "ActiveState": "active",
+    "SubState": "running",
+    "ActiveEnterTimestamp": "Fri 2026-10-02 16:56:33 EDT"
+  },
+  "source_apparent_byte_baseline": 775325002378,
+  "source_baseline_notes": "Read-only du -sx --apparent-size matching root exclusions; filesystem grows during installation; recapture before final delta",
+  "transferred_bytes": 241325520868,
+  "fraction_of_byte_baseline": 0.3112572406769165,
+  "rsync_latest_rate_bytes_per_second": 111240000.0,
+  "observed_interval_rate_bytes_per_second": 115812640.90514758,
+  "estimated_remaining_initial_copy_seconds": 4610.891154337411,
+  "destination": {
+    "total_bytes": 7936183619584,
+    "available_bytes": 2318793289728,
+    "filesystem_path": "/srv/vigil-backups/millylaptop1/20261002"
+  },
+  "capacity_for_remaining_initial_copy": true,
+  "samples": [
+    {
+      "epoch": 1790975031.5327272,
+      "transferred_bytes": 50851357216
+    },
+    {
+      "epoch": 1790975161.0322976,
+      "transferred_bytes": 66093487536
+    },
+    {
+      "epoch": 1790975292.6312873,
+      "transferred_bytes": 81477032428
+    },
+    {
+      "epoch": 1790975573.675612,
+      "transferred_bytes": 113876801875
+    },
+    {
+      "epoch": 1790975637.2032146,
+      "transferred_bytes": 120916773211
+    },
+    {
+      "epoch": 1790975696.5458026,
+      "transferred_bytes": 127678857820
+    },
+    {
+      "epoch": 1790975755.943219,
+      "transferred_bytes": 134701326945
+    },
+    {
+      "epoch": 1790975815.3784788,
+      "transferred_bytes": 141559473363
+    },
+    {
+      "epoch": 1790975874.6923776,
+      "transferred_bytes": 148266040661
+    },
+    {
+      "epoch": 1790975934.0181775,
+      "transferred_bytes": 155175282972
+    },
+    {
+      "epoch": 1790975993.3498018,
+      "transferred_bytes": 162040082072
+    },
+    {
+      "epoch": 1790976052.6700196,
+      "transferred_bytes": 169033906726
+    },
+    {
+      "epoch": 1790976111.9813516,
+      "transferred_bytes": 175901147620
+    },
+    {
+      "epoch": 1790976200.8927417,
+      "transferred_bytes": 186250401960
+    },
+    {
+      "epoch": 1790976260.2248783,
+      "transferred_bytes": 192967774971
+    },
+    {
+      "epoch": 1790976319.5783613,
+      "transferred_bytes": 199940486320
+    },
+    {
+      "epoch": 1790976379.2122252,
+      "transferred_bytes": 206830401970
+    },
+    {
+      "epoch": 1790976438.5510588,
+      "transferred_bytes": 213812743146
+    },
+    {
+      "epoch": 1790976497.8763306,
+      "transferred_bytes": 220696087860
+    },
+    {
+      "epoch": 1790976557.3029065,
+      "transferred_bytes": 227605978200
+    },
+    {
+      "epoch": 1790976616.7298257,
+      "transferred_bytes": 234547080474
+    },
+    {
+      "epoch": 1790976676.2078004,
+      "transferred_bytes": 241325520868
+    }
+  ],
+  "copy_complete_marker": false,
+  "final_delta_complete": false,
+  "restore_verified": false,
+  "estimate_limitations": "Initial copy estimate only; excludes final delta, GUI quiescence and full checksum validation; rsync incremental percent ignored"
+}

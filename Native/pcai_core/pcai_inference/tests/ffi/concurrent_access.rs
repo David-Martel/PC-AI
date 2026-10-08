@@ -34,7 +34,7 @@ fn test_concurrent_init_calls() {
     pcai_shutdown();
 
     let handles: Vec<_> = (0..5)
-        .map(|i| {
+        .map(|_i| {
             thread::spawn(move || {
                 #[cfg(feature = "llamacpp")]
                 {
@@ -45,7 +45,7 @@ fn test_concurrent_init_calls() {
                 #[cfg(not(feature = "llamacpp"))]
                 {
                     let backend =
-                        CString::new(format!("test_{}", i)).expect("CString should accept formatted test input");
+                        CString::new(format!("test_{}", _i)).expect("CString should accept formatted test input");
                     let _ = unsafe { pcai_init(backend.as_ptr()) };
                 }
             })
@@ -120,7 +120,6 @@ mod llamacpp_concurrent_tests {
     use super::*;
     use pcai_inference_lib::ffi::pcai_generate;
     use std::ffi::CString;
-    use std::ptr;
 
     /// Test concurrent generate calls (should be serialized by mutex)
     #[test]
@@ -128,16 +127,20 @@ mod llamacpp_concurrent_tests {
         pcai_shutdown();
 
         let backend = CString::new("llamacpp").expect("CString should accept valid test input");
-        if unsafe { pcai_init(backend.as_ptr()) } != 0 {
-            return; // Skip if init fails
-        }
+        // SAFETY: backend remains live and NUL-terminated throughout the call.
+        assert_eq!(
+            unsafe { pcai_init(backend.as_ptr()) },
+            0,
+            "compiled llamacpp backend must initialize"
+        );
 
         let handles: Vec<_> = (0..5)
             .map(|i| {
                 thread::spawn(move || {
                     let prompt =
                         CString::new(format!("Test prompt {}", i)).expect("CString should accept formatted test input");
-                    let result = pcai_generate(prompt.as_ptr(), 10, 0.7);
+                    // SAFETY: prompt is a live, NUL-terminated CString for the entire call.
+                    let result = unsafe { pcai_generate(prompt.as_ptr(), 10, 0.7) };
                     // Should return null (no model loaded) but not crash
                     assert!(result.is_null());
                 })

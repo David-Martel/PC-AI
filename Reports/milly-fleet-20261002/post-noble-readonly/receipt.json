@@ -1,0 +1,101 @@
+{
+  "schema": "milly.post-noble-readonly-audit.v1",
+  "observedUtc": "2026-10-03T00:40:57.587427+00:00",
+  "scope": "Read-only post-Noble snapshot while owner prepares Ubuntu26 repository collection. No installs, updates, remote source/config edits, builds, stress, ROS imports/graph, display/input or credential access. Version probes, file hashes, package database, static metadata and inventory only.",
+  "os": "Ubuntu24.04.5 LTS Noble",
+  "kernel": "7.0.0-38-generic",
+  "dpkgAudit": "empty output",
+  "sourceHead": "0201a3c9ac9fdc081dd1c481e2fd11748c25fd0b",
+  "sourceStatus": "clean",
+  "baselinePaths": [
+    "C:/codedev/PC_AI/Reports/milly-fleet-20261002/endpoint-before-os-upgrade.json",
+    "C:/codedev/PC_AI/Reports/milly-fleet-20261002/fleet-tooling-provenance.json",
+    "C:/codedev/PC_AI/Reports/milly-fleet-20261002/additional-tools.json",
+    "C:/codedev/PC_AI/Reports/milly-fleet-20261002/ui-credential-tools-verification.json",
+    "C:/codedev/PC_AI/Reports/milly-fleet-20261002/display-readiness/RECEIPT.json"
+  ],
+  "comparisons": {
+    "coreToolDenominator": 14,
+    "coreToolHashMatches": 14,
+    "coreToolVersionExitZero": 14,
+    "coreToolNames": [
+      "uv",
+      "uvx",
+      "gh",
+      "ninja",
+      "sccache",
+      "cargo-nextest",
+      "just",
+      "ruff",
+      "ty",
+      "basedpyright",
+      "pytest",
+      "cmake",
+      "cpack",
+      "ctest"
+    ],
+    "additionalTools": "lychee0.24.2 and grpcurl1.9.4 run successfully and hashes match additional-tools.json.",
+    "rust": "rustc/cargo1.99.0; rustfmt1.10.0-stable; clippy0.1.99 version probes exit0. Rust compiler commands resolve through rustup; hash records launcher, not full toolchain.",
+    "standalonePython": "3.12.15,3.13.16,3.14.8 --version exit0; same versions as baseline. No Python3.15 installed claim.",
+    "mediaCredentialPaths": "Moonlight launcher+binary and Bitwarden launcher+binary all exist/executable and all4 hashes match ui-credential-tools-verification baseline. Bitwarden not invoked.",
+    "moonlightDependencies": "ldd exit0; no 'not found' entries. Moonlight not launched.",
+    "uiEnvironment": "Actual /home/cog/.local/share/vigil-endpoint/ui-py313 preserved. Static metadata PySide6/Addons/Essentials/shiboken6 all6.11.2 and numpy2.5.3; venv CPython3.13. No current Qt import/render validation performed.",
+    "graphics": "nvidia-smi bounded telemetry succeeds: RTX5000AdaLaptop, NVIDIA580.178.04 matches baseline. NVIDIA580 package set includes encode/decode libraries. Intel media VA driver and Mesa25.2.8 also installed; no decoder or compositor claim.",
+    "kernelTooling": "Running kernel7.0.0-38 headers/build symlink and exact linux-tools-7.0.0-38 package installed; perf --version exit0 version7.0.14. No profiling workload.",
+    "containers": "Podman4.9.3 image inventory succeeds. Existing ROS Jazzy-base/Noble and Lyrical-base/Resolute images plus uvPython3.13 QA image preserved; these are base images, not a complete VIGIL deployed application."
+  },
+  "concreteGaps": [
+    {
+      "priority": "validation",
+      "finding": "Preupgrade EGL red-pixel, NVENC/NVDEC checksum and Qt10-assertion widget receipts cannot establish post26 rendering readiness.",
+      "action": "After final26 reboot and driver settlement, repeat the same controlled graphics/media fixtures and source-bound widget acceptance; use container QA/domain231/networknone and hardware resource claims where needed."
+    },
+    {
+      "priority": "runtime",
+      "finding": "Repo .venv is Python3.13, .venv-ros-py312 absent and host Jazzy/Lyrical setups absent. Current project excludes Python3.14.",
+      "action": "Keep host Lyrical3.14 independent; retain Jazzy3.12 base image for future ABI-matched application work. Moonlight client needs no ROS or model groups."
+    },
+    {
+      "priority": "optional-dev",
+      "finding": "clangd/lldb/fio are not installed in package database; clang/lld/gdb/valgrind/bpftrace/trace-cmd/strace installed positive controls.",
+      "action": "After upgrade locks clear, restore only requested language-server/debug/storage tooling that project tasks need. Avoid reinstalling sccache merely because its apt package is absent: user binary0.18.0 survives."
+    },
+    {
+      "priority": "optional-build",
+      "finding": "System Qt SDK/WebEngine development packages and python3-venv/pip are absent; separate PySide6 user env and uv tools are present.",
+      "action": "No Qt SDK/pip/Flatpak required for already-installed Moonlight client. Add system venv/headers/Qt SDK only if actual local native Qt/ROS development requires them, using final OS repository."
+    },
+    {
+      "priority": "ownership",
+      "finding": "System CMake3.28.3/Ninja1.11.1 coexist with user CMake4.4.3/Ninja1.13.2; ccache4.9.1 and mold2.30 come from Noble.",
+      "action": "Retain documented tool owner and explicit PATH selection; let26 apt resolve OS packages. Validate build with intended user executables before changing caches/linkers globally."
+    },
+    {
+      "priority": "future-container-gpu",
+      "finding": "No NVIDIA container-toolkit package in filtered package database; Podman base ROS images present.",
+      "action": "Not needed for host Moonlight decoding. Add container GPU plumbing only if a future owned native GUI/media container requires it and passes driver/CDI compatibility validation."
+    }
+  ],
+  "post26Acceptance": [
+    "Recheck OS/kernel, dpkg audit, matching running-kernel headers/tools, SSH normal and recovery transport. No readiness claim while distribution package work is incomplete.",
+    "Recheck all14 source-bound tool hashes/version probes and owned Python minors; run tiny real C++/Rust build tests only in approved isolated container. Validate ccache/sccache reuse with an owned socket/cache and actual counters; no shared server or guessed global linker config.",
+    "Recheck NVIDIA driver package/module userspace agreement and GPU telemetry, EGL synthetic pixel, deterministic encode/decode checksum; report codec path and actual GPU used rather than product-name inference.",
+    "Repeat source-bound offscreen Qt widget10-assertion check in existing ui-py313 environment under containerized ordinary QA policy; separately validate QtWebEngine if full UI chosen. Bare PySide metadata does not establish working nativeVIGIL UI.",
+    "After active HIL RESOURCE_DONE, actual Moonlight stream with explicit peer admission, hardware decoder, known keyboard/mouse action, sleep/reconnect, frame age/drops and resource use. No production compute/quorum/staticDDS membership.",
+    "Retain existing backup until owner validates data/source/runtime endpoints after26. No cleanup performed by reviewer."
+  ],
+  "observationFiles": {
+    "baseline-tool-comparison.json": "6C8DCBB61C5E7DA4E04E3AADB5504CEBA2E3EC9ABDB798D19BB8535402284EA6",
+    "tools-and-render.json": "58061A6C6D0885E66DA569868D5B2ED9584F13A80E5E9FDEC983A169A3BB7E16",
+    "packages.json": "EFD9303825BE4B96B1537C2184D0FC22C94B9CB6AE1A2FD2CF8631D8737C97CE",
+    "containers-and-perf.json": "A66B1C97DD959A6CDDCF5988F84469457DA6EF76E08E891BC61C7BEEA7E45671",
+    "ui-and-extra-tools.json": "66A2C6675D806CA5C07D95D8616B7408F7BCEC9111041BF509A610625A1B9738"
+  },
+  "probeLimitations": [
+    "First combined dpkg request returned nonzero because missing packages were requested; corrected full package-database query independently recorded installed/residual/absent states without hiding the failure.",
+    "Initial Python glob also matched python3.X-config scripts; their unsupported --version invocations returned1. These are probe-selection errors, not broken Python interpreters. Interpreter-only probes succeeded for all3 minors; raw observations retain the errors.",
+    "Read-only version checks are not actual C++/Rust builds, toolkit integration, graphics performance or HIL proof.",
+    "Snapshot is Noble before26 package application; version/package restoration decisions require final26 fresh inspection.",
+    "Only explicitly enumerated packages/directories inspected; no host-wide absence claim for unrelated utilities."
+  ]
+}

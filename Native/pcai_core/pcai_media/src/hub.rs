@@ -171,12 +171,22 @@ pub fn open_safetensors(paths: &[PathBuf]) -> Result<MmapedSafetensors> {
 // load_weights
 // ---------------------------------------------------------------------------
 
+/// Missing trained tensors in an otherwise readable checkpoint.
+#[derive(Debug, thiserror::Error)]
+#[error("incomplete safetensors weights: missing {missing_count} of {total} required tensors ({names})")]
+pub(crate) struct IncompleteWeights {
+    missing_count: usize,
+    total: usize,
+    names: String,
+}
+
 /// Load tensors from safetensors files into a [`VarMap`].
 ///
 /// The function memory-maps the provided `paths` and iterates over every
 /// variable registered in `varmap`.  For each variable it first attempts a
-/// direct key lookup.  If fewer than one-third of variables are found that
-/// way it retries with the common `"model."` prefix.
+/// direct key lookup, then a detected namespace prefix for unmatched names.
+/// Every registered variable must have a matching trained tensor. Missing
+/// names are rejected before any variable is updated.
 ///
 /// Tensors whose stored dtype differs from the variable dtype are cast
 /// automatically.
@@ -185,8 +195,8 @@ pub fn open_safetensors(paths: &[PathBuf]) -> Result<MmapedSafetensors> {
 ///
 /// # Errors
 ///
-/// Returns an error if `paths` is empty, if any I/O fails, or if a dtype cast
-/// fails.
+/// Returns an error if `paths` or `varmap` is empty, any required tensor is
+/// missing or misshapen, any I/O fails, or a dtype cast fails.
 pub fn load_weights(varmap: &VarMap, paths: &[PathBuf], dtype: DType, device: &Device) -> Result<usize> {
     let archive = open_safetensors(paths)?;
 
@@ -194,68 +204,66 @@ pub fn load_weights(varmap: &VarMap, paths: &[PathBuf], dtype: DType, device: &D
     use std::collections::HashSet;
     let st_names: HashSet<String> = archive.tensors().iter().map(|(name, _)| name.clone()).collect();
 
-    let data = varmap.data().lock().expect("VarMap lock poisoned");
+    let data = varmap
+        .data()
+        .lock()
+        .map_err(|_| anyhow::anyhow!("VarMap lock poisoned"))?;
+    anyhow::ensure!(
+        !data.is_empty(),
+        "cannot load weights before model variables are registered"
+    );
 
-    // Try to load all variables using an optional dot-separated prefix.
-    // Returns the count of successfully updated variables.
-    let load_with_prefix = |prefix: Option<&str>| -> Result<usize> {
-        let mut count = 0usize;
-        for (name, var) in data.iter() {
-            let lookup_key = match prefix {
-                Some(pfx) if !pfx.is_empty() => format!("{pfx}.{name}"),
-                _ => name.clone(),
-            };
-            if !st_names.contains(&lookup_key) {
-                continue;
-            }
-            // Load onto the target device and cast to the requested dtype.
-            let mut tensor = archive
-                .load(&lookup_key, device)
-                .with_context(|| format!("failed to load tensor '{lookup_key}'"))?;
-            if tensor.dtype() != dtype {
-                tensor = tensor
-                    .to_dtype(dtype)
-                    .with_context(|| format!("dtype cast failed for '{lookup_key}'"))?;
-            }
-            var.set(&tensor)
-                .with_context(|| format!("failed to set variable '{name}'"))?;
-            count += 1;
-        }
-        Ok(count)
-    };
-
-    // First pass: no prefix.
-    let direct_count = load_with_prefix(None)?;
-    let total_vars = data.len();
-
-    // Second pass: try common "model." prefix if fewer than 1/3 were found.
-    if direct_count < (total_vars / 3).max(1) {
-        // Detect prefix from a heuristic scan of the archive names.
-        let detected = detect_prefix(&st_names);
-        if let Some(ref pfx) = detected {
-            let prefixed_count = load_with_prefix(Some(pfx.as_str()))?;
-            if prefixed_count > direct_count {
-                tracing::debug!(
-                    prefix = pfx,
-                    loaded = prefixed_count,
-                    total = total_vars,
-                    "applied safetensors prefix"
-                );
-                return Ok(prefixed_count);
-            }
+    let prefix = detect_prefix(&st_names);
+    let mut matched = Vec::with_capacity(data.len());
+    let mut missing = Vec::new();
+    for (name, var) in data.iter() {
+        let prefixed = prefix.as_ref().map(|pfx| format!("{pfx}.{name}"));
+        let key = if st_names.contains(name) {
+            Some(name.clone())
+        } else {
+            prefixed.filter(|key| st_names.contains(key))
+        };
+        match key {
+            Some(key) => matched.push((name, var, key)),
+            None => missing.push(name.as_str()),
         }
     }
+    missing.sort_unstable();
+    if !missing.is_empty() {
+        return Err(IncompleteWeights {
+            missing_count: missing.len(),
+            total: data.len(),
+            names: missing.iter().take(8).copied().collect::<Vec<_>>().join(", "),
+        }
+        .into());
+    }
 
-    tracing::debug!(loaded = direct_count, total = total_vars, "loaded weights (no prefix)");
-    Ok(direct_count)
+    for (name, var, key) in matched {
+        let mut tensor = archive
+            .load(&key, device)
+            .with_context(|| format!("failed to load tensor '{key}'"))?;
+        if tensor.dtype() != dtype {
+            tensor = tensor
+                .to_dtype(dtype)
+                .with_context(|| format!("dtype cast failed for '{key}'"))?;
+        }
+        var.set(&tensor)
+            .with_context(|| format!("failed to set variable '{name}'"))?;
+    }
+    tracing::debug!(loaded = data.len(), prefix, "loaded complete model weights");
+    Ok(data.len())
 }
 
 /// Heuristic: detect a dot-separated namespace prefix from archive key names.
 fn detect_prefix(names: &std::collections::HashSet<String>) -> Option<String> {
-    for name in names {
-        if name.starts_with("model.") {
-            return Some("model".to_string());
-        }
+    // Prefer the supported common namespace before scanning unrelated direct
+    // LLM keys; HashSet iteration order must not affect checkpoint loading.
+    if names.iter().any(|name| name.starts_with("model.")) {
+        return Some("model".to_string());
+    }
+    let mut ordered: Vec<_> = names.iter().collect();
+    ordered.sort_unstable();
+    for name in ordered {
         if let Some(pos) = name.find(".layers.") {
             let prefix = name[..pos].trim_end_matches('.');
             if !prefix.is_empty() {
@@ -300,7 +308,100 @@ pub fn load_tokenizer(model_path: &Path) -> Result<tokenizers::Tokenizer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use candle_core::Tensor;
+    use std::collections::HashMap;
     use std::fs;
+
+    fn weight_fixture(path: &Path, entries: &[(&str, Vec<f32>)]) {
+        let tensors: HashMap<String, Tensor> = entries
+            .iter()
+            .map(|(name, values)| {
+                (
+                    (*name).to_string(),
+                    Tensor::from_vec(values.clone(), values.len(), &Device::Cpu).expect("fixture tensor"),
+                )
+            })
+            .collect();
+        candle_core::safetensors::save(&tensors, path).expect("save fixture weights");
+    }
+
+    fn required_variables() -> VarMap {
+        let vars = VarMap::new();
+        for name in ["first.weight", "second.weight"] {
+            vars.get(2, name, candle_nn::Init::Const(-1.0), DType::F32, &Device::Cpu)
+                .expect("register required tensor");
+        }
+        vars
+    }
+
+    #[test]
+    fn test_load_weights_rejects_unregistered_variables() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("model.safetensors");
+        weight_fixture(&path, &[("first.weight", vec![1.0, 2.0])]);
+        let error = load_weights(&VarMap::new(), &[path], DType::F32, &Device::Cpu).expect_err("no variables");
+        assert!(error.to_string().contains("before model variables are registered"));
+    }
+
+    #[test]
+    fn test_load_weights_rejects_empty_archive() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("model.safetensors");
+        weight_fixture(&path, &[]);
+        let error = load_weights(&required_variables(), &[path], DType::F32, &Device::Cpu)
+            .expect_err("empty archive must not leave random weights");
+        assert!(error.to_string().contains("missing 2 of 2"));
+    }
+
+    #[test]
+    fn test_load_weights_rejects_partial_archive_before_mutation() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("model.safetensors");
+        weight_fixture(&path, &[("first.weight", vec![1.0, 2.0])]);
+        let vars = required_variables();
+        let error = load_weights(&vars, &[path], DType::F32, &Device::Cpu).expect_err("incomplete weights");
+        assert!(error.to_string().contains("second.weight"));
+        let data = vars.data().lock().expect("varmap lock");
+        assert_eq!(
+            data["first.weight"].as_tensor().to_vec1::<f32>().unwrap(),
+            vec![-1.0, -1.0]
+        );
+    }
+
+    #[test]
+    fn test_load_weights_accepts_complete_mixed_prefix_archive() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("model.safetensors");
+        weight_fixture(
+            &path,
+            &[
+                ("first.weight", vec![1.0, 2.0]),
+                ("model.second.weight", vec![3.0, 4.0]),
+                ("language_model.model.layers.0.weight", vec![5.0, 6.0]),
+            ],
+        );
+        let vars = required_variables();
+        assert_eq!(load_weights(&vars, &[path], DType::F32, &Device::Cpu).unwrap(), 2);
+        let data = vars.data().lock().expect("varmap lock");
+        assert_eq!(
+            data["first.weight"].as_tensor().to_vec1::<f32>().unwrap(),
+            vec![1.0, 2.0]
+        );
+        assert_eq!(
+            data["second.weight"].as_tensor().to_vec1::<f32>().unwrap(),
+            vec![3.0, 4.0]
+        );
+    }
+
+    #[test]
+    fn test_load_weights_rejects_wrong_shape() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("model.safetensors");
+        weight_fixture(&path, &[("first.weight", vec![1.0]), ("second.weight", vec![3.0, 4.0])]);
+        let error = load_weights(&required_variables(), &[path], DType::F32, &Device::Cpu)
+            .expect_err("mismatched shape must fail");
+        assert!(format!("{error:#}").contains("first.weight"));
+    }
 
     /// An empty directory produces an empty shard list.
     #[test]

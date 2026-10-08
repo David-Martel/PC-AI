@@ -20,11 +20,13 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tracing = "0.1"
 
-candle-core = { version = "0.10" }
-candle-nn = "0.10"
-candle-transformers = "0.10"
+candle-core = { version = "0.11" }
+candle-nn = "0.11"
+candle-transformers = "0.11"
 safetensors = "0.8"
-tokenizers = "0.23.2"
+# Inference loads saved tokenizers; the unused esaxx C++ trainer forces a
+# static Windows CRT that conflicts with ONNX Runtime's dynamic CRT.
+tokenizers = { version = "0.23.2", default-features = false, features = ["onig"] }
 image = "0.25"
 rand = "0.9"
 # Disable ureq (sync HTTP client) to eliminate the ring crate dependency.

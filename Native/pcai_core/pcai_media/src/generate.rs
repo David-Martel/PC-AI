@@ -788,8 +788,8 @@ impl GenerationPipeline {
         // - `PreAllocKvCache` (default, `use_prealloc_kv_cache = true`):
         //   Allocates one fixed-size `[B, n_kv_heads, max_seq_len, head_dim]`
         //   buffer per layer up front.  New KV pairs are written in-place via
-        //   `scatter_set` and read back as zero-copy `narrow` views, eliminating
-        //   the ≈95 GB of GPU bandwidth wasted by `Tensor::cat` across 576 steps.
+        //   `scatter_set` and read back as `narrow` views, avoiding repeated
+        //   growing-buffer concatenation.  Throughput requires measurement.
         //
         // - `KvCache` (fallback, `use_prealloc_kv_cache = false`):
         //   The original dynamic cache.  Each step appends via `Tensor::cat`,

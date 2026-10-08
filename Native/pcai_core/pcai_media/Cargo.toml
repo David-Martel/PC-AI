@@ -47,12 +47,9 @@ nvml = ["dep:pcai_core_lib", "pcai_core_lib/nvml"]
 cuda = ["candle-core/cuda", "pcai-media-model/cuda", "dep:pcai_core_lib", "pcai_core_lib/nvml"]
 # Enable cuDNN acceleration for conv1d/conv2d ops via NVIDIA cuDNN v9.
 #
-# In candle-core 0.9.x the `cudnn` feature gates only convolution operations
-# (not fused attention/SDPA).  Janus-Pro uses matmul-based SDPA, so cuDNN
-# provides no speedup for the transformer backbone at this version.  The
-# feature is kept for forward compatibility: if candle gains cuDNN fused-
-# attention support in a future release, enabling this flag will opt in
-# automatically.  Use `flash-attn` instead for attention acceleration today.
+# The `cudnn` feature enables Candle's optional cuDNN backend.  Janus-Pro
+# attention uses its separate matmul/Flash Attention paths; any cuDNN
+# performance benefit must be measured on the selected workload and device.
 #
 # Building with `cudnn` requires the cuDNN runtime DLL (cudnn64_9.dll) to be
 # present in PATH at link time on Windows; nvcc must be available at build time.

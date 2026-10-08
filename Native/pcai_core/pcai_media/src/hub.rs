@@ -180,6 +180,54 @@ pub(crate) struct IncompleteWeights {
     names: String,
 }
 
+/// Validate required tensor headers without loading weight payloads.
+pub(crate) fn validate_weight_metadata(
+    paths: &[PathBuf],
+    expected: &std::collections::BTreeMap<String, Vec<usize>>,
+) -> Result<()> {
+    anyhow::ensure!(!expected.is_empty(), "no required generation tensor metadata");
+    let archive = open_safetensors(paths)?;
+    let names = archive.tensors().into_iter().map(|(name, _)| name).collect();
+    let prefix = detect_prefix(&names);
+    let mut missing = Vec::new();
+    let mut matched = Vec::with_capacity(expected.len());
+    for (name, shape) in expected {
+        match matching_tensor_key(name, &names, prefix.as_deref()) {
+            Some(key) => matched.push((name, shape, key)),
+            None => missing.push(name.as_str()),
+        }
+    }
+    if !missing.is_empty() {
+        return Err(IncompleteWeights {
+            missing_count: missing.len(),
+            total: expected.len(),
+            names: missing.iter().take(8).copied().collect::<Vec<_>>().join(", "),
+        }
+        .into());
+    }
+    for (name, shape, key) in matched {
+        let header = archive
+            .get(&key)
+            .with_context(|| format!("missing tensor header '{key}'"))?;
+        anyhow::ensure!(
+            header.shape() == shape.as_slice(),
+            "unexpected shape for required tensor '{name}': {:?}, expected {shape:?}",
+            header.shape()
+        );
+    }
+    Ok(())
+}
+
+fn matching_tensor_key(name: &str, names: &std::collections::HashSet<String>, prefix: Option<&str>) -> Option<String> {
+    if names.contains(name) {
+        Some(name.to_string())
+    } else {
+        prefix
+            .map(|prefix| format!("{prefix}.{name}"))
+            .filter(|key| names.contains(key))
+    }
+}
+
 /// Load tensors from safetensors files into a [`VarMap`].
 ///
 /// The function memory-maps the provided `paths` and iterates over every
@@ -217,13 +265,7 @@ pub fn load_weights(varmap: &VarMap, paths: &[PathBuf], dtype: DType, device: &D
     let mut matched = Vec::with_capacity(data.len());
     let mut missing = Vec::new();
     for (name, var) in data.iter() {
-        let prefixed = prefix.as_ref().map(|pfx| format!("{pfx}.{name}"));
-        let key = if st_names.contains(name) {
-            Some(name.clone())
-        } else {
-            prefixed.filter(|key| st_names.contains(key))
-        };
-        match key {
+        match matching_tensor_key(name, &st_names, prefix.as_deref()) {
             Some(key) => matched.push((name, var, key)),
             None => missing.push(name.as_str()),
         }
@@ -332,6 +374,48 @@ mod tests {
                 .expect("register required tensor");
         }
         vars
+    }
+
+    fn required_metadata() -> std::collections::BTreeMap<String, Vec<usize>> {
+        [
+            ("first.weight".to_string(), vec![2]),
+            ("second.weight".to_string(), vec![2]),
+        ]
+        .into()
+    }
+
+    #[test]
+    fn test_weight_metadata_accepts_complete_mixed_prefix_headers() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("model.safetensors");
+        weight_fixture(
+            &path,
+            &[
+                ("first.weight", vec![1.0, 2.0]),
+                ("model.second.weight", vec![3.0, 4.0]),
+            ],
+        );
+        validate_weight_metadata(&[path], &required_metadata()).unwrap();
+    }
+
+    #[test]
+    fn test_weight_metadata_rejects_partial_headers() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("model.safetensors");
+        weight_fixture(&path, &[("first.weight", vec![1.0, 2.0])]);
+        let error = validate_weight_metadata(&[path], &required_metadata()).unwrap_err();
+        assert!(error.downcast_ref::<IncompleteWeights>().is_some());
+        assert!(error.to_string().contains("second.weight"));
+    }
+
+    #[test]
+    fn test_weight_metadata_rejects_wrong_shape_headers() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("model.safetensors");
+        weight_fixture(&path, &[("first.weight", vec![1.0]), ("second.weight", vec![3.0, 4.0])]);
+        let error = validate_weight_metadata(&[path], &required_metadata()).unwrap_err();
+        assert!(error.to_string().contains("unexpected shape"));
+        assert!(error.to_string().contains("first.weight"));
     }
 
     #[test]

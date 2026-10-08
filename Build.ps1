@@ -87,6 +87,15 @@
     Persist CargoTools default Cargo/rustfmt/clippy settings to user config files.
     Disabled by default to avoid mutating developer workstation state implicitly.
 
+.PARAMETER NativeOptimize
+    Opt into host CPU tuning. Native-target artifacts need destination-machine qualification.
+
+.PARAMETER DisableCache
+    Disable compiler cache helpers for this build process.
+
+.PARAMETER NuGetConfigPath
+    Explicit private NuGet restore configuration; never auto-select a repo-local credential file.
+
 .PARAMETER FunctionGemmaArgs
     Optional passthrough arguments for FunctionGemma operation components:
     functiongemma-router-data, functiongemma-token-cache, functiongemma-train, functiongemma-eval.
@@ -194,6 +203,9 @@ param(
     [ValidateSet('check', 'clippy', 'fmt', 'all')]
     [string]$CargoPreflightMode = 'check',
     [switch]$SyncCargoDefaults,
+    [switch]$NativeOptimize,
+    [switch]$DisableCache,
+    [string]$NuGetConfigPath,
     [string[]]$FunctionGemmaArgs = @(),
     [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality')]
     [string]$LintProfile = 'all',
@@ -382,6 +394,11 @@ function Set-ReleaseBuildFlags {
         } elseif (-not $existingFlags) {
             $env:RUSTFLAGS = '-D warnings'
         }
+        if ($NativeOptimize) {
+            . (Join-Path $script:ProjectRoot 'Tools/PcaiNativeBuildFlags.ps1')
+            $script:NativeOptimization = Enable-PcaiNativeBuildOptimization
+            Write-BuildStep "Explicit CPU target: $($script:NativeOptimization.CpuTarget); destination qualification required" 'success'
+        }
         Write-BuildStep "RUSTFLAGS (release): $($env:RUSTFLAGS)" 'success'
     }
 
@@ -408,6 +425,13 @@ function Set-BuildAccelerationEnvironment {
         }
     } else {
         Write-BuildStep "CMAKE_GENERATOR already set: $($env:CMAKE_GENERATOR)" 'skip'
+    }
+
+    if ($DisableCache -or $env:PCAI_DISABLE_CACHE -eq '1') {
+        . (Join-Path $script:ProjectRoot 'Tools/PcaiNativeBuildFlags.ps1')
+        Disable-PcaiBuildCompilerCaches
+        Write-BuildStep 'Compiler caches disabled for this build process' 'success'
+        return
     }
 
     # ccache: C/C++ compiler launcher for clang/gcc builds (e.g. candle native code)
@@ -561,6 +585,15 @@ function Get-DotnetPublishDefaults {
         '-p:BuildInParallel=true',
         '-p:UseSharedCompilation=true'
     )
+
+    if ($NuGetConfigPath) {
+        if (-not (Test-Path -LiteralPath $NuGetConfigPath -PathType Leaf)) {
+            throw "Explicit NuGet configuration is not a file: $NuGetConfigPath"
+        }
+        $resolvedConfig = Resolve-Path -LiteralPath $NuGetConfigPath -ErrorAction Stop
+        if ($resolvedConfig.Provider.Name -ne 'FileSystem') { throw 'NuGet configuration must be a filesystem file.' }
+        $args += "-p:RestoreConfigFile=$($resolvedConfig.ProviderPath)"
+    }
 
     if ($Configuration -eq 'Release') {
         $args += @(
@@ -886,9 +919,10 @@ function Invoke-RustBuildCommand {
         if ($env:CARGO_USE_LLD -eq '1') {
             $wrapperArgs += '-UseLld'
         }
-        if ($env:PCAI_DISABLE_CACHE -eq '1') {
+        if ($DisableCache -or $env:PCAI_DISABLE_CACHE -eq '1') {
             $wrapperArgs += '-DisableCache'
         }
+        if ($NativeOptimize) { $wrapperArgs += '-NativeOptimize' }
         if ($CargoPreflight) {
             $wrapperArgs += @('-Preflight', '-PreflightMode', $CargoPreflightMode, '-PreflightBlocking')
         }
@@ -1079,6 +1113,7 @@ function Publish-PcaiNativeBundle {
         releaseTag = if ($script:VersionInfo) { $script:VersionInfo.ReleaseTag } else { $null }
         semVer = if ($script:VersionInfo) { $script:VersionInfo.SemVer } else { $null }
         informationalVersion = if ($script:VersionInfo) { $script:VersionInfo.InformationalVersion } else { $null }
+        cpuOptimization = if (Get-Variable -Name NativeOptimization -Scope Script -ErrorAction SilentlyContinue) { $script:NativeOptimization } else { $null }
         cargoTargetDir = $coreTargetDir
         files = @($publishedEntries)
     }
@@ -2052,7 +2087,9 @@ function Invoke-InferenceBuild {
         Configuration = $Configuration
     }
     if ($EnableCuda) { $buildArgs['EnableCuda'] = $true }
-    if ($env:PCAI_DISABLE_CACHE -eq '1') { $buildArgs['DisableCache'] = $true }
+    if ($DisableCache -or $env:PCAI_DISABLE_CACHE -eq '1') { $buildArgs['DisableCache'] = $true }
+    # This in-process inference helper inherits the flags already selected above;
+    # it does not expose the generic wrapper's NativeOptimize parameter.
     if ($env:CARGO_USE_LLD -eq '1') { $buildArgs['UseLld'] = $true }
     if ($CargoPreflight) {
         $buildArgs['Preflight'] = $true
@@ -3210,6 +3247,8 @@ Write-Host "  Deploy:        $(if ($Deploy) { 'Yes' } else { 'No' })" -Foregroun
 Write-Host "  CargoTools:    $CargoTools" -ForegroundColor White
 Write-Host "  Preflight:     $(if ($CargoPreflight) { $CargoPreflightMode } else { 'Disabled' })" -ForegroundColor White
 Write-Host "  SyncDefaults:  $(if ($SyncCargoDefaults) { 'Yes' } else { 'No' })" -ForegroundColor White
+Write-Host "  NativeOpt:     $(if ($NativeOptimize) { 'Explicit host tuning' } else { 'No' })" -ForegroundColor White
+Write-Host "  DisableCache:  $(if ($DisableCache) { 'Yes' } else { 'No' })" -ForegroundColor White
 Write-Host "  LintProfile:   $LintProfile" -ForegroundColor White
 Write-Host "  DepStrategy:   $DependencyStrategy" -ForegroundColor White
 Write-Host "  AutoFix:       $(if ($AutoFix) { 'Yes' } else { 'No' })" -ForegroundColor White

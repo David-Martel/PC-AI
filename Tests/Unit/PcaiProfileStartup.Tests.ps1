@@ -62,6 +62,12 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
         $script:SavedLocalAppData = $env:LOCALAPPDATA
         $script:SavedProgramData = $env:ProgramData
         $script:Parameters = @{ ProfilePath = $script:FixtureProfile; BackupRoot = $script:FixtureBackup }
+        # Pester 6 rejects calls outside a filtered mock. Keep real hashing for
+        # originals/displaced custody; only the specific race paths are injected.
+        Mock Get-FileHash {
+            $hashCommand = Get-Command Microsoft.PowerShell.Utility\Get-FileHash -CommandType Cmdlet
+            & $hashCommand -LiteralPath $LiteralPath -Algorithm SHA256
+        }
     }
     AfterEach {
         $env:PSModulePath = $script:SavedModulePath

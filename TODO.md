@@ -255,7 +255,9 @@ suspicion.
   genuine coverage, workspace-wide `cargo` checks, moved to
   `rust-guidelines.yml`, which runs on `windows-latest`. See the platform-scope
   note in `CLAUDE.md`.
-- [ ] **This is what actually holds the `CI Gate` red, and neither half is new.**
+- [ ] Re-measure HTTP/FFI and PowerShell coverage against current source before
+  closing the historical coverage debt. Owner: integration/test lane. The following
+  measurements describe September's failing gate, not the current CI result.
   Measured on run 34152812699 and confirmed identical on run 32283624611 from
   2026-08-19, before any of this session's work:
   - `Rust Tests >> Coverage Report` runs
@@ -271,9 +273,12 @@ suspicion.
   - `PowerShell Tests >> Run Tests with Coverage` sets `Run.Exit = $true` and
     `CoveragePercentTarget = 85`, so it fails on the pre-existing PS7
     test-contract failures already tracked above.
-  Every completed `ci.yml` run in the repo's history is a failure, across
-  unrelated branches (dependabot, `feat/import-nukenul`), which is consistent
-  with this being long-standing rather than branch-specific.
+  The earlier completed runs failed across unrelated branches. On October 8,
+  [CI run 37852903767](https://github.com/David-Martel/PC-AI/actions/runs/37852903767)
+  passed all eleven jobs at `7fd48ff181c279910c174e4f98b0123f3a4dac3f`, including
+  both coverage steps and the actual FFI/module-import integration job. That result
+  does not replace the historical coverage measurement or qualify later heads;
+  optional Mistral/media tests and final-head CI remain separate integration gates.
 - [ ] git-guard's commit-time Rust gate can never PASS in this repo, only
   block. `qa_check_rust` in `git-guard/hooks/common/qa_gate.sh` runs
   `cd "$REPO_ROOT" && cargo fmt --all --check` (and the same for clippy), but
@@ -287,16 +292,12 @@ suspicion.
   `qa_check_rust` a `rust.dir` (or manifest-path) setting defaulting to
   `$REPO_ROOT`. git-guard is shared fleet infrastructure, so that change needs
   an ownership announcement before anyone makes it.
-- [ ] The `Deploy\rust-functiongemma` workspace does not resolve at all.
-  Its `[workspace] members` are `"../rust-functiongemma-runtime"`,
-  `"../rust-functiongemma-train"` and `"../rust-functiongemma-core"`, and Cargo
-  rejects members that are not hierarchically below the workspace root:
-  `cargo metadata` fails outright, so `cargo fmt`/`cargo clippy`/`cargo build`
-  cannot be run against that root. `Build.ps1` still points a build path at it
-  (`Build.ps1:1190`). Either move the three crates under
-  `Deploy\rust-functiongemma\` or drop the aggregating root and treat the
-  three as independent crates. This is pre-existing and separate from the
-  CargoTools `cargo fix` bug noted above.
+- [x] Repair the FunctionGemma workspace root. [Deploy/Cargo.toml](Deploy/Cargo.toml)
+  now owns its three child members and excludes vendor sources; [Build.ps1](Build.ps1)
+  selects that root. The October 8 CI run above passed `Deploy Runtime (CPU)`,
+  including runtime/HTTP tests and dependency audit. The detailed completed repair
+  and remaining shared-dependency policy debt are in section 1e below. Training
+  and GPU qualification remain separate; this item does not close those gates.
 - [ ] `release-cuda.yml` is now valid YAML but has still never executed — the
   repo has no tags at all. Cut a throwaway pre-release tag to prove the
   4-variant CUDA/CPU release path actually works end to end.
@@ -499,11 +500,11 @@ CI gate counts `skipped` as passing.
   Build.ps1 is strict with nothing in the file saying so. Any future audit of
   strict-mode hazards has to follow dot-sources, not just grep for
   `Set-StrictMode`. Nine sites fixed.
-- [ ] **Integration Tests has never run.** It needs `build-llamacpp` and
-  `powershell-test`, both long red, so it has been skipped on every run and the
-  gate treated that as a pass. Expect it to execute for the first time once
-  those are green, and to carry its own backlog — the same way this whole
-  section appeared the moment the build job became reachable.
+- [x] Execute the actual Integration Tests job after successful llamacpp CPU and
+  PowerShell tests. CI run 37852903767 above completed both `FFI Integration Tests`
+  and `Module Import Smoke Test` successfully on the reviewed `7fd48ff` source.
+  Final-source, optional-backend, GPU/model and per-host deployment qualification
+  remain with the integration lane; a hosted import/FFI smoke is not those results.
 - [ ] `powershell-test` takes **36 minutes** and gates `integration-tests`;
   every other job finishes in under four. It is the pipeline's long pole by an
   order of magnitude and is worth profiling or splitting.
@@ -556,10 +557,14 @@ the policy now means what it says and the backlog is visible instead of silent.
 - [ ] `allow_attributes_without_reason` -- 6 sites.
 - [ ] `trivial_numeric_casts` (2 sites) and `unused_result_ok` (1 site).
 
-Two related defects were fixed in the same pass: repo `clippy.toml` declared
-`msrv = "1.75.0"` while the workspace declares `rust-version = "1.85"`, and
-clippy was silently using the lower one; and `clippy::string_to_string` was
-still listed although upstream removed it in favour of `implicit_clone`.
+Two related defects were fixed in the September pass: [clippy.toml](clippy.toml)
+declared `msrv = "1.75.0"` against the then-declared workspace floor of `1.85`,
+and `clippy::string_to_string` remained after its upstream replacement by
+`implicit_clone`. On October 8 the locked native dependency graph requires a
+`1.95` floor; [Native/pcai_core/Cargo.toml](Native/pcai_core/Cargo.toml) and Clippy
+now agree on that declaration. Actual local builds use Rust `1.99.0`; execution
+on the minimum `1.95` toolchain remains unverified. Owner: integration lane;
+retain that distinction in final build and compatibility evidence.
 
 ### 2. Native-First Architecture
 

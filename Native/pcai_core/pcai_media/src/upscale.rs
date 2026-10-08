@@ -33,9 +33,9 @@ impl UpscalePipeline {
         let session = ort::session::Session::builder()
             .context("failed to create ORT session builder")?
             .with_optimization_level(ort::session::builder::GraphOptimizationLevel::Level3)
-            .context("failed to set optimization level")?
+            .map_err(|error| anyhow::anyhow!("failed to set optimization level: {error}"))?
             .with_intra_threads(4)
-            .context("failed to set intra threads")?
+            .map_err(|error| anyhow::anyhow!("failed to set intra threads: {error}"))?
             .commit_from_file(model_path)
             .with_context(|| format!("failed to load ONNX model: {model_path}"))?;
 
@@ -109,12 +109,20 @@ impl UpscalePipeline {
 
         let dims: Vec<usize> = shape.iter().map(|&d| d as usize).collect();
         anyhow::ensure!(
-            dims.len() == 4 && dims[0] == 1 && dims[1] == 3,
+            dims == [1, 3, out_h, out_w],
             "unexpected output shape: {dims:?}, expected [1, 3, {out_h}, {out_w}]"
         );
 
-        let plane_size = out_h * out_w;
-        let mut img = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(out_w as u32, out_h as u32);
+        let plane_size = out_h.checked_mul(out_w).context("upscale output dimensions overflow")?;
+        let expected_elements = plane_size.checked_mul(3).context("upscale output size overflow")?;
+        anyhow::ensure!(
+            data.len() == expected_elements,
+            "unexpected output tensor size: {}, expected {expected_elements}",
+            data.len()
+        );
+        let image_width = u32::try_from(out_w).context("upscale output width exceeds image limits")?;
+        let image_height = u32::try_from(out_h).context("upscale output height exceeds image limits")?;
+        let mut img = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(image_width, image_height);
 
         for y in 0..out_h {
             for x in 0..out_w {
@@ -133,6 +141,33 @@ impl UpscalePipeline {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_tensor_to_image_rejects_wrong_spatial_shape() {
+        let output = ort::value::Tensor::from_array(([1usize, 3, 2, 2], vec![0.5_f32; 12]))
+            .unwrap()
+            .into_dyn();
+        let error = UpscalePipeline::tensor_to_image(&output, 8, 8).expect_err("mismatched model output");
+        assert!(error.to_string().contains("unexpected output shape"));
+    }
+
+    #[test]
+    fn test_tensor_to_image_rejects_oversized_expected_dimensions() {
+        let output = ort::value::Tensor::from_array(([1usize, 3, 1, 1], vec![0.5_f32; 3]))
+            .unwrap()
+            .into_dyn();
+        assert!(UpscalePipeline::tensor_to_image(&output, usize::MAX, usize::MAX).is_err());
+    }
+
+    #[test]
+    fn test_tensor_to_image_preserves_rgb_planes() {
+        let output = ort::value::Tensor::from_array(([1usize, 3, 1, 2], vec![1.0_f32, 0.0, 0.0, 1.0, 0.5, 0.25]))
+            .unwrap()
+            .into_dyn();
+        let image = UpscalePipeline::tensor_to_image(&output, 1, 2).expect("valid output tensor");
+        assert_eq!(image.get_pixel(0, 0), &Rgb([255, 0, 128]));
+        assert_eq!(image.get_pixel(1, 0), &Rgb([0, 255, 64]));
+    }
 
     #[test]
     fn test_scale_factor() {

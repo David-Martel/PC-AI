@@ -194,27 +194,40 @@ Describe 'PcaiMedia Module' -Tag 'Unit', 'Media', 'Portable' {
     # ===========================================================================
 
     Context 'Initialize-PcaiMediaFFI' {
+        BeforeEach {
+            $script:SavedNativeBundleRoot = $env:PCAI_NATIVE_BUNDLE_ROOT
+            $env:PCAI_NATIVE_BUNDLE_ROOT = $null
+        }
+        AfterEach { $env:PCAI_NATIVE_BUNDLE_ROOT = $script:SavedNativeBundleRoot }
         
         It 'Returns $false when PcaiNative.dll does not exist' {
             InModuleScope PcaiMedia {
-                Mock Test-Path { return $false } -ParameterFilter { $Path -match 'PcaiNative.dll' }
+                Mock Test-Path { return $false } -ParameterFilter { $LiteralPath -match 'PcaiNative.dll' }
                 Mock Get-PcaiProjectRoot { return '/tmp/FakeRoot' }
+                Mock Write-Warning {}
                 
                 $result = Initialize-PcaiMediaFFI
                 $result | Should -BeFalse
+                Should -Invoke Write-Warning -Times 0
             }
         }
 
         It 'Returns $false and writes warning when Assembly load fails' {
-            InModuleScope PcaiMedia {
-                Mock Test-Path { return $true } -ParameterFilter { $Path -match 'PcaiNative.dll' }
-                Mock Get-PcaiProjectRoot { return '/tmp/FakeRoot' }
+            $root = Join-Path $TestDrive 'invalid-bridge'
+            $bin = Join-Path $root 'bin'
+            [void](New-Item -ItemType Directory -Path $bin -Force)
+            Set-Content -LiteralPath (Join-Path $bin 'PcaiNative.dll') -Value 'invalid managed assembly'
+            InModuleScope PcaiMedia -Parameters @{ Root = $root } {
+                param($Root)
+                $script:InvalidBridgeRoot = $Root
+                Mock Get-PcaiProjectRoot { $script:InvalidBridgeRoot }
+                Mock Get-PcaiMediaLoadedBridgePath { $null }
                 Mock Write-Warning { }
                 
                 $result = Initialize-PcaiMediaFFI
                 $result | Should -BeFalse
                 
-                Assert-MockCalled Write-Warning -Times 1 -ParameterFilter { $Message -match 'Failed to load' }
+                Should -Invoke Write-Warning -Times 1 -ParameterFilter { $Message -match 'Failed to select native media bridge.*(Bad IL|BadImage|format|assembly)' }
             }
         }
 
@@ -232,16 +245,28 @@ namespace PcaiNativeDummy {
 "@
             Add-Type -TypeDefinition $code -OutputAssembly $dummyDllPath -OutputType Library
             
-            $localTempDir = $tempDir
-
             try {
-                InModuleScope PcaiMedia -Parameters @{ TestTempDir = $localTempDir } {
-                    param($TestTempDir)
-                    Mock Get-PcaiProjectRoot { return $TestTempDir }
-
-                    $result = Initialize-PcaiMediaFFI
-                    $result | Should -BeTrue
-                }
+                $probe = Join-Path $tempDir 'load-bridge.ps1'
+                @'
+param($ModulePath, $Root, $DllPath)
+$ErrorActionPreference = 'Stop'
+$env:PCAI_NATIVE_BUNDLE_ROOT = $null
+Import-Module $ModulePath -Force
+$success = & (Get-Module PcaiMedia) {
+    param($SelectedRoot)
+    $script:FixtureRoot = $SelectedRoot
+    function Get-PcaiProjectRoot { $script:FixtureRoot }
+    Initialize-PcaiMediaFFI
+} $Root
+if (-not $success) { throw 'Fresh-process managed loading failed.' }
+$assembly = [Reflection.Assembly]::LoadFrom($DllPath)
+if ($assembly.Location -ne $DllPath) { throw 'Another assembly path was reused.' }
+Write-Output 'fresh-bridge-loaded'
+'@ | Set-Content -LiteralPath $probe
+                $shell = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
+                $result = & $shell -NoLogo -NoProfile -File $probe $script:ModulePath $tempDir $dummyDllPath
+                $LASTEXITCODE | Should -Be 0
+                $result | Should -Contain 'fresh-bridge-loaded'
             } finally {
                 # Clean up if possible, though loaded assemblies lock the file
                 Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue

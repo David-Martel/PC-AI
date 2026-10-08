@@ -63,12 +63,15 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
 
     # Reset module state between every test
     BeforeEach {
+        $script:SavedNativeBundleRoot = $env:PCAI_NATIVE_BUNDLE_ROOT
+        $env:PCAI_NATIVE_BUNDLE_ROOT = $null
         InModuleScope PcaiMedia {
             $script:Initialized  = $false
             $script:ModelLoaded  = $false
             $script:CurrentModel = $null
         }
     }
+    AfterEach { $env:PCAI_NATIVE_BUNDLE_ROOT = $script:SavedNativeBundleRoot }
 
     # -----------------------------------------------------------------------
     # DLL absent
@@ -77,15 +80,17 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
 
         It 'Returns $false' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $false }       -ParameterFilter { $Path -match 'PcaiNative\.dll' }
+                Mock Test-Path  { return $false }       -ParameterFilter { $LiteralPath -match 'PcaiNative\.dll' }
                 Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
+                Mock Write-Warning {}
                 Initialize-PcaiMediaFFI | Should -BeFalse
+                Should -Invoke Write-Warning -Times 0
             }
         }
 
         It 'Does not set script:Initialized to true' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $false }       -ParameterFilter { $Path -match 'PcaiNative\.dll' }
+                Mock Test-Path  { return $false }       -ParameterFilter { $LiteralPath -match 'PcaiNative\.dll' }
                 Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
                 $null = Initialize-PcaiMediaFFI
                 $script:Initialized | Should -BeFalse
@@ -98,13 +103,23 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
     # -----------------------------------------------------------------------
     Context 'When the DLL exists but Assembly.LoadFrom throws' {
 
+        BeforeEach {
+            $script:InvalidBridgeRoot = Join-Path $TestDrive 'invalid-bridge'
+            $bin = Join-Path $script:InvalidBridgeRoot 'bin'
+            [void](New-Item -ItemType Directory -Path $bin -Force)
+            Set-Content -LiteralPath (Join-Path $bin 'PcaiNative.dll') -Value 'invalid managed assembly'
+            InModuleScope PcaiMedia -Parameters @{ Root = $script:InvalidBridgeRoot } {
+                param($Root)
+                $script:InvalidBridgeRoot = $Root
+                Mock Get-PcaiProjectRoot { $script:InvalidBridgeRoot }
+                Mock Get-PcaiMediaLoadedBridgePath { $null }
+            }
+        }
+
         It 'Returns $false' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $true }        -ParameterFilter { $Path -match 'PcaiNative\.dll' }
-                Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
                 Mock Write-Warning {}
-                # Test-Path returns $true but the actual Load attempt will fail because
-                # 'C:\FakeRoot\bin\PcaiNative.dll' does not exist on disk — LoadFrom will throw.
+                # Resolve the real fixture file; the actual assembly loader rejects its invalid bytes.
                 $result = Initialize-PcaiMediaFFI
                 $result | Should -BeFalse
             }
@@ -112,18 +127,14 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
 
         It 'Emits a Write-Warning message that mentions the load failure' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $true }        -ParameterFilter { $Path -match 'PcaiNative\.dll' }
-                Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
                 Mock Write-Warning {}
                 $null = Initialize-PcaiMediaFFI
-                Should -Invoke Write-Warning -Times 1 -ParameterFilter { $Message -match 'Failed to load' }
+                Should -Invoke Write-Warning -Times 1 -ParameterFilter { $Message -match 'Failed to select native media bridge.*(Bad IL|BadImage|format|assembly)' }
             }
         }
 
         It 'Does not set script:Initialized to true after a failed load' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $true }        -ParameterFilter { $Path -match 'PcaiNative\.dll' }
-                Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
                 Mock Write-Warning {}
                 $null = Initialize-PcaiMediaFFI
                 $script:Initialized | Should -BeFalse
@@ -148,12 +159,27 @@ namespace PcaiFfiTestDummy { public class DummyClass { } }
 '@ -OutputAssembly $dllPath -OutputType Library
 
             try {
-                InModuleScope PcaiMedia -Parameters @{ TempRoot = $tempDir } {
-                    param($TempRoot)
-                    Mock Get-PcaiProjectRoot { return $TempRoot }
-                    $result = Initialize-PcaiMediaFFI
-                    $result | Should -BeTrue
-                }
+                $probe = Join-Path $tempDir 'load-bridge.ps1'
+                @'
+param($ModulePath, $Root, $DllPath)
+$ErrorActionPreference = 'Stop'
+$env:PCAI_NATIVE_BUNDLE_ROOT = $null
+Import-Module $ModulePath -Force
+$success = & (Get-Module PcaiMedia) {
+    param($SelectedRoot)
+    $script:FixtureRoot = $SelectedRoot
+    function Get-PcaiProjectRoot { $script:FixtureRoot }
+    Initialize-PcaiMediaFFI
+} $Root
+if (-not $success) { throw 'Fresh-process managed loading failed.' }
+$assembly = [Reflection.Assembly]::LoadFrom($DllPath)
+if ($assembly.Location -ne $DllPath) { throw 'Another assembly path was reused.' }
+Write-Output 'fresh-bridge-loaded'
+'@ | Set-Content -LiteralPath $probe
+                $shell = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
+                $result = & $shell -NoLogo -NoProfile -File $probe $script:ModulePath $tempDir $dllPath
+                $LASTEXITCODE | Should -Be 0
+                $result | Should -Contain 'fresh-bridge-loaded'
             } finally {
                 Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
             }

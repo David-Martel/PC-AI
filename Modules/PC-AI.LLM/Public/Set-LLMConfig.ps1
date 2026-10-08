@@ -31,7 +31,9 @@ function Set-LLMConfig {
         Display current configuration without making changes
 
     .PARAMETER Reset
-        Reset configuration to default values
+        Restore model, endpoint and timeout values captured at module startup,
+        including the machine's project config and settings.json overrides.
+        Provider order and unrelated model/runtime tuning remain unchanged.
 
     .EXAMPLE
         Set-LLMConfig -DefaultModel "deepseek-r1:8b"
@@ -47,7 +49,7 @@ function Set-LLMConfig {
 
     .EXAMPLE
         Set-LLMConfig -Reset
-        Resets all settings to defaults
+        Restores the configured machine model, endpoints and timeout.
 
     .OUTPUTS
         PSCustomObject with current configuration
@@ -91,6 +93,21 @@ function Set-LLMConfig {
         $configPath = $script:ModuleConfig.ConfigPath
         $projectConfigPath = $script:ModuleConfig.ProjectConfigPath
         $targetConfigPath = if (-not [string]::IsNullOrWhiteSpace($projectConfigPath)) { $projectConfigPath } else { $configPath }
+
+        # Reject inherited invalid fallback entries before changing memory or disk.
+        # Read-only inspection remains available for diagnosing a broken config.
+        if (-not $ShowConfig -and ($Reset -or @('DefaultModel', 'PcaiInferenceApiUrl', 'OllamaApiUrl', 'LMStudioApiUrl', 'OllamaPath', 'DefaultTimeout').Where({ $PSBoundParameters.ContainsKey($_) }).Count -gt 0)) {
+            $providerOrder = if ($script:ModuleConfig.ProviderOrder -and $script:ModuleConfig.ProviderOrder.Count -gt 0) {
+                @($script:ModuleConfig.ProviderOrder)
+            } else {
+                @('ollama', 'pcai-inference')
+            }
+            Assert-LLMProviderOrder -Order $providerOrder
+        }
+
+        # These setters replace values; a shallow snapshot preserves prior settings
+        # when serialization or persistence fails, without changing machine defaults.
+        $previousConfig = $script:ModuleConfig.Clone()
 
         # Default configuration snapshot captured at module load time.
         if ($script:ModuleDefaults -and $script:ModuleDefaults.Count -gt 0) {
@@ -152,6 +169,13 @@ function Set-LLMConfig {
                 throw 'Cannot persist LLM configuration because no target config path is defined.'
             }
 
+            $fallbackOrder = if ($script:ModuleConfig.ProviderOrder -and $script:ModuleConfig.ProviderOrder.Count -gt 0) {
+                @($script:ModuleConfig.ProviderOrder)
+            } else {
+                @('ollama', 'pcai-inference')
+            }
+            Assert-LLMProviderOrder -Order $fallbackOrder
+
             $targetDir = Split-Path -Parent $TargetPath
             if (-not (Test-Path $targetDir)) {
                 New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
@@ -172,12 +196,6 @@ function Set-LLMConfig {
 
             $router = Initialize-ConfigProperty -Object $projectConfig -Name 'router' -DefaultValue ([PSCustomObject]@{})
             $ollamaRuntime = Initialize-ConfigProperty -Object $projectConfig -Name 'ollama' -DefaultValue ([PSCustomObject]@{})
-            $fallbackOrder = if ($script:ModuleConfig.ProviderOrder -and $script:ModuleConfig.ProviderOrder.Count -gt 0) {
-                @($script:ModuleConfig.ProviderOrder)
-            } else {
-                @('ollama', 'pcai-inference')
-            }
-
             Set-ConfigValue -Object $pcaiProvider -Name 'baseUrl' -Value $script:ModuleConfig.PcaiInferenceApiUrl
             Set-ConfigValue -Object $pcaiProvider -Name 'defaultModel' -Value $script:ModuleConfig.DefaultModel
             Set-ConfigValue -Object $pcaiProvider -Name 'timeout' -Value ([int]($script:ModuleConfig.DefaultTimeout * 1000))
@@ -234,7 +252,8 @@ function Set-LLMConfig {
                 Write-Host "Configuration reset successfully" -ForegroundColor Green
             }
             catch {
-                Write-Error "Failed to save configuration: $_"
+                $script:ModuleConfig = $previousConfig
+                Write-Error -Message "Failed to save configuration: $_" -Exception $_.Exception
             }
         }
         elseif ($ShowConfig) {
@@ -309,7 +328,8 @@ function Set-LLMConfig {
                     Write-Verbose "Configuration saved to: $targetConfigPath"
                 }
                 catch {
-                    Write-Error "Failed to save configuration: $_"
+                    $script:ModuleConfig = $previousConfig
+                    Write-Error -Message "Failed to save configuration: $_" -Exception $_.Exception
                 }
             }
             else {

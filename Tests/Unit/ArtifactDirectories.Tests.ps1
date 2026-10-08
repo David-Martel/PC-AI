@@ -2,7 +2,19 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
 
 BeforeAll {
-    . (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'Tools/PcaiArtifactDirectories.ps1')
+    $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    . (Join-Path $repoRoot 'Tools/PcaiArtifactDirectories.ps1')
+    $tokens = $null
+    $errors = $null
+    $buildAst = [Management.Automation.Language.Parser]::ParseFile((Join-Path $repoRoot 'Build.ps1'), [ref]$tokens, [ref]$errors)
+    if ($errors.Count) { throw 'Build.ps1 must parse before testing publication.' }
+    foreach ($name in @('Publish-PcaiNativeBundle', 'Publish-StagedArtifact')) {
+        $functionAst = $buildAst.Find({ param($node)
+            $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
+        }, $true)
+        . ([scriptblock]::Create($functionAst.Extent.Text))
+    }
+    function Resolve-CargoOutputDirectory { param($ProjectDir, $Configuration) Join-Path $script:ProjectRoot 'absent-target' }
 }
 
 Describe 'Stable artifact revisions preserve evidence' {
@@ -47,5 +59,34 @@ Describe 'Stable artifact revisions preserve evidence' {
             { New-PcaiArtifactDirectory -Root $root -Name 'build' } | Should -Throw
             @(Get-ChildItem -LiteralPath $root -Directory).Count | Should -Be 0
         } finally { $handle.Dispose() }
+    }
+
+    It 'preserves actual published bundles from independent build roots with identical run labels' {
+        $script:ProjectRoot = Join-Path $TestDrive 'publication-repo'
+        $tools = Join-Path $script:ProjectRoot 'Tools'
+        [void](New-Item -ItemType Directory -Path $tools -Force)
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'Tools/PcaiArtifactDirectories.ps1') -Destination $tools
+        $script:VersionInfo = $null
+        $script:BuildRunLabel = 'build-r1'
+        $publications = @()
+        foreach ($sourceName in @('build-root-one', 'build-root-two')) {
+            $source = Join-Path $TestDrive $sourceName
+            [void](New-Item -ItemType Directory -Path $source)
+            foreach ($leaf in @('PcaiNative.dll', 'PcaiNative.deps.json', 'pcai_core_lib.dll')) {
+                [IO.File]::WriteAllText((Join-Path $source $leaf), "$sourceName-$leaf")
+            }
+            $publications += Publish-PcaiNativeBundle -PublishRoot $source -Configuration Release
+        }
+        $publications[0].BundleRoot | Should -Not -Be $publications[1].BundleRoot
+        $publications[0].BundleName | Should -Be 'native-unknown-r1'
+        $publications[1].BundleName | Should -Be 'native-unknown-r2'
+        foreach ($index in 0..1) {
+            $manifest = Get-Content -LiteralPath $publications[$index].ManifestPath -Raw | ConvertFrom-Json
+            @($manifest.files).Count | Should -Be 3
+            foreach ($entry in $manifest.files) {
+                (Get-FileHash -LiteralPath $entry.DestinationPath).Hash | Should -BeExactly $entry.Sha256
+            }
+        }
+        [IO.File]::ReadAllText((Join-Path $publications[0].BundleRoot 'PcaiNative.dll')) | Should -Be 'build-root-one-PcaiNative.dll'
     }
 }

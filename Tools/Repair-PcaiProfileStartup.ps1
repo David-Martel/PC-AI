@@ -16,7 +16,10 @@ Publishes the reviewed patch. Requires ExpectedSha256 unless DryRun or WhatIf.
 .PARAMETER ExpectedSha256
 SHA256 of the existing profile, checked before planning and again before replacing.
 .PARAMETER BackupRoot
-Private custody directory outside Git. Defaults to LOCALAPPDATA/PC_AI/ProfileRepairs.
+Private custody directory outside Git on the profile volume. Default resolution
+tries LOCALAPPDATA/PC_AI/ProfileRepairs, then ProgramData/PC_AI/ProfileRepairs/<user-SID>.
+If neither qualifies, read-only plans require an explicit -BackupRoot before Apply.
+Candidate discovery does not create directories or prove write permission.
 .PARAMETER DryRun
 Plans without filesystem, environment or registry writes.
 .PARAMETER Help
@@ -33,7 +36,7 @@ Backups use stable rN names and contain private original bytes; never add them t
 [CmdletBinding(SupportsShouldProcess = $true, PositionalBinding = $false)]
 param(
     [string]$ProfilePath = (Join-Path $HOME '.config/powershell/Microsoft.PowerShell_profile.ps1'),
-    [string]$BackupRoot = (Join-Path $env:LOCALAPPDATA 'PC_AI/ProfileRepairs'),
+    [string]$BackupRoot,
     [ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$ExpectedSha256,
     [switch]$Apply,
     [switch]$DryRun,
@@ -68,6 +71,33 @@ function Assert-RepairPath {
         if ($parent -eq $cursor) { break }
         $cursor = $parent
     }
+}
+function Resolve-PrivateProfileBackupRoot {
+    param([string]$TargetPath, [string]$RequestedRoot)
+    $volume = [IO.Path]::GetPathRoot($TargetPath)
+    if ($RequestedRoot) {
+        $resolved = [IO.Path]::GetFullPath($RequestedRoot)
+        if (-not $volume.Equals([IO.Path]::GetPathRoot($resolved), [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Private backup custody must share the profile volume for atomic displacement capture. Supply -BackupRoot with a path on that volume outside Git.'
+        }
+        Assert-RepairPath -Path $resolved -OutsideGit
+        return [pscustomobject]@{ Path = $resolved; Required = $false; Issue = $null }
+    }
+    $candidates = [Collections.Generic.List[string]]::new()
+    if ($env:LOCALAPPDATA) { $candidates.Add((Join-Path $env:LOCALAPPDATA 'PC_AI/ProfileRepairs')) }
+    if ($IsWindows -and $env:ProgramData) {
+        $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        $candidates.Add((Join-Path $env:ProgramData "PC_AI/ProfileRepairs/$sid"))
+    }
+    foreach ($candidate in $candidates) {
+        try {
+            $resolved = [IO.Path]::GetFullPath($candidate)
+            if (-not $volume.Equals([IO.Path]::GetPathRoot($resolved), [StringComparison]::OrdinalIgnoreCase)) { continue }
+            Assert-RepairPath -Path $resolved -OutsideGit
+            return [pscustomobject]@{ Path = $resolved; Required = $false; Issue = $null }
+        } catch { continue }
+    }
+    return [pscustomobject]@{ Path = $null; Required = $true; Issue = 'No automatic same-volume custody path outside Git qualifies. Supply -BackupRoot with a writable private directory on the profile volume outside every Git checkout.' }
 }
 function Set-PrivateRepairAcl {
     param([string]$Path, [switch]$Directory)
@@ -148,12 +178,10 @@ function Restore-DisplacedProfile {
 }
 
 $ProfilePath = [IO.Path]::GetFullPath($ProfilePath)
-$BackupRoot = [IO.Path]::GetFullPath($BackupRoot)
 Assert-RepairPath -Path $ProfilePath
-Assert-RepairPath -Path $BackupRoot -OutsideGit
-if (-not [IO.Path]::GetPathRoot($ProfilePath).Equals([IO.Path]::GetPathRoot($BackupRoot), [StringComparison]::OrdinalIgnoreCase)) {
-    throw 'Private backup custody must share the profile volume for atomic displacement capture.'
-}
+if ($PSBoundParameters.ContainsKey('BackupRoot') -and [string]::IsNullOrWhiteSpace($BackupRoot)) { throw 'Explicit BackupRoot cannot be empty.' }
+$custody = Resolve-PrivateProfileBackupRoot -TargetPath $ProfilePath -RequestedRoot $BackupRoot
+$BackupRoot = $custody.Path
 if (-not (Test-Path -LiteralPath $ProfilePath -PathType Leaf)) { throw 'Canonical profile file is missing.' }
 if ($Apply -and -not $WhatIfPreference -and -not $ExpectedSha256) { throw 'Apply requires ExpectedSha256 from the reviewed profile.' }
 $originalBytes = [IO.File]::ReadAllBytes($ProfilePath)
@@ -206,16 +234,18 @@ $newBytes = [byte[]]::new($offset + $body.Length)
 if ($offset) { [Array]::Copy($originalBytes, 0, $newBytes, 0, $offset) }
 [Array]::Copy($body, 0, $newBytes, $offset, $body.Length)
 $afterHash = Get-BytesSha256 -Bytes $newBytes
-$result = [ordered]@{ ProfilePath = $ProfilePath; BeforeSha256 = $beforeHash; AfterSha256 = $afterHash; Changes = @($changes); State = 'Planned'; Receipt = $null }
+$result = [ordered]@{ ProfilePath = $ProfilePath; BackupRoot = $BackupRoot; BackupRootRequired = $custody.Required; CustodyIssue = $custody.Issue; BeforeSha256 = $beforeHash; AfterSha256 = $afterHash; Changes = @($changes); State = 'Planned'; Receipt = $null }
 if ($changes.Count -eq 0) { $result.State = 'AlreadyApplied'; [pscustomobject]$result; return }
 if (-not $Apply -or -not $PSCmdlet.ShouldProcess($ProfilePath, 'Preserve private original bytes and apply three guarded startup repairs')) {
     [pscustomobject]$result; return
 }
+if ($custody.Required) { throw $custody.Issue }
 
 $pathHash = Get-BytesSha256 -Bytes ([Text.Encoding]::UTF8.GetBytes($ProfilePath.ToUpperInvariant()))
 $custodyRoot = Join-Path $BackupRoot ("profile-" + $pathHash.Substring(0, 16).ToLowerInvariant())
 Assert-RepairPath -Path $custodyRoot -OutsideGit
-[void](New-Item -ItemType Directory -Path $custodyRoot -Force)
+try { [void](New-Item -ItemType Directory -Path $custodyRoot -Force) }
+catch { throw 'Cannot create private backup custody. Supply -BackupRoot with a writable same-volume private directory outside Git; profile bytes have not been replaced.' }
 Set-PrivateRepairAcl -Path $custodyRoot -Directory
 $lock = [IO.File]::Open((Join-Path $custodyRoot 'repair.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
 $receipt = $null
@@ -230,8 +260,10 @@ try {
     $backupPath = Join-Path $transaction 'original.bin'
     $displacedPath = Join-Path $transaction 'displaced-original.bin'
     $receiptPath = Join-Path $transaction 'receipt.json'
-    $stagePath = Join-Path (Split-Path -Parent $ProfilePath) ('.' + [IO.Path]::GetFileName($ProfilePath) + '.pcai-stage')
-    Assert-RepairPath -Path $stagePath
+    # A whole-home Git checkout must never see a transient copy of private profile contents.
+    # File.Replace requires the same volume, but does not require the same directory.
+    $stagePath = Join-Path $transaction 'staged-profile.ps1'
+    Assert-RepairPath -Path $stagePath -OutsideGit
     if (Test-Path -LiteralPath $stagePath) { throw 'Profile staging path already exists; preserve and review it.' }
     $receipt = [ordered]@{ SchemaVersion = 2; ProfilePath = $ProfilePath; BackupPath = $backupPath; DisplacedPath = $displacedPath; DisplacedSha256 = $null; StagePath = $stagePath; BeforeSha256 = $beforeHash; AfterSha256 = $afterHash; Changes = @($changes); ObservedUtc = [DateTime]::UtcNow.ToString('o'); State = 'Preserving'; RecoveryState = $null; RecoveryAttempts = [Collections.Generic.List[object]]::new(); Error = $null }
     $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $receiptPath -Encoding utf8

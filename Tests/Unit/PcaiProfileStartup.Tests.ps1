@@ -59,11 +59,15 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
         $script:ExpectedHash = (Get-FileHash -LiteralPath $script:FixtureProfile).Hash
         $script:SavedModulePath = $env:PSModulePath
         $script:SavedBusToken = $env:AGENT_BUS_AUTH_TOKEN
+        $script:SavedLocalAppData = $env:LOCALAPPDATA
+        $script:SavedProgramData = $env:ProgramData
         $script:Parameters = @{ ProfilePath = $script:FixtureProfile; BackupRoot = $script:FixtureBackup }
     }
     AfterEach {
         $env:PSModulePath = $script:SavedModulePath
         $env:AGENT_BUS_AUTH_TOKEN = $script:SavedBusToken
+        $env:LOCALAPPDATA = $script:SavedLocalAppData
+        $env:ProgramData = $script:SavedProgramData
         Remove-Variable -Name PcaiProfileRaceFixture -Scope Global -ErrorAction SilentlyContinue
     }
 
@@ -250,6 +254,72 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
     It 'rejects backup roots inside Git before storing private original bytes' {
         [void](New-Item -ItemType Directory -Path (Join-Path $script:FixtureRoot '.git'))
         { & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 $script:ExpectedHash -Confirm:$false } | Should -Throw '*outside Git*'
+        Test-Path -LiteralPath $script:FixtureBackup | Should -BeFalse
+    }
+
+    It 'resolves whole-home Git default custody outside that checkout without read-only writes' {
+        $gitHome = Join-Path $script:FixtureRoot 'home-checkout'
+        $profileRoot = Join-Path $gitHome '.config/powershell'
+        [void](New-Item -ItemType Directory -Path $profileRoot -Force)
+        [void](New-Item -ItemType Directory -Path (Join-Path $gitHome '.git'))
+        $profile = Join-Path $profileRoot 'canonical-profile.ps1'
+        [IO.File]::Move($script:FixtureProfile, $profile)
+        $env:LOCALAPPDATA = Join-Path $gitHome 'AppData/Local'
+        $env:ProgramData = Join-Path $script:FixtureRoot 'shared-machine-data'
+        $beforeFiles = @(Get-ChildItem -LiteralPath $script:FixtureRoot -File -Recurse | Select-Object -ExpandProperty FullName)
+        $planned = & $script:RepairTool -ProfilePath $profile -DryRun
+        $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        $planned.BackupRoot | Should -BeExactly (Join-Path $env:ProgramData "PC_AI/ProfileRepairs/$sid")
+        $planned.BackupRootRequired | Should -BeFalse
+        $planned.Changes.Count | Should -Be 3
+        Test-Path -LiteralPath $env:ProgramData | Should -BeFalse
+        Test-Path -LiteralPath $env:LOCALAPPDATA | Should -BeFalse
+        @(Get-ChildItem -LiteralPath $script:FixtureRoot -File -Recurse | Select-Object -ExpandProperty FullName) | Should -Be $beforeFiles
+        (Get-FileHash -LiteralPath $profile).Hash | Should -BeExactly $script:ExpectedHash
+    }
+
+    It 'applies whole-home Git profile repairs only with outside-Git backup and staging custody' {
+        $gitHome = Join-Path $script:FixtureRoot 'home-checkout'
+        [void](New-Item -ItemType Directory -Path $gitHome)
+        [void](New-Item -ItemType Directory -Path (Join-Path $gitHome '.git'))
+        $profile = Join-Path $gitHome 'canonical-profile.ps1'
+        [IO.File]::Move($script:FixtureProfile, $profile)
+        $env:LOCALAPPDATA = Join-Path $gitHome 'AppData/Local'
+        $env:ProgramData = Join-Path $gitHome 'machine-data-also-in-git'
+        $plan = & $script:RepairTool -ProfilePath $profile -DryRun
+        $plan.BackupRootRequired | Should -BeTrue
+        $plan.CustodyIssue | Should -Match 'Supply -BackupRoot'
+        { & $script:RepairTool -ProfilePath $profile -Apply -ExpectedSha256 $script:ExpectedHash -Confirm:$false } | Should -Throw '*Supply -BackupRoot*'
+        Test-Path -LiteralPath $env:LOCALAPPDATA | Should -BeFalse
+        Test-Path -LiteralPath $env:ProgramData | Should -BeFalse
+        $result = & $script:RepairTool -ProfilePath $profile -BackupRoot $script:FixtureBackup -Apply -ExpectedSha256 $script:ExpectedHash -Confirm:$false
+        $receipt = Get-Content -LiteralPath $result.Receipt -Raw | ConvertFrom-Json
+        $receipt.BackupPath.StartsWith($gitHome, [StringComparison]::OrdinalIgnoreCase) | Should -BeFalse
+        $receipt.StagePath.StartsWith($gitHome, [StringComparison]::OrdinalIgnoreCase) | Should -BeFalse
+        $receipt.DisplacedPath.StartsWith($gitHome, [StringComparison]::OrdinalIgnoreCase) | Should -BeFalse
+        $result.State | Should -Be Applied
+        (Get-FileHash -LiteralPath $receipt.BackupPath).Hash | Should -BeExactly $script:ExpectedHash
+        @(Get-ChildItem -LiteralPath $gitHome -File -Recurse).Count | Should -Be 1
+    }
+
+    It 'keeps WhatIf readonly when every automatic custody candidate is inside Git' {
+        [void](New-Item -ItemType Directory -Path (Join-Path $script:FixtureRoot '.git'))
+        $env:LOCALAPPDATA = Join-Path $script:FixtureRoot 'local-app-data'
+        $env:ProgramData = Join-Path $script:FixtureRoot 'machine-data'
+        $result = & $script:RepairTool -ProfilePath $script:FixtureProfile -Apply -WhatIf
+        $result.State | Should -Be Planned
+        $result.BackupRootRequired | Should -BeTrue
+        Test-Path -LiteralPath $env:LOCALAPPDATA | Should -BeFalse
+        Test-Path -LiteralPath $env:ProgramData | Should -BeFalse
+        (Get-FileHash -LiteralPath $script:FixtureProfile).Hash | Should -BeExactly $script:ExpectedHash
+    }
+
+    It 'rejects cross-volume explicit custody in read-only and Apply modes before writes' {
+        $drive = if ([IO.Path]::GetPathRoot($script:FixtureProfile) -eq 'Z:\') { 'Y:\' } else { 'Z:\' }
+        $otherVolume = $drive + 'pcai-private-fixture'
+        { & $script:RepairTool -ProfilePath $script:FixtureProfile -BackupRoot $otherVolume -DryRun } | Should -Throw '*share the profile volume*'
+        { & $script:RepairTool -ProfilePath $script:FixtureProfile -BackupRoot $otherVolume -Apply -ExpectedSha256 $script:ExpectedHash -Confirm:$false } | Should -Throw '*share the profile volume*'
+        (Get-FileHash -LiteralPath $script:FixtureProfile).Hash | Should -BeExactly $script:ExpectedHash
         Test-Path -LiteralPath $script:FixtureBackup | Should -BeFalse
     }
 

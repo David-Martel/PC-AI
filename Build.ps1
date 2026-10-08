@@ -1018,9 +1018,6 @@ function Publish-PcaiNativeBundle {
 
     $repoBinRoot = Join-Path $script:ProjectRoot 'bin'
     $bundleParent = Join-Path $repoBinRoot 'native-bundles'
-    if (-not (Test-Path -LiteralPath $bundleParent)) {
-        New-Item -ItemType Directory -Path $bundleParent -Force | Out-Null
-    }
 
     $versionLabel = if ($script:VersionInfo) {
         if ($script:VersionInfo.ReleaseTag) {
@@ -1036,11 +1033,12 @@ function Publish-PcaiNativeBundle {
         'unknown'
     }
 
-    $bundleName = '{0}-{1}' -f (ConvertTo-SafePathLabel -Value $versionLabel), $script:BuildRunLabel
-    $bundleRoot = Join-Path $bundleParent $bundleName
-    if (-not (Test-Path -LiteralPath $bundleRoot)) {
-        New-Item -ItemType Directory -Path $bundleRoot -Force | Out-Null
-    }
+    # Allocate at the shared publication root: independent build roots can both
+    # have a build-r1 log directory and must never reuse a published bundle.
+    . (Join-Path $script:ProjectRoot 'Tools/PcaiArtifactDirectories.ps1')
+    $bundleLabel = 'native-' + ($versionLabel -replace '[^A-Za-z0-9_-]', '_')
+    $bundleRoot = New-PcaiArtifactDirectory -Root $bundleParent -Name $bundleLabel
+    $bundleName = Split-Path -Leaf $bundleRoot
 
     $coreProjectDir = Join-Path $script:ProjectRoot 'Native\\pcai_core'
     $coreTargetDir = Resolve-CargoOutputDirectory -ProjectDir $coreProjectDir -Configuration $Configuration
@@ -1089,6 +1087,7 @@ function Publish-PcaiNativeBundle {
         bundleRoot = $bundleRoot
         createdAt = (Get-Date).ToUniversalTime().ToString('o')
         configuration = $Configuration
+        sourceBuildRun = $script:BuildRunLabel
         releaseTag = if ($script:VersionInfo) { $script:VersionInfo.ReleaseTag } else { $null }
         semVer = if ($script:VersionInfo) { $script:VersionInfo.SemVer } else { $null }
         informationalVersion = if ($script:VersionInfo) { $script:VersionInfo.InformationalVersion } else { $null }

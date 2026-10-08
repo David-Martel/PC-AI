@@ -58,4 +58,21 @@ Describe 'Explicit native bundle custody' {
         foreach ($leaf in @('PcaiNative.dll', 'pcai_core_lib.dll')) { Set-Content -LiteralPath (Join-Path $complete $leaf) -Value 'fixture' }
         @(Get-PcaiNativeCandidatePaths -BasePaths @($partial, $complete)) | Should -Be @($complete)
     }
+
+    It 'canonicalizes a relative override for subsequent managed resolution' {
+        $root = Join-Path $TestDrive 'relative-location'
+        $bundle = Join-Path $root 'paired'
+        [void](New-Item -ItemType Directory -Path $bundle -Force)
+        foreach ($leaf in @('PcaiNative.dll', 'pcai_core_lib.dll')) {
+            Set-Content -LiteralPath (Join-Path $bundle $leaf) -Value 'fixture'
+        }
+        Push-Location $root
+        try {
+            $env:PCAI_NATIVE_BUNDLE_ROOT = './paired'
+            Initialize-PcaiNative -WarningAction SilentlyContinue | Should -BeFalse
+            $env:PCAI_NATIVE_BUNDLE_ROOT | Should -BeExactly $bundle
+            $script:PcaiNativeDllPath | Should -BeExactly $bundle
+            Should -Invoke Add-Type -Times 1 -ParameterFilter { $Path -eq (Join-Path $bundle 'PcaiNative.dll') }
+        } finally { Pop-Location }
+    }
 }

@@ -8,7 +8,7 @@
     - pcai_core_lib.dll - Unified Core engine (Search, Duplicates, System)
     - PcaiNative.dll    - Managed C# bridge
 
-    These provide 5-15x speedup over PowerShell equivalents.
+    Measure performance using the tooling benchmarks for the selected workload.
 
     IMPORTANT: Requires PowerShell 7+ (.NET 8) for the C# wrapper to load.
 #>
@@ -83,6 +83,9 @@ function Initialize-PcaiNative {
                     throw "Explicit PCAI native bundle is incomplete: $leaf"
                 }
             }
+            # PowerShell location can differ from .NET's process directory.
+            # Pass the same canonical root to subsequent managed P/Invoke loads.
+            $env:PCAI_NATIVE_BUNDLE_ROOT = $explicitBundle
         } catch {
             Write-Warning "Cannot select explicit PCAI native bundle: $_"
             $script:PcaiNativeLoaded = $false

@@ -144,12 +144,13 @@ The new collector is [Collect-WorkloadResourceProfile.ps1](../../Tools/Collect-W
 Run status and validated source hashes are recorded separately in
 `capture-launch.json` and `validation.json` when available.
 
-The hour capture began at 18:17:27 UTC (14:17 Eastern), with collection starting
-after initialization; nominal completion is 19:17:57 UTC (15:17 Eastern). It uses
-30-second sampling without GPU counters and was verified running with flushed
-samples. The hour remains incomplete at report preparation. Its launch source
-is recorded separately from a later reviewed fix for empty-process-query
-handling; the process was not restarted or retroactively assigned the newer hash.
+The hour capture completed with 120 samples over 3,600.301 seconds, from
+18:17:57 to 19:17:58 UTC (14:17 to 15:17 Eastern). See the
+[completed baseline review](baseline-review.md) for verified integrity, separate
+development/diagnostic windows, media capability checks and remaining gaps.
+The operator confirmed no live calls. The archived launch source is distinct
+from later maintained-source fixes; the collector was not restarted or
+retroactively assigned a newer hash. Detailed telemetry remains local.
 
 The priority order is: unchanged baseline; SmartTrim comparison; live-media
 policy; reuse/deferrable-work comparisons; then CPU-placement/power/GPU/network

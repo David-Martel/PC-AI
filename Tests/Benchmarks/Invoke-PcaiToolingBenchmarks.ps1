@@ -60,7 +60,7 @@ function Get-PowerShellDirectoryManifest {
         EntriesReturned = [uint64]$entries.Count
         FileCount = [uint64]$files.Count
         DirectoryCount = [uint64]$directories.Count
-        TotalSize = [uint64](($files | Measure-Object -Property Length -Sum).Sum)
+        TotalSize = if ($files.Count -eq 0) { [uint64]0 } else { [uint64](($files | Measure-Object -Property Length -Sum).Sum) }
     }
 }
 

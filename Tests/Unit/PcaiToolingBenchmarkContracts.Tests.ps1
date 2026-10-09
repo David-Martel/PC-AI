@@ -182,6 +182,7 @@ Export-ModuleMember -Function Test-PcaiNativeAvailable,Get-PcaiNativeStatus,Get-
         $result.EntriesReturned|Should -Be 1;$result.TotalSize|Should -Be 3
     }
     It 'returns numeric zero statistics for an actual empty private directory' {
+        Set-StrictMode -Version Latest
         $empty=Join-Path $TestDrive 'empty';$null=[IO.Directory]::CreateDirectory($empty)
         $result=Get-PowerShellDirectoryManifest -Path $empty
         $result.EntriesReturned|Should -Be 0;$result.FileCount|Should -Be 0

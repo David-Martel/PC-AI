@@ -43,6 +43,30 @@ See [the qualified maintenance report](Reports/bitwarden-connectivity-20261005.m
 - [ ] Harden IronRDP certificate verification and imported clipboard/authentication
       policy before direct-VPN credential use; validate an actual current artifact.
 
+## Fleet consumer and owned-process reconciliation
+
+Current evidence: [fleet integration review](Reports/fleet-integration-review.md).
+Owner: Codex integration lane, coordinated with the Work and Carbon runtime owners.
+
+- [x] Preserve exact owned process-handle custody when termination or closure cannot
+      be confirmed; retain original failures, provide explicit GUID retry/WhatIf,
+      and block replacement. All 46 focused Windows fixtures pass without skips,
+      including failed native close, blocked input and normal-parent descendants.
+- [x] Preserve Windows PowerShell 5.1 native-device JSON validation and verify
+      seventeen adversarial cases plus eleven actual Windows PowerShell shapes.
+- [ ] Finish same-file native-bundle path canonicalization for Windows short names
+      and same-bridge StrictMode reuse; verify current-head hosted CI before merge.
+- [ ] Finish the exact rebuilt native Core/CLI/C# pair, CPU sampling qualification,
+      parity benchmarks and complete per-host module/bundle deployment.
+- [ ] Admit the reviewed credential adapter source only after failed-cleanup
+      custody tests and provenance checks; preserve credential/config material
+      outside Git. Work's actual unlock/session reuse is a separate passed gate.
+- [ ] Qualify/install the new git-guard hygiene release before running its report,
+      dry drain and guarded apply. Installed v0.2.9 lacks those commands; protect
+      the live owner's successor work and verify retained refs/ignored WIP first.
+- [ ] Refresh the final registered-worktree and GitHub inventory after all reviewed
+      PR disposition, source equivalence and runtime-owner handoffs.
+
 
 ## Input and task oversight closeout (2026-10-04)
 

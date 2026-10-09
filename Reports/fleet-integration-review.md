@@ -1,6 +1,6 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 8, 2026. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 9, 2026 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
@@ -43,13 +43,31 @@ The first installer attempt preserved the previous release when MSYS copied a
 directory instead of creating a link. PR 49 fixes that defect and restores prior
 hooks/docs when late native-link creation fails: 43 actual Windows fixtures
 passed with no skips, and both full CI jobs passed. Its source merged as
-`c42347d`; a separate v0.2.9 release is being prepared without changing v0.2.8.
+`c42347d`. PRs 50 and 51 completed v0.2.9 and corrected the Docker CI runner
+selection. Main and origin match `46cd373`; its current-head CI passed. Signed
+immutable tag v0.2.9 was verified and installed through the normal Windows
+installer. Actual unsafe-commit rejection and clean-commit admission passed.
+The predecessor release, overlays and retired local/remote ref tips retain
+verified bundle/hash custody. A later live writer has new hygiene implementation
+work in this repository; that work is protected while ownership is reconciled.
+The reviewed installed v0.2.9 does not implement the newly required
+`hygiene report/drain` commands, and installed QA guidance lacks section 12.
+Its help output with exit zero is not a hygiene report. Qualification and
+installation of the owner's reviewed successor must precede automated drain.
+Independent review of PR 53 reproduced deletion of a concurrently changed
+ancestor branch despite the supplied expected tip. The finding is recorded on
+the PR with a real Git reproduction; active source edits remain protected and
+no automated drain apply has been admitted.
 
 ## Repaired behavior
 
 - The module installer verifies staged bytes, preserves existing installations and
   unrelated module-path roots, and provides genuine dry-run behavior. Copies are
   the default; live junctions require an explicit selection.
+  It inventories all fifteen development modules, including the paired flat
+  Media/Inference manifests. Sparse copies, incomplete explicit bundles and
+  unsupported flat junction publication fail closed. All 328 discovered module
+  contracts and a private fifteen-module install/consumer witness passed.
 - The profile shim derives roots from the current consumer's environment and
   rejects a self-referencing canonical path. The canonical p1 profile now honors
   the module-path skip flag, resolves its developer module root consistently and
@@ -76,7 +94,10 @@ passed with no skips, and both full CI jobs passed. Its source merged as
 - Device diagnostics consume the native `config_error_code` and `pnp_class`
   fields. Malformed or fractional codes discard the complete native result and
   fall back to CIM. Ten adversarial fixtures passed; an actual native/CIM run
-  agreed on all 588 devices and three error devices. The capability catalogue
+  agreed on all 588 devices and three error devices. Seventeen adversarial array
+  and row fixtures now pass; an actual Windows PowerShell 5.1 run qualified eleven
+  JSON shapes without dropping the module's supported consumer version.
+  The capability catalogue
   uses the exported token-estimation command. The advertised Defender helper
   and evaluation-suite help now resolve through their actual public contracts.
 - Optional media upscaling absent from a CPU-only DLL produces a clear feature
@@ -87,6 +108,21 @@ passed with no skips, and both full CI jobs passed. Its source merged as
   remain nonmutating; unrelated addresses and ambiguous state refuse before
   assignment. All 144 affected fixtures passed, with zero analyzer issues.
   Actual network Apply was not executed.
+- Owned Windows process cleanup confirms exit across redundant termination races,
+  independently attempts handle closure and preserves the original error with
+  exact-handle custody when cleanup remains unconfirmed. Explicit GUID retry and
+  WhatIf preserve that custody; replacement launches are blocked meanwhile.
+  Forty-six focused fixtures passed without skips, including a real failed
+  native close, blocked stdin and descendant termination after normal parent exit.
+  Cleanup waits at most two additional seconds; loaded older helpers require a
+  fresh PowerShell process rather than silently retaining old behavior.
+- API tests write generated reports under their private test directory and verify
+  that tracked reports are unchanged. The maintained report now accounts for all
+  twenty-two standalone public exports and uses repository-relative paths.
+  Its inventory reports 262 functions and 184 functions lacking comment help.
+  The C#/Rust comparison explicitly describes its limited core-import scope;
+  it does not qualify every optional Media/Inference export.
+  Flat wrappers are explicitly included in the coverage configuration.
 
 ## Verification and measurements
 
@@ -106,10 +142,23 @@ missing-file cases also assert that they did not pass through mock exceptions.
 Subsequent hosted CI exposed a false-positive in two successful-loading fixtures:
 their assertion loaded the fixture assembly itself. Fresh child tests now select
 the actual project root and only inspect assemblies the initializer already
-loaded. All 99 fixtures pass under both Pester 6.2 and CI's Pester 5.9.1.
+loaded. A separate fresh producer and loader passed 94 affected fixtures locally
+under CI's Pester 5.9.1; hosted failures remained. Printed current-head diagnostics
+then proved that Windows 8.3 paths and .NET-expanded assembly locations referred
+to the same DLL but were incorrectly classified as different bundles. This is
+a real consumer canonicalization defect, and its production fix and exact-head
+CI remain required. Review also found a stale assembly variable introduced while
+extracting discovery; a same-loaded-bridge StrictMode witness is required with
+its repair. The reviewed nine-file repair now passes all 469 focused cases under
+Pester 5.9.1 without skips, including actual short-directory and short-leaf
+selection, real Core calls, same-bridge StrictMode reuse and rejection of copied
+identical-byte DLLs from a foreign root. Those runtime checks bind the earlier
+qualified DLL pair, not the pending new sampler. Current-head hosted CI is still
+required; the measured loader coverage was 32.08%, not its displayed target.
 Restoring discovery of parameterized module contracts exposed three further
 public-surface defects. After correction, all 286 module-loading contracts pass
-under both Pester versions, with no skipped or undiscovered cases. The bounded
+under both Pester versions, with no skipped or undiscovered cases. The later
+standalone export/install correction expanded this to 328 actual contracts. The bounded
 suite is now included in the CI configuration.
 Ten artifact-publication fixtures passed, including repeated aggregate publication,
 ZIP collision and clean preservation. The actual media DLL remains
@@ -127,20 +176,48 @@ traversal policies and output limits require parity checks before speedup claims
 | Surface | Current evidence | Owner and next action |
 | --- | --- | --- |
 | dtm-carbon-two | CPU-only Intel graphics; Rust stable 1.99.0 and private SDK 10.0.401 verified. Core passed 59 unit tests, one documentation test and strict Clippy. Managed candidate passed 17 tests and 18 independent native fixtures. Alternating benchmark pairs show no material candidate regression or speedup. Canonical profile has an intentional alternate structure; the p1 repair planner fails closed. | Root/fleet: coordinated final-head stamped rebuild and CPU deployment preserving profile/auth, junctions, private overlays and the untracked build script. Configured model assets are absent; shared GPU defaults need host-specific overrides before AI execution. |
-| dtm-work | Strict SSH reached DTM-WORK after the peer returned online. Work has PowerShell 7.6.6, approximately 112 GiB free RAM and a Quadro RTX 4000. The actual checkout is `C:/codedev/pc-ai`, with sixteen tracked changes and three untracked source files retained. Its profile shim selects a missing canonical core; the surviving OneDrive profile and WinGet executables require consumer-path repair. Real Bitwarden/rclone package executables run, while their WinGet links fail with an untrusted-mount-point error in SSH. Vault bootstrap/cloud sync and the existing Cloudflare management credential succeeded; the Network key's Site Manager 401 remains a separate scope result. | Root/fleet: preserve exact Work WIP bytes and refs, reconcile unique source changes and repair profile/tool paths with original custody before host-specific deployment. The USB Pixel is ADB-authorized and locked; installed credential/network apps were identified without logging credentials or changing account/network policy. |
+| dtm-work | Strict SSH reached DTM-WORK after the peer returned online. PowerShell 7.6.6, Rust 1.99.0, SDK 10.0.401, approximately 112 GiB free RAM and Quadro RTX 4000 were verified. The actual `C:/codedev/pc-ai` checkout retains its sixteen tracked and three untracked source changes. The canonical profile, fourteen package aliases and PATH repair passed consumer/readback checks with original custody; actual Bitwarden session reuse and configured GPG signing/tamper rejection passed. The private CPU inference build generated four tokens from the existing TinyLlama model and reaped its owned server. The Network key's Site Manager 401 remains a separate credential scope result. | Root/fleet: reconcile preserved unique checkout source and final-head deployment through Work's exclusive owner. Admit the credential helper only after failure-custody repair and provenance review. The ADB-authorized, locked Pixel did not need an account or network policy change. |
 | Local name resolution | Removed one obsolete Headscale IPv6 hosts entry and a conflicting bare dtm-work LAN token; preserved radius LAN alias and tailnet mapping with original-byte custody. | Fleet lane: verify route retries; this does not prove endpoint recovery. |
 | Candle/media PR 156 | Corrected Candle 0.11 union passed 125 media, 58 model, 18 server and 23 documentation tests; three model cases explicitly require absent real-model fixtures. Default CPU media tests passed 119 cases. Optional CPU/NVML/upscale Clippy passed. A fresh CPU DLL exposes all thirteen base exports; actual PowerShell initialization, missing-model error, async unknown-request status and shutdown checks passed. | Dependency/root: CPU source integrated; finish bounded GPU compilation and deterministic CPU/GPU comparisons before GPU publication. Full trained-model quality and the three absent-fixture tests remain distinct gaps. |
-| Mistral backend | SDK/core 0.8.1 alignment and the merged dependency graph passed 140 library and two CLI tests with no skips, including CPU selection, invalid device ordinals and empty responses. A full locked metadata check repaired four optional Candle lock entries lost during an otherwise clean textual merge. | Root/fleet: finish production Release binaries and isolated CPU model smoke. Private source-only Work build archive has an explicit version/environment manifest; it does not alter Work's checkout or defaults. |
+| Mistral backend | SDK/core 0.8.1 alignment and the merged graph passed 142 tests without skips. Work's real production Release build passed the same 142 tests; actual CPU model loading, enumeration, four-token generation and HTTP 400/422/404 rejection passed with its owned server reaped. The binary binds source `245e742`, not the later final integration head. Full locked metadata repaired four optional Candle lock entries lost during textual merge. | Root/fleet: retain the successful private model receipt and qualify final-head metadata/deployment. The source-only Work archive and private build did not alter its checkout or defaults. |
 | Linked dtm-codex | PRs 34/35 integrated with current-head and merged-main CI; completed branches retired after preservation. | Root: source deployment/consumer validation if this host consumes the changed launcher; keep imported skills under their existing custody. |
 | Existing WIP and private evidence | The three untracked private boot/Thunderbolt evidence files now have verified original and copy custody outside Git under stable recovered-evidence revisions. Their mapping is `.pcai/integration/preserved-evidence-migration.json`; historical inventory observations retain their original paths. SQLite/Python compilation caches remain in place with specific generated-cache exclusions. Carbon build script and private overlays remain preserved. | Root/fleet: refresh final inventory and cross-machine equivalence after source integration; no reset or forced cleanup. |
 
 Work's unique benchmark/profile and native-sampler changes have separate source
 custody. The preserved pre-change performance binary built successfully and its
 actual worker measurements record child and observer interval CPU; the candidate
-port must establish output parity before any speedup claim. UniFi's reviewed
+port must establish output parity before any speedup claim. Windows PDH sampling
+exceeded the concurrent test deadline, while a separate serial baseline probe
+completed in nine seconds. The candidate replaces Windows global CPU sampling
+with checked GetSystemTimes deltas and preserves unknown values on API failure
+or multiple processor groups. Native gates and the rebuilt pair remain required.
+The new source's actual concurrent Core process gate returned ten passes, one
+failure and one ignored case after 452 seconds; it failed to observe positive
+child CPU. A serial probe of the same executable also exceeded its unchanged
+ten-second guard and confirmed closure of its owned process. These failures are
+preserved, and equivalent existing gates are being handed to Work rather than
+increasing deadlines. CLI tests, strict Clippy and fresh paired runtime checks
+remain separate requirements.
+The CLI JSON null value retains process rows in the actual C# DTO; serializing
+the raw C# NaN field with strict System.Text.Json remains unsupported.
+The inherited native total-thread value is still a process-count approximation;
+it has not been qualified as a real thread count.
+Work's credential adapter passed 92 private fixtures and actual vault/session
+reuse. Independent source review nevertheless found unconditional Process
+disposal after unconfirmed termination or stream closure. Its owner is repairing
+exact-handle and pipe custody before maintained source admission. The existing
+version-one managed-file schema is verified; credential values and private
+machine configuration remain outside Git.
+A temporary owned-compiler priority experiment was overwritten by the governor
+and established no useful-throughput improvement. No persistent policy changed.
+UniFi's reviewed
 source fixes sparse/malformed Protect telemetry and boot timestamp units. Its
-full Python run passed 4,115 tests with 131 explicit skips and 83.10% coverage;
-actual Windows SSH/MCP compilation and current-head hosted CI remain required.
+full Python run passed 4,123 tests with 131 explicit skips and 83.10% coverage.
+Actual Windows SSH/MCP unit/doc tests passed seventy cases without skips.
+Its freshly compiled executable passed all thirty-two MCP protocol tests after
+the malformed-argument fixture was corrected to require the exact current SDK
+tool-error response and successful real-handler recovery. Strict Clippy, builder
+publication repairs, current-head CI and PR 71 integration remain required.
 
 Outstanding broader platform work remains in `TODO.md`, `optimization.TODO.md`
 and `boot.TODO.md`, including cancellation/schema parity, media fixture expansion,

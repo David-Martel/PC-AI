@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Gets devices with errors from Device Manager
@@ -43,7 +43,12 @@ function Get-DeviceErrors {
         try {
           $json = Get-HardwarePnpDevicesNative -Class $Class
           if ($json) {
-            $nativeDevices = $json | ConvertFrom-Json -ErrorAction Stop
+            # Preserve the top-level shape: null and a single object cannot
+            # establish that the native backend queried an empty inventory.
+            $nativeDevices = ConvertFrom-Json -InputObject $json -NoEnumerate -ErrorAction Stop
+            if ($nativeDevices -isnot [array]) {
+                throw 'Native PnP response must be a JSON array.'
+            }
             foreach ($dev in $nativeDevices) {
                 $code = [uint32]0
                 if ($null -eq $dev -or $null -eq $dev.PSObject.Properties['config_error_code'] -or

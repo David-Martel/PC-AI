@@ -43,6 +43,12 @@ Describe 'Native PnP device contract' {
         @{ Label='null code'; Payload='[{"name":"Unknown","config_error_code":null}]' }
         @{ Label='fractional code'; Payload='[{"name":"Unknown","config_error_code":0.5}]' }
         @{ Label='malformed JSON'; Payload='[' }
+        @{ Label='null inventory'; Payload='null' }
+        @{ Label='object inventory'; Payload='{}' }
+        @{ Label='single object instead of array'; Payload='{"name":"Healthy","config_error_code":0}' }
+        @{ Label='number inventory'; Payload='0' }
+        @{ Label='boolean inventory'; Payload='false' }
+        @{ Label='string inventory'; Payload='"[]"' }
     ) {
         $script:payload = $Payload
         Mock Get-HardwarePnpDevicesNative -ModuleName PC-AI.Hardware { $script:payload }

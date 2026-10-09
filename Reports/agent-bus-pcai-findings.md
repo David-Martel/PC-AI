@@ -464,3 +464,40 @@ retaining safety hooks. Installed Codex's nested hook-shell overhead and the
 path guard's fail-open catch remain unresolved. The recurring registrar/public
 help fixture passed 15 canonical Windows cases, with explicit hosted execution
 ownership and the unchanged 85% coverage gate.
+
+### Milly storage and MCP startup successor
+
+The [Milly storage review](milly-storage-and-expansion-review.md) records a
+near-full root filesystem, active Cargo writers, changing Clarius build caches,
+and a failing NFS share. The Clarius owner confirmed removing build outputs from
+nine merged lanes while preserving eight active lanes and the bench. The
+reconnected external SSD has approximately 680 GiB free, with existing
+console-style NTFS contents. Its temporary read-only inspection mount was
+released normally; live build offload remains unqualified. No new build batches
+will be scheduled on Milly while those lanes and HIL holds are active.
+
+MCP configuration review corrected a legacy-mirror attribution error: active
+Claude CLI entries already use guarded native launchers, whereas several Python
+and npx entries belong only to an older configuration file. Do not remove a
+current service based on that mirror. Local agent-bus HTTP dispatch and its stdio
+fleet-routing adapter have different authority, so switching transports would
+require independent authorization and session/tool parity checks.
+
+The guarded machine launcher recompiles a tiny C# byte relay per new client.
+An optional pinned assembly passed 19 top-level controls plus ten nested
+synthetic processes, with zero pending custody. Three balanced pairs measured
+relay initialization at 1223.38 versus 313.52 ms and complete fresh-child wall
+time at 2471.57 versus 1605.71 ms. Independent review accepted the bounded change;
+canonical source and Windows integration checks subsequently passed 23 cases.
+This is a measured startup candidate, not real MCP/authentication acceptance or
+a host-wide memory gain. Existing lifecycle cleanup waits, nested hook-shell
+overhead and broader service reuse remain open.
+
+Exact-head PR 182 CI at `08ea9a8ec532e320cec14a96a62fbbb8e6f990e9`
+ran 2576 Pester cases: 2537 passed, zero failed and 39 skipped. All 15 watchdog
+cases passed. PowerShell failed only its unchanged coverage gate: 60.8134%
+(12814 of 21071 commands), below 85%. Rust check/clippy/tests/format, CPU inference
+build, .NET build, lint, security, deploy-runtime and GPU-specific checks passed.
+The aggregate CI gate failed and integration tests were skipped. Preserve these
+distinct results; do not waive coverage, narrow its denominator or claim merge
+acceptance. Meaningful behavior coverage is required before PR integration.

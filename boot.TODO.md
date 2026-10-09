@@ -30,6 +30,20 @@ Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
 - [ ] Resume native/fleet/credential qualification only after responsiveness
       is stable; retain the 85% hosted coverage gate and all active work.
 
+## Milly capacity and expansion
+
+See [the storage and expansion review](Reports/milly-storage-and-expansion-review.md).
+
+- [x] Inventory internal disk, concurrent writers and existing SSD contents;
+      inspect the reconnected SSD read-only and release its temporary mapping.
+- [x] Verify Lenovo's two M.2 storage-slot specification; physical vacancy
+      remains an operator inspection requirement.
+- [ ] Coordinate cache and dataset owners before moving preserved work. The SSD
+      has approximately 680 GiB free but its console-style NTFS layout needs a
+      qualified persistent mount and write/copy validation before offloading.
+- [ ] Restore the failing NFS share through its owner and bound build-target
+      growth; do not treat changing free-space snapshots as a stable baseline.
+
 ## Workload profiling and live-media policy review
 
 Reviewed 2026-10-05; evidence and experiment gates are in

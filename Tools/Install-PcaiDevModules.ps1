@@ -6,7 +6,9 @@ Installs development modules with verified staging and recoverable replacements.
 Copies modules by default. Existing installations are renamed into
 .pcai-module-install/<module>/rN/previous and retained with SHA256 receipts.
 Failed publication restores the previous installation and preserves staging.
-Never deletes an installation or follows reparse points during copy enumeration.
+Never deletes an installation or follows name-surrogate links during enumeration.
+Admits only the 16 documented Cloud Files tags, queried through no-follow handles;
+other placeholder families and unknown reparse tags remain rejected.
 .PARAMETER DryRun
 Plans without filesystem, process-environment or registry writes.
 .PARAMETER Help
@@ -50,6 +52,56 @@ function Test-ContainedPath {
     $prefix = $Root.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
     return $Path.Equals($Root, [StringComparison]::OrdinalIgnoreCase) -or $Path.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)
 }
+function Test-PcaiCloudReparseTag {
+    param([uint32]$Tag)
+    # MS-FSCC documents exactly CLOUD and CLOUD_1..CLOUD_F. Never admit a
+    # name-surrogate (junction/symlink) or another provider/placeholder family.
+    return (($Tag -band [uint32]536870912) -eq 0) -and
+        (($Tag -band [Convert]::ToUInt32('FFFF0FFF', 16)) -eq [Convert]::ToUInt32('9000001A', 16))
+}
+function Get-PcaiInstallReparseTag {
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not $IsWindows) { throw "Windows reparse tag query unavailable: $Path" }
+    if (-not ('Pcai.ModuleInstallReparseTagV1' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+namespace Pcai {
+    public static class ModuleInstallReparseTagV1 {
+        [StructLayout(LayoutKind.Sequential)]
+        private struct AttributeTagInfo { public uint Attributes; public uint Tag; }
+        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, ExactSpelling=true, SetLastError=true)]
+        private static extern SafeFileHandle CreateFileW(string path, uint access,
+            uint share, IntPtr security, uint disposition, uint flags, IntPtr template);
+        [DllImport("kernel32.dll", ExactSpelling=true, SetLastError=true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetFileInformationByHandleEx(SafeFileHandle handle,
+            int infoClass, out AttributeTagInfo info, uint size);
+        public static uint ReadTag(string path) {
+            // Read metadata only; OPEN_EXISTING + OPEN_REPARSE_POINT never
+            // follows the leaf link. BACKUP_SEMANTICS admits directory handles.
+            using (SafeFileHandle handle = CreateFileW(path, 0x80, 7,
+                IntPtr.Zero, 3, 0x02200000, IntPtr.Zero)) {
+                if (handle.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateFileW no-follow metadata open failed");
+                AttributeTagInfo info;
+                if (!GetFileInformationByHandleEx(handle, 9, out info, 8))
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "FileAttributeTagInfo metadata query failed");
+                return info.Tag;
+            }
+        }
+    }
+}
+'@ -ErrorAction Stop
+    }
+    try { return [Pcai.ModuleInstallReparseTagV1]::ReadTag($Path) }
+    catch { throw "Cannot inspect Windows reparse tag for $Path : $($_.Exception.Message)" }
+}
+function Test-PcaiCloudReparsePath {
+    param([Parameter(Mandatory)][string]$Path)
+    return Test-PcaiCloudReparseTag -Tag (Get-PcaiInstallReparseTag -Path $Path)
+}
 function Assert-SafePath {
     param([string]$Path, [switch]$AllowLeafLink)
     if ($Path -eq [IO.Path]::GetPathRoot($Path)) { throw "Refusing filesystem root: $Path" }
@@ -60,8 +112,14 @@ function Assert-SafePath {
         if ($name -match '^(?i:\$null|AUX|CON|NUL|PRN|COM[1-9]|LPT[1-9])(?:\.|$)') { throw "Unsafe Windows path: $cursor" }
         if (Test-Path -LiteralPath $cursor) {
             $item = Get-Item -LiteralPath $cursor -Force
-            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and -not ($leaf -and $AllowLeafLink)) {
-                throw "Reparse point in installation path: $cursor"
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                $tag = Get-PcaiInstallReparseTag -Path $cursor
+                $knownLeafLink = $leaf -and $AllowLeafLink -and
+                    ($tag -in @([Convert]::ToUInt32('A0000003', 16), [Convert]::ToUInt32('A000000C', 16))) -and
+                    ($item.LinkType -in @('Junction', 'SymbolicLink'))
+                if (-not (Test-PcaiCloudReparseTag -Tag $tag) -and -not $knownLeafLink) {
+                    throw "Reparse point in installation path: $cursor"
+                }
             }
         }
         $leaf = $false
@@ -73,7 +131,8 @@ function Assert-SafePath {
 function Get-ModuleInventory {
     param([string]$Root, [switch]$ExcludeRootGit, [string[]]$RelativeFiles)
     $rootItem = Get-Item -LiteralPath $Root -Force
-    if ($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Linked module root requires explicit resolution: $Root" }
+    if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+        -not (Test-PcaiCloudReparsePath -Path $Root)) { throw "Linked module root requires explicit resolution: $Root" }
     $pending = [Collections.Generic.Stack[string]]::new()
     $pending.Push($Root)
     $files = [Collections.Generic.List[object]]::new()
@@ -94,7 +153,8 @@ function Get-ModuleInventory {
                 if ($ExcludeRootGit -and $directory -eq $Root) { continue }
                 throw "Nested Git store requires custody review: $($item.FullName)"
             }
-            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Linked payload requires custody review: $($item.FullName)" }
+            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+                -not (Test-PcaiCloudReparsePath -Path $item.FullName)) { throw "Linked payload requires custody review: $($item.FullName)" }
             Assert-SafePath -Path $item.FullName
             if ($item.PSIsContainer) { $pending.Push($item.FullName); continue }
             $files.Add([pscustomobject]@{
@@ -160,7 +220,8 @@ foreach ($module in $sources) {
     $installMode = if ($Mode -eq 'Auto') { 'Copy' } else { $Mode }
     $sourceItem = Get-Item -LiteralPath $source -Force
     # Resolve only the explicitly selected source root; inventory never follows children.
-    if ($sourceItem.Attributes -band [IO.FileAttributes]::ReparsePoint) { $source = $sourceItem.ResolveLinkTarget($true).FullName }
+    if (($sourceItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+        -not (Test-PcaiCloudReparsePath -Path $source)) { $source = $sourceItem.ResolveLinkTarget($true).FullName }
     if ((Test-ContainedPath -Path $InstallRoot -Root $source) -or (Test-ContainedPath -Path $source -Root $InstallRoot)) {
         throw "Source and installation paths overlap: $source / $InstallRoot"
     }
@@ -173,7 +234,8 @@ foreach ($module in $sources) {
     if ($exists) {
         $item = Get-Item -LiteralPath $destination -Force
         if (-not $item.PSIsContainer) { throw "Installation destination is a file: $destination" }
-        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+            -not (Test-PcaiCloudReparsePath -Path $destination)) {
             $previousLink = @($item.Target) -join ';'
             if ($installMode -eq 'Junction' -and $previousLink -eq $source) {
                 [pscustomobject]@{ Name = $module.Name; InstalledPath = $destination; Mode = $installMode; State = 'Unchanged'; Receipt = $null }

@@ -354,7 +354,7 @@ Core/C#-only explicit bundle would suppress those surfaces and must not be deplo
 as its complete runtime. Carbon's CPU-only requirements differ. No GPU/model
 quality claim follows from the CPU builds or FFI load checks.
 
-## Current reviewed work and remaining gates
+## Historical reviewed work and remaining gates (11:52 UTC)
 
 Readback: October 9, 2026, 11:52 UTC. This remains an active integration record.
 PC_AI's reviewed local repairs include signed `1762ff95` and `ff43162`; the published PR 182 head is still
@@ -547,3 +547,87 @@ access is a coordinated lead rather than a completed credential recovery.
 Main integration, current-head CI, real full-repository coverage, required
 runtime/model/boot checks, remote readback and fresh active-writer/preservation
 checks remain open. No fleet-clean or complete deployment claim is made.
+
+## Current reviewed work and remaining gates
+
+Readback: October 9, 2026, 13:18 UTC. Root's current signed PC_AI head is
+`3f1df889620c10e9720d77e695da9dd524668793`; published PR 182 remains
+`c8e591e2edfd2d4c059e9433e77a79fc999eb796`. Integration remains active.
+
+The actual published-head [CI run 37931175131](https://github.com/David-Martel/PC-AI/actions/runs/37931175131)
+completed with 2,373 passing tests, four failures and 58 skips. Coverage is
+58.58% of 20,713 commands, **FAIL** against the unchanged 85% requirement.
+Rust format, check/Clippy and tests, .NET build, PowerShell lint, security scan,
+CPU deployment and llama.cpp CPU build passed. Downstream integration was
+skipped. All four failures occurred in the inference configuration custody
+fixture because the Windows runner had no `T:` drive: candidate construction
+threw before reaching a valid repository-local executable. The ripgrep and
+scanner readiness repairs passed in this actual hosted run.
+
+Signed `3f1df88` constructs candidate paths with `System.IO.Path.Combine`,
+preserving the existing search order and subsequent existence checks. The
+maintained configuration/virtualization union passes all 70 cases. A controlled
+private variant changes only the three literal cache prefixes to a currently
+absent drive: the predecessor passes one case and fails four; the successor
+passes all five. This is an explicit source variant, not unchanged-source
+no-`T:` qualification. An attempted process-local drive-removal preflight was
+invalid and is preserved separately; no physical drive or mapping changed.
+The tiny owned native JSON reader qualifies configuration custody, not real
+model inference. New-head hosted CI remains required.
+
+Signed `d82af157` also closes a false-green validation boundary: a genuine
+Pester `AfterAll` failure left one passing test, zero failed tests/containers
+and 100% coverage, which the predecessor gate accepted. The gate and standalone
+test runner now reject failed blocks. All 19 maintained gate cases pass without
+skips or parser/analyzer findings. The original fixture failure and a later
+runner-only empty-array accounting error remain preserved. Test selection,
+coverage exclusions and the 85% target are unchanged.
+
+The VSock successor remains private. It refuses overwriting existing backups,
+captures registry absence and original value types, stops on capture/write
+failures, checks actual native exit status and reports restore errors. Its 24
+cases pass separately on actual PowerShell 7 and Windows PowerShell 5.1. The
+original six failures and the additional four predecessor failures are retained.
+The existing Network fixture's 93 unaffected assertions remain in order; its
+11 administrator cases must genuinely execute in the proposed union rather
+than stay skipped by a discovery-scope error. Complete legacy-union and restore
+admission review precede tracked integration. No live registry/netsh/WSL tuning
+or performance improvement is qualified.
+
+Credential deployment also remains private. An actual second aggregate could
+publish while the first held only the manifest lock; recovery also changed
+inherited original metadata. The revised target-set lock precedes all capture
+and copy operations, and guarded success/recovery retains original metadata.
+All 26 private synthetic cases pass; the detecting 21-pass/two-failure run is
+preserved. Explicit synthetic `C:` targets with `D:` copied custody are now under
+qualification. Original/displaced file identities and external-copy identities
+remain distinct. Installed code, authentication, caches, sessions, live ACLs and
+tasks are unchanged. Legacy cache privacy compatibility and a reviewed live
+installation window remain open.
+
+GitGuard PR 59 is signed and clean at `660e2d55`; all 13 reviewed source hashes
+match its primary Windows run: 812 passes, zero failures, 24 skips. The local
+optional-backend case was not run. Its actual current-head Linux native and
+Docker CI both passed in run 37935484416. The PR merged normally to `97e64048`;
+the primary checkout is clean and equals origin/main. Merged-main CI, release
+and immutable installed-version transition remain separate. Installed version
+0.2.12 remains unchanged.
+
+UniFi's private updated Rust TLS graph passes 222 library tests with two live
+Credential Manager ignores, 30 MCP unit tests and 32 actual protocol cases,
+as separate runs. Its Tauri check reached strict Clippy and failed on eight
+existing findings in six source files. A finite private six-file repair preserves
+the public frontend command arguments and is awaiting normal qualification.
+The TLS lock is not promoted and alert 117 remains open. Earlier dependency
+PRs 80–83 retain passing merged-main CI.
+
+New build, cache, temporary and test outputs remain on qualified `D:` storage.
+The independently verified relocation preserves 3,504 files/1,819,130,433 bytes.
+`F:` is file-backed and `W:` was absent in the recorded inventory; those paths
+are not assumed suitable on other machines. The bounded disk observation did
+not establish sustained `C:` thrashing or a relocation cure. Carbon's dynamic
+storage/provider admission remains its exclusive owner's work; its additional
+eight inference/media CPU stages have not yet run. Work remains inaccessible
+through the last actually tested configured routes; power state is unknown.
+Exact final-head coverage/CI, real native/model/profile/boot acceptance, remote
+readback and fresh preservation/active-writer checks still gate fleet clearance.

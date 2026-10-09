@@ -66,6 +66,54 @@ Describe 'HVSOCK proxy process custody' -Tag 'Unit', 'Virtualization', 'ProcessC
         Should -Invoke Stop-Process -Times 0 -Exactly
     }
 
+    It 'keeps explicitly incomplete recovery unverified even when cached identity fields match' -Tag 'RecoveryMarker' {
+        $child = New-OwnedProxyFixtureChild
+        $null = Write-OwnedProxyFixtureState $child $child.MainModule.FileName $child.StartTime.ToUniversalTime().Ticks
+        $entry = Get-Content -LiteralPath $script:ProxyStatePath -Raw | ConvertFrom-Json
+        $entry | Add-Member -NotePropertyName MetadataIncomplete -NotePropertyValue $true
+        [IO.File]::WriteAllText($script:ProxyStatePath, (ConvertTo-Json -InputObject @($entry)))
+        $before = (Get-FileHash -LiteralPath $script:ProxyStatePath).Hash
+        (Get-HVSockProxyStatus -StatePath $script:ProxyStatePath).Running | Should -Be 0
+        $child.HasExited | Should -BeFalse
+        (Get-FileHash -LiteralPath $script:ProxyStatePath).Hash | Should -BeExactly $before
+    }
+
+    It 'does not dispatch termination for explicitly incomplete recovery with matching cached identity' -Tag 'RecoveryMarker' {
+        $child = New-OwnedProxyFixtureChild
+        $null = Write-OwnedProxyFixtureState $child $child.MainModule.FileName $child.StartTime.ToUniversalTime().Ticks
+        $entry = Get-Content -LiteralPath $script:ProxyStatePath -Raw | ConvertFrom-Json
+        $entry | Add-Member -NotePropertyName MetadataIncomplete -NotePropertyValue $true
+        [IO.File]::WriteAllText($script:ProxyStatePath, (ConvertTo-Json -InputObject @($entry)))
+        $before = (Get-FileHash -LiteralPath $script:ProxyStatePath).Hash
+        $result = Stop-HVSockProxy -StatePath $script:ProxyStatePath
+        $result.Stopped | Should -Be 0
+        $result.Unresolved | Should -HaveCount 1
+        Should -Invoke Stop-Process -Times 0 -Exactly
+        $child.HasExited | Should -BeFalse
+        (Get-FileHash -LiteralPath $script:ProxyStatePath).Hash | Should -BeExactly $before
+    }
+
+    It 'accepts an explicit false recovery marker with complete verified identity' -Tag 'RecoveryMarker' {
+        $child = New-OwnedProxyFixtureChild
+        $null = Write-OwnedProxyFixtureState $child $child.MainModule.FileName $child.StartTime.ToUniversalTime().Ticks
+        $entry = Get-Content -LiteralPath $script:ProxyStatePath -Raw | ConvertFrom-Json
+        $entry | Add-Member -NotePropertyName MetadataIncomplete -NotePropertyValue $false
+        [IO.File]::WriteAllText($script:ProxyStatePath, (ConvertTo-Json -InputObject @($entry)))
+        (Get-HVSockProxyStatus -StatePath $script:ProxyStatePath).Running | Should -Be 1
+        $child.HasExited | Should -BeFalse
+        Should -Invoke Stop-Process -Times 0 -Exactly
+    }
+
+    It 'refuses an invalid recovery marker without inventing verified custody' -Tag 'RecoveryMarker' {
+        $child = New-OwnedProxyFixtureChild
+        $null = Write-OwnedProxyFixtureState $child $child.MainModule.FileName $child.StartTime.ToUniversalTime().Ticks
+        $entry = Get-Content -LiteralPath $script:ProxyStatePath -Raw | ConvertFrom-Json
+        $entry | Add-Member -NotePropertyName MetadataIncomplete -NotePropertyValue 'review-required'
+        [IO.File]::WriteAllText($script:ProxyStatePath, (ConvertTo-Json -InputObject @($entry)))
+        (Get-HVSockProxyStatus -StatePath $script:ProxyStatePath).Running | Should -Be 0
+        $child.HasExited | Should -BeFalse
+    }
+
     It 'does not report an unrelated live child as a proxy merely because its PID exists' {
         $child = New-OwnedProxyFixtureChild
         $before = Write-OwnedProxyFixtureState $child (Join-Path $TestDrive 'foreign-winsocat.exe') $child.StartTime.ToUniversalTime().Ticks

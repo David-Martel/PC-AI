@@ -117,6 +117,12 @@ function Get-HVSockOwnedProcess {
     param([Parameter(Mandatory)]$Entry)
     $process = $null
     try {
+        $incomplete = $null
+        if ($Entry -is [Collections.IDictionary]) { $incomplete = $Entry['MetadataIncomplete'] }
+        elseif ($Entry.PSObject.Properties['MetadataIncomplete']) { $incomplete = $Entry.PSObject.Properties['MetadataIncomplete'].Value }
+        if ($null -ne $incomplete -and ($incomplete -isnot [bool] -or $incomplete)) {
+            throw 'Incomplete or invalid recovery metadata requires custody reconciliation.'
+        }
         $processId = 0; $ticks = [long]0
         if (-not [int]::TryParse([string]$Entry.Pid, [ref]$processId) -or $processId -le 0 -or
             -not [long]::TryParse([string]$Entry.ProcessStartTimeUtcTicks, [ref]$ticks) -or $ticks -le 0 -or

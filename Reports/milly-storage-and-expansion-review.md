@@ -21,10 +21,11 @@ baseline or a cleanup result from this lane. Build-cache paths disappeared or
 changed while being measured. The Clarius build owner subsequently confirmed
 removing build outputs for nine merged lanes at approximately 20:16 UTC, while
 preserving the bench GUI and eight active build lanes. No new CPU offload batch
-will be scheduled on Milly during that work. Root reserve remains unchanged: 12,495,987 of
+will be scheduled on Milly during that work. Root reserve initially remained unchanged: 12,495,987 of
 249,919,744 blocks, approximately 5%. That reserve explains why available space
 can reach zero before every block is occupied; it was not reduced as a substitute
-for controlling disk growth.
+for controlling disk growth during that initial assessment. The reversible
+headroom successor below supersedes that setting.
 
 Bounded, low-priority directory scans found these major consumers. Values are
 allocated-byte observations; errors and concurrent changes prevent treating them
@@ -51,6 +52,33 @@ server restart or network change was performed. Root/home scans that reached
 their timeout remain partial; permission errors and disappearing files are retained.
 An initial PowerShell-to-SSH trailing carriage-return error is also preserved;
 the corrected transport strips carriage returns before Bash parsing.
+
+### Reversible root reserve headroom
+
+Continued compilation reduced ordinary-user available space to 24.66 GB at
+21:25 UTC, 12.17 GB at 21:34 UTC and 6.16 GB immediately before the adjustment.
+The former build owner had no current bus presence or acknowledgment; live Cargo
+and Rust compiler processes still established active work. They were preserved.
+
+At 21:38 UTC, exact root UUID `adcf1ee1-79b8-4f3d-b170-e843d105d2bd`, KIOXIA
+serial `73CFC01EF6HU`, filesystem type, block count, block size and original
+reserved count were checked. The reserve was reduced from 12,495,987 to
+4,998,394 blocks, approximately **5% to 2%**. With 4096-byte blocks, this exposes
+**30,710,140,928 bytes** to ordinary writers while retaining
+**20,473,421,824 bytes** for root. Actual available space rose from
+**6,158,422,016 to 36,868,550,656 bytes**, reporting 97% usage; concurrent writes
+make this a live snapshot rather than an exact measured gain. A later readback
+still had 36.57 GB available.
+
+Original metadata and exact-count rollback instructions are preserved in
+`/var/backups/pcai-storage/ext4-root-reserve.before-r1.txt` and
+`ext4-root-reserve.rollback-r1.txt`; directory mode 700 and file modes 600 were
+independently read back. The reserved UID/GID remain root, and root UUID, fstab
+and the external SSD's validation hash are unchanged. No file was deleted,
+active target moved or foreign process stopped. This is temporary user-space
+headroom, not new physical capacity or a completed storage migration. Root
+retains about 20 GB of privileged reserve; build growth and offload still need
+coordination. [e2fsprogs reserved-block controls](https://manpages.debian.org/trixie/e2fsprogs/tune2fs.8.en.html).
 
 ## External SSD
 

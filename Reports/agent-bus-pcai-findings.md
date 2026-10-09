@@ -543,3 +543,32 @@ path. Do not run these installers for this offload. Owner: root/tooling; next
 action: implement guarded destination and consumer migration with real dry-run
 and exact-path tests. Native disk-usage depth and fallback enumeration parity
 also require qualification before replacing existing consumers.
+
+Continued Milly build growth later left only 6.16 GB available to ordinary users.
+The [storage review](milly-storage-and-expansion-review.md) records a reversible
+5% to 2% root-reserve adjustment, exposing 30.71 GB while retaining 20.47 GB for
+root. Available space was 36.87 GB immediately afterward; no files, active
+targets or foreign processes were removed. Original metadata and exact-count
+rollback are protected. This is temporary headroom, not a completed migration.
+
+Final process review corrected an overbroad Docker label: Desktop and backend
+are absent, but the service and an older CLI remain. Both consumed zero CPU
+seconds in the sampled two-second interval and were preserved; that sample does
+not establish complete engine state or historical workload. SmartTrim remains
+disabled and the Governor is present.
+
+Hosted CI at `04aa61e7a22c13f4882c023c6599acece8f0d339` completed with
+2537 Pester passes, zero failures and 39 skips, including all 15 watchdog cases.
+Coverage remained 12814/21071 commands, 60.8134%, below the unchanged 85% floor.
+Eight other jobs passed; integration was skipped and the aggregate gate failed.
+The independent exact-log review binds synthetic checkout `a73f0e4` and matching
+audited source blobs. This qualifies that historical head only; successors still
+need their own hosted readback before integration.
+
+The bus briefly refused claims and sends because its configured authoritative
+hub was unreachable. An existing SSH tunnel still listened; later native health
+confirmed the ASUS hub authoritative, with healthy database/storage and no
+dropped writes. No fallback store, service restart or transport swap was used.
+Failed sends remain failed; the completed reserve result was sent after recovery.
+Another later read also refused authority, so intermittent reachability remains
+open. A failed read is not evidence of an empty queue or an absent owner reply.

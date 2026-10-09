@@ -41,6 +41,10 @@ See [the storage and expansion review](Reports/milly-storage-and-expansion-revie
 - [x] Complete the user's external-drive wipe/format request: aligned GPT/exFAT,
       clean checks, 16 MiB Linux remount/P1 hash roundtrip and optional UUID
       automount with bounded device wait. Physical Windows mount is not tested.
+- [x] Add reversible emergency headroom after active growth reached 100% usage:
+      reduce the exact ext4 root reserve from 5% to 2%, expose 30.71 GB while
+      retaining 20.47 GB for root, and verify original/rollback metadata.
+      This is temporary user capacity, not a migration or physical-space gain.
 - [ ] Coordinate cache and dataset owners before moving preserved work. The SSD
       now has approximately 1 TB available for shared files and archives;
       native build-target semantics need separate qualification.

@@ -173,7 +173,11 @@ public sealed class PcaiVsockFixtureKey : IDisposable {
     It 'reports a nonterminating legacy restore write refusal as restore failure' {
         [IO.File]::WriteAllText($script:Backup, '[{"Path":"HKLM:\\OwnedFixture","Name":"FixtureValue","Value":10}]')
         $before = (Get-FileHash -LiteralPath $script:Backup).Hash
-        Mock Set-ItemProperty { Write-Error 'Synthetic restore publisher refusal.' }
+        Mock Set-ItemProperty {
+            # Model the cmdlet's explicitly supplied action across module scopes.
+            $action = if ($PesterBoundParameters.ContainsKey('ErrorAction')) { $PesterBoundParameters.ErrorAction } else { 'Continue' }
+            Microsoft.PowerShell.Utility\Write-Error 'Synthetic restore publisher refusal.' -ErrorAction $action
+        }
         $r = Optimize-VSock -RestoreBackup -BackupPath $script:Backup -Confirm:$false -ErrorAction SilentlyContinue
         @($r.Errors | Where-Object { $_ -match 'Failed to restore backup.*Synthetic restore publisher refusal' }).Count | Should -BeGreaterThan 0
         @($r.ChangesApplied).Count | Should -Be 0

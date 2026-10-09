@@ -172,6 +172,106 @@ the storage expansion evidence. [Lenovo specifications](https://psref.lenovo.com
 
 ## Remaining actions
 
+### Offload and deletion identification refresh
+
+The user's follow-up requested identification of safe storage candidates. The
+22:47–22:55 UTC read-only audit did not move or delete internal files, remove
+packages, stop builds or retire worktrees. All sizes below are **allocated GiB**,
+not a promise of simultaneous or immediately reclaimable space. At 22:55 UTC,
+root was 96% used with 43,900,284,928 bytes available (40.89 GiB); the external
+SSD had 1,000,152,236,032 bytes available (931.46 GiB). A new build target appeared
+during the audit, so this headroom remains subject to active growth.
+
+#### Prioritized offload candidates
+
+| Source | Allocated GiB | Classification and required preservation |
+| --- | ---: | --- |
+| `/home/yayuanli/fun/ICON/user_study/av_recording` | 532.83 | Largest potential relief. Study recordings, embedded Git repository and environment files; preserve together until the data owner releases an exact source snapshot. Never classify the tree as junk. |
+| `/home/millyptg/__milly_logs` | 25.44 | Research/session recordings and logs. Archive closed sessions with their metadata and provenance; do not apply system-log retention to this directory. |
+| `/home/millyptg/__milly_blobs` | 8.02 | Model checkpoints. Preserve unique models and training provenance before moving or consolidating them. |
+| `/home/millyptg/Downloads/milly-y2.tgz.1` | 14.92 | Retain the complete-sized training download; archive integrity and equivalence to the extracted tree are **NOT TESTED**. |
+| `/home/millyptg/Downloads/cuda_12.2.2_535.104.05_linux.run` | 4.05 | Prefer SSD retention over deletion: CUDA 12.2 is still installed, and offline reconstruction/provenance may need this installer. Do not remove the installed toolkit. |
+
+These non-overlapping sources occupy approximately **585.26 GiB**, comfortably
+within the attached SSD's observed capacity. This is a conditional migration
+budget, not a completed copy or guaranteed reclaim. The extracted
+`/home/millyptg/Downloads/milly-y2` is another 8.02 GiB; keep it until its source,
+local changes and consumers are reconciled. Do not count the whole 29.21 GiB
+Downloads directory again on top of its listed children. The study's sibling
+`realsense` directory occupies only 4096 bytes in this snapshot.
+
+Use an owner-separated destination such as `millylaptop1/<source-user>/` on
+`/mnt/dtm-shared`, with a new artifact identity for conflicting versions. Merge
+only SHA-256-identical files; keep different contents separately without
+overwriting either. For Linux trees, preserve ownership, permissions, timestamps,
+links, Git history, ignored/untracked files and extended metadata in a suitable
+archive rather than assuming exFAT preserves their original semantics. The
+recording tree includes a `.venv/lib64` symlink and its own Git repository; a flat
+media copy does not preserve that entire tree. Avoid redundant compression of
+already compressed recordings merely to claim a smaller copy.
+
+Before retiring any source, capture a released snapshot and manifest, copy
+directly to the SSD without staging hundreds of GiB on root, sync and read back
+hashes, verify archive/restoration behavior and update actual path consumers.
+Ensure removable-drive absence has a clear failure path. The current exFAT mount
+uses a common maintenance UID and `umask=0022`; it does not preserve per-user
+confidentiality. Owner-approved protection is required for private study data.
+A removable copy alone is not an independent backup. Full dataset copies,
+restore tests and consumer migration are **NOT TESTED**.
+
+#### Deletion candidates and explicit holds
+
+| Item | Allocated size | Evidence and safe disposition |
+| --- | ---: | --- |
+| Seven files in `/home/millyptg/__milly_blobs_bk` | 655,335,424 bytes / 0.610 GiB | Each SHA-256 matches its same-named primary checkpoint, with distinct inodes and unchanged size/mtime/ctime across hashing. Byte-redundant copies are eligible for consolidation after preserving required backup retention and checking live consumers. Exact names/hashes remain in the private receipt. |
+| `Downloads/milly-y2.QjEOhh8x.tgz.part` under `/home/millyptg` | 2.04 GiB | Every byte matches the prefix of retained `milly-y2.tgz.1`; both files stayed unchanged across comparison. Eligible redundant-download cleanup while the larger file and reconstruction length are retained. This does not prove the larger archive is valid. |
+| `/home/millyptg/.cache/pip/http` and `http-v2`; `/home/yayuanli/.cache/pip/http-v2` | 13,512,777,728 bytes / 12.58 GiB combined | Conditional regenerable download-cache cleanup after checking live installers and required offline sources. Keep the separate `wheels` directories (107,380,736 bytes combined) until locally built artifacts are reconciled. Do not remove installed environments or purge both user cache roots indiscriminately. |
+| Fourteen disabled Snap revisions | 3.12 GiB | Conditional manager-controlled retirement after rollback/dependency and active-operation checks. All remained mounted; never unlink their `.snap` files directly. |
+| Old VS Code `.deb` in `/home/millyptg/Downloads` | 95,653,888 bytes / 0.089 GiB | Downloaded 1.83.1 installer; installed Code reports 1.140.0. Eligible replaceable-installer cleanup after preserving offline needs. No current file user was reported by the exact-path check. |
+| APT download cache | 708,608 bytes | Small regenerable-cache candidate after package-manager lock/operation checks; negligible relief. |
+| System journal | 2.78 GiB total | Preserve the diagnostic window before any manager-controlled archival/retention change. Archived-looking filenames are not proof of inactivity: journald has one such file open. Total journal size is not safely deletable size. |
+
+The eighth backup checkpoint is **different** from its same-named primary:
+24,084,480 bytes versus 93,617,003 bytes and different SHA-256 values. Preserve it;
+the `_bk` suffix does not establish duplication. The empty training-download
+placeholder would recover zero bytes and is not a meaningful pressure fix.
+
+The HTTP/wheel distinction agrees with [pip's cache documentation](https://pip.pypa.io/en/stable/topics/caching/).
+Cache removal trades space for later download/build cost; it is not a measured
+runtime acceleration. Keep useful caching bounded rather than disabling it
+globally. Snap revision retirement must follow [Snap's documented removal path](https://snapcraft.io/docs/tutorials/get-started/).
+Its snapshot/rollback behavior can affect net space reclaimed, so the disabled
+revision total is a candidate size rather than an assured immediate gain.
+
+Twenty Clarius Cargo target roots occupied **90.06 GiB** at 22:55 UTC; the compiler
+cache occupied another **7.65 GiB** in its earlier snapshot. These are **HOLD**,
+pending release by the active build owner. The operator maps its executable from
+`/home/cog/.cache/claude-clarius-target-overlay`, while `onebin` and the newly
+created `train` target have live work. Even regenerable outputs can contain the
+exact deployed executable or qualification build. Preserve those artifacts and
+their hashes before selective cleanup. No cross-root shared hardlink allocation
+was detected, but within-root hardlinks mean child-size sums are not independent.
+
+Fresh Clarius custody found 29 linked worktrees plus primary, merge operations
+in two bench lanes, dirty work and a held pytest-gate lock. The prior nine-lane
+cleanup is historical; it does not release these current trees. The owner confirms
+an active merge train and protected recipe work. All three installed Rust
+toolchains have current pinned/default consumers and remain **KEEP**. Preserve
+repositories, Git bundles, certificates, package environments, model caches,
+`/var/cache/vigil-downloads` and the installed CUDA/NVIDIA stack until their exact
+consumers and provenance are verified. `/tmp` is tmpfs, so clearing it would not
+recover internal NVMe capacity.
+
+Exact-path handle probes found no matching recording/backup users, but `lsof`
+warned that existing NFS and FUSE mounts could not be inspected. This is limited
+negative evidence, not proof of owner release or lack of future consumers.
+Private evidence is under `.pcai/integration/milly-offload-*`,
+`milly-recording-custody-r1.txt`, `milly-build-cache-audit-r1/` and
+`milly-system-cache-audit-r1/`. Root owns classification and migration admission;
+data owners own retention and path changes; the active Clarius lane owns build
+release; system owners own package/log retirement. No cleanup benefit or
+performance improvement is claimed from this identification-only refresh.
+
 - Storage: user-authorized format, Linux write/remount checks, P1 file roundtrip
   and optional UUID automount are complete. Physically attach to a Windows host
   to qualify that host's native mount and safe-eject path.

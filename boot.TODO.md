@@ -48,6 +48,13 @@ See [the storage and expansion review](Reports/milly-storage-and-expansion-revie
 - [ ] Coordinate cache and dataset owners before moving preserved work. The SSD
       now has approximately 1 TB available for shared files and archives;
       native build-target semantics need separate qualification.
+- [x] Identify measured offload/delete candidates with exact preservation bounds:
+      approximately 585 GiB of recordings/models/downloads, seven hash-identical
+      backup checkpoints, one byte-identical partial-download prefix and separate
+      package caches. No internal file migration or deletion in this audit.
+- [ ] Admit owner-released snapshots, protected SSD archives, copy/restore hashes
+      and actual path-consumer changes before source retirement. Preserve the
+      differing backup checkpoint and active Clarius targets/worktrees/toolchains.
 - [ ] Restore the failing NFS share through its owner and bound build-target
       growth; do not treat changing free-space snapshots as a stable baseline.
 

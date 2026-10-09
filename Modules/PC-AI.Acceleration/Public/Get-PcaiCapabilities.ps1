@@ -39,7 +39,7 @@ function Get-PcaiCapabilities {
             Category             = 'Core'
             RustAvailable        = [bool]$native.CoreAvailable
             CSharpBridgeAvailable = [bool]$native.CoreAvailable
-            PowerShellSurface    = [bool](Get-Command Get-PcaiTokenEstimate -ErrorAction SilentlyContinue)
+            PowerShellSurface    = [bool](Get-Command Invoke-PcaiNativeEstimateTokens -ErrorAction SilentlyContinue)
             ManagedBaseline      = $true
             PreferredBackend     = if ($native.CoreAvailable) { 'Rust+C#' } else { 'PowerShell' }
         }

@@ -19,7 +19,7 @@ function New-EvaluationSuite {
         $suite = New-EvaluationSuite -Name "DiagnosticQuality" -Metrics @('latency', 'similarity', 'groundedness')
     #>
     [CmdletBinding()]
-    [OutputType([EvaluationSuite])]
+    [OutputType('EvaluationSuite')]
     param(
         [Parameter(Mandatory)]
         [string]$Name,

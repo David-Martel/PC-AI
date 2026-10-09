@@ -52,7 +52,7 @@ Describe 'PC-AI.Hardware Native Integration' {
 	Context 'Get-DeviceErrors' {
 		It 'Should return devices with errors from native PnP logic' {
 			# Mock the native internal helper
-			Mock Get-HardwarePnpDevicesNative -MockWith { return '[{"name":"Broken Device","class_name":"DiskDrive","manufacturer":"BadVendor","problem_code":43,"problem_description":"Windows has stopped this device because it has reported problems.","severity":"Error","status":"Error","device_id":"PCI\\123"}]' } -ModuleName 'PC-AI.Hardware'
+			Mock Get-HardwarePnpDevicesNative -MockWith { return '[{"name":"Broken Device","pnp_class":"DiskDrive","manufacturer":"BadVendor","config_error_code":43,"error_summary":"Windows has stopped this device because it has reported problems.","status":"Error","device_id":"PCI\\123"}]' } -ModuleName 'PC-AI.Hardware'
 
 			$result = Get-DeviceErrors
 			$result | Should -Not -BeNullOrEmpty

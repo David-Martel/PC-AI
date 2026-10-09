@@ -444,3 +444,23 @@ RAM3.62GiB and foreign Cargo/Rust producers prevented admission at17:35; fresh17
 readback has5.30GiB and no observed Cargo/Rust producer, still below the6GiB gate.
 No foreign process was stopped. User-authorized additional C: storage work is under
 fresh resource/custody audit; no pagefile, cache-policy or system mutation is claimed.
+
+### Immediate responsiveness successor
+
+The user prioritized dtm-p1gen7 responsiveness and explicitly stopped Docker.
+Root completed the exact surviving Desktop stop; Docker remains off, with data
+and other WSL work preserved. This supersedes the earlier unchanged-resource
+snapshot above. The missing Governor was restored, recurring checks added, two
+repeatedly failed root-lane REPL jobs closed, the stdin shim qualified, and future
+owned build output routed to D:. A one-key SmartTrim-off trial and 48-sample
+resource capture are recorded in [the responsiveness review](workstation-responsiveness-review.md).
+The user reports improved responsiveness; matched throughput acceptance remains open.
+
+The shared bus exposed a coordination gap: identical Windows user paths were
+ambiguous across hosts. Root confirmed the Python shim change was P1-only, with
+no Carbon HOME/index writer or Git-process dependency; new profile custody uses
+an explicit host namespace. Shared launch guidance uses `login:false` while
+retaining safety hooks. Installed Codex's nested hook-shell overhead and the
+path guard's fail-open catch remain unresolved. The recurring registrar/public
+help fixture passed 15 canonical Windows cases, with explicit hosted execution
+ownership and the unchanged 85% coverage gate.

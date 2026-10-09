@@ -285,7 +285,7 @@ jobs:
           # These evaluation and routed-provider fixtures exercise real algorithms
           # and consumer contracts with synthetic inference/HTTP boundaries.
           # They do not depend on a native DLL, a model, or workstation services.
-          $config.Run.Path = @('Tests/Unit', 'Tests/Boot/WorkloadResourceProfile.Tests.ps1', 'Tests/Integration/ModuleLoading.Tests.ps1', 'Tests/Evaluation/PC-AI.Evaluation.Tests.ps1', 'Tests/Integration/Router.Providers.Tests.ps1')
+          $config.Run.Path = @('Tests/Unit', 'Tests/Boot/WorkloadResourceProfile.Tests.ps1', 'Tests/Boot/ProcessLassoGovernorWatchdogRegistration.Tests.ps1', 'Tests/Integration/ModuleLoading.Tests.ps1', 'Tests/Evaluation/PC-AI.Evaluation.Tests.ps1', 'Tests/Integration/Router.Providers.Tests.ps1')
           # Capture Pester's result before enforcing coverage; Run.Exit only
           # enforces test failures and exits before caller coverage assertions.
           $config.Run.Exit = $false

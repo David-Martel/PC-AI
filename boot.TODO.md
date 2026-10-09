@@ -1,5 +1,35 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Immediate dtm-p1gen7 responsiveness
+
+Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
+[the responsiveness review](Reports/workstation-responsiveness-review.md).
+
+- [x] Complete the user's Docker stop and verify surviving Desktop/backends
+      exited; leave Docker off and preserve its data and other WSL workloads.
+- [x] Restore the missing signed Process Lasso Governor, preserve the INI and
+      task XML, and add recurring five-minute checks with report output on D:.
+      Natural runs succeed; missing-process and post-reboot recovery remain open.
+- [x] Close only the two repeatedly observed failed root-lane Python stdin
+      jobs and verify the classic-REPL shim with two fresh-process controls.
+- [x] Route future owned build targets/artifacts/scratch to D: and verify child
+      environment isolation; defer actual builds while responsiveness stabilizes.
+- [x] Start the one-key SmartTrim-off trial after real trim events; retain exact
+      rollback bytes and complete the 48-sample resource observation.
+- [ ] Compare useful throughput, paging and UI responsiveness on a matched
+      workload before promoting the SmartTrim trial as a performance result.
+- [x] Qualify recurring registrar/public-help regression coverage: canonical
+      default discovery passed 15 cases with no test/block/container failures,
+      and Windows CI explicitly selects the fixture. Earlier failures remain
+      preserved. Commit/published-current-head acceptance stays a separate gate.
+- [x] Benchmark and apply P1 minimal-profile accelerator import suppression with
+      preserved PATH setup: three pairs averaged 643→410 ms, and a fresh deployed
+      child passed parity. Preserve cloud shims, other hosts, hooks and trust.
+- [ ] Resolve the remaining Python partial-memory-read diagnostic gap, nested
+      hook-shell cost and path guard's fail-open exception handler.
+- [ ] Resume native/fleet/credential qualification only after responsiveness
+      is stable; retain the 85% hosted coverage gate and all active work.
+
 ## Workload profiling and live-media policy review
 
 Reviewed 2026-10-05; evidence and experiment gates are in

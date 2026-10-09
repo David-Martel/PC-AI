@@ -263,13 +263,18 @@ jobs:
           # Include bounded module import/export checks; their parameterized
           # contracts must be discovered even when native/hardware suites are absent.
           $config.Run.Path = @('Tests/Unit', 'Tests/Boot/WorkloadResourceProfile.Tests.ps1', 'Tests/Integration/ModuleLoading.Tests.ps1')
-          $config.Run.Exit = $true
+          # Capture Pester's result before enforcing coverage; Run.Exit only
+          # enforces test failures and exits before caller coverage assertions.
+          $config.Run.Exit = $false
+          $config.Run.PassThru = $true
           $config.CodeCoverage.Enabled = $true
           $config.CodeCoverage.OutputFormat = 'JaCoCo'
           $config.CodeCoverage.OutputPath = 'Tests/TestResults/coverage.xml'
           $config.CodeCoverage.CoveragePercentTarget = 85
           $config.Output.Verbosity = 'Detailed'
-          Invoke-Pester -Configuration $config
+          $result = Invoke-Pester -Configuration $config
+          . ./Tools/Assert-PesterCoverageGate.ps1
+          Assert-PesterCoverageGate -Result $result -Target $config.CodeCoverage.CoveragePercentTarget.Value
       # Keep the raw report available even while the remote upload is optional.
       - name: Upload JaCoCo Artifact
         if: always()

@@ -118,7 +118,10 @@ try {
 
     # Configure CI mode
     if ($CI) {
-        $config.Run.Exit = $true
+        # Keep the returned result so the caller can enforce coverage as well
+        # as test failures instead of exiting early inside Pester.
+        $config.Run.Exit = $false
+        $config.Run.PassThru = $true
         $config.TestResult.Enabled = $true
         $config.Output.Verbosity = 'Normal'
         Write-Host "CI mode enabled: exit codes + XML output" -ForegroundColor Cyan
@@ -140,6 +143,11 @@ try {
     Write-Host ("=" * 80) -ForegroundColor Gray
 
     $result = Invoke-Pester -Configuration $config
+    if ($Coverage) {
+        . (Join-Path $RepoRoot 'Tools/Assert-PesterCoverageGate.ps1')
+        Assert-PesterCoverageGate -Result $result -Target $config.CodeCoverage.CoveragePercentTarget.Value
+    }
+    if ($result.TotalCount -eq 0) { throw 'No tests discovered.' }
 
     # Report results
     Write-Host "`n" -NoNewline
@@ -188,7 +196,7 @@ try {
     }
 
     # Exit with appropriate code
-    if ($result.FailedCount -gt 0) {
+    if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
         Write-Host "`nTests FAILED" -ForegroundColor Red
         if ($CI) {
             exit 1

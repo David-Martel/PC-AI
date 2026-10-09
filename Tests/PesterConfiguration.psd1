@@ -16,13 +16,9 @@
         Enabled = $true
         OutputFormat = 'JaCoCo'
         OutputPath = 'TestResults/coverage.xml'
-        Path = @(
-            # PowerShell's ** glob requires a directory below Modules; include
-            # standalone manifest-paired wrappers at the module root explicitly.
-            './Modules/*.psm1'
-            './Modules/**/*.ps1'
-            './Modules/**/*.psm1'
-        )
+        # Pester resolves wildcards before recursion. A directory root retains
+        # every nested Public/Private script and the standalone module wrappers.
+        Path = @('./Modules')
         ExcludeTests = $true
         RecursePaths = $true
         CoveragePercentTarget = 85

@@ -85,21 +85,118 @@ function Get-LLMConfigCurrentHash {
     return Get-LLMConfigBytesHash -Bytes ([IO.File]::ReadAllBytes($Path))
 }
 
+function Initialize-LLMConfigNativeAcl {
+    # The documented user-mode Nt APIs preserve raw ACE order and legacy
+    # inheritance flags that SetSecurityInfo (including the managed setter) changes.
+    if ('Pcai.Config.NativeAclV1' -as [type]) {
+        if ([Pcai.Config.NativeAclV1]::ProtocolVersion -ne 1) { throw 'Unknown configuration ACL interop version.' }
+        return
+    }
+    Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+namespace Pcai.Config {
+ public static class NativeAclV1 {
+  public const int ProtocolVersion = 1;
+  [StructLayout(LayoutKind.Sequential)] private struct FileIdInfo { public ulong Volume, Low, High; }
+  [DllImport("kernel32.dll", SetLastError=true, ExactSpelling=true)]
+  [return: MarshalAs(UnmanagedType.Bool)]
+  private static extern bool GetFileInformationByHandleEx(SafeFileHandle handle, int information, out FileIdInfo identity, uint size);
+  [DllImport("ntdll.dll", ExactSpelling=true)]
+  private static extern int NtQuerySecurityObject(SafeFileHandle handle, uint information, [Out] byte[] descriptor, uint length, out uint required);
+  [DllImport("ntdll.dll", ExactSpelling=true)]
+  private static extern int NtSetSecurityObject(SafeFileHandle handle, uint information, [In] byte[] descriptor);
+  [DllImport("ntdll.dll", ExactSpelling=true)]
+  private static extern uint RtlNtStatusToDosError(int status);
+  public static string Identity(SafeFileHandle handle) {
+   FileIdInfo identity;
+   if (!GetFileInformationByHandleEx(handle, 18, out identity, 24)) throw new Win32Exception(Marshal.GetLastWin32Error());
+   return identity.Volume.ToString("X16") + ":" + identity.High.ToString("X16") + identity.Low.ToString("X16");
+  }
+  public static byte[] ReadDescriptor(SafeFileHandle handle) {
+   // NtQuerySecurityObject documents the NTFS on-disk descriptor limit as 64 KiB.
+   byte[] descriptor = new byte[65536]; uint required;
+   int status = NtQuerySecurityObject(handle, 7, descriptor, (uint)descriptor.Length, out required);
+   if (status != 0) throw new Win32Exception(unchecked((int)RtlNtStatusToDosError(status)));
+   if (required < 20 || required > descriptor.Length) throw new InvalidOperationException("Invalid security descriptor length.");
+   Array.Resize(ref descriptor, (int)required); return descriptor;
+  }
+  public static void WriteDescriptor(SafeFileHandle handle, byte[] descriptor) {
+   int status = NtSetSecurityObject(handle, 7, descriptor);
+   if (status != 0) throw new Win32Exception(unchecked((int)RtlNtStatusToDosError(status)));
+  }
+ }
+}
+'@
+}
+
+function Read-LLMConfigOwnedBytes {
+    param([IO.FileStream]$Stream)
+    $position = $Stream.Position
+    $buffer = [IO.MemoryStream]::new()
+    try { $Stream.Position = 0; $Stream.CopyTo($buffer); return ,$buffer.ToArray() }
+    finally { $Stream.Position = $position; $buffer.Dispose() }
+}
+
 function Set-LLMConfigOwnedRecoveryAcl {
-    param([IO.FileStream]$Stream, [Security.AccessControl.FileSecurity]$Acl)
-    [IO.FileSystemAclExtensions]::SetAccessControl($Stream, $Acl)
+    param([IO.FileStream]$Stream, [Security.AccessControl.FileSecurity]$Acl, [byte[]]$Descriptor)
+    Initialize-LLMConfigNativeAcl
+    if (-not $Descriptor) { $Descriptor = $Acl.GetSecurityDescriptorBinaryForm() }
+    $raw = [Security.AccessControl.RawSecurityDescriptor]::new($Descriptor, 0)
+    # Request the original auto-inheritance model without converting legacy ACLs.
+    if ($raw.ControlFlags -band [Security.AccessControl.ControlFlags]::DiscretionaryAclAutoInherited) {
+        $raw.SetFlags($raw.ControlFlags -bor [Security.AccessControl.ControlFlags]::DiscretionaryAclAutoInheritRequired)
+    }
+    $submitted = [byte[]]::new($raw.BinaryLength)
+    $raw.GetBinaryForm($submitted, 0)
+    [Pcai.Config.NativeAclV1]::WriteDescriptor($Stream.SafeFileHandle, $submitted)
+}
+
+function Test-LLMConfigOwnedTarget {
+    param([string]$Path, [IO.FileStream]$Owned, [string]$ExpectedHash, [Collections.IDictionary]$Receipt)
+    $current = $null
+    try {
+        $current = [IO.FileSystemAclExtensions]::Create([IO.FileInfo]::new($Path), [IO.FileMode]::Open,
+            [Security.AccessControl.FileSystemRights]'ReadData,ReadPermissions', [IO.FileShare]'ReadWrite,Delete', 4096, [IO.FileOptions]::None, $null)
+        $Receipt.FailureCurrentFileIdentity = [Pcai.Config.NativeAclV1]::Identity($current.SafeFileHandle)
+        $Receipt.FailureCurrentSHA256 = Get-LLMConfigBytesHash -Bytes (Read-LLMConfigOwnedBytes -Stream $current)
+        return ($Receipt.FailureCurrentFileIdentity -ceq [Pcai.Config.NativeAclV1]::Identity($Owned.SafeFileHandle) -and
+            $Receipt.FailureCurrentSHA256 -ceq $ExpectedHash)
+    } catch [IO.FileNotFoundException] {
+        $Receipt.FailureCurrentFileIdentity = $null
+        return $false
+    } catch [IO.DirectoryNotFoundException] {
+        $Receipt.FailureCurrentFileIdentity = $null
+        return $false
+    } finally { if ($current) { $current.Dispose() } }
 }
 
 function Restore-LLMConfigMissingTarget {
-    param([string]$SourcePath, [string]$TargetPath, [string]$TransactionPath, [Collections.IDictionary]$Receipt)
+    param([string]$SourcePath, [string]$TargetPath, [string]$TransactionPath, [Collections.IDictionary]$Receipt, [psobject]$OriginalMetadata)
     # ReplaceFile error1177 can move the original to backup before failing.
     # Keep that actual backup and restore only into an absent target, never over
     # a writer that arrived afterwards. Move without overwrite decides the race.
-    $bytes = [IO.File]::ReadAllBytes($SourcePath)
+    $source = [IO.FileSystemAclExtensions]::Create([IO.FileInfo]::new($SourcePath), [IO.FileMode]::Open,
+        [Security.AccessControl.FileSystemRights]'ReadData,ReadPermissions', [IO.FileShare]'ReadWrite,Delete', 4096, [IO.FileOptions]::None, $null)
+    try {
+        $bytes = Read-LLMConfigOwnedBytes -Stream $source
+        $displacedIdentity = [Pcai.Config.NativeAclV1]::Identity($source.SafeFileHandle)
+        $displacedDescriptor = [Pcai.Config.NativeAclV1]::ReadDescriptor($source.SafeFileHandle)
+    } finally { $source.Dispose() }
     $restoreHash = Get-LLMConfigBytesHash -Bytes $bytes
     $Receipt.DisplacedSHA256 = $restoreHash
-    $originalAcl = Get-Acl -LiteralPath $SourcePath -ErrorAction Stop
-    $aclHash = Get-LLMConfigBytesHash -Bytes ([Text.Encoding]::UTF8.GetBytes($originalAcl.GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::All)))
+    $Receipt.DisplacedFileIdentity = $displacedIdentity
+    $Receipt.DisplacedWindowsDescriptorSHA256 = Get-LLMConfigBytesHash -Bytes $displacedDescriptor
+    Write-LLMConfigStage -Path (Join-Path $TransactionPath 'displaced-security-descriptor.bin') -Bytes $displacedDescriptor
+    if (-not $OriginalMetadata -or $displacedIdentity -cne $OriginalMetadata.Identity -or $restoreHash -cne $OriginalMetadata.Hash) {
+        throw 'Actual displaced original identity or bytes differ; original metadata will not be applied to a foreign writer.'
+    }
+    $originalAcl = $OriginalMetadata.Acl
+    $originalDescriptor = $OriginalMetadata.Descriptor
+    $originalSddl = ([Security.AccessControl.RawSecurityDescriptor]::new($originalDescriptor, 0)).GetSddlForm([Security.AccessControl.AccessControlSections]::All)
+    $aclHash = Get-LLMConfigBytesHash -Bytes ([Text.Encoding]::UTF8.GetBytes($originalSddl))
     Set-LLMConfigPrivateAcl -Path $SourcePath
     if (Test-Path -LiteralPath $TargetPath) {
         $Receipt.FailureCurrentSHA256 = Get-LLMConfigCurrentHash -Path $TargetPath
@@ -108,7 +205,7 @@ function Restore-LLMConfigMissingTarget {
     $stage = Join-Path $TransactionPath 'recovery-missing-target.json'
     Write-LLMConfigStage -Path $stage -Bytes $bytes
     if ((Get-LLMConfigCurrentHash -Path $stage) -cne $restoreHash) { throw 'Missing-target recovery candidate hash mismatch.' }
-    $Receipt.Recovery.Add([pscustomobject]@{ RestoredSHA256=$restoreHash; StagePath=$stage; PreservedWindowsAclSHA256=$aclHash; MetadataSource='ActualDisplacedWindowsAcl' })
+    $Receipt.Recovery.Add([pscustomobject]@{ RestoredSHA256=$restoreHash; StagePath=$stage; PreservedWindowsAclSHA256=$aclHash; MetadataSource='IdentityBoundPrePublicationWindowsAcl' })
     # Pin our own candidate with WRITE_DAC and delete sharing across the move.
     # Applying inherited ACLs while inside custody derives the wrong parent;
     # apply them after the move through this handle, never the target pathname.
@@ -124,18 +221,17 @@ function Restore-LLMConfigMissingTarget {
             }
             throw
         }
-        $restoreAcl = [Security.AccessControl.FileSecurity]::new()
-        $restoreAcl.SetSecurityDescriptorBinaryForm($originalAcl.GetSecurityDescriptorBinaryForm(), [Security.AccessControl.AccessControlSections]'Access,Owner,Group')
-        Set-LLMConfigOwnedRecoveryAcl -Stream $owned -Acl $restoreAcl
-        $Receipt.FailureCurrentSHA256 = Get-LLMConfigCurrentHash -Path $TargetPath
-        if ($Receipt.FailureCurrentSHA256 -cne $restoreHash) { return 'LaterWriterPreserved' }
-        $actualAcl = [IO.FileSystemAclExtensions]::GetAccessControl($owned)
-        $actualAclHash = Get-LLMConfigBytesHash -Bytes ([Text.Encoding]::UTF8.GetBytes($actualAcl.GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::All)))
+        Set-LLMConfigOwnedRecoveryAcl -Stream $owned -Acl $originalAcl -Descriptor $originalDescriptor
+        if (-not (Test-LLMConfigOwnedTarget -Path $TargetPath -Owned $owned -ExpectedHash $restoreHash -Receipt $Receipt)) { return 'LaterWriterPreserved' }
+        $actualDescriptor = [Pcai.Config.NativeAclV1]::ReadDescriptor($owned.SafeFileHandle)
+        $actualSddl = ([Security.AccessControl.RawSecurityDescriptor]::new($actualDescriptor, 0)).GetSddlForm([Security.AccessControl.AccessControlSections]::All)
+        $actualAclHash = Get-LLMConfigBytesHash -Bytes ([Text.Encoding]::UTF8.GetBytes($actualSddl))
         if ($actualAclHash -cne $aclHash) { throw 'Missing-target recovery Windows ACL mismatch.' }
+        # A different file can contain identical bytes. Keep the owned candidate
+        # open through the final identity observation, not just its hash check.
+        if (-not (Test-LLMConfigOwnedTarget -Path $TargetPath -Owned $owned -ExpectedHash $restoreHash -Receipt $Receipt)) { return 'LaterWriterPreserved' }
+        return 'Restored'
     } finally { $owned.Dispose() }
-    $Receipt.FailureCurrentSHA256 = Get-LLMConfigCurrentHash -Path $TargetPath
-    if ($Receipt.FailureCurrentSHA256 -cne $restoreHash) { return 'LaterWriterPreserved' }
-    return 'Restored'
 }
 
 function Restore-LLMConfigDisplaced {
@@ -175,6 +271,11 @@ function Save-LLMConfigAtomically {
         every captured version under ignored private same-volume custody.
         Original-byte checks detect concurrent writers; replacement captures
         boundary races, with bounded recovery rather than a hash compare-and-swap.
+        Missing-target recovery binds the original bytes and raw owner/group/DACL
+        descriptor to a retained original file handle before publication. Exact
+        descriptor and file-identity observations decide successful restoration;
+        mismatches preserve private custody for review. SACL/audit preservation
+        is outside this descriptor capture and recovery contract.
         Publication currently requires Windows. Unix File.Replace does not
         atomically capture the exchanged original; other platforms fail closed
         pending independently qualified atomic exchange and metadata admission.
@@ -211,6 +312,8 @@ function Save-LLMConfigAtomically {
     $receipt = $null
     $receiptPath = $null
     $published = $false
+    $originalOwned = $null
+    $originalMetadata = $null
     try {
         Set-LLMConfigPrivateAcl -Path $lockPath
         $revision = 1
@@ -229,6 +332,22 @@ function Save-LLMConfigAtomically {
         if ((Get-LLMConfigCurrentHash -Path $stage) -cne $afterHash) { throw 'Staged configuration hash mismatch.' }
         [void](Assert-LLMConfigWritePath -Path $target)
         if ($Snapshot.Exists) {
+            # Capture before Move/Replace can alter inheritance in protected custody.
+            # Keep this exact original open so file identity cannot be recycled.
+            Initialize-LLMConfigNativeAcl
+            $originalOwned = [IO.FileSystemAclExtensions]::Create([IO.FileInfo]::new($target), [IO.FileMode]::Open,
+                [Security.AccessControl.FileSystemRights]'ReadData,ReadPermissions', [IO.FileShare]'ReadWrite,Delete', 4096, [IO.FileOptions]::None, $null)
+            $ownedHash = Get-LLMConfigBytesHash -Bytes (Read-LLMConfigOwnedBytes -Stream $originalOwned)
+            if ($ownedHash -cne $Snapshot.Hash) { throw 'Configuration changed after reading; publication refused.' }
+            $originalMetadata = [pscustomobject]@{
+                Identity=[Pcai.Config.NativeAclV1]::Identity($originalOwned.SafeFileHandle)
+                Hash=$ownedHash
+                Descriptor=[Pcai.Config.NativeAclV1]::ReadDescriptor($originalOwned.SafeFileHandle)
+                Acl=[IO.FileSystemAclExtensions]::GetAccessControl($originalOwned)
+            }
+            $receipt.OriginalFileIdentity = $originalMetadata.Identity
+            $receipt.OriginalWindowsDescriptorSHA256 = Get-LLMConfigBytesHash -Bytes $originalMetadata.Descriptor
+            Write-LLMConfigStage -Path (Join-Path $transaction 'original-security-descriptor.bin') -Bytes $originalMetadata.Descriptor
             if (-not (Test-Path -LiteralPath $target -PathType Leaf) -or (Get-LLMConfigCurrentHash -Path $target) -cne $Snapshot.Hash) { throw 'Configuration changed after reading; publication refused.' }
             [IO.File]::Replace($stage, $target, $displaced)
             $published = $true
@@ -248,7 +367,7 @@ function Save-LLMConfigAtomically {
         $failure = $_
         if (-not $published -and $receipt -and $Snapshot.Exists -and (Test-Path -LiteralPath $displaced -PathType Leaf)) {
             $receipt.PartialPublicationObserved = $true
-            try { $receipt.RecoveryState = Restore-LLMConfigMissingTarget -SourcePath $displaced -TargetPath $target -TransactionPath $transaction -Receipt $receipt }
+            try { $receipt.RecoveryState = Restore-LLMConfigMissingTarget -SourcePath $displaced -TargetPath $target -TransactionPath $transaction -Receipt $receipt -OriginalMetadata $originalMetadata }
             catch { $receipt.RecoveryState = 'RequiresReview'; $receipt.RecoveryErrorType = $_.Exception.GetBaseException().GetType().FullName; $receipt.RecoveryErrorHResult = $_.Exception.GetBaseException().HResult }
         } elseif ($published -and $Snapshot.Exists) {
             try { $receipt.RecoveryState = Restore-LLMConfigDisplaced -SourcePath $displaced -ExpectedCurrentHash $afterHash -TargetPath $target -TransactionPath $transaction -Receipt $receipt }
@@ -267,5 +386,5 @@ function Save-LLMConfigAtomically {
             catch { Write-Warning "Configuration custody retained; receipt update failed: $receiptPath" }
         }
         throw $failure
-    } finally { $lock.Dispose() }
+    } finally { if ($originalOwned) { $originalOwned.Dispose() }; $lock.Dispose() }
 }

@@ -9,6 +9,18 @@ BeforeAll {
     $script:RepositoryConfigHash = (Get-FileHash -LiteralPath $script:RepositoryConfigPath).Hash
     Import-Module $modulePath -Force -ErrorAction Stop
     $script:OriginalModuleConfig = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
+    if (-not ('Pcai.Config.AclFixtureV1' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+namespace Pcai.Config {
+ public static class AclFixtureV1 {
+  [DllImport("ntdll.dll", ExactSpelling=true)]
+  public static extern int NtSetSecurityObject(SafeFileHandle handle, uint information, [In] byte[] descriptor);
+ }
+}
+'@
+    }
     function Get-ConfigFixtureReceipt {
         $pathHash = InModuleScope PC-AI.LLM -Parameters @{ Path = $script:ConfigPath } {
             $identity = if ($IsWindows) { [IO.Path]::GetFullPath($Path).ToUpperInvariant() } else { [IO.Path]::GetFullPath($Path) }
@@ -139,7 +151,8 @@ Describe 'Set-LLMProviderOrder' -Tag 'Unit', 'LLM', 'Fast', 'Windows' {
         Mock Get-LLMConfigCurrentHash {
             param($Path)
             $hash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
-            $script:ConfigWriteFixtureHandle = [IO.File]::Open($Path, 'Open', 'ReadWrite', 'None')
+            # Permit the publisher's retained read handle, but deny rename/delete.
+            $script:ConfigWriteFixtureHandle = [IO.File]::Open($Path, 'Open', 'Read', 'ReadWrite')
             return $hash
         } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
         try {
@@ -358,6 +371,9 @@ Describe 'Set-LLMProviderOrder' -Tag 'Unit', 'LLM', 'Fast', 'Windows' {
         $receipt.State | Should -BeExactly 'RolledBack'
         $receipt.RecoveryState | Should -BeExactly 'Restored'
         $receipt.DisplacedSHA256 | Should -BeExactly $script:BeforeHash
+        $receipt.OriginalFileIdentity | Should -BeExactly $receipt.DisplacedFileIdentity
+        $receipt.OriginalWindowsDescriptorSHA256 | Should -BeExactly (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'original-security-descriptor.bin')).Hash
+        $receipt.DisplacedWindowsDescriptorSHA256 | Should -BeExactly (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'displaced-security-descriptor.bin')).Hash
         (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'displaced-original.bin')).Hash | Should -BeExactly $script:BeforeHash
         InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
     }
@@ -440,6 +456,152 @@ Describe 'Set-LLMProviderOrder' -Tag 'Unit', 'LLM', 'Fast', 'Windows' {
         $receipt.FailureCurrentSHA256 | Should -BeExactly (Get-FileHash $script:ConfigPath).Hash
         (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'recovery-owned-aside.bin')).Hash | Should -BeExactly $script:BeforeHash
         (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'displaced-original.bin')).Hash | Should -BeExactly $script:BeforeHash
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'preserves exact <Mode> ACL controls and ACEs after actual displacement (repeat <Repeat>)' -ForEach @(
+        @{ Mode='legacy inherited'; AutoInherited=$false; Protected=$false; Repeat=1 }
+        @{ Mode='legacy protected'; AutoInherited=$false; Protected=$true; Repeat=1 }
+        @{ Mode='auto inherited'; AutoInherited=$true; Protected=$false; Repeat=1 }
+        @{ Mode='auto protected'; AutoInherited=$true; Protected=$true; Repeat=1 }
+        @{ Mode='legacy inherited'; AutoInherited=$false; Protected=$false; Repeat=2 }
+        @{ Mode='legacy protected'; AutoInherited=$false; Protected=$true; Repeat=2 }
+        @{ Mode='auto inherited'; AutoInherited=$true; Protected=$false; Repeat=2 }
+        @{ Mode='auto protected'; AutoInherited=$true; Protected=$true; Repeat=2 }
+    ) {
+        # Establish the original descriptor through an independent native fixture.
+        # The expected metadata is observed before the production recovery runs.
+        $raw = [Security.AccessControl.RawSecurityDescriptor]::new((Get-Acl $script:ConfigPath).Sddl)
+        $flags = $raw.ControlFlags -band (-bnot ([Security.AccessControl.ControlFlags]::DiscretionaryAclAutoInherited -bor [Security.AccessControl.ControlFlags]::DiscretionaryAclProtected))
+        if ($Protected) { $flags = $flags -bor [Security.AccessControl.ControlFlags]::DiscretionaryAclProtected }
+        if ($AutoInherited) { $flags = $flags -bor [Security.AccessControl.ControlFlags]::DiscretionaryAclAutoInherited -bor [Security.AccessControl.ControlFlags]::DiscretionaryAclAutoInheritRequired }
+        $raw.SetFlags($flags)
+        $descriptor = [byte[]]::new($raw.BinaryLength)
+        $raw.GetBinaryForm($descriptor, 0)
+        $fixture = [IO.FileSystemAclExtensions]::Create([IO.FileInfo]::new($script:ConfigPath), [IO.FileMode]::Open,
+            [Security.AccessControl.FileSystemRights]'ReadData,ReadPermissions,ChangePermissions,TakeOwnership', [IO.FileShare]'ReadWrite,Delete', 4096, [IO.FileOptions]::None, $null)
+        try { [Pcai.Config.AclFixtureV1]::NtSetSecurityObject($fixture.SafeFileHandle, 7, $descriptor) | Should -Be 0 }
+        finally { $fixture.Dispose() }
+        $originalAcl = (Get-Acl $script:ConfigPath).Sddl
+        $expected = [Security.AccessControl.RawSecurityDescriptor]::new($originalAcl)
+        [bool]($expected.ControlFlags -band [Security.AccessControl.ControlFlags]::DiscretionaryAclAutoInherited) | Should -Be $AutoInherited
+        [bool]($expected.ControlFlags -band [Security.AccessControl.ControlFlags]::DiscretionaryAclProtected) | Should -Be $Protected
+        $script:ConfigWriteFixturePartialFault = $false
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            if (-not $script:ConfigWriteFixturePartialFault) {
+                $script:ConfigWriteFixturePartialFault = $true
+                [IO.File]::Move($Path, (Join-Path (Split-Path -Parent (Get-ConfigFixtureReceipt)) 'displaced-original.bin'))
+                throw [IO.IOException]::new('Original fixture error1177 with controlled descriptor.', -2147023719)
+            }
+            (Get-FileHash $Path).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*error1177*'
+        (Get-Acl $script:ConfigPath).Sddl | Should -BeExactly $originalAcl
+        (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $script:BeforeHash
+        $receiptPath = Get-ConfigFixtureReceipt
+        $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'RolledBack'
+        $receipt.RecoveryState | Should -BeExactly 'Restored'
+        $receipt.OriginalFileIdentity | Should -BeExactly $receipt.DisplacedFileIdentity
+        $receipt.Recovery[0].MetadataSource | Should -BeExactly 'IdentityBoundPrePublicationWindowsAcl'
+        foreach ($leaf in @('original-security-descriptor.bin', 'displaced-security-descriptor.bin')) {
+            $acl = Get-Acl (Join-Path (Split-Path -Parent $receiptPath) $leaf)
+            $acl.AreAccessRulesProtected | Should -BeTrue
+            $allowed = @([Security.Principal.WindowsIdentity]::GetCurrent().User.Value, 'S-1-5-18', 'S-1-5-32-544')
+            foreach ($rule in $acl.Access) { $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value | Should -BeIn $allowed }
+        }
+    }
+
+    It 'retains both descriptors and refuses stale metadata for a foreign displaced file with identical bytes' {
+        $script:ConfigWriteFixturePartialFault = $false
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            if (-not $script:ConfigWriteFixturePartialFault) {
+                $script:ConfigWriteFixturePartialFault = $true
+                $transaction = Split-Path -Parent (Get-ConfigFixtureReceipt)
+                $bytes = [IO.File]::ReadAllBytes($Path)
+                [IO.File]::Move($Path, (Join-Path $transaction 'fixture-retained-original.bin'))
+                [IO.File]::WriteAllBytes($Path, $bytes)
+                $foreignAcl = Get-Acl -LiteralPath $Path
+                $foreignAcl.SetAccessRuleProtection($true, $true)
+                Set-Acl -LiteralPath $Path -AclObject $foreignAcl -ErrorAction Stop
+                [IO.File]::Move($Path, (Join-Path $transaction 'displaced-original.bin'))
+                throw [IO.IOException]::new('Original fixture error1177 with foreign displaced writer.', -2147023719)
+            }
+            (Get-FileHash $Path).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*Original fixture error1177*'
+        Test-Path $script:ConfigPath | Should -BeFalse
+        $receiptPath = Get-ConfigFixtureReceipt
+        $transaction = Split-Path -Parent $receiptPath
+        $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'RecoveryRequiresReview'
+        $receipt.OriginalFileIdentity | Should -Not -Be $receipt.DisplacedFileIdentity
+        $receipt.DisplacedSHA256 | Should -BeExactly $script:BeforeHash
+        foreach ($leaf in @('displaced-original.bin', 'fixture-retained-original.bin')) {
+            (Get-FileHash (Join-Path $transaction $leaf)).Hash | Should -BeExactly $script:BeforeHash
+        }
+        $receipt.OriginalWindowsDescriptorSHA256 | Should -BeExactly (Get-FileHash (Join-Path $transaction 'original-security-descriptor.bin')).Hash
+        $receipt.DisplacedWindowsDescriptorSHA256 | Should -BeExactly (Get-FileHash (Join-Path $transaction 'displaced-security-descriptor.bin')).Hash
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'keeps review state and the original failure when exact descriptor restoration is not achieved' {
+        $script:ConfigWriteFixturePartialFault = $false
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            if (-not $script:ConfigWriteFixturePartialFault) {
+                $script:ConfigWriteFixturePartialFault = $true
+                [IO.File]::Move($Path, (Join-Path (Split-Path -Parent (Get-ConfigFixtureReceipt)) 'displaced-original.bin'))
+                throw [IO.IOException]::new('Original fixture error1177 before descriptor mismatch.', -2147023719)
+            }
+            (Get-FileHash $Path).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        Mock Set-LLMConfigOwnedRecoveryAcl {} -ModuleName PC-AI.LLM
+        $failure = { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*Original fixture error1177*' -PassThru
+        $failure.Exception.GetBaseException().HResult | Should -Be -2147023719
+        $receiptPath = Get-ConfigFixtureReceipt
+        $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'RecoveryRequiresReview'
+        $receipt.RecoveryState | Should -BeExactly 'RequiresReview'
+        (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'displaced-original.bin')).Hash | Should -BeExactly $script:BeforeHash
+        Test-Path (Join-Path (Split-Path -Parent $receiptPath) 'original-security-descriptor.bin') | Should -BeTrue
+    }
+
+    It 'preserves a distinct later target with identical bytes and its own ACL after the owned recovery move' {
+        $script:ConfigWriteFixturePartialFault = $false
+        $script:ConfigWriteFixtureForeignAcl = $null
+        $script:ConfigWriteFixtureRealSetter = & (Get-Module PC-AI.LLM) { (Get-Command Set-LLMConfigOwnedRecoveryAcl).ScriptBlock }
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            if (-not $script:ConfigWriteFixturePartialFault) {
+                $script:ConfigWriteFixturePartialFault = $true
+                [IO.File]::Move($Path, (Join-Path (Split-Path -Parent (Get-ConfigFixtureReceipt)) 'displaced-original.bin'))
+                throw [IO.IOException]::new('Original fixture error1177 before a same-byte later writer.', -2147023719)
+            }
+            (Get-FileHash $Path).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        Mock Set-LLMConfigOwnedRecoveryAcl {
+            param($Stream, $Acl, $Descriptor)
+            $transaction = Split-Path -Parent (Get-ConfigFixtureReceipt)
+            $bytes = [IO.File]::ReadAllBytes($script:ConfigPath)
+            [IO.File]::Move($script:ConfigPath, (Join-Path $transaction 'fixture-owned-recovery-aside.bin'))
+            [IO.File]::WriteAllBytes($script:ConfigPath, $bytes)
+            $foreignAcl = Get-Acl -LiteralPath $script:ConfigPath
+            $foreignAcl.SetAccessRuleProtection($true, $true)
+            Set-Acl -LiteralPath $script:ConfigPath -AclObject $foreignAcl -ErrorAction Stop
+            $script:ConfigWriteFixtureForeignAcl = (Get-Acl $script:ConfigPath).Sddl
+            & $script:ConfigWriteFixtureRealSetter -Stream $Stream -Acl $Acl -Descriptor $Descriptor
+        } -ModuleName PC-AI.LLM
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*Original fixture error1177*'
+        (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $script:BeforeHash
+        (Get-Acl $script:ConfigPath).Sddl | Should -BeExactly $script:ConfigWriteFixtureForeignAcl
+        $receiptPath = Get-ConfigFixtureReceipt
+        $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'LaterWriterPreserved'
+        $receipt.RecoveryState | Should -BeExactly 'LaterWriterPreserved'
+        (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'fixture-owned-recovery-aside.bin')).Hash | Should -BeExactly $script:BeforeHash
         InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
     }
 }

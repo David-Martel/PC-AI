@@ -621,7 +621,8 @@ Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Windows' {
             Mock Get-LLMConfigCurrentHash {
                 param($Path)
                 $hash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
-                $script:ConfigWriteFixtureHandle = [IO.File]::Open($Path, 'Open', 'ReadWrite', 'None')
+                # Permit retained original reads while denying replacement/delete.
+                $script:ConfigWriteFixtureHandle = [IO.File]::Open($Path, 'Open', 'Read', 'ReadWrite')
                 return $hash
             } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
             try {

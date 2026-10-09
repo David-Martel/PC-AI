@@ -200,7 +200,8 @@ $success = & (Get-Module PcaiMedia) {
     Initialize-PcaiMediaFFI
 } $Root $DllPath
 if (-not $success) { throw 'Fresh-process managed loading failed.' }
-$assembly = [AppDomain]::CurrentDomain.GetAssemblies() | Where-Object Location -eq $DllPath | Select-Object -First 1
+$expectedDll = [IO.Path]::GetFullPath($DllPath)
+$assembly = [AppDomain]::CurrentDomain.GetAssemblies() | Where-Object Location -eq $expectedDll | Select-Object -First 1
 if (-not $assembly) { throw 'The initializer did not load the selected fixture assembly.' }
 Write-Output 'fresh-bridge-loaded'
 '@ | Set-Content -LiteralPath $probe

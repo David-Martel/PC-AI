@@ -7,7 +7,7 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($modulePath, [ref]$tokens, [ref]$errors)
     if ($errors.Count) { throw 'Media module must parse before loader verification.' }
-    foreach ($name in @('Get-PcaiMediaLoadedBridgePath', 'Import-PcaiMediaManagedBridge', 'Initialize-PcaiMediaFFI')) {
+    foreach ($name in @('Get-PcaiMediaLoadedBridgePath', 'Import-PcaiMediaManagedBridge', 'Resolve-PcaiMediaBridgeFilePath', 'Initialize-PcaiMediaFFI')) {
         $definition = $ast.Find({ param($node)
             $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
         }, $true)

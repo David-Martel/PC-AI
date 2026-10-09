@@ -83,7 +83,9 @@ function Initialize-PcaiNative {
     $explicitBundle = $env:PCAI_NATIVE_BUNDLE_ROOT
     if ($explicitBundle) {
         try {
-            $explicitBundle = (Resolve-Path -LiteralPath $explicitBundle -ErrorAction Stop).ProviderPath
+            $resolvedBundle = Resolve-Path -LiteralPath $explicitBundle -ErrorAction Stop
+            if ($resolvedBundle.Provider.Name -ne 'FileSystem') { throw 'Native bundle must be a filesystem directory.' }
+            $explicitBundle = [IO.Path]::GetFullPath($resolvedBundle.ProviderPath)
             foreach ($leaf in @('pcai_core_lib.dll', 'PcaiNative.dll')) {
                 if (-not (Test-Path -LiteralPath (Join-Path $explicitBundle $leaf) -PathType Leaf)) {
                     throw "Explicit PCAI native bundle is incomplete: $leaf"
@@ -182,11 +184,12 @@ function Initialize-PcaiNative {
     }
 
     Write-Verbose "Found PCAI Native DLLs at: $dllPath"
-    $script:PcaiNativeDllPath = $dllPath
-
     try {
-        $wrapperPath = Join-Path $dllPath 'PcaiNative.dll'
+        $dllPath = [IO.Path]::GetFullPath($dllPath)
+        $script:PcaiNativeDllPath = $dllPath
+        $wrapperPath = [IO.Path]::GetFullPath((Join-Path $dllPath 'PcaiNative.dll'))
         $loadedBridgePath = Get-PcaiNativeLoadedBridgePath
+        if ($loadedBridgePath) { $loadedBridgePath = [IO.Path]::GetFullPath($loadedBridgePath) }
         if ($loadedBridgePath -and
             -not [string]::Equals($loadedBridgePath, $wrapperPath, [StringComparison]::OrdinalIgnoreCase)) {
             throw 'A different PcaiNative bundle is already loaded; select the desired bundle in a fresh PowerShell process.'
@@ -201,7 +204,7 @@ function Initialize-PcaiNative {
         }
 
         # Load the C# wrapper assembly
-        if (-not $loadedAssembly) {
+        if (-not $loadedBridgePath) {
             Add-Type -Path $wrapperPath -ErrorAction Stop
             Write-Verbose 'Loaded PcaiNative.dll assembly'
         } else {

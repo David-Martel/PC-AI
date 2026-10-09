@@ -185,6 +185,15 @@ function Import-PcaiMediaManagedBridge {
     return [Reflection.Assembly]::LoadFrom($Path).Location
 }
 
+function Resolve-PcaiMediaBridgeFilePath {
+    param([Parameter(Mandatory)][string]$Path)
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    if ($item.PSProvider.Name -ne 'FileSystem' -or $item.PSIsContainer) {
+        throw 'Managed bridge path must select an existing filesystem file.'
+    }
+    return $item.FullName
+}
+
 function Initialize-PcaiMediaFFI {
     <#
     .SYNOPSIS
@@ -194,23 +203,26 @@ function Initialize-PcaiMediaFFI {
         if ($env:PCAI_NATIVE_BUNDLE_ROOT) {
             $bundle = Resolve-Path -LiteralPath $env:PCAI_NATIVE_BUNDLE_ROOT -ErrorAction Stop
             if ($bundle.Provider.Name -ne 'FileSystem') { throw 'Native bundle must be a filesystem directory.' }
-            $nativeDll = Join-Path $bundle.ProviderPath 'PcaiNative.dll'
+            $bundleRoot = [IO.Path]::GetFullPath($bundle.ProviderPath)
+            $nativeDll = Join-Path $bundleRoot 'PcaiNative.dll'
             foreach ($leaf in @('PcaiNative.dll', 'pcai_media.dll')) {
-                if (-not (Test-Path -LiteralPath (Join-Path $bundle.ProviderPath $leaf) -PathType Leaf)) {
+                if (-not (Test-Path -LiteralPath (Join-Path $bundleRoot $leaf) -PathType Leaf)) {
                     throw "Explicit native media bundle lacks $leaf."
                 }
             }
-            $env:PCAI_NATIVE_BUNDLE_ROOT = $bundle.ProviderPath
+            $env:PCAI_NATIVE_BUNDLE_ROOT = $bundleRoot
         } else {
             $nativeDll = Join-Path (Join-Path (Get-PcaiProjectRoot) 'bin') 'PcaiNative.dll'
         }
         if (-not (Test-Path -LiteralPath $nativeDll -PathType Leaf)) { return $false }
-        $nativeDll = (Resolve-Path -LiteralPath $nativeDll -ErrorAction Stop).ProviderPath
+        # ProviderPath retains Windows 8.3 aliases; Assembly.Location uses long names.
+        $nativeDll = Resolve-PcaiMediaBridgeFilePath -Path $nativeDll
         $loadedPath = Get-PcaiMediaLoadedBridgePath
+        if ($loadedPath) { $loadedPath = Resolve-PcaiMediaBridgeFilePath -Path $loadedPath }
         if ($loadedPath -and -not $loadedPath.Equals($nativeDll, [StringComparison]::OrdinalIgnoreCase)) {
             throw 'A different PcaiNative bridge is already loaded. Select the bundle in a fresh process.'
         }
-        $actualPath = Import-PcaiMediaManagedBridge -Path $nativeDll
+        $actualPath = Resolve-PcaiMediaBridgeFilePath -Path (Import-PcaiMediaManagedBridge -Path $nativeDll)
         if (-not $actualPath.Equals($nativeDll, [StringComparison]::OrdinalIgnoreCase)) {
             throw 'Managed loading reused another PcaiNative bridge. Use a fresh process.'
         }

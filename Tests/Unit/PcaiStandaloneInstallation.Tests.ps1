@@ -129,6 +129,45 @@ if ($resolved -ne (Join-Path $Bundle 'pcai_inference.dll') -or $env:PCAI_NATIVE_
         $output | Should -Contain 'canonical explicit pair selected; conflict rejected'
     }
 
+    It 'accepts a genuine short inference directory and leaf for the same loaded bridge' -Skip:(-not $env:PCAI_TEST_NATIVE_MEDIA_BUNDLE) {
+        $bundle = Join-Path $script:FixtureRoot 'selected-long-inference-bundle'
+        [void](New-Item -ItemType Directory -Path $bundle)
+        Copy-Item -LiteralPath (Join-Path $env:PCAI_TEST_NATIVE_MEDIA_BUNDLE 'PcaiNative.dll') -Destination $bundle
+        'resolver fixture only; no inference engine' | Set-Content -LiteralPath (Join-Path $bundle 'pcai_inference.dll')
+        $output = Invoke-StandaloneChild -Arguments @($script:Installed, $bundle) -Script @'
+param($Installed, $Bundle)
+$ErrorActionPreference = 'Stop'
+Add-Type -TypeDefinition @"
+using System.Text;
+using System.Runtime.InteropServices;
+public static class PcaiInferenceShortPathFixture {
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+    public static extern uint GetShortPathName(string path, StringBuilder output, uint capacity);
+}
+"@
+function Get-FixtureShortPath($Path) {
+    $buffer = [Text.StringBuilder]::new(32768)
+    $length = [PcaiInferenceShortPathFixture]::GetShortPathName($Path, $buffer, $buffer.Capacity)
+    if (-not $length -or $length -ge $buffer.Capacity -or $buffer.ToString() -eq $Path) { throw 'Actual inference path qualification pending: no distinct 8.3 alias.' }
+    return $buffer.ToString()
+}
+$shortBundle = Get-FixtureShortPath $Bundle
+$longLeaf = Join-Path $Bundle 'pcai_inference.dll'
+$shortLeaf = Get-FixtureShortPath $longLeaf
+$env:PCAI_NATIVE_BUNDLE_ROOT = $shortBundle
+$env:PCAI_ROOT = 'unavailable checkout must not be consulted'
+[void][Reflection.Assembly]::LoadFrom((Join-Path $Bundle 'PcaiNative.dll'))
+$module = Import-Module -Name (Join-Path $Installed 'PcaiInference/PcaiInference.psd1') -Force -PassThru
+$resolved = & $module { param($Override) Resolve-PcaiInferenceDll -OverridePath $Override } $shortLeaf
+if ($resolved -cne $longLeaf -or $env:PCAI_NATIVE_BUNDLE_ROOT -cne $Bundle) { throw 'Short inference selection did not expand to the selected existing pair.' }
+if (-not (& $module { Initialize-PcaiFFI })) { throw 'Same loaded bridge rejected its short bundle directory.' }
+$assembly = [AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_.GetName().Name -eq 'PcaiNative' } | Select-Object -First 1
+if ($assembly.Location -cne (Join-Path $Bundle 'PcaiNative.dll')) { throw 'Another bridge was reused.' }
+'same inference bridge short directory and leaf accepted; engine not exercised'
+'@
+        $output | Should -Contain 'same inference bridge short directory and leaf accepted; engine not exercised'
+    }
+
     It 'loads the qualified CPU media pair from the copied module without a checkout or profile' -Skip:(-not $env:PCAI_TEST_NATIVE_MEDIA_BUNDLE) {
         $output = Invoke-StandaloneChild -Arguments @($script:Installed, $env:PCAI_TEST_NATIVE_MEDIA_BUNDLE) -Script @'
 param($Installed, $Bundle)

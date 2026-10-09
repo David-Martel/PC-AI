@@ -2,6 +2,7 @@
 
 BeforeAll {
     $script:RepoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+    $script:RepositoryConfigHash = (Get-FileHash (Join-Path $script:RepoRoot 'Config/llm-config.json')).Hash
     $script:Probe = Join-Path $TestDrive 'copied-runtime-consumer.ps1'
     @'
 param($Installed, $Root, $Mode, $SourceRoot)
@@ -26,6 +27,23 @@ if ($Mode -eq 'Changed') {
     try { & $module { Resolve-PcaiRepoRoot -StartPath $PSScriptRoot }; throw 'Cached discovery hid an invalid explicit root.' }
     catch { if ($_.Exception.Message -notlike '*Explicit PCAI_ROOT*') { throw } }
     'changed explicit root rejected before cached discovery'
+}
+if ($Mode -eq 'Publish') {
+    $beforeHash = (Get-FileHash $configuration.ConfigPath).Hash
+    Set-LLMProviderOrder -Order @('pcai-inference', 'ollama') -ErrorAction Stop | Out-Null
+    $saved = Get-Content $configuration.ConfigPath -Raw | ConvertFrom-Json -Depth 100
+    $memoryOrder = & $module { $script:ModuleConfig.ProviderOrder -join ',' }
+    if (($saved.fallbackOrder -join ',') -ne 'pcai-inference,ollama' -or $memoryOrder -ne 'pcai-inference,ollama') { throw 'Copied provider publication did not update selected disk and memory.' }
+    if ($saved.ollama.model -ne 'copied-consumer-unique-model' -or $saved.ollama.base_url -ne 'http://copied-consumer.invalid:19431') { throw 'Copied publication lost machine settings.' }
+    $value = $saved.machineSetting
+    for ($depth = 0; $depth -lt 26; $depth++) { $value = $value.nested }
+    if ($value -ne 'copied-provider-extension-leaf') { throw 'Copied publication lost nested machine settings.' }
+    $pathHash = & $module { (Get-LLMConfigBytesHash -Bytes ([Text.Encoding]::UTF8.GetBytes($script:ModuleConfig.ConfigPath.ToUpperInvariant()))).ToLowerInvariant() }
+    $custody = Join-Path $Root ('Config/.pcai/config-write/' + $pathHash + '/r1')
+    $receipt = Get-Content (Join-Path $custody 'receipt.json') -Raw | ConvertFrom-Json
+    if ($receipt.State -ne 'Published' -or (Get-FileHash (Join-Path $custody 'original.bin')).Hash -ne $beforeHash) { throw 'Copied publication did not preserve exact original custody.' }
+    if (Test-Path (Join-Path $Installed 'Config')) { throw 'Copied publication wrote configuration beneath the installed modules.' }
+    'copied provider publication selected root and preserved nested settings and exact custody'
 }
 'copied runtime model endpoint and paths selected'
 '@ | Set-Content -LiteralPath $script:Probe
@@ -61,6 +79,17 @@ Describe 'Copied modules retain per-machine runtime configuration' {
         $output | Should -Contain 'changed explicit root rejected before cached discovery'
     }
 
+    It 'publishes provider order from a fresh copied consumer into its selected machine root' -Tag 'Windows' {
+        $path = Join-Path $script:SelectedRoot 'Config/llm-config.json'
+        $original = [IO.File]::ReadAllText($path).TrimEnd()
+        $deep = ('{"nested":' * 26) + '"copied-provider-extension-leaf"' + ('}' * 26)
+        [IO.File]::WriteAllText($path, ($original.Substring(0, $original.Length - 1) + ',"machineSetting":' + $deep + '}'), [Text.UTF8Encoding]::new($false))
+        $output = & (Get-Command pwsh).Source -NoLogo -NoProfile -File $script:Probe $script:Installed $script:SelectedRoot Publish $script:RepoRoot 2>&1
+        if ($LASTEXITCODE) { $output | ForEach-Object { Write-Host $_ } }
+        $LASTEXITCODE | Should -Be 0
+        $output | Should -Contain 'copied provider publication selected root and preserved nested settings and exact custody'
+    }
+
     It 'rejects an explicit invalid config root: <Kind>' -ForEach @(
         @{ Kind='missing directory' }, @{ Kind='missing marker' }, @{ Kind='missing configuration' }, @{ Kind='non-filesystem provider' }, @{ Kind='whitespace' }
     ) {
@@ -83,4 +112,8 @@ Describe 'Copied modules retain per-machine runtime configuration' {
         $LASTEXITCODE | Should -Be 0
         $output | Should -Contain 'source ancestry preserved'
     }
+}
+
+AfterAll {
+    (Get-FileHash (Join-Path $script:RepoRoot 'Config/llm-config.json')).Hash | Should -BeExactly $script:RepositoryConfigHash
 }

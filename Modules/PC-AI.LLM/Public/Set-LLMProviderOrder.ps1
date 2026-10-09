@@ -6,6 +6,8 @@
     Validates every provider before writing. Supported providers are ollama,
     pcai-inference, vllm and lmstudio. The legacy aliases pcai-native (ollama)
     and functiongemma (vllm) remain supported. Other configuration is preserved.
+    Publication currently requires Windows. Other platforms reject writes before
+    mutation pending qualified atomic exchange and metadata preservation.
 #>
 function Set-LLMProviderOrder {
     [CmdletBinding(SupportsShouldProcess)]
@@ -22,7 +24,8 @@ function Set-LLMProviderOrder {
         throw "Config file not found: $configPath"
     }
 
-    $config = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json -Depth 20 -ErrorAction Stop
+    $snapshot = Read-LLMConfigSnapshot -Path $configPath
+    $config = $snapshot.Configuration
     if ($config.PSObject.Properties['fallbackOrder']) {
         $config.fallbackOrder = @($Order)
     } else {
@@ -33,8 +36,7 @@ function Set-LLMProviderOrder {
         return
     }
 
-    # Strict JSON consumers reject the BOM emitted by Encoding.UTF8.
-    [System.IO.File]::WriteAllText($configPath, ($config | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
+    Save-LLMConfigAtomically -Configuration $config -Snapshot $snapshot
     $script:ModuleConfig.ProviderOrder = @($Order)
 
     Write-Host "Provider order updated: $($Order -join ',')" -ForegroundColor Green

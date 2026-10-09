@@ -8,6 +8,9 @@ function Set-LLMConfig {
     .DESCRIPTION
         Sets and persists configuration for the PC-AI.LLM module including default model,
         API endpoints, timeouts, and other operational parameters.
+        Windows publication preserves private original-byte custody. Other platforms
+        reject writes until atomic exchange and metadata preservation are qualified;
+        read-only inspection remains available.
 
     .PARAMETER DefaultModel
         Default model to use for LLM requests
@@ -108,6 +111,7 @@ function Set-LLMConfig {
         # These setters replace values; a shallow snapshot preserves prior settings
         # when serialization or persistence fails, without changing machine defaults.
         $previousConfig = $script:ModuleConfig.Clone()
+        $pendingConfig = $previousConfig.Clone()
 
         # Default configuration snapshot captured at module load time.
         if ($script:ModuleDefaults -and $script:ModuleDefaults.Count -gt 0) {
@@ -169,23 +173,15 @@ function Set-LLMConfig {
                 throw 'Cannot persist LLM configuration because no target config path is defined.'
             }
 
-            $fallbackOrder = if ($script:ModuleConfig.ProviderOrder -and $script:ModuleConfig.ProviderOrder.Count -gt 0) {
-                @($script:ModuleConfig.ProviderOrder)
+            $fallbackOrder = if ($pendingConfig.ProviderOrder -and $pendingConfig.ProviderOrder.Count -gt 0) {
+                @($pendingConfig.ProviderOrder)
             } else {
                 @('ollama', 'pcai-inference')
             }
             Assert-LLMProviderOrder -Order $fallbackOrder
 
-            $targetDir = Split-Path -Parent $TargetPath
-            if (-not (Test-Path $targetDir)) {
-                New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
-            }
-
-            $projectConfig = if (Test-Path $TargetPath) {
-                Get-Content -Path $TargetPath -Raw -Encoding UTF8 | ConvertFrom-Json
-            } else {
-                [PSCustomObject]@{}
-            }
+            $snapshot = Read-LLMConfigSnapshot -Path $TargetPath
+            $projectConfig = $snapshot.Configuration
 
             $providers = Initialize-ConfigProperty -Object $projectConfig -Name 'providers' -DefaultValue ([PSCustomObject]@{})
             $pcaiProvider = Initialize-ConfigProperty -Object $providers -Name 'pcai-inference' -DefaultValue ([PSCustomObject]@{})
@@ -196,44 +192,35 @@ function Set-LLMConfig {
 
             $router = Initialize-ConfigProperty -Object $projectConfig -Name 'router' -DefaultValue ([PSCustomObject]@{})
             $ollamaRuntime = Initialize-ConfigProperty -Object $projectConfig -Name 'ollama' -DefaultValue ([PSCustomObject]@{})
-            Set-ConfigValue -Object $pcaiProvider -Name 'baseUrl' -Value $script:ModuleConfig.PcaiInferenceApiUrl
-            Set-ConfigValue -Object $pcaiProvider -Name 'defaultModel' -Value $script:ModuleConfig.DefaultModel
-            Set-ConfigValue -Object $pcaiProvider -Name 'timeout' -Value ([int]($script:ModuleConfig.DefaultTimeout * 1000))
+            Set-ConfigValue -Object $pcaiProvider -Name 'baseUrl' -Value $pendingConfig.PcaiInferenceApiUrl
+            Set-ConfigValue -Object $pcaiProvider -Name 'defaultModel' -Value $pendingConfig.DefaultModel
+            Set-ConfigValue -Object $pcaiProvider -Name 'timeout' -Value ([int]($pendingConfig.DefaultTimeout * 1000))
 
-            Set-ConfigValue -Object $functionGemmaProvider -Name 'baseUrl' -Value $script:ModuleConfig.RouterApiUrl
-            Set-ConfigValue -Object $functionGemmaProvider -Name 'defaultModel' -Value $script:ModuleConfig.RouterModel
+            Set-ConfigValue -Object $functionGemmaProvider -Name 'baseUrl' -Value $pendingConfig.RouterApiUrl
+            Set-ConfigValue -Object $functionGemmaProvider -Name 'defaultModel' -Value $pendingConfig.RouterModel
 
-            Set-ConfigValue -Object $router -Name 'baseUrl' -Value $script:ModuleConfig.RouterApiUrl
-            Set-ConfigValue -Object $router -Name 'model' -Value $script:ModuleConfig.RouterModel
+            Set-ConfigValue -Object $router -Name 'baseUrl' -Value $pendingConfig.RouterApiUrl
+            Set-ConfigValue -Object $router -Name 'model' -Value $pendingConfig.RouterModel
             if (-not $router.toolsPath) {
                 Set-ConfigValue -Object $router -Name 'toolsPath' -Value 'Config/pcai-tools.json'
             }
 
-            Set-ConfigValue -Object $ollamaProvider -Name 'baseUrl' -Value $script:ModuleConfig.OllamaApiUrl
-            Set-ConfigValue -Object $ollamaProvider -Name 'defaultModel' -Value $script:ModuleConfig.DefaultModel
-            Set-ConfigValue -Object $ollamaProvider -Name 'timeout' -Value ([int]($script:ModuleConfig.DefaultTimeout * 1000))
-            Set-ConfigValue -Object $ollamaRuntime -Name 'base_url' -Value $script:ModuleConfig.OllamaApiUrl
-            Set-ConfigValue -Object $ollamaRuntime -Name 'model' -Value $script:ModuleConfig.DefaultModel
-            Set-ConfigValue -Object $ollamaRuntime -Name 'timeout_ms' -Value ([int]($script:ModuleConfig.DefaultTimeout * 1000))
+            Set-ConfigValue -Object $ollamaProvider -Name 'baseUrl' -Value $pendingConfig.OllamaApiUrl
+            Set-ConfigValue -Object $ollamaProvider -Name 'defaultModel' -Value $pendingConfig.DefaultModel
+            Set-ConfigValue -Object $ollamaProvider -Name 'timeout' -Value ([int]($pendingConfig.DefaultTimeout * 1000))
+            Set-ConfigValue -Object $ollamaRuntime -Name 'base_url' -Value $pendingConfig.OllamaApiUrl
+            Set-ConfigValue -Object $ollamaRuntime -Name 'model' -Value $pendingConfig.DefaultModel
+            Set-ConfigValue -Object $ollamaRuntime -Name 'timeout_ms' -Value ([int]($pendingConfig.DefaultTimeout * 1000))
             if (-not $ollamaRuntime.toolInvokerPath) {
                 Set-ConfigValue -Object $ollamaRuntime -Name 'toolInvokerPath' -Value 'Tools/Invoke-PcaiMappedTool.ps1'
             }
-            Set-ConfigValue -Object $lmstudioProvider -Name 'baseUrl' -Value $script:ModuleConfig.LMStudioApiUrl
-            Set-ConfigValue -Object $vllmProvider -Name 'baseUrl' -Value $script:ModuleConfig.VLLMApiUrl
-            Set-ConfigValue -Object $vllmProvider -Name 'defaultModel' -Value $script:ModuleConfig.VLLMModel
+            Set-ConfigValue -Object $lmstudioProvider -Name 'baseUrl' -Value $pendingConfig.LMStudioApiUrl
+            Set-ConfigValue -Object $vllmProvider -Name 'baseUrl' -Value $pendingConfig.VLLMApiUrl
+            Set-ConfigValue -Object $vllmProvider -Name 'defaultModel' -Value $pendingConfig.VLLMModel
 
             Set-ConfigValue -Object $projectConfig -Name 'fallbackOrder' -Value $fallbackOrder
 
-            $projectJson = $projectConfig | ConvertTo-Json -Depth 12
-            # UTF8Encoding($false), NOT [System.Text.Encoding]::UTF8 -- the
-            # latter emits a byte-order mark. Every call here rewrote
-            # Config\llm-config.json with a BOM, and strict JSON parsers reject
-            # one: Rust's serde_json fails outright, so the BOM this used to
-            # write is exactly what silently disabled the FunctionGemma tool
-            # schema (see the BOM fix in c176cb5). PowerShell's own
-            # ConvertFrom-Json tolerates it, which is why it went unnoticed.
-            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-            [System.IO.File]::WriteAllText($TargetPath, $projectJson, $utf8NoBom)
+            Save-LLMConfigAtomically -Configuration $projectConfig -Snapshot $snapshot
         }
     }
 
@@ -243,12 +230,13 @@ function Set-LLMConfig {
 
             # Reset to defaults
             foreach ($key in $defaultConfig.Keys) {
-                $script:ModuleConfig[$key] = $defaultConfig[$key]
+                $pendingConfig[$key] = $defaultConfig[$key]
             }
 
             # Persist to canonical config file
             try {
                 Save-CanonicalConfig -TargetPath $targetConfigPath
+                $script:ModuleConfig = $pendingConfig
                 Write-Host "Configuration reset successfully" -ForegroundColor Green
             }
             catch {
@@ -284,39 +272,39 @@ function Set-LLMConfig {
                     }
                 }
 
-                $script:ModuleConfig.DefaultModel = $DefaultModel
+                $pendingConfig.DefaultModel = $DefaultModel
                 Write-Host "Default model set to: $DefaultModel" -ForegroundColor Green
                 $updated = $true
             }
 
             if ($PSBoundParameters.ContainsKey('PcaiInferenceApiUrl')) {
-                $script:ModuleConfig.PcaiInferenceApiUrl = $PcaiInferenceApiUrl
-                $script:ModuleConfig.OllamaApiUrl = $PcaiInferenceApiUrl
+                $pendingConfig.PcaiInferenceApiUrl = $PcaiInferenceApiUrl
+                $pendingConfig.OllamaApiUrl = $PcaiInferenceApiUrl
                 Write-Host "pcai-inference API URL set to: $PcaiInferenceApiUrl" -ForegroundColor Green
                 $updated = $true
             }
 
             if ($PSBoundParameters.ContainsKey('OllamaApiUrl')) {
-                $script:ModuleConfig.OllamaApiUrl = $OllamaApiUrl
-                $script:ModuleConfig.PcaiInferenceApiUrl = $OllamaApiUrl
+                $pendingConfig.OllamaApiUrl = $OllamaApiUrl
+                $pendingConfig.PcaiInferenceApiUrl = $OllamaApiUrl
                 Write-Host "pcai-inference API URL set to: $OllamaApiUrl" -ForegroundColor Green
                 $updated = $true
             }
 
             if ($PSBoundParameters.ContainsKey('LMStudioApiUrl')) {
-                $script:ModuleConfig.LMStudioApiUrl = $LMStudioApiUrl
+                $pendingConfig.LMStudioApiUrl = $LMStudioApiUrl
                 Write-Host "LM Studio API URL set to: $LMStudioApiUrl" -ForegroundColor Green
                 $updated = $true
             }
 
             if ($PSBoundParameters.ContainsKey('OllamaPath')) {
-                $script:ModuleConfig.OllamaPath = $OllamaPath
+                $pendingConfig.OllamaPath = $OllamaPath
                 Write-Host "Legacy Ollama path set to: $OllamaPath" -ForegroundColor Green
                 $updated = $true
             }
 
             if ($PSBoundParameters.ContainsKey('DefaultTimeout')) {
-                $script:ModuleConfig.DefaultTimeout = $DefaultTimeout
+                $pendingConfig.DefaultTimeout = $DefaultTimeout
                 Write-Host "Default timeout set to: $DefaultTimeout seconds" -ForegroundColor Green
                 $updated = $true
             }
@@ -325,6 +313,7 @@ function Set-LLMConfig {
             if ($updated) {
                 try {
                     Save-CanonicalConfig -TargetPath $targetConfigPath
+                    $script:ModuleConfig = $pendingConfig
                     Write-Verbose "Configuration saved to: $targetConfigPath"
                 }
                 catch {

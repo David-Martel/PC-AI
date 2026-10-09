@@ -441,7 +441,7 @@ WDC HDD: Pred Fail
     }
 }
 
-Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
+Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Windows' {
     # Isolation belongs to the Describe, so even a Reset-only filtered run is safe.
     BeforeEach {
         $script:LlmConfigTempPath = Join-Path $TestDrive 'llm-config.json'
@@ -461,6 +461,17 @@ Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
     }
 
     Context 'When configuring LLM settings' {
+        It 'publishes a new BOM-free config when the selected destination is absent' {
+            $newPath = Join-Path $TestDrive 'new-config-parent/llm-config.json'
+            InModuleScope PC-AI.LLM -Parameters @{ Path = $newPath } {
+                $script:ModuleConfig.ProjectConfigPath = $Path
+                $script:ModuleConfig.ConfigPath = $Path
+            }
+            Set-LLMConfig -DefaultTimeout 15 -ErrorAction Stop | Out-Null
+            (Get-Content $newPath -Raw | ConvertFrom-Json).ollama.timeout_ms | Should -Be 15000
+            [IO.File]::ReadAllBytes($newPath)[0] | Should -Be 123
+            InModuleScope PC-AI.LLM { $script:ModuleConfig.DefaultTimeout } | Should -Be 15
+        }
         It 'Should save configuration and return config object' {
             $result = Set-LLMConfig -OllamaApiUrl 'http://mock-server:11434' -DefaultModel 'llama3.2:latest'
             $result.OllamaApiUrl | Should -Be 'http://mock-server:11434'
@@ -553,6 +564,43 @@ Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
         }
     }
 
+    Context 'When unrelated configuration has nested JSON' {
+        It 'preserves a deeply nested machine extension after <Operation>' -TestCases @(
+            @{ Operation = 'update' }, @{ Operation = 'Reset' }
+        ) {
+            param($Operation)
+            $deep = ('{"nested":' * 24) + '"machine-extension-leaf"' + ('}' * 24)
+            ('{"fallbackOrder":["ollama"],"providers":{},"machineSetting":' + $deep + '}') |
+                Set-Content -LiteralPath $script:LlmConfigTempPath -Encoding utf8NoBOM
+            if ($Operation -eq 'Reset') { Set-LLMConfig -Reset -ErrorAction Stop | Out-Null }
+            else { Set-LLMConfig -DefaultTimeout 15 -ErrorAction Stop | Out-Null }
+            $saved = Get-Content -LiteralPath $script:LlmConfigTempPath -Raw | ConvertFrom-Json
+            $value = $saved.machineSetting
+            for ($depth = 0; $depth -lt 24; $depth++) { $value = $value.nested }
+            $value | Should -BeExactly 'machine-extension-leaf'
+        }
+
+        It 'rejects over-limit JSON before disk or memory changes after <Operation>' -TestCases @(
+            @{ Operation = 'update' }, @{ Operation = 'Reset' }
+        ) {
+            param($Operation)
+            # Raw JSON deliberately exceeds ConvertTo-Json's maximum depth100;
+            # generating this fixture with that serializer would corrupt it first.
+            $deep = ('{"nested":' * 110) + '"must-remain-unmodified"' + ('}' * 110)
+            ('{"fallbackOrder":["ollama"],"providers":{},"machineSetting":' + $deep + '}') |
+                Set-Content -LiteralPath $script:LlmConfigTempPath -Encoding utf8NoBOM
+            $beforeHash = (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash
+            $beforeMemory = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
+            if ($Operation -eq 'Reset') { { Set-LLMConfig -Reset -ErrorAction Stop } | Should -Throw }
+            else { { Set-LLMConfig -DefaultTimeout 15 -ErrorAction Stop } | Should -Throw }
+            (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash | Should -BeExactly $beforeHash
+            $afterMemory = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
+            foreach ($key in $beforeMemory.Keys) {
+                ($afterMemory[$key] | ConvertTo-Json -Depth 100 -Compress) | Should -BeExactly ($beforeMemory[$key] | ConvertTo-Json -Depth 100 -Compress)
+            }
+        }
+    }
+
     Context 'When the real config writer fails' {
         It 'restores every prior memory setting after a failed <Operation>' -TestCases @(
             @{ Operation = 'update' }
@@ -568,10 +616,14 @@ Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
             }
             $beforeMemory = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
             $beforeHash = (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash
-            $fixtureJson = Get-Content -LiteralPath $script:LlmConfigTempPath -Raw
-            Mock Get-Content { $FixtureJson } -ModuleName PC-AI.LLM
-            # Reading is mocked only to get past the lock and exercise WriteAllText.
-            $handle = [System.IO.File]::Open($script:LlmConfigTempPath, 'Open', 'ReadWrite', 'None')
+            # Read and stage real bytes first, then deny sharing at the final
+            # publication boundary. This exercises the real File.Replace call.
+            Mock Get-LLMConfigCurrentHash {
+                param($Path)
+                $hash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+                $script:ConfigWriteFixtureHandle = [IO.File]::Open($Path, 'Open', 'ReadWrite', 'None')
+                return $hash
+            } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
             try {
                 if ($Operation -eq 'Reset') {
                     $failure = { Set-LLMConfig -Reset -ErrorAction Stop } | Should -Throw -PassThru
@@ -579,13 +631,13 @@ Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
                     $failure = { Set-LLMConfig -DefaultTimeout 15 -DefaultModel 'new-model' -OllamaApiUrl 'http://new-machine:11434' -ErrorAction Stop } | Should -Throw -PassThru
                 }
                 $failure.Exception.GetBaseException() | Should -BeOfType ([System.IO.IOException])
-                $failure.Exception.Message | Should -Match 'WriteAllText'
+                $failure.Exception.Message | Should -Match 'Replace'
                 $afterMemory = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
                 foreach ($key in $beforeMemory.Keys) {
                     ($afterMemory[$key] | ConvertTo-Json -Depth 20 -Compress) | Should -Be ($beforeMemory[$key] | ConvertTo-Json -Depth 20 -Compress)
                 }
             } finally {
-                $handle.Dispose()
+                if ($script:ConfigWriteFixtureHandle) { $script:ConfigWriteFixtureHandle.Dispose(); $script:ConfigWriteFixtureHandle = $null }
             }
             (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash | Should -Be $beforeHash
         }

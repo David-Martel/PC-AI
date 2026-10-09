@@ -9,6 +9,14 @@ BeforeAll {
     $script:RepositoryConfigHash = (Get-FileHash -LiteralPath $script:RepositoryConfigPath).Hash
     Import-Module $modulePath -Force -ErrorAction Stop
     $script:OriginalModuleConfig = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
+    function Get-ConfigFixtureReceipt {
+        $pathHash = InModuleScope PC-AI.LLM -Parameters @{ Path = $script:ConfigPath } {
+            $identity = if ($IsWindows) { [IO.Path]::GetFullPath($Path).ToUpperInvariant() } else { [IO.Path]::GetFullPath($Path) }
+            (Get-LLMConfigBytesHash -Bytes ([Text.Encoding]::UTF8.GetBytes($identity))).ToLowerInvariant()
+        }
+        $root = Join-Path (Split-Path -Parent $script:ConfigPath) ('.pcai/config-write/' + $pathHash)
+        return Join-Path $root 'r1/receipt.json'
+    }
 }
 
 AfterAll {
@@ -19,9 +27,9 @@ AfterAll {
     Remove-Module PC-AI.LLM -Force -ErrorAction SilentlyContinue
 }
 
-Describe 'Set-LLMProviderOrder' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
+Describe 'Set-LLMProviderOrder' -Tag 'Unit', 'LLM', 'Fast', 'Windows' {
     BeforeEach {
-        $script:ConfigPath = Join-Path $TestDrive 'llm-config.json'
+        $script:ConfigPath = Join-Path $TestDrive ('llm-config-' + [guid]::NewGuid().ToString('N') + '.json')
         @'
 {"fallbackOrder":["ollama"],"providers":{"ollama":{"defaultModel":"machine-model","timeout":777}},"ollama":{"num_gpu":2,"num_ctx":16384,"tool_model":"machine-tools"},"machineSetting":{"preserve":true}}
 '@ | Set-Content -LiteralPath $script:ConfigPath -Encoding utf8NoBOM
@@ -81,6 +89,7 @@ Describe 'Set-LLMProviderOrder' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
         Set-LLMProviderOrder -Order @('vllm') -WhatIf
         (Get-FileHash -LiteralPath $script:ConfigPath).Hash | Should -Be $script:BeforeHash
         InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+        Test-Path (Get-ConfigFixtureReceipt) | Should -BeFalse
     }
 
     It 'does not change memory or create files when the config is missing' {
@@ -102,19 +111,335 @@ Describe 'Set-LLMProviderOrder' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
         InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
     }
 
+    It 'preserves a machine extension deeper than the predecessor serializer limit at depth <Depth>' -TestCases @(@{ Depth = 26 }, @{ Depth = 96 }) {
+        param($Depth)
+        $deep = ('{"nested":' * $Depth) + '"provider-extension-leaf"' + ('}' * $Depth)
+        ('{"fallbackOrder":["ollama"],"providers":{},"machineSetting":' + $deep + '}') |
+            Set-Content -LiteralPath $script:ConfigPath -Encoding utf8NoBOM
+        Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop | Out-Null
+        $saved = Get-Content -LiteralPath $script:ConfigPath -Raw | ConvertFrom-Json
+        $value = $saved.machineSetting
+        for ($level = 0; $level -lt $Depth; $level++) { $value = $value.nested }
+        $value | Should -BeExactly 'provider-extension-leaf'
+    }
+
+    It 'rejects over-limit JSON before replacing original bytes or provider memory' {
+        $deep = ('{"nested":' * 110) + '"must-remain-unmodified"' + ('}' * 110)
+        ('{"fallbackOrder":["ollama"],"providers":{},"machineSetting":' + $deep + '}') |
+            Set-Content -LiteralPath $script:ConfigPath -Encoding utf8NoBOM
+        $beforeHash = (Get-FileHash -LiteralPath $script:ConfigPath).Hash
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw
+        (Get-FileHash -LiteralPath $script:ConfigPath).Hash | Should -BeExactly $beforeHash
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
     It 'does not publish the new memory order when a real file write fails' {
-        $fixtureJson = Get-Content -LiteralPath $script:ConfigPath -Raw
-        Mock Get-Content { $FixtureJson } -ModuleName PC-AI.LLM
-        # Bypass only the read to reach the real writer against an exclusive lock.
-        $handle = [System.IO.File]::Open($script:ConfigPath, 'Open', 'ReadWrite', 'None')
+        # Acquire a real deny-share handle only after reading and staging, at
+        # the last pre-publication hash boundary. File.Replace must then fail.
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            $hash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+            $script:ConfigWriteFixtureHandle = [IO.File]::Open($Path, 'Open', 'ReadWrite', 'None')
+            return $hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
         try {
             $failure = { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw -PassThru
             $failure.Exception.GetBaseException() | Should -BeOfType ([System.IO.IOException])
-            $failure.Exception.Message | Should -Match 'WriteAllText'
+            $failure.Exception.Message | Should -Match 'Replace'
             InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
         } finally {
-            $handle.Dispose()
+            if ($script:ConfigWriteFixtureHandle) { $script:ConfigWriteFixtureHandle.Dispose(); $script:ConfigWriteFixtureHandle = $null }
         }
         (Get-FileHash -LiteralPath $script:ConfigPath).Hash | Should -Be $script:BeforeHash
+        $receipt = Get-Content (Get-ConfigFixtureReceipt) -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'FailedBeforePublish'
+        (Get-FileHash (Join-Path (Split-Path -Parent (Get-ConfigFixtureReceipt)) 'original.bin')).Hash | Should -BeExactly $script:BeforeHash
+    }
+
+    It 'retains exact original bytes under private permissions and a nonsensitive receipt' {
+        Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop | Out-Null
+        $receiptPath = Get-ConfigFixtureReceipt
+        $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'Published'
+        $receipt.OriginalSHA256 | Should -BeExactly $script:BeforeHash
+        $receipt.DisplacedSHA256 | Should -BeExactly $script:BeforeHash
+        $receipt.PublishedObservedSHA256 | Should -BeExactly (Get-FileHash $script:ConfigPath).Hash
+        foreach ($name in @('original.bin', 'displaced-original.bin')) {
+            $file = Join-Path (Split-Path -Parent $receiptPath) $name
+            (Get-FileHash $file).Hash | Should -BeExactly $script:BeforeHash
+            if ($IsWindows) {
+                $acl = Get-Acl $file
+                $acl.AreAccessRulesProtected | Should -BeTrue
+                $allowed = @([Security.Principal.WindowsIdentity]::GetCurrent().User.Value, 'S-1-5-18', 'S-1-5-32-544')
+                foreach ($rule in $acl.Access) { $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value | Should -BeIn $allowed }
+            } else {
+                [IO.File]::GetUnixFileMode($file) | Should -Be ([IO.UnixFileMode]'UserRead,UserWrite')
+            }
+        }
+        (Get-Content $receiptPath -Raw) | Should -Not -Match 'machine-model|machine-tools|num_ctx'
+    }
+
+    It 'rejects serializer depth warnings before creating custody or publishing memory' {
+        InModuleScope PC-AI.LLM {
+            $snapshot = Read-LLMConfigSnapshot -Path $script:ModuleConfig.ProjectConfigPath
+            $deep = ('{"nested":' * 110) + '"must-not-be-stringified"' + ('}' * 110)
+            $snapshot.Configuration.machineSetting = $deep | ConvertFrom-Json -Depth 200
+            { Save-LLMConfigAtomically -Configuration $snapshot.Configuration -Snapshot $snapshot } | Should -Throw
+        }
+        (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $script:BeforeHash
+        Test-Path (Get-ConfigFixtureReceipt) | Should -BeFalse
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'rejects changed staged bytes before publication' {
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            [IO.File]::WriteAllText($Path, '{"tampered":true}', [Text.UTF8Encoding]::new($false))
+            (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -eq 'staged.json' }
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*Staged configuration hash mismatch*'
+        (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $script:BeforeHash
+        (Get-Content (Get-ConfigFixtureReceipt) -Raw | ConvertFrom-Json).State | Should -BeExactly 'FailedBeforePublish'
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'refuses a writer that changes the original before the final guard' {
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            [IO.File]::WriteAllText($Path, '{"writer":"before-guard"}', [Text.UTF8Encoding]::new($false))
+            (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*changed after reading*'
+        (Get-Content $script:ConfigPath -Raw | ConvertFrom-Json).writer | Should -BeExactly 'before-guard'
+        (Get-Content (Get-ConfigFixtureReceipt) -Raw | ConvertFrom-Json).State | Should -BeExactly 'FailedBeforePublish'
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'captures and restores an intervening writer at the actual replacement boundary' {
+        $script:ConfigWriteFixtureCalls = 0
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            $hash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+            $script:ConfigWriteFixtureCalls++
+            if ($script:ConfigWriteFixtureCalls -eq 1) { [IO.File]::WriteAllText($Path, '{"writer":"at-boundary"}', [Text.UTF8Encoding]::new($false)) }
+            return $hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*replacement boundary*'
+        (Get-Content $script:ConfigPath -Raw | ConvertFrom-Json).writer | Should -BeExactly 'at-boundary'
+        $receiptPath = Get-ConfigFixtureReceipt
+        $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'RolledBack'
+        $receipt.DisplacedSHA256 | Should -BeExactly (Get-FileHash $script:ConfigPath).Hash
+        $receipt.Recovery.Count | Should -Be 1
+        (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'original.bin')).Hash | Should -BeExactly $script:BeforeHash
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'preserves a later current writer without attempting recovery over it' {
+        $script:ConfigWriteFixtureCalls = 0
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            $script:ConfigWriteFixtureCalls++
+            if ($script:ConfigWriteFixtureCalls -eq 2) { [IO.File]::WriteAllText($Path, '{"writer":"after-publication"}', [Text.UTF8Encoding]::new($false)) }
+            (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*current writer bytes are retained*'
+        (Get-Content $script:ConfigPath -Raw | ConvertFrom-Json).writer | Should -BeExactly 'after-publication'
+        $receipt = Get-Content (Get-ConfigFixtureReceipt) -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'LaterWriterPreserved'
+        $receipt.FailureCurrentSHA256 | Should -BeExactly (Get-FileHash $script:ConfigPath).Hash
+        $receipt.Recovery.Count | Should -Be 0
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'refuses linked configuration paths without changing their targets' {
+        $link = Join-Path $TestDrive ('linked-config-' + [guid]::NewGuid().ToString('N') + '.json')
+        New-Item -ItemType SymbolicLink -Path $link -Target $script:ConfigPath -ErrorAction Stop | Out-Null
+        try {
+            InModuleScope PC-AI.LLM -Parameters @{ Path = $link } { $script:ModuleConfig.ProjectConfigPath = $Path }
+            { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*linked paths*'
+            (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $script:BeforeHash
+        } finally { Remove-Item -LiteralPath $link -Force }
+    }
+
+    It 'refuses hardlinked configuration files without changing either alias' {
+        $link = Join-Path $TestDrive ('hardlinked-config-' + [guid]::NewGuid().ToString('N') + '.json')
+        New-Item -ItemType HardLink -Path $link -Target $script:ConfigPath -ErrorAction Stop | Out-Null
+        (Get-Item $script:ConfigPath).LinkType | Should -BeExactly 'HardLink'
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*linked paths*'
+        (Get-FileHash $link).Hash | Should -BeExactly $script:BeforeHash
+        (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $script:BeforeHash
+        Test-Path (Get-ConfigFixtureReceipt) | Should -BeFalse
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'rejects a <Label> JSON root without changing bytes or module memory' -TestCases @(
+        @{ Label='one-object array'; Json='[{"fallbackOrder":["ollama"]}]' }
+        @{ Label='empty array'; Json='[]' }
+        @{ Label='string'; Json='"configuration"' }
+        @{ Label='null'; Json='null' }
+    ) {
+        param($Json)
+        [IO.File]::WriteAllText($script:ConfigPath, $Json, [Text.UTF8Encoding]::new($false))
+        $before = (Get-FileHash $script:ConfigPath).Hash
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*JSON object*'
+        (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $before
+        Test-Path (Get-ConfigFixtureReceipt) | Should -BeFalse
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'refuses to publish an out-of-scope snapshot' {
+        $otherPath = Join-Path $TestDrive 'unselected-config.json'
+        [IO.File]::WriteAllText($otherPath, '{"unrelated":true}', [Text.UTF8Encoding]::new($false))
+        $before = (Get-FileHash $otherPath).Hash
+        InModuleScope PC-AI.LLM -Parameters @{ OtherPath=$otherPath } {
+            $snapshot = Read-LLMConfigSnapshot -Path $OtherPath
+            $snapshot.Configuration.unrelated = $false
+            { Save-LLMConfigAtomically -Configuration $snapshot.Configuration -Snapshot $snapshot } | Should -Throw '*outside the selected module*'
+        }
+        (Get-FileHash $otherPath).Hash | Should -BeExactly $before
+        (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $script:BeforeHash
+    }
+
+    It 'refuses publication while another cooperating writer holds the exclusive lock' {
+        Set-LLMProviderOrder -Order @('ollama') -ErrorAction Stop | Out-Null
+        $before = (Get-FileHash $script:ConfigPath).Hash
+        $lockPath = Join-Path (Split-Path -Parent (Split-Path -Parent (Get-ConfigFixtureReceipt))) 'publish.lock'
+        $handle = [IO.File]::Open($lockPath, 'Open', 'ReadWrite', 'None')
+        try {
+            $failure = { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw -PassThru
+            $failure.Exception.GetBaseException() | Should -BeOfType ([IO.IOException])
+            (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $before
+            InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+            Test-Path (Join-Path (Split-Path -Parent (Split-Path -Parent (Get-ConfigFixtureReceipt))) 'r2') | Should -BeFalse
+        } finally { $handle.Dispose() }
+    }
+
+    It 'captures a second writer racing during recovery and restores its actual bytes' {
+        $script:ConfigWriteFixtureCalls = 0
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            $hash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+            $script:ConfigWriteFixtureCalls++
+            if ($script:ConfigWriteFixtureCalls -eq 1) { [IO.File]::WriteAllText($Path, '{"writer":"boundary-first"}', [Text.UTF8Encoding]::new($false)) }
+            if ($script:ConfigWriteFixtureCalls -eq 2) { [IO.File]::WriteAllText($Path, '{"writer":"recovery-second"}', [Text.UTF8Encoding]::new($false)) }
+            return $hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*replacement boundary*'
+        (Get-Content $script:ConfigPath -Raw | ConvertFrom-Json).writer | Should -BeExactly 'recovery-second'
+        $receipt = Get-Content (Get-ConfigFixtureReceipt) -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'RolledBack'
+        $receipt.Recovery.Count | Should -Be 2
+        $receipt.Recovery[1].RestoredSHA256 | Should -BeExactly (Get-FileHash $script:ConfigPath).Hash
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'restores an original actually displaced before a replacement exception, preserving its Windows ACL' {
+        $originalAcl = (Get-Acl $script:ConfigPath).Sddl
+        $script:ConfigWriteFixturePartialFault = $false
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            if (-not $script:ConfigWriteFixturePartialFault) {
+                $script:ConfigWriteFixturePartialFault = $true
+                $backup = Join-Path (Split-Path -Parent (Get-ConfigFixtureReceipt)) 'displaced-original.bin'
+                [IO.File]::Move($Path, $backup)
+                throw [IO.IOException]::new('Fixture mimics documented ReplaceFile error1177 after actual original displacement.', -2147023719)
+            }
+            (Get-FileHash $Path).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*error1177*'
+        $receipt = Get-Content (Get-ConfigFixtureReceipt) -Raw | ConvertFrom-Json
+        if ($receipt.State -ne 'RolledBack') { $receipt | ConvertTo-Json -Depth 6 | Write-Host }
+        (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $script:BeforeHash
+        (Get-Acl $script:ConfigPath).Sddl | Should -BeExactly $originalAcl
+        $receiptPath = Get-ConfigFixtureReceipt
+        $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+        $receipt.PartialPublicationObserved | Should -BeTrue
+        $receipt.State | Should -BeExactly 'RolledBack'
+        $receipt.RecoveryState | Should -BeExactly 'Restored'
+        $receipt.DisplacedSHA256 | Should -BeExactly $script:BeforeHash
+        (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'displaced-original.bin')).Hash | Should -BeExactly $script:BeforeHash
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'lets a later writer win the missing-target restoration race without overwriting or moving custody' {
+        $script:ConfigWriteFixturePartialFault = $false
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            if (-not $script:ConfigWriteFixturePartialFault) {
+                $script:ConfigWriteFixturePartialFault = $true
+                [IO.File]::Move($Path, (Join-Path (Split-Path -Parent (Get-ConfigFixtureReceipt)) 'displaced-original.bin'))
+                throw [IO.IOException]::new('Fixture error1177 after actual original displacement.', -2147023719)
+            }
+            (Get-FileHash $Path).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            $hash = (Get-FileHash $Path).Hash
+            [IO.File]::WriteAllText($script:ConfigPath, '{"writer":"missing-target-race"}', [Text.UTF8Encoding]::new($false))
+            return $hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -eq 'recovery-missing-target.json' }
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*error1177*'
+        (Get-Content $script:ConfigPath -Raw | ConvertFrom-Json).writer | Should -BeExactly 'missing-target-race'
+        $receiptPath = Get-ConfigFixtureReceipt
+        $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'LaterWriterPreserved'
+        $receipt.FailureCurrentSHA256 | Should -BeExactly (Get-FileHash $script:ConfigPath).Hash
+        (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'displaced-original.bin')).Hash | Should -BeExactly $script:BeforeHash
+        (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'original.bin')).Hash | Should -BeExactly $script:BeforeHash
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'keeps the original exception and review state when owned-handle ACL recovery fails' {
+        $script:ConfigWriteFixturePartialFault = $false
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            if (-not $script:ConfigWriteFixturePartialFault) {
+                $script:ConfigWriteFixturePartialFault = $true
+                [IO.File]::Move($Path, (Join-Path (Split-Path -Parent (Get-ConfigFixtureReceipt)) 'displaced-original.bin'))
+                throw [IO.IOException]::new('Original fixture error1177.', -2147023719)
+            }
+            (Get-FileHash $Path).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        Mock Set-LLMConfigOwnedRecoveryAcl { throw [UnauthorizedAccessException]::new('Fixture ACL recovery denied.') } -ModuleName PC-AI.LLM
+        $failure = { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*Original fixture error1177*' -PassThru
+        $failure.Exception.GetBaseException().HResult | Should -Be -2147023719
+        (Get-FileHash $script:ConfigPath).Hash | Should -BeExactly $script:BeforeHash
+        $receipt = Get-Content (Get-ConfigFixtureReceipt) -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'RecoveryRequiresReview'
+        $receipt.RecoveryErrorType | Should -BeExactly 'System.UnauthorizedAccessException'
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
+    }
+
+    It 'restores ACLs only through the owned handle after a different writer replaces the target' {
+        $script:ConfigWriteFixturePartialFault = $false
+        $script:ConfigWriteFixtureLaterAcl = $null
+        Mock Get-LLMConfigCurrentHash {
+            param($Path)
+            if (-not $script:ConfigWriteFixturePartialFault) {
+                $script:ConfigWriteFixturePartialFault = $true
+                [IO.File]::Move($Path, (Join-Path (Split-Path -Parent (Get-ConfigFixtureReceipt)) 'displaced-original.bin'))
+                throw [IO.IOException]::new('Original fixture error1177.', -2147023719)
+            }
+            (Get-FileHash $Path).Hash
+        } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+        Mock Set-LLMConfigOwnedRecoveryAcl {
+            param($Stream, $Acl)
+            $aside = Join-Path (Split-Path -Parent (Get-ConfigFixtureReceipt)) 'recovery-owned-aside.bin'
+            [IO.File]::Move($script:ConfigPath, $aside)
+            [IO.File]::WriteAllText($script:ConfigPath, '{"writer":"after-recovery-move"}', [Text.UTF8Encoding]::new($false))
+            $script:ConfigWriteFixtureLaterAcl = (Get-Acl $script:ConfigPath).Sddl
+            [IO.FileSystemAclExtensions]::SetAccessControl($Stream, $Acl)
+        } -ModuleName PC-AI.LLM
+        { Set-LLMProviderOrder -Order @('pcai-inference') -ErrorAction Stop } | Should -Throw '*error1177*'
+        (Get-Content $script:ConfigPath -Raw | ConvertFrom-Json).writer | Should -BeExactly 'after-recovery-move'
+        (Get-Acl $script:ConfigPath).Sddl | Should -BeExactly $script:ConfigWriteFixtureLaterAcl
+        $receiptPath = Get-ConfigFixtureReceipt
+        $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+        $receipt.State | Should -BeExactly 'LaterWriterPreserved'
+        $receipt.FailureCurrentSHA256 | Should -BeExactly (Get-FileHash $script:ConfigPath).Hash
+        (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'recovery-owned-aside.bin')).Hash | Should -BeExactly $script:BeforeHash
+        (Get-FileHash (Join-Path (Split-Path -Parent $receiptPath) 'displaced-original.bin')).Hash | Should -BeExactly $script:BeforeHash
+        InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder -join ',' } | Should -Be 'ollama'
     }
 }

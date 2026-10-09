@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Gets devices with errors from Device Manager
@@ -45,9 +45,17 @@ function Get-DeviceErrors {
           if ($json) {
             # Preserve the top-level shape: null and a single object cannot
             # establish that the native backend queried an empty inventory.
-            $nativeDevices = ConvertFrom-Json -InputObject $json -NoEnumerate -ErrorAction Stop
-            if ($nativeDevices -isnot [array]) {
+            if (-not ([string]$json).TrimStart().StartsWith('[')) {
                 throw 'Native PnP response must be a JSON array.'
+            }
+            if ($PSVersionTable.PSVersion.Major -ge 7) {
+                $nativeDevices = ConvertFrom-Json -InputObject $json -NoEnumerate -ErrorAction Stop
+            } else {
+                # Windows PowerShell preserves the JSON array by default.
+                $nativeDevices = $json | ConvertFrom-Json -ErrorAction Stop
+            }
+            if ($nativeDevices -isnot [array]) {
+                throw 'Native PnP response must preserve its JSON array.'
             }
             foreach ($dev in $nativeDevices) {
                 $code = [uint32]0

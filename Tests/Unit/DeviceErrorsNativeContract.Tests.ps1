@@ -49,6 +49,7 @@ Describe 'Native PnP device contract' {
         @{ Label='number inventory'; Payload='0' }
         @{ Label='boolean inventory'; Payload='false' }
         @{ Label='string inventory'; Payload='"[]"' }
+        @{ Label='null array element'; Payload='[null]' }
     ) {
         $script:payload = $Payload
         Mock Get-HardwarePnpDevicesNative -ModuleName PC-AI.Hardware { $script:payload }

@@ -17,6 +17,9 @@
         OutputFormat = 'JaCoCo'
         OutputPath = 'TestResults/coverage.xml'
         Path = @(
+            # PowerShell's ** glob requires a directory below Modules; include
+            # standalone manifest-paired wrappers at the module root explicitly.
+            './Modules/*.psm1'
             './Modules/**/*.ps1'
             './Modules/**/*.psm1'
         )

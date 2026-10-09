@@ -13,6 +13,9 @@ Describe 'Explicit native bundle custody' {
         $script:PcaiNativeDllPath = $null
         Mock Add-Type { throw 'Fixture stops at managed load boundary.' }
         Mock Get-Module { $null }
+        # Selection fixtures stop at Add-Type. Actual assemblies loaded by
+        # another suite must not change this deliberately isolated boundary.
+        Mock Get-PcaiNativeLoadedBridgePath { $null }
     }
     AfterEach {
         $env:PCAI_NATIVE_BUNDLE_ROOT = $savedBundle
@@ -57,6 +60,19 @@ Describe 'Explicit native bundle custody' {
         Set-Content -LiteralPath (Join-Path $partial 'PcaiNative.dll') -Value 'fixture'
         foreach ($leaf in @('PcaiNative.dll', 'pcai_core_lib.dll')) { Set-Content -LiteralPath (Join-Path $complete $leaf) -Value 'fixture' }
         @(Get-PcaiNativeCandidatePaths -BasePaths @($partial, $complete)) | Should -Be @($complete)
+    }
+
+    It 'rejects an already loaded foreign bridge before PATH mutation or managed load' {
+        $bundle = Join-Path $TestDrive 'foreign-bridge-selection'
+        [void](New-Item -ItemType Directory -Path $bundle)
+        foreach ($leaf in @('PcaiNative.dll', 'pcai_core_lib.dll')) {
+            Set-Content -LiteralPath (Join-Path $bundle $leaf) -Value 'selection fixture'
+        }
+        $env:PCAI_NATIVE_BUNDLE_ROOT = $bundle
+        Mock Get-PcaiNativeLoadedBridgePath { 'C:\foreign-bundle\PcaiNative.dll' }
+        Initialize-PcaiNative -WarningAction SilentlyContinue | Should -BeFalse
+        $env:PATH | Should -BeExactly $savedPath
+        Should -Invoke Add-Type -Times 0
     }
 
     It 'canonicalizes a relative override for subsequent managed resolution' {

@@ -65,6 +65,12 @@ function Get-PcaiNativeCandidatePaths {
     return @($candidates | Select-Object -Unique)
 }
 
+function Get-PcaiNativeLoadedBridgePath {
+    $assembly = [AppDomain]::CurrentDomain.GetAssemblies() |
+        Where-Object { $_.GetName().Name -eq 'PcaiNative' } | Select-Object -First 1
+    if ($assembly) { return $assembly.Location }
+}
+
 function Initialize-PcaiNative {
     [CmdletBinding()]
     [OutputType([bool])]
@@ -180,11 +186,9 @@ function Initialize-PcaiNative {
 
     try {
         $wrapperPath = Join-Path $dllPath 'PcaiNative.dll'
-        $loadedAssembly = [System.AppDomain]::CurrentDomain.GetAssemblies() |
-            Where-Object { $_.GetName().Name -eq 'PcaiNative' } |
-            Select-Object -First 1
-        if ($loadedAssembly -and
-            -not [string]::Equals($loadedAssembly.Location, $wrapperPath, [StringComparison]::OrdinalIgnoreCase)) {
+        $loadedBridgePath = Get-PcaiNativeLoadedBridgePath
+        if ($loadedBridgePath -and
+            -not [string]::Equals($loadedBridgePath, $wrapperPath, [StringComparison]::OrdinalIgnoreCase)) {
             throw 'A different PcaiNative bundle is already loaded; select the desired bundle in a fresh PowerShell process.'
         }
 

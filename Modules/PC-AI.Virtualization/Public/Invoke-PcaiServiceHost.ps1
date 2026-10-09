@@ -215,7 +215,7 @@ function Start-RustInferenceServer {
     $rustExe = $null
     foreach ($root in $candidateRoots) {
         foreach ($name in $binaryNames) {
-            $candidate = Join-Path $root $name
+            $candidate = [IO.Path]::Combine($root, $name)
             if (Test-Path $candidate) {
                 $rustExe = $candidate
                 break

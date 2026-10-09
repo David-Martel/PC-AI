@@ -9,6 +9,48 @@ BeforeAll {
         Where-Object { $_.Name -eq 'TimeoutSec' -or $_.Aliases -contains 'TimeoutSec' }|
         Select-Object -ExpandProperty Name
     $script:hasOperationTimeout=(Get-Command Invoke-RestMethod -CommandType Cmdlet).Parameters.ContainsKey('OperationTimeoutSeconds')
+    $script:repoRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+    $script:rootProbe=Join-Path $TestDrive 'evaluation-root-consumer.ps1'
+    @'
+param([string]$Installed,[string]$Root)
+$ErrorActionPreference='Stop'
+$env:PCAI_ROOT=if($Root){$Root}else{$null}
+$env:PCAI_ARTIFACTS_ROOT=$null
+$env:PCAI_CACHE_PROVIDER='memory'
+Import-Module (Join-Path $Installed 'PC-AI.Evaluation/PC-AI.Evaluation.psd1') -Force -WarningAction SilentlyContinue
+$module=Get-Module PC-AI.Evaluation
+$result=& $module {
+    [ordered]@{Root=Get-PcaiProjectRoot;Artifacts=Get-PcaiArtifactsRoot;OllamaModel=$script:EvaluationConfig.OllamaModel;OllamaUrl=$script:EvaluationConfig.OllamaBaseUrl}
+}
+'EVALUATION-ROOT:' + ($result|ConvertTo-Json -Compress)
+'@|Set-Content -LiteralPath $script:rootProbe
+    function New-EvaluationRootFixture {
+        $root=Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $null=New-Item -ItemType Directory -Path (Join-Path $root 'Config')
+        '# Synthetic genuine PC-AI configuration root'|Set-Content -LiteralPath (Join-Path $root 'PC-AI.ps1')
+        '{"ollama":{"model":"evaluation-root-unique-model","base_url":"http://evaluation-root.invalid:19432"}}'|Set-Content -LiteralPath (Join-Path $root 'Config/llm-config.json')
+        return (Get-Item -LiteralPath $root).FullName
+    }
+    function Copy-EvaluationConsumer {
+        param([string]$Destination,[switch]$WithoutCommon)
+        $null=New-Item -ItemType Directory -Path $Destination -Force
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'Modules/PC-AI.Evaluation') -Destination $Destination -Recurse
+        if(-not $WithoutCommon){
+            $common=Join-Path $Destination 'PC-AI.Common/Public'
+            $null=New-Item -ItemType Directory -Path $common -Force
+            Copy-Item -LiteralPath (Join-Path $repoRoot 'Modules/PC-AI.Common/Public/Get-PcaiRuntimeConfig.ps1') -Destination $common
+        }
+    }
+    function Invoke-EvaluationRootProbe {
+        param([string]$Installed,[string]$Root)
+        $output=& (Get-Command pwsh).Source -NoLogo -NoProfile -File $script:rootProbe $Installed $Root 2>&1
+        $exitCode=$LASTEXITCODE
+        if($exitCode){$output|ForEach-Object{Write-Host $_}}
+        $exitCode|Should -Be 0
+        $record=@($output|Where-Object{$_ -is [string] -and $_.StartsWith('EVALUATION-ROOT:')})
+        $record.Count|Should -Be 1
+        return $record[0].Substring('EVALUATION-ROOT:'.Length)|ConvertFrom-Json
+    }
     function New-ContractSuite {
         param([int]$Count=1)
         $suite=New-EvaluationSuite -Name 'contract-suite' -Metrics @('accuracy')
@@ -24,6 +66,259 @@ BeforeAll {
         $result.Metrics=@{accuracy=$Metric}
         if($Status -eq 'error'){$result.ErrorMessage='fixture provider failure'}
         $Suite.Results.Add($result)
+    }
+}
+
+Describe 'Evaluation root selection without a profile or provider calls' {
+    BeforeEach {
+        $script:environmentBefore=@{}
+        foreach($name in @('PCAI_ROOT','PCAI_ARTIFACTS_ROOT')){
+            $value=Get-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+            $script:environmentBefore[$name]=@{Exists=$null -ne $value;Value=$value.Value}
+            [Environment]::SetEnvironmentVariable($name,$null,'Process')
+        }
+    }
+    AfterEach {
+        foreach($name in $environmentBefore.Keys){
+            [Environment]::SetEnvironmentVariable($name, $(if($environmentBefore[$name].Exists){$environmentBefore[$name].Value}else{$null}), 'Process')
+        }
+    }
+    It 'finds the real source checkout rather than the Modules folder' {
+        & $module {Get-PcaiProjectRoot}|Should -BeExactly (Get-Item -LiteralPath $repoRoot).FullName
+    }
+    It 'returns the already-existing actual checkout artifact directory without creating a substitute' {
+        $expected=Join-Path (Get-Item -LiteralPath $repoRoot).FullName '.pcai'
+        Test-Path -LiteralPath $expected -PathType Container|Should -BeTrue
+        & $module {Get-PcaiArtifactsRoot}|Should -BeExactly $expected
+    }
+    It 'selects a genuine explicit machine root' {
+        $selected=New-EvaluationRootFixture
+        $env:PCAI_ROOT=$selected
+        & $module {Get-PcaiProjectRoot}|Should -BeExactly $selected
+    }
+    It 'creates the explicitly selected synthetic artifact directory after root admission' {
+        $selected=New-EvaluationRootFixture
+        $env:PCAI_ROOT=$selected
+        $artifact=Join-Path $TestDrive ('selected-artifacts-'+[guid]::NewGuid().ToString('N'))
+        $env:PCAI_ARTIFACTS_ROOT=$artifact
+        & $module {Get-PcaiArtifactsRoot}|Should -BeExactly $artifact
+        Test-Path -LiteralPath $artifact -PathType Container|Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $selected '.pcai')|Should -BeFalse
+    }
+    It 'refuses an invalid explicit root before creating artifacts: <Kind>' -ForEach @(
+        @{Kind='missing directory'},@{Kind='missing entrypoint'},@{Kind='missing config'},@{Kind='non-filesystem provider'},@{Kind='whitespace'}
+    ) {
+        $selected=New-EvaluationRootFixture
+        $env:PCAI_ROOT=switch($Kind){
+            'missing directory' {Join-Path $TestDrive 'absent-root'}
+            'missing entrypoint' {Remove-Item -LiteralPath (Join-Path $selected 'PC-AI.ps1');$selected}
+            'missing config' {Remove-Item -LiteralPath (Join-Path $selected 'Config/llm-config.json');$selected}
+            'non-filesystem provider' {'Env:PCAI_ROOT'}
+            'whitespace' {'   '}
+        }
+        $artifactPath=Join-Path $TestDrive ('refused-artifacts-'+[guid]::NewGuid().ToString('N'))
+        $env:PCAI_ARTIFACTS_ROOT=$artifactPath
+        {& $module {Get-PcaiArtifactsRoot}}|Should -Throw
+        Test-Path -LiteralPath $artifactPath|Should -BeFalse
+    }
+    It 'cannot hide a changed invalid override behind an earlier successful discovery' {
+        $env:PCAI_ROOT=New-EvaluationRootFixture
+        $null=& $module {Get-PcaiProjectRoot}
+        $env:PCAI_ROOT=Join-Path $TestDrive 'changed-invalid-root'
+        {& $module {Get-PcaiProjectRoot}}|Should -Throw
+    }
+    It 'uses default checkout artifact paths in a fresh copied checkout' {
+        $selected=New-EvaluationRootFixture
+        $installed=Join-Path $selected 'Modules'
+        Copy-EvaluationConsumer -Destination $installed
+        $result=Invoke-EvaluationRootProbe -Installed $installed
+        $result.Root|Should -BeExactly $selected
+        $result.Artifacts|Should -BeExactly (Join-Path $selected '.pcai')
+        Test-Path -LiteralPath (Join-Path $installed '.pcai')|Should -BeFalse
+    }
+    It 'uses the selected machine root and actual configuration from a detached copied consumer' {
+        $selected=New-EvaluationRootFixture
+        $installed=Join-Path $TestDrive ('detached-'+[guid]::NewGuid().ToString('N'))
+        Copy-EvaluationConsumer -Destination $installed
+        $result=Invoke-EvaluationRootProbe -Installed $installed -Root $selected
+        $result.Root|Should -BeExactly $selected
+        $result.Artifacts|Should -BeExactly (Join-Path $selected '.pcai')
+        $result.OllamaModel|Should -BeExactly 'evaluation-root-unique-model'
+        $result.OllamaUrl|Should -BeExactly 'http://evaluation-root.invalid:19432'
+        Test-Path -LiteralPath (Join-Path $installed '.pcai')|Should -BeFalse
+    }
+    It 'finds genuine source ancestry when the optional Common helper is absent' {
+        $selected=New-EvaluationRootFixture
+        $installed=Join-Path $selected 'Modules'
+        Copy-EvaluationConsumer -Destination $installed -WithoutCommon
+        $result=Invoke-EvaluationRootProbe -Installed $installed
+        $result.Root|Should -BeExactly $selected
+        $result.Artifacts|Should -BeExactly (Join-Path $selected '.pcai')
+    }
+    It 'refuses a detached consumer without Common or a genuine configured root' {
+        $installed=Join-Path $TestDrive ('unconfigured-'+[guid]::NewGuid().ToString('N'))
+        Copy-EvaluationConsumer -Destination $installed -WithoutCommon
+        $output=& (Get-Command pwsh).Source -NoLogo -NoProfile -File $script:rootProbe $installed '' 2>&1
+        $LASTEXITCODE|Should -Not -Be 0
+        ($output -join "`n")|Should -Match 'Set PCAI_ROOT'
+        Test-Path -LiteralPath (Join-Path $installed '.pcai')|Should -BeFalse
+    }
+}
+
+Describe 'Evaluation regression reports use actual isolated reference files' {
+    BeforeEach {
+        $script:references=Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $null=New-Item -ItemType Directory -Path $references
+        $script:baselineBefore=& $module {$script:EvaluationConfig.BaselinePath}
+        & $module {param($path) $script:EvaluationConfig.BaselinePath=$path} $references
+        '{"Timestamp":"2026-01-01T00:00:00Z","Metrics":{"accuracy":{"Mean":1.0}}}'|Set-Content -LiteralPath (Join-Path $references 'reference.json')
+        '{"Timestamp":"2026-01-01T00:00:00Z","Metrics":{"accuracy":{"Mean":0.5}}}'|Set-Content -LiteralPath (Join-Path $references 'unchanged.json')
+        'not a baseline'|Set-Content -LiteralPath (Join-Path $references 'ignore.txt')
+        $script:reportSuite=New-ContractSuite
+        New-ContractResult $reportSuite fixture fail 0.5 0.5
+    }
+    AfterEach { & $module {param($path) $script:EvaluationConfig.BaselinePath=$path} $baselineBefore }
+    It 'discovers only JSON references and aggregates independently expected regression counts' {
+        $before=@(Get-ChildItem -LiteralPath $references -File|Get-FileHash|Select-Object Path,Hash)|ConvertTo-Json -Compress
+        $report=Get-RegressionReport -Suite $reportSuite
+        $report.BaselinesCompared|Should -Be 2
+        ($report.Reports.BaselineName|Sort-Object)|Should -Be @('reference','unchanged')
+        $report.Summary.TotalRegressions|Should -Be 1;$report.Summary.TotalImprovements|Should -Be 0
+        ($report.Reports|Where-Object BaselineName -EQ reference).Regressions[0].Change|Should -Be -50
+        (@(Get-ChildItem -LiteralPath $references -File|Get-FileHash|Select-Object Path,Hash)|ConvertTo-Json -Compress)|Should -BeExactly $before
+    }
+    It 'honors the explicit requested baseline subset' {
+        $report=Get-RegressionReport -Suite $reportSuite -BaselineNames unchanged
+        $report.BaselinesCompared|Should -Be 1;$report.Reports[0].BaselineName|Should -BeExactly 'unchanged'
+        $report.Summary.TotalRegressions|Should -Be 0
+    }
+    It 'does not return a successful report when an explicitly requested reference is absent' {
+        {Get-RegressionReport -Suite $reportSuite -BaselineNames missing -ErrorAction Stop}|Should -Throw
+    }
+}
+
+Describe 'Evaluation progress and structured event consumers' {
+    BeforeEach { $script:stateBefore=& $module {@{Config=@{}+$script:EvaluationConfig;State=$script:EvaluationRunState}} }
+    AfterEach { & $module {param($state) $script:EvaluationConfig=$state.Config;$script:EvaluationRunState=$state.State} $stateBefore }
+    It 'throttles repeated stream updates but persists a later completed observation' {
+        $path=Join-Path $TestDrive 'progress/updates.log'
+        & $module {param($path) $script:EvaluationConfig.ProgressMode='stream';$script:EvaluationConfig.ProgressLogPath=$path;$script:EvaluationConfig.ProgressIntervalSeconds=2;$script:EvaluationRunState=@{LastProgressUtc=$null}} $path
+        $script:progressClock=[datetime]'2026-01-01T00:00:00Z'
+        Mock -ModuleName PC-AI.Evaluation Get-Date {$script:progressClock}
+        & $module {Write-EvaluationProgress -Completed 1 -Total 4 -TestCaseId first -Elapsed ([timespan]::FromSeconds(10))}
+        $script:progressClock=$progressClock.AddSeconds(1)
+        & $module {Write-EvaluationProgress -Completed 2 -Total 4 -TestCaseId throttled -Elapsed ([timespan]::FromSeconds(11))}
+        $script:progressClock=$progressClock.AddSeconds(2)
+        & $module {Write-EvaluationProgress -Completed 3 -Total 4 -TestCaseId later -Elapsed ([timespan]::FromSeconds(13))}
+        @(Get-Content -LiteralPath $path)|Should -Be @('progress=1/4 (25%) elapsed=00:00:10 test=first','progress=3/4 (75%) elapsed=00:00:13 test=later')
+    }
+    It 'emits one valid structured event matching the actual persisted event' {
+        $path=Join-Path $TestDrive 'events/output.jsonl'
+        & $module {param($path) $script:EvaluationConfig.ProgressMode='silent';$script:EvaluationConfig.EventsLogPath=$path;$script:EvaluationConfig.EmitStructuredMessages=$true} $path
+        $event=& $module {Write-EvaluationEvent -Type fixture -Message 'synthetic consumer event' -Level warn -Data @{completed=2;runId='fixture-run'}}
+        $event|Should -BeExactly (Get-Content -LiteralPath $path)
+        $parsed=$event|ConvertFrom-Json
+        $parsed.type|Should -BeExactly 'fixture';$parsed.level|Should -BeExactly 'warn'
+        $parsed.data.completed|Should -Be 2;$parsed.data.runId|Should -BeExactly 'fixture-run'
+        {[datetime]::Parse($parsed.ts)}|Should -Not -Throw
+    }
+}
+
+Describe 'Evaluation judge contracts at an isolated provider boundary' {
+    BeforeEach {
+        $script:judgeConfigBefore=& $module {@{}+$script:EvaluationConfig}
+        & $module {
+            $script:judgeSynthetic='{"accuracy":8,"overall":8,"reasoning":"synthetic judgment"}'
+            $script:judgeFailure=$false
+            function script:Invoke-PcaiGenerate {
+                param($Prompt,$MaxTokens,$Temperature)
+                $script:judgeObserved=@{}+$PSBoundParameters
+                if($script:judgeFailure){throw 'synthetic judge provider failure'}
+                return $script:judgeSynthetic
+            }
+        }
+    }
+    AfterEach { & $module {param($config) Remove-Item Function:Invoke-PcaiGenerate -ErrorAction SilentlyContinue;$script:EvaluationConfig=$config} $judgeConfigBefore }
+    It 'forwards the actual question context reference and selected criteria to local judging' {
+        $result=Invoke-LLMJudge -Response 'synthetic response' -Question 'synthetic question' -Context 'synthetic context' -ReferenceAnswer 'synthetic reference' -Criteria accuracy
+        $observed=& $module {$script:judgeObserved}
+        foreach($text in @('synthetic response','synthetic question','synthetic context','synthetic reference','- accuracy:')){$observed.Prompt|Should -Match ([regex]::Escape($text))}
+        $observed.Prompt|Should -Not -Match '\- safety:'
+        $result.accuracy|Should -Be 8;$result.overall|Should -Be 8
+        $result.raw_response|Should -Match 'synthetic judgment'
+    }
+    It 'returns an explicit provider error instead of a numeric verdict after failure' {
+        & $module {$script:judgeFailure=$true}
+        $result=Invoke-LLMJudge -Response synthetic -Question synthetic -Criteria accuracy
+        $result.error|Should -BeExactly 'synthetic judge provider failure'
+        $result.ContainsKey('overall')|Should -BeFalse
+    }
+    It 'retains unparseable provider text with an explicit parse error' {
+        & $module {$script:judgeSynthetic='no structured judgment'}
+        $result=Invoke-LLMJudge -Response synthetic -Question synthetic -Criteria accuracy
+        $result.error|Should -Not -BeNullOrEmpty;$result.raw_response|Should -BeExactly 'no structured judgment'
+        $result.ContainsKey('overall')|Should -BeFalse
+    }
+    It 'rejects a malformed judgment despite containing JSON braces' {
+        & $module {$script:judgeSynthetic='{broken-json}'}
+        $result=Invoke-LLMJudge -Response synthetic -Question synthetic -Criteria accuracy
+        $result.error|Should -Not -BeNullOrEmpty;$result.ContainsKey('overall')|Should -BeFalse
+    }
+    It 'rejects judgment schema outside its requested rating contract: <Kind>' -ForEach @(
+        @{Kind='out-of-range rating';Body='{"accuracy":999,"overall":999,"reasoning":"synthetic"}'},
+        @{Kind='missing requested criterion';Body='{"overall":8,"reasoning":"synthetic"}'},
+        @{Kind='boolean rating';Body='{"accuracy":true,"overall":8,"reasoning":"synthetic"}'},
+        @{Kind='string rating';Body='{"accuracy":"8","overall":8,"reasoning":"synthetic"}'},
+        @{Kind='null rating';Body='{"accuracy":null,"overall":8,"reasoning":"synthetic"}'},
+        @{Kind='missing overall';Body='{"accuracy":8,"reasoning":"synthetic"}'},
+        @{Kind='empty reasoning';Body='{"accuracy":8,"overall":8,"reasoning":"   "}'},
+        @{Kind='nonstring reasoning';Body='{"accuracy":8,"overall":8,"reasoning":8}'},
+        @{Kind='nested rating shape';Body='{"accuracy":{"score":8},"overall":8,"reasoning":"synthetic"}'},
+        @{Kind='nonfinite numeric rating';Body='{"accuracy":1e400,"overall":8,"reasoning":"synthetic"}'},
+        @{Kind='array judgment shape';Body='[{"accuracy":8,"overall":8,"reasoning":"synthetic"}]'},
+        @{Kind='array with a quoted closing delimiter';Body='["]",{"accuracy":8,"overall":8,"reasoning":"synthetic"}]'},
+        @{Kind='array with an escaped quote and closing delimiter';Body='["\"]",{"accuracy":8,"overall":8,"reasoning":"synthetic"}]'}
+    ) {
+        & $module {param($body) $script:judgeSynthetic=$body} $Body
+        $result=Invoke-LLMJudge -Response synthetic -Question synthetic -Criteria accuracy
+        $result.error|Should -Not -BeNullOrEmpty
+        $result.ContainsKey('overall')|Should -BeFalse
+    }
+    It 'retains valid boundary and fractional ratings for all requested criteria' {
+        & $module {$script:judgeSynthetic='{"accuracy":1,"relevance":10,"overall":7.5,"reasoning":"synthetic valid ratings"}'}
+        $result=Invoke-LLMJudge -Response synthetic -Question synthetic -Criteria accuracy,relevance
+        $result.ContainsKey('error')|Should -BeFalse
+        $result.accuracy|Should -Be 1;$result.relevance|Should -Be 10;$result.overall|Should -Be 7.5
+    }
+    It 'retains a valid fenced JSON object response' {
+        & $module {$script:judgeSynthetic='```json'+"`n"+'{"accuracy":8,"overall":8,"reasoning":"synthetic fenced judgment"}'+"`n"+'```'}
+        $result=Invoke-LLMJudge -Response synthetic -Question synthetic -Criteria accuracy
+        $result.ContainsKey('error')|Should -BeFalse;$result.accuracy|Should -Be 8
+        $result.raw_response|Should -Match 'synthetic fenced judgment'
+    }
+    It 'retains an earlier-supported explanatory object prefix: <Prefix>' -ForEach @(
+        @{Prefix='Here is the judgment:'},@{Prefix='Evaluation [synthetic annotation]:'}
+    ) {
+        & $module {param($prefix) $script:judgeSynthetic=$prefix+"`n"+'{"accuracy":8,"overall":8,"reasoning":"synthetic explanatory judgment"}'} $Prefix
+        $result=Invoke-LLMJudge -Response synthetic -Question synthetic -Criteria accuracy
+        $result.ContainsKey('error')|Should -BeFalse;$result.accuracy|Should -Be 8
+    }
+    It 'validates the HTTP fallback response and sends the actual selected endpoint and criteria' {
+        & $module {$script:EvaluationConfig.OllamaBaseUrl='http://judge-provider.invalid:19433'}
+        Mock -ModuleName PC-AI.Evaluation Get-Command {$null} -ParameterFilter {$Name -eq 'Invoke-PcaiGenerate'}
+        $script:judgeHttpObserved=$null
+        Mock -ModuleName PC-AI.Evaluation Invoke-RestMethod {
+            $script:judgeHttpObserved=@{Uri=$Uri;Method=$Method;Body=$Body|ConvertFrom-Json -AsHashtable}
+            return @{response='{"accuracy":6,"overall":6,"reasoning":"synthetic HTTP judgment"}'}
+        }
+        $result=Invoke-LLMJudge -Response 'HTTP synthetic response' -Question 'HTTP synthetic question' -Criteria accuracy
+        $result.accuracy|Should -Be 6;$result.ContainsKey('error')|Should -BeFalse
+        $judgeHttpObserved.Uri|Should -BeExactly 'http://judge-provider.invalid:19433/api/generate'
+        $judgeHttpObserved.Method|Should -BeExactly 'Post'
+        $judgeHttpObserved.Body.prompt|Should -Match 'HTTP synthetic question'
+        $judgeHttpObserved.Body.prompt|Should -Match '\- accuracy:'
+        $judgeHttpObserved.Body.stream|Should -BeFalse
+        Should -Invoke -ModuleName PC-AI.Evaluation Invoke-RestMethod -Exactly -Times 1
     }
 }
 AfterAll { Remove-Module PC-AI.Evaluation -Force -ErrorAction SilentlyContinue }

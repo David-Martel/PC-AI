@@ -1,10 +1,10 @@
 # Milly storage and expansion review
 
 Host: `millylaptop1`. Review date: 2026-10-09.
-This is a live, bounded, read-only assessment. Existing user data, active builds
-and the Clarius operator were preserved. The external SSD was temporarily mounted
-read-only and released normally; no disk was formatted, repaired, repartitioned,
-cleaned or moved.
+The initial bounded assessment preserved existing data, active builds and the
+Clarius operator. After reviewing the SSD contents, the user explicitly requested
+wiping it and formatting it for Windows/Linux sharing. That external drive alone
+was reformatted. Internal data, active builds and the operator remain preserved.
 
 ## Capacity and active work
 
@@ -54,6 +54,8 @@ the corrected transport strips carriage returns before Bash parsing.
 
 ## External SSD
 
+### Initial inspection
+
 After the user reconnected it, Linux detected a **1 TB WDC WDS100T2B0B SATA SSD**
 through an ASMedia USB bridge using UAS at a negotiated 10 Gb/s. This is transport
 enumeration, not measured storage throughput. SMART overall status passed at 40 C,
@@ -81,7 +83,53 @@ NTFS permissions, symlinks, case handling and allocation semantics have not been
 validated for Linux Rust targets. Do not direct active builds to this disk yet.
 Preserve its existing game/app files, verify copied data before retiring sources,
 and establish the console's continuing use before changing its partition layout.
-No partition repair, formatting, data removal or offload copy was performed.
+No partition repair, formatting, data removal or offload copy was performed during
+that inspection. The following user-authorized successor supersedes its contents
+preservation and mount restrictions for this external drive.
+
+### Authorized portable-storage format
+
+The user requested: "Wipe the drive and format it for dual windows and linux use
+between dtm-* and milly." Before writes, the host, external drive's exact model,
+serial, capacity, internal root identity and absence of mounts, loop mappings and
+open users were checked. The old GPT was removed. A transient open-device check
+then stopped the first sequence; fresh readback and udev settlement showed no
+remaining user, and the successor completed. No unknown process was killed.
+
+The disk now has standard GPT with one Microsoft basic-data partition, both
+boundaries aligned to 1 MiB. exfatprogs 1.3.2 formatted it as **exFAT**, label
+**DTM_SHARED**, UUID **FBCF-5608**, using 128 KiB clusters and formatter metadata
+readback. GPT verification reports no problems and the filesystem checker reports
+clean. This is repartitioning and filesystem formatting, not a forensic secure
+erasure claim. Former console files are no longer present in the filesystem.
+
+At 21:05 UTC the mounted volume reported **1,000,170,586,112 bytes total**, with
+**1,000,152,236,032 available** after the small validation payloads. A 16 MiB file
+produced on P1 was copied to the SSD, SHA-256 checked, synced, normally unmounted,
+filesystem-checked, remounted and checked again. Its return copy to P1 matched
+the original SHA-256. A filename containing spaces and Unicode also survived
+remount. This qualifies Linux exFAT writes and file transport to/from P1;
+**a physical Windows attachment is NOT TESTED**.
+
+On Milly it is available at **`/mnt/dtm-shared`**. Its optional UUID-based systemd
+automount uses the live maintenance account's UID/GID 1002, `umask=0022`, noatime,
+nodev, nosuid and noexec. `nofail`, a five-second device timeout and 120-second
+idle timeout keep removable storage out of the required boot path. Original
+`/etc/fstab` bytes are preserved under root-only `/var/backups/pcai-storage`.
+Automount activation and payload hash readback passed at 21:09 UTC.
+
+Full `findmnt --verify` still reports the preexisting required NFS target's I/O
+error and a swapfile advisory. The original and staged configurations had zero
+parse errors and the same environmental failures; original-byte prefix and the
+single appended SSD entry were checked separately before atomic installation.
+The NFS entry, swap configuration and internal mounts were not changed.
+
+Use this volume for shared files, datasets and archives. exFAT lacks NTFS's
+permissions, hardlinks and journaling, so it is not an equivalent native build
+filesystem. Keep permission-sensitive trees in suitable archives or qualify a
+native filesystem/image workflow before relocating build targets. Always use
+normal OS unmount/eject before physically moving the drive between machines.
+[Microsoft filesystem comparison](https://learn.microsoft.com/en-us/windows/win32/fileio/filesystem-functionality-comparison).
 
 ## Internal expansion
 
@@ -96,9 +144,9 @@ the storage expansion evidence. [Lenovo specifications](https://psref.lenovo.com
 
 ## Remaining actions
 
-- Storage owner: confirm continuing console use and intended offload data; then
-  qualify a persistent mount and write/copy/hash verification without altering
-  existing payloads. Read-only inspection and temporary-mount cleanup are complete.
+- Storage: user-authorized format, Linux write/remount checks, P1 file roundtrip
+  and optional UUID automount are complete. Physically attach to a Windows host
+  to qualify that host's native mount and safe-eject path.
 - Build owners: bound concurrent target growth and identify inactive preserved
   Clarius outputs; root: qualify an offload destination and migration controls.
 - Data owners: classify the two other-user homes before archive/offload decisions.
@@ -108,4 +156,5 @@ the storage expansion evidence. [Lenovo specifications](https://psref.lenovo.com
 Private raw receipts are under `.pcai/integration/milly-storage-*`,
 `.pcai/integration/milly-ssd-*` and `.pcai/integration/milly-writer-*`.
 The scans and warnings establish current risks
-and candidates; they do not claim a storage migration or workstation speedup.
+and candidates; the format and validation do not claim a migration of internal
+user data or a workstation speedup.

@@ -501,3 +501,45 @@ build, .NET build, lint, security, deploy-runtime and GPU-specific checks passed
 The aggregate CI gate failed and integration tests were skipped. Preserve these
 distinct results; do not waive coverage, narrow its denominator or claim merge
 acceptance. Meaningful behavior coverage is required before PR integration.
+
+### Completed storage and installed-tool successor
+
+The user explicitly authorized wiping the external SSD for shared Windows/Linux
+use. Exact serial `1830D0800483`, capacity, internal-root exclusion, mounts and
+open-user checks bound the destructive operation to that external drive. It now
+has aligned GPT and exFAT, label `DTM_SHARED`, UUID `FBCF-5608`, with approximately
+1 TB usable. A 16 MiB P1 payload and a Unicode filename passed Linux write,
+normal unmount, filesystem check, remount and hash readback; the P1 return copy
+also matched. Optional UUID automount at `/mnt/dtm-shared` activated successfully
+with removable-device boot bounds. The preexisting NFS I/O failure remains
+distinct. Physical Windows mounting and physical M.2 vacancy remain untested;
+internal user data and active build targets were not relocated. See the updated
+[storage review](milly-storage-and-expansion-review.md).
+
+The optional machine MCP assembly is now deployed on P1 alongside the guarded
+library, with the original library preserved for rollback. Four fresh synthetic
+installed-path controls passed, including raw streaming, child exit propagation
+and missing-executable failure, with no pending process custody. Six maintained
+loader selectors and four independent retained-process controls also passed.
+The producer change is published as commit `0609572df10e50ee180389ad8374e92c5bb6c548`
+in dtm-codex. The measured startup improvement above remains bounded to the
+controlled comparison; service authentication and general cleanup remain open.
+
+Official uutils 0.12.0 Windows artifacts passed release and executable hash
+checks. Seven fixtures and 73 actual calls qualified selected `du` behavior,
+including Unicode with explicit UTF-8, hidden entries, hardlink accounting and
+junction exclusion. Seven-sample median startup was 82.55 ms for existing
+standalone du and 83.72 ms for the new standalone: no speedup is established.
+Post-exit peak working-set data was unavailable, so memory improvement is not
+measured. The qualified new standalone is available at
+`D:/Tools/uutils/du-0.12.0.exe`; PATH, aliases, existing binaries and the dirty
+coreutils source tree are preserved. General multicall replacement and allocated
+space semantics remain unqualified.
+
+Source review found that the existing direct coreutils installer deletes wrapper
+files without a reliable dry-run boundary and hardcodes a T: dispatch path even
+when another binary path is supplied. The companion installer also hardcodes that
+path. Do not run these installers for this offload. Owner: root/tooling; next
+action: implement guarded destination and consumer migration with real dry-run
+and exact-path tests. Native disk-usage depth and fallback enumeration parity
+also require qualification before replacing existing consumers.

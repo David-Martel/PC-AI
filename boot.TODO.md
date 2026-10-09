@@ -38,9 +38,12 @@ See [the storage and expansion review](Reports/milly-storage-and-expansion-revie
       inspect the reconnected SSD read-only and release its temporary mapping.
 - [x] Verify Lenovo's two M.2 storage-slot specification; physical vacancy
       remains an operator inspection requirement.
+- [x] Complete the user's external-drive wipe/format request: aligned GPT/exFAT,
+      clean checks, 16 MiB Linux remount/P1 hash roundtrip and optional UUID
+      automount with bounded device wait. Physical Windows mount is not tested.
 - [ ] Coordinate cache and dataset owners before moving preserved work. The SSD
-      has approximately 680 GiB free but its console-style NTFS layout needs a
-      qualified persistent mount and write/copy validation before offloading.
+      now has approximately 1 TB available for shared files and archives;
+      native build-target semantics need separate qualification.
 - [ ] Restore the failing NFS share through its owner and bound build-target
       growth; do not treat changing free-space snapshots as a stable baseline.
 

@@ -5,6 +5,109 @@ private build outputs remain under `.pcai/integration/`; private profile and hos
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
 
+## Historical acceptance readback (07:48 UTC)
+
+At 07:48 UTC, PR 182's published head remains `c6f5222`; local reviewed commits
+have advanced to signed `8bede69` and have not yet been pushed. Published head CI run
+`37888041832` failed three PowerShell tests and measured
+37.33% coverage against the unchanged 85% target. Rust, .NET, lint and CPU runtime
+jobs passed; downstream integration was skipped. The source-equivalent local
+run passed 1,751 cases, failed three and skipped 53, with 38.347% coverage. Six
+ignored Archive files explain its larger command inventory; they remain preserved.
+No complete CI, native-pair, deployment or fleet-clean claim follows from these
+partial results. Commit `5b4a858` binds native probes to manifest ancestry and
+passes 14 focused tests. Commit `245282d` captures the original owner/group/DACL
+before replacement and restores through an owned handle, detecting distinct
+same-byte later files. The 93-case config gate and separate 46-case C:/D:
+controls pass without skips; SACL/audit preservation is outside that contract.
+The successor frozen signed `8bede69` checkout on D: now passes all 1,844 tests
+with 59 explicit skips, no failed containers or source changes. Exact current
+CI selection and recursive module coverage measured 8,391 of 20,154 commands:
+41.634%, still below 85%. This clean checkout contains tracked source rather than
+the previous local ignored Archive files; no coverage-path exclusion or target
+waiver was introduced. Its test success does not clear the coverage gate.
+Substantial uncovered module behavior remains active work.
+
+Baseline regression review also reproduced a false-green performance comparison:
+snapshots stored run summaries instead of the metric means consumed by the
+comparison. The reviewed repair persists real distributions and separate summaries;
+two synthetic save/read tests now detect both +20% latency and -20% throughput.
+Live inference qualification and additional baseline admission checks remain separate.
+Further detecting fixtures found integer Math overloads rounding fractional
+evaluation scores. Eight genuine failures and four controls became twelve passes
+after selecting floating-point overloads. The full 46-case algorithm, aggregation,
+provider and baseline union passes without skips; source hashes remained unchanged.
+Two informational or constructor-only cases were replaced by real empty/mixed
+result aggregation assertions. Exact safe evaluation/provider suites are being
+added to CI without changing the production coverage universe or 85% target.
+Separate A/B detecting fixtures reproduced ten failures, including false
+significance for two overlapping two-element samples. The local successor uses
+the two-sided Student t probability for Welch inference, validates alpha and
+finite observations, and refuses degenerate or unrepresentable summaries.
+Four published SciPy references and three analytic values qualify the numerical
+routine. An additional real overflow-tail and relative-summary failure were
+repaired. Independent review then reproduced multiple simultaneous effect-size
+labels from overlapping switch predicates. Seven public boundary fixtures detect
+that defect; the committed repair terminates the first matching predicate.
+The complete 85-case evaluation/provider/baseline/statistics union passes without
+skips, parser/analyzer findings or source changes. Independent review admitted
+commit `8bede69`; remote publication remains pending. Effect size retains its
+existing equal-weight RMS standard-deviation convention. These are software
+checks, not population or clinical acceptance.
+
+CargoTools caller-selection qualification now passes 18 fresh PowerShell7/5.1
+controls plus four actual offline native exit0/101 controls on its frozen
+successor. A real UniFi Windows wheel attempt separately failed because the
+canonical wrapper mixed cargo JSON stdout and its scalar preflight status. The
+underlying cargo step reported success; the wrapper rejected its output array.
+No DLL, wheel or consumer update follows from that attempt. The status boundary
+is being repaired with real child-process stream controls before another build.
+Those controls also reproduced rust-analyzer output-routing and consumption of
+child arguments after Cargo's separator. The frozen successor passes 96 focused
+checks plus fresh Windows PowerShell 5.1 controls; its full repository gate is
+running. Successful native output and scalar status now use separate channels.
+
+The credential publisher remains private and uninstalled. Qualified process
+custody does not establish file-publication privacy: a real replacement exposed
+synthetic secret bytes under an Everyone-readable predecessor DACL before
+final tightening. A second real detecting fixture replaced the initially private
+original through a parent with foreign mutation authority, exposing synthetic
+bytes before displaced-file rejection. The private successor admits owner/DACL
+and existing namespace authority before staging secret bytes. It passes 29
+publication controls; full legacy/durable qualification and review remain pending.
+Read-only ACL metadata predicts deliberate refusal of this host's default TEMP,
+`.machine` and `.local/share` staging roots. A protected child directly beneath
+the admitted user-profile root is being qualified. No live ACL repair or secret
+publication occurred; exact prior failures and compatibility losses are retained.
+
+Carbon's new private CPU Core/CLI build uses absolute, hash-pinned Rust1.99
+tools and two jobs after all 2,437 extracted files matched the signed frozen
+archive. Core/CLI qualification passed 122 tests with two explicit ignored cases,
+strict Clippy and release compilation; every source hash remained unchanged.
+The positive-CPU real busy-child test passed within its unchanged deadline.
+Transferred DLL/CLI hashes matched on P1. A private D: build using SDK10.0.401
+and its latest compiler passed 26 managed/native-parser tests, with one media
+fixture explicitly skipped. Fresh PowerShell worker/DLL/bridge pairing passed
+47 cases, including all three native consumer tests; one filesystem short-alias
+control skipped because the selected filesystem did not provide aliases. The
+native version export matches `0.1.0+37743c1`, and all source hashes stayed fixed.
+On the matched twelve-small-file SHA256 benchmark (five measurements per backend),
+PowerShell averaged 5.57 ms, the persistent worker 29.36 ms and the direct CLI
+91.79 ms. All backends validated the exact unique path/hash set. This workload
+favours PowerShell; the worker improves process-start cost relative to the CLI
+but does not beat the baseline. The observation does not establish a large-file
+or cross-host policy. CUDA, model execution and consumer installation remain
+separate gates.
+Work remains unreachable on the latest established routes; route investigation
+continues through its exclusive owner without changing its preserved checkout.
+
+Git-guard's current reviewed source is merged main `e46d408`, with both PR and
+merged-main CI passing. Signed immutable `v0.2.11` is normally installed on P1;
+installed engine hashes and reject/allow controls passed. Historical v0.2.9
+observations below describe prior stages, not the current installed version.
+Fresh hygiene reports and dry runs now work; retirement still requires individual
+ownership, exact preservation and active-writer checks.
+
 ## Reviewed integrations
 
 PC-AI PRs 178, 179 and 180 are merged. Current main `b92e5f6` passes its complete
@@ -250,3 +353,197 @@ P1 has two NVIDIA GPUs and existing Media/Inference DLL consumers: a persistent
 Core/C#-only explicit bundle would suppress those surfaces and must not be deployed
 as its complete runtime. Carbon's CPU-only requirements differ. No GPU/model
 quality claim follows from the CPU builds or FFI load checks.
+
+## Current reviewed work and remaining gates
+
+Readback: October 9, 2026, 11:52 UTC. This remains an active integration record.
+PC_AI's reviewed local repairs include signed `1762ff95` and `ff43162`; the published PR 182 head is still
+`c6f5222`. Current-source CI, merged-main equivalence, deployment and fleet
+acceptance remain open. Earlier sections retain historical evidence and must
+not be read as current dispositions.
+
+The completed whole-repository run on frozen `e5cb5fb` passed 2,322 tests,
+with zero failures, 59 explicit skips and no unrun cases or failed containers.
+It executed 12,053 of 20,620 recursively selected module commands:
+58.452958%, **FAIL** against the unchanged 85% requirement. Independent
+readback confirms all 2,462 tracked files unchanged, 236 module source files,
+235 instrumented files and untouched primary configuration/log bytes.
+The original driver's source count was corrupted by a shared PowerShell
+variable; independent XML/file verification corrects that metadata without
+changing the run, denominator or threshold. The older `8bede69` run remains
+preserved. Focused results below cannot be summed to clear the whole-repo gate.
+
+Reviewed, signed repairs now include baseline lifecycle (`ad8901f`, 105 cases),
+evaluation/provider contracts (`ca86eb0`, 134 cases), evaluation project-root
+and judge admission (`88cb1f8`, 175-case union), native Network exit-status and
+WhatIf behavior (`610ed65`, 64 cases), and WSL version/service status handling
+(`9b35703`, 65 cases). These are deterministic software contracts. The private
+HTTP timeout witness establishes a stalled-read error, not a whole-request
+deadline. They do not qualify live inference, NIC changes or machine defaults.
+
+Signed GPU discovery/admission fixes (`6c88259`) pass 65 cases, including
+numeric CUDA/cuDNN versions, download URL admission and WhatIf dispatch.
+The predecessor produced five failures in eight cases. The backup helper
+already inherited WhatIf; the detecting assertion proves unnecessary dispatch,
+not an actual backup write. No live GPU, driver or registry setting changed.
+
+Signed PowerShell proxy custody fixes (`87fee7d`) pass 95 cases. Actual owned
+children and synthetic state reproduce PID-only termination, lost state after
+refusal, publication races and recovery-getter failures before the repairs.
+Strong process references, executable paths and UTC creation ticks now govern
+admission; unresolved children and displaced state remain recoverable. The
+Windows file identity witness includes distinct same-byte replacement files.
+This is not an arbitrary-writer compare-and-swap guarantee.
+
+A later cross-language witness found that PowerShell accepted complete cached
+identity fields even when C# recovery explicitly marked them incomplete.
+Three of four detecting cases failed. A minimal guard rejects true or invalid
+recovery markers; the false-marker positive control still admits exact owned
+identity. The signed `891fbf58` successor passes the 99-case canonical
+virtualization/custody union, with no skips and zero parser/analyzer findings.
+
+Signed C# ServiceHost repair `1762ff95` preserves executable/creation-time
+identity and unknown PowerShell state fields, refuses incomplete entries,
+retains unresolved children and validates original/staged file identity and
+bytes. All 34 maintained custody tests pass; nine TUI tests and eight safe CLI
+checks pass separately on the exact private SDK 10.0.401 build. Independent
+readback matched 30 source/evidence bindings and all 43 raw TRX cases. Actual
+archived CLI failures, staged-file replacement failures and a later null-array
+entry failure are preserved. The null-entry repair rejects the complete ledger
+before any process effects. Explicit-project format verification with the
+actual repository editorconfig reports zero changes for both affected projects;
+the hook's generic suppressed diagnostic does not establish a source defect.
+No live proxy, installed service or arbitrary-writer compare-and-swap is qualified.
+
+Signed search fixes (`ff1791c`) pass 22 cases using actual installed ripgrep
+and private files: literal patterns, bounded content results, per-file log
+counts and command failure propagation. Fresh child controls also cover
+explicit `NoIgnore:false` and an unfiltered native-helper invocation. Their
+synthetic native availability proves routing, not DLL execution. The earlier
+matched-output regex benchmark is bound to its recorded source and supports
+no general speedup claim.
+
+Signed LLM fixes (`e5cb5fb`) pass 220 canonical cases without skips; the
+unchanged logging fixture passes 21 additional cases on 39 hash-verified
+private module copies. Real repository logs and configuration remain intact.
+Repairs preserve explicit zero options and cancellation, honor initial requests
+plus retries, parse finite metrics and embedded JSON, preserve grounded
+diagnosis under strict callers and label offline knowledge honestly.
+Module-focused coverage is 61.591%, not repository acceptance. Live inference,
+full-stack cancellation and retrieval remain separate gaps.
+
+Credential helpers and maintained synthetic fixtures are signed `900a533`.
+The canonical 69-case gate passes with exact source/environment readback and
+no pending owned process. Separate publication, namespace, legacy and durable
+custody gates remain source-bound evidence. Root has not installed or
+authenticated this backend. The reviewed two-file payload proposes a nineteen-entry
+manifest preserving all eighteen existing entries and their order/properties.
+Actual passive staged discovery preserves all 32 legacy callable names; separate
+metadata publication and aggregate rollback qualification are pending. The actual
+scheduled boot action targets an existing canonical repository script. Five missing
+installed copies do not establish that this action is broken. Legacy cache-manifest
+ACL compatibility remains unqualified; no private content or live ACL was changed.
+Owner/group/DACL qualification excludes SACL/audit.
+
+CargoTools PR 14 merged normally to `e708371`, with verified main/origin
+equivalence and custody before retiring the owned branch. Main CI passed 751
+cases with eleven skips and thirteen explicitly unrun; current local focused
+qualification passed 164. Installed physical consumers were reconciled with
+preservation of private files and unrelated wrappers. Fresh PowerShell 7/5.1
+checks pass all eight consumer cases, and the installed wrapper returns scalar
+Int32 zero separately from useful compiler JSON frames. The T: clone was preserved
+and fast-forwarded normally to the same main/origin revision. Its unique historical
+TEST_RESULTS.md remains untracked and is independently copied/hash-verified on D:;
+that checkout is not claimed clean.
+
+UniFi PR 71 merged normally to `b301be1`; its current-main CI passed the
+unchanged 83% coverage gate. Equivalent dependent PRs were reconciled after
+preservation. The real Windows native attempt passed 147 mandatory cases,
+built its ABI3 wheel on D: and exercised the exact staged PYD; no live Python
+consumer was replaced. Reviewed dependency PRs 80, 81 and 82 merged with
+passing exact-head CI and bounded private consumer checks. PR 83 merged after
+fresh updated-head CI; merged-main run 37918247803 passed all three jobs. Seven fresh
+security alerts are actually fixed. A narrowly scoped Rust TLS lock update is
+under frozen-graph/resource qualification. Its changed graph passes 222 Rust library
+cases with two explicit live Credential Manager skips; the freshly built exact MCP
+binary passes all 32 protocol cases. MCP binary unit, Tauri and strict lint gates
+remain pending; earlier native passes do not qualify that changed consumer graph.
+
+GitGuard scanner PR 58 merged normally to `8e24529`; exact-head and merged-main
+CI passed. Private GNU/uutils predecessor/candidate fixtures agree on all 52
+shared cases, and seven extra controls verify matcher failures block commits.
+A separate balanced negative-corpus benchmark measured GNU 39.319 to 9.036
+seconds and uutils 66.305 to 12.975 seconds. Instrumented invocation counts
+fell from 400 to 40; those observations were excluded from timing. This is
+bounded scanner evidence, not a fleet speedup. Installed 0.2.12 remains intact.
+Release PR 59 is preparing 0.2.13 and current Rust CI, with Windows installer
+fixture corrections under qualification. Focused installer checks pass 69 cases
+with one explicit Windows Unix-mode skip. The filtered 37-case source suite has
+additional Windows harness failures and is not accepted as green. The earlier
+unfiltered runner unexpectedly started Ubuntu and completed a Docker image build
+before its owned process was stopped. The partial result, image identity and
+unknown predecessor identity are retained; no distro, daemon or image was removed.
+No hook bypass or installed scanner replacement is claimed.
+
+The owned build-cache relocation verified 3,504 files / 1,819,130,433 bytes at
+`D:/pcai-relocation/work-perf-target/r1` before source retirement. A separate
+30-sample, 30.95-second observation found mean C: transfer latency 0.333 ms
+and queue length 0.033, peaking at one. Observer CPU was 2.16 seconds, about
+6.97% of one core. Host-wide paging remained observable without process or
+pagefile attribution. This window does not prove relocation cured thrashing.
+New owned build/cache/temp outputs use D: on P1. Carbon has no D:/T: volume and
+selects its private healthy C: storage from its own inventory.
+
+A current fleet-owner message records stale compiled Cargo output admitted
+after an archive extraction at an existing source path: source hashes alone
+did not force recompilation when timestamps matched older cache metadata.
+Its corrected qualification uses a distinct owned target and requires actual
+compilation. PC_AI's proposed inference/media offload therefore binds source,
+toolchain, features and target fingerprint explicitly. Rust 1.99 is selected
+for this latest-toolchain qualification; the workspace's 1.95 is a dependency
+floor, not a toolchain pin. No existing consumer or machine default is changed.
+The owner's actual Carbon readback found the named 1.99 toolchain incomplete:
+cargo/clippy exist but rustc/rustdoc do not. A complete existing stable provider
+was independently identified as 1.99 and admitted for a pinned private proposal,
+without toolchain/default writes. CargoTools preflight also reached installed
+PC_AI and a live cache despite private environment selection; that actual failure
+is retained as a per-host isolation gap. Offload remains held on active-owner
+coordination and fresh resource/tool/source admission.
+
+The full run also exposed a test isolation defect: the existing Network unit
+fixture mocked Invoke-Command while production called wsl directly. Read-only
+WSL network queries escaped the intended boundary. A new actual detecting
+corpus fails ten of fifteen cases, including an owned native child printing
+HTTP 200 while exiting 7. Signed repair `3e69756` passes the 112-case canonical
+union with twelve retained prerequisite skips; existing assertion texts are
+preserved and direct native boundaries are isolated. No real WSL/network
+operation is part of that gate.
+
+Signed PATH repair `ff43162` moves actual backup writes inside ShouldProcess
+and uses literal directory-component matching. Its predecessor failed five of
+eight actual cases, including backup writes under WhatIf. The successor passes
+30 canonical cases and eight PowerShell 5.1 controls, with actual environment
+hashes unchanged. Signed ServiceHealth repair `a78669c` passes 87 canonical
+cases and 22 PowerShell 5.1 controls; it rejects failed native stdout, exact-name
+lookalikes and malformed bridge counts. Existing assertions are preserved.
+Backup-error admission, native command deadlines and live machine policy remain open.
+
+The corrected linked inventory includes the authoritative agent-bus path and its
+active/locked worktrees. It observes thirteen registered locations across nine
+groups using cached refs; the obsolete agent-hub path remains a preserved unknown
+historical location. Its owner's staged files and worktree custody are protected.
+This bounded known-location refresh is not complete filesystem discovery or
+publication/merge evidence. A nested-import caller-removal failure reported by
+another agent also remains a source-bound provider integration lead.
+
+Work remains unreachable through investigated existing routes. Its original
+checkout and exclusive recovery ownership are preserved. The owner has an
+unlocked credential backend and is investigating existing UDM routes rather
+than requiring the user to identify secrets. Its latest reported actual probe
+at 10:04 UTC found zero connections across twelve configured Work/NUC/UDM TCP
+routes; the saved strict Work SSH route failed before authentication. Tailnet
+Work remains offline. Home DHCP/ARP and power state remain unknown; USB phone
+access is a coordinated lead rather than a completed credential recovery.
+Main integration, current-head CI, real full-repository coverage, required
+runtime/model/boot checks, remote readback and fresh active-writer/preservation
+checks remain open. No fleet-clean or complete deployment claim is made.

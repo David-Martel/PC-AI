@@ -1,0 +1,141 @@
+{
+  "SchemaVersion": 1,
+  "State": "QualifiedPrivatePair",
+  "ObservedUtc": "2026-10-09T07:34:32.4111172Z",
+  "NativeSourceHead": "37743c1703eee1539cfa7fb83e223e7fcd751bdd",
+  "ManagedSourceHead": "37743c1703eee1539cfa7fb83e223e7fcd751bdd",
+  "ConsumerSourceHead": "8bede696618b904bfac776e2bfa6f61d74c41cf2",
+  "SourceContinuity": "Native Rust and managed source trees unchanged between signed37743c1 and signed8bede69",
+  "Native": {
+    "Rust": "1.99.0",
+    "TestsIgnored": 2,
+    "VerifiedSourceFiles": 2437,
+    "TestsPassed": 122,
+    "Host": "dtm-carbon-two",
+    "ChangedSourceFiles": [],
+    "BuildExit": 0,
+    "ClippyExit": 0,
+    "Version": "0.1.0+37743c1",
+    "PositiveCpuFixture": "Passed original deadline",
+    "Jobs": 2
+  },
+  "Managed": {
+    "Sdk": "10.0.401",
+    "TargetFramework": "net8.0",
+    "SkippedRequirement": "CPU media fixture not selected",
+    "CompilerLanguage": "latest",
+    "TestsPassed": 26,
+    "Host": "dtm-p1gen7",
+    "ExitCode": 0,
+    "ChangedSources": [],
+    "TestsSkipped": 1
+  },
+  "PowerShell": {
+    "SkippedRequirement": "Selected filesystem did not supply short directory/executable leaf aliases",
+    "NativeConsumerCasesPassed": 3,
+    "TestsSkipped": 1,
+    "TestsFailed": 0,
+    "NotRun": 0,
+    "ChangedSources": [],
+    "TestsPassed": 47
+  },
+  "Artifacts": [
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\PcaiNative.dll",
+      "Hash": "9D11B5AC39053674863D32B2600CBECDFF3D0B3E9FB2A34213950044AA2BD5B7"
+    },
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\pcai_core_lib.dll",
+      "Hash": "2FFC3A49A398DC7AC5BD8812782AAD54CA50E4E1150D803C03AEE6CE869FBC4B"
+    },
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\pcai-perf.exe",
+      "Hash": "34D976445E09F0741920349A840D2E35548194BB3C6EC38BBFA81B4C1CF77E49"
+    }
+  ],
+  "HashBenchmark": {
+    "Results": [
+      {
+        "Backend": "worker",
+        "MeanMs": 29.36,
+        "MedianMs": 16.19,
+        "StdDevMs": 17.68,
+        "MinMs": 15.67,
+        "MaxMs": 59.95
+      },
+      {
+        "Backend": "direct-cli",
+        "MeanMs": 91.79,
+        "MedianMs": 83.48,
+        "StdDevMs": 12.63,
+        "MinMs": 82.13,
+        "MaxMs": 114.92
+      },
+      {
+        "Backend": "powershell",
+        "MeanMs": 5.57,
+        "MedianMs": 3.5,
+        "StdDevMs": 3.45,
+        "MinMs": 1.97,
+        "MaxMs": 10.97
+      }
+    ],
+    "Conclusion": "PowerShell is faster on this small-file fixture; persistent worker is faster than direct CLI, without beating PowerShell",
+    "Validation": "Exact unique normalized expected path set and matching SHA256 for each actual backend",
+    "Files": 12,
+    "Boundary": "Single host, warm generated small-file data, no large-file/fleet policy or observer-overhead equivalence claim",
+    "IterationsPerBackend": 5
+  },
+  "Evidence": [
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\carbon-result.json",
+      "Sha256": "832D465F2E710D728713491870CACFEF9721F0287A28DB8A50D3736796812CFF"
+    },
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\carbon-test.log",
+      "Sha256": "C644FFC705EE45F7328C9FE9DB963E07BBDCAFE5456864AE15FEF0AE2791B24D"
+    },
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\managed-result.json",
+      "Sha256": "1FDFEEEFBD942BC50391891FCC7651EE0119CBEAE60E3ACCBDF105B4EC5682D7"
+    },
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\results\\native-pair.trx",
+      "Sha256": "E7D96B71FE6D0F9BE514362FC3B2A98EA91B6B297641266E29728B4211B82681"
+    },
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\paired-worker-result.json",
+      "Sha256": "682A61B0EE8CC8CB90110756F08F4B0F3ED2CB6096D803A623E4BEF3ADCDEFAC"
+    },
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\paired-worker-tests.xml",
+      "Sha256": "1D699AF8FCB7ACF3FE16DD28E71A74AF8D0EF526868D36E329C278941B645F1D"
+    },
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\hash-benchmark-result.json",
+      "Sha256": "714A1BB8C9BF149C0485B34C1A2EA89D48BB94D83E50E8AC2E2B63725127EDBA"
+    },
+    {
+      "Path": "D:\\pcai-relocation\\pcai-managed\\r1\\hash-benchmark-bindings.json",
+      "Sha256": "637CB2D7A9C4CC34061BD424DF3802C937C1961B89BAF284C8AACE75E1E9543F"
+    }
+  ],
+  "Limitations": [
+    "Private bundle only; no installed consumers changed",
+    "CUDA, inference/media models and fleet deployment are separate gates",
+    "Raw ProcessStats nonfinite SystemCpuUsage is not directly JSON serializable; map unknown CPU to nullable DTO",
+    "Repository-wide85 coverage gate FAIL on frozen signed8bede69:1844PASS0FAIL59SKIP,41.6344150044656 percent (8391/20154)"
+  ],
+  "CurrentSourceReadback": {
+    "ConsumerQualification": "Earlier frozen8b consumer qualification remains source-bound; later PS changes separately tested, no repeated paired claim",
+    "ManagedHosts": "Separate signed1762ff95 ServiceHost source; exact private SDK10.0.401 maintained custody34PASS/TUI9PASS/CLI8PASS/null regression1PASS; installedruntime unqualified. Earlier core bridge/pair artifacts remain bound37743, not rebuilt ServiceHost.",
+    "NativeTree": "c99ee613c5aaf2d3cf6de9c07219ee65c8718d4a",
+    "NativeTreeUnchanged": false,
+    "InstalledRuntime": "NOT_DEPLOYED; inference/media/GPU/model/boot gates remain open",
+    "SignedHead": "a78669c1e5b4b9eb922d36065df77a8a5cd53432",
+    "ObservedUtc": "2026-10-09T11:52:49.2124809Z",
+    "RustTreeUnchanged": true,
+    "BridgeTreeUnchanged": true,
+    "CurrentCoverage": "Frozen e5cb5fb full r3:2322PASS0FAIL59SKIP0NotRun;58.4529582929195%12053/20620 FAIL unchanged85; later source fixes require successor."
+  }
+}

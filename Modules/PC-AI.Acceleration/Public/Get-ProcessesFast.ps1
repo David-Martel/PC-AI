@@ -33,6 +33,12 @@
 
 .OUTPUTS
     PSCustomObject[] with process information
+.NOTES
+    CPU retains its historical backend-specific value. CPUUnit identifies percent
+    for native samples and seconds for managed lifetime CPU. CPUPercent is null
+    for managed rows; TotalProcessorTimeSeconds is null for native rows. Native
+    sampling freshness is not exposed by the current ABI, and a first sample may
+    be zero. These fields do not establish an interval or throughput measurement.
 #>
 function Get-ProcessesFast {
     [CmdletBinding()]
@@ -104,13 +110,20 @@ function Get-ProcessesWithPcaiPerf {
 
     try {
         $sortKey = if ($SortBy -eq 'cpu') { 'cpu' } else { 'memory' }
-        $json = & $ToolPath 'processes' '--top' $Top '--sort-by' $sortKey 2>$null
-        if (-not $json) {
-            return $null
+        if ($env:PCAI_DISABLE_PERF_WORKER -ne '1') {
+            try {
+                $rows = @(Invoke-PcaiPerfWorkerRequest -ToolPath $ToolPath -Command 'processes' -Payload @{ top=$Top; sort_by=$sortKey })
+                foreach ($row in $rows) { $row | Add-Member -NotePropertyMembers @{Transport='worker';CPUUnit='percent';CPUPercent=$row.CPU;TotalProcessorTimeSeconds=$null} -Force }
+                return $rows
+            } catch [NotSupportedException] {
+                Write-Verbose 'Legacy pcai-perf worker: using bounded direct CLI.'
+            }
         }
-
-        return @(ConvertFrom-Json -InputObject $json)
+        $rows = @(Invoke-PcaiPerfCliCommand -ToolPath $ToolPath -Arguments @('processes', '--top', "$Top", '--sort-by', $sortKey))
+        foreach ($row in $rows) { $row | Add-Member -NotePropertyMembers @{Transport='direct-cli';CPUUnit='percent';CPUPercent=$row.CPU;TotalProcessorTimeSeconds=$null} -Force }
+        return $rows
     } catch {
+        Write-Verbose "pcai-perf processes unavailable: $($_.Exception.Message)"
         return $null
     }
 }
@@ -184,6 +197,9 @@ function Get-ProcessesWithNative {
                             PID       = $row.Pid
                             Name      = $row.Name
                             CPU       = [Math]::Round([double]$row.CpuUsage, 2)
+                            CPUUnit   = 'percent'
+                            CPUPercent = [Math]::Round([double]$row.CpuUsage, 2)
+                            TotalProcessorTimeSeconds = $null
                             MemoryMB  = [Math]::Round([double]$row.MemoryBytes / 1MB, 2)
                             Threads   = $null
                             Handles   = $null
@@ -216,6 +232,9 @@ function Get-ProcessesWithNative {
                     PID       = $row.pid
                     Name      = $row.name
                     CPU       = [Math]::Round([double]$row.cpu_usage, 2)
+                    CPUUnit   = 'percent'
+                    CPUPercent = [Math]::Round([double]$row.cpu_usage, 2)
+                    TotalProcessorTimeSeconds = $null
                     MemoryMB  = [Math]::Round([double]$row.memory_bytes / 1MB, 2)
                     Threads   = $null
                     Handles   = $null
@@ -311,10 +330,14 @@ function Get-ProcessesParallel {
 
     if (-not $requiresOwnerLookup) {
         foreach ($proc in $processes) {
+            $totalProcessorTimeSeconds = $proc.CPU
             $results.Add([PSCustomObject]@{
                     PID       = $proc.Id
                     Name      = $proc.ProcessName
-                    CPU       = [Math]::Round($proc.CPU, 2)
+                    CPU       = [Math]::Round($totalProcessorTimeSeconds, 2)
+                    CPUUnit   = 'seconds'
+                    CPUPercent = $null
+                    TotalProcessorTimeSeconds = $totalProcessorTimeSeconds
                     MemoryMB  = [Math]::Round($proc.WorkingSet64 / 1MB, 2)
                     Threads   = $proc.Threads.Count
                     Handles   = $proc.HandleCount
@@ -342,10 +365,14 @@ function Get-ProcessesParallel {
             catch {
             }
 
+            $totalProcessorTimeSeconds = $proc.CPU
             [PSCustomObject]@{
                 PID       = $proc.Id
                 Name      = $proc.ProcessName
-                CPU       = [Math]::Round($proc.CPU, 2)
+                CPU       = [Math]::Round($totalProcessorTimeSeconds, 2)
+                CPUUnit   = 'seconds'
+                CPUPercent = $null
+                TotalProcessorTimeSeconds = $totalProcessorTimeSeconds
                 MemoryMB  = [Math]::Round($proc.WorkingSet64 / 1MB, 2)
                 Threads   = $proc.Threads.Count
                 Handles   = $proc.HandleCount

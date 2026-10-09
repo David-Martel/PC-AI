@@ -135,13 +135,20 @@ function Get-DiskUsageWithPcaiPerf {
     )
 
     try {
-        $json = & $ToolPath 'disk' '--path' $Path '--top' $Top 2>$null
-        if (-not $json) {
-            return $null
+        if ($env:PCAI_PREFER_PERF_WORKER_DISK -eq '1') {
+            try {
+                $rows = @(Invoke-PcaiPerfWorkerRequest -ToolPath $ToolPath -Command 'disk' -Payload @{ path=$Path; top=$Top })
+                foreach ($row in $rows) { $row | Add-Member -NotePropertyName Transport -NotePropertyValue 'worker' -Force }
+                return $rows
+            } catch [NotSupportedException] {
+                Write-Verbose 'Legacy pcai-perf worker: using bounded direct CLI.'
+            }
         }
-
-        return @(ConvertFrom-Json -InputObject $json)
+        $rows = @(Invoke-PcaiPerfCliCommand -ToolPath $ToolPath -Arguments @('disk', '--path', $Path, '--top', "$Top"))
+        foreach ($row in $rows) { $row | Add-Member -NotePropertyName Transport -NotePropertyValue 'direct-cli' -Force }
+        return $rows
     } catch {
+        Write-Verbose "pcai-perf disk unavailable: $($_.Exception.Message)"
         return $null
     }
 }

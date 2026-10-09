@@ -318,106 +318,129 @@ checks remain open. No fleet-clean or complete deployment claim is made.
 
 ## Current reviewed work and remaining gates
 
-Readback: October 9, 2026, 14:05 UTC. Root's signed PC_AI head is
-`b3437664a2acdcb29a9d354e8a82214a2838afdc`; published PR 182 remains
-`2fa80ffa58f1158bddc0d354eaae5ed92a6bf88c`. Integration is active.
+Update cutoff: 2026-10-09T17:31:01.5314121Z. Historical evidence above remains byte-for-byte preserved.
+Reviewed signedG source revision `20e0ab8b39edbd68eb955ce1a48566bf21c6e21b` commits root's
+benchmark source29404E22/fixtureBC97CB2B after signed capability0b137. At readback
+working tree is clean, ahead2 of origin `2d0e6e28f0304ec4e85851163d1c81425d98d110`.
+Publication, exact-successor CI and PR182 integration remain **OPEN**; refresh live
+refs before promotion because root owns concurrent publication.
 
-The actual [CI run 37936781465](https://github.com/David-Martel/PC-AI/actions/runs/37936781465)
-passes 2,378 tests, fails none and skips 58. It executes GitHub's PR merge
-checkout `fc9f671d5ac1286e9bb69a6ebe3f813f6472ed62` with main base
-`b92e5f614183ab555b80c531baedb661752ba698`. Coverage is 59.185%:
-12,259 of 20,713 commands, **FAIL** against the unchanged 85% requirement.
-The raw coverage artifact independently agrees with these totals. The
-mandatory result gate validates container and block counts before the recorded
-coverage failure; there is no separately published NUnit artifact. Rust format,
-check/Clippy and tests, .NET, PowerShell lint, security, CPU deployment and
-llama.cpp CPU jobs pass; downstream integration is skipped. This run does not
-qualify the two subsequent local commits or any private deployment proposal.
+[Published2d0 CI37956463393](https://github.com/David-Martel/PC-AI/actions/runs/37956463393)
+uses merge checkout981c52fd95d70fe0637e3e909007b8f36363d6ff:2,503PASS0FAIL39SKIP0NotRun,
+**FAIL85** at60.2224651803964%,12,669 covered/21,037 commands,8,368 missed,235 classes.
+Actual JaCoCo artifact11629795056 agrees. At the same denominator5,213 additional
+covered commands would be needed; this projection is not achieved coverage.
+No separate NUnit artifact establishes serialized block/container counts.
+Rust format/check/Clippy/tests, .NET, PowerShell lint/security and CPU builds pass;
+CI Gate fails/integration skips. NVIDIA and Rust Guidelines37956463379 succeed on2d0.
+Official verified ripgrep15.2.0 bootstrap passes. Earlier fceHTTP504 occurred before
+tests;26360.7426%/one VSock failure remain historical. Codecov protected-branch
+upload needs a token; action-step success does not resolve that reporting gap.
 
-Signed `3f1df88` closes the missing-cache-drive failure. Its maintained
-configuration/virtualization union passes 70 cases. The actual hosted runner
-now passes the five configuration custody cases that previously failed before
-reaching a valid repository-local executable. Controlled absent-drive variants
-and the invalid process-local drive-removal preflight remain preserved. No
-physical drive, mapping, model or service configuration was changed.
+Signed0b137 capability source7F43/fixture968 has canonical19PASS0FAIL0SKIP0NotRun,
+Pester5.9.1, stable source and zero failed blocks/containers (receipt9F32/XML51B3).
+Original11PASS8FAIL and private successor19PASS remain preserved. Its inert native
+fixture does not qualify live loaded-parent behavior or meet global85.
+Root's benchmark successor fixes the actual StrictMode empty-Sum failure:
+private original37PASS1FAIL and successor38PASS remain separate. Fresh canonical38
+actually passes38/0FAIL/0SKIP/0NotRun, stable source29404/fixtureBC97 and inert
+transports, receiptCBFA0CD5021E9A90590BA6D3E3D5095A1CAD0F7DD0EA1BDCEEDAD7937B104F98,
+XML9848B43F478766463A12DFBAE81D780A1059F7D293FD89F3C9209DA8D3584088.
+These contracts establish no native speedup or global coverage acceptance.
+Warm-r1 actually93PASS1FAIL remains detecting evidence. Actual warm-r2 passes94
+parent tests (fixture19/38/25/3/9) and **separate63 child** tests, zero failure/skip/
+NotRun/blocks/containers. Receipt114DD28F5B32ED7FA68A72912532662E0C7A8D61CB58A4DA24FD92E6A7827426
+and parent XML3E0163CFF574B78730D4A3ADD146F9080C7511E8144325F029CE223CC9225153
+agree. All30 live source and27 artifact bindings independently match; source stable,
+native before/preload/after empty. Known managed bridge metadata preload and inert
+child transport do not qualify native APIs. No union coverage/global85 claim follows.
 
-Signed `d82af157` closes false-green admission of a genuine Pester `AfterAll`
-failure. The gate and standalone runner reject failed blocks; 19 maintained
-controls pass. Hosted CI executes the detecting control successfully. Test
-selection, coverage exclusions and the target are unchanged.
+Signed fce streams/action preferences qualify19 controls; canonical Network/VSock160
+passes/one admin-prerequisite skip. Signed f731 requires actual useful-output parity
+and native availability before speedup reporting; five native cases are not run.
+Token fallback, manifest order/races, reparse semantics and generic parity remainOPEN.
+Signed2d0 Performance37 parent and separate63 child pass/Pester5.9.1/source stable/
+analyzer0/no native mappings. Desktop5.1 Common import, Linux/ARM Performance,
+DLL activation and throughput remain unaccepted. Earlier frozen377 Rust/C# pair
+retains exact-source qualification. Carbon additionalCPU8 remains **RAMHOLD0/8**;
+B13 MSVC passes separately. Credential32 synthetic/15 guard controls do not establish
+live installation, namespace recovery, boot/session or master-database reconciliation.
+Model/inference/media/GPU/ARM/Linux/HIL gates remain separate.
 
-Signed `b343766` preserves existing VSock backups, captures all nine registry
-values with original kind and presence, stops on capture/write failures and
-checks synchronous native exit status. Restore preflights the entire ledger
-before mutation and preserves date-like String/ExpandString/MultiString bytes.
-The maintained union passes 160 of 161 cases on PowerShell 7.6.6, with one
-explicit non-administrator prerequisite skip; all 36 custody/restore controls
-pass on Windows PowerShell 5.1. Failed tests, containers and blocks are zero.
-The 11 administrator legacy cases genuinely execute. All 93 unaffected original
-legacy assertions remain in order; only the obsolete Out-File assertion is
-replaced by actual owned-file assertions. Refusal boundaries detect and isolate
-previous live routing-query leaks. Earlier six-case and broader restore/type
-failures, invalid harness attempts and exact source hashes remain preserved.
-No real registry/netsh/WSL tuning, transaction-wide atomic rollback, native
-deadline or performance improvement is qualified by these fixtures.
+Root owns Work/UDM/phone/Bitwarden routes after handoff. Existing cached desktop
+Bitwarden is read-only unlocked/metadata31, nonroot Pixel ADB/master app confirmed;
+physical phone unlock reply remains pending. Root's authenticated current DTM-home
+UDM SE is online9c:05:d6:32:83:81, OS5.1.33/Network10.6.106, ordinary cloud Network
+dashboard accessed. The obsolete UDM Pro offline since October2024 is separate.
+Work interface history last connected October8 at23:19:10.10.15.215/f8:f2:1e:c6:f9:1f
+on aggregation-pro Port1, and192.168.1.133/0c:9d:92:1f:e6:ef on lab PoE-pro Port2.
+These are last-known device bindings; actual Work console/SSH/source equivalence
+remain **OPEN**, Tailnet100.64.0.2 offline. Actual root read-only terminal commands
+now show hostnameudmpro-se, route192.168.1.133 via br0/source192.168.1.1,
+neighbors192.168.1.133/0c:9d:92:1f:e6:ef on br0 and10.10.15.215/f8:f2:1e:c6:f9:1f
+on br15 bothREACHABLE. ScreenshotA8DC9FA1732CCFDD2F7758BDA0B79E9D52FB1DBC7F9743ABB28D710FD5DFA583
+independently visually read confirms current gateway neighbor bindings, not Work
+SSH/repo acceptance. Submitted ping/client-location probes await command readback;
+no SSH or WoL success is established. P1 self100.64.0.1 and Carbon.6 online;
+old ASUS.3/Sparks.4/.5 offline. Local P1 LAN192.168.50.42/gateway.1.
+Safe CF metadata642A records3GET200/proxied UDM A162.193.10.247, dtm-cf-rdp DOWN,
+fleet-atlas healthy, parked Headscale DOWN. Maintained WAN443->Caddy10443->Headscale8085
+architecture expects Headscale HTML. No route correction, Access/provider/database/
+global writes or published credential values are claimed. Seven-app email/group
+policy/no service policy remains separate read-only evidence.
 
-Signed `17a03ab` exports three already manifest-declared Performance commands.
-The predecessor fails all three actual public-command controls; the maintained
-28-case union and three Windows PowerShell controls pass. A separate actual
-26-case synthetic consumer run passes five controls and fails 21 cases: native
-envelopes differ from fallback public rows, JSON cardinality varies, native
-exceptions escape fallback, unavailable counters become measured zeros, and
-PID-only orphan advice is marked safe for automation. Snapshot claims of leaks
-or thrashing also fail evidence controls. The actual C# wrapper was compiled
-against an inert typed transport with Rust-schema-bound payloads; this is
-consumer-contract evidence, not execution of a native DLL or real diagnostics.
-Finite schema, measurement and recommendation repairs remain in progress.
+Cold bus process-only `http://localhost:18480` works; ASUS LAN disappearance/public401
+and warmMCP401 remain separate. Owner five-host committed cutover is not independent
+whole-fleet acceptance. UniFi final private R9 synthetic protocol now33PASS0FAIL/
+0ERROR/0SKIP, producer exit0, sourceStable=true, source98/importedclosure30:
+qualificationD254/XMLDF920. This follows preserved R8 actual2PASS30FAIL, cargo command
+array-discovery and JSON exception-harness faults. Real file-sharing and caller
+controls execute; copied PE/native605 never execute in this protocol.
+NormalR5 bare-Cargo zero-body loaderFAIL, earlier false green and external-manifest603
+predecessor remain separate. Native observer is a private reviewed proposal only;
+RAM below6GiB and unqualified observer/runtime gate mean **NO native GO**.
+UniFi primary/lock/TLS alert117 remain unintegrated by synthetic controls.
 
-Credential deployment remains private. Its target-set lock precedes capture
-and publication, and success/recovery retain original bytes, identities and
-owner/group/DACL. All 32 actual synthetic C-target/D-custody cases pass; all
-26 predecessor cases and six additional cross-volume/namespace controls are
-retained. A separate fresh passive import resolves six exports. Named manifest
-displacement and external D-copy identities are distinct; retained original
-code handles are not named code displacement. Original failure and invalid
-diagnostic receipts are preserved. A separate 15-case private runner guard
-rejects actual zero discovery and a passing-body/failed-AfterAll witness;
-independent finite review remains required. These passes do not admit the live
-installed namespace, legacy authenticated cache, master database or boot/session
-consumers. The code-only live adapter remains HOLD pending those actual checks.
+Preserve WS5dirty4/ignored55, Work19 unique paths and five partial dependency PRs.
+Earlier mainFFb92/origin equivalence and exact-bundled owned docs-branch retirement
+do not integrate PR182 or authorize foreign cleanup. GitGuard59/CargoTools14 and
+installation receipts remain host-specific. Verified3,504 files/1,819,130,433 bytes
+(1.694GiB) relocated under owned D: custody do not establish causal C-thrashing relief.
+Actual85, exact-head CI/review, remote equivalence, native/consumer/profile/boot/HIL
+acceptance and fresh writer/ignored-work checks still gate clearance. No waiver,
+hook bypass, force/reset or foreign cleanup requested.
 
-GitGuard PR 59 merged normally to `97e64048`; the primary checkout equals
-origin/main and its owned release branch is retired with a verified bundle.
-Merged-main CI passes 834 Linux-native tests with 18 skips and 811 Docker tests
-with 22 skips. Windows scoped QA passes 812 cases with 24 skips; optional
-backend case 06 is not run. Signed immutable tag v0.2.13 and the maintained
-installer select the same commit. Independent installed readback matches all
-128 archive files, four selection links, persistent overlay and unchanged
-global Git configuration; predecessor v0.2.12's 202 files are preserved.
-Actual installed hooks block the synthetic unsafe input and accept clean input
-with canonical Agent/coauthor attribution. Windows Unix-mode checks remain
-NOT_TESTED and its native reserved-inventory runtime reports unsupported.
+Root readback cutoff: 2026-10-09T17:43:18.7767673Z.
 
-UniFi's private updated Rust TLS graph passes 222 library tests with two live
-Credential Manager ignores, 30 MCP unit tests and 32 protocol cases, separately.
-Strict Tauri Clippy exposed eight production findings and then 37 test-target
-findings. Reviewed six-file production and nine-file test repairs form a unique
-13-file union; public command arguments and NaN comparison semantics are
-preserved. Qualification uses owned D: state and an owned loopback TLS refusal
-fixture rather than contacting a configured controller. Strict Clippy and
-affected Tauri tests are in progress. Primary sources/lock are unchanged and
-alert 117 remains open; earlier dependency PRs 80–83 retain passing main CI.
+### Root route and resource readback
 
-Heavy build/cache/temp/test output stays on qualified D: storage. Verified
-relocation preserves 3,504 files/1,819,130,433 bytes; F: is file-backed and W:
-was absent in the recorded inventory. The bounded disk sample does not prove
-sustained C: thrashing or a relocation cure. Carbon's original collector
-completed naturally: zero process termination, full 66,227-provider-file
-baseline preserved, protected processes retained. Its owner is admitting the
-eight additional inference/media CPU stages using actual host capabilities;
-no completed stage is implied. Work remains unreachable through the last
-tested routes, with power state unknown; its UDM/Bitwarden/USB-phone recovery
-belongs to the exclusive fleet owner. Remaining dependency PRs and the dirty,
-unpublished Candle worktree are under coordinated preservation/review.
-Exact final-head coverage/CI, real native/model/profile/boot acceptance, remote
-readback and fresh active-writer/preservation checks still gate fleet clearance.
+This readback supersedes the pending route and observer statements above.
+The gateway's two-packet ping checks received no responses from either Work IP.
+All eight TCP checks (31415, 22, 3389 and 5985 on both interfaces) returned failure.
+The verified br0 address is192.168.1.1/24; its neighbor MAC bindings remain distinct
+from host-service availability. Headscale reports Work100.64.0.2 offline, last seen
+2026-10-09T03:15:47Z. One authorized Wake-on-LAN packet was sent from192.168.1.1
+to192.168.1.255:9 for motherboard0c:9d:92:1f:e6:ef: actual102-byte send succeeded.
+Follow-up SSH31415/RDP3389 checks on both IPs still failed and Work remained offline.
+This is packet-send evidence, not a successful wake or remote source acceptance.
+Root visually read retained gateway screenshots r3/r7/r8/r9 under private route
+evidence; no firewall, switch, router, credential or BIOS setting was changed.
+
+The user opened and unlocked the Pixel Bitwarden vault. Root observed the normal
+vault list and navigated Settings; account/server/sync equivalence and database
+reconciliation are still OPEN. The corrected ordinary MAIN/LAUNCHER intent returned
+success; the earlier Error3 cause remains unproven. No password/TOTP/database export,
+credential modification or private Android data extraction is part of this receipt.
+
+The private native observer now passes seven actual bounded controls, receipt
+E3C41C8574070E76E92509E134F178220F1ABB618FC3B898C85778134D723390.
+Exit0/nonzero9 and actual child/grandchild RAM-floor/deadline/observation-error
+controls confirm retained parent exit, empty owned job and drained output. Log
+collision starts no child; synthetic empty-registry refusal proves refusal only.
+Earlier path-normalization and three-second startup-control failures are preserved;
+the successor ten-second fixture retains its readiness/closure assertions. Production
+3600-second deadline is unchanged. This does not qualify real native605: available
+RAM3.62GiB and foreign Cargo/Rust producers prevented admission at17:35; fresh17:42
+readback has5.30GiB and no observed Cargo/Rust producer, still below the6GiB gate.
+No foreign process was stopped. User-authorized additional C: storage work is under
+fresh resource/custody audit; no pagefile, cache-policy or system mutation is claimed.

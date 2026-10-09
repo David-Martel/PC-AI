@@ -481,12 +481,12 @@ Describe 'Actual default protected bootstrap integration' {
         $dir=Join-Path $env:USERPROFILE '.bwdata'
         [IO.FileSystemAclExtensions]::Create([IO.DirectoryInfo]::new($dir),(New-CredentialPrivateAcl -Directory))
         $script:unlocked=$false;$script:passwordPath=$null
-        Mock Resolve-BwBootstrapState {[pscustomobject]@{Password='synthetic-master';PasswordSource='fixture';SessionFile=(Join-Path $env:USERPROFILE '.bwdata/session.txt');ClientId=$null;ClientSecret=$null}}
+        Mock Resolve-BwBootstrapState {[pscustomobject]@{Password='test-synthetic-master';PasswordSource='fixture';SessionFile=(Join-Path $env:USERPROFILE '.bwdata/session.txt');ClientId=$null;ClientSecret=$null}}
         Mock Invoke-BitwardenCli {
             if($Arguments[0] -eq 'status'){return [pscustomobject]@{ExitCode=0;Success=$true;StdOut=if($script:unlocked){'{"status":"unlocked"}'}else{'{"status":"locked"}'}}}
             if($Arguments[0] -eq 'unlock'){
                 $script:passwordPath=$Arguments[2]
-                [IO.File]::ReadAllText($passwordPath)|Should -BeExactly 'synthetic-master'
+                [IO.File]::ReadAllText($passwordPath)|Should -BeExactly 'test-synthetic-master'
                 Assert-BitwardenPrivateInput $passwordPath
                 $script:unlocked=$true
                 return [pscustomobject]@{ExitCode=0;Success=$true;StdOut='accepted-consumer-synthetic-session'}

@@ -231,6 +231,16 @@ jobs:
     needs: powershell-lint
     steps:
       - uses: actions/checkout@v4
+      - name: Install ripgrep
+        shell: pwsh
+        run: |
+          choco install ripgrep --version 15.2.0 --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "ripgrep installation failed with exit code $LASTEXITCODE" }
+          $rg = Get-Command rg -CommandType Application -ErrorAction Stop
+          $version = & $rg.Source --version
+          if ($LASTEXITCODE -ne 0 -or ($version -join "`n") -notmatch '\Aripgrep 15\.2\.0(?:\s|$)') { throw 'Installed ripgrep identity mismatch' }
+          Write-Host "Using native ripgrep: $($rg.Source)"
+          $version
       - name: Install Pester
         shell: pwsh
         run: Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser

@@ -1,97 +1,73 @@
 function Get-PcaiProcessCategories {
     <#
     .SYNOPSIS
-        Classifies running processes into LLM-workload-relevant categories.
+        Groups process snapshots using the shared ordered native taxonomy.
     .DESCRIPTION
-        Groups processes into: LLM/AI agents, browsers, terminals, build tools,
-        and system services. Returns per-category totals for RAM optimization analysis.
+        The five categories are heuristic name groups. System_Services includes
+        all unmatched names, without an inference about role or resource waste.
+        Native virtual memory is not reported as measured private bytes.
     .OUTPUTS
-        PSCustomObject with category breakdown including process count, working set,
-        private memory, and handle count per category.
-    .EXAMPLE
-        Get-PcaiProcessCategories
-    .EXAMPLE
-        Get-PcaiProcessCategories -AsJson
+        Category rows, or a JSON array with AsJson.
     #>
     [CmdletBinding()]
-    param(
-        [switch]$AsJson
-    )
-
+    param([switch]$AsJson)
+    function Test-CategoryNumber($Value) {
+        if ($null -eq $Value -or $Value -is [bool] -or $Value -is [string] -or $Value -isnot [ValueType]) { return $false }
+        try { $number=[double]$Value } catch { return $false }
+        return -not [double]::IsNaN($number) -and -not [double]::IsInfinity($number) -and $number -ge 0
+    }
+    $groups=[ordered]@{
+        llm_agents=@('claude','codex','ollama','copilot','pcai','llama')
+        browsers=@('chrome','brave','msedge','firefox')
+        terminals=@('conhost','cmd','powershell','pwsh','wezterm','windowsterminal')
+        build_tools=@('rust-analyzer','cargo','node','dotnet','msbuild','cl')
+        system_services=@()
+    }
+    $labels=@{llm_agents='LLM_Agents';browsers='Browsers';terminals='Terminals';build_tools='Build_Tools';system_services='System_Services'}
     Import-Module PC-AI.Common -ErrorAction SilentlyContinue
-    $nativeAvailable = $false
-    try { $nativeAvailable = Initialize-PcaiNative } catch {}
-
+    $nativeAvailable=$false
+    try { $nativeAvailable=Initialize-PcaiNative } catch { Write-Verbose 'Native initialization unavailable.' }
     if ($nativeAvailable) {
-        $json = [PcaiNative.OptimizerModule]::GetProcessCategoriesJson()
-        if ($json) {
-            if ($AsJson) { return $json }
-            return $json | ConvertFrom-Json
-        }
-    }
-
-    # Fallback: PowerShell-based classification
-    Write-Verbose 'Native DLL unavailable, using PowerShell fallback'
-
-    $categoryPatterns = @{
-        'LLM_Agents'      = @('claude', 'codex', 'ollama', 'copilot', 'pcai', 'llama', 'mistral')
-        'Browsers'        = @('chrome', 'brave', 'msedge', 'firefox')
-        'Terminals'       = @('conhost', 'cmd', 'wezterm', 'WindowsTerminal', 'wt')
-        'Shells'          = @('powershell', 'pwsh')
-        'Node_Electron'   = @('node', 'electron', 'bun', 'deno')
-        'IDEs'            = @('Code', 'cursor', 'devenv')
-        'Build_Tools'     = @('rust-analyzer', 'cargo', 'dotnet', 'msbuild', 'cl')
-        'Python'          = @('python', 'python3')
-        'WSL'             = @('vmmemWSL', 'vmmem', 'wsl', 'wslhost')
-        'System_Services' = @('svchost', 'MsMpEng', 'lsass', 'csrss', 'dwm', 'explorer')
-    }
-
-    $allProcs = Get-Process
-    $result = @{}
-    $categorized = @{}
-
-    foreach ($cat in $categoryPatterns.Keys) {
-        $matched = @()
-        foreach ($proc in $allProcs) {
-            if ($categorized.ContainsKey($proc.Id)) { continue }
-            foreach ($pattern in $categoryPatterns[$cat]) {
-                if ($proc.ProcessName -like "*$pattern*") {
-                    $matched += $proc
-                    $categorized[$proc.Id] = $cat
-                    break
+        try {
+            $json=[PcaiNative.OptimizerModule]::GetProcessCategoriesJson()
+            if ([string]::IsNullOrWhiteSpace($json) -or -not $json.TrimStart().StartsWith('{')) { throw 'Native categories object required.' }
+            $raw=$json|ConvertFrom-Json -ErrorAction Stop
+            if ($raw.status -cne 'Success' -or $raw.categories -isnot [pscustomobject]) { throw 'Native categories schema/status is invalid.' }
+            $rows=@(foreach($property in $raw.categories.PSObject.Properties) {
+                if (-not $groups.Contains($property.Name)) { throw 'Unknown native category.' }
+                foreach ($name in @('count','working_set_mb','private_mb','handle_count')) {
+                    if (-not (Test-CategoryNumber $property.Value.$name)) { throw 'Native category metric is invalid.' }
                 }
+                if ($property.Value.count -ne [math]::Truncate($property.Value.count)) { throw 'Native category count must be integral.' }
+                [pscustomobject]@{Category=$labels[$property.Name];ProcessCount=$property.Value.count;WorkingSetMB=$property.Value.working_set_mb;PrivateMB=$null;HandleCount=$null;TopProcess=$null;Source='PcaiNative.OptimizerModule';Taxonomy='NativeOrderedNameHeuristicV1';MeasurementStatus=[ordered]@{WorkingSetMB='MeasuredSnapshot';PrivateMB='UnavailableNativeVirtualSpace';HandleCount='UnavailableNativePartialQueries';TopProcess='Unavailable'}}
+            })
+            $rows=@($rows|Sort-Object Category)
+            if ($AsJson) { return ConvertTo-Json -InputObject @($rows) -Depth 5 }
+            return $rows
+        } catch { Write-Verbose 'Native category acquisition or schema unavailable; using fallback.' }
+    }
+    $buckets=@{}; foreach ($name in $groups.Keys) { $buckets[$name]=[Collections.Generic.List[object]]::new() }
+    foreach ($process in @(Get-Process)) {
+        if ([string]::IsNullOrWhiteSpace($process.ProcessName)) { throw [IO.InvalidDataException]::new('Process name is unavailable.') }
+        foreach ($field in @('WorkingSet64','PrivateMemorySize64','HandleCount')) {
+            if (-not (Test-CategoryNumber $process.$field)) { throw [IO.InvalidDataException]::new('Process metric is invalid.') }
+        }
+        $name=$process.ProcessName.ToLowerInvariant(); $selected='system_services'
+        foreach ($category in $groups.Keys) {
+            foreach ($pattern in $groups[$category]) {
+                if ($name.Contains($pattern)) { $selected=$category; break }
             }
+            if ($selected -ne 'system_services') { break }
         }
-
-        $result[$cat] = [PSCustomObject]@{
-            Category      = $cat
-            ProcessCount  = $matched.Count
-            WorkingSetMB  = [math]::Round(($matched | Measure-Object -Property WorkingSet64 -Sum).Sum / 1MB, 0)
-            PrivateMB     = [math]::Round(($matched | Measure-Object -Property PrivateMemorySize64 -Sum).Sum / 1MB, 0)
-            HandleCount   = ($matched | Measure-Object -Property HandleCount -Sum).Sum
-            TopProcess    = if ($matched.Count -gt 0) {
-                ($matched | Sort-Object PrivateMemorySize64 -Descending | Select-Object -First 1).ProcessName
-            } else { '' }
-        }
+        $buckets[$selected].Add($process)
     }
-
-    # Uncategorized
-    $uncat = $allProcs | Where-Object { -not $categorized.ContainsKey($_.Id) }
-    $result['Other'] = [PSCustomObject]@{
-        Category      = 'Other'
-        ProcessCount  = $uncat.Count
-        WorkingSetMB  = [math]::Round(($uncat | Measure-Object -Property WorkingSet64 -Sum).Sum / 1MB, 0)
-        PrivateMB     = [math]::Round(($uncat | Measure-Object -Property PrivateMemorySize64 -Sum).Sum / 1MB, 0)
-        HandleCount   = ($uncat | Measure-Object -Property HandleCount -Sum).Sum
-        TopProcess    = if ($uncat.Count -gt 0) {
-            ($uncat | Sort-Object PrivateMemorySize64 -Descending | Select-Object -First 1).ProcessName
-        } else { '' }
-    }
-
-    $output = $result.Values | Sort-Object PrivateMB -Descending
-
-    if ($AsJson) {
-        return $output | ConvertTo-Json -Depth 3
-    }
-    return $output
+    $rows=@(foreach ($category in $groups.Keys) {
+        $items=@($buckets[$category].ToArray())
+        $working=0.0; $private=0.0; $handles=0.0
+        foreach ($item in $items) { $working+=[double]$item.WorkingSet64; $private+=[double]$item.PrivateMemorySize64; $handles+=[double]$item.HandleCount }
+        [pscustomobject]@{Category=$labels[$category];ProcessCount=$items.Count;WorkingSetMB=$working/1MB;PrivateMB=$private/1MB;HandleCount=$handles;TopProcess=if($items.Count){($items|Sort-Object PrivateMemorySize64 -Descending|Select-Object -First 1).ProcessName}else{$null};Source='PowerShell-Fallback';Taxonomy='NativeOrderedNameHeuristicV1';MeasurementStatus=[ordered]@{WorkingSetMB='MeasuredSnapshot';PrivateMB='MeasuredPrivateBytes';HandleCount='MeasuredSnapshot';TopProcess=if($items.Count){'MeasuredSnapshot'}else{'Unavailable'}}}
+    })
+    $rows=@($rows|Sort-Object Category)
+    if ($AsJson) { return ConvertTo-Json -InputObject @($rows) -Depth 5 }
+    return $rows
 }

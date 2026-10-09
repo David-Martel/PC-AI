@@ -73,5 +73,8 @@ Export-ModuleMember -Function @(
     'Get-PcaiDiskUsage',
     'Get-PcaiTopProcess',
     'Get-PcaiMemoryStat',
+    'Get-PcaiMemoryPressure',
+    'Get-PcaiProcessCategories',
+    'Get-PcaiOptimizationPlan',
     'Test-PcaiNative'
 )

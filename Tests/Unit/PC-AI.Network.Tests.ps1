@@ -14,6 +14,13 @@ BeforeAll {
     # Import module under test
     $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Network\PC-AI.Network.psd1'
     Import-Module $ModulePath -Force -ErrorAction Stop
+    # Fail closed if any WSL mock is missing; this command is invoked directly by the producer.
+    & (Get-Module PC-AI.Network) {
+        function script:wsl {
+            param([Parameter(ValueFromRemainingArguments)][object[]]$Tokens)
+            throw 'Live WSL is forbidden in portable network unit tests.'
+        }
+    }
 
     # Import mock data
     $MockDataPath = Join-Path $PSScriptRoot '..\Fixtures\MockData.psm1'
@@ -320,11 +327,20 @@ Describe "Test-WSLConnectivity" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
                 }
             } -ModuleName PC-AI.Network
 
-            # Mock wsl command execution
-            Mock -CommandName Invoke-Command -MockWith {
-                if ($ScriptBlock -match 'wsl --status') {
-                    "Default Version: 2`nDefault Distribution: Ubuntu`nKernel version: 5.10.102.1"
-                }
+            # Mock the actual direct native boundary, not the unrelated Invoke-Command cmdlet.
+            Mock -CommandName wsl -MockWith {
+                $global:LASTEXITCODE = 0
+                if ($Tokens -contains '--status') {
+                    'Default Version: 2'; 'Default Distribution: Ubuntu'; 'Kernel version: 5.10.102.1'
+                } elseif ($Tokens -contains 'ip') {
+                    'inet 172.31.208.2/20 scope global eth0'
+                } elseif ($Tokens -contains 'nslookup') {
+                    'Address: 142.250.185.46'
+                } elseif ($Tokens -contains 'hostname') {
+                    '172.31.208.2'
+                } elseif ($Tokens -contains 'curl') {
+                    '200'
+                } else { throw "Unexpected mocked WSL arguments: $Tokens" }
             } -ModuleName PC-AI.Network
         }
 
@@ -377,6 +393,7 @@ Describe "Test-WSLConnectivity" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
 
     Context "When WSL network has issues" {
         BeforeAll {
+            Mock wsl { $global:LASTEXITCODE = 0; 'Default Version: 2' } -ModuleName PC-AI.Network
             # Mock to return no distributions, which triggers "No distributions found" issue
             Mock Get-WSLDistributions {
                 @()
@@ -418,6 +435,7 @@ Describe "Test-WSLConnectivity" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
 
     Context "When WSL is not installed" {
         BeforeAll {
+            Mock wsl { throw 'Synthetic WSL command unavailable.' } -ModuleName PC-AI.Network
             Mock Get-WSLDistributions { @() } -ModuleName PC-AI.Network
         }
 

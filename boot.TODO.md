@@ -1505,3 +1505,26 @@ Evidence and rollback: [boot storage review](Reports/boot-storage-review-2026091
 Current private receipt hashes and remaining boundaries are recorded in
 `Reports/milly-fleet-20261002/repo-closeout.json` under `followUpEasyWins`.
 Historical results above retain their original scope and date.
+
+## Paging and build-cache pressure follow-up — October 9, 2026
+
+- [x] Reconcile the live PC_AI bus findings, corrections and capture limits in
+  `Reports/agent-bus-pcai-findings.md`; preserve the installed disk-tool stall as
+  a historical runtime failure rather than a current-candidate benchmark.
+- [x] Stop the obsolete root-owned native cache warm normally and confirm its
+  exact process chain has exited; preserve the shared cache server and all
+  foreign work. This establishes custody, not a paging-performance improvement.
+- [x] Complete verified relocation of the released 1.694 GiB build cache to the
+  separate healthy D: NVMe, retain every source/destination SHA and select the
+  new target directly for future builds. Root owns this operation. Live Models,
+  cloud roots and foreign build targets require their own consumer admission.
+- [ ] Qualify current native process/CLI/bridge source together on an available
+  host and rerun matched output/cancellation measurements without extending
+  deadlines. Owner: root/profile/fleet.
+- [ ] Refresh interval paging, disk activity and consumer throughput before
+  persistent pagefile, cloud-client, WSL or service migration changes. The
+  September pagefile sample above is historical; it does not establish present
+  headroom. Clarius's later operational proposals remain unapplied by this lane.
+- [ ] Re-evaluate W: by its verified machine-specific identity before any use;
+  the current inventory found it absent. F: is a file-backed VHD, so it is not
+  equivalent to an independent physical scratch disk. No mount change was made.

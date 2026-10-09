@@ -1,0 +1,61 @@
+# PC_AI agent-bus findings and integration custody
+
+Evidence cutoff: October 9, 2026, 04:47 UTC. This is an active integration
+record; it does not certify a clean fleet, complete coverage or final deployment.
+Root owner: `codex-p1-pcai-integration`.
+
+## Evidence scope
+
+The live 1,440-minute query reached its 500-message limit: its actual returned
+interval was 01:36:42–03:40:36 UTC, with 98 related messages. Separate seven-day
+queries for both repository tag spellings returned 71 unique messages spanning
+October 2–9. Sender-specific Clarius evidence supplements these reads. The
+PostgreSQL export returned only 111 messages and ended October 8 at 20:37 UTC;
+it is sparse history, not a complete live-bus export. Private original bodies,
+IDs and capture boundaries remain under `.pcai/integration/agent-bus-*`.
+
+## Findings, disposition and remaining acceptance
+
+| Failure mode and originating evidence | Verified disposition | Owner / next action |
+| --- | --- | --- |
+| CI accepted 53.13% coverage against 85%, with 1,532 passes and 52 skips. Carbon message `01a11ea3-e116-71b3-889e-a2abb5d990b7`. | Confirmed false-green admission defect. Pester `Run.Exit` terminated before caller assertions. Signed commit `5b766013` captures results, explicitly enforces the existing target, rejects absent/invalid coverage, zero tests and failed containers. Eighteen actual tests passed, including fresh-process below-target failure and full-coverage success. | Root: rerun immutable final-head CI and repair any resulting real deficits; keep PR 182 held until genuinely green. |
+| Coverage globs selected only 18 files despite recursive module source. Carbon messages `01a11eae-1dd7-7268-9d4d-ef839aa5828c` and correction `01a11eaf-29fe-77ba-bba0-c373d7a3142b`. | Confirmed inventory defect. The first 237 count included three test files; corrected production inventory is 234. Directory-based recursive coverage now includes nested Public/Private functions and flat wrappers. Actual pinned-Pester inventory tests verify the selection. No target or denominator exemption was added. | Root/Carbon: measure full final-source coverage; the separate 108-pass, 94.67% four-file fixture run is useful bounded evidence, not overall coverage. |
+| Installed disk tool emitted no output for 300 seconds under paging. Clarius message `01a11ebc-40ed-7793-8f86-25e23f57d3fd`. | Reported runtime failure; installed executable independently identified as 476,672 bytes, March 11 build, SHA256 `3570F1D40DA4661D562BD54A37D33281BC21A89AA064AE72EB7F99D2CC1BE160`. Current disk source still uses recursive traversal and logical `metadata.len`, discards traversal errors, and lacks an MFT/USN path or partial-result deadline. This historical binary is not the pending native candidate. | Root/native: qualify fresh paired output, bounded cancellation and useful-byte/allocated-byte semantics; preserve fixtures and benchmark before adding an MFT path. Do not infer speedup from different traversal policies. |
+| Native process compact layout disagreed with its managed reader, and JSON fallback concealed it. Independent root review while reconciling reported sampler work. | Confirmed: C# packed entries at 44 bytes versus Rust's 48, shifting memory from offset 40. Signed commit `2b6f95b` corrects layout and validates counts before allocations. Eight direct parser tests passed; predecessor had two actual failures. Signed `37743c1` initializes Rust padding and reconciles the sampler/CLI; its exact native qualification is pending. | Root/Carbon/profile lane: compile/test the immutable exact-source archive and fresh managed bridge, then run the real native pair; historical DLLs do not qualify new bytes. |
+| Failed worker/process/pipe disposal lost exact custody; a later script invocation could launch a replacement despite failed closure. Profile lane detecting fixtures. | Confirmed predecessors failed detecting tests. Signed `b249cca` roots exact state before process launch, preserves origin across retries, distinguishes active state from pending failed closure, and refuses unknown registry schema. Focused 24/24 and combined portable 60/60 tests passed; three actual-native pair cases are explicitly skipped. Independent review admitted the documented child/runspace contract. | Profile/root: complete actual native parity/cancellation qualification. |
+| Hash benchmarks accepted duplicated correct rows while omitting expected files. Independent dependency review. | Confirmed in the real predecessor case pipelines on both transports, with four detecting failures. Signed `b249cca` requires the exact unique normalized expected path set and valid correct SHA256s. The updated complete benchmark suite passed 24 tests separately from the older 60-pass union; no invented combined-run or speedup claim. | Root/benchmark: measure the qualified actual native pair with matching useful output. |
+| Configuration serialization truncated unrelated deep settings; non-cooperating replacement races and partial Windows replacement effects required custody. Dependency lane detecting fixtures. | Confirmed predecessor failures. Current Windows candidate preserves captured originals/displaced bytes, rejects serialization warnings, publishes memory only after success and restores a missing target without overwriting later writers. Actual 82/82 tests passed, including exact ACL preservation through an owned recovery handle. | Dependency/root: integrate reviewed six-file commit. POSIX writes currently fail before mutation; atomic exchange and ownership/xattr preservation remain a real compatibility gap. |
+| Installed CargoTools looked loaded inside a helper but its commands were unavailable to the caller, permitting old-module autoload. Carbon import review and subsequent retractions. | Confirmed import-scope/provenance defect. The alleged source-01b raw-pin/List-copy defect was retracted by `01a11ea9-4628-76f2-98da-e51fd030084c` and `01a11eaa-c53b-747b-b508-7fce5249ed8f`: direct source raw/stable controls passed. A repaired alias check exposed another actual failure: loaded 0.8 commands were accepted after the manifest at the same path became 0.9 (`01a11ee3-6cc7-7311-bdd4-adc945ce5f88`). Both private predecessors remain held. | Carbon/root: require selected-manifest, loaded-module and actual caller-command version equality along with alias/provenance controls. Preserve stale-module state without forced unloading; admit only the qualified successor. |
+| Legitimate OneDrive Cloud reparse metadata was rejected by the development-module installer. Carbon `01a11eac-ac1e-737f-a4d8-a8bbc9c33930`. | Confirmed on Carbon and P1. Primary candidate recognizes the bounded Cloud-tag family while retaining no-follow checks and junction/unknown-tag rejection. Actual primary 71/71 tests passed, including the existing transactions, real P1 Cloud metadata and non-mutating dry-run. Removing only OPEN_REPARSE_POINT caused the real-junction test to fail as expected. The bootstrap is unchanged. | Root/Carbon: finish the reviewed three-file commit and guarded consumer deployment; no Cloud-backed publication is implied by metadata-only acceptance. |
+| Process Lasso UTF-16 configuration and memory-pressure visibility. Clarius `01a11ebc-40ed-7793-8f86-25e23f57d3fd`. | Current Rust loader already handles UTF-16LE/BE BOMs; an absent-decoder fix is unwarranted. Full sections preserve memory-priority rules, while the typed summary's policy visibility needs review. Clarius reports persistent governor rules and a backup; root has not changed that foreign-owned policy. | Root/boot: retain existing evidence and measure intervals/observer overhead before tuning. Reported process totals do not by themselves prove waste or unnecessary duplicate consumers. |
+| C: paging and competing native jobs caused genuine runtime and unchanged-deadline fixture failures. Clarius `01a11dc5-fbf7-77cb-8960-410e2964212f`, plus owned build receipts. | Root observed 0.51 GiB free RAM, later 1.86 GiB after the obsolete owned cache warm stopped and UniFi Clippy completed. D: is a separate healthy NVMe; F: is a file-backed VHD and W: is absent. Only the released root-owned 1.694 GiB build cache is admitted for verified relocation. | Root/closeout: use direct D: targets and unchanged test deadlines. Do not attribute all pressure to one process or equate cache movement with fixing RAM paging. |
+| Work became unreachable after earlier successful build/profile/auth qualification. Fleet-owner receipts; Clarius `01a11ebc-6137-7620-9597-9493a1052136`. | Historical strict SSH, real CPU inference and profile/alias readbacks remain valid for their recorded source. The later outage does not prove those changes caused it and prevents final exact-source Work acceptance. | Exclusive fleet owner: investigate existing routes, preserve Work's 19 unique source paths and complete final-head validation when access returns. |
+| GitOps monitor reports `inspection=Unavailable` with workflow/upstream counts. Repeated tagged bus messages. | Such reports are not CI success, upstream parity or clean-checkout evidence. Direct GitHub run logs and exact Git refs are used for acceptance. | Monitor owner/root: investigate inspection blindness and reconcile fresh direct inventory before cleanup. |
+| Jules review-only sessions produced pull-request outputs. Ten historical tagged reports from `claude-asus-jules`. | Historical policy tripwire, not proof those changes were admitted. Current open PR disposition must be independently reconciled with exact session/output identities. | Root/review owner: verify history and PR custody before merge or closure; do not dispatch new overlapping sessions. |
+| Installed git-guard 0.2.10 can delete a branch that becomes checked out at an unchanged tip. Root actual detecting fixture against immutable `5492c4f`. | Confirmed: the real fixture checked out the reviewed branch at the deletion seam, then deletion returned success and removed the current ref. Expected-tip CAS alone does not preserve checked-out branch custody. | Git-guard owner/root: add fresh registered-worktree checks and detecting tests, release a reviewed successor. Hygiene application remains held; no bypass, forced cleanup or reset is authorized by this result. |
+
+## Storage and operational boundaries
+
+The user's temporary-storage instruction authorizes reviewed off-C staging.
+The selected build-cache mover requires PowerShell 7.3 or later, owner release, fresh slash-normalized
+process checks, contained ordinary paths, no Git-store ancestry and complete
+SHA256 copies. It records durable outside-source custody before deleting only
+matching source files; directory retirement is empty-only. Existing receipts or
+changed source bytes cause preservation. Its dry-run and WhatIf modes write
+nothing. Its thirteen actual pinned-Pester tests and independent review passed.
+The actual relocation completed: 3,504 files / 1,819,130,433 bytes were verified
+again at `D:/pcai-relocation/work-perf-target/r1`, and the original source was
+retired. The outside-source manifest is `r1.relocation.json`, SHA256
+`6C7A086F882A3AD9D7CBF91FF9EBEBC7271EF1ECCEDE12BB2812E2A212C8F7E8`.
+The earlier dry-run total differed by 20 bytes; the actual capture and readback
+agree. No claim of immutability between those observations or paging improvement
+is made. Future builds must select D: directly; historical warm receipts and
+producer files retain their original provenance.
+
+Clarius's pagefile, cloud-client, WSL and Home Assistant migration proposals are
+recorded plans, not completed actions by this lane. Live Models, cloud roots,
+foreign caches, services and persistent machine defaults remain under their
+specific consumer/owner qualification. Original model/boot evidence and active
+WIP are retained. Final integration still requires exact-source native gates,
+real coverage, reviewed PR disposition, merged-main CI, fleet readback and fresh
+preservation/active-writer checks before branch or worktree retirement.

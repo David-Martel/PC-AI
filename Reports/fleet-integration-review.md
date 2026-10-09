@@ -173,6 +173,27 @@ traversal policies and output limits require parity checks before speedup claims
 
 ## Fleet and remaining gates
 
+The October 9 bus reconciliation is maintained in
+[agent-bus-pcai-findings.md](agent-bus-pcai-findings.md), including exact message
+IDs, retractions and acceptance boundaries. In particular, the published
+integration head's green badge concealed 53.13% coverage against the required
+85% and an incomplete 18-file inventory. Signed `5b766013` repairs enforcement
+and recursive selection with eighteen actual passing tests; final-source measured
+coverage remains required. Signed `2b6f95b` repairs the 48-byte compact managed
+process layout with eight passing direct-parser tests. Signed `092565f` preserves
+deep configuration and actual displaced-file custody with 82 passing Windows
+tests. POSIX configuration publication remains explicitly fail-closed.
+
+The profile/worker successor has 60 portable passes and three explicit pending
+native-pair cases, including 24 exact-custody tests. Work's later unexpected
+outage prevents final source acceptance; earlier successful native/profile/auth
+receipts remain historical. New Rust compact serialization and the managed
+bridge must be qualified together before publication. UniFi's exact SSH/MCP
+strict Clippy completed successfully; its broader unchanged-deadline Python
+gate remains separate and is running with claimed D: fixture storage. These
+observations supersede pending-status descriptions below only for the precise
+gates stated here.
+
 | Surface | Current evidence | Owner and next action |
 | --- | --- | --- |
 | dtm-carbon-two | CPU-only Intel graphics; Rust stable 1.99.0 and private SDK 10.0.401 verified. Core passed 59 unit tests, one documentation test and strict Clippy. Managed candidate passed 17 tests and 18 independent native fixtures. Alternating benchmark pairs show no material candidate regression or speedup. Canonical profile has an intentional alternate structure; the p1 repair planner fails closed. | Root/fleet: coordinated final-head stamped rebuild and CPU deployment preserving profile/auth, junctions, private overlays and the untracked build script. Configured model assets are absent; shared GPU defaults need host-specific overrides before AI execution. |

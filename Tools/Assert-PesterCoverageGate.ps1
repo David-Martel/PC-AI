@@ -2,7 +2,7 @@ function Assert-PesterCoverageGate {
     [CmdletBinding()]
     param([Parameter(Mandatory)]$Result, [double]$Target = 85)
     if ([double]::IsNaN($Target) -or [double]::IsInfinity($Target) -or $Target -lt 0 -or $Target -gt 100) { throw 'Invalid coverage target.' }
-    foreach ($name in @('FailedCount','FailedContainersCount','TotalCount')) {
+    foreach ($name in @('FailedCount','FailedContainersCount','FailedBlocksCount','TotalCount')) {
         $property=$Result.PSObject.Properties[$name]
         if ($null -eq $property -or $null -eq $property.Value) { throw "Missing Pester result field: $name" }
         $number=0L

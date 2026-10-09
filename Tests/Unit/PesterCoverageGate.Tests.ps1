@@ -1,7 +1,7 @@
 BeforeAll {
     . "$PSScriptRoot/../../Tools/Assert-PesterCoverageGate.ps1"
     function New-GateResult {
-        [pscustomobject]@{FailedCount=0;FailedContainersCount=0;TotalCount=1;CodeCoverage=[pscustomobject]@{CoveragePercent=85.0;CommandsAnalyzedCount=100;CommandsExecutedCount=85}}
+        [pscustomobject]@{FailedCount=0;FailedContainersCount=0;FailedBlocksCount=0;TotalCount=1;CodeCoverage=[pscustomobject]@{CoveragePercent=85.0;CommandsAnalyzedCount=100;CommandsExecutedCount=85}}
     }
 }
 Describe 'Explicit Pester gate fail-closed contracts' {
@@ -85,6 +85,51 @@ exit 0
         $full.Passed | Should -Be 2
         $full.Failed | Should -Be 0
         $full.Percent | Should -Be 100
+    }
+
+    It 'rejects an actual teardown block error despite passing tests and full coverage' {
+        $fixture = Join-Path $TestDrive 'BlockFixture.ps1'
+        $test = Join-Path $TestDrive 'BlockFixture.Tests.ps1'
+        $probe = Join-Path $TestDrive 'block-probe.ps1'
+        [IO.File]::WriteAllText($fixture, "function Invoke-BlockFixture { return 'covered' }")
+        @'
+BeforeAll { . "$PSScriptRoot/BlockFixture.ps1" }
+Describe 'Actual failed teardown' {
+    It 'executes the covered command' { Invoke-BlockFixture | Should -BeExactly 'covered' }
+    AfterAll { throw 'Synthetic teardown refusal' }
+}
+'@ | Set-Content -LiteralPath $test
+        @'
+param($PesterManifest, $GatePath)
+$ErrorActionPreference = 'Stop'
+Import-Module $PesterManifest -Force
+. $GatePath
+$configuration = New-PesterConfiguration
+$configuration.Run.Path = "$PSScriptRoot/BlockFixture.Tests.ps1"
+$configuration.Run.PassThru = $true
+$configuration.Run.Exit = $false
+$configuration.CodeCoverage.Enabled = $true
+$configuration.CodeCoverage.Path = "$PSScriptRoot/BlockFixture.ps1"
+$configuration.CodeCoverage.OutputPath = "$PSScriptRoot/block-coverage.xml"
+$configuration.CodeCoverage.CoveragePercentTarget = 85
+$result = Invoke-Pester -Configuration $configuration
+[ordered]@{ Total=$result.TotalCount; Passed=$result.PassedCount; Failed=$result.FailedCount; FailedContainers=$result.FailedContainersCount; FailedBlocks=$result.FailedBlocksCount; Percent=$result.CodeCoverage.CoveragePercent } |
+    ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot/block-result.json"
+try { Assert-PesterCoverageGate -Result $result -Target 85 }
+catch { Write-Error $_ -ErrorAction Continue; exit 1 }
+exit 0
+'@ | Set-Content -LiteralPath $probe
+        $pwsh = (Get-Command pwsh -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $output = & $pwsh -NoLogo -NoProfile -File $probe $script:PesterManifest $script:GatePath 2>&1
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match 'FailedBlocksCount=1'
+        $actual = Get-Content -LiteralPath (Join-Path $TestDrive 'block-result.json') -Raw | ConvertFrom-Json
+        $actual.Total | Should -Be 1
+        $actual.Passed | Should -Be 1
+        $actual.Failed | Should -Be 0
+        $actual.FailedContainers | Should -Be 0
+        $actual.FailedBlocks | Should -Be 1
+        $actual.Percent | Should -Be 100
     }
 
     It 'selects every nested module script through actual Pester path resolution' {

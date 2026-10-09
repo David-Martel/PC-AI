@@ -248,7 +248,7 @@ if ($CodeCoverage -and $result.CodeCoverage) {
 }
 
 # Exit code based on test results
-if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0 -or $result.FailedBlocksCount -gt 0) {
     Write-Host ""
     Write-Host "Tests FAILED" -ForegroundColor Red
     exit 1

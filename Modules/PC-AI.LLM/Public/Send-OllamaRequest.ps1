@@ -143,11 +143,12 @@ function Send-OllamaRequest {
         $response = $null
         $lastError = $null
 
-        while (-not $success -and $attempt -lt $MaxRetries) {
+        $maximumAttempts = $MaxRetries + 1
+        while (-not $success -and $attempt -lt $maximumAttempts) {
             $attempt++
 
             try {
-                Write-Verbose "Attempt $attempt of $MaxRetries - Sending request to model '$Model'"
+                Write-Verbose "Attempt $attempt of $maximumAttempts - Sending request to model '$Model'"
 
                 $params = @{
                     Prompt = $Prompt
@@ -196,10 +197,15 @@ function Send-OllamaRequest {
                 Write-Verbose "Request completed successfully"
             }
             catch {
+                $cancellationCause = $_.Exception
+                while ($cancellationCause -and $cancellationCause -isnot [OperationCanceledException]) {
+                    $cancellationCause = $cancellationCause.InnerException
+                }
+                if ($cancellationCause) { throw }
                 $lastError = $_
                 Write-Warning "Request attempt $attempt failed: $($_.Exception.Message)"
 
-                if ($attempt -lt $MaxRetries) {
+                if ($attempt -lt $maximumAttempts) {
                     Write-Verbose "Retrying in $RetryDelaySeconds seconds..."
                     Start-Sleep -Seconds $RetryDelaySeconds
                 }
@@ -207,7 +213,7 @@ function Send-OllamaRequest {
         }
 
         if (-not $success) {
-            throw "Failed to complete pcai-inference request after $MaxRetries attempts. Last error: $lastError"
+            throw "Failed to complete pcai-inference request after $attempt attempts. Last error: $lastError"
         }
 
         $endTime = Get-Date

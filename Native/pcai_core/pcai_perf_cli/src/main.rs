@@ -22,6 +22,12 @@ struct ProcessRow {
     name: String,
     #[serde(rename = "CPU")]
     cpu: f64,
+    #[serde(rename = "CPUUnit")]
+    cpu_unit: &'static str,
+    #[serde(rename = "CPUPercent")]
+    cpu_percent: f64,
+    #[serde(rename = "TotalProcessorTimeSeconds")]
+    total_processor_time_seconds: Option<f64>,
     #[serde(rename = "MemoryMB")]
     memory_mb: f64,
     #[serde(rename = "Threads")]
@@ -80,9 +86,39 @@ struct HashRow {
 
 #[derive(Debug, Serialize)]
 struct WorkerResponse {
+    protocol: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    request_id: Option<String>,
     ok: bool,
     result: Option<Value>,
     error: Option<String>,
+}
+
+const WORKER_PROTOCOL: u32 = 1;
+const MAX_FRAME_BYTES: usize = 1024 * 1024;
+const MAX_RESULTS: usize = 10_000;
+const MAX_HASH_PATHS: usize = 4096;
+
+#[derive(Debug, Default)]
+struct PerfWorkerState {
+    process_sampler: process::ProcessSampler,
+}
+
+#[derive(Debug, Default)]
+struct BoundedFrame(Vec<u8>);
+
+impl Write for BoundedFrame {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        if bytes.len() > MAX_FRAME_BYTES.saturating_sub(self.0.len()) {
+            return Err(std::io::Error::other("worker result exceeds frame byte limit"));
+        }
+        self.0.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
 fn main() {
@@ -223,73 +259,163 @@ fn run_roofline(args: &[String]) -> Result<()> {
 fn run_worker() -> Result<()> {
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
-    let mut reader = stdin.lock();
-    let mut writer = std::io::BufWriter::new(stdout.lock());
-    let mut line = String::new();
+    serve_worker(&mut stdin.lock(), &mut std::io::BufWriter::new(stdout.lock()))
+}
 
+/// Reads complete, bounded NDJSON frames; incomplete or oversized frames terminate custody.
+fn serve_worker(reader: &mut impl BufRead, writer: &mut impl Write) -> Result<()> {
+    let mut state = PerfWorkerState::default();
     loop {
-        line.clear();
-        if reader.read_line(&mut line)? == 0 {
-            break;
+        let mut frame = Vec::new();
+        // Taking a bounded reader prevents read_until allocating an unbounded line.
+        let bytes = (&mut *reader)
+            .take((MAX_FRAME_BYTES + 2) as u64)
+            .read_until(b'\n', &mut frame)?;
+        if bytes == 0 {
+            return Ok(());
         }
-
-        let trimmed = line.trim();
+        if frame.last() != Some(&b'\n') {
+            bail!("worker frame is incomplete or exceeds byte limit");
+        }
+        frame.pop();
+        if frame.last() == Some(&b'\r') {
+            frame.pop();
+        }
+        if frame.len() > MAX_FRAME_BYTES {
+            bail!("worker frame exceeds byte limit");
+        }
+        let text = std::str::from_utf8(&frame).context("worker frame is not UTF-8")?;
+        let trimmed = text.trim_start_matches('\u{feff}').trim();
         if trimmed.is_empty() {
             continue;
         }
-
-        let response = match handle_worker_request(trimmed) {
-            Ok(result) => WorkerResponse {
-                ok: true,
-                result: Some(result),
-                error: None,
-            },
-            Err(err) => WorkerResponse {
-                ok: false,
-                result: None,
-                error: Some(err.to_string()),
-            },
-        };
-
-        serde_json::to_writer(&mut writer, &response)?;
+        let response = make_worker_response(trimmed, &mut state);
+        let mut encoded = BoundedFrame::default();
+        if serde_json::to_writer(&mut encoded, &response).is_err() {
+            encoded.0.clear();
+            serde_json::to_writer(
+                &mut encoded,
+                &WorkerResponse {
+                    protocol: WORKER_PROTOCOL,
+                    request_id: response.request_id,
+                    ok: false,
+                    result: None,
+                    error: Some("worker result exceeds frame byte limit".into()),
+                },
+            )?;
+        }
+        writer.write_all(&encoded.0)?;
         writer.write_all(b"\n")?;
         writer.flush()?;
     }
-
-    Ok(())
 }
 
-fn handle_worker_request(raw: &str) -> Result<Value> {
-    let request: Value = serde_json::from_str(raw).context("parse worker request json")?;
+fn make_worker_response(raw: &str, state: &mut PerfWorkerState) -> WorkerResponse {
+    let parsed = serde_json::from_str::<Value>(raw).context("parse worker request json");
+    let request_id = parsed
+        .as_ref()
+        .ok()
+        .and_then(|request| request.get("request_id"))
+        .and_then(Value::as_str)
+        .filter(|id| !id.is_empty() && id.len() <= 128)
+        .map(str::to_owned);
+    let result = parsed.and_then(|request| handle_worker_request(&request, state));
+    match result {
+        Ok(result) => WorkerResponse {
+            protocol: WORKER_PROTOCOL,
+            request_id,
+            ok: true,
+            result: Some(result),
+            error: None,
+        },
+        Err(err) => WorkerResponse {
+            protocol: WORKER_PROTOCOL,
+            request_id,
+            ok: false,
+            result: None,
+            error: Some(err.to_string()),
+        },
+    }
+}
+
+fn worker_top(request: &Value) -> Result<usize> {
+    let top = match request.get("top") {
+        Some(value) => value
+            .as_u64()
+            .ok_or_else(|| anyhow!("top must be a nonnegative integer"))?,
+        None => 10,
+    };
+    if top > MAX_RESULTS as u64 {
+        bail!("top exceeds worker result limit");
+    }
+    Ok(top as usize)
+}
+fn handle_worker_request(request: &Value, state: &mut PerfWorkerState) -> Result<Value> {
+    if !request.is_object() {
+        bail!("worker request must be an object");
+    }
+    if request
+        .get("protocol")
+        .is_some_and(|value| value.as_u64() != Some(u64::from(WORKER_PROTOCOL)))
+    {
+        bail!("unsupported worker protocol");
+    }
+    if let Some(id) = request.get("request_id") {
+        if !id.as_str().is_some_and(|text| !text.is_empty() && text.len() <= 128) {
+            bail!("request_id must be a string of 1 through 128 bytes");
+        }
+    }
     let command = request
         .get("command")
         .and_then(Value::as_str)
         .ok_or_else(|| anyhow!("worker request missing command"))?;
 
     match command {
+        "hello" => Ok(serde_json::json!({
+            "protocol": WORKER_PROTOCOL, "max_frame_bytes": MAX_FRAME_BYTES,
+            "max_results": MAX_RESULTS, "capabilities": ["processes", "disk", "hash-list", "preflight", "roofline"]
+        })),
         "hash-list" => {
             let algorithm = request.get("algorithm").and_then(Value::as_str).unwrap_or("SHA256");
             let paths = request
                 .get("paths")
                 .and_then(Value::as_array)
                 .ok_or_else(|| anyhow!("hash-list request missing paths"))?;
+            if paths.is_empty() || paths.len() > MAX_HASH_PATHS {
+                bail!("paths count must be 1 through 4096");
+            }
             let file_paths: Vec<String> = paths
                 .iter()
-                .filter_map(|value| value.as_str().map(|text| text.to_string()))
-                .collect();
+                .map(|value| {
+                    value
+                        .as_str()
+                        .filter(|text| !text.is_empty())
+                        .map(str::to_owned)
+                        .ok_or_else(|| anyhow!("each path must be a nonempty string"))
+                })
+                .collect::<Result<_>>()?;
             Ok(serde_json::to_value(collect_hash_rows(&file_paths, algorithm)?)?)
         }
         "processes" => {
-            let top = request.get("top").and_then(Value::as_u64).unwrap_or(10) as usize;
-            let sort_by = request.get("sort_by").and_then(Value::as_str).unwrap_or("memory");
-            Ok(serde_json::to_value(collect_process_rows(top, sort_by))?)
+            let top = worker_top(request)?;
+            let sort_by = match request.get("sort_by") {
+                Some(value) => value.as_str().ok_or_else(|| anyhow!("sort_by must be a string"))?,
+                None => "memory",
+            };
+            let sort_key = match sort_by.to_ascii_lowercase().as_str() {
+                "cpu" => "cpu",
+                "mem" | "memory" => "memory",
+                _ => bail!("unsupported process sort key"),
+            };
+            let (_, processes) = state.process_sampler.get_top_processes(top, sort_key);
+            Ok(serde_json::to_value(process_rows(processes))?)
         }
         "disk" => {
             let path = request
                 .get("path")
                 .and_then(Value::as_str)
                 .ok_or_else(|| anyhow!("disk request missing path"))?;
-            let top = request.get("top").and_then(Value::as_u64).unwrap_or(10) as usize;
+            let top = worker_top(request)?;
             Ok(serde_json::to_value(collect_disk_rows(path, top)?)?)
         }
         "preflight" => {
@@ -362,12 +488,19 @@ fn hash_single_file(path: &str, algorithm: &str) -> HashRow {
 
 fn collect_process_rows(top: usize, sort_key: &str) -> Vec<ProcessRow> {
     let (_, processes) = process::get_top_processes(top, sort_key);
+    process_rows(processes)
+}
+
+fn process_rows(processes: Vec<process::ProcessInfo>) -> Vec<ProcessRow> {
     processes
         .into_iter()
         .map(|entry| ProcessRow {
             pid: entry.pid,
             name: entry.name,
             cpu: (entry.cpu_usage as f64 * 100.0).round() / 100.0,
+            cpu_unit: "percent",
+            cpu_percent: (entry.cpu_usage as f64 * 100.0).round() / 100.0,
+            total_processor_time_seconds: None,
             memory_mb: ((entry.memory_bytes as f64 / (1024.0 * 1024.0)) * 100.0).round() / 100.0,
             threads: None,
             handles: None,
@@ -484,5 +617,102 @@ fn parse_f64_flag(args: &[String], name: &str) -> Result<Option<f64>> {
             value.parse::<f64>().with_context(|| format!("parse {name} as f64"))?,
         )),
         None => Ok(None),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    fn exchange(input: &[u8]) -> Result<Vec<Value>> {
+        let mut output = Vec::new();
+        serve_worker(&mut Cursor::new(input), &mut output)?;
+        String::from_utf8(output)?
+            .lines()
+            .map(|line| Ok(serde_json::from_str(line)?))
+            .collect()
+    }
+
+    #[test]
+    fn negotiation_and_errors_preserve_request_correlation() {
+        let rows = exchange(b"{\"command\":\"hello\",\"protocol\":1,\"request_id\":\"one\"}\n{\"command\":\"unknown\",\"protocol\":1,\"request_id\":\"two\"}\n{\"command\":\"hello\"}\n").expect("complete frames should work");
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0]["request_id"], "one");
+        assert_eq!(rows[0]["protocol"], WORKER_PROTOCOL);
+        assert_eq!(rows[0]["result"]["protocol"], WORKER_PROTOCOL);
+        assert_eq!(rows[1]["request_id"], "two");
+        assert_eq!(rows[1]["ok"], false);
+        assert_eq!(rows[2]["ok"], true);
+        assert!(rows[2].get("request_id").is_none(), "legacy requests remain supported");
+    }
+
+    #[test]
+    fn malformed_payloads_reject_instead_of_silently_dropping_values() {
+        let mut state = PerfWorkerState::default();
+        for request in [
+            serde_json::json!({"command":"hash-list", "paths":["file", 7]}),
+            serde_json::json!({"command":"hash-list", "paths":[]}),
+            serde_json::json!({"command":"processes", "top":-1}),
+            serde_json::json!({"command":"processes", "top":10_001}),
+            serde_json::json!({"command":"processes", "sort_by":"unsupported"}),
+            serde_json::json!({"command":"hello", "protocol":2}),
+            serde_json::json!({"command":"hello", "request_id":7}),
+            serde_json::json!(["hello"]),
+        ] {
+            assert!(
+                handle_worker_request(&request, &mut state).is_err(),
+                "must reject {request}"
+            );
+        }
+    }
+
+    #[test]
+    fn framing_is_bounded_complete_utf8_and_recovers_only_at_valid_boundaries() {
+        assert!(exchange(b"{\"command\":\"hello\"}").is_err());
+        assert!(exchange(&vec![b'x'; MAX_FRAME_BYTES + 3]).is_err());
+        assert!(exchange(b"\xff\n").is_err());
+        let rows = exchange("\u{feff}{\"command\":\"hello\"}\r\n{invalid}\n{\"command\":\"hello\"}\n".as_bytes())
+            .expect("bad complete JSON should yield a correlated error frame");
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0]["ok"], true);
+        assert_eq!(rows[1]["ok"], false);
+        assert_eq!(rows[2]["ok"], true);
+    }
+
+    #[test]
+    fn oversized_results_preserve_correlation_without_growing_output_buffer() {
+        // A legal frame can produce a larger JSON-escaped error response.
+        let input = serde_json::json!({"command":"\\".repeat((MAX_FRAME_BYTES - 64) / 2), "request_id":"bounded"});
+        let encoded = format!("{input}\n");
+        assert!(encoded.len() < MAX_FRAME_BYTES);
+        let rows = exchange(encoded.as_bytes()).expect("bounded response should remain a complete frame");
+        assert_eq!(rows[0]["request_id"], "bounded");
+        assert_eq!(rows[0]["error"], "worker result exceeds frame byte limit");
+        assert_eq!(rows[0]["ok"], false);
+        let mut frame = BoundedFrame::default();
+        assert!(frame.write_all(&vec![b'x'; MAX_FRAME_BYTES]).is_ok());
+        assert!(frame.write_all(b"x").is_err());
+        assert_eq!(frame.0.len(), MAX_FRAME_BYTES);
+    }
+
+    #[test]
+    fn persistent_process_requests_and_cpu_units_keep_public_schema() {
+        let rows = exchange(b"{\"command\":\"processes\",\"top\":15,\"sort_by\":\"mem\",\"request_id\":\"first\"}\n{\"command\":\"processes\",\"top\":15,\"sort_by\":\"memory\",\"request_id\":\"second\"}\n").expect("process requests should succeed");
+        for response in rows {
+            assert_eq!(response["ok"], true);
+            let processes = response["result"].as_array().expect("rows should remain arrays");
+            assert!(!processes.is_empty());
+            assert!(processes.len() <= 15);
+            for row in processes {
+                assert_eq!(row["CPUUnit"], "percent");
+                assert_eq!(row["CPU"], row["CPUPercent"]);
+                assert_eq!(row["TotalProcessorTimeSeconds"], Value::Null);
+                assert_eq!(row["Tool"], "pcai_rust");
+            }
+            assert!(processes
+                .windows(2)
+                .all(|rows| rows[0]["MemoryMB"].as_f64() >= rows[1]["MemoryMB"].as_f64()));
+        }
     }
 }

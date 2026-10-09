@@ -18,6 +18,13 @@ semantics. Local full validation passed 644 tests, with five skipped and nine
 opt-in tests not run. Both reviewed PR heads and merged main passed hosted CI.
 The independent T: checkout has the same main and retains its untracked test
 report with unchanged hash. Retired source branches have verified Git-bundle custody.
+Consumer discovery also found an independent installed Git checkout under the
+local Documents module root. Its complete refs and unique wrapper backup were
+preserved outside Git before a normal fast-forward to `01b4c8c`. The old branch's
+tree matched the merged predecessor and was retired by an exact-head deletion.
+A fresh PowerShell import selects that clean updated checkout; the normal
+installed wrapper reports Rust/Cargo 1.99.0. A copy installation correctly refused
+to overwrite this nested Git checkout.
 
 Linked dtm-codex PRs 34 and 35 are merged; main and origin are identical at
 `af4fac4`. The deployment-policy claim was corrected. Actual merged-main failure
@@ -30,8 +37,13 @@ Linked git-guard PRs 45, 46 and 47 are merged. Secret scanning now covers rename
 diffs; the rule catalogue exposes witnessed enforcement gaps rather than hiding
 them; structured-data validation parses format bytes instead of the host locale.
 The latter's real-gate regression reproduced twelve failures before the fix and
-passed all sixteen cases afterward. Installed hooks retain their qualified v0.2.7
-release while source-main postmerge checks and branch custody finish separately.
+passed all sixteen cases afterward. PR 48 released signed immutable v0.2.8;
+the installed release's native links and actual reject/allow hook probes passed.
+The first installer attempt preserved the previous release when MSYS copied a
+directory instead of creating a link. PR 49 fixes that defect and restores prior
+hooks/docs when late native-link creation fails: 43 actual Windows fixtures
+passed with no skips, and both full CI jobs passed. Its source merged as
+`c42347d`; a separate v0.2.9 release is being prepared without changing v0.2.8.
 
 ## Repaired behavior
 
@@ -61,6 +73,15 @@ release while source-main postmerge checks and branch custody finish separately.
   Timestamp-bearing versions remain metadata rather than artifact path names.
   Benchmark CLI comma-separated case selectors now work as documented.
 - The C# bridge passes a strict Release build with zero warnings and errors.
+- Device diagnostics consume the native `config_error_code` and `pnp_class`
+  fields. Malformed or fractional codes discard the complete native result and
+  fall back to CIM. Ten adversarial fixtures passed; an actual native/CIM run
+  agreed on all 588 devices and three error devices. The capability catalogue
+  uses the exported token-estimation command. The advertised Defender helper
+  and evaluation-suite help now resolve through their actual public contracts.
+- Optional media upscaling absent from a CPU-only DLL produces a clear feature
+  availability error. An actual C# integration test exercised that missing
+  export without producing a file. No FFI signature or optional export was faked.
 - Legacy Thunderbolt entrypoints delegate explicit static intent through the
   maintained adapter/global-address/route guards. Plan, help, dry-run and WhatIf
   remain nonmutating; unrelated addresses and ambiguous state refuse before
@@ -82,6 +103,14 @@ the tested source hashes. CI then exposed four legacy media-loader fixtures that
 still assumed the former warning/path contract. Corrected real invalid-assembly
 tests and fresh-process successful loading passed all 99 affected media fixtures;
 missing-file cases also assert that they did not pass through mock exceptions.
+Subsequent hosted CI exposed a false-positive in two successful-loading fixtures:
+their assertion loaded the fixture assembly itself. Fresh child tests now select
+the actual project root and only inspect assemblies the initializer already
+loaded. All 99 fixtures pass under both Pester 6.2 and CI's Pester 5.9.1.
+Restoring discovery of parameterized module contracts exposed three further
+public-surface defects. After correction, all 286 module-loading contracts pass
+under both Pester versions, with no skipped or undiscovered cases. The bounded
+suite is now included in the CI configuration.
 Ten artifact-publication fixtures passed, including repeated aggregate publication,
 ZIP collision and clean preservation. The actual media DLL remains
 available after an intentionally induced negative native error.
@@ -100,10 +129,18 @@ traversal policies and output limits require parity checks before speedup claims
 | dtm-carbon-two | CPU-only Intel graphics; Rust stable 1.99.0 and private SDK 10.0.401 verified. Core passed 59 unit tests, one documentation test and strict Clippy. Managed candidate passed 17 tests and 18 independent native fixtures. Alternating benchmark pairs show no material candidate regression or speedup. Canonical profile has an intentional alternate structure; the p1 repair planner fails closed. | Root/fleet: coordinated final-head stamped rebuild and CPU deployment preserving profile/auth, junctions, private overlays and the untracked build script. Configured model assets are absent; shared GPU defaults need host-specific overrides before AI execution. |
 | dtm-work | Strict SSH reached DTM-WORK after the peer returned online. Work has PowerShell 7.6.6, approximately 112 GiB free RAM and a Quadro RTX 4000. The actual checkout is `C:/codedev/pc-ai`, with sixteen tracked changes and three untracked source files retained. Its profile shim selects a missing canonical core; the surviving OneDrive profile and WinGet executables require consumer-path repair. Real Bitwarden/rclone package executables run, while their WinGet links fail with an untrusted-mount-point error in SSH. Vault bootstrap/cloud sync and the existing Cloudflare management credential succeeded; the Network key's Site Manager 401 remains a separate scope result. | Root/fleet: preserve exact Work WIP bytes and refs, reconcile unique source changes and repair profile/tool paths with original custody before host-specific deployment. The USB Pixel is ADB-authorized and locked; installed credential/network apps were identified without logging credentials or changing account/network policy. |
 | Local name resolution | Removed one obsolete Headscale IPv6 hosts entry and a conflicting bare dtm-work LAN token; preserved radius LAN alias and tailnet mapping with original-byte custody. | Fleet lane: verify route retries; this does not prove endpoint recovery. |
-| Candle/media PR 156 | Earlier CPU tests passed 110 media and 58 model tests. Actual optional linking exposed a static/dynamic CRT conflict in an unused C++ tokenizer trainer; the corrected feature graph passes all-target optional checks without dependency-version churn. A nonempty partial checkpoint could still allocate before failing; constructor/header metadata preflight is being added. | Dependency lane: finish actual corrected union tests, strict Clippy, fresh FFI build and reviewed integration. Real trained-model/GGUF/GPU execution remains separate. |
-| Mistral backend | SDK/core 0.8.1 alignment and actual optional compilation completed. Nine backend tests passed, including empty responses, exact token/finish reporting and device ordinals without CPU fallback. | Root: complete the two CLI configuration tests, final-head runtime build and isolated CPU model smoke. |
+| Candle/media PR 156 | Corrected Candle 0.11 union passed 125 media, 58 model, 18 server and 23 documentation tests; three model cases explicitly require absent real-model fixtures. Default CPU media tests passed 119 cases. Optional CPU/NVML/upscale Clippy passed. A fresh CPU DLL exposes all thirteen base exports; actual PowerShell initialization, missing-model error, async unknown-request status and shutdown checks passed. | Dependency/root: CPU source integrated; finish bounded GPU compilation and deterministic CPU/GPU comparisons before GPU publication. Full trained-model quality and the three absent-fixture tests remain distinct gaps. |
+| Mistral backend | SDK/core 0.8.1 alignment and the merged dependency graph passed 140 library and two CLI tests with no skips, including CPU selection, invalid device ordinals and empty responses. A full locked metadata check repaired four optional Candle lock entries lost during an otherwise clean textual merge. | Root/fleet: finish production Release binaries and isolated CPU model smoke. Private source-only Work build archive has an explicit version/environment manifest; it does not alter Work's checkout or defaults. |
 | Linked dtm-codex | PRs 34/35 integrated with current-head and merged-main CI; completed branches retired after preservation. | Root: source deployment/consumer validation if this host consumes the changed launcher; keep imported skills under their existing custody. |
-| Existing WIP and private evidence | Local SQLite index, boot XMLs, Thunderbolt backup receipt and Python cache retained; Carbon build script and private overlays retained. | Root/fleet: review custody and consumer references before any retirement; no reset or forced cleanup. |
+| Existing WIP and private evidence | The three untracked private boot/Thunderbolt evidence files now have verified original and copy custody outside Git under stable recovered-evidence revisions. Their mapping is `.pcai/integration/preserved-evidence-migration.json`; historical inventory observations retain their original paths. SQLite/Python compilation caches remain in place with specific generated-cache exclusions. Carbon build script and private overlays remain preserved. | Root/fleet: refresh final inventory and cross-machine equivalence after source integration; no reset or forced cleanup. |
+
+Work's unique benchmark/profile and native-sampler changes have separate source
+custody. The preserved pre-change performance binary built successfully and its
+actual worker measurements record child and observer interval CPU; the candidate
+port must establish output parity before any speedup claim. UniFi's reviewed
+source fixes sparse/malformed Protect telemetry and boot timestamp units. Its
+full Python run passed 4,115 tests with 131 explicit skips and 83.10% coverage;
+actual Windows SSH/MCP compilation and current-head hosted CI remain required.
 
 Outstanding broader platform work remains in `TODO.md`, `optimization.TODO.md`
 and `boot.TODO.md`, including cancellation/schema parity, media fixture expansion,

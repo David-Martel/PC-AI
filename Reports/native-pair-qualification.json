@@ -132,10 +132,10 @@
     "NativeTree": "c99ee613c5aaf2d3cf6de9c07219ee65c8718d4a",
     "NativeTreeUnchanged": false,
     "InstalledRuntime": "NOT_DEPLOYED; inference/media/GPU/model/boot gates remain open",
-    "SignedHead": "a78669c1e5b4b9eb922d36065df77a8a5cd53432",
-    "ObservedUtc": "2026-10-09T11:52:49.2124809Z",
+    "SignedHead": "b3437664a2acdcb29a9d354e8a82214a2838afdc",
+    "ObservedUtc": "2026-10-09T14:05:00Z",
     "RustTreeUnchanged": true,
     "BridgeTreeUnchanged": true,
-    "CurrentCoverage": "Frozen e5cb5fb full r3:2322PASS0FAIL59SKIP0NotRun;58.4529582929195%12053/20620 FAIL unchanged85; later source fixes require successor."
+    "CurrentCoverage": "Actual PR2fa80ff/baseb92/mergefc9 hosted37936781465:2378PASS0FAIL58SKIP;59.1850528653503%12259/20713 FAIL unchanged85; later17a03/b343 not yet hosted-qualified"
   }
 }

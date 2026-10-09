@@ -550,84 +550,106 @@ checks remain open. No fleet-clean or complete deployment claim is made.
 
 ## Current reviewed work and remaining gates
 
-Readback: October 9, 2026, 13:18 UTC. Root's current signed PC_AI head is
-`3f1df889620c10e9720d77e695da9dd524668793`; published PR 182 remains
-`c8e591e2edfd2d4c059e9433e77a79fc999eb796`. Integration remains active.
+Readback: October 9, 2026, 14:05 UTC. Root's signed PC_AI head is
+`b3437664a2acdcb29a9d354e8a82214a2838afdc`; published PR 182 remains
+`2fa80ffa58f1158bddc0d354eaae5ed92a6bf88c`. Integration is active.
 
-The actual published-head [CI run 37931175131](https://github.com/David-Martel/PC-AI/actions/runs/37931175131)
-completed with 2,373 passing tests, four failures and 58 skips. Coverage is
-58.58% of 20,713 commands, **FAIL** against the unchanged 85% requirement.
-Rust format, check/Clippy and tests, .NET build, PowerShell lint, security scan,
-CPU deployment and llama.cpp CPU build passed. Downstream integration was
-skipped. All four failures occurred in the inference configuration custody
-fixture because the Windows runner had no `T:` drive: candidate construction
-threw before reaching a valid repository-local executable. The ripgrep and
-scanner readiness repairs passed in this actual hosted run.
+The actual [CI run 37936781465](https://github.com/David-Martel/PC-AI/actions/runs/37936781465)
+passes 2,378 tests, fails none and skips 58. It executes GitHub's PR merge
+checkout `fc9f671d5ac1286e9bb69a6ebe3f813f6472ed62` with main base
+`b92e5f614183ab555b80c531baedb661752ba698`. Coverage is 59.185%:
+12,259 of 20,713 commands, **FAIL** against the unchanged 85% requirement.
+The raw coverage artifact independently agrees with these totals. The
+mandatory result gate validates container and block counts before the recorded
+coverage failure; there is no separately published NUnit artifact. Rust format,
+check/Clippy and tests, .NET, PowerShell lint, security, CPU deployment and
+llama.cpp CPU jobs pass; downstream integration is skipped. This run does not
+qualify the two subsequent local commits or any private deployment proposal.
 
-Signed `3f1df88` constructs candidate paths with `System.IO.Path.Combine`,
-preserving the existing search order and subsequent existence checks. The
-maintained configuration/virtualization union passes all 70 cases. A controlled
-private variant changes only the three literal cache prefixes to a currently
-absent drive: the predecessor passes one case and fails four; the successor
-passes all five. This is an explicit source variant, not unchanged-source
-no-`T:` qualification. An attempted process-local drive-removal preflight was
-invalid and is preserved separately; no physical drive or mapping changed.
-The tiny owned native JSON reader qualifies configuration custody, not real
-model inference. New-head hosted CI remains required.
+Signed `3f1df88` closes the missing-cache-drive failure. Its maintained
+configuration/virtualization union passes 70 cases. The actual hosted runner
+now passes the five configuration custody cases that previously failed before
+reaching a valid repository-local executable. Controlled absent-drive variants
+and the invalid process-local drive-removal preflight remain preserved. No
+physical drive, mapping, model or service configuration was changed.
 
-Signed `d82af157` also closes a false-green validation boundary: a genuine
-Pester `AfterAll` failure left one passing test, zero failed tests/containers
-and 100% coverage, which the predecessor gate accepted. The gate and standalone
-test runner now reject failed blocks. All 19 maintained gate cases pass without
-skips or parser/analyzer findings. The original fixture failure and a later
-runner-only empty-array accounting error remain preserved. Test selection,
-coverage exclusions and the 85% target are unchanged.
+Signed `d82af157` closes false-green admission of a genuine Pester `AfterAll`
+failure. The gate and standalone runner reject failed blocks; 19 maintained
+controls pass. Hosted CI executes the detecting control successfully. Test
+selection, coverage exclusions and the target are unchanged.
 
-The VSock successor remains private. It refuses overwriting existing backups,
-captures registry absence and original value types, stops on capture/write
-failures, checks actual native exit status and reports restore errors. Its 24
-cases pass separately on actual PowerShell 7 and Windows PowerShell 5.1. The
-original six failures and the additional four predecessor failures are retained.
-The existing Network fixture's 93 unaffected assertions remain in order; its
-11 administrator cases must genuinely execute in the proposed union rather
-than stay skipped by a discovery-scope error. Complete legacy-union and restore
-admission review precede tracked integration. No live registry/netsh/WSL tuning
-or performance improvement is qualified.
+Signed `b343766` preserves existing VSock backups, captures all nine registry
+values with original kind and presence, stops on capture/write failures and
+checks synchronous native exit status. Restore preflights the entire ledger
+before mutation and preserves date-like String/ExpandString/MultiString bytes.
+The maintained union passes 160 of 161 cases on PowerShell 7.6.6, with one
+explicit non-administrator prerequisite skip; all 36 custody/restore controls
+pass on Windows PowerShell 5.1. Failed tests, containers and blocks are zero.
+The 11 administrator legacy cases genuinely execute. All 93 unaffected original
+legacy assertions remain in order; only the obsolete Out-File assertion is
+replaced by actual owned-file assertions. Refusal boundaries detect and isolate
+previous live routing-query leaks. Earlier six-case and broader restore/type
+failures, invalid harness attempts and exact source hashes remain preserved.
+No real registry/netsh/WSL tuning, transaction-wide atomic rollback, native
+deadline or performance improvement is qualified by these fixtures.
 
-Credential deployment also remains private. An actual second aggregate could
-publish while the first held only the manifest lock; recovery also changed
-inherited original metadata. The revised target-set lock precedes all capture
-and copy operations, and guarded success/recovery retains original metadata.
-All 26 private synthetic cases pass; the detecting 21-pass/two-failure run is
-preserved. Explicit synthetic `C:` targets with `D:` copied custody are now under
-qualification. Original/displaced file identities and external-copy identities
-remain distinct. Installed code, authentication, caches, sessions, live ACLs and
-tasks are unchanged. Legacy cache privacy compatibility and a reviewed live
-installation window remain open.
+Signed `17a03ab` exports three already manifest-declared Performance commands.
+The predecessor fails all three actual public-command controls; the maintained
+28-case union and three Windows PowerShell controls pass. A separate actual
+26-case synthetic consumer run passes five controls and fails 21 cases: native
+envelopes differ from fallback public rows, JSON cardinality varies, native
+exceptions escape fallback, unavailable counters become measured zeros, and
+PID-only orphan advice is marked safe for automation. Snapshot claims of leaks
+or thrashing also fail evidence controls. The actual C# wrapper was compiled
+against an inert typed transport with Rust-schema-bound payloads; this is
+consumer-contract evidence, not execution of a native DLL or real diagnostics.
+Finite schema, measurement and recommendation repairs remain in progress.
 
-GitGuard PR 59 is signed and clean at `660e2d55`; all 13 reviewed source hashes
-match its primary Windows run: 812 passes, zero failures, 24 skips. The local
-optional-backend case was not run. Its actual current-head Linux native and
-Docker CI both passed in run 37935484416. The PR merged normally to `97e64048`;
-the primary checkout is clean and equals origin/main. Merged-main CI, release
-and immutable installed-version transition remain separate. Installed version
-0.2.12 remains unchanged.
+Credential deployment remains private. Its target-set lock precedes capture
+and publication, and success/recovery retain original bytes, identities and
+owner/group/DACL. All 32 actual synthetic C-target/D-custody cases pass; all
+26 predecessor cases and six additional cross-volume/namespace controls are
+retained. A separate fresh passive import resolves six exports. Named manifest
+displacement and external D-copy identities are distinct; retained original
+code handles are not named code displacement. Original failure and invalid
+diagnostic receipts are preserved. A separate 15-case private runner guard
+rejects actual zero discovery and a passing-body/failed-AfterAll witness;
+independent finite review remains required. These passes do not admit the live
+installed namespace, legacy authenticated cache, master database or boot/session
+consumers. The code-only live adapter remains HOLD pending those actual checks.
+
+GitGuard PR 59 merged normally to `97e64048`; the primary checkout equals
+origin/main and its owned release branch is retired with a verified bundle.
+Merged-main CI passes 834 Linux-native tests with 18 skips and 811 Docker tests
+with 22 skips. Windows scoped QA passes 812 cases with 24 skips; optional
+backend case 06 is not run. Signed immutable tag v0.2.13 and the maintained
+installer select the same commit. Independent installed readback matches all
+128 archive files, four selection links, persistent overlay and unchanged
+global Git configuration; predecessor v0.2.12's 202 files are preserved.
+Actual installed hooks block the synthetic unsafe input and accept clean input
+with canonical Agent/coauthor attribution. Windows Unix-mode checks remain
+NOT_TESTED and its native reserved-inventory runtime reports unsupported.
 
 UniFi's private updated Rust TLS graph passes 222 library tests with two live
-Credential Manager ignores, 30 MCP unit tests and 32 actual protocol cases,
-as separate runs. Its Tauri check reached strict Clippy and failed on eight
-existing findings in six source files. A finite private six-file repair preserves
-the public frontend command arguments and is awaiting normal qualification.
-The TLS lock is not promoted and alert 117 remains open. Earlier dependency
-PRs 80–83 retain passing merged-main CI.
+Credential Manager ignores, 30 MCP unit tests and 32 protocol cases, separately.
+Strict Tauri Clippy exposed eight production findings and then 37 test-target
+findings. Reviewed six-file production and nine-file test repairs form a unique
+13-file union; public command arguments and NaN comparison semantics are
+preserved. Qualification uses owned D: state and an owned loopback TLS refusal
+fixture rather than contacting a configured controller. Strict Clippy and
+affected Tauri tests are in progress. Primary sources/lock are unchanged and
+alert 117 remains open; earlier dependency PRs 80–83 retain passing main CI.
 
-New build, cache, temporary and test outputs remain on qualified `D:` storage.
-The independently verified relocation preserves 3,504 files/1,819,130,433 bytes.
-`F:` is file-backed and `W:` was absent in the recorded inventory; those paths
-are not assumed suitable on other machines. The bounded disk observation did
-not establish sustained `C:` thrashing or a relocation cure. Carbon's dynamic
-storage/provider admission remains its exclusive owner's work; its additional
-eight inference/media CPU stages have not yet run. Work remains inaccessible
-through the last actually tested configured routes; power state is unknown.
+Heavy build/cache/temp/test output stays on qualified D: storage. Verified
+relocation preserves 3,504 files/1,819,130,433 bytes; F: is file-backed and W:
+was absent in the recorded inventory. The bounded disk sample does not prove
+sustained C: thrashing or a relocation cure. Carbon's original collector
+completed naturally: zero process termination, full 66,227-provider-file
+baseline preserved, protected processes retained. Its owner is admitting the
+eight additional inference/media CPU stages using actual host capabilities;
+no completed stage is implied. Work remains unreachable through the last
+tested routes, with power state unknown; its UDM/Bitwarden/USB-phone recovery
+belongs to the exclusive fleet owner. Remaining dependency PRs and the dirty,
+unpublished Candle worktree are under coordinated preservation/review.
 Exact final-head coverage/CI, real native/model/profile/boot acceptance, remote
-readback and fresh preservation/active-writer checks still gate fleet clearance.
+readback and fresh active-writer/preservation checks still gate fleet clearance.

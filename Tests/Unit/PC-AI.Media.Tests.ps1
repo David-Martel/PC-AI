@@ -254,13 +254,13 @@ $env:PCAI_NATIVE_BUNDLE_ROOT = $null
 Import-Module $ModulePath -Force
 $success = & (Get-Module PcaiMedia) {
     param($SelectedRoot)
-    $script:FixtureRoot = $SelectedRoot
-    function Get-PcaiProjectRoot { $script:FixtureRoot }
+    $script:ModulePath = Join-Path $SelectedRoot 'Modules'
+    if ((Get-PcaiProjectRoot) -ne $SelectedRoot) { throw 'Fixture project root was not selected.' }
     Initialize-PcaiMediaFFI
 } $Root
 if (-not $success) { throw 'Fresh-process managed loading failed.' }
-$assembly = [Reflection.Assembly]::LoadFrom($DllPath)
-if ($assembly.Location -ne $DllPath) { throw 'Another assembly path was reused.' }
+$assembly = [AppDomain]::CurrentDomain.GetAssemblies() | Where-Object Location -eq $DllPath | Select-Object -First 1
+if (-not $assembly) { throw 'The initializer did not load the selected fixture assembly.' }
 Write-Output 'fresh-bridge-loaded'
 '@ | Set-Content -LiteralPath $probe
                 $shell = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })

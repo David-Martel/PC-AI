@@ -287,15 +287,19 @@ Describe 'Read-only bridge and service state contracts' -Tag 'Unit', 'Virtualiza
         $result.Entries | Should -HaveCount 0
         Should -Invoke Get-Process -Exactly -Times 0
     }
-    It 'projects proxy entries and does not count a missing recorded process as running' {
+    It 'projects legacy proxy entries as unverified without treating PID existence as custody' {
+        Mock Resolve-HVSockStatePath { $Path }
         Mock Test-Path { $true }
         Mock Get-Content { '[{"Name":"fixture-a","Pid":101,"ServiceId":"fixture-id","TcpTarget":"fixture:80","Started":"fixture"},{"Name":"fixture-b","Pid":102}]' }
         Mock Get-Process { if ($Id -eq 101) { [pscustomobject]@{ Id = 101 } } }
         $result = Get-HVSockProxyStatus -StatePath 'fixture-state.json'
-        $result.Running | Should -Be 1
+        $result.Running | Should -Be 0
         $result.Entries | Should -HaveCount 2
         $result.Entries[0].TcpTarget | Should -Be 'fixture:80'
+        $result.Entries[0].CustodyVerified | Should -BeFalse
+        $result.Entries[0].CustodyError | Should -Not -BeNullOrEmpty
         $result.Entries[1].Running | Should -BeFalse
+        Should -Invoke Get-Process -Exactly -Times 0
     }
     It 'retains WSL service/bridge output and explicit distribution' {
         Mock wsl { if ($Tokens -contains 'systemctl') { 'active' } else { "port=8000`nport=8080" } }

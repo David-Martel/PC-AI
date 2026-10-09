@@ -308,3 +308,6 @@ Reports/gitops/
 # --- managed: wip-audit gitignore gaps 2026-08-19 ---
 worktrees/
 .Codex/state/
+
+# Synthetic credential-custody tests contain no live credential material.
+!Tests/Unit/SecretBackendCustody.Tests.ps1

@@ -193,6 +193,24 @@ Evidence: `Reports/watchdog-window-20260912.md`.
 
 Evidence: `Reports/credential-archive-20260912.md`.
 
+## Credential backend integration (2026-10-09)
+
+- [x] Preserve predecessor source and synthetic detecting failures before
+      qualifying protected bootstrap/cache storage and file/process custody.
+- [x] Maintain reviewed backend code and its two-file source manifest under
+      `Tools/SystemScripts/Machine`; keep credentials and private config outside Git.
+- [x] Add self-contained synthetic Windows custody tests with environment
+      restoration and recovery witnesses outside the source tree.
+- [ ] Finish canonical-source qualification and current-head CI before installation.
+- [ ] Reconcile each host's installed manifest, preserving unrelated files,
+      private configuration and active consumers before any backend deployment.
+- [ ] Validate live provider/credential reconciliation through an existing
+      authorized session; synthetic receipts do not establish authentication.
+- [ ] Qualify SACL/audit recovery separately; the current retained metadata
+      contract covers owner/group/DACL only.
+
+Evidence: `Reports/agent-bus-pcai-findings.md` and `Reports/fleet-integration-review.md`.
+
 Purpose: harden boot/logon automation that mounts virtual disks, starts sync
 providers, and initializes workstation services. The current implementation
 focuses on making filesystem/filter failures visible, reducing startup

@@ -13,6 +13,11 @@ BeforeAll {
         [IO.File]::WriteAllBytes((Join-Path $path 'fixtures/payload.bin'), [byte[]]@(0, 1, 2, 128, 255))
         return $path
     }
+    function New-StandaloneFixtureModule {
+        param([string]$Root, [string]$Name = 'StandaloneFixture')
+        "@{ RootModule = '$Name.psm1'; ModuleVersion = '1.0.0'; FunctionsToExport = @() }" | Set-Content -LiteralPath (Join-Path $Root "$Name.psd1")
+        '# paired script' | Set-Content -LiteralPath (Join-Path $Root "$Name.psm1")
+    }
 }
 
 Describe 'Development module installation custody and mutation safety' {
@@ -155,6 +160,61 @@ Describe 'Development module installation custody and mutation safety' {
         [void](New-Item -ItemType Directory -Path (Join-Path $script:FixtureSource 'fixtures/.git'))
         { & $script:Installer -RepoRoot $script:FixtureRepo -InstallRoot $script:FixtureInstall -UpdatePSModulePath:$false -Confirm:$false } | Should -Throw '*Nested Git*'
         Test-Path -LiteralPath $script:FixtureInstall | Should -BeFalse
+    }
+
+    It 'copies only each standalone pair, verifies hashes, and leaves unrelated assets out' {
+        $root = Join-Path $script:FixtureRepo 'Modules'
+        New-StandaloneFixtureModule -Root $root
+        'unrelated' | Set-Content -LiteralPath (Join-Path $root 'unrelated.txt')
+        $results = @(& $script:Installer -RepoRoot $script:FixtureRepo -InstallRoot $script:FixtureInstall -UpdatePSModulePath:$false -Confirm:$false)
+        $standalone = $results | Where-Object Name -eq StandaloneFixture
+        $receipt = Get-Content -LiteralPath $standalone.Receipt -Raw | ConvertFrom-Json
+        $receipt.Files.Count | Should -Be 2
+        @(Get-ChildItem -LiteralPath $standalone.InstalledPath -File).Count | Should -Be 2
+        foreach ($file in $receipt.Files) {
+            (Get-FileHash -LiteralPath (Join-Path $standalone.InstalledPath $file.Path)).Hash | Should -BeExactly $file.Sha256
+            (Get-FileHash -LiteralPath (Join-Path $root $file.Path)).Hash | Should -BeExactly $file.Sha256
+        }
+        $repeat = @(& $script:Installer -RepoRoot $script:FixtureRepo -InstallRoot $script:FixtureInstall -UpdatePSModulePath:$false -Confirm:$false)
+        @($repeat | Where-Object State -ne Unchanged).Count | Should -Be 0
+    }
+
+    It 'rejects a missing standalone script before any module publication' {
+        "@{ RootModule = 'Incomplete.psm1' }" | Set-Content -LiteralPath (Join-Path $script:FixtureRepo 'Modules/Incomplete.psd1')
+        { & $script:Installer -RepoRoot $script:FixtureRepo -InstallRoot $script:FixtureInstall -UpdatePSModulePath:$false -Confirm:$false } | Should -Throw
+        Test-Path -LiteralPath $script:FixtureInstall | Should -BeFalse
+    }
+
+    It 'rejects a flat-pair junction and duplicate module name before writes' {
+        New-StandaloneFixtureModule -Root (Join-Path $script:FixtureRepo 'Modules')
+        { & $script:Installer -RepoRoot $script:FixtureRepo -InstallRoot $script:FixtureInstall -Mode Junction -UpdatePSModulePath:$false -Confirm:$false } | Should -Throw '*requires Copy or Auto*'
+        Test-Path -LiteralPath $script:FixtureInstall | Should -BeFalse
+        New-StandaloneFixtureModule -Root (Join-Path $script:FixtureRepo 'Modules') -Name FixtureModule
+        { & $script:Installer -RepoRoot $script:FixtureRepo -InstallRoot $script:FixtureInstall -UpdatePSModulePath:$false -Confirm:$false } | Should -Throw '*collision*'
+        Test-Path -LiteralPath $script:FixtureInstall | Should -BeFalse
+    }
+
+    It 'keeps standalone discovery dry-run free of payload and environment writes' {
+        New-StandaloneFixtureModule -Root (Join-Path $script:FixtureRepo 'Modules')
+        & $script:Installer -RepoRoot $script:FixtureRepo -InstallRoot $script:FixtureInstall -DryRun
+        Test-Path -LiteralPath $script:FixtureInstall | Should -BeFalse
+        $env:PSModulePath | Should -BeExactly $script:SavedModulePath
+    }
+
+    It 'restores exact standalone installation when its staged publication fails' {
+        New-StandaloneFixtureModule -Root (Join-Path $script:FixtureRepo 'Modules')
+        $first = @(& $script:Installer -RepoRoot $script:FixtureRepo -InstallRoot $script:FixtureInstall -UpdatePSModulePath:$false -Confirm:$false) | Where-Object Name -eq StandaloneFixture
+        $oldHash = (Get-FileHash -LiteralPath (Join-Path $first.InstalledPath 'StandaloneFixture.psm1')).Hash
+        '# changed source' | Set-Content -LiteralPath (Join-Path $script:FixtureRepo 'Modules/StandaloneFixture.psm1')
+        Mock Move-Item {
+            if ($LiteralPath -like '*StandaloneFixture*\staged') { throw 'Standalone publication denial' }
+            [IO.Directory]::Move($LiteralPath, $Destination)
+        }
+        { & $script:Installer -RepoRoot $script:FixtureRepo -InstallRoot $script:FixtureInstall -UpdatePSModulePath:$false -Confirm:$false } | Should -Throw '*Standalone publication denial*'
+        (Get-FileHash -LiteralPath (Join-Path $first.InstalledPath 'StandaloneFixture.psm1')).Hash | Should -BeExactly $oldHash
+        $receipt = Get-Content -LiteralPath (Join-Path $script:FixtureInstall '.pcai-module-install/StandaloneFixture/r2/receipt.json') -Raw | ConvertFrom-Json
+        $receipt.State | Should -Be RolledBack
+        $receipt.PreviousFiles.Count | Should -Be 2
     }
 
     It 'preserves a previous junction without traversing or deleting its target' -Skip:(-not $IsWindows) {

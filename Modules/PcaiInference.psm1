@@ -77,10 +77,25 @@ function Add-EnvPath {
 }
 
 function Get-PcaiProjectRoot {
-    return (Split-Path $script:ModulePath -Parent)
+    if ($env:PCAI_ROOT) {
+        $root = (Resolve-Path -LiteralPath $env:PCAI_ROOT -ErrorAction Stop).ProviderPath
+        if (-not (Test-Path -LiteralPath (Join-Path $root 'PC-AI.ps1') -PathType Leaf)) { throw 'PCAI_ROOT must select a PC-AI checkout containing PC-AI.ps1.' }
+        return $root
+    }
+    $cursor = $script:ModulePath
+    while ($cursor) {
+        if (Test-Path -LiteralPath (Join-Path $cursor 'PC-AI.ps1') -PathType Leaf) { return $cursor }
+        $cursor = Split-Path -Parent $cursor
+    }
+    if (Get-Command 'PC-AI.Common\Resolve-PcaiRepoRoot' -ErrorAction SilentlyContinue) {
+        $root = PC-AI.Common\Resolve-PcaiRepoRoot -StartPath $script:ModulePath
+        if ($root -and (Test-Path -LiteralPath (Join-Path $root 'PC-AI.ps1') -PathType Leaf)) { return $root }
+    }
+    throw 'PC-AI checkout unavailable. Set PCAI_ROOT for this machine or select PCAI_NATIVE_BUNDLE_ROOT for native loading.'
 }
 
 function Get-PcaiConfig {
+    if ($env:PCAI_NATIVE_BUNDLE_ROOT) { return $null }
     $projectRoot = Get-PcaiProjectRoot
     $configPath = Join-Path $projectRoot 'Config\llm-config.json'
     if (-not (Test-Path $configPath)) { return $null }
@@ -130,7 +145,7 @@ function Get-PcaiCudaCapability {
 
 function Resolve-PcaiRuntimeVariantDll {
     param(
-        [Parameter(Mandatory)] $Config,
+        [Parameter(Mandatory)][AllowNull()] $Config,
         [Parameter(Mandatory)][string]$ProjectRoot
     )
 
@@ -239,6 +254,19 @@ function Resolve-PcaiRuntimeVariantDll {
 function Resolve-PcaiInferenceDll {
     param([string]$OverridePath)
 
+    if ($env:PCAI_NATIVE_BUNDLE_ROOT) {
+        $bundle = Resolve-Path -LiteralPath $env:PCAI_NATIVE_BUNDLE_ROOT -ErrorAction Stop
+        if ($bundle.Provider.Name -ne 'FileSystem' -or -not (Test-Path -LiteralPath $bundle.ProviderPath -PathType Container)) { throw 'Native bundle must be a filesystem directory.' }
+        foreach ($leaf in @('PcaiNative.dll', 'pcai_inference.dll')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $bundle.ProviderPath $leaf) -PathType Leaf)) { throw "Explicit native inference bundle lacks $leaf." }
+        }
+        $env:PCAI_NATIVE_BUNDLE_ROOT = $bundle.ProviderPath
+        $selected = Join-Path $bundle.ProviderPath 'pcai_inference.dll'
+        if ($OverridePath -and -not (Resolve-Path -LiteralPath $OverridePath -ErrorAction Stop).ProviderPath.Equals($selected, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'DllPath conflicts with PCAI_NATIVE_BUNDLE_ROOT.'
+        }
+        return $selected
+    }
     if ($OverridePath) {
         if (Test-Path $OverridePath) {
             return (Resolve-Path $OverridePath).Path
@@ -315,19 +343,20 @@ function Initialize-PcaiFFI {
     $script:DllPath = $resolvedDll
     $script:DllExists = $null -ne $resolvedDll -and (Test-Path $resolvedDll)
 
-    if ($script:DllExists) {
-        Add-EnvPath (Split-Path $resolvedDll -Parent)
-    }
-
-    # Resolve project bin
-    $projectRoot = Get-PcaiProjectRoot
-    $projectBin = Join-Path $projectRoot 'bin'
-
-    # Ensure PcaiNative.dll is loaded
-    $nativeDll = Join-Path $projectBin 'PcaiNative.dll'
-    if (Test-Path $nativeDll) {
+    # Explicit bundles select both halves before config, PATH or variant discovery.
+    $nativeDll = if ($env:PCAI_NATIVE_BUNDLE_ROOT) {
+        Join-Path $env:PCAI_NATIVE_BUNDLE_ROOT 'PcaiNative.dll'
+    } else { Join-Path (Join-Path (Get-PcaiProjectRoot) 'bin') 'PcaiNative.dll' }
+    if (Test-Path -LiteralPath $nativeDll -PathType Leaf) {
         try {
-            [void][Reflection.Assembly]::LoadFrom($nativeDll)
+            $nativeDll = (Resolve-Path -LiteralPath $nativeDll -ErrorAction Stop).ProviderPath
+            $assembly = [AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_.GetName().Name -eq 'PcaiNative' } | Select-Object -First 1
+            if ($assembly -and -not $assembly.Location.Equals($nativeDll, [StringComparison]::OrdinalIgnoreCase)) {
+                throw 'A different PcaiNative bridge is already loaded. Select the bundle in a fresh process.'
+            }
+            $actualPath = [Reflection.Assembly]::LoadFrom($nativeDll).Location
+            if (-not $actualPath.Equals($nativeDll, [StringComparison]::OrdinalIgnoreCase)) { throw 'Managed loading reused another PcaiNative bridge. Use a fresh process.' }
+            if ($script:DllExists) { Add-EnvPath (Split-Path $resolvedDll -Parent) }
             return $true
         } catch {
             Write-Warning "Failed to load $($nativeDll): $($_)"

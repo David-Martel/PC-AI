@@ -1,6 +1,42 @@
 @{
     Modules = @(
         @{
+            Name = 'PcaiMedia'
+            ManifestRelativePath = 'PcaiMedia.psd1'
+            HasPublicDirectory = $false
+            ExpectedFunctions = @(
+                'Initialize-PcaiMedia'
+                'Import-PcaiMediaModel'
+                'New-PcaiImage'
+                'New-PcaiImageAsync'
+                'Get-PcaiImageAsyncStatus'
+                'Wait-PcaiImageAsync'
+                'Get-PcaiImageAnalysis'
+                'Invoke-PcaiUpscale'
+                'Stop-PcaiMedia'
+                'Get-PcaiMediaStatus'
+            )
+        }
+        @{
+            Name = 'PcaiInference'
+            ManifestRelativePath = 'PcaiInference.psd1'
+            HasPublicDirectory = $false
+            ExpectedFunctions = @(
+                'Initialize-PcaiInference'
+                'Import-PcaiModel'
+                'Invoke-PcaiInference'
+                'Invoke-PcaiGenerate'
+                'Invoke-PcaiGenerateAsync'
+                'Get-PcaiAsyncResult'
+                'Stop-PcaiGeneration'
+                'Stop-PcaiInference'
+                'Close-PcaiInference'
+                'Get-PcaiInferenceStatus'
+                'Test-PcaiInference'
+                'Test-PcaiDllVersion'
+            )
+        }
+        @{
             Name = 'PC-AI.Hardware'
             ExpectedFunctions = @(
                 'Get-DeviceErrors'

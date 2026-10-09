@@ -152,6 +152,7 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
             $tempDir  = Join-Path $env:TEMP "PcaiFfiTest_$(New-Guid)"
             $binDir   = Join-Path $tempDir 'bin'
             New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+            '# fixture checkout marker' | Set-Content -LiteralPath (Join-Path $tempDir 'PC-AI.ps1')
             $dllPath  = Join-Path $binDir 'PcaiNative.dll'
 
             Add-Type -TypeDefinition @'
@@ -164,6 +165,7 @@ namespace PcaiFfiTestDummy { public class DummyClass { } }
 param($ModulePath, $Root, $DllPath)
 $ErrorActionPreference = 'Stop'
 $env:PCAI_NATIVE_BUNDLE_ROOT = $null
+$env:PCAI_ROOT = $null
 Import-Module $ModulePath -Force
 $success = & (Get-Module PcaiMedia) {
     param($SelectedRoot)

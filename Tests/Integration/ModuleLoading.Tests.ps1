@@ -8,29 +8,37 @@
 
 BeforeDiscovery {
     $script:Modules = (Import-PowerShellDataFile (Join-Path $PSScriptRoot '../Fixtures/ModuleLoadingContracts.psd1')).Modules
+    foreach ($module in $script:Modules) {
+        if (-not $module.ContainsKey('ManifestRelativePath')) { $module.ManifestRelativePath = "$($module.Name)/$($module.Name).psd1" }
+        if (-not $module.ContainsKey('HasPublicDirectory')) { $module.HasPublicDirectory = $true }
+    }
 }
 BeforeAll {
     $script:ModulesPath = Join-Path $PSScriptRoot '../../Modules'
     $script:Modules = (Import-PowerShellDataFile (Join-Path $PSScriptRoot '../Fixtures/ModuleLoadingContracts.psd1')).Modules
+    foreach ($module in $script:Modules) {
+        if (-not $module.ContainsKey('ManifestRelativePath')) { $module.ManifestRelativePath = "$($module.Name)/$($module.Name).psd1" }
+        if (-not $module.ContainsKey('HasPublicDirectory')) { $module.HasPublicDirectory = $true }
+    }
 }
 
 Describe "Module Loading" -Tag 'Integration', 'ModuleLoading', 'Fast' {
     Context "When loading all modules" {
         It "Should find all module manifest files" {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Test-Path $manifestPath | Should -Be $true -Because "$($module.Name) manifest should exist"
             }
         }
 
         It "Should load <Name> module without errors" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
 
             { Import-Module $manifestPath -Force -ErrorAction Stop } | Should -Not -Throw
         }
 
         It "Should have valid manifest for <Name>" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
 
             { Test-ModuleManifest $manifestPath -ErrorAction Stop } | Should -Not -Throw
         }
@@ -38,7 +46,7 @@ Describe "Module Loading" -Tag 'Integration', 'ModuleLoading', 'Fast' {
 
     Context "When checking module versions" {
         It "Should have version information for <Name>" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
             Import-Module $manifestPath -Force
 
             $module = Get-Module $Name
@@ -47,14 +55,14 @@ Describe "Module Loading" -Tag 'Integration', 'ModuleLoading', 'Fast' {
         }
 
         It "Should have author information for <Name>" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
             $manifest = Test-ModuleManifest $manifestPath
 
             $manifest.Author | Should -Not -BeNullOrEmpty
         }
 
         It "Should have description for <Name>" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
             $manifest = Test-ModuleManifest $manifestPath
 
             $manifest.Description | Should -Not -BeNullOrEmpty
@@ -67,7 +75,7 @@ Describe "Module Function Exports" -Tag 'Integration', 'ModuleLoading', 'Fast' {
         BeforeAll {
             # Load all modules
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Import-Module $manifestPath -Force -ErrorAction Stop
             }
         }
@@ -112,7 +120,7 @@ Describe "Module Function Exports" -Tag 'Integration', 'ModuleLoading', 'Fast' {
     Context "When checking function parameters" {
         BeforeAll {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Import-Module $manifestPath -Force -ErrorAction Stop
             }
         }
@@ -143,16 +151,16 @@ Describe "Module Function Exports" -Tag 'Integration', 'ModuleLoading', 'Fast' {
 Describe "Module Dependencies" -Tag 'Integration', 'ModuleLoading', 'Fast' {
     Context "When checking module file structure" {
         It "<Name> should have .psm1 module file" -ForEach $script:Modules {
-            $modulePath = Join-Path $script:ModulesPath "$Name\$Name.psm1"
+            $modulePath = Join-Path $script:ModulesPath ([IO.Path]::ChangeExtension($ManifestRelativePath, '.psm1'))
             Test-Path $modulePath | Should -Be $true
         }
 
-        It "<Name> should have Public functions directory" -ForEach $script:Modules {
+        It "<Name> should have Public functions directory" -ForEach @($script:Modules | Where-Object HasPublicDirectory) {
             $publicPath = Join-Path $script:ModulesPath "$Name\Public"
             Test-Path $publicPath | Should -Be $true
         }
 
-        It "<Name> should have at least one Public function file" -ForEach $script:Modules {
+        It "<Name> should have at least one Public function file" -ForEach @($script:Modules | Where-Object HasPublicDirectory) {
             $publicPath = Join-Path $script:ModulesPath "$Name\Public\*.ps1"
             (Get-ChildItem $publicPath).Count | Should -BeGreaterThan 0
         }
@@ -161,7 +169,7 @@ Describe "Module Dependencies" -Tag 'Integration', 'ModuleLoading', 'Fast' {
     Context "When checking required assemblies" {
         BeforeAll {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Import-Module $manifestPath -Force -ErrorAction Stop
             }
         }
@@ -181,7 +189,7 @@ Describe "Module Interoperability" -Tag 'Integration', 'ModuleLoading', 'Slow' {
     Context "When modules work together" {
         BeforeAll {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Import-Module $manifestPath -Force -ErrorAction Stop
             }
         }
@@ -208,12 +216,12 @@ Describe "Module Interoperability" -Tag 'Integration', 'ModuleLoading', 'Slow' {
 
     Context "When unloading and reloading modules" {
         It "Should unload all modules cleanly" {
-            { Get-Module PC-AI.* | Remove-Module -Force } | Should -Not -Throw
+            { Get-Module -Name $script:Modules.Name | Remove-Module -Force } | Should -Not -Throw
         }
 
         It "Should reload modules without errors" {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 { Import-Module $manifestPath -Force -ErrorAction Stop } | Should -Not -Throw
             }
         }
@@ -228,7 +236,7 @@ Describe "Module Interoperability" -Tag 'Integration', 'ModuleLoading', 'Slow' {
 Describe "Module Performance" -Tag 'Integration', 'Performance', 'Slow' {
     Context "When measuring module load times" {
         It "Should load <Name> in reasonable time" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
 
             # Unload if already loaded
             Remove-Module $Name -Force -ErrorAction SilentlyContinue
@@ -242,11 +250,11 @@ Describe "Module Performance" -Tag 'Integration', 'Performance', 'Slow' {
 
         It "Should load all modules in reasonable total time" {
             # Unload all
-            Get-Module PC-AI.* | Remove-Module -Force -ErrorAction SilentlyContinue
+            Get-Module -Name $script:Modules.Name | Remove-Module -Force -ErrorAction SilentlyContinue
 
             $totalLoadTime = Measure-Command {
                 foreach ($module in $script:Modules) {
-                    $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                    $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                     Import-Module $manifestPath -Force -ErrorAction Stop
                 }
             }
@@ -258,5 +266,5 @@ Describe "Module Performance" -Tag 'Integration', 'Performance', 'Slow' {
 
 AfterAll {
     # Clean up loaded modules
-    Get-Module PC-AI.* | Remove-Module -Force -ErrorAction SilentlyContinue
+    Get-Module -Name $script:Modules.Name | Remove-Module -Force -ErrorAction SilentlyContinue
 }

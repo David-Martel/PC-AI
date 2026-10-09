@@ -71,7 +71,7 @@ function Assert-SafePath {
     }
 }
 function Get-ModuleInventory {
-    param([string]$Root, [switch]$ExcludeRootGit)
+    param([string]$Root, [switch]$ExcludeRootGit, [string[]]$RelativeFiles)
     $rootItem = Get-Item -LiteralPath $Root -Force
     if ($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Linked module root requires explicit resolution: $Root" }
     $pending = [Collections.Generic.Stack[string]]::new()
@@ -79,7 +79,17 @@ function Get-ModuleInventory {
     $files = [Collections.Generic.List[object]]::new()
     while ($pending.Count -gt 0) {
         $directory = $pending.Pop()
-        foreach ($item in (Get-ChildItem -LiteralPath $directory -Force)) {
+        $items = if ($RelativeFiles) {
+            foreach ($relativeFile in $RelativeFiles) {
+                $selectedPath = [IO.Path]::GetFullPath((Join-Path $Root $relativeFile))
+                if (-not (Test-ContainedPath -Path $selectedPath -Root $Root)) { throw 'Selected payload escapes source root.' }
+                Assert-SafePath -Path $selectedPath
+                $selectedItem = Get-Item -LiteralPath $selectedPath -Force
+                if ($selectedItem.PSIsContainer) { throw 'Selected standalone payload must be a file.' }
+                $selectedItem
+            }
+        } else { Get-ChildItem -LiteralPath $directory -Force }
+        foreach ($item in $items) {
             if ($item.Name -eq '.git') {
                 if ($ExcludeRootGit -and $directory -eq $Root) { continue }
                 throw "Nested Git store requires custody review: $($item.FullName)"
@@ -118,18 +128,32 @@ $sources = [Collections.Generic.List[object]]::new()
 foreach ($directory in (Get-ChildItem -LiteralPath $sourceModulesRoot -Directory | Sort-Object Name)) {
     if ((Test-Path -LiteralPath (Join-Path $directory.FullName "$($directory.Name).psd1")) -or
         (Test-Path -LiteralPath (Join-Path $directory.FullName "$($directory.Name).psm1"))) {
-        $sources.Add([pscustomobject]@{ Name = $directory.Name; SourcePath = $directory.FullName; SourceType = 'repo-module' })
+        $sources.Add([pscustomobject]@{ Name = $directory.Name; SourcePath = $directory.FullName; SourceType = 'repo-module'; PayloadFiles = $null })
     }
+}
+foreach ($manifest in (Get-ChildItem -LiteralPath $sourceModulesRoot -File -Filter '*.psd1' | Sort-Object Name)) {
+    Assert-SafePath -Path $manifest.FullName
+    $name = $manifest.BaseName
+    $data = Import-PowerShellDataFile -LiteralPath $manifest.FullName
+    if (-not $data.ContainsKey('RootModule') -or $data.RootModule -cne "$name.psm1") {
+        throw "Standalone manifest must select its paired script: $($manifest.FullName)"
+    }
+    $sources.Add([pscustomobject]@{
+        Name = $name; SourcePath = $sourceModulesRoot; SourceType = 'standalone-module'
+        PayloadFiles = @($manifest.Name, [string]$data.RootModule)
+    })
 }
 if ($IncludeCargoTools) {
     $manifest = Resolve-PcaiModuleManifestPath -ModuleName CargoTools -RepoRoot $RepoRoot -InstallRoot $InstallRoot
     if ($manifest) {
-        $sources.Add([pscustomobject]@{ Name = 'CargoTools'; SourcePath = (Split-Path -Parent $manifest); SourceType = 'external-module' })
+        $sources.Add([pscustomobject]@{ Name = 'CargoTools'; SourcePath = (Split-Path -Parent $manifest); SourceType = 'external-module'; PayloadFiles = $null })
     } else { Write-Warning 'CargoTools source not found; skipping CargoTools install.' }
 }
 $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 foreach ($module in $sources) {
     if (-not $names.Add($module.Name)) { throw "Module name collision: $($module.Name)" }
+    if ($module.PayloadFiles -and $Mode -eq 'Junction') { throw "Standalone module $($module.Name) requires Copy or Auto mode; Junction would expose unrelated modules." }
+    if ($module.PayloadFiles) { $null = Get-ModuleInventory -Root $module.SourcePath -RelativeFiles $module.PayloadFiles }
 }
 foreach ($module in $sources) {
     $source = [IO.Path]::GetFullPath($module.SourcePath).TrimEnd('\', '/')
@@ -142,7 +166,7 @@ foreach ($module in $sources) {
     }
     $destination = Join-Path $InstallRoot $module.Name
     Assert-SafePath -Path $destination -AllowLeafLink
-    $desired = @(Get-ModuleInventory -Root $source -ExcludeRootGit)
+    $desired = @(Get-ModuleInventory -Root $source -ExcludeRootGit -RelativeFiles $module.PayloadFiles)
     $previous = @()
     $previousLink = $null
     $exists = Test-Path -LiteralPath $destination
@@ -208,7 +232,7 @@ foreach ($module in $sources) {
                 }
             }
         }
-        if (-not (Test-SameInventory -Left $desired -Right @(Get-ModuleInventory -Root $source -ExcludeRootGit))) { throw 'Source changed during installation.' }
+        if (-not (Test-SameInventory -Left $desired -Right @(Get-ModuleInventory -Root $source -ExcludeRootGit -RelativeFiles $module.PayloadFiles))) { throw 'Source changed during installation.' }
         if ($exists) {
             if ($previousLink) {
                 if ((@((Get-Item -LiteralPath $destination -Force).Target) -join ';') -ne $previousLink) { throw 'Destination link changed during installation.' }

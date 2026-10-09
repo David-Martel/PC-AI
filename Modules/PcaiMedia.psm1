@@ -53,7 +53,21 @@ $script:AsyncImageRequests = [hashtable]::Synchronized(@{})
 
 #region Internal Logic
 function Get-PcaiProjectRoot {
-    return (Split-Path $script:ModulePath -Parent)
+    if ($env:PCAI_ROOT) {
+        $root = (Resolve-Path -LiteralPath $env:PCAI_ROOT -ErrorAction Stop).ProviderPath
+        if (-not (Test-Path -LiteralPath (Join-Path $root 'PC-AI.ps1') -PathType Leaf)) { throw 'PCAI_ROOT must select a PC-AI checkout containing PC-AI.ps1.' }
+        return $root
+    }
+    $cursor = $script:ModulePath
+    while ($cursor) {
+        if (Test-Path -LiteralPath (Join-Path $cursor 'PC-AI.ps1') -PathType Leaf) { return $cursor }
+        $cursor = Split-Path -Parent $cursor
+    }
+    if (Get-Command 'PC-AI.Common\Resolve-PcaiRepoRoot' -ErrorAction SilentlyContinue) {
+        $root = PC-AI.Common\Resolve-PcaiRepoRoot -StartPath $script:ModulePath
+        if ($root -and (Test-Path -LiteralPath (Join-Path $root 'PC-AI.ps1') -PathType Leaf)) { return $root }
+    }
+    throw 'PC-AI checkout unavailable. Set PCAI_ROOT for this machine or select PCAI_NATIVE_BUNDLE_ROOT for native loading.'
 }
 
 function New-PcaiAsyncRequestId {

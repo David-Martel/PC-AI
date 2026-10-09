@@ -58,6 +58,8 @@ function Get-PcaiServiceHealth {
         [string]$vLLMBaseUrl
     )
 
+    $PSNativeCommandUseErrorActionPreference = $false
+
     $runtimeDefaults = Get-PcaiRuntimeDefaults -ConfigPath $ConfigPath
     if (-not $PSBoundParameters.ContainsKey('PcaiInferenceUrl') -or [string]::IsNullOrWhiteSpace($PcaiInferenceUrl)) {
         $PcaiInferenceUrl = $runtimeDefaults.PcaiInferenceUrl
@@ -152,8 +154,11 @@ function Get-PcaiServiceHealth {
 
     # 4. Check WSL
     try {
-        $wslStatus = wsl -l -v 2>$null | Select-String "$Distribution"
-        if ($wslStatus -match "Running") {
+        $wslOutput = wsl -l -v 2>$null
+        if ($LASTEXITCODE -ne 0) { throw "WSL enumeration failed with exit code $LASTEXITCODE." }
+        $wslStatus = ($wslOutput -join "`n") -replace "`0", ''
+        $runningRow = '^\s*\*?\s*' + [regex]::Escape($Distribution) + '\s+Running(?:\s|$)'
+        if ($wslStatus -match "(?m)$runningRow") {
             $results.WSL.Status = 'OK'
             $results.WSL.Running = $true
         } else {
@@ -203,7 +208,9 @@ function Get-PcaiServiceHealth {
 
         if ($results.Docker.Running) {
             try {
-                $runtimes = docker info --format '{{json .Runtimes}}' 2>$null | ConvertFrom-Json
+                $runtimeOutput = docker info --format '{{json .Runtimes}}' 2>$null
+                if ($LASTEXITCODE -ne 0) { throw "Docker runtime query failed with exit code $LASTEXITCODE." }
+                $runtimes = ($runtimeOutput -join "`n") | ConvertFrom-Json
                 if ($runtimes -and ($runtimes.PSObject.Properties.Name -contains 'nvidia')) {
                     $results.Gpu.NvidiaRuntime = $true
                 }
@@ -242,7 +249,16 @@ function Get-PcaiServiceHealth {
     if ($results.WSL.Running) {
         try {
             $bridgeCount = wsl -d $Distribution -- pgrep -c socat 2>$null
-            $results.Bridges.Count = [int]($bridgeCount.Trim() -as [int])
+            $bridgeExit = $LASTEXITCODE
+            $bridgeText = ($bridgeCount -join "`n").Trim()
+            $parsedCount = 0
+            if ($bridgeText -notmatch '^\d+$' -or -not [int]::TryParse($bridgeText, [ref]$parsedCount)) {
+                throw 'Invalid bridge count.'
+            }
+            if ($bridgeExit -ne 0 -and -not ($bridgeExit -eq 1 -and $parsedCount -eq 0)) {
+                throw "Bridge query failed with exit code $bridgeExit."
+            }
+            $results.Bridges.Count = $parsedCount
             $results.Bridges.Status = if ($results.Bridges.Count -gt 0) { 'OK' } else { 'None' }
         } catch {
             $results.Bridges.Status = 'NotChecked'

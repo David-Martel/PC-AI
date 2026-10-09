@@ -31,7 +31,7 @@ function New-BaselineSnapshot {
     Write-Host "Creating baseline snapshot: $Name" -ForegroundColor Cyan
 
     # Run evaluation
-    $results = Invoke-EvaluationSuite -Suite $Suite -Backend $Backend -ModelPath $ModelPath
+    $summary = Invoke-EvaluationSuite -Suite $Suite -Backend $Backend -ModelPath $ModelPath
 
     # Create baseline object
     $baseline = @{
@@ -39,7 +39,8 @@ function New-BaselineSnapshot {
         Timestamp = [datetime]::UtcNow.ToString('o')
         Backend = $Backend
         Model = $ModelPath
-        Metrics = $results
+        Metrics = Get-EvaluationResults -Suite $Suite -Format metrics
+        Summary = $summary
         TestCount = $Suite.Results.Count
         DetailedResults = $Suite.Results | ForEach-Object {
             @{

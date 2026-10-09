@@ -7,9 +7,9 @@
 
 .DESCRIPTION
     Tests the DLL-loading bootstrap function responsible for loading PcaiNative.dll
-    and making [PcaiNative.MediaModule] available.  All file-system and assembly-load
-    operations are isolated via Pester mocks executed inside InModuleScope, so no
-    actual DLLs are required.
+    and making [PcaiNative.MediaModule] available. Failure paths use Pester mocks;
+    the successful load uses separate assembly producer and loader processes,
+    so no prebuilt native DLLs are required.
 
     Scenarios covered:
     - Returns $false when PcaiNative.dll is not present on disk
@@ -155,17 +155,31 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
             '# fixture checkout marker' | Set-Content -LiteralPath (Join-Path $tempDir 'PC-AI.ps1')
             $dllPath  = Join-Path $binDir 'PcaiNative.dll'
 
-            Add-Type -TypeDefinition @'
-namespace PcaiFfiTestDummy { public class DummyClass { } }
-'@ -OutputAssembly $dllPath -OutputType Library
-
             try {
+                # Keep compilation outside the Pester process and its mocks/type cache.
+                $producer = Join-Path $tempDir 'build-bridge.ps1'
+                @'
+param($DllPath)
+$ErrorActionPreference = 'Stop'
+Add-Type -TypeDefinition 'namespace PcaiFfiTestDummy { public class DummyClass { } }' -OutputAssembly $DllPath -OutputType Library
+if (-not (Test-Path -LiteralPath $DllPath -PathType Leaf)) { throw 'Assembly producer did not create the fixture DLL.' }
+if ((Get-Item -LiteralPath $DllPath).Length -le 0) { throw 'Assembly producer created an empty fixture DLL.' }
+Write-Output 'fixture-bridge-produced'
+'@ | Set-Content -LiteralPath $producer
+                $shell = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
+                $produced = & $shell -NoLogo -NoProfile -File $producer $dllPath
+                $LASTEXITCODE | Should -Be 0
+                $produced | Should -Contain 'fixture-bridge-produced'
+                Test-Path -LiteralPath $dllPath -PathType Leaf | Should -BeTrue
+                (Get-Item -LiteralPath $dllPath).Length | Should -BeGreaterThan 0
                 $probe = Join-Path $tempDir 'load-bridge.ps1'
                 @'
 param($ModulePath, $Root, $DllPath)
 $ErrorActionPreference = 'Stop'
 $env:PCAI_NATIVE_BUNDLE_ROOT = $null
 $env:PCAI_ROOT = $null
+if (-not (Test-Path -LiteralPath $DllPath -PathType Leaf)) { throw 'Fixture DLL is absent before managed loading.' }
+if ((Get-Item -LiteralPath $DllPath).Length -le 0) { throw 'Fixture DLL is empty before managed loading.' }
 Import-Module $ModulePath -Force
 $success = & (Get-Module PcaiMedia) {
     param($SelectedRoot)
@@ -178,7 +192,6 @@ $assembly = [AppDomain]::CurrentDomain.GetAssemblies() | Where-Object Location -
 if (-not $assembly) { throw 'The initializer did not load the selected fixture assembly.' }
 Write-Output 'fresh-bridge-loaded'
 '@ | Set-Content -LiteralPath $probe
-                $shell = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
                 $result = & $shell -NoLogo -NoProfile -File $probe $script:ModulePath $tempDir $dllPath
                 $LASTEXITCODE | Should -Be 0
                 $result | Should -Contain 'fresh-bridge-loaded'

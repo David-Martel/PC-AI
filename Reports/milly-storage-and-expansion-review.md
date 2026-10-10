@@ -6,6 +6,153 @@ Clarius operator. After reviewing the SSD contents, the user explicitly requeste
 wiping it and formatting it for Windows/Linux sharing. That external drive alone
 was reformatted. Internal data, active builds and the operator remain preserved.
 
+## Active migration successor
+
+Completed at 2026-10-10 02:03:54 UTC (October 9 local): **MIGRATION COMPLETE;
+LINUX CONSUMER CHECKS PASS**. The user
+approved migration and keeping existing Linux paths usable. The layout and
+migration results here supersede the historical exFAT configuration below.
+Active Clarius builds, operator, radios, worktrees and toolchains remain protected.
+
+The authorized WDC WDS100T2B0B SSD, serial `1830D0800483`, now has an NTFS outer
+volume mounted at `/mnt/dtm-shared` (UUID `1CEDDDB5190C5CEB`). Its sparse 832 GiB
+Btrfs image is mounted at `/mnt/pcai-milly-data` (UUID
+`09a77a5f-17c9-4495-a88c-049f0b80af73`). The image preserves Linux ownership,
+permissions, ACLs, extended attributes, links and executable environments while
+shared outer-volume files remain suitable for Windows/Linux transport. Native
+Btrfs contents require the Linux mount; Windows access to the raw image and
+Windows DACL protection are **NOT TESTED**. The second SKHynix SSD was not formatted.
+
+A pilot demonstrated sparse allocation, growth and remount integrity before the
+actual filesystem was grown. Root and both original users were denied writes to
+the underlying immutable mountpoint with the image absent; restoration and
+owning-user reads passed. This prevents missing removable storage from silently
+refilling the internal disk. UUID, serial, backing image, actual loop mount and
+outer reserve are checked before mutation. Normal guest-before-outer unmount is
+required; no force or lazy removal was used.
+
+The WDC had fallen back to USB 2 at 480 Mb/s. After the safely paused migration
+and physical reconnection, its verified route negotiated **10 Gb/s**, with matching
+filesystem UUIDs, fixture hash and zero Btrfs device error counters. This is link
+speed, not a raw-storage benchmark. The resumed 16 GB archive completed its copy,
+verification and source retirement in approximately two minutes.
+
+| Item | Current disposition |
+| --- | --- |
+| Primary model blobs and complete backup directory | Verified and relocated; seven equal backups and the distinct eighth checkpoint are all preserved. |
+| CUDA 12.2 installer | Verified and relocated; installed CUDA was not removed. |
+| Complete `milly-y2.tgz.1` download | Verified byte-preserving relocation; archive validity and extracted-tree equivalence remain separate untested claims. |
+| `__milly_logs` | Verified and relocated at 00:07:15 UTC. |
+| Three pip HTTP cache directories | Verified and relocated; locally built wheel caches retained. |
+| `user_study/av_recording` | All 371 large recordings and the remaining tree verified; whole-tree cutover and original retirement complete. Existing Linux path remains usable. |
+
+All eight smaller source objects are verified and retired, accounting for
+approximately **65.653 GiB** of their measured allocated bytes. Ordinary internal
+availability was **72,584,224,768 bytes (67.60 GiB)** at the study launch after the
+last smaller-source retirement at 00:11:19 UTC. Active builds can change that
+snapshot; do not equate a free-space difference with exact migration benefit.
+Each retired original passed complete source/destination/retained SHA-256,
+metadata parity, stable-source checks, fresh process-reference admission and an
+actual original-user read through its retained old path. Temporary originals
+were held under private root-owned custody before guarded deletion.
+
+All 371 incremental recordings completed at 01:24:23 UTC, preserving
+570,880,193,988 logical bytes. The pinned final helper completed whole-tree
+cutover and original retirement at 02:03:54 UTC. Its final readback reports
+inactive/dead, PID 0, Result success and exit status 0, with all 371 second full
+recording hashes present. The existing study root is a symlink to the native
+tree; actual owning-user access, `.venv` execution with Python 3.11.13, original
+Git HEAD and status parity all passed. Both filesystem UUIDs and the exact helper
+binding passed; all five Btrfs device error counters were zero.
+
+The redundant 2,189,554,353-byte partial download was subsequently retired only
+after full prefix/source/retained verification and fresh path, process-reference
+and filesystem admission. The complete archive remains readable through its
+original owning-user path; archive validity is still a separate untested claim.
+The original ext4 root reserve of **12,495,987 blocks** was restored after exact
+root UUID, NVMe serial, block count/size and current reserve checks. The emergency
+30,710,140,928 bytes of ordinary-user headroom are no longer counted available.
+The subsequent internal snapshot reports **634,950,225,920 bytes available**
+(about 591 GiB); the outer SSD has 374,527,430,656 bytes available and the native
+image has 267,087,466,496 bytes available. Concurrent work changes these figures;
+they are not an exact migration-only free-space delta or a runtime speedup.
+
+The study helpers preserve the original Git HEAD/status and untracked/ignored
+work. Large untracked/ignored regular recordings are copied and independently
+verified one at a time, then the original leaf becomes a link to its canonical
+native file. The final tree copy explicitly excludes those leaf links so it
+cannot overwrite native recordings with links back to themselves. Full recorded
+file hashes/portable metadata/ACLs/xattrs are checked again after the remaining
+copy. Original directory mtimes, Git status, owning-user access and existing
+virtual-environment execution passed before final original-tree retirement.
+Incomplete receipts or live source/native consumers were fail-closed holds.
+
+### Lossless compression evidence
+
+Twenty-four native zstd compression/decompression sample trials passed SHA-256
+roundtrip verification with unchanged source metadata. Level 3 saved **37.16%**
+on the sampled WAV bytes and **1.18%** on sampled MP4 bytes; level 1 slightly
+expanded MP4. These samples do not predict Btrfs's smaller extent decisions.
+The native filesystem uses automatic `zstd:3`; original file formats and bytes
+are retained. No transcoding or format substitution is part of the migration.
+
+Actual extent accounting on the relocated model trees found 9,292,673,024 disk
+bytes versus 9,293,807,616 uncompressed bytes: effectively no useful compression
+for those models. The read-only native `compsize` utility was extracted from a
+hash-recorded Ubuntu package into private operation custody, without changing
+system packages. Actual relocated logs used 23,165,292,739 disk bytes for
+27,105,029,351 uncompressed bytes (about 14.5% saved). One completed WAV used
+1,038,712,832 disk bytes for 1,542,963,200 uncompressed bytes (about 32.7%
+saved); an inspected MP4 showed no compression savings. Final whole-study extent
+accounting covered 3,763 files: **557,246,863,357 disk bytes versus
+572,110,004,663 uncompressed bytes**, saving about **13.84 GiB**. The complete WAV
+group (56 files) used **30,022,832,128 versus 44,744,134,656 bytes**, about **32.9%**
+or **13.71 GiB** saved. The MP4 group (351 files) used **526,779,543,552 versus
+526,780,878,848 bytes**: negligible savings. These are actual native extent
+observations, not sample extrapolation or a storage-speed measurement. NTFS image
+logical length or potentially stale `stat` block counts are not actual compressed
+allocation evidence. [Btrfs compression](https://btrfs.readthedocs.io/en/latest/Compression.html).
+
+### Deficiencies and remaining gates
+
+- Ubuntu's installed uutils `test -r` denied an ACL-authorized user while Bash's
+  builtin and that user's actual hash read succeeded. Admission now uses real
+  reads. System coreutils was not replaced during active work.
+- The first normal native unmount exceeded its 15-second command timeout on the
+  slow connection. It subsequently completed normally before the physical move.
+  The reviewed native mount-command timeout is now 300 seconds, verified on the
+  active mount without remounting; boot guard
+  and removable-device deadlines remain bounded separately.
+- The dataset migration, original-path consumer checks, final hashes and native
+  extent accounting are complete. Preserve independent backup/restore custody;
+  a removable relocated copy alone is not an independent backup.
+- The prefix-only partial download is verified and retired; complete archive
+  validity and extracted-tree equivalence remain **NOT TESTED**. All differing
+  backup checkpoints remain preserved.
+- Physical Windows attachment, physical M.2 vacancy, cold-boot/removal behavior
+  and application/HIL acceptance remain separate **NOT TESTED** gates.
+- The failing NFS share remains **OPEN** with its existing server/mount owner;
+  active Clarius build growth and release remain that lane's responsibility.
+
+Current completion evidence:
+`.pcai/integration/milly-final-progress-r9.txt`,
+`.pcai/integration/milly-final-acceptance-r1.txt` and
+`.pcai/integration/milly-final-partial-and-reserve-r1.txt`.
+Each retained transport receipt reports SSH exit 0. Completion of these storage
+checks does not establish Windows runtime, application/HIL or cold-boot acceptance.
+
+Private hash-bound receipts and reviewed scripts are under
+`.pcai/integration/milly-migration-*`; manifests and job receipts are in Milly's
+root-only `/var/lib/pcai-storage/migration-r1`. Retired source bytes now reside on
+the verified SSD. Temporary original copies were deleted after verification;
+the private state directory is not a second retained copy.
+
+## Historical assessment and candidate inventory
+
+The following sections retain their original observations and qualification
+scope. Their exFAT instructions and unstarted-migration state are superseded by
+the active successor above.
+
 ## Capacity and active work
 
 SSH verified the machine identity, Lenovo `21FA002UUS` / ThinkPad P16 Gen 2,

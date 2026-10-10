@@ -38,25 +38,47 @@ See [the storage and expansion review](Reports/milly-storage-and-expansion-revie
       inspect the reconnected SSD read-only and release its temporary mapping.
 - [x] Verify Lenovo's two M.2 storage-slot specification; physical vacancy
       remains an operator inspection requirement.
-- [x] Complete the user's external-drive wipe/format request: aligned GPT/exFAT,
-      clean checks, 16 MiB Linux remount/P1 hash roundtrip and optional UUID
-      automount with bounded device wait. Physical Windows mount is not tested.
+- [x] Complete the approved SSD format and qualify its successor layout: NTFS
+      outer volume with a sparse 832 GiB Btrfs image preserves native Linux
+      metadata and environments. Grow/remount, owner reads and missing-image
+      denial pass. Physical Windows mount and DACL protection remain untested.
 - [x] Add reversible emergency headroom after active growth reached 100% usage:
       reduce the exact ext4 root reserve from 5% to 2%, expose 30.71 GB while
       retaining 20.47 GB for root, and verify original/rollback metadata.
       This is temporary user capacity, not a migration or physical-space gain.
-- [ ] Coordinate cache and dataset owners before moving preserved work. The SSD
-      now has approximately 1 TB available for shared files and archives;
-      native build-target semantics need separate qualification.
+- [x] Admit reviewed migration custody and protect the active Clarius lane;
+      verify the reconnected authorized WDC at 10 Gb/s with matching UUIDs,
+      fixture hash and zero device error counters.
 - [x] Identify measured offload/delete candidates with exact preservation bounds:
       approximately 585 GiB of recordings/models/downloads, seven hash-identical
       backup checkpoints, one byte-identical partial-download prefix and separate
       package caches. No internal file migration or deletion in this audit.
-- [ ] Admit owner-released snapshots, protected SSD archives, copy/restore hashes
-      and actual path-consumer changes before source retirement. Preserve the
-      differing backup checkpoint and active Clarius targets/worktrees/toolchains.
+- [x] Verify and retire eight smaller sources and all 371 large study recordings;
+      570,880,193,988 logical recording bytes preserved. Differing backup retained.
+- [x] Complete whole study tree cutover and original retirement at 02:03:54 UTC;
+      all 371 second full hashes, exact helper/UUID bindings, original-root
+      symlink, owner read, Python 3.11.13 venv and Git HEAD/status parity pass.
+      Final service is inactive/dead, PID 0, Result success; device counters zero.
+- [x] Measure lossless compression: 24 sampled zstd roundtrips pass; WAV saves
+      37.16%, MP4 1.18% at level 3. Actual whole-study extents save 13.84 GiB;
+      all WAV files save 32.9% / 13.71 GiB, MP4 negligible, logs about 14.5%.
+- [x] Increase the native mount command deadline from 15 to 300 seconds after
+      the slow-USB unmount timeout; original fstab preserved, active readback
+      passed without remounting. Guard/device deadlines remain unchanged.
+- [x] Verify final owner consumers, allocation and five zero device-error
+      counters. Retire only the verified redundant 2,189,554,353-byte download
+      prefix; complete archive readable at its original path, validity untested.
+- [x] Restore the exact original ext4 reserve of 12,495,987 blocks after identity
+      checks; final ordinary availability is 634,950,225,920 bytes (about 591 GiB).
+      No exact migration-only free-space delta or runtime speedup is claimed.
+- [ ] Qualify independent backup/restore, physical Windows mount/runtime/DACL,
+      M.2 vacancy, cold boot/removal and application/HIL with their owners.
 - [ ] Restore the failing NFS share through its owner and bound build-target
       growth; do not treat changing free-space snapshots as a stable baseline.
+
+Current storage receipts: `.pcai/integration/milly-final-progress-r9.txt`,
+`milly-final-acceptance-r1.txt` and `milly-final-partial-and-reserve-r1.txt` in the
+same private integration directory. Historical assessment remains in the report.
 
 ## Workload profiling and live-media policy review
 

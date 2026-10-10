@@ -1,0 +1,14 @@
+<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+  <System>
+    <Provider Name="Microsoft-Windows-Ntfs" />
+    <EventID>55</EventID>
+    <Level>3</Level>
+    <TimeCreated SystemTime="1970-01-01T00:00:00.0000001Z" />
+    <Channel>System</Channel>
+  </System>
+  <RenderingInfo Culture="en-US">
+    <Message>Inert fixture first line
+Inert fixture second line</Message>
+    <Level>Warning</Level>
+  </RenderingInfo>
+</Event>

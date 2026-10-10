@@ -287,6 +287,11 @@ At minimum, choose the narrowest relevant validation path:
 - tooling benchmarks for hot-path acceleration changes
 - baseline/regression comparisons for performance-sensitive work
 
+Windows CI also compiles, lints and runs `pcai_core_lib` unit tests, including the 19 inert Event Log contracts.
+The inference lint profiles alone do not qualify Core's Windows bindings.
+See [native Event Log qualification](Reports/native-event-log-repair-review.md)
+for the collector, public fallback contract and remaining runtime gates.
+
 Important active testing gaps:
 
 - more native DLL availability and fallback coverage as new surfaces are added

@@ -92,6 +92,9 @@ jobs:
         run: |
           .\Build.ps1 -Component format -LintProfile rust-inference-fmt -DependencyStrategy locked
           if ($LASTEXITCODE -ne 0) { throw "Format check failed" }
+      - name: Check Core Format
+        working-directory: Native/pcai_core
+        run: cargo fmt -p pcai_core_lib -- --check
 
   powershell-lint:
     name: PowerShell Lint
@@ -145,6 +148,14 @@ jobs:
         run: |
           .\Build.ps1 -Component lint -LintProfile rust-inference-clippy -DependencyStrategy locked
           if ($LASTEXITCODE -ne 0) { throw "Clippy failed" }
+      # Core contains the Windows Event Log bindings consumed by PowerShell/C#.
+      # The inference profiles above do not compile or lint this crate.
+      - name: Check Core Windows Bindings
+        working-directory: Native/pcai_core
+        run: cargo check -p pcai_core_lib --all-targets --no-default-features --locked
+      - name: Clippy Core Windows Bindings
+        working-directory: Native/pcai_core
+        run: cargo clippy -p pcai_core_lib --all-targets --no-default-features --locked -- -D warnings
 
   rust-test:
     name: Rust Tests
@@ -161,6 +172,11 @@ jobs:
       - name: Run Unit Tests
         working-directory: Native/pcai_core/pcai_inference
         run: cargo test --no-default-features --features server,ffi --lib
+      # This includes the 19 inert Event Log type/limit/handle contracts.
+      # Unit passes do not establish paired fleet deployment or runtime parity.
+      - name: Run Core Unit Tests
+        working-directory: Native/pcai_core
+        run: cargo test -p pcai_core_lib --no-default-features --locked --lib
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Coverage Report

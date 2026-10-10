@@ -91,3 +91,17 @@ startup work, and root-owned build admission only after responsiveness is
 stable. Current-head hosted PowerShell coverage remains below the required 85%
 gate; scoped local passes do not waive it. Work connectivity, phone/desktop
 credential reconciliation and complete fleet integration remain deferred.
+
+The fresh 2026-10-10 12:36 UTC follow-up collected 12 samples over 60.09 seconds,
+with all artifacts on D: under `D:/pcai-relocation/p1-workload-followup/r2`.
+Median CPU was 34.73%, available memory 11,389 MiB and commit 78.42%; median
+pages-in was 53.46/s, disk-transfer latency 0.068 ms and queue length zero.
+The 95th percentiles were 55.08% CPU, 248.68 pages-in/s and 0.090 ms latency;
+queue length remained zero. The observer used 14.94 CPU seconds, 1.13% of host
+capacity, with collection times of 732 ms median and 1,577 ms at the 95th
+percentile. Between 37 and 40 process-property reads were inaccessible, so this
+is not a complete per-process attribution. The earlier unmatched capture had
+median pages-in of about 2,337/s. Neither comparison establishes causality or
+useful-throughput improvement. Commit remains close to the 80% build-admission
+limit; further bounded native qualification is being prepared on Carbon,
+whose fresh read-only snapshot showed 17,609 MiB available and 32% commit.

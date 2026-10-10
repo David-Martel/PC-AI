@@ -2,6 +2,21 @@
 
 ## Immediate dtm-p1gen7 responsiveness
 
+Current review: October 10, 2026 UTC. See the latest
+[fleet readback](Reports/fleet-integration-review.md) and
+[cache correctness review](Reports/shared-cache-correctness-review.md).
+
+- [x] Repair directory stamps, literal dictionary Keys copying and namespace
+      clearing; independently verify eleven cache controls and explicit Redis skip.
+- [x] Integrate reviewed dtm-codex native host and 26-contract CI into main;
+      retire only the exact integrated owned branch and preserve foreign work.
+- [ ] Complete fresh native filesystem client canary after the typed JSON
+      prerequisite repair, then qualify reversible new-session deployment.
+- [ ] Repair the demonstrated Rust 1.99 winpath lint in a frozen successor;
+      rerun narrow package QA before any wider uutils integration.
+- [ ] Clear PC-AI current-head coverage and deployed consumer parity gates;
+      preserve the 85% target and distinguish cache controls from coverage credit.
+
 Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
 [the responsiveness review](Reports/workstation-responsiveness-review.md).
 

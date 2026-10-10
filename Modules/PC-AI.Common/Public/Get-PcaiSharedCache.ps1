@@ -48,7 +48,7 @@ function Copy-PcaiCacheValue {
 
     if ($Value -is [System.Collections.IDictionary]) {
         $copy = [ordered]@{}
-        foreach ($key in $Value.Keys) {
+        foreach ($key in $Value.PSBase.Keys) {
             $copy[$key] = Copy-PcaiCacheValue -Value $Value[$key]
         }
         return $copy
@@ -153,7 +153,8 @@ function Get-PcaiDependencyStamp {
 
         switch ($item) {
             { $_ -is [System.IO.FileSystemInfo] } {
-                $parts.Add(('{0}|{1}|{2}|{3}' -f $_.FullName, $_.Exists, $_.Length, $_.LastWriteTimeUtc.Ticks))
+                $length = if ($_ -is [System.IO.FileInfo]) { $_.Length } else { 0 }
+                $parts.Add(('{0}|{1}|{2}|{3}' -f $_.FullName, $_.Exists, $length, $_.LastWriteTimeUtc.Ticks))
                 continue
             }
             { $_ -is [string] } {
@@ -163,7 +164,8 @@ function Get-PcaiDependencyStamp {
                 } elseif (Test-Path -LiteralPath $literal) {
                     $resolvedItem = Get-Item -LiteralPath $literal -ErrorAction SilentlyContinue
                     if ($resolvedItem) {
-                        $parts.Add(('{0}|{1}|{2}|{3}' -f $resolvedItem.FullName, $resolvedItem.Exists, $resolvedItem.Length, $resolvedItem.LastWriteTimeUtc.Ticks))
+                        $length = if ($resolvedItem -is [System.IO.FileInfo]) { $resolvedItem.Length } else { 0 }
+                        $parts.Add(('{0}|{1}|{2}|{3}' -f $resolvedItem.FullName, $resolvedItem.Exists, $length, $resolvedItem.LastWriteTimeUtc.Ticks))
                     } else {
                         $parts.Add("missing::$literal")
                     }
@@ -646,11 +648,13 @@ function Clear-PcaiExternalCache {
     }
 
     $config = Get-PcaiExternalCacheConfig
-    $pattern = if ([string]::IsNullOrWhiteSpace($Namespace)) {
-        "$($config.KeyPrefix)*"
+    $literalPrefix = if ([string]::IsNullOrWhiteSpace($Namespace)) {
+        [string]$config.KeyPrefix
     } else {
-        "$($config.KeyPrefix)$Namespace::*"
+        '{0}{1}::' -f $config.KeyPrefix, $Namespace
     }
+    # Redis MATCH uses glob syntax; prefix data must remain literal.
+    $pattern = $literalPrefix.Replace('\', '\\').Replace('*', '\*').Replace('?', '\?').Replace('[', '\[').Replace(']', '\]') + '*'
 
     $scan = Invoke-PcaiRedisCli -Config $config -Arguments @('--scan', '--pattern', $pattern) -TimeoutMs ([Math]::Max($config.TimeoutMs, 3000))
     if (-not $scan.Success -or [string]::IsNullOrWhiteSpace($scan.StdOut)) {
@@ -659,7 +663,9 @@ function Clear-PcaiExternalCache {
 
     $keys = @($scan.StdOut -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     foreach ($key in $keys) {
-        Invoke-PcaiRedisCli -Config $config -Arguments @('DEL', [string]$key) | Out-Null
+        if ($key.StartsWith($literalPrefix, [System.StringComparison]::Ordinal)) {
+            Invoke-PcaiRedisCli -Config $config -Arguments @('DEL', [string]$key) | Out-Null
+        }
     }
 }
 
@@ -744,8 +750,9 @@ function Clear-PcaiSharedCache {
         return
     }
 
+    $literalPrefix = '{0}::' -f $Namespace
     foreach ($key in @($script:PcaiSharedCache.Entries.Keys)) {
-        if ($key -like "$Namespace::*") {
+        if ($key.StartsWith($literalPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
             $script:PcaiSharedCache.Entries.Remove($key)
         }
     }

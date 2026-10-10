@@ -1,9 +1,47 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 9, 2026 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 10, 2026 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
+
+## Current acceptance readback (23:17 UTC)
+
+PC-AI PR 182's published `da3d9af` passes 2,727 PowerShell tests with 39 skips and
+no test failures, but CI run `38088936606` fails the unchanged coverage gate:
+14,022 of 21,324 commands, 65.7569%, leaving 4,104 additional distinct covered
+commands to reach 85%. Rust Guidelines `38088936595` and NVIDIA software validation
+`38088936592` pass. Those checks do not establish hardware or deployment acceptance.
+
+The independent shared-cache repair now passes eleven controls with one explicit
+Redis skip; its seven detecting baseline failures and source-bound selector register
+are documented in [the cache review](shared-cache-correctness-review.md). No measured
+performance or new coverage credit follows from those narrow controls.
+
+Related dtm-codex PR 39 merged as `62985c7` after native CI `38093486222` passed its
+paired build and 26 maintained contracts and portable CI `38093489141` passed at
+`56783cb`. Local main fast-forwarded to the merge, its tree equals the reviewed head,
+and the integrated owned branch was retired normally. Foreign untracked files remain
+preserved. The Carbon runner is running; the earlier startup qualification failure
+remains a failure despite successful subsequent CI. Merge-head CI is a separate gate.
+
+Production MCP deployment remains open. The genuine R5 client read reached the fixture,
+but its progress event failed the old validator. Thirty-four managed detecting controls
+qualify the successor validator only. The R6 prerequisite check then failed before
+launch because exact JSON integers decode as Int64 while new checks required Int32;
+the frozen failed packet is preserved while a typed successor is prepared.
+
+The isolated uutils `mv` package Clippy run failed with exit 101 on Rust 1.99's
+`map_unwrap_or` diagnostic in `winutils/shared/winpath/src/volume.rs`. All original
+process/job/drain resources and receipt writers closed; no later test phase ran.
+A minimal separately frozen successor is being prepared without changing the failed
+candidate or protected T: work. Metadata acquisition had passed independently; that
+success never counted as compilation or lint acceptance.
+
+Milly retains about 580 GiB internal free after the verified migration. Its reconnected
+SSD negotiates 10 Gb/s; the bounded 256 MiB direct-read sample measured 416.26 MiB/s.
+Cold boot/removal, Windows access to the native image, restore and physical second-slot
+vacancy remain open. dtm-work connectivity and credential reconciliation remain open.
 
 ## Historical acceptance readback (07:48 UTC)
 

@@ -137,6 +137,7 @@ function Invoke-PowerShellDuplicateScan {
             ErrorAction = 'SilentlyContinue'
         }
         if ($Include) { $params.Include = $Include }
+        if ($Exclude) { $params.Exclude = $Exclude }
         $files = Get-ChildItem @params
     }
 
@@ -311,6 +312,14 @@ function Find-WithFdForDuplicates {
     }
     catch {
         Write-Warning "fd enumeration failed, falling back to Get-ChildItem"
-        return Get-ChildItem -Path $Path -File -Recurse -ErrorAction SilentlyContinue
+        $fallbackParams = @{
+            Path        = $Path
+            File        = $true
+            Recurse     = $Recurse
+            ErrorAction = 'SilentlyContinue'
+        }
+        if ($Include) { $fallbackParams.Include = $Include }
+        if ($Exclude) { $fallbackParams.Exclude = $Exclude }
+        return Get-ChildItem @fallbackParams
     }
 }

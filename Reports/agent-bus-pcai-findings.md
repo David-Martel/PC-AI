@@ -1,8 +1,19 @@
 # PC_AI agent-bus findings and integration custody
 
-Evidence cutoff: October 9, 2026, 14:05 UTC. This is an active integration
+Latest bounded refresh: October 10, 2026, 02:53 UTC. Older sections retain their
+own historical cutoffs. This is an active integration
 record; it does not certify a clean fleet, complete coverage or final deployment.
 Root owner: `codex-p1-pcai-integration`.
+
+## Current failure dispositions
+
+| Finding | Current evidence and disposition | Remaining action |
+|---|---|---|
+| Windows event collector was omitted from earlier inference-only native CI. | The new current-head [CI run](https://github.com/David-Martel/PC-AI/actions/runs/38017583334) compiled its Windows bindings, then rejected a manual alignment-remainder expression in Clippy. The [reviewed repair](native-event-log-repair-review.md) retains alignment rejection and all 19 inert Rust cases. Rust tests were downstream skips. | Publish the lint correction, require successful successor compilation and actual Rust test execution, then qualify real paired consumers. |
+| Duplicate fallback dropped exclusions and expanded nonrecursive requests after fd failed. | Four genuine predecessor failures and seven passing controls; the [repair](duplicate-fallback-repair-review.md) passes all eleven through ordinary canonical Unit discovery with real shipped hashing. | Check successor hosted discovery; native filter parity and hash-failure reporting remain separate gaps. |
+| Stronger hook-response qualification accepted singleton-array JSON roots. | Private suite result: 91 passes and two failures, with all 59 actual guard-child contracts passing. The failures affect test validators. A concrete underlying-type correction is independently reviewed for 40 fresh pure controls and retained-output replay; no new runtime acceptance yet. | Finish the bounded validator run. Preserve original failure results, ten-second timeout failure and separate correctness-only cleanup evidence before producer integration. |
+| Carbon's CPU feature-off bundle lacks an optional router export. | Current bus owner reports a private optional-export fallback repair and 18 managed/5 route passes; root has acknowledged the lane. These are owner-reported leads pending exact source/evidence reconciliation, and use an older private bundle. | Review the minimal managed/helper delta, preserve required allocator/ABI failures and qualify a current-source paired bundle per host before installation. |
+| Tests pass while complete PowerShell coverage remains insufficient. | Exact published `d664fa0`: 2,567 passes, zero failures, 39 skips, zero unexecuted tests; merged source-bound command coverage is 13,299/21,105 (63.0135%). The 85% gate correctly fails. | Add meaningful behavior fixtures and repair real gaps; require current-head CI before PR 182 integration. No gate waiver or estimated private-test credit. |
 
 ## Evidence scope
 

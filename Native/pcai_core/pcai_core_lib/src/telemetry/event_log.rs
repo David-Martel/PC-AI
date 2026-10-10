@@ -423,7 +423,7 @@ impl RenderedValues {
             .ok_or(EventLogError::Rendering("render address overflow"))?;
         let address = pointer as usize;
         let payload_start = start + self.count * size_of::<EVT_VARIANT>();
-        if address < payload_start || address >= end || address % 2 != 0 {
+        if address < payload_start || address >= end || !address.is_multiple_of(2) {
             return Err(EventLogError::Rendering("provider pointer outside render payload"));
         }
         // SAFETY: pointer is aligned and within the owned initialized allocation, bounded by used.

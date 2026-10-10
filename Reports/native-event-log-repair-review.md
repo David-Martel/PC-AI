@@ -31,8 +31,12 @@ target-host measurement before any performance claim.
 `pcai_core_lib`; the existing inference-only profiles did not compile this code.
 The 19 reviewed Event Log cases use inert variants, strings, clocks and close callbacks. They
 cover rendering bounds, ownership, partial-result rejection, paging, text
-accounting and escaped-output limits. Compiler and current test qualification
-remain pending publication of the reviewed canonical source.
+accounting and escaped-output limits. At published `d664fa0`, current-head
+[CI](https://github.com/David-Martel/PC-AI/actions/runs/38017583334) compiled the
+Windows bindings but rejected their Clippy step: the alignment check used the
+manual remainder form. The reviewed `is_multiple_of` correction preserves that
+alignment rejection. The downstream Rust test job was skipped; native test
+qualification remains pending a successful successor run.
 
 The public contract suite uses synthetic fixtures and mocks both native sampling
 and `Get-WinEvent`. The current canonical suite passed all 14 cases with zero failures, skips or
@@ -42,6 +46,8 @@ No real Event Log query or loaded-library replacement has occurred during review
 
 Actual Windows publisher availability, log access, localized rendering, real
 handle growth and paired Rust/C#/PowerShell deployment remain **NOT TESTED**.
-The repository's existing 85% PowerShell coverage gate remains unchanged and
-failing at the last published head. Inert unit passes do not establish fleet
-runtime parity or complete repository integration.
+The repository's existing 85% PowerShell coverage gate remains unchanged. That
+same published run passed 2,567 tests with zero failures and 39 explicit skips,
+then failed the source-bound coverage gate at 13,299/21,105 commands (63.0135%).
+Inert unit passes do not establish fleet runtime parity or complete repository
+integration.

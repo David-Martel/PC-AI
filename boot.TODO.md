@@ -25,6 +25,13 @@ Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
 - [x] Benchmark and apply P1 minimal-profile accelerator import suppression with
       preserved PATH setup: three pairs averaged 643→410 ms, and a fresh deployed
       child passed parity. Preserve cloud shims, other hosts, hooks and trust.
+- [x] Capture the current two-minute agent workload on D: with observer costs
+      and inaccessible-property limits: eight samples, median CPU 37.85%,
+      available 10,786 MiB, commit 80.75%, sampled disk queue zero.
+- [x] Inventory actual PowerShell launch paths without command lines or secrets:
+      55 machine MCP wrappers, 20 QMD and 17 Serena launchers remain active.
+- [ ] Qualify all three native machine-MCP modes and prepare a reversible
+      new-session P1 pilot; preserve active clients and database workloads.
 - [ ] Resolve the remaining Python partial-memory-read diagnostic gap, nested
       hook-shell cost and path guard's fail-open exception handler.
 - [ ] Resume native/fleet/credential qualification only after responsiveness

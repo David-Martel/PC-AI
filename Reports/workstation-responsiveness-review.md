@@ -105,3 +105,42 @@ median pages-in of about 2,337/s. Neither comparison establishes causality or
 useful-throughput improvement. Commit remains close to the 80% build-admission
 limit; further bounded native qualification is being prepared on Carbon,
 whose fresh read-only snapshot showed 17,609 MiB available and 32% commit.
+
+## Current workload and launcher follow-up
+
+The October 10, 2026 capture started at 19:35:41 UTC and completed eight samples
+in 120.12 seconds during agent integration. Median CPU was 37.85%, available
+memory 10,786 MiB and commit 80.75%. Median pages-in was 62.47/s, aggregate disk
+transfer latency 0.053 ms and sampled disk queue zero. The 95th percentiles were
+57.55% CPU, 239.43 pages-in/s and 0.095 ms latency; queue remained zero. No
+sampling gaps exceeded 150% of the interval. This window did not show sustained
+disk thrashing; aggregate samples do not exclude a brief or drive-specific stall.
+Pages-in include hard faults and do not establish pagefile swapping.
+
+The observer consumed 0.464% of host CPU capacity; collection wall time reached
+2,681 ms at the 95th percentile. Between 36 and 43 process-property reads were
+inaccessible, leaving attribution incomplete. OneDrive, Python and System were
+the leading observed CPU groups. Useful work and process names do not establish
+waste or authorize stopping their sessions. The capture is unmatched to the
+previous workload and does not establish improvement caused by a particular fix.
+The exact summary is `D:/pcai-relocation/p1-responsiveness-profile-r1/summary.json`,
+SHA256 `00E98A8D9EB9DDEB0549C4E32D91B09C4E9489DBD2D15AA1AF4EF3E3EE4B11FF`.
+
+A separate read-only launch inventory observed 148 PowerShell processes, 138
+with NoProfile. Their recognized script paths included 55 machine MCP launchers,
+20 QMD launchers and 17 Serena launchers. Four Codex parents each had 12 machine
+MCP wrappers. The current Codex configuration still uses PowerShell for
+Filesystem, Context7 and GoogleWorkspace. The native launcher's earlier measured
+CPU/private-memory gains therefore remain a deployment opportunity, rather than
+an already realized reduction across these active processes. Current process
+counts and private-memory totals alone do not justify terminating wrappers.
+Inventory SHA256 is `5A978062D5B276A85A2C9099AEDE86B7AF33EF2B08C610237C27FDADDDF8051F`
+at `D:/pcai-relocation/p1-runtime-launch-audit-r1/pwsh-launches.json`. No command
+lines, credential values or environment secrets are stored in that inventory.
+
+Owner: Codex integration lane. Next action: verify all three launch modes and
+artifact/source binding, then prepare a reversible P1 pilot for new sessions.
+Existing clients, QMD/Serena database workloads and active agent sessions remain
+outside the pilot. Shared-server deployment requires separate multi-client,
+configuration and lifecycle validation. No new configuration deployment, cache
+purge, service restart or global memory trim was applied in this capture.

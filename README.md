@@ -176,7 +176,8 @@ pwsh Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -Suite quick
 
 Current integration evidence includes the [Milly storage review](Reports/milly-storage-and-expansion-review.md),
 [native event contracts](Reports/native-event-log-repair-review.md),
-[duplicate fallback repair](Reports/duplicate-fallback-repair-review.md) and
+[duplicate fallback repair](Reports/duplicate-fallback-repair-review.md),
+[FunctionGemma wrapper repair](Reports/functiongemma-consumer-repair-review.md) and
 [agent-bus findings](Reports/agent-bus-pcai-findings.md).
 
 Recent 2026-04 workstation work added maintained scripts and evidence capture

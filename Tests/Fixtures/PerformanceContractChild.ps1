@@ -114,18 +114,30 @@ function Invoke-PerformanceContractChild {
 if ($RunChild) {
     $ErrorActionPreference='Stop'
     $request=Get-Content -LiteralPath $RequestPath -Raw|ConvertFrom-Json -ErrorAction Stop
-    $paths=@($request.FixturePath,$PSCommandPath,(Join-Path $request.RepositoryRoot 'Native/PcaiNative/OptimizerModule.cs'))
-    foreach($name in @('Get-PcaiMemoryPressure','Get-PcaiProcessCategories','Get-PcaiOptimizationPlan')){$paths+=Join-Path $request.RepositoryRoot ('Modules/PC-AI.Performance/Public/'+$name+'.ps1')}
+    $coverageHelper=Join-Path $request.RepositoryRoot 'Tools/Merge-PesterChildCoverage.ps1'
+    $coveragePaths=@(foreach($name in @('Get-PcaiMemoryPressure','Get-PcaiProcessCategories','Get-PcaiOptimizationPlan')){Join-Path $request.RepositoryRoot ('Modules/PC-AI.Performance/Public/'+$name+'.ps1')})
+    $paths=@($request.FixturePath,$PSCommandPath,$coverageHelper,(Join-Path $request.RepositoryRoot 'Native/PcaiNative/OptimizerModule.cs'))+$coveragePaths
     $before=Get-PerformanceContractBindings $paths;$typesBefore=@(Get-PerformanceContractTypes)
     if($typesBefore.Count){throw 'Fresh child already contains a PcaiNative boundary.'}
     Import-Module $request.PesterManifest -Force -ErrorAction Stop
     $config=New-PesterConfiguration
     $config.Run.Container=New-PesterContainer -Path $request.FixturePath -Data @{IsolatedChild=$true;RepositoryRoot=$request.RepositoryRoot;ChildCaseKind=$request.Kind}
     $config.Run.PassThru=$true;$config.Output.Verbosity='Detailed';$config.TestResult.Enabled=$true;$config.TestResult.OutputFormat='NUnitXml';$config.TestResult.OutputPath=Join-Path $request.EvidenceRoot 'tests.xml'
+    if ($request.Kind -ceq 'Consumer') {
+        $config.CodeCoverage.Enabled=$true
+        $config.CodeCoverage.Path=$coveragePaths
+        $config.CodeCoverage.OutputPath=Join-Path $request.EvidenceRoot 'coverage.xml'
+        $config.CodeCoverage.OutputFormat='JaCoCo'
+    }
     $result=Invoke-Pester -Configuration $config
     $after=Get-PerformanceContractBindings $paths
     $stable=($before|ConvertTo-Json -Compress)-ceq($after|ConvertTo-Json -Compress)
     $receipt=[pscustomobject]@{Scope='Actual C# wrapper/inert synthetic transport only; no native DLL activation or provider diagnostics';ChildPid=$PID;ParentPid=$request.ParentPid;Kind=$request.Kind;Pester=(Get-Module Pester).Version.ToString();Passed=$result.PassedCount;Failed=$result.FailedCount;Skipped=$result.SkippedCount;NotRun=$result.NotRunCount;Total=$result.TotalCount;FailedContainers=$result.FailedContainersCount;FailedBlocks=$result.FailedBlocksCount;SourceStable=$stable;Before=$before;After=$after;TypesBefore=$typesBefore;TypesAfter=@(Get-PerformanceContractTypes);Cases=@($result.Tests|Select-Object ExpandedName,Result)}
+    if ($request.Kind -ceq 'Consumer' -and $stable) {
+        . $coverageHelper
+        $snapshot=New-PesterCoverageSnapshot -Coverage $result.CodeCoverage -SourceBindings @($before|Where-Object Path -in $coveragePaths)
+        $receipt | Add-Member -NotePropertyName Coverage -NotePropertyValue $snapshot
+    }
     $receipt|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $request.EvidenceRoot 'result.json') -Encoding utf8
     try { Assert-PerformanceContractResult $receipt $request.ExpectedCount } catch { Write-Error $_ -ErrorAction Continue;exit 1 }
     exit 0

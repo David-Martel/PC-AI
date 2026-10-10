@@ -348,6 +348,7 @@ Describe 'Performance consumer child isolation and result admission' -Tag 'Unit'
         if($package.Guid-eq[Guid]::Empty-or$package.Guid-ne$loadedPester[0].Guid-or$package.Version-ne$loadedPester[0].Version){throw 'Parent Pester package manifest identity mismatch.'}
         $script:pesterVersion=$package.Version.ToString()
         $script:fixturePath=$PSCommandPath
+        $script:coverageBindings=Get-PerformanceContractBindings @(foreach($name in @('Get-PcaiMemoryPressure','Get-PcaiProcessCategories','Get-PcaiOptimizationPlan')){Join-Path $RepositoryRoot ('Modules/PC-AI.Performance/Public/'+$name+'.ps1')})
     }
     It 'qualifies all63 consumer bodies in a fresh child without using the parent bridge' {
         if($RequirePreloadedParent){
@@ -358,6 +359,12 @@ Describe 'Performance consumer child isolation and result admission' -Tag 'Unit'
         $result.Passed|Should -Be 63;$result.Total|Should -Be 63
         $result.Pester|Should -BeExactly $script:pesterVersion
         $result.SourceStable|Should -BeTrue
+        $result.Coverage.Executed | Should -BeGreaterThan 0
+        # The exact Pester test object carries this receipt into its own Run.
+        # No global registry or stale report discovery can add hits to another run.
+        $currentTest = & (Get-Module Pester) { Get-CurrentTest }
+        if ($null -eq $currentTest) { throw 'Current Pester test identity is unavailable.' }
+        $currentTest | Add-Member -NotePropertyName PcaiChildCoverage -NotePropertyValue ([pscustomobject]@{ParentSources=$script:coverageBindings;Child=$result.Coverage})
         @($result.TypesBefore).Count|Should -Be 0
         $childType=@($result.TypesAfter|Where-Object Type -eq 'PcaiNative.OptimizerModule')
         $childType.Count|Should -Be 1

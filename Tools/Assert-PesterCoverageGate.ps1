@@ -20,5 +20,11 @@ function Assert-PesterCoverageGate {
     if (-not [long]::TryParse([string]$coverage.CommandsExecutedCount,[ref]$executed) -or $executed -lt 0 -or $executed -gt $analyzed) { throw 'Invalid executed coverage commands.' }
     if (-not [double]::TryParse([string]$coverage.CoveragePercent,[ref]$percent) -or [double]::IsNaN($percent) -or [double]::IsInfinity($percent) -or $percent -lt 0 -or $percent -gt 100) { throw 'Invalid coverage percentage.' }
     $derivedPercent=100.0*$executed/$analyzed
+    . (Join-Path $PSScriptRoot 'Merge-PesterChildCoverage.ps1')
+    $coverage = Merge-PesterChildCoverage -Result $Result
+    $percent = [double]$coverage.CoveragePercent
+    $analyzed = [long]$coverage.CommandsAnalyzedCount
+    $executed = [long]$coverage.CommandsExecutedCount
+    $derivedPercent=100.0*$executed/$analyzed
     if ($percent -lt $Target -or $derivedPercent -lt $Target) { throw "Coverage $percent% (derived $derivedPercent%) is below required $Target% ($executed/$analyzed commands)." }
 }

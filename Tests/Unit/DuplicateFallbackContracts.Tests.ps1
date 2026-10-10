@@ -27,7 +27,7 @@ Describe 'Shipped duplicate scan fallback contracts' -Tag 'Unit','Portable','Acc
         function Get-RustToolPath { param([string]$ToolName) throw 'Unmocked tool discovery forbidden.' }
         function Test-PcaiNativeAvailable { throw 'Native execution forbidden.' }
         function Invoke-PcaiNativeDuplicates { throw 'Native execution forbidden.' }
-        $script:FixtureRoot = Join-Path $EvidenceRoot 'fixture'
+        $script:FixtureRoot = Join-Path $EvidenceRoot 'fixture[owned]'
         if (Test-Path -LiteralPath $script:FixtureRoot) { throw 'Fixture custody collision.' }
         [void][IO.Directory]::CreateDirectory($script:FixtureRoot)
         [void][IO.Directory]::CreateDirectory((Join-Path $script:FixtureRoot 'nested'))
@@ -41,6 +41,8 @@ Describe 'Shipped duplicate scan fallback contracts' -Tag 'Unit','Portable','Acc
         }
         $script:InertFd = Join-Path $EvidenceRoot 'inert-fd-throw.ps1'
         [IO.File]::WriteAllText($script:InertFd,"throw 'Owned inert fd execution failed.'`n",[Text.UTF8Encoding]::new($false))
+        $script:ExitFd = Join-Path $EvidenceRoot 'inert-fd-exit.ps1'
+        [IO.File]::WriteAllText($script:ExitFd,"param([Parameter(ValueFromRemainingArguments)][object[]]`$Arguments)`nif (`$env:PCAI_DUPLICATE_FD_PATH) { Write-Output `$env:PCAI_DUPLICATE_FD_PATH }`nexit ([int]`$env:PCAI_DUPLICATE_FD_EXIT)`n",[Text.UTF8Encoding]::new($false))
         function Assert-DuplicateGroup {
             param([object[]]$Rows,[int]$ExpectedCount,[long]$ExpectedSize,[string]$Algorithm)
             $Rows.Count | Should -Be 1
@@ -71,6 +73,12 @@ Describe 'Shipped duplicate scan fallback contracts' -Tag 'Unit','Portable','Acc
         @($rows[0].Files | ForEach-Object { [IO.Path]::GetFileName($_) }) | Should -Not -Contain 'skip-c.txt'
     }
 
+    It 'applies Include and Exclude to a nonrecursive no-fd root' {
+        $rows=@(Find-DuplicatesFast -Path $script:FixtureRoot -Include '*.txt' -Exclude 'skip-*' -MinimumSize 4 -MaximumSize 4 -DisableNative -ThrottleLimit 1)
+        Assert-DuplicateGroup -Rows $rows -ExpectedCount 2 -ExpectedSize 4 -Algorithm SHA256
+        @($rows[0].Files | ForEach-Object { [IO.Path]::GetFileName($_) }) | Should -Not -Contain 'deep.txt'
+    }
+
     # Protects: The caller's nonrecursive scope after fd throws.
     # Detects: Nested recording admitted by an unconditional Recurse fallback.
     # Needs: Real fixture enumeration and an owned inert throwing fd script.
@@ -92,6 +100,41 @@ Describe 'Shipped duplicate scan fallback contracts' -Tag 'Unit','Portable','Acc
         @($files.Name) | Should -Contain 'deep.txt'
         @($files.Name) | Should -Not -Contain 'skip-c.txt'
         @($files.Extension | Select-Object -Unique) | Should -Be @('.txt')
+    }
+
+    It 'discards partial fd output after a nonzero exit and preserves fallback scope' {
+        $savedPath=$env:PCAI_DUPLICATE_FD_PATH; $savedExit=$env:PCAI_DUPLICATE_FD_EXIT
+        try {
+            $env:PCAI_DUPLICATE_FD_PATH=Join-Path $script:FixtureRoot 'nested/deep.txt'
+            $env:PCAI_DUPLICATE_FD_EXIT='7'
+            $files=@(Find-WithFdForDuplicates -Path $script:FixtureRoot -Recurse:$false -Include '*.txt' -Exclude 'skip-*' -FdPath $script:ExitFd)
+            $files.Count | Should -Be 4
+            @($files.Name) | Should -Not -Contain 'deep.txt'
+            @($files.Name) | Should -Not -Contain 'skip-c.txt'
+            Should -Invoke Write-Warning -Exactly -Times 1
+        } finally { $env:PCAI_DUPLICATE_FD_PATH=$savedPath; $env:PCAI_DUPLICATE_FD_EXIT=$savedExit }
+    }
+
+    It 'preserves successful fd output without invoking fallback' {
+        $savedPath=$env:PCAI_DUPLICATE_FD_PATH; $savedExit=$env:PCAI_DUPLICATE_FD_EXIT
+        try {
+            $env:PCAI_DUPLICATE_FD_PATH=Join-Path $script:FixtureRoot 'keep-a.txt'
+            $env:PCAI_DUPLICATE_FD_EXIT='0'
+            $files=@(Find-WithFdForDuplicates -Path $script:FixtureRoot -FdPath $script:ExitFd)
+            $files.Count | Should -Be 1
+            $files[0].Name | Should -Be 'keep-a.txt'
+            Should -Invoke Write-Warning -Exactly -Times 0
+        } finally { $env:PCAI_DUPLICATE_FD_PATH=$savedPath; $env:PCAI_DUPLICATE_FD_EXIT=$savedExit }
+    }
+
+    It 'accepts a successful empty fd result rather than scanning the fallback tree' {
+        $savedPath=$env:PCAI_DUPLICATE_FD_PATH; $savedExit=$env:PCAI_DUPLICATE_FD_EXIT
+        try {
+            $env:PCAI_DUPLICATE_FD_PATH=$null
+            $env:PCAI_DUPLICATE_FD_EXIT='0'
+            @(Find-WithFdForDuplicates -Path $script:FixtureRoot -FdPath $script:ExitFd).Count | Should -Be 0
+            Should -Invoke Write-Warning -Exactly -Times 0
+        } finally { $env:PCAI_DUPLICATE_FD_PATH=$savedPath; $env:PCAI_DUPLICATE_FD_EXIT=$savedExit }
     }
 
     # Protects: Public duplicate results after fd fallback with bounded sizes.

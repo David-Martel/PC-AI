@@ -1173,7 +1173,10 @@ function Invoke-OpenAIChatStream {
         [int]$TimeoutSeconds = $script:ModuleConfig.DefaultTimeout,
 
         [Parameter(Mandatory)]
-        [string]$ApiUrl
+        [string]$ApiUrl,
+
+        [Parameter()]
+        [System.Threading.CancellationToken]$CancellationToken = [System.Threading.CancellationToken]::None
     )
 
     $ApiUrl = Resolve-PcaiEndpoint -ApiUrl $ApiUrl -ProviderName 'pcai-inference'
@@ -1191,21 +1194,37 @@ function Invoke-OpenAIChatStream {
 
     $jsonBody = $body | ConvertTo-Json -Depth 10
 
-    $client = New-Object System.Net.Http.HttpClient
-    $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
-    $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
-    $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
-
-    $sb = New-Object System.Text.StringBuilder
+    $client = $null
+    $content = $null
+    $request = $null
+    $response = $null
+    $stream = $null
+    $reader = $null
+    $deadline = $null
+    $primaryFailure = $null
+    $cleanupFailures = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]::new()
+    $pendingResources = [System.Collections.Generic.List[object]]::new()
+    $sb = [System.Text.StringBuilder]::new()
     try {
+        # One deadline covers response headers and every body read; progress never resets it.
+        $deadline = [System.Threading.CancellationTokenSource]::CreateLinkedTokenSource($CancellationToken, [System.Threading.CancellationToken]::None)
+        $deadline.CancelAfter([TimeSpan]::FromSeconds($TimeoutSeconds))
+        $token = $deadline.Token
+        $token.ThrowIfCancellationRequested()
+        $client = [System.Net.Http.HttpClient]::new()
+        $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
+        $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
+        $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
         $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Post, "$ApiUrl/v1/chat/completions")
         $request.Content = $content
-        $response = $client.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+        $response = $client.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead, $token).GetAwaiter().GetResult()
         $response.EnsureSuccessStatusCode() | Out-Null
-        $stream = $response.Content.ReadAsStreamAsync().Result
+        $stream = $response.Content.ReadAsStreamAsync($token).GetAwaiter().GetResult()
         $reader = New-Object System.IO.StreamReader($stream)
-        while (-not $reader.EndOfStream) {
-            $line = $reader.ReadLine()
+        while ($true) {
+            $token.ThrowIfCancellationRequested()
+            $line = $reader.ReadLineAsync($token).AsTask().GetAwaiter().GetResult()
+            if ($null -eq $line) { break }
             if ([string]::IsNullOrWhiteSpace($line)) { continue }
             if (-not $line.StartsWith('data:')) { continue }
 
@@ -1230,9 +1249,25 @@ function Invoke-OpenAIChatStream {
             } catch { }
         }
         Write-Host ""
+    } catch {
+        $primaryFailure = $_
     } finally {
-        $client.Dispose()
+        # Dispose only this call's objects. A cleanup exception cannot replace its original cause.
+        foreach ($resource in @($reader, $stream, $response, $request, $content, $client, $deadline)) {
+            if ($null -ne $resource) {
+                try { $resource.Dispose() } catch {
+                    $cleanupFailures.Add($_)
+                    $pendingResources.Add($resource)
+                }
+            }
+        }
     }
+    if ($cleanupFailures.Count -gt 0) {
+        if ($null -eq $primaryFailure) { $primaryFailure = $cleanupFailures[0] }
+        $primaryFailure.Exception.Data['PcaiStreamingCleanupFailures'] = $cleanupFailures.ToArray()
+        $primaryFailure.Exception.Data['PcaiStreamingPendingResources'] = $pendingResources.ToArray()
+    }
+    if ($null -ne $primaryFailure) { $PSCmdlet.ThrowTerminatingError($primaryFailure) }
 
     return $sb.ToString()
 }
@@ -1264,7 +1299,10 @@ function Invoke-OpenAICompletionStream {
         [int]$TimeoutSeconds = $script:ModuleConfig.DefaultTimeout,
 
         [Parameter(Mandatory)]
-        [string]$ApiUrl
+        [string]$ApiUrl,
+
+        [Parameter()]
+        [System.Threading.CancellationToken]$CancellationToken = [System.Threading.CancellationToken]::None
     )
 
     $ApiUrl = Resolve-PcaiEndpoint -ApiUrl $ApiUrl -ProviderName 'pcai-inference'
@@ -1282,21 +1320,37 @@ function Invoke-OpenAICompletionStream {
 
     $jsonBody = $body | ConvertTo-Json -Depth 10
 
-    $client = New-Object System.Net.Http.HttpClient
-    $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
-    $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
-    $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
-
-    $sb = New-Object System.Text.StringBuilder
+    $client = $null
+    $content = $null
+    $request = $null
+    $response = $null
+    $stream = $null
+    $reader = $null
+    $deadline = $null
+    $primaryFailure = $null
+    $cleanupFailures = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]::new()
+    $pendingResources = [System.Collections.Generic.List[object]]::new()
+    $sb = [System.Text.StringBuilder]::new()
     try {
+        # One deadline covers response headers and every body read; progress never resets it.
+        $deadline = [System.Threading.CancellationTokenSource]::CreateLinkedTokenSource($CancellationToken, [System.Threading.CancellationToken]::None)
+        $deadline.CancelAfter([TimeSpan]::FromSeconds($TimeoutSeconds))
+        $token = $deadline.Token
+        $token.ThrowIfCancellationRequested()
+        $client = [System.Net.Http.HttpClient]::new()
+        $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
+        $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
+        $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
         $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Post, "$ApiUrl/v1/completions")
         $request.Content = $content
-        $response = $client.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+        $response = $client.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead, $token).GetAwaiter().GetResult()
         $response.EnsureSuccessStatusCode() | Out-Null
-        $stream = $response.Content.ReadAsStreamAsync().Result
+        $stream = $response.Content.ReadAsStreamAsync($token).GetAwaiter().GetResult()
         $reader = New-Object System.IO.StreamReader($stream)
-        while (-not $reader.EndOfStream) {
-            $line = $reader.ReadLine()
+        while ($true) {
+            $token.ThrowIfCancellationRequested()
+            $line = $reader.ReadLineAsync($token).AsTask().GetAwaiter().GetResult()
+            if ($null -eq $line) { break }
             if ([string]::IsNullOrWhiteSpace($line)) { continue }
             if (-not $line.StartsWith('data:')) { continue }
 
@@ -1314,9 +1368,25 @@ function Invoke-OpenAICompletionStream {
             } catch { }
         }
         Write-Host ""
+    } catch {
+        $primaryFailure = $_
     } finally {
-        $client.Dispose()
+        # Dispose only this call's objects. A cleanup exception cannot replace its original cause.
+        foreach ($resource in @($reader, $stream, $response, $request, $content, $client, $deadline)) {
+            if ($null -ne $resource) {
+                try { $resource.Dispose() } catch {
+                    $cleanupFailures.Add($_)
+                    $pendingResources.Add($resource)
+                }
+            }
+        }
     }
+    if ($cleanupFailures.Count -gt 0) {
+        if ($null -eq $primaryFailure) { $primaryFailure = $cleanupFailures[0] }
+        $primaryFailure.Exception.Data['PcaiStreamingCleanupFailures'] = $cleanupFailures.ToArray()
+        $primaryFailure.Exception.Data['PcaiStreamingPendingResources'] = $pendingResources.ToArray()
+    }
+    if ($null -ne $primaryFailure) { $PSCmdlet.ThrowTerminatingError($primaryFailure) }
 
     return $sb.ToString()
 }

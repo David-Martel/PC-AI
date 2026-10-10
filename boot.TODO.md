@@ -38,6 +38,25 @@ Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
       actual collector costs. No automatic terminal termination is authorized
       by an absent parent snapshot.
 
+## Parser and dependency integration follow-up
+
+Reviewed October 10, 2026; owner: Codex integration lane. See the current
+[fleet review](Reports/fleet-integration-review.md) for source-bound results.
+
+- [x] Repair BOM-aware Process Lasso fallback reads and empty/singleton lists;
+      preserved predecessor fails five controls, repaired source passes fourteen.
+- [x] Qualify the maintained fourteen controls and explicit legacy discovery
+      skips; preserve the first mock-adapter failure and unchanged assertions.
+- [x] Repair Evaluation's optional configuration and dependency file discovery;
+      same real-file controls improve from one pass/thirteen failures to fourteen
+      passes. Native execution is not established by availability markers.
+- [x] Isolate the leading-hyphen fixture from ancestor ripgrep ignore rules,
+      preserve production behavior and pass all 375 combined bounded checks.
+- [ ] Commit and publish the reviewed fixes with normal hooks, then verify
+      current-head CI and the unchanged 85% coverage requirement before merging.
+- [ ] Qualify actual native/fallback semantic parity and remaining cancellation,
+      shared-server deployment, service-account runtime and post-reboot behavior.
+
 ## Milly capacity and expansion
 
 See [the storage and expansion review](Reports/milly-storage-and-expansion-review.md).

@@ -287,6 +287,20 @@ At minimum, choose the narrowest relevant validation path:
 - tooling benchmarks for hot-path acceleration changes
 - baseline/regression comparisons for performance-sensitive work
 
+Maintained fallback and dependency fixtures:
+
+- `Tests/Unit/ProcessLassoSnapshot.Tests.ps1` exercises the complete fallback
+  parser on literal UTF-8/UTF-16 files, empty/singleton lists and log records;
+  only native-command discovery is suppressed.
+- `Tests/Unit/EvaluationDependencyContracts.Tests.ps1` runs the complete
+  dependency validator against owned configuration and inert file markers.
+  Availability checks do not establish DLL loading or backend execution.
+- These two suites explicitly skip unsupported Windows PowerShell 5.1 cases;
+  a successful discovery job is not a legacy execution qualification.
+- Search fixtures for literal CLI arguments must explicitly bypass ancestor
+  ignore rules when those rules would exclude the owned input file. Preserve
+  production ignore behavior and use the actual selected backend.
+
 `Tests/Unit/PcaiFdSearchContracts.Tests.ps1` requires physical `fd` on
 PowerShell 7.3+ and exercises eight failure/cache/success contracts against
 maintained functions. CI installs the hash-pinned fd release. Windows PowerShell

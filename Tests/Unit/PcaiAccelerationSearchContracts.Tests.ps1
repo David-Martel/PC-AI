@@ -62,7 +62,7 @@ Describe 'Acceleration content and log search contracts' -Tag 'Unit', 'Accelerat
     }
     It 'does not interpret a leading hyphen pattern as a CLI option' {
         [IO.File]::WriteAllText((Join-Path $script:SearchFixture 'hyphen.log'), "-needle`n")
-        $result = @(Search-ContentFast -Path $script:SearchFixture -LiteralPattern '-needle')
+        $result = @(Search-ContentFast -Path $script:SearchFixture -LiteralPattern '-needle' -NoIgnore)
         $result | Should -HaveCount 1
         $result[0].Line | Should -BeExactly '-needle'
     }

@@ -11,32 +11,51 @@
 #>
 
 $ErrorActionPreference = 'Stop'
+$script:PcaiDllPath = $null
 
 # Find project root
 $moduleRoot = Split-Path -Parent $PSScriptRoot
 $projectRoot = Split-Path -Parent $moduleRoot
 $configPath = Join-Path $projectRoot 'Config\llm-config.json'
 $config = $null
-if (Test-Path $configPath) {
+if (Test-Path -LiteralPath $configPath -PathType Leaf) {
     try {
-        $config = Get-Content $configPath -Raw | ConvertFrom-Json
+        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -AsHashtable
+        if ($config -isnot [System.Collections.IDictionary]) {
+            throw 'Dependency configuration must be a JSON object.'
+        }
     } catch {
-        Write-Verbose "Failed to parse ${configPath}: $_"
+        $config = $null
+        Write-Warning "Failed to parse dependency configuration ${configPath} as a JSON object. Using default search paths."
+    }
+}
+
+# Optional sections are absent in provider-only configurations. Invalid supplied
+# paths must not coerce to strings or masquerade as available dependencies.
+$getConfiguredPaths = {
+    param([string]$Section, [string]$Property)
+    if ($null -eq $config -or -not $config.Contains($Section) -or $null -eq $config[$Section]) { return }
+    $settings = $config[$Section]
+    if ($settings -isnot [System.Collections.IDictionary]) {
+        Write-Warning "Dependency configuration section '$Section' must be an object. Using default search paths."
+        return
+    }
+    if (-not $settings.Contains($Property) -or $null -eq $settings[$Property]) { return }
+    foreach ($configuredPath in @($settings[$Property])) {
+        if ($configuredPath -isnot [string] -or [string]::IsNullOrWhiteSpace($configuredPath)) {
+            Write-Warning "Dependency configuration '$Section.$Property' contains an invalid path. Ignoring that entry."
+            continue
+        }
+        if ([System.IO.Path]::IsPathRooted($configuredPath)) {
+            $configuredPath
+        } else {
+            Join-Path $projectRoot $configuredPath
+        }
     }
 }
 
 # DLL search paths
-$dllSearchPaths = @()
-if ($config -and $config.nativeInference -and $config.nativeInference.dllSearchPaths) {
-    foreach ($path in $config.nativeInference.dllSearchPaths) {
-        if (-not $path) { continue }
-        if ([System.IO.Path]::IsPathRooted($path)) {
-            $dllSearchPaths += $path
-        } else {
-            $dllSearchPaths += (Join-Path $projectRoot $path)
-        }
-    }
-}
+$dllSearchPaths = @(& $getConfiguredPaths 'nativeInference' 'dllSearchPaths')
 
 $userProfile = [Environment]::GetFolderPath('UserProfile')
 $dllSearchPaths += @(
@@ -48,7 +67,7 @@ $dllSearchPaths += @(
 # Check for DLL
 $dllFound = $false
 foreach ($path in $dllSearchPaths) {
-    if (Test-Path $path -ErrorAction SilentlyContinue) {
+    if (Test-Path -LiteralPath $path -PathType Leaf -ErrorAction SilentlyContinue) {
         $dllFound = $true
         $script:PcaiDllPath = $path
         break
@@ -79,17 +98,7 @@ if (-not $dllFound) {
 }
 
 # Check for compiled server binaries
-$exeSearchDirs = @()
-if ($config -and $config.evaluation -and $config.evaluation.binSearchPaths) {
-    foreach ($path in $config.evaluation.binSearchPaths) {
-        if (-not $path) { continue }
-        if ([System.IO.Path]::IsPathRooted($path)) {
-            $exeSearchDirs += $path
-        } else {
-            $exeSearchDirs += (Join-Path $projectRoot $path)
-        }
-    }
-}
+$exeSearchDirs = @(& $getConfiguredPaths 'evaluation' 'binSearchPaths')
 
 $exeSearchDirs += @(
     (Join-Path $userProfile '.local\bin')
@@ -100,17 +109,17 @@ $mistralrsExe = $null
 foreach ($dir in $exeSearchDirs) {
     if (-not $llamacppExe) {
         $candidate = Join-Path $dir 'pcai-llamacpp.exe'
-        if (Test-Path $candidate -ErrorAction SilentlyContinue) { $llamacppExe = $candidate }
+        if (Test-Path -LiteralPath $candidate -PathType Leaf -ErrorAction SilentlyContinue) { $llamacppExe = $candidate }
     }
     if (-not $mistralrsExe) {
         $candidate = Join-Path $dir 'pcai-mistralrs.exe'
-        if (Test-Path $candidate -ErrorAction SilentlyContinue) { $mistralrsExe = $candidate }
+        if (Test-Path -LiteralPath $candidate -PathType Leaf -ErrorAction SilentlyContinue) { $mistralrsExe = $candidate }
     }
 }
 
 # Check for PcaiInference module
 $pcaiModulePath = Join-Path $projectRoot 'Modules\PcaiInference.psm1'
-if (-not (Test-Path $pcaiModulePath)) {
+if (-not (Test-Path -LiteralPath $pcaiModulePath -PathType Leaf)) {
     Write-Warning "PcaiInference.psm1 not found at: $pcaiModulePath"
 }
 
@@ -118,7 +127,7 @@ if (-not (Test-Path $pcaiModulePath)) {
 $script:DependencyStatus = @{
     DllAvailable = $dllFound
     DllPath = $script:PcaiDllPath
-    ModuleAvailable = Test-Path $pcaiModulePath
+    ModuleAvailable = Test-Path -LiteralPath $pcaiModulePath -PathType Leaf
     ModulePath = $pcaiModulePath
     CompiledBackends = @{
         LlamaCppExe  = $llamacppExe

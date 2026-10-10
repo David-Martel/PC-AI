@@ -676,3 +676,90 @@ RAM3.62GiB and foreign Cargo/Rust producers prevented admission at17:35; fresh17
 readback has5.30GiB and no observed Cargo/Rust producer, still below the6GiB gate.
 No foreign process was stopped. User-authorized additional C: storage work is under
 fresh resource/custody audit; no pagefile, cache-policy or system mutation is claimed.
+
+## Accepted launcher measurements and current validation gates
+
+Readback cutoff: October 10, 2026, 15:20 UTC. This addendum supersedes earlier
+pending statements only for the evidence below; historical receipts stay preserved.
+
+Independent review accepted twelve cold filesystem MCP sessions on DTM-P1GEN7:
+three serialized A-B-B-A blocks, six maintained PowerShell launchers and six paired
+native launchers, using the same Rust backend and a private 26-byte read-only
+fixture per session. Every session completed initialization, the full tool
+catalogue, exact file read and exact allowed-root check. Canonical catalogue
+fingerprints agreed despite different raw object-key ordering. All twelve original
+bridge operations and the enclosing stage closed with drained streams, disposed
+original handles and no pending custody or failures. Evidence is retained in
+`D:/pcai-relocation/mcp-live-abba-actual-r1/`: owner SHA256 `F85D96C7…`, stage
+`9D32F281…`; independent acceptance is
+`.pcai/integration/mcp-live-abba-actual-peer-r1/review.json`, SHA256
+`AB564714CC9B0C72A32033C705FF321178CAEFF3DC50BD637745A1F69B221B78`.
+
+| Median across six sessions per launcher | PowerShell | Native | Observed difference |
+| --- | ---: | ---: | ---: |
+| Original launcher lifetime CPU | 1,382.81 ms | 195.31 ms | 85.9% lower |
+| Maximum sampled launcher private memory | 38.945 MiB | 8.447 MiB | 78.3% lower |
+| Startup through initialization | 2,225.13 ms | 2,079.76 ms | 6.5% lower median; mixed block directions |
+| Tiny read round trip | 83.02 ms | 94.67 ms | 14.0% higher median; mixed block directions |
+
+Launcher CPU and sampled private memory were lower in every block. Startup ranges
+overlapped; the native read was slower in two of three blocks. Backend CPU medians
+were equal at 39.06 ms, only a few Windows accounting ticks. Sparse nominal 100 ms
+samples had gaps exceeding one second, so their maxima are not exact lifetime
+private-memory peaks. OS peak pagefile and working-set fields remain separate
+metrics and do not establish actual disk swapping. Startup excludes prelaunch
+setup. Observer CPU includes protocol, CIM discovery and evidence work; its
+pre-result snapshots exclude final serialization, flush and disposal. Full
+observer lifetime CPU was not measured, and no overhead was subtracted. These
+descriptive whole-launcher results establish no fleet-wide speedup, sustained or
+concurrent workload benefit, deployment, consumer configuration or shared-server
+reuse. Broader HOLD, blocked-reader, caller-shutdown and recovery gates remain open.
+
+The private Process Lasso parser candidate passed all fourteen unchanged detecting
+cases after the preserved canonical baseline produced nine passes and five
+failures. Independent private acceptance is
+`.pcai/integration/process-lasso-parser-candidate-actual-peer-r1/review.json`.
+The maintained function now matches candidate SHA256
+`77696D022CD4EF0EF4D200ACC1B778F21C2B6BB6F058ECC73887E540F21767F7`:
+BOM-aware config reading and explicit collection at the two comma-list consumers.
+Maintained unit execution passed all fourteen cases in PowerShell 7.6.6;
+Windows PowerShell 5.1 discovered fourteen explicit skips and zero passes.
+The first adapter trial's thirteen passes and one literal-null mock failure
+remain preserved; replacing the mock's literal null with no output retained all
+fourteen assertion bodies. Independent maintained acceptance is
+`.pcai/integration/process-lasso-unit-adapter-peer-r3/review.json`.
+Its unit adapter forces only native-command discovery absent; that proof remains
+distinct from the private fresh-process run with no mocks. Native execution,
+live Process Lasso policy and performance are not qualified by these parser tests.
+
+Further StrictMode validation reproduced thirteen failures in fourteen Evaluation
+dependency checks. Missing optional configuration, undefined or stale DLL paths,
+wildcard paths, dependency-named directories and malformed optional values were
+handled incorrectly. The repair passed the same fourteen real-file controls;
+Windows PowerShell 5.1 explicitly skipped all fourteen. Tiny DLL/EXE files are
+availability markers and were never loaded or launched. Independent acceptance:
+`.pcai/integration/evaluation-dependency-actual-peer-r1/review.json`, SHA256
+`92913FA92EE555D6F400490B8625EF338ADDE4D5C42CC8D6FEDF859049D81FD3`.
+
+At 15:37 UTC, the combined working-tree check passed all 375 tests with no
+test, block or container failures: parser, acceleration wrappers, real ripgrep/fd
+contracts and module loading. The preceding 168-pass/207-failure run remains
+preserved. Its separate leading-hyphen fixture failure came from the local
+ancestor `.rgignore` excluding log files; the fixture now explicitly uses
+`-NoIgnore`, with unchanged expected bytes and assertions. Production search
+and the user's ignore configuration are unchanged. Actual evidence is in
+`D:/pcai-relocation/process-lasso-maintained-combined-r3/`. Coverage was not
+measured by this bounded check; published-current-head CI and the unchanged 85%
+coverage gate remain separate requirements.
+
+Milly's read-only persistence audit at 14:56–14:59 UTC found active ordered mounts,
+the matching root-owned guard, the original study path traversable by `yayuanli`
+and five zero Btrfs device-error counters. Root available space was
+623,061,983,232 bytes; both SSD links negotiated UAS at 10 Gb/s. The retained
+internal Python interpreter remains a dependency of the migrated study environment;
+no application was executed. The initial collection's SSH exit127 remains a
+failure; its corrected bounded follow-up exited0. See
+`.pcai/integration/milly-mount-persistence-review-r1/review.json` and the maintained
+[storage review](milly-storage-and-expansion-review.md). Cold boot, physical drive
+removal, Windows access, independent backup/restore and application/HIL checks
+remain untested; this audit supplies no additional deletion or unmount authority.

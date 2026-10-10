@@ -219,16 +219,47 @@ function Send-OllamaRequest {
         $endTime = Get-Date
         $duration = ($endTime - $startTime).TotalSeconds
 
+        # Provider metadata is optional; required message/model remain required.
+        $metadata = @{}
+        foreach ($name in @('raw', 'ToolCalls', 'ExecutedTools')) {
+            $metadata[$name] = $null
+            if ($response -is [System.Collections.IDictionary]) {
+                # Match string keys ordinally without assuming a public Contains
+                # overload; index the actual key and reject case ambiguity.
+                $keys = @($response.PSBase.Keys | Where-Object { $_ -is [string] -and [string]::Equals($_, $name, [StringComparison]::OrdinalIgnoreCase) })
+                if ($keys.Count -gt 1) { throw "Ambiguous optional generation metadata key '$name'." }
+                if ($keys.Count -eq 1) { $metadata[$name] = $response[$keys[0]] }
+            } else {
+                $property = $response.PSObject.Properties[$name]
+                if ($null -ne $property) { $metadata[$name] = $property.Value }
+            }
+        }
+        $usage = $null
+        $raw = $metadata['raw']
+        if ($null -ne $raw) {
+            if ($raw -is [System.Collections.IDictionary]) {
+                $keys = @($raw.PSBase.Keys | Where-Object { $_ -is [string] -and [string]::Equals($_, 'timing', [StringComparison]::OrdinalIgnoreCase) })
+                if ($keys.Count -gt 1) { throw "Ambiguous optional generation metadata key 'timing'." }
+                if ($keys.Count -eq 1) { $usage = $raw[$keys[0]] }
+            } elseif ($raw.PSObject.Properties['timing']) {
+                $usage = $raw.timing
+            }
+        }
+        $toolCalls = @()
+        $executedTools = @()
+        if ($null -ne $metadata['ToolCalls']) { $toolCalls = $metadata['ToolCalls'] }
+        if ($null -ne $metadata['ExecutedTools']) { $executedTools = $metadata['ExecutedTools'] }
+
         # Format response
         $result = [PSCustomObject]@{
             Response = $response.message.content
             Model = $response.model
             CreatedAt = $startTime
-            Usage = $response.raw.timing
+            Usage = $usage
             RequestDurationSeconds = [math]::Round($duration, 2)
             Timestamp = $startTime
-            ToolCalls = $response.ToolCalls
-            ExecutedTools = $response.ExecutedTools
+            ToolCalls = $toolCalls
+            ExecutedTools = $executedTools
         }
 
         return $result

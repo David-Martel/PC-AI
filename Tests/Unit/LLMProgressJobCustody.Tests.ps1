@@ -6,7 +6,7 @@ BeforeAll {
     $parseErrors = $null
     $helperAst = [Management.Automation.Language.Parser]::ParseFile($script:CanonicalHelperPath, [ref]$tokens, [ref]$parseErrors)
     $top = @($helperAst.EndBlock.Statements)
-    if ($parseErrors.Count -ne 0 -or $helperAst.ParamBlock -or $helperAst.BeginBlock -or $helperAst.ProcessBlock -or $helperAst.DynamicParamBlock -or $helperAst.UsingStatements.Count -ne 0 -or $helperAst.EndBlock.Traps.Count -ne 0 -or $top.Count -ne 23 -or @($top | Where-Object { $_ -isnot [Management.Automation.Language.FunctionDefinitionAst] }).Count -ne 0) {
+    if (($null -ne $parseErrors -and @($parseErrors).Count -ne 0) -or $helperAst.ParamBlock -or $helperAst.BeginBlock -or $helperAst.ProcessBlock -or $helperAst.DynamicParamBlock -or $helperAst.UsingStatements.Count -ne 0 -or ($null -ne $helperAst.EndBlock.Traps -and @($helperAst.EndBlock.Traps).Count -ne 0) -or $top.Count -ne 23 -or @($top | Where-Object { $_ -isnot [Management.Automation.Language.FunctionDefinitionAst] }).Count -ne 0) {
         throw 'Canonical helper must contain only its 23 function declarations before dot-sourcing.'
     }
     $script:CanonicalProgressFunction = @($top | Where-Object { $_.Name -ceq 'Invoke-OpenAIChatWithProgress' })

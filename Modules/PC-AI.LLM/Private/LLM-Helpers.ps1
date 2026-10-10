@@ -280,15 +280,46 @@ function Invoke-OllamaNativeChat {
             throw ($result.error ?? 'Unknown ollama native error')
         }
 
+        # Native metadata is optional; required content/model still fail closed.
+        $metadata = @{}
+        foreach ($name in @('toolCalls', 'executedTools', 'timing')) {
+            $metadata[$name] = $null
+            if ($result -is [System.Collections.IDictionary]) {
+                # Match string keys ordinally without assuming a public Contains
+                # overload; index the actual key and reject case ambiguity.
+                $keys = @($result.PSBase.Keys | Where-Object { $_ -is [string] -and [string]::Equals($_, $name, [StringComparison]::OrdinalIgnoreCase) })
+                if ($keys.Count -gt 1) { throw "Ambiguous optional native metadata key '$name'." }
+                if ($keys.Count -eq 1) { $metadata[$name] = $result[$keys[0]] }
+            } else {
+                $property = $result.PSObject.Properties[$name]
+                if ($null -ne $property) { $metadata[$name] = $property.Value }
+            }
+        }
+        $toolCalls = @()
+        $executedTools = @()
+        if ($null -ne $metadata['toolCalls']) { $toolCalls = @($metadata['toolCalls']) }
+        if ($null -ne $metadata['executedTools']) { $executedTools = @($metadata['executedTools']) }
+        $totalDuration = $null
+        $timing = $metadata['timing']
+        if ($null -ne $timing) {
+            if ($timing -is [System.Collections.IDictionary]) {
+                $keys = @($timing.PSBase.Keys | Where-Object { $_ -is [string] -and [string]::Equals($_, 'totalDurationNs', [StringComparison]::OrdinalIgnoreCase) })
+                if ($keys.Count -gt 1) { throw "Ambiguous optional native metadata key 'totalDurationNs'." }
+                if ($keys.Count -eq 1) { $totalDuration = $timing[$keys[0]] }
+            } elseif ($timing.PSObject.Properties['totalDurationNs']) {
+                $totalDuration = $timing.totalDurationNs
+            }
+        }
+
         return [PSCustomObject]@{
             message = [PSCustomObject]@{
                 content = $result.content
             }
             Provider = 'ollama'
             model    = $result.model
-            ToolCalls = @($result.toolCalls)
-            ExecutedTools = @($result.executedTools)
-            total_duration = if ($result.timing) { $result.timing.totalDurationNs } else { $null }
+            ToolCalls = $toolCalls
+            ExecutedTools = $executedTools
+            total_duration = $totalDuration
             raw = $result
         }
     } finally {

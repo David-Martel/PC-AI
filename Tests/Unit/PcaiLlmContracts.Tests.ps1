@@ -472,7 +472,7 @@ vllm:kv_cache_usage_perc{model_name="wanted"} 0.25
         $result = Invoke-SmartDiagnosis -Path $TestDrive -AnalysisType Quick
         $result.LLMAnalysis.status | Should -Be ok
         $result.NativeEngineUsed | Should -BeFalse
-        $result.Error | Should -BeNullOrEmpty
+        $(if ($result.PSObject.Properties['Error']) { $result.Error } else { $null }) | Should -BeNullOrEmpty
     }
     It 'passes actual maintained prompt grounding into the diagnosis provider request' {
         Mock Invoke-NativeSearch { [pscustomobject]@{ Summary = 'private fixture summary' } }

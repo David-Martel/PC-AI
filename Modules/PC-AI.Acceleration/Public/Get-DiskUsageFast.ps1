@@ -181,25 +181,7 @@ function Test-PcaiDiskFatalTransportException {
     [OutputType([bool])]
     param([Parameter(Mandatory)][Exception]$Exception)
 
-    $pending = [Collections.Generic.Stack[Exception]]::new()
-    $visited = [Collections.Generic.HashSet[Exception]]::new()
-    $pending.Push($Exception)
-    while ($pending.Count -gt 0) {
-        $current = $pending.Pop()
-        if (-not $visited.Add($current)) { continue }
-        if ($current -is [TimeoutException] -or $current -is [OperationCanceledException] -or
-            $current -is [IO.InvalidDataException] -or $current -is [IO.EndOfStreamException] -or
-            $current.GetType().FullName -ceq 'Newtonsoft.Json.JsonReaderException' -or
-            $current.Data.Contains('PcaiProcessCustody')) { return $true }
-        if ($current.InnerException) { $pending.Push($current.InnerException) }
-        if ($current.Data['OperationException'] -is [Exception]) {
-            $pending.Push($current.Data['OperationException'])
-        }
-        if ($current -is [AggregateException]) {
-            foreach ($inner in $current.InnerExceptions) { $pending.Push($inner) }
-        }
-    }
-    return $false
+    return Test-PcaiPerfFatalTransportException -Exception $Exception
 }
 
 function Convert-PcaiNativeDiskRows {

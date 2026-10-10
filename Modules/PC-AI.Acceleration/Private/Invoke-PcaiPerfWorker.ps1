@@ -325,6 +325,41 @@ function Close-PcaiPerfOwnedProcessLocked {
     if ($State.PSObject.Properties['ClosureOperationException']) { $State.ClosureOperationException=$null }
 }
 
+function Test-PcaiPerfFatalTransportException {
+    <#
+    .SYNOPSIS
+        Identifies transport failures that prohibit replacement work.
+    .DESCRIPTION
+        Follows wrapped operation and cleanup causes without replacing the
+        original exception or retained process and resource objects.
+    .PARAMETER Exception
+        Exception received from the CLI or worker transport.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)][Exception]$Exception)
+
+    $pending = [Collections.Generic.Stack[Exception]]::new()
+    $visited = [Collections.Generic.HashSet[Exception]]::new()
+    $pending.Push($Exception)
+    while ($pending.Count -gt 0) {
+        $current = $pending.Pop()
+        if (-not $visited.Add($current)) { continue }
+        if ($current -is [TimeoutException] -or $current -is [OperationCanceledException] -or
+            $current -is [IO.InvalidDataException] -or $current -is [IO.EndOfStreamException] -or
+            $current.GetType().FullName -ceq 'Newtonsoft.Json.JsonReaderException' -or
+            $current.Data.Contains('PcaiProcessCustody')) { return $true }
+        if ($current.InnerException) { $pending.Push($current.InnerException) }
+        if ($current.Data['OperationException'] -is [Exception]) {
+            $pending.Push($current.Data['OperationException'])
+        }
+        if ($current -is [AggregateException]) {
+            foreach ($inner in $current.InnerExceptions) { $pending.Push($inner) }
+        }
+    }
+    return $false
+}
+
 function Assert-PcaiPerfNoPendingCustody {
     $origin=Get-PcaiPerfStateRegistry $script:PcaiPerfWorkerState
     $retained=@(Get-PcaiPerfPendingSnapshot $script:PcaiPerfCustodyRegistry)

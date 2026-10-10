@@ -73,8 +73,9 @@ function Get-ProcessesFast {
     if ($preferRustCli -and $pcaiPerfPath -and -not $RawOutput -and -not $Tree -and -not $Watch) {
         $rustSupportedSort = $SortBy -in @('cpu', 'mem')
         if (-not $Name -and $Top -gt 0 -and $rustSupportedSort) {
-            $rustResults = Get-ProcessesWithPcaiPerf -Top $Top -SortBy $SortBy -ToolPath $pcaiPerfPath
-            if ($null -ne $rustResults) {
+            $rustResults = @(Get-ProcessesWithPcaiPerf -Top $Top -SortBy $SortBy -ToolPath $pcaiPerfPath)
+            # Explicit null means unavailable; no rows is a successful snapshot.
+            if ($rustResults.Count -eq 0 -or $null -ne $rustResults[0]) {
                 return $rustResults
             }
         }
@@ -108,6 +109,8 @@ function Get-ProcessesWithPcaiPerf {
         [string]$ToolPath
     )
 
+    # Retained original resources must be resolved before any replacement work.
+    Assert-PcaiPerfNoPendingCustody
     try {
         $sortKey = if ($SortBy -eq 'cpu') { 'cpu' } else { 'memory' }
         if ($env:PCAI_DISABLE_PERF_WORKER -ne '1') {
@@ -116,6 +119,10 @@ function Get-ProcessesWithPcaiPerf {
                 foreach ($row in $rows) { $row | Add-Member -NotePropertyMembers @{Transport='worker';CPUUnit='percent';CPUPercent=$row.CPU;TotalProcessorTimeSeconds=$null} -Force }
                 return $rows
             } catch [NotSupportedException] {
+                $transportFailure = $_
+                if (Test-PcaiPerfFatalTransportException -Exception $_.Exception) { throw }
+                try { Assert-PcaiPerfNoPendingCustody }
+                catch { $PSCmdlet.ThrowTerminatingError($transportFailure) }
                 Write-Verbose 'Legacy pcai-perf worker: using bounded direct CLI.'
             }
         }
@@ -123,6 +130,10 @@ function Get-ProcessesWithPcaiPerf {
         foreach ($row in $rows) { $row | Add-Member -NotePropertyMembers @{Transport='direct-cli';CPUUnit='percent';CPUPercent=$row.CPU;TotalProcessorTimeSeconds=$null} -Force }
         return $rows
     } catch {
+        $transportFailure = $_
+        if (Test-PcaiPerfFatalTransportException -Exception $_.Exception) { throw }
+        try { Assert-PcaiPerfNoPendingCustody }
+        catch { $PSCmdlet.ThrowTerminatingError($transportFailure) }
         Write-Verbose "pcai-perf processes unavailable: $($_.Exception.Message)"
         return $null
     }

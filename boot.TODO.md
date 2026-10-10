@@ -1717,3 +1717,19 @@ Historical results above retain their original scope and date.
 - [ ] Validate fresh current-head CI after the fd repair commit.
   Keep the unchanged85% coverage gate and preserve every original failed receipt.
   Owner: root/integration. No startup/search performance improvement is claimed.
+
+## Process and hash transport follow-up
+
+- [x] Reproduce swallowed terminal worker failures and qualify the shared disk,
+  process and hash exception boundary. Initial27 controls:1PASS/26FAIL; repaired
+  controls pass. Final three suites:112PASS/0FAIL/4SKIP/0NotRun (three native-bundle
+  controls and one unavailable filesystem short-alias control);
+  source hashes unchanged. Strict-mode small-file hashing also has genuine
+  failing-first known-digest evidence. See Reports/process-hash-transport-review.md.
+- [ ] Verify hosted CI on the published process/hash repair head without
+  lowering the85% coverage floor. Owner: root/integration.
+- [ ] Qualify native hash response path/cardinality/digest bijection, literal
+  leading-dash inputs and field/schema parity; preserve original outputs and
+  actual native pairing requirements. Owner: root/acceleration.
+- [ ] Qualify other-user deployment, shared MCP reuse and real lifecycle faults;
+  wrapper fixture success is not fleet or responsiveness acceptance.

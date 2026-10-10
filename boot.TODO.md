@@ -38,6 +38,22 @@ Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
       actual collector costs. No automatic terminal termination is authorized
       by an absent parent snapshot.
 
+## Native Ollama residency follow-up
+
+Reviewed October 10, 2026; owner: Codex integration lane. See
+[the residency review](Reports/ollama-residency-review.md).
+
+- [x] Preserve explicit zero through native configuration normalization while
+      retaining omitted defaults and positive/negative duration behavior.
+- [x] Reproduce the defect with unchanged real controls, confirm recompilation,
+      pass all 17 binary tests, focused formatting and strict package clippy.
+- [x] Select the binary contracts explicitly in Rust Guidelines CI; library-only
+      test commands exclude them. Hosted current-head acceptance remains open.
+- [ ] Identify the actual requesting consumer and obtain custody of the live
+      camera-guidance session before changing its lifecycle or model policy.
+- [ ] Qualify native consumer deployment, real model unload and lasting memory
+      relief; cache releases so far provide temporary capacity only.
+
 ## Parser and dependency integration follow-up
 
 Reviewed October 10, 2026; owner: Codex integration lane. See the current

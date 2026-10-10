@@ -287,6 +287,14 @@ At minimum, choose the narrowest relevant validation path:
 - tooling benchmarks for hot-path acceleration changes
 - baseline/regression comparisons for performance-sensitive work
 
+The `pcai-ollama-rs` binary has maintained configuration and request-wire tests.
+Run `Invoke-CargoWrapper --raw test --locked -p pcai-ollama-rs --bin pcai-ollama-rs`
+from `Native/pcai_core`; library-only test runs exclude these controls. Omitted
+`keep_alive_seconds` defaults to 1800, explicit zero requests unload, positive
+values retain their duration, and negative values retain indefinite residency.
+Rust Guidelines CI runs this binary separately. These tests make no model or
+HTTP requests and do not establish deployed consumer behavior or memory gains.
+
 Maintained fallback and dependency fixtures:
 
 - `Tests/Unit/ProcessLassoSnapshot.Tests.ps1` exercises the complete fallback

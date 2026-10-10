@@ -29,6 +29,14 @@ Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
       hook-shell cost and path guard's fail-open exception handler.
 - [ ] Resume native/fleet/credential qualification only after responsiveness
       is stable; retain the 85% hosted coverage gate and all active work.
+- [x] Review and apply bounded native absent-parent terminal advice repair:
+      manual ownership review, explicitly unmeasured savings and exact Windows
+      executable names. Four maintained Rust contracts await exact-head hosted
+      Core CI; see [the advice review](Reports/native-optimizer-advice-review.md).
+- [ ] Qualify the native advice repair's current whole-Core build/tests and
+      paired runtime; separately repair unknown metric provenance and benchmark
+      actual collector costs. No automatic terminal termination is authorized
+      by an absent parent snapshot.
 
 ## Milly capacity and expansion
 

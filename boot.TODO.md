@@ -1634,3 +1634,31 @@ Historical results above retain their original scope and date.
 - [ ] Re-evaluate W: by its verified machine-specific identity before any use;
   the current inventory found it absent. F: is a file-backed VHD, so it is not
   equivalent to an independent physical scratch disk. No mount change was made.
+
+## LLM progress cleanup follow-up
+
+- [x] Preserve the original progress-helper inert result (2 PASS / 4 FAIL) and
+  the independently audited private successor (8 PASS / 0 FAIL). Prepare the
+  exact one-function canonical repair and eight maintained contracts without
+  changing the other 22 helper functions or launching real jobs/HTTP payloads.
+- [x] Execute and independently review the canonical successor eight-case
+  suite:8 PASS/0 FAIL, actual canonical file/entire-function AST binding and
+  source/runtime stability; parent closure/disposal and no pending custody.
+  Preserve the first canonical7 PASS/1 FAIL binding-detector error and correct
+  only its extent comparison. Owner: root/integration. Exact results and
+  selector rationales: [LLM custody review](Reports/llm-progress-custody-review.md).
+- [ ] Qualify real owned-job stop/removal, retained-reference recovery,
+  cancellation/deadline and new-request admission before treating cleanup
+  attempts as closure. SSE and native timeout parity remain separate OPEN
+  gates. Owner: root/runtime. No performance or coverage credit is established.
+- [x] Integrate dtm-codex hook PR38, verify merged-main CI38030326030 and
+  same-source Carbon99, then preserve/bare-fsck the owned branch before retiring
+  its branch/worktree. Main/origin0/0; all489 foreign untracked paths preserved.
+- [ ] Continue interval responsiveness capture after the short60-second P1
+  sample (CPUmedian50%, RAMavailable13GiB, commit77%, pageinput2338/s;
+  aggregate disk0.106ms/queue0, observer0.9%). No pagefile/process causality or
+  improvement is established. Owner: root/profile.
+- [ ] Clear PC_AI's unchanged85% coverage gate with meaningful behaviors and
+  valid accounting. Current413-head CI has2586 passes/0 failures/39 skips,
+  coverage63.697%, GuidelinesPASS; merge remains HOLD. Fresh hosted results
+  are required after the LLM successor commit. Owner: root/CI.

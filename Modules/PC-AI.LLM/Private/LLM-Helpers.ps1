@@ -753,6 +753,11 @@ function Invoke-OpenAIChatWithProgress {
     <#
     .SYNOPSIS
         Invokes OpenAI-compatible chat completion with a progress display and vLLM metrics.
+    .NOTES
+        Cleanup failures are retained in Exception.Data['PcaiProgressCleanupErrors'].
+        If removal is unconfirmed, Exception.Data['PcaiProgressOwnedJob'] retains the
+        exact owned job for caller recovery. Do not serialize job contents or credentials.
+        Cleanup attempts do not establish a deadline or prove real-job termination.
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -799,30 +804,63 @@ function Invoke-OpenAIChatWithProgress {
     if ($ApiKey) { $headers['Authorization'] = "Bearer $ApiKey" }
 
     $uri = "$ApiUrl/v1/chat/completions"
-    $job = Start-Job -ScriptBlock {
-        param($u, $body, $hdrs, $timeout)
-        Invoke-RestMethod -Uri $u -Method Post -Body $body -Headers $hdrs -ContentType 'application/json' -TimeoutSec $timeout
-    } -ArgumentList $uri, $jsonBody, $headers, $TimeoutSeconds
+    $job = $null
+    $jobRemoved = $false
+    $response = $null
+    $primaryError = $null
+    $cleanupErrors = [Collections.Generic.List[System.Management.Automation.ErrorRecord]]::new()
+    try {
+        $job = Start-Job -ScriptBlock {
+            param($u, $body, $hdrs, $timeout)
+            Invoke-RestMethod -Uri $u -Method Post -Body $body -Headers $hdrs -ContentType 'application/json' -TimeoutSec $timeout
+        } -ArgumentList $uri, $jsonBody, $headers, $TimeoutSeconds
 
-    $modelInfo = Get-VLLMModelInfo -ApiUrl $ApiUrl -ModelName $Model
-    $start = Get-Date
-    while ($job.State -eq 'Running') {
-        $elapsed = (Get-Date) - $start
-        $metrics = Get-VLLMMetricsSnapshot -ApiUrl $ApiUrl -ModelName $Model -TimeoutSeconds 2
-        $kv = if ($metrics) { "{0:P0}" -f $metrics.KVCacheUsagePerc } else { 'n/a' }
-        $running = if ($metrics) { $metrics.NumRequestsRunning } else { 'n/a' }
-        $waiting = if ($metrics) { $metrics.NumRequestsWaiting } else { 'n/a' }
-        $context = if ($modelInfo -and $modelInfo.MaxModelLen) { $modelInfo.MaxModelLen } else { 'n/a' }
+        $modelInfo = Get-VLLMModelInfo -ApiUrl $ApiUrl -ModelName $Model
+        $start = Get-Date
+        while ($job.State -eq 'Running') {
+            $elapsed = (Get-Date) - $start
+            $metrics = Get-VLLMMetricsSnapshot -ApiUrl $ApiUrl -ModelName $Model -TimeoutSeconds 2
+            $kv = if ($metrics) { "{0:P0}" -f $metrics.KVCacheUsagePerc } else { 'n/a' }
+            $running = if ($metrics) { $metrics.NumRequestsRunning } else { 'n/a' }
+            $waiting = if ($metrics) { $metrics.NumRequestsWaiting } else { 'n/a' }
+            $context = if ($modelInfo -and $modelInfo.MaxModelLen) { $modelInfo.MaxModelLen } else { 'n/a' }
 
-        $status = "Elapsed {0}s | KV {1} | Running {2} | Waiting {3} | MaxCtx {4}" -f `
-            [int]$elapsed.TotalSeconds, $kv, $running, $waiting, $context
-        Write-Progress -Activity "vLLM request" -Status $status
-        Start-Sleep -Seconds $ProgressIntervalSeconds
+            $status = "Elapsed {0}s | KV {1} | Running {2} | Waiting {3} | MaxCtx {4}" -f `
+                [int]$elapsed.TotalSeconds, $kv, $running, $waiting, $context
+            Write-Progress -Activity "vLLM request" -Status $status
+            Start-Sleep -Seconds $ProgressIntervalSeconds
+        }
+
+        $response = Receive-Job $job -ErrorAction Stop
+    } catch {
+        $primaryError = $_
+    } finally {
+        if ($null -ne $job) {
+            try {
+                if ($job.State -notin @('Completed', 'Failed', 'Stopped')) {
+                    Stop-Job -Job $job -ErrorAction Stop | Out-Null
+                }
+            } catch { $cleanupErrors.Add($_) }
+            try {
+                Remove-Job -Job $job -ErrorAction Stop
+                $jobRemoved = $true
+            } catch { $cleanupErrors.Add($_) }
+        }
+        try {
+            Write-Progress -Activity "vLLM request" -Completed -ErrorAction Stop
+        } catch { $cleanupErrors.Add($_) }
     }
 
-    $response = Receive-Job $job -ErrorAction Stop
-    Remove-Job $job
-    Write-Progress -Activity "vLLM request" -Completed
+    if ($primaryError -or $cleanupErrors.Count -gt 0) {
+        $failure = if ($primaryError) { $primaryError } else { $cleanupErrors[0] }
+        if ($cleanupErrors.Count -gt 0) {
+            $failure.Exception.Data['PcaiProgressCleanupErrors'] = $cleanupErrors.ToArray()
+        }
+        if ($null -ne $job -and -not $jobRemoved) {
+            $failure.Exception.Data['PcaiProgressOwnedJob'] = $job
+        }
+        $PSCmdlet.ThrowTerminatingError($failure)
+    }
 
     $content = $null
     if ($response.choices -and $response.choices.Count -gt 0) {

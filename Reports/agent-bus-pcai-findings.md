@@ -586,3 +586,51 @@ dropped writes. No fallback store, service restart or transport swap was used.
 Failed sends remain failed; the completed reserve result was sent after recovery.
 Another later read also refused authority, so intermittent reachability remains
 open. A failed read is not evidence of an empty queue or an absent owner reply.
+
+### LLM progress job custody preparation
+
+Read-only runtime review found that errors after progress-job creation could
+leave its cleanup and progress finalization unattempted. The original six inert
+contracts produced 2 PASS / 4 FAIL. The reviewed private successor passed all
+eight contracts, including two additional cleanup-only faults; independent
+audit `E0FF42AC…FE9DD2C` confirms that finite synthetic scope. The canonical
+helper contains the exact reviewed repair. Its maintained successor passed
+all eight canonical contracts with canonical file/entire-function AST binding,
+declarations-only load checks and stable source/runtime pins. Independent
+review `E1089D45…EF72F5` accepted that finite inert scope. The parent confirmed
+closure/disposal and no pending custody. The earlier canonical 7 PASS / 1 FAIL
+remains preserved: its first detector compared an entire function extent with
+only the body. The successor corrects that comparison alone; all other seven
+case bodies and production source are unchanged.
+
+The repair retains the original error, records secondary cleanup failures and
+retains the exact unremoved job object for caller recovery. It does not prove
+real-job closure, enforce a deadline or block new requests after held custody.
+Real jobs, timeout/admission, SSE and native timeout parity remain OPEN;
+performance and coverage credit are not claimed. Root owns normal integration
+checks and separate runtime admission. See
+[the source and selector review](llm-progress-custody-review.md).
+
+### Hook integration and short workstation capture
+
+Root completed dtm-codex PR38 integration at signed main
+`4aeb5dc4613507dafa46a51a5f4764c797b4ff96`; current-main CI38030326030 passed.
+The same C07 guard passed all 99 Carbon selectors at unchanged ten-second
+child deadlines, with zero failure/skip/pending custody and stable source;
+independent review `75B2385B…7AB1D2` binds the actual receipts. The owned branch
+and worktree were retired after bundle `0F84…` preservation and successful
+private bare-repository fsck. Local main/origin are equivalent; all489 foreign
+untracked paths were preserved. Installed/current Codex transport and
+adversarial filesystem replacement remain separate gates.
+
+Root's 60-second P1 sample observed median CPU50%, approximately13GiB available
+RAM, commit77% and sustained page input around2338/s. Aggregate disk latency
+was0.106ms, queue0 and observer CPU overhead0.9%. This is a short aggregate
+observation, not pagefile/process causality or a numeric improvement. It does
+not establish which workload causes paging or close responsiveness monitoring.
+
+The whole PC_AI CI readback at `413334f34db88b514b4bd771cfe8a217063ff494`
+has2586 PowerShell passes, zero failures and39 skips. Coverage63.697% remains
+below the unchanged85% requirement, so integration remains HOLD. Guidelines
+passed. These historical-head results do not qualify the uncommitted LLM
+successor or any future hosted head.

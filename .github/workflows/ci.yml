@@ -267,6 +267,27 @@ jobs:
           Split-Path -Parent $rg | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using native ripgrep: $rg"
           $version
+      - name: Install fd
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'fd-10.5.0-windows.zip'
+          $destination = Join-Path $env:RUNNER_TEMP 'fd-10.5.0-windows'
+          $url = 'https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-x86_64-pc-windows-msvc.zip'
+          curl.exe --fail --location --proto '=https' --proto-redir '=https' --connect-timeout 15 --max-time 120 --retry 2 --retry-max-time 180 --output $archive $url
+          if ($LASTEXITCODE -ne 0) { throw "fd download failed with exit code $LASTEXITCODE" }
+          # GitHub release asset digest, checked against the official v10.5.0 release.
+          $expectedHash = 'a227701b8551c35a9931d9f6da75503cf86d88e182d71fb849a70864c5d57cd7'
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ine $expectedHash) { throw 'fd archive identity mismatch' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination -ErrorAction Stop
+          $fd = Join-Path $destination 'fd-v10.5.0-x86_64-pc-windows-msvc/fd.exe'
+          $file = Get-Item -LiteralPath $fd -ErrorAction Stop
+          if ($file.PSIsContainer -or $file.Length -le 0) { throw 'fd executable is absent or empty' }
+          $version = & $fd --version
+          if ($LASTEXITCODE -ne 0 -or ($version -join "`n") -notmatch '\Afd 10\.5\.0(?:\s|$)') { throw 'Installed fd identity mismatch' }
+          Split-Path -Parent $fd | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "Using native fd: $fd"
+          $version
       - name: Install Pester
         shell: pwsh
         run: Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser

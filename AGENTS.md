@@ -287,6 +287,15 @@ At minimum, choose the narrowest relevant validation path:
 - tooling benchmarks for hot-path acceleration changes
 - baseline/regression comparisons for performance-sensitive work
 
+`Tests/Unit/PcaiFdSearchContracts.Tests.ps1` requires physical `fd` on
+PowerShell 7.3+ and exercises eight failure/cache/success contracts against
+maintained functions. CI installs the hash-pinned fd release. Windows PowerShell
+5.1 compatibility discovery explicitly skips these eight contracts; those skips
+do not establish native search compatibility. Cache spies and two script
+invocation fixtures are synthetic; the other six controls invoke actual fd.
+See `Reports/fd-search-contract-review.md` for retained failure and validation
+boundaries. A passing contract suite does not establish a performance gain.
+
 Windows CI also compiles, lints and runs `pcai_core_lib` unit tests, including the 19 inert Event Log contracts.
 The inference lint profiles alone do not qualify Core's Windows bindings.
 See [native Event Log qualification](Reports/native-event-log-repair-review.md)

@@ -433,3 +433,15 @@ Private raw receipts are under `.pcai/integration/milly-storage-*`,
 The scans and warnings establish current risks
 and candidates; the format and validation do not claim a migration of internal
 user data or a workstation speedup.
+
+### Current storage readback and historical-summary clarification
+
+Readback at 2026-10-10 08:43 UTC confirms the completed migration layout remains mounted. Ordinary internal root availability is **623,514,374,144 bytes (580.69 GiB)**; the NTFS outer volume has **374,527,430,656 bytes** available and the native Btrfs image has **267,087,466,496 bytes** available. These are fresh snapshots during concurrent work, not an exact migration-only space delta or a speedup measurement. Do not add outer-volume and image availability as independent physical capacity.
+
+Both external SSD links are currently **10 Gb/s using UAS**. The WDC WDS100T2B0B, serial `1830D0800483`, maps from `/dev/sda` to USB node `4-2.3`; the SKHynix HFS001TEJ9X162N, serial `AYCCN03781CB9190E`, maps from `/dev/sdb` to USB node `2-4`. Native sysfs speed reads are 10000 for both device nodes and agree with `lsusb -t`. The second drive remains VFAT mounted at `/run/media/cog/FATDRIVE`, with **1,023,781,535,744 bytes** available; this audit did not change its contents, format or intended use.
+
+As the original owner `yayuanli`, the existing `/home/yayuanli/fun/ICON/user_study/av_recording` path resolves to the mounted native tree, and actual directory traversal/stat succeeds. Its Btrfs UUID remains `09a77a5f-17c9-4495-a88c-049f0b80af73`, backed by `/mnt/dtm-shared/pcai-migration/milly-native-data-r1.img` on NTFS UUID `1CEDDDB5190C5CEB`. All five Btrfs device counters remain zero. This refresh checks the current directory/mount/device chain; it does not repeat full recording hashes or virtual-environment/application tests.
+
+The report's final identification-only wording belongs to its **historical assessment**, superseded by the completed migration section and checked-off migration items in `boot.TODO.md`. Current remaining work is independent backup/restore, physical Windows mount/runtime/DACL, cold boot/removal, physical M.2 vacancy and application/HIL qualification, together with the existing NFS/build-growth owners. This readback establishes neither measured storage throughput nor workstation acceleration, and does not infer an unused M.2 slot.
+
+Fresh native SSH exit/stdout/stderr receipts: `D:/pcai-relocation/milly-fastlink-current-readback-r4/`; their pins, scope and proposed addendum are recorded in `.pcai/integration/milly-fastlink-current-readback-r4/readback.json`. All eleven checks exited0 with empty stderr. No remote writes, remounts, deletion, data-heavy scan or data-file rehash occurred.

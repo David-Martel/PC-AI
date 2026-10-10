@@ -1662,3 +1662,23 @@ Historical results above retain their original scope and date.
   valid accounting. Current413-head CI has2586 passes/0 failures/39 skips,
   coverage63.697%, GuidelinesPASS; merge remains HOLD. Fresh hosted results
   are required after the LLM successor commit. Owner: root/CI.
+
+## Current storage and search contract follow-up
+
+- [x] Verify Milly's completed migration after reconnection: both external SSDs
+  negotiate10Gb/s/UAS, the original study path is accessible as its owning user,
+  Btrfs device errors remain zero and internal availability is580.69GiB at
+  October10 08:43UTC. See `Reports/milly-storage-and-expansion-review.md`.
+  Cold boot, Windows native mount/DACL, backup/restore and physical M.2 vacancy
+  remain separate open gates; current free space is not a migration-only delta.
+- [x] Reproduce swallowed fd failures (3PASS/5FAIL), independently qualify the
+  exact candidate (8PASS/0FAIL), and apply only `Find-WithFd`: failed native
+  exits and original invocation exceptions propagate before cache admission.
+  The maintained eight-contract suite and pinned CI fd provisioning are added.
+- [x] Validate the maintained canonical fd suite (8PASS/0FAIL) and separate
+  Windows PowerShell5.1 compatibility discovery (8SKIP/0FAIL). Analyzer has
+  zero findings. Legacy skips qualify discovery only; see
+  Reports/fd-search-contract-review.md for actual receipts and first failure.
+- [ ] Validate fresh current-head CI after the fd repair commit.
+  Keep the unchanged85% coverage gate and preserve every original failed receipt.
+  Owner: root/integration. No startup/search performance improvement is claimed.

@@ -1,0 +1,26 @@
+{
+  "$schema": "./machine-profile.schema.json",
+  "schemaVersion": 1,
+  "hostName": "dtm-super-nuc",
+  "baseline": {
+    "manufacturer": "Intel(R) Client Systems",
+    "model": "NUC13L3Kv7",
+    "processor": "13th Gen Intel(R) Core(TM) i7-1370P",
+    "source": "Local bounded CIM inventory, 2026-10-11; live inventory remains authoritative"
+  },
+  "expectedHardware": [
+    { "name": "Intel Iris Xe Graphics", "source": "Local CIM observation, 2026-10-11", "lastReportedPresence": "Present", "connection": "Unknown" },
+    { "name": "NVIDIA RTX 5060 Ti", "source": "User statement, 2026-10-11", "lastReportedPresence": "Disconnected", "connection": "Unknown" },
+    { "name": "Dell UltraSharp Webcam WB7022", "source": "Local PnP and DirectShow observation, 2026-10-11", "lastReportedPresence": "Present", "connection": "USB through a Realtek hub; exact hub model and Thunderbolt routing unverified" }
+  ],
+  "statedPowerPath": {
+    "source": "User statement, 2026-10-11; not measured by this tool",
+    "activeAdapter": { "name": "Anker fixed output", "voltageVolts": 20, "currentAmps": 5, "maximumWatts": 100 },
+    "oemReference": { "maximumWatts": 120, "currentAmps": 6, "voltageVolts": 20 },
+    "otherLoadsReported": false,
+    "inputVoltageMeasured": false,
+    "inputPowerMeasured": false,
+    "usbPdNegotiation": "Unknown"
+  },
+  "buildPolicy": { "maxNativeBuildJobs": 2, "source": "Temporary conservative policy while the 100 W USB-PD power path is under investigation; OEM 120 W, 20 V reference verified against ASUS NUC13L3 specifications" }
+}

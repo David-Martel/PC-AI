@@ -12,7 +12,9 @@ pub struct DiskHealthDetail {
     pub serial_number: String,
     pub status: String,
     pub smart_capable: bool,
-    pub smart_status_ok: bool,
+    pub smart_status_ok: Option<bool>,
+    pub health_data_available: bool,
+    pub health_source: String,
     pub severity: String,
 }
 
@@ -29,7 +31,7 @@ pub fn collect_disk_health() -> Vec<DiskHealthDetail> {
         unsafe {
             let h_device = CreateFileA(
                 c_path.as_ptr() as *const u8,
-                GENERIC_READ | GENERIC_WRITE,
+                GENERIC_READ,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                 null_mut(),
                 OPEN_EXISTING,
@@ -47,8 +49,10 @@ pub fn collect_disk_health() -> Vec<DiskHealthDetail> {
                 serial_number: "Unknown".to_string(),
                 status: "Unknown".to_string(),
                 smart_capable: false,
-                smart_status_ok: true,
-                severity: "OK".to_string(),
+                smart_status_ok: None,
+                health_data_available: false,
+                health_source: "SMART_GET_VERSION capability probe only".to_string(),
+                severity: "Unknown".to_string(),
             };
 
             let mut smart_version = [0u8; 1024];
@@ -68,12 +72,6 @@ pub fn collect_disk_health() -> Vec<DiskHealthDetail> {
             {
                 detail.smart_capable = true;
             }
-
-            detail.status = if detail.smart_capable {
-                "OK".to_string()
-            } else {
-                "N/A".to_string()
-            };
 
             disks.push(detail);
             CloseHandle(h_device as *mut _); // HANDLE in foundation/mod.rs is isize, but error said *mut void
@@ -95,12 +93,33 @@ mod tests {
             serial_number: "S5GXNF0R123456".to_string(),
             status: "OK".to_string(),
             smart_capable: true,
-            smart_status_ok: true,
+            smart_status_ok: Some(true),
+            health_data_available: true,
+            health_source: "Test fixture: measured SMART status".to_string(),
             severity: "OK".to_string(),
         };
 
         let json = serde_json::to_string(&detail).expect("Should serialize");
         assert!(json.contains("\"model\":\"Samsung SSD 980 PRO 1TB\""));
         assert!(json.contains("\"smart_capable\":true"));
+    }
+
+    #[test]
+    fn capability_does_not_establish_health() {
+        let detail = DiskHealthDetail {
+            device_id: "\\\\.\\PhysicalDrive0".into(),
+            model: "Unknown".into(),
+            serial_number: "Unknown".into(),
+            status: "Unknown".into(),
+            smart_capable: true,
+            smart_status_ok: None,
+            health_data_available: false,
+            health_source: "SMART_GET_VERSION capability probe only".into(),
+            severity: "Unknown".into(),
+        };
+        let value = serde_json::to_value(detail).expect("Capability probe serialization");
+        assert!(value["smart_status_ok"].is_null());
+        assert_eq!(value["status"], "Unknown");
+        assert_eq!(value["health_data_available"], false);
     }
 }

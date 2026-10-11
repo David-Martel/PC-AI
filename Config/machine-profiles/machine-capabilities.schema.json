@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PC-AI observed Windows machine capabilities",
+  "type": "object",
+  "required": ["schemaVersion", "reportType", "utc", "hostName", "platform", "identity", "devices", "providers", "queryProvenance", "gpuCapabilities", "expectedHardware", "statedPowerPath", "powerObservation", "buildPolicy", "profileSource", "collectionMilliseconds"],
+  "properties": {
+    "schemaVersion": { "const": 1 }, "reportType": { "const": "WindowsMachineCapabilities" },
+    "utc": { "type": "string", "format": "date-time" }, "hostName": { "type": "string" }, "platform": { "const": "Windows" },
+    "identity": { "type": "object", "required": ["manufacturer", "model", "processors", "os", "source"], "additionalProperties": false,
+      "properties": { "manufacturer": { "type": ["string", "null"] }, "model": { "type": ["string", "null"] }, "totalPhysicalBytes": { "type": ["integer", "null"] }, "logicalProcessors": { "type": ["integer", "null"] }, "processors": { "type": "array" }, "os": { "type": "object" }, "source": { "type": "string" } } },
+    "devices": { "type": "array", "items": { "type": "object", "required": ["name", "deviceClass", "categories", "hardware", "presence", "driver", "source", "workloadValidation"],
+      "properties": { "name": { "type": "string" }, "deviceClass": { "type": "string" }, "categories": { "type": "array", "items": { "type": "string" } }, "presence": { "enum": ["Present", "Disconnected", "Unknown"] }, "workloadValidation": { "const": "Unknown" },
+        "hardware": { "type": "object", "additionalProperties": false, "required": ["bus", "vendorId", "productId"], "properties": { "bus": { "type": "string" }, "vendorId": { "type": ["string", "null"] }, "productId": { "type": ["string", "null"] } } },
+        "driver": { "type": "object", "required": ["state", "version", "provider", "signed"], "properties": { "state": { "enum": ["CurrentDeviceDriverReported", "HistoricalOrDisconnected", "UnknownOrProblem", "DriverVersionMismatch"] }, "version": { "type": ["string", "null"] }, "provider": { "type": ["string", "null"] }, "signed": { "type": ["boolean", "null"] } } } } } },
+    "providers": { "type": "array", "items": { "type": "object", "required": ["kind", "source", "status", "instanceCount", "workloadValidation", "error", "interpretation"], "properties": { "status": { "enum": ["Supported", "SupportedNoInstances", "Unknown", "Unsupported"] }, "workloadValidation": { "const": "Unknown" }, "instanceCount": { "type": ["integer", "null"] } } } },
+    "queryProvenance": { "type": "array", "minItems": 12 }, "gpuCapabilities": { "type": "object" },
+    "expectedHardware": { "type": "array" }, "statedPowerPath": { "type": ["object", "null"] },
+    "powerObservation": { "type": "object", "required": ["wholePcInputWatts", "inputVoltageVolts", "usbPdNegotiation", "source"], "properties": { "wholePcInputWatts": { "type": "null" }, "inputVoltageVolts": { "type": "null" }, "usbPdNegotiation": { "const": "Unknown" }, "source": { "type": "string" } }, "additionalProperties": false },
+    "buildPolicy": { "type": "object", "required": ["configuredMaxNativeBuildJobs", "recommendedNativeBuildJobs", "applied", "source"], "properties": { "configuredMaxNativeBuildJobs": { "type": "integer", "minimum": 1, "maximum": 64 }, "recommendedNativeBuildJobs": { "type": "integer", "minimum": 1, "maximum": 64 }, "applied": { "const": false } } },
+    "profileSource": { "type": ["string", "null"] }, "collectionMilliseconds": { "type": "number", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

@@ -39,18 +39,28 @@ function Get-DiskHealth {
         if ($json) {
             $nativeDisks = $json | ConvertFrom-Json
             foreach ($disk in $nativeDisks) {
+                # Older native bundles only queried SMART capability and emitted
+                # a passing status. Require explicit measured-health provenance.
+                $hasMeasuredHealth = $null -ne $disk.PSObject.Properties['health_data_available'] -and
+                    $disk.health_data_available -eq $true -and
+                    $null -ne $disk.PSObject.Properties['smart_status_ok'] -and
+                    $null -ne $disk.smart_status_ok
                 $resultList.Add([PSCustomObject]@{
                     Model          = $disk.model
-                    Status         = $disk.status
+                    Status         = if ($hasMeasuredHealth) { $disk.status } else { 'Unknown' }
                     MediaType      = 'Fixed hard disk media' # Native focuses on physical drives
                     InterfaceType  = 'Native'
                     SizeGB         = 0 # To be supplemented by CIM if needed
                     Partitions     = 0
-                    Severity       = $disk.severity
+                    Severity       = if ($hasMeasuredHealth) { $disk.severity } else { 'Warning' }
                     DeviceID       = $disk.device_id
                     SerialNumber   = $disk.serial_number
-                    IsSmartOK      = $disk.smart_status_ok
+                    IsSmartOK      = if ($hasMeasuredHealth) { $disk.smart_status_ok } else { $null }
                     IsSmartCapable = $disk.smart_capable
+                    HealthDataAvailable = $hasMeasuredHealth
+                    HealthSource = if ($null -ne $disk.PSObject.Properties['health_source']) {
+                        $disk.health_source
+                    } else { 'Legacy native capability probe; measured health unavailable' }
                 })
             }
             $nativeAvailable = $true
@@ -71,6 +81,7 @@ function Get-DiskHealth {
             foreach ($res in $resultList) {
                 $cimDisk = $cimDisks | Where-Object { $_.DeviceID -eq $res.DeviceID -or $_.Model -eq $res.Model }
                 if ($cimDisk) {
+                    $res.Model = $cimDisk.Model
                     $res.SizeGB = if ($cimDisk.Size) { [math]::Round($cimDisk.Size / 1GB, 2) } else { 0 }
                     $res.Partitions = $cimDisk.Partitions
                     $res.MediaType = $cimDisk.MediaType
@@ -93,7 +104,7 @@ function Get-DiskHealth {
                         }
                     }
                 }
-            } catch {}
+            } catch { Write-Verbose "Legacy WMIC disk status unavailable: $($_.Exception.Message)" }
 
             foreach ($disk in $cimDisks) {
                 $status = if ($smartStatus.ContainsKey($disk.Model)) { $smartStatus[$disk.Model] } elseif ($disk.Status) { $disk.Status } else { 'Unknown' }
@@ -111,6 +122,9 @@ function Get-DiskHealth {
                     SizeGB        = if ($disk.Size) { [math]::Round($disk.Size / 1GB, 2) } else { 0 }
                     Partitions    = $disk.Partitions
                     Severity      = $severity
+                    HealthDataAvailable = $false
+                    HealthSource  = 'Legacy WMIC/CIM operational status; SMART health not measured'
+                    IsSmartOK     = $null
                     DeviceID      = $disk.DeviceID
                     SerialNumber  = $disk.SerialNumber
                 })

@@ -8,3 +8,6 @@ Rules:
 - If no tool is needed, respond with NO_TOOL.
 - Prefer the most specific tool available.
 - Do not answer the user directly.
+- For current Windows fleet/device/provider capabilities, call pcai_get_machine_capabilities with {}.
+- For installed media backends, call pcai_test_media_toolchain with {}; compiled support does not establish runtime validation.
+- These fleet tools take no arguments and do not write reports, capture devices, encode workloads or install software.

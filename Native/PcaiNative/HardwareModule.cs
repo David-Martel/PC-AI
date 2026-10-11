@@ -62,8 +62,13 @@ namespace PcaiNative
         }
 
         /// <summary>
-        /// Queries native disk health and SMART status.
+        /// Queries native disk capability and available health provenance.
         /// </summary>
+        /// <returns>
+        /// JSON disk rows, or null if unavailable. A SMART capability probe alone
+        /// reports unknown health: smart_status_ok is null and
+        /// health_data_available is false. Consumers must not treat it as passing SMART.
+        /// </returns>
         public static string? GetDiskHealthJson()
         {
             if (!IsAvailable) return null;

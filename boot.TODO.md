@@ -2,7 +2,7 @@
 
 ## Immediate dtm-p1gen7 responsiveness
 
-Current review: October 11, 2026, 05:29 UTC. See the latest
+Current review: October 11, 2026, 06:14 UTC. See the latest
 [fleet readback](Reports/fleet-integration-review.md) and
 [cache correctness review](Reports/shared-cache-correctness-review.md).
 
@@ -51,11 +51,16 @@ Current review: October 11, 2026, 05:29 UTC. See the latest
       2026.9.1 with zero stderr and original engine/outer/writer closure;
       independent artifact review passes for public version only. Credential
       access remains separate.
-- [ ] Qualify metadata-write keeper sharing, exact security restoration and
+- [x] Qualify metadata-write keeper sharing, exact security restoration and
       current-parent reproduction before any MCP registration repair or deployment.
       Preserve the one-pass/interrupted AccessDenied native run and the successor's
       eight passes/current-parent setup failure. Review exact raw-directory setup
       without weakening descriptor, byte, identity or sharing guards.
+      The separately admitted successor passes all twelve C:/D: controls;
+      independent actual review confirms exact full descriptors and original
+      child/outer/input/result/closeout resource settlement.
+- [ ] Integrate that validated metadata repair into the full registration
+      transaction; pass all 22 unchanged detecting controls before deployment.
 - [x] Qualify five genuine retained-child supervisor controls, preserving timeout,
       overflow and HOLD causes through original-resource settlement; separately
       review exact actual bytes and same-original writer closure.
@@ -73,6 +78,15 @@ Current review: October 11, 2026, 05:29 UTC. See the latest
       Both separately admitted native ZeroByte runs now pass all nineteen
       controls with exact XML identities and original closure. Independent
       review accepts compatibility only; the fault remains NOT_REPRODUCED.
+      The inherited input helper fails before input or target allocation on an
+      incorrect Native19 registry schema. Preserve its actual first error and
+      closed readback. The corrected successors now pass both actual inherited
+      phases and all four detecting controls with independent physical review:
+      existing capture 30.523 seconds, native 3.025 seconds including initialization,
+      native operation 1.238 seconds and cleanup 3 milliseconds. Original native
+      readers/job/handles and both outer operations/writers close after return.
+      This is one descriptive pair; maintained default tests, canonical adoption,
+      real Redis and sustained performance remain open.
 - [x] Independently review the completed read-only SDK inventory: 4,040 file
       records, 768 directories, exact totals and original closure. Peer review
       does not replay underlying leaf hashes; inventory alone is not a build.
@@ -86,7 +100,8 @@ Current review: October 11, 2026, 05:29 UTC. See the latest
       admitted test-only reuse of the five outputs. The minimal trace-reader
       successor's InheritedPipe SDK/restore/build commands and original closure
       now pass independent actual review with exact source/PDB/output binding.
-      This is build-only acceptance; native inherited-pipe behavior remains open.
+      This is build-only acceptance; separate actual inherited-pipe controls above
+      now pass without extending build acceptance to deployment or fleet performance.
 - [x] Qualify the metadata session's own five retained-child controls; independently
       verify HOLD/retry/refusal/settlement and same-original closure while keeping
       the injected drain failure and all earlier metadata errors unchanged.
@@ -96,6 +111,8 @@ Current review: October 11, 2026, 05:29 UTC. See the latest
       analyzer findings. Keep billing availability explicit and quota Unknown.
 - [ ] Qualify real GitOps billing access; focused collaborator tests do not establish
       token permissions or a live usage response.
+      First live monitor confirms available workflow metadata and successful
+      owner lookup, but the billing request still exits one; quota stays Unknown.
 - [ ] Prepare and verify the public media cache seed only after capacity admission;
       then perform actual locked offline resolution and complete cache inventory.
 - [ ] Execute the bounded poisoned-media-worker predecessor/candidate detectors,
@@ -104,6 +121,9 @@ Current review: October 11, 2026, 05:29 UTC. See the latest
       preserve the 85% target and distinguish cache controls from coverage credit.
       Published ad25aee passes 2,798 cases but fails coverage at 65.718514%; retain
       current-head artifact reconstruction as a separate verification action.
+      Published 8242e30 has 2,806 passes/zero failures/40 skips; independent exact
+      reconstruction verifies 239 source hashes and 14,202/21,621 commands
+      (65.686138%), leaving 4,176 genuine hits needed. The 85% gate remains FAIL.
 - [x] Correct the manifest benchmark's symbolic-link classification using two
       genuine failing predecessor controls; pass all forty contract cases and
       zero script-analysis findings. Independent source and physical-results

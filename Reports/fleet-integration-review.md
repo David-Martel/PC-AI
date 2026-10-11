@@ -1,11 +1,80 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 11, 2026, 05:29 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 11, 2026, 06:14 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
 
-## Current acceptance and integration gaps (05:29 UTC)
+## Current acceptance and integration gaps (06:14 UTC)
+
+Published head `8242e30` passes 2,806 PowerShell tests with zero failures, 40 skips
+and zero not-run cases. CI run `38115285919` still fails the unchanged coverage
+gate: the source-bound parent/child union is 14,202/21,621 commands, or
+65.686138%, leaving 4,176 genuine additional hits required for 85%. Independent
+reconstruction verifies all 239 module hashes, exact merge parents and every
+command identity. The module tree is identical to ad25; eight lost and one gained
+hits occur in disk-media detection, so this observation does not establish a code
+regression. Rust tests, strict Clippy, formatting, .NET build, CPU runtime/build,
+PowerShell lint and security pass; downstream integration is skipped. NVIDIA
+and Guidelines pass. Exact private evidence is
+`.pcai/integration/head-8242-coverage-readback-r1/`. PR 182 remains open.
+
+The metadata successor now passes all twelve owned C:/D: controls, including
+sharing refusal, historical and current-parent descriptor restoration, byte
+mismatch refusal and later-writer refusal. Independent review verifies the exact
+ordered controls, all six restored full descriptors, 98 closed child resources,
+unchanged source bindings and normal original outer closure. Root confirms its
+original input, result and closeout handles closed after return. Earlier raw
+failures and their original error objects remain unchanged. This accepts the
+metadata controls only: the full registration transaction still needs the repair
+integrated and all 22 controls passed before deployment. Evidence is
+`.pcai/integration/metadata-writer-twelve-actual-peer-r4/`.
+
+The first inherited-pipe input helper refused admission before creating any input,
+owner, child or target directory. It incorrectly read per-input error/writer
+fields from Native19 records that contain only Phase/Path/SHA256; the originals
+belong to the enclosing registry. A second assumed closeout flag also does not
+exist. The failed helper, exact original error references and closed readback
+writer are retained. Additive source successors correct the actual registry
+schema. The separately admitted matched inherited-pipe pair now passes all four
+controls with independent physical review. The existing capture takes 30,523 ms
+despite its requested 10-second timeout; the bounded native candidate takes
+3,025 ms including initialization, with a 1,238-ms operation and 3-ms cleanup.
+Its original readers, job and handles close, both outer operations close, and
+Root verifies original input, phase and closeout writer closure after return.
+The existing capture's inner handle state remains unexposed. This one tiny pair
+is descriptive evidence, not a sustained fleet benchmark or canonical adoption.
+The actual peer verifies 104 stable pins and preserves the historical failure.
+Evidence is `.pcai/integration/inherited-pipe-capture-actual-peer-r1/`;
+failure evidence remains
+`D:/pcai-relocation/inherited-input-preparation-failure-r1/readback.json`.
+
+Fresh Milly readback confirms approximately 580 GiB free internally, both USB
+storage links at UAS 10 Gb/s, the WDC serial `1830D0800483`, and the study path
+resolving to its native SSD image. Compression accounting below remains the
+completed 13.84 GiB measurement; it is not a new throughput measurement. The two
+nonsecret Clarius failure artifacts have reached the agreed ASUS evidence
+directory with exact hashes and no overwrites. Existing UDM SSH times out before
+the known-MAC Work lease lookup. A fresh route readback sends the configured UDM
+address through P1's default LAN gateway; the current tailnet advertises no route
+to that subnet and still lists Work offline. Work access remains unresolved. ADB again lists
+no device, so the phone vault has not been read.
+
+P1's bounded eight-second observation finds approximately 13 GiB RAM available,
+84% committed memory and 21.3 GiB resident pagefile usage; these are distinct
+metrics. The busy Python process belongs to `poc_gesture_audiogram.py`, not an
+identified MCP server. C: and D: are separate healthy NVMe disks, with about
+269 and 1,069 GiB free. No process termination, memory trimming or pagefile change
+is made from that observation. Carbon's fresh read-only intake has 16,776 MiB
+available, 36% committed memory and no active compilers. It has no D: drive or
+dtm-codex checkout; stable SDK 10.0.401 is absent. Build offloading must use its
+actual paths and selected installed toolchain. The staged native MCP pilot is
+older than the current merged native host and cannot be relabeled as that release.
+
+The repaired GitOps monitor's first live run reports run/workflow inspection
+available while billing remains unavailable. Owner lookup succeeds; the billing
+request exits one. Quota stays Unknown, and no billing permission or successful
+live usage response is inferred.
 
 The GitOps workflow monitor called the retired product-specific billing API,
 making overall inspection unavailable despite available run/workflow metadata.
@@ -82,7 +151,8 @@ The separately admitted InheritedPipe build passes SDK, restore and build with
 all three commands selecting hostfxr 10.0.12 and exiting zero. Its outer child
 exits zero with all ten closure flags; original input, owner and closeout writers
 close. Independent review verifies all five artifacts, unchanged source and
-DLL/PDB pairing. This is build-only acceptance; inherited-pipe behavior is pending.
+DLL/PDB pairing. This remains build-only acceptance; the separate paired
+inherited-pipe controls above provide the subsequent bounded behavior evidence.
 The successful read-only SDK inventory is not build, package,
 hostfxr-selection or native-fixture acceptance.
 

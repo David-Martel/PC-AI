@@ -197,35 +197,6 @@ pub extern "C" fn pcai_query_hardware_metrics() -> PcaiStringBuffer {
     })
 }
 
-#[cfg(test)]
-mod measurement_tests {
-    use super::*;
-
-    #[test]
-    fn unavailable_temperature_serializes_as_null() {
-        let temperature = ComponentTemp {
-            label: "Unavailable".into(),
-            celsius: None,
-        };
-        let value = serde_json::to_value(temperature).expect("Temperature serialization");
-        assert!(value["celsius"].is_null());
-    }
-
-    #[test]
-    fn cpu_usage_requires_a_real_sampling_interval() {
-        let mut sampler = CpuSampler::new();
-        let first = sampler.sample();
-        assert_eq!(first.sample_status, "WarmingUp");
-        assert!(first.avg_load.is_none());
-        assert!(first.cpu_usage.iter().all(Option::is_none));
-        std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
-        let second = sampler.sample();
-        assert_eq!(second.sample_status, "Sampled");
-        assert!(second.avg_load.is_some_and(|value| (0.0..=100.0).contains(&value)));
-        assert!(second.cpu_usage.iter().all(Option::is_some));
-    }
-}
-
 // ============================================================================
 // FFI Entry Points (Migrated from pcai_system)
 // ============================================================================
@@ -372,5 +343,34 @@ pub extern "C" fn pcai_search_logs_json(
             let error_json = format!(r#"{{"status":"Error","error":"{}"}}"#, e);
             PcaiStringBuffer::from_string(&error_json)
         }
+    }
+}
+
+#[cfg(test)]
+mod measurement_tests {
+    use super::*;
+
+    #[test]
+    fn unavailable_temperature_serializes_as_null() {
+        let temperature = ComponentTemp {
+            label: "Unavailable".into(),
+            celsius: None,
+        };
+        let value = serde_json::to_value(temperature).expect("Temperature serialization");
+        assert!(value["celsius"].is_null());
+    }
+
+    #[test]
+    fn cpu_usage_requires_a_real_sampling_interval() {
+        let mut sampler = CpuSampler::new();
+        let first = sampler.sample();
+        assert_eq!(first.sample_status, "WarmingUp");
+        assert!(first.avg_load.is_none());
+        assert!(first.cpu_usage.iter().all(Option::is_none));
+        std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+        let second = sampler.sample();
+        assert_eq!(second.sample_status, "Sampled");
+        assert!(second.avg_load.is_some_and(|value| (0.0..=100.0).contains(&value)));
+        assert!(second.cpu_usage.iter().all(Option::is_some));
     }
 }

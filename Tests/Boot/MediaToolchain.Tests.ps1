@@ -91,6 +91,15 @@ Describe 'Media report semantics' -Skip:(-not $IsWindows) {
         Should -Invoke Invoke-MediaProcess -Times 3 -Exactly
         Should -Invoke Invoke-MediaProcess -Times 0 -Exactly -ParameterFilter { $Arguments -contains '-i' }
     }
+    It 'retains missing FFmpeg without attempting a workload or capture' {
+        Mock Find-MediaExecutable { $null } -ParameterFilter { $Name -eq 'ffmpeg.exe' }
+        $result = Get-MediaToolchainReport
+        $result.ffmpeg.status | Should -Be 'Missing'
+        $result.ffmpeg.path | Should -BeNullOrEmpty
+        $result.intelQsv.status | Should -Be 'NotRequested'
+        $result.captureDeviceListing.status | Should -Be 'NotRequested'
+        Should -Invoke Invoke-MediaProcess -Times 0 -Exactly
+    }
     It 'marks requested QSV failure and retains its exit evidence' {
         Mock Invoke-MediaProcess { New-ProbeResult -Status 'Failed' -ExitCode 9 -Stderr 'QSV fixture error' } -ParameterFilter { $Arguments -contains 'lavfi' }
         $result = Get-MediaToolchainReport -ValidateIntelQsv
@@ -172,6 +181,10 @@ Describe 'Installed media smoke' -Tag 'Integration' -Skip:(-not $IsWindows) {
     It 'enumerates real binaries without any capture or runtime encode' {
         $result = & $script:MediaScript
         $result.schemaVersion | Should -Be 1
+        if ($result.ffmpeg.status -eq 'Missing' -and [string]::IsNullOrWhiteSpace($result.ffmpeg.path)) {
+            Set-ItResult -Skipped -Because 'Installed FFmpeg is required for real-binary enumeration; absence is covered by deterministic report tests.'
+            return
+        }
         $result.gpuInventory.status | Should -Be 'Available'
         $result.ffmpeg.status | Should -Be 'Enumerated'
         $result.ffmpeg.compiledEncoders | Should -Contain 'h264_qsv'

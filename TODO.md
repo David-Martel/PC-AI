@@ -20,8 +20,12 @@ pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
   publication, including isolated profile probes and missing-provider values.
 - [ ] Merge the Windows fleet/profile work only after the final reviewed head
   passes the required checks; reconcile local main and retire owned branches.
-- [ ] Complete PR182's canonical LLM-helper test admission repair and re-run
-  exact-head CI; retain the existing 85% PowerShell coverage gate.
+- [x] Review PR182's canonical LLM-helper test admission repair. Its owner
+  concurrently published the approved-name fix; preserve the tested alternate
+  proposal and retire its owned temporary worktree.
+- [ ] Re-run PR182 exact-head CI; helper admission alone does not establish
+  merge acceptance. Audit the existing 85% PowerShell coverage target and its
+  enforcement separately: successful main reports 51.83%, unchanged by PR183.
 - [ ] Integrate Candle dependency upgrades together with media/CUDA coverage,
   and validate mistral.rs upgrades with that backend enabled. CPU-only green CI
   does not establish optional backend compatibility.
@@ -114,7 +118,7 @@ re-executed on 2026-09-07:
 | Boot/session Pester (`Tests\Boot\*`) | 28 passed, 0 failed, 1 skipped (85s) |
 | CargoTools `Test-BuildEnvironment -Detailed` | pass; one advisory — no Defender exclusions on `T:\RustCache` |
 | C# bridge `dotnet build PcaiNative.csproj` | succeeds, 1 warning (unresolved XML cref `pcai_media_free_string`) |
-| Rust MSRV | now declared: `rust-version = "1.85"` in `[workspace.package]`, verified by `cargo +1.85 check` |
+| Rust MSRV | September baseline: 1.85. Superseded 2026-10-11 in Native/pcai_core by 1.95 for locked sysinfo, with matching workspace Clippy metadata. Deploy has a separate baseline. |
 | LLM evaluation | not run — needs a local GGUF model, not available unattended |
 
 **Evidence freshness under `Reports\`** — the items in section 1 below name
@@ -300,9 +304,12 @@ suspicion.
   - `PowerShell Tests >> Run Tests with Coverage` sets `Run.Exit = $true` and
     `CoveragePercentTarget = 85`, so it fails on the pre-existing PS7
     test-contract failures already tracked above.
-  Every completed `ci.yml` run in the repo's history is a failure, across
-  unrelated branches (dependabot, `feat/import-nukenul`), which is consistent
-  with this being long-standing rather than branch-specific.
+  This describes the historical August/September observations. By 2026-10-11,
+  main runs 37844013709, 37843335547 and 37842855172 passed. Main and PR183 both
+  report 51.83% against the 85% PowerShell target; that deficit did not fail the
+  main job. PR182 requires refreshed checks after its test-admission repair;
+  audit coverage selection/enforcement independently rather than assuming the
+  target itself blocks merging or inferring status from old failures.
 - [ ] git-guard's commit-time Rust gate can never PASS in this repo, only
   block. `qa_check_rust` in `git-guard/hooks/common/qa_gate.sh` runs
   `cd "$REPO_ROOT" && cargo fmt --all --check` (and the same for clippy), but

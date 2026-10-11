@@ -1,0 +1,11 @@
+{
+  "$schema": "./machine-profile.schema.json",
+  "schemaVersion": 1,
+  "hostName": "dtm-work",
+  "baseline": { "manufacturer": null, "model": null, "processor": null, "source": "Not yet observed on this host" },
+  "expectedHardware": [
+    { "name": "NVIDIA A2000", "source": "User statement, 2026-10-11", "lastReportedPresence": "Unknown", "connection": "Unknown" }
+  ],
+  "statedPowerPath": null,
+  "buildPolicy": { "maxNativeBuildJobs": 2, "source": "Conservative provisional policy; CPU, chassis and power path unverified" }
+}

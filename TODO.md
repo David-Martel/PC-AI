@@ -4,8 +4,44 @@ This is the active high-level backlog for `PC_AI`. Completed historical work
 should be recorded in the relevant report, context snapshot, or specialized
 ledger instead of left here as active work.
 
-Last reconciled: 2026-09-07, after a CI/tooling repair pass. The previous
-reconciliation was 2026-04-30.
+Last reconciled: 2026-10-11, after Windows fleet source integration and Git
+custody cleanup. Earlier CI/tooling evidence remains dated 2026-09-07.
+
+## 2026-10-11 Windows fleet and VIGIL closeout
+
+Current evidence and disposition: [Windows fleet closeout](docs/windows-fleet-closeout.md).
+The [VIGIL-Eko integration plan](docs/vigil-eko-integration.md) records camera,
+pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
+
+- [x] Reconcile current upstream into the Windows fleet branch without losing
+  historical profile WIP; qualify native nullable measurements, read-only fleet
+  discovery, media checks and staged module deployment.
+- [x] Review the public profile workaround and bounded crash collector for
+  publication, including isolated profile probes and missing-provider values.
+- [x] Merge the Windows fleet/profile work after all 12 final-head checks pass;
+  fast-forward local main and retire owned merged branches and backed-up stash.
+- [x] Review PR182's canonical LLM-helper test admission repair. Its owner
+  concurrently published the approved-name fix; preserve the tested alternate
+  proposal and retire its owned temporary worktree.
+- [ ] Resolve PR182's nine integration conflicts and qualify its final head.
+  At `fac1d1a`, tests pass but the explicit coverage gate fails at 66.9936%
+  against 85%. Audit coverage selection/enforcement separately: successful
+  fleet CI reports 51.83%, unchanged by PR183; neither result meets the target.
+- [ ] Integrate Candle dependency upgrades together with media/CUDA coverage,
+  and validate mistral.rs upgrades with that backend enabled. CPU-only green CI
+  does not establish optional backend compatibility.
+- [ ] Finish shared native ABI/schema versioning, cancellation/progress/error
+  contracts and benchmark-backed acceleration import/search improvements.
+- [ ] Validate the full staged PowerShell release in its intended deployment;
+  rebuild compiled clients affected by nullable managed measurement signatures.
+- [ ] Obtain Claude's Eko source-ownership acknowledgment; retain the active
+  locked worktree and close the reviewed transport/UI reliability findings.
+- [x] Merge Eko duplicate/integrity and camera lifecycle/freshness fixes with
+  Windows WinRT/session and Windows/Linux pose-sidecar CI (Eko PR4 and PR5).
+- [ ] Implement a Linux BlueZ backend and Linux UVC capture; qualify Dell
+  UVC/pose and multi-site acquisition through recorded physical HIL.
+- [ ] Complete physical power-path comparison and hang evidence collection on
+  the NUC. Software changes do not establish a hardware freeze cure.
 
 ## 2026-10-03 Fleet and repository closeout
 
@@ -85,7 +121,7 @@ re-executed on 2026-09-07:
 | Boot/session Pester (`Tests\Boot\*`) | 28 passed, 0 failed, 1 skipped (85s) |
 | CargoTools `Test-BuildEnvironment -Detailed` | pass; one advisory — no Defender exclusions on `T:\RustCache` |
 | C# bridge `dotnet build PcaiNative.csproj` | succeeds, 1 warning (unresolved XML cref `pcai_media_free_string`) |
-| Rust MSRV | now declared: `rust-version = "1.85"` in `[workspace.package]`, verified by `cargo +1.85 check` |
+| Rust MSRV | September baseline: 1.85. Superseded 2026-10-11 in Native/pcai_core by 1.95 for locked sysinfo, with matching workspace Clippy metadata. Deploy has a separate baseline. |
 | LLM evaluation | not run — needs a local GGUF model, not available unattended |
 
 **Evidence freshness under `Reports\`** — the items in section 1 below name
@@ -279,6 +315,15 @@ suspicion.
   both coverage steps and the actual FFI/module-import integration job. That result
   does not replace the historical coverage measurement or qualify later heads;
   optional Mistral/media tests and final-head CI remain separate integration gates.
+  This describes the historical August/September observations. By 2026-10-11,
+  main runs 37844013709, 37843335547 and 37842855172 passed. Main and PR183 both
+  report 51.83% against the 85% PowerShell target; that deficit did not fail the
+  main job. PR182's repaired head `fac1d1a` now has refreshed checks: 2,897
+  passes, zero failures and 40 skips, but its explicit source-bound gate fails
+  at 66.9936% (14,616/21,817) against 85%. This verified gate failure and nine
+  conflicts with merged main block acceptance. Audit main's separate coverage
+  selection/enforcement gap without treating its target-only report as the
+  same contract or carrying forward the historical admission failures.
 - [ ] git-guard's commit-time Rust gate can never PASS in this repo, only
   block. `qa_check_rust` in `git-guard/hooks/common/qa_gate.sh` runs
   `cd "$REPO_ROOT" && cargo fmt --all --check` (and the same for clippy), but

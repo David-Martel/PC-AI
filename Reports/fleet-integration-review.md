@@ -1943,3 +1943,73 @@ is pending. Evidence:
 `D:/pcai-relocation/responsiveness-live-python-r3/result.json`.
 The source, runtime, coverage, cleanup and fleet gaps above remain open; this
 is not a clean-main or cross-machine synchronization closeout.
+
+## Current integration and qualification update
+
+Observed cutoff: 2026-10-11 23:26 UTC on dtm-p1gen7. Earlier sections and failed
+receipts remain preserved. The local head is `80897aab93751bccf9ce1147fa0f23b2cdede818`;
+the pending actual merge incorporates `67223a05440973a347950c4bb7205c38424ea090`.
+All nine conflicts have reviewed resolutions and no unmerged index entries.
+This is an uncommitted merge at this cutoff, not main/origin equivalence.
+
+- Main/PR183/PR184 source is integrated with the runtime branch's explicit 85%
+  coverage enforcement, Rust metadata, installer rollback, profile roots and
+  Common discovery/cache guards. Publisher-local cleanup and bus statements in
+  `docs/windows-fleet-closeout.md` now explicitly identify their historical,
+  unrecorded-host scope rather than describing this machine.
+- The first mixed run recorded 151 passes, three failures and four skips.
+  Profile warning observation, actual true-body delegation and null-versus-empty
+  environment restoration were repaired without changing production profile
+  behavior. The second mixed run records 171 passes, zero failures, four skips
+  and zero not-run tests. It includes real Windows CIM integration and owned SSH
+  profile child controls. The four skips require explicit Redis/native media
+  opt-ins; they are not passes. Evidence is under
+  `D:/pcai-relocation/main-integration-current-review-r3/mixed-r2`.
+- The first live-CIM failure was a null memory commit limit. Its original sample
+  was removed by the test fixture, leaving the provider cause OPEN. A later
+  bounded provider query and retained complete collector capture returned valid
+  counters without provider errors. The unchanged positive assertion now includes
+  recorded provider-error diagnostics for future failures. These later successes
+  do not erase the original failure or prove a performance improvement.
+- Main's crash telemetry still converted three nullable secondary thermal fields
+  to zero and could stop cleanup after its first disposal failure. The reviewed
+  repair preserves main's unsigned energy getter and all existing control bodies,
+  independently attempts remaining cleanup, and retains the original first error.
+  Identical added assertions produce seven genuine old-source failures and seven
+  candidate passes; focused candidate controls pass 17 tests. The first comparison
+  runner incorrectly rejected 25 deliberately filtered tests; its failure is
+  retained, and the successor checks the exact filtered population. These counts
+  overlap with mixed validation and confer no global coverage credit.
+- Carbon's four original media phases are closed: both CPU/FFI builds returned
+  zero, the baseline poison test failed naturally at the expected terminal-state
+  assertion, and the candidate passed all six ordered local helper cases. The
+  distinct physical-receipt review supports only that narrow detector. General
+  poisoned polling, cancellation resurrection, blocking mutex use and detached
+  worker/shutdown ownership remain OPEN.
+- Carbon's separate C# compatibility reproduction compiled six fixture artifacts
+  successfully. The unchanged consumer passes against the old DTO and fails
+  against the nullable DTO with five genuine `MissingMethodException` results.
+  All 113 outputs were individually read back and verified. Independent review
+  confirms that current main's DTO bodies match the breaking fixture. Production
+  metrics deployment is HOLD pending an additive API and actual consumer/artifact
+  qualification; compilation alone does not establish binary compatibility.
+- All eight metrics sessions, twelve metadata resources and four media phases
+  passed original-session closure checks. Carbon's original SSH parent and all
+  previous owner/failure objects remain preserved; Sup4 and B897 were clear at
+  final return. No forced termination was credited as a test pass.
+- The foreign media preimage `1FC930274B372793E6A34151486A08F07E0A60E3F3E3111BB32A2E3EE119D334`
+  is preserved. Two whole, reversible formatting changes yield current working
+  hash `028C568349DB1DE93385E26C0A7924986B3AEE14947A2A5E1B3358E0A860BE5A`.
+  Its code remains unstaged and its broad async integration remains HOLD.
+- Published head `fac1d1a` still fails explicit coverage at 14,616/21,817 commands
+  (66.9936% versus 85%), despite 2,897 PowerShell passes and successful other
+  applicable checks. These old-head CI results do not qualify the pending merge.
+
+Milly's completed lossless migration preserves its Linux paths and frees the
+internal disk; the reconnected WDC SSD uses the faster 10 Gb/s UAS connection.
+The bounded read check is separate from an application benchmark or restore test.
+P1's last measured commit pressure still blocks the configured native MCP pilot.
+Work access, master-vault reconciliation, optional backend/runtime qualification,
+remaining PR/worktree disposition, exact-current-head CI and fleet equivalence
+remain OPEN. Root owns the next source/consumer validation and publication;
+no current clean-main, cross-machine synchronization or performance gain is claimed.

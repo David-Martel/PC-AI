@@ -153,22 +153,49 @@ public sealed class CmProblemInfo
 }
 
 /// <summary>
-/// Structured system resource metrics.
+/// Hardware metrics from the Rust sampler. Null measurements are unavailable or warming up.
 /// </summary>
 public sealed class PcaiMetrics
 {
-    [JsonPropertyName("cpu_usage_perc")]
-    public float CpuUsage { get; init; }
+    /// <summary>Average CPU utilization percent; null until a valid sampling interval has elapsed.</summary>
+    [JsonPropertyName("avg_load")]
+    public float? CpuUsage { get; init; }
 
+    /// <summary>Per-core utilization percent, with null entries during sampler warmup.</summary>
+    [JsonPropertyName("cpu_usage")]
+    public float?[]? CpuUsagePerCore { get; init; }
+
+    [JsonPropertyName("cpu_sample_status")]
+    public string? CpuSampleStatus { get; init; }
+
+    /// <summary>Milliseconds since the last CPU refresh, matching the Rust u128 field.</summary>
+    [JsonPropertyName("cpu_sample_age_milliseconds")]
+    public UInt128? CpuSampleAgeMilliseconds { get; init; }
+
+    [JsonPropertyName("temps")]
+    public PcaiComponentTemperature[]? Temperatures { get; init; }
+
+    // These legacy fields are not supplied by the hardware metrics endpoint.
+    // Retain their managed names while preserving missing values as unknown.
     [JsonPropertyName("memory_usage_bytes")]
-    public ulong MemoryUsage { get; init; }
+    public ulong? MemoryUsage { get; init; }
 
     [JsonPropertyName("total_memory_bytes")]
-    public ulong TotalMemory { get; init; }
+    public ulong? TotalMemory { get; init; }
 
     [JsonPropertyName("gpu_usage_perc")]
-    public float GpuUsage { get; init; }
+    public float? GpuUsage { get; init; }
 
     [JsonPropertyName("uptime_seconds")]
-    public ulong Uptime { get; init; }
+    public ulong? Uptime { get; init; }
+}
+
+/// <summary>Temperature reported by a native component sensor; an unavailable reading is null.</summary>
+public sealed class PcaiComponentTemperature
+{
+    [JsonPropertyName("label")]
+    public string? Label { get; init; }
+
+    [JsonPropertyName("celsius")]
+    public float? Celsius { get; init; }
 }

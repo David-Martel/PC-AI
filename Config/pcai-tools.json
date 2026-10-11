@@ -3,6 +3,24 @@
 		{
 			"type": "function",
 			"function": {
+				"name": "pcai_get_machine_capabilities",
+				"description": "Read fresh Windows fleet hardware, device presence, driver candidates and provider capabilities; expectations and stated adapter budgets remain separate from live observations.",
+				"parameters": { "type": "object", "properties": {}, "additionalProperties": false }
+			},
+			"pcai_mapping": { "script": "Tools/Get-PcaiMachineCapabilities.ps1", "params": {} }
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "pcai_test_media_toolchain",
+				"description": "Read installed Windows FFmpeg/GStreamer compiled media backends and current GPU inventory. Does not validate runtime encoding, open capture devices, write reports or install software.",
+				"parameters": { "type": "object", "properties": {}, "additionalProperties": false }
+			},
+			"pcai_mapping": { "script": "Tools/Test-PcaiMediaToolchain.ps1", "params": {} }
+		},
+		{
+			"type": "function",
+			"function": {
 				"name": "SearchDocs",
 				"description": "Search vendor documentation for error codes and device guidance.",
 				"parameters": {

@@ -18,6 +18,24 @@ PC-AI is a modular PowerShell framework that diagnoses hardware issues, analyzes
 
 ## Key Features
 
+Windows fleet discovery and media qualification are documented in
+[fleet capabilities](docs/windows-fleet-capabilities.md),
+[media tooling](docs/windows-media-toolchain.md), and
+[native measurement contracts](docs/windows-native-measurements.md).
+Machine profiles describe expectations separately from current hardware.
+Run the following from a profile-free PowerShell 7 shell; default discovery
+does not start capture, GPU workloads, installers, or an inference server:
+
+```powershell
+pwsh -NoProfile -File .\Tools\Get-PcaiMachineCapabilities.ps1
+pwsh -NoProfile -File .\Tools\Test-PcaiMediaToolchain.ps1
+```
+
+Use `Config/media-toolchain-requirements.txt` in an isolated qualification venv.
+VIGIL application repositories retain their own dependency lockfiles. For
+development module publication, `Tools/Install-PcaiDevModules.ps1` supports
+scoped selection, dry-run planning, staged validation, and recoverable backups.
+
 - **Hardware Diagnostics** -- Device errors, SMART disk health, USB controllers, network adapters
 - **Boot And Sync Reliability** -- VHD startup, Task Scheduler, Filter Manager, Process Lasso, and cloud-sync health tooling
 - **Native Acceleration** -- Rust + C# hybrid engine delivering 5-40x speedups over pure PowerShell

@@ -2087,3 +2087,56 @@ Validation cutoff: October 11, 2026, 21:45 UTC. Owner: root/integration.
   and MediaPipe pose path. The process and its active Claude ancestor were
   preserved. Its resource use alone does not authorize termination or establish
   a disk-write defect. Storage throughput is not UI responsiveness acceptance.
+2026-10-04 DTM-SUPER-NUC follow-up:
+- [x] Qualify built-ins in the public profile shim to prevent accidental PC-AI
+  auto-import during missing-private-profile diagnostics; add bootstrap tests.
+- [ ] Recover the maintained private canonical profile and machine secret
+  backends from their trusted private deployment source. Public bootstrap and
+  staging helpers do not reconstruct these private files.
+- Evidence: C:/Users/david/PC-Audit-2026-10-04/changes.md and followup-profile.md.
+
+2026-10-06 source/deployment reconciliation:
+- [x] Preserve the newer deployed SSH noninteractive silence guard in public
+  profile source; add real child-process command/encoded/file regression tests.
+- [x] Reconcile the historical branch with origin/main while preserving the
+  tracked profile changes and private configuration boundaries (merge 04b5b8d).
+  Publication and merge acceptance are tracked separately in TODO.md.
+
+2026-10-11 NUC13L3Kv7 freeze investigation:
+- [x] Preserve 30-day System/Application evidence and analyze WHEA firmware CPER
+  with WinDbg and Intel's official offline crashlog decoder. PMC reason 0x5 is
+  unclassified; forced shutdown aftermath does not establish the freeze cause.
+- [x] Verify exact current BIOS/SSD firmware, SMART, DISM and SFC; deploy tested
+  PSReadLine console-input workaround with backed-up profile and opt-out state.
+- [x] Apply reversible CPU boost-disabled comparison and run bounded, flushed
+  SYSTEM telemetry plus circular power/WHEA ETW with startup resumption.
+- [ ] Observe ordinary workloads and capture a kernel dump during an actual hang.
+  USB manual-dump setting was already enabled; no reboot or forced crash executed.
+- [ ] If hangs persist, perform offline RAM and physical adapter/cooling isolation.
+- Evidence and rollback: Reports/crash-investigation-20261011/FINDINGS.md and
+  Reports/crash-investigation-20261011/Restore-InvestigationChanges.ps1.
+
+2026-10-11 dtm-p1gen7 integration validation (23:26 UTC cutoff):
+- [x] Resolve all nine main/runtime conflicts while preserving the explicit
+  85% coverage gate, consumer profile roots, literal paths and installer rollback.
+- [x] Preserve main's unsigned/null energy-counter control; repair the three
+  secondary thermal null conversions and independent cleanup/error retention.
+  The same seven assertions fail on old main and pass on the candidate; focused
+  controls pass 17 tests. Broader mixed validation passes 171, with four explicit
+  opt-in skips. These counts overlap and are not unique coverage.
+- [x] Preserve the first mixed live-CIM failure and add recorded provider-error
+  diagnostics to its unchanged positive commit-limit assertion. A later retained
+  capture succeeds; the original missing counter's cause remains OPEN.
+- [ ] Merge acceptance: commit/publish the reviewed integration, refresh exact-head
+  CI and close the existing coverage deficit without weakening the threshold.
+- [ ] Reconcile the managed metrics API with compiled consumers. Five nullable
+  getter signature changes reproduce genuine binary breaks; production metrics
+  deployment is HOLD pending additive compatibility and consumer qualification.
+- [ ] Qualify public media cancellation/poison/shutdown ownership separately from
+  the successful six-case local terminal-state helper reproduction. Preserved
+  foreign media WIP remains unstaged; its two formatting corrections are reversible.
+- [ ] Refresh per-host capacity before a configured native MCP consumer pilot;
+  the last dtm-p1gen7 commit measurement remains above its admission threshold.
+- [ ] Complete Work connectivity, phone-vault reconciliation, optional native
+  backend qualification and foreign worktree/PR disposition. Do not retire WIP
+  or claim clean fleet/main equivalence from this source integration.

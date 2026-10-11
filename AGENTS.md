@@ -20,6 +20,19 @@ just feature addition.
 
 ## Current priorities
 
+Windows fleet diagnostics use `Tools/Get-PcaiMachineCapabilities.ps1`,
+`Tools/Test-PcaiMediaToolchain.ps1`, and `Config/machine-profiles/`.
+Keep expected hardware separate from present devices and runtime qualification.
+Missing temperature, input-power, CPU sampling or SMART data must remain unknown;
+see `docs/windows-native-measurements.md`. A SMART capability probe is not disk
+health. The native workspace requires Rust 1.95 or newer for locked sysinfo 0.39.6.
+Use profile-free, bounded discovery before optional workload tests. Respect each
+machine's power path and build cap; the NUC profile temporarily limits builds to
+two jobs while adapter adequacy is unverified. Do not propagate its settings to
+other Windows hosts. Keep OpenCV wheel variants mutually exclusive in each venv
+and preserve VIGIL application lockfiles. Publishing modules must stage, validate,
+preserve configuration and retain backups before live replacement.
+
 ### 1. Benchmark-first optimization of the PC-AI toolchain
 
 The repo now has a real tooling benchmark path and agents should use it when

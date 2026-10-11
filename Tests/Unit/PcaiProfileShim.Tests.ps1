@@ -16,7 +16,14 @@ Describe 'Profile shim honors the current consumer environment' {
         $script:ShimFixtureLoaded = $false
     }
     AfterEach {
-        foreach ($key in $keys) { [Environment]::SetEnvironmentVariable($key, $saved[$key], 'Process') }
+        foreach ($key in $keys) {
+            if ($null -eq $saved[$key]) {
+                [Environment]::SetEnvironmentVariable($key, [NullString]::Value, 'Process')
+            } else {
+                [Environment]::SetEnvironmentVariable($key, $saved[$key], 'Process')
+            }
+            [Environment]::GetEnvironmentVariable($key, 'Process') | Should -BeExactly $saved[$key]
+        }
     }
     It 'loads a consumer-selected profile and retains an explicit module root' {
         $env:POWERSHELL_MODULES_PATH = Join-Path $TestDrive 'consumer-modules'
@@ -38,9 +45,16 @@ Describe 'Profile shim honors the current consumer environment' {
     }
     It 'refuses a self-referencing canonical root without recursion' {
         $env:POWERSHELL_PROFILE_ROOT = Split-Path -Parent $shim
-        Mock Write-Warning {}
-        . $shim
-        Should -Invoke Write-Warning -Times 1 -ParameterFilter { $Message -match 'resolves to this shim' }
+        $warnings = @(. $shim 3>&1 | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+        $warnings.Count | Should -Be 1
+        $warnings[0].Message | Should -Match 'resolves to this shim'
+        $script:ShimFixtureLoaded | Should -BeFalse
+    }
+    It 'reports an absent canonical profile without loading another profile' {
+        $env:POWERSHELL_PROFILE_ROOT = Join-Path $TestDrive 'absent-canonical'
+        $warnings = @(. $shim 3>&1 | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+        $warnings.Count | Should -Be 1
+        $warnings[0].Message | Should -BeExactly "Canonical local PowerShell profile not found: $(Join-Path $env:POWERSHELL_PROFILE_ROOT 'Microsoft.PowerShell_profile.ps1')"
         $script:ShimFixtureLoaded | Should -BeFalse
     }
 }

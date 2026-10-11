@@ -2021,8 +2021,11 @@ Historical results above retain their original scope and date.
   Predecessor `71ed3e9c5b981d58b57e526d2e8c1485c1e26c69`, CI38168895722:
   2,870 passes,21 failures,40 skips; genuine source-bound coverage13,978/21,817
   (64.069304%). The reviewed endpoint/declaration correction passes143 focused
-  controls. Signed published72ee00d/CI38172830775 remains in progress.
-  Earlier results are historical.
+  controls. Published `24ae406549bec829be5eb060a4cd9525a0fc0fe7`,
+  CI38173326731: 2,897 passes, zero failures, 40 skips; source-bound coverage
+  14,623/21,817 (67.025714%). The coverage gate failed; the other applicable
+  .NET, lint, security, Rust and CPU deployment jobs passed. Earlier results
+  are historical. Do not lower the threshold or count skipped execution.
   Owner: root/integration.
 - [ ] Integrate the outstanding media edit only after fixing the independent
   terminal/missing-ID and public asynchronous contract findings. R5 build/healthy
@@ -2037,3 +2040,50 @@ Historical results above retain their original scope and date.
   before replacing a wrapper. Six read-only and nine writable controls passed;
   shared-server reuse, other-user deployment and measured speedup remain open.
   Owner: root/acceleration.
+
+## Reviewed deployment adoption and current fleet limits
+
+Validation cutoff: October 11, 2026, 21:45 UTC. Owner: root/integration.
+
+- [x] Adopt the independently reviewed module installer and deployment controls.
+  Exact R4 candidates passed 54 controls, zero failures/skips/not-run cases,
+  in an isolated D: fixture. All 13 maintained directory payloads passed the
+  candidate validator. Absolute path admission precedes normalization; every
+  selected payload is validated and staged before publication; late publication
+  failure restores prior payloads and environment. The genuine rollback test
+  observes Alpha's new payload before injecting Beta's failure. No live user
+  module installation was performed. Evidence:
+  `D:/pcai-relocation/pr183-installer-fixture-r4/` and
+  `.pcai/integration/installer-adoption-peer-r1/review.md`.
+- [ ] Reconcile PR183 at `629196af36f9cc1f1867d60ea4701e754465ec55`.
+  Its two current-head workflows succeeded, but the independently evaluated
+  merge with 24ae406 still has eight conflicts. Only the reviewed installer
+  and deployment tests are adopted here. Profile/runtime, native, telemetry,
+  workflow and other source changes remain separately qualified work.
+- [ ] Finish the native configured-consumer pilot. Reversible transaction and
+  custody controls passed 34 cases plus actual nonempty SACL preservation.
+  Local commitment remains about 89%, above the pilot's unchanged 85% limit;
+  no live MCP configuration or native-host registration was changed.
+- [ ] Finish matched media terminal-state builds and detection. R1 preparation
+  refused before actor launch because its historical cause-type guard expected
+  ErrorRecord where the retained R8 cause is PropertyNotFoundException.
+  Preserve both actual failures; R2 corrects admission without reconstructing
+  them. No terminal-state build or detector has executed yet. Public polling,
+  cancellation and detached-worker lifecycle findings remain open.
+- [ ] Qualify PR183 telemetry and public CLR compatibility. Same seven detectors
+  produced seven baseline behavioral failures and seven candidate passes;
+  the corrected private collector also passed 16 focused controls. These are
+  private fixture results, not adoption or real CIM measurement acceptance.
+  Five public metric accessor types changed while declared version stayed
+  0.1.0; compiled-consumer compatibility execution remains pending.
+- [x] Verify Milly's reconnected storage using a bounded read. The serial-matched
+  WDC SSD read 128 MiB in 0.293392 seconds with GNU dd, approximately457 MB/s.
+  Internal available space remains about580 GiB. uutils dd0.10.0 failed the
+  direct-read command with Invalid input; upstream buffer-alignment findings
+  corroborate a tooling explanation. No global tool replacement occurred.
+  See `Reports/milly-storage-and-expansion-review.md` for evidence and limits.
+- [ ] Obtain the active owner's disposition for the live Python process on P1.
+  A nonblocking stack inspection identifies the vigil-audio gesture audiogram
+  and MediaPipe pose path. The process and its active Claude ancestor were
+  preserved. Its resource use alone does not authorize termination or establish
+  a disk-write defect. Storage throughput is not UI responsiveness acceptance.

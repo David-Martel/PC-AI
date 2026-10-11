@@ -473,3 +473,30 @@ physical slot vacancy, bracket and thermal parts require inspection; a single
 enumerated NVMe does not prove vacancy. The separate SKHynix FAT drive remains
 unchanged. Cold boot, removal, Windows access, backup restoration and application
 qualification remain open.
+
+### Bounded storage throughput after reconnect
+
+The October 11, 21:29 UTC readback reports 622,638,047,232 bytes available on
+the internal ext4 filesystem (about580 GiB), 35% use. The serial-matched WDC
+SSD `1830D0800483` remains `/dev/sda`, with native USB speed10000 Mb/s.
+The NTFS mount reports 374,527,430,656 bytes available; its nested Btrfs data
+mount reports 267,087,466,496 bytes. Those values are non-additive. The ordered
+automounts, native zstd:3 compression and zero Btrfs device-error counters remain
+in place. The separate SKHynix drive remains unchanged.
+
+A serial-checked, read-only GNU dd9.7 operation read134,217,728 bytes directly
+from the WDC drive in0.293392 seconds, displaying457 MB/s. It was bounded to
+128 MiB and15 seconds; this is not a sustained whole-device benchmark or an
+application/UI responsiveness measurement. No global cache flush, data write,
+remount or deletion was used. Evidence:
+`D:/pcai-relocation/milly-storage-throughput-r1/result.json`.
+
+The installed `/usr/bin/dd` resolves to uutils0.10.0. Two direct-read attempts
+returned `Invalid input`; the device reports dma_alignment511 and512-byte
+logical blocks. The upstream [direct-I/O alignment issue](https://github.com/uutils/coreutils/issues/12085)
+and [page-aligned read-buffer change](https://github.com/uutils/coreutils/pull/12143)
+corroborate a tooling explanation. That attribution is an inference from the
+matching failure and source, not an instrumented trace of this binary. The
+existing GNU command succeeded without replacing the system command. Package
+policy still selects the installed rust-coreutils0.10.0 Ubuntu package; no
+package upgrade or global alias change occurred.

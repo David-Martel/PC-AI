@@ -1881,3 +1881,65 @@ inspection remains available. Do not reinterpret zero returned upstream items
 as a successful security inspection. Evidence:
 `D:/pcai-relocation/agent-bus-current-findings-r1/messages.json` and
 `Reports/gitops/monitors-latest-David-Martel_PC-AI.json`.
+
+## Current reviewed integration state
+
+Validation cutoff: October 11, 2026, 21:45 UTC. Earlier receipts remain historical.
+
+The published 24ae406 head completed CI38173326731 with2,897 PowerShell passes,
+zero failures and40 skips. Coverage14,623/21,817 (67.025714%) fails the unchanged
+85% floor. Other applicable .NET, lint, security, Rust and CPU deployment jobs
+passed. The source-aware coverage review is retained at
+`.pcai/integration/ci-coverage-current-risk-review-r2/review.json`.
+
+PR183 head629196a completed both current workflows successfully. A read-only
+merge with24ae406 still produces eight conflicts. This workstream adopts only
+the reviewed installer and deployment tests; it does not merge the remaining
+profile, runtime, native, telemetry or CI changes or retire the active branch.
+The exact installer/test candidates passed54 isolated controls without skips
+and an independent source review. The validator also accepted all13 maintained
+directory modules. Stage verification precedes publication, and the genuine
+late-failure test witnesses Alpha's new payload before Beta fails and the
+original payloads/environment are restored. No live module deployment occurred.
+Evidence: `D:/pcai-relocation/pr183-installer-fixture-r4/` and
+`.pcai/integration/installer-adoption-peer-r1/review.md`.
+
+Private telemetry validation now includes16 passing focused controls and a
+same-assertion behavioral comparison: the original collector fails all seven
+selected cases; the candidate passes all seven. This independently detects
+missing-value coercion and lost write-failure reporting rather than a fixture
+setup defect. Evidence:
+`D:/pcai-relocation/pr183-crash-telemetry-baseline-detection-actual-r1/`.
+Real CIM units, observer overhead and deadline acceptance remain open. The
+five nullable public C# metric accessor changes require compiled-consumer
+compatibility qualification; declared project version remains0.1.0.
+
+The native filesystem transaction is now qualified by34 owned controls plus
+actual nonempty SACL preservation. Earlier tool-ID/auth-denial fixture findings
+were corrected and revalidated. The genuine configured Codex consumer pilot
+remains gated by about89% local commitment, above its unchanged85% limit.
+No live MCP configuration, native-host registration or shared-server reuse
+has been adopted. Transaction qualification does not establish consumer or
+fleet qualification.
+
+Media terminal-state admission R1 refused before compilation: an older retained
+cause is a PropertyNotFoundException, while R1 expected ErrorRecord. Both
+original failures remain retained. R2 source admission corrects that specific
+assumption and preserves exact original references. Its matched new builds
+and terminal-state detectors remain pending; public polling, cancellation,
+missing-ID and detached-worker lifecycle findings are still open. The foreign
+canonical media edit remains untouched.
+
+Milly's bounded direct read measured457 MB/s with the existing GNU dd command;
+internal available space remains about580 GiB. uutils dd's direct-read failure
+matches an upstream buffer-alignment report. See the
+[storage review](milly-storage-and-expansion-review.md) for measurements,
+source attribution and remaining physical/application acceptance gaps.
+
+P1's live Python stack was inspected without blocking or mutating the target:
+it belongs to the vigil-audio gesture-audiogram/MediaPipe pose path with an
+active Claude ancestor. The process remains preserved while owner disposition
+is pending. Evidence:
+`D:/pcai-relocation/responsiveness-live-python-r3/result.json`.
+The source, runtime, coverage, cleanup and fleet gaps above remain open; this
+is not a clean-main or cross-machine synchronization closeout.

@@ -2,7 +2,7 @@
 
 ## Immediate dtm-p1gen7 responsiveness
 
-Current review: October 11, 2026, 05:04 UTC. See the latest
+Current review: October 11, 2026, 05:29 UTC. See the latest
 [fleet readback](Reports/fleet-integration-review.md) and
 [cache correctness review](Reports/shared-cache-correctness-review.md).
 
@@ -70,6 +70,9 @@ Current review: October 11, 2026, 05:04 UTC. See the latest
       skip and all 30 physical UTF-8 XML identities; distinct actual review and
       original capture/parser/outer/writer closure pass. Native fixtures,
       maintained defaults, canonical adoption and benchmarks remain open.
+      Both separately admitted native ZeroByte runs now pass all nineteen
+      controls with exact XML identities and original closure. Independent
+      review accepts compatibility only; the fault remains NOT_REPRODUCED.
 - [x] Independently review the completed read-only SDK inventory: 4,040 file
       records, 768 directories, exact totals and original closure. Peer review
       does not replay underlying leaf hashes; inventory alone is not a build.
@@ -80,15 +83,26 @@ Current review: October 11, 2026, 05:04 UTC. See the latest
       zero compiler warnings/errors, but trace-file sharing and parser Path
       shadowing keep its encloser FAIL. Preserve its original errors/closure;
       independent exact source/PDB/trace lineage review permits separately
-      admitted test-only reuse of the five outputs. InheritedPipe
-      build and native behavior remain open.
+      admitted test-only reuse of the five outputs. The minimal trace-reader
+      successor's InheritedPipe SDK/restore/build commands and original closure
+      now pass independent actual review with exact source/PDB/output binding.
+      This is build-only acceptance; native inherited-pipe behavior remains open.
+- [x] Qualify the metadata session's own five retained-child controls; independently
+      verify HOLD/retry/refusal/settlement and same-original closure while keeping
+      the injected drain failure and all earlier metadata errors unchanged.
+- [x] Replace GitOps' retired Actions billing endpoint with supported current-month
+      user/organization usage after typed owner discovery. Eight predecessor
+      controls fail; the repaired full suite passes 23 with no skips and zero
+      analyzer findings. Keep billing availability explicit and quota Unknown.
+- [ ] Qualify real GitOps billing access; focused collaborator tests do not establish
+      token permissions or a live usage response.
 - [ ] Prepare and verify the public media cache seed only after capacity admission;
       then perform actual locked offline resolution and complete cache inventory.
 - [ ] Execute the bounded poisoned-media-worker predecessor/candidate detectors,
       then narrow crate regressions and lint before integrating the claimed repair.
 - [ ] Clear PC-AI current-head coverage and deployed consumer parity gates;
       preserve the 85% target and distinguish cache controls from coverage credit.
-      Published 83b5fe8 passes 2,796 cases but fails coverage at 65.718514%; retain
+      Published ad25aee passes 2,798 cases but fails coverage at 65.718514%; retain
       current-head artifact reconstruction as a separate verification action.
 - [x] Correct the manifest benchmark's symbolic-link classification using two
       genuine failing predecessor controls; pass all forty contract cases and

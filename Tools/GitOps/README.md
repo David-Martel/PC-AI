@@ -39,7 +39,7 @@ git -c commit.gpgsign=true -c gpg.format=ssh `
 ## Monitors + non-blocking hooks (directive 3 — shipped)
 | Script | Purpose |
 |---|---|
-| `Watch-WorkflowHealth.ps1` | Detect silent CI failures: `startup_failure` (billing/permissions), failures, disabled workflows, Actions-minutes exhaustion → `Reports/gitops/workflow-health-*.json` |
+| `Watch-WorkflowHealth.ps1` | Detect failed runs and disabled workflows; inspect current-month user/organization billing usage → `Reports/gitops/workflow-health-*.json` |
 | `Get-UpstreamReviews.ps1` | Harvest Dependabot + code-scanning alerts + Copilot/Gemini/Jules PR reviews → `Reports/gitops/upstream-reviews-*.json` |
 | `Invoke-GitOpsMonitors.ps1` | Runs both, writes a combined snapshot, best-effort posts to the agent-bus (`localhost:8400`). Launched **detached** from the hook so it never blocks. |
 | `Install-GitOpsHooks.ps1` | Installs a non-blocking `pre-push` hook for non-lefthook repos; prints the lefthook snippet otherwise. |
@@ -47,6 +47,15 @@ git -c commit.gpgsign=true -c gpg.format=ssh `
 Wired into PC_AI via `lefthook.yml` `pre-push` (fires `Invoke-GitOpsMonitors.ps1` detached). Git has no
 `post-push` hook, so `pre-push` + a detached worker (with a short delay) captures post-push CI state without
 blocking. Outputs land in `Reports/gitops/` (gitignored) + the agent-bus for live agents.
+
+The workflow monitor resolves the repository owner before selecting the supported
+[billing usage API](https://docs.github.com/en/rest/billing/usage). Missing access
+or malformed metadata remains `Unavailable`; `workflow_inspection_status` reports
+run/workflow availability separately. Billing reports retain only availability,
+requested UTC year/month and `quota_status: Unknown`. Usage supplies no included
+Actions allowance, so it cannot establish minutes exhaustion. Quantities and
+charges are validated in memory and excluded from reports and console output.
+The focused executable suite is `Tests/Unit/GitOpsMonitors.Tests.ps1`.
 
 ## Roadmap (remaining)
 - [ ] **Reconcile-GitSigning.ps1** — flip an arbitrary local clone's `.git/config` to SSH signing (PC-AI done inline).

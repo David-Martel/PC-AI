@@ -2,6 +2,10 @@
 <#
 .SYNOPSIS
 Inspect workflow failures and expose unavailable GitHub metadata explicitly.
+.DESCRIPTION
+Inspect current-month consolidated usage for the repository owner. Billing access
+or schema failures remain unavailable; workflow availability is also reported
+separately. Usage does not expose an Actions allowance, so quota status is Unknown.
 #>
 [CmdletBinding()]
 param([string]$Repo, [ValidateRange(1, 100)][int]$Limit = 15, [switch]$Quiet,
@@ -40,18 +44,67 @@ if ($workflows.status -eq 'Available') {
         }
     }
 }
-$billing = Get-GitOpsResponse -Operation billing -Arguments @('api', '/user/settings/billing/actions') -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds -Shape Object
-$inspections.Add($billing)
-if ($billing.status -eq 'Available') {
-    if ($null -eq $billing.value.total_minutes_used -or $null -eq $billing.value.included_minutes) { $billing.status = 'Unavailable'; $billing.reason = 'Billing metadata is incomplete.' }
-    elseif ($billing.value.included_minutes -gt 0 -and $billing.value.total_minutes_used -ge $billing.value.included_minutes) { $problems.Add("Actions minutes exhausted: $($billing.value.total_minutes_used)/$($billing.value.included_minutes)") }
+$billingMonth = [datetime]::UtcNow
+$repoOwner = $Repo.Split('/')[0]
+# The retired product billing API exposed an allowance; consolidated usage does not.
+# Resolve the repository's billing owner without assuming it is the authenticated user.
+$billingOwner = Get-GitOpsResponse -Operation billing-owner -Arguments @('api', "users/$repoOwner") -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds -Shape Object
+$inspections.Add($billingOwner)
+$billing = [pscustomobject]@{ operation = 'billing'; status = 'Unavailable'; exit_code = $null; reason = 'Billing owner is unavailable or invalid.'; value = $null }
+if ($billingOwner.status -eq 'Available') {
+    $ownerNames = @($billingOwner.value.PSObject.Properties.Name)
+    if ($ownerNames -cnotcontains 'login' -or $ownerNames -cnotcontains 'type' -or
+        $billingOwner.value.login -isnot [string] -or $billingOwner.value.login -ine $repoOwner -or
+        $billingOwner.value.type -isnot [string] -or $billingOwner.value.type -cnotin @('User', 'Organization')) {
+        $billingOwner.status = 'Unavailable'; $billingOwner.reason = 'Billing owner metadata is incomplete or invalid.'
+    }
+    else {
+        $ownerRoute = if ($billingOwner.value.type -ceq 'Organization') { 'organizations' } else { 'users' }
+        $endpoint = "$ownerRoute/$repoOwner/settings/billing/usage?year=$($billingMonth.Year)&month=$($billingMonth.Month)"
+        $billing = Get-GitOpsResponse -Operation billing -Arguments @('api', $endpoint) -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds -Shape Object
+        if ($billing.status -eq 'Available') {
+            # Validate the schema without publishing private quantities or charges.
+            try {
+                $names = @($billing.value.PSObject.Properties.Name)
+                if ($names -cnotcontains 'usageItems' -or $billing.value.usageItems -isnot [array]) { throw 'Invalid usage array.' }
+                if ($names -ccontains 'timePeriod') {
+                    $period = $billing.value.timePeriod
+                    if ($period -isnot [pscustomobject] -or @($period.PSObject.Properties.Name) -cnotcontains 'year' -or
+                        @($period.PSObject.Properties.Name) -cnotcontains 'month' -or
+                        ($period.year -isnot [long] -and $period.year -isnot [int]) -or
+                        ($period.month -isnot [long] -and $period.month -isnot [int]) -or
+                        $period.year -ne $billingMonth.Year -or $period.month -ne $billingMonth.Month) { throw 'Invalid report period.' }
+                }
+                foreach ($item in $billing.value.usageItems) {
+                    if ($item -isnot [pscustomobject]) { throw 'Invalid usage item.' }
+                    $itemNames = @($item.PSObject.Properties.Name)
+                    foreach ($field in @('date', 'product', 'sku', 'unitType')) {
+                        if ($itemNames -cnotcontains $field -or $item.$field -isnot [string] -or [string]::IsNullOrWhiteSpace($item.$field)) { throw 'Invalid usage text.' }
+                    }
+                    $usageDate = [datetime]::MinValue
+                    if (-not [datetime]::TryParseExact($item.date, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture,
+                        [Globalization.DateTimeStyles]::None, [ref]$usageDate) -or
+                        $usageDate.Year -ne $billingMonth.Year -or $usageDate.Month -ne $billingMonth.Month) { throw 'Invalid usage date.' }
+                    foreach ($field in @('quantity', 'pricePerUnit', 'grossAmount', 'discountAmount', 'netAmount')) {
+                        if ($itemNames -cnotcontains $field -or ($item.$field -isnot [long] -and $item.$field -isnot [int] -and
+                            $item.$field -isnot [double] -and $item.$field -isnot [decimal])) { throw 'Invalid usage number.' }
+                        $number = [double]$item.$field
+                        if ([double]::IsNaN($number) -or [double]::IsInfinity($number)) { throw 'Nonfinite usage number.' }
+                    }
+                }
+            }
+            catch { $billing.status = 'Unavailable'; $billing.reason = 'Billing usage metadata is incomplete or invalid.' }
+        }
+    }
 }
+$inspections.Add($billing)
 $available = @($inspections | Where-Object status -EQ Unavailable).Count -eq 0
 $snap = [ordered]@{
     repo = $Repo; checked_utc = [datetime]::UtcNow.ToString('o'); inspection_status = if ($available) { 'Available' } else { 'Unavailable' }
     problem_count = $problems.Count; problems = @($problems)
     last_runs   = if ($runs.status -eq 'Available') { @($runs.value | Select-Object -First 5 | ForEach-Object { @{ wf = $_.workflowName; status = $_.status; conclusion = $_.conclusion } }) } else { @() }
-    billing     = if ($billing.status -eq 'Available') { @{ used = $billing.value.total_minutes_used; included = $billing.value.included_minutes } } else { $null }
+    workflow_inspection_status = if ($runs.status -eq 'Available' -and $workflows.status -eq 'Available') { 'Available' } else { 'Unavailable' }
+    billing     = @{ status = $billing.status; year = $billingMonth.Year; month = $billingMonth.Month; quota_status = 'Unknown' }
     inspections = @($inspections | Select-Object operation, status, exit_code, reason)
 }
 Write-GitOpsReport -Report $snap -Directory $OutputDirectory -Name ('workflow-health-' + $Repo.Replace('/', '_') + '.json')

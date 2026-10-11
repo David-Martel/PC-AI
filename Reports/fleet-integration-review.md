@@ -1,11 +1,25 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 11, 2026, 05:04 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 11, 2026, 05:29 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
 
-## Current acceptance and integration gaps (05:04 UTC)
+## Current acceptance and integration gaps (05:29 UTC)
+
+The GitOps workflow monitor called the retired product-specific billing API,
+making overall inspection unavailable despite available run/workflow metadata.
+The reviewed repair resolves the repository's User/Organization owner and
+requests current UTC-month consolidated usage through the
+[supported API](https://docs.github.com/en/rest/billing/usage). Missing access,
+owner mismatches and malformed metadata remain unavailable; workflow inspection
+availability is reported separately. Usage contains no included Actions allowance,
+so quota remains Unknown. No quantities, prices or charges enter reports or
+console output. Eight new executable controls fail against the preserved
+predecessor; all 23 focused controls pass after repair with no skips. Existing
+behavior assertions remain, with three request-count expectations increased for
+the bounded owner lookup. Analysis and parsing report zero findings. Root reviews
+the exact diff and physical result files; live billing access remains unqualified.
 
 Fresh Carbon SSH and fetch confirm main `b92e5f6` matches origin/main, with the
 untracked private build script preserved. PowerShell 7.6.6 and Rust 1.99.0 are
@@ -61,10 +75,34 @@ SDK/Restore trace receipts. Physical traces select hostfxr 10.0.12. Five output
 files exist with the expected net8.0/runtime8.0.31 metadata. Independent review
 accepts their exact source, portable-PDB pairing and physical trace lineage for
 separately admitted test-only execution; it preserves the failed encloser and
-does not accept fixture behavior. The untouched InheritedPipe fixture has not
-been built. Trace-reader repairs and genuine native fixture behavior remain
-pending. The successful read-only SDK inventory is not build, package,
+does not accept fixture behavior. A minimal successor corrects the variable
+collision and retries only transient sharing/lock errors within a five-second
+retry-decision budget; this is not a hard deadline on an individual file read.
+The separately admitted InheritedPipe build passes SDK, restore and build with
+all three commands selecting hostfxr 10.0.12 and exiting zero. Its outer child
+exits zero with all ten closure flags; original input, owner and closeout writers
+close. Independent review verifies all five artifacts, unchanged source and
+DLL/PDB pairing. This is build-only acceptance; inherited-pipe behavior is pending.
+The successful read-only SDK inventory is not build, package,
 hostfxr-selection or native-fixture acceptance.
+
+Separate baseline/candidate native validation passes all 19 ZeroByte controls
+in both runs, with exact physical UTF-8 XML identities and all capture, outer
+process and original writer resources closed. Independent review accepts
+compatibility only: the TRUE/zero-byte fault is NOT_REPRODUCED. These passes do
+not demonstrate a detected defect or qualify inherited pipes, Redis, performance
+or canonical adoption. The earlier failed build receipt remains unchanged.
+
+Original metadata session 35491 now passes its own five retained-child supervisor
+controls. Physical records show HOLD retention, observation-only retry, refused
+new launch while custody is pending, and eventual closure of the same originals.
+The timeout and injected stream-overflow causes remain recorded; the overflow
+control keeps DrainsSucceeded false and its secondary drain error. Its physical
+log is exactly 32 KiB even though the faulted operation's byte-count field remains
+zero. Independent review verifies 67 stable pins and attributes Root's same-session
+post-return handle checks. All three earlier metadata FAIL objects and their
+original first/secondary error references remain unchanged. The twelve metadata
+writer controls and persistent MCP deployment remain separate open gates.
 
 An actual uncapped directory-manifest benchmark initially fails the FileCount
 comparison. The tree has exactly 391 file symbolic links and one directory
@@ -84,7 +122,18 @@ classification, whole-system responsiveness and other tooling remain separate
 claims. Capped manifests and different token heuristics still receive no
 qualified speedup comparison.
 
-Published signed head `83b5fe8` adds the qualified runtime DLL repair. Its exact
+Published signed head `ad25aee` adds the manifest benchmark correction. Its
+[CI run 38113748451](https://github.com/David-Martel/PC-AI/actions/runs/38113748451)
+passes 2,798 PowerShell cases with zero failures, 40 skips and zero not-run cases
+in 464.09 seconds. Coverage still fails the unchanged 85% gate at 14,209/21,621
+commands, 65.718514%. Rust tests, strict Clippy, format, .NET, CPU inference,
+security and PowerShell lint pass; integration tests are skipped and the aggregate
+gate fails. NVIDIA validation passes at the same head; Rust Guidelines remains
+in progress at this cutoff. Local and origin integration heads match. Independent
+current-head artifact reconstruction is underway; predecessor artifacts are not
+substitutes. PR 182 remains draft and unmerged.
+
+Preceding signed head `83b5fe8` adds the qualified runtime DLL repair. Its exact
 [CI run 38105878561](https://github.com/David-Martel/PC-AI/actions/runs/38105878561)
 passes 2,796 PowerShell cases, with zero failures, 40 skips and zero not-run cases
 in 435.19 seconds, but fails the unchanged 85% coverage gate at 14,209/21,621

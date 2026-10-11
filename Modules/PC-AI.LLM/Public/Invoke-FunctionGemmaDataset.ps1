@@ -23,7 +23,7 @@ function Invoke-FunctionGemmaDataset {
         [switch]$NativeOnly
     )
 
-    $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     $scriptPath = Join-Path $repoRoot 'Tools\prepare-functiongemma-router-data.ps1'
     if (-not (Test-Path $scriptPath)) {
         throw "prepare-functiongemma-router-data.ps1 not found at $scriptPath"

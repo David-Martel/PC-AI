@@ -92,6 +92,9 @@ jobs:
         run: |
           .\Build.ps1 -Component format -LintProfile rust-inference-fmt -DependencyStrategy locked
           if ($LASTEXITCODE -ne 0) { throw "Format check failed" }
+      - name: Check Core Format
+        working-directory: Native/pcai_core
+        run: cargo fmt -p pcai_core_lib -- --check
 
   powershell-lint:
     name: PowerShell Lint
@@ -145,11 +148,22 @@ jobs:
         run: |
           .\Build.ps1 -Component lint -LintProfile rust-inference-clippy -DependencyStrategy locked
           if ($LASTEXITCODE -ne 0) { throw "Clippy failed" }
+      # Core contains the Windows Event Log bindings consumed by PowerShell/C#.
+      # The inference profiles above do not compile or lint this crate.
+      - name: Check Core Windows Bindings
+        working-directory: Native/pcai_core
+        run: cargo check -p pcai_core_lib --all-targets --no-default-features --locked
+      - name: Clippy Core Windows Bindings
+        working-directory: Native/pcai_core
+        run: cargo clippy -p pcai_core_lib --all-targets --no-default-features --locked -- -D warnings
 
   rust-test:
     name: Rust Tests
     runs-on: windows-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
     needs: rust-check
     steps:
       - uses: actions/checkout@v4
@@ -161,6 +175,11 @@ jobs:
       - name: Run Unit Tests
         working-directory: Native/pcai_core/pcai_inference
         run: cargo test --no-default-features --features server,ffi --lib
+      # This includes the 19 inert Event Log type/limit/handle contracts.
+      # Unit passes do not establish paired fleet deployment or runtime parity.
+      - name: Run Core Unit Tests
+        working-directory: Native/pcai_core
+        run: cargo test -p pcai_core_lib --no-default-features --locked --lib
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Coverage Report
@@ -196,7 +215,8 @@ jobs:
           binary: ${{ steps.prepare-codecov.outputs.binary }}
           files: Native/pcai_core/pcai_inference/lcov.info
           flags: rust-inference
-          fail_ci_if_error: false
+          use_oidc: true
+          fail_ci_if_error: true
       # Diagnostic only -- nothing downstream consumes this artifact, unlike the
       # DLL upload in the build job, which Integration Tests downloads and which
       # therefore stays blocking.
@@ -228,9 +248,53 @@ jobs:
     name: PowerShell Tests
     runs-on: windows-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
     needs: powershell-lint
     steps:
       - uses: actions/checkout@v4
+      - name: Install ripgrep
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'ripgrep-15.2.0-windows.zip'
+          $destination = Join-Path $env:RUNNER_TEMP 'ripgrep-15.2.0-windows'
+          $url = 'https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip'
+          curl.exe --fail --location --proto '=https' --proto-redir '=https' --connect-timeout 15 --max-time 120 --retry 2 --retry-max-time 180 --output $archive $url
+          if ($LASTEXITCODE -ne 0) { throw "ripgrep download failed with exit code $LASTEXITCODE" }
+          $expectedHash = '71b2fef860abe467217a538ff31de02f5258807c0129f771846f87bd029aafc5'
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ine $expectedHash) { throw 'ripgrep archive identity mismatch' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination -ErrorAction Stop
+          $rg = Join-Path $destination 'ripgrep-15.2.0-x86_64-pc-windows-msvc/rg.exe'
+          $file = Get-Item -LiteralPath $rg -ErrorAction Stop
+          if ($file.PSIsContainer -or $file.Length -le 0) { throw 'ripgrep executable is absent or empty' }
+          $version = & $rg --version
+          if ($LASTEXITCODE -ne 0 -or ($version -join "`n") -notmatch '\Aripgrep 15\.2\.0(?:\s|$)') { throw 'Installed ripgrep identity mismatch' }
+          Split-Path -Parent $rg | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "Using native ripgrep: $rg"
+          $version
+      - name: Install fd
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'fd-10.5.0-windows.zip'
+          $destination = Join-Path $env:RUNNER_TEMP 'fd-10.5.0-windows'
+          $url = 'https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-x86_64-pc-windows-msvc.zip'
+          curl.exe --fail --location --proto '=https' --proto-redir '=https' --connect-timeout 15 --max-time 120 --retry 2 --retry-max-time 180 --output $archive $url
+          if ($LASTEXITCODE -ne 0) { throw "fd download failed with exit code $LASTEXITCODE" }
+          # GitHub release asset digest, checked against the official v10.5.0 release.
+          $expectedHash = 'a227701b8551c35a9931d9f6da75503cf86d88e182d71fb849a70864c5d57cd7'
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ine $expectedHash) { throw 'fd archive identity mismatch' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination -ErrorAction Stop
+          $fd = Join-Path $destination 'fd-v10.5.0-x86_64-pc-windows-msvc/fd.exe'
+          $file = Get-Item -LiteralPath $fd -ErrorAction Stop
+          if ($file.PSIsContainer -or $file.Length -le 0) { throw 'fd executable is absent or empty' }
+          $version = & $fd --version
+          if ($LASTEXITCODE -ne 0 -or ($version -join "`n") -notmatch '\Afd 10\.5\.0(?:\s|$)') { throw 'Installed fd identity mismatch' }
+          Split-Path -Parent $fd | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "Using native fd: $fd"
+          $version
       - name: Install Pester
         shell: pwsh
         run: Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser
@@ -260,21 +324,54 @@ jobs:
           # The bounded workload profiler requires PowerShell 7 and Windows
           # counters. Include its exact suite here without expanding the shared
           # PowerShell 5.1 compatibility baseline in maintenance.yml.
-          $config.Run.Path = @('Tests/Unit', 'Tests/Boot/WorkloadResourceProfile.Tests.ps1')
-          $config.Run.Exit = $true
+          # Include bounded module import/export checks; their parameterized
+          # contracts must be discovered even when native/hardware suites are absent.
+          # These evaluation and routed-provider fixtures exercise real algorithms
+          # and consumer contracts with synthetic inference/HTTP boundaries.
+          # They do not depend on a native DLL, a model, or workstation services.
+          $config.Run.Path = @('Tests/Unit', 'Tests/Boot/WorkloadResourceProfile.Tests.ps1', 'Tests/Boot/ProcessLassoGovernorWatchdogRegistration.Tests.ps1', 'Tests/Integration/ModuleLoading.Tests.ps1', 'Tests/Evaluation/PC-AI.Evaluation.Tests.ps1', 'Tests/Integration/Router.Providers.Tests.ps1')
+          # Capture Pester's result before enforcing coverage; Run.Exit only
+          # enforces test failures and exits before caller coverage assertions.
+          $config.Run.Exit = $false
+          $config.Run.PassThru = $true
           $config.CodeCoverage.Enabled = $true
           $config.CodeCoverage.OutputFormat = 'JaCoCo'
           $config.CodeCoverage.OutputPath = 'Tests/TestResults/coverage.xml'
           $config.CodeCoverage.CoveragePercentTarget = 85
           $config.Output.Verbosity = 'Detailed'
-          Invoke-Pester -Configuration $config
-      # Keep the raw report available even while the remote upload is optional.
+          # Bind source bytes before measuring; publish the exact parent/child
+          # inventories used by the gate, even when coverage is below target.
+          $sourceBindings = @(Get-ChildItem -LiteralPath ./Modules -Recurse -File |
+              Where-Object Extension -in '.ps1', '.psm1' | ForEach-Object {
+                  [pscustomobject]@{ Path = $_.FullName; SHA = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }
+              })
+          $result = Invoke-Pester -Configuration $config
+          . ./Tools/Merge-PesterChildCoverage.ps1
+          $parentSnapshot = New-PesterCoverageSnapshot -Coverage $result.CodeCoverage -SourceBindings $sourceBindings
+          $attachments = @(foreach ($test in @($result.Tests)) {
+              if ($null -ne $test -and $null -ne $test.PSObject.Properties['PcaiChildCoverage']) {
+                  [pscustomobject]@{ Result = $test.Result; Receipt = $test.PcaiChildCoverage }
+              }
+          })
+          [ordered]@{
+              SchemaVersion = 1
+              SourceCommit = $env:GITHUB_SHA
+              RunId = $env:GITHUB_RUN_ID
+              RunAttempt = $env:GITHUB_RUN_ATTEMPT
+              Parent = $parentSnapshot
+              Attachments = $attachments
+          } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath Tests/TestResults/source-bound-coverage.json -Encoding utf8
+          . ./Tools/Assert-PesterCoverageGate.ps1
+          Assert-PesterCoverageGate -Result $result -Target $config.CodeCoverage.CoveragePercentTarget.Value
+      # Keep the raw report available independently of provider upload success.
       - name: Upload JaCoCo Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: powershell-jacoco-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: Tests/TestResults/coverage.xml
+          path: |
+            Tests/TestResults/coverage.xml
+            Tests/TestResults/source-bound-coverage.json
           retention-days: 14
           if-no-files-found: error
       - name: Prepare Verified Codecov CLI
@@ -303,7 +400,8 @@ jobs:
           binary: ${{ steps.prepare-codecov.outputs.binary }}
           files: ./Tests/TestResults/coverage.xml
           flags: powershell
-          fail_ci_if_error: false
+          use_oidc: true
+          fail_ci_if_error: true
 
   # ──────────────────────────────────────────────────────────────
   # Build + Integration (~5-8 min)

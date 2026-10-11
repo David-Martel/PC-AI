@@ -280,15 +280,46 @@ function Invoke-OllamaNativeChat {
             throw ($result.error ?? 'Unknown ollama native error')
         }
 
+        # Native metadata is optional; required content/model still fail closed.
+        $metadata = @{}
+        foreach ($name in @('toolCalls', 'executedTools', 'timing')) {
+            $metadata[$name] = $null
+            if ($result -is [System.Collections.IDictionary]) {
+                # Match string keys ordinally without assuming a public Contains
+                # overload; index the actual key and reject case ambiguity.
+                $keys = @($result.PSBase.Keys | Where-Object { $_ -is [string] -and [string]::Equals($_, $name, [StringComparison]::OrdinalIgnoreCase) })
+                if ($keys.Count -gt 1) { throw "Ambiguous optional native metadata key '$name'." }
+                if ($keys.Count -eq 1) { $metadata[$name] = $result[$keys[0]] }
+            } else {
+                $property = $result.PSObject.Properties[$name]
+                if ($null -ne $property) { $metadata[$name] = $property.Value }
+            }
+        }
+        $toolCalls = @()
+        $executedTools = @()
+        if ($null -ne $metadata['toolCalls']) { $toolCalls = @($metadata['toolCalls']) }
+        if ($null -ne $metadata['executedTools']) { $executedTools = @($metadata['executedTools']) }
+        $totalDuration = $null
+        $timing = $metadata['timing']
+        if ($null -ne $timing) {
+            if ($timing -is [System.Collections.IDictionary]) {
+                $keys = @($timing.PSBase.Keys | Where-Object { $_ -is [string] -and [string]::Equals($_, 'totalDurationNs', [StringComparison]::OrdinalIgnoreCase) })
+                if ($keys.Count -gt 1) { throw "Ambiguous optional native metadata key 'totalDurationNs'." }
+                if ($keys.Count -eq 1) { $totalDuration = $timing[$keys[0]] }
+            } elseif ($timing.PSObject.Properties['totalDurationNs']) {
+                $totalDuration = $timing.totalDurationNs
+            }
+        }
+
         return [PSCustomObject]@{
             message = [PSCustomObject]@{
                 content = $result.content
             }
             Provider = 'ollama'
             model    = $result.model
-            ToolCalls = @($result.toolCalls)
-            ExecutedTools = @($result.executedTools)
-            total_duration = if ($result.timing) { $result.timing.totalDurationNs } else { $null }
+            ToolCalls = $toolCalls
+            ExecutedTools = $executedTools
+            total_duration = $totalDuration
             raw = $result
         }
     } finally {
@@ -694,13 +725,14 @@ function Get-VLLMMetricsSnapshot {
         KVCacheUsagePerc      = 0.0
     }
 
+    $parsedMetrics = 0
     foreach ($line in ($metricsText -split "`n")) {
+        $line = $line.Trim()
         if (-not $line -or $line.StartsWith('#')) { continue }
-        $m = [regex]::Match($line, '^(?<metric>vllm:[^\\s{]+)(?<labels>{[^}]+})?\\s+(?<value>[-+0-9.eE]+)$')
+        $m = [regex]::Match($line, '^(?<metric>vllm:[^\s{]+)(?<labels>{[^}]+})?\s+(?<value>\S+)$')
         if (-not $m.Success) { continue }
 
         $metric = $m.Groups['metric'].Value
-        $value = [double]$m.Groups['value'].Value
         $labels = $m.Groups['labels'].Value
         if ($labels) {
             $labels = $labels.Trim('{', '}')
@@ -709,6 +741,16 @@ function Get-VLLMMetricsSnapshot {
                 continue
             }
         }
+
+        if ($metric -notin @('vllm:prompt_tokens_total', 'vllm:generation_tokens_total', 'vllm:request_success_total',
+                'vllm:num_requests_running', 'vllm:num_requests_waiting', 'vllm:kv_cache_usage_perc')) { continue }
+        $value = 0.0
+        if (-not [double]::TryParse($m.Groups['value'].Value, [Globalization.NumberStyles]::Float,
+                [Globalization.CultureInfo]::InvariantCulture, [ref]$value) -or
+                [double]::IsNaN($value) -or [double]::IsInfinity($value)) {
+            return $null
+        }
+        $parsedMetrics++
 
         switch ($metric) {
             'vllm:prompt_tokens_total' { $values.PromptTokensTotal = $value }
@@ -720,6 +762,10 @@ function Get-VLLMMetricsSnapshot {
         }
     }
 
+    if ($parsedMetrics -eq 0) { return $null }
+    $tokensTotal = [double]$values.PromptTokensTotal + [double]$values.GenerationTokensTotal
+    if ([double]::IsInfinity($tokensTotal) -or [double]::IsInfinity($values.RequestSuccessTotal)) { return $null }
+
     return [PSCustomObject]@{
         CapturedAt            = Get-Date
         ModelName             = $ModelName
@@ -730,7 +776,7 @@ function Get-VLLMMetricsSnapshot {
         NumRequestsRunning    = [double]$values.NumRequestsRunning
         NumRequestsWaiting    = [double]$values.NumRequestsWaiting
         KVCacheUsagePerc      = [double]$values.KVCacheUsagePerc
-        TokensTotal           = [double]$values.PromptTokensTotal + [double]$values.GenerationTokensTotal
+        TokensTotal           = $tokensTotal
     }
 }
 
@@ -738,6 +784,11 @@ function Invoke-OpenAIChatWithProgress {
     <#
     .SYNOPSIS
         Invokes OpenAI-compatible chat completion with a progress display and vLLM metrics.
+    .NOTES
+        Cleanup failures are retained in Exception.Data['PcaiProgressCleanupErrors'].
+        If removal is unconfirmed, Exception.Data['PcaiProgressOwnedJob'] retains the
+        exact owned job for caller recovery. Do not serialize job contents or credentials.
+        Cleanup attempts do not establish a deadline or prove real-job termination.
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -784,30 +835,63 @@ function Invoke-OpenAIChatWithProgress {
     if ($ApiKey) { $headers['Authorization'] = "Bearer $ApiKey" }
 
     $uri = "$ApiUrl/v1/chat/completions"
-    $job = Start-Job -ScriptBlock {
-        param($u, $body, $hdrs, $timeout)
-        Invoke-RestMethod -Uri $u -Method Post -Body $body -Headers $hdrs -ContentType 'application/json' -TimeoutSec $timeout
-    } -ArgumentList $uri, $jsonBody, $headers, $TimeoutSeconds
+    $job = $null
+    $jobRemoved = $false
+    $response = $null
+    $primaryError = $null
+    $cleanupErrors = [Collections.Generic.List[System.Management.Automation.ErrorRecord]]::new()
+    try {
+        $job = Start-Job -ScriptBlock {
+            param($u, $body, $hdrs, $timeout)
+            Invoke-RestMethod -Uri $u -Method Post -Body $body -Headers $hdrs -ContentType 'application/json' -TimeoutSec $timeout
+        } -ArgumentList $uri, $jsonBody, $headers, $TimeoutSeconds
 
-    $modelInfo = Get-VLLMModelInfo -ApiUrl $ApiUrl -ModelName $Model
-    $start = Get-Date
-    while ($job.State -eq 'Running') {
-        $elapsed = (Get-Date) - $start
-        $metrics = Get-VLLMMetricsSnapshot -ApiUrl $ApiUrl -ModelName $Model -TimeoutSeconds 2
-        $kv = if ($metrics) { "{0:P0}" -f $metrics.KVCacheUsagePerc } else { 'n/a' }
-        $running = if ($metrics) { $metrics.NumRequestsRunning } else { 'n/a' }
-        $waiting = if ($metrics) { $metrics.NumRequestsWaiting } else { 'n/a' }
-        $context = if ($modelInfo -and $modelInfo.MaxModelLen) { $modelInfo.MaxModelLen } else { 'n/a' }
+        $modelInfo = Get-VLLMModelInfo -ApiUrl $ApiUrl -ModelName $Model
+        $start = Get-Date
+        while ($job.State -eq 'Running') {
+            $elapsed = (Get-Date) - $start
+            $metrics = Get-VLLMMetricsSnapshot -ApiUrl $ApiUrl -ModelName $Model -TimeoutSeconds 2
+            $kv = if ($metrics) { "{0:P0}" -f $metrics.KVCacheUsagePerc } else { 'n/a' }
+            $running = if ($metrics) { $metrics.NumRequestsRunning } else { 'n/a' }
+            $waiting = if ($metrics) { $metrics.NumRequestsWaiting } else { 'n/a' }
+            $context = if ($modelInfo -and $modelInfo.MaxModelLen) { $modelInfo.MaxModelLen } else { 'n/a' }
 
-        $status = "Elapsed {0}s | KV {1} | Running {2} | Waiting {3} | MaxCtx {4}" -f `
-            [int]$elapsed.TotalSeconds, $kv, $running, $waiting, $context
-        Write-Progress -Activity "vLLM request" -Status $status
-        Start-Sleep -Seconds $ProgressIntervalSeconds
+            $status = "Elapsed {0}s | KV {1} | Running {2} | Waiting {3} | MaxCtx {4}" -f `
+                [int]$elapsed.TotalSeconds, $kv, $running, $waiting, $context
+            Write-Progress -Activity "vLLM request" -Status $status
+            Start-Sleep -Seconds $ProgressIntervalSeconds
+        }
+
+        $response = Receive-Job $job -ErrorAction Stop
+    } catch {
+        $primaryError = $_
+    } finally {
+        if ($null -ne $job) {
+            try {
+                if ($job.State -notin @('Completed', 'Failed', 'Stopped')) {
+                    Stop-Job -Job $job -ErrorAction Stop | Out-Null
+                }
+            } catch { $cleanupErrors.Add($_) }
+            try {
+                Remove-Job -Job $job -ErrorAction Stop
+                $jobRemoved = $true
+            } catch { $cleanupErrors.Add($_) }
+        }
+        try {
+            Write-Progress -Activity "vLLM request" -Completed -ErrorAction Stop
+        } catch { $cleanupErrors.Add($_) }
     }
 
-    $response = Receive-Job $job -ErrorAction Stop
-    Remove-Job $job
-    Write-Progress -Activity "vLLM request" -Completed
+    if ($primaryError -or $cleanupErrors.Count -gt 0) {
+        $failure = if ($primaryError) { $primaryError } else { $cleanupErrors[0] }
+        if ($cleanupErrors.Count -gt 0) {
+            $failure.Exception.Data['PcaiProgressCleanupErrors'] = $cleanupErrors.ToArray()
+        }
+        if ($null -ne $job -and -not $jobRemoved) {
+            $failure.Exception.Data['PcaiProgressOwnedJob'] = $job
+        }
+        $PSCmdlet.ThrowTerminatingError($failure)
+    }
 
     $content = $null
     if ($response.choices -and $response.choices.Count -gt 0) {
@@ -926,15 +1010,9 @@ function Invoke-OllamaGenerate {
         TimeoutSeconds  = $TimeoutSeconds
         EnableTools     = $EnableTools
     }
-    if ($MaxTokens)    { $chatParams['MaxTokens']    = $MaxTokens }
-    if ($NumCtx)       { $chatParams['NumCtx']       = $NumCtx }
-    if ($NumThread)    { $chatParams['NumThread']     = $NumThread }
-    if ($TopP)         { $chatParams['TopP']          = $TopP }
-    if ($TopK)         { $chatParams['TopK']          = $TopK }
-    if ($RepeatLastN)  { $chatParams['RepeatLastN']   = $RepeatLastN }
-    if ($RepeatPenalty){ $chatParams['RepeatPenalty']  = $RepeatPenalty }
-    if ($TfsZ)         { $chatParams['TfsZ']          = $TfsZ }
-    if ($Seed)         { $chatParams['Seed']          = $Seed }
+    foreach ($option in @('MaxTokens', 'NumCtx', 'NumThread', 'TopP', 'TopK', 'RepeatLastN', 'RepeatPenalty', 'TfsZ', 'Seed')) {
+        if ($PSBoundParameters.ContainsKey($option)) { $chatParams[$option] = $PSBoundParameters[$option] }
+    }
     return Invoke-OllamaNativeChat @chatParams
 }
 
@@ -1126,7 +1204,10 @@ function Invoke-OpenAIChatStream {
         [int]$TimeoutSeconds = $script:ModuleConfig.DefaultTimeout,
 
         [Parameter(Mandatory)]
-        [string]$ApiUrl
+        [string]$ApiUrl,
+
+        [Parameter()]
+        [System.Threading.CancellationToken]$CancellationToken = [System.Threading.CancellationToken]::None
     )
 
     $ApiUrl = Resolve-PcaiEndpoint -ApiUrl $ApiUrl -ProviderName 'pcai-inference'
@@ -1144,21 +1225,37 @@ function Invoke-OpenAIChatStream {
 
     $jsonBody = $body | ConvertTo-Json -Depth 10
 
-    $client = New-Object System.Net.Http.HttpClient
-    $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
-    $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
-    $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
-
-    $sb = New-Object System.Text.StringBuilder
+    $client = $null
+    $content = $null
+    $request = $null
+    $response = $null
+    $stream = $null
+    $reader = $null
+    $deadline = $null
+    $primaryFailure = $null
+    $cleanupFailures = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]::new()
+    $pendingResources = [System.Collections.Generic.List[object]]::new()
+    $sb = [System.Text.StringBuilder]::new()
     try {
+        # One deadline covers response headers and every body read; progress never resets it.
+        $deadline = [System.Threading.CancellationTokenSource]::CreateLinkedTokenSource($CancellationToken, [System.Threading.CancellationToken]::None)
+        $deadline.CancelAfter([TimeSpan]::FromSeconds($TimeoutSeconds))
+        $token = $deadline.Token
+        $token.ThrowIfCancellationRequested()
+        $client = [System.Net.Http.HttpClient]::new()
+        $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
+        $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
+        $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
         $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Post, "$ApiUrl/v1/chat/completions")
         $request.Content = $content
-        $response = $client.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+        $response = $client.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead, $token).GetAwaiter().GetResult()
         $response.EnsureSuccessStatusCode() | Out-Null
-        $stream = $response.Content.ReadAsStreamAsync().Result
+        $stream = $response.Content.ReadAsStreamAsync($token).GetAwaiter().GetResult()
         $reader = New-Object System.IO.StreamReader($stream)
-        while (-not $reader.EndOfStream) {
-            $line = $reader.ReadLine()
+        while ($true) {
+            $token.ThrowIfCancellationRequested()
+            $line = $reader.ReadLineAsync($token).AsTask().GetAwaiter().GetResult()
+            if ($null -eq $line) { break }
             if ([string]::IsNullOrWhiteSpace($line)) { continue }
             if (-not $line.StartsWith('data:')) { continue }
 
@@ -1183,9 +1280,25 @@ function Invoke-OpenAIChatStream {
             } catch { }
         }
         Write-Host ""
+    } catch {
+        $primaryFailure = $_
     } finally {
-        $client.Dispose()
+        # Dispose only this call's objects. A cleanup exception cannot replace its original cause.
+        foreach ($resource in @($reader, $stream, $response, $request, $content, $client, $deadline)) {
+            if ($null -ne $resource) {
+                try { $resource.Dispose() } catch {
+                    $cleanupFailures.Add($_)
+                    $pendingResources.Add($resource)
+                }
+            }
+        }
     }
+    if ($cleanupFailures.Count -gt 0) {
+        if ($null -eq $primaryFailure) { $primaryFailure = $cleanupFailures[0] }
+        $primaryFailure.Exception.Data['PcaiStreamingCleanupFailures'] = $cleanupFailures.ToArray()
+        $primaryFailure.Exception.Data['PcaiStreamingPendingResources'] = $pendingResources.ToArray()
+    }
+    if ($null -ne $primaryFailure) { $PSCmdlet.ThrowTerminatingError($primaryFailure) }
 
     return $sb.ToString()
 }
@@ -1217,7 +1330,10 @@ function Invoke-OpenAICompletionStream {
         [int]$TimeoutSeconds = $script:ModuleConfig.DefaultTimeout,
 
         [Parameter(Mandatory)]
-        [string]$ApiUrl
+        [string]$ApiUrl,
+
+        [Parameter()]
+        [System.Threading.CancellationToken]$CancellationToken = [System.Threading.CancellationToken]::None
     )
 
     $ApiUrl = Resolve-PcaiEndpoint -ApiUrl $ApiUrl -ProviderName 'pcai-inference'
@@ -1235,21 +1351,37 @@ function Invoke-OpenAICompletionStream {
 
     $jsonBody = $body | ConvertTo-Json -Depth 10
 
-    $client = New-Object System.Net.Http.HttpClient
-    $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
-    $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
-    $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
-
-    $sb = New-Object System.Text.StringBuilder
+    $client = $null
+    $content = $null
+    $request = $null
+    $response = $null
+    $stream = $null
+    $reader = $null
+    $deadline = $null
+    $primaryFailure = $null
+    $cleanupFailures = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]::new()
+    $pendingResources = [System.Collections.Generic.List[object]]::new()
+    $sb = [System.Text.StringBuilder]::new()
     try {
+        # One deadline covers response headers and every body read; progress never resets it.
+        $deadline = [System.Threading.CancellationTokenSource]::CreateLinkedTokenSource($CancellationToken, [System.Threading.CancellationToken]::None)
+        $deadline.CancelAfter([TimeSpan]::FromSeconds($TimeoutSeconds))
+        $token = $deadline.Token
+        $token.ThrowIfCancellationRequested()
+        $client = [System.Net.Http.HttpClient]::new()
+        $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
+        $content = [System.Net.Http.StringContent]::new($jsonBody, [System.Text.Encoding]::UTF8, 'application/json')
+        $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('application/json')
         $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Post, "$ApiUrl/v1/completions")
         $request.Content = $content
-        $response = $client.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+        $response = $client.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead, $token).GetAwaiter().GetResult()
         $response.EnsureSuccessStatusCode() | Out-Null
-        $stream = $response.Content.ReadAsStreamAsync().Result
+        $stream = $response.Content.ReadAsStreamAsync($token).GetAwaiter().GetResult()
         $reader = New-Object System.IO.StreamReader($stream)
-        while (-not $reader.EndOfStream) {
-            $line = $reader.ReadLine()
+        while ($true) {
+            $token.ThrowIfCancellationRequested()
+            $line = $reader.ReadLineAsync($token).AsTask().GetAwaiter().GetResult()
+            if ($null -eq $line) { break }
             if ([string]::IsNullOrWhiteSpace($line)) { continue }
             if (-not $line.StartsWith('data:')) { continue }
 
@@ -1267,9 +1399,25 @@ function Invoke-OpenAICompletionStream {
             } catch { }
         }
         Write-Host ""
+    } catch {
+        $primaryFailure = $_
     } finally {
-        $client.Dispose()
+        # Dispose only this call's objects. A cleanup exception cannot replace its original cause.
+        foreach ($resource in @($reader, $stream, $response, $request, $content, $client, $deadline)) {
+            if ($null -ne $resource) {
+                try { $resource.Dispose() } catch {
+                    $cleanupFailures.Add($_)
+                    $pendingResources.Add($resource)
+                }
+            }
+        }
     }
+    if ($cleanupFailures.Count -gt 0) {
+        if ($null -eq $primaryFailure) { $primaryFailure = $cleanupFailures[0] }
+        $primaryFailure.Exception.Data['PcaiStreamingCleanupFailures'] = $cleanupFailures.ToArray()
+        $primaryFailure.Exception.Data['PcaiStreamingPendingResources'] = $pendingResources.ToArray()
+    }
+    if ($null -ne $primaryFailure) { $PSCmdlet.ThrowTerminatingError($primaryFailure) }
 
     return $sb.ToString()
 }

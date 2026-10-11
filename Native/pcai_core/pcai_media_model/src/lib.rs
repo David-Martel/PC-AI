@@ -506,15 +506,15 @@ mod tests {
     /// allocates proper embedding tables.
     ///
     /// NOTE: This test is gated with `#[ignore]` because it allocates
-    /// ~600 MB of parameter tensors (4096 × 30 layers) on the CPU, which is
-    /// acceptable in CI with sufficient RAM but too slow for a quick `cargo
-    /// test` run.  Run explicitly with:
+    /// tens of GiB of F32 parameter tensors on the CPU. Check available memory
+    /// before running this constructor smoke test; it does not validate trained
+    /// weights or generation. Run explicitly with:
     ///
     /// ```text
     /// cargo test -p pcai-media-model -- --ignored test_janus_model_construct
     /// ```
     #[test]
-    #[ignore = "allocates ~600 MB; run explicitly with --ignored"]
+    #[ignore = "requires memory admission for tens of GiB of F32 parameters"]
     fn test_janus_model_construct() {
         let vm = VarMap::new();
         let vb = cpu_vb(&vm);
@@ -526,9 +526,9 @@ mod tests {
 
     /// Smoke-test construction using the 1B config to keep allocations smaller.
     ///
-    /// Even the 1B config is large (~250 MB) so this is also marked ignored.
+    /// The 1B config needs several GiB of F32 parameters, so check memory first.
     #[test]
-    #[ignore = "allocates ~250 MB; run explicitly with --ignored"]
+    #[ignore = "requires memory admission for several GiB of F32 parameters"]
     fn test_janus_model_construct_1b() {
         let vm = VarMap::new();
         let vb = cpu_vb(&vm);

@@ -1,5 +1,181 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Immediate dtm-p1gen7 responsiveness
+
+Current review: October 11, 2026, 02:36 UTC. See the latest
+[fleet readback](Reports/fleet-integration-review.md) and
+[cache correctness review](Reports/shared-cache-correctness-review.md).
+
+- [x] Repair directory stamps, literal dictionary Keys copying and namespace
+      clearing; independently verify eleven cache controls and explicit Redis skip.
+- [x] Integrate reviewed dtm-codex native host and 26-contract CI into main;
+      retire only the exact integrated owned branch and preserve foreign work.
+- [x] Complete the fresh native filesystem client canary after the typed JSON
+      prerequisite repair; verify one real Unicode read and original closure.
+- [ ] Qualify reversible new-session deployment with exact transaction/helper
+      bindings and owned C:/D: controls before changing the registration.
+- [x] Repair declined NVIDIA coordinator actions and optional CUDA/registry
+      metadata; independently verify strict and ordinary 102-control runs.
+- [x] Repair the demonstrated Rust 1.99 winpath lint in a frozen successor;
+      preserve the successor's remaining 86 winutils-core diagnostics.
+- [ ] Repair genuine ACL/registry defects and review dependency-version policy;
+      pass narrow package QA before any wider uutils integration.
+- [x] Replace the reserved HOME assignment in the private Gitguard build child;
+      independently verify three offline commands, exact outputs and original closure.
+- [ ] Qualify real Gitguard inventory parity, fallback and timings before installation.
+- [x] Verify eight tiny inventory controls, twelve descriptive measurements and
+      two existing-file positives; verify the full 24-candidate/14-scope mixed-kind
+      repository parity successor and preserve the prior junction refusal.
+      Production hook installation and broader performance claims remain open.
+- [x] Reproduce the actual child coverage union from source-bound JSON and repair
+      StrictMode summary-only callers; verify 35 controls without changing 85%.
+- [x] Publish and independently reconstruct head 908ac1a parent/child coverage
+      artifacts against all 239 exact committed module hashes. Its 2,771-pass CI
+      remains below target at 66.535470%; subsequent heads require fresh CI.
+- [x] Qualify and adopt the runtime DLL integrity repair: strict and ordinary
+      25-control runs pass; the prior dictionary implementation fails seven of
+      eight detecting controls. Adopted defaults plus 43 existing consumer
+      controls pass; rollback data and unresolved original resources are retained.
+- [ ] Qualify the Bitwarden public controller after repairing the demonstrated
+      duplicate-help alias and reference-parameter binding defects; preserve
+      the 2-pass/13-fail actual receipt and source packaging refusals.
+- [ ] Qualify metadata-write keeper sharing, exact security restoration and
+      current-parent reproduction before any MCP registration repair or deployment.
+- [ ] Prepare and verify the public media cache seed only after capacity admission;
+      then perform actual locked offline resolution and complete cache inventory.
+- [ ] Execute the bounded poisoned-media-worker predecessor/candidate detectors,
+      then narrow crate regressions and lint before integrating the claimed repair.
+- [ ] Clear PC-AI current-head coverage and deployed consumer parity gates;
+      preserve the 85% target and distinguish cache controls from coverage credit.
+
+Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
+[the responsiveness review](Reports/workstation-responsiveness-review.md).
+
+- [x] Complete the user's Docker stop and verify surviving Desktop/backends
+      exited; leave Docker off and preserve its data and other WSL workloads.
+- [x] Restore the missing signed Process Lasso Governor, preserve the INI and
+      task XML, and add recurring five-minute checks with report output on D:.
+      Natural runs succeed; missing-process and post-reboot recovery remain open.
+- [x] Close only the two repeatedly observed failed root-lane Python stdin
+      jobs and verify the classic-REPL shim with two fresh-process controls.
+- [x] Route future owned build targets/artifacts/scratch to D: and verify child
+      environment isolation; defer actual builds while responsiveness stabilizes.
+- [x] Start the one-key SmartTrim-off trial after real trim events; retain exact
+      rollback bytes and complete the 48-sample resource observation.
+- [ ] Compare useful throughput, paging and UI responsiveness on a matched
+      workload before promoting the SmartTrim trial as a performance result.
+- [x] Qualify recurring registrar/public-help regression coverage: canonical
+      default discovery passed 15 cases with no test/block/container failures,
+      and Windows CI explicitly selects the fixture. Earlier failures remain
+      preserved. Commit/published-current-head acceptance stays a separate gate.
+- [x] Benchmark and apply P1 minimal-profile accelerator import suppression with
+      preserved PATH setup: three pairs averaged 643→410 ms, and a fresh deployed
+      child passed parity. Preserve cloud shims, other hosts, hooks and trust.
+- [x] Capture the current two-minute agent workload on D: with observer costs
+      and inaccessible-property limits: eight samples, median CPU 37.85%,
+      available 10,786 MiB, commit 80.75%, sampled disk queue zero.
+- [x] Inventory actual PowerShell launch paths without command lines or secrets:
+      55 machine MCP wrappers, 20 QMD and 17 Serena launchers remain active.
+- [ ] Qualify all three native machine-MCP modes and prepare a reversible
+      new-session P1 pilot; preserve active clients and database workloads.
+- [ ] Resolve the remaining Python partial-memory-read diagnostic gap, nested
+      hook-shell cost and path guard's fail-open exception handler.
+- [ ] Resume native/fleet/credential qualification only after responsiveness
+      is stable; retain the 85% hosted coverage gate and all active work.
+- [x] Review and apply bounded native absent-parent terminal advice repair:
+      manual ownership review, explicitly unmeasured savings and exact Windows
+      executable names. Four maintained Rust contracts await exact-head hosted
+      Core CI; see [the advice review](Reports/native-optimizer-advice-review.md).
+- [ ] Qualify the native advice repair's current whole-Core build/tests and
+      paired runtime; separately repair unknown metric provenance and benchmark
+      actual collector costs. No automatic terminal termination is authorized
+      by an absent parent snapshot.
+
+## Native Ollama residency follow-up
+
+Reviewed October 10, 2026; owner: Codex integration lane. See
+[the residency review](Reports/ollama-residency-review.md).
+
+- [x] Preserve explicit zero through native configuration normalization while
+      retaining omitted defaults and positive/negative duration behavior.
+- [x] Reproduce the defect with unchanged real controls, confirm recompilation,
+      pass all 17 binary tests, focused formatting and strict package clippy.
+- [x] Select the binary contracts explicitly in Rust Guidelines CI; library-only
+      test commands exclude them. Hosted current-head acceptance remains open.
+- [ ] Identify the actual requesting consumer and obtain custody of the live
+      camera-guidance session before changing its lifecycle or model policy.
+- [ ] Qualify native consumer deployment, real model unload and lasting memory
+      relief; cache releases so far provide temporary capacity only.
+
+## Parser and dependency integration follow-up
+
+Reviewed October 10, 2026; owner: Codex integration lane. See the current
+[fleet review](Reports/fleet-integration-review.md) for source-bound results.
+
+- [x] Repair BOM-aware Process Lasso fallback reads and empty/singleton lists;
+      preserved predecessor fails five controls, repaired source passes fourteen.
+- [x] Qualify the maintained fourteen controls and explicit legacy discovery
+      skips; preserve the first mock-adapter failure and unchanged assertions.
+- [x] Repair Evaluation's optional configuration and dependency file discovery;
+      same real-file controls improve from one pass/thirteen failures to fourteen
+      passes. Native execution is not established by availability markers.
+- [x] Isolate the leading-hyphen fixture from ancestor ripgrep ignore rules,
+      preserve production behavior and pass all 375 combined bounded checks.
+- [ ] Commit and publish the reviewed fixes with normal hooks, then verify
+      current-head CI and the unchanged 85% coverage requirement before merging.
+- [ ] Qualify actual native/fallback semantic parity and remaining cancellation,
+      shared-server deployment, service-account runtime and post-reboot behavior.
+
+## Milly capacity and expansion
+
+See [the storage and expansion review](Reports/milly-storage-and-expansion-review.md).
+
+- [x] Inventory internal disk, concurrent writers and existing SSD contents;
+      inspect the reconnected SSD read-only and release its temporary mapping.
+- [x] Verify Lenovo's two M.2 storage-slot specification; physical vacancy
+      remains an operator inspection requirement.
+- [x] Complete the approved SSD format and qualify its successor layout: NTFS
+      outer volume with a sparse 832 GiB Btrfs image preserves native Linux
+      metadata and environments. Grow/remount, owner reads and missing-image
+      denial pass. Physical Windows mount and DACL protection remain untested.
+- [x] Add reversible emergency headroom after active growth reached 100% usage:
+      reduce the exact ext4 root reserve from 5% to 2%, expose 30.71 GB while
+      retaining 20.47 GB for root, and verify original/rollback metadata.
+      This is temporary user capacity, not a migration or physical-space gain.
+- [x] Admit reviewed migration custody and protect the active Clarius lane;
+      verify the reconnected authorized WDC at 10 Gb/s with matching UUIDs,
+      fixture hash and zero device error counters.
+- [x] Identify measured offload/delete candidates with exact preservation bounds:
+      approximately 585 GiB of recordings/models/downloads, seven hash-identical
+      backup checkpoints, one byte-identical partial-download prefix and separate
+      package caches. No internal file migration or deletion in this audit.
+- [x] Verify and retire eight smaller sources and all 371 large study recordings;
+      570,880,193,988 logical recording bytes preserved. Differing backup retained.
+- [x] Complete whole study tree cutover and original retirement at 02:03:54 UTC;
+      all 371 second full hashes, exact helper/UUID bindings, original-root
+      symlink, owner read, Python 3.11.13 venv and Git HEAD/status parity pass.
+      Final service is inactive/dead, PID 0, Result success; device counters zero.
+- [x] Measure lossless compression: 24 sampled zstd roundtrips pass; WAV saves
+      37.16%, MP4 1.18% at level 3. Actual whole-study extents save 13.84 GiB;
+      all WAV files save 32.9% / 13.71 GiB, MP4 negligible, logs about 14.5%.
+- [x] Increase the native mount command deadline from 15 to 300 seconds after
+      the slow-USB unmount timeout; original fstab preserved, active readback
+      passed without remounting. Guard/device deadlines remain unchanged.
+- [x] Verify final owner consumers, allocation and five zero device-error
+      counters. Retire only the verified redundant 2,189,554,353-byte download
+      prefix; complete archive readable at its original path, validity untested.
+- [x] Restore the exact original ext4 reserve of 12,495,987 blocks after identity
+      checks; final ordinary availability is 634,950,225,920 bytes (about 591 GiB).
+      No exact migration-only free-space delta or runtime speedup is claimed.
+- [ ] Qualify independent backup/restore, physical Windows mount/runtime/DACL,
+      M.2 vacancy, cold boot/removal and application/HIL with their owners.
+- [ ] Restore the failing NFS share through its owner and bound build-target
+      growth; do not treat changing free-space snapshots as a stable baseline.
+
+Current storage receipts: `.pcai/integration/milly-final-progress-r9.txt`,
+`milly-final-acceptance-r1.txt` and `milly-final-partial-and-reserve-r1.txt` in the
+same private integration directory. Historical assessment remains in the report.
+
 ## Workload profiling and live-media policy review
 
 Reviewed 2026-10-05; evidence and experiment gates are in
@@ -42,6 +218,30 @@ See [the qualified maintenance report](Reports/bitwarden-connectivity-20261005.m
       controls. No speculative unmount, broad process kill or speedup claim.
 - [ ] Harden IronRDP certificate verification and imported clipboard/authentication
       policy before direct-VPN credential use; validate an actual current artifact.
+
+## Fleet consumer and owned-process reconciliation
+
+Current evidence: [fleet integration review](Reports/fleet-integration-review.md).
+Owner: Codex integration lane, coordinated with the Work and Carbon runtime owners.
+
+- [x] Preserve exact owned process-handle custody when termination or closure cannot
+      be confirmed; retain original failures, provide explicit GUID retry/WhatIf,
+      and block replacement. All 46 focused Windows fixtures pass without skips,
+      including failed native close, blocked input and normal-parent descendants.
+- [x] Preserve Windows PowerShell 5.1 native-device JSON validation and verify
+      seventeen adversarial cases plus eleven actual Windows PowerShell shapes.
+- [ ] Finish same-file native-bundle path canonicalization for Windows short names
+      and same-bridge StrictMode reuse; verify current-head hosted CI before merge.
+- [ ] Finish the exact rebuilt native Core/CLI/C# pair, CPU sampling qualification,
+      parity benchmarks and complete per-host module/bundle deployment.
+- [ ] Admit the reviewed credential adapter source only after failed-cleanup
+      custody tests and provenance checks; preserve credential/config material
+      outside Git. Work's actual unlock/session reuse is a separate passed gate.
+- [ ] Qualify/install the new git-guard hygiene release before running its report,
+      dry drain and guarded apply. Installed v0.2.9 lacks those commands; protect
+      the live owner's successor work and verify retained refs/ignored WIP first.
+- [ ] Refresh the final registered-worktree and GitHub inventory after all reviewed
+      PR disposition, source equivalence and runtime-owner handoffs.
 
 
 ## Input and task oversight closeout (2026-10-04)
@@ -168,6 +368,24 @@ Evidence: `Reports/watchdog-window-20260912.md`.
       defaults or scheduled-task format. No real vault export is part of these tests.
 
 Evidence: `Reports/credential-archive-20260912.md`.
+
+## Credential backend integration (2026-10-09)
+
+- [x] Preserve predecessor source and synthetic detecting failures before
+      qualifying protected bootstrap/cache storage and file/process custody.
+- [x] Maintain reviewed backend code and its two-file source manifest under
+      `Tools/SystemScripts/Machine`; keep credentials and private config outside Git.
+- [x] Add self-contained synthetic Windows custody tests with environment
+      restoration and recovery witnesses outside the source tree.
+- [ ] Finish canonical-source qualification and current-head CI before installation.
+- [ ] Reconcile each host's installed manifest, preserving unrelated files,
+      private configuration and active consumers before any backend deployment.
+- [ ] Validate live provider/credential reconciliation through an existing
+      authorized session; synthetic receipts do not establish authentication.
+- [ ] Qualify SACL/audit recovery separately; the current retained metadata
+      contract covers owner/group/DACL only.
+
+Evidence: `Reports/agent-bus-pcai-findings.md` and `Reports/fleet-integration-review.md`.
 
 Purpose: harden boot/logon automation that mounts virtual disks, starts sync
 providers, and initializes workstation services. The current implementation
@@ -1481,3 +1699,90 @@ Evidence and rollback: [boot storage review](Reports/boot-storage-review-2026091
 Current private receipt hashes and remaining boundaries are recorded in
 `Reports/milly-fleet-20261002/repo-closeout.json` under `followUpEasyWins`.
 Historical results above retain their original scope and date.
+
+## Paging and build-cache pressure follow-up — October 9, 2026
+
+- [x] Reconcile the live PC_AI bus findings, corrections and capture limits in
+  `Reports/agent-bus-pcai-findings.md`; preserve the installed disk-tool stall as
+  a historical runtime failure rather than a current-candidate benchmark.
+- [x] Stop the obsolete root-owned native cache warm normally and confirm its
+  exact process chain has exited; preserve the shared cache server and all
+  foreign work. This establishes custody, not a paging-performance improvement.
+- [x] Complete verified relocation of the released 1.694 GiB build cache to the
+  separate healthy D: NVMe, retain every source/destination SHA and select the
+  new target directly for future builds. Root owns this operation. Live Models,
+  cloud roots and foreign build targets require their own consumer admission.
+- [ ] Qualify current native process/CLI/bridge source together on an available
+  host and rerun matched output/cancellation measurements without extending
+  deadlines. Owner: root/profile/fleet.
+- [ ] Refresh interval paging, disk activity and consumer throughput before
+  persistent pagefile, cloud-client, WSL or service migration changes. The
+  September pagefile sample above is historical; it does not establish present
+  headroom. Clarius's later operational proposals remain unapplied by this lane.
+- [ ] Re-evaluate W: by its verified machine-specific identity before any use;
+  the current inventory found it absent. F: is a file-backed VHD, so it is not
+  equivalent to an independent physical scratch disk. No mount change was made.
+
+## LLM progress cleanup follow-up
+
+- [x] Preserve the original progress-helper inert result (2 PASS / 4 FAIL) and
+  the independently audited private successor (8 PASS / 0 FAIL). Prepare the
+  exact one-function canonical repair and eight maintained contracts without
+  changing the other 22 helper functions or launching real jobs/HTTP payloads.
+- [x] Execute and independently review the canonical successor eight-case
+  suite:8 PASS/0 FAIL, actual canonical file/entire-function AST binding and
+  source/runtime stability; parent closure/disposal and no pending custody.
+  Preserve the first canonical7 PASS/1 FAIL binding-detector error and correct
+  only its extent comparison. Owner: root/integration. Exact results and
+  selector rationales: [LLM custody review](Reports/llm-progress-custody-review.md).
+- [ ] Qualify real owned-job stop/removal, retained-reference recovery,
+  cancellation/deadline and new-request admission before treating cleanup
+  attempts as closure. SSE and native timeout parity remain separate OPEN
+  gates. Owner: root/runtime. No performance or coverage credit is established.
+- [x] Integrate dtm-codex hook PR38, verify merged-main CI38030326030 and
+  same-source Carbon99, then preserve/bare-fsck the owned branch before retiring
+  its branch/worktree. Main/origin0/0; all489 foreign untracked paths preserved.
+- [ ] Continue interval responsiveness capture after the short60-second P1
+  sample (CPUmedian50%, RAMavailable13GiB, commit77%, pageinput2338/s;
+  aggregate disk0.106ms/queue0, observer0.9%). No pagefile/process causality or
+  improvement is established. Owner: root/profile.
+- [ ] Clear PC_AI's unchanged85% coverage gate with meaningful behaviors and
+  valid accounting. Current413-head CI has2586 passes/0 failures/39 skips,
+  coverage63.697%, GuidelinesPASS; merge remains HOLD. Fresh hosted results
+  are required after the LLM successor commit. Owner: root/CI.
+
+## Current storage and search contract follow-up
+
+- [x] Verify Milly's completed migration after reconnection: both external SSDs
+  negotiate10Gb/s/UAS, the original study path is accessible as its owning user,
+  Btrfs device errors remain zero and internal availability is580.69GiB at
+  October10 08:43UTC. See `Reports/milly-storage-and-expansion-review.md`.
+  Cold boot, Windows native mount/DACL, backup/restore and physical M.2 vacancy
+  remain separate open gates; current free space is not a migration-only delta.
+- [x] Reproduce swallowed fd failures (3PASS/5FAIL), independently qualify the
+  exact candidate (8PASS/0FAIL), and apply only `Find-WithFd`: failed native
+  exits and original invocation exceptions propagate before cache admission.
+  The maintained eight-contract suite and pinned CI fd provisioning are added.
+- [x] Validate the maintained canonical fd suite (8PASS/0FAIL) and separate
+  Windows PowerShell5.1 compatibility discovery (8SKIP/0FAIL). Analyzer has
+  zero findings. Legacy skips qualify discovery only; see
+  Reports/fd-search-contract-review.md for actual receipts and first failure.
+- [ ] Validate fresh current-head CI after the fd repair commit.
+  Keep the unchanged85% coverage gate and preserve every original failed receipt.
+  Owner: root/integration. No startup/search performance improvement is claimed.
+
+## Process and hash transport follow-up
+
+- [x] Reproduce swallowed terminal worker failures and qualify the shared disk,
+  process and hash exception boundary. Initial27 controls:1PASS/26FAIL; repaired
+  controls pass. Final three suites:112PASS/0FAIL/4SKIP/0NotRun (three native-bundle
+  controls and one unavailable filesystem short-alias control);
+  source hashes unchanged. Strict-mode small-file hashing also has genuine
+  failing-first known-digest evidence. See Reports/process-hash-transport-review.md.
+- [ ] Verify hosted CI on the published process/hash repair head without
+  lowering the85% coverage floor. Owner: root/integration.
+- [ ] Qualify native hash response path/cardinality/digest bijection, literal
+  leading-dash inputs and field/schema parity; preserve original outputs and
+  actual native pairing requirements. Owner: root/acceleration.
+- [ ] Qualify other-user deployment, shared MCP reuse and real lifecycle faults;
+  wrapper fixture success is not fleet or responsiveness acceptance.

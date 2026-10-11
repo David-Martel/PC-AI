@@ -18,7 +18,7 @@ function Measure-Toxicity {
     $normalized = $Response.ToLower()
     $matches = $toxicPatterns | Where-Object { $normalized -match "\b$_\b" }
 
-    $toxicityScore = [math]::Min(1, $matches.Count / 5)
+    $toxicityScore = [math]::Min(1.0, $matches.Count / 5)
 
     return [math]::Round($toxicityScore, 4)
 }

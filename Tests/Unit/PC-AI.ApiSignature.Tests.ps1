@@ -8,10 +8,16 @@
 BeforeAll {
     $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $ToolsScript = Join-Path $RepoRoot 'Tools\generate-api-signature-report.ps1'
-    if (Test-Path $ToolsScript) {
-        & $ToolsScript -RepoRoot $RepoRoot | Out-Null
+    $script:TrackedReportHashes = @{}
+    foreach ($leaf in @('API_SIGNATURE_REPORT.json', 'API_SIGNATURE_REPORT.md')) {
+        $path = Join-Path $RepoRoot "Reports/$leaf"
+        if (Test-Path -LiteralPath $path) { $script:TrackedReportHashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
     }
-    $ReportPath = Join-Path $RepoRoot 'Reports\API_SIGNATURE_REPORT.json'
+    $script:PrivateReportRoot = Join-Path $TestDrive 'api-reports'
+    if (Test-Path $ToolsScript) {
+        & $ToolsScript -RepoRoot $RepoRoot -ReportDirectory $script:PrivateReportRoot | Out-Null
+    }
+    $ReportPath = Join-Path $script:PrivateReportRoot 'API_SIGNATURE_REPORT.json'
     if (Test-Path $ReportPath) {
         $script:Report = Get-Content $ReportPath -Raw | ConvertFrom-Json
     }
@@ -25,6 +31,23 @@ BeforeAll {
 Describe 'API Signature Alignment' -Tag 'Unit', 'API', 'Help', 'Portable' {
     It 'should generate the API signature report' {
         $script:Report | Should -Not -BeNullOrEmpty
+    }
+
+    It 'keeps report generation inside the test directory without rewriting tracked reports' {
+        foreach ($path in $script:TrackedReportHashes.Keys) {
+            (Get-FileHash -LiteralPath $path).Hash | Should -BeExactly $script:TrackedReportHashes[$path]
+        }
+        Test-Path -LiteralPath (Join-Path $script:PrivateReportRoot 'API_SIGNATURE_REPORT.md') | Should -BeTrue
+    }
+
+    It 'accounts for every declared standalone public export without importing engines' {
+        foreach ($name in @('PcaiMedia', 'PcaiInference')) {
+            $manifest = Import-PowerShellDataFile (Join-Path $RepoRoot "Modules/$name.psd1")
+            foreach ($export in $manifest.FunctionsToExport) {
+                $script:Report.PowerShell.StandaloneExports | Should -Contain $export
+            }
+        }
+        $script:Report.PowerShell.StandaloneExports.Count | Should -Be 22
     }
 
     It 'should not have missing Rust exports for C# DllImports' {

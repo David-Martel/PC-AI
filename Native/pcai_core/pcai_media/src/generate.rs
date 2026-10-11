@@ -22,16 +22,19 @@
 //!
 //! # Note on API version
 //!
-//! This module uses `candle_transformers::models::llama::Llama` at version
-//! 0.9.  The `forward_input_embed` method returns the pre-LM-head hidden
-//! states `[B, S, hidden_size]`; `project_to_image_vocab` then maps those to
+//! This module uses the custom Janus LLaMA backend with Candle 0.11.
+//! `forward_hidden` returns the pre-LM-head hidden states
+//! `[B, S, hidden_size]`; `project_to_image_vocab` then maps those to
 //! image-vocabulary logits `[B, S, image_vocab_size]`.
 
 use anyhow::{Context, Result};
-use candle_core::{DType, Device, IndexOp, Tensor};
+use candle_core::{DType, Device, IndexOp, Shape, Tensor};
 use candle_nn::{VarBuilder, VarMap};
 use image::{ImageBuffer, RgbImage};
+use std::collections::BTreeMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use pcai_media_model::{
@@ -44,6 +47,82 @@ use pcai_media_model::{
 use crate::config::PipelineConfig;
 use crate::hub;
 use crate::telemetry::{GenerationTelemetry, TelemetryCollector};
+
+/// Records constructor metadata using scalar-backed views, never model weights.
+///
+/// Constructors must only request and store tensors: forward, contiguous,
+/// or other payload-materializing operations require a different preflight.
+/// The temporary model is discarded and cannot reach inference.
+struct WeightMetadataProbe {
+    shapes: Arc<Mutex<BTreeMap<String, Vec<usize>>>>,
+    queried_presence: Arc<AtomicBool>,
+    scalar: Tensor,
+}
+
+impl candle_nn::var_builder::SimpleBackend for WeightMetadataProbe {
+    fn get(
+        &self,
+        shape: Shape,
+        name: &str,
+        _hints: candle_nn::Init,
+        _dtype: DType,
+        _device: &Device,
+    ) -> candle_core::Result<Tensor> {
+        let mut shapes = self
+            .shapes
+            .lock()
+            .map_err(|_| candle_core::Error::Msg("metadata probe lock poisoned".into()))?;
+        if let Some(previous) = shapes.insert(name.to_string(), shape.dims().to_vec()) {
+            if previous != shape.dims() {
+                candle_core::bail!("constructor requested conflicting shapes for '{name}'");
+            }
+        }
+        // broadcast_as shares one scalar storage allocation, even for 7B shapes.
+        self.scalar.broadcast_as(shape)
+    }
+
+    fn get_unchecked(&self, name: &str, _dtype: DType, _device: &Device) -> candle_core::Result<Tensor> {
+        candle_core::bail!("unchecked tensor request '{name}' is unsupported during metadata preflight")
+    }
+
+    fn contains_tensor(&self, _name: &str) -> bool {
+        self.queried_presence.store(true, Ordering::Relaxed);
+        false
+    }
+}
+
+fn required_generation_metadata(config: &JanusConfig, quantized_llama: bool) -> Result<BTreeMap<String, Vec<usize>>> {
+    anyhow::ensure!(
+        config.hidden_size > 0 && config.num_attention_heads > 0 && config.num_key_value_heads > 0,
+        "hidden size and attention head counts must be positive for metadata preflight"
+    );
+    anyhow::ensure!(
+        config.hidden_size.is_multiple_of(config.num_attention_heads)
+            && config.num_attention_heads.is_multiple_of(config.num_key_value_heads),
+        "attention dimensions are incompatible for metadata preflight"
+    );
+    let shapes = Arc::new(Mutex::new(BTreeMap::new()));
+    let queried_presence = Arc::new(AtomicBool::new(false));
+    let probe = WeightMetadataProbe {
+        shapes: shapes.clone(),
+        queried_presence: queried_presence.clone(),
+        scalar: Tensor::zeros((), DType::F32, &Device::Cpu)?,
+    };
+    let builder = VarBuilder::from_backend(Box::new(probe), DType::F32, Device::Cpu);
+    // The real constructors are the schema. This model only holds broadcast
+    // views and is dropped without forwarding, decoding, or loading a GGUF.
+    drop(JanusModel::new(builder, config).context("failed to inspect model constructor metadata")?);
+    anyhow::ensure!(
+        !queried_presence.load(Ordering::Relaxed),
+        "conditional tensor-presence queries require an explicit metadata preflight implementation"
+    );
+    let mut shapes = shapes
+        .lock()
+        .map_err(|_| anyhow::anyhow!("metadata probe lock poisoned"))?
+        .clone();
+    shapes.retain(|name, _| !name.starts_with("aligner.") && !(quantized_llama && name.starts_with("language_model.")));
+    Ok(shapes)
+}
 
 // ---------------------------------------------------------------------------
 // CacheVariant — unified KV cache dispatch
@@ -59,10 +138,9 @@ use crate::telemetry::{GenerationTelemetry, TelemetryCollector};
 ///
 /// # Performance
 ///
-/// The `PreAllocKvCache` variant eliminates ≈95 GB of GPU bandwidth waste from
-/// `Tensor::cat` across 576 autoregressive image-generation steps.  The
-/// `KvCache` variant is retained as a fallback for debugging or for devices
-/// where `scatter_set` is not supported.
+/// The preallocated variant avoids repeated `Tensor::cat` calls. Measure
+/// throughput and memory traffic against a matching model/device baseline.
+/// The dynamic variant supports devices where `scatter_set` is unavailable.
 enum CacheVariant {
     /// Pre-allocated ring-buffer cache — zero `Tensor::cat` cost.
     PreAlloc(PreAllocKvCache),
@@ -190,6 +268,20 @@ impl GenerationPipeline {
             return Ok((None, Device::Cpu, DType::F32));
         }
 
+        // Generation-only checkpoints may intentionally omit the vision tower.
+        // Avoid constructing a large untrained tower just to discover that.
+        let has_vision_weights = hub::open_safetensors(shards)
+            .context("failed to inspect native Janus vision weights")?
+            .tensors()
+            .iter()
+            .any(|(name, _)| {
+                name.starts_with("vision_model.vision_tower.") || name.starts_with("model.vision_model.vision_tower.")
+            });
+        if !has_vision_weights {
+            tracing::warn!("native Janus vision weights absent; understanding will remain unavailable");
+            return Ok((None, main_device.clone(), main_dtype));
+        }
+
         let vision_device = main_device.clone();
         let vision_dtype = main_dtype;
         let vision_cfg = Self::vision_config(model_config);
@@ -204,22 +296,17 @@ impl GenerationPipeline {
             }
         };
 
-        let expected = vision_varmap.data().lock().expect("VarMap lock poisoned").len();
-        let loaded = hub::load_weights(&vision_varmap, shards, vision_dtype, &vision_device)
-            .context("failed to load native Janus vision weights from safetensors")?;
-
-        if loaded < expected {
-            tracing::warn!(
-                loaded,
-                expected,
-                "native Janus vision weights are incomplete; understanding will remain unavailable"
-            );
-            return Ok((None, vision_device, vision_dtype));
-        }
+        let loaded = match hub::load_weights(&vision_varmap, shards, vision_dtype, &vision_device) {
+            Ok(loaded) => loaded,
+            Err(error) if error.downcast_ref::<hub::IncompleteWeights>().is_some() => {
+                tracing::warn!(error = %error, "native Janus vision weights incomplete; understanding will remain unavailable");
+                return Ok((None, vision_device, vision_dtype));
+            }
+            Err(error) => return Err(error).context("failed to load native Janus vision weights from safetensors"),
+        };
 
         tracing::info!(
             loaded,
-            expected,
             device = ?vision_device,
             dtype = ?vision_dtype,
             "native Janus vision tower loaded"
@@ -227,31 +314,97 @@ impl GenerationPipeline {
         Ok((Some(vision_model), vision_device, vision_dtype))
     }
 
-    /// Build a [`JanusModel`] from either a GGUF quantized backbone or full-precision
-    /// safetensors weights.
+    /// Load required generation tensors and report optional aligner readiness.
+    fn load_generation_weights(
+        varmap: &VarMap,
+        shards: &[PathBuf],
+        dtype: DType,
+        device: &Device,
+    ) -> Result<(usize, bool)> {
+        // The understanding aligner is registered by JanusModel constructors
+        // but is not used by text-to-image generation. Keep shared Var handles
+        // so loading either group updates the already constructed model.
+        let generation = VarMap::new();
+        let understanding = VarMap::new();
+        let variables = varmap
+            .data()
+            .lock()
+            .map_err(|_| anyhow::anyhow!("VarMap lock poisoned"))?;
+        for (name, variable) in variables.iter() {
+            let group = if name.starts_with("aligner.") {
+                &understanding
+            } else {
+                &generation
+            };
+            group
+                .data()
+                .lock()
+                .map_err(|_| anyhow::anyhow!("VarMap lock poisoned"))?
+                .insert(name.clone(), variable.clone());
+        }
+        drop(variables);
+        let loaded = hub::load_weights(&generation, shards, dtype, device)?;
+        let has_aligner = !understanding
+            .data()
+            .lock()
+            .map_err(|_| anyhow::anyhow!("VarMap lock poisoned"))?
+            .is_empty();
+        let aligner_loaded = if has_aligner {
+            match hub::load_weights(&understanding, shards, dtype, device) {
+                Ok(_) => true,
+                Err(error) if error.downcast_ref::<hub::IncompleteWeights>().is_some() => {
+                    tracing::warn!(error = %error, "understanding aligner weights incomplete; understanding will remain unavailable");
+                    false
+                }
+                Err(error) => return Err(error).context("failed to load understanding aligner"),
+            }
+        } else {
+            false
+        };
+        Ok((loaded, aligner_loaded))
+    }
+
+    /// Reject absent, partial, or misshapen generation headers before allocation.
+    fn preflight_generation_weights(
+        model_config: &JanusConfig,
+        shards: &[PathBuf],
+        model_path: &std::path::Path,
+        quantized_llama: bool,
+    ) -> Result<()> {
+        anyhow::ensure!(
+            !shards.is_empty(),
+            "no safetensors weight shards found in '{}'; generation requires trained model weights, including non-LLM components for GGUF models",
+            model_path.display()
+        );
+        anyhow::ensure!(
+            !hub::open_safetensors(shards)
+                .context("failed to inspect generation weight shards")?
+                .tensors()
+                .is_empty(),
+            "safetensors weight shards in '{}' contain no model tensors",
+            model_path.display()
+        );
+        let expected = required_generation_metadata(model_config, quantized_llama)?;
+        hub::validate_weight_metadata(shards, &expected)
+    }
+
+    /// Build a model and report whether its understanding aligner is loaded.
     ///
-    /// Both paths share the same [`VarMap`] / [`VarBuilder`] for the non-LLM
-    /// components (VQ decoder, generation head, etc.).  On the GGUF path the
-    /// LLaMA backbone is loaded separately; on the standard path all weights come
-    /// from safetensors.
-    ///
-    /// The caller passes `varmap` as `&mut Option<VarMap>` so that the standard
-    /// CUDA path can call `varmap.take()` to eagerly release the old tensor Arc
-    /// references after the embedding table has been offloaded to CPU.
+    /// Both paths register non-LLM variables before loading safetensors.
+    /// The CUDA standard path releases the VarMap after embedding offload.
     ///
     /// # Errors
     ///
-    /// Returns an error if any I/O, GGUF parsing, or weight-loading step fails.
+    /// Returns an error for invalid GGUF or incomplete generation weights.
     fn build_janus_model(
         gguf_path_opt: Option<&str>,
         varmap: &mut Option<VarMap>,
         vb: VarBuilder,
         model_config: &JanusConfig,
         shards: &[PathBuf],
-        model_path: &std::path::Path,
         device: &Device,
         dtype: DType,
-    ) -> Result<JanusModel> {
+    ) -> Result<(JanusModel, bool)> {
         if let Some(gguf_path_str) = gguf_path_opt {
             // ── GGUF path: load quantized LLaMA backbone from GGUF file ───────
             // Non-LLM components (VQ decoder, gen_head, etc.) are still loaded
@@ -287,29 +440,24 @@ impl GenerationPipeline {
                 tracing::info!("Offloaded quantized wte to CPU for CUDA pipeline");
             }
 
-            // Load non-LLM weights (VQ decoder, gen_head, etc.) from safetensors.
-            if shards.is_empty() {
-                tracing::warn!(path = %model_path.display(), "no safetensors shards found; non-LLM components will use random weights");
-            } else {
-                let loaded = hub::load_weights(varmap.as_ref().unwrap(), shards, dtype, device)
+            // Construct first so every non-LLM variable is registered before
+            // loading. Loading an empty VarMap leaves the later model random.
+            let model = JanusModel::new_with_quantized_llama(quantized_llama, vb, model_config)
+                .map_err(|e| anyhow::anyhow!("JanusModel (GGUF) construction failed: {e}"))?;
+            let (loaded, aligner_loaded) =
+                Self::load_generation_weights(varmap.as_ref().unwrap(), shards, dtype, device)
                     .context("failed to load non-LLM weights from safetensors")?;
-                tracing::info!(shards = shards.len(), tensors_loaded = loaded, "non-LLM weights loaded");
-            }
-
-            JanusModel::new_with_quantized_llama(quantized_llama, vb, model_config)
-                .map_err(|e| anyhow::anyhow!("JanusModel (GGUF) construction failed: {e}"))
+            tracing::info!(shards = shards.len(), tensors_loaded = loaded, "non-LLM weights loaded");
+            Ok((model, aligner_loaded))
         } else {
             // ── Standard path: full-precision LLaMA from safetensors ──────────
             let mut m = JanusModel::new(vb, model_config)
                 .map_err(|e| anyhow::anyhow!("JanusModel construction failed: {e}"))?;
 
-            if shards.is_empty() {
-                tracing::warn!(path = %model_path.display(), "no safetensors shards found; model will use random weights");
-            } else {
-                let loaded = hub::load_weights(varmap.as_ref().unwrap(), shards, dtype, device)
+            let (loaded, aligner_loaded) =
+                Self::load_generation_weights(varmap.as_ref().unwrap(), shards, dtype, device)
                     .context("failed to load model weights from safetensors")?;
-                tracing::info!(shards = shards.len(), tensors_loaded = loaded, "weights loaded");
-            }
+            tracing::info!(shards = shards.len(), tensors_loaded = loaded, "weights loaded");
 
             // On CUDA, offload the token embedding table to CPU to save VRAM, then
             // eagerly drop VarMap to release old GPU tensor Arc references.
@@ -321,7 +469,7 @@ impl GenerationPipeline {
                 tracing::info!("Offloaded wte to CPU for CUDA pipeline");
             }
 
-            Ok(m)
+            Ok((m, aligner_loaded))
         }
     }
 
@@ -388,15 +536,15 @@ impl GenerationPipeline {
             dtype // full-precision path: use the configured dtype as-is
         };
 
+        Self::preflight_generation_weights(&model_config, &shards, &model_path, config.gguf_path.is_some())?;
         let mut varmap = Some(VarMap::new());
         let vb = VarBuilder::from_varmap(varmap.as_ref().unwrap(), non_llm_dtype, &device);
-        let model = Self::build_janus_model(
+        let (model, aligner_loaded) = Self::build_janus_model(
             config.gguf_path.as_deref(),
             &mut varmap,
             vb,
             &model_config,
             &shards,
-            &model_path,
             &device,
             non_llm_dtype,
         )?;
@@ -405,8 +553,11 @@ impl GenerationPipeline {
         let tokenizer = hub::load_tokenizer(&model_path).context("failed to load tokenizer")?;
 
         // 6. Build native Janus vision tower for understanding.
-        let (vision_tower, vision_device, vision_dtype) =
-            Self::load_vision_tower(&model_config, &device, dtype, &shards).context("failed to load vision tower")?;
+        let (vision_tower, vision_device, vision_dtype) = if aligner_loaded {
+            Self::load_vision_tower(&model_config, &device, dtype, &shards).context("failed to load vision tower")?
+        } else {
+            (None, device.clone(), dtype)
+        };
 
         Ok(Self {
             model,
@@ -637,8 +788,8 @@ impl GenerationPipeline {
         // - `PreAllocKvCache` (default, `use_prealloc_kv_cache = true`):
         //   Allocates one fixed-size `[B, n_kv_heads, max_seq_len, head_dim]`
         //   buffer per layer up front.  New KV pairs are written in-place via
-        //   `scatter_set` and read back as zero-copy `narrow` views, eliminating
-        //   the ≈95 GB of GPU bandwidth wasted by `Tensor::cat` across 576 steps.
+        //   `scatter_set` and read back as `narrow` views, avoiding repeated
+        //   growing-buffer concatenation.  Throughput requires measurement.
         //
         // - `KvCache` (fallback, `use_prealloc_kv_cache = false`):
         //   The original dynamic cache.  Each step appends via `Tensor::cat`,
@@ -1579,6 +1730,202 @@ mod tests {
     use candle_core::{DType, Device};
 
     #[test]
+    fn test_generation_metadata_probe_uses_scalar_storage_for_7b_shape() {
+        use candle_nn::var_builder::SimpleBackend;
+        let queried_presence = Arc::new(AtomicBool::new(false));
+        let probe = WeightMetadataProbe {
+            shapes: Arc::new(Mutex::new(BTreeMap::new())),
+            queried_presence: queried_presence.clone(),
+            scalar: Tensor::zeros((), DType::F32, &Device::Cpu).unwrap(),
+        };
+        let tensor = probe
+            .get(
+                (102_400, 4096).into(),
+                "weight",
+                candle_nn::Init::Const(0.0),
+                DType::F32,
+                &Device::Cpu,
+            )
+            .unwrap();
+        assert_eq!(tensor.dims(), &[102_400, 4096]);
+        let (storage, _) = tensor.storage_and_layout();
+        match &*storage {
+            candle_core::Storage::Cpu(candle_core::CpuStorage::F32(values)) => assert_eq!(values.len(), 1),
+            _ => panic!("metadata probe must retain scalar CPU F32 storage"),
+        }
+        assert!(probe.get_unchecked("weight", DType::F32, &Device::Cpu).is_err());
+        assert!(!probe.contains_tensor("weight"));
+        assert!(queried_presence.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn test_generation_metadata_7b_schema_preserves_required_components() {
+        let config = JanusConfig::janus_pro_7b();
+        let standard = required_generation_metadata(&config, false).unwrap();
+        let quantized = required_generation_metadata(&config, true).unwrap();
+        assert_eq!(standard["language_model.model.embed_tokens.weight"], [102_400, 4096]);
+        assert_eq!(standard["gen_embed.weight"], [16_384, 8]);
+        assert!(standard.keys().all(|name| !name.starts_with("aligner.")));
+        assert!(quantized.keys().all(|name| !name.starts_with("language_model.")));
+        for (name, shape) in standard.iter().filter(|(name, _)| !name.starts_with("language_model.")) {
+            assert_eq!(quantized.get(name), Some(shape));
+        }
+        assert!(quantized.contains_key("gen_vision_model.post_quant_conv.weight"));
+        assert!(quantized.contains_key("gen_vision_model.decoder.conv_out.weight"));
+    }
+
+    #[test]
+    fn test_generation_metadata_rejects_invalid_attention_dimensions() {
+        for (heads, kv_heads) in [(0, 16), (16, 0), (15, 16), (16, 15)] {
+            let mut config = JanusConfig::janus_pro_1b();
+            config.num_attention_heads = heads;
+            config.num_key_value_heads = kv_heads;
+            assert!(required_generation_metadata(&config, false).is_err());
+        }
+    }
+
+    #[test]
+    fn test_load_rejects_nonempty_partial_7b_checkpoint_before_allocation() {
+        let tmp = tempfile::tempdir().unwrap();
+        let config_path = tmp.path().join("config.json");
+        std::fs::write(&config_path, serde_json::to_vec(&JanusConfig::janus_pro_7b()).unwrap()).unwrap();
+        assert_eq!(JanusConfig::from_file(&config_path).unwrap().hidden_size, 4096);
+        let unused = Tensor::zeros(1, DType::F32, &Device::Cpu).unwrap();
+        candle_core::safetensors::save(
+            &std::collections::HashMap::from([("unused.weight", unused)]),
+            tmp.path().join("model.safetensors"),
+        )
+        .unwrap();
+        for gguf_path in [
+            None,
+            Some(tmp.path().join("unopened.gguf").to_string_lossy().into_owned()),
+        ] {
+            let config = PipelineConfig {
+                model: tmp.path().to_string_lossy().into_owned(),
+                device: "cpu".to_string(),
+                gguf_path,
+                ..PipelineConfig::default()
+            };
+            let error = GenerationPipeline::load(config)
+                .err()
+                .expect("partial 7B checkpoint must fail before allocation or GGUF parsing");
+            assert!(error.downcast_ref::<hub::IncompleteWeights>().is_some(), "{error:#}");
+        }
+    }
+
+    #[test]
+    fn test_generation_weights_load_without_optional_vision() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("model.safetensors");
+        let trained = Tensor::from_vec(vec![1.0_f32, 2.0], 2, &Device::Cpu).unwrap();
+        let tensors = std::collections::HashMap::from([("gen_embed.weight", trained)]);
+        candle_core::safetensors::save(&tensors, &path).expect("save generation fixture");
+        let vars = VarMap::new();
+        vars.get(
+            2,
+            "gen_embed.weight",
+            candle_nn::Init::Const(0.0),
+            DType::F32,
+            &Device::Cpu,
+        )
+        .unwrap();
+        vars.get(
+            2,
+            "aligner.weight",
+            candle_nn::Init::Const(0.0),
+            DType::F32,
+            &Device::Cpu,
+        )
+        .unwrap();
+        assert_eq!(
+            GenerationPipeline::load_generation_weights(&vars, std::slice::from_ref(&path), DType::F32, &Device::Cpu)
+                .unwrap(),
+            (1, false)
+        );
+        let (vision, _, _) =
+            GenerationPipeline::load_vision_tower(&JanusConfig::janus_pro_1b(), &Device::Cpu, DType::F32, &[path])
+                .expect("generation-only checkpoint is supported");
+        assert!(vision.is_none(), "untrained vision must remain unavailable");
+    }
+
+    #[test]
+    fn test_generation_weights_report_complete_understanding_aligner() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("model.safetensors");
+        let vars = VarMap::new();
+        let mut tensors = std::collections::HashMap::new();
+        for name in ["gen_embed.weight", "aligner.first.weight", "aligner.second.weight"] {
+            vars.get(2, name, candle_nn::Init::Const(0.0), DType::F32, &Device::Cpu)
+                .unwrap();
+            tensors.insert(name, Tensor::from_vec(vec![1.0_f32, 2.0], 2, &Device::Cpu).unwrap());
+        }
+        candle_core::safetensors::save(&tensors, &path).unwrap();
+        assert_eq!(
+            GenerationPipeline::load_generation_weights(&vars, std::slice::from_ref(&path), DType::F32, &Device::Cpu)
+                .unwrap(),
+            (1, true)
+        );
+        tensors.remove("aligner.second.weight");
+        candle_core::safetensors::save(&tensors, &path).unwrap();
+        assert_eq!(
+            GenerationPipeline::load_generation_weights(&vars, &[path], DType::F32, &Device::Cpu).unwrap(),
+            (1, false)
+        );
+    }
+
+    #[test]
+    fn test_generation_weights_require_generation_with_complete_aligner() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("model.safetensors");
+        let vars = VarMap::new();
+        for name in ["gen_embed.weight", "aligner.weight"] {
+            vars.get(2, name, candle_nn::Init::Const(0.0), DType::F32, &Device::Cpu)
+                .unwrap();
+        }
+        let tensor = Tensor::from_vec(vec![1.0_f32, 2.0], 2, &Device::Cpu).unwrap();
+        candle_core::safetensors::save(&std::collections::HashMap::from([("aligner.weight", tensor)]), &path).unwrap();
+        let error = GenerationPipeline::load_generation_weights(&vars, &[path], DType::F32, &Device::Cpu)
+            .expect_err("generation weights required");
+        assert!(error.to_string().contains("gen_embed.weight"));
+    }
+
+    #[test]
+    fn test_load_rejects_missing_generation_weights_in_both_modes() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        for gguf_path in [
+            None,
+            Some(tmp.path().join("backbone.gguf").to_string_lossy().into_owned()),
+        ] {
+            let config = PipelineConfig {
+                model: tmp.path().to_string_lossy().into_owned(),
+                device: "cpu".to_string(),
+                gguf_path,
+                ..PipelineConfig::default()
+            };
+            let error = GenerationPipeline::load(config)
+                .err()
+                .expect("missing trained weights must fail");
+            assert!(error.to_string().contains("no safetensors weight shards"), "{error:#}");
+        }
+    }
+
+    #[test]
+    fn test_load_rejects_empty_generation_archive_before_allocation() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let empty: std::collections::HashMap<String, Tensor> = std::collections::HashMap::new();
+        candle_core::safetensors::save(&empty, tmp.path().join("model.safetensors")).unwrap();
+        let config = PipelineConfig {
+            model: tmp.path().to_string_lossy().into_owned(),
+            device: "cpu".to_string(),
+            ..PipelineConfig::default()
+        };
+        let error = GenerationPipeline::load(config)
+            .err()
+            .expect("empty checkpoint must fail");
+        assert!(error.to_string().contains("contain no model tensors"));
+    }
+
+    #[test]
     fn test_load_vision_tower_empty_shards() {
         use pcai_media_model::config::JanusConfig;
         use std::path::PathBuf;
@@ -1816,22 +2163,25 @@ mod tests {
     // GGUF quantization path routing tests
     // -----------------------------------------------------------------------
 
-    /// `GenerationPipeline::load` must route correctly to `QuantizedJanusLlama`
-    /// when `gguf_path` is specified in the config, and appropriately fail with
-    /// a parsing error on a non-GGUF dummy file.
+    /// The model-build helper selects GGUF loading and rejects a non-GGUF file.
+    /// Pipeline
+    /// metadata preflight is tested separately without full weight fixtures.
     #[test]
     fn test_gguf_quantization_path_routing() {
         let temp_dir = tempfile::tempdir().unwrap();
         let gguf_path = temp_dir.path().join("dummy.gguf");
         std::fs::write(&gguf_path, "not a valid gguf file").unwrap();
-
-        let cfg = crate::config::PipelineConfig {
-            model: temp_dir.path().to_string_lossy().to_string(),
-            gguf_path: Some(gguf_path.to_string_lossy().to_string()),
-            ..crate::config::PipelineConfig::default()
-        };
-
-        let result = GenerationPipeline::load(cfg);
+        let mut variables = Some(VarMap::new());
+        let builder = VarBuilder::from_varmap(variables.as_ref().unwrap(), DType::F32, &Device::Cpu);
+        let result = GenerationPipeline::build_janus_model(
+            Some(gguf_path.to_str().unwrap()),
+            &mut variables,
+            builder,
+            &JanusConfig::janus_pro_1b(),
+            &[],
+            &Device::Cpu,
+            DType::F32,
+        );
         assert!(result.is_err(), "Expected load to fail with invalid GGUF");
         let err_msg = result.err().unwrap().to_string();
 

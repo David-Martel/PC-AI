@@ -1,117 +1,132 @@
 #Requires -Version 7.0
-[CmdletBinding()]
+<#
+.SYNOPSIS
+    Plans legacy Windows Thunderbolt settings or applies guarded peer tuning.
+.DESCRIPTION
+    Compatibility bridge for PowerShell 7 (pwsh), including Windows peers. The
+    default is a plan; it never deletes addresses, changes network categories or
+    enables WinRM. Apply delegates to the maintained Optimize path, whose shared
+    IPv4 guard verifies peer identity, address/route conflicts and preservation.
+    Unrelated addresses must be resolved explicitly before static apply. Linux peers use the maintained
+    LinuxPeer controller and a qualified peer profile instead.
+.EXAMPLE
+    ./Initialize-ThunderboltLink.ps1 -InterfaceAlias 'Ethernet 11' -DryRun
+.EXAMPLE
+    ./Initialize-ThunderboltLink.ps1 -InterfaceAlias 'Ethernet 11' -MetricOnly -Apply
+.EXAMPLE
+    ./Initialize-ThunderboltLink.ps1 --help
+#>
+[CmdletBinding(SupportsShouldProcess, PositionalBinding = $false)]
 param(
-    [Parameter()]
     [string]$InterfaceAlias,
-
-    [Parameter()]
-    [string]$IPv4Address = '172.31.240.1',
-
-    [Parameter()]
-    [ValidateRange(8, 30)]
-    [int]$PrefixLength = 30,
-
-    [Parameter()]
-    [ValidateRange(1, 9999)]
-    [int]$InterfaceMetric = 15,
-
-    [Parameter()]
-    [ValidateRange(1280, 65535)]
-    [int]$MtuBytes = 62000,
-
-    [Parameter()]
-    [switch]$SetPrivateProfile = $true
+    [string]$IPv4Address,
+    [ValidateRange(8, 30)][int]$PrefixLength = 30,
+    [ValidateRange(1, 9999)][int]$InterfaceMetric = 15,
+    [ValidateRange(1280, 65535)][int]$MtuBytes = 62000,
+    [switch]$SetPrivateProfile,
+    [switch]$EnablePsRemoting,
+    [switch]$MetricOnly,
+    [switch]$Apply,
+    [switch]$DryRun,
+    [ValidateSet('Local', 'WindowsPeer')][string]$CompatibilityRole = 'Local',
+    [Alias('h', 'help')][switch]$ShowHelp,
+    [Parameter(ValueFromRemainingArguments)][string[]]$CliArgs
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
-function Invoke-LegacyScript {
-    param([Parameter(Mandatory)][string]$Script)
-
-    $wrapped = "`$ProgressPreference = 'SilentlyContinue'`r`n$Script"
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($wrapped))
-    $output = & powershell.exe -NoLogo -NoProfile -EncodedCommand $encoded
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Windows PowerShell Thunderbolt link initialization failed.'
-    }
-    return ($output -join [Environment]::NewLine).Trim()
+if ($ShowHelp -or $CliArgs -contains '--help') {
+    $helpScript = if ($CompatibilityRole -eq 'WindowsPeer') { 'Bootstrap-ThunderboltPeerRemote.ps1' } else { 'Initialize-ThunderboltLink.ps1' }
+    @"
+Usage: pwsh -File $helpScript [-InterfaceAlias <exact alias>] [-DryRun]
+       pwsh -File $helpScript -InterfaceAlias <exact alias> -MetricOnly -Apply [-WhatIf]
+       pwsh -File $helpScript -InterfaceAlias <exact alias> -IPv4Address <peer IPv4> -PrefixLength 30 -Apply
+       pwsh -File $helpScript -h | --help
+PowerShell 7 is required. Ordinary invocation plans only. Static IPv4 Apply uses
+the maintained driver's live identity/conflict/preservation guards. Private
+network category and WinRM requests remain visible and require separate policy.
+Use Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer for a qualified Linux peer;
+Windows peers require pwsh; this bridge never starts Windows PowerShell or WinRM.
+"@
+    return
+}
+if ($CliArgs) {
+    throw 'Use named parameters for legacy Thunderbolt settings; unrecognized positional arguments are not applied.'
 }
 
+if ($MetricOnly -and ($PSBoundParameters.ContainsKey('IPv4Address') -or $PSBoundParameters.ContainsKey('PrefixLength'))) {
+    throw 'MetricOnly cannot be combined with requested IPv4Address or PrefixLength. No requested static setting will be silently discarded.'
+}
+$suggestedAddress = if ($CompatibilityRole -eq 'WindowsPeer') { '172.31.240.2' } else { '172.31.240.1' }
+$addressIntent = $null
+if (-not $MetricOnly) {
+    $addressIntent = if ($PSBoundParameters.ContainsKey('IPv4Address')) { $IPv4Address } else { $suggestedAddress }
+    $parsedAddress = $null
+    if (-not [Net.IPAddress]::TryParse($addressIntent, [ref]$parsedAddress) -or
+        $parsedAddress.AddressFamily -ne [Net.Sockets.AddressFamily]::InterNetwork) {
+        throw 'IPv4Address must be a valid IPv4 address. Use MetricOnly to request tuning without static addressing.'
+    }
+    $addressIntent = $parsedAddress.ToString()
+}
+
+$entrypoint = Join-Path $PSScriptRoot 'Invoke-ThunderboltNetworking.ps1'
+$blockers = [Collections.Generic.List[string]]::new()
 if ([string]::IsNullOrWhiteSpace($InterfaceAlias)) {
-    $detectedAlias = Invoke-LegacyScript -Script @"
-`$adapter = Get-NetAdapter -IncludeHidden -ErrorAction SilentlyContinue |
-    Where-Object {
-        `$_.Status -eq 'Up' -and (
-            `$_.InterfaceDescription -match 'USB4' -or
-            `$_.InterfaceDescription -match 'Thunderbolt' -or
-            `$_.InterfaceDescription -match 'P2P'
-        )
-    } |
-    Sort-Object ifIndex |
-    Select-Object -First 1 -ExpandProperty Name
-if (-not `$adapter) { throw 'No active USB4/Thunderbolt/P2P adapter found.' }
-`$adapter
-"@
-    $InterfaceAlias = $detectedAlias.Trim()
+    $blockers.Add('Apply requires one explicit InterfaceAlias; the maintained optimizer verifies its exact peer identity.')
+}
+if ($SetPrivateProfile) {
+    $blockers.Add('Private network profile changes require a separately owned host security policy; this bridge will not apply SetPrivateProfile.')
+}
+if ($EnablePsRemoting) {
+    $blockers.Add('WinRM enablement requires a separately owned host security policy; this bridge will not apply EnablePsRemoting.')
+}
+$plan = [pscustomobject]@{
+    State                      = 'Planned'
+    Applied                    = $false
+    CompatibilityRole          = $CompatibilityRole
+    InterfaceAlias             = $InterfaceAlias
+    MetricOnly                 = [bool]$MetricOnly
+    InterfaceMetric            = $InterfaceMetric
+    MtuBytes                   = $MtuBytes
+    IPv4Address                = $addressIntent
+    PrefixLength               = if ($MetricOnly) { $null } else { $PrefixLength }
+    SuggestedCompatibilityIPv4 = $suggestedAddress
+    SetPrivateProfile          = [bool]$SetPrivateProfile
+    EnablePsRemoting           = [bool]$EnablePsRemoting
+    ApplyBlockers              = @($blockers)
+    StaticIPv4Safety           = 'Apply performs fresh peer identity, IPv4 address/route conflict and preservation checks through the maintained driver. Resolve existing unrelated addresses explicitly; a plan does not establish live safety.'
+    MaintainedEntrypoint       = $entrypoint
+    PowerShellRequirement      = 'PowerShell 7 (pwsh); no Windows PowerShell subprocess is started.'
+}
+if (-not $Apply -or $DryRun -or $WhatIfPreference) {
+    return $plan
+}
+if ($blockers.Count -gt 0) {
+    throw "Legacy Thunderbolt apply refused. $($blockers -join ' ')"
+}
+if (-not $PSCmdlet.ShouldProcess($InterfaceAlias, 'Apply requested peer settings through the maintained Thunderbolt optimizer and IPv4 preservation guard')) {
+    return $plan
 }
 
-$null = Invoke-LegacyScript -Script @"
-`$alias = '$($InterfaceAlias.Replace("'", "''"))'
-`$ip = '$IPv4Address'
-`$prefix = $PrefixLength
-`$metric = $InterfaceMetric
-`$mtu = $MtuBytes
-`$setPrivate = $(if ($SetPrivateProfile) { '$true' } else { '$false' })
-
-`$existing = @(Get-NetIPAddress -InterfaceAlias `$alias -AddressFamily IPv4 -ErrorAction SilentlyContinue)
-foreach (`$row in `$existing) {
-    if (`$row.IPAddress -ne `$ip) {
-        Remove-NetIPAddress -InputObject `$row -Confirm:`$false -ErrorAction SilentlyContinue
-    }
+# Central Optimize owns native exits, exact peer identity and IPv4 preservation.
+# Remoting and profile policy remain blocked above.
+$delegateArguments = @{
+    Mode            = 'Optimize'
+    InterfaceAlias  = $InterfaceAlias
+    InterfaceMetric = $InterfaceMetric
+    MtuBytes        = $MtuBytes
+    Apply           = $true
+    Confirm         = $false
 }
-
-`$current = @(Get-NetIPAddress -InterfaceAlias `$alias -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { `$_.IPAddress -eq `$ip })
-if (`$current.Count -eq 0) {
-    New-NetIPAddress -InterfaceAlias `$alias -IPAddress `$ip -PrefixLength `$prefix -Type Unicast -ErrorAction Stop | Out-Null
+if (-not $MetricOnly) {
+    $delegateArguments.IPv4Address = $addressIntent
+    $delegateArguments.PrefixLength = $PrefixLength
 }
-
-if (`$setPrivate) {
-    `$profile = Get-NetConnectionProfile -InterfaceAlias `$alias -ErrorAction SilentlyContinue
-    if (`$profile) {
-        Set-NetConnectionProfile -InterfaceAlias `$alias -NetworkCategory Private -ErrorAction SilentlyContinue | Out-Null
-    }
+$status = @(& $entrypoint @delegateArguments)
+if ($status.Count -ne 1 -or $status[0].InterfaceAlias -ne $InterfaceAlias) {
+    throw 'The maintained Thunderbolt optimizer did not return one verified result for the selected interface.'
 }
-"@
-
-& netsh interface ipv4 set interface ("name=$InterfaceAlias") ("metric=$InterfaceMetric") | Out-Null
-& netsh interface ipv6 set interface $InterfaceAlias ("metric=$InterfaceMetric") | Out-Null
-& netsh interface ipv4 set subinterface $InterfaceAlias ("mtu=$MtuBytes") 'store=persistent' | Out-Null
-
-$status = Invoke-LegacyScript -Script @"
-Get-NetAdapter -Name '$($InterfaceAlias.Replace("'", "''"))' -ErrorAction Stop |
-    Select-Object Name, InterfaceDescription, Status, MacAddress, ifIndex |
-    ConvertTo-Json -Depth 4
-"@ | ConvertFrom-Json
-
-$ipv4 = Invoke-LegacyScript -Script @"
-Get-NetIPAddress -InterfaceAlias '$($InterfaceAlias.Replace("'", "''"))' -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-    Select-Object IPAddress, PrefixLength |
-    ConvertTo-Json -Depth 4
-"@ | ConvertFrom-Json
-
-$profileJson = Invoke-LegacyScript -Script @"
-Get-NetConnectionProfile -InterfaceAlias '$($InterfaceAlias.Replace("'", "''"))' -ErrorAction SilentlyContinue |
-    Select-Object InterfaceAlias, NetworkCategory, IPv4Connectivity |
-    ConvertTo-Json -Depth 4
-"@
-$profile = if ($profileJson) { $profileJson | ConvertFrom-Json } else { $null }
-
-[pscustomobject]@{
-    InterfaceAlias    = $InterfaceAlias
-    Adapter           = $status
-    IPv4              = @($ipv4)
-    ConnectionProfile = $profile
-    SuggestedPeerIP   = '172.31.240.2'
-    RemoteBootstrap   = 'C:\codedev\PC_AI\Tools\Bootstrap-ThunderboltPeerRemote.ps1'
-}
+$plan.State = 'Applied'
+$plan.Applied = $true
+$plan | Add-Member -NotePropertyName VerifiedStatus -NotePropertyValue $status[0]
+return $plan

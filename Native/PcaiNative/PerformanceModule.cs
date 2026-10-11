@@ -158,7 +158,8 @@ namespace PcaiNative
         public ulong StringBytes;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    // Rust repr(C) aligns MemoryBytes at byte 40 and each entry to 48 bytes.
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public struct ProcessListCompactEntry
     {
         public uint Pid;
@@ -265,6 +266,27 @@ namespace PcaiNative
             }
         }
 
+        private static bool TryValidateCompactPayload<T>(ReadOnlySpan<byte> data, int headerSize,
+            ulong entryCount, ulong stringBytes, out int count) where T : unmanaged
+        {
+            count = 0;
+            if (headerSize < 0 || headerSize > data.Length || entryCount > int.MaxValue || stringBytes > int.MaxValue)
+            {
+                return false;
+            }
+
+            var available = (ulong)(data.Length - headerSize);
+            var entrySize = (ulong)Marshal.SizeOf<T>();
+            // Bound the count using the actual payload before allocating or multiplying.
+            if (entryCount > available / entrySize || entryCount * entrySize + stringBytes != available)
+            {
+                return false;
+            }
+
+            count = (int)entryCount;
+            return true;
+        }
+
         private static TopProcessesResult? ParseCompactTopProcesses(PcaiByteBuffer buffer)
         {
             var data = buffer.AsReadOnlySpan();
@@ -279,7 +301,11 @@ namespace PcaiNative
                 return null;
             }
 
-            var entryCount = checked((int)header.EntryCount);
+            if (!TryValidateCompactPayload<ProcessListCompactEntry>(data, offset, header.EntryCount, header.StringBytes, out var entryCount))
+            {
+                return null;
+            }
+
             var entries = new ProcessListCompactEntry[entryCount];
             for (var i = 0; i < entries.Length; i++)
             {
@@ -345,7 +371,11 @@ namespace PcaiNative
                 return null;
             }
 
-            var entryCount = checked((int)header.EntryCount);
+            if (!TryValidateCompactPayload<DiskUsageCompactEntry>(data, offset, header.EntryCount, header.StringBytes, out var entryCount))
+            {
+                return null;
+            }
+
             var entries = new DiskUsageCompactEntry[entryCount];
             for (var i = 0; i < entries.Length; i++)
             {

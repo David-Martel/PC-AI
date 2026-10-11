@@ -239,6 +239,15 @@ function Find-WithFd {
 
     try {
         $output = & $FdPath @args 2>$null
+        $fdExitCode = $LASTEXITCODE
+        if ($fdExitCode -ne 0) {
+            $failure = [System.InvalidOperationException]::new("fd search failed with exit code $fdExitCode.")
+            $failure.Data['ExitCode'] = $fdExitCode
+            $record = [System.Management.Automation.ErrorRecord]::new(
+                $failure, 'PcaiFdSearchFailed',
+                [System.Management.Automation.ErrorCategory]::InvalidResult, $FdPath)
+            $PSCmdlet.ThrowTerminatingError($record)
+        }
 
         $results = [System.Collections.Generic.List[object]]::new()
         foreach ($line in $output) {
@@ -252,8 +261,7 @@ function Find-WithFd {
         return @($results)
     }
     catch {
-        Write-Warning "fd search failed: $_"
-        return @()
+        throw
     }
 }
 

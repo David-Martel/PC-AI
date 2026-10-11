@@ -29,7 +29,7 @@ Primary entrypoints:
 
 - `Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1`
 - `Config/pcai-tooling-benchmarks.json`
-- `Reports/tooling-benchmarks/<timestamp>/`
+- `Reports/tooling-benchmarks/tooling-rN/` (timestamps in report metadata)
 - `Reports/TOOL_BACKEND_COVERAGE.md`
 
 Current benchmark guidance from the repo:
@@ -195,6 +195,23 @@ Useful variants:
 .\Build.ps1 -Clean -Package -EnableCuda
 ```
 
+CUDA builds no longer implicitly require cuDNN or FlashAttention. Enable these
+optional kernels explicitly with `-EnableCudnn` or `-EnableFlashAttention` after
+qualifying the target host. CPU builds reject either optional kernel switch.
+Build logs use retained `build-rN` revisions; `-Clean` preserves those logs.
+
+`Tools/Install-PcaiDevModules.ps1` defaults to verified copies for the current
+user, retains previous installations in private revision custody, and supports
+non-mutating `-DryRun`/`-WhatIf`. Use `-Mode Junction` only for intentional live
+development bindings. Include CargoTools through an explicitly selected source.
+`Tools/Repair-PcaiProfileStartup.ps1` plans three known profile repairs by default;
+apply requires the observed profile hash and preserves actual displaced bytes.
+Keep each machine's canonical profile and private authentication settings local.
+
+Set `PCAI_NATIVE_BUNDLE_ROOT` to an exact, paired Rust/C# bundle when validating
+or deploying a build. An incomplete explicit bundle fails closed. Select another
+managed bundle in a fresh PowerShell process; loaded assemblies cannot be replaced.
+
 Direct inference builds:
 
 ```powershell
@@ -269,6 +286,49 @@ At minimum, choose the narrowest relevant validation path:
 - evaluation runs for inference or prompt behavior
 - tooling benchmarks for hot-path acceleration changes
 - baseline/regression comparisons for performance-sensitive work
+
+The `pcai-ollama-rs` binary has maintained configuration and request-wire tests.
+Run `Invoke-CargoWrapper --raw test --locked -p pcai-ollama-rs --bin pcai-ollama-rs`
+from `Native/pcai_core`; library-only test runs exclude these controls. Omitted
+`keep_alive_seconds` defaults to 1800, explicit zero requests unload, positive
+values retain their duration, and negative values retain indefinite residency.
+Rust Guidelines CI runs this binary separately. These tests make no model or
+HTTP requests and do not establish deployed consumer behavior or memory gains.
+
+Maintained fallback and dependency fixtures:
+
+- `Tests/Unit/PcaiRuntimeVariantIntegrity.Tests.ps1` exercises 25 controls
+  against complete runtime resolver functions with real owned file bytes:
+  digest validation, pair activation, retained rollback data, unresolved-resource
+  refusal and generic/ordered dictionary compatibility. Keep its explicit
+  collaborators and recovery evidence; it must not load a native DLL, query a
+  GPU or make HTTP requests. Passing these controls does not establish crash
+  atomicity, live inference or exceptional OS-disposal recovery.
+- `Tests/Unit/ProcessLassoSnapshot.Tests.ps1` exercises the complete fallback
+  parser on literal UTF-8/UTF-16 files, empty/singleton lists and log records;
+  only native-command discovery is suppressed.
+- `Tests/Unit/EvaluationDependencyContracts.Tests.ps1` runs the complete
+  dependency validator against owned configuration and inert file markers.
+  Availability checks do not establish DLL loading or backend execution.
+- These two suites explicitly skip unsupported Windows PowerShell 5.1 cases;
+  a successful discovery job is not a legacy execution qualification.
+- Search fixtures for literal CLI arguments must explicitly bypass ancestor
+  ignore rules when those rules would exclude the owned input file. Preserve
+  production ignore behavior and use the actual selected backend.
+
+`Tests/Unit/PcaiFdSearchContracts.Tests.ps1` requires physical `fd` on
+PowerShell 7.3+ and exercises eight failure/cache/success contracts against
+maintained functions. CI installs the hash-pinned fd release. Windows PowerShell
+5.1 compatibility discovery explicitly skips these eight contracts; those skips
+do not establish native search compatibility. Cache spies and two script
+invocation fixtures are synthetic; the other six controls invoke actual fd.
+See `Reports/fd-search-contract-review.md` for retained failure and validation
+boundaries. A passing contract suite does not establish a performance gain.
+
+Windows CI also compiles, lints and runs `pcai_core_lib` unit tests, including the 19 inert Event Log contracts.
+The inference lint profiles alone do not qualify Core's Windows bindings.
+See [native Event Log qualification](Reports/native-event-log-repair-review.md)
+for the collector, public fallback contract and remaining runtime gates.
 
 Important active testing gaps:
 

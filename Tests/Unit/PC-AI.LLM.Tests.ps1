@@ -7,9 +7,14 @@
 #>
 
 BeforeAll {
+    $script:RepositoryConfigPath = Join-Path $PSScriptRoot '../../Config/llm-config.json'
+    $script:RepositoryConfigHash = (Get-FileHash -LiteralPath $script:RepositoryConfigPath).Hash
+    $script:RepositoryConfigJson = Get-Content -LiteralPath $script:RepositoryConfigPath -Raw
     # Import module under test
     $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.LLM\PC-AI.LLM.psd1'
     Import-Module $ModulePath -Force -ErrorAction Stop
+    $script:OriginalModuleConfig = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
+    $script:OriginalModuleDefaults = InModuleScope PC-AI.LLM { $script:ModuleDefaults.Clone() }
 
     # Import mock data
     $MockDataPath = Join-Path $PSScriptRoot '..\Fixtures\MockData.psm1'
@@ -436,112 +441,217 @@ WDC HDD: Pred Fail
     }
 }
 
-Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {
-    Context 'When configuring LLM settings' {
-        BeforeAll {
-            # Set-LLMConfig WRITES its target file. Left alone, these tests
-            # rewrote the repo's own Config\llm-config.json -- six times per
-            # run -- serialising it from the module's model and so dropping
-            # every key that model does not carry (tool_model, summary_model,
-            # toolInvokerPath, the num_gpu tuning block...). Mocking Test-Path
-            # only convinced the module the file was absent; it did not stop
-            # the write. Point the module at a temp file instead, and put the
-            # real path back afterwards.
-            $script:LlmConfigTempDir = Join-Path ([System.IO.Path]::GetTempPath()) "pcai-llm-config-$([guid]::NewGuid())"
-            New-Item -ItemType Directory -Path $script:LlmConfigTempDir -Force | Out-Null
-            $script:LlmConfigTempPath = Join-Path $script:LlmConfigTempDir 'llm-config.json'
-
-            $script:LlmConfigSaved = InModuleScope PC-AI.LLM -Parameters @{ TempPath = $script:LlmConfigTempPath } {
-                param($TempPath)
-                $saved = @{
-                    ConfigPath        = $script:ModuleConfig.ConfigPath
-                    ProjectConfigPath = $script:ModuleConfig.ProjectConfigPath
-                }
-                $script:ModuleConfig.ConfigPath = $TempPath
-                $script:ModuleConfig.ProjectConfigPath = $TempPath
-                $saved
-            }
-
-            Mock Test-Path { $false } -ModuleName PC-AI.LLM -ParameterFilter { $Path -match 'config' }
-            Mock Test-PcaiInferenceConnection { $false } -ModuleName PC-AI.LLM
-            # Send-OllamaRequest gates on Test-OllamaConnection, NOT on
-            # Test-PcaiInferenceConnection. Both exist in LLM-Helpers.ps1, and only the
-            # latter was mocked, so the real connection probe ran and threw "Cannot
-            # reach the native Ollama runner". Mock both so the intent -- connection
-            # reachable or not -- actually reaches the code under test.
-            Mock Test-OllamaConnection { $false } -ModuleName PC-AI.LLM
+Describe 'Set-LLMConfig' -Tag 'Unit', 'LLM', 'Fast', 'Windows' {
+    # Isolation belongs to the Describe, so even a Reset-only filtered run is safe.
+    BeforeEach {
+        $script:LlmConfigTempPath = Join-Path $TestDrive 'llm-config.json'
+        $script:RepositoryConfigJson | Set-Content -LiteralPath $script:LlmConfigTempPath -Encoding utf8NoBOM
+        InModuleScope PC-AI.LLM -Parameters @{ TempPath = $script:LlmConfigTempPath; Original = $script:OriginalModuleConfig } {
+            $script:ModuleConfig = $Original.Clone()
+            $script:ModuleConfig.ConfigPath = $TempPath
+            $script:ModuleConfig.ProjectConfigPath = $TempPath
+            $script:ModuleConfig.ProviderOrder = @('ollama', 'pcai-inference')
         }
+        Mock Test-PcaiInferenceConnection { $false } -ModuleName PC-AI.LLM
+        Mock Test-OllamaConnection { $false } -ModuleName PC-AI.LLM
+    }
 
+    AfterEach {
+        (Get-FileHash -LiteralPath $script:RepositoryConfigPath).Hash | Should -Be $script:RepositoryConfigHash
+    }
+
+    Context 'When configuring LLM settings' {
+        It 'publishes a new BOM-free config when the selected destination is absent' {
+            $newPath = Join-Path $TestDrive 'new-config-parent/llm-config.json'
+            InModuleScope PC-AI.LLM -Parameters @{ Path = $newPath } {
+                $script:ModuleConfig.ProjectConfigPath = $Path
+                $script:ModuleConfig.ConfigPath = $Path
+            }
+            Set-LLMConfig -DefaultTimeout 15 -ErrorAction Stop | Out-Null
+            (Get-Content $newPath -Raw | ConvertFrom-Json).ollama.timeout_ms | Should -Be 15000
+            [IO.File]::ReadAllBytes($newPath)[0] | Should -Be 123
+            InModuleScope PC-AI.LLM { $script:ModuleConfig.DefaultTimeout } | Should -Be 15
+        }
         It 'Should save configuration and return config object' {
             $result = Set-LLMConfig -OllamaApiUrl 'http://mock-server:11434' -DefaultModel 'llama3.2:latest'
-
-            # Verify the configuration object was returned with correct values
-            $result | Should -Not -BeNullOrEmpty
             $result.OllamaApiUrl | Should -Be 'http://mock-server:11434'
             $result.DefaultModel | Should -Be 'llama3.2:latest'
-            $result.PSObject.Properties.Name | Should -Contain 'ConfigPath'
+            $result.ConfigPath | Should -Be $script:LlmConfigTempPath
             $result.PSObject.Properties.Name | Should -Contain 'LastUpdated'
         }
 
-        It 'Should save JSON configuration with proper structure' {
-            $result = Set-LLMConfig -OllamaApiUrl 'http://custom:11434' -DefaultModel 'llama3.2:latest'
-
-            # Verify the returned configuration has proper structure
-            $result | Should -Not -BeNullOrEmpty
-            $result.OllamaApiUrl | Should -Be 'http://custom:11434'
-            $result.DefaultModel | Should -Be 'llama3.2:latest'
-            $result.PSObject.Properties.Name | Should -Contain 'DefaultTimeout'
+        It 'Should persist settings without losing unrelated machine and model tuning' {
+            Set-LLMConfig -OllamaApiUrl 'http://custom:11434' -DefaultModel 'llama3.2:latest' | Out-Null
+            $saved = Get-Content -LiteralPath $script:LlmConfigTempPath -Raw | ConvertFrom-Json
+            $original = $script:RepositoryConfigJson | ConvertFrom-Json
+            $saved.providers.ollama.baseUrl | Should -Be 'http://custom:11434'
+            $saved.ollama.model | Should -Be 'llama3.2:latest'
+            foreach ($name in @('tool_model', 'summary_model', 'toolInvokerPath', 'num_gpu', 'num_thread', 'num_ctx', 'adaptive_ctx_max')) {
+                $saved.ollama.$name | Should -Be $original.ollama.$name
+            }
+            $saved.fallbackOrder -join ',' | Should -Be 'ollama,pcai-inference'
+            [System.IO.File]::ReadAllBytes($script:LlmConfigTempPath)[0] | Should -Be 123
         }
 
         It 'Should update default model in config' {
             $result = Set-LLMConfig -DefaultModel 'qwen2.5:7b'
-
             $result.DefaultModel | Should -Be 'qwen2.5:7b'
+            (Get-Content -LiteralPath $script:LlmConfigTempPath -Raw | ConvertFrom-Json).ollama.model | Should -Be 'qwen2.5:7b'
         }
     }
 
     Context 'When showing current configuration' {
-        It 'Should return current config with ShowConfig' {
+        It 'Should return current config with ShowConfig without writing' {
+            $before = (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash
             $result = Set-LLMConfig -ShowConfig
-
-            $result | Should -Not -BeNullOrEmpty
-            $result.PSObject.Properties.Name | Should -Contain 'OllamaApiUrl'
+            $result.ConfigPath | Should -Be $script:LlmConfigTempPath
             $result.PSObject.Properties.Name | Should -Contain 'DefaultModel'
-            $result.PSObject.Properties.Name | Should -Contain 'ConfigPath'
+            (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash | Should -Be $before
         }
     }
 
     Context 'When resetting configuration' {
-        It 'Should reset config to defaults' {
+        It 'Should reset config to the machine startup defaults in the isolated file' {
+            Set-LLMProviderOrder -Order @('lmstudio', 'ollama') | Out-Null
+            Set-LLMConfig -DefaultModel 'temporary-test-model' -DefaultTimeout 15 | Out-Null
             $result = Set-LLMConfig -Reset
+            $result.DefaultModel | Should -Be $script:OriginalModuleDefaults.DefaultModel
+            $result.OllamaApiUrl | Should -Be $script:OriginalModuleDefaults.OllamaApiUrl
+            $result.DefaultTimeout | Should -Be $script:OriginalModuleDefaults.DefaultTimeout
+            $result.ConfigPath | Should -Be $script:LlmConfigTempPath
+            $saved = Get-Content -LiteralPath $script:LlmConfigTempPath -Raw | ConvertFrom-Json
+            $saved.ollama.model | Should -Be $script:OriginalModuleDefaults.DefaultModel
+            $saved.fallbackOrder -join ',' | Should -Be 'lmstudio,ollama'
+            $original = $script:RepositoryConfigJson | ConvertFrom-Json
+            foreach ($name in @('tool_model', 'summary_model', 'num_gpu', 'num_ctx', 'adaptive_ctx_max')) {
+                $saved.ollama.$name | Should -Be $original.ollama.$name
+            }
+        }
+    }
 
-            # Verify the configuration was reset to production defaults.
-            # Values come from Config/llm-config.json captured in $script:ModuleDefaults at module load:
-            #   DefaultModel   = 'qwen2.5-coder:3b'  (replaces legacy 'pcai-inference' placeholder)
-            #   OllamaApiUrl   = 'http://127.0.0.1:11434'  (standard Ollama port)
-            #   DefaultTimeout = 180 s  (llm-config.json timeout_ms: 180000)
-            $result | Should -Not -BeNullOrEmpty
-            $result.DefaultModel | Should -Be 'qwen2.5-coder:3b'
-            $result.OllamaApiUrl | Should -Be 'http://127.0.0.1:11434'
-            $result.DefaultTimeout | Should -Be 180
+    Context 'When inherited provider order is invalid' {
+        BeforeEach {
+            InModuleScope PC-AI.LLM { $script:ModuleConfig.ProviderOrder = @('ollama', 'invalid') }
+            $script:BeforeConfigHash = (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash
+        }
+
+        It 'rejects a settings update before disk or memory changes' {
+            { Set-LLMConfig -DefaultTimeout 15 -ErrorAction Stop } | Should -Throw '*invalid*'
+            (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash | Should -Be $script:BeforeConfigHash
+            InModuleScope PC-AI.LLM { $script:ModuleConfig.DefaultTimeout } | Should -Be $script:OriginalModuleConfig.DefaultTimeout
+        }
+
+        It 'rejects Reset before disk or memory changes' {
+            InModuleScope PC-AI.LLM { $script:ModuleConfig.DefaultTimeout = 15 }
+            { Set-LLMConfig -Reset -ErrorAction Stop } | Should -Throw '*invalid*'
+            (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash | Should -Be $script:BeforeConfigHash
+            InModuleScope PC-AI.LLM { $script:ModuleConfig.DefaultTimeout } | Should -Be 15
+        }
+
+        It 'allows read-only inspection of invalid configuration' {
+            Set-LLMConfig -ShowConfig | Out-Null
+            (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash | Should -Be $script:BeforeConfigHash
+        }
+
+        It 'does not create a missing destination or parent for invalid provider order' {
+            $missingPath = Join-Path $TestDrive 'absent/llm-config.json'
+            InModuleScope PC-AI.LLM -Parameters @{ Path = $missingPath } {
+                $script:ModuleConfig.ConfigPath = $Path
+                $script:ModuleConfig.ProjectConfigPath = $Path
+            }
+            { Set-LLMConfig -DefaultTimeout 15 -ErrorAction Stop } | Should -Throw '*invalid*'
+            Test-Path -LiteralPath (Split-Path -Parent $missingPath) | Should -BeFalse
+        }
+    }
+
+    Context 'When unrelated configuration has nested JSON' {
+        It 'preserves a deeply nested machine extension after <Operation>' -TestCases @(
+            @{ Operation = 'update' }, @{ Operation = 'Reset' }
+        ) {
+            param($Operation)
+            $deep = ('{"nested":' * 24) + '"machine-extension-leaf"' + ('}' * 24)
+            ('{"fallbackOrder":["ollama"],"providers":{},"machineSetting":' + $deep + '}') |
+                Set-Content -LiteralPath $script:LlmConfigTempPath -Encoding utf8NoBOM
+            if ($Operation -eq 'Reset') { Set-LLMConfig -Reset -ErrorAction Stop | Out-Null }
+            else { Set-LLMConfig -DefaultTimeout 15 -ErrorAction Stop | Out-Null }
+            $saved = Get-Content -LiteralPath $script:LlmConfigTempPath -Raw | ConvertFrom-Json
+            $value = $saved.machineSetting
+            for ($depth = 0; $depth -lt 24; $depth++) { $value = $value.nested }
+            $value | Should -BeExactly 'machine-extension-leaf'
+        }
+
+        It 'rejects over-limit JSON before disk or memory changes after <Operation>' -TestCases @(
+            @{ Operation = 'update' }, @{ Operation = 'Reset' }
+        ) {
+            param($Operation)
+            # Raw JSON deliberately exceeds ConvertTo-Json's maximum depth100;
+            # generating this fixture with that serializer would corrupt it first.
+            $deep = ('{"nested":' * 110) + '"must-remain-unmodified"' + ('}' * 110)
+            ('{"fallbackOrder":["ollama"],"providers":{},"machineSetting":' + $deep + '}') |
+                Set-Content -LiteralPath $script:LlmConfigTempPath -Encoding utf8NoBOM
+            $beforeHash = (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash
+            $beforeMemory = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
+            if ($Operation -eq 'Reset') { { Set-LLMConfig -Reset -ErrorAction Stop } | Should -Throw }
+            else { { Set-LLMConfig -DefaultTimeout 15 -ErrorAction Stop } | Should -Throw }
+            (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash | Should -BeExactly $beforeHash
+            $afterMemory = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
+            foreach ($key in $beforeMemory.Keys) {
+                ($afterMemory[$key] | ConvertTo-Json -Depth 100 -Compress) | Should -BeExactly ($beforeMemory[$key] | ConvertTo-Json -Depth 100 -Compress)
+            }
+        }
+    }
+
+    Context 'When the real config writer fails' {
+        It 'restores every prior memory setting after a failed <Operation>' -TestCases @(
+            @{ Operation = 'update' }
+            @{ Operation = 'Reset' }
+        ) {
+            param($Operation)
+            # Reset has something to change, and update touches several keys.
+            InModuleScope PC-AI.LLM {
+                $script:ModuleConfig.DefaultTimeout = 19
+                $script:ModuleConfig.DefaultModel = 'existing-machine-model'
+                $script:ModuleConfig.OllamaApiUrl = 'http://existing-machine:11434'
+                $script:ModuleConfig.PcaiInferenceApiUrl = 'http://existing-machine:18080'
+            }
+            $beforeMemory = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
+            $beforeHash = (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash
+            # Read and stage real bytes first, then deny sharing at the final
+            # publication boundary. This exercises the real File.Replace call.
+            Mock Get-LLMConfigCurrentHash {
+                param($Path)
+                $hash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+                # Permit retained original reads while denying replacement/delete.
+                $script:ConfigWriteFixtureHandle = [IO.File]::Open($Path, 'Open', 'Read', 'ReadWrite')
+                return $hash
+            } -ModuleName PC-AI.LLM -ParameterFilter { [IO.Path]::GetFileName($Path) -like 'llm-config*.json' }
+            try {
+                if ($Operation -eq 'Reset') {
+                    $failure = { Set-LLMConfig -Reset -ErrorAction Stop } | Should -Throw -PassThru
+                } else {
+                    $failure = { Set-LLMConfig -DefaultTimeout 15 -DefaultModel 'new-model' -OllamaApiUrl 'http://new-machine:11434' -ErrorAction Stop } | Should -Throw -PassThru
+                }
+                $failure.Exception.GetBaseException() | Should -BeOfType ([System.IO.IOException])
+                $failure.Exception.Message | Should -Match 'Replace'
+                $afterMemory = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
+                foreach ($key in $beforeMemory.Keys) {
+                    ($afterMemory[$key] | ConvertTo-Json -Depth 20 -Compress) | Should -Be ($beforeMemory[$key] | ConvertTo-Json -Depth 20 -Compress)
+                }
+            } finally {
+                if ($script:ConfigWriteFixtureHandle) { $script:ConfigWriteFixtureHandle.Dispose(); $script:ConfigWriteFixtureHandle = $null }
+            }
+            (Get-FileHash -LiteralPath $script:LlmConfigTempPath).Hash | Should -Be $beforeHash
         }
     }
 }
 
 AfterAll {
-    # Put the real config path back before unloading, and clean up the temp
-    # file, so a later suite in the same run cannot inherit the redirect.
-    if ($script:LlmConfigSaved -and (Get-Module PC-AI.LLM)) {
-        InModuleScope PC-AI.LLM -Parameters @{ Saved = $script:LlmConfigSaved } {
-            param($Saved)
-            $script:ModuleConfig.ConfigPath = $Saved.ConfigPath
-            $script:ModuleConfig.ProjectConfigPath = $Saved.ProjectConfigPath
+    if ($script:OriginalModuleConfig -and (Get-Module PC-AI.LLM)) {
+        InModuleScope PC-AI.LLM -Parameters @{ Original = $script:OriginalModuleConfig } {
+            $script:ModuleConfig = $Original
         }
     }
-    if ($script:LlmConfigTempDir -and (Test-Path $script:LlmConfigTempDir)) {
-        Remove-Item $script:LlmConfigTempDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
+    (Get-FileHash -LiteralPath $script:RepositoryConfigPath).Hash | Should -Be $script:RepositoryConfigHash
     Remove-Module PC-AI.LLM -Force -ErrorAction SilentlyContinue
     Remove-Module MockData -Force -ErrorAction SilentlyContinue
 }

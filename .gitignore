@@ -222,6 +222,10 @@ releases/
 
 # Litho (deepwiki-rs) caches
 .litho/cache/
+# Generated QMD SQLite indexes; keep configuration/source files visible.
+.litho/qmd/*.sqlite3
+.litho/qmd/*.sqlite3-wal
+.litho/qmd/*.sqlite3-shm
 docs/auto/deepwiki_litho_docs/
 
 # ast-grep scan output
@@ -239,6 +243,9 @@ Tools/SystemScripts/**/*.log
 Tools/SystemScripts/**/*.log.*
 Tools/SystemScripts/**/*.bak
 Tools/SystemScripts/**/nppBackup/
+# Reapply generated Python cache exclusions after the source inclusion above.
+Tools/SystemScripts/**/__pycache__/
+Tools/SystemScripts/**/*.py[cod]
 
 # Auto-generated model index (contains local paths)
 MODELS.md
@@ -301,3 +308,6 @@ Reports/gitops/
 # --- managed: wip-audit gitignore gaps 2026-08-19 ---
 worktrees/
 .Codex/state/
+
+# Synthetic credential-custody tests contain no live credential material.
+!Tests/Unit/SecretBackendCustody.Tests.ps1

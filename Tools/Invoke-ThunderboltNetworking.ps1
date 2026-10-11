@@ -109,13 +109,22 @@ switch ($Mode) {
             -Password $securePassword
     }
     'Optimize' {
-        Set-ThunderboltNetworkOptimization `
-            -InterfaceAlias $InterfaceAlias `
-            -InterfaceMetric $InterfaceMetric `
-            -MtuBytes $MtuBytes `
-            -IPv4Address $IPv4Address `
-            -PrefixLength $PrefixLength `
-            -Apply:($Apply -and -not $DryRun) `
-            -WhatIf:$WhatIfPreference
+        if ($PSBoundParameters.ContainsKey('PrefixLength') -and -not $PSBoundParameters.ContainsKey('IPv4Address')) {
+            throw 'Optimize PrefixLength requires an explicitly requested IPv4Address; no static intent will be silently discarded.'
+        }
+        $optimizationArguments = @{
+            InterfaceAlias  = $InterfaceAlias
+            InterfaceMetric = $InterfaceMetric
+            MtuBytes        = $MtuBytes
+            Apply           = ($Apply -and -not $DryRun)
+            WhatIf          = $WhatIfPreference
+        }
+        # Preserve omitted versus explicitly invalid static intent. An empty
+        # explicitly requested address still reaches the driver's strict guard.
+        if ($PSBoundParameters.ContainsKey('IPv4Address')) {
+            $optimizationArguments.IPv4Address = $IPv4Address
+            $optimizationArguments.PrefixLength = $PrefixLength
+        }
+        Set-ThunderboltNetworkOptimization @optimizationArguments
     }
 }

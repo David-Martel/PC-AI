@@ -180,6 +180,10 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     }
 
     Context "Device matched by VID/PID - current" {
+        # Protects: default Current filtering and exact matched-version identity under StrictMode.
+        # Detects: leaked Current rows, suppressed classifier errors, or an always-empty classifier.
+        # Needs: private registry and same-input positive IncludeUpToDate control; no hardware or network.
+        # Breadcrumb: Modules/PC-AI.Drivers/Public/Compare-DriverVersion.ps1.
         It "Should suppress Current by default" {
             $inventory = @([PSCustomObject]@{
                 Name          = 'Realtek RTL8156'
@@ -188,8 +192,15 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
                 PnpClass      = 'Net'
                 DriverVersion = '1156.21.20.1110'
             })
-            $result = Compare-DriverVersion -Inventory $inventory -Registry $script:Registry
+            $result = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -ErrorAction Stop)
             $result.Count | Should -Be 0
+            $included = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -IncludeUpToDate -ErrorAction Stop)
+            $included.Count | Should -Be 1
+            $included[0].Status | Should -BeExactly 'Current'
+            $included[0].DeviceName | Should -BeExactly 'Realtek RTL8156'
+            $included[0].RegistryId | Should -BeExactly 'realtek-rtl8156'
+            $included[0].InstalledVersion | Should -BeExactly '1156.21.20.1110'
+            $included[0].TargetVersion | Should -BeExactly '1156.21.20.1110'
         }
 
         It "Should include Current when -IncludeUpToDate" {
@@ -265,6 +276,10 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     }
 
     Context "Unmatched device" {
+        # Protects: default Unknown filtering and exact unmatched-device identity under StrictMode.
+        # Detects: leaked Unknown rows, suppressed classifier errors, or an always-empty classifier.
+        # Needs: private registry and same-input positive IncludeUnknown control; no hardware or network.
+        # Breadcrumb: Modules/PC-AI.Drivers/Public/Compare-DriverVersion.ps1.
         It "Should suppress Unknown by default" {
             $inventory = @([PSCustomObject]@{
                 Name          = 'Unknown Widget'
@@ -273,8 +288,15 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
                 PnpClass      = 'Other'
                 DriverVersion = '1.0'
             })
-            $result = Compare-DriverVersion -Inventory $inventory -Registry $script:Registry
+            $result = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -ErrorAction Stop)
             $result.Count | Should -Be 0
+            $included = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -IncludeUnknown -ErrorAction Stop)
+            $included.Count | Should -Be 1
+            $included[0].Status | Should -BeExactly 'Unknown'
+            $included[0].DeviceName | Should -BeExactly 'Unknown Widget'
+            $included[0].InstalledVersion | Should -BeExactly '1.0'
+            $included[0].RegistryId | Should -BeNullOrEmpty
+            $included[0].TargetVersion | Should -BeNullOrEmpty
         }
 
         It "Should include Unknown when -IncludeUnknown" {
@@ -420,6 +442,156 @@ Describe "Install-DriverUpdate" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
         It "Should write error for non-existent device" {
             { Install-DriverUpdate -DeviceId 'nonexistent-device' -RegistryPath $script:TempRegistryPath -ErrorAction Stop } | Should -Throw
         }
+    }
+}
+
+Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Unit', 'Drivers', 'Portable', 'DriverDownloadContract' {
+    BeforeAll {
+        # SHA256 of the independent three-byte ASCII fixture "abc".
+        $script:DownloadContractHash = 'BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD'
+    }
+
+    BeforeEach {
+        $script:DownloadContractRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $script:DownloadContractRegistry = Join-Path $TestDrive 'download-contract-registry.json'
+        $registry = $script:MockRegistryJson | ConvertFrom-Json
+        $registry.trustedSources[0].baseUrl = 'https://drivers.example.invalid'
+        $registry.devices[0].driver.downloadUrl = 'https://drivers.example.invalid/driver.exe'
+        $registry.devices[0].driver.installerType = 'exe'
+        $registry.devices[0].driver.sha256 = $script:DownloadContractHash
+        $registry.devices[0].sharedDriverGroup = $null
+        $registry | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:DownloadContractRegistry -Encoding utf8
+        Mock Test-AdminElevation { $true } -ModuleName PC-AI.Drivers
+        Mock Invoke-WebRequest { throw 'Unmocked driver network access is forbidden.' } -ModuleName PC-AI.Drivers
+        Mock Start-Process { throw 'Actual driver installer execution is forbidden.' } -ModuleName PC-AI.Drivers
+        Mock Expand-Archive { throw 'Actual driver archive extraction is forbidden.' } -ModuleName PC-AI.Drivers
+    }
+
+    # Protects: both download and install WhatIf modes suppress all mutation, with absent or existing destinations.
+    # Detects: premature directory creation, DownloadOnly bypass, network access, cache reads, or installer dispatch.
+    # Needs: private fixture registry and bytes; all four DownloadOnly/Existing case combinations are inert.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.
+    It 'performs no write or download in WhatIf with DownloadOnly=<DownloadOnly> Existing=<Existing>' -ForEach @(
+        @{ DownloadOnly = $false; Existing = $false },
+        @{ DownloadOnly = $true; Existing = $false },
+        @{ DownloadOnly = $false; Existing = $true },
+        @{ DownloadOnly = $true; Existing = $true }
+    ) {
+        $existingPath = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'
+        if ($Existing) {
+            [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+            [IO.File]::WriteAllBytes($existingPath, [byte[]](0x78, 0x79, 0x7A))
+        }
+        $registryBefore = [IO.File]::ReadAllText($script:DownloadContractRegistry)
+        Mock New-Item { throw 'WhatIf reached directory mutation.' } -ModuleName PC-AI.Drivers
+        Mock Get-FileHash { throw 'WhatIf reached download acceptance.' } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly:$DownloadOnly -WhatIf
+        $result.Action | Should -BeExactly 'WhatIf'
+        $result.Success | Should -BeTrue
+        $result.FilePath | Should -BeNullOrEmpty
+        Should -Invoke New-Item -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Get-FileHash -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Expand-Archive -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        [IO.Directory]::Exists($script:DownloadContractRoot) | Should -Be $Existing
+        [IO.File]::ReadAllText($script:DownloadContractRegistry) | Should -BeExactly $registryBefore
+        if ($Existing) { [Convert]::ToBase64String([IO.File]::ReadAllBytes($existingPath)) | Should -BeExactly 'eHl6' }
+    }
+
+    # Protects: normal DownloadOnly still produces a verified private file without launching or extracting it.
+    # Detects: a fix that blocks useful downloads, alters forwarding, or dispatches an installer.
+    # Needs: actual public/private maintained functions, private registry, inert web-response bytes "abc".
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.
+    It 'downloads verified bytes normally without executing an installer' {
+        Mock Invoke-WebRequest { param($Uri, $OutFile) [IO.File]::WriteAllBytes($OutFile, [byte[]](0x61, 0x62, 0x63)) } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly -Confirm:$false
+        $result.Action | Should -BeExactly 'DownloadOnly'
+        $result.Success | Should -BeTrue
+        $result.FilePath | Should -BeExactly (Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe')
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($result.FilePath)) | Should -BeExactly 'YWJj'
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It -ParameterFilter { $Uri -eq 'https://drivers.example.invalid/driver.exe' }
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Expand-Archive -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: valid existing download bytes remain reusable without network or installation.
+    # Detects: a regression that refuses known-good cached data or overwrites it while validating.
+    # Needs: private literal filename containing brackets and an independent known SHA256 digest.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'accepts matching existing bytes using their literal path without network access' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer[1].exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x61, 0x62, 0x63))
+        $result = & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash } $path $script:DownloadContractHash.ToLowerInvariant()
+        $result | Should -BeExactly $path
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'YWJj'
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: a mismatched cached download is refused while the user's exact file is preserved.
+    # Detects: accepting unverified bytes, implicit redownload, or deletion of preexisting user data.
+    # Needs: private "xyz" bytes and the independent expected "abc" digest; no service or installer.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.
+    It 'refuses a mismatched existing download and preserves it without redownloading' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x78, 0x79, 0x7A))
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly -Confirm:$false -ErrorAction SilentlyContinue
+        $result.Action | Should -BeExactly 'Failed'
+        $result.Success | Should -BeFalse
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'eHl6'
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: verification failure never accepts, deletes, or replaces an existing download.
+    # Detects: swallowing a hash read error as a cache hit or falling through to a network write.
+    # Needs: private existing bytes and an inert fault at the file-hash boundary.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'refuses an existing file whose hash cannot be read while retaining its bytes' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x61, 0x62, 0x63))
+        Mock Get-FileHash { throw 'Synthetic hash read failure.' } -ModuleName PC-AI.Drivers
+        $result = & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash -ErrorAction SilentlyContinue } $path $script:DownloadContractHash
+        $result | Should -BeNullOrEmpty
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'YWJj'
+        Should -Invoke Get-FileHash -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: rejecting wrong downloaded bytes removes only the exact private download leaf.
+    # Detects: wildcard cleanup deleting an unrelated sibling while leaving the actual failed download behind.
+    # Needs: inert web-response "xyz" bytes at '[probe].exe', private 'p.exe' sentinel and independent "abc" digest.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'removes a wrong-digest downloaded bracket filename while preserving its wildcard-matching sibling' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot '[probe].exe'
+        $sibling = Join-Path $script:DownloadContractRoot 'p.exe'
+        [IO.File]::WriteAllBytes($sibling, [byte[]](0x53, 0x41, 0x46, 0x45))
+        Mock Invoke-WebRequest { param($Uri, $OutFile) [IO.File]::WriteAllBytes($OutFile, [byte[]](0x78, 0x79, 0x7A)) } -ModuleName PC-AI.Drivers
+        $result = & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash -ErrorAction SilentlyContinue } $path $script:DownloadContractHash
+        $result | Should -BeNullOrEmpty
+        [IO.File]::Exists($path) | Should -BeFalse
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($sibling)) | Should -BeExactly 'U0FGRQ=='
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: the existing optional-digest contract still permits explicitly unpinned cached files.
+    # Detects: accidental new digest requirements or redundant reads/network calls for callers without a hash.
+    # Needs: private existing bytes and explicit absence of ExpectedSha256; no service.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'reuses existing bytes when no digest was requested without claiming verification' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x78, 0x79, 0x7A))
+        Mock Get-FileHash { throw 'No digest was requested.' } -ModuleName PC-AI.Drivers
+        $result = & (Get-Module PC-AI.Drivers) { param($Path) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' } $path
+        $result | Should -BeExactly $path
+        Should -Invoke Get-FileHash -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
     }
 }
 

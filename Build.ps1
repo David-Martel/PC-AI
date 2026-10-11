@@ -14,7 +14,7 @@
             │   ├── pcai-llamacpp/   # llamacpp backend binaries
             │   ├── pcai-mistralrs/  # mistralrs backend binaries
             │   └── manifest.json    # Build manifest with hashes
-            ├── logs/                # Build logs (timestamped)
+            ├── logs/build-rN/       # Retained build log revisions
             └── packages/            # Release packages (ZIPs)
 
 .PARAMETER Component
@@ -48,6 +48,14 @@
 .PARAMETER EnableCuda
     Enable CUDA GPU acceleration for supported backends.
 
+.PARAMETER EnableCudnn
+    Opt into cuDNN for media builds after qualifying the host's cuDNN installation.
+    Requires EnableCuda. Plain CUDA builds do not require cuDNN.
+
+.PARAMETER EnableFlashAttention
+    Opt into media FlashAttention kernels after qualifying the GPU and toolkit.
+    Requires EnableCuda. Plain CUDA builds use the standard attention path.
+
 .PARAMETER Clean
     Clean all build artifacts before building.
 
@@ -78,6 +86,15 @@
 .PARAMETER SyncCargoDefaults
     Persist CargoTools default Cargo/rustfmt/clippy settings to user config files.
     Disabled by default to avoid mutating developer workstation state implicitly.
+
+.PARAMETER NativeOptimize
+    Opt into host CPU tuning. Native-target artifacts need destination-machine qualification.
+
+.PARAMETER DisableCache
+    Disable compiler cache helpers for this build process.
+
+.PARAMETER NuGetConfigPath
+    Explicit private NuGet restore configuration; never auto-select a repo-local credential file.
 
 .PARAMETER FunctionGemmaArgs
     Optional passthrough arguments for FunctionGemma operation components:
@@ -173,6 +190,8 @@ param(
     [string]$Configuration = 'Release',
 
     [switch]$EnableCuda,
+    [switch]$EnableCudnn,
+    [switch]$EnableFlashAttention,
     [switch]$Clean,
     [switch]$Package,
     [switch]$RunTests,
@@ -184,6 +203,9 @@ param(
     [ValidateSet('check', 'clippy', 'fmt', 'all')]
     [string]$CargoPreflightMode = 'check',
     [switch]$SyncCargoDefaults,
+    [switch]$NativeOptimize,
+    [switch]$DisableCache,
+    [string]$NuGetConfigPath,
     [string[]]$FunctionGemmaArgs = @(),
     [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality')]
     [string]$LintProfile = 'all',
@@ -195,6 +217,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if (($EnableCudnn -or $EnableFlashAttention) -and -not $EnableCuda) {
+    throw 'EnableCudnn and EnableFlashAttention require EnableCuda.'
+}
 $script:StartTime = Get-Date
 $script:ProjectRoot = $PSScriptRoot
 $script:ArtifactsRoot = if ($env:PCAI_ARTIFACTS_ROOT) {
@@ -369,6 +394,11 @@ function Set-ReleaseBuildFlags {
         } elseif (-not $existingFlags) {
             $env:RUSTFLAGS = '-D warnings'
         }
+        if ($NativeOptimize) {
+            . (Join-Path $script:ProjectRoot 'Tools/PcaiNativeBuildFlags.ps1')
+            $script:NativeOptimization = Enable-PcaiNativeBuildOptimization
+            Write-BuildStep "Explicit CPU target: $($script:NativeOptimization.CpuTarget); destination qualification required" 'success'
+        }
         Write-BuildStep "RUSTFLAGS (release): $($env:RUSTFLAGS)" 'success'
     }
 
@@ -395,6 +425,13 @@ function Set-BuildAccelerationEnvironment {
         }
     } else {
         Write-BuildStep "CMAKE_GENERATOR already set: $($env:CMAKE_GENERATOR)" 'skip'
+    }
+
+    if ($DisableCache -or $env:PCAI_DISABLE_CACHE -eq '1') {
+        . (Join-Path $script:ProjectRoot 'Tools/PcaiNativeBuildFlags.ps1')
+        Disable-PcaiBuildCompilerCaches
+        Write-BuildStep 'Compiler caches disabled for this build process' 'success'
+        return
     }
 
     # ccache: C/C++ compiler launcher for clang/gcc builds (e.g. candle native code)
@@ -548,6 +585,15 @@ function Get-DotnetPublishDefaults {
         '-p:BuildInParallel=true',
         '-p:UseSharedCompilation=true'
     )
+
+    if ($NuGetConfigPath) {
+        if (-not (Test-Path -LiteralPath $NuGetConfigPath -PathType Leaf)) {
+            throw "Explicit NuGet configuration is not a file: $NuGetConfigPath"
+        }
+        $resolvedConfig = Resolve-Path -LiteralPath $NuGetConfigPath -ErrorAction Stop
+        if ($resolvedConfig.Provider.Name -ne 'FileSystem') { throw 'NuGet configuration must be a filesystem file.' }
+        $args += "-p:RestoreConfigFile=$($resolvedConfig.ProviderPath)"
+    }
 
     if ($Configuration -eq 'Release') {
         $args += @(
@@ -873,9 +919,10 @@ function Invoke-RustBuildCommand {
         if ($env:CARGO_USE_LLD -eq '1') {
             $wrapperArgs += '-UseLld'
         }
-        if ($env:PCAI_DISABLE_CACHE -eq '1') {
+        if ($DisableCache -or $env:PCAI_DISABLE_CACHE -eq '1') {
             $wrapperArgs += '-DisableCache'
         }
+        if ($NativeOptimize) { $wrapperArgs += '-NativeOptimize' }
         if ($CargoPreflight) {
             $wrapperArgs += @('-Preflight', '-PreflightMode', $CargoPreflightMode, '-PreflightBlocking')
         }
@@ -1005,29 +1052,15 @@ function Publish-PcaiNativeBundle {
 
     $repoBinRoot = Join-Path $script:ProjectRoot 'bin'
     $bundleParent = Join-Path $repoBinRoot 'native-bundles'
-    if (-not (Test-Path -LiteralPath $bundleParent)) {
-        New-Item -ItemType Directory -Path $bundleParent -Force | Out-Null
-    }
 
-    $versionLabel = if ($script:VersionInfo) {
-        if ($script:VersionInfo.ReleaseTag) {
-            $script:VersionInfo.ReleaseTag
-        } elseif ($script:VersionInfo.InformationalVersion) {
-            $script:VersionInfo.InformationalVersion
-        } elseif ($script:VersionInfo.SemVer) {
-            $script:VersionInfo.SemVer
-        } else {
-            $script:VersionInfo.FileVersion
-        }
-    } else {
-        'unknown'
-    }
-
-    $bundleName = '{0}-{1}' -f (ConvertTo-SafePathLabel -Value $versionLabel), (Get-Date -Format 'yyyyMMdd-HHmmss')
-    $bundleRoot = Join-Path $bundleParent $bundleName
-    if (-not (Test-Path -LiteralPath $bundleRoot)) {
-        New-Item -ItemType Directory -Path $bundleRoot -Force | Out-Null
-    }
+    # Allocate at the shared publication root: independent build roots can both
+    # have a build-r1 log directory and must never reuse a published bundle.
+    . (Join-Path $script:ProjectRoot 'Tools/PcaiArtifactDirectories.ps1')
+    # Git informational versions may contain timestamps. Keep those in the
+    # manifest; publication paths use purpose/configuration and a revision.
+    $bundleLabel = 'native-' + ($Configuration.ToLowerInvariant() -replace '[^a-z0-9_-]', '_')
+    $bundleRoot = New-PcaiArtifactDirectory -Root $bundleParent -Name $bundleLabel
+    $bundleName = Split-Path -Leaf $bundleRoot
 
     $coreProjectDir = Join-Path $script:ProjectRoot 'Native\\pcai_core'
     $coreTargetDir = Resolve-CargoOutputDirectory -ProjectDir $coreProjectDir -Configuration $Configuration
@@ -1076,9 +1109,11 @@ function Publish-PcaiNativeBundle {
         bundleRoot = $bundleRoot
         createdAt = (Get-Date).ToUniversalTime().ToString('o')
         configuration = $Configuration
+        sourceBuildRun = $script:BuildRunLabel
         releaseTag = if ($script:VersionInfo) { $script:VersionInfo.ReleaseTag } else { $null }
         semVer = if ($script:VersionInfo) { $script:VersionInfo.SemVer } else { $null }
         informationalVersion = if ($script:VersionInfo) { $script:VersionInfo.InformationalVersion } else { $null }
+        cpuOptimization = if (Get-Variable -Name NativeOptimization -Scope Script -ErrorAction SilentlyContinue) { $script:NativeOptimization } else { $null }
         cargoTargetDir = $coreTargetDir
         files = @($publishedEntries)
     }
@@ -1100,6 +1135,10 @@ function Publish-PcaiNativeBundle {
 
 function Initialize-BuildDirectories {
     Write-BuildPhase 'Initialize' 'Setting up build directory structure'
+
+    . (Join-Path $script:ProjectRoot 'Tools/PcaiArtifactDirectories.ps1')
+    $script:BuildLogsDir = New-PcaiArtifactDirectory -Root $script:BuildLogsDir -Name 'build'
+    $script:BuildRunLabel = Split-Path -Leaf $script:BuildLogsDir
 
     $dirs = @(
         $script:BuildRoot,
@@ -1131,10 +1170,7 @@ function Clear-BuildArtifacts {
     Write-BuildPhase 'Clean' 'Removing previous build artifacts'
 
     $dirsToClean = @(
-        $script:BuildArtifactsDir,
-        $script:BuildLogsDir,
-        $script:BuildPackagesDir,
-        $script:BuildDeployDir
+        $script:BuildArtifactsDir
     )
 
     foreach ($path in $dirsToClean) {
@@ -1531,7 +1567,7 @@ function Invoke-RustQuality {
 
     $success = $true
     foreach ($target in $targets) {
-        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $timestamp = $script:BuildRunLabel
         $logFile = Join-Path $script:BuildLogsDir "quality_rust_${Mode}_$($target.Name)_$timestamp.log"
         $cargoArgs = switch ($Mode) {
             'check' { @('check', '--workspace', '--all-targets') }
@@ -1567,7 +1603,7 @@ function Invoke-RustInferenceQuality {
         return $true
     }
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $commands = @()
     switch ($Mode) {
         'check' {
@@ -1633,7 +1669,7 @@ function Invoke-DotnetFormatQuality {
     $allOk = $true
     foreach ($project in $projects) {
         $name = Split-Path $project -Leaf
-        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $timestamp = $script:BuildRunLabel
         $logFile = Join-Path $script:BuildLogsDir "quality_dotnet_${name}_$timestamp.log"
         $args = @('format', $project, '--no-restore', '--verbosity', 'minimal', '--nologo')
         if (-not $WriteMode) { $args += '--verify-no-changes' }
@@ -1848,7 +1884,7 @@ function Invoke-RustDependencyRefresh {
 
     $ok = $true
     foreach ($target in $targets) {
-        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $timestamp = $script:BuildRunLabel
         $logFile = Join-Path $script:BuildLogsDir "deps_$($target.Name)_$timestamp.log"
 
         if ($script:DependencyStrategy -eq 'update') {
@@ -2038,7 +2074,7 @@ function Invoke-InferenceBuild {
     Write-BuildStep "Building pcai-inference ($Backend)..." 'running'
 
     # Prepare log file
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logDir = $script:BuildLogsDir
     if (-not (Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -2051,7 +2087,9 @@ function Invoke-InferenceBuild {
         Configuration = $Configuration
     }
     if ($EnableCuda) { $buildArgs['EnableCuda'] = $true }
-    if ($env:PCAI_DISABLE_CACHE -eq '1') { $buildArgs['DisableCache'] = $true }
+    if ($DisableCache -or $env:PCAI_DISABLE_CACHE -eq '1') { $buildArgs['DisableCache'] = $true }
+    # This in-process inference helper inherits the flags already selected above;
+    # it does not expose the generic wrapper's NativeOptimize parameter.
     if ($env:CARGO_USE_LLD -eq '1') { $buildArgs['UseLld'] = $true }
     if ($CargoPreflight) {
         $buildArgs['Preflight'] = $true
@@ -2134,7 +2172,7 @@ function Invoke-FunctionGemmaBuild {
 
     Write-BuildStep 'Building FunctionGemma runtime + train crates...' 'running'
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logDir = $script:BuildLogsDir
     if (-not (Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -2213,7 +2251,7 @@ function Invoke-FunctionGemmaOperation {
         return @{ Success = $false; Duration = (Get-Date) - $componentStart; Artifacts = @() }
     }
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "build_functiongemma_${Operation}_$timestamp.log"
     $opLabel = switch ($Operation) {
         'router-data' { 'FunctionGemma router dataset generation' }
@@ -2336,7 +2374,7 @@ function Invoke-TuiBuild {
 
     Write-BuildStep 'Building PcaiChatTui...' 'running'
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logDir = $script:BuildLogsDir
     if (-not (Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -2427,7 +2465,7 @@ function Invoke-DotnetComponentBuild {
 
     Write-BuildStep "Building $ComponentName..." 'running'
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "build_${ComponentName}_$timestamp.log"
     $publishRoot = Join-Path $script:BuildRoot "tmp\$ComponentName-$($Configuration.ToLower())"
 
@@ -2500,6 +2538,24 @@ function Invoke-DotnetComponentBuild {
     }
 }
 
+function Get-MediaBuildFeatures {
+    [CmdletBinding()]
+    param([bool]$Cuda, [bool]$Cudnn, [bool]$FlashAttention)
+
+    if (($Cudnn -or $FlashAttention) -and -not $Cuda) {
+        throw 'Optional GPU kernels require CUDA.'
+    }
+    $library = @('ffi', 'upscale')
+    $server = @()
+    if ($Cuda) {
+        $library += @('cuda', 'nvml')
+        $server += @('cuda', 'nvml')
+    }
+    if ($Cudnn) { $library += 'cudnn'; $server += 'cudnn' }
+    if ($FlashAttention) { $library += 'flash-attn'; $server += 'flash-attn' }
+    return [pscustomobject]@{ Library = $library; Server = $server }
+}
+
 function Invoke-MediaBuild {
     param(
         [string]$Configuration,
@@ -2513,7 +2569,7 @@ function Invoke-MediaBuild {
     $mediaWorkspace = Join-Path $script:ProjectRoot 'Native\pcai_core'
     $mediaLibRoot = Join-Path $mediaWorkspace 'pcai_media'
     $mediaServerRoot = Join-Path $mediaWorkspace 'pcai_media_server'
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "build_media_$timestamp.log"
     $artifactDir = Join-Path $script:BuildArtifactsDir 'pcai-media'
 
@@ -2536,24 +2592,11 @@ function Invoke-MediaBuild {
             $mediaServerArgs += '--release'
         }
 
-        # Always include ffi so the cdylib exports the C FFI surface for P/Invoke.
-        # upscale ships the ONNX Runtime-based RealESRGAN upscaler.
-        $mediaLibFeatures = @('ffi', 'upscale')
-        $mediaServerFeatures = @()
-        if ($EnableCuda) {
-            # Full GPU feature set for release CUDA builds:
-            # cuda      - candle CUDA backend + NVML device selection
-            # cudnn     - cuDNN conv acceleration (forward compat for future fused-attn)
-            # flash-attn - FlashAttention-2 for transformer backbone
-            # nvml      - NVML GPU selection without full CUDA requirement
-            $mediaLibFeatures += 'cuda'
-            $mediaLibFeatures += 'cudnn'
-            $mediaLibFeatures += 'flash-attn'
-            $mediaLibFeatures += 'nvml'
-            # cuda-optimized = cuda + cudnn + nvml (composite feature in pcai-media-server)
-            $mediaServerFeatures += 'cuda-optimized'
-            $mediaServerFeatures += 'flash-attn'
-        }
+        # Optional kernels have separate host/toolkit requirements. Keep their
+        # qualification explicit rather than making every CUDA build require them.
+        $features = Get-MediaBuildFeatures -Cuda $EnableCuda -Cudnn $EnableCudnn -FlashAttention $EnableFlashAttention
+        $mediaLibFeatures = @($features.Library)
+        $mediaServerFeatures = @($features.Server)
         $mediaLibArgs += @('--features', ($mediaLibFeatures -join ','))
         if ($mediaServerFeatures.Count -gt 0) {
             $mediaServerArgs += @('--features', ($mediaServerFeatures -join ','))
@@ -2663,7 +2706,7 @@ function Invoke-MediaConvertBuild {
     $componentStart = Get-Date
     $convertScript = Join-Path $script:ProjectRoot 'Tools\Convert-JanusToGGUF.py'
     $venvPython = Join-Path $script:ProjectRoot 'AI-Media\.venv\Scripts\python.exe'
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "media_convert_$timestamp.log"
 
     Write-BuildPhase 'MediaConvert' 'Running GGUF model conversion for Janus-Pro'
@@ -2733,7 +2776,7 @@ function Invoke-NukeNulBuild {
     }
     $rustDir = Join-Path $nukeRoot 'nuker_core'
     $projectPath = Join-Path $nukeRoot 'NukeNul.csproj'
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "build_nukenul_$timestamp.log"
     $artifactDir = Join-Path $script:BuildArtifactsDir 'nukenul'
 
@@ -2918,7 +2961,7 @@ function Invoke-PostBuildTests {
     Write-BuildPhase 'Test' 'Running post-build test suites'
 
     $testFailures = @()
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
 
     $runInferenceTests = @($BuildTargets | Where-Object { $_ -in @('llamacpp', 'mistralrs') }).Count -gt 0
     if ($runInferenceTests) {
@@ -3028,26 +3071,20 @@ function New-DeployBundle {
     Write-BuildPhase 'Deploy' 'Creating deploy-ready aggregate bundle'
 
     $variant = if ($EnableCuda) { 'cuda' } else { 'cpu' }
-    $version = if ($env:PCAI_VERSION) { $env:PCAI_VERSION } else { '0.1.0+unknown' }
-    $safeVersion = ($version -replace '[^A-Za-z0-9\.\-\+_]', '_') -replace '\+', '_'
-    $bundleName = "pc-ai-bundle-$safeVersion-$variant-win64"
-    $bundleRoot = Join-Path $script:BuildDeployDir $bundleName
+    . (Join-Path $script:ProjectRoot 'Tools/PcaiArtifactDirectories.ps1')
+    $bundleRoot = New-PcaiArtifactDirectory -Root $script:BuildDeployDir -Name "pc-ai-bundle-$variant-win64"
+    $bundleName = Split-Path -Leaf $bundleRoot
     $bundleZip = Join-Path $script:BuildPackagesDir "$bundleName.zip"
-
-    if (Test-Path $bundleRoot) {
-        Remove-Item $bundleRoot -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $bundleZip) {
+        throw "Existing deploy package requires custody review: $bundleZip"
     }
-    New-Item -ItemType Directory -Path $bundleRoot -Force | Out-Null
 
     Copy-Item -Path (Join-Path $script:BuildArtifactsDir '*') -Destination $bundleRoot -Recurse -Force
     if (Test-Path (Join-Path $script:BuildArtifactsDir 'manifest.json')) {
         Copy-Item -Path (Join-Path $script:BuildArtifactsDir 'manifest.json') -Destination $bundleRoot -Force
     }
 
-    if (Test-Path $bundleZip) {
-        Remove-Item $bundleZip -Force -ErrorAction SilentlyContinue
-    }
-    Compress-Archive -Path (Join-Path $bundleRoot '*') -DestinationPath $bundleZip -Force
+    Compress-Archive -Path (Join-Path $bundleRoot '*') -DestinationPath $bundleZip
     Write-BuildStep "Created deploy bundle: $bundleZip" 'success'
 
     return $bundleZip
@@ -3062,7 +3099,7 @@ function Invoke-StandaloneTests {
     Write-BuildPhase 'Test' 'Running standalone test suites'
 
     $failures = [System.Collections.Generic.List[string]]::new()
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $shellExe = Resolve-PowerShellExecutable
     $coreWorkspace = Join-Path $script:ProjectRoot 'Native\pcai_core'
 
@@ -3163,7 +3200,7 @@ function Invoke-StandaloneBenchmarks {
         return @{ Success = $false; Duration = [TimeSpan]::Zero }
     }
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $timestamp = $script:BuildRunLabel
     $logFile = Join-Path $script:BuildLogsDir "benchmark_media_$timestamp.log"
     $shellExe = Resolve-PowerShellExecutable
 
@@ -3210,6 +3247,8 @@ Write-Host "  Deploy:        $(if ($Deploy) { 'Yes' } else { 'No' })" -Foregroun
 Write-Host "  CargoTools:    $CargoTools" -ForegroundColor White
 Write-Host "  Preflight:     $(if ($CargoPreflight) { $CargoPreflightMode } else { 'Disabled' })" -ForegroundColor White
 Write-Host "  SyncDefaults:  $(if ($SyncCargoDefaults) { 'Yes' } else { 'No' })" -ForegroundColor White
+Write-Host "  NativeOpt:     $(if ($NativeOptimize) { 'Explicit host tuning' } else { 'No' })" -ForegroundColor White
+Write-Host "  DisableCache:  $(if ($DisableCache) { 'Yes' } else { 'No' })" -ForegroundColor White
 Write-Host "  LintProfile:   $LintProfile" -ForegroundColor White
 Write-Host "  DepStrategy:   $DependencyStrategy" -ForegroundColor White
 Write-Host "  AutoFix:       $(if ($AutoFix) { 'Yes' } else { 'No' })" -ForegroundColor White

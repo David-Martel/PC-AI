@@ -115,8 +115,10 @@ function Search-ContentFast {
     $useRipgrep = $null -ne $rgPath -and (Test-Path $rgPath)
 
     $nativeType = ([System.Management.Automation.PSTypeName]'PcaiNative.PcaiCore').Type
-    if ($nativeType -and [PcaiNative.PcaiCore]::IsAvailable -and -not $FilesOnly -and -not $Invert) {
-        $nativeResults = Search-WithPcaiNativeContent @PSBoundParameters -SearchPattern $searchPattern
+    if ($nativeType -and [PcaiNative.PcaiCore]::IsAvailable -and -not $FilesOnly -and -not $Invert -and -not $NoIgnore) {
+        $nativeParameters = @{} + $PSBoundParameters
+        $nativeParameters.Remove('NoIgnore')
+        $nativeResults = Search-WithPcaiNativeContent @nativeParameters -SearchPattern $searchPattern
         if ($null -ne $nativeResults) {
             return @(Set-PcaiCachedValue -Key $cacheKey -Value @($nativeResults))
         }
@@ -198,7 +200,8 @@ function Search-WithPcaiNativeContent {
         $nativePattern = "(?i)$nativePattern"
     }
 
-    $patterns = if ($FilePattern -and $FilePattern.Count -gt 0) { $FilePattern } else { @($null) }
+    if ($FilePattern -and $FilePattern.Count -gt 0) { $patterns = @($FilePattern) }
+    else { $patterns = [object[]]::new(1) }
     $matches = [System.Collections.Generic.List[object]]::new()
 
     foreach ($pattern in $patterns) {
@@ -320,11 +323,15 @@ function Search-WithRipgrepAdvanced {
         $args += '-F'
     }
 
-    $args += $SearchPattern
+    $args += '--'
+    $args += $(if ($LiteralPattern) { $LiteralPattern } else { $SearchPattern })
     $args += $Path
 
     try {
-        $output = & $RgPath @args 2>$null
+        $PSNativeCommandUseErrorActionPreference = $false
+        $output = @(& $RgPath @args 2>$null)
+        $searchExitCode = $LASTEXITCODE
+        if ($searchExitCode -notin 0, 1) { throw "ripgrep content search failed with exit code $searchExitCode." }
 
         if ($FilesOnly) {
             $fileResults = [System.Collections.Generic.List[object]]::new()
@@ -334,6 +341,7 @@ function Search-WithRipgrepAdvanced {
                         Tool = 'ripgrep'
                     })
             }
+            if ($MaxResults -gt 0) { return @($fileResults | Select-Object -First $MaxResults) }
             return @($fileResults)
         }
 
@@ -358,11 +366,12 @@ function Search-WithRipgrepAdvanced {
             }
         }
 
+        if ($MaxResults -gt 0) { return @($results | Select-Object -First $MaxResults) }
         return @($results)
     }
     catch {
         Write-Warning "ripgrep failed: $_"
-        return @()
+        throw
     }
 }
 
@@ -380,7 +389,8 @@ function Search-WithParallelSelectString {
         [int]$MaxResults,
         [switch]$FilesOnly,
         [int]$ThrottleLimit,
-        [string]$SearchPattern
+        [string]$SearchPattern,
+        [switch]$NoIgnore
     )
 
     # Get files to search

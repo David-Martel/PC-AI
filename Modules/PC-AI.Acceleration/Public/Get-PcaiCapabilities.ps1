@@ -31,7 +31,29 @@ function Get-PcaiCapabilities {
     )
 
     $native = Get-PcaiNativeStatus
-    $modules = $native.Modules
+    foreach ($flag in @('Available', 'CoreAvailable')) {
+        $property = if ($null -ne $native) { $native.PSObject.Properties[$flag] } else { $null }
+        if ($null -eq $property -or $property.Value -isnot [bool]) {
+            $failure = [System.IO.InvalidDataException]::new("Native capability status requires a boolean '$flag' flag. Inspect Get-PcaiNativeStatus before selecting a backend.")
+            $failure.Data['NativeSnapshot'] = $native
+            throw $failure
+        }
+    }
+    $moduleProperty = $native.PSObject.Properties['Modules']
+    $modules = if ($null -ne $moduleProperty) { $moduleProperty.Value } else { $null }
+    if ($null -ne $moduleProperty -and $null -eq $modules -and -not $native.Available -and -not $native.CoreAvailable) {
+        # Get-PcaiNativeStatus deliberately omits modules when native loading is unavailable.
+        $modules = [PSCustomObject]@{ Search = $false; System = $false; Performance = $false; Fs = $false }
+    } else {
+        foreach ($flag in @('Search', 'System', 'Performance', 'Fs')) {
+            $property = if ($null -ne $modules) { $modules.PSObject.Properties[$flag] } else { $null }
+            if ($null -eq $property -or $property.Value -isnot [bool]) {
+                $failure = [System.IO.InvalidDataException]::new("Native capability status requires a boolean 'Modules.$flag' flag. Inspect Get-PcaiNativeStatus before selecting a backend.")
+                $failure.Data['NativeSnapshot'] = $native
+                throw $failure
+            }
+        }
+    }
 
     $backendCoverage = @(
         [PSCustomObject]@{
@@ -39,7 +61,7 @@ function Get-PcaiCapabilities {
             Category             = 'Core'
             RustAvailable        = [bool]$native.CoreAvailable
             CSharpBridgeAvailable = [bool]$native.CoreAvailable
-            PowerShellSurface    = [bool](Get-Command Get-PcaiTokenEstimate -ErrorAction SilentlyContinue)
+            PowerShellSurface    = [bool](Get-Command Invoke-PcaiNativeEstimateTokens -ErrorAction SilentlyContinue)
             ManagedBaseline      = $true
             PreferredBackend     = if ($native.CoreAvailable) { 'Rust+C#' } else { 'PowerShell' }
         }
@@ -84,11 +106,18 @@ function Get-PcaiCapabilities {
             Category             = 'Performance'
             RustAvailable        = [bool]$modules.Performance
             CSharpBridgeAvailable = [bool]$modules.Performance
-            PowerShellSurface    = [bool]$modules.Performance
+            PowerShellSurface    = [bool](Get-Command Get-DiskUsageFast -ErrorAction SilentlyContinue)
             ManagedBaseline      = $true
             PreferredBackend     = if ($modules.Performance) { 'Rust+C#' } else { 'PowerShell' }
         }
     ) | ForEach-Object {
+        if (-not ($_.RustAvailable -and $_.CSharpBridgeAvailable -and $_.PowerShellSurface)) {
+            $_.PreferredBackend = switch ($_.Operation) {
+                'FileSearch' { 'PowerShell/fd' }
+                'ContentSearch' { 'PowerShell/rg' }
+                default { 'PowerShell' }
+            }
+        }
         $coverageState = if ($_.RustAvailable -and $_.CSharpBridgeAvailable -and $_.PowerShellSurface) {
             'Rust+CSharp+PS'
         } elseif ($_.CSharpBridgeAvailable -and $_.PowerShellSurface) {

@@ -20,6 +20,9 @@ function Invoke-SingleTestCase {
     $result = [EvaluationResult]::new()
     $result.TestCaseId = $TestCase.Id
     $result.Backend = $Backend
+    $result.Model = if ($Model) { $Model } elseif ($Backend -eq 'ollama') {
+        $script:EvaluationConfig.OllamaModel ?? 'llama3.2'
+    } else { $Backend }
     $result.Timestamp = [datetime]::UtcNow
     $result.Prompt = $TestCase.Prompt
 
@@ -33,26 +36,36 @@ function Invoke-SingleTestCase {
     $stopwatch = [Stopwatch]::StartNew()
 
     try {
+        $restTimeoutParameters = @{ TimeoutSec = $RequestTimeoutSec }
+        if ($Backend -in 'http', 'llamacpp-bin', 'mistralrs-bin', 'ollama') {
+            $restCmdlet = Get-Command -Name Invoke-RestMethod -CommandType Cmdlet -ErrorAction Stop
+            if ($restCmdlet.Parameters.ContainsKey('OperationTimeoutSeconds')) {
+                # Newer runtimes separate connection and per-operation timeouts.
+                $restTimeoutParameters.OperationTimeoutSeconds = $RequestTimeoutSec
+            }
+        }
         switch ($Backend) {
             { $_ -in 'llamacpp', 'mistralrs' } {
                 $result.Response = Invoke-PcaiGenerate -Prompt $TestCase.Prompt -MaxTokens $MaxTokens -Temperature $Temperature
             }
             { $_ -in 'http', 'llamacpp-bin', 'mistralrs-bin' } {
-                $body = @{
+                $requestBody = @{
                     prompt = $TestCase.Prompt
                     max_tokens = $MaxTokens
                     temperature = $Temperature
-                } | ConvertTo-Json
+                }
+                if ($Model) { $requestBody.model = $Model }
+                $body = $requestBody | ConvertTo-Json
 
-                $response = Invoke-RestMethod -Uri "$script:EvaluationConfig.HttpBaseUrl/v1/completions" `
-                    -Method Post -Body $body -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
+                $response = Invoke-RestMethod -Uri "$($script:EvaluationConfig.HttpBaseUrl)/v1/completions" `
+                    -Method Post -Body $body -ContentType 'application/json' @restTimeoutParameters
                 $text = $response.choices[0].text
                 if (-not $text -and $response.choices[0].message) {
                     $text = $response.choices[0].message.content
                 }
 
                 if (-not $text) {
-                    $chatBody = @{
+                    $chatRequestBody = @{
                         messages = @(
                             @{
                                 role = 'user'
@@ -61,10 +74,12 @@ function Invoke-SingleTestCase {
                         )
                         max_tokens = $MaxTokens
                         temperature = $Temperature
-                    } | ConvertTo-Json -Depth 6
+                    }
+                    if ($Model) { $chatRequestBody.model = $Model }
+                    $chatBody = $chatRequestBody | ConvertTo-Json -Depth 6
 
-                    $chatResponse = Invoke-RestMethod -Uri "$script:EvaluationConfig.HttpBaseUrl/v1/chat/completions" `
-                        -Method Post -Body $chatBody -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
+                    $chatResponse = Invoke-RestMethod -Uri "$($script:EvaluationConfig.HttpBaseUrl)/v1/chat/completions" `
+                        -Method Post -Body $chatBody -ContentType 'application/json' @restTimeoutParameters
                     $text = $chatResponse.choices[0].message.content
                 }
 
@@ -117,8 +132,8 @@ function Invoke-SingleTestCase {
                         options = $options
                     } | ConvertTo-Json
 
-                    $response = Invoke-RestMethod -Uri "$script:EvaluationConfig.OllamaBaseUrl/api/generate" `
-                        -Method Post -Body $body -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
+                    $response = Invoke-RestMethod -Uri "$($script:EvaluationConfig.OllamaBaseUrl)/api/generate" `
+                        -Method Post -Body $body -ContentType 'application/json' @restTimeoutParameters
                     $result.Response = $response.response
                     $result.Model = $selectedModel
                 }

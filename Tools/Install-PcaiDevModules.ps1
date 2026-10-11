@@ -1,203 +1,332 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
-Install PC_AI development modules into a stable local PowerShell module root.
-
+Installs development modules with verified staging and recoverable replacements.
 .DESCRIPTION
-Publishes repo-backed PC_AI modules into a non-OneDrive module root so module
-resolution is deterministic across shells and build scripts. Repo-local modules
-are linked by junction when possible for fast iteration; external modules such
-as CargoTools are copied by default when their source lives under OneDrive.
+Copies modules by default. Existing installations are renamed into
+.pcai-module-install/<module>/rN/previous and retained with SHA256 receipts.
+Failed publication restores the previous installation and preserves staging.
+Never deletes an installation or follows name-surrogate links during enumeration.
+Admits only the 16 documented Cloud Files tags, queried through no-follow handles;
+other placeholder families and unknown reparse tags remain rejected.
+.PARAMETER DryRun
+Plans without filesystem, process-environment or registry writes.
+.PARAMETER Help
+Displays usage. -h and --help are accepted.
+.PARAMETER IncludeCargoTools
+Uses PcaiModuleBootstrap resolver precedence, including environment overrides.
+Root .git metadata is excluded; nested Git stores and linked payloads are rejected.
+.PARAMETER PSModulePathScope
+Updates Process, User or Machine paths while preserving each existing value.
+.EXAMPLE
+pwsh -NoProfile -File .\Tools\Install-PcaiDevModules.ps1 -DryRun
+.NOTES
+Stable receipt revisions include observation times in metadata. Retained previous
+installations require separate custody review before retirement. Junction mode
+is explicit and keeps its dependency on the selected source directory.
 #>
-[CmdletBinding(SupportsShouldProcess = $true)]
+[CmdletBinding(SupportsShouldProcess = $true, PositionalBinding = $false)]
 param(
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$InstallRoot = (Join-Path $env:LOCALAPPDATA 'PowerShell\Modules'),
-    [ValidateSet('Auto', 'Junction', 'Copy')]
-    [string]$Mode = 'Auto',
+    [ValidateSet('Auto', 'Junction', 'Copy')][string]$Mode = 'Auto',
     [bool]$UpdatePSModulePath = $true,
-    [ValidateSet('Process', 'User', 'Machine')]
-    [string]$PSModulePathScope = 'User',
-    [switch]$IncludeCargoTools
+    [ValidateSet('Process', 'User', 'Machine')][string]$PSModulePathScope = 'User',
+    [switch]$IncludeCargoTools,
+    [switch]$DryRun,
+    [Alias('h')][switch]$Help,
+    [Parameter(ValueFromRemainingArguments)][string[]]$CliArgs
 )
-
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
+if ($Help -or @($CliArgs) -contains '--help') {
+    'Usage: Install-PcaiDevModules.ps1 [-RepoRoot path] [-InstallRoot path] [-Mode Auto|Copy|Junction] [-IncludeCargoTools] [-PSModulePathScope Process|User|Machine] [-DryRun|-WhatIf] [-h|--help]'
+    return
+}
+if ($CliArgs) { throw "Unknown arguments: $($CliArgs -join ' ')" }
+if ($DryRun) { $WhatIfPreference = $true }
 . (Join-Path $PSScriptRoot 'PcaiModuleBootstrap.ps1')
 
-function Test-IsOneDrivePath {
-    param([string]$Path)
-
-    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
-    return $Path -like '*\OneDrive\*'
+function Test-ContainedPath {
+    param([string]$Path, [string]$Root)
+    $prefix = $Root.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    return $Path.Equals($Root, [StringComparison]::OrdinalIgnoreCase) -or $Path.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)
 }
-
-function Resolve-InstallMode {
-    param(
-        [string]$RequestedMode,
-        [string]$SourcePath,
-        [string]$RepoRoot
-    )
-
-    if ($RequestedMode -ne 'Auto') {
-        return $RequestedMode
-    }
-
-    if ((Test-IsOneDrivePath -Path $SourcePath) -or -not ($SourcePath -like "$RepoRoot*")) {
-        return 'Copy'
-    }
-
-    return 'Junction'
+function Test-PcaiCloudReparseTag {
+    param([uint32]$Tag)
+    # MS-FSCC documents exactly CLOUD and CLOUD_1..CLOUD_F. Never admit a
+    # name-surrogate (junction/symlink) or another provider/placeholder family.
+    return (($Tag -band [uint32]536870912) -eq 0) -and
+        (($Tag -band [Convert]::ToUInt32('FFFF0FFF', 16)) -eq [Convert]::ToUInt32('9000001A', 16))
 }
-
-function Set-PreferredPsModulePath {
-    param(
-        [string]$PreferredRoot,
-        [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope
-    )
-
-    $currentValue = if ($Scope -eq 'Process') {
-        $env:PSModulePath
-    } else {
-        [Environment]::GetEnvironmentVariable('PSModulePath', $Scope)
-    }
-
-    $pathParts = @($currentValue -split ';' | Where-Object { $_ -and $_.Trim() })
-    $dedupedParts = New-Object System.Collections.Generic.List[string]
-    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-
-    foreach ($part in @($PreferredRoot) + $pathParts) {
-        $normalized = try {
-            [System.IO.Path]::GetFullPath($part)
-        } catch {
-            $part
-        }
-
-        if ($seen.Add($normalized)) {
-            $dedupedParts.Add($part)
-        }
-    }
-
-    $newValue = if ($Scope -eq 'User') {
-        $PreferredRoot
-    } else {
-        $dedupedParts -join ';'
-    }
-    if ($Scope -eq 'Process') {
-        $env:PSModulePath = $newValue
-    } else {
-        [Environment]::SetEnvironmentVariable('PSModulePath', $newValue, $Scope)
-        $env:PSModulePath = $newValue
-    }
-}
-
-function Install-ModuleDirectory {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Name,
-        [Parameter(Mandatory)]
-        [string]$SourcePath,
-        [Parameter(Mandatory)]
-        [string]$DestinationRoot,
-        [ValidateSet('Junction', 'Copy')]
-        [string]$InstallMode
-    )
-
-    $destinationPath = Join-Path $DestinationRoot $Name
-    if (Test-Path -LiteralPath $destinationPath) {
-        Remove-Item -LiteralPath $destinationPath -Recurse -Force
-    }
-
-    if ($InstallMode -eq 'Junction') {
-        New-Item -ItemType Junction -Path $destinationPath -Target $SourcePath | Out-Null
-    } else {
-        New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
-        Get-ChildItem -LiteralPath $SourcePath -Force | ForEach-Object {
-            Copy-Item -LiteralPath $_.FullName -Destination $destinationPath -Recurse -Force
-        }
-    }
-
-    return $destinationPath
-}
-
-$RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
-$InstallRoot = Get-PcaiStableModuleInstallRoot -InstallRoot $InstallRoot
-New-Item -ItemType Directory -Path $InstallRoot -Force | Out-Null
-
-$moduleSources = New-Object System.Collections.Generic.List[object]
-$sourceModulesRoot = Join-Path $RepoRoot 'Modules'
-foreach ($moduleDir in (Get-ChildItem -LiteralPath $sourceModulesRoot -Directory | Sort-Object Name)) {
-    $manifestPath = Join-Path $moduleDir.FullName "$($moduleDir.Name).psd1"
-    $moduleScriptPath = Join-Path $moduleDir.FullName "$($moduleDir.Name).psm1"
-    if ((Test-Path -LiteralPath $manifestPath) -or (Test-Path -LiteralPath $moduleScriptPath)) {
-        $moduleSources.Add([PSCustomObject]@{
-            Name       = $moduleDir.Name
-            SourcePath = $moduleDir.FullName
-            SourceType = 'repo-module'
-        })
-    }
-}
-
-if ($IncludeCargoTools) {
-    $cargoToolsManifest = $null
-    $cargoSourceCandidates = @(
-        (Join-Path (Join-Path $env:USERPROFILE 'OneDrive\Documents\PowerShell\Modules\CargoTools') 'CargoTools.psd1')
-    )
-
-    foreach ($candidate in $cargoSourceCandidates) {
-        if (Test-Path -LiteralPath $candidate) {
-            $cargoToolsManifest = $candidate
-            break
-        }
-    }
-
-    if (-not $cargoToolsManifest) {
-        $availableCargoTools = Get-Module -ListAvailable -Name 'CargoTools' | Sort-Object Version -Descending
-        foreach ($availableModule in $availableCargoTools) {
-            if ($availableModule.Path -and ($availableModule.Path -notlike "$InstallRoot*")) {
-                $cargoToolsManifest = $availableModule.Path
-                break
+function Get-PcaiInstallReparseTag {
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not $IsWindows) { throw "Windows reparse tag query unavailable: $Path" }
+    if (-not ('Pcai.ModuleInstallReparseTagV1' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+namespace Pcai {
+    public static class ModuleInstallReparseTagV1 {
+        [StructLayout(LayoutKind.Sequential)]
+        private struct AttributeTagInfo { public uint Attributes; public uint Tag; }
+        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, ExactSpelling=true, SetLastError=true)]
+        private static extern SafeFileHandle CreateFileW(string path, uint access,
+            uint share, IntPtr security, uint disposition, uint flags, IntPtr template);
+        [DllImport("kernel32.dll", ExactSpelling=true, SetLastError=true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetFileInformationByHandleEx(SafeFileHandle handle,
+            int infoClass, out AttributeTagInfo info, uint size);
+        public static uint ReadTag(string path) {
+            // Read metadata only; OPEN_EXISTING + OPEN_REPARSE_POINT never
+            // follows the leaf link. BACKUP_SEMANTICS admits directory handles.
+            using (SafeFileHandle handle = CreateFileW(path, 0x80, 7,
+                IntPtr.Zero, 3, 0x02200000, IntPtr.Zero)) {
+                if (handle.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateFileW no-follow metadata open failed");
+                AttributeTagInfo info;
+                if (!GetFileInformationByHandleEx(handle, 9, out info, 8))
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "FileAttributeTagInfo metadata query failed");
+                return info.Tag;
             }
         }
     }
-
-    if (-not $cargoToolsManifest) {
-        $cargoToolsManifest = Resolve-PcaiModuleManifestPath -ModuleName 'CargoTools' -RepoRoot $RepoRoot -InstallRoot $InstallRoot
+}
+'@ -ErrorAction Stop
     }
-
-    if ($cargoToolsManifest) {
-        $moduleSources.Add([PSCustomObject]@{
-            Name       = 'CargoTools'
-            SourcePath = (Split-Path -Parent $cargoToolsManifest)
-            SourceType = 'external-module'
-        })
-    } else {
-        Write-Warning 'CargoTools source not found; skipping CargoTools install.'
+    try { return [Pcai.ModuleInstallReparseTagV1]::ReadTag($Path) }
+    catch { throw "Cannot inspect Windows reparse tag for $Path : $($_.Exception.Message)" }
+}
+function Test-PcaiCloudReparsePath {
+    param([Parameter(Mandatory)][string]$Path)
+    return Test-PcaiCloudReparseTag -Tag (Get-PcaiInstallReparseTag -Path $Path)
+}
+function Assert-SafePath {
+    param([string]$Path, [switch]$AllowLeafLink)
+    if ($Path -eq [IO.Path]::GetPathRoot($Path)) { throw "Refusing filesystem root: $Path" }
+    $cursor = $Path
+    $leaf = $true
+    while ($cursor) {
+        $name = [IO.Path]::GetFileName($cursor).TrimEnd(' ', '.')
+        if ($name -match '^(?i:\$null|AUX|CON|NUL|PRN|COM[1-9]|LPT[1-9])(?:\.|$)') { throw "Unsafe Windows path: $cursor" }
+        if (Test-Path -LiteralPath $cursor) {
+            $item = Get-Item -LiteralPath $cursor -Force
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                $tag = Get-PcaiInstallReparseTag -Path $cursor
+                $knownLeafLink = $leaf -and $AllowLeafLink -and
+                    ($tag -in @([Convert]::ToUInt32('A0000003', 16), [Convert]::ToUInt32('A000000C', 16))) -and
+                    ($item.LinkType -in @('Junction', 'SymbolicLink'))
+                if (-not (Test-PcaiCloudReparseTag -Tag $tag) -and -not $knownLeafLink) {
+                    throw "Reparse point in installation path: $cursor"
+                }
+            }
+        }
+        $leaf = $false
+        $parent = [IO.Path]::GetDirectoryName($cursor)
+        if ($parent -eq $cursor) { break }
+        $cursor = $parent
     }
 }
-
-$results = foreach ($module in $moduleSources) {
-    $installMode = Resolve-InstallMode -RequestedMode $Mode -SourcePath $module.SourcePath -RepoRoot $RepoRoot
-    $targetPath = Join-Path $InstallRoot $module.Name
-
-    if (-not $PSCmdlet.ShouldProcess($targetPath, "Install $($module.Name) using $installMode")) {
-        continue
+function Get-ModuleInventory {
+    param([string]$Root, [switch]$ExcludeRootGit, [string[]]$RelativeFiles)
+    $rootItem = Get-Item -LiteralPath $Root -Force
+    if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+        -not (Test-PcaiCloudReparsePath -Path $Root)) { throw "Linked module root requires explicit resolution: $Root" }
+    $pending = [Collections.Generic.Stack[string]]::new()
+    $pending.Push($Root)
+    $files = [Collections.Generic.List[object]]::new()
+    while ($pending.Count -gt 0) {
+        $directory = $pending.Pop()
+        $items = if ($RelativeFiles) {
+            foreach ($relativeFile in $RelativeFiles) {
+                $selectedPath = [IO.Path]::GetFullPath((Join-Path $Root $relativeFile))
+                if (-not (Test-ContainedPath -Path $selectedPath -Root $Root)) { throw 'Selected payload escapes source root.' }
+                Assert-SafePath -Path $selectedPath
+                $selectedItem = Get-Item -LiteralPath $selectedPath -Force
+                if ($selectedItem.PSIsContainer) { throw 'Selected standalone payload must be a file.' }
+                $selectedItem
+            }
+        } else { Get-ChildItem -LiteralPath $directory -Force }
+        foreach ($item in $items) {
+            if ($item.Name -eq '.git') {
+                if ($ExcludeRootGit -and $directory -eq $Root) { continue }
+                throw "Nested Git store requires custody review: $($item.FullName)"
+            }
+            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+                -not (Test-PcaiCloudReparsePath -Path $item.FullName)) { throw "Linked payload requires custody review: $($item.FullName)" }
+            Assert-SafePath -Path $item.FullName
+            if ($item.PSIsContainer) { $pending.Push($item.FullName); continue }
+            $files.Add([pscustomobject]@{
+                Path = [IO.Path]::GetRelativePath($Root, $item.FullName)
+                Length = $item.Length
+                Sha256 = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash
+            })
+        }
     }
-
-    $installedPath = Install-ModuleDirectory -Name $module.Name -SourcePath $module.SourcePath -DestinationRoot $InstallRoot -InstallMode $installMode
-    [PSCustomObject]@{
-        Name         = $module.Name
-        SourcePath   = $module.SourcePath
-        InstalledPath = $installedPath
-        Mode         = $installMode
-        SourceType   = $module.SourceType
+    return @($files | Sort-Object Path)
+}
+function Test-SameInventory {
+    param([object[]]$Left, [object[]]$Right)
+    return ($Left.Count -eq $Right.Count) -and ((ConvertTo-Json -InputObject @($Left) -Depth 4 -Compress) -ceq (ConvertTo-Json -InputObject @($Right) -Depth 4 -Compress))
+}
+function Merge-ModulePath {
+    param([string]$Existing, [string]$Preferred)
+    $parts = [Collections.Generic.List[string]]::new()
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($part in @($Preferred) + @($Existing -split ';')) {
+        if ([string]::IsNullOrWhiteSpace($part)) { continue }
+        if ($seen.Add($part.Trim().TrimEnd('\', '/'))) { $parts.Add($part.Trim()) }
+    }
+    return $parts -join ';'
+}
+$RepoRoot = [IO.Path]::GetFullPath($RepoRoot).TrimEnd('\', '/')
+$InstallRoot = (Get-PcaiStableModuleInstallRoot -InstallRoot $InstallRoot).TrimEnd('\', '/')
+Assert-SafePath -Path $InstallRoot
+$sourceModulesRoot = Join-Path $RepoRoot 'Modules'
+$sources = [Collections.Generic.List[object]]::new()
+foreach ($directory in (Get-ChildItem -LiteralPath $sourceModulesRoot -Directory | Sort-Object Name)) {
+    if ((Test-Path -LiteralPath (Join-Path $directory.FullName "$($directory.Name).psd1")) -or
+        (Test-Path -LiteralPath (Join-Path $directory.FullName "$($directory.Name).psm1"))) {
+        $sources.Add([pscustomobject]@{ Name = $directory.Name; SourcePath = $directory.FullName; SourceType = 'repo-module'; PayloadFiles = $null })
     }
 }
-
-if ($UpdatePSModulePath) {
-    Set-PreferredPsModulePath -PreferredRoot $InstallRoot -Scope $PSModulePathScope
+foreach ($manifest in (Get-ChildItem -LiteralPath $sourceModulesRoot -File -Filter '*.psd1' | Sort-Object Name)) {
+    Assert-SafePath -Path $manifest.FullName
+    $name = $manifest.BaseName
+    $data = Import-PowerShellDataFile -LiteralPath $manifest.FullName
+    if (-not $data.ContainsKey('RootModule') -or $data.RootModule -cne "$name.psm1") {
+        throw "Standalone manifest must select its paired script: $($manifest.FullName)"
+    }
+    $sources.Add([pscustomobject]@{
+        Name = $name; SourcePath = $sourceModulesRoot; SourceType = 'standalone-module'
+        PayloadFiles = @($manifest.Name, [string]$data.RootModule)
+    })
 }
-
-$results
+if ($IncludeCargoTools) {
+    $manifest = Resolve-PcaiModuleManifestPath -ModuleName CargoTools -RepoRoot $RepoRoot -InstallRoot $InstallRoot
+    if ($manifest) {
+        $sources.Add([pscustomobject]@{ Name = 'CargoTools'; SourcePath = (Split-Path -Parent $manifest); SourceType = 'external-module'; PayloadFiles = $null })
+    } else { Write-Warning 'CargoTools source not found; skipping CargoTools install.' }
+}
+$names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($module in $sources) {
+    if (-not $names.Add($module.Name)) { throw "Module name collision: $($module.Name)" }
+    if ($module.PayloadFiles -and $Mode -eq 'Junction') { throw "Standalone module $($module.Name) requires Copy or Auto mode; Junction would expose unrelated modules." }
+    if ($module.PayloadFiles) { $null = Get-ModuleInventory -Root $module.SourcePath -RelativeFiles $module.PayloadFiles }
+}
+foreach ($module in $sources) {
+    $source = [IO.Path]::GetFullPath($module.SourcePath).TrimEnd('\', '/')
+    $installMode = if ($Mode -eq 'Auto') { 'Copy' } else { $Mode }
+    $sourceItem = Get-Item -LiteralPath $source -Force
+    # Resolve only the explicitly selected source root; inventory never follows children.
+    if (($sourceItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+        -not (Test-PcaiCloudReparsePath -Path $source)) { $source = $sourceItem.ResolveLinkTarget($true).FullName }
+    if ((Test-ContainedPath -Path $InstallRoot -Root $source) -or (Test-ContainedPath -Path $source -Root $InstallRoot)) {
+        throw "Source and installation paths overlap: $source / $InstallRoot"
+    }
+    $destination = Join-Path $InstallRoot $module.Name
+    Assert-SafePath -Path $destination -AllowLeafLink
+    $desired = @(Get-ModuleInventory -Root $source -ExcludeRootGit -RelativeFiles $module.PayloadFiles)
+    $previous = @()
+    $previousLink = $null
+    $exists = Test-Path -LiteralPath $destination
+    if ($exists) {
+        $item = Get-Item -LiteralPath $destination -Force
+        if (-not $item.PSIsContainer) { throw "Installation destination is a file: $destination" }
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+            -not (Test-PcaiCloudReparsePath -Path $destination)) {
+            $previousLink = @($item.Target) -join ';'
+            if ($installMode -eq 'Junction' -and $previousLink -eq $source) {
+                [pscustomobject]@{ Name = $module.Name; InstalledPath = $destination; Mode = $installMode; State = 'Unchanged'; Receipt = $null }
+                continue
+            }
+        } else {
+            $previous = @(Get-ModuleInventory -Root $destination)
+            if ($installMode -eq 'Copy' -and (Test-SameInventory -Left $desired -Right $previous)) {
+                [pscustomobject]@{ Name = $module.Name; InstalledPath = $destination; Mode = $installMode; State = 'Unchanged'; Receipt = $null }
+                continue
+            }
+        }
+    }
+    if (-not $PSCmdlet.ShouldProcess($destination, "Stage, verify and publish $($module.Name) using $installMode; retain previous installation")) { continue }
+    $receiptRoot = Join-Path $InstallRoot ".pcai-module-install\$($module.Name)"
+    Assert-SafePath -Path $receiptRoot
+    [void](New-Item -ItemType Directory -Path $receiptRoot -Force)
+    $receiptPath = $null
+    $receipt = $null
+    $movedPrevious = $false
+    $published = $false
+    # Acquire custody before selecting a revision or creating transaction state.
+    $lockStream = [IO.File]::Open((Join-Path $receiptRoot 'publish.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+    try {
+        $revision = 1
+        while (Test-Path -LiteralPath (Join-Path $receiptRoot "r$revision")) { $revision++ }
+        $transaction = Join-Path $receiptRoot "r$revision"
+        [void](New-Item -ItemType Directory -Path $transaction)
+        $stage = Join-Path $transaction 'staged'
+        $backup = Join-Path $transaction 'previous'
+        $receiptPath = Join-Path $transaction 'receipt.json'
+        $receipt = [ordered]@{
+            SchemaVersion = 1; Module = $module.Name; Source = $source; Destination = $destination
+            Mode = $installMode; ObservedUtc = [DateTime]::UtcNow.ToString('o'); State = 'Staging'
+            PreviousPath = $(if ($exists) { $backup } else { $null }); PreviousLinkTarget = $previousLink
+            Files = $desired; PreviousFiles = $previous; Error = $null
+        }
+        $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $receiptPath -Encoding utf8
+        if ($installMode -eq 'Junction') { [void](New-Item -ItemType Junction -Path $stage -Target $source) }
+        else {
+            [void](New-Item -ItemType Directory -Path $stage)
+            foreach ($file in $desired) {
+                $target = Join-Path $stage $file.Path
+                [void](New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force)
+                Copy-Item -LiteralPath (Join-Path $source $file.Path) -Destination $target
+            }
+            if (-not (Test-SameInventory -Left $desired -Right @(Get-ModuleInventory -Root $stage))) { throw 'Staged file hashes differ from selected source.' }
+        }
+        $manifestPath = Join-Path $stage "$($module.Name).psd1"
+        if (Test-Path -LiteralPath $manifestPath) {
+            $data = Import-PowerShellDataFile -LiteralPath $manifestPath
+            if ($data.ContainsKey('RootModule') -and $data.RootModule) {
+                $rootModulePath = [IO.Path]::GetFullPath((Join-Path $stage $data.RootModule))
+                if (-not (Test-ContainedPath -Path $rootModulePath -Root $stage) -or -not (Test-Path -LiteralPath $rootModulePath -PathType Leaf)) {
+                    throw 'Manifest RootModule is absent or outside staged payload.'
+                }
+            }
+        }
+        if (-not (Test-SameInventory -Left $desired -Right @(Get-ModuleInventory -Root $source -ExcludeRootGit -RelativeFiles $module.PayloadFiles))) { throw 'Source changed during installation.' }
+        if ($exists) {
+            if ($previousLink) {
+                if ((@((Get-Item -LiteralPath $destination -Force).Target) -join ';') -ne $previousLink) { throw 'Destination link changed during installation.' }
+            } elseif (-not (Test-SameInventory -Left $previous -Right @(Get-ModuleInventory -Root $destination))) { throw 'Destination changed during installation.' }
+            Move-Item -LiteralPath $destination -Destination $backup
+            $movedPrevious = $true
+        } elseif (Test-Path -LiteralPath $destination) { throw 'Destination appeared during installation.' }
+        Move-Item -LiteralPath $stage -Destination $destination
+        $published = $true
+        $receipt.State = 'Installed'
+        $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $receiptPath -Encoding utf8
+    } catch {
+        $failure = $_
+        if ($published) { Move-Item -LiteralPath $destination -Destination $stage }
+        if ($movedPrevious) { Move-Item -LiteralPath $backup -Destination $destination }
+        if ($receipt -and $receiptPath) {
+            $receipt.State = 'RolledBack'
+            $receipt.Error = $failure.Exception.Message
+            $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $receiptPath -Encoding utf8
+        }
+        throw $failure
+    } finally {
+        if ($lockStream) { $lockStream.Dispose() }
+    }
+    [pscustomobject]@{ Name = $module.Name; SourcePath = $source; InstalledPath = $destination; Mode = $installMode; State = 'Installed'; Receipt = $receiptPath }
+}
+if ($UpdatePSModulePath -and $PSCmdlet.ShouldProcess("PSModulePath ($PSModulePathScope and process)", 'Prepend installation root while retaining existing module paths')) {
+    $processValue = Merge-ModulePath -Existing $env:PSModulePath -Preferred $InstallRoot
+    if ($PSModulePathScope -ne 'Process') {
+        $oldValue = [Environment]::GetEnvironmentVariable('PSModulePath', $PSModulePathScope)
+        $newValue = Merge-ModulePath -Existing $oldValue -Preferred $InstallRoot
+        if ($newValue -ne $oldValue) { [Environment]::SetEnvironmentVariable('PSModulePath', $newValue, $PSModulePathScope) }
+    }
+    $env:PSModulePath = $processValue
+}

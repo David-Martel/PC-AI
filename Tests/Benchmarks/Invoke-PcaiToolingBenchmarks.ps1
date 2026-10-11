@@ -28,6 +28,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$CaseId = @($CaseId | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
 . (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
 
@@ -39,31 +40,58 @@ function Invoke-LegacyTokenEstimate {
 
 function Get-PowerShellDirectoryManifest {
     param(
-        [Parameter(Mandatory)]
-        [string]$Path,
+        [Parameter(Mandatory)][string]$Path,
         [uint32]$MaxDepth = 0,
         [uint64]$MaxResults = 0
     )
 
-    $resolvedPath = (Resolve-Path -Path $Path -ErrorAction Stop).Path
-    $items = if ($MaxDepth -gt 0) {
-        Get-ChildItem -LiteralPath $resolvedPath -Force -ErrorAction SilentlyContinue -Recurse -Depth $MaxDepth
-    } else {
-        Get-ChildItem -LiteralPath $resolvedPath -Force -ErrorAction SilentlyContinue -Recurse
-    }
-    if ($MaxResults -gt 0) {
-        $items = $items | Select-Object -First $MaxResults
-    }
-
-    $entries = @($items)
+    $resolvedPath = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).Path
+    $enumeration = @{LiteralPath=$resolvedPath;Recurse=$true;ErrorAction='Stop'}
+    if ($MaxDepth -gt 0) { $enumeration.Depth = $MaxDepth - 1 }
+    # Native depth counts direct children as one and excludes dot/hidden entries.
+    $entries = @(Get-ChildItem @enumeration | Where-Object {
+        $relative = [IO.Path]::GetRelativePath($resolvedPath, $_.FullName)
+        -not @($relative -split '[\\/]' | Where-Object { $_.StartsWith('.') }).Count
+    })
+    if ($MaxResults -gt 0) { $entries = @($entries | Select-Object -First $MaxResults) }
     $files = @($entries | Where-Object { -not $_.PSIsContainer })
     $directories = @($entries | Where-Object { $_.PSIsContainer })
+    [pscustomobject]@{
+        EntriesReturned = [uint64]$entries.Count
+        FileCount = [uint64]$files.Count
+        DirectoryCount = [uint64]$directories.Count
+        TotalSize = if ($files.Count -eq 0) { [uint64]0 } else { [uint64](($files | Measure-Object -Property Length -Sum).Sum) }
+    }
+}
 
-    [PSCustomObject]@{
-        EntriesReturned = $entries.Count
-        FileCount       = $files.Count
-        DirectoryCount  = $directories.Count
-        TotalSize       = ($files | Measure-Object -Property Length -Sum).Sum
+function Test-PcaiBenchmarkNativeReady {
+    param([Parameter(Mandatory)][System.Management.Automation.PSModuleInfo]$Module)
+    & $Module {
+        $loaded = Test-PcaiNativeAvailable
+        $status = Get-PcaiNativeStatus
+        return ($loaded -is [bool] -and $loaded -and $null -ne $status -and
+            $status.PSObject.Properties['CoreAvailable'] -and
+            $status.CoreAvailable -is [bool] -and $status.CoreAvailable)
+    }
+}
+
+function Assert-PcaiManifestBenchmarkStats {
+    param([AllowNull()][object]$Stats, [Parameter(Mandatory)][object]$Expected, [uint64]$MaxResults = 0)
+    if ($null -eq $Stats -or -not $Stats.PSObject.Properties['Status'] -or [string]$Stats.Status -cne 'Success') {
+        throw 'Manifest native operation did not return successful statistics.'
+    }
+    foreach ($name in 'EntriesReturned','FileCount','DirectoryCount','TotalSize') {
+        $property = $Stats.PSObject.Properties[$name]
+        if (-not $property -or $null -eq $property.Value -or $property.Value.GetType() -notin @([byte],[uint16],[uint32],[uint64],[sbyte],[int16],[int32],[int64]) -or $property.Value -lt 0) {
+            throw "Manifest native statistic is missing or invalid: $name"
+        }
+        if ($MaxResults -eq 0 -and [uint64]$property.Value -ne [uint64]$Expected.$name) {
+            throw "Manifest native useful output mismatch: $name"
+        }
+    }
+    if ([decimal]$Stats.EntriesReturned -ne ([decimal]$Stats.FileCount + [decimal]$Stats.DirectoryCount) -or
+        ($MaxResults -gt 0 -and [uint64]$Stats.EntriesReturned -gt $MaxResults)) {
+        throw 'Manifest native count invariant failed.'
     }
 }
 
@@ -125,6 +153,9 @@ function Invoke-BackendBenchmark {
     $measurement = & $measureCommand -Command $Command -Iterations $Iterations -Warmup $Warmup -Name "$CaseId/$Backend" -Shell $Shell
     if (-not $measurement) {
         return $null
+    }
+    if ($measurement.Iterations -ne $Iterations) {
+        throw "Incomplete benchmark for $CaseId/$Backend; failed samples must not produce a success comparison."
     }
 
     [PSCustomObject]@{
@@ -231,6 +262,41 @@ function Get-ModuleFunctionCommand {
     return $resolved
 }
 
+function Assert-PcaiHashBenchmarkResults {
+    [CmdletBinding()]
+    param(
+        [AllowEmptyCollection()][object[]]$Rows,
+        [Parameter(Mandatory)][System.Collections.IDictionary]$ExpectedHashes,
+        [Parameter(Mandatory)][string]$Backend
+    )
+
+    $expected = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+    foreach ($key in $ExpectedHashes.Keys) {
+        if (-not [IO.Path]::IsPathFullyQualified([string]$key)) {
+            throw "Hash $Backend expected path is not fully qualified."
+        }
+        $expected.Add([IO.Path]::GetFullPath([string]$key), [string]$ExpectedHashes[$key])
+    }
+    if (@($Rows).Count -ne $expected.Count) { throw "Hash $Backend output count mismatch." }
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($row in $Rows) {
+        if ($null -eq $row -or -not $row.PSObject.Properties['Path'] -or
+            $row.Path -isnot [string] -or -not [IO.Path]::IsPathFullyQualified($row.Path)) {
+            throw "Hash $Backend result path is missing or invalid."
+        }
+        $path = [IO.Path]::GetFullPath($row.Path)
+        if (-not $expected.ContainsKey($path) -or -not $seen.Add($path)) {
+            throw "Hash $Backend result path is unknown or duplicated."
+        }
+        if (-not $row.PSObject.Properties['Success'] -or $row.Success -isnot [bool] -or -not $row.Success -or
+            -not $row.PSObject.Properties['Hash'] -or $row.Hash -isnot [string] -or
+            $row.Hash -cnotmatch '\A[0-9a-fA-F]{64}\z' -or
+            -not [string]::Equals($row.Hash, $expected[$path], [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Hash $Backend useful output mismatch."
+        }
+    }
+}
+
 function Get-ToolingCaseBenchmarks {
     param(
         [Parameter(Mandatory)]
@@ -242,6 +308,7 @@ function Get-ToolingCaseBenchmarks {
         [Parameter(Mandatory)]
         [psobject]$Capabilities,
         [Parameter(Mandatory)]
+        [AllowEmptyString()]
         [string]$TokenSample
     )
 
@@ -282,58 +349,154 @@ function Get-ToolingCaseBenchmarks {
     $benchmarks = [System.Collections.Generic.List[object]]::new()
 
     switch ($Case.Id) {
-        'token-estimate' {
-            $nativeBlock = {
-                & $accelerationModule {
-                    param($InnerTokenSample)
-                    Get-PcaiTokenEstimate -Text $InnerTokenSample
-                } $TokenSample | Out-Null
+        { $_ -in 'chat-tui-startup','service-host-provider-show' } {
+            $scenario = if ($Case.Id -eq 'chat-tui-startup') { 'chat-tui-help' } else { 'service-host-provider-show' }
+            $profileOptions = @{Scenario=$scenario;OutputRoot=(Join-Path $script:BenchmarkReportRoot 'startup');PassThru=$true}
+            $commandPath = Get-ConfigValue -Case $Case -Defaults $Defaults -Name 'commandPath'
+            if ($commandPath) {
+                $profileOptions.Scenario = 'custom'
+                $profileOptions.CommandPath = [string]$commandPath
+                $profileOptions.ArgumentList = @((Get-ConfigValue -Case $Case -Defaults $Defaults -Name 'argumentList'))
+            }
+            $samples = @(for ($index=0; $index -lt ($iterations+$warmup); $index++) {
+                $sample = & (Join-Path $RepoRoot 'Tests/Benchmarks/Invoke-PcaiProfiling.ps1') @profileOptions
+                if ($index -ge $warmup) { $sample }
+            })
+            $times = @($samples | ForEach-Object { $_.Measurement.ElapsedMs } | Sort-Object)
+            $mean = ($times | Measure-Object -Average).Average
+            $variance = ($times | ForEach-Object { [Math]::Pow($_-$mean,2) } | Measure-Object -Average).Average
+            $benchmarks.Add([pscustomobject]@{
+                CaseId=$Case.Id;Backend='profiled-startup';MeanMs=$mean;MedianMs=$times[[int][Math]::Floor($times.Count/2)]
+                MinMs=$times[0];MaxMs=$times[-1];StdDevMs=[Math]::Sqrt($variance);Iterations=$iterations;Tool='ProcessMetrics'
+                WorkingSetDeltaMeanBytes=$null;WorkingSetDeltaMaxBytes=$null;PrivateMemoryDeltaMeanBytes=$null;PrivateMemoryDeltaMaxBytes=$null
+                ManagedMemoryDeltaMeanBytes=$null;ManagedMemoryDeltaMaxBytes=$null;ManagedAllocatedMeanBytes=$null;ManagedAllocatedMaxBytes=$null
+                Evidence=@($samples | ForEach-Object { $_.ReceiptPath })
+            })
+            return [pscustomobject]@{Case=$Case;Path=$resolvedPath;CoverageKey=$null;Coverage=$null;Results=@($benchmarks)}
+        }
+        'process-snapshot' {
+            $toolPath = Invoke-AccelerationModuleCommand { Get-PcaiPerfToolPath }
+            if ($toolPath) {
+                $worker = {
+                    $rows = @(& $accelerationModule {param($path) Invoke-PcaiPerfWorkerRequest -ToolPath $path -Command processes -Payload @{top=15;sort_by='memory'}} $toolPath)
+                    if (-not $rows.Count -or @($rows | Where-Object Tool -ne 'pcai_rust').Count) { throw 'Process worker backend provenance failed.' }
+                }.GetNewClosure()
+                $direct = {
+                    $rows = @(& $accelerationModule {param($path) Invoke-PcaiPerfCliCommand -ToolPath $path -Arguments @('processes','--top','15','--sort-by','memory')} $toolPath)
+                    if (-not $rows.Count -or @($rows | Where-Object Tool -ne 'pcai_rust').Count) { throw 'Process CLI backend provenance failed.' }
+                }.GetNewClosure()
+                Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'worker' $worker $iterations $warmup)
+                Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'direct-cli' $direct $iterations $warmup)
+            }
+            $baseline = {
+                $rows=@(& $accelerationModule { Get-ProcessesParallel -Top 15 -SortBy mem })
+                if(-not $rows.Count -or $rows.Count -gt 15){throw 'PowerShell process output count mismatch.'}
+                for($index=1;$index -lt $rows.Count;$index++){
+                    if($rows[$index-1].MemoryMB -lt $rows[$index].MemoryMB){throw 'PowerShell process memory order mismatch.'}
+                }
             }.GetNewClosure()
-            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
+            Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'powershell' $baseline $iterations $warmup)
+            return [pscustomobject]@{Case=$Case;Path=$resolvedPath;CoverageKey=$null;Coverage=$null;Results=@($benchmarks)}
+        }
+        'perf-worker-hash-list' {
+            $toolPath = Invoke-AccelerationModuleCommand { Get-PcaiPerfToolPath }
+            $datasetRoot=Join-Path $script:BenchmarkReportRoot 'hash-dataset'
+            $null=[IO.Directory]::CreateDirectory($datasetRoot)
+            $paths=@(for($index=0;$index -lt 12;$index++){
+                $file=Join-Path $datasetRoot "sample-$index.txt"
+                [IO.File]::WriteAllText($file,("pcai matched hash fixture $index`n"*64),[Text.UTF8Encoding]::new($false))
+                $file
+            })
+            $expected=[Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+            foreach($path in $paths){$expected.Add([IO.Path]::GetFullPath($path),(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash)}
+            $expected|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $datasetRoot 'expected-hashes.json') -Encoding utf8NoBOM
+            $assertHashResults = ${function:Assert-PcaiHashBenchmarkResults}
+            $worker = {
+                $rows=@(& $accelerationModule {param($path,$files) Invoke-PcaiPerfWorkerRequest -ToolPath $path -Command hash-list -Payload @{algorithm='sha256';paths=$files}} $toolPath $paths)
+                & $assertHashResults -Rows $rows -ExpectedHashes $expected -Backend worker
+            }.GetNewClosure()
+            $direct = {
+                $rows=@(& $accelerationModule {param($path,$files) Invoke-PcaiPerfCliCommand -ToolPath $path -Arguments (@('hash-list','--algorithm','sha256')+$files)} $toolPath $paths)
+                & $assertHashResults -Rows $rows -ExpectedHashes $expected -Backend CLI
+            }.GetNewClosure()
+            $baseline={foreach($path in $paths){if((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $expected[$path]){throw 'PowerShell useful output mismatch.'}}}.GetNewClosure()
+            if ($toolPath) {
+                Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'worker' $worker $iterations $warmup)
+                Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'direct-cli' $direct $iterations $warmup)
+            }
+            Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'powershell' $baseline $iterations $warmup)
+            return [pscustomobject]@{Case=$Case;Path=$resolvedPath;CoverageKey=$null;Coverage=$null;Results=@($benchmarks);UnavailableReason=if(-not $toolPath){'pcai-perf is absent from the selected roots; only the verified PowerShell hash baseline ran.'}else{$null}}
+        }
+        'token-estimate' {
+            $testNativeReady = ${function:Test-PcaiBenchmarkNativeReady}
+            $nativeAvailable = & $testNativeReady -Module $accelerationModule
+            if ($nativeAvailable) {
+                $nativeBlock = {
+                    if (-not (& $testNativeReady -Module $accelerationModule)) {
+                        throw 'Token benchmark native backend became unavailable.'
+                    }
+                    $value = & $accelerationModule {
+                        param($text)
+                        Get-PcaiTokenEstimate -Text $text
+                    } $TokenSample
+                    if ($null -eq $value -or $value.GetType() -notin @([byte],[uint16],[uint32],[uint64],[sbyte],[int16],[int32],[int64]) -or
+                        $value -lt 0 -or ($TokenSample.Length -gt 0 -and $value -eq 0) -or ($TokenSample.Length -eq 0 -and $value -ne 0)) {
+                        throw 'Token native useful output is invalid.'
+                    }
+                    if (-not (& $testNativeReady -Module $accelerationModule)) {
+                        throw 'Token benchmark native backend became unavailable.'
+                    }
+                }.GetNewClosure()
+                Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'native' $nativeBlock $iterations $warmup)
+            }
             $baselineBlock = { if ([string]::IsNullOrEmpty($TokenSample)) { 0 } else { ([regex]::Matches($TokenSample, '\w+')).Count } }.GetNewClosure()
-            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
-            return [PSCustomObject]@{
-                Case        = $Case
-                Path        = $resolvedPath
-                CoverageKey = 'TokenEstimate'
-                Coverage    = $coverageLookup['TokenEstimate']
-                Results     = @($benchmarks)
+            Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'powershell' $baselineBlock $iterations $warmup)
+            return [pscustomobject]@{
+                Case=$Case;Path=$resolvedPath;CoverageKey='TokenEstimate';Coverage=$coverageLookup['TokenEstimate'];Results=@($benchmarks)
+                UnavailableReason=if (-not $nativeAvailable) {'Native core unavailable; only the legacy word-count baseline ran.'} else {$null}
+                Qualification=[pscustomobject]@{
+                    ComparisonQualified=$false;UsefulOutputParity='not-comparable'
+                    OutputContract='Rust token heuristic and legacy word count use different algorithms.'
+                }
             }
         }
         'directory-manifest' {
+            $baselineCommand = ${function:Get-PowerShellDirectoryManifest}
+            $assertStats = ${function:Assert-PcaiManifestBenchmarkStats}
+            $testNativeReady = ${function:Test-PcaiBenchmarkNativeReady}
+            $nativeAvailable = & $testNativeReady -Module $accelerationModule
+            $expected = & $baselineCommand -Path $resolvedPath -MaxDepth $maxDepth -MaxResults $maxResults
             $nativeBlock = {
-                & $accelerationModule {
-                    param($InnerPath, $InnerMaxDepth, $InnerMaxResults)
-                    Invoke-PcaiNativeDirectoryManifest -Path $InnerPath -MaxDepth $InnerMaxDepth -MaxResults $InnerMaxResults -StatsOnly
-                } $resolvedPath $maxDepth $maxResults | Out-Null
+                if (-not (& $testNativeReady -Module $accelerationModule)) {
+                    throw 'Manifest benchmark native backend became unavailable.'
+                }
+                $stats = & $accelerationModule {
+                    param($path,$depth,$limit)
+                    Invoke-PcaiNativeDirectoryManifest -Path $path -MaxDepth $depth -MaxResults $limit -StatsOnly
+                } $resolvedPath $maxDepth $maxResults
+                & $assertStats -Stats $stats -Expected $expected -MaxResults $maxResults
+                if (-not (& $testNativeReady -Module $accelerationModule)) {
+                    throw 'Manifest benchmark native backend became unavailable.'
+                }
             }.GetNewClosure()
-            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
+            if ($nativeAvailable) {
+                Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'native' $nativeBlock $iterations $warmup)
+            }
             $baselineBlock = {
-                $items = if ($maxDepth -gt 0) {
-                    Get-ChildItem -LiteralPath $resolvedPath -Force -ErrorAction SilentlyContinue -Recurse -Depth $maxDepth
-                } else {
-                    Get-ChildItem -LiteralPath $resolvedPath -Force -ErrorAction SilentlyContinue -Recurse
+                $current = & $baselineCommand -Path $resolvedPath -MaxDepth $maxDepth -MaxResults $maxResults
+                foreach ($name in 'EntriesReturned','FileCount','DirectoryCount','TotalSize') {
+                    if ($current.$name -ne $expected.$name) { throw "Manifest baseline changed: $name" }
                 }
-                if ($maxResults -gt 0) {
-                    $items = $items | Select-Object -First $maxResults
-                }
-                $entries = @($items)
-                $files = @($entries | Where-Object { -not $_.PSIsContainer })
-                $directories = @($entries | Where-Object { $_.PSIsContainer })
-                [PSCustomObject]@{
-                    EntriesReturned = $entries.Count
-                    FileCount       = $files.Count
-                    DirectoryCount  = $directories.Count
-                    TotalSize       = ($files | Measure-Object -Property Length -Sum).Sum
-                } | Out-Null
             }.GetNewClosure()
-            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
-            return [PSCustomObject]@{
-                Case        = $Case
-                Path        = $resolvedPath
-                CoverageKey = 'DirectoryManifest'
-                Coverage    = $coverageLookup['DirectoryManifest']
-                Results     = @($benchmarks)
+            Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'powershell' $baselineBlock $iterations $warmup)
+            return [pscustomobject]@{
+                Case=$Case;Path=$resolvedPath;CoverageKey='DirectoryManifest';Coverage=$coverageLookup['DirectoryManifest'];Results=@($benchmarks)
+                UnavailableReason=if (-not $nativeAvailable) {'Native core unavailable; only the PowerShell manifest baseline ran.'} else {$null}
+                Qualification=[pscustomobject]@{
+                    ComparisonQualified=($nativeAvailable -and $maxResults -eq 0)
+                    UsefulOutputParity=if ($nativeAvailable -and $maxResults -eq 0) {'matched-aggregate-stats'} else {'not-established'}
+                    OutputContract=if ($maxResults -eq 0) {'Counts and total file bytes; entry identities are not measured.'} else {'Capped parallel traversal selects an unaligned subset; speedup is unqualified.'}
+                }
             }
         }
         'file-search' {
@@ -652,9 +815,10 @@ $reportRootBase = if ($OutputRoot) {
 if (-not [System.IO.Path]::IsPathRooted($reportRootBase)) {
     $reportRootBase = Join-Path $PcaiRoot $reportRootBase
 }
-$timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-$reportRoot = Join-Path $reportRootBase $timestamp
-New-Item -ItemType Directory -Path $reportRoot -Force | Out-Null
+# Keep observation dates in metadata and allocate distinct repetitions safely.
+. (Join-Path $PcaiRoot 'Tools/PcaiArtifactDirectories.ps1')
+$reportRoot = New-PcaiArtifactDirectory -Root $reportRootBase -Name 'tooling'
+$script:BenchmarkReportRoot = $reportRoot
 
 $capabilities = $null
 if (-not $SkipCapabilities) {
@@ -673,7 +837,7 @@ $toolCoverageJson = $null
 $toolCoverageScript = Join-Path $PcaiRoot 'Tools\update-tool-coverage.ps1'
 if (Test-Path $toolCoverageScript) {
     $toolCoverageJsonPath = Join-Path $PcaiRoot 'Reports\TOOL_SCHEMA_REPORT.json'
-    if ($RefreshCoverage -or -not (Test-Path $toolCoverageJsonPath)) {
+    if ($RefreshCoverage) {
     & $toolCoverageScript -RepoRoot $PcaiRoot | Out-Null
     }
     if (Test-Path $toolCoverageJsonPath) {
@@ -710,7 +874,15 @@ $benchmarkRows = foreach ($caseResult in $caseResults) {
             MaxMs              = $row.MaxMs
             Iterations         = $row.Iterations
             Tool               = $row.Tool
-            SpeedupVsBaseline  = if ($baselineMean -and $row.MeanMs -gt 0) { [Math]::Round($baselineMean / [double]$row.MeanMs, 2) } else { $null }
+            Evidence           = @(if ($row.PSObject.Properties['Evidence']) { $row.Evidence })
+            ComparisonQualified = [bool]($caseResult.PSObject.Properties['Qualification'] -and
+                $caseResult.Qualification.ComparisonQualified -is [bool] -and $caseResult.Qualification.ComparisonQualified)
+            UsefulOutputParity = if ($caseResult.PSObject.Properties['Qualification']) { $caseResult.Qualification.UsefulOutputParity } else { 'not-established' }
+            OutputContract = if ($caseResult.PSObject.Properties['Qualification']) { $caseResult.Qualification.OutputContract } else { 'Useful output equivalence has not been admitted for this case.' }
+            ActualBackend = if ($row.Backend -eq 'native' -and $caseResult.Case.id -in 'token-estimate','directory-manifest') { 'Rust+C#' } else { 'unverified:' + $row.Backend }
+            SpeedupVsBaseline = if ($caseResult.PSObject.Properties['Qualification'] -and
+                $caseResult.Qualification.ComparisonQualified -is [bool] -and $caseResult.Qualification.ComparisonQualified -and
+                $baselineMean -and $row.MeanMs -gt 0) { [Math]::Round($baselineMean / [double]$row.MeanMs, 2) } else { $null }
             CoverageState      = if ($caseResult.Coverage) { $caseResult.Coverage.CoverageState } else { 'PowerShellOnly' }
             WorkingSetDeltaMeanBytes = $row.WorkingSetDeltaMeanBytes
             WorkingSetDeltaMaxBytes  = $row.WorkingSetDeltaMaxBytes
@@ -738,6 +910,14 @@ $summary = [PSCustomObject]@{
     }
     Capabilities     = $capabilities
     ToolSchemaReport = $toolCoverageJson
+    SourceBinding    = @{
+        ConfigSha256=(Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash
+        RunnerSha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash
+        NativeBundleRoot=$env:PCAI_NATIVE_BUNDLE_ROOT
+    }
+    CaseAssessments = @($caseResults | ForEach-Object {
+        [pscustomobject]@{CaseId=$_.Case.id;Backends=@($_.Results|ForEach-Object{$_.Backend});UnavailableReason=if($_.PSObject.Properties['UnavailableReason']){$_.UnavailableReason}else{$null}}
+    })
     Results          = @($benchmarkRows)
 }
 

@@ -10,7 +10,9 @@ function Resolve-NvidiaInstallPath {
     Probes the standard install directories for CUDA Toolkit, cuDNN, TensorRT,
     Nsight Compute, and Nsight Systems on the local machine. For versioned
     components (CUDA, cuDNN) the newest installed version directory is selected
-    when multiple side-by-side versions are present.
+    numerically when multiple side-by-side versions are present. Only v-prefixed
+    two-to-four-part numeric versions are admitted; malformed and prerelease
+    directory names are skipped before the existing fallback paths are tried.
 
     If a component is not found on disk, its key maps to $null. Callers should
     check for $null before attempting to read version headers or binaries from
@@ -48,7 +50,9 @@ function Resolve-NvidiaInstallPath {
     $cudaRoot = 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA'
     if (Test-Path $cudaRoot) {
         $cudaVersionDirs = @(Get-ChildItem -Path $cudaRoot -Directory -Filter 'v*' -ErrorAction SilentlyContinue |
-            Sort-Object Name -Descending)
+            Where-Object { $_.Name -match '^v\d+\.\d+(?:\.\d+){0,2}$' } |
+            Where-Object { $installedVersion = $null; [version]::TryParse($_.Name.Substring(1), [ref]$installedVersion) } |
+            Sort-Object { [version]($_.Name.Substring(1)) } -Descending)
         if ($cudaVersionDirs.Count -gt 0) {
             $cudaPath = $cudaVersionDirs[0].FullName
             Write-Verbose "CUDA install resolved to: $cudaPath"
@@ -66,7 +70,9 @@ function Resolve-NvidiaInstallPath {
     $cudnnRoot = 'C:\Program Files\NVIDIA\CUDNN'
     if (Test-Path $cudnnRoot) {
         $cudnnVersionDirs = @(Get-ChildItem -Path $cudnnRoot -Directory -Filter 'v*' -ErrorAction SilentlyContinue |
-            Sort-Object Name -Descending)
+            Where-Object { $_.Name -match '^v\d+\.\d+(?:\.\d+){0,2}$' } |
+            Where-Object { $installedVersion = $null; [version]::TryParse($_.Name.Substring(1), [ref]$installedVersion) } |
+            Sort-Object { [version]($_.Name.Substring(1)) } -Descending)
         if ($cudnnVersionDirs.Count -gt 0) {
             $cudnnPath = $cudnnVersionDirs[0].FullName
             Write-Verbose "cuDNN install resolved to: $cudnnPath"

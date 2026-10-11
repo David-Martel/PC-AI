@@ -153,14 +153,26 @@ public static class Program
         var configPath = GetArg(args, "--config") ?? ResolveProjectPath("Config/hvsock-proxy.conf");
         var statePath = GetArg(args, "--state") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "PC_AI", "hvsock-proxy", "state.json");
 
-        return action switch
+        try
         {
-            "start" => StartHvsockProxy(configPath, statePath),
-            "stop" => StopHvsockProxy(statePath),
-            "status" => PrintHvsockStatus(statePath),
-            "run" => await RunHvsockProxyLoop(configPath, statePath),
-            _ => 1
-        };
+            return action switch
+            {
+                "start" => StartHvsockProxy(configPath, statePath),
+                "stop" => StopHvsockProxy(statePath),
+                "status" => PrintHvsockStatus(statePath),
+                "run" => await RunHvsockProxyLoop(configPath, statePath),
+                _ => 1
+            };
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine($"HVSOCK custody operation failed: {error.Message}");
+            if (error.Data["ProxyRecoveryStatePath"] is string recovery)
+                Console.Error.WriteLine(error.Data.Contains("ProxyRecoveryPersistenceException")
+                    ? $"Recovery marker could not be persisted; candidate path: {recovery}"
+                    : $"Retained recovery custody: {recovery}");
+            return 2;
+        }
     }
 
     private static int StartHvsockProxy(string configPath, string statePath)
@@ -179,110 +191,17 @@ public static class Program
             return 1;
         }
 
-        var state = new List<HvsockProxyStateEntry>();
-        foreach (var entry in entries)
-        {
-            var args = $"HVSock-LISTEN:{entry.ServiceId} TCP:{entry.TcpHost}:{entry.TcpPort}";
-            var proc = Process.Start(new ProcessStartInfo
-            {
-                FileName = winsocat,
-                Arguments = args,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
-
-            if (proc == null)
-            {
-                Console.Error.WriteLine($"Failed to start winsocat for {entry.Name}");
-                continue;
-            }
-
-            state.Add(new HvsockProxyStateEntry
-            {
-                Name = entry.Name,
-                ServiceId = entry.ServiceId,
-                TcpTarget = $"{entry.TcpHost}:{entry.TcpPort}",
-                Pid = proc.Id,
-                Started = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-            });
-        }
-
-        SaveState(statePath, state);
-        Console.WriteLine($"Started {state.Count} HVSOCK proxies.");
-        return 0;
+        return HvsockCustody.Start(statePath, winsocat, entries);
     }
 
     private static int StopHvsockProxy(string statePath)
     {
-        if (!File.Exists(statePath))
-        {
-            Console.WriteLine("No state file found.");
-            return 0;
-        }
-
-        var state = JsonSerializer.Deserialize<List<HvsockProxyStateEntry>>(File.ReadAllText(statePath), JsonOptions) ?? new();
-        var stopped = 0;
-        foreach (var entry in state)
-        {
-            try
-            {
-                if (entry.Pid <= 0)
-                {
-                    continue;
-                }
-
-                var proc = Process.GetProcessById(entry.Pid);
-                if (!proc.ProcessName.Contains("winsocat", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                proc.Kill(true);
-                stopped++;
-            }
-            catch
-            {
-                // ignore
-            }
-        }
-
-        File.Delete(statePath);
-        Console.WriteLine($"Stopped {stopped} HVSOCK proxies.");
-        return 0;
+        return HvsockCustody.Stop(statePath);
     }
 
     private static int PrintHvsockStatus(string statePath)
     {
-        if (!File.Exists(statePath))
-        {
-            Console.WriteLine("No HVSOCK proxies running.");
-            return 1;
-        }
-
-        var state = JsonSerializer.Deserialize<List<HvsockProxyStateEntry>>(File.ReadAllText(statePath), JsonOptions) ?? new();
-        var running = 0;
-        foreach (var entry in state)
-        {
-            var alive = false;
-            try
-            {
-                if (entry.Pid > 0)
-                {
-                    var proc = Process.GetProcessById(entry.Pid);
-                    alive = proc.ProcessName.Contains("winsocat", StringComparison.OrdinalIgnoreCase);
-                }
-            }
-            catch
-            {
-                alive = false;
-            }
-
-            Console.WriteLine($"{entry.Name}: {(alive ? "RUNNING" : "STOPPED")} pid={entry.Pid} target={entry.TcpTarget}");
-            if (alive) running++;
-        }
-
-        Console.WriteLine($"Active: {running}/{state.Count}");
-        return running == state.Count ? 0 : 1;
+        return HvsockCustody.Status(statePath);
     }
 
     private static async Task<int> RunHvsockProxyLoop(string configPath, string statePath)
@@ -291,9 +210,13 @@ public static class Program
         while (true)
         {
             var status = PrintHvsockStatus(statePath);
-            if (status != 0)
+            if (status != 0 && !File.Exists(statePath) && !Directory.Exists(statePath))
             {
                 StartHvsockProxy(configPath, statePath);
+            }
+            else if (status != 0)
+            {
+                Console.Error.WriteLine("Existing unresolved proxy custody retained; supervisor replacement refused.");
             }
             await Task.Delay(TimeSpan.FromSeconds(15));
         }
@@ -577,13 +500,7 @@ public static class Program
 
     private static void SaveState(string path, List<HvsockProxyStateEntry> state)
     {
-        var dir = Path.GetDirectoryName(path);
-        if (!string.IsNullOrWhiteSpace(dir))
-        {
-            Directory.CreateDirectory(dir);
-        }
-
-        File.WriteAllText(path, JsonSerializer.Serialize(state, JsonOptions));
+        HvsockCustody.NewState(path, state);
     }
 
     private static string ResolveProjectPath(string relativePath)
@@ -625,6 +542,11 @@ public sealed class HvsockProxyStateEntry
     public string TcpTarget { get; set; } = string.Empty;
     public int Pid { get; set; }
     public string Started { get; set; } = string.Empty;
+    public string? ExecutablePath { get; set; }
+    public long? ProcessStartTimeUtcTicks { get; set; }
+    public bool? MetadataIncomplete { get; set; }
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalFields { get; set; }
 }
 
 public sealed class InferenceStatus

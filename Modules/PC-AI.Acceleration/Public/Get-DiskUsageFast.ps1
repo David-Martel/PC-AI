@@ -6,6 +6,9 @@
 .DESCRIPTION
     Analyzes disk usage using dust (Rust du alternative) when available,
     with fallback to parallel directory size calculation.
+    Rust CLI timeout, cancellation, corrupt or incomplete responses and
+    retained-resource errors terminate the invocation. Native, dust and
+    parallel scans have no overall deadline.
 
 .PARAMETER Path
     Path to analyze
@@ -134,16 +137,51 @@ function Get-DiskUsageWithPcaiPerf {
         [string]$ToolPath
     )
 
+    # A pre-existing custody rejection has no transport exception marker. Keep
+    # it outside availability fallback so retained resources cannot be bypassed.
+    Assert-PcaiPerfNoPendingCustody
     try {
-        $json = & $ToolPath 'disk' '--path' $Path '--top' $Top 2>$null
-        if (-not $json) {
-            return $null
+        if ($env:PCAI_PREFER_PERF_WORKER_DISK -eq '1') {
+            try {
+                $rows = @(Invoke-PcaiPerfWorkerRequest -ToolPath $ToolPath -Command 'disk' -Payload @{ path=$Path; top=$Top })
+                foreach ($row in $rows) { $row | Add-Member -NotePropertyName Transport -NotePropertyValue 'worker' -Force }
+                return $rows
+            } catch [NotSupportedException] {
+                $transportFailure = $_
+                if (Test-PcaiDiskFatalTransportException -Exception $_.Exception) { throw }
+                try { Assert-PcaiPerfNoPendingCustody }
+                catch { $PSCmdlet.ThrowTerminatingError($transportFailure) }
+                Write-Verbose 'Legacy pcai-perf worker: using bounded direct CLI.'
+            }
         }
-
-        return @(ConvertFrom-Json -InputObject $json)
+        $rows = @(Invoke-PcaiPerfCliCommand -ToolPath $ToolPath -Arguments @('disk', '--path', $Path, '--top', "$Top"))
+        foreach ($row in $rows) { $row | Add-Member -NotePropertyName Transport -NotePropertyValue 'direct-cli' -Force }
+        return $rows
     } catch {
+        $transportFailure = $_
+        if (Test-PcaiDiskFatalTransportException -Exception $_.Exception) { throw }
+        try { Assert-PcaiPerfNoPendingCustody }
+        catch { $PSCmdlet.ThrowTerminatingError($transportFailure) }
+        Write-Verbose "pcai-perf disk unavailable: $($_.Exception.Message)"
         return $null
     }
+}
+
+function Test-PcaiDiskFatalTransportException {
+    <#
+    .SYNOPSIS
+        Identifies disk transport failures that prohibit another backend scan.
+    .DESCRIPTION
+        Follows exception wrappers and cleanup causes without replacing the
+        original error or retained exact process and resource objects.
+    .PARAMETER Exception
+        Exception received from the CLI or worker transport.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)][Exception]$Exception)
+
+    return Test-PcaiPerfFatalTransportException -Exception $Exception
 }
 
 function Convert-PcaiNativeDiskRows {

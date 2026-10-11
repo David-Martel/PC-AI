@@ -43,8 +43,9 @@ post-repair sync-health window.
 - `HomeRootArchive`: archived home-root scripts with historical registry,
   network, cloud-sync, GCP, npm, MCP, and encoding repair utilities.
 - `LocalBin`: selected system-modifying scripts moved from `~\.local\bin`.
-- `Machine`: selected scheduled-task scripts moved from `~\.machine`; secret
-  modules, logs, and cache files intentionally remain outside this repo.
+- `Machine`: selected scheduled-task scripts and reviewed credential backend
+  code. Credential values, private machine configuration, logs and cache files
+  remain outside this repo.
 - `TaskScheduler`: scripts that are direct scheduled-task targets or companions.
 - `UserBin`: selected system-modifying scripts moved from `~\bin`.
 - `unifi_api`: UDM Windows and on-boot helper scripts required by the migrated
@@ -63,6 +64,34 @@ Run the Windows fixture suite in `Tests/LocalMachine` after changing the archive
 or installed machine credential modules. It does not access the real vault.
 Plain JSON remains the compatibility default. Do not change scheduled jobs to
 encrypted exports until their recovery procedure has been validated separately.
+
+## Credential backend code and custody
+
+`Machine/SecretBackendUtilities.ps1` and `Machine/SecretsTier.psm1` are the
+canonical backend source. Imports are passive: they neither authenticate nor
+register providers, read credentials, create storage or change existing ACLs.
+Default bootstrap and cache storage is a protected child of the current user's
+profile. Explicit storage overrides are authoritative and fail if their
+namespace is unsafe; they do not silently fall back. Existing legacy cache
+access is read-only and requires current-user DPAPI, metadata/schema validation
+and retained file identity. Partial or invalid preferred storage prevents
+rollback to legacy data.
+
+Private publication requires qualified Windows NTFS, trusted directory ancestry
+and ordinary private files. Recovery retains exact file/process custody when
+cleanup cannot be confirmed. Its owner/group/DACL contract does not establish
+SACL/audit preservation or atomic comparison against arbitrary writers.
+
+`Tests/Unit/SecretBackendCustody.Tests.ps1` exercises synthetic data and real
+owned child processes. It isolates environment and executable discovery itself,
+restores the original environment and keeps recovery witnesses in protected
+fixture storage outside the checkout. The standalone canonical gate must pass
+before deployment; its result does not qualify live provider authentication.
+
+`Machine/managed-files.json` lists these two backend code files. An installer
+must reconcile that source manifest with the installed manifest and preserve
+unrelated files, private configuration and active consumers. Do not replace an
+existing broader installed manifest with this two-file source manifest.
 
 ## Safety Rules
 

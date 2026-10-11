@@ -6,218 +6,39 @@
     Tests that all modules load correctly, export expected functions, and have proper dependencies
 #>
 
+BeforeDiscovery {
+    $script:Modules = (Import-PowerShellDataFile (Join-Path $PSScriptRoot '../Fixtures/ModuleLoadingContracts.psd1')).Modules
+    foreach ($module in $script:Modules) {
+        if (-not $module.ContainsKey('ManifestRelativePath')) { $module.ManifestRelativePath = "$($module.Name)/$($module.Name).psd1" }
+        if (-not $module.ContainsKey('HasPublicDirectory')) { $module.HasPublicDirectory = $true }
+    }
+}
 BeforeAll {
-    $script:ModulesPath = Join-Path $PSScriptRoot '..\..\Modules'
-
-    $script:Modules = @(
-        @{
-            Name = 'PC-AI.Hardware'
-            ExpectedFunctions = @(
-                'Get-DeviceErrors'
-                'Get-DiskHealth'
-                'Get-UsbStatus'
-                'Get-NetworkAdapters'
-                'Get-SystemEvents'
-                'New-DiagnosticReport'
-            )
-        }
-        @{
-            Name = 'PC-AI.Virtualization'
-            ExpectedFunctions = @(
-                'Get-WSLStatus'
-                'Get-HyperVStatus'
-                'Get-DockerStatus'
-                'Optimize-WSLConfig'
-                'Set-WSLDefenderExclusions'
-                'Repair-WSLNetworking'
-                'Backup-WSLConfig'
-            )
-        }
-        @{
-            Name = 'PC-AI.USB'
-            ExpectedFunctions = @(
-                'Get-UsbDeviceList'
-                'Mount-UsbToWSL'
-                'Dismount-UsbFromWSL'
-                'Get-UsbWSLStatus'
-                'Invoke-UsbBind'
-            )
-        }
-        @{
-            Name = 'PC-AI.Network'
-            ExpectedFunctions = @(
-                'Get-NetworkDiagnostics'
-                'Test-WSLConnectivity'
-                'Watch-VSockPerformance'
-                'Optimize-VSock'
-            )
-        }
-        @{
-            Name = 'PC-AI.Performance'
-            ExpectedFunctions = @(
-                'Get-DiskSpace'
-                'Get-ProcessPerformance'
-                'Watch-SystemResources'
-                'Optimize-Disks'
-            )
-        }
-        @{
-            Name = 'PC-AI.Cleanup'
-            ExpectedFunctions = @(
-                'Get-PathDuplicates'
-                'Repair-MachinePath'
-                'Find-DuplicateFiles'
-                'Clear-TempFiles'
-            )
-        }
-        @{
-            Name = 'PC-AI.LLM'
-            ExpectedFunctions = @(
-                'Get-LLMStatus'
-                'Send-OllamaRequest'
-                'Invoke-LLMChat'
-                'Invoke-LLMChatRouted'
-                'Invoke-LLMChatTui'
-                'Invoke-FunctionGemmaReAct'
-                'Invoke-PCDiagnosis'
-                'Set-LLMConfig'
-                'Invoke-DocSearch'
-                'Get-SystemInfoTool'
-                'Invoke-LogSearch'
-            )
-        }
-        @{
-            Name = 'PC-AI.Acceleration'
-            ExpectedFunctions = @(
-                'Get-RustToolStatus'
-                'Test-RustToolAvailable'
-                'Search-LogsFast'
-                'Find-FilesFast'
-                'Get-ProcessesFast'
-                'Get-FileHashParallel'
-                'Find-DuplicatesFast'
-                'Get-DiskUsageFast'
-                'Search-ContentFast'
-                'Measure-CommandPerformance'
-                'Compare-ToolPerformance'
-                'Initialize-PcaiNative'
-                'Test-PcaiNativeAvailable'
-                'Get-PcaiNativeStatus'
-                'Get-PcaiCapabilities'
-                'Get-ProcessLassoSnapshot'
-                'New-ProcessLassoOverlay'
-                'Invoke-PcaiNativeDuplicates'
-                'Invoke-PcaiNativeFileSearch'
-                'Invoke-PcaiNativeContentSearch'
-                'Invoke-PcaiNativeDirectoryManifest'
-                'Invoke-PcaiNativeSystemInfo'
-                'Test-PcaiResourceSafety'
-                'Get-UnifiedHardwareReportJson'
-                'Invoke-PcaiNativeUnifiedHardwareReport'
-                'Invoke-PcaiNativeEstimateTokens'
-                'Invoke-PcaiNativeProcessLassoSnapshot'
-            )
-        }
-        @{
-            Name = 'PC-AI.CLI'
-            ExpectedFunctions = @(
-                'Get-PCCommandMap'
-                'Get-PCCommandModules'
-                'Get-PCCommandList'
-                'Get-PCCommandSummary'
-                'Get-PCModuleHelpIndex'
-                'Get-PCModuleHelpEntry'
-                'ConvertTo-PCArgumentMap'
-                'Resolve-PCArguments'
-            )
-        }
-        @{
-            Name = 'PC-AI.Drivers'
-            ExpectedFunctions = @(
-                'Get-PnpDeviceInventory'
-                'Get-DriverRegistry'
-                'Compare-DriverVersion'
-                'Get-DriverReport'
-                'Install-DriverUpdate'
-                'Update-DriverRegistry'
-                'Get-NetworkDiscoverySnapshot'
-                'Find-ThunderboltPeer'
-                'Get-ThunderboltNetworkStatus'
-                'Connect-ThunderboltPeer'
-                'Set-ThunderboltNetworkOptimization'
-            )
-        }
-        @{
-            Name = 'PC-AI.Evaluation'
-            ExpectedFunctions = @(
-                'New-EvaluationSuite'
-                'Invoke-EvaluationSuite'
-                'Get-EvaluationResults'
-                'Measure-InferenceLatency'
-                'Measure-TokenThroughput'
-                'Measure-MemoryUsage'
-                'Compare-ResponseSimilarity'
-                'Invoke-LLMJudge'
-                'Compare-ResponsePair'
-                'Measure-DiagnosticQuality'
-                'New-BaselineSnapshot'
-                'Test-ForRegression'
-                'Get-RegressionReport'
-                'New-ABTest'
-                'Add-ABTestResult'
-                'Get-ABTestAnalysis'
-                'Get-EvaluationDataset'
-                'New-EvaluationTestCase'
-                'Import-EvaluationDataset'
-                'Export-EvaluationDataset'
-                'Get-PcaiProjectRoot'
-                'Get-PcaiArtifactsRoot'
-                'Initialize-EvaluationPaths'
-                'New-PcaiEvaluationRunContext'
-                'Get-EvaluationRunState'
-                'Stop-EvaluationRun'
-                'Get-PcaiCompiledBinaryPath'
-                'New-PcaiServerConfigFile'
-                'Start-PcaiCompiledServer'
-                'Measure-Coherence'
-                'Measure-Toxicity'
-                'Measure-Groundedness'
-            )
-        }
-        @{
-            Name = 'PC-AI.Gpu'
-            ExpectedFunctions = @(
-                'Get-NvidiaGpuInventory'
-                'Get-NvidiaSoftwareRegistry'
-                'Get-NvidiaSoftwareStatus'
-                'Get-NvidiaGpuUtilization'
-                'Get-NvidiaCompatibilityMatrix'
-                'Initialize-NvidiaEnvironment'
-                'Install-NvidiaSoftware'
-                'Update-NvidiaSoftwareRegistry'
-                'Test-PcaiGpuReadiness'
-            )
-        }
-    )
+    $script:ModulesPath = Join-Path $PSScriptRoot '../../Modules'
+    $script:Modules = (Import-PowerShellDataFile (Join-Path $PSScriptRoot '../Fixtures/ModuleLoadingContracts.psd1')).Modules
+    foreach ($module in $script:Modules) {
+        if (-not $module.ContainsKey('ManifestRelativePath')) { $module.ManifestRelativePath = "$($module.Name)/$($module.Name).psd1" }
+        if (-not $module.ContainsKey('HasPublicDirectory')) { $module.HasPublicDirectory = $true }
+    }
 }
 
 Describe "Module Loading" -Tag 'Integration', 'ModuleLoading', 'Fast' {
     Context "When loading all modules" {
         It "Should find all module manifest files" {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Test-Path $manifestPath | Should -Be $true -Because "$($module.Name) manifest should exist"
             }
         }
 
         It "Should load <Name> module without errors" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
 
             { Import-Module $manifestPath -Force -ErrorAction Stop } | Should -Not -Throw
         }
 
         It "Should have valid manifest for <Name>" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
 
             { Test-ModuleManifest $manifestPath -ErrorAction Stop } | Should -Not -Throw
         }
@@ -225,7 +46,7 @@ Describe "Module Loading" -Tag 'Integration', 'ModuleLoading', 'Fast' {
 
     Context "When checking module versions" {
         It "Should have version information for <Name>" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
             Import-Module $manifestPath -Force
 
             $module = Get-Module $Name
@@ -234,14 +55,14 @@ Describe "Module Loading" -Tag 'Integration', 'ModuleLoading', 'Fast' {
         }
 
         It "Should have author information for <Name>" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
             $manifest = Test-ModuleManifest $manifestPath
 
             $manifest.Author | Should -Not -BeNullOrEmpty
         }
 
         It "Should have description for <Name>" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
             $manifest = Test-ModuleManifest $manifestPath
 
             $manifest.Description | Should -Not -BeNullOrEmpty
@@ -254,7 +75,7 @@ Describe "Module Function Exports" -Tag 'Integration', 'ModuleLoading', 'Fast' {
         BeforeAll {
             # Load all modules
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Import-Module $manifestPath -Force -ErrorAction Stop
             }
         }
@@ -299,7 +120,7 @@ Describe "Module Function Exports" -Tag 'Integration', 'ModuleLoading', 'Fast' {
     Context "When checking function parameters" {
         BeforeAll {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Import-Module $manifestPath -Force -ErrorAction Stop
             }
         }
@@ -330,16 +151,16 @@ Describe "Module Function Exports" -Tag 'Integration', 'ModuleLoading', 'Fast' {
 Describe "Module Dependencies" -Tag 'Integration', 'ModuleLoading', 'Fast' {
     Context "When checking module file structure" {
         It "<Name> should have .psm1 module file" -ForEach $script:Modules {
-            $modulePath = Join-Path $script:ModulesPath "$Name\$Name.psm1"
+            $modulePath = Join-Path $script:ModulesPath ([IO.Path]::ChangeExtension($ManifestRelativePath, '.psm1'))
             Test-Path $modulePath | Should -Be $true
         }
 
-        It "<Name> should have Public functions directory" -ForEach $script:Modules {
+        It "<Name> should have Public functions directory" -ForEach @($script:Modules | Where-Object HasPublicDirectory) {
             $publicPath = Join-Path $script:ModulesPath "$Name\Public"
             Test-Path $publicPath | Should -Be $true
         }
 
-        It "<Name> should have at least one Public function file" -ForEach $script:Modules {
+        It "<Name> should have at least one Public function file" -ForEach @($script:Modules | Where-Object HasPublicDirectory) {
             $publicPath = Join-Path $script:ModulesPath "$Name\Public\*.ps1"
             (Get-ChildItem $publicPath).Count | Should -BeGreaterThan 0
         }
@@ -348,7 +169,7 @@ Describe "Module Dependencies" -Tag 'Integration', 'ModuleLoading', 'Fast' {
     Context "When checking required assemblies" {
         BeforeAll {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Import-Module $manifestPath -Force -ErrorAction Stop
             }
         }
@@ -358,7 +179,7 @@ Describe "Module Dependencies" -Tag 'Integration', 'ModuleLoading', 'Fast' {
         }
 
         It "All expected modules should be loaded" {
-            $loadedModules = (Get-Module PC-AI.*).Name
+            $loadedModules = (Get-Module -Name ($script:Modules.Name)).Name
             $loadedModules.Count | Should -Be $script:Modules.Count
         }
     }
@@ -368,7 +189,7 @@ Describe "Module Interoperability" -Tag 'Integration', 'ModuleLoading', 'Slow' {
     Context "When modules work together" {
         BeforeAll {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 Import-Module $manifestPath -Force -ErrorAction Stop
             }
         }
@@ -395,12 +216,12 @@ Describe "Module Interoperability" -Tag 'Integration', 'ModuleLoading', 'Slow' {
 
     Context "When unloading and reloading modules" {
         It "Should unload all modules cleanly" {
-            { Get-Module PC-AI.* | Remove-Module -Force } | Should -Not -Throw
+            { Get-Module -Name $script:Modules.Name | Remove-Module -Force } | Should -Not -Throw
         }
 
         It "Should reload modules without errors" {
             foreach ($module in $script:Modules) {
-                $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                 { Import-Module $manifestPath -Force -ErrorAction Stop } | Should -Not -Throw
             }
         }
@@ -415,7 +236,7 @@ Describe "Module Interoperability" -Tag 'Integration', 'ModuleLoading', 'Slow' {
 Describe "Module Performance" -Tag 'Integration', 'Performance', 'Slow' {
     Context "When measuring module load times" {
         It "Should load <Name> in reasonable time" -ForEach $script:Modules {
-            $manifestPath = Join-Path $script:ModulesPath "$Name\$Name.psd1"
+            $manifestPath = Join-Path $script:ModulesPath $ManifestRelativePath
 
             # Unload if already loaded
             Remove-Module $Name -Force -ErrorAction SilentlyContinue
@@ -429,11 +250,11 @@ Describe "Module Performance" -Tag 'Integration', 'Performance', 'Slow' {
 
         It "Should load all modules in reasonable total time" {
             # Unload all
-            Get-Module PC-AI.* | Remove-Module -Force -ErrorAction SilentlyContinue
+            Get-Module -Name $script:Modules.Name | Remove-Module -Force -ErrorAction SilentlyContinue
 
             $totalLoadTime = Measure-Command {
                 foreach ($module in $script:Modules) {
-                    $manifestPath = Join-Path $script:ModulesPath "$($module.Name)\$($module.Name).psd1"
+                    $manifestPath = Join-Path $script:ModulesPath $module.ManifestRelativePath
                     Import-Module $manifestPath -Force -ErrorAction Stop
                 }
             }
@@ -445,5 +266,5 @@ Describe "Module Performance" -Tag 'Integration', 'Performance', 'Slow' {
 
 AfterAll {
     # Clean up loaded modules
-    Get-Module PC-AI.* | Remove-Module -Force -ErrorAction SilentlyContinue
+    Get-Module -Name $script:Modules.Name | Remove-Module -Force -ErrorAction SilentlyContinue
 }

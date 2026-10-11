@@ -251,7 +251,12 @@ namespace PcaiNative
         {
             get
             {
-                try { return pcai_media_last_error_code() >= 0; }
+                try
+                {
+                    // Operation errors prove the entry point is callable too.
+                    _ = pcai_media_last_error_code();
+                    return true;
+                }
                 catch (DllNotFoundException) { return false; }
                 catch (EntryPointNotFoundException) { return false; }
             }
@@ -492,8 +497,15 @@ namespace PcaiNative
         /// <returns><c>null</c> on success, or an error message on failure.</returns>
         public static string? UpscaleImage(string modelPath, string inputPath, string outputPath)
         {
-            int rc = pcai_media_upscale_image(modelPath, inputPath, outputPath);
-            return rc == 0 ? null : GetLastError() ?? $"Upscale failed (code {rc})";
+            try
+            {
+                int rc = pcai_media_upscale_image(modelPath, inputPath, outputPath);
+                return rc == 0 ? null : GetLastError() ?? $"Upscale failed (code {rc})";
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return "The selected native media library does not include the upscale feature. Select a bundle built with upscale enabled.";
+            }
         }
 
         #endregion

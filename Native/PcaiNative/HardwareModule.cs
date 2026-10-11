@@ -82,6 +82,13 @@ namespace PcaiNative
         /// <summary>
         /// Samples hardware-related events from the Windows System Event Log.
         /// </summary>
+        /// <param name="days">Lookback window from 1 through 30 days.</param>
+        /// <param name="maxEvents">Maximum matching events from 1 through 500.</param>
+        /// <returns>
+        /// Real System-channel levels 1-3 as JSON, including id, level_display and full_message.
+        /// An empty array means a successful query with no matching events.
+        /// Null means unavailable, failed, invalid arguments or an incomplete bounded scan.
+        /// </returns>
         public static string? SampleHardwareEventsJson(uint days = 3, uint maxEvents = 50)
         {
             if (!IsAvailable) return null;

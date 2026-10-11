@@ -6,6 +6,13 @@ Inspect, prepare, configure or benchmark an isolated Linux Thunderbolt peer.
 Uses existing key-authenticated LAN SSH with strict host-key checking. Status is
 read-only. Mutations require -Apply and ShouldProcess approval. No gateway, DNS,
 WinRM, global firewall or Thunderbolt security changes are made.
+Select an SSH application/config explicitly when PATH or the agent pipe is
+unreliable. DisableSshAgent selects configured/default identity files only for
+this invocation; user and host-key verification remain in effect. A dedicated
+config preserves aliases; explicit configless mode uses SSH's default user and
+identity files and requires the profile alias to resolve the expected host.
+DryRun reads the peer
+profile only and does not contact either host or inspect adapters.
 .EXAMPLE
 ./Invoke-ThunderboltLinuxPeer.ps1 -Peer millylaptop1 -Action Configure -DryRun
 .EXAMPLE
@@ -23,12 +30,60 @@ param(
     [ValidateRange(1, 60)][int]$DurationSeconds = 10,
     [ValidateRange(1024, 65535)][int]$Port = 5201,
     [string]$IperfPath = 'iperf3',
+    [string]$SshPath = 'ssh',
+    [string]$SshConfigFile,
+    [switch]$DisableSshAgent,
     [Alias('h', 'help')][switch]$ShowHelp
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Invoke-VigilBoundedProcess.ps1')
+
+function Resolve-TbSshTransport {
+    [CmdletBinding()]
+    param([string]$Path = 'ssh', [string]$ConfigFile, [switch]$DisableAgent)
+    $application = Get-Command -Name $Path -CommandType Application -ErrorAction Stop | Select-Object -First 1
+    if (-not $application) { throw 'SSH application was not found.' }
+    $arguments = @()
+    if ($ConfigFile) {
+        if ($ConfigFile -eq 'none') {
+            # Explicit opt-in only: SSH default identity/user and resolvable alias must be suitable.
+            $resolvedConfig = 'none'
+        }
+        else {
+            $file = Get-Item -LiteralPath $ConfigFile -ErrorAction Stop
+            if ($file.PSIsContainer -or $file.PSProvider.Name -ne 'FileSystem') { throw 'SSH config must be a filesystem file.' }
+            $resolvedConfig = $file.FullName
+        }
+        $arguments += @('-F', $resolvedConfig)
+    }
+    if ($DisableAgent) { $arguments += @('-o', 'IdentityAgent=none', '-o', 'IdentitiesOnly=yes') }
+    return @{ FilePath = $application.Source; Arguments = $arguments }
+}
+
+function Get-TbSshArguments {
+    [CmdletBinding()]
+    param([hashtable]$SshTransport, [string[]]$Arguments = @())
+    if ($SshTransport) { return @($SshTransport.Arguments) + $Arguments }
+    return $Arguments
+}
+
+function New-TbSshStartInfo {
+    [CmdletBinding()]
+    param([hashtable]$SshTransport, [string[]]$Arguments)
+    $path = if ($SshTransport) { $SshTransport.FilePath } else { 'ssh' }
+    $start = [Diagnostics.ProcessStartInfo]::new($path)
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardInput = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    foreach ($argument in @(Get-TbSshArguments -SshTransport $SshTransport -Arguments $Arguments)) {
+        $start.ArgumentList.Add($argument)
+    }
+    return $start
+}
 
 function Invoke-TbNative {
     [CmdletBinding()]
@@ -45,14 +100,16 @@ function Invoke-TbNative {
 function Invoke-TbSsh {
     [CmdletBinding()]
     param([string]$SshAlias, [string]$Script, [int]$TimeoutSeconds = 30,
-        [string]$Address, [string]$KnownHostIdentity, [string]$SourceAddress)
+        [string]$Address, [string]$KnownHostIdentity, [string]$SourceAddress, [hashtable]$SshTransport)
     $arguments = @('-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=10')
     if ($Address) {
         $arguments += @('-o', "HostName=$Address", '-o', "HostKeyAlias=$KnownHostIdentity",
             '-o', 'ProxyJump=none', '-o', 'ProxyCommand=none', '-b', $SourceAddress)
     }
     $arguments += @($SshAlias, 'bash', '-s')
-    Invoke-TbNative -FilePath 'ssh' -Arguments $arguments -InputText $Script -TimeoutSeconds $TimeoutSeconds
+    $path = if ($SshTransport) { $SshTransport.FilePath } else { 'ssh' }
+    Invoke-TbNative -FilePath $path -Arguments (Get-TbSshArguments -SshTransport $SshTransport -Arguments $arguments) `
+        -InputText $Script -TimeoutSeconds $TimeoutSeconds
 }
 
 function Get-TbProfile {
@@ -110,7 +167,7 @@ function Select-TbWindowsAdapter {
 
 function Get-TbLinuxInventory {
     [CmdletBinding()]
-    param([string]$SshAlias)
+    param([string]$SshAlias, [hashtable]$SshTransport)
     $script = @'
 set -euo pipefail
 python3 - <<'PY'
@@ -137,7 +194,7 @@ print(json.dumps({'hostname':socket.gethostname(),'interfaces':interfaces,'thund
  'networkManagerAvailable':subprocess.run(['sh','-c','command -v nmcli >/dev/null'],check=False).returncode==0}))
 PY
 '@
-    Invoke-TbSsh -SshAlias $SshAlias -Script $script | ConvertFrom-Json
+    Invoke-TbSsh -SshAlias $SshAlias -Script $script -SshTransport $SshTransport | ConvertFrom-Json
 }
 
 function Select-TbLinuxInterface {
@@ -270,8 +327,10 @@ function Assert-TbBenchmarkRoute {
 
 function Test-TbSshEndpoint {
     [CmdletBinding()]
-    param([hashtable]$Profile, [string]$RemoteInterface)
-    $effective = Invoke-TbNative -FilePath 'ssh' -Arguments @('-G', $Profile.sshAlias)
+    param([hashtable]$Profile, [string]$RemoteInterface, [hashtable]$SshTransport)
+    $path = if ($SshTransport) { $SshTransport.FilePath } else { 'ssh' }
+    $effective = Invoke-TbNative -FilePath $path -Arguments (Get-TbSshArguments -SshTransport $SshTransport `
+        -Arguments @('-G', $Profile.sshAlias)) -TimeoutSeconds 10
     $hostname = ($effective -split "`n" | Where-Object { $_ -match '^hostname ' }) -replace '^hostname ', ''
     $hostKey = ($effective -split "`n" | Where-Object { $_ -match '^hostkeyalias ' }) -replace '^hostkeyalias ', ''
     if ($hostKey) { $hostKey = $hostKey.Trim() }
@@ -283,26 +342,30 @@ test "`$(hostname)" = '$($Profile.expectedHostname)'
 ip -j -4 route get '$($Profile.localAddress)' | python3 -c 'import json,sys; r=json.load(sys.stdin)[0]; assert r["dev"]=="$RemoteInterface"; print(json.dumps(r))'
 "@
     $reply = Invoke-TbSsh -SshAlias $Profile.sshAlias -Address $Profile.peerAddress -KnownHostIdentity $hostKey `
-        -SourceAddress $Profile.localAddress -Script $script | ConvertFrom-Json
+        -SourceAddress $Profile.localAddress -Script $script -SshTransport $SshTransport | ConvertFrom-Json
+    $command = "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ProxyJump=none -o ProxyCommand=none -b $($Profile.localAddress) -o HostName=$($Profile.peerAddress) -o HostKeyAlias=$hostKey $($Profile.sshAlias)"
+    if ($SshTransport) {
+        $commandArguments = Get-TbSshArguments -SshTransport $SshTransport -Arguments @('-o', 'BatchMode=yes',
+            '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=10', '-o', "HostName=$($Profile.peerAddress)",
+            '-o', "HostKeyAlias=$hostKey", '-o', 'ProxyJump=none', '-o', 'ProxyCommand=none',
+            '-b', $Profile.localAddress, $Profile.sshAlias, 'bash', '-s')
+        $quotedArguments = @($commandArguments | ForEach-Object { "'" + $_.Replace("'", "''") + "'" })
+        $command = "& '" + $SshTransport.FilePath.Replace("'", "''") + "' " + ($quotedArguments -join ' ')
+    }
     [pscustomobject]@{ Verified = $true; PeerAddress = $Profile.peerAddress; SourceAddress = $Profile.localAddress;
         KnownHostIdentity = $hostKey; LinuxReturnRoute = $reply;
-        Command = "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ProxyJump=none -o ProxyCommand=none -b $($Profile.localAddress) -o HostName=$($Profile.peerAddress) -o HostKeyAlias=$hostKey $($Profile.sshAlias)"
+        Command = $command
     }
 }
 
 function Invoke-TbBenchmark {
     [CmdletBinding()]
-    param([hashtable]$Profile, [object]$Adapter, [string]$RemoteInterface, [string]$Executable, [int]$Seconds, [int]$ServerPort)
+    param([hashtable]$Profile, [object]$Adapter, [string]$RemoteInterface, [string]$Executable, [int]$Seconds, [int]$ServerPort,
+        [hashtable]$SshTransport)
     Assert-TbBenchmarkRoute -Profile $Profile -Adapter $Adapter
     $results = @()
     foreach ($reverse in @($false, $true)) {
-        $start = [Diagnostics.ProcessStartInfo]::new('ssh')
-        $start.UseShellExecute = $false
-        $start.CreateNoWindow = $true
-        $start.RedirectStandardInput = $true
-        $start.RedirectStandardOutput = $true
-        $start.RedirectStandardError = $true
-        foreach ($arg in @('-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=10', $Profile.sshAlias, 'bash', '-s')) { $start.ArgumentList.Add($arg) }
+        $start = New-TbSshStartInfo -SshTransport $SshTransport -Arguments @('-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=10', $Profile.sshAlias, 'bash', '-s')
         $server = [Diagnostics.Process]::new()
         $server.StartInfo = $start
         $serverStarted = $false
@@ -322,17 +385,22 @@ kill -0 "`$child"
 echo PCAI_IPERF_READY
 wait "`$child"
 "@
-            $server.StandardInput.Write($serverScript.Replace("`r`n", "`n"))
+            $deadline = [DateTime]::UtcNow.AddSeconds(10)
+            $inputTask = $server.StandardInput.WriteAsync($serverScript.Replace("`r`n", "`n"))
+            if (-not $inputTask.Wait(10000)) { throw 'Remote benchmark server input timed out.' }
+            $inputTask.GetAwaiter().GetResult()
             $server.StandardInput.Close()
             $ready = $false
-            $deadline = [DateTime]::UtcNow.AddSeconds(10)
             while (-not $ready -and [DateTime]::UtcNow -lt $deadline) {
                 $lineTask = $server.StandardOutput.ReadLineAsync()
                 if (-not $lineTask.Wait([int][Math]::Max(1, ($deadline - [DateTime]::UtcNow).TotalMilliseconds))) {
                     throw 'Remote benchmark server readiness timed out.'
                 }
                 $line = $lineTask.GetAwaiter().GetResult()
-                if ($null -eq $line) { throw "Remote benchmark server failed: $($serverErr.GetAwaiter().GetResult())" }
+                if ($null -eq $line) {
+                    if (-not $serverErr.Wait(1000)) { throw 'Remote benchmark server failed and stderr capture timed out.' }
+                    throw "Remote benchmark server failed: $($serverErr.GetAwaiter().GetResult())"
+                }
                 $ready = $line -eq 'PCAI_IPERF_READY'
             }
             if (-not $ready) { throw 'Remote benchmark server did not become ready.' }
@@ -343,6 +411,7 @@ wait "`$child"
             $json = Invoke-TbNative -FilePath $Executable -Arguments $arguments -TimeoutSeconds ($Seconds + 15) | ConvertFrom-Json
             if ($json.PSObject.Properties.Name -contains 'error') { throw "iperf3 reported: $($json.error)" }
             if (-not $server.WaitForExit(10000)) { throw 'Remote one-shot benchmark server did not finish.' }
+            if (-not [Threading.Tasks.Task]::WaitAll(@($serverErr, $serverOut), 1000)) { throw 'Remote benchmark server output capture timed out.' }
             if ($server.ExitCode -ne 0) { throw "Remote benchmark server exited $($server.ExitCode): $($serverErr.GetAwaiter().GetResult())" }
             $null = $serverOut.GetAwaiter().GetResult()
             $results += [pscustomobject]@{ Direction = $(if ($reverse) { 'LinuxToWindows' } else { 'WindowsToLinux' }); Measurement = $json }
@@ -359,9 +428,17 @@ function Invoke-ThunderboltLinuxPeerMain {
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$SelectedAction, [string]$SelectedPeer, [string]$ProfilePath, [string]$WindowsAlias,
         [string]$RemoteInterface, [switch]$EnableApply, [switch]$IsDryRun,
-        [int]$Seconds = 10, [int]$ServerPort = 5201, [string]$Executable = 'iperf3')
+        [int]$Seconds = 10, [int]$ServerPort = 5201, [string]$Executable = 'iperf3',
+        [string]$SshPath = 'ssh', [string]$SshConfigFile, [switch]$DisableSshAgent)
     $profile = Get-TbProfile -Path $ProfilePath -Name $SelectedPeer
-    $linux = Get-TbLinuxInventory -SshAlias $profile.sshAlias
+    if ($IsDryRun) {
+        return [pscustomobject]@{ Action = $SelectedAction; Peer = $SelectedPeer; State = 'Planned'; Applied = $false;
+            Profile = $profile; WindowsAdapters = @(); Linux = $null; Blockers = @(); Measurements = @();
+            Plan = @('Dry-run profile only: live adapter, SSH identity and route checks are required before applying.');
+            SshRecoveryAlias = $profile.sshAlias; ThunderboltSsh = $null }
+    }
+    $sshTransport = Resolve-TbSshTransport -Path $SshPath -ConfigFile $SshConfigFile -DisableAgent:$DisableSshAgent
+    $linux = Get-TbLinuxInventory -SshAlias $profile.sshAlias -SshTransport $sshTransport
     if ($linux.hostname -cne $profile.expectedHostname) { throw 'SSH peer hostname does not match profile.' }
     $adapters = @(Get-NetAdapter -IncludeHidden)
     $result = [ordered]@{ Action = $SelectedAction; Peer = $SelectedPeer; State = 'Observed'; Applied = $false;
@@ -388,7 +465,7 @@ if ! command -v iperf3 >/dev/null; then
     sudo -n env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends iperf3
 fi
 "@
-            $null = Invoke-TbSsh -SshAlias $profile.sshAlias -Script $script -TimeoutSeconds 180
+            $null = Invoke-TbSsh -SshAlias $profile.sshAlias -Script $script -TimeoutSeconds 180 -SshTransport $sshTransport
             $result.Applied = $true
             $result.State = 'Prepared'
         }
@@ -401,12 +478,12 @@ fi
         $result.Plan = @("Add $($profile.localAddress)/30 on $($adapter.Name) and $($profile.peerAddress)/30 on $($remote.name); MTU $($profile.mtuBytes); no gateway or DNS.")
         if ($EnableApply -and -not $IsDryRun -and $PSCmdlet.ShouldProcess($SelectedPeer, 'Configure isolated Thunderbolt /30 on both hosts')) {
             $script = New-TbLinuxConfigureScript -Profile $profile -Name $SelectedPeer -Interface $remote.name
-            $null = Invoke-TbSsh -SshAlias $profile.sshAlias -Script $script -TimeoutSeconds 60
+            $null = Invoke-TbSsh -SshAlias $profile.sshAlias -Script $script -TimeoutSeconds 60 -SshTransport $sshTransport
             Set-NetIPInterface -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -NlMtuBytes $profile.mtuBytes
             $existing = @(Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 | Where-Object IPAddress -EQ $profile.localAddress)
             if (-not $existing.Count) { $null = New-NetIPAddress -InterfaceIndex $adapter.ifIndex -IPAddress $profile.localAddress -PrefixLength 30 }
             Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter
-            $result.ThunderboltSsh = Test-TbSshEndpoint -Profile $profile -RemoteInterface $remote.name
+            $result.ThunderboltSsh = Test-TbSshEndpoint -Profile $profile -RemoteInterface $remote.name -SshTransport $sshTransport
             $result.Applied = $true
             $result.State = 'Configured'
         }
@@ -417,7 +494,7 @@ fi
         if (-not $linux.iperf3Available) { throw 'Linux iperf3 is unavailable; run Prepare first.' }
         $result.Plan = @('Measure source-bound iperf3 forward and reverse throughput with bounded one-shot servers.')
         if ($EnableApply -and -not $IsDryRun -and $PSCmdlet.ShouldProcess($SelectedPeer, 'Run two iperf3 measurements')) {
-            $result.Measurements = @(Invoke-TbBenchmark -Profile $profile -Adapter $adapter -RemoteInterface $remote.name -Executable $Executable -Seconds $Seconds -ServerPort $ServerPort)
+            $result.Measurements = @(Invoke-TbBenchmark -Profile $profile -Adapter $adapter -RemoteInterface $remote.name -Executable $Executable -Seconds $Seconds -ServerPort $ServerPort -SshTransport $sshTransport)
             $result.Applied = $true
             $result.State = 'Measured'
         }
@@ -429,5 +506,6 @@ if ($MyInvocation.InvocationName -ne '.') {
     if ($ShowHelp) { Get-Help $PSCommandPath -Detailed; return }
     Invoke-ThunderboltLinuxPeerMain -SelectedAction $Action -SelectedPeer $Peer -ProfilePath $ConfigPath `
         -WindowsAlias $InterfaceAlias -RemoteInterface $LinuxInterface -EnableApply:$Apply -IsDryRun:$DryRun `
-        -Seconds $DurationSeconds -ServerPort $Port -Executable $IperfPath -WhatIf:$WhatIfPreference
+        -Seconds $DurationSeconds -ServerPort $Port -Executable $IperfPath -WhatIf:$WhatIfPreference `
+        -SshPath $SshPath -SshConfigFile $SshConfigFile -DisableSshAgent:$DisableSshAgent
 }

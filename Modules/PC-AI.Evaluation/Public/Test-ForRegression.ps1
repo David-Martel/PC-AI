@@ -49,7 +49,7 @@ function Test-ForRegression {
     $baselinePath = Join-Path $script:EvaluationConfig.BaselinePath "$BaselineName.json"
     if (-not (Test-Path -LiteralPath $baselinePath)) {
         Write-Error "Baseline not found: $BaselineName"
-        return $null
+        return
     }
 
     $baseline = Get-Content -LiteralPath $baselinePath | ConvertFrom-Json -AsHashtable

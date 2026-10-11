@@ -2,7 +2,7 @@
 
 ## Immediate dtm-p1gen7 responsiveness
 
-Current review: October 10, 2026 UTC. See the latest
+Current review: October 11, 2026, 00:34 UTC. See the latest
 [fleet readback](Reports/fleet-integration-review.md) and
 [cache correctness review](Reports/shared-cache-correctness-review.md).
 
@@ -10,10 +10,19 @@ Current review: October 10, 2026 UTC. See the latest
       clearing; independently verify eleven cache controls and explicit Redis skip.
 - [x] Integrate reviewed dtm-codex native host and 26-contract CI into main;
       retire only the exact integrated owned branch and preserve foreign work.
-- [ ] Complete fresh native filesystem client canary after the typed JSON
-      prerequisite repair, then qualify reversible new-session deployment.
-- [ ] Repair the demonstrated Rust 1.99 winpath lint in a frozen successor;
-      rerun narrow package QA before any wider uutils integration.
+- [x] Complete the fresh native filesystem client canary after the typed JSON
+      prerequisite repair; verify one real Unicode read and original closure.
+- [ ] Qualify reversible new-session deployment with exact transaction/helper
+      bindings and owned C:/D: controls before changing the registration.
+- [x] Repair the demonstrated Rust 1.99 winpath lint in a frozen successor;
+      preserve the successor's remaining 86 winutils-core diagnostics.
+- [ ] Repair genuine ACL/registry defects and review dependency-version policy;
+      pass narrow package QA before any wider uutils integration.
+- [x] Replace the reserved HOME assignment in the private Gitguard build child;
+      independently verify three offline commands, exact outputs and original closure.
+- [ ] Qualify real Gitguard inventory parity, fallback and timings before installation.
+- [ ] Execute the bounded poisoned-media-worker predecessor/candidate detectors,
+      then narrow crate regressions and lint before integrating the claimed repair.
 - [ ] Clear PC-AI current-head coverage and deployed consumer parity gates;
       preserve the 85% target and distinguish cache controls from coverage credit.
 

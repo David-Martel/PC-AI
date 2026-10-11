@@ -1,11 +1,85 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 10, 2026 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 11, 2026, 00:34 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
 
-## Current acceptance readback (23:17 UTC)
+## Current acceptance readback (00:34 UTC)
+
+Published `4bef994` passes 2,734 PowerShell cases with zero failures and 40 skips
+in [CI run 38095401802](https://github.com/David-Martel/PC-AI/actions/runs/38095401802).
+The unchanged 85% gate fails at 14,052/21,331 distinct commands, 65.875955%,
+requiring 4,080 further covered commands at that denominator. Uploaded JaCoCo
+contains 13,604 covered commands; the maintained gate adds 448 source-bound child
+commands. The independent review did not recompute the unavailable child inventories.
+The PR checkout is merge `39f4c617`, with published head `4bef994` as a parent.
+Rust Guidelines `38095401792` completed successfully on the same published head:
+452 tests pass, four are ignored and none fail across five distinct result rows.
+The media-model row takes 2,222.72 seconds; its 58 passes and three ignored tests
+explain most of the long execution. Six allowed dependency-audit warnings remain;
+success does not establish zero vulnerabilities. NVIDIA software validation passes.
+The terminal receipt is `.pcai/integration/current-ci-runtime-gap-review-r1/terminal-summary-r2.json`.
+PR 182 stays draft because the coverage gate and fleet acceptance remain open.
+
+dtm-codex PR 40 merged as `3e2b331`. Its exact merge-head
+[native run 38095723844](https://github.com/David-Martel/dtm-codex/actions/runs/38095723844)
+and portable quality run `38095723836` pass. Independent review verifies all 22
+selected contracts and four raw relay groups, source bindings and original closure.
+The expected timeout now returns exit 1 normally in 1.264 seconds without a harness
+kill; the earlier failed crash-exit trial remains preserved. Local main matches the
+merge and the reviewed source tree; only the integrated owned branch was retired.
+
+The fresh R7 filesystem canary passes: one real client read returns the exact
+27-byte Unicode fixture and all original custody closes. This qualifies that read;
+persistent registration remains gated on exact installer source and owned C:/D:
+writer controls. The first installer proposal is held because its fixture gate did
+not bind the delegated transaction helper; a separately frozen successor adds that
+binding. Actual writer controls then fail on the first C: install with sharing
+violation 32: its replacement data handle remains open across `File.Replace`.
+All original resources close, and no live configuration is changed. A separate
+metadata-only keeper permits replacement, but its initial unprotected sample
+changes the ACL auto-inheritance flag; that result remains FAIL. The protected
+successor also detects lost inheritance state before replacement. The next probe
+must use the maintained private-stage and recovery-ACL sequence exactly, and the
+full C:/D: inherited and legacy-deny controls remain mandatory before registration.
+Active clients and authentication remain outside the proposed change.
+
+The Rust winpath lint repair passes its former dependency point, but successor
+Clippy fails with 86 winutils-core diagnostics: 22 dependency-version policy
+warnings and 64 located code warnings. No package tests followed that failure.
+Review separately confirms the pathname-as-HANDLE ACL query and missing descriptor
+free, and identifies a source-level registry buffer-capacity risk; private source
+repairs and detecting controls are frozen. A readonly admission failure exposed
+the automatic PowerShell `$input` parameter collision; its successor renames that
+parameter and preserves all production Rust and twelve controls. Owned file and
+directory fixtures now pass preparation. Separate Root checks of selected ACLs
+match their retained expectations, and Root observes zero owned HKCU residue.
+Baseline native tests are running separately with two
+jobs, offline dependencies and D: outputs. Neither lint counts nor source review
+establish a reproduced memory overwrite or passing native correctness tests.
+
+The Gitguard inventory build successor replaces the reserved HOME assignment and
+passes its three offline SDK/build commands in 7.518 seconds with zero compiler
+warnings or errors. Independent source and actual reviews bind the exact five
+outputs; all ten outer resources and original writers close. The earlier HOME
+failure remains preserved. Real inventory parity, fallback checks and timings
+are still pending; no hook installation or performance acceptance follows.
+
+A separate media-worker source review identifies a poisoned-mutex deadlock: the
+error owns a guard while the worker attempts to acquire the same lock again.
+The claimed repair uses that held guard and retains the original error wording.
+Its two detecting fixtures require bounded predecessor/candidate execution;
+compilation, actual deadlock detection, narrow regressions and lint remain NOT_RUN.
+The successful published CI precedes this repair and does not qualify it.
+
+Fresh Milly readback still shows 622,824,415,232 internal free bytes (about 580 GiB)
+and the WDC SSD at UAS 10 Gb/s. Shared NTFS and its contained sparse Btrfs image
+have separate, non-additive free-space accounting. Physical second-slot vacancy,
+cold boot/removal and Windows access to the native image remain open. dtm-work and
+credential reconciliation remain open; fresh local ADB currently lists no device.
+
+## Historical acceptance readback (23:17 UTC)
 
 PC-AI PR 182's published `da3d9af` passes 2,727 PowerShell tests with 39 skips and
 no test failures, but CI run `38088936606` fails the unchanged coverage gate:

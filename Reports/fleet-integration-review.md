@@ -1,11 +1,103 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 11, 2026, 02:36 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 11, 2026, 05:04 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
 
-## Current acceptance and integration gaps (02:36 UTC)
+## Current acceptance and integration gaps (05:04 UTC)
+
+Fresh Carbon SSH and fetch confirm main `b92e5f6` matches origin/main, with the
+untracked private build script preserved. PowerShell 7.6.6 and Rust 1.99.0 are
+installed; SDK 10.0.401 is absent, so the P1 toolchain cannot simply be assumed on
+Carbon. Its four linked review worktrees exceed the three-worktree limit. The
+`pc-ai-current` tip `3b7600e` is an ancestor of main; review tips `45e7c3a`,
+`7a08bec` and `8cf282f` are not. The `45e7c3a` checkout retains three modified
+media/test files and a unique untracked test. A Codex process and retained
+PowerShell processes are alive. No worktree is retired from clean status or age
+alone; unique source and active custody still require reconciliation.
+
+The real native Bitwarden version attempt exits zero and settles its process,
+tasks, streams, cancellation object and handle, but the strict adapter rejects
+123 stderr bytes. The outer child exits one; original owner and closeout writers
+are closed, and the raw FAIL is preserved. Distinct review confirms settlement
+without accepting a version or credentials. Official CLI startup source gives a
+missing-data-file warning matching that byte count for the isolated path; this
+is an inference because raw stderr was not retained. A fresh source successor
+prepares an empty public data file before version discovery while keeping the
+zero-stderr contract. The separately admitted successor now passes actual native
+version discovery: public version 2026.9.1, nine stdout bytes and zero stderr
+bytes, engine exit zero with all seven resource-closure flags. Its outer child
+exits zero in 5.250 seconds with all ten closure flags, and original owner,
+input and closeout writers are closed after return. Independent artifact review
+accepts only public version discovery and confirms every immutable source pin.
+The earlier FAIL remains unchanged. No vault operation has run.
+
+Cache R5 again passes all 29 runnable controls with the one explicit Redis skip,
+but fails its report validator before XML production: a Pester container has
+Blocks and no Tests property, and the traversal reads the missing property under
+StrictMode. All original outer closure flags and writer closures pass; earlier
+cache and Bitwarden error objects remain unchanged. The failed receipt is
+retained. R6 uses typed container/block traversal while keeping all test bodies,
+30 source identities, grouping and physical XML validation unchanged. Its fresh
+actual run passes 29 controls with one declared Redis skip, verifies the physical
+UTF-8 XML's exact 30 identities and grouping order, and closes all nine capture
+operations plus the original outer process and writers. The outer run takes
+30.322 seconds. Independent actual review binds source, runtime, original
+closeout and the physical report. Native zero-byte/inherited-pipe fixtures,
+canonical adoption, real Redis and performance remain separate open gates.
+
+The first offline fixture builder remains unexecuted after independent source
+review identifies inherited PreBuildEvent/PostBuildEvent properties that the
+pinned SDK executes. Independent review accepts the minimal successor's
+rejection of these inputs and empty global properties for both restore/build.
+The actual ZeroByte run restores and compiles successfully with zero compiler
+warnings/errors, but its encloser remains FAIL: the Build host-trace read races
+an open file writer. All three original commands exit zero and close; the outer
+child exits one with all ten closure flags and closed original writers. The
+review also finds a case-insensitive variable collision: the trace parser
+overwrites its Path parameter with the loaded hostfxr path, mislabeling successful
+SDK/Restore trace receipts. Physical traces select hostfxr 10.0.12. Five output
+files exist with the expected net8.0/runtime8.0.31 metadata. Independent review
+accepts their exact source, portable-PDB pairing and physical trace lineage for
+separately admitted test-only execution; it preserves the failed encloser and
+does not accept fixture behavior. The untouched InheritedPipe fixture has not
+been built. Trace-reader repairs and genuine native fixture behavior remain
+pending. The successful read-only SDK inventory is not build, package,
+hostfxr-selection or native-fixture acceptance.
+
+An actual uncapped directory-manifest benchmark initially fails the FileCount
+comparison. The tree has exactly 391 file symbolic links and one directory
+symbolic link; native statistics count these among entries rather than ordinary
+files/directories. The PowerShell baseline now follows that classification,
+preserves ordinary hardlinks, and validates the derived other-entry count while
+retaining all four exact uncapped statistic comparisons. Two real link fixtures
+fail against the preserved predecessor; the corrected contract suite passes all
+40 cases without skips. Script analysis reports zero findings. The fresh native
+and PowerShell benchmark passes aggregate parity at depth three without a result
+cap: native mean 97.90 ms versus 1,368.48 ms, 13.98 times faster in this five-run
+window. Mean managed allocations are 646.82 KiB versus 303,046.91 KiB. Loaded
+Rust and C# DLL hashes remain unchanged. Independent review accepts the complete
+source change, genuine predecessor failures, physical 40-pass result and current
+aggregate comparison. Entry identities, full JSON link
+classification, whole-system responsiveness and other tooling remain separate
+claims. Capped manifests and different token heuristics still receive no
+qualified speedup comparison.
+
+Published signed head `83b5fe8` adds the qualified runtime DLL repair. Its exact
+[CI run 38105878561](https://github.com/David-Martel/PC-AI/actions/runs/38105878561)
+passes 2,796 PowerShell cases, with zero failures, 40 skips and zero not-run cases
+in 435.19 seconds, but fails the unchanged 85% coverage gate at 14,209/21,621
+commands, 65.718514%. Root reconstructs the same union from the downloaded
+source-bound artifact against all 239 module hashes in CI's exact merge commit:
+13,761 parent commands plus 448 child commands. Reaching 85% at this denominator
+requires 4,169 additional genuine hits. Distinct review independently reproduces
+the same parent, child and union identities and hashes. Rust tests, strict
+Clippy, format, .NET, CPU inference, security and PowerShell lint pass. NVIDIA
+validation and the separate Rust Guidelines run pass at the same published head. The
+coverage failure skips integration tests and fails the aggregate CI gate. Local
+and origin integration-branch heads match; PR 182 remains draft and unmerged.
+The preceding independently reconstructed coverage evidence follows.
 
 Published `908ac1a` passes 2,771 PowerShell cases with zero failures and 40 skips
 in [CI run 38102938733](https://github.com/David-Martel/PC-AI/actions/runs/38102938733).
@@ -17,8 +109,8 @@ inventories. Root and an independent reviewer reproduce the exact command union
 against all 239 module hashes from CI's exact merge commit, without substituting
 local CRLF files. The same denominator requires 3,941 additional hits to reach
 85%; no threshold or denominator was reduced. Rust Guidelines run `38102938734`
-has completed successfully. PR 182 remains draft and unmerged. The adopted change below
-requires its own current-head CI after publication.
+has completed successfully. The new head above has its own current-head result;
+the older reconstruction does not substitute for it.
 
 The workflow now captures source hashes before measurement and uploads the full
 parent command snapshot and result-bearing child receipts before enforcing the
@@ -69,22 +161,88 @@ The first Bitwarden public-controller run completes with two passes and thirteen
 failures, with its original process, streams and writers closed. It exposes a
 duplicate `help` alias and object parameters that unwrap caller references before
 process allocation. Both are repaired in a private successor; exact parameter
-binding probes preserve the old failure and new reference identity. The real
-fifteen controls have not yet qualified that successor. Independent source review
-also catches duplicate external pins that would reject its enclosure before
-execution. A packaging-only successor validates unique physical pins and retains
-every control body; its real public run is in progress. The packaging failure
-and the original actual failures are preserved;
-no vault, credential or Bitwarden executable is run by these public controls.
+binding probes preserve the old failure and new reference identity. Independent
+source review also catches duplicate external pins that would reject its enclosure
+before execution. The packaging-only successor retains every control body and
+passes all fifteen public controls without skips or not-run cases. Independent
+actual review verifies 104 source-bound assertions, 98 stable pins, eleven original
+engine closure rows and the closed outer operation. Root separately verifies
+original owner, input and closeout writers closed, with no native custody pending.
+The packaging failure and original actual failures remain preserved. These public
+controls run no vault, credential or real Bitwarden executable. A real native
+version-only canary remains source preparation, not credential acceptance.
 
 The metadata-writer probe initially fails at admission before allocating a child:
 its validator uses PowerShell's automatic `Input` variable as a parameter. The
 same complete function reproduces `ArgumentException: index`; renaming only that
 parameter and its references passes the inert metadata check. Three original
-read streams close, no native custody remains and all twelve native probes remain
-unexecuted. A minimal source successor retains their security and sharing
-assertions. This is a qualification-tool defect, not proof that ACL restoration
-works or permission to change the live MCP registration.
+read streams close with no native custody remaining. The repaired admission then
+launches a real isolated native probe: C_SharingRed passes, followed by AccessDenied
+when C_HistoricalPrivateParent reopens its replaced target before restoration.
+Ten later controls do not run. All fourteen reported child resource slots and all
+ten original outer closure flags close; Root owner/input/closeout writers are also
+closed. Independent actual review preserves the first failure and secondary
+diagnostics. Later read-only observations find an empty target DACL, the exact
+historical eight-ACE displaced descriptor, and a noninheritable private parent.
+The fixture omitted the maintained helper's Directory switch at its two directory
+call sites. A minimal successor corrects only those calls and advances execution
+paths to unused locations, retaining every descriptor, byte, identity, sharing
+and ordering assertion. Its actual run passes eight C:/D: controls, including exact
+historical descriptor restoration, wrong-byte refusal and later-path writer
+refusal. Current-parent setup then fails its unchanged exact-descriptor assertion:
+the captured directory has 12 ACEs/488 bytes, while the fixture clone has 11/452.
+Three later controls remain not run. The original outer job and all owner, input
+and successful closeout writers are closed with no native custody pending. A
+failed first Root closeout helper remains preserved separately; it failed before
+writer allocation. The raw-directory setup proposal passes independent source review;
+neither the eight controls nor that proposal qualifies current-parent restoration,
+MCP registration repair or deployment.
+
+Shared-cache process capture still waits for exit before reading either pipe and
+uses unbounded post-exit reads. The minimal private proposal preserves all current
+cache functions except that capture extent, reuses the existing bounded C# job
+controller and adds final deadline accounting after bounded decoding. Independent source review detects
+false EOF after successful zero-byte native pipe reads and an outer supervisor
+that terminates a child reporting managed resource HOLD. Source-reviewed successors
+address both defects. Five genuine supervisor controls pass: two ordinary exits,
+marker HOLD, markerless timeout HOLD and markerless output-overflow HOLD. Each
+failure stays sticky, blocks another launch, and closes only after the fixture
+settles its own original resources. Same-original post-return checks confirm all
+seven receipt writers closed, no first or secondary owner error and no native
+custody pending; independent actual review accepts only those five controls.
+Partial launch, descendant and shutdown paths remain unqualified. The cache
+encloser also fixes inherited Redis settings before Pester; its predecessor could
+call an external provider despite the probe skip. The first isolated run has
+29 passing rows and one declared Redis skip, but incorrectly treats Pester's skip
+reason as a failure. Its original resources close and its failed result remains
+preserved. A narrow successor retains the exact typed skip reason and passes all
+29 ordinary rows, with one declared skip and no not-run cases. Independent actual
+review then rejects its XML: UTF-8 physical bytes declare UTF-16. Passing test
+observations and original closure remain valid; export acceptance is HOLD.
+The source-reviewed XML successor checks the closed physical byte hash, XML
+encoding, all 30 ordered results and original parser disposal before PASS.
+Its actual run preserves 29 passes and the declared skip but fails the export
+validator's assumption that XML order equals the flat Pester result order.
+Independent physical review proves all 30 XML identities and results are correct:
+the pinned exporter groups parameterized cases by GroupId. Original resources
+close; the failure and its first/secondary causes remain preserved. A minimal
+successor must validate the genuine exporter projection and complete case
+identity mapping without changing test assertions.
+Genuine inherited-pipe
+qualification, canonical test defaults and cold/warm measurements remain gates
+before adoption;
+there is no production speedup or shared-server reuse claim yet.
+
+The separately admitted read-only .NET inventory completes in 76.175 seconds,
+reporting 4,040 files, 768 directories and 531,047,114 bytes for the selected
+SDK 8.0.425/runtime 8.0.31 inputs. The original outer operation exits zero with
+all ten closure flags true; original owner and separate Root receipt writers
+close without first or secondary errors. Independent actual review reproduces
+the complete record counts and totals, physical receipt hashes and closure
+evidence. The reviewer does not rehash the underlying SDK tree; those hashes and
+double-set checks are the sealed observer's successful-path evidence.
+This inventory provides no offline build, package, native fixture or toolchain
+deployment acceptance and does not change the installed default SDK.
 
 The latest bounded workstation sample covers 60.121 seconds and twelve samples:
 median CPU 36.018%, median available RAM about 15.3 GiB, commitment 81.387%,
@@ -103,11 +261,21 @@ sample. Copy, archive-byte verification and actual locked offline resolution are
 still unexecuted. The seed is not an offline-qualified build cache; expanded-cache
 inventory and the unchanged build limits remain separate requirements.
 
-Milly's fresh 02:10 UTC read-only storage check still shows approximately 580 GiB
+Milly's fresh read-only storage check still shows approximately 580 GiB
 free internally, the migrated SSD at UAS 10 Gb/s and all five Btrfs device-error
 counters at zero. Shared NTFS free space and sparse-image free space are not
-additive. Storage migration is verified;
-additional study compression, cold boot, physical removal, Windows access and
+additive. The Btrfs mount enables transparent zstd:3 compression; this configuration
+alone does not establish the whole study's achieved compression ratio. A fresh
+read-only native extent scan of the resolved study tree reproduces the completed
+migration's exact 3,763-file accounting: 557,246,863,357 disk bytes versus
+572,110,004,663 uncompressed bytes, saving about 13.84 GiB. The prior complete WAV
+group accounts for about 13.71 GiB of those savings; MP4 savings are negligible.
+A second attached
+SK Hynix SSD (serial AYCCN03781CB9190E) has about 953 GiB available on its existing
+FAT filesystem and retains about 168 MiB of unique calibration/audio files. No
+second-drive files are moved or deleted. Its file-size and Unix-metadata limits
+need a consumer-specific plan before using it for large study data. Storage
+migration is verified; additional study compression, cold boot, physical removal, Windows access and
 restore/application checks remain separate. Dtm-work access and credential
 adapter qualification remain open; the fresh ADB enumeration has no device.
 

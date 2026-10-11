@@ -181,6 +181,26 @@ Export-ModuleMember -Function Test-PcaiNativeAvailable,Get-PcaiNativeStatus,Get-
         $result=Get-PowerShellDirectoryManifest -Path $script:DataRoot
         $result.EntriesReturned|Should -Be 1;$result.TotalSize|Should -Be 3
     }
+    It 'counts actual file and directory links separately at native depth <Depth>' -TestCases @(
+        @{Depth=1;Entries=4;Files=1;Bytes=3}
+        @{Depth=2;Entries=5;Files=2;Bytes=8}
+    ) {
+        param($Depth,$Entries,$Files,$Bytes)
+        $nested=Join-Path $script:DataRoot 'nested'
+        $null=[IO.Directory]::CreateDirectory($nested)
+        [IO.File]::WriteAllBytes((Join-Path $nested 'deep.txt'),[byte[]](4,5,6,7,8))
+        $null=[IO.File]::CreateSymbolicLink((Join-Path $script:DataRoot 'file-link'),(Join-Path $script:DataRoot 'first.txt'))
+        $null=[IO.Directory]::CreateSymbolicLink((Join-Path $script:DataRoot 'directory-link'),$nested)
+        $result=Get-PowerShellDirectoryManifest -Path $script:DataRoot -MaxDepth $Depth
+        $result.EntriesReturned|Should -Be $Entries
+        $result.FileCount|Should -Be $Files
+        $result.DirectoryCount|Should -Be 1
+        $result.OtherEntries|Should -Be 2
+        $result.TotalSize|Should -Be $Bytes
+        # Constants describe the real fixture, rather than copying the baseline.
+        $stats=[pscustomobject]@{Status='Success';EntriesReturned=$Entries;FileCount=$Files;DirectoryCount=1;TotalSize=$Bytes}
+        {Assert-PcaiManifestBenchmarkStats -Stats $stats -Expected $result}|Should -Not -Throw
+    }
     It 'returns numeric zero statistics for an actual empty private directory' {
         Set-StrictMode -Version Latest
         $empty=Join-Path $TestDrive 'empty';$null=[IO.Directory]::CreateDirectory($empty)

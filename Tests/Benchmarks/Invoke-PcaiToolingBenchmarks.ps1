@@ -54,12 +54,16 @@ function Get-PowerShellDirectoryManifest {
         -not @($relative -split '[\\/]' | Where-Object { $_.StartsWith('.') }).Count
     })
     if ($MaxResults -gt 0) { $entries = @($entries | Select-Object -First $MaxResults) }
-    $files = @($entries | Where-Object { -not $_.PSIsContainer })
-    $directories = @($entries | Where-Object { $_.PSIsContainer })
+    # Native traversal retains links as entries without following them or
+    # classifying them as ordinary files/directories. Hardlinks remain files.
+    $ordinary = @($entries | Where-Object { $_.LinkType -notin @('SymbolicLink','Junction') })
+    $files = @($ordinary | Where-Object { -not $_.PSIsContainer })
+    $directories = @($ordinary | Where-Object { $_.PSIsContainer })
     [pscustomobject]@{
         EntriesReturned = [uint64]$entries.Count
         FileCount = [uint64]$files.Count
         DirectoryCount = [uint64]$directories.Count
+        OtherEntries = [uint64]($entries.Count - $files.Count - $directories.Count)
         TotalSize = if ($files.Count -eq 0) { [uint64]0 } else { [uint64](($files | Measure-Object -Property Length -Sum).Sum) }
     }
 }
@@ -89,9 +93,13 @@ function Assert-PcaiManifestBenchmarkStats {
             throw "Manifest native useful output mismatch: $name"
         }
     }
-    if ([decimal]$Stats.EntriesReturned -ne ([decimal]$Stats.FileCount + [decimal]$Stats.DirectoryCount) -or
+    $otherEntries = [decimal]$Stats.EntriesReturned - [decimal]$Stats.FileCount - [decimal]$Stats.DirectoryCount
+    if ($otherEntries -lt 0 -or
         ($MaxResults -gt 0 -and [uint64]$Stats.EntriesReturned -gt $MaxResults)) {
         throw 'Manifest native count invariant failed.'
+    }
+    if ($MaxResults -eq 0 -and $otherEntries -ne [decimal]$Expected.OtherEntries) {
+        throw 'Manifest native useful output mismatch: OtherEntries'
     }
 }
 
@@ -495,7 +503,7 @@ function Get-ToolingCaseBenchmarks {
                 Qualification=[pscustomobject]@{
                     ComparisonQualified=($nativeAvailable -and $maxResults -eq 0)
                     UsefulOutputParity=if ($nativeAvailable -and $maxResults -eq 0) {'matched-aggregate-stats'} else {'not-established'}
-                    OutputContract=if ($maxResults -eq 0) {'Counts and total file bytes; entry identities are not measured.'} else {'Capped parallel traversal selects an unaligned subset; speedup is unqualified.'}
+                    OutputContract=if ($maxResults -eq 0) {'Ordinary file/directory counts, other entry count and ordinary file bytes; entry identities are not measured.'} else {'Capped parallel traversal selects an unaligned subset; speedup is unqualified.'}
                 }
             }
         }

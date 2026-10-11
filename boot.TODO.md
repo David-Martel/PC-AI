@@ -2,7 +2,7 @@
 
 ## Immediate dtm-p1gen7 responsiveness
 
-Current review: October 11, 2026, 02:36 UTC. See the latest
+Current review: October 11, 2026, 05:04 UTC. See the latest
 [fleet readback](Reports/fleet-integration-review.md) and
 [cache correctness review](Reports/shared-cache-correctness-review.md).
 
@@ -32,21 +32,72 @@ Current review: October 11, 2026, 02:36 UTC. See the latest
 - [x] Publish and independently reconstruct head 908ac1a parent/child coverage
       artifacts against all 239 exact committed module hashes. Its 2,771-pass CI
       remains below target at 66.535470%; subsequent heads require fresh CI.
+- [x] Independently reconstruct head 83b5fe8 against its exact CI merge sources:
+      2,796 tests pass; 14,209/21,621 commands (65.718514%) leave 4,169 genuine
+      additional hits needed for the unchanged 85% gate. NVIDIA and Guidelines pass.
 - [x] Qualify and adopt the runtime DLL integrity repair: strict and ordinary
       25-control runs pass; the prior dictionary implementation fails seven of
       eight detecting controls. Adopted defaults plus 43 existing consumer
       controls pass; rollback data and unresolved original resources are retained.
-- [ ] Qualify the Bitwarden public controller after repairing the demonstrated
+- [x] Qualify the Bitwarden public controller after repairing the demonstrated
       duplicate-help alias and reference-parameter binding defects; preserve
-      the 2-pass/13-fail actual receipt and source packaging refusals.
+      the 2-pass/13-fail actual receipt and source packaging refusals. All fifteen
+      public controls pass with independent actual review and original closure.
+- [ ] Qualify a real source-bound native Bitwarden version canary, then credential
+      reuse separately; public fixtures establish neither native nor vault access.
+      Preserve the settled native version failure: process exit zero with 123
+      stderr bytes, outer exit one, no accepted version or credential action.
+      The fresh isolated public-data initialization now passes actual version
+      2026.9.1 with zero stderr and original engine/outer/writer closure;
+      independent artifact review passes for public version only. Credential
+      access remains separate.
 - [ ] Qualify metadata-write keeper sharing, exact security restoration and
       current-parent reproduction before any MCP registration repair or deployment.
+      Preserve the one-pass/interrupted AccessDenied native run and the successor's
+      eight passes/current-parent setup failure. Review exact raw-directory setup
+      without weakening descriptor, byte, identity or sharing guards.
+- [x] Qualify five genuine retained-child supervisor controls, preserving timeout,
+      overflow and HOLD causes through original-resource settlement; separately
+      review exact actual bytes and same-original writer closure.
+- [ ] Qualify and benchmark the reused bounded shared-cache capture controller,
+      including genuine inherited pipes and maintained default test discovery.
+      Preserve the first skip-classification failure and the successor's
+      29-pass/one-skip observations with invalid XML export HOLD; qualify the
+      reviewed physical-byte XML correction before any export acceptance.
+      Preserve R4 exporter-order failure and R5 StrictMode container-property
+      failure, both after 29 passes/one declared skip and original closure.
+      The fresh typed container/block successor passes 29 controls/one declared
+      skip and all 30 physical UTF-8 XML identities; distinct actual review and
+      original capture/parser/outer/writer closure pass. Native fixtures,
+      maintained defaults, canonical adoption and benchmarks remain open.
+- [x] Independently review the completed read-only SDK inventory: 4,040 file
+      records, 768 directories, exact totals and original closure. Peer review
+      does not replay underlying leaf hashes; inventory alone is not a build.
+- [ ] Qualify separately admitted offline fixture builds with actual hostfxr
+      selection, isolated D: outputs and unchanged native fixture source.
+      The unexecuted builder's event-property source successor now passes
+      independent review. Actual ZeroByte compilation produces five outputs with
+      zero compiler warnings/errors, but trace-file sharing and parser Path
+      shadowing keep its encloser FAIL. Preserve its original errors/closure;
+      independent exact source/PDB/trace lineage review permits separately
+      admitted test-only reuse of the five outputs. InheritedPipe
+      build and native behavior remain open.
 - [ ] Prepare and verify the public media cache seed only after capacity admission;
       then perform actual locked offline resolution and complete cache inventory.
 - [ ] Execute the bounded poisoned-media-worker predecessor/candidate detectors,
       then narrow crate regressions and lint before integrating the claimed repair.
 - [ ] Clear PC-AI current-head coverage and deployed consumer parity gates;
       preserve the 85% target and distinguish cache controls from coverage credit.
+      Published 83b5fe8 passes 2,796 cases but fails coverage at 65.718514%; retain
+      current-head artifact reconstruction as a separate verification action.
+- [x] Correct the manifest benchmark's symbolic-link classification using two
+      genuine failing predecessor controls; pass all forty contract cases and
+      zero script-analysis findings. Independent source and physical-results
+      review passes. Fresh uncapped aggregate parity passes,
+      with native mean 97.90 ms versus 1,368.48 ms over five measured runs.
+- [ ] Reconcile full native manifest JSON link kinds and file-search consumers;
+      aggregate benchmark parity does not establish entry-identity parity or
+      acceptance of a newly rebuilt native library.
 
 Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
 [the responsiveness review](Reports/workstation-responsiveness-review.md).

@@ -4,8 +4,8 @@ This is the active high-level backlog for `PC_AI`. Completed historical work
 should be recorded in the relevant report, context snapshot, or specialized
 ledger instead of left here as active work.
 
-Last reconciled: 2026-09-07, after a CI/tooling repair pass. The previous
-reconciliation was 2026-04-30.
+Last reconciled: 2026-10-11, after Windows fleet source integration and Git
+custody cleanup. Earlier CI/tooling evidence remains dated 2026-09-07.
 
 ## 2026-10-11 Windows fleet and VIGIL closeout
 
@@ -18,14 +18,15 @@ pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
   discovery, media checks and staged module deployment.
 - [x] Review the public profile workaround and bounded crash collector for
   publication, including isolated profile probes and missing-provider values.
-- [ ] Merge the Windows fleet/profile work only after the final reviewed head
-  passes the required checks; reconcile local main and retire owned branches.
+- [x] Merge the Windows fleet/profile work after all 12 final-head checks pass;
+  fast-forward local main and retire owned merged branches and backed-up stash.
 - [x] Review PR182's canonical LLM-helper test admission repair. Its owner
   concurrently published the approved-name fix; preserve the tested alternate
   proposal and retire its owned temporary worktree.
-- [ ] Re-run PR182 exact-head CI; helper admission alone does not establish
-  merge acceptance. Audit the existing 85% PowerShell coverage target and its
-  enforcement separately: successful main reports 51.83%, unchanged by PR183.
+- [ ] Resolve PR182's nine integration conflicts and qualify its final head.
+  At `fac1d1a`, tests pass but the explicit coverage gate fails at 66.9936%
+  against 85%. Audit coverage selection/enforcement separately: successful
+  fleet CI reports 51.83%, unchanged by PR183; neither result meets the target.
 - [ ] Integrate Candle dependency upgrades together with media/CUDA coverage,
   and validate mistral.rs upgrades with that backend enabled. CPU-only green CI
   does not establish optional backend compatibility.
@@ -35,8 +36,10 @@ pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
   rebuild compiled clients affected by nullable managed measurement signatures.
 - [ ] Obtain Claude's Eko source-ownership acknowledgment; retain the active
   locked worktree and close the reviewed transport/UI reliability findings.
-- [ ] Add Windows WinRT CI and a Linux BlueZ backend; qualify Dell UVC/pose and
-  multi-site acquisition through recorded HIL rather than replay tests alone.
+- [x] Merge Eko duplicate/integrity and camera lifecycle/freshness fixes with
+  Windows WinRT/session and Windows/Linux pose-sidecar CI (Eko PR4 and PR5).
+- [ ] Implement a Linux BlueZ backend and Linux UVC capture; qualify Dell
+  UVC/pose and multi-site acquisition through recorded physical HIL.
 - [ ] Complete physical power-path comparison and hang evidence collection on
   the NUC. Software changes do not establish a hardware freeze cure.
 
@@ -307,9 +310,12 @@ suspicion.
   This describes the historical August/September observations. By 2026-10-11,
   main runs 37844013709, 37843335547 and 37842855172 passed. Main and PR183 both
   report 51.83% against the 85% PowerShell target; that deficit did not fail the
-  main job. PR182 requires refreshed checks after its test-admission repair;
-  audit coverage selection/enforcement independently rather than assuming the
-  target itself blocks merging or inferring status from old failures.
+  main job. PR182's repaired head `fac1d1a` now has refreshed checks: 2,897
+  passes, zero failures and 40 skips, but its explicit source-bound gate fails
+  at 66.9936% (14,616/21,817) against 85%. This verified gate failure and nine
+  conflicts with merged main block acceptance. Audit main's separate coverage
+  selection/enforcement gap without treating its target-only report as the
+  same contract or carrying forward the historical admission failures.
 - [ ] git-guard's commit-time Rust gate can never PASS in this repo, only
   block. `qa_check_rust` in `git-guard/hooks/common/qa_gate.sh` runs
   `cd "$REPO_ROOT" && cargo fmt --all --check` (and the same for clippy), but

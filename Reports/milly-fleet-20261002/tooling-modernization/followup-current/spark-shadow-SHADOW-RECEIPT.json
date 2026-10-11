@@ -1,0 +1,67 @@
+{
+  "schema_version": "vigil.source-review/v1",
+  "created_at": "2026-10-02T23:05:11.028604+00:00",
+  "base": "285354ca8fcc7cc76c7c1d064825528b708bd111",
+  "head": "1ba33a303a676ff89041d8373ec271cf6c713e2f",
+  "tree": "e715b78244860e6181acd53c0f36f16c8c1bdf99",
+  "signature": "G",
+  "worktree": "/home/damartel/dev/worktrees/vigil-spark-shadow-cwd-20261002",
+  "branch": "codex/shadow-cwd-20261002",
+  "clean": true,
+  "changed_paths": [
+    ".github/workflows/qa.yml",
+    "ops/vigil-network/pyproject.toml",
+    "ops/vigil-network/uv.lock",
+    "scripts/test_impact_shadow.py",
+    "tests/test_test_impact_shadow.py"
+  ],
+  "patch_sha256": "75b60ef7e0712a91dcd5816866fb9f3b804084535dd63171fc916ee5ba44b42a",
+  "tests": {
+    "red": {
+      "log": "shadow-red-final.log",
+      "failed": 8,
+      "passed": 12,
+      "exit": 1
+    },
+    "green": {
+      "log": "shadow-final-quality.log",
+      "passed": 75,
+      "failed": 0,
+      "seconds": 10.18,
+      "note": "pytest and Ruff completed successfully; later actionlint stalled, owned container was stopped, aggregate command exit2 retained; actionlint succeeded separately."
+    },
+    "real_network_smoke": {
+      "log": "shadow-real-network-final.log",
+      "passed": 1,
+      "exit": 0,
+      "claim": "real locked project sync + installed testmon/plugin synthetic assertion and JSON observer record; no native VDR installed or hardware touched"
+    },
+    "lint": {
+      "ruff": "PASS in shadow-final-quality.log",
+      "actionlint_shellcheck": "PASS zero errors in shadow-actionlint-debug.log, bounded25s",
+      "diff_check": "PASS"
+    }
+  },
+  "environment": {
+    "image": "vigil-milly-endpoint-qa:20261002",
+    "image_digest": "sha256:4e02891bacb54661bae04187ab22d213f28189c96f37ab8bde2f9ed113c43a4b",
+    "uv": "0.12.19 mounted readonly",
+    "python_contracts": "3.12.3",
+    "python_real_network": "3.13.13 mounted readonly",
+    "qa_container_only": true
+  },
+  "preserved_failures": [
+    "Initial image uv not executable; readonly installed uv fixed test environment.",
+    "First lock cache permission denied; unique disposable container cache used.",
+    "Lock regeneration required pinned Git source; missing SSH failed; read-only existing sibling exact8538c7c source supplied via container-only Git URL transport mapping, source pin unchanged.",
+    "Original source regressions retained.",
+    "Ruff eval rule rejected first identity test; replaced with real shell subprocess rather than suppressing rule.",
+    "First actionlint command stalled; owned container stopped, fresh bounded invocation passed."
+  ],
+  "limits": [
+    "No full testmon job replay or CI run for candidate yet.",
+    "No test selection enabled; no required gates or budgets changed.",
+    "No fleet toolchain installation, deployment, sensor or HIL actions."
+  ],
+  "publication": "STOP before push; pending parent exact-head review"
+}

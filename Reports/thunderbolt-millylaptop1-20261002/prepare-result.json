@@ -1,0 +1,13 @@
+{
+  "Action": "Prepare",
+  "Peer": "millylaptop1",
+  "State": "Prepared",
+  "Applied": true,
+  "Blockers": [
+    "Blocked: expected exactly one genuine Thunderbolt peer adapter; found 0.",
+    "Blocked: Linux needs one thunderbolt-net interface with carrier."
+  ],
+  "Plan": [
+    "Load and persist thunderbolt_net; install iperf3 without enabling its daemon; retain LAN SSH."
+  ]
+}

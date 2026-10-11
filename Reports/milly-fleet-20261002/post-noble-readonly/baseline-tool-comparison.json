@@ -1,0 +1,100 @@
+[
+  {
+    "name": "uv",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "uv 0.12.22 (x86_64-unknown-linux-musl)",
+    "afterVersion": "uv 0.12.22 (x86_64-unknown-linux-musl)"
+  },
+  {
+    "name": "uvx",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "uvx 0.12.22 (x86_64-unknown-linux-musl)",
+    "afterVersion": "uvx 0.12.22 (x86_64-unknown-linux-musl)"
+  },
+  {
+    "name": "gh",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "gh version 2.102.0 (2026-09-30)\nhttps://github.com/cli/cli/releases/tag/v2.102.0",
+    "afterVersion": "gh version 2.102.0 (2026-09-30)\nhttps://github.com/cli/cli/releases/tag/v2.102.0"
+  },
+  {
+    "name": "ninja",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "1.13.2",
+    "afterVersion": "1.13.2"
+  },
+  {
+    "name": "sccache",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "sccache 0.18.0",
+    "afterVersion": "sccache 0.18.0"
+  },
+  {
+    "name": "cargo-nextest",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: x86_64-unknown-linux-musl",
+    "afterVersion": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: x86_64-unknown-linux-musl"
+  },
+  {
+    "name": "just",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "just 1.58.0",
+    "afterVersion": "just 1.58.0"
+  },
+  {
+    "name": "ruff",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "ruff 0.16.10",
+    "afterVersion": "ruff 0.16.10"
+  },
+  {
+    "name": "ty",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "ty 0.0.84",
+    "afterVersion": "ty 0.0.84"
+  },
+  {
+    "name": "basedpyright",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "basedpyright 1.40.1\nbased on pyright 1.1.414",
+    "afterVersion": "basedpyright 1.40.1\nbased on pyright 1.1.414"
+  },
+  {
+    "name": "pytest",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "pytest 9.1.1",
+    "afterVersion": "pytest 9.1.1"
+  },
+  {
+    "name": "cmake",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "cmake version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+    "afterVersion": "cmake version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake)."
+  },
+  {
+    "name": "cpack",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "cpack version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+    "afterVersion": "cpack version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake)."
+  },
+  {
+    "name": "ctest",
+    "exit": 0,
+    "hashMatch": true,
+    "beforeVersion": "ctest version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+    "afterVersion": "ctest version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake)."
+  }
+]

@@ -1,5 +1,12 @@
 # Shift-Key Resolution Addendum — 2026-06-19
 
+> **September 12 correction: unresolved.** This historical document contains conflicting
+> causal verdicts that exceed its observations. USB success does not categorically
+> exclude software; one successful hold does not exclude intermittent hardware. The
+> 12%/13% timing heuristic did not measure intended input or actual application failures.
+> Preserve the recorded observations, but use the
+> [renewed investigation](../keyboard-investigation-20260912/README.md) for decisions.
+
 Follow-up to [`FINDINGS.md`](FINDINGS.md). The original investigation left the **Shift** branch
 *undecided* ("software vs hardware/EC") pending an input-capture trace (open item **K1**). The user
 supplied the discriminating observation that the prior analysis was missing, and it collapses the

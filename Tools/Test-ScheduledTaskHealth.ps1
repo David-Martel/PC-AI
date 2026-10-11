@@ -127,13 +127,13 @@ $Expected = @($Expected)
 # in a hashtable makes ContainsKey miss silently, which would have quietly
 # downgraded exactly the killed-process codes this script exists to catch.
 $InformationalCodes = @{
-    '0x41300'    = 'Ready (not yet run)'
-    '0x41301'    = 'Currently running'
-    '0x41302'    = 'Disabled'
-    '0x41303'    = 'Has not run'
-    '0x41304'    = 'No more runs scheduled'
-    '0x41305'    = 'Not scheduled'
-    '0x41325'    = 'Queued'
+    '0x41300' = 'Ready (not yet run)'
+    '0x41301' = 'Currently running'
+    '0x41302' = 'Disabled'
+    '0x41303' = 'Has not run'
+    '0x41304' = 'No more runs scheduled'
+    '0x41305' = 'Not scheduled'
+    '0x41325' = 'Queued'
 }
 # Codes worth naming in the report rather than printing bare hex.
 $KnownFailureCodes = @{
@@ -238,14 +238,15 @@ function Get-TriggerExpectation {
                     $bestInterval = $span
                 }
                 continue
-            } catch {
+            }
+            catch {
                 # An unparseable interval is not a reason to fail the whole run.
                 Write-Verbose "Unparseable repetition interval '$($repetition.Interval)' on $($Task.TaskName)"
             }
         }
 
         switch -Wildcard ($className) {
-            'MSFT_TaskBootTrigger'  { $sawBootOrLogon = $true }
+            'MSFT_TaskBootTrigger' { $sawBootOrLogon = $true }
             'MSFT_TaskLogonTrigger' { $sawBootOrLogon = $true }
             'MSFT_TaskDailyTrigger' {
                 $span = [TimeSpan]::FromDays(1)
@@ -268,7 +269,8 @@ function Get-TriggerExpectation {
 $bootTime = $null
 try {
     $bootTime = (Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime
-} catch {
+}
+catch {
     Write-Warning "Could not read LastBootUpTime - boot/logon staleness will not be evaluated."
 }
 
@@ -279,7 +281,8 @@ $now = Get-Date
 # failure, which is the exact defect this tool exists to catch. Fail loudly.
 try {
     $tasks = @(Get-ScheduledTask -ErrorAction Stop)
-} catch {
+}
+catch {
     Write-Host "FATAL: could not enumerate scheduled tasks - $($_.Exception.Message)" -ForegroundColor Red
     Write-Host '       This is NOT a clean result. Task Scheduler could not be queried.'
     exit 2
@@ -298,7 +301,19 @@ if (-not [string]::IsNullOrWhiteSpace($TaskPathFilter)) {
 
 $results = foreach ($task in $tasks) {
     $info = $null
-    try { $info = $task | Get-ScheduledTaskInfo -ErrorAction Stop } catch { }
+    $inspectionStatus = 'Available'
+    $inspectionReason = $null
+    try {
+        $info = $task | Get-ScheduledTaskInfo -ErrorAction Stop
+    }
+    catch {
+        $inspectionStatus = 'Unavailable'
+        $inspectionReason = "Task inspection unavailable: Get-ScheduledTaskInfo failed: $($_.Exception.Message)"
+    }
+    if ($null -eq $info -and $inspectionStatus -eq 'Available') {
+        $inspectionStatus = 'Unavailable'
+        $inspectionReason = 'Task inspection unavailable: Get-ScheduledTaskInfo returned no metadata'
+    }
 
     $lastRun = $null
     $nextRun = $null
@@ -318,6 +333,10 @@ $results = foreach ($task in $tasks) {
     $owner = Get-TaskOwner -Task $task
     $status = 'Healthy'
     $reasons = [System.Collections.Generic.List[string]]::new()
+    if ($inspectionStatus -eq 'Unavailable') {
+        $status = 'Failed'
+        $reasons.Add($inspectionReason)
+    }
 
     # --- Axis 1: the last result code -------------------------------------
     $resultText = 'No result recorded'
@@ -325,15 +344,19 @@ $results = foreach ($task in $tasks) {
         $hex = '0x{0:X}' -f $lastResult
         if ($lastResult -eq 0) {
             $resultText = 'Success'
-        } elseif ($hex -eq '0x41301') {
+        }
+        elseif ($hex -eq '0x41301') {
             $resultText = $InformationalCodes[$hex]
-        } elseif ($TerminationCodes -contains $hex) {
+        }
+        elseif ($TerminationCodes -contains $hex) {
             $resultText = "$hex $($KnownFailureCodes[$hex])"
             $status = 'Failed'
             $reasons.Add("Last run $resultText")
-        } elseif ($InformationalCodes.ContainsKey($hex)) {
+        }
+        elseif ($InformationalCodes.ContainsKey($hex)) {
             $resultText = "$hex $($InformationalCodes[$hex])"
-        } else {
+        }
+        else {
             $named = if ($KnownFailureCodes.ContainsKey($hex)) { $KnownFailureCodes[$hex] } else { 'Action returned a nonzero exit code' }
             $resultText = "$hex $named"
             $status = 'Failed'
@@ -344,7 +367,8 @@ $results = foreach ($task in $tasks) {
     # --- Axis 2: has it actually been running? -----------------------------
     # Evaluated independently. A task can report result 0 and still be stalled.
     $staleness = 'n/a'
-    if ($task.State -ne 'Disabled') {
+    if ($inspectionStatus -eq 'Unavailable') { $staleness = 'not evaluated (inspection unavailable)' }
+    if ($task.State -ne 'Disabled' -and $inspectionStatus -eq 'Available') {
         switch ($expectation.Kind) {
             'Interval' {
                 $budget = $expectation.Interval * $StaleFactor
@@ -357,17 +381,19 @@ $results = foreach ($task in $tasks) {
                     $staleness = 'never run'
                     if ($null -ne $nextRun -and $nextRun -gt $now) {
                         $staleness = "never run; first run due {0:yyyy-MM-dd HH:mm}" -f $nextRun
-                    } else {
+                    }
+                    else {
                         if ($status -eq 'Healthy') { $status = 'Stalled' }
                         $reasons.Add("Has a $([math]::Round($expectation.Interval.TotalMinutes)) min cadence, has never run, and has no future run scheduled")
                     }
-                } else {
+                }
+                else {
                     $age = $now - $lastRun
                     $staleness = "{0:N1} h since last run" -f $age.TotalHours
                     if ($age -gt $budget) {
                         if ($status -eq 'Healthy') { $status = 'Stalled' }
                         $reasons.Add(("Last ran {0:N1} h ago but its cadence is {1:N1} h (allowed {2}x = {3:N1} h)" -f `
-                            $age.TotalHours, $expectation.Interval.TotalHours, $StaleFactor, $budget.TotalHours))
+                                    $age.TotalHours, $expectation.Interval.TotalHours, $StaleFactor, $budget.TotalHours))
                         # The cause is almost always this: a repetition pattern
                         # only arms when its trigger FIRES. A task registered
                         # with boot/logon triggers after the current boot has
@@ -384,12 +410,14 @@ $results = foreach ($task in $tasks) {
                         $staleness = 'never run'
                         if ($status -eq 'Healthy') { $status = 'Stalled' }
                         $reasons.Add('Triggers on boot or logon but has never run')
-                    } elseif ($lastRun -lt $bootTime) {
+                    }
+                    elseif ($lastRun -lt $bootTime) {
                         $staleness = 'predates last boot'
                         if ($status -eq 'Healthy') { $status = 'Stalled' }
                         $reasons.Add(("Triggers on boot or logon but last ran {0:yyyy-MM-dd HH:mm}, before the current boot at {1:yyyy-MM-dd HH:mm}" -f `
-                            $lastRun, $bootTime))
-                    } else {
+                                    $lastRun, $bootTime))
+                    }
+                    else {
                         $staleness = 'ran this boot'
                     }
                 }
@@ -404,19 +432,20 @@ $results = foreach ($task in $tasks) {
     if ($Expected -contains $task.TaskName) { $status = 'Ignored' }
 
     [pscustomobject]@{
-        TaskPath    = $task.TaskPath
-        TaskName    = $task.TaskName
-        Owner       = $owner
-        State       = [string]$task.State
-        Status      = $status
-        LastRunTime = $lastRun
-        NextRunTime = $nextRun
-        LastResult  = $lastResult
-        ResultText  = $resultText
-        Cadence     = $expectation.Kind
-        Staleness   = $staleness
-        MissedRuns  = $missed
-        Reasons     = @($reasons)
+        TaskPath         = $task.TaskPath
+        TaskName         = $task.TaskName
+        Owner            = $owner
+        State            = [string]$task.State
+        Status           = $status
+        InspectionStatus = $inspectionStatus
+        LastRunTime      = $lastRun
+        NextRunTime      = $nextRun
+        LastResult       = $lastResult
+        ResultText       = $resultText
+        Cadence          = $expectation.Kind
+        Staleness        = $staleness
+        MissedRuns       = $missed
+        Reasons          = @($reasons)
     }
 }
 
@@ -431,19 +460,19 @@ $stalled = @($results | Where-Object { $_.Status -eq 'Stalled' })
 $issues = @($failed) + @($stalled)
 
 $summary = [pscustomobject]@{
-    GeneratedAt  = $now.ToString('o')
-    Computer     = $env:COMPUTERNAME
-    LastBootUp   = if ($null -ne $bootTime) { $bootTime.ToString('o') } else { $null }
-    StaleFactor  = $StaleFactor
-    LocalOnly    = [bool]$LocalOnly
+    GeneratedAt      = $now.ToString('o')
+    Computer         = $env:COMPUTERNAME
+    LastBootUp       = if ($null -ne $bootTime) { $bootTime.ToString('o') } else { $null }
+    StaleFactor      = $StaleFactor
+    LocalOnly        = [bool]$LocalOnly
     VendorSuppressed = $vendorSuppressed
-    TotalTasks   = $results.Count
-    Healthy      = @($results | Where-Object { $_.Status -eq 'Healthy' }).Count
-    Failed       = $failed.Count
-    Stalled      = $stalled.Count
-    Disabled     = @($results | Where-Object { $_.Status -eq 'Disabled' }).Count
-    Ignored      = @($results | Where-Object { $_.Status -eq 'Ignored' }).Count
-    Tasks        = $results
+    TotalTasks       = $results.Count
+    Healthy          = @($results | Where-Object { $_.Status -eq 'Healthy' }).Count
+    Failed           = $failed.Count
+    Stalled          = $stalled.Count
+    Disabled         = @($results | Where-Object { $_.Status -eq 'Disabled' }).Count
+    Ignored          = @($results | Where-Object { $_.Status -eq 'Ignored' }).Count
+    Tasks            = $results
 }
 
 if ($issues.Count -gt 0) {
@@ -454,13 +483,14 @@ if ($issues.Count -gt 0) {
         Write-Host ("  [{0}] {1}{2}" -f $r.Status.ToUpper(), $r.TaskPath, $r.TaskName) -ForegroundColor $colour
         foreach ($reason in $r.Reasons) { Write-Host "      - $reason" }
     }
-} else {
+}
+else {
     Write-Host "All $($results.Count) task(s) healthy." -ForegroundColor Green
 }
 
 Write-Host ''
 Write-Host ("Total {0} | healthy {1} | failed {2} | stalled {3} | disabled {4} | ignored {5}" -f `
-    $summary.TotalTasks, $summary.Healthy, $summary.Failed, $summary.Stalled, $summary.Disabled, $summary.Ignored)
+        $summary.TotalTasks, $summary.Healthy, $summary.Failed, $summary.Stalled, $summary.Disabled, $summary.Ignored)
 
 if (-not [string]::IsNullOrWhiteSpace($OutputJson) -and -not $DryRun) {
     $jsonDir = Split-Path -Parent $OutputJson

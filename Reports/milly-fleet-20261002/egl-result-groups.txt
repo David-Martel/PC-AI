@@ -1,0 +1,3 @@
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+EGL 1.5 vendor=NVIDIA renderer=NVIDIA RTX 5000 Ada Generation Laptop GPU/PCIe/SSE2 GL=4.6.0 NVIDIA 580.178.04 pixel=255,0,0 error=0

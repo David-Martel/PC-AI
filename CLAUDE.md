@@ -375,13 +375,19 @@ pwsh Tests\Benchmarks\Measure-PcaiNetworkDiscovery.ps1
 pwsh Tests\Benchmarks\Measure-PcaiThunderboltNetworking.ps1
 ```
 
-Reports written to `Reports/tooling-benchmarks/<timestamp>/`. Key validated metrics:
+Reports written to `Reports/tooling-benchmarks/<timestamp>/` (gitignored, local only). Measured
+ranges across the recorded runs (re-derived 2026-09-27 from every `tooling-benchmark-report.json`):
 
-| Operation | Native (Rust FFI) | PowerShell | Speedup |
-|-----------|-------------------|------------|---------|
-| Content search | ~13ms | ~1,900ms | **143x** |
-| File search | ~22ms | ~2,150ms | **68x** |
-| Directory manifest | ~5ms | ~200ms | **40x** |
+| Operation | Native (Rust FFI) | PowerShell | Speedup | Source |
+|-----------|-------------------|------------|---------|--------|
+| Content search | 4-10 ms | 0.9-2.4 s | **~150-300x** | ~30 default-suite runs, 2026-09-07/08 |
+| File search | 22-340 ms | 1.4-4.2 s | **~10-70x** | quick/default runs 2026-03 to 2026-09 |
+| Directory manifest | 19-253 ms | 0.2-1.3 s | **~3-25x** | quick-suite runs 2026-03 to 2026-09 |
+
+The earlier "~5 ms directory manifest" figure appears in no recorded run. The quick suite has no
+content-search case. **Check CPU load before trusting a run** (`(Get-CimInstance
+Win32_Processor).LoadPercentage`): on 2026-09-27 a run during concurrent Rust builds (94-100% CPU)
+made `network-discovery` look 18x slower (9 s -> 161 s); idle, its dominant CIM query takes ~2 s.
 
 Config: `Config/pcai-tooling-benchmarks.json` — 15 benchmark cases across startup, search, cache, and network categories.
 

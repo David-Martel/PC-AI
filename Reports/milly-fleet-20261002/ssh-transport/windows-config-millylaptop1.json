@@ -1,0 +1,24 @@
+{
+  "host": "millylaptop1",
+  "effective": [
+    "user cog",
+    "hostname 192.168.50.43",
+    "port 22",
+    "batchmode no",
+    "compression no",
+    "controlmaster false",
+    "identitiesonly yes",
+    "stricthostkeychecking true",
+    "tcpkeepalive yes",
+    "connectionattempts 2",
+    "serveralivecountmax 3",
+    "serveraliveinterval 60",
+    "ciphers chacha20-poly1305@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com",
+    "hostkeyalias millylaptop1",
+    "identityagent //./pipe/openssh-ssh-agent",
+    "identityfile ~/.ssh/id_ed25519_david-DTM-P1GEN7",
+    "forwardagent no",
+    "connecttimeout 8",
+    "controlpersist no"
+  ]
+}

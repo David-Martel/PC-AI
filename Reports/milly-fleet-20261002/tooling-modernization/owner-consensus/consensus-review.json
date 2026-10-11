@@ -1,0 +1,122 @@
+{
+  "schema": "vigil.toolchain-proposal-consensus-review.v1",
+  "reviewedAt": "2026-10-02T23:01:51.8830635Z",
+  "reviewer": "codex/tb_context",
+  "scope": "Read-only review and explicitly authorized owner coordination. Receipt files only; no source, host, service, network, credential, ROS or HIL changes.",
+  "proposal": {
+    "remotePath": "/home/damartel/dev/evidence/git-hygiene-20261002/toolchain-research-20261002.md",
+    "localPath": "C:\\Users\\david\\AppData\\Local\\Temp\\toolchain-proposal-review-20261002\\toolchain-research-20261002.md",
+    "sha256": "2d0d766a50ab729b2e427f962db29801b7795bcb2f5137a85a8ed046d0dd8a4b",
+    "bytes": 43346,
+    "gitHead": null,
+    "gitHeadUnavailableReason": "Proposal is an evidence-file artifact; repository source head was not represented as a proposal Git commit."
+  },
+  "relatedSource": {
+    "repo": "David-Martel/vigil-utils",
+    "pr": 334,
+    "url": "https://github.com/David-Martel/vigil-utils/pull/334",
+    "observedHead": "d2781cd4f376cc94acf68916fb33ea7395e0ef2e",
+    "owner": "claude-asus",
+    "independentReviewOwner": "codex-floor-ratchet",
+    "adoption": "Report-only; no enforcement/floors until reviewed error/empty-selector/interpreter fixes and negative controls.",
+    "reviewUrl": "https://github.com/David-Martel/vigil-utils/pull/334#issuecomment-5962755739",
+    "reviewSource": "Authenticated gh API exact comment verified 2026-10-02; web anonymous lookup404.",
+    "reviewCounterexamples": "Two exact-head isolated executable counterexamples with positive/negative controls; one source-proven colcon candidate attribution defect. No host/HIL census."
+  },
+  "evidence": {
+    "ownerThread": "owner-thread.json",
+    "ownerThreadSha256": "3d9540ac13e508c60c1daf3e7176346cf6074ebc57aa68e88572c9d7076238c8",
+    "independentReceipt": "independent-docs-tooling-review/receipt.json",
+    "independentReceiptSha256": "9ecc4a475f859bc13843a390711630efb12d92839795a0ee21c0f5ec00d68294",
+    "primarySources": [
+      "https://doc.rust-lang.org/cargo/guide/build-performance.html",
+      "https://ccache.dev/manual/latest.html",
+      "https://colcon.readthedocs.io/en/released/reference/mixin-arguments.html",
+      "https://github.com/labgrid-project/labgrid/blob/master/doc/overview.rst"
+    ],
+    "f1ReviewComment": "f1-pr334-review-comment.json",
+    "f1ReviewCommentSha256": "f53283680f88850c650cc1f6258494b583a4b634d49534695816cf3be11d3ea8"
+  },
+  "ownerPositions": [
+    {
+      "owner": "codex-dtm-p1gen7",
+      "role": "TPM owner",
+      "message": "01a0fed0-2018-7608-85c5-10079cd3f7c9",
+      "agreed": "Bounded additive Sphinx-Needs over canonical requirements.csv; retain DOC-TOOL-008/009/010 and005Vale, source/graph/acceptance joins; defer StrictDoc migration, labgrid deployment, blanket reruns/new floors."
+    },
+    {
+      "owner": "codex-asus",
+      "role": "ASUS source/fleet orchestrator",
+      "message": "01a0fed2-61d0-7331-811c-2b9fcfdea6bc",
+      "agreed": "Keep TPM records/report generators and Ansible provisioning authoritative; pilot ID/link parity, existing device custody, pinned correctness/measurement before acceleration; no global installs/floors."
+    },
+    {
+      "owner": "/root",
+      "role": "Windows Milly maintenance owner",
+      "message": "Parent direct instructions 2026-10-02",
+      "agreed": "Corrected research/adoption matrix plus offline docs pilot; prioritize fail-closed Windows documentation/path fix. No blanket rollout."
+    },
+    {
+      "owner": "claude-asus",
+      "role": "F1/F2 source owner",
+      "agreed": null,
+      "status": "ACK and corrected proposal/Windows scope still pending at receipt time",
+      "requestMessages": [
+        "01a0fecb-d25f-7393-a146-06590cd041d9",
+        "01a0fed2-fdd2-760c-9754-5b4d350c2194",
+        "01a0fed4-4ccf-7002-87bb-03ccb49206f5",
+        "01a0fed9-23e4-70c3-b8aa-c15c0a2e3f8b"
+      ]
+    }
+  ],
+  "recommendedFirstChanges": [
+    "Windows PC_AI dedicated docs-gate/path fix: check native child exits; requested generator failure nonzero; stale output cannot satisfy fresh run; explicit in-repo roots, opt-in external roots; actual failed-child/stale-output negative controls. Reuse Build.ps1/CargoTools/platyPS/CSharp XML/rustdoc. Root source findings are static, no live failure test performed in this receipt lane.",
+    "TPM small isolated derived Needs publishing pilot on existing CSV/DAG records; verify IDs/text/status/link parity, duplicate/dangling rejection, strict warnings, idempotent anchors and immutable source/tool receipts. Keep authoritative registries/closed-loop unchanged.",
+    "F1 PR334 fixes and independent exact-head tests before enforcement; report-only consumer must preserve UNKNOWN/missing input/lane errors/unresolved coverage and checker version/hash, no duplicated minima.",
+    "Correct F2 body/config/installer evidence matrix in existing backlog before application. Extend checksum-pinned Ansible or Windows owner tooling; no parallel installer authority."
+  ],
+  "mustFixProposal": [
+    "Invalid Cargo [build] rustc-link-arg; use explicit Linux target linker/rustflags preserving Windows MSVC settings.",
+    "Invalid ad-hoc ccache [remote] configuration; actual key=value remote_storage syntax, credential ownership and pinned support required.",
+    "Unverified colcon --profile; supported mixin extension uses --mixin and requires fresh generator/build custody.",
+    "nextest Rust tests cannot establish colcon/ROS suite speedups; uv tool cargo-llvm-cov uses wrong ecosystem.",
+    "Header corrections do not repair stale body versions or measured/proven/no-risk statements; remove unsupported benchmarks, EOL, mandatory classifications and invented trace IDs.",
+    "labgrid client disconnect does not establish acquired-place teardown; use disposable custody adapter pilot with contention/death/restart/orphan controls, no second lock authority.",
+    "xdist only isolated independent tests; no HIL concurrency."
+  ],
+  "deferred": [
+    "StrictDoc migration/parallel tracker",
+    "Live labgrid exporters or physical custody changes",
+    "Global mise/micromamba/apt replacement or PATH reorder",
+    "Redis cache, NVIDIA/GB10 container runtime or fleet floors during backup/HIL",
+    "Fleet acceptance, clinical/HIL readiness or regulatory/tool classification claims"
+  ],
+  "unresolved": [
+    "Claude source-owner ACK, corrected matrix and exact Windows automation/path scope/first PR ownership",
+    "TPM reviewed decision artifact path/head and exact source owner for offline pilot",
+    "F1 revised signed head and negative controls",
+    "Final shadow plugin smoke/new immutable source receipt"
+  ],
+  "shadowFix": {
+    "message": "01a0fed5-0bf6-7505-bb05-4c4b99d1609a",
+    "orchestrator": "codex-asus",
+    "implementationOwner": "codex-oto-context",
+    "repo": "vigil-spark",
+    "path": "/home/damartel/dev/worktrees/vigil-spark-shadow-cwd-20261002",
+    "branch": "codex/shadow-cwd-20261002",
+    "base": "285354ca8",
+    "immutableNewHead": null,
+    "sourceOwnerReportedTests": "RED8fail/12pass toGREEN20pass with actual uvsync environment control; final plugin smoke pending",
+    "WindowsOwnerEdits": false
+  },
+  "boundaries": {
+    "HILHold": "Retain newest native0546 owner hold until fresh RESOURCE_DONE; no seat/stream/input/network/service actions",
+    "maintenance": "Milly OS/checksum owned by parent; no packages/global changes in this lane",
+    "report": "Parent owns PC_AI Reports/milly-fleet-20261002, renewed codex lease23:53:55UTC",
+    "acceptance": false,
+    "measuredSpeedup": false,
+    "proposalReadyToApply": false,
+    "fullSourceOwnerConsensus": false
+  },
+  "proposalRemoteReverified": "2026-10-02T23:01UTC remote size43346/SHA256unchanged; corrected source matrix still pending."
+}

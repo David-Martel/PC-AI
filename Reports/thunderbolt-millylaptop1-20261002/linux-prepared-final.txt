@@ -1,0 +1,10 @@
+module persistence: thunderbolt_net
+iperf 3.9 (cJSON 1.7.13)
+iperf service: inactive
+owned NM profiles: iperf listeners: State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+TB devices: 0-0
+domain0
+security: none
+XDomain allowed: Y
+controller runtime policy: auto
+firmware tooling: /usr/bin/fwupdmgr

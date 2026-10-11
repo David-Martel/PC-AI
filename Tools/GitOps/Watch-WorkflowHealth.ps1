@@ -1,59 +1,60 @@
 #requires -Version 7.0
 <#
 .SYNOPSIS
-    Detect SILENT GitHub Actions failures for a repo: billing/quota blocks (runs never start),
-    startup_failure, disabled workflows, and recent run failures. The "CI looks green" illusion
-    comes from runs that never ran — this surfaces them.
-
-.DESCRIPTION
-    Read-only. Writes a JSON snapshot to Reports/gitops/ and returns a summary object. Intended to be
-    fired non-blocking from a git hook (see Install-GitOpsHooks.ps1) so agents working with git/gh can
-    read the result. Posts a high-priority agent-bus note only when problems are found.
-
-.PARAMETER Repo   owner/name (default: derived from the current repo via gh).
-.PARAMETER Limit  recent runs to inspect (default 15).
-.PARAMETER Quiet  suppress console output (hook mode).
+Inspect workflow failures and expose unavailable GitHub metadata explicitly.
 #>
 [CmdletBinding()]
-param([string] $Repo, [int] $Limit = 15, [switch] $Quiet)
-
-$ErrorActionPreference = 'Continue'
-if (-not $Repo) { $Repo = (gh repo view --json nameWithOwner --jq .nameWithOwner 2>$null) }
-if (-not $Repo) { Write-Error 'cannot determine repo'; exit 2 }
-function Say($m, $c = 'Gray') { if (-not $Quiet) { Write-Host $m -ForegroundColor $c } }
-
-$problems = [System.Collections.Generic.List[string]]::new()
-
-# 1. Recent runs: failures + startup_failure (the silent one)
-$runs = gh run list -R $Repo --limit $Limit --json databaseId,status,conclusion,workflowName,event,createdAt 2>$null | ConvertFrom-Json
-foreach ($r in $runs) {
-    if ($r.conclusion -eq 'startup_failure') { $problems.Add("startup_failure: $($r.workflowName) (run $($r.databaseId)) — often billing/permissions, no failure email") }
-    elseif ($r.conclusion -eq 'failure') { $problems.Add("failure: $($r.workflowName) (run $($r.databaseId))") }
-    elseif ($r.conclusion -eq 'action_required') { $problems.Add("action_required: $($r.workflowName)") }
+param([string]$Repo, [ValidateRange(1, 100)][int]$Limit = 15, [switch]$Quiet,
+    [string]$RepoRoot = (Join-Path $PSScriptRoot '../..'), [string]$OutputDirectory,
+    [ValidateRange(1, 120)][int]$RequestTimeoutSeconds = 15)
+. (Join-Path $PSScriptRoot 'Invoke-GitOpsMonitors.ps1') -LibraryOnly -Repo $Repo -RepoRoot $RepoRoot -OutputDirectory $OutputDirectory -RequestTimeoutSeconds $RequestTimeoutSeconds
+$ErrorActionPreference = 'Stop'
+$RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $RepoRoot 'Reports/gitops' }
+if (-not $Repo) {
+    $identity = Get-GitOpsResponse -Operation repository -Arguments @('repo', 'view', '--json', 'nameWithOwner') -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds -Shape Object
+    if ($identity.status -eq 'Available') { $Repo = $identity.value.nameWithOwner }
 }
-
-# 2. Disabled workflows (a configured workflow silently turned off)
-$wf = gh api "repos/$Repo/actions/workflows" --jq '.workflows[] | select(.state|startswith("disabled")) | .name' 2>$null
-foreach ($w in $wf) { $problems.Add("workflow disabled: $w") }
-
-# 3. Billing / minutes (account-level; quota exhaustion makes runs never start)
-$billing = gh api /user/settings/billing/actions 2>$null | ConvertFrom-Json
-if ($billing -and $billing.total_minutes_used -ge $billing.included_minutes -and $billing.included_minutes -gt 0) {
-    $problems.Add("Actions minutes exhausted: $($billing.total_minutes_used)/$($billing.included_minutes) — paid runs may be blocked")
+if ($Repo -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') { Write-Warning 'Repository identity is unavailable or invalid.'; exit 2 }
+$problems = [Collections.Generic.List[string]]::new()
+$inspections = [Collections.Generic.List[object]]::new()
+$runs = Get-GitOpsResponse -Operation runs -Arguments @('run', 'list', '-R', $Repo, '--limit', "$Limit", '--json', 'databaseId,status,conclusion,workflowName,event,createdAt') -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds -Shape Array
+$inspections.Add($runs)
+if ($runs.status -eq 'Available') {
+    foreach ($run in $runs.value) {
+        if (-not $run.status -or -not $run.workflowName -or
+            ($run.status -eq 'completed' -and [string]::IsNullOrWhiteSpace($run.conclusion))) {
+            $runs.status = 'Unavailable'; $runs.reason = 'Run metadata is incomplete.'; break
+        }
+        if ($run.conclusion -in @('startup_failure', 'failure', 'action_required')) { $problems.Add("$($run.conclusion): $($run.workflowName) (run $($run.databaseId))") }
+    }
 }
-
+$workflows = Get-GitOpsResponse -Operation workflows -Arguments @('api', "repos/$Repo/actions/workflows") -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds -Shape Object
+$inspections.Add($workflows)
+if ($workflows.status -eq 'Available') {
+    if ($workflows.value.workflows -isnot [array]) { $workflows.status = 'Unavailable'; $workflows.reason = 'Workflow metadata is incomplete.' }
+    else {
+        foreach ($workflow in $workflows.value.workflows) {
+            if (-not $workflow.state -or -not $workflow.name) { $workflows.status = 'Unavailable'; $workflows.reason = 'Workflow metadata is incomplete.'; break }
+            if ($workflow.state -like 'disabled*') { $problems.Add("workflow disabled: $($workflow.name)") }
+        }
+    }
+}
+$billing = Get-GitOpsResponse -Operation billing -Arguments @('api', '/user/settings/billing/actions') -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds -Shape Object
+$inspections.Add($billing)
+if ($billing.status -eq 'Available') {
+    if ($null -eq $billing.value.total_minutes_used -or $null -eq $billing.value.included_minutes) { $billing.status = 'Unavailable'; $billing.reason = 'Billing metadata is incomplete.' }
+    elseif ($billing.value.included_minutes -gt 0 -and $billing.value.total_minutes_used -ge $billing.value.included_minutes) { $problems.Add("Actions minutes exhausted: $($billing.value.total_minutes_used)/$($billing.value.included_minutes)") }
+}
+$available = @($inspections | Where-Object status -EQ Unavailable).Count -eq 0
 $snap = [ordered]@{
-    repo = $Repo; checked_utc = (Get-Date).ToString('o')
-    problem_count = $problems.Count; problems = $problems
-    last_runs = @($runs | Select-Object -First 5 | ForEach-Object { @{ wf = $_.workflowName; status = $_.status; conclusion = $_.conclusion } })
-    billing = if ($billing) { @{ used = $billing.total_minutes_used; included = $billing.included_minutes } } else { $null }
+    repo = $Repo; checked_utc = [datetime]::UtcNow.ToString('o'); inspection_status = if ($available) { 'Available' } else { 'Unavailable' }
+    problem_count = $problems.Count; problems = @($problems)
+    last_runs   = if ($runs.status -eq 'Available') { @($runs.value | Select-Object -First 5 | ForEach-Object { @{ wf = $_.workflowName; status = $_.status; conclusion = $_.conclusion } }) } else { @() }
+    billing     = if ($billing.status -eq 'Available') { @{ used = $billing.value.total_minutes_used; included = $billing.value.included_minutes } } else { $null }
+    inspections = @($inspections | Select-Object operation, status, exit_code, reason)
 }
-$root = Resolve-Path (Join-Path $PSScriptRoot '..\..') | Select-Object -ExpandProperty Path
-$dir = Join-Path $root 'Reports\gitops'; New-Item -ItemType Directory $dir -Force | Out-Null
-$out = Join-Path $dir ("workflow-health-{0}.json" -f ($Repo -replace '[\\/]', '_'))
-$snap | ConvertTo-Json -Depth 6 | Set-Content $out -Encoding UTF8
-
-Say "workflow-health $Repo : $($problems.Count) problem(s) -> $out" ($problems.Count ? 'Yellow' : 'Green')
-$problems | ForEach-Object { Say "  ! $_" 'Red' }
-$snap | ConvertTo-Json -Depth 6 -Compress
-exit ($problems.Count ? 1 : 0)
+Write-GitOpsReport -Report $snap -Directory $OutputDirectory -Name ('workflow-health-' + $Repo.Replace('/', '_') + '.json')
+if (-not $Quiet) { "workflow-health $Repo : inspection=$($snap.inspection_status) problems=$($problems.Count)" }
+$snap | ConvertTo-Json -Depth 8 -Compress
+exit $(if (-not $available) { 2 } elseif ($problems.Count -gt 0) { 1 } else { 0 })

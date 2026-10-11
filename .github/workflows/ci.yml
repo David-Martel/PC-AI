@@ -168,9 +168,32 @@ jobs:
         run: |
           cargo llvm-cov --no-default-features --features server,ffi --lib --lcov --output-path lcov.info
           cargo llvm-cov --no-default-features --features server,ffi --lib --fail-under-lines 70
+      # Pin and verify the official CLI independently of cli.codecov.io. The
+      # action's binary input bypasses its built-in download verification.
+      - name: Prepare Verified Codecov CLI
+        id: prepare-codecov
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { throw 'RUNNER_TEMP is required' }
+          $binaryDirectory = Join-Path $env:RUNNER_TEMP ('codecov-cli-' + [Guid]::NewGuid().ToString('N'))
+          $binaryPath = (Join-Path $binaryDirectory 'codecov.exe').Replace('\', '/')
+          # The upstream Bash wrapper invokes its binary without quoting it.
+          if ($binaryPath -match '\s') { throw 'Codecov binary path must not contain whitespace' }
+          New-Item -ItemType Directory -Path $binaryDirectory -ErrorAction Stop | Out-Null
+          curl.exe --fail --location --proto '=https' --proto-redir '=https' --connect-timeout 15 --max-time 60 --output $binaryPath 'https://github.com/codecov/codecov-cli/releases/download/v11.3.1/codecovcli_windows.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Codecov CLI download failed' }
+          $expectedHash = 'D43733506ED2561533A7182ED5C4C2B23711DDA1F03CBE9D120BCC888AC4E10A'
+          if ((Get-FileHash -LiteralPath $binaryPath -Algorithm SHA256).Hash -ne $expectedHash) { throw 'Codecov CLI SHA256 mismatch' }
+          $version = & $binaryPath --version
+          if ($LASTEXITCODE -ne 0 -or ($version -join "`n").Trim() -cne 'codecovcli, version 11.3.1') { throw 'Codecov CLI version mismatch' }
+          "binary=$binaryPath" >> $env:GITHUB_OUTPUT
       - name: Upload Coverage
-        uses: codecov/codecov-action@v4
+        if: always() && steps.prepare-codecov.outcome == 'success' && steps.prepare-codecov.outputs.binary != ''
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
+          binary: ${{ steps.prepare-codecov.outputs.binary }}
           files: Native/pcai_core/pcai_inference/lcov.info
           flags: rust-inference
           fail_ci_if_error: false
@@ -234,7 +257,10 @@ jobs:
           # Tests/Integration belongs in integration-tests, which does download
           # the artifacts; moving it there is a follow-up, as those 22 suites
           # have never executed against a real DLL and will surface real gaps.
-          $config.Run.Path = @('Tests/Unit')
+          # The bounded workload profiler requires PowerShell 7 and Windows
+          # counters. Include its exact suite here without expanding the shared
+          # PowerShell 5.1 compatibility baseline in maintenance.yml.
+          $config.Run.Path = @('Tests/Unit', 'Tests/Boot/WorkloadResourceProfile.Tests.ps1')
           $config.Run.Exit = $true
           $config.CodeCoverage.Enabled = $true
           $config.CodeCoverage.OutputFormat = 'JaCoCo'
@@ -242,10 +268,39 @@ jobs:
           $config.CodeCoverage.CoveragePercentTarget = 85
           $config.Output.Verbosity = 'Detailed'
           Invoke-Pester -Configuration $config
-      - name: Upload Coverage
+      # Keep the raw report available even while the remote upload is optional.
+      - name: Upload JaCoCo Artifact
         if: always()
-        uses: codecov/codecov-action@v4
+        uses: actions/upload-artifact@v4
         with:
+          name: powershell-jacoco-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: Tests/TestResults/coverage.xml
+          retention-days: 14
+          if-no-files-found: error
+      - name: Prepare Verified Codecov CLI
+        id: prepare-codecov
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { throw 'RUNNER_TEMP is required' }
+          $binaryDirectory = Join-Path $env:RUNNER_TEMP ('codecov-cli-' + [Guid]::NewGuid().ToString('N'))
+          $binaryPath = (Join-Path $binaryDirectory 'codecov.exe').Replace('\', '/')
+          # The upstream Bash wrapper invokes its binary without quoting it.
+          if ($binaryPath -match '\s') { throw 'Codecov binary path must not contain whitespace' }
+          New-Item -ItemType Directory -Path $binaryDirectory -ErrorAction Stop | Out-Null
+          curl.exe --fail --location --proto '=https' --proto-redir '=https' --connect-timeout 15 --max-time 60 --output $binaryPath 'https://github.com/codecov/codecov-cli/releases/download/v11.3.1/codecovcli_windows.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Codecov CLI download failed' }
+          $expectedHash = 'D43733506ED2561533A7182ED5C4C2B23711DDA1F03CBE9D120BCC888AC4E10A'
+          if ((Get-FileHash -LiteralPath $binaryPath -Algorithm SHA256).Hash -ne $expectedHash) { throw 'Codecov CLI SHA256 mismatch' }
+          $version = & $binaryPath --version
+          if ($LASTEXITCODE -ne 0 -or ($version -join "`n").Trim() -cne 'codecovcli, version 11.3.1') { throw 'Codecov CLI version mismatch' }
+          "binary=$binaryPath" >> $env:GITHUB_OUTPUT
+      - name: Upload Coverage
+        if: always() && steps.prepare-codecov.outcome == 'success' && steps.prepare-codecov.outputs.binary != ''
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          binary: ${{ steps.prepare-codecov.outputs.binary }}
           files: ./Tests/TestResults/coverage.xml
           flags: powershell
           fail_ci_if_error: false
@@ -426,6 +481,71 @@ jobs:
           }
 
   # ──────────────────────────────────────────────────────────────
+  # Deploy is a separate workspace; Native checks cannot validate its lockfile
+  # or the runtime's HTTP tests. This CPU profile excludes model/CUDA features.
+  # GPU/model acceptance remains a separate gate with actual hardware fixtures.
+  # ──────────────────────────────────────────────────────────────
+
+  deploy-runtime:
+    name: Deploy Runtime (CPU)
+    runs-on: windows-latest
+    # A cold Windows cargo-audit source build previously took about 37 minutes.
+    # Allow runtime compilation/tests plus that install, as in rust-guidelines.
+    # The actual network/advisory audit keeps its separate ten-minute bound.
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Deploy
+      - name: Check runtime targets
+        working-directory: Deploy
+        shell: pwsh
+        run: |
+          cargo check -p rust-functiongemma-runtime --all-targets --no-default-features --locked
+          if ($LASTEXITCODE -ne 0) { throw "Deploy runtime check failed" }
+      - name: Test runtime and HTTP contracts
+        working-directory: Deploy
+        shell: pwsh
+        run: |
+          cargo test -p rust-functiongemma-runtime --lib --tests --no-default-features --locked -- --test-threads=1
+          if ($LASTEXITCODE -ne 0) { throw "Deploy runtime tests failed" }
+      - name: Restore cargo-audit
+        id: deploy-audit-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit.exe
+          key: ${{ runner.os }}-cargo-audit-0.22.2-v1
+          restore-keys: ${{ runner.os }}-cargo-audit-v1
+      - name: Ensure reviewed cargo-audit version
+        shell: pwsh
+        run: |
+          $tool = Get-Command cargo-audit -ErrorAction SilentlyContinue
+          $version = if ($tool) { & $tool.Source --version } else { '' }
+          if ($version -ne 'cargo-audit 0.22.2') {
+            cargo install cargo-audit --version 0.22.2 --locked --force
+            if ($LASTEXITCODE -ne 0) { throw "cargo-audit installation failed" }
+          }
+          $version = cargo-audit --version
+          if ($LASTEXITCODE -ne 0 -or $version -ne 'cargo-audit 0.22.2') {
+            throw "Unexpected cargo-audit version: $version"
+          }
+      - name: Save cargo-audit
+        if: steps.deploy-audit-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit.exe
+          key: ${{ runner.os }}-cargo-audit-0.22.2-v1
+      - name: Audit Deploy dependencies
+        working-directory: Deploy
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          cargo audit --file Cargo.lock
+          if ($LASTEXITCODE -ne 0) { throw "Deploy dependency audit failed" }
+
+  # ──────────────────────────────────────────────────────────────
   # Gate (required status check for branch protection)
   # ──────────────────────────────────────────────────────────────
 
@@ -444,6 +564,7 @@ jobs:
       - build-llamacpp
       - integration-tests
       - dotnet-build
+      - deploy-runtime
     steps:
       - name: Evaluate Results
         shell: pwsh
@@ -457,7 +578,8 @@ jobs:
             '${{ needs.powershell-test.result }}',
             '${{ needs.build-llamacpp.result }}',
             '${{ needs.integration-tests.result }}',
-            '${{ needs.dotnet-build.result }}'
+            '${{ needs.dotnet-build.result }}',
+            '${{ needs.deploy-runtime.result }}'
           )
           # 'success' only. No job here carries an `if:`, so the only way a
           # gated job skips is an upstream `needs` failing -- and that upstream
@@ -469,4 +591,4 @@ jobs:
             Write-Host "Non-success results: $($failed -join ', ')" -ForegroundColor Red
             exit 1
           }
-          Write-Host "CI Gate PASSED - all 9 checks succeeded" -ForegroundColor Green
+          Write-Host "CI Gate PASSED - all 10 checks succeeded" -ForegroundColor Green

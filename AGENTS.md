@@ -102,12 +102,15 @@ Primary entrypoints:
 - `Tools\Test-SyncProviderHealth.ps1`
 - `Tools\Test-ProcessLassoBootSafety.ps1`
 - `Tools\Apply-ProcessLassoUiSyncTuning.ps1`
+- `Tools\Collect-WorkloadResourceProfile.ps1`
 - `Tools\Collect-DrivePerformanceSyncRisk.ps1`
 - `Tools\Repair-OneDriveSync.ps1`
 - `Tools\Migrate-SystemScriptsIntoRepo.ps1`
 - `Tools\SystemScripts\README.md`
 - `Tests\Boot\PersistentVHDX.Tests.ps1`
 - `Tests\Boot\BootValidationTools.Tests.ps1`
+- `Tests\Boot\WorkloadResourceProfile.Tests.ps1`
+- `Reports\process-lasso-review\README.md`
 - `Reports\boot-diagnostics\`
 - `Reports\drive-performance-sync-risk\`
 - `Reports\onedrive-repair-20260430.md`
@@ -131,6 +134,12 @@ Operational rules:
   rollback artifacts, and before/after metrics.
 - Treat Process Lasso as a prioritization aid around user-mode contention. It
   cannot directly reprioritize kernel HID/I2C interrupt handling.
+- Use the bounded workload profiler for interval CPU, memory and throughput
+  evidence before changing media or useful agent/build priorities. Its default
+  report names use a non-date artifact identity; timestamps belong in metadata.
+  Measure observer overhead and label actual calls separately from app uptime.
+  Global GPU counters are optional and require a focused overhead check. Never
+  infer resource waste from a process name, count or resident-memory snapshot.
 
 ## Architecture quick map
 
@@ -347,11 +356,15 @@ Jules runs in a short-lived Ubuntu VM. Adapt accordingly:
 - Refactoring the media pipeline tensor operations without benchmark data
 
 ### Plan approval expectations
-All Jules sessions on this repo use `requirePlanApproval: true`. Plans are reviewed by an LLM orchestrator (Claude/Codex) against:
+Sessions dispatched by `Tools/Invoke-JulesBatchReview.ps1` use `requirePlanApproval: true` (opt out only with `-SkipPlanApproval`). `Tools/Invoke-JulesOrchestrator.ps1` runs a **keyword pre-screen** over plan step titles and descriptions — scope paths, test steps, `unwrap`/`unsafe` wording — and sends feedback when it fails. It does not read the plan's reasoning, so it never approves on its own: a passing plan waits for a deliberate approval (`Tools/Invoke-JulesSession.ps1 -Action Approve -SessionId <id>`) unless the orchestrator is run with `-AutoApprove`. A reviewer approving a plan should check:
 1. Does the plan modify files consistent with its stated goal?
 2. Does it add or update tests?
 3. Does it follow the benchmark-first principle (AGENTS.md section 1)?
 4. Are file modifications scoped (no unnecessary drive-by refactors)?
+
+Jules expires sessions whose plans wait too long (about 10 minutes), so review promptly or re-dispatch.
+
+The `jules-review.yml` issue job starts only when the repository owner applies the `jules` label, and the issue text is passed to Jules fenced as untrusted data.
 
 ### Code conventions
 - Rust: edition 2021, `cargo fmt` + `cargo clippy -- -D warnings`, see `[lints]` in Cargo.toml

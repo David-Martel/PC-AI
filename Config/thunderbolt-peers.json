@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "peers": {
+    "millylaptop1": {
+      "sshAlias": "millylaptop1",
+      "expectedHostname": "millylaptop1",
+      "localAddress": "172.31.240.1",
+      "peerAddress": "172.31.240.2",
+      "prefixLength": 30,
+      "mtuBytes": 1500,
+      "notes": "LAN SSH remains the recovery path. Requires an enumerated Thunderbolt peer link."
+    },
+    "asuspro13": {
+      "sshAlias": "asuspro13",
+      "expectedHostname": "asuspro13",
+      "localAddress": "172.31.240.5",
+      "peerAddress": "172.31.240.6",
+      "prefixLength": 30,
+      "mtuBytes": 1500,
+      "notes": "Future peer; verify physical link, hostname and non-overlapping routes before applying."
+    }
+  }
+}

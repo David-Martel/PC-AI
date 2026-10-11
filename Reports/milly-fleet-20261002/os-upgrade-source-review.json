@@ -1,0 +1,284 @@
+{
+  "observedUtc": "2026-10-02T22:27:35.376192+00:00",
+  "scope": "Staging and read-only source inspection only; actual release upgrade not launched",
+  "payloadVersion": "24.04.29",
+  "sourceLaunchers": [
+    {
+      "name": "./dist-upgrade.py",
+      "type": "0",
+      "linkname": "",
+      "bytes": 129
+    },
+    {
+      "name": "./noble",
+      "type": "1",
+      "linkname": "./dist-upgrade.py",
+      "bytes": 0
+    },
+    {
+      "name": "./DistUpgrade",
+      "type": "2",
+      "linkname": ".",
+      "bytes": 0
+    }
+  ],
+  "textCommandAfterBackupOnly": [
+    "sudo",
+    "-n",
+    "env",
+    "-u",
+    "DEBIAN_FRONTEND",
+    "LC_ALL=C.UTF-8",
+    "PAGER=cat",
+    "/usr/bin/do-release-upgrade",
+    "--frontend=DistUpgradeViewText",
+    "--env=RELEASE_UPGRADER_NO_SCREEN=1"
+  ],
+  "textBehavior": {
+    "requiresTerminal": true,
+    "displayServerRequired": false,
+    "startDefault": "No; d prints actual removal/add/upgrade details via sensible-pager",
+    "information": "Press ENTER pauses",
+    "configuration": "Interactive dpkg changes need per-file review; existing configuration default is keep",
+    "obsoleteCleanup": "Explicit choice; defer optional cleanup until rebooted GPU/SSH/GUI and package identity validation",
+    "reboot": "Explicit choice defaultNo",
+    "modeFlag": "Accepted by Jammy wrapper but explicitly deprecated/ignored in Noble payload; serverMode inferred from cache",
+    "preconfirmImpact": "Full release-upgrader preparation rewrites repositories and fetches target indexes before plan confirmation; staging-only inspection is not a removal-plan dry run."
+  },
+  "sshRecovery": {
+    "detection": "_sshMagic requires /proc process ancestry containing sshd; it does not test SSH_CONNECTION",
+    "autoBackupPort": 1022,
+    "tmuxAndSystemd": "Detached multiplexer/system unit normally reparents toPID1; do not assume auto recovery daemon",
+    "firewall": "Never opened automatically",
+    "checkedOnly": [
+      "sudo",
+      "-n",
+      "/usr/sbin/sshd",
+      "-T",
+      "-p",
+      "1022",
+      "-o",
+      "PasswordAuthentication=no",
+      "-o",
+      "KbdInteractiveAuthentication=no",
+      "-o",
+      "PermitRootLogin=no",
+      "-o",
+      "AllowUsers=cog"
+    ],
+    "checkedResult": "Port1022 v4/v6 with key authentication enabled, password/kbd interactive disabled and cog only",
+    "maintenanceRecommendation": "Owner starts separately owned recovery daemon/unit, scopes firewall to existing administrative LAN sources if necessary, and verifies pinned-key SSH to1022 before upgrade; no daemon started by this lane"
+  },
+  "noninteractive": {
+    "confirmChanges": "AlwaysTrue",
+    "yesNo": "AlwaysTrue even defaultNo",
+    "ROSCompatibilityWarning": "Auto accepted; not evidence of ABI compatibility",
+    "conffile": "Writes n to preserve installed file",
+    "ForceOverwrite": "yes in signed config; installed-file collisions are separate from conffile policy",
+    "RemoveObsoletes": "yes with PurgeObsoletes=yes default; package plan and removals accepted automatically",
+    "RealReboot": "no default; not a whole migration guard",
+    "TerminalTimeout": "2400 seconds without activity, not a safe overall upgrade transaction deadline",
+    "recommendation": "Prefer supervised Text in isolated tmux for this NVIDIA/ROS desktop; unattended systemd NI cannot review unexpected removal decisions"
+  },
+  "config": {
+    "source": "DistUpgrade.cfg.jammy on current Jammy host",
+    "from": "jammy",
+    "to": "noble",
+    "overrideDirectory": "/etc/update-manager/release-upgrades.d/*.cfg",
+    "overrideOrder": "Read after signed distro defaults",
+    "optionalCleanupDeferral": "[Distro] RemoveObsoletes=no disables post-upgrade obsolete cleanup only; does not block dependency-resolver required removals",
+    "thirdParty": "Default disables unsupported third-party sources; do not enable allow-third-party or globally substitute jammy feed names",
+    "backupExt": "distUpgrade",
+    "defaultLogDir": "/var/log/dist-upgrade/",
+    "packageState": "apt-clone_system_state.tar.gz is scrub_sources=True with protected umask; package/config recovery metadata, not full-home data backup"
+  },
+  "vendorAndROS": {
+    "retention": "Signed removal denylist includes openssh-server and desktop metapackages, no generic guarantee for NVIDIA or ROS; review actual selected removal/add/upgrade plan",
+    "nvidia": "Installed580.178.04 requires target kernel modules/DKMS plus matching user libraries; retain restore evidence and validate actual GPU/render/codec/GUI each intermediate reboot",
+    "ros": "Humble Jammy cannot be declared valid on Noble by retaining packages or accepting warning; preserve package/version/workspace evidence, use the already tested matching ABI containers, and rebuild native targets for the adopted release",
+    "sources": [
+      "vscode",
+      "oem-sutton-barrett",
+      "github-cli",
+      "LLVM23",
+      "OBSjammy",
+      "ROS2"
+    ],
+    "reenable": "Only reviewed distro-supported sources after each upgrade; inventory installed and loaded versions separately"
+  },
+  "tmux": {
+    "installedVersion": "3.2a",
+    "isolatedServer": "tmux -L pcai-milly-maintenance -f /dev/null",
+    "session": "noble-upgrade",
+    "manualVerifiedFlags": [
+      "new-session -d -s -c",
+      "pipe-pane -o -t",
+      "capture-pane -p -S - -t"
+    ],
+    "logging": "Create protected owner runtime directory outside backed-up data set first; use pipe-pane for transcript plus /var/log/dist-upgrade raw logs. Attach logging before invoking upgrader so initial prompt is captured.",
+    "interactions": "Read current pane and prompt then send one reviewed response; no blind yes stream or hard timeout killing dpkg"
+  },
+  "references": {
+    "DistUpgradeViewText.py": {
+      "sha256": "a492e04ce693c684c4a844a9497eb483f946f75ebea5d484a381fbe35cb94bcb",
+      "matches": [
+        {
+          "line": 104,
+          "text": "self.needs_screen = True"
+        },
+        {
+          "line": 108,
+          "text": "if \"DEBIAN_FRONTEND\" not in os.environ:"
+        },
+        {
+          "line": 109,
+          "text": "os.environ[\"DEBIAN_FRONTEND\"] = \"dialog\""
+        },
+        {
+          "line": 208,
+          "text": "def confirmChanges(self, summary, changes, demotions, downloadSize,"
+        },
+        {
+          "line": 255,
+          "text": "def askYesNoQuestion(self, summary, msg, default='No'):"
+        },
+        {
+          "line": 291,
+          "text": "def confirmRestart(self):"
+        }
+      ]
+    },
+    "DistUpgradeViewNonInteractive.py": {
+      "sha256": "a2f8d9193513c9ef47cbe56a98f22ed4ef5854a2ebba0687d00c698db264aae8",
+      "matches": [
+        {
+          "line": 73,
+          "text": "if self.config.getWithDefault(\"NonInteractive\",\"ForceOverwrite\", False):"
+        },
+        {
+          "line": 83,
+          "text": "self.timeout = self.config.getint(\"NonInteractive\",\"TerminalTimeout\")"
+        },
+        {
+          "line": 183,
+          "text": "def conffile(self, current, new):"
+        },
+        {
+          "line": 303,
+          "text": "return True"
+        },
+        {
+          "line": 305,
+          "text": "\" ask a Yes/No question and return True on 'Yes' \""
+        },
+        {
+          "line": 310,
+          "text": "return True"
+        },
+        {
+          "line": 312,
+          "text": "return True"
+        },
+        {
+          "line": 317,
+          "text": "return self.config.getWithDefault(\"NonInteractive\",\"RealReboot\", False)"
+        }
+      ]
+    },
+    "DistUpgradeController.py": {
+      "sha256": "1d359402c1aea58b95803d2de21f2788729544f567b2d6f66a2f9389aee3fa91",
+      "matches": [
+        {
+          "line": 47,
+          "text": "is_child_of_process_name,"
+        },
+        {
+          "line": 188,
+          "text": "if \"RELEASE_UPGRADE_NO_FORCE_OVERWRITE\" not in os.environ:"
+        },
+        {
+          "line": 323,
+          "text": "is_child_of_process_name(\"sshd\")):"
+        },
+        {
+          "line": 340,
+          "text": "port = 1022"
+        },
+        {
+          "line": 920,
+          "text": "self.sources.backup(self.sources_backup_ext)"
+        },
+        {
+          "line": 1247,
+          "text": "self.sources.backup(self.sources_backup_ext)"
+        },
+        {
+          "line": 1317,
+          "text": "self.sources.backup(self.sources_backup_ext)"
+        },
+        {
+          "line": 1964,
+          "text": "if not self.config.getWithDefault(\"Distro\",\"RemoveObsoletes\", True):"
+        },
+        {
+          "line": 1995,
+          "text": "if not self.config.getWithDefault(\"Distro\",\"RemoveObsoletes\", True):"
+        },
+        {
+          "line": 1996,
+          "text": "logging.debug(\"Skipping RemoveObsoletes as stated in the config\")"
+        },
+        {
+          "line": 2491,
+          "text": "self.sources.backup(self.sources_backup_ext)"
+        }
+      ]
+    },
+    "DistUpgradeConfigParser.py": {
+      "sha256": "9a8badcd17baaf9c5eef0c56f4af5cc79d485fee02b8f9f2e0a704d3706d9a4c",
+      "matches": [
+        {
+          "line": 30,
+          "text": "CONFIG_OVERRIDE_DIR = \"/etc/update-manager/release-upgrades.d\""
+        },
+        {
+          "line": 53,
+          "text": "# overrides are read later"
+        },
+        {
+          "line": 55,
+          "text": "override_dir = CONFIG_OVERRIDE_DIR"
+        }
+      ]
+    },
+    "DistUpgradeMain.py": {
+      "sha256": "3cd9ea0aef7e17cff100ac2b9aa908c8435e9fe2207ca0ac11e9f55cffc30b15",
+      "matches": [
+        {
+          "line": 65,
+          "text": "help=_(\"*DEPRECATED* this option will be ignored\"))"
+        },
+        {
+          "line": 119,
+          "text": "target = os.path.join(logdir, \"apt-clone_system_state.tar.gz\")"
+        },
+        {
+          "line": 185,
+          "text": "os.environ[\"RELEASE_UPGRADER_NO_SCREEN\"]=\"1\""
+        },
+        {
+          "line": 218,
+          "text": "not \"RELEASE_UPGRADER_NO_SCREEN\" in os.environ and"
+        }
+      ]
+    }
+  },
+  "officialDocs": [
+    "https://ubuntu.com/server/docs/how-to/software/upgrade-your-release/",
+    "https://github.com/tmux/tmux/wiki/Getting-Started"
+  ],
+  "upgraderExecuted": false,
+  "repositoriesChanged": false,
+  "sshDaemonStarted": false,
+  "systemServicesChanged": false
+}

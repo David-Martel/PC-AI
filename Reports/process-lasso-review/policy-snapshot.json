@@ -1,0 +1,656 @@
+{
+  "CapturedAt": "2026-10-05T14:01:07.3304242-04:00",
+  "Scope": "Read-only policy/log analysis; no raw command lines, executable launch arguments, or credential fields retained.",
+  "Config": {
+    "Path": "C:\\ProgramData\\ProcessLasso\\config\\prolasso.ini",
+    "Length": 22676,
+    "LastWriteTimeUtc": "2026-10-03T07:22:13.9475193Z",
+    "Sha256": "DCA0CEE62474BCCF7D4C1D8F55F62A609BBD3E09A77DF0B591DDC97C02075FA0",
+    "Sections": {
+      "OutOfControlProcessRestraint": {
+        "OocOn": "true",
+        "ExcludeChildrenOfForeground": "true",
+        "DisableProBalanceWhenSysIdle": "false",
+        "ProBalanceDropOneRandomCore": "false",
+        "DoNotAdjustAffinityIfCustomized": "true",
+        "OocDisableCoreParkingWhileIn": "false",
+        "UseEfficiencyMode": "false",
+        "DisableProBalanceIfSysIdleThisManyMS": "30000",
+        "TotalProcessorUsageBeforeRestraint": "65",
+        "PerProcessUsageBeforeRestraint": "10",
+        "TimeOverQuotaBeforeRestraint": "2000",
+        "PerProcessUsageForRestore": "3",
+        "PlayOnRestraint": "C:\\WINDOWS\\media\\Windows Pop-up Blocked.wav",
+        "PlayOnRestore": "C:\\WINDOWS\\media\\Windows Feed Discovered.wav",
+        "MinimumTimeOfRestraint": "1500",
+        "MaximumTimeOfRestraint": "0",
+        "TameOnlyNormal": "true",
+        "LowerToIdleInsteadOfBelowNormal": "false",
+        "ExcludeServices": "true",
+        "PlaySoundOnRestraint": "false",
+        "PlaySoundOnRestore": "false",
+        "RestrainByAffinity": "false",
+        "RestraintAffinity": "",
+        "ExcludeForegroundProcesses2": "true",
+        "DoNotLowerPriorityClass": "false",
+        "LowerIOPriorityDuringRestraint": "false",
+        "MatchExclusionsByPathnameToo": "false",
+        "ChangeTrayIconOnRestraint": "true",
+        "OocExclusions": "audiodg.exe,bitsumsessionagent.exe,codex.exe,ctfmon.exe,docker desktop.exe,dropbox.exe,dwm.exe,elan*.exe,etd*.exe,explorer.exe,filesynchelper.exe,fontdrvhost.exe,googledrivefs.exe,lenovo.modern.imcontroller.exe,lenovoaccessoriesanddisplaycontrolcenterservice.exe,lenovogocentral1.exe,lenovovantage-(genericmessagingaddin).exe,lenovovantage-(lenovoservicebridgeaddin).exe,lenovovantage-(vantagecoreaddin).exe,lenovovantageservice.exe,lockapp.exe,onedrive.sync.service.exe,powershell.exe,processgovernor.exe,processlasso.exe,processlassolauncher.exe,processlassoservice.exe,pwsh.exe,python.exe,rclone.exe,runtimebroker.exe,searchhost.exe,sensel*.exe,setup.exe,shellexperiencehost.exe,sihost.exe,snsl*.exe,startmenuexperiencehost.exe,synaptics*.exe,synrpcserver.exe,syntp*.exe,tabtip.exe,taskhostw.exe,textinputhost.exe,useroobebroker.exe,uv.exe,vmmemwsl,winlogon.exe,winstore.app.exe,wsl.exe,wslhost.exe,OneDrive*,OneDrive.exe",
+        "OocHardCodedExclusionOverrides": ""
+      },
+      "GUI": {
+        "ClearLogAtExit": "false",
+        "ShowCPUCoreUtilGraphs": "true",
+        "ShowGraphLegend": "true",
+        "ShowGraphCPU": "true",
+        "ShowGraphResponsiveness": "true",
+        "ShowGraphMemoryLoad": "true",
+        "ShowGraphProBalanceEvents": "true",
+        "ShowGraphSelectedProcessesCPUHistory": "true",
+        "ShowGraphGPU": "true",
+        "GraphGPUShowAllLines": "false",
+        "GraphGPUCombinedWidget": "false",
+        "GPUCollectMode": "0",
+        "GraphAntiAliasing": "true",
+        "ProBalanceCountersOnGraph": "true",
+        "ShowGraphLicenseName": "false",
+        "ShowPowerProfile": "true",
+        "GraphShowTooltips": "true",
+        "ShowCPUUtilityAsPrimary": "true"
+      },
+      "Advanced": {
+        "AutomaticUpdate": "false"
+      },
+      "Performance": {
+        "DefaultsLevel": "327942",
+        "GracefulWaitTimeInMs": "5000",
+        "UpdateSpeedGUI": "1000",
+        "UpdateSpeedCore": "1000",
+        "ManageOnlyCurrentUser": "false",
+        "ExitOnCloseWindow": "false",
+        "SoundsOff": "true",
+        "IsConfigWritable": "true",
+        "ForcedMode": "false",
+        "IgnoreProblematicProcesses": "false",
+        "AllowBlacklistedProcesses": "false",
+        "IgnoreSuspendedProcesses": "false",
+        "RecentlyTerminatedViewExclusions": "conhost.exe,dllhost.exe,runtimebroker.exe,sppsvc.exe,svchost.exe,taskhostw.exe",
+        "SetTimerResolutionAtStartup": "0"
+      },
+      "Sampling": {
+        "SamplingEnabled": "false",
+        "SamplingIntervalSeconds": "900",
+        "SamplingOutputPath": "",
+        "SamplingIncludePattern": "*",
+        "SamplingExcludePattern": ""
+      },
+      "ForegroundBoosting": {
+        "BoostForegroundProcess": "false",
+        "ForegroundBoostPriorityClass": "0x8000",
+        "ForegroundBoostGPU": "-1",
+        "BoostOnlyNormal": "true",
+        "BoostOnlyNormalGPU": "true",
+        "ForegroundBoostExclusions": ""
+      },
+      "SystemTrayIcon": {
+        "UseStaticIcon": "false",
+        "ShowResponsivnessInTrayInsteadOfProcessorUsage": "false"
+      },
+      "Logging": {
+        "LogDisable": "false",
+        "IncludeCommandLines": "true",
+        "LogSmartTrim": "true",
+        "LogCPULimiter": "true",
+        "LogStartupBoostActions": "true",
+        "LogEfficiencyMode": "true",
+        "LogGroupExtender": "true",
+        "LogCPUSets": "true",
+        "LogProBalanceParkingChanges": "true",
+        "LogProcessExecutions": "true",
+        "LogProcessTerminations": "true",
+        "LogProcessesDisallowed": "true",
+        "LogDefaultPriorityAdjustments": "true",
+        "LogDefaultAffinityAdjustments": "true",
+        "LogProBalanceBegin": "true",
+        "LogProBalanceEnd": "true",
+        "LogInstanceLimitTerminations": "true",
+        "LogPowerProfileChanges": "true"
+      },
+      "MemoryManagement": {
+        "SmartTrimIsEnabled": "true",
+        "SmartTrimWorkingSetTrims": "true",
+        "SmartTrimClearStandbyList": "false",
+        "SmartTrimClearFileCache": "false",
+        "SmartTrimLogNoAction": "true",
+        "ClearStandbyFreeRAMThresholdMB": "1024",
+        "ClearStandbyOnlyInPerfMode": "true",
+        "SmartTrimExclusions": "bitwarden.exe,brave.exe,chrome.exe,codex.exe,pwsh.exe,signal.exe,windowsterminal.exe,zoom.exe,audiodg.exe,bitsumsessionagent.exe,ctfmon.exe,dwm.exe,explorer.exe,fontdrvhost.exe,lenovo.modern.imcontroller.exe,lenovoaccessoriesanddisplaycontrolcenterservice.exe,lenovogocentral1.exe,lenovovantageservice.exe,lenovovantage-(genericmessagingaddin).exe,lenovovantage-(lenovoservicebridgeaddin).exe,lenovovantage-(vantagecoreaddin).exe,lockapp.exe,runtimebroker.exe,searchhost.exe,shellexperiencehost.exe,sihost.exe,startmenuexperiencehost.exe,synrpcserver.exe,tabtip.exe,taskhostw.exe,textinputhost.exe,useroobebroker.exe,winlogon.exe,winstore.app.exe,onedrive.exe,onedrive.sync.service.exe,filesynchelper.exe,chatgpt.exe,claude.exe,code.exe,powershell.exe,rclone.exe,wsl.exe,wslhost.exe,vmmemwsl,docker desktop.exe,googledrivefs.exe,onedrive*,processgovernor.exe,processlasso.exe,processlassolauncher.exe,processlassoservice.exe,sensel*.exe,snsl*.exe,syntp*.exe,synaptics*.exe,elan*.exe,etd*.exe",
+        "SmartTrimAutoMinimumRAMLoad": "80",
+        "MinimumProcessWSSInMb": "256",
+        "SmartTrimIntervalMins": "3"
+      },
+      "SysTrayBalloons": {
+        "EnableSystemTrayNotification": "false",
+        "BalloonTipDuration": "10000",
+        "ShowBalloonsForOocPriorityRestoration": "false"
+      },
+      "ProcessAllowances": {
+        "ApplyInstanceCountLimitsToAllUsers": "false",
+        "AllowedProcesses": "",
+        "DisallowedProcesses": "",
+        "InstanceLimitedProcesses": "",
+        "InstanceManagedCPUAffinities": "",
+        "ProcessThrottles": "",
+        "OneTimeProcessThrottles": "",
+        "CPULimitRules": "",
+        "StartupBoostRules": "",
+        "EfficiencyMode": "bitwarden.exe,0,brave.exe,0,chrome.exe,0,codex.exe,0,zoom.exe,0"
+      },
+      "ProcessDefaults": {
+        "NamedAffinities": "",
+        "DefaultPriorities": "onedrive.exe,below normal,iclouddrive.exe,below normal,googledrivefs.exe,below normal,nvcontainer.exe,below normal,node.exe,below normal,rclone.exe,below normal,robocopy.exe,below normal,syntp*.exe,above normal,shellexperiencehost.exe,above normal,snsl*.exe,above normal,git-cluster-analyzer.exe,below normal,cl.exe,below normal,startmenuexperiencehost.exe,above normal,winget.exe,below normal,cargo.exe,below normal,redis-server.exe,below normal,ctfmon.exe,above normal,7z.exe,below normal,rustc.exe,below normal,sccache.exe,below normal,docker-sandbox.exe,below normal,link.exe,below normal,npm.exe,below normal,synrpcserver.exe,above normal,sihost.exe,above normal,elan*.exe,above normal,dwm.exe,above normal,tabtip.exe,above normal,onedrive.sync.service.exe,below normal,protondrive.exe,below normal,synaptics*.exe,above normal,wslhost.exe,below normal,sensel*.exe,above normal,sccache-dist.exe,below normal,textinputhost.exe,above normal,etd*.exe,above normal,filesynchelper.exe,below normal,lenovo.modern.imcontroller.exe,above normal,audiodg.exe,above normal,com.docker.build.exe,below normal,npx.exe,below normal,explorer.exe,above normal,icloudckks.exe,below normal,nvidia share.exe,below normal,dell.uca.manager.exe,below normal,hpprinterhealthmonitor.exe,below normal,presentmon_x64.exe,below normal,hpprintscandoctorservice.exe,below normal,dell.techhub*.exe,below normal,nvidia broadcast.exe,below normal,serviceshell.exe,below normal,dell.coreservices.client.exe,below normal,dpmservice.exe,below normal,presentmonservice.exe,below normal,dell.update.subagent.exe,below normal,disp.exe,below normal,dpmcrashhandler.exe,below normal,nvfvsdksvc_x64.exe,below normal,Dropbox.exe,below normal,Docker Desktop.exe,below normal,redis-service.exe,below normal,wsl.exe,below normal,NVIDIA Overlay.exe,below normal,wslservice.exe,below normal,docker-agent.exe,below normal,LenovoAccessoriesAndDisplayControlCenterService.exe,above normal,NVIDIA App.exe,below normal,LenovoVantageService.exe,above normal,vmmemWSL,below normal,com.docker.backend.exe,below normal",
+        "DefaultIOPriorities": "chrome.exe,3,brave.exe,3,zoom.exe,3,audiodg.exe,3,node.exe,1,vmmemwsl,1,rclone.exe,1,robocopy.exe,1,wslservice.exe,1,com.docker.backend.exe,1,syntp*.exe,3,shellexperiencehost.exe,3,snsl*.exe,3,git-cluster-analyzer.exe,1,cl.exe,1,startmenuexperiencehost.exe,3,winget.exe,1,cargo.exe,1,redis-service.exe,1,docker desktop.exe,1,redis-server.exe,1,ctfmon.exe,3,7z.exe,1,onedrive.exe,1,docker-agent.exe,1,rustc.exe,1,wsl.exe,1,sccache.exe,1,docker-sandbox.exe,1,link.exe,1,npm.exe,1,lenovoaccessoriesanddisplaycontrolcenterservice.exe,3,synrpcserver.exe,3,sihost.exe,3,elan*.exe,3,dwm.exe,3,tabtip.exe,3,onedrive.sync.service.exe,1,protondrive.exe,1,synaptics*.exe,3,wslhost.exe,1,googledrivefs.exe,1,sensel*.exe,3,lenovovantageservice.exe,3,sccache-dist.exe,1,textinputhost.exe,3,etd*.exe,3,filesynchelper.exe,1,lenovo.modern.imcontroller.exe,3,com.docker.build.exe,1,npx.exe,1,iclouddrive.exe,1,explorer.exe,3,dropbox.exe,1,icloudckks.exe,1,nvidia share.exe,1,dell.uca.manager.exe,1,hpprinterhealthmonitor.exe,1,presentmon_x64.exe,1,hpprintscandoctorservice.exe,1,nvidia overlay.exe,1,dell.techhub*.exe,1,nvidia broadcast.exe,1,serviceshell.exe,1,nvidia app.exe,1,dell.coreservices.client.exe,1,dpmservice.exe,1,presentmonservice.exe,1,dell.update.subagent.exe,1,disp.exe,1,dpmcrashhandler.exe,1,nvfvsdksvc_x64.exe,1",
+        "DefaultGPUPriorities": "chrome.exe,2,brave.exe,2,zoom.exe,2",
+        "DefaultGPUAdapterPreferences": "c:\\program files\\obs-studio\\bin\\64bit\\obs64.exe,0,c:\\codedev\\matlab\\r2024a\\bin\\matlab.exe,0,c:\\codedev\\matlab\\r2024b\\bin\\matlab.exe,0,c:\\program files\\bravesoftware\\brave-browser\\application\\brave.exe,0,microsoft.zunevideo_8wekyb3d8bbwe!microsoft.zunevideo,0,28644opticosstudios.gwsl_r3mwbcqrwk84r!gwsl,0,microsoft.foundrylocal_8wekyb3d8bbwe!foundrylocal,0,microsoft.windowsterminal_8wekyb3d8bbwe!app,0,canonicalgrouplimited.ubuntu_79rhkp1fndgsc!ubuntu,0,c:\\users\\david\\.local\\bin\\claude.exe,0,c:\\program files\\google\\chrome\\application\\chrome.exe,0,c:\\program files\\wsl\\wsl.exe,0",
+        "ManageWindowsGpuPreferences": "true",
+        "DefaultMemoryPriorities": "",
+        "ThreadPriorityBoosts": "",
+        "DefaultAffinitiesEx": "rust-analyzer.exe,0,2-9;20-21,onedrive.exe,0,12-21,onedrive.sync.service.exe,0,12-21,filesynchelper.exe,0,12-21,googledrivefs.exe,0,12-21,protondrive.exe,0,12-21,iclouddrive.exe,0,12-21,dropbox.exe,0,12-21",
+        "CPUSets": "",
+        "KeepRunningProcessesEx": "",
+        "MatchWildcardsToPathnames": "true",
+        "MatchOnCommandLine": "false"
+      },
+      "AdvancedRules": {
+        "DivideCPUPercentThresholdsBySystemCPUCount": "false",
+        "ProcessorGroupExtended": "",
+        "ProhibitInternetExplorerExceptWhenAny": "",
+        "WatchdogRules2": ""
+      },
+      "GamingMode": {
+        "GamingModeEnabled": "false",
+        "GamingChangePowerPlan": "true",
+        "TargetPowerPlan": "Bitsum Highest Performance",
+        "GamingModeEngageForSteam": "false",
+        "AutomaticGamingModeProcessPaths": "",
+        "AutomaticGamingModeUserExclusions": ""
+      },
+      "PowerManagement": {
+        "StartWithPowerPlan": "Balanced",
+        "Display": "",
+        "PC": ""
+      },
+      "PowerSaver": {
+        "PowerSaver_IdleTime": "300",
+        "EnergySaverEnabled": "true",
+        "EnergySaverForceActivePowerProfile": "false",
+        "EnergySaverUpPowerProfileName": "",
+        "EnergySaverEvents": "true",
+        "DisableEnergySaverDuringGamingMode": "true",
+        "PowerSaver_TargetGUID": "Balanced",
+        "EnergySaverUseCPUThreshold": "false",
+        "EnergySaverCPUThreshold": "5.00",
+        "PowerSaver_Exclusions": ""
+      },
+      "LoadBasedPowerSwitcher": {
+        "LoadBasedPowerSwitcherEnabled": "false",
+        "LoadBasedPowerSwitcherLowCPULoadThreshold": "10.00",
+        "LoadBasedPowerSwitcherHighCPULoadThreshold": "50.00",
+        "LoadBasedPowerSwitcherMinimumTimeInPowerPlanMs": "5000",
+        "LoadBasedPowerSwitcherAveragingWindowSamples": "5",
+        "LoadBasedPowerSwitcherLoggingEnabled": "true",
+        "LoadBasedPowerSwitcherDeferLowPlan": "true"
+      }
+    }
+  },
+  "Live": [
+    {
+      "Name": "ProcessGovernor.exe",
+      "Pid": 68312,
+      "ParentPid": 3512,
+      "Executable": "C:\\Program Files\\Process Lasso\\processgovernor.exe",
+      "StartTime": "2026-10-02T13:53:36.254577-04:00",
+      "FileVersion": "18.4.1.3",
+      "ExplicitConfigArgumentSeen": false
+    },
+    {
+      "Name": "ProcessLasso.exe",
+      "Pid": 66440,
+      "ParentPid": 3512,
+      "Executable": "C:\\Program Files\\Process Lasso\\processlasso.exe",
+      "StartTime": "2026-10-02T13:53:36.499641-04:00",
+      "FileVersion": "18.4.1.3",
+      "ExplicitConfigArgumentSeen": false
+    }
+  ],
+  "Logs": {
+    "ConcurrentRotationCaveat": "Files rotate during read; this is an observed coverage window, not a transactional snapshot.",
+    "Files": [
+      {
+        "Name": "processlasso.log",
+        "Length": 151270,
+        "LastWriteTimeUtc": "2026-10-05T18:01:02.7682275Z"
+      },
+      {
+        "Name": "processlasso.log.0",
+        "Length": 262148,
+        "LastWriteTimeUtc": "2026-10-05T18:00:27.8830203Z"
+      },
+      {
+        "Name": "processlasso.log.1",
+        "Length": 262313,
+        "LastWriteTimeUtc": "2026-10-05T17:59:35.884505Z"
+      },
+      {
+        "Name": "processlasso.log.2",
+        "Length": 262192,
+        "LastWriteTimeUtc": "2026-10-05T17:58:46.0470139Z"
+      },
+      {
+        "Name": "processlasso.log.3",
+        "Length": 262391,
+        "LastWriteTimeUtc": "2026-10-05T17:57:50.0091779Z"
+      },
+      {
+        "Name": "processlasso.log.4",
+        "Length": 262419,
+        "LastWriteTimeUtc": "2026-10-05T17:56:05.4175284Z"
+      },
+      {
+        "Name": "processlasso.log.5",
+        "Length": 265762,
+        "LastWriteTimeUtc": "2026-10-05T17:55:49.9414457Z"
+      },
+      {
+        "Name": "processlasso.log.6",
+        "Length": 262269,
+        "LastWriteTimeUtc": "2026-10-05T17:55:05.4057895Z"
+      },
+      {
+        "Name": "processlasso.log.7",
+        "Length": 265507,
+        "LastWriteTimeUtc": "2026-10-05T17:54:13.6541246Z"
+      },
+      {
+        "Name": "processlasso.log.8",
+        "Length": 262189,
+        "LastWriteTimeUtc": "2026-10-05T17:53:18.9968412Z"
+      },
+      {
+        "Name": "processlasso.log.9",
+        "Length": 262462,
+        "LastWriteTimeUtc": "2026-10-05T17:52:25.0426221Z"
+      }
+    ],
+    "EventCount": 5058,
+    "LocalFirst": "2026-10-05T13:51:28",
+    "LocalLast": "2026-10-05T14:01:01",
+    "Actions": [
+      {
+        "Count": 2531,
+        "Name": "(0x1) Process launched"
+      },
+      {
+        "Count": 2464,
+        "Name": "(0x4e) Process has terminated"
+      },
+      {
+        "Count": 23,
+        "Name": "(0x6e) Set Efficiency Mode"
+      },
+      {
+        "Count": 10,
+        "Name": "(0x36) I/O priority changed"
+      },
+      {
+        "Count": 10,
+        "Name": "(0x52) Trim"
+      },
+      {
+        "Count": 9,
+        "Name": "(0x16) Process priority adjusted"
+      },
+      {
+        "Count": 3,
+        "Name": "(0x53) SmartTrim done"
+      },
+      {
+        "Count": 2,
+        "Name": "(0x20) ProBalance restraint ended"
+      },
+      {
+        "Count": 2,
+        "Name": "(0x2b) ProBalance begun"
+      },
+      {
+        "Count": 2,
+        "Name": "(0x2c) Process priority temporarily lowered by ProBalance"
+      },
+      {
+        "Count": 2,
+        "Name": "(0x2e) Restored original process priority"
+      }
+    ],
+    "TopProcesses": [
+      {
+        "Count": 1126,
+        "Name": "git.exe"
+      },
+      {
+        "Count": 1104,
+        "Name": "conhost.exe"
+      },
+      {
+        "Count": 855,
+        "Name": "pwsh.exe"
+      },
+      {
+        "Count": 757,
+        "Name": "bash.exe"
+      },
+      {
+        "Count": 214,
+        "Name": "docker.exe"
+      },
+      {
+        "Count": 153,
+        "Name": "python.exe"
+      },
+      {
+        "Count": 95,
+        "Name": "sh.exe"
+      },
+      {
+        "Count": 90,
+        "Name": "sccache.exe"
+      },
+      {
+        "Count": 68,
+        "Name": "chrome.exe"
+      },
+      {
+        "Count": 52,
+        "Name": "clippy-driver.exe"
+      },
+      {
+        "Count": 47,
+        "Name": "uv.exe"
+      },
+      {
+        "Count": 41,
+        "Name": "ssh.exe"
+      },
+      {
+        "Count": 40,
+        "Name": "cargo.exe"
+      },
+      {
+        "Count": 39,
+        "Name": "node.exe"
+      },
+      {
+        "Count": 32,
+        "Name": "timeout.exe"
+      },
+      {
+        "Count": 30,
+        "Name": "pytest.exe"
+      },
+      {
+        "Count": 29,
+        "Name": "rustc.exe"
+      },
+      {
+        "Count": 26,
+        "Name": "tail.exe"
+      },
+      {
+        "Count": 21,
+        "Name": "taskkill.exe"
+      },
+      {
+        "Count": 18,
+        "Name": "cmd.exe"
+      },
+      {
+        "Count": 14,
+        "Name": "grep.exe"
+      },
+      {
+        "Count": 12,
+        "Name": "powershell.exe"
+      },
+      {
+        "Count": 12,
+        "Name": "gh.exe"
+      },
+      {
+        "Count": 12,
+        "Name": "postgres.exe"
+      },
+      {
+        "Count": 10,
+        "Name": "build-script-build.exe"
+      }
+    ],
+    "SafePolicyEvents": [
+      {
+        "LocalTime": "2026-10-05T13:52:07",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:52:07",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:52:56",
+        "Process": "git.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "272 MB RAM restored. Working set was 273 MB - is 1 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:52:56",
+        "Process": "MsMpEng.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "7 MB RAM restored. Working set was 543 MB - is 536 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:52:57",
+        "Process": "node.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "309 MB RAM restored. Working set was 309 MB - is 0 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:52:58",
+        "Process": "processgovernor.exe",
+        "Action": "(0x53) SmartTrim done",
+        "SafeDetails": "Trimmed 4 of 1068 processes."
+      },
+      {
+        "LocalTime": "2026-10-05T13:52:58",
+        "Process": "rustc.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "324 MB RAM restored. Working set was 419 MB - is 95 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:53:07",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:53:08",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:54:11",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:54:11",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:55:07",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:55:07",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:55:59",
+        "Process": "MsMpEng.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "0 MB RAM restored. Working set was 527 MB - is 527 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:56:00",
+        "Process": "Dropbox.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "322 MB RAM restored. Working set was 327 MB - is 4 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:56:01",
+        "Process": "processgovernor.exe",
+        "Action": "(0x53) SmartTrim done",
+        "SafeDetails": "Trimmed 3 of 1078 processes."
+      },
+      {
+        "LocalTime": "2026-10-05T13:56:01",
+        "Process": "node.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "1907 MB RAM restored. Working set was 2158 MB - is 250 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:56:07",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:56:07",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:56:13",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:56:13",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:56:17",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:57:08",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:57:08",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:58:07",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:58:08",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:58:24",
+        "Process": "zoom.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:59:02",
+        "Process": "MsMpEng.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "4 MB RAM restored. Working set was 531 MB - is 527 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:59:03",
+        "Process": "node.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "204 MB RAM restored. Working set was 268 MB - is 64 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:59:03",
+        "Process": "com.docker.backend.exe",
+        "Action": "(0x52) Trim",
+        "SafeDetails": "162 MB RAM restored. Working set was 262 MB - is 99 MB now."
+      },
+      {
+        "LocalTime": "2026-10-05T13:59:05",
+        "Process": "processgovernor.exe",
+        "Action": "(0x53) SmartTrim done",
+        "SafeDetails": "Trimmed 3 of 1149 processes."
+      },
+      {
+        "LocalTime": "2026-10-05T13:59:09",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T13:59:09",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T14:00:08",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T14:00:08",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      },
+      {
+        "LocalTime": "2026-10-05T14:00:55",
+        "Process": "chrome.exe",
+        "Action": "(0x6e) Set Efficiency Mode",
+        "SafeDetails": "Efficiency Mode OFF"
+      }
+    ]
+  }
+}

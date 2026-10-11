@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+import datetime,hashlib,json,os,pathlib,shutil,subprocess,time
+b=pathlib.Path('/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation')
+e=os.environ.copy();e['PATH']=str(pathlib.Path.home()/'.cargo/bin')+':'+str(pathlib.Path.home()/'.local/bin')+':'+e['PATH']
+r=[]
+def run(name,argv,expected=0,timeout=60,env=None):
+ t=time.monotonic();p=subprocess.run(argv,capture_output=True,text=True,env=env or e,timeout=timeout)
+ row={'name':name,'argv':argv,'exit':p.returncode,'expectedExit':expected,'elapsedSeconds':round(time.monotonic()-t,4),'stdout':p.stdout,'stderr':p.stderr}
+ r.append(row);print(name,p.returncode,flush=True)
+ return p
+run('egl-build',['gcc','-Wall','-Wextra','-Werror','/home/cog/.cache/pcai/ui-validation/egl_device_probe.c','-o',str(b/'egl-device-probe'),'-lEGL','-lGL'])
+run('egl-pixel',[str(b/'egl-device-probe')])
+run('nvenc',['ffmpeg','-nostdin','-y','-hide_banner','-loglevel','warning','-f','lavfi','-i','testsrc2=size=640x360:rate=30','-t','1','-c:v','h264_nvenc','-preset','p4',str(b/'synthetic.h264')])
+run('cpu-decode',['ffmpeg','-nostdin','-y','-hide_banner','-loglevel','error','-threads','2','-i',str(b/'synthetic.h264'),'-pix_fmt','yuv420p','-f','framemd5',str(b/'cpu.framemd5')])
+run('nvdec',['ffmpeg','-nostdin','-y','-hide_banner','-loglevel','error','-threads','2','-hwaccel','cuda','-hwaccel_output_format','cuda','-i',str(b/'synthetic.h264'),'-vf','hwdownload,format=nv12,format=yuv420p','-f','framemd5',str(b/'gpu.framemd5')])
+frames=lambda p:[l for l in p.read_text().splitlines() if l and not l.startswith('#')]
+a=frames(b/'cpu.framemd5');c=frames(b/'gpu.framemd5');assert len(a)==len(c)==30 and a==c
+py='/home/cog/.local/share/vigil-endpoint/ui-py313/bin/python'
+run('qt-pixels',['xvfb-run','-a',py,'/home/cog/.cache/pcai/ui-validation/qt-paint.py',str(b/'qt.png')])
+widget=b/'widget';widget.mkdir(exist_ok=True)
+shutil.copyfile('/home/cog/.cache/pcai/milly-display-readiness-20261002/validate-widget.py',widget/'validate-widget.py')
+q=e.copy();q.update(ROS_DOMAIN_ID='231',ROS_LOCALHOST_ONLY='1',QT_QPA_PLATFORM='offscreen',PYTHONPATH='/home/cog/dev/repos/vigil-spark/src/vigil_display')
+run('vigil-source-widget',[py,str(widget/'validate-widget.py')],env=q)
+run('moonlight-cli',['xvfb-run','-a','/home/cog/.local/bin/moonlight','--help'])
+run('native-ros-isolated',['sudo','-n','unshare','--net','bash','-c','ip link set lo up; exec runuser -u cog -- env ROS_DOMAIN_ID=231 ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST RMW_IMPLEMENTATION=rmw_cyclonedds_cpp bash -c "source /opt/ros/lyrical/setup.bash; exec python3 /home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ros-test.py"'])
+for dist,digest in [('jazzy','066420e07f60aa18262f2479981def87ebcfcec42eefb0c0c57c4a46098348ca'),('lyrical','f79cd486fa218596747c45d00ca42101b0303fc6d94ed5adb72145cd6f54b86c')]:
+ run(dist+'-container-isolated',['podman','run','--rm','--pull=never','--network=none','-e','ROS_DOMAIN_ID=231','docker.io/library/ros@sha256:'+digest,'bash','-c','source /opt/ros/'+dist+'/setup.bash; python3 -c "import sys,rclpy; rclpy.init(); n=rclpy.create_node(\"isolated_milly_qa\"); n.destroy_node(); rclpy.shutdown(); print(sys.version.split()[0])"'])
+run('podman-cdi-gpu-isolated',['podman','run','--rm','--pull=never','--network=none','--device','nvidia.com/gpu=all','-e','ROS_DOMAIN_ID=231','docker.io/library/ros@sha256:066420e07f60aa18262f2479981def87ebcfcec42eefb0c0c57c4a46098348ca','nvidia-smi','--query-gpu=name,driver_version','--format=csv,noheader'])
+f='/home/cog/.cache/pcai/fleet-tooling-provenance/validation'
+run('cpp-configure',['cmake','-S',f,'-B',str(b/'cpp-build'),'-G','Ninja'])
+run('cpp-build',['cmake','--build',str(b/'cpp-build')])
+run('cpp-tests',['ctest','--test-dir',str(b/'cpp-build'),'--output-on-failure'])
+run('python-tests',['pytest','-q',f+'/test_math_tools.py'])
+run('rust-nextest',['cargo','nextest','run','--locked','--manifest-path',f+'/rust-fixture/Cargo.toml'])
+# A unique socket validates reuse after the OpenSSH upgrade; never drains another owner's master.
+sock=str(b/'ssh-master');args=['ssh','-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','ForwardAgent=no','-o','Compression=no','-S',sock]
+try:
+ run('ssh-master-start',args+['-o','ControlMaster=yes','-o','ControlPersist=10','-MNf','asuspro13'])
+ run('ssh-master-check',args+['-O','check','asuspro13'])
+ run('ssh-reused-hostname',args+['asuspro13','hostname'])
+finally:
+ run('ssh-owned-master-exit',args+['-O','exit','asuspro13'])
+run('ssh-effective-policy',['ssh','-G','asuspro13'])
+report={'observedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'host':os.uname().nodename,'kernel':os.uname().release,'checks':r,'codecFrameCount':30,'cpuGpuDecodedFramesIdentical':True,'scope':'Local synthetic graphics and isolated ABI/tool tests; no paired fleet stream/fullROSoperatorUI/HIL'}
+(b/'functional.json').write_text(json.dumps(report,indent=2)+'\n')
+failed=[x['name'] for x in r if x['exit']!=x['expectedExit']]
+print('failed',failed)
+raise SystemExit(bool(failed))

@@ -1,0 +1,134 @@
+{
+  "StartedUtc": "2026-10-05T18:03:27.0896435Z",
+  "ActualSeconds": 31.6408226,
+  "CpuRateWindowSeconds": 31.4048769,
+  "LogicalProcessors": 22,
+  "Limitations": "Read-accessible persistent generations only; excludes short-lived intervals and protected processes. Collection itself and concurrent research/build work affect baseline.",
+  "TopCpu": [
+    {
+      "Name": "python",
+      "CpuSeconds": 118.578125,
+      "HostCpuPercent": 17.163
+    },
+    {
+      "Name": "vmmemWSL",
+      "CpuSeconds": 85.703125,
+      "HostCpuPercent": 12.404
+    },
+    {
+      "Name": "rustc",
+      "CpuSeconds": 65.28125,
+      "HostCpuPercent": 9.449
+    },
+    {
+      "Name": "svchost",
+      "CpuSeconds": 23.921875,
+      "HostCpuPercent": 3.462
+    },
+    {
+      "Name": "ProcessLasso",
+      "CpuSeconds": 21.09375,
+      "HostCpuPercent": 3.053
+    },
+    {
+      "Name": "dwm",
+      "CpuSeconds": 20.984375,
+      "HostCpuPercent": 3.037
+    },
+    {
+      "Name": "MsMpEng",
+      "CpuSeconds": 19.640625,
+      "HostCpuPercent": 2.843
+    },
+    {
+      "Name": "explorer",
+      "CpuSeconds": 19.03125,
+      "HostCpuPercent": 2.755
+    },
+    {
+      "Name": "System",
+      "CpuSeconds": 15.71875,
+      "HostCpuPercent": 2.275
+    },
+    {
+      "Name": "WmiPrvSE",
+      "CpuSeconds": 14.25,
+      "HostCpuPercent": 2.063
+    },
+    {
+      "Name": "Dropbox",
+      "CpuSeconds": 13.109375,
+      "HostCpuPercent": 1.897
+    },
+    {
+      "Name": "codex",
+      "CpuSeconds": 11.84375,
+      "HostCpuPercent": 1.714
+    },
+    {
+      "Name": "WindowsTerminal",
+      "CpuSeconds": 10.171875,
+      "HostCpuPercent": 1.472
+    },
+    {
+      "Name": "pwsh",
+      "CpuSeconds": 8.765625,
+      "HostCpuPercent": 1.269
+    },
+    {
+      "Name": "ProcessGovernor",
+      "CpuSeconds": 7.4375,
+      "HostCpuPercent": 1.076
+    },
+    {
+      "Name": "chrome",
+      "CpuSeconds": 4.96875,
+      "HostCpuPercent": 0.719
+    },
+    {
+      "Name": "Docker Desktop",
+      "CpuSeconds": 4.15625,
+      "HostCpuPercent": 0.602
+    },
+    {
+      "Name": "claude",
+      "CpuSeconds": 3.9375,
+      "HostCpuPercent": 0.57
+    },
+    {
+      "Name": "csrss",
+      "CpuSeconds": 2.109375,
+      "HostCpuPercent": 0.305
+    },
+    {
+      "Name": "OneDrive.Sync.Service",
+      "CpuSeconds": 1.71875,
+      "HostCpuPercent": 0.249
+    },
+    {
+      "Name": "Discord",
+      "CpuSeconds": 1.609375,
+      "HostCpuPercent": 0.233
+    },
+    {
+      "Name": "redis-server",
+      "CpuSeconds": 1.3125,
+      "HostCpuPercent": 0.19
+    },
+    {
+      "Name": "com.docker.backend",
+      "CpuSeconds": 1.296875,
+      "HostCpuPercent": 0.188
+    },
+    {
+      "Name": "iCloudHome",
+      "CpuSeconds": 1.265625,
+      "HostCpuPercent": 0.183
+    },
+    {
+      "Name": "GoogleDriveFS",
+      "CpuSeconds": 1.140625,
+      "HostCpuPercent": 0.165
+    }
+  ]
+}

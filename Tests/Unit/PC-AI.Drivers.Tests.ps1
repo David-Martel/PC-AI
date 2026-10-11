@@ -614,6 +614,96 @@ Describe "Get-NetworkDiscoverySnapshot" -Tag 'Unit', 'Drivers', 'Thunderbolt', '
             $result.PSObject.Properties.Name | Should -Contain 'Adapters'
         }
     }
+
+    # A disabled adapter (seen live: Cisco AnyConnect) has no MSFT_NetIPInterface
+    # or MSFT_NetNeighbor rows, and a physical adapter can lack NetConnectionID.
+    # @($table[$missingKey]) is a one-element array holding $null, so under
+    # StrictMode the AddressFamily filter threw and NeighborCount reported 1;
+    # a $null key threw "the array index evaluated to null" outright.
+    Context "With adapters that have no IP interface, neighbors, or alias" {
+        BeforeAll {
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                switch ($ClassName) {
+                    'Win32_NetworkAdapter' {
+                        @(
+                            [PSCustomObject]@{
+                                Name = 'Ethernet Adapter'; Description = 'Intel Ethernet'
+                                NetConnectionID = 'Ethernet'; NetEnabled = $true
+                                PhysicalAdapter = $true; MACAddress = 'AA-BB-CC-DD-EE-FF'
+                                PNPDeviceID = 'PCI\VEN_8086&DEV_15F3'; Index = 1; Speed = 1000000000
+                            },
+                            [PSCustomObject]@{
+                                Name = 'VPN Miniport'; Description = 'Disabled VPN adapter'
+                                NetConnectionID = 'Ethernet 13'; NetEnabled = $false
+                                PhysicalAdapter = $true; MACAddress = $null
+                                PNPDeviceID = 'ROOT\NET\0000'; Index = 2; Speed = $null
+                            },
+                            [PSCustomObject]@{
+                                Name = 'Unnamed NIC'; Description = 'Physical adapter without alias'
+                                NetConnectionID = $null; NetEnabled = $false
+                                PhysicalAdapter = $true; MACAddress = $null
+                                PNPDeviceID = 'PCI\VEN_10EC&DEV_8168'; Index = 3; Speed = $null
+                            }
+                        )
+                    }
+                    'Win32_NetworkAdapterConfiguration' {
+                        # Windows keeps a configuration row for every adapter index,
+                        # including disabled ones, with the address fields empty.
+                        @(
+                            [PSCustomObject]@{
+                                Index = 1; IPAddress = @('192.168.1.100'); DefaultIPGateway = @('192.168.1.1')
+                                DNSServerSearchOrder = @('8.8.8.8'); DHCPEnabled = $true; DHCPServer = '192.168.1.1'
+                            },
+                            [PSCustomObject]@{
+                                Index = 2; IPAddress = $null; DefaultIPGateway = $null
+                                DNSServerSearchOrder = $null; DHCPEnabled = $true; DHCPServer = $null
+                            },
+                            [PSCustomObject]@{
+                                Index = 3; IPAddress = $null; DefaultIPGateway = $null
+                                DNSServerSearchOrder = $null; DHCPEnabled = $true; DHCPServer = $null
+                            }
+                        )
+                    }
+                    'MSFT_NetIPInterface' {
+                        @([PSCustomObject]@{
+                            InterfaceAlias = 'Ethernet'; AddressFamily = 2; InterfaceMetric = 25; NlMtu = 1500
+                        })
+                    }
+                    'MSFT_NetNeighbor' {
+                        @([PSCustomObject]@{
+                            InterfaceAlias = 'Ethernet'; IPAddress = '192.168.1.1'
+                            LinkLayerAddress = '11-22-33-44-55-66'; State = 'Reachable'
+                        })
+                    }
+                    default { return @() }
+                }
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should complete without errors" {
+            # Called directly, not inside a Should -Not -Throw block: that block is
+            # a child scope, so -ErrorVariable would never reach this $errs. A throw
+            # still fails the test.
+            $script:snapshot = Get-NetworkDiscoverySnapshot -ErrorVariable errs
+            $errs.Count | Should -Be 0
+            $script:snapshot.AdapterCount | Should -Be 3
+        }
+
+        It "Should report zero neighbors and null metrics for an adapter with no IP interface" {
+            $vpn = $script:snapshot.Adapters | Where-Object Name -eq 'VPN Miniport'
+            $vpn.NeighborCount | Should -Be 0
+            $vpn.IPv4Metric | Should -BeNullOrEmpty
+            $vpn.IPv4Mtu | Should -BeNullOrEmpty
+        }
+
+        It "Should still report the healthy adapter's interface and neighbor data" {
+            $eth = $script:snapshot.Adapters | Where-Object Name -eq 'Ethernet Adapter'
+            $eth.IPv4Metric | Should -Be 25
+            $eth.IPv4Mtu | Should -Be 1500
+            $eth.NeighborCount | Should -Be 1
+        }
+    }
 }
 
 # ─── Find-ThunderboltPeer ────────────────────────────────────────────────────

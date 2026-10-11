@@ -7,6 +7,72 @@ ledger instead of left here as active work.
 Last reconciled: 2026-09-07, after a CI/tooling repair pass. The previous
 reconciliation was 2026-04-30.
 
+## 2026-10-03 Fleet and repository closeout
+
+The Milly maintenance evidence is in `Reports/milly-fleet-20261002/README.md`.
+Local OS, firmware, rendering/toolchain and Cog desktop checks are qualified
+component results; they do not establish fleet or physical acceptance.
+
+- [x] Recover Ubuntu 26.04.1, update firmware and the recommended NVIDIA driver,
+  install rendering/development tools, and validate isolated ROS/build/GPU/SSH paths.
+- [x] Preserve the private ASUS backup and unrelated worktree/untracked data.
+- [x] Independently review the six signed maintenance commits against current main.
+- [x] Repair native-process deadlines for blocked stdin and inherited output pipes,
+  and validate owned-process cleanup and portable native documentation controls.
+- [x] Merge PC-AI PR163 after the final exact reviewed head passes refreshed CI.
+- [x] Finish safe PC-AI dependency/source PR integration; PR116, PR120, PR147,
+  PR160, PR161, PR164, PR165, PR166 and PR167 are merged.
+  Retain qualified CUDA/dependency
+  blockers and owner-held worktrees. Refresh current branch/PR dispositions in the
+  repository closeout receipt rather than treating cached refs as custody proof.
+- [x] Merge VIGIL optional endpoint PR2462 after routed-SSH/process-lifetime repair,
+  independent source review,89 real tests and exact-head CI. PR2456 is also merged.
+  Remove the owned endpoint worktree while preserving verified private QA custody.
+- [x] Remove obsolete duplicate cloud-init logrotate and stale Postfix rsyslog
+  configuration from active scans, preserve hashed private rollback copies, and
+  validate logrotate execution and rsyslog restart. Reclaim about 6.6 GiB of
+  downloaded APT archives; current package audit and available-upgrade checks pass.
+- [x] Validate all nine Firefox profile databases structurally, including WAL-aware
+  private copies for original users, and establish preservation of Cog's empty
+  address book against its backup. Original-user acceptance remains pending.
+- [x] Refresh six held dependency PRs and coordinate proposed Candle consolidation
+  with the source owner; preserve feature/build blockers and the foreign worktree.
+- [x] Reapply existing Windows Process Lasso tuning after reviewed preview and
+  hashed rollback backup; its six current-state checks now pass without restart.
+- [x] Restore expected W: through its existing mount task after exact identity and
+  no-use preflight; task and fresh boot mount validator return 0. Future-boot
+  ordering and the stale diagnostic-report warning remain pending.
+- [ ] Resolve the inherited apport-autoreport vendor upload failure through an
+  appropriate supported path; preserve crash reports and existing telemetry policy.
+- [ ] Retire the deregistered CargoTools junction remnants and Python bytecode cache
+  once automatic approval review permits the exact guarded filesystem deletions.
+- [ ] Reconcile the default Windows media-server CRT profile at the native build
+  configuration layer; static-profile CPU passes do not close the MD/MT link failure.
+- [ ] Obtain the existing Sunshine provider reference and affected seat/firewall
+  scope from its owner, then validate authenticated video/input/reconnect and the
+  full VIGIL UI with matching production ROS message packages.
+- [ ] Identify a Thunderbolt peer and measure its actual throughput; no peer NIC
+  is observed through the current CalDigit topology.
+- [ ] Validate eduroam/MWireless using usable supported credentials, provision
+  AMT with its own management credentials/network, and qualify physical HIL paths.
+- [ ] Validate original-user/browser behavior and remaining Cog revision provenance
+  before deleting the retained ASUS backup.
+- [ ] Obtain Claude's corrected F2 tooling matrix. Codex TPM has acknowledged
+  ownership of the next fixture-only derived-Needs proposal using existing CSV
+  and requirements_dag/sync_docs, preserving IDs and publication boundaries.
+- [ ] Implement and validate the proposed read-only synthetic rendering adapter
+  after source-owner schema/auth/TLS selection. Core.js currently requires local
+  Qt WebChannel; Foxglove WebSocket is not a guidance HTTP/SSE listener. Record
+  stale/reconnect and no-command controls in the existing closeout receipt.
+
+- [ ] Review Claude's exact optional CI-runner profile PR and Podman/Docker choice;
+  preserve rendering responsiveness with opt-in resource limits, enforce live policy
+  during existing-container restart, and validate storage
+  and stop/drain behavior before changing Milly's installed container engine or role.
+
+These remaining acceptance items keep their existing HOLD/Pending boundaries.
+No production compute placement, release quorum or static DDS membership changed.
+
 ## 2026-09-07 Reconciliation
 
 Verified by running the checks, not by reading the ledger.
@@ -108,9 +174,10 @@ not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
 
 ### 1. OneDrive, Boot, And UI Responsiveness
 
-- [ ] Monitor OneDrive after installer repair and reset until at least one clean
+- [x] Monitor OneDrive after installer repair and reset until at least one clean
   60 minute `Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru` run
-  shows no new OneDrive/FileSyncHelper WER events.
+  shows no new OneDrive/FileSyncHelper WER events. Refreshed 2026-10-03: exit 0,
+  no WER events, failures or warnings; sync-progress trends remain separate.
 - [ ] Validate registry rollback after a clean reboot using
   `Tools\Collect-DrivePerformanceSyncRisk.ps1`, `Tools\Test-BootMountHealth.ps1`,
   `Tools\Test-SyncProviderHealth.ps1`, and
@@ -512,6 +579,11 @@ still listed although upstream removed it in favour of `implicit_clone`.
 
 ### 3. Acceleration And Startup Cost
 
+- [x] Resolve the acceleration probe's repository from the module checkout,
+  retaining a PC_AI marker check before selecting native binaries. Regression
+  tests reproduce three failures before repair and pass afterward; measured
+  results and remaining workstation pressure are recorded in
+  `Reports/tooling-maintenance-20261003.md`.
 - [ ] Update status/reporting and agent-facing tooling to use
   `Get-PcaiAccelerationProbe`, `Get-PcaiDirectCoreProbe`, or
   `Get-PcaiDirectTokenEstimate` when they only need scalar/status data.

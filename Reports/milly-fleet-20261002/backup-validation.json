@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "host": "millylaptop1",
+  "destination_host": "asuspro13",
+  "private_destination": "/srv/vigil-backups/millylaptop1/20261002",
+  "observed_utc": "2026-10-02T23:33:36.801092+00:00",
+  "qualified_backup_verified_for_maintenance": true,
+  "exact_whole_system_snapshot_matches": false,
+  "three_homes_and_efi_match_with_zero_differences": true,
+  "all_nonvolatile_system_data_and_metadata_match": true,
+  "scopes": [
+    {
+      "scope": "home/yayuanli",
+      "rsync_exit_code": 0,
+      "differing_entries": 0,
+      "logical_file_bytes": 621666976116,
+      "entries": 324504,
+      "regular_files": 280513,
+      "started_utc": "2026-10-02T22:53:45Z",
+      "finished_utc": "2026-10-02T23:09:23Z",
+      "exact_tree_matches": true,
+      "nonvolatile_included_data_and_metadata_matches": true,
+      "difference_counts": {
+        "source_content_or_missing": 0,
+        "source_metadata": 0,
+        "destination_only": 0
+      }
+    },
+    {
+      "scope": "home/millyptg",
+      "rsync_exit_code": 0,
+      "differing_entries": 0,
+      "logical_file_bytes": 110003489860,
+      "entries": 337421,
+      "regular_files": 301144,
+      "started_utc": "2026-10-02T23:09:23Z",
+      "finished_utc": "2026-10-02T23:12:55Z",
+      "exact_tree_matches": true,
+      "nonvolatile_included_data_and_metadata_matches": true,
+      "difference_counts": {
+        "source_content_or_missing": 0,
+        "source_metadata": 0,
+        "destination_only": 0
+      }
+    },
+    {
+      "scope": "home/cog",
+      "rsync_exit_code": 0,
+      "differing_entries": 0,
+      "logical_file_bytes": 19080776191,
+      "entries": 395246,
+      "regular_files": 347359,
+      "started_utc": "2026-10-02T23:24:52Z",
+      "finished_utc": "2026-10-02T23:25:33Z",
+      "exact_tree_matches": true,
+      "nonvolatile_included_data_and_metadata_matches": true,
+      "difference_counts": {
+        "source_content_or_missing": 0,
+        "source_metadata": 0,
+        "destination_only": 0
+      }
+    },
+    {
+      "scope": "root",
+      "rsync_exit_code": 0,
+      "differing_entries": 7,
+      "logical_file_bytes": 38986988000,
+      "entries": 352278,
+      "regular_files": 273556,
+      "started_utc": "2026-10-02T23:25:33Z",
+      "finished_utc": "2026-10-02T23:26:14Z",
+      "exact_tree_matches": false,
+      "nonvolatile_included_data_and_metadata_matches": true,
+      "difference_counts": {
+        "source_content_or_missing": 5,
+        "source_metadata": 2,
+        "destination_only": 0
+      }
+    },
+    {
+      "scope": "efi",
+      "rsync_exit_code": 0,
+      "differing_entries": 0,
+      "logical_file_bytes": 6401625,
+      "entries": 14,
+      "regular_files": 9,
+      "started_utc": "2026-10-02T23:26:14Z",
+      "finished_utc": "2026-10-02T23:26:14Z",
+      "exact_tree_matches": true,
+      "nonvolatile_included_data_and_metadata_matches": true,
+      "difference_counts": {
+        "source_content_or_missing": 0,
+        "source_metadata": 0,
+        "destination_only": 0
+      }
+    }
+  ],
+  "root_expected_runtime_differences": [
+    {
+      "itemize": ".d..t......",
+      "path": "var/lib/NetworkManager/",
+      "kind": "source_metadata",
+      "category": "live_runtime_residual"
+    },
+    {
+      "itemize": "<fc.t......",
+      "path": "var/lib/NetworkManager/timestamps",
+      "kind": "source_content_or_missing",
+      "category": "live_runtime_residual"
+    },
+    {
+      "itemize": ".f..t......",
+      "path": "var/lib/systemd/timers/stamp-fwupd-refresh.timer",
+      "kind": "source_metadata",
+      "category": "live_runtime_residual"
+    },
+    {
+      "itemize": "<fcst......",
+      "path": "var/log/auth.log",
+      "kind": "source_content_or_missing",
+      "category": "live_runtime_residual"
+    },
+    {
+      "itemize": "<fcst......",
+      "path": "var/log/syslog",
+      "kind": "source_content_or_missing",
+      "category": "live_runtime_residual"
+    },
+    {
+      "itemize": "<fc.t......",
+      "path": "var/log/journal/6f089bd4b88d4161acc502b0a7ec3ea8/system.journal",
+      "kind": "source_content_or_missing",
+      "category": "live_runtime_residual"
+    },
+    {
+      "itemize": "<fc.t......",
+      "path": "var/log/journal/6f089bd4b88d4161acc502b0a7ec3ea8/user-1002.journal",
+      "kind": "source_content_or_missing",
+      "category": "live_runtime_residual"
+    }
+  ],
+  "qualification": "Original homes and Cog must match with zero differences; EFI must match with zero differences. Root differences are accepted only at the ten explicitly named runtime paths, with mode/ownership/ACL/xattr/type and missing-file changes always fatal. Live logs/state prevent claiming an exact frozen root snapshot.",
+  "timer_stamp_exception_review": {
+    "path": "var/lib/systemd/timers/stamp-fwupd-refresh.timer",
+    "itemize": ".f..t......",
+    "contents_and_mode_owner_group_matched": true,
+    "zero_byte_stamp": true,
+    "provenance_command": "/usr/bin/fwupdmgr refresh",
+    "trigger_utc": "2026-10-02T23:24:03Z",
+    "primary_disposition": "Accepted exact metadata-only mtime exception after independent verification by primary; any content, mode, ownership, ACL, xattr, type or missing-file difference remains fatal",
+    "accepted_utc": "2026-10-02T23:31:56.157571+00:00"
+  },
+  "public_restore_validation": {
+    "samples_verified": 9,
+    "full_sample_pass": true,
+    "hardlink_pair_preserved": true,
+    "owned_restore_sample_cleaned": true,
+    "limitations": "Samples demonstrate base ACLs, symlinks, hardlinks and real security.capability xattr; whole included-source ACL/xattr/mode/ownership/content comparisons used rsync -aHAX --numeric-ids --checksum."
+  },
+  "initial_complete_pass": {
+    "started_utc": "2026-10-02T22:53:45Z",
+    "finished_utc": "2026-10-02T23:15:59Z",
+    "all_rsync_scope_exit_codes": 0,
+    "cog_runtime_differences": 8,
+    "root_runtime_differences": 9,
+    "receipt_preserved": true
+  },
+  "followup": {
+    "started_utc": "2026-10-02T23:24:52Z",
+    "finished_utc": "2026-10-02T23:26:14Z",
+    "cog_differences": 0,
+    "root_exact_runtime_differences": 7,
+    "root_unexpected_differences": 0,
+    "efi_differences": 0,
+    "original_user_homes_not_reread": true,
+    "pre_review_gate_failed_for_unreviewed_timer_stamp": true
+  },
+  "source_coverage": "Original complete root filesystem plus separate EFI; root checksum excludes three separately checked homes. Virtual filesystems, tmp, external mounts, swap, lost+found and operational fleet-backup report subtree excluded. No compression; no-delete copy; comparison-only delete flag never mutates destination.",
+  "public_receipt_omits_private_file_lists_and_userdata": true,
+  "artifact_sha256": {
+    "checksum-validation.json": "374fd497d20a6a3b6a47bda57438e7ed28b4a6b5ce8a02f6ffe1298f46526f49",
+    "runtime-recheck-pre-review.json": "b57456a350ff655ce0fe804de73923758d4a436169a682e1c867abb8247341e0",
+    "runtime-recheck.json": "cd1a60d1e2488a9d894318d48ae5877afb44d8cdffe2ee02eb01a5bf9fac2db5",
+    "runtime-exception-review.json": "81c87a877de6af446aa13051286f02fb89ca9195ff37de26273e5795ab4b6282",
+    "restore-validation.json": "0be163fd5390ae241b3e202b3aaad9c67546ea0638349abb8fc611b6c1a2a15c",
+    "checksum-verify.sh": "22c885ba9c6c9ed94cefc21198dcdf92762c3f2ddacb19b58ca4b8ebc851a325",
+    "checksum-classify.py": "eb7cc2f3338cf1086d77807e8a59c1bb38ba63f57a684f274fa30c77bd864d7d",
+    "runtime-recheck.sh": "1477817b8e648a89898c2e2e3f973611cc680d825431637e7023bb478fa2c0f1",
+    "runtime-recheck.py": "930cdf36a9585bd4c538f43f1c81bcdb928b0a6be13d40e586fc32ecf1e5ec87"
+  }
+}

@@ -49,7 +49,7 @@ function Set-BwArchiveAcl {
             ))
     }
     if (-not $PSCmdlet.ShouldProcess($item.FullName, 'Restrict archive ACL to current user, SYSTEM, and Administrators')) { return }
-    Set-Acl -LiteralPath $item.FullName -AclObject $acl -ErrorAction Stop
+    [IO.FileSystemAclExtensions]::SetAccessControl($item, $acl)
     $actual = Get-Acl -LiteralPath $item.FullName -ErrorAction Stop
     $rules = @($actual.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]))
     if (-not $actual.AreAccessRulesProtected -or $rules.Count -ne $sids.Count) { throw 'Archive ACL verification failed.' }

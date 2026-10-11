@@ -1,0 +1,80 @@
+Domain 0
+  Type: Domain
+  Security Level: None
+  Deauthorization: No
+  IOMMU DMA protection: No
+  Kernel name: domain0
+
+Domain 0 Route 0: 0109:2205 Lenovo P16 GEN2
+  Type: Router
+  UUID: bab38780-0019-a9b4-ffff-ffffffffffff
+  Generation: USB4 1.0
+  NVM version: 41.82
+  Kernel name: 0-0
+ 1: Lane 0                        CLd
+ 2: Lane 1                        CLd
+ 3: Lane 0                        CLd
+ 4: Lane 1                        CLd
+ 5: DisplayPort IN                Disabled
+ 6: DisplayPort IN                Disabled
+ 7: Not implemented
+ 8: PCIe Down                     Disabled
+ 9: PCIe Down                     Disabled
+10: Not implemented
+11: Not implemented
+12: USB 3 Down                    Disabled
+13: USB 3 Down                    Disabled
+[  245.166243] thunderbolt 0000:22:00.0:   Max counters: 16
+[  245.166245] thunderbolt 0000:22:00.0:   NFC Credits: 0x83c00000
+[  245.166248] thunderbolt 0000:22:00.0:   Credits (total/control): 60/2
+[  245.166495] thunderbolt 0000:22:00.0:  Port 5: 8086:1136 (Revision: 0, TB Version: 1, Type: DP/HDMI (0xe0101))
+[  245.166499] thunderbolt 0000:22:00.0:   Max hop id (in/out): 9/9
+[  245.166502] thunderbolt 0000:22:00.0:   Max counters: 2
+[  245.166504] thunderbolt 0000:22:00.0:   NFC Credits: 0x100000d
+[  245.166506] thunderbolt 0000:22:00.0:   Credits (total/control): 16/0
+[  245.166746] thunderbolt 0000:22:00.0:  Port 6: 8086:1136 (Revision: 0, TB Version: 1, Type: DP/HDMI (0xe0101))
+[  245.166751] thunderbolt 0000:22:00.0:   Max hop id (in/out): 9/9
+[  245.166754] thunderbolt 0000:22:00.0:   Max counters: 2
+[  245.166756] thunderbolt 0000:22:00.0:   NFC Credits: 0x100000d
+[  245.166758] thunderbolt 0000:22:00.0:   Credits (total/control): 16/0
+[  245.166761] thunderbolt 0000:22:00.0: 0:7: disabled by eeprom
+[  245.167002] thunderbolt 0000:22:00.0:  Port 8: 8086:1136 (Revision: 0, TB Version: 1, Type: PCIe (0x100101))
+[  245.167006] thunderbolt 0000:22:00.0:   Max hop id (in/out): 8/8
+[  245.167008] thunderbolt 0000:22:00.0:   Max counters: 2
+[  245.167010] thunderbolt 0000:22:00.0:   NFC Credits: 0x40800000
+[  245.167012] thunderbolt 0000:22:00.0:   Credits (total/control): 8/0
+[  245.167258] thunderbolt 0000:22:00.0:  Port 9: 8086:1136 (Revision: 0, TB Version: 1, Type: PCIe (0x100101))
+[  245.167262] thunderbolt 0000:22:00.0:   Max hop id (in/out): 8/8
+[  245.167264] thunderbolt 0000:22:00.0:   Max counters: 2
+[  245.167266] thunderbolt 0000:22:00.0:   NFC Credits: 0x40800000
+[  245.167268] thunderbolt 0000:22:00.0:   Credits (total/control): 8/0
+[  245.167515] thunderbolt 0000:22:00.0:  Port 10: 8086:1136 (Revision: 0, TB Version: 1, Type: Inactive (0x0))
+[  245.167519] thunderbolt 0000:22:00.0:   Max hop id (in/out): 9/9
+[  245.167521] thunderbolt 0000:22:00.0:   Max counters: 2
+[  245.167523] thunderbolt 0000:22:00.0:   NFC Credits: 0x800000
+[  245.167525] thunderbolt 0000:22:00.0:   Credits (total/control): 8/0
+[  245.167770] thunderbolt 0000:22:00.0:  Port 11: 8086:1136 (Revision: 0, TB Version: 1, Type: Inactive (0x0))
+[  245.167774] thunderbolt 0000:22:00.0:   Max hop id (in/out): 9/9
+[  245.167776] thunderbolt 0000:22:00.0:   Max counters: 2
+[  245.167778] thunderbolt 0000:22:00.0:   NFC Credits: 0x800000
+[  245.167781] thunderbolt 0000:22:00.0:   Credits (total/control): 8/0
+[  245.168027] thunderbolt 0000:22:00.0:  Port 12: 8086:1136 (Revision: 0, TB Version: 1, Type: USB (0x200101))
+[  245.168031] thunderbolt 0000:22:00.0:   Max hop id (in/out): 8/8
+[  245.168034] thunderbolt 0000:22:00.0:   Max counters: 2
+[  245.168036] thunderbolt 0000:22:00.0:   NFC Credits: 0x800000
+[  245.168038] thunderbolt 0000:22:00.0:   Credits (total/control): 8/0
+[  245.168283] thunderbolt 0000:22:00.0:  Port 13: 8086:1136 (Revision: 0, TB Version: 1, Type: USB (0x200101))
+[  245.168287] thunderbolt 0000:22:00.0:   Max hop id (in/out): 8/8
+[  245.168289] thunderbolt 0000:22:00.0:   Max counters: 2
+[  245.168291] thunderbolt 0000:22:00.0:   NFC Credits: 0x800000
+[  245.168293] thunderbolt 0000:22:00.0:   Credits (total/control): 8/0
+[  245.187307] thunderbolt 0000:22:00.0: 0: NVM version 41.82
+/sys/class/typec/port0-partner
+no
+0.0
+/sys/class/typec/port1-partner
+no
+0.0
+/sys/class/typec/port2-partner
+no
+0.0

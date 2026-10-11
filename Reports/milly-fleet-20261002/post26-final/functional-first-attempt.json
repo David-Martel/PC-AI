@@ -1,0 +1,428 @@
+{
+  "observedUtc": "2026-10-03T01:39:40.619649+00:00",
+  "host": "millylaptop1",
+  "kernel": "7.0.0-38-generic",
+  "checks": [
+    {
+      "name": "egl-build",
+      "argv": [
+        "gcc",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/home/cog/.cache/pcai/ui-validation/egl_device_probe.c",
+        "-o",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/egl-device-probe",
+        "-lEGL",
+        "-lGL"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.1622,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "egl-pixel",
+      "argv": [
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/egl-device-probe"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 2.0309,
+      "stdout": "EGL 1.5 vendor=NVIDIA renderer=NVIDIA RTX 5000 Ada Generation Laptop GPU/PCIe/SSE2 GL=4.6.0 NVIDIA 595.91.07 pixel=255,0,0 error=0\n",
+      "stderr": "libEGL warning: pci id for fd 26: 10de:2730, driver (null)\n\npci id for fd 28: 10de:2730, driver (null)\npci id for fd 29: 10de:2730, driver (null)\nlibEGL warning: egl: failed to create dri2 screen\nlibEGL warning: pci id for fd 26: 10de:2730, driver (null)\n\npci id for fd 28: 10de:2730, driver (null)\npci id for fd 29: 10de:2730, driver (null)\nlibEGL warning: egl: failed to create dri2 screen\nlibEGL warning: pci id for fd 26: 10de:2730, driver (null)\n\n"
+    },
+    {
+      "name": "nvenc",
+      "argv": [
+        "ffmpeg",
+        "-nostdin",
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "warning",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=640x360:rate=30",
+        "-t",
+        "1",
+        "-c:v",
+        "h264_nvenc",
+        "-preset",
+        "p4",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/synthetic.h264"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.3439,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "cpu-decode",
+      "argv": [
+        "ffmpeg",
+        "-nostdin",
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-threads",
+        "2",
+        "-i",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/synthetic.h264",
+        "-pix_fmt",
+        "yuv420p",
+        "-f",
+        "framemd5",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/cpu.framemd5"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.0976,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "nvdec",
+      "argv": [
+        "ffmpeg",
+        "-nostdin",
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-threads",
+        "2",
+        "-hwaccel",
+        "cuda",
+        "-hwaccel_output_format",
+        "cuda",
+        "-i",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/synthetic.h264",
+        "-vf",
+        "hwdownload,format=nv12,format=yuv420p",
+        "-f",
+        "framemd5",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/gpu.framemd5"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.3561,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "qt-pixels",
+      "argv": [
+        "xvfb-run",
+        "-a",
+        "/home/cog/.local/share/vigil-endpoint/ui-py313/bin/python",
+        "/home/cog/.cache/pcai/ui-validation/qt-paint.py",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/qt.png"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.3494,
+      "stdout": "{\"python\": \"3.13.16 (main, Oct  1 2026, 20:59:14) [Clang 22.1.3 ]\", \"pyside6\": \"6.11.2\", \"platform\": \"xcb\", \"pixelAssertions\": 2, \"saved\": \"/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/qt.png\"}\n",
+      "stderr": ""
+    },
+    {
+      "name": "vigil-source-widget",
+      "argv": [
+        "/home/cog/.local/share/vigil-endpoint/ui-py313/bin/python",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/widget/validate-widget.py"
+      ],
+      "exit": 1,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.1192,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/widget/validate-widget.py\", line 16, in <module>\n    from display.cardiac_capture_status import FILL_CAPTURING, FILL_COMPLETE, FILL_OK\nModuleNotFoundError: No module named 'display'\n"
+    },
+    {
+      "name": "moonlight-cli",
+      "argv": [
+        "xvfb-run",
+        "-a",
+        "/home/cog/.local/bin/moonlight",
+        "--help"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.2166,
+      "stdout": "Usage: /home/cog/.local/opt/moonlight/6.1.0/squashfs-root/AppRun [options] <action>\n\nStarts Moonlight normally if no arguments are given.\n\nAvailable actions:\n  list            List the available apps on a host\n  quit            Quit the currently running app\n  stream          Start streaming an app\n  pair            Pair a new host\n\nSee 'moonlight <action> --help' for help of specific action.\n\nOptions:\n  -h, --help     Displays help on commandline options.\n  --help-all     Displays help including Qt specific options.\n  -v, --version  Displays version information.\n\nArguments:\n  action         Action to execute\n",
+      "stderr": ""
+    },
+    {
+      "name": "native-ros-isolated",
+      "argv": [
+        "sudo",
+        "-n",
+        "unshare",
+        "--net",
+        "bash",
+        "-c",
+        "ip link set lo up; exec runuser -u cog -- env ROS_DOMAIN_ID=231 ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST RMW_IMPLEMENTATION=rmw_cyclonedds_cpp bash -c \"source /opt/ros/lyrical/setup.bash; exec python3 /home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ros-test.py\""
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.8191,
+      "stdout": "native Lyrical/CycloneDDS actual pub/sub PASS; isolated namespace; Python 3.14.4\n",
+      "stderr": ""
+    },
+    {
+      "name": "jazzy-container-isolated",
+      "argv": [
+        "podman",
+        "run",
+        "--rm",
+        "--pull=never",
+        "--network=none",
+        "-e",
+        "ROS_DOMAIN_ID=231",
+        "docker.io/library/ros@sha256:066420e07f60aa18262f2479981def87ebcfcec42eefb0c0c57c4a46098348ca",
+        "bash",
+        "-c",
+        "source /opt/ros/jazzy/setup.bash; python3 -c \"import sys,rclpy; rclpy.init(); n=rclpy.create_node(\"isolated_milly_qa\"); n.destroy_node(); rclpy.shutdown(); print(sys.version.split()[0])\""
+      ],
+      "exit": 1,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.7777,
+      "stdout": "",
+      "stderr": "time=\"2026-10-02T21:39:36-04:00\" level=warning msg=\"The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.\"\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nNameError: name 'isolated_milly_qa' is not defined\n"
+    },
+    {
+      "name": "lyrical-container-isolated",
+      "argv": [
+        "podman",
+        "run",
+        "--rm",
+        "--pull=never",
+        "--network=none",
+        "-e",
+        "ROS_DOMAIN_ID=231",
+        "docker.io/library/ros@sha256:f79cd486fa218596747c45d00ca42101b0303fc6d94ed5adb72145cd6f54b86c",
+        "bash",
+        "-c",
+        "source /opt/ros/lyrical/setup.bash; python3 -c \"import sys,rclpy; rclpy.init(); n=rclpy.create_node(\"isolated_milly_qa\"); n.destroy_node(); rclpy.shutdown(); print(sys.version.split()[0])\""
+      ],
+      "exit": 1,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.8918,
+      "stdout": "",
+      "stderr": "time=\"2026-10-02T21:39:37-04:00\" level=warning msg=\"The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.\"\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import sys,rclpy; rclpy.init(); n=rclpy.create_node(isolated_milly_qa); n.destroy_node(); rclpy.shutdown(); print(sys.version.split()[0])\n                                                        ^^^^^^^^^^^^^^^^^\nNameError: name 'isolated_milly_qa' is not defined\n"
+    },
+    {
+      "name": "podman-cdi-gpu-isolated",
+      "argv": [
+        "podman",
+        "run",
+        "--rm",
+        "--pull=never",
+        "--network=none",
+        "--device",
+        "nvidia.com/gpu=all",
+        "-e",
+        "ROS_DOMAIN_ID=231",
+        "docker.io/library/ros@sha256:066420e07f60aa18262f2479981def87ebcfcec42eefb0c0c57c4a46098348ca",
+        "nvidia-smi",
+        "--query-gpu=name,driver_version",
+        "--format=csv,noheader"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.4976,
+      "stdout": "NVIDIA RTX 5000 Ada Generation Laptop GPU, 595.91.07\n",
+      "stderr": "time=\"2026-10-02T21:39:38-04:00\" level=warning msg=\"The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.\"\n"
+    },
+    {
+      "name": "cpp-configure",
+      "argv": [
+        "cmake",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation",
+        "-B",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/cpp-build",
+        "-G",
+        "Ninja"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.3717,
+      "stdout": "-- The CXX compiler identification is GNU 15.2.0\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Configuring done (0.3s)\n-- Generating done (0.0s)\n-- Build files have been written to: /home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/cpp-build\n",
+      "stderr": ""
+    },
+    {
+      "name": "cpp-build",
+      "argv": [
+        "cmake",
+        "--build",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/cpp-build"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.329,
+      "stdout": "[1/2] Building CXX object CMakeFiles/pcai_check.dir/main.cpp.o\n[2/2] Linking CXX executable pcai_check\n",
+      "stderr": ""
+    },
+    {
+      "name": "cpp-tests",
+      "argv": [
+        "ctest",
+        "--test-dir",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/cpp-build",
+        "--output-on-failure"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.1097,
+      "stdout": "Test project /home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/cpp-build\n    Start 1: prints42\n1/1 Test #1: prints42 .........................   Passed    0.00 sec\n\n100% tests passed out of 1\n\nTotal Test time (real) =   0.00 sec\n",
+      "stderr": ""
+    },
+    {
+      "name": "python-tests",
+      "argv": [
+        "pytest",
+        "-q",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/test_math_tools.py"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.16,
+      "stdout": "......                                                                   [100%]\n6 passed in 0.02s\n",
+      "stderr": ""
+    },
+    {
+      "name": "rust-nextest",
+      "argv": [
+        "cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--manifest-path",
+        "/home/cog/.cache/pcai/fleet-tooling-provenance/validation/rust-fixture/Cargo.toml"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.5693,
+      "stdout": "",
+      "stderr": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n Nextest run ID 26dca3f8-439d-48a1-98a1-25845f9bf199 with nextest profile: default\n    Starting 1 test across 1 binary\n        PASS [   0.008s] (1/1) pcai-tool-check tests::boundaries\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n     Summary [   0.010s] 1 test run: 1 passed, 0 skipped\n"
+    },
+    {
+      "name": "ssh-master-start",
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        "ForwardAgent=no",
+        "-o",
+        "Compression=no",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master",
+        "-o",
+        "ControlMaster=yes",
+        "-o",
+        "ControlPersist=10",
+        "-MNf",
+        "asuspro13"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.1167,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "ssh-master-check",
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        "ForwardAgent=no",
+        "-o",
+        "Compression=no",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master",
+        "-O",
+        "check",
+        "asuspro13"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.0187,
+      "stdout": "",
+      "stderr": "Master running (pid=11043)\n"
+    },
+    {
+      "name": "ssh-reused-hostname",
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        "ForwardAgent=no",
+        "-o",
+        "Compression=no",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master",
+        "asuspro13",
+        "hostname"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.2136,
+      "stdout": "asuspro13\n",
+      "stderr": "Master refused session request: Permission denied\nControlSocket /home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master already exists, disabling multiplexing\n"
+    },
+    {
+      "name": "ssh-owned-master-exit",
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        "ForwardAgent=no",
+        "-o",
+        "Compression=no",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master",
+        "-O",
+        "exit",
+        "asuspro13"
+      ],
+      "exit": 255,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.0104,
+      "stdout": "",
+      "stderr": "Master refused termination request: Permission denied\n"
+    },
+    {
+      "name": "ssh-effective-policy",
+      "argv": [
+        "ssh",
+        "-G",
+        "asuspro13"
+      ],
+      "exit": 0,
+      "expectedExit": 0,
+      "elapsedSeconds": 0.007,
+      "stdout": "host asuspro13\nuser damartel\nhostname 192.168.50.2\nport 22\naddressfamily any\nbatchmode yes\ncanonicalizefallbacklocal yes\ncanonicalizehostname false\ncheckhostip no\ncompression no\ncontrolmaster auto\nenablesshkeysign no\nclearallforwardings no\nexitonforwardfailure no\nfingerprinthash SHA256\nforwardx11 no\nforwardx11trusted yes\ngatewayports no\ngssapiauthentication yes\ngssapikeyexchange no\ngssapidelegatecredentials no\ngssapitrustdns no\ngssapirenewalforcesrekey no\ngssapikexalgorithms gss-group14-sha256-,gss-group16-sha512-,gss-nistp256-sha256-,gss-curve25519-sha256-\nhashknownhosts yes\nhostbasedauthentication no\nidentitiesonly yes\nkbdinteractiveauthentication yes\nnohostauthenticationforlocalhost no\npasswordauthentication yes\npermitlocalcommand no\nproxyusefdpass no\npubkeyauthentication true\nrequesttty auto\nsessiontype default\nstdinnull no\nforkafterauthentication no\nstreamlocalbindunlink no\nstricthostkeychecking true\ntcpkeepalive yes\ntunnel false\nverifyhostkeydns false\nvisualhostkey no\nupdatehostkeys false\nenableescapecommandline no\nwarnweakcrypto yes\ncanonicalizemaxdots 1\nconnectionattempts 1\nforwardx11timeout 1200\nnumberofpasswordprompts 3\nserveralivecountmax 3\nserveraliveinterval 30\nrequiredrsasize 1024\nobscurekeystroketiming yes\nciphers chacha20-poly1305@openssh.com,aes128-gcm@openssh.com,aes256-gcm@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr\ncontrolpath /home/cog/.ssh/cm/vigil-asuspro13-e879f591f73d7435e3a7dd5fc849f549ef821e58\nhostkeyalgorithms ssh-ed25519-cert-v01@openssh.com,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,sk-ssh-ed25519-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,sk-ssh-ed25519@openssh.com,sk-ecdsa-sha2-nistp256@openssh.com,rsa-sha2-512,rsa-sha2-256\nhostkeyalias asuspro13\nhostbasedacceptedalgorithms ssh-ed25519-cert-v01@openssh.com,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,sk-ssh-ed25519-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,sk-ssh-ed25519@openssh.com,sk-ecdsa-sha2-nistp256@openssh.com,rsa-sha2-512,rsa-sha2-256\nkexalgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256\ncasignaturealgorithms ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,sk-ssh-ed25519@openssh.com,sk-ecdsa-sha2-nistp256@openssh.com,rsa-sha2-512,rsa-sha2-256\nloglevel INFO\nmacs umac-64-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-64@openssh.com,umac-128@openssh.com,hmac-sha2-256,hmac-sha2-512,hmac-sha1\nsecuritykeyprovider internal\npubkeyacceptedalgorithms ssh-ed25519-cert-v01@openssh.com,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,sk-ssh-ed25519-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,sk-ssh-ed25519@openssh.com,sk-ecdsa-sha2-nistp256@openssh.com,rsa-sha2-512,rsa-sha2-256\nxauthlocation /usr/bin/xauth\nidentityfile /home/cog/.ssh/id_ed25519_millylaptop1\ncanonicaldomains none\nglobalknownhostsfile /etc/ssh/ssh_known_hosts /etc/ssh/ssh_known_hosts2\nuserknownhostsfile /home/cog/.ssh/known_hosts\nsendenv LANG\nsendenv LC_*\nsendenv COLORTERM\nsendenv NO_COLOR\nlogverbose none\nchanneltimeout none\npermitremoteopen any\naddkeystoagent false\nforwardagent no\nconnecttimeout 10\ntunneldevice any:any\ncanonicalizePermittedcnames none\ncontrolpersist 120\nescapechar ~\nipqos ef cs0\nrekeylimit 0 0\nstreamlocalbindmask 0177\nsyslogfacility USER\n",
+      "stderr": "Pseudo-terminal will not be allocated because stdin is not a terminal.\n"
+    }
+  ],
+  "codecFrameCount": 30,
+  "cpuGpuDecodedFramesIdentical": true,
+  "scope": "Local synthetic graphics and isolated ABI/tool tests; no paired fleet stream/fullROSoperatorUI/HIL"
+}

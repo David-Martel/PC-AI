@@ -4,12 +4,13 @@
     Operator entrypoint for Thunderbolt / USB4 peer networking in PC-AI.
 
 .DESCRIPTION
-    Wraps the PC-AI.Drivers Thunderbolt functions behind a single script with three
+    Wraps the PC-AI.Drivers Thunderbolt functions behind a single script with four
     modes:
 
       - Status   : discover Thunderbolt / USB4 adapters and peer candidates
       - Connect  : connect to a Windows peer over WinRM
       - Optimize : build or apply a conservative tuning plan
+      - LinuxPeer: inspect, prepare, configure or benchmark a Linux SSH peer
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'Password',
     Justification = 'Operator CLI tool; accepts plain password from interactive invocation and wraps into SecureString for the WinRM call immediately. No persistence.')]
@@ -18,7 +19,7 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter()]
-    [ValidateSet('Status', 'Connect', 'Optimize')]
+    [ValidateSet('Status', 'Connect', 'Optimize', 'LinuxPeer')]
     [string]$Mode = 'Status',
 
     [Parameter()]
@@ -52,11 +53,39 @@ param(
     [switch]$ProbeWinRM,
 
     [Parameter()]
-    [switch]$Apply
+    [switch]$Apply,
+
+    [ValidateSet('Status', 'Prepare', 'Configure', 'Benchmark')]
+    [string]$Action = 'Status',
+
+    [string]$Peer = 'millylaptop1',
+
+    [string]$ConfigPath = (Join-Path $PSScriptRoot '../Config/thunderbolt-peers.json'),
+
+    [string]$LinuxInterface,
+
+    [switch]$DryRun,
+
+    [ValidateRange(1, 60)][int]$DurationSeconds = 10,
+
+    [ValidateRange(1024, 65535)][int]$Port = 5201,
+
+    [string]$IperfPath = 'iperf3',
+
+    [Alias('h', 'help')][switch]$ShowHelp
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($ShowHelp) { Get-Help $PSCommandPath -Detailed; return }
+if ($Mode -eq 'LinuxPeer') {
+    & (Join-Path $PSScriptRoot 'SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1') `
+        -Action $Action -Peer $Peer -ConfigPath $ConfigPath -InterfaceAlias $InterfaceAlias `
+        -LinuxInterface $LinuxInterface -Apply:$Apply -DryRun:$DryRun `
+        -DurationSeconds $DurationSeconds -Port $Port -IperfPath $IperfPath -WhatIf:$WhatIfPreference
+    return
+}
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $driversManifest = Join-Path $repoRoot 'Modules\PC-AI.Drivers\PC-AI.Drivers.psd1'
@@ -86,7 +115,7 @@ switch ($Mode) {
             -MtuBytes $MtuBytes `
             -IPv4Address $IPv4Address `
             -PrefixLength $PrefixLength `
-            -Apply:$Apply `
+            -Apply:($Apply -and -not $DryRun) `
             -WhatIf:$WhatIfPreference
     }
 }

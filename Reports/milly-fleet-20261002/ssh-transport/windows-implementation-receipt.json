@@ -1,0 +1,81 @@
+{
+  "observedUtc": "2026-10-02T23:53:14.4712808Z",
+  "host": "dtm-p1gen7",
+  "appliedFile": "C:/Users/david/.ssh/config.d/00-vigil-fleet-transport.conf",
+  "appliedSha256": "8f470b92a31e2e2a12f34c646a0dec3d80db5a55e60e953df2f7a1e77fe4d423",
+  "newFilePreviouslyAbsent": true,
+  "exactAliases": [
+    "millylaptop1",
+    "asuspro13",
+    "spark-0060",
+    "spark-3066"
+  ],
+  "desiredFields": {
+    "ConnectTimeout": 10,
+    "ConnectionAttempts": 1,
+    "ServerAliveInterval": 30,
+    "ServerAliveCountMax": 3,
+    "Compression": "no",
+    "ForwardAgent": "no"
+  },
+  "pinsIdentitiesAndRoutesUnchanged": true,
+  "nativeMultiplexingDisabled": true,
+  "allEffectiveFieldsForUnrelatedAliasesUnchanged": [
+    "github.com",
+    "dtm-work"
+  ],
+  "existingFiles": [
+    {
+      "path": "C:/Users/david/.ssh/config",
+      "sha256": "7064a2bb171112ac288c250144ff0943e91866ec09171681ca016575a67bafa0",
+      "originalBytesPreserved": true
+    },
+    {
+      "path": "C:/Users/david/.ssh/config.d/00-vigil-management.conf",
+      "sha256": "6c7254b5700123e2b17c2b2cb2d2a7ee2faf4e813d616eb76192dd9903491465",
+      "originalBytesPreserved": true
+    },
+    {
+      "path": "C:/Users/david/.ssh/config.d/spark-0060.conf",
+      "sha256": "76c1c2da4a2660a61ccc87093ea3271329bb17ffa1ae994669dfea117d11c723",
+      "originalBytesPreserved": true
+    },
+    {
+      "path": "C:/Users/david/.ssh/config.d/spark.conf",
+      "sha256": "9854ff6676f8d37d949a190259ac3b61ea67e6434d0ba79d33b957e5ca9faa97",
+      "originalBytesPreserved": true
+    }
+  ],
+  "liveChecks": [
+    {
+      "host": "asuspro13",
+      "elapsedMs": 273.93,
+      "exit": 0,
+      "output": "asuspro13",
+      "strictPinnedConfigurationVerified": true
+    },
+    {
+      "host": "spark-0060",
+      "elapsedMs": 357.04,
+      "exit": 0,
+      "output": "spark-0060",
+      "strictPinnedConfigurationVerified": true
+    },
+    {
+      "host": "spark-3066",
+      "elapsedMs": 532.0,
+      "exit": 0,
+      "output": "spark-3066",
+      "strictPinnedConfigurationVerified": true
+    }
+  ],
+  "millyLiveCheck": {
+    "state": "deferred",
+    "reason": "Firmware reboot/maintenance owned by primary agent; effective configuration parser verified"
+  },
+  "privateBeforeBytesRetained": true,
+  "privateBeforeBytesExcludedFromPublicReports": true,
+  "claimResource": "dtm-p1gen7:C:/Users/david/.ssh/config.d/00-vigil-fleet-transport.conf",
+  "claimGrantedUtc": "2026-10-02T23:51:27.841939Z",
+  "remoteConfigServicesRoutesFirewallAndKeysChanged": false
+}

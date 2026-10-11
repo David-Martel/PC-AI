@@ -1,0 +1,57 @@
+Rebinding only 0000:22:00.0
+{
+  "hostname": "millylaptop1",
+  "startedAt": "2026-10-02T20:11:10.216115+00:00",
+  "durationSeconds": 20,
+  "outputDirectory": "/home/cog/.cache/pcai/thunderbolt-diag-20261002-rebind",
+  "instance": "/sys/kernel/tracing/instances/pcai-tb-089f80a9c9814191af9438108a94dfda",
+  "enabledEvents": [
+    "thunderbolt_net:tbnet_alloc_rx_frame",
+    "thunderbolt_net:tbnet_alloc_tx_frame",
+    "thunderbolt_net:tbnet_free_frame",
+    "thunderbolt_net:tbnet_rx_ip_frame",
+    "thunderbolt_net:tbnet_invalid_rx_ip_frame",
+    "thunderbolt_net:tbnet_tx_ip_frame",
+    "thunderbolt_net:tbnet_rx_skb",
+    "thunderbolt_net:tbnet_tx_skb",
+    "thunderbolt_net:tbnet_consume_skb",
+    "ucsi:ucsi_run_command",
+    "ucsi:ucsi_reset_ppm",
+    "ucsi:ucsi_connector_change",
+    "ucsi:ucsi_register_port",
+    "ucsi:ucsi_register_altmode"
+  ],
+  "globalTracingBefore": "1",
+  "traceDataLines": 0,
+  "postCleanupEvidenceErrors": [],
+  "restoration": {
+    "printingRestored": true,
+    "errors": [],
+    "instanceRemoved": true,
+    "instanceErrors": [],
+    "globalTracingUnchanged": true
+  },
+  "globalTracingAfter": "1",
+  "changedCallsiteSelectors": 264,
+  "finishedAt": "2026-10-02T20:11:31.021815+00:00",
+  "captureError": null
+}
+
+Recovery and topology
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+enx002427892147  UP             192.168.50.43/24 fe80::1eb8:c702:f7ab:45b1/64
+wlp0s20f3        UP             35.3.41.148/16 fe80::ecdc:b151:3d35:bbad/64
+Domain 0 Route 0: 0109:2205 Lenovo P16 GEN2
+ 1: Lane 0                        CLd
+ 2: Lane 1                        CLd
+ 3: Lane 0                        CLd
+ 4: Lane 1                        CLd
+ 5: DisplayPort IN                Disabled
+ 6: DisplayPort IN                Disabled
+ 7: Not implemented
+ 8: PCIe Down                     Disabled
+ 9: PCIe Down                     Disabled
+10: Not implemented
+11: Not implemented
+12: USB 3 Down                    Disabled
+13: USB 3 Down                    Disabled

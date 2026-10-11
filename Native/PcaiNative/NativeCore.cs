@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace PcaiNative;
 
@@ -57,6 +57,7 @@ internal static partial class NativeCore
     internal static extern SafeRustStringHandle pcai_extract_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? input);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]
+    [return: MarshalAs(UnmanagedType.I1)]
     internal static extern bool pcai_is_valid_json([MarshalAs(UnmanagedType.LPUTF8Str)] string? input);
 
     [DllImport(CoreDll, CallingConvention = CallingConvention.Cdecl)]

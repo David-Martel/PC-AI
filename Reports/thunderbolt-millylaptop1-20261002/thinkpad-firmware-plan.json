@@ -1,0 +1,24 @@
+[
+  {
+    "Device": "Embedded Controller",
+    "DeviceId": "1edffe0587b79f7ddc892dc28fe93f88d17613d5",
+    "Installed": "0.1.1",
+    "Target": "0.1.50",
+    "Package": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\firmware-staging\\Lenovo-ThinkPad-P16Gen2-EmbeddedControllerFirmware-1.50.cab",
+    "Source": "https://fwupd.org/downloads/814be1e5d51644e5d72e6576f7ebd1f80ef9207a27d4170da51e475dcd1f2919-Lenovo-ThinkPad-P16Gen2-EmbeddedControllerFirmware-1.50.cab",
+    "SHA256": "814BE1E5D51644E5D72E6576F7EBD1F80EF9207A27D4170DA51E475DCD1F2919",
+    "Verified": true,
+    "ReleaseNotes": "<p>This stable release modifies the following items:</p><ul><li>Improve the BIOS backup process.</li><li>Improve the process of status flag data store to rom.</li></ul>"
+  },
+  {
+    "Device": "System Firmware",
+    "DeviceId": "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+    "Installed": "0.1.3",
+    "Target": "0.2.00",
+    "Package": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\firmware-staging\\Lenovo-ThinkPad-P16Gen2-SystemFirmware-2.00.cab",
+    "Source": "https://fwupd.org/downloads/1e5bab9a315b9e57a779dc4f2c7faa62251a5b51e0a3cc89a265fee072384993-Lenovo-ThinkPad-P16Gen2-SystemFirmware-2.00.cab",
+    "SHA256": "1E5BAB9A315B9E57A779DC4F2C7FAA62251A5B51E0A3CC89A265FEE072384993",
+    "Verified": true,
+    "ReleaseNotes": "<p>This stable release fixes the following issues</p><ul><li>pdated legal headers and copyright metadata to current 2026 standards.</li></ul>"
+  }
+]

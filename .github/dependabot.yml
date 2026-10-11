@@ -23,6 +23,27 @@ updates:
       day: "tuesday"
     open-pull-requests-limit: 5
     groups:
+      # The candle crates must move as one. pcai_media and pcai_media_model
+      # depend on candle-core, candle-nn, candle-transformers and
+      # candle-flash-attn together; bumping one alone links two incompatible
+      # candle_core crates. #127 raised candle-nn 0.10.2 -> 0.11.0 by itself
+      # and clippy failed with `From<candle_core::error::Error>` not
+      # implemented for `candle_core::Error`. This group takes majors too, so
+      # a 0.x minor (which dependabot treats as major for Cargo) still
+      # arrives as one PR. It must stay above cargo-pcai-core: a dependency
+      # joins only the first group it matches.
+      candle:
+        patterns: ["candle-*"]
+        update-types: ["major", "minor", "patch"]
+      # Same trap for mistralrs: #126 moved mistralrs to 0.8.1 and #141 moved
+      # mistralrs-core to 0.8.1, each alone. With the two on different lines,
+      # backends/mistralrs.rs fails with E0308 (mistralrs::StopTokens vs
+      # mistralrs_core::StopTokens). CI builds only `server,ffi`, so it never
+      # compiles this backend -- verify a grouped PR locally with
+      # `--features mistralrs-backend,server,ffi`.
+      mistralrs:
+        patterns: ["mistralrs", "mistralrs-*"]
+        update-types: ["major", "minor", "patch"]
       cargo-pcai-core:
         update-types: ["minor", "patch"]
     ignore:

@@ -1,0 +1,27 @@
+VirtualizationTechnology
+Disable
+Disable;Enable
+VTdFeature
+Disable
+Disable;Enable
+ThunderboltAccess
+Enable
+Disable;Enable
+SecureBoot
+Disable
+Disable;Enable
+yayuanli :0           2026-10-02 11:54 (:0)
+cog      :2           2026-10-02 12:38 (:2)
+      1 irq/199-nvidia
+      1 jbd2/nvme0n1p2-8
+      4 kworker/R-nvme-
+      1 nvidia
+      1 nvidia-drm/timeline-18
+      1 nvidia-drm/timeline-2e
+      1 nvidia-modeset/deferred_close_kthread_q
+      1 nvidia-modeset/kthread_q
+      1 nvidia-persiste
+      1 nv_open_q
+      3 nv_queue
+      1 python3
+/home/cog/.cache/pcai/thunderbolt-diag-20261002-trace1

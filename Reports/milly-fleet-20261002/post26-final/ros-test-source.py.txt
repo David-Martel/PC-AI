@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+import os,sys,time
+assert os.environ['ROS_DOMAIN_ID']=='231'
+assert os.environ['ROS_AUTOMATIC_DISCOVERY_RANGE']=='LOCALHOST'
+assert os.environ['RMW_IMPLEMENTATION']=='rmw_cyclonedds_cpp'
+import rclpy
+from std_msgs.msg import String
+rclpy.init()
+n=rclpy.create_node('milly_isolated_validation')
+received=[]
+s=n.create_subscription(String,'milly_isolated_validation',lambda m:received.append(m.data),10)
+p=n.create_publisher(String,'milly_isolated_validation',10)
+deadline=time.monotonic()+10
+while time.monotonic()<deadline and len(set(received))<3:
+ for i in range(3):
+  m=String();m.data=f'milly-validation-{i}';p.publish(m)
+ rclpy.spin_once(n,timeout_sec=0.1)
+assert set(received)=={'milly-validation-0','milly-validation-1','milly-validation-2'},received
+n.destroy_node();rclpy.shutdown()
+print('native Lyrical/CycloneDDS actual pub/sub PASS; isolated namespace; Python',sys.version.split()[0])

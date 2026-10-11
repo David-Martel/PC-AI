@@ -1,0 +1,11 @@
+{
+  "observedUtc": "2026-10-03T00:03:26.3411595Z",
+  "source": "dtm-p1gen7 native Windows OpenSSH",
+  "destination": "millylaptop1",
+  "appliedWindowsTransportConfig": "C:/Users/david/.ssh/config.d/00-vigil-fleet-transport.conf",
+  "exit": 0,
+  "elapsedMs": 285.942,
+  "output": "millylaptop1",
+  "strictPinnedConfigurationVerified": true,
+  "fullOsUpgradeCompleted": false
+}

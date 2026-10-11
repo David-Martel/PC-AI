@@ -337,7 +337,7 @@ fn find_files_impl(config: &FileSearchConfig) -> FileSearchResult {
                 };
                 found_files_clone
                     .lock()
-                    .expect("found files mutex poisoned")
+                    .unwrap_or_else(|e| e.into_inner())
                     .push(file_info);
             }
         }
@@ -345,7 +345,7 @@ fn find_files_impl(config: &FileSearchConfig) -> FileSearchResult {
     });
 
     let elapsed = start.elapsed();
-    let mut files = std::mem::take(&mut *found_files.lock().expect("found files mutex poisoned"));
+    let mut files = std::mem::take(&mut *found_files.lock().unwrap_or_else(|e| e.into_inner()));
     files.sort_by(|a, b| a.path.cmp(&b.path));
 
     FileSearchResult {
@@ -447,7 +447,7 @@ fn collect_directory_manifest_impl(config: &DirectoryManifestConfig) -> Director
         if let Ok(metadata) = entry.metadata() {
             let is_dir = metadata.is_dir();
             let current = {
-                let guard = entries_clone.lock().expect("directory manifest lock poisoned");
+                let guard = entries_clone.lock().unwrap_or_else(|e| e.into_inner());
                 guard.len() as u64
             };
 
@@ -501,7 +501,7 @@ fn collect_directory_manifest_impl(config: &DirectoryManifestConfig) -> Director
 
             entries_clone
                 .lock()
-                .expect("directory manifest lock poisoned")
+                .unwrap_or_else(|e| e.into_inner())
                 .push(manifest_entry);
         }
 
@@ -509,7 +509,7 @@ fn collect_directory_manifest_impl(config: &DirectoryManifestConfig) -> Director
     });
 
     let elapsed = start.elapsed();
-    let mut manifest_entries = std::mem::take(&mut *entries.lock().expect("directory manifest lock poisoned"));
+    let mut manifest_entries = std::mem::take(&mut *entries.lock().unwrap_or_else(|e| e.into_inner()));
     manifest_entries.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
 
     DirectoryManifestResult {

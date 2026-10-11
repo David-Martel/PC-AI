@@ -1,0 +1,57 @@
+OBSERVED 2026-10-02T23:34:19Z
+LOCAL_HOST asuspro13
+LOCAL_SSH OpenSSH_10.2p1, OpenSSL 3.6.2 7 Apr 2026
+LOCAL_RSYNC rsync  version 3.4.3  protocol version 32
+Copyright (C) 1996-2026 by Andrew Tridgell, Wayne Davison, and others.
+CONFIG millylaptop1
+user cog
+hostname 192.168.50.43
+port 22
+batchmode no
+compression no
+controlmaster false
+identitiesonly yes
+stricthostkeychecking true
+connectionattempts 1
+serveralivecountmax 4
+serveraliveinterval 30
+hostkeyalias millylaptop1
+identityfile ~/.ssh/id_ed25519
+forwardagent no
+connecttimeout 8
+controlpersist no
+CONFIG spark-0060
+user damartel
+hostname 10.60.4.2
+port 22
+batchmode no
+compression no
+controlmaster false
+identitiesonly yes
+stricthostkeychecking true
+connectionattempts 1
+serveralivecountmax 4
+serveraliveinterval 30
+hostkeyalias spark-0060
+identityfile ~/.ssh/id_ed25519
+forwardagent yes
+connecttimeout none
+controlpersist no
+CONFIG spark-3066
+user damartel
+hostname 10.60.4.3
+port 22
+batchmode no
+compression no
+controlmaster false
+identitiesonly no
+stricthostkeychecking true
+connectionattempts 1
+serveralivecountmax 4
+serveraliveinterval 30
+hostkeyalias spark-3066
+identityfile ~/.ssh/id_ed25519
+forwardagent yes
+connecttimeout none
+controlpersist no
+

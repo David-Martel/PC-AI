@@ -1,0 +1,85 @@
+import hashlib
+import json
+import os
+import platform
+import socket
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+import PySide6
+from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import QApplication
+
+from display.cardiac_capture_status import FILL_CAPTURING, FILL_COMPLETE, FILL_OK
+from display.vigil_widgets.CardiacCaptureStatusWidget import (
+    FILL_COLORS, TRACK_COLOR, CaptureProgressBar,
+)
+
+output = Path(__file__).resolve().parent
+repo = Path('/home/cog/dev/repos/vigil-spark')
+assert os.environ['ROS_DOMAIN_ID'] == '231'
+assert os.environ['ROS_LOCALHOST_ONLY'] == '1'
+app = QApplication([])
+bar = CaptureProgressBar()
+bar.resize(400, 30)
+bar.show()
+checks = []
+assertions = 0
+for progress, state in ((50, FILL_CAPTURING), (80, FILL_OK), (100, FILL_COMPLETE)):
+    bar.set_state(progress, state, 0.75)
+    app.processEvents()
+    pixmap = bar.grab()
+    image = pixmap.toImage()
+    marker = bar.marker_x()
+    assert image.pixelColor(2, 15) == FILL_COLORS[state]
+    assertions += 1
+    assert marker == 299
+    assertions += 1
+    assert image.pixelColor(marker, 15) == QColor(255, 255, 255)
+    assertions += 1
+    if progress == 50:
+        assert image.pixelColor(240, 15) == TRACK_COLOR
+        assertions += 1
+    screenshot = output / f'capture-{state}.png'
+    if not pixmap.save(str(screenshot)):
+        raise RuntimeError('Qt screenshot save failed')
+    checks.append({'progress': progress, 'state': state,
+                   'fill_pixel': image.pixelColor(2, 15).name(),
+                   'marker_column': marker, 'image': screenshot.name,
+                   'image_sha256': hashlib.sha256(screenshot.read_bytes()).hexdigest()})
+bar.deleteLater()
+QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+app.processEvents()
+reachability = []
+for port in (47984, 47989, 48010):
+    try:
+        with socket.create_connection(('192.168.50.2', port), timeout=2):
+            reachability.append({'host': '192.168.50.2', 'port': port, 'tcp': 'reachable'})
+    except OSError as exc:
+        reachability.append({'host': '192.168.50.2', 'port': port,
+                             'tcp': 'unreachable', 'error': str(exc)})
+assert 'rclpy' not in sys.modules
+source_files = [
+    'src/display/display/cardiac_capture_status.py',
+    'src/display/display/display_surfaces.py',
+    'src/display/display/vigil_widgets/CardiacCaptureStatusWidget.py',
+    'src/display/display/vigil_widgets/VigilWidget.py',
+]
+receipt = {
+    'schema_version': '1.0', 'timestamp_utc': datetime.now(timezone.utc).isoformat(),
+    'host': socket.gethostname(), 'python': platform.python_version(),
+    'pyside6': PySide6.__version__, 'platform': app.platformName(),
+    'source_commit': subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip(),
+    'source_hashes': {name: hashlib.sha256((repo/name).read_bytes()).hexdigest() for name in source_files},
+    'render_assertions': assertions, 'render_states': checks,
+    'sunshine_tcp': reachability, 'ros_domain_id': 231,
+    'ros_localhost_only': True, 'rclpy_imported': False,
+    'scope': 'Actual VIGIL source-controlled Qt progress widget only; offscreen synthetic states.',
+    'not_validated': ['complete ROS operator UI', 'paired remote stream', 'physical GUI output',
+                      'input or reconnect', 'procedure/projector continuity', 'HIL'],
+}
+(output/'RECEIPT.json').write_text(json.dumps(receipt, indent=2)+'\n')
+print(json.dumps(receipt, indent=2))

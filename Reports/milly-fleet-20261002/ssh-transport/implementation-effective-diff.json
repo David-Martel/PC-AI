@@ -1,0 +1,108 @@
+[
+  {
+    "host": "millylaptop1",
+    "changes": [
+      {
+        "InputObject": "connectionattempts 1",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "serveraliveinterval 30",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "connecttimeout 10",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "connectionattempts 2",
+        "SideIndicator": "<="
+      },
+      {
+        "InputObject": "serveraliveinterval 60",
+        "SideIndicator": "<="
+      },
+      {
+        "InputObject": "connecttimeout 8",
+        "SideIndicator": "<="
+      }
+    ],
+    "unchanged": false
+  },
+  {
+    "host": "asuspro13",
+    "changes": [
+      {
+        "InputObject": "connectionattempts 1",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "connecttimeout 10",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "connectionattempts 2",
+        "SideIndicator": "<="
+      },
+      {
+        "InputObject": "connecttimeout 8",
+        "SideIndicator": "<="
+      }
+    ],
+    "unchanged": false
+  },
+  {
+    "host": "spark-0060",
+    "changes": [
+      {
+        "InputObject": "connectionattempts 1",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "connecttimeout 10",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "connectionattempts 2",
+        "SideIndicator": "<="
+      },
+      {
+        "InputObject": "connecttimeout 12",
+        "SideIndicator": "<="
+      }
+    ],
+    "unchanged": false
+  },
+  {
+    "host": "spark-3066",
+    "changes": [
+      {
+        "InputObject": "connectionattempts 1",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "connecttimeout 10",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "connectionattempts 2",
+        "SideIndicator": "<="
+      },
+      {
+        "InputObject": "connecttimeout 12",
+        "SideIndicator": "<="
+      }
+    ],
+    "unchanged": false
+  },
+  {
+    "host": "github.com",
+    "changes": [],
+    "unchanged": true
+  },
+  {
+    "host": "dtm-work",
+    "changes": [],
+    "unchanged": true
+  }
+]

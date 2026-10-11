@@ -1,0 +1,238 @@
+{
+  "Action": "Status",
+  "Peer": "millylaptop1",
+  "State": "Blocked",
+  "Applied": false,
+  "Blockers": [
+    "Blocked: expected exactly one genuine Thunderbolt peer adapter; found 0.",
+    "Blocked: Linux needs one thunderbolt-net interface with carrier."
+  ],
+  "Profile": {
+    "sshAlias": "millylaptop1",
+    "expectedHostname": "millylaptop1",
+    "localAddress": "172.31.240.1",
+    "peerAddress": "172.31.240.2",
+    "prefixLength": 30,
+    "mtuBytes": 1500,
+    "notes": "LAN SSH remains the recovery path. Requires an enumerated Thunderbolt peer link."
+  },
+  "Linux": {
+    "hostname": "millylaptop1",
+    "interfaces": [],
+    "thunderboltDevices": [
+      {
+        "name": "domain0",
+        "path": "/sys/devices/pci0000:00/0000:00:1d.0/0000:20:00.0/0000:21:00.0/0000:22:00.0/domain0"
+      },
+      {
+        "name": "0-0",
+        "path": "/sys/devices/pci0000:00/0000:00:1d.0/0000:20:00.0/0000:21:00.0/0000:22:00.0/domain0/0-0"
+      }
+    ],
+    "addresses": [
+      {
+        "ifindex": 1,
+        "ifname": "lo",
+        "flags": [
+          "LOOPBACK",
+          "UP",
+          "LOWER_UP"
+        ],
+        "mtu": 65536,
+        "qdisc": "noqueue",
+        "operstate": "UNKNOWN",
+        "group": "default",
+        "txqlen": 1000,
+        "addr_info": [
+          {
+            "family": "inet",
+            "local": "127.0.0.1",
+            "prefixlen": 8,
+            "scope": "host",
+            "label": "lo",
+            "valid_life_time": 4294967295,
+            "preferred_life_time": 4294967295
+          }
+        ]
+      },
+      {
+        "ifindex": 2,
+        "ifname": "wlp0s20f3",
+        "flags": [
+          "BROADCAST",
+          "MULTICAST",
+          "UP",
+          "LOWER_UP"
+        ],
+        "mtu": 1500,
+        "qdisc": "noqueue",
+        "operstate": "UP",
+        "group": "default",
+        "txqlen": 1000,
+        "addr_info": [
+          {
+            "family": "inet",
+            "local": "35.3.41.148",
+            "prefixlen": 16,
+            "broadcast": "35.3.255.255",
+            "scope": "global",
+            "dynamic": true,
+            "noprefixroute": true,
+            "label": "wlp0s20f3",
+            "valid_life_time": 1943,
+            "preferred_life_time": 1943
+          }
+        ]
+      },
+      {
+        "ifindex": 4,
+        "ifname": "enx002427892147",
+        "flags": [
+          "BROADCAST",
+          "MULTICAST",
+          "UP",
+          "LOWER_UP"
+        ],
+        "mtu": 1500,
+        "qdisc": "fq_codel",
+        "operstate": "UP",
+        "group": "default",
+        "txqlen": 1000,
+        "addr_info": [
+          {
+            "family": "inet",
+            "local": "192.168.50.43",
+            "prefixlen": 24,
+            "broadcast": "192.168.50.255",
+            "scope": "global",
+            "dynamic": true,
+            "noprefixroute": true,
+            "label": "enx002427892147",
+            "valid_life_time": 82908,
+            "preferred_life_time": 82908
+          }
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "dst": "default",
+        "gateway": "192.168.50.1",
+        "dev": "enx002427892147",
+        "protocol": "dhcp",
+        "metric": 100,
+        "flags": []
+      },
+      {
+        "dst": "default",
+        "gateway": "35.3.0.1",
+        "dev": "wlp0s20f3",
+        "protocol": "dhcp",
+        "metric": 600,
+        "flags": []
+      },
+      {
+        "dst": "35.3.0.0/16",
+        "dev": "wlp0s20f3",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "35.3.41.148",
+        "metric": 600,
+        "flags": []
+      },
+      {
+        "dst": "169.254.0.0/16",
+        "dev": "wlp0s20f3",
+        "scope": "link",
+        "metric": 1000,
+        "flags": []
+      },
+      {
+        "dst": "192.168.50.0/24",
+        "dev": "enx002427892147",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "192.168.50.43",
+        "metric": 100,
+        "flags": []
+      },
+      {
+        "type": "local",
+        "dst": "35.3.41.148",
+        "dev": "wlp0s20f3",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "host",
+        "prefsrc": "35.3.41.148",
+        "flags": []
+      },
+      {
+        "type": "broadcast",
+        "dst": "35.3.255.255",
+        "dev": "wlp0s20f3",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "35.3.41.148",
+        "flags": []
+      },
+      {
+        "type": "local",
+        "dst": "127.0.0.0/8",
+        "dev": "lo",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "host",
+        "prefsrc": "127.0.0.1",
+        "flags": []
+      },
+      {
+        "type": "local",
+        "dst": "127.0.0.1",
+        "dev": "lo",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "host",
+        "prefsrc": "127.0.0.1",
+        "flags": []
+      },
+      {
+        "type": "broadcast",
+        "dst": "127.255.255.255",
+        "dev": "lo",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "127.0.0.1",
+        "flags": []
+      },
+      {
+        "type": "local",
+        "dst": "192.168.50.43",
+        "dev": "enx002427892147",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "host",
+        "prefsrc": "192.168.50.43",
+        "flags": []
+      },
+      {
+        "type": "broadcast",
+        "dst": "192.168.50.255",
+        "dev": "enx002427892147",
+        "table": "local",
+        "protocol": "kernel",
+        "scope": "link",
+        "prefsrc": "192.168.50.43",
+        "flags": []
+      }
+    ],
+    "moduleLoaded": true,
+    "iperf3Available": true,
+    "networkManagerAvailable": true
+  },
+  "Plan": [],
+  "Measurements": [],
+  "SshRecoveryAlias": "millylaptop1",
+  "ThunderboltSsh": null
+}

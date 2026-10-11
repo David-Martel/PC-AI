@@ -1,0 +1,114 @@
+[
+  {
+    "Name": "WindowsUEFIFirmwareUpdate",
+    "Description": "BIOS updates delivered via LVFS or Windows Update",
+    "Filename": "/sys/class/firmware-attributes/thinklmi/attributes/WindowsUEFIFirmwareUpdate",
+    "BiosSettingId": "com.thinklmi.WindowsUEFIFirmwareUpdate",
+    "BiosSettingCurrentValue": "Enable",
+    "BiosSettingReadOnly": false,
+    "BiosSettingType": 1,
+    "BiosSettingFilename": "current_value",
+    "BiosSettingPossibleValues": [
+      "Disable",
+      "Enable"
+    ]
+  },
+  {
+    "Name": "Allow3rdPartyUEFICA",
+    "Description": "Allow3rdPartyUEFICA",
+    "Filename": "/sys/class/firmware-attributes/thinklmi/attributes/Allow3rdPartyUEFICA",
+    "BiosSettingId": "com.thinklmi.Allow3rdPartyUEFICA",
+    "BiosSettingCurrentValue": "Disable",
+    "BiosSettingReadOnly": false,
+    "BiosSettingType": 1,
+    "BiosSettingFilename": "current_value",
+    "BiosSettingPossibleValues": [
+      "Disable",
+      "Enable"
+    ]
+  },
+  {
+    "Name": "ThunderboltAccess",
+    "Description": "ThunderboltAccess",
+    "Filename": "/sys/class/firmware-attributes/thinklmi/attributes/ThunderboltAccess",
+    "BiosSettingId": "com.thinklmi.ThunderboltAccess",
+    "BiosSettingCurrentValue": "Enable",
+    "BiosSettingReadOnly": false,
+    "BiosSettingType": 1,
+    "BiosSettingFilename": "current_value",
+    "BiosSettingPossibleValues": [
+      "Disable",
+      "Enable"
+    ]
+  },
+  {
+    "Name": "AlwaysOnUSB",
+    "Description": "AlwaysOnUSB",
+    "Filename": "/sys/class/firmware-attributes/thinklmi/attributes/AlwaysOnUSB",
+    "BiosSettingId": "com.thinklmi.AlwaysOnUSB",
+    "BiosSettingCurrentValue": "Enable",
+    "BiosSettingReadOnly": false,
+    "BiosSettingType": 1,
+    "BiosSettingFilename": "current_value",
+    "BiosSettingPossibleValues": [
+      "Disable",
+      "Enable"
+    ]
+  },
+  {
+    "Name": "USBPortAccess",
+    "Description": "USBPortAccess",
+    "Filename": "/sys/class/firmware-attributes/thinklmi/attributes/USBPortAccess",
+    "BiosSettingId": "com.thinklmi.USBPortAccess",
+    "BiosSettingCurrentValue": "Enable",
+    "BiosSettingReadOnly": false,
+    "BiosSettingType": 1,
+    "BiosSettingFilename": "current_value",
+    "BiosSettingPossibleValues": [
+      "Disable",
+      "Enable"
+    ]
+  },
+  {
+    "Name": "BIOSUpdateByEndUsers",
+    "Description": "BIOSUpdateByEndUsers",
+    "Filename": "/sys/class/firmware-attributes/thinklmi/attributes/BIOSUpdateByEndUsers",
+    "BiosSettingId": "com.thinklmi.BIOSUpdateByEndUsers",
+    "BiosSettingCurrentValue": "Enable",
+    "BiosSettingReadOnly": false,
+    "BiosSettingType": 1,
+    "BiosSettingFilename": "current_value",
+    "BiosSettingPossibleValues": [
+      "Disable",
+      "Enable"
+    ]
+  },
+  {
+    "Name": "UefiPxeBootPriority",
+    "Description": "UefiPxeBootPriority",
+    "Filename": "/sys/class/firmware-attributes/thinklmi/attributes/UefiPxeBootPriority",
+    "BiosSettingId": "com.thinklmi.UefiPxeBootPriority",
+    "BiosSettingCurrentValue": "IPv4First",
+    "BiosSettingReadOnly": false,
+    "BiosSettingType": 1,
+    "BiosSettingFilename": "current_value",
+    "BiosSettingPossibleValues": [
+      "IPv6First",
+      "IPv4First"
+    ]
+  },
+  {
+    "Name": "USBKeyProvisioning",
+    "Description": "USBKeyProvisioning",
+    "Filename": "/sys/class/firmware-attributes/thinklmi/attributes/USBKeyProvisioning",
+    "BiosSettingId": "com.thinklmi.USBKeyProvisioning",
+    "BiosSettingCurrentValue": "Disable",
+    "BiosSettingReadOnly": false,
+    "BiosSettingType": 1,
+    "BiosSettingFilename": "current_value",
+    "BiosSettingPossibleValues": [
+      "Disable",
+      "Enable"
+    ]
+  }
+]

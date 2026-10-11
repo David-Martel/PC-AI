@@ -1,0 +1,230 @@
+[
+  {
+    "Name": "Battery",
+    "DeviceId": "9f8c6c29fb9e7a37d843c97ba61be510fa29db5e",
+    "Guid": [
+      "f2848377-3062-4b07-acd3-ed0d213cd4f5"
+    ],
+    "Version": "1.3.32769",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "supported",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "Intel Management Engine",
+    "DeviceId": "773b12207d433c4004f0f0bbfe05f9291cf489a2",
+    "Guid": [
+      "d72bd93d-099b-4d2b-8b71-0e5d49f72976"
+    ],
+    "Version": "1.25.2124",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "supported",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "System Firmware",
+    "DeviceId": "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+    "Guid": [
+      "e286e826-12ed-41fd-9417-2f47d31f4bcb"
+    ],
+    "Version": "0.2.0",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "supported",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "81568164782039dbd4a74856cacb9800f408d44e",
+    "Guid": [
+      "4e88068b-41b2-4e05-893c-db0b43f7d348"
+    ],
+    "Version": "70162",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "7dccda75b1f76a97e675b08e7e0f8ab9924ad9ce",
+    "Guid": [
+      "69585d92-b50a-4ad7-b265-2eb1ae066574"
+    ],
+    "Version": "1",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "57a08124acf3b12bbcbba9cafd54d96f9e52a59b",
+    "Guid": [
+      "2be5b026-5c79-4bf5-8651-811b805d70af"
+    ],
+    "Version": "1",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "44b7179a44385bc147215c6f4f404ae5b4440976",
+    "Guid": [
+      "d77726f7-2944-4e57-af12-7181cb8db37e"
+    ],
+    "Version": "66305",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "f905a7bd8805851b14be474d006372f37cc9342d",
+    "Guid": [
+      "76ca0ad8-4a14-4389-b7e5-fd88791762ad"
+    ],
+    "Version": "1",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "7e6427fb78fdb31553c3589b14cf9a40bd2e1f2e",
+    "Guid": [
+      "626d93db-2c42-48c3-915a-71f968a81b04"
+    ],
+    "Version": "1",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "91d63a93b9cb996729094a1ad77944f2cbfbc7af",
+    "Guid": [
+      "7c8c8f35-30c9-0050-1a00-5d471111746b"
+    ],
+    "Version": "4361",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "071b9eeefca13dbd269fcc44271321a1ab7b5dbe",
+    "Guid": [
+      "54cb734c-975c-4a74-9556-57ae6d9a2229"
+    ],
+    "Version": "196608",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "69d9bcda96be973eb6bb1a6ea66c1ed032e9b846",
+    "Guid": [
+      "dac9c0a3-a120-4992-a784-d097c0d2e3f8"
+    ],
+    "Version": "4",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "UEFI Device Firmware",
+    "DeviceId": "941b08ac32b432f52d2d8a11d3dc5133850e4b39",
+    "Guid": [
+      "cb2fc5ab-1304-45a7-8c87-df6a526c1471"
+    ],
+    "Version": "18417740",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  }
+]
+[
+  {
+    "Name": null,
+    "DeviceId": null,
+    "Guid": [
+      "aeac80f9-74a0-4eec-a10d-2752805147b0"
+    ],
+    "Version": null,
+    "Flags": [
+      "supported"
+    ],
+    "Releases": [
+      {
+        "Name": "ThinkPad P16 Gen 2",
+        "Version": "0.1.50",
+        "Flags": [
+          "trusted-payload",
+          "trusted-metadata"
+        ],
+        "Description": "<p>This stable release modifies the following items:</p><ul><li>Improve the BIOS backup process.</li><li>Improve the process of status flag data store to rom.</li></ul>"
+      },
+      {
+        "Name": null,
+        "Version": null,
+        "Flags": null,
+        "Description": null
+      }
+    ]
+  }
+]

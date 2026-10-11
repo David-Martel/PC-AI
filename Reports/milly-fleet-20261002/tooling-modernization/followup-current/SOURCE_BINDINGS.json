@@ -1,0 +1,71 @@
+{
+  "schema": "vigil.source-binding-handoff.v1",
+  "capturedAt": "2026-10-03T00:02:55.6500711Z",
+  "scope": "Exact source-document/receipt copies and explicitly authorized owner coordination. No shared repository, service, SSH configuration or credential changes by this lane.",
+  "tpm": {
+    "repository": "David-Martel/vigil-ai-tpm",
+    "mergedMain": "eb920136c36dcdbcf8ccf82f46e2e09959f52e08",
+    "auditPath": "docs/audits/toolchain-modernization-review-2026-10-02.md",
+    "committedBlob": "879742a94a643ace784624a2aa431971ef1e37ab",
+    "copiedAudit": "tpm-toolchain-modernization-review-2026-10-02.md",
+    "auditSha256": "e2feaf147c7d4615aff0e0f1e97d49325ac9eb72e1312cfb1aa6e57966783a89",
+    "workingBytesMatchedCommittedBlob": true,
+    "canonicalBindingPath": "TODO.md:1078-1088",
+    "reviewPR": "https://github.com/David-Martel/vigil-ai-tpm/pull/1587",
+    "sourceHandoffPR": "https://github.com/David-Martel/vigil-ai-tpm/pull/1588",
+    "qualifiedDeployment": false
+  },
+  "sourceBindings": [
+    {
+      "repository": "David-Martel/git-guard",
+      "commit": "ae84e33279ee8c0202d402818e93f989e1cdeca9",
+      "tree": "64f5ff48a700f775f42b1d022e0a87b29fd52c19",
+      "githubUrl": "https://github.com/David-Martel/git-guard/commit/ae84e33279ee8c0202d402818e93f989e1cdeca9",
+      "githubVerifiedSignature": true,
+      "receiptRemote": "/home/damartel/dev/evidence/git-guard-version-adapter-20261002/RECEIPT.json",
+      "receiptLocal": "git-guard-version-adapter-RECEIPT.json",
+      "receiptSha256": "020ce74f1a7885fc8f16107aabf9d7c8ccede129808d4f216f6996f13dd1daa4",
+      "status": "Published source observed via GitHub; original sealed receipt retains pre-publication limits. Adapter publication approval hold retained; no alternate writer, installation or enforcement acceptance."
+    },
+    {
+      "repository": "David-Martel/vigil-spark",
+      "commit": "1ba33a303a676ff89041d8373ec271cf6c713e2f",
+      "tree": "e715b78244860e6181acd53c0f36f16c8c1bdf99",
+      "githubUrl": "https://github.com/David-Martel/vigil-spark/commit/1ba33a303a676ff89041d8373ec271cf6c713e2f",
+      "githubVerifiedSignature": true,
+      "receiptRemote": "/home/damartel/dev/evidence/version-ratchet-coordination-20261002/SHADOW-RECEIPT.json",
+      "receiptLocal": "spark-shadow-SHADOW-RECEIPT.json",
+      "receiptSha256": "65709aae6f96e2fe6a707aa4502953ce61d51be25007635a4155bafd6c44d7c7",
+      "status": "Published source observed via GitHub; original sealed receipt retains pre-publication wording. No full shadow replay, fleet enforcement or HIL acceptance."
+    }
+  ],
+  "windowsDocs": {
+    "commit": "08a7b3bf06e55ad204db42e967f884ca0ce293b7",
+    "signatureObserved": "G",
+    "codexTrailersVerified": true,
+    "parentValidation": "25 tests, zero analyzer findings, two independent native Cargo controls; this lane verifies commit metadata rather than rerunning parent checks.",
+    "resolved": "Native exit failures, stale artifact acceptance, workspace root custody, Cargo feature selection and target-triple regressions.",
+    "nextPilot": "Canonical TPM owner publishing/derived-Needs pilot; no parallel tracker or global tool mandate."
+  },
+  "coordination": {
+    "docsToClaude": "01a0ff0e-bec2-76d9-8200-e4a7df5271db",
+    "docsToTPM": "01a0ff0e-bedd-7260-b6f7-55b5d7816107",
+    "muxOwnerRequest": "01a0ff0e-bf02-754e-a1ee-51b5bf39a6bc",
+    "muxOriginalRequest": "01a0ff08-9782-7378-a747-77ff1dd4592f",
+    "muxOwnerAckReceived": false,
+    "sunshineProviderResponseReceived": false,
+    "HILReleaseObserved": false,
+    "latestHILNotice": "0545 non-imaging validation reservation; 0546 fault preserved",
+    "meStatusProvenance": "Root live maintenance report: recovered state2/firmware1.42.2872, LAN/WiFi/NVIDIA/SSH good",
+    "upgradeStatusProvenance": "Root reports Noble upgrader restarted after reviewed Humble-only package removal",
+    "forwardingOrAsusSecurityChangedByLane": false,
+    "activeSocketDrainsByLane": false
+  },
+  "leases": {
+    "reportOwner": "codex",
+    "reportPath": "C:/codedev/PC_AI/Reports/milly-fleet-20261002",
+    "reportExpires": "2026-10-03T00:58:22.449914Z",
+    "tempExpires": "2026-10-03T00:58:22.462036Z"
+  },
+  "remaining": "Await authoritative HIL release, existing Sunshine credential provider resolution, Linux owner mux ACK and corrected modernization matrix. Owner scopes and existing canonical backlog remain authoritative."
+}

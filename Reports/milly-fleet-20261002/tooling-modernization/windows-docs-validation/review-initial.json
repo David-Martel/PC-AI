@@ -1,0 +1,56 @@
+{
+  "schema": "pcai.docs-independent-review.v1",
+  "verdict": "blocked-pending-two-cargo-artifact-selection-fixes",
+  "scope": "Exact three-file code/architecture/test review; own disposable native fixtures only; no project edits or Milly connections",
+  "sourceHashes": {
+    "Tools/generate-auto-docs.ps1": "8C9A46DDDA483C120667642F6EA14A8A06B56CB00C2D66BC495A36414D3D793D",
+    "Tools/Invoke-DocPipeline.ps1": "73E157A757138A7D64B4446C8C23031B087300D6173D4DF5E18527C6951CBF67",
+    "Tests/Unit/DocumentationPipeline.Tests.ps1": "2B036F7EFF4E4BCDA3FA7A92C3231B4962AC05130035AC845F96C0352D59FE00"
+  },
+  "findings": [
+    {
+      "severity": "high",
+      "path": "Tools/generate-auto-docs.ps1",
+      "lines": "126-132",
+      "finding": "All metadata doc targets required despite disabled required-features binaries",
+      "reproduced": "Valid tiny feature-gated project cargo doc exit0 creates correct library documentation; helper falsely throws missing conditional_viewer index",
+      "realRepoImpact": "Native/pcai_core/pcai_inference/Cargo.toml default features server only; bins lines67/72 require additional backend features",
+      "fixGuidance": "Use native compiler-artifact records for Cargo-selected targets; do not silently enable all features"
+    },
+    {
+      "severity": "high",
+      "path": "Tools/generate-auto-docs.ps1",
+      "lines": "127-132",
+      "finding": "Assumed target-dir/doc omits configured build target triple path",
+      "reproduced": "Valid .cargo/config build.target=host fixture cargo doc exit0 creates target-dir/<triple>/doc/review_docs_fixture/index.html; helper falsely throws target-dir/doc missing",
+      "fixGuidance": "Use native JSON artifact filenames to respect Cargo target output"
+    }
+  ],
+  "nativeControls": {
+    "fixtureResults": "cargo-edge-controls.json",
+    "messageFormatProof": [
+      "feature-gated-bin/cargo-messages.jsonl",
+      "explicit-target/cargo-messages.jsonl"
+    ],
+    "messageProof": "Both real cargo doc --message-format=json invocations exit0; compiler-artifact filenames exact; only enabled targets emitted; build-finished.success=true"
+  },
+  "testIntegrity": "Inspected all21 meaningful real native/unit/production-child tests: no mocked core implementation, real compilation failures and stale artifacts; requested failure/skip distinction covered. Existing tests omit the two reproduced Cargo configurations.",
+  "workerReceipt": "C:/Users/david/AppData/Local/Temp/pcai-documentation-verification-7ab286d3cedf432f86eda99bb148910b/receipt.json",
+  "workerEvidence": {
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0,
+    "newFunctionsCoverage": 95.28,
+    "wholeLegacyCoverage": 31.95,
+    "independentFullSuiteRerun": false
+  },
+  "architecture": "Shared helper library consolidates generator/pipeline behavior; option snapshot protects dot-sourced parameter clobbering. Existing public invocation modes/options retained; nukenul implicit external root removed, explicit opt-in added. Requested native failure becomes Error/nonzero; per-run artifact isolation prevents stale success.",
+  "risksAndLimits": [
+    "Full PC_AI heavy CUDA/workspace docs were not built; tiny real native controls reveal actual feature-gated default workspace impact",
+    "Per-run Cargo target directories trade freshness for repeated compile/storage cost; retention/benchmark opportunity remains outside this patch",
+    "Inspection without Build intentionally remains ExistingUnverified, not executed-doc proof",
+    "Workspace boundary guard is lexical; junction/symlink physical custody is not independently tested",
+    "No production service/configuration/deployment mutation or PR publishing"
+  ],
+  "disposition": "Both confirmed regressions and native JSON proof sent root and source-owning windows_docs_fix worker. Reviewer did not edit their files."
+}

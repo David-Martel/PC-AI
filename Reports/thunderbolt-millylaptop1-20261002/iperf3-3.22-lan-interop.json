@@ -1,0 +1,28 @@
+[
+  {
+    "Direction": "forward",
+    "ClientVersion": "iperf 3.21",
+    "ServerVersion": "iperf 3.22",
+    "Streams": 4,
+    "SourceAddress": "192.168.50.42",
+    "DestinationAddress": "192.168.50.43",
+    "ReceiverMbps": 946.05,
+    "BytesReceived": 360841216,
+    "ServerPort": 37521,
+    "ListenerCleanedUp": true,
+    "Network": "LAN"
+  },
+  {
+    "Direction": "reverse",
+    "ClientVersion": "iperf 3.21",
+    "ServerVersion": "iperf 3.22",
+    "Streams": 4,
+    "SourceAddress": "192.168.50.42",
+    "DestinationAddress": "192.168.50.43",
+    "ReceiverMbps": 343.52,
+    "BytesReceived": 128843776,
+    "ServerPort": 48385,
+    "ListenerCleanedUp": true,
+    "Network": "LAN"
+  }
+]

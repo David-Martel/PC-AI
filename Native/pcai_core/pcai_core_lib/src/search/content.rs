@@ -362,11 +362,7 @@ impl ContentSearchVisitor {
             return;
         }
 
-        let mut shared_matches = self
-            .shared
-            .matches
-            .lock()
-            .expect("content search matches mutex poisoned");
+        let mut shared_matches = self.shared.matches.lock().unwrap_or_else(|e| e.into_inner());
         shared_matches.append(&mut self.local_matches);
     }
 }

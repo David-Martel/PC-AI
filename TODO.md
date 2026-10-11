@@ -310,9 +310,12 @@ suspicion.
   This describes the historical August/September observations. By 2026-10-11,
   main runs 37844013709, 37843335547 and 37842855172 passed. Main and PR183 both
   report 51.83% against the 85% PowerShell target; that deficit did not fail the
-  main job. PR182 requires refreshed checks after its test-admission repair;
-  audit coverage selection/enforcement independently rather than assuming the
-  target itself blocks merging or inferring status from old failures.
+  main job. PR182's repaired head `fac1d1a` now has refreshed checks: 2,897
+  passes, zero failures and 40 skips, but its explicit source-bound gate fails
+  at 66.9936% (14,616/21,817) against 85%. This verified gate failure and nine
+  conflicts with merged main block acceptance. Audit main's separate coverage
+  selection/enforcement gap without treating its target-only report as the
+  same contract or carrying forward the historical admission failures.
 - [ ] git-guard's commit-time Rust gate can never PASS in this repo, only
   block. `qa_check_rust` in `git-guard/hooks/common/qa_gate.sh` runs
   `cd "$REPO_ROOT" && cargo fmt --all --check` (and the same for clippy), but

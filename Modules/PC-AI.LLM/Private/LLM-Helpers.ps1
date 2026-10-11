@@ -329,6 +329,19 @@ function Invoke-OllamaNativeChat {
     }
 }
 
+function Get-PcaiNativeDashboardSnapshot {
+    <# .SYNOPSIS
+        Reads the available native dashboard through one mockable boundary.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+
+    if ([PcaiNative.PcaiCore]::IsAvailable) {
+        return [PcaiNative.PcaiCore]::GetDashboardSnapshotJson()
+    }
+}
+
 function Get-EnrichedSystemPrompt {
     <#
     .SYNOPSIS
@@ -375,8 +388,7 @@ function Get-EnrichedSystemPrompt {
     # Inject Telemetry using high-performance Native Dashboard call
     $telemetryBlock = ""
     try {
-        if ([PcaiNative.PcaiCore]::IsAvailable) {
-            $snapshot = [PcaiNative.PcaiCore]::GetDashboardSnapshotJson()
+        if ($snapshot = Get-PcaiNativeDashboardSnapshot) {
             if ($snapshot) {
                 $summaryLines = $null
                 try {

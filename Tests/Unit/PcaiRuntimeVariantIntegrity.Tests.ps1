@@ -329,6 +329,81 @@ Describe 'Runtime DLL variant integrity with real public file bytes' -Tag 'Unit'
         Should -Invoke Invoke-WebRequest -Times 0 -Exactly
     }
 
+    # Protects: configured CUDA bounds are inclusive, with CPU fallback outside them.
+    # Needs: real verified marker files; only capability discovery is mocked, never a GPU/DLL load.
+    It 'selects exact <ExpectedKind> bytes for capability <Capability>' -ForEach @(
+        @{ Capability = $null; ExpectedKind = 'cpu' }
+        @{ Capability = 69; ExpectedKind = 'cpu' }
+        @{ Capability = 70; ExpectedKind = 'cuda' }
+        @{ Capability = 89; ExpectedKind = 'cuda' }
+        @{ Capability = 90; ExpectedKind = 'cpu' }
+    ) {
+        $cpuPath = Join-Path $script:RuntimeFixture 'variants/cpu.dll'
+        $cudaPath = Join-Path $script:RuntimeFixture 'variants/cuda.dll'
+        [IO.File]::WriteAllText($cpuPath, 'cpu boundary selection marker')
+        [IO.File]::WriteAllText($cudaPath, 'cuda boundary selection marker')
+        $script:RuntimeConfig.nativeInference.runtimeBinarySelection.variants = @(
+            [pscustomobject]@{ kind='cpu'; minCompute=0; dllPath=$cpuPath; sha256=(Get-FileHash $cpuPath).Hash }
+            [pscustomobject]@{ kind='cuda'; minCompute=70; maxCompute=89; dllPath='variants/cuda.dll'; sha256=(Get-FileHash $cudaPath).Hash }
+        )
+        $script:FixtureCapability = $Capability
+        Mock Get-PcaiCudaCapability { $script:FixtureCapability }
+
+        Resolve-PcaiRuntimeVariantDll -Config $script:RuntimeConfig -ProjectRoot $script:RuntimeFixture | Should -BeExactly $script:Canonical
+        Read-RuntimeFixtureText $script:Canonical | Should -BeExactly ($ExpectedKind + ' boundary selection marker')
+        Read-RuntimeFixtureText $script:Alias | Should -BeExactly ($ExpectedKind + ' boundary selection marker')
+        Read-RuntimeFixtureText $cpuPath | Should -BeExactly 'cpu boundary selection marker'
+        Read-RuntimeFixtureText $cudaPath | Should -BeExactly 'cuda boundary selection marker'
+        Should -Invoke Get-PcaiCudaCapability -Times 1 -Exactly
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+    }
+
+    It 'selects verified CPU bytes when a higher-ranked compatible CUDA cache is absent' {
+        [IO.File]::WriteAllText($script:Variant, $script:ValidBytes)
+        $missing = Join-Path $script:RuntimeFixture 'variants/missing-cuda.dll'
+        $script:RuntimeConfig.nativeInference.runtimeBinarySelection.variants = @(
+            [pscustomobject]@{ kind='cuda'; minCompute=70; maxCompute=89; dllPath=$missing; sha256=$script:ExpectedHash }
+            [pscustomobject]@{ kind='cpu'; minCompute=0; dllPath=$script:Variant; sha256=$script:ExpectedHash }
+        )
+        Mock Get-PcaiCudaCapability { 80 }
+
+        Resolve-PcaiInferenceDll | Should -BeExactly $script:Canonical
+        Read-RuntimeFixtureText $script:Canonical | Should -BeExactly $script:ValidBytes
+        Read-RuntimeFixtureText $script:Alias | Should -BeExactly $script:ValidBytes
+        Test-Path -LiteralPath $missing | Should -BeFalse
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+    }
+
+    It 'refuses an incomplete explicit bundle without legacy discovery or changing its bytes' {
+        $bundle = Join-Path $script:RuntimeFixture 'incomplete-bundle'
+        [void][IO.Directory]::CreateDirectory($bundle)
+        $nativePath = Join-Path $bundle 'pcai_inference.dll'
+        [IO.File]::WriteAllText($nativePath, 'incomplete bundle marker')
+        [Environment]::SetEnvironmentVariable('PCAI_NATIVE_BUNDLE_ROOT', $bundle, 'Process')
+
+        { Resolve-PcaiInferenceDll } | Should -Throw '*Explicit native inference bundle lacks PcaiNative.dll*'
+        Read-RuntimeFixtureText $nativePath | Should -BeExactly 'incomplete bundle marker'
+        Read-RuntimeFixtureText $script:Canonical | Should -BeExactly $script:OldBytes
+        Read-RuntimeFixtureText $script:Alias | Should -BeExactly $script:OldBytes
+        Should -Invoke Get-PcaiConfig -Times 0 -Exactly
+        Should -Invoke Get-PcaiCudaCapability -Times 0 -Exactly
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+    }
+
+    It 'refuses a conflicting override in a complete explicit bundle without loading or changing files' {
+        [IO.File]::WriteAllText((Join-Path $script:RuntimeFixture 'bin/PcaiNative.dll'), 'managed selection marker')
+        [IO.File]::WriteAllText($script:Variant, 'conflicting override marker')
+        [Environment]::SetEnvironmentVariable('PCAI_NATIVE_BUNDLE_ROOT', (Split-Path -Parent $script:Canonical), 'Process')
+
+        { Resolve-PcaiInferenceDll -OverridePath $script:Variant } | Should -Throw '*DllPath conflicts with PCAI_NATIVE_BUNDLE_ROOT*'
+        Read-RuntimeFixtureText $script:Variant | Should -BeExactly 'conflicting override marker'
+        Read-RuntimeFixtureText $script:Canonical | Should -BeExactly $script:OldBytes
+        Read-RuntimeFixtureText $script:Alias | Should -BeExactly $script:OldBytes
+        Should -Invoke Get-PcaiConfig -Times 0 -Exactly
+        Should -Invoke Get-PcaiCudaCapability -Times 0 -Exactly
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+    }
+
     # Protects: generic and ordered optional maps keep absent selectors a non-mutating no-op.
     # Detects: generic Contains binding and literal Keys/Count adapter collisions.
     # Needs: real declared IDictionary objects, complete resolver and inert collaborator counters.

@@ -1,9 +1,69 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 11, 2026, 01:06 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 11, 2026, 01:42 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
+
+## Current acceptance and integration gaps (01:42 UTC)
+
+Published `1cf0f7e` passes 2,771 PowerShell cases with zero failures and 40 skips
+in [CI run 38100885773](https://github.com/David-Martel/PC-AI/actions/runs/38100885773).
+The unchanged 85% gate fails at 14,200/21,342 commands, 66.535470%, requiring
+3,941 additional covered commands at the same denominator. Raw JaCoCo has
+13,752 covered commands; 448 source-bound child hits contribute to the gate.
+The uploaded artifact does not include those child inventories, so this review
+cannot independently reconstruct their union. Rust Guidelines run `38100885725`
+is still in progress. PR 182 remains draft and unmerged.
+
+The workflow now captures source hashes before measurement and uploads the full
+parent command snapshot and result-bearing child receipts before enforcing the
+gate. The existing measured-child control reproduces the command union and gate
+from a JSON roundtrip; zero coverage still fails. A strict run exposed three
+summary-only caller failures in optional child-receipt handling. The repair keeps
+those assertions unchanged and passes all 35 coverage controls, with no skips,
+block failures or source drift. Normal original-job closure takes 25.199 seconds;
+the preserved first run has 32 passes and three failures. Actual receipts are in
+`D:/pcai-relocation/coverage-artifact-qualification-r2/`, including the original
+closeout. This qualifies artifact transport and caller compatibility, not new
+module coverage, a published-head CI pass or a reduced target.
+
+Gitguard native inventory passes eight tiny controls and twelve descriptive
+ABBA measurements: native median 187 ms, legacy median 3,062.5 ms. The separate
+real-repository attempt passes two existing-file positive controls, then refuses
+an existing reserved-name junction before legacy comparison. Native inventory
+intentionally emits such candidates; the qualification snapshot accepts only
+regular files. All original processes close normally, but complete candidate
+preservation and repository parity remain unproven. The failed result is preserved
+in `D:/pcai-relocation/gitguard-windows-inventory-repository-qualification-actual-r1/`
+and independently reviewed under the corresponding actual-peer namespace.
+No new hook is installed; tiny timings establish no whole-repository speedup.
+
+Runtime DLL selectors reproduce integrity and alias-coordination failures:
+the 16-case predecessor has strict 7 passes/9 failures and ordinary 8 passes/8
+failures, without skips or source drift. The first private repair was blocked
+before execution because failed rollback could lose backups, path deletion could
+race a replacement, later variants could hide settlement failure, resource/error
+custody was incomplete, and empty variants added GPU-discovery overhead. R2 is a
+source-only successor with retained recovery data and a seventeenth compatibility
+control; its tests and shared isolation remain unexecuted. Its extra generic
+dictionary branch still has a detected overload-binding defect and remains on
+source hold. The canonical module is unchanged. Native inference is currently disabled, so these are latent defects,
+not evidence that a live DLL was corrupted.
+
+The media repair remains uncompiled and untested. A proposed 1,074-file public
+cache seed uses about 118 MB instead of copying over 27,000 cache leaves. Source
+review caught an unbound argument guard and an incorrect readiness token before
+copying. R2 fixes both, but its below-80% commit gate is not met by the fresh 81%
+sample. Copy, archive-byte verification and actual locked offline resolution are
+still unexecuted. The seed is not an offline-qualified build cache; expanded-cache
+inventory and the unchanged build limits remain separate requirements.
+
+Milly's latest read-only storage receipt still shows approximately 580 GiB free
+internally and the migrated SSD at UAS 10 Gb/s. Storage migration is verified;
+additional study compression, cold boot, physical removal, Windows access and
+restore/application checks remain separate. Dtm-work access and credential
+adapter qualification remain open; the fresh ADB enumeration has no device.
 
 ## Follow-up software qualification (01:06 UTC)
 

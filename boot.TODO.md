@@ -2,7 +2,7 @@
 
 ## Immediate dtm-p1gen7 responsiveness
 
-Current review: October 11, 2026, 01:06 UTC. See the latest
+Current review: October 11, 2026, 01:42 UTC. See the latest
 [fleet readback](Reports/fleet-integration-review.md) and
 [cache correctness review](Reports/shared-cache-correctness-review.md).
 
@@ -23,6 +23,17 @@ Current review: October 11, 2026, 01:06 UTC. See the latest
 - [x] Replace the reserved HOME assignment in the private Gitguard build child;
       independently verify three offline commands, exact outputs and original closure.
 - [ ] Qualify real Gitguard inventory parity, fallback and timings before installation.
+- [x] Verify eight tiny inventory controls, twelve descriptive measurements and
+      two existing-file positives; preserve full-repo junction refusal and leave
+      complete mixed-kind parity and production hook installation open.
+- [x] Reproduce the actual child coverage union from source-bound JSON and repair
+      StrictMode summary-only callers; verify 35 controls without changing 85%.
+- [ ] Publish and independently reconstruct current-head parent/child coverage
+      artifacts; the latest 2,771-pass CI remains below target at 66.535470%.
+- [ ] Qualify the runtime DLL integrity successor and its 17 controls before
+      canonical adoption; retain rollback data and unresolved original resources.
+- [ ] Prepare and verify the public media cache seed only after capacity admission;
+      then perform actual locked offline resolution and complete cache inventory.
 - [ ] Execute the bounded poisoned-media-worker predecessor/candidate detectors,
       then narrow crate regressions and lint before integrating the claimed repair.
 - [ ] Clear PC-AI current-head coverage and deployed consumer parity gates;

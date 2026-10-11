@@ -84,7 +84,11 @@ function Get-PesterChildCoverageMap {
 function Merge-PesterChildCoverage {
     [CmdletBinding()]
     param([Parameter(Mandatory)]$Result)
-    $attachments = @(foreach ($test in @($Result.Tests)) {
+    # Child receipts are optional; summary-only callers remain valid under
+    # StrictMode when there is no Tests property to inspect.
+    $testProperty = $Result.PSObject.Properties['Tests']
+    $tests = if ($null -eq $testProperty) { @() } else { @($testProperty.Value) }
+    $attachments = @(foreach ($test in $tests) {
         if ($null -ne $test -and $null -ne $test.PSObject.Properties['PcaiChildCoverage']) {
             if ($test.Result -cne 'Passed') { throw 'Unpassed parent test cannot admit child coverage.' }
             $test.PcaiChildCoverage

@@ -339,7 +339,28 @@ jobs:
           $config.CodeCoverage.OutputPath = 'Tests/TestResults/coverage.xml'
           $config.CodeCoverage.CoveragePercentTarget = 85
           $config.Output.Verbosity = 'Detailed'
+          # Bind source bytes before measuring; publish the exact parent/child
+          # inventories used by the gate, even when coverage is below target.
+          $sourceBindings = @(Get-ChildItem -LiteralPath ./Modules -Recurse -File |
+              Where-Object Extension -in '.ps1', '.psm1' | ForEach-Object {
+                  [pscustomobject]@{ Path = $_.FullName; SHA = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }
+              })
           $result = Invoke-Pester -Configuration $config
+          . ./Tools/Merge-PesterChildCoverage.ps1
+          $parentSnapshot = New-PesterCoverageSnapshot -Coverage $result.CodeCoverage -SourceBindings $sourceBindings
+          $attachments = @(foreach ($test in @($result.Tests)) {
+              if ($null -ne $test -and $null -ne $test.PSObject.Properties['PcaiChildCoverage']) {
+                  [pscustomobject]@{ Result = $test.Result; Receipt = $test.PcaiChildCoverage }
+              }
+          })
+          [ordered]@{
+              SchemaVersion = 1
+              SourceCommit = $env:GITHUB_SHA
+              RunId = $env:GITHUB_RUN_ID
+              RunAttempt = $env:GITHUB_RUN_ATTEMPT
+              Parent = $parentSnapshot
+              Attachments = $attachments
+          } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath Tests/TestResults/source-bound-coverage.json -Encoding utf8
           . ./Tools/Assert-PesterCoverageGate.ps1
           Assert-PesterCoverageGate -Result $result -Target $config.CodeCoverage.CoveragePercentTarget.Value
       # Keep the raw report available independently of provider upload success.
@@ -348,7 +369,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: powershell-jacoco-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: Tests/TestResults/coverage.xml
+          path: |
+            Tests/TestResults/coverage.xml
+            Tests/TestResults/source-bound-coverage.json
           retention-days: 14
           if-no-files-found: error
       - name: Prepare Verified Codecov CLI

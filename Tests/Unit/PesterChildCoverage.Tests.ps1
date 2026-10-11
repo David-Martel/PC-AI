@@ -202,8 +202,28 @@ $child=Measure-ActualCase Child $null
 $snapshot=New-PesterCoverageSnapshot $child.CodeCoverage $binding
 $parent=Measure-ActualCase Parent $snapshot
 $merged=Merge-PesterChildCoverage $parent
+# Reproduce the gate from the same source-bound JSON inventories CI uploads.
+$parentSnapshot=New-PesterCoverageSnapshot $parent.CodeCoverage $binding
+$evidence=[ordered]@{SchemaVersion=1;Parent=$parentSnapshot;Attachments=@([pscustomobject]@{Result=$parent.Tests[0].Result;Receipt=$parent.Tests[0].PcaiChildCoverage})}
+$evidencePath=Join-Path $PSScriptRoot 'source-bound-coverage.json'
+$evidence|ConvertTo-Json -Depth 20|Set-Content -LiteralPath $evidencePath -Encoding utf8
+$readback=Get-Content -LiteralPath $evidencePath -Raw|ConvertFrom-Json
+$null=Get-PesterChildCoverageMap $readback.Parent
+$replayed=[pscustomobject]@{
+    Tests=@($readback.Attachments|ForEach-Object{[pscustomobject]@{Result=$_.Result;PcaiChildCoverage=$_.Receipt}})
+    CodeCoverage=[pscustomobject]@{
+        CommandsAnalyzedCount=$readback.Parent.Analyzed
+        CommandsExecutedCount=$readback.Parent.Executed
+        CommandsExecuted=@($readback.Parent.Commands|Where-Object Executed)
+        CommandsMissed=@($readback.Parent.Commands|Where-Object{-not $_.Executed})
+        CoveragePercent=100.0*$readback.Parent.Executed/$readback.Parent.Analyzed
+    }
+    FailedCount=0;FailedBlocksCount=0;FailedContainersCount=0;TotalCount=1
+}
+$replayedMerged=Merge-PesterChildCoverage $replayed
 . (Join-Path (Split-Path $Helper -Parent) 'Assert-PesterCoverageGate.ps1')
 Assert-PesterCoverageGate -Result $parent -Target 85
+Assert-PesterCoverageGate -Result $replayed -Target 85
 $zero=Measure-ActualCase Zero $null
 $zeroSnapshot=New-PesterCoverageSnapshot $zero.CodeCoverage $binding
 $zero.Tests[0]|Add-Member -NotePropertyName PcaiChildCoverage -NotePropertyValue ([pscustomobject]@{ParentSources=$binding;Child=$zeroSnapshot})
@@ -211,7 +231,7 @@ $zeroMerged=Merge-PesterChildCoverage $zero
 $zeroRejected=$false
 try { Assert-PesterCoverageGate -Result $zero -Target 85 } catch { $zeroRejected=$_.Exception.Message -like '*below required 85*' }
 if(-not $zeroRejected){throw 'Zero coverage did not fail the unchanged gate.'}
-[pscustomobject]@{ParentExecuted=$parent.CodeCoverage.CommandsExecutedCount;ChildExecuted=$child.CodeCoverage.CommandsExecutedCount;Analyzed=$parent.CodeCoverage.CommandsAnalyzedCount;Merged=$merged;ZeroMerged=$zeroMerged;ZeroGateRejected=$zeroRejected;AttachmentRetained=($null-ne$parent.Tests[0].PSObject.Properties['PcaiChildCoverage'])}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $PSScriptRoot 'measured-result.json')
+[pscustomobject]@{ParentExecuted=$parent.CodeCoverage.CommandsExecutedCount;ChildExecuted=$child.CodeCoverage.CommandsExecutedCount;Analyzed=$parent.CodeCoverage.CommandsAnalyzedCount;Merged=$merged;ReplayedMerged=$replayedMerged;ReplayedParentExecuted=$readback.Parent.Executed;ReplayedSourceSHA=$readback.Parent.Sources[0].SHA256;MeasuredSourceSHA=$binding[0].SHA;ZeroMerged=$zeroMerged;ZeroGateRejected=$zeroRejected;AttachmentRetained=($null-ne$parent.Tests[0].PSObject.Properties['PcaiChildCoverage'])}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $PSScriptRoot 'measured-result.json')
 '@)
         $pwsh=(Get-Command pwsh -CommandType Application -ErrorAction Stop|Select-Object -First 1).Source
         $run=Invoke-VigilBoundedProcess -FilePath $pwsh -Arguments @('-NoLogo','-NoProfile','-File',$probe,$script:PesterManifest,$script:MergeHelper) -TimeoutSeconds 45 -WorkingDirectory $TestDrive
@@ -222,6 +242,11 @@ if(-not $zeroRejected){throw 'Zero coverage did not fail the unchanged gate.'}
         $actual.Merged.CommandsAnalyzedCount|Should -Be $actual.Analyzed
         $actual.Merged.CommandsExecutedCount|Should -Be $actual.ChildExecuted
         $actual.Merged.AddedChildCommands|Should -BeGreaterThan 0
+        $actual.ReplayedMerged.CommandsAnalyzedCount|Should -Be $actual.Analyzed
+        $actual.ReplayedMerged.CommandsExecutedCount|Should -Be $actual.Merged.CommandsExecutedCount
+        $actual.ReplayedMerged.AddedChildCommands|Should -Be $actual.Merged.AddedChildCommands
+        $actual.ReplayedParentExecuted|Should -Be $actual.ParentExecuted
+        $actual.ReplayedSourceSHA|Should -BeExactly $actual.MeasuredSourceSHA
         $actual.ZeroMerged.CommandsExecutedCount|Should -Be 0
         $actual.ZeroMerged.CoveragePercent|Should -Be 0
         $actual.ZeroGateRejected|Should -BeTrue

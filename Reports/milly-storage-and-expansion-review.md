@@ -445,3 +445,11 @@ As the original owner `yayuanli`, the existing `/home/yayuanli/fun/ICON/user_stu
 The report's final identification-only wording belongs to its **historical assessment**, superseded by the completed migration section and checked-off migration items in `boot.TODO.md`. Current remaining work is independent backup/restore, physical Windows mount/runtime/DACL, cold boot/removal, physical M.2 vacancy and application/HIL qualification, together with the existing NFS/build-growth owners. This readback establishes neither measured storage throughput nor workstation acceleration, and does not infer an unused M.2 slot.
 
 Fresh native SSH exit/stdout/stderr receipts: `D:/pcai-relocation/milly-fastlink-current-readback-r4/`; their pins, scope and proposed addendum are recorded in `.pcai/integration/milly-fastlink-current-readback-r4/readback.json`. All eleven checks exited0 with empty stderr. No remote writes, remounts, deletion, data-heavy scan or data-file rehash occurred.
+
+The October 11 00:34 UTC read-only follow-up reported 622,824,415,232 bytes
+available internally (about 580 GiB), 35% root use, both SSD links using UAS at
+10 Gb/s, and all five Btrfs device-error counters at zero. Its original native
+SSH exit was zero. Receipt:
+`D:/pcai-relocation/milly-storage-live-readback-r5/readback.json`. This confirms
+that the external-storage layout remains in use; it supplies no new deletion,
+physical M.2 vacancy, application or independent-backup acceptance.

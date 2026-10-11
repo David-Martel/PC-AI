@@ -144,3 +144,27 @@ Existing clients, QMD/Serena database workloads and active agent sessions remain
 outside the pilot. Shared-server deployment requires separate multi-client,
 configuration and lifecycle validation. No new configuration deployment, cache
 purge, service restart or global memory trim was applied in this capture.
+
+### Current resource and preflight findings
+
+The October 11 17:54 UTC snapshot showed 10,852 MiB available, 88% commit,
+11.8 GiB commit headroom and zero sampled pages-in/pages-out. C: had 252.7 GiB
+free; D: had 1,068.2 GiB and T: 1,269.0 GiB free. A single snapshot does not
+establish sustained responsiveness or a matched improvement. Builds and native
+qualification continue on Carbon; new local build evidence goes to D:.
+
+Carbon's actual CargoTools differs from the workstation version: its diagnostics
+report `ActiveToolchain`, and its raw wrapper runs `rustup run stable cargo`.
+The first media preflight incorrectly required newer module APIs and failed
+before compilation. The original job, drains and handles closed; the failure is
+retained. The reviewed correction verifies Carbon's actual module source and
+both stable and fully named rustup routes against the admitted cargo/rustc
+executables. It does not modify the installed module. The failed whole phase
+took 97.335 seconds; import, command discovery and individual preflight costs
+have not been separately measured. Evidence is retained in
+`D:/pcai-relocation/media-carbon-preparation-r1/carbon-module-contract/`.
+
+The native Filesystem pilot has distinct source review for six genuine protocol
+and shutdown controls. Runtime execution, a new configured Codex consumer,
+other-user scopes, all three launch modes and shared-server reuse remain open.
+No active wrapper was replaced or terminated by this source qualification.

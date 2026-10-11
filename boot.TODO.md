@@ -1983,3 +1983,24 @@ Historical results above retain their original scope and date.
   actual native pairing requirements. Owner: root/acceleration.
 - [ ] Qualify other-user deployment, shared MCP reuse and real lifecycle faults;
   wrapper fixture success is not fleet or responsiveness acceptance.
+
+## Current integration validation
+
+- [ ] Clear the unchanged 85% coverage gate on the published integration head.
+  Head `817027648d5a3682ed347bed2aa1e2530585b11a`, CI38152284244:
+  2,862 passes, zero test failures, 40 skips; genuine source-bound coverage
+  14,583/21,816 (66.8454%), requiring 3,961 additional exercised commands.
+  Earlier head results above are historical. Owner: root/integration.
+- [ ] Run the reviewed Carbon media build correction against its actual installed
+  CargoTools contract; preserve the closed precompiler R3 failure. Then qualify
+  baseline/candidate healthy and poisoned-mutex controls before adopting the
+  outstanding media edit. Owner: root/native.
+- [ ] Diagnose the genuine one-second HTTP positive failure before accepting
+  timeout behavior. C# compilation and independent DLL/PDB/source pairing passed;
+  the real localhost call still timed out before the IPv4 listener accepted.
+  Address controls must not prewarm the original client or relax its timeout.
+  Owner: root/runtime.
+- [ ] Complete the read-only native Filesystem protocol trial and new-consumer
+  checks before replacing a configured wrapper. Distinct source review passed;
+  shared-server reuse, other-user deployment and measured speedup remain open.
+  Owner: root/acceleration.

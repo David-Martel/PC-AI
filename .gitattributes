@@ -77,3 +77,8 @@ Tests/ProcessCapture/ModuleQA/qa-common.ps1 -text -eol whitespace=cr-at-eol
 Tests/ProcessCapture/ModuleQA/worker.ps1 -text -eol whitespace=cr-at-eol
 Tests/ProcessCapture/ModuleQA/Fixtures/CaptureChild.ps1 -text -eol whitespace=cr-at-eol
 Tests/Unit/PcaiSharedCache.Tests.ps1 -text -eol whitespace=cr-at-eol
+
+# Preserve reviewed Evaluation consumer source and selector/hash bindings verbatim.
+Modules/PC-AI.Evaluation/Public/Test-ForRegression.ps1 -text -eol whitespace=cr-at-eol
+Tests/Unit/EvaluationPublicContracts.Tests.ps1 -text -eol whitespace=cr-at-eol
+Reports/evaluation-public-contracts-review.md -text -eol whitespace=cr-at-eol

@@ -75,7 +75,7 @@ Describe 'Runtime DLL variant integrity with real public file bytes' -Tag 'Unit'
         [IO.File]::WriteAllText($script:Canonical, $script:OldBytes)
         [IO.File]::WriteAllText($script:Alias, $script:OldBytes)
         $script:RuntimeConfig = New-RuntimeFixtureConfig -Path $script:Variant -Hash $script:ExpectedHash
-        [Environment]::SetEnvironmentVariable('PCAI_NATIVE_BUNDLE_ROOT', $null, 'Process')
+        [Environment]::SetEnvironmentVariable('PCAI_NATIVE_BUNDLE_ROOT', [NullString]::Value, 'Process')
         Mock Get-PcaiCudaCapability { $null }
         Mock Get-PcaiConfig { $script:RuntimeConfig }
         Mock Get-PcaiProjectRoot { $script:RuntimeFixture }
@@ -125,7 +125,11 @@ Describe 'Runtime DLL variant integrity with real public file bytes' -Tag 'Unit'
                 Remove-Variable -Name PcaiRuntimeVariantUnresolved -Scope Script -ErrorAction Stop
             }
         } finally {
-            [Environment]::SetEnvironmentVariable('PCAI_NATIVE_BUNDLE_ROOT', $script:OriginalBundle, 'Process')
+            if ($null -eq $script:OriginalBundle) {
+                [Environment]::SetEnvironmentVariable('PCAI_NATIVE_BUNDLE_ROOT', [NullString]::Value, 'Process')
+            } else {
+                [Environment]::SetEnvironmentVariable('PCAI_NATIVE_BUNDLE_ROOT', $script:OriginalBundle, 'Process')
+            }
         }
     }
 
@@ -471,5 +475,102 @@ Describe 'Runtime DLL variant integrity with real public file bytes' -Tag 'Unit'
         Read-RuntimeFixtureText $script:Alias | Should -BeExactly $script:OldBytes
         Should -Invoke Get-PcaiCudaCapability -Times 0 -Exactly
         Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+    }
+
+    # Protects: compatible variants select the highest capability independent of order.
+    # Detects: input-order selection publishing a lower-ranked payload.
+    # Needs: inert public bytes, real publication and an explicit GPU boundary mock.
+    # Breadcrumb: Modules/PcaiInference.psm1 Resolve-PcaiRuntimeVariantDll ranked selection.
+    It 'selects the highest compatible variant from <Order> input order' -ForEach @(
+        @{ Order = 'ascending'; Names = @('low', 'middle', 'high') }
+        @{ Order = 'descending'; Names = @('high', 'middle', 'low') }
+        @{ Order = 'mixed'; Names = @('middle', 'high', 'low') }
+    ) {
+        $variants = @{}
+        foreach ($entry in @(@{Name='low';Minimum=10}, @{Name='middle';Minimum=20}, @{Name='high';Minimum=40})) {
+            $path = Join-Path $script:RuntimeFixture ('variants/' + $entry.Name + '.dll')
+            [IO.File]::WriteAllText($path, ('public-' + $entry.Name))
+            $variants[$entry.Name] = [pscustomobject]@{
+                name=$entry.Name; kind='cuda'; minCompute=$entry.Minimum; maxCompute=99
+                dllPath=$path; sha256=(Get-FileHash -LiteralPath $path).Hash
+            }
+        }
+        $script:RuntimeConfig.nativeInference.runtimeBinarySelection.variants = @($Names | ForEach-Object { $variants[$_] })
+        Mock Get-PcaiCudaCapability { 50 }
+
+        Resolve-PcaiRuntimeVariantDll -Config $script:RuntimeConfig -ProjectRoot $script:RuntimeFixture | Should -BeExactly $script:Canonical
+        Read-RuntimeFixtureText $script:Canonical | Should -BeExactly 'public-high'
+        Read-RuntimeFixtureText $script:Alias | Should -BeExactly 'public-high'
+        foreach ($name in @('low', 'middle', 'high')) {
+            Read-RuntimeFixtureText $variants[$name].dllPath | Should -BeExactly ('public-' + $name)
+        }
+        Should -Invoke Get-PcaiCudaCapability -Times 1 -Exactly
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+    }
+
+    # Protects: a pathless configuration row cannot hide a valid CPU variant.
+    # Detects: optional-path access failure or premature selection stopping fallback.
+    # Needs: pathless high-ranked row, verified CPU bytes and no transport.
+    # Breadcrumb: Modules/PcaiInference.psm1 Resolve-PcaiRuntimeVariantDll dllPath guard.
+    It 'skips a pathless high-ranked variant and publishes the available CPU pair' {
+        [IO.File]::WriteAllText($script:Variant, $script:ValidBytes)
+        $cpu = $script:RuntimeConfig.nativeInference.runtimeBinarySelection.variants[0]
+        $script:RuntimeConfig.nativeInference.runtimeBinarySelection.variants = @(
+            [pscustomobject]@{name='pathless';kind='cuda';minCompute=90;maxCompute=99}
+            $cpu
+        )
+        Mock Get-PcaiCudaCapability { 95 }
+
+        Resolve-PcaiRuntimeVariantDll -Config $script:RuntimeConfig -ProjectRoot $script:RuntimeFixture | Should -BeExactly $script:Canonical
+        Read-RuntimeFixtureText $script:Canonical | Should -BeExactly $script:ValidBytes
+        Read-RuntimeFixtureText $script:Alias | Should -BeExactly $script:ValidBytes
+        Read-RuntimeFixtureText $script:Variant | Should -BeExactly $script:ValidBytes
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+    }
+
+    # Protects: disabled downloads leave both previous files when all caches are absent.
+    # Detects: unrequested transport or publication of unavailable variants.
+    # Needs: two missing compatible paths, real previous bytes and HTTP call counting.
+    # Breadcrumb: Modules/PcaiInference.psm1 Resolve-PcaiRuntimeVariantDll missing-cache guard.
+    It 'returns no variant without transport or publication when every compatible path is absent' {
+        $script:RuntimeConfig.nativeInference.runtimeBinarySelection.variants = @(
+            [pscustomobject]@{name='missing-cuda';kind='cuda';minCompute=40;maxCompute=99;dllPath='variants/missing-cuda.dll'}
+            [pscustomobject]@{name='missing-cpu';kind='cpu';dllPath='variants/missing-cpu.dll'}
+        )
+        Mock Get-PcaiCudaCapability { 50 }
+
+        Resolve-PcaiRuntimeVariantDll -Config $script:RuntimeConfig -ProjectRoot $script:RuntimeFixture | Should -BeNullOrEmpty
+        Read-RuntimeFixtureText $script:Canonical | Should -BeExactly $script:OldBytes
+        Read-RuntimeFixtureText $script:Alias | Should -BeExactly $script:OldBytes
+        @(Get-ChildItem -LiteralPath (Join-Path $script:RuntimeFixture 'variants') -Force).Count | Should -Be 0
+        Should -Invoke Get-PcaiCudaCapability -Times 1 -Exactly
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+    }
+
+    # Protects: a settled digest refusal can fall back without publishing corrupt bytes.
+    # Detects: corrupt high-ranked publication or loss of lower-ranked valid selection.
+    # Needs: real corrupt and verified sources, old-byte backups and inert GPU boundary.
+    # Breadcrumb: Modules/PcaiInference.psm1 Resolve-PcaiRuntimeVariantDll refusal fallback.
+    It 'preserves a corrupt higher-ranked cache while publishing a verified lower-ranked pair' {
+        [IO.File]::WriteAllText($script:Variant, $script:ValidBytes)
+        $corrupt = Join-Path $script:RuntimeFixture 'variants/corrupt-high.dll'
+        [IO.File]::WriteAllText($corrupt, 'corrupt high bytes')
+        $script:RuntimeConfig.nativeInference.runtimeBinarySelection.variants = @(
+            [pscustomobject]@{name='low';kind='cuda';minCompute=10;maxCompute=99;dllPath=$script:Variant;sha256=$script:ExpectedHash}
+            [pscustomobject]@{name='high';kind='cuda';minCompute=40;maxCompute=99;dllPath=$corrupt;sha256=$script:ExpectedHash}
+        )
+        Mock Get-PcaiCudaCapability { 50 }
+
+        Resolve-PcaiRuntimeVariantDll -Config $script:RuntimeConfig -ProjectRoot $script:RuntimeFixture | Should -BeExactly $script:Canonical
+        Read-RuntimeFixtureText $script:Canonical | Should -BeExactly $script:ValidBytes
+        Read-RuntimeFixtureText $script:Alias | Should -BeExactly $script:ValidBytes
+        Read-RuntimeFixtureText $corrupt | Should -BeExactly 'corrupt high bytes'
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+        $backups = @(Get-ChildItem -LiteralPath (Join-Path $script:RuntimeFixture 'bin') -Filter '.pcai-runtime-backup-*.tmp' -Force)
+        $backups.Count | Should -Be 2
+        foreach ($backup in $backups) {
+            Read-RuntimeFixtureText $backup.FullName | Should -BeExactly $script:OldBytes
+        }
+        @(Get-ChildItem -LiteralPath (Join-Path $script:RuntimeFixture 'bin') -Filter '.pcai-runtime-stage-*.tmp' -Force).Count | Should -Be 0
     }
 }

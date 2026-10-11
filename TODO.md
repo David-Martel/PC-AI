@@ -7,6 +7,35 @@ ledger instead of left here as active work.
 Last reconciled: 2026-09-07, after a CI/tooling repair pass. The previous
 reconciliation was 2026-04-30.
 
+## 2026-10-11 Windows fleet and VIGIL closeout
+
+Current evidence and disposition: [Windows fleet closeout](docs/windows-fleet-closeout.md).
+The [VIGIL-Eko integration plan](docs/vigil-eko-integration.md) records camera,
+pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
+
+- [x] Reconcile current upstream into the Windows fleet branch without losing
+  historical profile WIP; qualify native nullable measurements, read-only fleet
+  discovery, media checks and staged module deployment.
+- [x] Review the public profile workaround and bounded crash collector for
+  publication, including isolated profile probes and missing-provider values.
+- [ ] Merge the Windows fleet/profile work only after the final reviewed head
+  passes the required checks; reconcile local main and retire owned branches.
+- [ ] Complete PR182's canonical LLM-helper test admission repair and re-run
+  exact-head CI; retain the existing 85% PowerShell coverage gate.
+- [ ] Integrate Candle dependency upgrades together with media/CUDA coverage,
+  and validate mistral.rs upgrades with that backend enabled. CPU-only green CI
+  does not establish optional backend compatibility.
+- [ ] Finish shared native ABI/schema versioning, cancellation/progress/error
+  contracts and benchmark-backed acceleration import/search improvements.
+- [ ] Validate the full staged PowerShell release in its intended deployment;
+  rebuild compiled clients affected by nullable managed measurement signatures.
+- [ ] Obtain Claude's Eko source-ownership acknowledgment; retain the active
+  locked worktree and close the reviewed transport/UI reliability findings.
+- [ ] Add Windows WinRT CI and a Linux BlueZ backend; qualify Dell UVC/pose and
+  multi-site acquisition through recorded HIL rather than replay tests alone.
+- [ ] Complete physical power-path comparison and hang evidence collection on
+  the NUC. Software changes do not establish a hardware freeze cure.
+
 ## 2026-10-03 Fleet and repository closeout
 
 The Milly maintenance evidence is in `Reports/milly-fleet-20261002/README.md`.

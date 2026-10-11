@@ -1481,3 +1481,31 @@ Evidence and rollback: [boot storage review](Reports/boot-storage-review-2026091
 Current private receipt hashes and remaining boundaries are recorded in
 `Reports/milly-fleet-20261002/repo-closeout.json` under `followUpEasyWins`.
 Historical results above retain their original scope and date.
+2026-10-04 DTM-SUPER-NUC follow-up:
+- [x] Qualify built-ins in the public profile shim to prevent accidental PC-AI
+  auto-import during missing-private-profile diagnostics; add bootstrap tests.
+- [ ] Recover the maintained private canonical profile and machine secret
+  backends from their trusted private deployment source. Public bootstrap and
+  staging helpers do not reconstruct these private files.
+- Evidence: C:/Users/david/PC-Audit-2026-10-04/changes.md and followup-profile.md.
+
+2026-10-06 source/deployment reconciliation:
+- [x] Preserve the newer deployed SSH noninteractive silence guard in public
+  profile source; add real child-process command/encoded/file regression tests.
+- [x] Reconcile the historical branch with origin/main while preserving the
+  tracked profile changes and private configuration boundaries (merge 04b5b8d).
+  Publication and merge acceptance are tracked separately in TODO.md.
+
+2026-10-11 NUC13L3Kv7 freeze investigation:
+- [x] Preserve 30-day System/Application evidence and analyze WHEA firmware CPER
+  with WinDbg and Intel's official offline crashlog decoder. PMC reason 0x5 is
+  unclassified; forced shutdown aftermath does not establish the freeze cause.
+- [x] Verify exact current BIOS/SSD firmware, SMART, DISM and SFC; deploy tested
+  PSReadLine console-input workaround with backed-up profile and opt-out state.
+- [x] Apply reversible CPU boost-disabled comparison and run bounded, flushed
+  SYSTEM telemetry plus circular power/WHEA ETW with startup resumption.
+- [ ] Observe ordinary workloads and capture a kernel dump during an actual hang.
+  USB manual-dump setting was already enabled; no reboot or forced crash executed.
+- [ ] If hangs persist, perform offline RAM and physical adapter/cooling isolation.
+- Evidence and rollback: Reports/crash-investigation-20261011/FINDINGS.md and
+  Reports/crash-investigation-20261011/Restore-InvestigationChanges.ps1.

@@ -4,8 +4,8 @@ This is the active high-level backlog for `PC_AI`. Completed historical work
 should be recorded in the relevant report, context snapshot, or specialized
 ledger instead of left here as active work.
 
-Last reconciled: 2026-09-07, after a CI/tooling repair pass. The previous
-reconciliation was 2026-04-30.
+Last reconciled: 2026-10-11, after Windows fleet source integration and Git
+custody cleanup. Earlier CI/tooling evidence remains dated 2026-09-07.
 
 ## 2026-10-11 Windows fleet and VIGIL closeout
 
@@ -18,14 +18,15 @@ pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
   discovery, media checks and staged module deployment.
 - [x] Review the public profile workaround and bounded crash collector for
   publication, including isolated profile probes and missing-provider values.
-- [ ] Merge the Windows fleet/profile work only after the final reviewed head
-  passes the required checks; reconcile local main and retire owned branches.
+- [x] Merge the Windows fleet/profile work after all 12 final-head checks pass;
+  fast-forward local main and retire owned merged branches and backed-up stash.
 - [x] Review PR182's canonical LLM-helper test admission repair. Its owner
   concurrently published the approved-name fix; preserve the tested alternate
   proposal and retire its owned temporary worktree.
-- [ ] Re-run PR182 exact-head CI; helper admission alone does not establish
-  merge acceptance. Audit the existing 85% PowerShell coverage target and its
-  enforcement separately: successful main reports 51.83%, unchanged by PR183.
+- [ ] Resolve PR182's nine integration conflicts and qualify its final head.
+  At `fac1d1a`, tests pass but the explicit coverage gate fails at 66.9936%
+  against 85%. Audit coverage selection/enforcement separately: successful
+  fleet CI reports 51.83%, unchanged by PR183; neither result meets the target.
 - [ ] Integrate Candle dependency upgrades together with media/CUDA coverage,
   and validate mistral.rs upgrades with that backend enabled. CPU-only green CI
   does not establish optional backend compatibility.
@@ -35,8 +36,10 @@ pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
   rebuild compiled clients affected by nullable managed measurement signatures.
 - [ ] Obtain Claude's Eko source-ownership acknowledgment; retain the active
   locked worktree and close the reviewed transport/UI reliability findings.
-- [ ] Add Windows WinRT CI and a Linux BlueZ backend; qualify Dell UVC/pose and
-  multi-site acquisition through recorded HIL rather than replay tests alone.
+- [x] Merge Eko duplicate/integrity and camera lifecycle/freshness fixes with
+  Windows WinRT/session and Windows/Linux pose-sidecar CI (Eko PR4 and PR5).
+- [ ] Implement a Linux BlueZ backend and Linux UVC capture; qualify Dell
+  UVC/pose and multi-site acquisition through recorded physical HIL.
 - [ ] Complete physical power-path comparison and hang evidence collection on
   the NUC. Software changes do not establish a hardware freeze cure.
 

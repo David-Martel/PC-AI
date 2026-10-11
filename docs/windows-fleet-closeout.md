@@ -30,18 +30,22 @@ getter signatures. Missing input-power/SMART/temperature readings remain unknown
 
 | Work | Current acceptance boundary |
 |---|---|
-| Windows fleet/profile branch | Publish reviewed source with focused tests; merge only after required final-head checks. Main then fast-forwards and owned merged branches can be removed. |
-| PR182 runtime integration | Initial audited head `71ed3e9` had 21 PowerShell failures. Its owner published the 24-name admission repair in `72ee00d` and advanced to `24ae406`; that exact-head CI had 2,897 passes, zero failures and 40 skips, but its explicit coverage gate failed at 67.0257% against 85%. Our tested alternate proposal was archived locally rather than overwriting that work. |
-| Fleet plus PR182 | Shared Common configuration, workspace metadata and installer changes require actual conflict resolution and mixed-suite validation. A textual merge preview is not a qualified final merge. |
+| Windows fleet/profile branch | [PR183](https://github.com/David-Martel/PC-AI/pull/183) merged as `c464219f6ce1abb2471671c8d38cd570edf253db` after all 12 checks passed at reviewed head `80cec93a9bab1f0a07e1be30d42d9533bc77c545` and both review threads were resolved. Local main fast-forwarded to that merge; the two owned merged local branches and backed-up stash were retired. GitHub removed the published fleet branch after merge. |
+| PR182 runtime integration | Initial audited head `71ed3e9` had 21 PowerShell failures. Its owner published the 24-name admission repair in `72ee00d`. Current audited head `fac1d1a` has 2,897 passes, zero failures and 40 skips, but its explicit coverage gate fails at 66.9936% (14,616/21,817) against 85%. It remains an owner-held draft. Our tested alternate proposal was archived locally rather than overwriting that work. |
+| Fleet plus PR182 | An actual ort merge preview at fleet head `80cec93` versus owner head `fac1d1a` reports nine conflicting paths, including CI, profile, Common configuration, Rust metadata/process parsing, installer/tests and TODO ledgers. Resolve conflicts and run mixed-suite validation before acceptance; the preview does not change either branch. |
 | Candle PR146/148/162 and coordinated draft PR156 | Choose one compatible integration path and test media/CUDA consumers; individually green default-feature CI is insufficient. PR182 already carries a coordinated update, so these must not be blindly stacked or closed before accepted integration. |
 | mistral.rs PR145 | Compile/test the enabled backend and relevant runtime/FFI paths; default CPU CI omits this optional backend. |
-| PC_AI worktrees | The primary checkout is the fleet branch. The temporary owned PR182 test worktree was retired after preserving its tested proposal and verifying the owner's equivalent source repair upstream. No foreign worktree was removed. |
+| PC_AI worktrees | After PR183, local main equals origin/main, with no additional local branches, stashes or worktrees. The temporary owned PR182 test worktree was retired after preserving its tested proposal and verifying the owner's equivalent source repair upstream. No foreign worktree was removed. The subsequent documentation closeout uses a temporary owned branch. |
 | VIGIL-Eko worktree | Claude's locked worktree belongs to a live process; ownership acknowledgment and merge are required before the owner removes it. |
 
 Only two machine-evidence case directories are excluded locally through
 `.git/info/exclude`; source/tests remain visible to Git. Exclusion preserves
-evidence in place and is not deletion. Preservation stashes may be retired only
-after their source changes are reviewed, committed and backed up.
+evidence in place and is not deletion. The profile WIP stash was retired only
+after patch/bundle hashes, profile equivalence, the deliberately completed boot
+TODO entries and the incremental bundle's setup-commit ancestry were verified.
+The local recovery archives remain available. Closed, unmerged PR157/158 refs
+were separately retired with expected-head leases after verification of a
+complete-history bundle; archiving those refs does not accept their source.
 
 ## Remaining development and qualification
 
@@ -58,8 +62,9 @@ The later source review also identified null EnergyMeter counters becoming
 zero and a two-job default on unprofiled hosts. Their corrections preserve
 nullable raw counters and distinguish missing power/interval/energy evidence.
 An absent explicit build policy leaves both build job counts null; only the
-NUC profile owns its temporary two-job cap. Final-head regression tests,
-resolved review threads and hosted checks are required before merging.
+NUC profile owns its temporary two-job cap. Final-head focused regressions pass
+(34 tests), both review threads are resolved, and all 12 hosted checks pass.
+The final hosted PowerShell job records 1,058 passes, zero failures and 49 skips.
 
 The current backlog still includes native ABI/schema versioning, full-stack
 cancellation/structured errors, streaming/progress, cold-import cost and batched

@@ -255,12 +255,15 @@ $logical = Get-MachineValue $computerRow 'NumberOfLogicalProcessors'
 $freeKiB = Get-MachineValue $osRow 'FreePhysicalMemory'
 $profileBuild = Get-MachineValue $machineProfile 'buildPolicy'
 $configuredJobs = Get-MachineValue $profileBuild 'maxNativeBuildJobs'
-if ($null -eq $configuredJobs) { $configuredJobs = 2 }
-if ($configuredJobs -lt 1 -or $configuredJobs -gt 64) { throw 'Profile maxNativeBuildJobs must be between 1 and 64.' }
-$recommendedJobs = 1
-if ($logical -gt 0 -and $freeKiB -gt 0) {
-    $recommendedJobs = [int][math]::Max(1, [math]::Min($configuredJobs,
-        [math]::Min([math]::Floor($logical / 4.0), [math]::Floor([double]$freeKiB * 1024 / 4GB))))
+$recommendedJobs = $null
+if ($null -ne $configuredJobs) {
+    if ($configuredJobs -lt 1 -or $configuredJobs -gt 64) { throw 'Profile maxNativeBuildJobs must be between 1 and 64.' }
+    $configuredJobs = [int]$configuredJobs
+    $recommendedJobs = 1
+    if ($logical -gt 0 -and $freeKiB -gt 0) {
+        $recommendedJobs = [int][math]::Max(1, [math]::Min($configuredJobs,
+            [math]::Min([math]::Floor($logical / 4.0), [math]::Floor([double]$freeKiB * 1024 / 4GB))))
+    }
 }
 $queryProvenance = @($queries | Microsoft.PowerShell.Core\ForEach-Object {
     [ordered]@{ source = $_.source; namespace = $_.namespace; status = $_.status
@@ -292,10 +295,10 @@ $report = [ordered]@{
     statedPowerPath = Get-MachineValue $machineProfile 'statedPowerPath'
     powerObservation = [ordered]@{ wholePcInputWatts = $null; inputVoltageVolts = $null; usbPdNegotiation = 'Unknown'; source = 'No input-power or voltage sensor queried' }
     buildPolicy = [ordered]@{
-        configuredMaxNativeBuildJobs = [int]$configuredJobs; recommendedNativeBuildJobs = $recommendedJobs
+        configuredMaxNativeBuildJobs = $configuredJobs; recommendedNativeBuildJobs = $recommendedJobs
         availablePhysicalBytesAtCapture = if ($null -ne $freeKiB) { [long]$freeKiB * 1024 } else { $null }
-        rule = 'min(profile cap, floor(logical CPUs/4), floor(available GiB/4)); minimum1; unknown telemetry=>1'
-        applied = $false; source = if ($profileSource) { $profileSource } else { 'Conservative default' }
+        rule = if ($null -ne $configuredJobs) { 'min(profile cap, floor(logical CPUs/4), floor(available GiB/4)); minimum1; unknown telemetry=>1' } else { 'No explicit profile cap; recommendation unknown' }
+        applied = $false; source = if ($null -ne $configuredJobs) { $profileSource } else { 'No explicit build policy' }
     }
     profileSource = $profileSource
     collectionMilliseconds = [math]::Round(([datetimeoffset]::UtcNow - $startedUtc).TotalMilliseconds, 1)

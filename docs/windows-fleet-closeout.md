@@ -31,7 +31,7 @@ getter signatures. Missing input-power/SMART/temperature readings remain unknown
 | Work | Current acceptance boundary |
 |---|---|
 | Windows fleet/profile branch | Publish reviewed source with focused tests; merge only after required final-head checks. Main then fast-forwards and owned merged branches can be removed. |
-| PR182 runtime integration | Initial audited head `71ed3e9` had 21 PowerShell failures and 64.07% coverage versus the unchanged 85% target. Its owner concurrently published the 24-name admission repair in `72ee00d` and advanced to `24ae406`; refreshed exact-head CI remains required. Our tested alternate proposal was archived locally rather than overwriting that work. |
+| PR182 runtime integration | Initial audited head `71ed3e9` had 21 PowerShell failures. Its owner published the 24-name admission repair in `72ee00d` and advanced to `24ae406`; that exact-head CI had 2,897 passes, zero failures and 40 skips, but its explicit coverage gate failed at 67.0257% against 85%. Our tested alternate proposal was archived locally rather than overwriting that work. |
 | Fleet plus PR182 | Shared Common configuration, workspace metadata and installer changes require actual conflict resolution and mixed-suite validation. A textual merge preview is not a qualified final merge. |
 | Candle PR146/148/162 and coordinated draft PR156 | Choose one compatible integration path and test media/CUDA consumers; individually green default-feature CI is insufficient. PR182 already carries a coordinated update, so these must not be blindly stacked or closed before accepted integration. |
 | mistral.rs PR145 | Compile/test the enabled backend and relevant runtime/FFI paths; default CPU CI omits this optional backend. |
@@ -53,6 +53,13 @@ core format/lint and 62 tests pass. The PowerShell report shows 51.83% against
 the unchanged 85% target on both successful main and PR183, with the same
 coverage denominator. Coverage selection and enforcement need a separate audit;
 the target is not claimed as met or weakened to accept this branch.
+
+The later source review also identified null EnergyMeter counters becoming
+zero and a two-job default on unprofiled hosts. Their corrections preserve
+nullable raw counters and distinguish missing power/interval/energy evidence.
+An absent explicit build policy leaves both build job counts null; only the
+NUC profile owns its temporary two-job cap. Final-head regression tests,
+resolved review threads and hosted checks are required before merging.
 
 The current backlog still includes native ABI/schema versioning, full-stack
 cancellation/structured errors, streaming/progress, cold-import cost and batched

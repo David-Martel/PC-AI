@@ -306,6 +306,66 @@ Describe 'Crash telemetry capture' -Tag 'Boot', 'Integration' -Skip:(-not $IsWin
         }
     }
 
+    It 'preserves null and omitted energy meter fields separately from observed zero and full unsigned counters' {
+        Mock Get-CimInstance {
+            param($ClassName)
+            if ($ClassName -eq 'Win32_PerfFormattedData_PowerMeterCounter_EnergyMeter') {
+                return @(
+                    [pscustomobject]@{ Name = 'AllNull'; Energy = $null; Time = $null; Power = $null }
+                    [pscustomobject]@{ Name = 'AllOmitted' }
+                    [pscustomobject]@{ Name = 'NullPower'; Energy = 0; Time = 1000; Power = $null }
+                    [pscustomobject]@{ Name = 'OmittedPower'; Energy = 5; Time = 1000 }
+                    [pscustomobject]@{ Name = 'NullTime'; Energy = 10; Time = $null; Power = 2500 }
+                    [pscustomobject]@{ Name = 'OmittedTime'; Energy = 10; Power = 2500 }
+                    [pscustomobject]@{ Name = 'NullEnergy'; Energy = $null; Time = 1000; Power = 6000 }
+                    [pscustomobject]@{ Name = 'OmittedEnergy'; Time = 1000; Power = 5000 }
+                    [pscustomobject]@{ Name = 'ObservedZero'; Energy = 0; Time = 0; Power = 0 }
+                    [pscustomobject]@{ Name = 'FullUnsignedEnergy'; Energy = [ulong]::MaxValue; Time = 1000; Power = 12500 }
+                )
+            }
+            throw 'Fixture optional provider unavailable'
+        }
+        $result = & $script:Collector -OutputDirectory (Join-Path $TestDrive 'nullable-energy-meter') -Once
+        $result.Status | Should -Be 'OnceCompleted'
+        $sample = @(Get-Content -LiteralPath $result.LastFile | ConvertFrom-Json)[1]
+        $sample.energyMeter.status | Should -Be 'Available'
+        $sample.energyMeter.channels.Count | Should -Be 10
+        @($sample.errors | Where-Object source -eq 'Win32_PerfFormattedData_PowerMeterCounter_EnergyMeter').Count | Should -Be 0
+        foreach ($name in @('AllNull', 'AllOmitted')) {
+            $channel = $sample.energyMeter.channels | Where-Object name -eq $name
+            foreach ($counter in @('Energy', 'Time', 'Power')) { $channel.counters.$counter | Should -BeNullOrEmpty }
+            $channel.readingStatus | Should -Be 'UnknownPowerCounter'
+            $channel.watts | Should -BeNullOrEmpty
+        }
+        foreach ($name in @('NullPower', 'OmittedPower')) {
+            $channel = $sample.energyMeter.channels | Where-Object name -eq $name
+            $channel.counters.Power | Should -BeNullOrEmpty
+            $channel.counters.Time | Should -BeExactly 1000
+            $channel.readingStatus | Should -Be 'UnknownPowerCounter'
+            $channel.watts | Should -BeNullOrEmpty
+        }
+        foreach ($name in @('NullTime', 'OmittedTime')) {
+            $channel = $sample.energyMeter.channels | Where-Object name -eq $name
+            $channel.counters.Time | Should -BeNullOrEmpty
+            $channel.counters.Power | Should -BeExactly 2500
+            $channel.readingStatus | Should -Be 'UnknownMeterInterval'
+            $channel.watts | Should -BeNullOrEmpty
+        }
+        foreach ($name in @('NullEnergy', 'OmittedEnergy')) {
+            $channel = $sample.energyMeter.channels | Where-Object name -eq $name
+            $channel.counters.Energy | Should -BeNullOrEmpty
+            $channel.readingStatus | Should -Be 'MeasuredChannelAverage'
+            $channel.watts | Should -Be ($channel.counters.Power / 1000.0)
+        }
+        $zero = $sample.energyMeter.channels | Where-Object name -eq 'ObservedZero'
+        foreach ($counter in @('Energy', 'Time', 'Power')) { $zero.counters.$counter | Should -BeExactly 0 }
+        $zero.readingStatus | Should -Be 'ZeroOrUnsupported'
+        $zero.watts | Should -BeNullOrEmpty
+        $unsigned = $sample.energyMeter.channels | Where-Object name -eq 'FullUnsignedEnergy'
+        [string]$unsigned.counters.Energy | Should -Be ([ulong]::MaxValue).ToString()
+        $unsigned.watts | Should -Be 12.5
+    }
+
     It 'reports empty meter instances as unavailable channels rather than zero power' {
         Mock -CommandName Get-CimInstance -MockWith {
             param($ClassName)

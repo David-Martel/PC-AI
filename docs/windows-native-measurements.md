@@ -34,5 +34,9 @@ establish complete SMART health. Keep that limitation visible to callers.
 Source validation is separate from deployment: a successful Rust check or test
 does not update the installed DLL. A release requires a matching managed/native
 bundle, fresh-process ABI and runtime checks, and a retained previous bundle.
+Absent an explicit machine build policy, the configured and recommended build
+job counts remain null. Resource telemetry alone does not establish a host's
+power budget. The NUC's temporary two-job cap belongs only to its own profile.
+
 Keep builds bounded by the machine profile; do not build optional inference or
 CUDA components as a prerequisite for passive fleet discovery.

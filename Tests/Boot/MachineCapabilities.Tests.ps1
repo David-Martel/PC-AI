@@ -210,6 +210,46 @@ Describe 'Machine capability fixture behavior' -Tag 'Boot', 'Unit' -Skip:(-not $
         $report.buildPolicy.recommendedNativeBuildJobs | Should -Be 1
     }
 
+    It 'keeps build policy unknown when automatic profile discovery finds no machine profile' {
+        # Run the real tool with a separate root that has no Config/machine-profiles/<host>.json.
+        $isolatedTools = Join-Path $TestDrive 'unprofiled-machine\Tools'
+        New-Item -ItemType Directory -Path $isolatedTools -Force | Out-Null
+        $isolatedTool = Join-Path $isolatedTools 'Get-PcaiMachineCapabilities.ps1'
+        Copy-Item -LiteralPath $script:Tool -Destination $isolatedTool
+        $json = & $isolatedTool -AsJson
+        $json | Test-Json -SchemaFile $script:ReportSchema -ErrorAction Stop | Should -BeTrue
+        $report = $json | ConvertFrom-Json
+        $report.profileSource | Should -BeNullOrEmpty
+        $report.identity.logicalProcessors | Should -Be 20
+        $report.buildPolicy.availablePhysicalBytesAtCapture | Should -Be 16GB
+        $report.buildPolicy.configuredMaxNativeBuildJobs | Should -BeNullOrEmpty
+        $report.buildPolicy.recommendedNativeBuildJobs | Should -BeNullOrEmpty
+        $report.buildPolicy.source | Should -Be 'No explicit build policy'
+        $report.buildPolicy.applied | Should -BeFalse
+    }
+
+    It 'keeps build policy unknown when the profile has no explicit cap: <Case>' -TestCases @(
+        @{ Case = 'MissingPolicy' }, @{ Case = 'MissingCap' }, @{ Case = 'NullCap' }
+    ) {
+        param($Case)
+        $profileFixture = Get-Content -LiteralPath $script:FixtureProfile -Raw | ConvertFrom-Json -AsHashtable
+        switch ($Case) {
+            'MissingPolicy' { $profileFixture.Remove('buildPolicy') | Out-Null }
+            'MissingCap' { $profileFixture.buildPolicy = @{ source = 'Fixture without a cap' } }
+            'NullCap' { $profileFixture.buildPolicy.maxNativeBuildJobs = $null }
+        }
+        $profileFixture | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $script:FixtureProfile
+        $json = & $script:Tool -ProfilePath $script:FixtureProfile -AsJson
+        $json | Test-Json -SchemaFile $script:ReportSchema -ErrorAction Stop | Should -BeTrue
+        $report = $json | ConvertFrom-Json
+        $report.profileSource | Should -Be 'fixture-profile.json'
+        $report.buildPolicy.configuredMaxNativeBuildJobs | Should -BeNullOrEmpty
+        $report.buildPolicy.recommendedNativeBuildJobs | Should -BeNullOrEmpty
+        $report.buildPolicy.rule | Should -Match 'recommendation unknown'
+        $report.buildPolicy.source | Should -Be 'No explicit build policy'
+        $report.buildPolicy.applied | Should -BeFalse
+    }
+
     It 'distinguishes an explicitly unsupported provider from unknown sensor health' {
         Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_PerfFormattedData_PowerMeterCounter_EnergyMeter' } {
             $providerError = [Microsoft.Management.Infrastructure.CimException]::new('Fixture missing provider class')
@@ -246,7 +286,10 @@ Describe 'Machine capability Windows smoke' -Tag 'Boot', 'Integration' -Skip:(-n
         $report.hostName | Should -Be ([environment]::MachineName.ToLowerInvariant())
         $report.queryProvenance.Count | Should -Be 12
         $report.identity.logicalProcessors | Should -BeGreaterThan 0
-        $report.buildPolicy.recommendedNativeBuildJobs | Should -BeGreaterOrEqual 1
+        if ($null -ne $report.buildPolicy.configuredMaxNativeBuildJobs) {
+            $report.buildPolicy.recommendedNativeBuildJobs | Should -BeGreaterOrEqual 1
+        }
+        else { $report.buildPolicy.recommendedNativeBuildJobs | Should -BeNullOrEmpty }
         $report.powerObservation.inputVoltageVolts | Should -BeNullOrEmpty
         $report.gpuCapabilities.cudaWorkloadValidation | Should -Be 'Unknown'
     }

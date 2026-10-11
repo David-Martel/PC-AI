@@ -112,6 +112,14 @@ function ConvertTo-CrashCounterValue {
     return ([long]$Value * $Scale)
 }
 
+function Get-CrashUnsignedCounterValue {
+    param([psobject]$InputObject, [string]$Name)
+    $property = $InputObject.PSObject.Properties[$Name]
+    # Provider properties can be omitted or null; preserve either as unknown, including under StrictMode.
+    if ($null -eq $property -or $null -eq $property.Value) { return $null }
+    return [ulong]$property.Value
+}
+
 function Get-CrashSample {
     param([string]$SessionId, [long]$Sequence)
     $sampleUtc = [datetimeoffset]::UtcNow
@@ -200,11 +208,14 @@ function Get-CrashSample {
         foreach ($meter in $meters) {
             $name = [string]$meter.Name
             if ($name -eq '_Total') { continue }
-            $rawPower = [ulong]$meter.Power
-            $rawTime = [ulong]$meter.Time
+            $rawPower = Get-CrashUnsignedCounterValue $meter 'Power'
+            $rawTime = Get-CrashUnsignedCounterValue $meter 'Time'
+            $rawEnergy = Get-CrashUnsignedCounterValue $meter 'Energy'
             $watts = $null
             $readingStatus = 'ZeroOrUnsupported'
-            if ($rawPower -gt 0 -and $rawTime -gt 0) {
+            if ($null -eq $rawPower) { $readingStatus = 'UnknownPowerCounter' }
+            elseif ($null -eq $rawTime) { $readingStatus = 'UnknownMeterInterval' }
+            elseif ($rawPower -gt 0 -and $rawTime -gt 0) {
                 $watts = [double]$rawPower / 1000.0
                 $readingStatus = 'MeasuredChannelAverage'
             }
@@ -218,7 +229,7 @@ function Get-CrashSample {
             }
             $channels.Add([ordered]@{
                 name = $name; domain = $domain; readingStatus = $readingStatus; watts = $watts
-                counters = [ordered]@{ Energy = [ulong]$meter.Energy; Time = $rawTime; Power = $rawPower }
+                counters = [ordered]@{ Energy = $rawEnergy; Time = $rawTime; Power = $rawPower }
             })
         }
         $sample.energyMeter.channels = $channels.ToArray()

@@ -16,7 +16,7 @@
     "queryProvenance": { "type": "array", "minItems": 12 }, "gpuCapabilities": { "type": "object" },
     "expectedHardware": { "type": "array" }, "statedPowerPath": { "type": ["object", "null"] },
     "powerObservation": { "type": "object", "required": ["wholePcInputWatts", "inputVoltageVolts", "usbPdNegotiation", "source"], "properties": { "wholePcInputWatts": { "type": "null" }, "inputVoltageVolts": { "type": "null" }, "usbPdNegotiation": { "const": "Unknown" }, "source": { "type": "string" } }, "additionalProperties": false },
-    "buildPolicy": { "type": "object", "required": ["configuredMaxNativeBuildJobs", "recommendedNativeBuildJobs", "applied", "source"], "properties": { "configuredMaxNativeBuildJobs": { "type": "integer", "minimum": 1, "maximum": 64 }, "recommendedNativeBuildJobs": { "type": "integer", "minimum": 1, "maximum": 64 }, "applied": { "const": false } } },
+    "buildPolicy": { "type": "object", "required": ["configuredMaxNativeBuildJobs", "recommendedNativeBuildJobs", "applied", "source"], "properties": { "configuredMaxNativeBuildJobs": { "type": ["integer", "null"], "minimum": 1, "maximum": 64 }, "recommendedNativeBuildJobs": { "type": ["integer", "null"], "minimum": 1, "maximum": 64 }, "applied": { "const": false } } },
     "profileSource": { "type": ["string", "null"] }, "collectionMilliseconds": { "type": "number", "minimum": 0 }
   },
   "additionalProperties": false

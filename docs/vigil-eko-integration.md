@@ -2,8 +2,9 @@
 
 Reviewed 2026-10-11 against the separate `David-Martel/vigil-eko` checkout at
 `9cac42c`, with source review refreshed through `9ee408f` and camera design at
-`7fd6fa7`. This is an integration plan, not a claim that camera guidance, Linux
-BLE or a clinical classifier has shipped. The user-supplied `vigil-oko` path
+`7fd6fa7`; the integrated source update below records subsequent fixes. This is
+an integration plan, not a claim that Linux BLE or a clinical classifier has
+shipped. The user-supplied `vigil-oko` path
 resolves locally to `vigil-eko`; confirm the remote identity on other machines.
 
 ## Current source and deployment
@@ -12,8 +13,27 @@ The Rust workspace separates protocol decoding (`eko-proto`), Windows WinRT
 transport (`eko-ble`), session/reconnect/recording (`eko-session`), DSP,
 reporting, CPAL playback, the CLI/app, and PyO3 bindings. Linux CI runs the
 workspace's format, clippy and tests. Its WinRT transport is gated by
-`cfg(windows)`, so that CI cannot prove the Windows transport compiles or runs.
+`cfg(windows)` and now has a separate Windows transport/session CI job.
+Compilation and offline fixtures do not establish live Windows BLE reliability.
 Linux live BLE requires a separate BlueZ backend; replay tests do not close it.
+
+### Integrated source update — 2026-10-11
+
+VIGIL-Eko PR4 merged as `60930f9`, preserving exact retransmissions without
+decoding or advancing clocks twice, rejecting conflicting duplicates and
+recording their integrity witness before subsequent samples. PR5 merged as
+`89c0e0d`, handling preview startup/shutdown races and suppressing stale
+landmarks/previews after inference. Its Windows/Linux Python CI joins the
+Windows Rust transport/session and Linux Rust workspace checks. All four jobs
+passed on the combined main commit `89c0e0d` in run `38176794919`.
+
+Offline protocol/oracle parity and fake camera/engine/clock fixtures support
+these source changes. No device capture or native pose model was executed for
+them. Failed transport teardown quarantine, reliable terminal UI delivery,
+explicit recording-finalization errors, camera identity after USB reorder and
+Linux live capture remain separate acceptance work. Both owned proposal
+branches and the clean Codex worktree were removed after upstream ancestry
+verification; Claude's primary checkout and locked worktrees were preserved.
 
 Keep application lockfiles and target configurations in their own repository.
 PC_AI's isolated media venv is an inventory/qualification environment, not the

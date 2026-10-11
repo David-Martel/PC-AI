@@ -2,7 +2,7 @@
 
 ## Immediate dtm-p1gen7 responsiveness
 
-Current review: October 11, 2026, 06:14 UTC. See the latest
+Current review: October 11, 2026, 07:46 UTC. See the latest
 [fleet readback](Reports/fleet-integration-review.md) and
 [cache correctness review](Reports/shared-cache-correctness-review.md).
 
@@ -59,8 +59,27 @@ Current review: October 11, 2026, 06:14 UTC. See the latest
       The separately admitted successor passes all twelve C:/D: controls;
       independent actual review confirms exact full descriptors and original
       child/outer/input/result/closeout resource settlement.
-- [ ] Integrate that validated metadata repair into the full registration
-      transaction; pass all 22 unchanged detecting controls before deployment.
+- [x] Integrate that validated metadata repair into the private full registration
+      transaction and pass all 22 unchanged detecting controls. Distinct actual
+      review verifies owned C:/D: round trips and original writer settlement.
+      Prior preparation/raw failures and error objects remain preserved.
+- [ ] Qualify canonical new-session registration and live consumers separately;
+      owned fixtures do not establish deployment or exceptional recovery.
+- [x] Offload the selected native MCP host build and all 26 maintained controls
+      to Carbon after fresh per-machine capacity, paths and toolchain admission.
+      Distinct review verifies all 208 output files, 15 source/PDB-paired artifacts,
+      three closed build commands, 22 resolver selectors and four relay groups.
+      SDK8.0.425 is compatible, not a latest-toolchain claim. Inner HOLD access,
+      canonical adapter adoption, deployment and performance remain open.
+- [x] Offload the complete maintained disk public-API unit file to Carbon;
+      independently verify all37 cases, three new filtering/order cases and
+      original outer/writer settlement. Preserve the initial pre-import path
+      comparison failure. Native scan, speed and hosted coverage remain separate.
+- [x] Verify all five synthetic adapter parser controls and seven refusals after
+      stopping the clock at final original-custody settlement; exact253ms and
+      original closure pass. Preserve R1 timing HOLD and Root observer errors.
+- [ ] Repair parser long-help semantics: --help remains non-mutating but returns
+      default text instead of usage. Keep the accepted five-control scope narrow.
 - [x] Qualify five genuine retained-child supervisor controls, preserving timeout,
       overflow and HOLD causes through original-resource settlement; separately
       review exact actual bytes and same-original writer closure.

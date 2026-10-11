@@ -317,4 +317,59 @@ Describe 'Actual disk production pipeline fatal-failure boundary' {
         $result[0].Tool|Should -Be 'injected-parallel-marker'
         Should -Invoke Invoke-PcaiPerfCliCommand -Times 0 -Exactly
     }
+
+    # Public API unit boundary: worker transport responses are synthetic.
+    # The complete production filtering, ordering and Top behavior runs unchanged.
+    # These cases do not qualify worker execution, native scans or performance.
+    It 'retains MinSize equality and applies <SortBy> ordering before Top through the public API' -ForEach @(
+        @{SortBy='name';Top=2;ExpectedPaths=@('alpha','zeta');ExpectedSizes=@(1024L,2048L);ExpectedCounts=@(5L,1L)}
+        @{SortBy='count';Top=1;ExpectedPaths=@('alpha');ExpectedSizes=@(1024L);ExpectedCounts=@(5L)}
+    ) {
+        param($SortBy,$Top,$ExpectedPaths,$ExpectedSizes,$ExpectedCounts)
+        $env:PCAI_PREFER_PERF_WORKER_DISK='1'
+        Mock Invoke-PcaiPerfWorkerRequest {
+            param($ToolPath,$Command,$Payload)
+            $script:RequestedTop=$Payload.top
+            [pscustomobject]@{Path='zeta';SizeBytes=2048L;FileCount=1L;Tool='pcai-perf'}
+            [pscustomobject]@{Path='alpha';SizeBytes=1024L;FileCount=5L;Tool='pcai-perf'}
+            [pscustomobject]@{Path='excluded';SizeBytes=512L;FileCount=20L;Tool='pcai-perf'}
+        }
+
+        $result=@(Get-DiskUsageFast -Path $TestDrive -Depth 1 -Top $Top -MinSize '1KB' -SortBy $SortBy)
+
+        $result.Count|Should -Be $ExpectedPaths.Count
+        for($i=0;$i-lt$ExpectedPaths.Count;$i++) {
+            $result[$i].Path|Should -BeExactly $ExpectedPaths[$i]
+            $result[$i].SizeBytes|Should -Be $ExpectedSizes[$i]
+            $result[$i].FileCount|Should -Be $ExpectedCounts[$i]
+            $result[$i].Transport|Should -BeExactly 'worker'
+        }
+        $script:RequestedTop|Should -Be $Top
+        $script:DownstreamCount|Should -Be 0
+        Should -Invoke Invoke-PcaiPerfWorkerRequest -Times 1 -Exactly -ParameterFilter {
+            $Command -eq 'disk' -and $Payload.path -eq $TestDrive
+        }
+        Should -Invoke Invoke-PcaiPerfCliCommand -Times 0 -Exactly
+    }
+
+    It 'returns a successful empty public result when MinSize excludes every synthetic worker row' {
+        $env:PCAI_PREFER_PERF_WORKER_DISK='1'
+        Mock Invoke-PcaiPerfWorkerRequest {
+            param($ToolPath,$Command,$Payload)
+            $script:RequestedTop=$Payload.top
+            [pscustomobject]@{Path='zeta';SizeBytes=2048L;FileCount=1L;Tool='pcai-perf'}
+            [pscustomobject]@{Path='alpha';SizeBytes=1024L;FileCount=5L;Tool='pcai-perf'}
+            [pscustomobject]@{Path='excluded';SizeBytes=512L;FileCount=20L;Tool='pcai-perf'}
+        }
+
+        $result=@(Get-DiskUsageFast -Path $TestDrive -Depth 1 -Top 2 -MinSize '4KB')
+
+        $result.Count|Should -Be 0
+        $script:RequestedTop|Should -Be 2
+        $script:DownstreamCount|Should -Be 0
+        Should -Invoke Invoke-PcaiPerfWorkerRequest -Times 1 -Exactly -ParameterFilter {
+            $Command -eq 'disk' -and $Payload.path -eq $TestDrive
+        }
+        Should -Invoke Invoke-PcaiPerfCliCommand -Times 0 -Exactly
+    }
 }

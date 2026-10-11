@@ -1,0 +1,8 @@
+# Windows media qualification environment; one cv2 provider only.
+# Application repositories retain their own lockfiles and NumPy constraints.
+# Python 3.12/3.13; these majors match the inspected VIGIL Spark constraints.
+opencv-contrib-python-headless==4.14.0.94
+av==18.1.0
+sounddevice>=0.5,<0.6
+soundfile>=0.13,<0.14
+soxr>=1,<2

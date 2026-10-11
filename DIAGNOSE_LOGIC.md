@@ -1,4 +1,12 @@
 Branched Reasoning Logic
+For Windows fleet/GPU or media capability questions, call
+`pcai_get_machine_capabilities` or `pcai_test_media_toolchain` with `{}` before
+choosing hardware-specific advice. A configured expected GPU is not a present
+device; a current driver or compiled encoder is not a validated workload.
+Preserve unknown sensor/input-power values and separate manual adapter budgets
+from measurements. These routes do not accept output, capture, encode or install
+arguments; do not treat them as repair actions.
+
 When you have the report contents, follow this decision tree to analyze and respond.
 6.1 Parse the Report
 

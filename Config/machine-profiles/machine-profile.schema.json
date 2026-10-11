@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PC-AI Windows fleet expectation profile",
+  "type": "object",
+  "required": ["schemaVersion", "hostName", "baseline", "expectedHardware", "statedPowerPath", "buildPolicy"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "hostName": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "baseline": { "type": "object", "required": ["manufacturer", "model", "processor", "source"], "additionalProperties": false,
+      "properties": { "manufacturer": { "type": ["string", "null"] }, "model": { "type": ["string", "null"] }, "processor": { "type": ["string", "null"] }, "source": { "type": "string" } } },
+    "expectedHardware": { "type": "array", "items": { "type": "object", "required": ["name", "source", "lastReportedPresence", "connection"], "additionalProperties": false,
+      "properties": { "name": { "type": "string" }, "source": { "type": "string" }, "lastReportedPresence": { "enum": ["Present", "Disconnected", "Unknown"] }, "connection": { "type": "string" } } } },
+    "statedPowerPath": { "type": ["object", "null"] },
+    "buildPolicy": { "type": "object", "required": ["maxNativeBuildJobs", "source"], "additionalProperties": false,
+      "properties": { "maxNativeBuildJobs": { "type": "integer", "minimum": 1, "maximum": 64 }, "source": { "type": "string" } } }
+  },
+  "additionalProperties": false
+}

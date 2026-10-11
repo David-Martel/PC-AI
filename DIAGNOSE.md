@@ -28,6 +28,12 @@ You have access to the following tools via the `callTool(name, args)` syntax. Yo
     - _Usage_: `callTool(GetSystemInfo, 'Network', 'DriverVersion')`
 - **`SearchLogs('Pattern')`**: Search local logs for a specific regex pattern.
     - _Usage_: `callTool(SearchLogs, 'error|failed|timeout')`
+- **`pcai_get_machine_capabilities()`**: Read fresh Windows device presence,
+  driver candidates and provider availability. Fleet expectations and stated
+  adapter budgets are separate; missing sensors and input voltage stay unknown.
+- **`pcai_test_media_toolchain()`**: Read installed media backend support and GPU
+  inventory. Compiled support is distinct from runtime validation. This route
+  accepts no arguments and performs no capture, runtime encode or installation.
 
 When you call a tool, the system will provide the output in the next turn. Do not assume the result; wait for it.
 

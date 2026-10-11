@@ -3,6 +3,8 @@
 //! Provides optimized access to hardware, OS, and process information.
 
 use serde::Serialize;
+use std::sync::{Mutex, OnceLock};
+use std::time::Instant;
 use sysinfo::{Components, Disks, Networks, System};
 
 use crate::string::PcaiStringBuffer;
@@ -47,7 +49,59 @@ pub struct NetworkInfo {
 #[derive(Serialize)]
 pub struct ComponentTemp {
     pub label: String,
-    pub celsius: f32,
+    pub celsius: Option<f32>,
+}
+
+struct CpuSampler {
+    system: System,
+    refreshed_at: Instant,
+    valid_delta: bool,
+}
+
+#[derive(Serialize)]
+struct CpuReading {
+    cpu_usage: Vec<Option<f32>>,
+    avg_load: Option<f32>,
+    sample_status: &'static str,
+    sample_age_milliseconds: u128,
+}
+
+impl CpuSampler {
+    fn new() -> Self {
+        let mut system = System::new();
+        system.refresh_cpu_all();
+        Self {
+            system,
+            refreshed_at: Instant::now(),
+            valid_delta: false,
+        }
+    }
+
+    fn sample(&mut self) -> CpuReading {
+        if self.refreshed_at.elapsed() >= sysinfo::MINIMUM_CPU_UPDATE_INTERVAL {
+            self.system.refresh_cpu_usage();
+            self.refreshed_at = Instant::now();
+            self.valid_delta = true;
+        }
+        CpuReading {
+            cpu_usage: self
+                .system
+                .cpus()
+                .iter()
+                .map(|cpu| self.valid_delta.then(|| cpu.cpu_usage()))
+                .collect(),
+            avg_load: self.valid_delta.then(|| self.system.global_cpu_usage()),
+            sample_status: if self.valid_delta { "Sampled" } else { "WarmingUp" },
+            sample_age_milliseconds: self.refreshed_at.elapsed().as_millis(),
+        }
+    }
+}
+
+fn read_cpu_usage() -> CpuReading {
+    static SAMPLER: OnceLock<Mutex<CpuSampler>> = OnceLock::new();
+    let sampler = SAMPLER.get_or_init(|| Mutex::new(CpuSampler::new()));
+    let mut sampler = sampler.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    sampler.sample()
 }
 
 /// Retrieves a comprehensive summary of system status.
@@ -82,7 +136,7 @@ pub fn get_system_summary() -> SystemSummary {
         .iter()
         .map(|c| ComponentTemp {
             label: c.label().to_string(),
-            celsius: c.temperature().unwrap_or(0.0),
+            celsius: c.temperature().filter(|value| value.is_finite()),
         })
         .collect();
 
@@ -114,31 +168,31 @@ pub extern "C" fn pcai_query_system_info() -> PcaiStringBuffer {
 /// Specialized query for hardware metrics (temps, CPU usage).
 #[no_mangle]
 pub extern "C" fn pcai_query_hardware_metrics() -> PcaiStringBuffer {
-    let mut sys = System::new();
-    sys.refresh_cpu_all();
+    let cpu = read_cpu_usage();
 
     #[derive(Serialize)]
     struct Metrics {
-        cpu_usage: Vec<f32>,
-        avg_load: f32,
+        cpu_usage: Vec<Option<f32>>,
+        avg_load: Option<f32>,
+        cpu_sample_status: &'static str,
+        cpu_sample_age_milliseconds: u128,
         temps: Vec<ComponentTemp>,
     }
-
-    let cpu_usage = sys.cpus().iter().map(|c| c.cpu_usage()).collect();
-    let avg_load = sys.global_cpu_usage();
 
     let components_list = Components::new_with_refreshed_list();
     let temps = components_list
         .iter()
         .map(|c| ComponentTemp {
             label: c.label().to_string(),
-            celsius: c.temperature().unwrap_or(0.0),
+            celsius: c.temperature().filter(|value| value.is_finite()),
         })
         .collect();
 
     crate::string::json_to_buffer(&Metrics {
-        cpu_usage,
-        avg_load,
+        cpu_usage: cpu.cpu_usage,
+        avg_load: cpu.avg_load,
+        cpu_sample_status: cpu.sample_status,
+        cpu_sample_age_milliseconds: cpu.sample_age_milliseconds,
         temps,
     })
 }
@@ -289,5 +343,34 @@ pub extern "C" fn pcai_search_logs_json(
             let error_json = format!(r#"{{"status":"Error","error":"{}"}}"#, e);
             PcaiStringBuffer::from_string(&error_json)
         }
+    }
+}
+
+#[cfg(test)]
+mod measurement_tests {
+    use super::*;
+
+    #[test]
+    fn unavailable_temperature_serializes_as_null() {
+        let temperature = ComponentTemp {
+            label: "Unavailable".into(),
+            celsius: None,
+        };
+        let value = serde_json::to_value(temperature).expect("Temperature serialization");
+        assert!(value["celsius"].is_null());
+    }
+
+    #[test]
+    fn cpu_usage_requires_a_real_sampling_interval() {
+        let mut sampler = CpuSampler::new();
+        let first = sampler.sample();
+        assert_eq!(first.sample_status, "WarmingUp");
+        assert!(first.avg_load.is_none());
+        assert!(first.cpu_usage.iter().all(Option::is_none));
+        std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+        let second = sampler.sample();
+        assert_eq!(second.sample_status, "Sampled");
+        assert!(second.avg_load.is_some_and(|value| (0.0..=100.0).contains(&value)));
+        assert!(second.cpu_usage.iter().all(Option::is_some));
     }
 }

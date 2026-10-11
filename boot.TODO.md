@@ -2,7 +2,7 @@
 
 ## Current cache and integration closeout
 
-Review: October 11, 2026, 13:22 UTC. The source-bound receipts and prior failures
+Review: October 11, 2026, 14:16 UTC. The source-bound receipts and prior failures
 are linked in [the fleet review](Reports/fleet-integration-review.md).
 
 - [x] Qualify corrected maintained cache defaults on Carbon: eighteen capture
@@ -33,8 +33,14 @@ are linked in [the fleet review](Reports/fleet-integration-review.md).
       Redis skip, with same-original post-return writer and failure custody.
 - [ ] Reproduce and repair eight REST body-read stall timeout gaps using owned
       finite loopback controls; preserve PS7.0 compatibility and per-read limits.
-- [ ] Finish reviewed corrective publication and current-head CI after the
-      accepted current maintained native capture/full-module qualification.
+      Harness R2 failed before child/HTTP launch; R3 then failed at its first
+      child's stdin readiness guard. Preserve both failures; no HTTP case or
+      production timeout change is accepted.
+- [x] Publish signed corrective5180c1 and independently verify all24 raw HEAD
+      payloads against canonical and preserved checkout bytes.
+- [ ] Satisfy current-head CI: run38144048210 passes2,848 tests with40 skips,
+      but14,560/21,817 coverage (66.736948%) fails unchanged85%;3,985 genuine
+      additional hits are needed. Rust-guidelines workflow remains in progress.
 - [ ] Qualify deployed consumers and other users/machines separately; dedicated
       capture controls grant no full-CI coverage or fleet performance credit.
 - [x] Review native MCP pilot R3 source and matching mutex template. No native
@@ -42,7 +48,9 @@ are linked in [the fleet review](Reports/fleet-integration-review.md).
 - [x] Offload private native MCP probe compilation and independently verify
       source/DLL/PDB pairing; this is build-only acceptance.
 - [ ] Execute genuine consumer and matched performance trials before native
-      MCP deployment or speedup claims; Context7 header candidate is source-only.
+      MCP deployment or speedup claims. Context7 header build and eight compiled
+      synthetic groups have independent actual review; real credentials, Codex
+      consumption, connection reuse and performance remain unqualified.
 - [x] Review the runtime fixture's one-line canonical-path attribution candidate;
       preserve all eighteen whole test bodies and twenty-five expanded controls.
 - [x] Run source-bound instrumented baseline/candidate diagnostics before any
@@ -51,7 +59,7 @@ are linked in [the fleet review](Reports/fleet-integration-review.md).
       decoder successor. Its admitted baseline passes25 tests with zero
       covered commands; XML admission then fails on the exporter's empty DTD
       subset. Preserve both failures and validate the exact reader successor.
-      Current published CI is65.271716%, below unchanged85%.
+      That predecessor's published CI is65.271716%, below unchanged85%.
       Completion uses accepted R6 below; earlier R4/R5 failures remain failures.
 
 - [x] Independently accept the genuine25/25 attribution pair: baseline0,

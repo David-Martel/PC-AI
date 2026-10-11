@@ -2,6 +2,16 @@
 
 Reviewed October 11, 2026, 13:22 UTC. Owner: Codex integration lane.
 
+Published-head update, October 11, 2026, 14:16 UTC: signed commit
+`5180c160fac42b510d05de971e83d3921b035b99` and all24 raw delivery payloads have
+independent published-byte review. Current CI38144048210 passes2,848 tests with
+40 skips and zero failures, but source-bound merged coverage14,560/21,817
+(66.736948%) fails the unchanged85% floor. It requires3,985 additional genuine
+hits against this inventory. The older b1cc1 result below is historical.
+Correctness, byte delivery and compilation do not establish fleet performance,
+live Redis or full CI acceptance. Current artifacts:
+`D:/pcai-relocation/cache-corrective-current-ci-r1/`.
+
 ## Current corrective validation
 
 The earlier review below retains its predecessor scope. Additional controls

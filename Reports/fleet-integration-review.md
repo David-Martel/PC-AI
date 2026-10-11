@@ -1,5 +1,59 @@
 # PC-AI fleet integration review
 
+## Published head and remaining validation (14:16 UTC)
+
+Signed commit `5180c160fac42b510d05de971e83d3921b035b99` is published on
+`fix/fleet-runtime-integration`; PR182 remains a draft. Independent published
+delivery review verified all24 payloads against raw HEAD blobs and the preserved
+checkout, with48 cached text/EOL settings unset. Receipt:
+`.pcai/integration/cache-corrective-published-delivery-peer-r1/review.json`.
+
+Completed CI run38144048210 passed2,848 tests, skipped40 and failed no tests.
+Its source-bound merged coverage is14,560/21,817 commands (66.736948%). The
+unchanged85% gate failed; the current inventory needs3,985 additional genuine
+hits. Parent-only Pester coverage and merged coverage have different numerators;
+neither is an acceptance waiver. Physical artifacts are retained under
+`D:/pcai-relocation/cache-corrective-current-ci-r1/`. Rust, C#, formatting,
+security and CPU build jobs passed in that run; integration was skipped. The
+separate Rust-guidelines workflow remains in progress at this cutoff.
+
+The Context7 HTTP-header helper passed independent Carbon build review: six
+serialized offline operations and eight compiled synthetic groups, with exact
+source/DLL/PDB pairing. Review:
+`.pcai/integration/context7-header-execution-actual-peer-r1/review.json`.
+This establishes compilation and synthetic behavior only. Real credentials,
+Codex consumption, connection reuse, loaded helper CLR and matched performance
+remain unqualified. Production MCP configuration is unchanged.
+
+Timeout harness R2 failed before any child or HTTP operation because an empty
+original operation list was collapsed by PowerShell expression enumeration.
+Reviewed R3 preserves that reference, but its first child exited1 at the stdin
+readiness guard before the HTTP actor. All ten native closure flags and both
+owner writers closed; zero native custody remains pending. No HTTP case passed,
+and no production REST timeout change is adopted. Both failures and original
+errors are preserved; R3 files are under
+`D:/pcai-relocation/llm-timeout-failed-actual-r3/`.
+
+New public Evaluation controls remain unpublished. A real manifest import
+returns both the validator and root module objects. Independent source review
+also found cleanup could miss those new objects if selection fails before
+ownership is recorded. Private correction and genuine execution remain open;
+the fourteen case bodies are preserved. Source HOLD:
+`.pcai/integration/evaluation-public-contracts-source-peer-r3/review.json`.
+
+Fresh Milly readback confirms both external SSDs use UAS at10Gb/s, the migrated
+study filesystem is mounted, and the internal filesystem has about580GiB free.
+The study owner can resolve the original recording path and read its server
+file. Cold boot, removal/reattachment, backup restoration and application/HIL
+acceptance remain separate gates.
+
+Agent-bus findings remain evidence leads with explicit failures: the Clarius
+consumer lane reported native exit101 and a second kernel operation NOT_RUN,
+with owned resources retired; the vigil-system mirror reported non-fast-forward
+divergence and preserved foreign branches. Neither establishes PC-AI runtime
+success or authorizes deleting another lane's work. Each repository's owner
+must reconcile its exact source and runtime evidence before integration.
+
 Evidence cutoff: October 11, 2026, 13:22 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding

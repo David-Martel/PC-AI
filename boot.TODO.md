@@ -1,8 +1,36 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Current cache and integration closeout
+
+Review: October 11, 2026, 10:40 UTC. The source-bound receipts and prior failures
+are linked in [the fleet review](Reports/fleet-integration-review.md).
+
+- [x] Qualify corrected maintained cache defaults on Carbon: eighteen capture
+      controls plus eleven cache cases pass; one original Redis case is skipped.
+      Full import and memory paths preserve lazy native initialization. Preserve
+      the earlier prelaunch-cancellation failure and original error objects.
+- [x] Adopt exactly seventeen reviewed canonical files and verify all twenty-three
+      bound source/destination pairs without changing six existing source bodies.
+- [x] Reproduce the nineteen-file Windows Git EOL delivery defect and prove all
+      twenty-three bytes exact with targeted raw attributes and renormalization
+      in a fresh owned checkout. Preserve the first cached-index failed attempt.
+- [x] Apply reviewed canonical attributes and verify all twenty-three raw staged
+      blobs against the exact physical source pins.
+- [ ] Finish normal reviewed commit, publish and verify current-head CI.
+- [ ] Qualify deployed consumers and other users/machines separately; dedicated
+      capture controls grant no full-CI coverage or fleet performance credit.
+- [x] Review native MCP pilot R3 source and matching mutex template. No native
+      host or live MCP registration is replaced by this source review.
+- [ ] Offload the private native MCP probe build, then execute genuine consumer
+      and matched performance trials before deployment or speedup claims.
+- [x] Review the runtime fixture's one-line canonical-path attribution candidate;
+      preserve all eighteen whole test bodies and twenty-five expanded controls.
+- [ ] Run source-bound instrumented baseline/candidate diagnostics before any
+      canonical test edit. Current full CI remains 65.750890%, below unchanged85%.
+
 ## Immediate dtm-p1gen7 responsiveness
 
-Current review: October 11, 2026, 07:46 UTC. See the latest
+Current review: October 11, 2026, 09:39 UTC. See the latest
 [fleet readback](Reports/fleet-integration-review.md) and
 [cache correctness review](Reports/shared-cache-correctness-review.md).
 
@@ -76,10 +104,10 @@ Current review: October 11, 2026, 07:46 UTC. See the latest
       original outer/writer settlement. Preserve the initial pre-import path
       comparison failure. Native scan, speed and hosted coverage remain separate.
 - [x] Verify all five synthetic adapter parser controls and seven refusals after
-      stopping the clock at final original-custody settlement; exact253ms and
+      stopping the clock at final original-custody settlement; R3 final308ms and
       original closure pass. Preserve R1 timing HOLD and Root observer errors.
-- [ ] Repair parser long-help semantics: --help remains non-mutating but returns
-      default text instead of usage. Keep the accepted five-control scope narrow.
+- [x] Repair parser long-help semantics: literal -h and --help now return usage
+      without IO. Independent review accepts five controls/seven refusals only.
 - [x] Qualify five genuine retained-child supervisor controls, preserving timeout,
       overflow and HOLD causes through original-resource settlement; separately
       review exact actual bytes and same-original writer closure.
@@ -106,6 +134,22 @@ Current review: October 11, 2026, 07:46 UTC. See the latest
       readers/job/handles and both outer operations/writers close after return.
       This is one descriptive pair; maintained default tests, canonical adoption,
       real Redis and sustained performance remain open.
+      The eighteen maintained controls now pass with independent actual review.
+      Full strict-module import, memory paths and six cold/warm captures also
+      pass on Carbon; the complete existing unit file passes eleven cases with
+      its original Redis skip. Independent full-module actual review passes;
+      all120 source/evidence/review pins remain stable. The concrete maintained
+      default parent remains pending; canonical source has not yet changed.
+      Descriptive warm measurements have no matched baseline.
+      Source review detects a missing sticky-error check after input writer
+      settlement and before child launch. Preserve unexecuted R1; require the
+      additive corrected parent and distinct review before actual execution.
+      Corrected R2 passes source review, but its actual entrypoint run fails
+      one cancellation test (17 pass, one fail). The timer expires before
+      native child creation; preserve the genuine failure and qualify an owned
+      child-readiness cancellation successor with all closure checks intact.
+      All nine original failed-run artifacts reach D: unchanged; outer custody
+      and writers close. Module QA is not launched after the failed first child.
 - [x] Independently review the completed read-only SDK inventory: 4,040 file
       records, 768 directories, exact totals and original closure. Peer review
       does not replay underlying leaf hashes; inventory alone is not a build.
@@ -143,6 +187,10 @@ Current review: October 11, 2026, 07:46 UTC. See the latest
       Published 8242e30 has 2,806 passes/zero failures/40 skips; independent exact
       reconstruction verifies 239 source hashes and 14,202/21,621 commands
       (65.686138%), leaving 4,176 genuine hits needed. The 85% gate remains FAIL.
+      Current6673473 passes2,809/zero failures/40skips; exact run38122837560
+      reconstructs14,216/21,621 commands(65.750890%), leaving4,162 genuine hits.
+      Seven of the sixteen new hits belong to the three new disk cases; nine
+      other gains/two losses occur in unchanged runtime-sensitive paths.
 - [x] Correct the manifest benchmark's symbolic-link classification using two
       genuine failing predecessor controls; pass all forty contract cases and
       zero script-analysis findings. Independent source and physical-results
@@ -180,6 +228,12 @@ Reviewed 2026-10-09; owner: Codex integration lane. Evidence and limits are in
       available 10,786 MiB, commit 80.75%, sampled disk queue zero.
 - [x] Inventory actual PowerShell launch paths without command lines or secrets:
       55 machine MCP wrappers, 20 QMD and 17 Serena launchers remain active.
+      Fresh08:29 inventory finds60 machine wrappers/2.85GiB private snapshot,
+      not a measured reclaimable-memory gain; thirty-nine other configured
+      PowerShell wrappers remain. Current Claude Context7/Filesystem also use
+      PowerShell. Native machine host is one backend per client, not a broker.
+      The fresh three-sample15.086-second profile has median85.286% commitment
+      and2.23% mean observer CPU; it keeps heavy local build admission closed.
 - [ ] Qualify all three native machine-MCP modes and prepare a reversible
       new-session P1 pilot; preserve active clients and database workloads.
 - [ ] Resolve the remaining Python partial-memory-read diagnostic gap, nested

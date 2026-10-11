@@ -277,6 +277,20 @@ High-value media work right now:
 - tighten async request lifecycle and cancellation behavior
 - align error/reporting behavior with the rest of the native stack
 
+## Reviewed process capture qualification
+
+`Tests/ProcessCapture/Invoke-ProcessCaptureQualification.ps1` is the dedicated
+Windows qualification entrypoint for the lazy shared-cache C# capture controller.
+Default, help and DryRun perform no IO. Apply requires the exact reviewed source
+register and source-peer hashes, complete pinned Pester5.7.1, fresh owned evidence
+output and capacity admission. Follow `Tests/README.md` for the explicit command.
+These tests do not enter default Unit/All discovery and grant no coverage credit.
+
+The twenty-three registered source paths must preserve raw Git bytes. Keep their
+exact-path attributes and explicitly restage existing blobs after attribute
+changes; changing text conversion without renormalization may reuse old blobs.
+Do not normalize admission hashes or relax registers to accept transformed bytes.
+
 ## Testing expectations
 
 At minimum, choose the narrowest relevant validation path:

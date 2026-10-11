@@ -27,6 +27,46 @@ Tests/
     └── ModuleLoading.Tests.ps1
 ```
 
+## Dedicated Windows process capture qualification
+
+`ProcessCapture/Invoke-ProcessCaptureQualification.ps1` runs the complete
+maintained eighteen-control capture cohort followed by full-module QA in fresh
+PowerShell children. This dedicated suite is separate from default Unit/All CI
+and its results do not add full-CI coverage credit. Carbon actual review accepts
+eighteen capture passes, eleven existing cache passes and the original
+Redis-dependent skip. Fleet installation and other users remain separate gates.
+
+Default, `-h`, `--help`, `-DryRun` and `-Apply -DryRun` perform no IO. An actual run
+requires Windows x64 PowerShell7.6, no ambient Pester/Common/native capture type,
+a complete source-pinned Pester5.7.1 package, fresh owned output and sufficient
+capacity. Admission requires at least8GiB available, commit below80%, at least
+10GiB commit headroom and output-disk free space, with no competing heavy build.
+
+Use the reviewed admission values below only after fresh per-machine checks;
+replace both angle-bracket placeholders with actual admitted absolute paths.
+Do not execute this template verbatim or substitute an arbitrary Pester package.
+The EvidenceDirectory leaf must equal OutputId: for this template it must end in
+cache-qualification-r1. Change the directory leaf and OutputId together.
+
+```powershell
+pwsh -NoLogo -NoProfile -NonInteractive -File Tests/ProcessCapture/Invoke-ProcessCaptureQualification.ps1 `
+  -Apply `
+  -SourceRegisterSHA256 9DF29EBBFBFDC1A0F156670C94CFCF3B717799B5261245277BEF340BB7700B67 `
+  -SourcePeerPath C:/codedev/PC_AI/.pcai/integration/maintained-defaults-owner-source-peer-r3/review.json `
+  -SourcePeerSHA256 FAD7E922105FE80BA2792C159E78024ACD2FE286B2F3FCE6FF47BA047B8571AB `
+  -PesterManifestPath <admitted-complete-Pester-5.7.1-manifest> `
+  -EvidenceDirectory <absent-owned-evidence-directory> `
+  -OutputId cache-qualification-r1
+```
+
+The source-peer file is private review evidence; ordinary Git consumers need a
+new authorized review receipt, or custody of the exact accepted receipt, before
+Apply. The twenty-three register-bound sources preserve raw bytes with exact-path
+Git attributes. Explicit renormalization is required after changing attributes
+for already-tracked blobs. Do not rewrite pinned hashes around checkout changes.
+Retain the original owner process and failed-operation ledgers until clean
+closeout; a serialized successful result cannot prove its own writer closure.
+
 ## Quick Start
 
 ### Prerequisites

@@ -281,7 +281,7 @@ function Get-PcaiExternalCacheSignature {
         $Config.KeyPrefix
 }
 
-function Invoke-PcaiProcessCapture {
+function Invoke-PcaiPortableProcessCapture {
     [CmdletBinding()]
     [OutputType([pscustomobject])]
     param(
@@ -360,6 +360,74 @@ function Invoke-PcaiProcessCapture {
             $process.Dispose()
         }
     }
+}
+
+function Invoke-PcaiProcessCapture {
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory)][string]$FilePath,
+        [string[]]$Arguments = @(),
+        [int]$TimeoutMs = 1200,
+        [Threading.CancellationToken]$CancellationToken = [Threading.CancellationToken]::None
+    )
+    # Portable Redis preserves the exact predecessor contract; its deadline gap remains OPEN.
+    if (-not $IsWindows) { return Invoke-PcaiPortableProcessCapture -FilePath $FilePath -Arguments $Arguments -TimeoutMs $TimeoutMs }
+    # Preserve the existing five fields; all ordinary failures stay nonthrowing.
+    if ($TimeoutMs -le 0) { return [pscustomobject]@{ Success = $false; ExitCode = -3; TimedOut = $false; StdOut = ''; StdErr = 'TimeoutMs must be positive.'; Closure = 'NOT_STARTED' } }
+    if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) { return [pscustomobject]@{ Success = $false; ExitCode = -1; TimedOut = $false; StdOut = ''; StdErr = "File not found: $FilePath"; Closure = 'NOT_STARTED' } }
+    if (-not $IsWindows) { return [pscustomobject]@{ Success = $false; ExitCode = -3; TimedOut = $false; StdOut = ''; StdErr = 'External cache capture is unsupported on this host; local cache remains available.'; Closure = 'UNSUPPORTED' } }
+    $captureOperation = $null
+    $captureResult = $null
+    $captureWrapperFailure = $null
+    $captureSecondaryFailures = [Collections.Generic.List[string]]::new()
+    try {
+        if (-not (Get-Command Initialize-PcaiProcessCaptureRunner -CommandType Function -ErrorAction SilentlyContinue)) {
+            . (Join-Path $PSScriptRoot '../Private/Initialize-PcaiProcessCapture.ps1')
+        }
+        Initialize-PcaiProcessCaptureRunner
+        $captureExecutable = [IO.Path]::GetFullPath($FilePath)
+        $captureOperation = [Pcai.Common.ProcessCaptureV1]::Begin($captureExecutable, $Arguments, $TimeoutMs, $CancellationToken)
+        while (-not $captureOperation.Completion.IsCompleted) {
+            if ($PSCmdlet.Stopping) { $captureOperation.Cancel() }
+            if ($captureOperation.FirstCleanup -and $captureOperation.FirstCleanup.Closure -eq 'HOLD') { [Threading.Thread]::Sleep(1000) }
+            else { [Threading.Thread]::Sleep(5) }
+        }
+        $captureResult = $captureOperation.Completion.GetAwaiter().GetResult()
+    }
+    catch { $captureWrapperFailure = $_.Exception.ToString() }
+    finally {
+        if ($captureOperation -and -not $captureOperation.Completion.IsCompleted) {
+            try { $captureOperation.Cancel() } catch { $captureSecondaryFailures.Add($_.Exception.ToString()) }
+            # Exceptional HOLD retains this original caller until exact closure.
+            # The C# foreground controller retries only original custody at low duty.
+            # No new runtime/cleanup budget or success promotion is granted here.
+            try { $captureResult = $captureOperation.Completion.GetAwaiter().GetResult() }
+            catch { $captureSecondaryFailures.Add($_.Exception.ToString()) }
+        }
+    }
+    if ($captureResult) {
+        if ($captureWrapperFailure) {
+            # A wrapper/pipeline error cannot be promoted by later native closure.
+            $captureDiagnostic = @($captureWrapperFailure, $captureResult.PrimaryFailure) + @($captureResult.SecondaryFailures) + @($captureSecondaryFailures)
+            return [pscustomobject]@{ Success = $false; ExitCode = -3; TimedOut = $captureResult.TimedOut; StdOut = ''; StdErr = (($captureDiagnostic | Where-Object { $_ }) -join [Environment]::NewLine); Closure = $captureResult.Closure; CustodyId = $captureResult.CustodyId; PrimaryFailure = $captureResult.PrimaryFailure; WrapperFailure = $captureWrapperFailure; FirstCleanup = $captureResult.FirstCleanup }
+        }
+        return [pscustomobject]@{
+            Success = $captureResult.Success; ExitCode = $captureResult.ExitCode; TimedOut = $captureResult.TimedOut
+            StdOut = $captureResult.StdOut; StdErr = $captureResult.StdErr; Closure = $captureResult.Closure; CustodyId = $captureResult.CustodyId
+            PrimaryFailure = $captureResult.PrimaryFailure; SecondaryFailures = $captureResult.SecondaryFailures
+            RepeatedFailures = $captureResult.RepeatedFailures
+            StdoutBytes = $captureResult.StdoutBytes; StderrBytes = $captureResult.StderrBytes
+            ElapsedMilliseconds = $captureResult.ElapsedMilliseconds; AssignedBeforeResume = $captureResult.AssignedBeforeResume
+            OriginalPid = $captureResult.OriginalPid
+            OriginalExitCode = $captureResult.OriginalExitCode
+            ParentExited = $captureResult.ParentExited; JobEmpty = $captureResult.JobEmpty; ReadersSettled = $captureResult.ReadersSettled; HandlesClosed = $captureResult.HandlesClosed
+            FirstCleanup = $captureResult.FirstCleanup
+            CleanupContinuationUsed = $captureResult.CleanupContinuationUsed
+        }
+    }
+    $captureDiagnostic = @($captureWrapperFailure) + @($captureSecondaryFailures)
+    [pscustomobject]@{ Success = $false; ExitCode = -3; TimedOut = $false; StdOut = ''; StdErr = ($captureDiagnostic -join [Environment]::NewLine); Closure = if ($captureOperation -and -not $captureOperation.Completion.IsCompleted) { 'HOLD' } else { 'NOT_STARTED' }; PrimaryFailure = $captureWrapperFailure; SecondaryFailures = @($captureSecondaryFailures) }
 }
 
 function Invoke-PcaiRedisCli {

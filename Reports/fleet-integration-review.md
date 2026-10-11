@@ -1,23 +1,76 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 11, 2026, 07:46 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 11, 2026, 10:40 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
 
-## Current acceptance and integration gaps (07:46 UTC)
+## Current cache adoption and delivery (10:40 UTC)
 
-Published head `a3123dd` passes 2,806 PowerShell tests with zero failures, 40 skips
-and zero not-run cases. CI run `38118270658` still fails the unchanged coverage
-gate: the source-bound parent/child union is 14,202/21,621 commands, or
-65.686138%, leaving 4,176 genuine additional hits required for 85%. Independent
+The maintained cache entrypoint now passes all eighteen capture controls and
+full-module QA on Carbon. Full-module import exposes twenty exports; import and
+memory paths leave the native capture type unloaded. Eleven existing cache tests
+pass, with the original Redis-dependent skip. The corrected cancellation control
+waits for the owned child to signal readiness before cancelling; it preserves
+assignment-before-resume and closure checks. The earlier seventeen-pass/one-fail
+prelaunch cancellation remains a failure. Distinct actual review binds the source,
+physical XML identities and original parent/child closeout. Evidence is
+`.pcai/integration/canonical-shared-cache-maintained-defaults-actual-peer-r2/`.
+
+Root copied the exact seventeen reviewed additions/replacement into canonical
+paths and verified all twenty-three source/destination pairs. Six existing source
+bodies remain physically unchanged. Source registers, dedicated qualification
+entrypoints and the lazy C# capture implementation are included; default Unit/All
+CI discovery remains unchanged. This is canonical source adoption, with commit,
+current-head CI and deployed-user acceptance still pending. Evidence is
+`.pcai/integration/cache-canonical-adoption-execution-r1/`.
+
+A genuine fresh Windows Git checkout reproduced a delivery defect: existing
+text/EOL rules changed nineteen of the twenty-three pinned files. Targeted raw
+attributes and explicit renormalization preserve all twenty-three byte-for-byte
+in the successor checkout. The first successor attempt reused cached index blobs
+and failed; its failure and original error remain preserved. The successful
+roundtrip is in `D:/pcai-relocation/cache-git-roundtrip-r2/`. Distinct actual review accepts that delivery proof. Root then applies the exact
+canonical attributes and verifies all twenty-three raw staged Git blobs against
+physical pinned sources. Five unchanged bodies require raw restaging; their EOL
+diffs do not change code. Commit and current-head CI remain pending.
+No test or source-register hashes are relaxed to accept transformed bytes.
+
+The native MCP client pilot R3 passes distinct source review after preserving
+original secondary errors, HOLD recovery custody and matching its mutex binding.
+This remains source acceptance: actual private probe build, live consumer trials,
+matched measurements and deployment are open. Evidence is
+`.pcai/integration/native-machine-mcp-client-pilot-source-peer-r3/`.
+
+An independently reviewed one-line runtime-test loader candidate resolves the
+module path before ParseFile. Existing lexical ../../ paths survive in the
+function AST, while coverage uses canonical file paths. All eighteen whole test
+bodies, representing twenty-five expanded cases, remain unchanged. Attribution
+recovery is a hypothesis pending genuine instrumented baseline/candidate runs;
+no coverage hits are credited. Source evidence is
+`.pcai/integration/runtime-integrity-coverage-attribution-source-peer-r1/`.
+Published head `6673473` still fails coverage at 14,216/21,621 commands
+(65.750890%), requiring 4,162 additional genuine hits for the unchanged 85% gate.
+
+## Earlier acceptance and integration observations (09:39 UTC)
+
+Published head `6673473` passes 2,809 PowerShell tests with zero failures, 40 skips
+and zero not-run cases. CI run `38122837560` still fails the unchanged coverage
+gate: the source-bound parent/child union is 14,216/21,621 commands, or
+65.750890%, leaving 4,162 genuine additional hits required for 85%. Independent
 reconstruction verifies all 239 module hashes, exact merge parents and every
-command identity. Its module tree, command identities and hit sets match `8242e30`
-exactly; there are no lost or gained hits between those heads. Rust tests, strict
+command identity. Its production module tree is unchanged from `a3123dd`.
+The three new disk cases genuinely cover seven previously missed disk-pipeline
+commands. Nine other gains and two losses occur in unchanged runtime-sensitive
+paths; the net fourteen-hit increase is not wholly attributed to the new cases.
+Rust tests, strict
 Clippy, formatting, .NET build, CPU runtime/build,
 PowerShell lint and security pass; downstream integration is skipped. NVIDIA
-and Guidelines pass. Exact private evidence is
-`.pcai/integration/head-a3123-coverage-readback-r1/`. PR 182 remains open.
+and Guidelines pass in separate exact-head runs `38122837566` and `38122837590`.
+The fresh PR check rollup confirms head `6673473`; these are not jobs inside the
+main run. Exact private evidence is
+`.pcai/integration/head-6673473-coverage-readback-r1/`. Prior-head receipts remain
+preserved. Local and origin integration heads match; PR 182 remains draft/open.
 
 The metadata successor now passes all twelve owned C:/D: controls, including
 sharing refusal, historical and current-parent descriptor restoration, byte
@@ -63,27 +116,79 @@ physical XML's exact 37 identities and 31 stable source/evidence pins. The origi
 outer process exits zero in 11.278 seconds with all ten closure flags; Root checks
 the original receipt handles and empty custody registry after return. The first
 runner's slash-comparison failure occurred before Pester import and remains
-preserved. This qualifies the public pipeline tests, not a native scan, speedup
-or additional hosted coverage. Evidence is
-`.pcai/integration/diskusage-public-controls-actual-peer-r2/`; fresh publication-head
-CI is still required.
+preserved. This qualifies the public pipeline tests, not a native scan or speedup.
+Independent current-head coverage reconstruction now separately verifies seven
+additional hosted disk-command hits. Evidence is
+`.pcai/integration/diskusage-public-controls-actual-peer-r2/` and
+`.pcai/integration/head-6673473-coverage-readback-r1/`.
 
-The shared-cache projection source now has separate review for qualification.
-Its worker binds the complete selected 18-leaf Pester payload and validates actual
-UTF-8 XML for all 18 maintained controls, addressing the prior count and encoding
-blockers. A suspected separator defect was retracted after checking the actual
-parsed string constants. Production changes and detecting bodies stay fixed;
-execution, full-module memory/cold/warm checks and canonical adoption remain open.
-Evidence is `.pcai/integration/canonical-shared-cache-projection-source-peer-r2/`.
+The shared-cache projection now passes all eighteen maintained controls on Carbon.
+Independent actual review verifies all 24 transferred/output artifacts, eighteen
+physical UTF-8 XML identities with no failures/skips, nine real captures and 113
+stable references. Root's same-original checks confirm outer process, two result
+writers, identity, XML reader/stream and the separate inventory writer closed.
+The prior count/encoding failures and retracted separator suspicion remain
+preserved. Evidence is
+`.pcai/integration/canonical-shared-cache-maintained-actual-peer-r2/`.
 
-Five synthetic parser controls and seven genuine parser refusals pass in 253 ms
-after repairing the stopwatch that kept running after completion. All 17 original
+Full-module QA source R1 failed independent review because a generic counter
+assertion preceded preservation of original failed-test errors. Additive R2 moves
+the original error collection before that gate and admits only matching CACHECCB
+ledgers. Its eight module files and complete existing cache test remain identical;
+all 74 source references are stable. The first Root input attempt then stopped
+before input IO/native launch because a prerequisite helper was not imported;
+its original error and failure receipt are retained. A fresh corrected admission
+completes actual module/memory/cold/warm validation on Carbon: full strict module
+import exposes twenty exports, import and memory paths leave the native capture
+type unloaded, six internal captures settle, and the complete cache unit file
+passes eleven tests with its original Redis-dependent skip. Original outer
+closure takes 91.449 seconds; the stopped owner takes 91.933 seconds. There is
+no pending custody; all original result,
+inventory and identity handles close after return. The Root readback retains the
+first admission error and separately records its refused 65-character manifest
+hash transcription before correction from the original owner's physical hash.
+Independent actual review now accepts this exact full-module scope: all thirty-four
+original artifact tuples and 116 evidence pins are stable; Root also verifies the
+four review leaves, giving 120 physical pins without drift. Maintained default
+adapter publication and canonical adoption are still pending at this cutoff.
+The first concrete maintained-parent source review finds a write-error gap:
+input flush/disposal can save a sticky original error yet leave complete bytes;
+without a post-settlement error gate, the parent could still hash the input and
+launch the child. That source remains unexecuted and preserved. An additive
+successor must refuse launch after any original input-write failure; inert NoIO
+checks alone did not exercise this branch. Additive R2 supplies that gate and
+passes distinct source review. Its first actual maintained-entrypoint run then
+fails one genuine cancellation control: 17 pass, one fails, none are skipped.
+The fixed one-second cancellation timer fires before the public wrapper reaches
+native process creation. The retained native result reports cancellation at the
+first Start admission, a null child PID and one millisecond of native execution;
+there is no evidence of leaked inner custody. The test still requires assignment
+before resume and therefore correctly refuses a prelaunch cancellation as proof
+of cancelling a real child. Preserve this FAIL; the successor must synchronize
+cancellation with owned child readiness while retaining every closure assertion.
+The second module-QA child is not launched after this failure. Root's outer
+operation exits one with all ten closure flags, stopped clocks, zero pending
+custody and its original result writer closed. The original error reference is
+unchanged. All nine failed-run artifacts and the original readback arrive on D:
+with exact hashes. Evidence is
+`D:/pcai-relocation/carbon-maintained-defaults-failed-actual-r1/` and
+`.pcai/integration/cache-cancellation-failure-source-review-r1/`.
+The eight descriptive measurements
+include 525.604-ms full import and 836.787-ms cold capture; warm captures range
+from 1,248.336 to 1,561.409 ms. These include fresh child launch and observer
+work, have no matched baseline and establish neither a speedup nor RSS savings.
+Evidence is `.pcai/integration/canonical-shared-cache-module-qa-source-peer-r2/`,
+`.pcai/integration/canonical-shared-cache-module-qa-actual-peer-r2/` and
+`D:/pcai-relocation/carbon-cache-module-qa-actual-r2/`.
+
+Five synthetic parser controls and seven genuine parser refusals pass in 308 ms
+after repairing the stopwatch and literal long-help handling. All 17 original
 writers, the identity handle and Root's separate receipt writer close; the stopped
 duration is checked after final custody settlement. R1's final-duration refusal
-and two Root observer mistakes remain preserved. These inert marker tests do not
-execute native images or establish recovery behavior. Long `--help` still returns
-the non-mutating default text instead of usage; that semantic deficiency is open.
-Evidence is `.pcai/integration/carbon-mcp-adapter-parser-controls-actual-peer-r2/`.
+and Root observer mistakes remain preserved. Both literal `-h` and `--help` now
+return usage without creating new outputs or replacing original objects. These
+inert marker tests do not execute native images or establish recovery behavior.
+Evidence is `.pcai/integration/carbon-mcp-adapter-parser-controls-actual-peer-r3/`.
 
 The first inherited-pipe input helper refused admission before creating any input,
 owner, child or target directory. It incorrectly read per-input error/writer
@@ -115,8 +220,14 @@ address through P1's default LAN gateway; the current tailnet advertises no rout
 to that subnet and still lists Work offline. Work access remains unresolved. ADB again lists
 no device, so the phone vault has not been read.
 
-P1's latest capacity readback finds 12,967 MiB RAM available and 85% committed
-memory. The earlier bounded eight-second observation reports 21.3 GiB resident
+P1's 08:24 UTC bounded profile records three samples across both rotated parts
+over 15.086 seconds: median CPU 47.53%, available memory 12,857 MiB and committed
+memory 85.286%. Aggregate sampled disk queue is zero; disk latency P95 is
+0.105 ms. This is a short aggregate observation, not a C:-specific measurement
+or proof of sustained absence of swapping. The observer consumes 7.406 CPU
+seconds, 2.23% mean host CPU. Heavy local build admission remains closed.
+Evidence is `D:/pcai-relocation/p1-workload-current-r2/`.
+The earlier bounded eight-second observation reports 21.3 GiB resident
 pagefile usage; these are distinct metrics and do not prove disk swapping.
 The busy Python process belongs to `poc_gesture_audiogram.py`, not an
 identified MCP server. C: and D: are separate healthy NVMe disks, with about
@@ -127,9 +238,34 @@ dtm-codex checkout; stable SDK 10.0.401 is absent. Build offloading must use its
 actual paths and selected installed toolchain. The staged native MCP pilot is
 older than the current merged native host and cannot be relabeled as that release.
 
+The 08:29 UTC bounded MCP inventory identifies sixty active machine-launcher
+PowerShell processes: twenty-one Context7, twenty-one Filesystem and eighteen
+Google Workspace. Their snapshot private memory is 3,057,934,336 bytes (2.85 GiB);
+process count and resident/private snapshots do not establish waste or savings.
+Current Codex and Claude both use PowerShell launchers for Context7 and
+Filesystem; Claude's Workspace registration is native. No active native machine
+host or executable at either expected install path is found. Its current design
+owns one backend per client and is not a shared broker. Thirty-nine additional
+configured PowerShell wrappers remain. Serena and QMD have guarded database
+startup paths; this does not establish that Docker restarted. Existing launchers
+already use NoProfile, so removing full profile bootstrap is not the proposed
+gain. A concrete private current-source native pilot adapter, graceful EOF client
+and sequential 36-session comparison runner are sealed for review. The review
+finds secondary errors converted to strings and later cleanup causes suppressed
+after HOLD. Original error objects must remain available before any actual
+qualification. No live registration or active client is replaced.
+Evidence is `.pcai/integration/mcp-consumer-reuse-inventory-r1/`.
+
 The agent-bus failure intake distinguishes local schema auto-fit warnings from
 delivery failure: the authoritative hub and database are healthy, and current
-requests are acknowledged. Reported PC-AI gaps include canonical Supervisor2
+requests are acknowledged at that earlier cutoff. A later Root presence renewal
+fails because the local private durable outbox cannot be opened, while bus reads
+still work. The generic CLI error does not identify whether this is contention,
+scope, corruption or another IO failure. Read-only native outbox status passes
+with zero pending requests, and subsequent Root presence/claim renewals succeed
+without journal or lock changes. Exact historical cause remains unknown. Source
+review identifies loss of the typed open-error cause, so safe diagnostic categories
+and bounded fixture qualification are a remaining related-tooling gap. Reported PC-AI gaps include canonical Supervisor2
 managed-child HOLD access, legacy capture handles that are not exposed, unbounded
 shared-cache capture not yet replaced in canonical source, unavailable live
 GitOps billing and the current coverage shortfall. The accepted Clarius failure
@@ -138,6 +274,26 @@ Milly command/source/feature provenance, selected adapter projection and power-o
 scan-timeout handling remain open; migration causality is unproved. Evidence is
 `.pcai/integration/agent-bus-failure-readback-r1/` and the preserved exact intake
 `.pcai/integration/clarius-milly-command-intake-r1/`.
+
+Later bus messages report successful backup commands followed by fatal restic
+integrity-check failures on both Sparks. These are reported failures, not a Root
+diagnosis or accepted backup restore; backup validation remains open. The active
+fleet lane receives this distinction. Root separately verifies all nineteen
+declared public Clarius handoff leaves against the physical delivery manifest
+`A1CE38511B1D30EE8A89C8230EEAB80654307F1B9DC44493338EBCEC4B89C0FA`
+and acknowledges delivery intake only. A separately acquired public ASUS finding
+matches SHA256 `15AE3B40CDD135E7EE535604E429562EE890F1FAF21FB5B2FB3C7D8B9EAFA475`
+and fills the recorded historical invocation: the bench3 debug helper runs
+`connect`, profile `lab_0546`, connection `milly_vigil_ap`, zero hold seconds and
+operator-session output. Fresh remote hashes match all three original failure
+logs. These records retain primary GATT-read and secondary disconnect deadline
+failures; they do not bind the original binary bytes, build features, effective
+environment or selected adapter. Numeric native exit, launch timestamps and cwd
+remain unproven. No radio retry or wireless migration causality follows. Evidence
+is `.pcai/integration/agent-bus-outbox-diagnostics-r1/`; Root verifies its four
+owned and nine external pins. Adoption and device acceptance remain open. The fleet lane also
+reports a stuck original P1 Utils fetch; Root preserves that custody and does
+not replay it or advance the checkout.
 
 The repaired GitOps monitor's first live run reports run/workflow inspection
 available while billing remains unavailable. Owner lookup succeeds; the billing

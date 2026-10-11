@@ -68,6 +68,7 @@ Tests/ProcessCapture/Invoke-ProcessCaptureContracts.ps1 -text -eol whitespace=cr
 Tests/ProcessCapture/Invoke-ProcessCaptureQualification.ps1 -text -eol whitespace=cr-at-eol
 Tests/ProcessCapture/qualification-common.ps1 -text -eol whitespace=cr-at-eol
 Tests/ProcessCapture/qualification-source-register.json -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/source-review.json -text -eol whitespace=cr-at-eol
 Tests/ProcessCapture/QualificationSupervisor.cs -text -eol whitespace=cr-at-eol
 Tests/ProcessCapture/Test-ProcessCaptureSources.ps1 -text -eol whitespace=cr-at-eol
 Tests/ProcessCapture/Fixtures/CacheProcessChild.ps1 -text -eol whitespace=cr-at-eol

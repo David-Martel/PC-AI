@@ -27,14 +27,35 @@ Tests/
     └── ModuleLoading.Tests.ps1
 ```
 
+## Current public cache, enumeration and routing controls
+
+`Unit/PcaiSharedCache.Tests.ps1`, `Unit/PcaiFileEnumerationPublic.Tests.ps1`
+and `Unit/LLMProviderRoutingContracts.Tests.ps1` run through normally imported
+modules. Their combined current-source run passed50 cases with one explicit
+Redis skip. File enumeration uses owned tiny real trees; routing validates the
+canonical request builder while HTTP, health, native Ollama and router
+boundaries are mocked. These controls do not qualify live transport or native
+inference. All three are included in normal unit discovery.
+
+The narrow six-file coverage observation is665/2,146 commands (30.99% locally).
+The repository-wide85% CI requirement is unchanged; narrow instrumentation
+must not be treated as that gate or credited by adding its numerator to another
+run. Results and independent limits are recorded in
+[the fleet review](../Reports/fleet-integration-review.md).
+
 ## Dedicated Windows process capture qualification
 
 `ProcessCapture/Invoke-ProcessCaptureQualification.ps1` runs the complete
 maintained eighteen-control capture cohort followed by full-module QA in fresh
 PowerShell children. This dedicated suite is separate from default Unit/All CI
-and its results do not add full-CI coverage credit. Carbon actual review accepts
-eighteen capture passes, eleven existing cache passes and the original
-Redis-dependent skip. Fleet installation and other users remain separate gates.
+and its results do not add full-CI coverage credit. The earlier Carbon actual
+review accepted eighteen capture passes, eleven cache passes and the original
+Redis-dependent skip against the predecessor sources. Current cache controls
+expand to twenty-two cases: twenty-one passed locally and the live Redis case
+was explicitly skipped. Current Carbon maintained qualification also passed
+all eighteen capture controls and21 full-module cases with that one Redis skip;
+independent review accepts their source ancestry and original closure. Fresh
+per-machine validation, fleet installation and other users remain separate gates.
 
 Default, `-h`, `--help`, `-DryRun` and `-Apply -DryRun` perform no IO. An actual run
 requires Windows x64 PowerShell7.6, no ambient Pester/Common/native capture type,
@@ -51,21 +72,31 @@ cache-qualification-r1. Change the directory leaf and OutputId together.
 ```powershell
 pwsh -NoLogo -NoProfile -NonInteractive -File Tests/ProcessCapture/Invoke-ProcessCaptureQualification.ps1 `
   -Apply `
-  -SourceRegisterSHA256 9DF29EBBFBFDC1A0F156670C94CFCF3B717799B5261245277BEF340BB7700B67 `
-  -SourcePeerPath C:/codedev/PC_AI/.pcai/integration/maintained-defaults-owner-source-peer-r3/review.json `
-  -SourcePeerSHA256 FAD7E922105FE80BA2792C159E78024ACD2FE286B2F3FCE6FF47BA047B8571AB `
+  -SourceRegisterSHA256 28DABA685EEDCA9E70C438A25BA9FE464E2D9B62E27B700B2DFB1204CC3EE2A5 `
+  -SourcePeerPath Tests/ProcessCapture/source-review.json `
+  -SourcePeerSHA256 1C76B84B6DEF402A39542C7FB0FBD2859250B4F51174256B471430F4647266F5 `
   -PesterManifestPath <admitted-complete-Pester-5.7.1-manifest> `
   -EvidenceDirectory <absent-owned-evidence-directory> `
   -OutputId cache-qualification-r1
 ```
 
-The source-peer file is private review evidence; ordinary Git consumers need a
-new authorized review receipt, or custody of the exact accepted receipt, before
-Apply. The twenty-three register-bound sources preserve raw bytes with exact-path
-Git attributes. Explicit renormalization is required after changing attributes
+The independently authored source-peer receipt is shipped with the repository;
+it grants source approval for a separately admitted run, not runtime acceptance.
+It stays outside the source register to avoid a circular hash dependency. The
+twenty-two bound leaves, source register and receipt preserve raw bytes with
+exact-path Git attributes. Explicit renormalization is required after changing attributes
 for already-tracked blobs. Do not rewrite pinned hashes around checkout changes.
 Retain the original owner process and failed-operation ledgers until clean
 closeout; a serialized successful result cannot prove its own writer closure.
+
+Ordinary shared-cache unit tests force the memory provider before import and
+restore the original process environment afterwards. Use the test container's
+`EnableRedisIntegration` parameter only for an explicitly admitted local Redis
+instance; that case uses its own GUID key prefix and bounded connection probe.
+No ordinary test clears ambient Redis keys. Array shape and supported mutable
+values are preserved; setter expiry bounds later reads. Records without expiry
+metadata retain legacy age behavior. Invalid external reads return a miss
+without deleting a value that another writer may have replaced.
 
 ## Quick Start
 

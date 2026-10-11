@@ -286,7 +286,15 @@ register and source-peer hashes, complete pinned Pester5.7.1, fresh owned eviden
 output and capacity admission. Follow `Tests/README.md` for the explicit command.
 These tests do not enter default Unit/All discovery and grant no coverage credit.
 
-The twenty-three registered source paths must preserve raw Git bytes. Keep their
+The independent portable receipt is `Tests/ProcessCapture/source-review.json`;
+keep it outside the hash-bound register and preserve its raw bytes. The current
+cache cohort has twenty-two expanded cases (twenty-one local passes and one
+explicit live-Redis skip). Earlier eighteen-capture/eleven-cache Carbon receipts
+qualify only their pinned predecessor. Require fresh maintained execution after
+source changes. Ordinary unit fixtures force memory before import; live Redis
+requires explicit opt-in, bounded probing and an owned GUID key prefix.
+
+The twenty-two bound leaves, source register and public receipt must preserve raw Git bytes. Keep their
 exact-path attributes and explicitly restage existing blobs after attribute
 changes; changing text conversion without renormalization may reuse old blobs.
 Do not normalize admission hashes or relax registers to accept transformed bytes.

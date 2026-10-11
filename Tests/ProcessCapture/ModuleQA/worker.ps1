@@ -64,7 +64,11 @@ try{
     $configuration.Run.PassThru=$true;$configuration.Run.Exit=$false;$configuration.Filter.FullName=@();$configuration.Filter.Tag=@();$configuration.Filter.ExcludeTag=@();$configuration.TestResult.Enabled=$false;$configuration.CodeCoverage.Enabled=$false;$configuration.Output.Verbosity='Detailed'
     $result=Invoke-Pester -Configuration $configuration;$state.Pester=$result
     foreach($container in $result.Containers){foreach($cause in @($container.ErrorRecord)){if($null-ne$cause){Add-ControlCause $cause}}};foreach($block in $result.FailedBlocks){foreach($cause in @($block.ErrorRecord)){if($null-ne$cause){Add-ControlCause $cause}}}
-    $expectedRows=@(foreach($row in $packet.MaintainedControls){@{Name=$row.Name;ExpandedName=$row.ExpandedName;Result=$row.Result;SourcePath=$testPath}})
+    $expectedRows=@(foreach($row in $packet.MaintainedControls){QA-Assert ($row.SourcePath-ceq'Tests/Unit/PcaiSharedCache.Tests.ps1'-and$row.Name-is[string]-and$row.ExpandedName-is[string]-and$row.ExpandedPath-is[string]-and-not[string]::IsNullOrEmpty($row.ExpandedPath)-and$row.Result-cin@('Passed','Skipped')) 'Reviewed maintained identity and result';@{Name=$row.Name;ExpandedName=$row.ExpandedName;ExpandedPath=$row.ExpandedPath;Result=$row.Result;SourcePath=$testPath}})
+    $expectedTotal=$expectedRows.Count;$expectedPassed=@($expectedRows|Where-Object Result -CEQ 'Passed').Count;$expectedSkipped=@($expectedRows|Where-Object Result -CEQ 'Skipped').Count
+    $declaredSkip=@($expectedRows|Where-Object Result -CEQ 'Skipped');$expectedIdentities=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    QA-Assert ($expectedTotal-ge1-and$expectedTotal-le64-and$expectedPassed-eq($expectedTotal-1)-and$expectedSkipped-eq1-and$declaredSkip[0].Name-ceq'hydrates a local cache miss from Redis when the provider is enabled'-and$declaredSkip[0].ExpandedName-ceq$declaredSkip[0].Name) 'Only the exact reviewed live Redis case may skip'
+    foreach($row in $expectedRows){QA-Assert ($expectedIdentities.Add($row.ExpandedPath)) 'Unique complete maintained case identity'}
     foreach($originalTest in $result.Tests){
         foreach($cause in @($originalTest.ErrorRecord)){
             if($null-eq$cause){continue}
@@ -72,30 +76,31 @@ try{
             Add-ControlCause $cause
         }
     }
-    QA-Assert ($result.TotalCount-eq12-and$result.PassedCount-eq11-and$result.FailedCount-eq0-and$result.SkippedCount-eq1-and$result.NotRunCount-eq0) 'Eleven genuine maintained passes and one declared Redis skip'
+    QA-Assert ($result.TotalCount-eq$expectedTotal-and$result.PassedCount-eq$expectedPassed-and$result.FailedCount-eq0-and$result.SkippedCount-eq$expectedSkipped-and$result.NotRunCount-eq0) 'Genuine counts from exact reviewed maintained cases and sole declared Redis skip'
     $state.Rows=@($result.Tests|ForEach-Object {@{Name=$_.Name;ExpandedName=$_.ExpandedName;ExpandedPath=$_.ExpandedPath;Result=$_.Result;Source=$_.ScriptBlock.File}})
-    for($i=0;$i-lt12;$i++){
+    QA-Assert ($result.Tests.Count-eq$expectedTotal) 'Complete original maintained test objects'
+    for($i=0;$i-lt$expectedTotal;$i++){
         $test=$result.Tests[$i];$expected=$expectedRows[$i]
-        QA-Assert ($test.Name-ceq$expected.Name-and$test.ExpandedName-ceq$expected.ExpandedName-and$test.Result-ceq$expected.Result-and[IO.Path]::GetFullPath($test.ScriptBlock.File)-ieq[IO.Path]::GetFullPath($testPath)) 'Exact unchanged maintained case identity/result/source'
+        QA-Assert ($test.Name-ceq$expected.Name-and$test.ExpandedName-ceq$expected.ExpandedName-and$test.ExpandedPath-ceq$expected.ExpandedPath-and$test.Result-ceq$expected.Result-and[IO.Path]::GetFullPath($test.ScriptBlock.File)-ieq[IO.Path]::GetFullPath($testPath)) 'Exact reviewed maintained case identity/result/source'
         $state.NUnitFlatTests.Add($test)
     }
     if($state.First){throw $state.First}
     $projectionGroupCommand=Get-Command Group-Object -Module Microsoft.PowerShell.Utility -CommandType Cmdlet
     foreach($container in $result.Containers){if($container.ShouldRun){Add-ControlNUnitProjection $container $container.Name 0}}
-    QA-Assert ($state.NUnitProjection.Count-eq12-and$state.NUnitSeenIndexes.Count-eq12) 'Each real original test represented once'
+    QA-Assert ($state.NUnitProjection.Count-eq$expectedTotal-and$state.NUnitSeenIndexes.Count-eq$expectedTotal) 'Each real original test represented once'
     $xml=ConvertTo-NUnitReport -Result $result -AsString -Format NUnit2.5;$old='<?xml version="1.0" encoding="utf-16" standalone="no"?>';$new='<?xml version="1.0" encoding="utf-8" standalone="no"?>'
     QA-Assert ($xml-is[string]-and$xml.StartsWith($old,[StringComparison]::Ordinal)-and[regex]::Matches($xml,[regex]::Escape($old)).Count-eq1) 'Pinned sole exporter UTF16 prolog';$bytes=[Text.UTF8Encoding]::new($false,$true).GetBytes($xml.Replace($old,$new));$xmlPath=Join-Path $EvidenceDirectory 'tests.xml';Write-ControlFresh $xmlPath $bytes
     QA-Assert ($null-eq$state.First-and$state.Secondary.Count-eq0-and@($state.Writers|Where-Object{-not$_.Closed}).Count-eq0) 'XML original writer closed before physical parse'
     $physical=[IO.File]::ReadAllBytes($xmlPath);QA-Assert ($physical.Length-le2097152-and$physical.Length-eq$bytes.Length-and[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($physical))-ceq[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))) 'Closed physical XML bytes/hash'
     try{
         $state.XmlStream=[IO.MemoryStream]::new($physical,$false);$settings=[Xml.XmlReaderSettings]::new();$settings.DtdProcessing=[Xml.DtdProcessing]::Prohibit;$settings.XmlResolver=$null;$settings.CloseInput=$false;$settings.MaxCharactersInDocument=2097152;$settings.MaxCharactersFromEntities=0;$state.XmlReader=[Xml.XmlReader]::Create($state.XmlStream,$settings);$document=[Xml.XmlDocument]::new();$document.XmlResolver=$null;$document.Load($state.XmlReader)
-        foreach($pair in @(@('total','12'),@('errors','0'),@('failures','0'),@('not-run','0'),@('inconclusive','0'),@('ignored','0'),@('skipped','1'),@('invalid','0'))){QA-Assert ($document.DocumentElement.GetAttribute($pair[0])-ceq$pair[1]) 'Actual physical NUnit counters'}
-        $cases=$document.SelectNodes('//test-case');QA-Assert ($cases.Count-eq12) 'Complete physical XML cases'
-        for($i=0;$i-lt12;$i++){$case=$cases[$i];$row=$state.NUnitProjection[$i];QA-Assert ($case.GetAttribute('name')-ceq$row.ExpandedPath-and$case.GetAttribute('description')-ceq$row.ExpandedName) 'Full original XML identity';$ancestor=$case.ParentNode;$matches=0;$depth=0;while($null-ne$ancestor){QA-Assert (++$depth-le32) 'Bounded XML ancestry';if($ancestor-is[Xml.XmlElement]-and$ancestor.LocalName-ceq'test-suite'-and[IO.Path]::IsPathRooted($ancestor.GetAttribute('name'))-and[IO.Path]::GetFullPath($ancestor.GetAttribute('name'))-ieq[IO.Path]::GetFullPath($testPath)){$matches++};$ancestor=$ancestor.ParentNode};QA-Assert ($matches-eq1) 'Actual source container';if($row.Result-ceq'Passed'){QA-Assert ($case.GetAttribute('result')-ceq'Success'-and$case.GetAttribute('executed')-ceq'True'-and$case.GetAttribute('success')-ceq'True') 'Actual successful XML case'}else{QA-Assert ($row.Result-ceq'Skipped'-and$case.GetAttribute('result')-ceq'Ignored'-and$case.GetAttribute('executed')-ceq'False'-and$case.GetAttribute('success')-ceq'False') 'Sole declared physical Redis skip'}}
-        $state.Xml=@{Path=$xmlPath;Bytes=$physical.Length;SHA256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($physical));Total=12;Passed=11;Skipped=1;Projection=$state.NUnitProjection.ToArray();PhysicalUTF8=$true;DTD='PROHIBITED';XmlWriterOriginalClosed=$true}
+        foreach($pair in @(@('total',[string]$expectedTotal),@('errors','0'),@('failures','0'),@('not-run','0'),@('inconclusive','0'),@('ignored','0'),@('skipped',[string]$expectedSkipped),@('invalid','0'))){QA-Assert ($document.DocumentElement.GetAttribute($pair[0])-ceq$pair[1]) 'Actual physical NUnit counters'}
+        $cases=$document.SelectNodes('//test-case');QA-Assert ($cases.Count-eq$expectedTotal) 'Complete physical XML cases'
+        for($i=0;$i-lt$expectedTotal;$i++){$case=$cases[$i];$row=$state.NUnitProjection[$i];QA-Assert ($case.GetAttribute('name')-ceq$row.ExpandedPath-and$case.GetAttribute('description')-ceq$row.ExpandedName) 'Full original XML identity';$ancestor=$case.ParentNode;$matches=0;$depth=0;while($null-ne$ancestor){QA-Assert (++$depth-le32) 'Bounded XML ancestry';if($ancestor-is[Xml.XmlElement]-and$ancestor.LocalName-ceq'test-suite'-and[IO.Path]::IsPathRooted($ancestor.GetAttribute('name'))-and[IO.Path]::GetFullPath($ancestor.GetAttribute('name'))-ieq[IO.Path]::GetFullPath($testPath)){$matches++};$ancestor=$ancestor.ParentNode};QA-Assert ($matches-eq1) 'Actual source container';if($row.Result-ceq'Passed'){QA-Assert ($case.GetAttribute('result')-ceq'Success'-and$case.GetAttribute('executed')-ceq'True'-and$case.GetAttribute('success')-ceq'True') 'Actual successful XML case'}else{QA-Assert ($row.Result-ceq'Skipped'-and$case.GetAttribute('result')-ceq'Ignored'-and$case.GetAttribute('executed')-ceq'False'-and$case.GetAttribute('success')-ceq'False') 'Sole declared physical Redis skip'}}
+        $state.Xml=@{Path=$xmlPath;Bytes=$physical.Length;SHA256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($physical));Total=$expectedTotal;Passed=$expectedPassed;Skipped=$expectedSkipped;Projection=$state.NUnitProjection.ToArray();PhysicalUTF8=$true;DTD='PROHIBITED';XmlWriterOriginalClosed=$true}
     }catch{Add-ControlCause $_}finally{Close-ControlXmlObjects}
     $pending=Get-ControlPending;QA-Assert (-not($pending.Native-or$pending.CaptureWriter-or$pending.OwnWriters-or$pending.Identity-or$pending.Xml)) 'All actual capture/writer/reader originals settled'
-    $state.State='PASS_MODULE_SMOKE_SIX_CAPTURE_AND_MAINTAINED_ELEVEN_ONLY'
+    $state.State='PASS_MODULE_SMOKE_SIX_CAPTURE_AND_EXACT_MAINTAINED_CONTROLS_ONLY'
 }catch{Add-ControlCause $_;$state.State='FAIL'}
 finally{
     Close-ControlXmlObjects
@@ -109,4 +114,4 @@ finally{
     if($state.First-or$state.Secondary.Count-or$state.RepeatedSecondaryFailures){$state.State='FAIL'}
 }
 [Console]::Out.WriteLine((@{FinalState=$state.State;ElapsedMilliseconds=$state.ElapsedMilliseconds;ClockStopped=(-not$state.Clock.IsRunning);OriginalWritersClosed=(@($state.Writers|Where-Object{-not$_.Closed}).Count-eq0);IdentityClosed=$state.IdentityClosed;XmlReaderDisposed=$state.XmlReaderDisposed;XmlStreamDisposed=$state.XmlStreamDisposed;FirstFailure=QA-Cause $state.First;SecondaryCount=$state.Secondary.Count;RepeatedSecondaryFailures=$state.RepeatedSecondaryFailures}|ConvertTo-Json -Compress -Depth 5))
-if($state.State-cne'PASS_MODULE_SMOKE_SIX_CAPTURE_AND_MAINTAINED_ELEVEN_ONLY'){exit 1}
+if($state.State-cne'PASS_MODULE_SMOKE_SIX_CAPTURE_AND_EXACT_MAINTAINED_CONTROLS_ONLY'){exit 1}

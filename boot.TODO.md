@@ -2,7 +2,7 @@
 
 ## Current cache and integration closeout
 
-Review: October 11, 2026, 10:40 UTC. The source-bound receipts and prior failures
+Review: October 11, 2026, 13:22 UTC. The source-bound receipts and prior failures
 are linked in [the fleet review](Reports/fleet-integration-review.md).
 
 - [x] Qualify corrected maintained cache defaults on Carbon: eighteen capture
@@ -16,17 +16,48 @@ are linked in [the fleet review](Reports/fleet-integration-review.md).
       in a fresh owned checkout. Preserve the first cached-index failed attempt.
 - [x] Apply reviewed canonical attributes and verify all twenty-three raw staged
       blobs against the exact physical source pins.
-- [ ] Finish normal reviewed commit, publish and verify current-head CI.
+- [x] Sign and publish predecessor b1cc1a1; completed CI passes2,809 tests,
+      skips40 and fails the unchanged85% coverage gate at65.271716%.
+- [x] Reproduce nine additional cache correctness defects and repair array
+      shape, setter expiry and external stale-read deletion behavior. Current
+      public memory controls pass21 with one explicit live Redis skip.
+- [x] Refresh current source registers and ship an independently authored
+      portable source-review receipt with raw-byte delivery attributes.
+- [x] Independently verify all24 current cache delivery payloads against canonical,
+      raw staged index and preserved checkout bytes; keep the old23-path proof.
+- [x] Pass50 current public cache/enumeration/routing controls with one Redis skip;
+      genuine local six-file coverage665/2,146 supplies no full-CI acceptance.
+- [x] Preserve current-cache wrapperR1 path-separator admission failure before
+      the maintained entry; reviewed R2 normalizes only the producer before JSON.
+- [x] Independently close out R2 actual18 capture passes and21 module cases plus
+      Redis skip, with same-original post-return writer and failure custody.
+- [ ] Reproduce and repair eight REST body-read stall timeout gaps using owned
+      finite loopback controls; preserve PS7.0 compatibility and per-read limits.
+- [ ] Finish reviewed corrective publication and current-head CI after the
+      accepted current maintained native capture/full-module qualification.
 - [ ] Qualify deployed consumers and other users/machines separately; dedicated
       capture controls grant no full-CI coverage or fleet performance credit.
 - [x] Review native MCP pilot R3 source and matching mutex template. No native
       host or live MCP registration is replaced by this source review.
-- [ ] Offload the private native MCP probe build, then execute genuine consumer
-      and matched performance trials before deployment or speedup claims.
+- [x] Offload private native MCP probe compilation and independently verify
+      source/DLL/PDB pairing; this is build-only acceptance.
+- [ ] Execute genuine consumer and matched performance trials before native
+      MCP deployment or speedup claims; Context7 header candidate is source-only.
 - [x] Review the runtime fixture's one-line canonical-path attribution candidate;
       preserve all eighteen whole test bodies and twenty-five expanded controls.
-- [ ] Run source-bound instrumented baseline/candidate diagnostics before any
-      canonical test edit. Current full CI remains 65.750890%, below unchanged85%.
+- [x] Run source-bound instrumented baseline/candidate diagnostics before any
+      canonical test edit. The first admitted pair fails the exact timestamp
+      guard before Pester; preserve that FAIL and review the string-date
+      decoder successor. Its admitted baseline passes25 tests with zero
+      covered commands; XML admission then fails on the exporter's empty DTD
+      subset. Preserve both failures and validate the exact reader successor.
+      Current published CI is65.271716%, below unchanged85%.
+      Completion uses accepted R6 below; earlier R4/R5 failures remain failures.
+
+- [x] Independently accept the genuine25/25 attribution pair: baseline0,
+      candidate313/760; InstallRuntimePair147/191 with44 misses preserved.
+      Adopt only the reviewed one-line canonical module path; all test bodies
+      stay unchanged. This local41.1842% adds no published CI credit.
 
 ## Immediate dtm-p1gen7 responsiveness
 

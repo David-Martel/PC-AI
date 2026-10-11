@@ -71,7 +71,12 @@ function Copy-PcaiCacheValue {
     }
 
     if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
-        return @($Value | ForEach-Object { Copy-PcaiCacheValue -Value $_ })
+        # Emit one array object, including empty/singleton arrays and null elements.
+        $copy = [System.Collections.Generic.List[object]]::new()
+        foreach ($item in $Value) {
+            $copy.Add((Copy-PcaiCacheValue -Value $item))
+        }
+        return ,($copy.ToArray())
     }
 
     return $Value
@@ -114,7 +119,11 @@ function Set-PcaiLocalSharedCacheEntry {
         [datetime]$CreatedUtc = [datetime]::UtcNow,
 
         [Parameter()]
-        [datetime]$LastAccessedUtc = [datetime]::UtcNow
+        [datetime]$LastAccessedUtc = [datetime]::UtcNow,
+
+        [Parameter()]
+        [AllowNull()]
+        [Nullable[datetime]]$ExpiresUtc
     )
 
     if ($script:PcaiSharedCache.Entries.Contains($FullKey)) {
@@ -126,6 +135,7 @@ function Set-PcaiLocalSharedCacheEntry {
             DependencyStamp = $DependencyStamp
             CreatedUtc      = $CreatedUtc
             LastAccessedUtc = $LastAccessedUtc
+            ExpiresUtc      = $ExpiresUtc
         })
 
     Remove-StalePcaiCacheEntries
@@ -496,7 +506,11 @@ function ConvertTo-PcaiExternalCachePayload {
         [datetime]$CreatedUtc = [datetime]::UtcNow,
 
         [Parameter()]
-        [datetime]$LastAccessedUtc = [datetime]::UtcNow
+        [datetime]$LastAccessedUtc = [datetime]::UtcNow,
+
+        [Parameter()]
+        [AllowNull()]
+        [Nullable[datetime]]$ExpiresUtc
     )
 
     $payload = [ordered]@{
@@ -504,6 +518,10 @@ function ConvertTo-PcaiExternalCachePayload {
         DependencyStamp = $DependencyStamp
         CreatedUtc      = $CreatedUtc.ToString('o')
         LastAccessedUtc = $LastAccessedUtc.ToString('o')
+    }
+
+    if ($null -ne $ExpiresUtc) {
+        $payload.ExpiresUtc = ([datetime]$ExpiresUtc).ToUniversalTime().ToString('o')
     }
 
     return ($payload | ConvertTo-Json -Depth 20 -Compress)
@@ -523,24 +541,28 @@ function ConvertFrom-PcaiExternalCachePayload {
 
     try {
         $parsed = $PayloadJson | ConvertFrom-Json -AsHashtable -Depth 20 -ErrorAction Stop
-        if (-not $parsed) {
+        if ($parsed -isnot [System.Collections.IDictionary] -or -not $parsed.Contains('Value')) {
             return $null
         }
 
-        $createdUtc = [datetime]::UtcNow
-        $lastAccessedUtc = [datetime]::UtcNow
-        if ($parsed.ContainsKey('CreatedUtc') -and -not [string]::IsNullOrWhiteSpace([string]$parsed.CreatedUtc)) {
-            $createdUtc = [datetime]::Parse([string]$parsed.CreatedUtc, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind)
-        }
-        if ($parsed.ContainsKey('LastAccessedUtc') -and -not [string]::IsNullOrWhiteSpace([string]$parsed.LastAccessedUtc)) {
-            $lastAccessedUtc = [datetime]::Parse([string]$parsed.LastAccessedUtc, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind)
+        $dates = @{ CreatedUtc = [datetime]::UtcNow; LastAccessedUtc = [datetime]::UtcNow; ExpiresUtc = $null }
+        foreach ($name in @('CreatedUtc', 'LastAccessedUtc', 'ExpiresUtc')) {
+            if ($parsed.Contains($name) -and -not [string]::IsNullOrWhiteSpace([string]$parsed[$name])) {
+                # Newer PowerShell JSON readers can already materialize dates.
+                $dates[$name] = if ($parsed[$name] -is [datetime]) {
+                    $parsed[$name].ToUniversalTime()
+                } else {
+                    [datetime]::Parse([string]$parsed[$name], [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
+                }
+            }
         }
 
         [pscustomobject]@{
-            Value           = if ($parsed.ContainsKey('Value')) { Copy-PcaiCacheValue -Value $parsed.Value } else { $null }
-            DependencyStamp = if ($parsed.ContainsKey('DependencyStamp')) { [string]$parsed.DependencyStamp } else { $null }
-            CreatedUtc      = $createdUtc
-            LastAccessedUtc = $lastAccessedUtc
+            Value           = Copy-PcaiCacheValue -Value $parsed['Value']
+            DependencyStamp = if ($parsed.Contains('DependencyStamp')) { [string]$parsed['DependencyStamp'] } else { $null }
+            CreatedUtc      = $dates.CreatedUtc
+            LastAccessedUtc = $dates.LastAccessedUtc
+            ExpiresUtc      = $dates.ExpiresUtc
         }
     }
     catch {
@@ -648,18 +670,17 @@ function Get-PcaiExternalCacheEntryRecord {
 
     $entry = ConvertFrom-PcaiExternalCachePayload -PayloadJson $result.StdOut
     if (-not $entry) {
-        Remove-PcaiExternalCacheEntry -Config $config -Namespace $Namespace -Key $Key
+        # A later writer may have replaced the observed value; reads never delete it.
         return $null
     }
 
     $now = [datetime]::UtcNow
-    if ($TtlSeconds -gt 0 -and ($now - $entry.CreatedUtc).TotalSeconds -gt $TtlSeconds) {
-        Remove-PcaiExternalCacheEntry -Config $config -Namespace $Namespace -Key $Key
+    if (($null -ne $entry.ExpiresUtc -and $now -ge $entry.ExpiresUtc) -or
+        ($TtlSeconds -gt 0 -and ($now - $entry.CreatedUtc).TotalSeconds -gt $TtlSeconds)) {
         return $null
     }
 
     if ($PSBoundParameters.ContainsKey('DependencyStamp') -and $DependencyStamp -ne $entry.DependencyStamp) {
-        Remove-PcaiExternalCacheEntry -Config $config -Namespace $Namespace -Key $Key
         return $null
     }
 
@@ -683,7 +704,14 @@ function Set-PcaiExternalCacheEntry {
         [string]$DependencyStamp,
 
         [Parameter()]
-        [int]$TtlSeconds = 0
+        [int]$TtlSeconds = 0,
+
+        [Parameter()]
+        [datetime]$CreatedUtc = [datetime]::UtcNow,
+
+        [Parameter()]
+        [AllowNull()]
+        [Nullable[datetime]]$ExpiresUtc
     )
 
     $status = Get-PcaiExternalCacheStatus
@@ -692,7 +720,14 @@ function Set-PcaiExternalCacheEntry {
     }
 
     $config = Get-PcaiExternalCacheConfig
-    $payloadJson = ConvertTo-PcaiExternalCachePayload -Value $Value -DependencyStamp $DependencyStamp
+    if ($null -eq $ExpiresUtc -and $TtlSeconds -gt 0) {
+        $ExpiresUtc = $CreatedUtc.AddSeconds($TtlSeconds)
+    }
+    $payloadParameters = @{ Value = $Value; CreatedUtc = $CreatedUtc; ExpiresUtc = $ExpiresUtc }
+    if ($PSBoundParameters.ContainsKey('DependencyStamp')) {
+        $payloadParameters.DependencyStamp = $DependencyStamp
+    }
+    $payloadJson = ConvertTo-PcaiExternalCachePayload @payloadParameters
     $redisKey = Get-PcaiExternalCacheKey -Config $config -Namespace $Namespace -Key $Key
     $arguments = @('SET', $redisKey, $payloadJson)
     if ($TtlSeconds -gt 0) {
@@ -757,23 +792,32 @@ function Get-PcaiSharedCacheEntry {
     if ($script:PcaiSharedCache.Entries.Contains($fullKey)) {
         $entry = $script:PcaiSharedCache.Entries[$fullKey]
         $now = [datetime]::UtcNow
-        if ($TtlSeconds -gt 0 -and ($now - $entry.CreatedUtc).TotalSeconds -gt $TtlSeconds) {
+        # Old local records have no expiry property; retain their legacy semantics.
+        $expiryProperty = $entry.PSObject.Properties['ExpiresUtc']
+        if (($null -ne $expiryProperty -and $null -ne $expiryProperty.Value -and $now -ge $expiryProperty.Value) -or
+            ($TtlSeconds -gt 0 -and ($now - $entry.CreatedUtc).TotalSeconds -gt $TtlSeconds)) {
             $script:PcaiSharedCache.Entries.Remove($fullKey)
         } elseif ($PSBoundParameters.ContainsKey('DependencyStamp') -and $DependencyStamp -ne $entry.DependencyStamp) {
             $script:PcaiSharedCache.Entries.Remove($fullKey)
         } else {
             $entry.LastAccessedUtc = $now
-            return (Copy-PcaiCacheValue -Value $entry.Value)
+            return ,(Copy-PcaiCacheValue -Value $entry.Value)
         }
     }
 
-    $externalEntry = Get-PcaiExternalCacheEntryRecord -Namespace $Namespace -Key $Key -TtlSeconds $TtlSeconds -DependencyStamp $DependencyStamp
+    $externalParameters = @{ Namespace = $Namespace; Key = $Key; TtlSeconds = $TtlSeconds }
+    if ($PSBoundParameters.ContainsKey('DependencyStamp')) {
+        $externalParameters.DependencyStamp = $DependencyStamp
+    }
+    $externalEntry = Get-PcaiExternalCacheEntryRecord @externalParameters
     if (-not $externalEntry) {
         return $null
     }
 
-    Set-PcaiLocalSharedCacheEntry -FullKey $fullKey -Value $externalEntry.Value -DependencyStamp $externalEntry.DependencyStamp -CreatedUtc $externalEntry.CreatedUtc -LastAccessedUtc ([datetime]::UtcNow)
-    return (Copy-PcaiCacheValue -Value $externalEntry.Value)
+    $expiryProperty = $externalEntry.PSObject.Properties['ExpiresUtc']
+    $expiresUtc = if ($null -ne $expiryProperty) { $expiryProperty.Value } else { $null }
+    Set-PcaiLocalSharedCacheEntry -FullKey $fullKey -Value $externalEntry.Value -DependencyStamp $externalEntry.DependencyStamp -CreatedUtc $externalEntry.CreatedUtc -LastAccessedUtc ([datetime]::UtcNow) -ExpiresUtc $expiresUtc
+    return ,(Copy-PcaiCacheValue -Value $externalEntry.Value)
 }
 
 function Set-PcaiSharedCacheEntry {
@@ -799,10 +843,17 @@ function Set-PcaiSharedCacheEntry {
     $fullKey = '{0}::{1}' -f $Namespace, $Key
     $now = [datetime]::UtcNow
 
-    Set-PcaiLocalSharedCacheEntry -FullKey $fullKey -Value $Value -DependencyStamp $DependencyStamp -CreatedUtc $now -LastAccessedUtc $now
-    [void](Set-PcaiExternalCacheEntry -Namespace $Namespace -Key $Key -Value $Value -DependencyStamp $DependencyStamp -TtlSeconds $TtlSeconds)
+    $expiresUtc = if ($TtlSeconds -gt 0) { $now.AddSeconds($TtlSeconds) } else { $null }
+    $localParameters = @{ FullKey = $fullKey; Value = $Value; CreatedUtc = $now; LastAccessedUtc = $now; ExpiresUtc = $expiresUtc }
+    $externalParameters = @{ Namespace = $Namespace; Key = $Key; Value = $Value; TtlSeconds = $TtlSeconds; CreatedUtc = $now; ExpiresUtc = $expiresUtc }
+    if ($PSBoundParameters.ContainsKey('DependencyStamp')) {
+        $localParameters.DependencyStamp = $DependencyStamp
+        $externalParameters.DependencyStamp = $DependencyStamp
+    }
+    Set-PcaiLocalSharedCacheEntry @localParameters
+    [void](Set-PcaiExternalCacheEntry @externalParameters)
 
-    return (Copy-PcaiCacheValue -Value $Value)
+    return ,(Copy-PcaiCacheValue -Value $Value)
 }
 
 function Clear-PcaiSharedCache {

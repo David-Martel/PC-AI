@@ -1,13 +1,146 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 11, 2026, 10:40 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 11, 2026, 13:22 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
 
-## Current cache adoption and delivery (10:40 UTC)
+## Current public controls and Git delivery
 
-The maintained cache entrypoint now passes all eighteen capture controls and
+The three current public suites passed50 tests with no failures, one explicit
+Redis skip and no unrun tests under PowerShell7.6.6/Pester5.7.1. They exercise
+cache semantics, real managed file enumeration and the canonical LLM request
+builder; HTTP, health, native Ollama and router boundaries remain mocked.
+The six instrumented canonical source leaves executed665 of2,146 commands
+(30.99% locally). This narrow denominator supplies no repository-wide CI or
+live-inference acceptance. Source pins for the three tests and six measured
+leaves were checked before and after. Other imported collaborators were not
+contemporaneously pinned by this runner. Independent source/actual review:
+`.pcai/integration/llm-provider-routing-public-peer-r3/review.json`; physical
+results: `.pcai/integration/current-public-cache-enumeration-routing-actual-r2/`.
+
+The disk-usage fallback now checks `Top` before probing native availability.
+The one-line guard preserves positive-Top behavior and avoids that probe for
+Top0. Eighteen public enumeration controls and four matching ABBA row sets
+passed; the unchanged output assertions establish parity, not a speedup.
+Independent review is
+`.pcai/integration/file-enumeration-public-controls-peer-r2/review.json`.
+
+All22 current register-bound files, the register itself and the public peer
+receipt retain identical SHA256 and lengths in the working tree, staged index
+and preserved Windows checkout. All48 cached text/EOL observations are unset.
+The old23-path delivery review retains its original predecessor scope. Current
+independent review is
+`.pcai/integration/cache-corrective-git-delivery-peer-r1/review.json`;
+checkout evidence is `D:/pcai-relocation/cache-corrective-git-delivery-actual-r1/`.
+
+The first current-cache execution wrapper failed before the maintained entry:
+Windows Join-Path emitted backslashes while its child compared a forward-slash
+literal. The original FAIL, source-review miss and exact three output files
+remain preserved in
+`D:/pcai-relocation/maintained-current-cache-failed-actual-r1/`.
+A reviewed successor normalizes the producer before JSON and retains the whole
+strict child guard. Its actual Carbon run passed18 capture controls and21
+full-module cache cases with one Redis skip; root and child closure checks
+returned successfully. Independent actual review accepts the physical XML rows,
+source ancestry and Root-attributed original-object closure. The review is
+`.pcai/integration/maintained-current-cache-execution-actual-peer-r2/review.json`.
+These results concern current source, unlike the earlier10:40 predecessor.
+The retained actual files are
+`D:/pcai-relocation/maintained-current-cache-actual-r2/`.
+
+The genuine runtime attribution comparison passed the same25 whole controls
+in both phases. Resolving the fixture module path before parsing restored313
+hits out of the unchanged760-command inventory; its lexical-path baseline
+recorded0. Within InstallRuntimePair,147 of191 commands executed and44 remained
+missed. The candidate's41.1842% is a local diagnostic, below85%, with no global
+CI credit. Every paired verbatim/span identity matched, without lost hits.
+Independent actual review:
+`.pcai/integration/runtime-integrity-coverage-attribution-execution-actual-peer-r6/review.json`.
+Root then adopted exactly the reviewed one-line ProviderPath correction over
+the verified whole preimage; all eighteen test bodies/25 expanded controls
+remain unchanged. Both earlier timestamp/DTD failures remain preserved. No
+production resolver code or XML exporter was changed by this fixture repair.
+
+A separate source audit found eight REST calls without a finite stalled-body
+read timeout. The existing TimeoutSec setting bounds the request/header stage;
+OperationTimeoutSeconds separately bounds gaps between body reads. A proposed
+feature gate preserves PowerShell7.0 compatibility and existing timeout values.
+This is a per-read stall bound, not a total-call deadline. No production timeout
+edit or loopback behavior is qualified yet; see
+`.pcai/integration/llm-http-timeout-gap-source-r1/review.json`.
+
+## Earlier cache corrective validation and predecessor CI (12:28 UTC)
+
+The reviewed predecessor was signed and published as `b1cc1a1e2005343f80fc0ec290068f9ec0d748cc`.
+PR182 remains a draft. Its completed CI run38133318595 passed 2,809 tests with
+40 skips and no test failures, but executed only14,209 of21,769 instrumented
+commands (65.271716%). The unchanged85% gate failed; reaching it requires4,295
+additional genuine command hits against that inventory. The other completed
+Rust, C#, security and formatting checks passed. These are predecessor-head
+results, not acceptance of the subsequent working-tree repair.
+
+Additional cache controls reproduced nine defects against the unchanged
+predecessor. The repaired helper preserves empty, singleton and nested array
+shape and supported mutable copies; records setter expiry so a later getter
+cannot extend it; and returns a miss without deleting an external record that
+another writer may have replaced. Legacy records without expiry retain legacy
+age behavior. The corrected ordinary unit fixture forces memory before import,
+restores six original process environment values, and makes live Redis testing
+an explicit opt-in with bounded probing and a GUID-owned prefix.
+
+The maintained public cache suite passed21 cases and explicitly skipped the
+live Redis case. Frozen predecessor execution passed12 and failed9 with the
+same skip. An initial positive-run container syntax error remains preserved;
+its corrected successor has no failures. Actual evidence is
+`.pcai/integration/cache-correctness-root-actual-r1/`; distinct source/test review
+is `.pcai/integration/cache-correctness-regression-tests-peer-r2/`. No live Redis,
+native process capture, fleet installation or equivalent-semantics performance
+acceptance is claimed by these cache results.
+
+The three source registers now bind the current helper and22 expanded cache
+controls. `Tests/ProcessCapture/source-review.json` supplies the independently
+authored portable source approval without requiring private checkout evidence.
+It remains outside the register to avoid circular hashes and has its own raw
+Git attribute. Fresh maintained eighteen-capture and full-module execution
+against these new pins is pending; the10:40 receipts below retain their original
+predecessor scope.
+
+A separate Carbon attribution diagnostic failed before Pester began: default
+PowerShell JSON decoding converted an ISO timestamp into `DateTime`, causing
+the unchanged exact identity guard to reject it. The original failure, all five
+output files and clean native/local closure are retained in
+`D:/pcai-relocation/carbon-attribution-failed-actual-r4/`. A separately reviewed
+successor must preserve timestamp strings rather than weaken that guard. No
+test or coverage credit resulted from the failed diagnostic. Its string-date
+successor admitted the original identity and ran the baseline:25 tests passed,
+with0 executed commands of760 analyzed. The diagnostic then failed because
+Pester's XML exporter appended an empty internal DTD subset `[]` to the pinned
+external declaration. All native and local resources closed; the original
+failure remained sticky. Its106 output files and two readbacks are preserved in
+`D:/pcai-relocation/carbon-attribution-failed-actual-r5/`. The candidate did not
+run, so the pair, attribution repair and CI coverage remain unaccepted. The XML
+reader successor must allow only the observed exact empty-subset form while
+retaining entity refusal and disabled external resolution.
+
+The private native MCP probe compiled on Carbon using the admitted .NET8 SDK;
+distinct review accepts source/DLL/PDB pairing only. The new Context7 HTTP
+header helper currently has source approval only. Its compilation, genuine
+Codex client behavior and matched performance comparison remain pending.
+No current MCP registration or another agent's environment was changed.
+
+The bounded P1 workload profile observed median commit86.916%, above the
+qualification budget; heavyweight compilation remains offloaded. Observer CPU
+was1.876%. Aggregate disk latency and process counts do not establish a
+C:-specific bottleneck or wasted memory. Useful agent, sync and study processes
+remain preserved. Milly's latest read-only check confirms both SSD links at
+UAS10Gb/s, about580GiB internal free and owner-readable migrated study paths.
+Compression previously recovered13.84GiB. M.2 vacancy and cold-boot, removal,
+portable-access and independent restore checks remain open.
+
+## Earlier cache adoption and delivery (10:40 UTC)
+
+The predecessor maintained cache entrypoint passed all eighteen capture controls and
 full-module QA on Carbon. Full-module import exposes twenty exports; import and
 memory paths leave the native capture type unloaded. Eleven existing cache tests
 pass, with the original Redis-dependent skip. The corrected cancellation control

@@ -2,87 +2,179 @@
   "MaintainedControls": [
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "stamps a real directory object without a Length property",
       "ExpandedName": "stamps a real directory object without a Length property",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.stamps a real directory object without a Length property",
       "Result": "Passed",
-      "WholeItSHA256": "A617996A65E091467D201454DB4866225710C2B6DA8AB02BC13048F7A2000CA8",
-      "Name": "stamps a real directory object without a Length property"
+      "WholeItSHA256": "A617996A65E091467D201454DB4866225710C2B6DA8AB02BC13048F7A2000CA8"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "stamps a real directory path consistently with its object",
       "ExpandedName": "stamps a real directory path consistently with its object",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.stamps a real directory path consistently with its object",
       "Result": "Passed",
-      "WholeItSHA256": "428888A09CB3E086F4B132E76E0E229BD201D2D32CB38CB773B67405F91DCC7F",
-      "Name": "stamps a real directory path consistently with its object"
+      "WholeItSHA256": "428888A09CB3E086F4B132E76E0E229BD201D2D32CB38CB773B67405F91DCC7F"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "changes a directory dependency stamp when its timestamp changes",
       "ExpandedName": "changes a directory dependency stamp when its timestamp changes",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.changes a directory dependency stamp when its timestamp changes",
       "Result": "Passed",
-      "WholeItSHA256": "7858211D93FB3AB2B65F5A1C167E93E1526A6D483A3C35DD2BA520AADA294B0D",
-      "Name": "changes a directory dependency stamp when its timestamp changes"
+      "WholeItSHA256": "7858211D93FB3AB2B65F5A1C167E93E1526A6D483A3C35DD2BA520AADA294B0D"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains file length sensitivity and object-path parity",
       "ExpandedName": "retains file length sensitivity and object-path parity",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.retains file length sensitivity and object-path parity",
       "Result": "Passed",
-      "WholeItSHA256": "C7FFD0684AAF5D3892E878E78511ED513D5A691075E001954056214FBE10451F",
-      "Name": "retains file length sensitivity and object-path parity"
+      "WholeItSHA256": "C7FFD0684AAF5D3892E878E78511ED513D5A691075E001954056214FBE10451F"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "round-trips and isolates a <Kind> with a literal Keys entry",
       "ExpandedName": "round-trips and isolates a hashtable with a literal Keys entry",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.round-trips and isolates a hashtable with a literal Keys entry",
       "Result": "Passed",
-      "WholeItSHA256": "5E380616BF2FEAD0ED17D70B572C68B58B3E179F8B49999F4AC39A08118E56CB",
-      "Name": "round-trips and isolates a <Kind> with a literal Keys entry"
+      "WholeItSHA256": "5E380616BF2FEAD0ED17D70B572C68B58B3E179F8B49999F4AC39A08118E56CB"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "round-trips and isolates a <Kind> with a literal Keys entry",
       "ExpandedName": "round-trips and isolates a ordered dictionary with a literal Keys entry",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.round-trips and isolates a ordered dictionary with a literal Keys entry",
       "Result": "Passed",
-      "WholeItSHA256": "5E380616BF2FEAD0ED17D70B572C68B58B3E179F8B49999F4AC39A08118E56CB",
-      "Name": "round-trips and isolates a <Kind> with a literal Keys entry"
+      "WholeItSHA256": "5E380616BF2FEAD0ED17D70B572C68B58B3E179F8B49999F4AC39A08118E56CB"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "clears only literal local namespace prefixes containing wildcards",
       "ExpandedName": "clears only literal local namespace prefixes containing wildcards",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.clears only literal local namespace prefixes containing wildcards",
       "Result": "Passed",
-      "WholeItSHA256": "EC5001E12FE284140417298EFB14C11C1C20F1FA94E541547A9A8256654FF94B",
-      "Name": "clears only literal local namespace prefixes containing wildcards"
+      "WholeItSHA256": "EC5001E12FE284140417298EFB14C11C1C20F1FA94E541547A9A8256654FF94B"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "escapes Redis glob data and deletes only exact literal prefix matches",
       "ExpandedName": "escapes Redis glob data and deletes only exact literal prefix matches",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.escapes Redis glob data and deletes only exact literal prefix matches",
       "Result": "Passed",
-      "WholeItSHA256": "6E978426C1794EB6F136CF9B8C25E0B9F6E2F460FF0470A100B69ABA2278174A",
-      "Name": "escapes Redis glob data and deletes only exact literal prefix matches"
+      "WholeItSHA256": "6E978426C1794EB6F136CF9B8C25E0B9F6E2F460FF0470A100B69ABA2278174A"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "round-trips in-memory cache values and honors dependency stamps",
       "ExpandedName": "round-trips in-memory cache values and honors dependency stamps",
+      "ExpandedPath": "PcaiSharedCache.round-trips in-memory cache values and honors dependency stamps",
       "Result": "Passed",
-      "WholeItSHA256": "7203215AA2BB11CE500ED023C47F0883DA083765143C8DE3B96945051B017435",
-      "Name": "round-trips in-memory cache values and honors dependency stamps"
+      "WholeItSHA256": "7203215AA2BB11CE500ED023C47F0883DA083765143C8DE3B96945051B017435"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "expires stale local entries when TTL is exceeded",
       "ExpandedName": "expires stale local entries when TTL is exceeded",
+      "ExpandedPath": "PcaiSharedCache.expires stale local entries when TTL is exceeded",
       "Result": "Passed",
-      "WholeItSHA256": "CFCF90C5F268C61267AEEEEBD0EFC384C31FF1F4735BAFD5CAD58936DBC4411A",
-      "Name": "expires stale local entries when TTL is exceeded"
+      "WholeItSHA256": "CFCF90C5F268C61267AEEEEBD0EFC384C31FF1F4735BAFD5CAD58936DBC4411A"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "reports memory mode when no external provider is configured",
       "ExpandedName": "reports memory mode when no external provider is configured",
+      "ExpandedPath": "PcaiSharedCache.reports memory mode when no external provider is configured",
       "Result": "Passed",
-      "WholeItSHA256": "74F108E4A35162EA704AEAC9E3F58E33A5BCE88A938FD409B0077D2BA7571BAA",
-      "Name": "reports memory mode when no external provider is configured"
+      "WholeItSHA256": "74F108E4A35162EA704AEAC9E3F58E33A5BCE88A938FD409B0077D2BA7571BAA"
     },
     {
       "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "hydrates a local cache miss from Redis when the provider is enabled",
       "ExpandedName": "hydrates a local cache miss from Redis when the provider is enabled",
+      "ExpandedPath": "PcaiSharedCache.hydrates a local cache miss from Redis when the provider is enabled",
       "Result": "Skipped",
-      "WholeItSHA256": "EBA090B60C5B6608B2FF72A5A42A0EBD7BE1A24A731398C71B54773DC5A3EB60",
-      "Name": "hydrates a local cache miss from Redis when the provider is enabled"
+      "WholeItSHA256": "B54B5013675FA8055D9EB2555239D8475EF5B967EC14C89961D673829B8055F5"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains an array with <Count> members on both set and get",
+      "ExpandedName": "retains an array with 0 members on both set and get",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.retains an array with 0 members on both set and get",
+      "Result": "Passed",
+      "WholeItSHA256": "7342A06083A60A87C7044A3C2F90AD315B1588BF62E4DBE53353DDD207733BC6"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains an array with <Count> members on both set and get",
+      "ExpandedName": "retains an array with 1 members on both set and get",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.retains an array with 1 members on both set and get",
+      "Result": "Passed",
+      "WholeItSHA256": "7342A06083A60A87C7044A3C2F90AD315B1588BF62E4DBE53353DDD207733BC6"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains an array with <Count> members on both set and get",
+      "ExpandedName": "retains an array with 2 members on both set and get",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.retains an array with 2 members on both set and get",
+      "Result": "Passed",
+      "WholeItSHA256": "7342A06083A60A87C7044A3C2F90AD315B1588BF62E4DBE53353DDD207733BC6"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "preserves nested empty arrays and null slots while detaching mutable values",
+      "ExpandedName": "preserves nested empty arrays and null slots while detaching mutable values",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.preserves nested empty arrays and null slots while detaching mutable values",
+      "Result": "Passed",
+      "WholeItSHA256": "6508FEA83FFB33F9A71AEE0F1D2CA4BC9B798E240A9D9876483F643BC2CFF04C"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "honors setter expiry for <Mode> reads",
+      "ExpandedName": "honors setter expiry for default reads",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.honors setter expiry for default reads",
+      "Result": "Passed",
+      "WholeItSHA256": "490784293FE839824C3B0CAAAA5054FA16F992A949CA98143160A60EBEB821A1"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "honors setter expiry for <Mode> reads",
+      "ExpandedName": "honors setter expiry for longer reads",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.honors setter expiry for longer reads",
+      "Result": "Passed",
+      "WholeItSHA256": "490784293FE839824C3B0CAAAA5054FA16F992A949CA98143160A60EBEB821A1"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "hydrates a stamped external value when the getter omits its stamp",
+      "ExpandedName": "hydrates a stamped external value when the getter omits its stamp",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.hydrates a stamped external value when the getter omits its stamp",
+      "Result": "Passed",
+      "WholeItSHA256": "AE98004711261EA433BBD31A0F63DE11F353A9DC1FDC57151C5976CE9C64BC3B"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "rejects an explicit stamp mismatch without deleting external data",
+      "ExpandedName": "rejects an explicit stamp mismatch without deleting external data",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.rejects an explicit stamp mismatch without deleting external data",
+      "Result": "Passed",
+      "WholeItSHA256": "1B4527768FA94731A41C90B0A5561EDC3B832EE8024FA1AAC7FA5B25144EF85F"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "rejects an external record whose stored expiry has passed",
+      "ExpandedName": "rejects an external record whose stored expiry has passed",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.rejects an external record whose stored expiry has passed",
+      "Result": "Passed",
+      "WholeItSHA256": "CCE57511689D7FDE43A428F382C8EC19F0FBBFFE814EC0127A30380AAB0B1AD1"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains external expiry locally when the provider becomes unavailable",
+      "ExpandedName": "retains external expiry locally when the provider becomes unavailable",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.retains external expiry locally when the provider becomes unavailable",
+      "Result": "Passed",
+      "WholeItSHA256": "CAA971ECE400BA3E7536DAFA355E634DD99288D923746A63FEA577776C7BB05C"
     }
   ],
   "ExportedFunctions": [
@@ -240,8 +332,8 @@
       "RelativePath": "Modules/PC-AI.Common/Public/Get-PcaiRuntimeConfig.ps1"
     },
     {
-      "SHA256": "61C8B5F430D8365D5F400B3FBB8DA9B3A4CA69F09F6738296E7F8952DA42DD66",
-      "Bytes": 29103,
+      "SHA256": "F2EF42EF454BBE1C3EEA62B94246B76B9E4983ACB31B8A5EB055A35DC50CC935",
+      "Bytes": 31166,
       "RelativePath": "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1"
     },
     {
@@ -260,8 +352,8 @@
       "RelativePath": "Tests/ProcessCapture/ModuleQA/qa-common.ps1"
     },
     {
-      "SHA256": "39C5550EFB1FFC7D9E72FE05388DA139087A77704FE3B3AC0FB3859B2D551078",
-      "Bytes": 18825,
+      "SHA256": "3BDA5EA7BBD403E08D1FF69762EA49FB9C0C6768B5C4640A0008A49F2E3BD289",
+      "Bytes": 20315,
       "RelativePath": "Tests/ProcessCapture/ModuleQA/worker.ps1"
     },
     {
@@ -270,8 +362,8 @@
       "RelativePath": "Tests/ProcessCapture/ModuleQA/Fixtures/CaptureChild.ps1"
     },
     {
-      "SHA256": "B0BB9F96366B8F880EC2705C14C7CB25C5FD0F3E0D194D6924CB3F32B321B3F9",
-      "Bytes": 14632,
+      "SHA256": "23D5129E1460B213FE653DE7731ABAB35F36757BE922B7D24742B62D331DBC74",
+      "Bytes": 23968,
       "RelativePath": "Tests/Unit/PcaiSharedCache.Tests.ps1"
     }
   ]

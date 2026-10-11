@@ -109,7 +109,7 @@ function Get-DiskUsageFast {
         }
     }
 
-    if ($nativeType -and [PcaiNative.PcaiCore]::IsAvailable -and $Top -gt 0) {
+    if ($Top -gt 0 -and $nativeType -and [PcaiNative.PcaiCore]::IsAvailable) {
         if ($Depth -gt 1) {
             Write-Verbose "Native disk usage ignores Depth; returning top entries only."
         }

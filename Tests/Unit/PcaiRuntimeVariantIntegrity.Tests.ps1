@@ -5,6 +5,7 @@ param(
 
 BeforeAll {
     if (-not $RuntimeSourcePath) { $RuntimeSourcePath = Join-Path $PSScriptRoot '../../Modules/PcaiInference.psm1' }
+    $RuntimeSourcePath = (Resolve-Path -LiteralPath $RuntimeSourcePath -ErrorAction Stop).ProviderPath
     $tokens = $null
     $parseErrors = $null
     $sourceAst = [Management.Automation.Language.Parser]::ParseFile($RuntimeSourcePath, [ref]$tokens, [ref]$parseErrors)

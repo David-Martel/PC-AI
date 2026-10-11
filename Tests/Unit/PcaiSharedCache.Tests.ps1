@@ -3,25 +3,30 @@
 
 param(
     [string]$CacheSourcePath,
-    [switch]$SkipRedisProbe
+    [switch]$SkipRedisProbe,
+    [switch]$EnableRedisIntegration
 )
 
 BeforeAll {
     $script:ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $script:CommonModulePath = Join-Path $script:ProjectRoot 'Modules\PC-AI.Common\PC-AI.Common.psm1'
-    if ($CacheSourcePath) {
-        . $CacheSourcePath
-    } else {
-        Import-Module $script:CommonModulePath -Force | Out-Null
-    }
-
     $script:OriginalCacheEnv = @{
         PCAI_CACHE_PROVIDER   = [Environment]::GetEnvironmentVariable('PCAI_CACHE_PROVIDER', 'Process')
         PCAI_REDIS_CLI_PATH   = [Environment]::GetEnvironmentVariable('PCAI_REDIS_CLI_PATH', 'Process')
         PCAI_REDIS_HOST       = [Environment]::GetEnvironmentVariable('PCAI_REDIS_HOST', 'Process')
         PCAI_REDIS_PORT       = [Environment]::GetEnvironmentVariable('PCAI_REDIS_PORT', 'Process')
         PCAI_REDIS_KEY_PREFIX = [Environment]::GetEnvironmentVariable('PCAI_REDIS_KEY_PREFIX', 'Process')
+        PCAI_REDIS_TIMEOUT_MS = [Environment]::GetEnvironmentVariable('PCAI_REDIS_TIMEOUT_MS', 'Process')
     }
+    $env:PCAI_CACHE_PROVIDER = 'memory'
+    if (-not $CacheSourcePath) {
+        Import-Module $script:CommonModulePath -Force | Out-Null
+    }
+    $helperPath = if ($CacheSourcePath) { $CacheSourcePath } else {
+        Join-Path $script:ProjectRoot 'Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1'
+    }
+    . $helperPath
+    $script:OwnedRedisPrefix = 'pcai-unit-owned-' + [guid]::NewGuid().ToString('N') + ':'
 
     function Restore-CacheEnv {
         foreach ($entry in $script:OriginalCacheEnv.GetEnumerator()) {
@@ -30,31 +35,40 @@ BeforeAll {
     }
 
     $script:DetectedRedisCliPath = $null
-    foreach ($candidate in @(
-        'C:\Program Files\Redis\redis-cli.exe',
-        'T:\projects\redis-windows\redis-cli.exe',
-        (Join-Path $env:USERPROFILE 'bin\redis-cli.exe')
-    )) {
-        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
-            $script:DetectedRedisCliPath = $candidate
-            break
+    if ($EnableRedisIntegration -and -not $SkipRedisProbe) {
+        $fixtureHome = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)
+        foreach ($candidate in @(
+            'C:\Program Files\Redis\redis-cli.exe',
+            'T:\projects\redis-windows\redis-cli.exe',
+            (Join-Path $fixtureHome 'bin\redis-cli.exe')
+        )) {
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $script:DetectedRedisCliPath = $candidate
+                break
+            }
         }
-    }
-
-    if (-not $script:DetectedRedisCliPath) {
-        $redisCliCommand = Get-Command redis-cli.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($redisCliCommand -and $redisCliCommand.Path) {
-            $script:DetectedRedisCliPath = $redisCliCommand.Path
+        if (-not $script:DetectedRedisCliPath) {
+            $redisCliCommand = Get-Command redis-cli.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($redisCliCommand -and $redisCliCommand.Path) {
+                $script:DetectedRedisCliPath = $redisCliCommand.Path
+            }
         }
     }
 
     $script:RedisAvailable = $false
-    if ($script:DetectedRedisCliPath -and -not $SkipRedisProbe) {
+    if ($EnableRedisIntegration -and $script:DetectedRedisCliPath -and -not $SkipRedisProbe) {
         try {
-            $probe = & $script:DetectedRedisCliPath -h 127.0.0.1 -p 6380 --raw PING 2>$null
-            $script:RedisAvailable = ($LASTEXITCODE -eq 0 -and ([string]$probe).Trim() -eq 'PONG')
+            $env:PCAI_CACHE_PROVIDER = 'redis'
+            $env:PCAI_REDIS_CLI_PATH = $script:DetectedRedisCliPath
+            $env:PCAI_REDIS_HOST = 'localhost'
+            $env:PCAI_REDIS_PORT = '6380'
+            $env:PCAI_REDIS_KEY_PREFIX = $script:OwnedRedisPrefix
+            $env:PCAI_REDIS_TIMEOUT_MS = '1200'
+            $script:RedisAvailable = (Get-PcaiExternalCacheStatus -Refresh).Available
         } catch {
             $script:RedisAvailable = $false
+        } finally {
+            $env:PCAI_CACHE_PROVIDER = 'memory'
         }
     }
 }
@@ -201,9 +215,7 @@ AfterAll {
 
 Describe 'PcaiSharedCache' -Tag 'Unit', 'Cache', 'Acceleration', 'Portable' {
     BeforeEach {
-        foreach ($entry in $script:OriginalCacheEnv.GetEnumerator()) {
-            [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process')
-        }
+        $env:PCAI_CACHE_PROVIDER = 'memory'
         Clear-PcaiSharedCache
     }
 
@@ -267,7 +279,10 @@ Describe 'PcaiSharedCache' -Tag 'Unit', 'Cache', 'Acceleration', 'Portable' {
 
         [Environment]::SetEnvironmentVariable('PCAI_CACHE_PROVIDER', 'redis', 'Process')
         [Environment]::SetEnvironmentVariable('PCAI_REDIS_CLI_PATH', $script:DetectedRedisCliPath, 'Process')
+        [Environment]::SetEnvironmentVariable('PCAI_REDIS_HOST', 'localhost', 'Process')
         [Environment]::SetEnvironmentVariable('PCAI_REDIS_PORT', '6380', 'Process')
+        [Environment]::SetEnvironmentVariable('PCAI_REDIS_KEY_PREFIX', $script:OwnedRedisPrefix, 'Process')
+        [Environment]::SetEnvironmentVariable('PCAI_REDIS_TIMEOUT_MS', '1200', 'Process')
 
         $namespace = 'pcai-unit-redis'
         $key = 'roundtrip'
@@ -276,16 +291,157 @@ Describe 'PcaiSharedCache' -Tag 'Unit', 'Cache', 'Acceleration', 'Portable' {
             Count = 42
         }
 
-        Clear-PcaiSharedCache -Namespace $namespace
-        Set-PcaiSharedCacheEntry -Namespace $namespace -Key $key -Value $value -DependencyStamp 'stamp-redis' -TtlSeconds 30 | Out-Null
-        $global:PcaiSharedCache.Entries.Clear()
+        try {
+            Set-PcaiSharedCacheEntry -Namespace $namespace -Key $key -Value $value -DependencyStamp 'stamp-redis' -TtlSeconds 30 | Out-Null
+            $global:PcaiSharedCache.Entries.Clear()
+            $restored = Get-PcaiSharedCacheEntry -Namespace $namespace -Key $key -TtlSeconds 30 -DependencyStamp 'stamp-redis'
+            $restored | Should -Not -BeNullOrEmpty
+            $restored.Name | Should -Be 'redis-hit'
+            $restored.Count | Should -Be 42
+        } finally {
+            Clear-PcaiSharedCache -Namespace $namespace
+            $env:PCAI_CACHE_PROVIDER = 'memory'
+        }
+    }
+}
 
-        $restored = Get-PcaiSharedCacheEntry -Namespace $namespace -Key $key -TtlSeconds 30 -DependencyStamp 'stamp-redis'
+Describe 'PcaiSharedCache expiry and lossless value contracts' -Tag 'Unit', 'Cache', 'CacheCorrectness', 'Portable' {
+    BeforeEach {
+        Set-StrictMode -Version Latest
+        $env:PCAI_CACHE_PROVIDER = 'memory'
+        Clear-PcaiSharedCache
+    }
 
-        $restored | Should -Not -BeNullOrEmpty
-        $restored.Name | Should -Be 'redis-hit'
-        $restored.Count | Should -Be 42
+    # Protects: Empty and singleton collections retain the caller's data shape.
+    # Detects: Pipeline enumeration collapsing empty arrays to null or one value.
+    # Needs: Real memory cache; no provider, compiler, or native process.
+    # Breadcrumb: Copy-PcaiCacheValue and public cache return boundaries.
+    It 'retains an array with <Count> members on both set and get' -TestCases @(
+        @{ Count = 0 }
+        @{ Count = 1 }
+        @{ Count = 2 }
+    ) {
+        param($Count)
+        $value = [object[]]::new($Count)
+        for ($i = 0; $i -lt $Count; $i++) { $value[$i] = 'item-' + $i }
+        $returned = Set-PcaiSharedCacheEntry -Namespace 'shape' -Key 'array' -Value $value
+        $returned -is [array] | Should -BeTrue
+        $returned.Count | Should -Be $Count
+        $hit = Get-PcaiSharedCacheEntry -Namespace 'shape' -Key 'array'
+        $hit -is [array] | Should -BeTrue
+        $hit.Count | Should -Be $Count
+        for ($i = 0; $i -lt $Count; $i++) { $hit[$i] | Should -Be ('item-' + $i) }
+    }
 
-        Clear-PcaiSharedCache -Namespace $namespace
+    # Protects: Nested arrays, null slots and mutable values round-trip losslessly.
+    # Detects: Flattening nested arrays or sharing input/output references.
+    # Needs: Actual clone and public memory cache paths with nested dictionaries.
+    # Breadcrumb: Copy-PcaiCacheValue IEnumerable and dictionary recursion.
+    It 'preserves nested empty arrays and null slots while detaching mutable values' {
+        $value = [object[]]::new(4)
+        $value[0] = [object[]]@()
+        $value[1] = [object[]]@('one')
+        $value[2] = $null
+        $value[3] = @{ State = 'original'; Children = [object[]]@('child') }
+        Set-PcaiSharedCacheEntry -Namespace 'shape' -Key 'nested' -Value $value | Out-Null
+        $value[1][0] = 'input-mutated'
+        $value[3].State = 'input-mutated'
+        $hit = Get-PcaiSharedCacheEntry -Namespace 'shape' -Key 'nested'
+        $hit.Count | Should -Be 4
+        $hit[0] -is [array] | Should -BeTrue
+        $hit[0].Count | Should -Be 0
+        $hit[1] -is [array] | Should -BeTrue
+        $hit[1].Count | Should -Be 1
+        $hit[1][0] | Should -Be 'one'
+        $hit[2] | Should -Be $null
+        $hit[3].State | Should -Be 'original'
+        $hit[3].Children[0] = 'output-mutated'
+        (Get-PcaiSharedCacheEntry -Namespace 'shape' -Key 'nested')[3].Children[0] | Should -Be 'child'
+    }
+
+    # Protects: A setter's expiry cannot be extended by the reader.
+    # Detects: TTL stored only in Redis or ignored by a default/longer read.
+    # Needs: Actual one-second memory expiry; bounded sleep instead of record edits.
+    # Breadcrumb: Set-PcaiSharedCacheEntry local TTL and Get expiry handling.
+    It 'honors setter expiry for <Mode> reads' -TestCases @(
+        @{ Mode = 'default'; GetterTtl = 0 }
+        @{ Mode = 'longer'; GetterTtl = 60 }
+    ) {
+        param($Mode, $GetterTtl)
+        Set-PcaiSharedCacheEntry -Namespace 'expiry' -Key 'setter' -Value 'stale' -TtlSeconds 1 | Out-Null
+        Start-Sleep -Milliseconds 1150
+        Get-PcaiSharedCacheEntry -Namespace 'expiry' -Key 'setter' -TtlSeconds $GetterTtl | Should -Be $null
+    }
+
+    # Protects: An omitted dependency stamp imposes no empty-stamp requirement.
+    # Detects: Public forwarding turns omission into a bound empty stamp.
+    # Needs: Real payload/parser/cache with only Redis transport/status mocked.
+    # Breadcrumb: Get-PcaiSharedCacheEntry external parameter forwarding.
+    It 'hydrates a stamped external value when the getter omits its stamp' {
+        Mock Get-PcaiExternalCacheStatus { [pscustomobject]@{ Enabled = $true; Available = $true } }
+        Mock Get-PcaiExternalCacheConfig { [pscustomobject]@{ KeyPrefix = 'owned:' } }
+        Mock Invoke-PcaiRedisCli {
+            param($Config, $Arguments)
+            [pscustomobject]@{ Success = $true; StdOut = '{"Value":"hydrated","DependencyStamp":"stamp-a","CreatedUtc":"2020-01-01T00:00:00Z"}' }
+        }
+        Get-PcaiSharedCacheEntry -Namespace 'external' -Key 'omitted' | Should -Be 'hydrated'
+        Should -Invoke Invoke-PcaiRedisCli -Times 0 -Exactly -ParameterFilter { $Arguments[0] -eq 'DEL' }
+    }
+
+    # Protects: A validation miss cannot delete a concurrent writer's value.
+    # Detects: GET followed by unconditional DEL after a stamp mismatch.
+    # Needs: Complete validator; deterministic transport collaborator only.
+    # Breadcrumb: Get-PcaiExternalCacheEntryRecord mismatch handling.
+    It 'rejects an explicit stamp mismatch without deleting external data' {
+        Mock Get-PcaiExternalCacheStatus { [pscustomobject]@{ Enabled = $true; Available = $true } }
+        Mock Get-PcaiExternalCacheConfig { [pscustomobject]@{ KeyPrefix = 'owned:' } }
+        Mock Invoke-PcaiRedisCli {
+            param($Config, $Arguments)
+            [pscustomobject]@{ Success = $true; StdOut = '{"Value":"observed-old","DependencyStamp":"old","CreatedUtc":"2020-01-01T00:00:00Z"}' }
+        }
+        Get-PcaiSharedCacheEntry -Namespace 'external' -Key 'changed' -DependencyStamp '' | Should -Be $null
+        Should -Invoke Invoke-PcaiRedisCli -Times 0 -Exactly -ParameterFilter { $Arguments[0] -eq 'DEL' }
+    }
+
+    # Protects: External records cannot repopulate expired local values.
+    # Detects: Ignoring setter expiry encoded in an external payload.
+    # Needs: Complete payload parser/validator; only Redis transport mocked.
+    # Breadcrumb: ConvertFrom-PcaiExternalCachePayload and external expiry checks.
+    It 'rejects an external record whose stored expiry has passed' {
+        Mock Get-PcaiExternalCacheStatus { [pscustomobject]@{ Enabled = $true; Available = $true } }
+        Mock Get-PcaiExternalCacheConfig { [pscustomobject]@{ KeyPrefix = 'owned:' } }
+        Mock Invoke-PcaiRedisCli {
+            param($Config, $Arguments)
+            [pscustomobject]@{ Success = $true; StdOut = '{"Value":"stale","DependencyStamp":"","CreatedUtc":"2020-01-01T00:00:00Z","ExpiresUtc":"2020-01-01T00:00:01Z"}' }
+        }
+        Get-PcaiSharedCacheEntry -Namespace 'external' -Key 'expired' | Should -Be $null
+        Should -Invoke Invoke-PcaiRedisCli -Times 0 -Exactly -ParameterFilter { $Arguments[0] -eq 'DEL' }
+    }
+
+    # Protects: Hydrated values retain external setter expiry if Redis disappears.
+    # Detects: Local hydration turning a finite external record into a permanent hit.
+    # Needs: Actual parser and local cache; mocked transport unavailable after hydration.
+    # Breadcrumb: Get-PcaiSharedCacheEntry hydration and local expiry handling.
+    It 'retains external expiry locally when the provider becomes unavailable' {
+        $script:ExpiryPayload = @{
+            Value = 'finite'
+            DependencyStamp = 'stamp-a'
+        }
+        $script:ExternalAvailable = $true
+        Mock Get-PcaiExternalCacheStatus { [pscustomobject]@{ Enabled = $true; Available = $script:ExternalAvailable } }
+        Mock Get-PcaiExternalCacheConfig { [pscustomobject]@{ KeyPrefix = 'owned:' } }
+        Mock Invoke-PcaiRedisCli {
+            param($Config, $Arguments)
+            $script:HydratedExpiresUtc = [datetime]::UtcNow.AddSeconds(1)
+            $script:ExpiryPayload.CreatedUtc = [datetime]::UtcNow.AddSeconds(-1).ToString('o')
+            $script:ExpiryPayload.ExpiresUtc = $script:HydratedExpiresUtc.ToString('o')
+            [pscustomobject]@{ Success = $true; StdOut = ($script:ExpiryPayload | ConvertTo-Json -Compress) }
+        }
+        Get-PcaiSharedCacheEntry -Namespace 'external' -Key 'finite' -DependencyStamp 'stamp-a' | Should -Be 'finite'
+        $script:ExternalAvailable = $false
+        $remainingMs = [Math]::Max(0, [Math]::Ceiling(($script:HydratedExpiresUtc - [datetime]::UtcNow).TotalMilliseconds))
+        Start-Sleep -Milliseconds ([int]$remainingMs + 50)
+        Get-PcaiSharedCacheEntry -Namespace 'external' -Key 'finite' | Should -Be $null
+        Should -Invoke Invoke-PcaiRedisCli -Times 1 -Exactly -ParameterFilter { $Arguments[0] -eq 'GET' }
     }
 }

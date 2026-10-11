@@ -1,6 +1,42 @@
 # Shared-cache correctness review
 
-Reviewed October 10, 2026 UTC. Owner: Codex integration lane.
+Reviewed October 11, 2026, 13:22 UTC. Owner: Codex integration lane.
+
+## Current corrective validation
+
+The earlier review below retains its predecessor scope. Additional controls
+against that unchanged helper pass12, fail9 and skip the live Redis case.
+Current source repairs array shape and supported mutable copies, setter expiry
+across local/external hydration, and stale external reads that could delete a
+newer writer's record. Invalid reads now miss without deletion. Legacy entries
+without expiry retain their earlier age semantics; arbitrary mutable CLR
+objects and cyclic graphs are not qualified.
+
+The public unit suite now expands to22 cases:21 pass, none fail and one live
+Redis case is explicitly skipped. Ordinary fixtures force memory before import
+and restore six process environment values. Live Redis requires explicit
+`EnableRedisIntegration`, bounded probing and its own GUID key prefix; the
+tests do not clear ambient keys. Production JSON decoding, cloning, expiry and
+getter behavior execute directly; external transport/status alone are mocked.
+
+Root actual evidence is `.pcai/integration/cache-correctness-root-actual-r1/`;
+distinct source/test review is
+`.pcai/integration/cache-correctness-regression-tests-peer-r2/`. A failed initial
+positive container and the nine detecting predecessor failures remain retained.
+Current ProcessCapture registers and the portable independent
+`Tests/ProcessCapture/source-review.json` bind these22 controls. Current Carbon
+qualification passed18 process-capture controls and21 full-module cache cases
+with one explicit Redis skip; independent review accepts source ancestry,
+physical XML identities and Root-attributed original resource closure. See
+`.pcai/integration/maintained-current-cache-execution-actual-peer-r2/review.json`.
+The first wrapper's separator admission failure and reviewed-source miss remain
+preserved separately; that failure occurred before the canonical cache suite.
+
+These are correctness results. No equivalent-semantics speedup, live Redis,
+fleet deployment or new current-head CI acceptance is claimed. Published b1cc1
+CI passes2,809 tests with40 skips but fails the unchanged85% floor at65.271716%.
+
+## Earlier namespace and dependency repair
 
 Four cache defects broke reuse or crossed namespace boundaries. Directory dependencies
 read a nonexistent `Length` property under StrictMode. A dictionary value named `Keys`

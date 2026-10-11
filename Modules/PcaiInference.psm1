@@ -149,105 +149,289 @@ function Resolve-PcaiRuntimeVariantDll {
         [Parameter(Mandatory)][string]$ProjectRoot
     )
 
-    if (-not $Config -or -not $Config.nativeInference -or -not $Config.nativeInference.runtimeBinarySelection) {
+    $pending = Get-Variable -Name PcaiRuntimeVariantUnresolved -Scope Script -ErrorAction SilentlyContinue
+    if ($null -ne $pending -and $pending.Value.Count -gt 0) { throw 'Runtime activation has retained unresolved resources; original-object recovery is required.' }
+    function Save-RuntimeUnresolved($State, $Cause) {
+        $existing = Get-Variable -Name PcaiRuntimeVariantUnresolved -Scope Script -ErrorAction SilentlyContinue
+        if ($null -eq $existing) {
+            Set-Variable -Name PcaiRuntimeVariantUnresolved -Scope Script -Value ([Collections.Generic.List[object]]::new())
+        }
+        $script:PcaiRuntimeVariantUnresolved.Add($State)
+        $Cause.Exception.Data['RuntimeActivationUnresolved'] = $true
+    }
+    function Get-RuntimeOptionalValue($Value, [string]$Name) {
+        if ($null -eq $Value) { return $null }
+        if ($Value -is [Collections.IDictionary]) {
+            $matchingKeys = @(foreach ($key in $Value.PSBase.Keys) {
+                if ($key -is [string] -and [string]::Equals($key, $Name, [StringComparison]::OrdinalIgnoreCase)) { $key }
+            })
+            if ($matchingKeys.Count -gt 1) { throw "Ambiguous runtime configuration key: $Name" }
+            if ($matchingKeys.Count -eq 1) { return ,$Value[$matchingKeys[0]] }
+            return $null
+        }
+        $property = $Value.PSObject.Properties[$Name]
+        if ($null -ne $property) { return ,$property.Value }
         return $null
     }
-
-    $selector = $Config.nativeInference.runtimeBinarySelection
-    if (-not $selector.enabled -or -not $selector.variants) {
-        return $null
-    }
-
-    $capability = Get-PcaiCudaCapability
-    $variants = @($selector.variants)
-
-    $ranked = @()
-    foreach ($v in $variants) {
-        if (-not $v -or -not $v.dllPath) { continue }
-        $kind = if ($v.kind) { [string]$v.kind } else { 'cpu' }
-        $minCompute = if ($null -ne $v.minCompute) { [int]$v.minCompute } else { -1 }
-        $maxCompute = if ($null -ne $v.maxCompute) { [int]$v.maxCompute } else { 9999 }
-        $isEligible = $true
-
-        if ($kind -eq 'cuda') {
-            if ($null -eq $capability) { $isEligible = $false }
-            elseif ($capability -lt $minCompute -or $capability -gt $maxCompute) { $isEligible = $false }
+    function Assert-RuntimeOrdinaryPath([string]$Path, [bool]$RequireLeaf = $false) {
+        $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+        if ($RequireLeaf -and ($null -eq $item -or $item -isnot [IO.FileInfo])) { throw "Runtime DLL is not a file: $Path" }
+        $ancestor = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($Path))
+        while ($null -eq $item -and $ancestor) {
+            $item = Get-Item -LiteralPath $ancestor -Force -ErrorAction SilentlyContinue
+            $ancestor = [IO.Path]::GetDirectoryName($ancestor)
         }
-
-        if ($isEligible) {
-            $rank = if ($kind -eq 'cuda') { 1000 + $minCompute } else { $minCompute }
-            $ranked += [PSCustomObject]@{
-                Rank = $rank
-                Variant = $v
-            }
+        while ($null -ne $item) {
+            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "Runtime path contains a reparse point: $Path" }
+            $item = if ($item -is [IO.FileInfo]) { $item.Directory } else { $item.Parent }
         }
     }
-
-    if (-not $ranked) { return $null }
-
-    $ordered = $ranked | Sort-Object -Property Rank -Descending
-    foreach ($entry in $ordered) {
-        $selected = $entry.Variant
-        $path = [string]$selected.dllPath
-        if (-not [System.IO.Path]::IsPathRooted($path)) {
-            $path = Join-Path $ProjectRoot $path
-        }
-
-        if (-not (Test-Path $path) -and $selector.autoDownload -and $selected.url) {
-            try {
-                $dir = Split-Path $path -Parent
-                if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-                Write-Verbose "Downloading precompiled runtime variant: $($selected.url)"
-                Invoke-WebRequest -Uri ([string]$selected.url) -OutFile $path -UseBasicParsing -TimeoutSec 600
-
-                if ($selected.sha256) {
-                    Write-Verbose "Verifying SHA256 hash against expected: $($selected.sha256)"
-                    $sha = [System.Security.Cryptography.SHA256]::Create()
-                    $stream = $null
-                    try {
-                        $stream = [System.IO.File]::OpenRead($path)
-                        $hashBytes = $sha.ComputeHash($stream)
-                        $computedHash = [BitConverter]::ToString($hashBytes).Replace('-', '').ToLowerInvariant()
-                        $expectedHash = [string]$selected.sha256.ToLowerInvariant()
-                        if ($computedHash -ne $expectedHash) {
-                            $stream.Dispose()
-                            Remove-Item -Path $path -Force -ErrorAction SilentlyContinue
-                            throw "SHA256 hash mismatch! Expected: $expectedHash, Computed: $computedHash"
-                        }
-                    } finally {
-                        if ($stream) { $stream.Dispose() }
-                        if ($sha) { $sha.Dispose() }
-                    }
-                } else {
-                    Write-Warning "No sha256 hash provided for variant '$($selected.name)'. Download proceeding without verification."
-                }
-            } catch {
-                Write-Warning "Failed to download runtime variant from $($selected.url): $_"
+    function Get-RuntimeStreamHash([IO.Stream]$Stream) {
+        $Stream.Position = 0
+        $algorithm = [Security.Cryptography.SHA256]::Create()
+        $hashFailure = $null
+        $hash = $null
+        try { $hash = [Convert]::ToHexString($algorithm.ComputeHash($Stream)) }
+        catch { $hashFailure = $_ }
+        finally {
+            try { $algorithm.Dispose() } catch {
+                $disposeFailure = $_
+                if ($null -eq $hashFailure) { $hashFailure = $disposeFailure }
+                Save-RuntimeUnresolved -State ([pscustomobject]@{Kind='HashAlgorithm'; Original=$algorithm; FirstFailure=$hashFailure; DisposeFailure=$disposeFailure}) -Cause $hashFailure
             }
         }
-
-        if (-not (Test-Path $path)) {
-            continue
-        }
-
-        # Activate the selected variant by staging it to the canonical bin location
-        # used by both PowerShell and PcaiNative resolver paths.
+        if ($null -ne $hashFailure) { throw $hashFailure }
+        return $hash
+    }
+    function Install-RuntimePair([string]$SourcePath, [string]$ExpectedHash) {
+        $canonical = [IO.Path]::GetFullPath((Join-Path $ProjectRoot 'bin/pcai_inference.dll'))
+        $alias = [IO.Path]::GetFullPath((Join-Path $ProjectRoot 'bin/pcai_inference_lib.dll'))
+        $directory = [IO.Path]::GetDirectoryName($canonical)
+        Assert-RuntimeOrdinaryPath -Path $SourcePath -RequireLeaf $true
+        Assert-RuntimeOrdinaryPath -Path ([IO.Path]::GetDirectoryName($SourcePath))
+        Assert-RuntimeOrdinaryPath -Path $ProjectRoot
+        Assert-RuntimeOrdinaryPath -Path $directory
+        [void][IO.Directory]::CreateDirectory($directory)
+        $records = [Collections.Generic.List[object]]::new()
+        $ownedTemps = [Collections.Generic.List[string]]::new()
+        $secondary = [Collections.Generic.List[object]]::new()
+        $firstFailure = $null
+        $sourceStream = $null
+        $snapshotStream = $null
+        $sourceHandle = $null
+        $snapshotHandle = $null
+        $snapshotPath = Join-Path $directory ('.pcai-runtime-stage-' + [Guid]::NewGuid().ToString('N') + '.tmp')
+        $success = $false
         try {
-            $canonical = Join-Path $ProjectRoot 'bin\pcai_inference.dll'
-            $canonicalDir = Split-Path $canonical -Parent
-            if (-not (Test-Path $canonicalDir)) { New-Item -ItemType Directory -Path $canonicalDir -Force | Out-Null }
-            if ((Resolve-Path $path).Path -ne (Resolve-Path $canonical -ErrorAction SilentlyContinue).Path) {
-                Copy-Item -Path $path -Destination $canonical -Force
-                $canonicalLib = Join-Path $ProjectRoot 'bin\pcai_inference_lib.dll'
-                Copy-Item -Path $path -Destination $canonicalLib -Force
+            # Verify the source first; acquire both destination locks before any mutation.
+            $sourceStream = [IO.File]::Open($SourcePath, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+            $sourceHandle = $sourceStream.SafeFileHandle
+            $sourceHash = Get-RuntimeStreamHash $sourceStream
+            if ($ExpectedHash -and $sourceHash -cne $ExpectedHash) { throw "SHA256 hash mismatch for runtime variant: $SourcePath" }
+            try {
+                $sourceStream.Dispose()
+                if (-not $sourceHandle.IsClosed) { throw 'Original source stream handle did not close.' }
+            } catch { $_.Exception.Data['RuntimeActivationSettlementFailure'] = $true; throw }
+            $sourceStream = $null
+
+            # Both existing destination locks are acquired before the first canonical mutation.
+            foreach ($destination in @($canonical, $alias)) {
+                Assert-RuntimeOrdinaryPath -Path $destination
+                $record = [pscustomobject]@{ Path=$destination; Stream=$null; Handle=$null; Existed=(Test-Path -LiteralPath $destination); Backup=$null; BackupHandle=$null; BackupPath=$null; OldHash=$null; Touched=$false; Closed=$false }
+                $records.Add($record)
+                if ($record.Existed) {
+                    Assert-RuntimeOrdinaryPath -Path $destination -RequireLeaf $true
+                    $record.Stream = [IO.File]::Open($destination, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+                    $record.Handle = $record.Stream.SafeFileHandle
+                }
             }
-            return (Resolve-Path $canonical).Path
+            foreach ($record in $records) {
+                if ($record.Existed) {
+                    $record.OldHash = Get-RuntimeStreamHash $record.Stream
+                    if ($record.Path.Equals([IO.Path]::GetFullPath($SourcePath), [StringComparison]::OrdinalIgnoreCase) -and $record.OldHash -cne $sourceHash) { throw 'Canonical source changed before destination lock.' }
+                }
+            }
+            # An already matching pair requires no temporary file, backup or destination write.
+            $needsActivation = @($records | Where-Object { -not $_.Existed -or $_.OldHash -cne $sourceHash }).Count -gt 0
+            if ($needsActivation) {
+                $snapshotStream = [IO.FileStream]::new($snapshotPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None, 4096, [IO.FileOptions]::DeleteOnClose)
+                $snapshotHandle = $snapshotStream.SafeFileHandle
+                $ownedTemps.Add($snapshotPath)
+                $sourceRecords = @($records | Where-Object { $_.Path.Equals([IO.Path]::GetFullPath($SourcePath), [StringComparison]::OrdinalIgnoreCase) })
+                if ($sourceRecords.Count -eq 1) { $snapshotSource = $sourceRecords[0].Stream }
+                else {
+                    $sourceStream = [IO.File]::Open($SourcePath, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+                    $sourceHandle = $sourceStream.SafeFileHandle
+                    $snapshotSource = $sourceStream
+                }
+                if ((Get-RuntimeStreamHash $snapshotSource) -cne $sourceHash) { throw 'Runtime source changed before staging.' }
+                $snapshotSource.Position = 0
+                $snapshotSource.CopyTo($snapshotStream)
+                $snapshotStream.Flush($true)
+                if ((Get-RuntimeStreamHash $snapshotStream) -cne $sourceHash) { throw 'Runtime source snapshot changed bytes.' }
+            foreach ($record in $records) {
+                if ($record.Existed) {
+                    if ($record.OldHash -ceq $sourceHash) { continue }
+                    $backupPath = Join-Path $directory ('.pcai-runtime-backup-' + [Guid]::NewGuid().ToString('N') + '.tmp')
+                    $record.BackupPath = $backupPath
+                    $record.Backup = [IO.File]::Open($backupPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+                    $record.BackupHandle = $record.Backup.SafeFileHandle
+                    $ownedTemps.Add($backupPath)
+                    $record.Stream.Position = 0
+                    $record.Stream.CopyTo($record.Backup)
+                    $record.Backup.Flush($true)
+                    if ((Get-RuntimeStreamHash $record.Backup) -cne $record.OldHash) { throw 'Runtime rollback snapshot changed bytes.' }
+                }
+            }
+            foreach ($record in $records) {
+                if (-not $record.Existed) {
+                    # CreateNew refuses a destination created by another writer after preflight.
+                    $record.Stream = [IO.File]::Open($record.Path, [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+                    $record.Handle = $record.Stream.SafeFileHandle
+                    $record.Touched = $true
+                }
+            }
+            foreach ($record in $records) {
+                if ($record.Existed -and $record.OldHash -ceq $sourceHash) { continue }
+                $record.Touched = $true
+                $record.Stream.Position = 0
+                $record.Stream.SetLength(0)
+                $snapshotStream.Position = 0
+                $snapshotStream.CopyTo($record.Stream)
+                $record.Stream.Flush($true)
+                if ((Get-RuntimeStreamHash $record.Stream) -cne $sourceHash) { throw 'Canonical runtime pair failed byte verification.' }
+            }
+            }
+            $success = $true
         } catch {
-            Write-Verbose "Failed to stage runtime variant to canonical bin path: $_"
-            return (Resolve-Path $path).Path
+            $firstFailure = $_
+            if (@($records | Where-Object Touched).Count) { $firstFailure.Exception.Data['RuntimeActivationMutated'] = $true }
+            foreach ($record in $records) {
+                if ($record.Existed -and $record.Touched -and $null -ne $record.Backup) {
+                    try {
+                        $record.Stream.Position = 0
+                        $record.Stream.SetLength(0)
+                        $record.Backup.Position = 0
+                        $record.Backup.CopyTo($record.Stream)
+                        $record.Stream.Flush($true)
+                        if ((Get-RuntimeStreamHash $record.Stream) -cne $record.OldHash) { throw 'Runtime rollback byte verification failed.' }
+                    } catch { $secondary.Add($_) }
+                }
+            }
+        } finally {
+            foreach ($resource in @([pscustomobject]@{Stream=$sourceStream;Handle=$sourceHandle}, [pscustomobject]@{Stream=$snapshotStream;Handle=$snapshotHandle})) {
+                if ($null -ne $resource.Stream) {
+                    try { $resource.Stream.Dispose(); if (-not $resource.Handle.IsClosed) { throw 'Original staging/source handle did not close.' } } catch { $secondary.Add($_) }
+                }
+            }
+            foreach ($record in $records) {
+                if ($null -ne $record.Backup) {
+                    try { $record.Backup.Dispose(); if (-not $record.BackupHandle.IsClosed) { throw 'Original backup handle did not close.' } } catch { $secondary.Add($_) }
+                }
+                if ($null -ne $record.Stream) {
+                    try { $record.Stream.Dispose(); $record.Closed = $record.Handle.IsClosed; if (-not $record.Closed) { throw 'Original destination handle did not close.' } } catch { $secondary.Add($_) }
+                }
+            }
+            $unqualifiedNewTargets = @($records | Where-Object { -not $success -and -not $_.Existed -and $_.Touched })
+            $unresolved = $secondary.Count -gt 0 -or $unqualifiedNewTargets.Count -gt 0 -or ($null -ne $firstFailure -and $firstFailure.Exception.Data.Contains('RuntimeActivationUnresolved'))
+            foreach ($record in $records) {
+                if ($null -ne $record.BackupPath) {
+                    try { Write-Verbose "Original runtime bytes retained for operator recovery: $($record.BackupPath)" }
+                    catch { $secondary.Add($_); $unresolved = $true }
+                }
+            }
+            if ($unresolved) {
+                if ($null -eq $firstFailure) { $firstFailure = $secondary[0] }
+                Save-RuntimeUnresolved -State ([pscustomobject]@{
+                    Kind='PairActivation'; Source=$sourceStream; SourceHandle=$sourceHandle; Snapshot=$snapshotStream; SnapshotHandle=$snapshotHandle
+                    Records=$records; RetainedTemporaryPaths=$ownedTemps; UnqualifiedNewTargets=$unqualifiedNewTargets
+                    FirstFailure=$firstFailure; SecondaryFailures=$secondary
+                }) -Cause $firstFailure
+            }
         }
+        if ($null -ne $firstFailure) {
+            if ($secondary.Count) { $firstFailure.Exception.Data['RuntimePairSecondaryErrors'] = @($secondary | ForEach-Object { $_.Exception.Message }) }
+            throw $firstFailure
+        }
+        if ($secondary.Count) { throw $secondary[0] }
+        return $canonical
     }
 
+    $native = Get-RuntimeOptionalValue $Config 'nativeInference'
+    $selector = Get-RuntimeOptionalValue $native 'runtimeBinarySelection'
+    $variantValues = Get-RuntimeOptionalValue $selector 'variants'
+    if (-not (Get-RuntimeOptionalValue $selector 'enabled') -or $null -eq $variantValues -or @($variantValues).Count -eq 0) { return $null }
+    $capability = Get-PcaiCudaCapability
+    $ranked = @()
+    foreach ($variant in @($variantValues)) {
+        $dllPath = Get-RuntimeOptionalValue $variant 'dllPath'
+        if (-not $dllPath) { continue }
+        $kindValue = Get-RuntimeOptionalValue $variant 'kind'
+        $kind = if ($kindValue) { [string]$kindValue } else { 'cpu' }
+        $minimum = Get-RuntimeOptionalValue $variant 'minCompute'
+        $maximum = Get-RuntimeOptionalValue $variant 'maxCompute'
+        $minCompute = if ($null -ne $minimum) { [int]$minimum } else { -1 }
+        $maxCompute = if ($null -ne $maximum) { [int]$maximum } else { 9999 }
+        if ($kind -eq 'cuda' -and ($null -eq $capability -or $capability -lt $minCompute -or $capability -gt $maxCompute)) { continue }
+        $ranked += [pscustomobject]@{ Rank= $(if ($kind -eq 'cuda') { 1000 + $minCompute } else { $minCompute }); Variant=$variant }
+    }
+    $firstRefusal = $null
+    foreach ($entry in @($ranked | Sort-Object -Property Rank -Descending)) {
+        $selected = $entry.Variant
+        $path = [string](Get-RuntimeOptionalValue $selected 'dllPath')
+        if (-not [IO.Path]::IsPathRooted($path)) { $path = Join-Path $ProjectRoot $path }
+        $path = [IO.Path]::GetFullPath($path)
+        $downloadTemp = $null
+        $reservation = $null
+        $reservationHandle = $null
+        $stopActivation = $false
+        try {
+            $digest = Get-RuntimeOptionalValue $selected 'sha256'
+            $expectedHash = $null
+            if ($null -ne $digest -and -not ($digest -is [string] -and $digest.Length -eq 0)) {
+                if ($digest -isnot [string] -or $digest -cnotmatch '^[0-9a-fA-F]{64}$') { throw 'Runtime variant sha256 must contain exactly 64 hexadecimal characters.' }
+                $expectedHash = $digest.ToUpperInvariant()
+            }
+            Assert-RuntimeOrdinaryPath -Path $path
+            if (-not (Test-Path -LiteralPath $path)) {
+                $url = Get-RuntimeOptionalValue $selected 'url'
+                if (-not (Get-RuntimeOptionalValue $selector 'autoDownload') -or -not $url) { continue }
+                $directory = [IO.Path]::GetDirectoryName($path)
+                Assert-RuntimeOrdinaryPath -Path $directory
+                Assert-RuntimeOrdinaryPath -Path $ProjectRoot
+                [void][IO.Directory]::CreateDirectory($directory)
+                $downloadTemp = Join-Path $directory ('.pcai-runtime-download-' + [Guid]::NewGuid().ToString('N') + '.tmp')
+                # Reserve only our fresh ordinary file. Transport failure never publishes its prefix.
+                $reservation = [IO.File]::Open($downloadTemp, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+                $reservationHandle = $reservation.SafeFileHandle
+                $reservation.Dispose()
+                if (-not $reservationHandle.IsClosed) { throw 'Original download reservation did not close.' }
+                Invoke-WebRequest -Uri ([string]$url) -OutFile $downloadTemp -UseBasicParsing -TimeoutSec 600 -ErrorAction Stop | Out-Null
+                Assert-RuntimeOrdinaryPath -Path $downloadTemp -RequireLeaf $true
+                $downloadHash = (Get-FileHash -LiteralPath $downloadTemp -Algorithm SHA256 -ErrorAction Stop).Hash
+                if ($expectedHash -and $downloadHash -cne $expectedHash) { throw 'SHA256 hash mismatch for downloaded runtime variant.' }
+                if (-not $expectedHash) { Write-Warning "No sha256 hash provided for variant '$(Get-RuntimeOptionalValue $selected 'name')'. Download proceeding without verification." }
+                [IO.File]::Move($downloadTemp, $path, $false)
+                $downloadTemp = $null
+            }
+            Assert-RuntimeOrdinaryPath -Path $path -RequireLeaf $true
+            return Install-RuntimePair -SourcePath $path -ExpectedHash $expectedHash
+        } catch {
+            if ($null -eq $firstRefusal) { $firstRefusal = $_ }
+            if ($_.Exception.Data.Contains('RuntimeActivationUnresolved') -or $_.Exception.Data.Contains('RuntimeActivationMutated') -or $_.Exception.Data.Contains('RuntimeActivationSettlementFailure')) { $stopActivation = $true }
+            try { Write-Verbose "Runtime variant refused: $($_.Exception.Message)" }
+            catch { $firstRefusal.Exception.Data['RuntimeVariantDiagnosticError'] = $_.Exception.Message; $stopActivation = $true }
+        } finally {
+            if ($null -ne $downloadTemp) {
+                # Transport owns its write lifetime; never delete a released path by guess.
+                Save-RuntimeUnresolved -State ([pscustomobject]@{Kind='UnqualifiedDownload'; Path=$downloadTemp; Reservation=$reservation; ReservationHandle=$reservationHandle; Reason='Transport or publication did not complete; retain partial/unqualified bytes.'; FirstFailure=$firstRefusal}) -Cause $firstRefusal
+                $stopActivation = $true
+            }
+        }
+        if ($stopActivation) { throw $firstRefusal }
+    }
+    # Integrity/staging refusal must not become ordinary canonical fallback in the caller.
+    if ($null -ne $firstRefusal) { throw $firstRefusal }
     return $null
 }
 
@@ -283,8 +467,16 @@ function Resolve-PcaiInferenceDll {
     }
 
     $candidates = @()
-    if ($config -and $config.nativeInference -and $config.nativeInference.dllSearchPaths) {
-        foreach ($path in $config.nativeInference.dllSearchPaths) {
+    $native = if ($null -eq $config) { $null } elseif ($config -is [Collections.IDictionary]) { $config['nativeInference'] } else {
+        $property = $config.PSObject.Properties['nativeInference']
+        if ($null -ne $property) { $property.Value }
+    }
+    $searchPaths = if ($null -eq $native) { $null } elseif ($native -is [Collections.IDictionary]) { $native['dllSearchPaths'] } else {
+        $property = $native.PSObject.Properties['dllSearchPaths']
+        if ($null -ne $property) { $property.Value }
+    }
+    if ($searchPaths) {
+        foreach ($path in $searchPaths) {
             if (-not $path) { continue }
             if ([System.IO.Path]::IsPathRooted($path)) {
                 $candidates += $path

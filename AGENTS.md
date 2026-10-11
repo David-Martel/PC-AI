@@ -297,6 +297,13 @@ HTTP requests and do not establish deployed consumer behavior or memory gains.
 
 Maintained fallback and dependency fixtures:
 
+- `Tests/Unit/PcaiRuntimeVariantIntegrity.Tests.ps1` exercises 25 controls
+  against complete runtime resolver functions with real owned file bytes:
+  digest validation, pair activation, retained rollback data, unresolved-resource
+  refusal and generic/ordered dictionary compatibility. Keep its explicit
+  collaborators and recovery evidence; it must not load a native DLL, query a
+  GPU or make HTTP requests. Passing these controls does not establish crash
+  atomicity, live inference or exceptional OS-disposal recovery.
 - `Tests/Unit/ProcessLassoSnapshot.Tests.ps1` exercises the complete fallback
   parser on literal UTF-8/UTF-16 files, empty/singleton lists and log records;
   only native-command discovery is suppressed.

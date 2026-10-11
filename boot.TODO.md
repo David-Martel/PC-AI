@@ -2,7 +2,7 @@
 
 ## Immediate dtm-p1gen7 responsiveness
 
-Current review: October 11, 2026, 01:42 UTC. See the latest
+Current review: October 11, 2026, 02:36 UTC. See the latest
 [fleet readback](Reports/fleet-integration-review.md) and
 [cache correctness review](Reports/shared-cache-correctness-review.md).
 
@@ -24,14 +24,23 @@ Current review: October 11, 2026, 01:42 UTC. See the latest
       independently verify three offline commands, exact outputs and original closure.
 - [ ] Qualify real Gitguard inventory parity, fallback and timings before installation.
 - [x] Verify eight tiny inventory controls, twelve descriptive measurements and
-      two existing-file positives; preserve full-repo junction refusal and leave
-      complete mixed-kind parity and production hook installation open.
+      two existing-file positives; verify the full 24-candidate/14-scope mixed-kind
+      repository parity successor and preserve the prior junction refusal.
+      Production hook installation and broader performance claims remain open.
 - [x] Reproduce the actual child coverage union from source-bound JSON and repair
       StrictMode summary-only callers; verify 35 controls without changing 85%.
-- [ ] Publish and independently reconstruct current-head parent/child coverage
-      artifacts; the latest 2,771-pass CI remains below target at 66.535470%.
-- [ ] Qualify the runtime DLL integrity successor and its 17 controls before
-      canonical adoption; retain rollback data and unresolved original resources.
+- [x] Publish and independently reconstruct head 908ac1a parent/child coverage
+      artifacts against all 239 exact committed module hashes. Its 2,771-pass CI
+      remains below target at 66.535470%; subsequent heads require fresh CI.
+- [x] Qualify and adopt the runtime DLL integrity repair: strict and ordinary
+      25-control runs pass; the prior dictionary implementation fails seven of
+      eight detecting controls. Adopted defaults plus 43 existing consumer
+      controls pass; rollback data and unresolved original resources are retained.
+- [ ] Qualify the Bitwarden public controller after repairing the demonstrated
+      duplicate-help alias and reference-parameter binding defects; preserve
+      the 2-pass/13-fail actual receipt and source packaging refusals.
+- [ ] Qualify metadata-write keeper sharing, exact security restoration and
+      current-parent reproduction before any MCP registration repair or deployment.
 - [ ] Prepare and verify the public media cache seed only after capacity admission;
       then perform actual locked offline resolution and complete cache inventory.
 - [ ] Execute the bounded poisoned-media-worker predecessor/candidate detectors,

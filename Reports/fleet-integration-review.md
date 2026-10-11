@@ -1,20 +1,24 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 11, 2026, 01:42 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 11, 2026, 02:36 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
 
-## Current acceptance and integration gaps (01:42 UTC)
+## Current acceptance and integration gaps (02:36 UTC)
 
-Published `1cf0f7e` passes 2,771 PowerShell cases with zero failures and 40 skips
-in [CI run 38100885773](https://github.com/David-Martel/PC-AI/actions/runs/38100885773).
+Published `908ac1a` passes 2,771 PowerShell cases with zero failures and 40 skips
+in [CI run 38102938733](https://github.com/David-Martel/PC-AI/actions/runs/38102938733).
 The unchanged 85% gate fails at 14,200/21,342 commands, 66.535470%, requiring
 3,941 additional covered commands at the same denominator. Raw JaCoCo has
 13,752 covered commands; 448 source-bound child hits contribute to the gate.
-The uploaded artifact does not include those child inventories, so this review
-cannot independently reconstruct their union. Rust Guidelines run `38100885725`
-is still in progress. PR 182 remains draft and unmerged.
+The uploaded artifact now includes the complete source-bound parent and child
+inventories. Root and an independent reviewer reproduce the exact command union
+against all 239 module hashes from CI's exact merge commit, without substituting
+local CRLF files. The same denominator requires 3,941 additional hits to reach
+85%; no threshold or denominator was reduced. Rust Guidelines run `38102938734`
+has completed successfully. PR 182 remains draft and unmerged. The adopted change below
+requires its own current-head CI after publication.
 
 The workflow now captures source hashes before measurement and uploads the full
 parent command snapshot and result-bearing child receipts before enforcing the
@@ -30,26 +34,66 @@ module coverage, a published-head CI pass or a reduced target.
 
 Gitguard native inventory passes eight tiny controls and twelve descriptive
 ABBA measurements: native median 187 ms, legacy median 3,062.5 ms. The separate
-real-repository attempt passes two existing-file positive controls, then refuses
-an existing reserved-name junction before legacy comparison. Native inventory
-intentionally emits such candidates; the qualification snapshot accepts only
-regular files. All original processes close normally, but complete candidate
-preservation and repository parity remain unproven. The failed result is preserved
+first real-repository attempt passes two existing-file positive controls, then
+refuses an existing reserved-name junction before legacy comparison. Its corrected
+successor preserves regular file bytes, directory metadata and raw reparse target
+metadata without following the target. It passes both positives and the full
+24-candidate/14-scope repository comparison with every original operation closed;
+the outer run takes 65.859 seconds. An independent reviewer verifies the exact
+candidate inventories and preservation. The prior failed result is preserved
 in `D:/pcai-relocation/gitguard-windows-inventory-repository-qualification-actual-r1/`
 and independently reviewed under the corresponding actual-peer namespace.
-No new hook is installed; tiny timings establish no whole-repository speedup.
+The successful successor is in the corresponding `actual-r2` directory. No new
+hook is installed; tiny timings establish no whole-repository speedup.
 
 Runtime DLL selectors reproduce integrity and alias-coordination failures:
 the 16-case predecessor has strict 7 passes/9 failures and ordinary 8 passes/8
 failures, without skips or source drift. The first private repair was blocked
 before execution because failed rollback could lose backups, path deletion could
 race a replacement, later variants could hide settlement failure, resource/error
-custody was incomplete, and empty variants added GPU-discovery overhead. R2 is a
-source-only successor with retained recovery data and a seventeenth compatibility
-control; its tests and shared isolation remain unexecuted. Its extra generic
-dictionary branch still has a detected overload-binding defect and remains on
-source hold. The canonical module is unchanged. Native inference is currently disabled, so these are latent defects,
-not evidence that a live DLL was corrupted.
+custody was incomplete, and empty variants added GPU-discovery overhead. The
+reviewed repair retains recovery data, refuses unresolved resources before another
+activation, validates both file digests and handles generic/ordered dictionaries
+without the prior overload-binding defect. Eight new dictionary controls reproduce
+one pass/seven failures on R2. R3 passes all 25 controls in StrictMode and ordinary
+PowerShell, without skips or setup failures. Independent review binds all three
+XML results, 228 fixture pins and the original closed process. The exact proposed
+module and tests are adopted; a separate run using the canonical default path
+passes 25 integrity controls and all 43 existing inference consumer tests. These
+are file and software contracts; live native inference, GPU behavior, crash
+atomicity and exceptional OS-disposal recovery remain unqualified. Native
+inference is currently disabled, so the original defects were latent rather than
+evidence that a live DLL was corrupted.
+
+The first Bitwarden public-controller run completes with two passes and thirteen
+failures, with its original process, streams and writers closed. It exposes a
+duplicate `help` alias and object parameters that unwrap caller references before
+process allocation. Both are repaired in a private successor; exact parameter
+binding probes preserve the old failure and new reference identity. The real
+fifteen controls have not yet qualified that successor. Independent source review
+also catches duplicate external pins that would reject its enclosure before
+execution. A packaging-only successor validates unique physical pins and retains
+every control body; its real public run is in progress. The packaging failure
+and the original actual failures are preserved;
+no vault, credential or Bitwarden executable is run by these public controls.
+
+The metadata-writer probe initially fails at admission before allocating a child:
+its validator uses PowerShell's automatic `Input` variable as a parameter. The
+same complete function reproduces `ArgumentException: index`; renaming only that
+parameter and its references passes the inert metadata check. Three original
+read streams close, no native custody remains and all twelve native probes remain
+unexecuted. A minimal source successor retains their security and sharing
+assertions. This is a qualification-tool defect, not proof that ACL restoration
+works or permission to change the live MCP registration.
+
+The latest bounded workstation sample covers 60.121 seconds and twelve samples:
+median CPU 36.018%, median available RAM about 15.3 GiB, commitment 81.387%,
+disk latency median 0.063 ms/P95 1.021 ms and disk queue median zero/P95 one.
+Observer host CPU averages 1.171%. There is no sustained disk thrashing in this
+window; it does not establish lasting responsiveness or cause. Hard-fault counters,
+resident pagefile usage and process counts do not prove waste or active swapping.
+Raw evidence is `D:/pcai-relocation/p1-resource-live-r6/`; no useful agent priorities,
+memory trimming or live processes are changed by this observation.
 
 The media repair remains uncompiled and untested. A proposed 1,074-file public
 cache seed uses about 118 MB instead of copying over 27,000 cache leaves. Source
@@ -59,8 +103,10 @@ sample. Copy, archive-byte verification and actual locked offline resolution are
 still unexecuted. The seed is not an offline-qualified build cache; expanded-cache
 inventory and the unchanged build limits remain separate requirements.
 
-Milly's latest read-only storage receipt still shows approximately 580 GiB free
-internally and the migrated SSD at UAS 10 Gb/s. Storage migration is verified;
+Milly's fresh 02:10 UTC read-only storage check still shows approximately 580 GiB
+free internally, the migrated SSD at UAS 10 Gb/s and all five Btrfs device-error
+counters at zero. Shared NTFS free space and sparse-image free space are not
+additive. Storage migration is verified;
 additional study compression, cold boot, physical removal, Windows access and
 restore/application checks remain separate. Dtm-work access and credential
 adapter qualification remain open; the fresh ADB enumeration has no device.

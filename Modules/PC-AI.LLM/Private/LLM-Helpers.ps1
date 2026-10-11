@@ -19,7 +19,7 @@ function Resolve-PcaiEndpoint {
     )
 
     if (-not $ConfigPath) {
-        if (Get-Command Resolve-PcaiPath -ErrorAction SilentlyContinue) {
+        if ($ExecutionContext.SessionState.InvokeCommand.GetCommand('Resolve-PcaiPath', [System.Management.Automation.CommandTypes]::All)) {
             $ConfigPath = Resolve-PcaiPath -PathType 'HVSockConfig'
         }
     }

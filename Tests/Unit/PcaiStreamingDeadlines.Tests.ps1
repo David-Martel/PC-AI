@@ -6,7 +6,8 @@ BeforeAll {
     $tokens = $null
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($script:StreamingHelperPath, [ref]$tokens, [ref]$errors)
-    if ($errors.Count -ne 0 -or @($ast.EndBlock.Statements).Count -ne 23 -or @($ast.EndBlock.Statements | Where-Object { $_ -isnot [Management.Automation.Language.FunctionDefinitionAst] }).Count -ne 0) { throw 'Expected only the 23 canonical function declarations.' }
+    $top = @($ast.EndBlock.Statements)
+    if ($errors.Count -ne 0 -or $top.Count -ne 24 -or @($top | Where-Object { $_ -isnot [Management.Automation.Language.FunctionDefinitionAst] }).Count -ne 0 -or @(Compare-Object -ReferenceObject @('Resolve-PcaiEndpoint', 'Resolve-OllamaNativeCliPath', 'Invoke-OllamaNativeCli', 'Invoke-OllamaNativeChat', 'Get-PcaiNativeDashboardSnapshot', 'Get-EnrichedSystemPrompt', 'Invoke-ToolByName', 'Test-PcaiInferenceConnection', 'Test-OllamaConnection', 'Test-LMStudioConnection', 'Test-OpenAIConnection', 'Get-VLLMModelInfo', 'Get-VLLMMetricsSnapshot', 'Invoke-OpenAIChatWithProgress', 'Get-OllamaModels', 'Invoke-OllamaGenerate', 'Invoke-OllamaChat', 'Invoke-OllamaChatStream', 'Invoke-OpenAIChat', 'Invoke-OpenAIChatStream', 'Invoke-OpenAICompletionStream', 'Invoke-LLMChatWithFallback', 'Format-TokenCount', 'Get-ServiceStatus') -DifferenceObject @($top.Name) -CaseSensitive).Count -ne 0) { throw 'Expected only the 24 approved canonical function declarations.' }
     . $script:StreamingHelperPath
     $script:ModuleConfig = @{ DefaultTimeout = 7 }
     $script:StreamingOutcomes = [Collections.Generic.List[object]]::new()

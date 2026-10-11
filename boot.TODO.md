@@ -2,7 +2,7 @@
 
 ## Immediate dtm-p1gen7 responsiveness
 
-Current review: October 11, 2026, 00:34 UTC. See the latest
+Current review: October 11, 2026, 01:06 UTC. See the latest
 [fleet readback](Reports/fleet-integration-review.md) and
 [cache correctness review](Reports/shared-cache-correctness-review.md).
 
@@ -14,6 +14,8 @@ Current review: October 11, 2026, 00:34 UTC. See the latest
       prerequisite repair; verify one real Unicode read and original closure.
 - [ ] Qualify reversible new-session deployment with exact transaction/helper
       bindings and owned C:/D: controls before changing the registration.
+- [x] Repair declined NVIDIA coordinator actions and optional CUDA/registry
+      metadata; independently verify strict and ordinary 102-control runs.
 - [x] Repair the demonstrated Rust 1.99 winpath lint in a frozen successor;
       preserve the successor's remaining 86 winutils-core diagnostics.
 - [ ] Repair genuine ACL/registry defects and review dependency-version policy;

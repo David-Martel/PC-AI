@@ -1,9 +1,44 @@
 # PC-AI fleet integration review
 
-Evidence cutoff: October 11, 2026, 00:34 UTC. Owner: Codex integration lane. Live receipts and
+Evidence cutoff: October 11, 2026, 01:06 UTC. Owner: Codex integration lane. Live receipts and
 private build outputs remain under `.pcai/integration/`; private profile and hosts
 originals remain outside Git. This report records verified work and outstanding
 gates rather than declaring a fleet clean before those gates finish.
+
+## Follow-up software qualification (01:06 UTC)
+
+The NVIDIA coordinator now returns non-success after a declined download or
+backup, before reachability, staging or vendor delegation. Valid existing-file
+download-only and already-current no-op results remain successful. CUDA JSON
+discovery handles optional component/version fields under StrictMode; optional
+registry metadata preserves null values and supplied array shape. Strict and
+ordinary runs each pass 102 controls: 65 existing, 19 coordinator and 18 metadata.
+The unchanged predecessor fails seven coordinator and four metadata controls;
+an intermediate array-shape regression also remains preserved. Independent review
+is `.pcai/integration/nvidia-repairs-actual-peer-r2/review.json`. This is software
+contract acceptance; no vendor installation, hardware, performance or coverage
+acceptance follows from it.
+
+Private Coreutils candidate tests pass all twelve Windows correctness controls;
+the baseline reproduces three failures with one positive control. Root confirms
+unchanged fixture ACLs, no owned registry residue and closed original resources.
+Independent review is `.pcai/integration/coreutils-windows-correctness-actual-peer-r2/review.json`.
+Five compiler warnings and the earlier 86 Clippy diagnostics remain open. The
+canonical T: checkout and its fourteen foreign WIP files remain untouched.
+
+The protected metadata keeper probe passes two controls. Full writer qualification
+still fails after six passing rows: R3 loses the legacy fixture's inheritance flag
+during setup; R4 reproduces the exact setup but fails after actual replacement.
+Fixture-parent inheritance remains under investigation. Root withdrew an earlier
+supplementary descriptor read that used a missing shortened path without checking
+an invalid handle. A fresh valid-path/handle read confirms R3 retains eight ACEs;
+R4 has three after replacement. The correction and closed original resources are
+in `D:/pcai-relocation/p1-native-filesystem-writer-controls-root-failure-r4/root-global-closeout-r1.json`.
+The live MCP configuration and stable runtime remain unchanged.
+
+Published documentation head `bb8fc3c` has a failed PowerShell Tests job in CI
+`38099343875`; current-head coverage and PR 182 integration remain open. The
+untested media mutex repair is excluded from the NVIDIA repair commit.
 
 ## Current acceptance readback (00:34 UTC)
 

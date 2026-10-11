@@ -2,7 +2,7 @@
 
 ## Current cache and integration closeout
 
-Review: October 11, 2026, 14:16 UTC. The source-bound receipts and prior failures
+Review: October 11, 2026, 19:20 UTC. The source-bound receipts and prior failures
 are linked in [the fleet review](Reports/fleet-integration-review.md).
 
 - [x] Qualify corrected maintained cache defaults on Carbon: eighteen capture
@@ -38,9 +38,10 @@ are linked in [the fleet review](Reports/fleet-integration-review.md).
       production timeout change is accepted.
 - [x] Publish signed corrective5180c1 and independently verify all24 raw HEAD
       payloads against canonical and preserved checkout bytes.
-- [ ] Satisfy current-head CI: run38144048210 passes2,848 tests with40 skips,
-      but14,560/21,817 coverage (66.736948%) fails unchanged85%;3,985 genuine
-      additional hits are needed. Rust-guidelines workflow remains in progress.
+- [ ] Satisfy published-head CI: a39431f/run38163641926 passes2,862 tests
+      with40 skips, but14,583/21,816 coverage (66.845435%) fails unchanged85%;
+      3,961 genuine additional hits are needed. Rust/C#/lint/security pass;
+      integration is skipped. Subsequent working-tree changes need fresh-head CI.
 - [ ] Qualify deployed consumers and other users/machines separately; dedicated
       capture controls grant no full-CI coverage or fleet performance credit.
 - [x] Review native MCP pilot R3 source and matching mutex template. No native
@@ -66,6 +67,27 @@ are linked in [the fleet review](Reports/fleet-integration-review.md).
       candidate313/760; InstallRuntimePair147/191 with44 misses preserved.
       Adopt only the reviewed one-line canonical module path; all test bodies
       stay unchanged. This local41.1842% adds no published CI credit.
+
+- [x] Add and independently review29 genuine runtime-boundary, prelaunch-refusal
+      and prompt-enrichment cases. Fresh mixed-module aggregate passes79,
+      fails0 and skips only the existing opt-in Redis case. Preserve earlier
+      fixture failures; native execution and full-CI coverage remain separate.
+- [x] Execute and independently review all six actual native Filesystem read-only
+      protocol/shutdown controls on Carbon; retain the earlier reserved-HOME FAIL.
+- [ ] Qualify actual writable native Filesystem behavior, effective consumer roots,
+      deployment paths and reversible new-session config before adoption.
+- [ ] Resolve media baseline-poison ErrorRecord identity failure without erasing
+      the original failed owner. Four R5 build/healthy phases pass; candidate
+      poison is unexecuted. Review the isolated successor before rerunning.
+- [ ] Diagnose actual cold IPv4 client error despite completed request/response;
+      cold localhost also fails. DNS-only15ms observation is not HTTP acceptance.
+- [x] Reject slower ordinary Gitguard candidate after sixteen matched measurements
+      (small1.8648x/wide1.8936x baseline); leave installed hooks unchanged.
+- [ ] Restore an authenticated Work route. Current SSH CNAME points to a tunnel
+      with zero connections; UDM Access login and Site Manager401 remain distinct.
+- [x] Refresh bounded P1 workload profile: median commit89.01%, CPU49.22%,
+      hard-fault pages-in282.49/s, aggregate disk queue0. Observer1.877% host CPU;
+      preserve incomplete attribution and do not infer pagefile IO or causal gains.
 
 ## Immediate dtm-p1gen7 responsiveness
 

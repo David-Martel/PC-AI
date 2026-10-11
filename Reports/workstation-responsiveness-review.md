@@ -168,3 +168,42 @@ The native Filesystem pilot has distinct source review for six genuine protocol
 and shutdown controls. Runtime execution, a new configured Codex consumer,
 other-user scopes, all three launch modes and shared-server reuse remain open.
 No active wrapper was replaced or terminated by this source qualification.
+
+### Current measured workload and deployment decision
+
+The October 11 19:02 UTC bounded capture lasts 30.15 seconds with six samples.
+Median available memory is 10,276 MiB, commit 89.01%, CPU 49.22% and pages-in
+282.49/s. Sampled pages-in reaches 1,495.99/s; these are hard faults, not proof
+of pagefile-specific IO. Aggregate disk-transfer latency is 0.108 ms median and
+0.182 ms at the 95th percentile; sampled disk queue remains zero. This window
+shows memory pressure without sampled sustained disk queuing. It is not a
+matched improvement comparison and does not rule out brief stalls.
+
+The observer uses 1.877% of host CPU capacity; collection takes 1,064 ms median
+and 2,158 ms at the 95th percentile. Between 36 and 51 process-property reads
+are inaccessible. No GPU counters are collected. Source-bound evidence is in
+`D:/pcai-relocation/workload-profile-current-r1/summary.json` and `metadata.json`.
+Heavy native builds continue on Carbon; new local evidence remains on D:.
+
+A redacted launch classification finds 56 machine MCP PowerShell wrappers.
+Only ten exact PID/birth identities match the preceding profile; their observed
+private memory totals about 500 MiB and CPU deltas total 0.0625 seconds. This
+incomplete cohort cannot be extrapolated to all wrappers, attributed as waste,
+or used to justify terminating active work. Counts and process names alone are
+not useful-throughput measurements.
+
+Carbon now passes the native Filesystem pilot's six actual read-only protocol
+and shutdown controls. Current consumers enable writes, so write correctness
+and outside-root refusal require a separate actual pilot before deployment.
+Current config/template and installer paths also need reconciliation. Earlier
+matched P1 launcher CPU/private-memory gains remain a deployment opportunity,
+not an achieved reduction across these running sessions. No shared-server reuse
+has been qualified.
+
+The Gitguard candidate loses its matched ordinary trials: 86.5% and 89.4% slower
+on the two fixtures. Leave it undeployed. Whole-parent fixture/evidence elapsed
+time is separate from measured hook times. Installation, process killing,
+global memory trimming and cache-policy changes have not been used to make these
+measurements appear successful. Owner: Codex integration lane; next action is
+the writable native pilot, followed by reversible deployment for new consumers
+and matched resource/throughput verification.

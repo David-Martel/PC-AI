@@ -1714,3 +1714,89 @@ failure; its corrected bounded follow-up exited0. See
 [storage review](milly-storage-and-expansion-review.md). Cold boot, physical drive
 removal, Windows access, independent backup/restore and application/HIL checks
 remain untested; this audit supplies no additional deletion or unmount authority.
+
+## Current source, runtime and route findings
+
+Review cutoff: October 11, 2026, 19:20 UTC. Owner: Codex integration lane.
+These observations supersede pending statements above only for the named controls.
+The fleet and repository consolidation remain incomplete.
+
+Published head `a39431fd23fc845dd84a8338b79b8c620f0c4dc1` equals its origin
+integration branch. Its PR CI run `38163641926` tests synthetic merge checkout
+`bcf049f8151db5e03741e3668d652d80cedbbb1e`, whose second parent is that exact
+published head. It passes 2,862 tests and skips
+40, but fails the unchanged 85% coverage gate: 14,583/21,816 commands,
+66.845435%, with 3,961 additional genuine covered commands required. Rust,
+C#, PowerShell lint and security jobs pass; integration is skipped. Draft PR
+#182 remains open and cannot yet be merged. This is not current-head acceptance
+for subsequent working-tree changes.
+
+The working tree adds 29 detecting unit cases: eight runtime selection/bundle
+boundaries, four process-capture prelaunch refusals and seventeen prompt
+enrichment cases. This unit-test slice's sole production change extracts the existing native
+dashboard call into a private boundary while preserving enrichment formatting
+and fallback. Real-file selection tests never load marker DLLs; prompt tests
+mock the native boundary and do not prove a native dashboard execution.
+Independent source reviews and a fresh five-file aggregate run are retained in
+`.pcai/integration/` and
+`D:/pcai-relocation/prompt-cache-runtime-aggregate-tests-r1/`: 79 pass, zero
+failures, one existing opt-in Redis skip, zero block/container failures.
+Focused coverage is not credited to the published CI gate.
+
+Carbon's native Filesystem pilot passes six actual controls: initialization and
+full catalogue, exact owned read, outside-root read denial, read-only write
+denial, actual CLR observation and graceful EOF shutdown. Original post-return
+closure was observed by the retained Root session; physical receipt review alone
+does not establish live object custody. Evidence:
+`D:/pcai-relocation/filesystem-native-standalone-carbon-r2/` and
+`.pcai/integration/filesystem-native-standalone-actual-peer-r2/review.json`.
+The earlier reserved-HOME prelaunch failure remains preserved. Current consumers
+permit writes, so a fresh writable pilot is required before adoption. The
+installed backend's `read_text_file` catalogue differs from local source's
+`read_file`; installer output paths also differ from launcher paths. Rebuild
+lineage, effective roots/permissions, new-session consumers and shared-server
+reuse remain open. No active wrapper or registration has been replaced.
+
+Four actual media phases pass on Carbon: selected CPU FFI baseline/candidate
+builds and the same one unskipped healthy-state Rust test for each. The baseline
+poison control fails: its ten-second deadline retires the actual Rust process,
+but the outer catch retains a different ErrorRecord for the same exception and
+the exact-original acceptance guard correctly refuses it. Candidate poison has
+not run. The failed original owner and errors are retained; a separately sealed
+source correction is under review. No media acceptance or canonical FFI
+integration follows from the four passing phases. Actual evidence is in
+`D:/pcai-relocation/media-carbon-preparation-r1/actual-r5/`.
+
+All three bounded HTTP/DNS processes close, but both HTTP cases remain failures.
+Cold localhost fails before server acceptance. Cold IPv4 completes the request
+and exact `owned-complete` response, then fails because one original client
+error was captured. DNS alone succeeds in 15 ms and returns IPv6 loopback before
+IPv4 loopback. That resolver order does not establish the HTTP endpoint or the
+cause of either failure. Keep the one-second client contract and retained errors;
+diagnose the IPv4 error before any production repair. Evidence:
+`D:/pcai-relocation/native-mcp-http-carbon-transfer-r2/actual/`.
+
+The ordinary Gitguard candidate is rejected for deployment. Sixteen matched
+measurements show median candidate/baseline ratios of 1.8648 on the small fixture
+and 1.8936 on the wider fixture, respectively 86.5% and 89.4% slower. Installed
+Gitguard remains unchanged. Separate positive correctness remains open;
+`D:/pcai-relocation/gitguard-carbon-staging-r1/actual-r2/result.json` retains
+the actual observations rather than a performance claim inferred from source.
+
+Milly's 18:23 UTC storage readback confirms 622,791,888,896 bytes free internally,
+35% used, active ordered NTFS/Btrfs mounts and five zero Btrfs error counters.
+Outer SSD and nested filesystem free space are not additive. Study migration
+and lossless compression are complete; cold boot, backup restoration, Windows
+access, application acceptance and physical M.2 slot vacancy remain untested.
+
+Authenticated Cloudflare readback resolves Work's SSH hostname to tunnel
+`5242df17-2784-4679-951a-e01388c18f88`, currently disconnected with zero
+connections. Retained Root tool observations show the UDM hostname reaching an
+Access login; existing Site Manager
+keys return 401. No access policy or unrelated service-token credential was used
+to work around this. Exact route evidence is in
+`D:/pcai-relocation/cloudflare-route-mapping-current-r1/result.json`.
+Super-NUC crash evidence reported on agent-bus has not been independently read:
+the bounded SFTP attempt times out during banner exchange in retained Root tool
+observations, without a separate physical result receipt. The reported Eko soak
+without a freeze is a lead, not causal attribution of this workstation's stalls.

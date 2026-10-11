@@ -1,6 +1,6 @@
 # Workstation responsiveness review
 
-Host: dtm-p1gen7. Review date: 2026-10-09. Owner: Codex integration lane.
+Host: dtm-p1gen7. Initial review date: 2026-10-09. Owner: Codex integration lane.
 The user's immediate responsiveness priority supersedes additional local native
 builds and fleet validation. The broader consolidation remains open.
 
@@ -207,3 +207,21 @@ global memory trimming and cache-policy changes have not been used to make these
 measurements appear successful. Owner: Codex integration lane; next action is
 the writable native pilot, followed by reversible deployment for new consumers
 and matched resource/throughput verification.
+
+## Current follow-up
+
+October 11, 2026, 20:38 UTC: the writable native Filesystem pilot now passes
+nine actual controls, including write/overwrite and outside-root refusals.
+Reversible deployment and a genuine configured Codex consumer remain pending:
+independent review found an omitted audit-ACL read and two transcript acceptance
+defects. Root also found the consumer's capacity guard querying a nonexistent
+property. The actual commit counter is 89%, so the unchanged below-85% gate
+must refuse; additional local model/build work is deferred while it is high.
+No active wrapper is terminated or live registration replaced.
+
+Missing optional endpoint-command discovery has a measured local improvement:
+eight matched trials reduce the 25-call median from 1,100.545 ms to 325.647 ms.
+This is a routine-only result. A fresh repaired IPv4 HTTP control passes, while
+localhost still times out before listener acceptance. All 143 focused endpoint
+and declaration controls pass. Hosted CI, fleet consumers, shared-server reuse
+and sustained responsiveness remain open; see the current fleet-review cutoff.

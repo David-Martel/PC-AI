@@ -2,7 +2,7 @@
 
 ## Current cache and integration closeout
 
-Review: October 11, 2026, 19:20 UTC. The source-bound receipts and prior failures
+Review: October 11, 2026, 20:38 UTC. The source-bound receipts and prior failures
 are linked in [the fleet review](Reports/fleet-integration-review.md).
 
 - [x] Qualify corrected maintained cache defaults on Carbon: eighteen capture
@@ -38,10 +38,12 @@ are linked in [the fleet review](Reports/fleet-integration-review.md).
       production timeout change is accepted.
 - [x] Publish signed corrective5180c1 and independently verify all24 raw HEAD
       payloads against canonical and preserved checkout bytes.
-- [ ] Satisfy published-head CI: a39431f/run38163641926 passes2,862 tests
-      with40 skips, but14,583/21,816 coverage (66.845435%) fails unchanged85%;
-      3,961 genuine additional hits are needed. Rust/C#/lint/security pass;
-      integration is skipped. Subsequent working-tree changes need fresh-head CI.
+- [ ] Satisfy published-head CI: predecessor71ed3e9/run38168895722 records2,870 passes,
+      21 failures and40 skips;13,978/21,817 coverage (64.069304%) fails unchanged85%.
+      Repair the three stale23-function test guards using exact24-name checks;
+      the fresh six-file143-case aggregate passes without skips/container errors.
+      Signed repair72ee00d is published; CI38172830775 is in progress.
+      Inspect exact-head CI; focused tests add no CI credit.
 - [ ] Qualify deployed consumers and other users/machines separately; dedicated
       capture controls grant no full-CI coverage or fleet performance credit.
 - [x] Review native MCP pilot R3 source and matching mutex template. No native
@@ -74,13 +76,20 @@ are linked in [the fleet review](Reports/fleet-integration-review.md).
       fixture failures; native execution and full-CI coverage remain separate.
 - [x] Execute and independently review all six actual native Filesystem read-only
       protocol/shutdown controls on Carbon; retain the earlier reserved-HOME FAIL.
-- [ ] Qualify actual writable native Filesystem behavior, effective consumer roots,
-      deployment paths and reversible new-session config before adoption.
-- [ ] Resolve media baseline-poison ErrorRecord identity failure without erasing
-      the original failed owner. Four R5 build/healthy phases pass; candidate
-      poison is unexecuted. Review the isolated successor before rerunning.
-- [ ] Diagnose actual cold IPv4 client error despite completed request/response;
-      cold localhost also fails. DNS-only15ms observation is not HTTP acceptance.
+- [x] Qualify nine actual writable native Filesystem protocol/EOF controls,
+      including Unicode write/overwrite and outside-root refusal. No live adoption.
+- [ ] Qualify effective consumer roots and reversible new-session deployment;
+      transactionR2 omits auditACL reads. Fix consumer transcript reused-ID and
+      unrelated-denial acceptance plus nonexistent CIM commit-property guard.
+- [x] Resolve media poison identity testing in a separately reviewed R7 pair:
+      baseline expected noncompletion closes; candidate passes one real Rust test.
+      Preserve prior failures. This is narrow self-deadlock evidence only.
+- [ ] Fix media terminal-state overwrite/missing-ID resurrection and public
+      poison polling/cancel races with detecting fixtures before FFI integration.
+- [x] Attribute the cold IPv4 client error to optional command discovery and
+      qualify its repair: fresh exact response/zero errors/original closure.
+- [ ] Diagnose remaining one-second localhost timeout before listener acceptance.
+      Preserve its FAIL; no relaxed deadline or general transport acceptance.
 - [x] Reject slower ordinary Gitguard candidate after sixteen matched measurements
       (small1.8648x/wide1.8936x baseline); leave installed hooks unchanged.
 - [ ] Restore an authenticated Work route. Current SSH CNAME points to a tunnel
@@ -2009,20 +2018,22 @@ Historical results above retain their original scope and date.
 ## Current integration validation
 
 - [ ] Clear the unchanged 85% coverage gate on the published integration head.
-  Head `817027648d5a3682ed347bed2aa1e2530585b11a`, CI38152284244:
-  2,862 passes, zero test failures, 40 skips; genuine source-bound coverage
-  14,583/21,816 (66.8454%), requiring 3,961 additional exercised commands.
-  Earlier head results above are historical. Owner: root/integration.
-- [ ] Run the reviewed Carbon media build correction against its actual installed
-  CargoTools contract; preserve the closed precompiler R3 failure. Then qualify
-  baseline/candidate healthy and poisoned-mutex controls before adopting the
-  outstanding media edit. Owner: root/native.
-- [ ] Diagnose the genuine one-second HTTP positive failure before accepting
-  timeout behavior. C# compilation and independent DLL/PDB/source pairing passed;
-  the real localhost call still timed out before the IPv4 listener accepted.
+  Predecessor `71ed3e9c5b981d58b57e526d2e8c1485c1e26c69`, CI38168895722:
+  2,870 passes,21 failures,40 skips; genuine source-bound coverage13,978/21,817
+  (64.069304%). The reviewed endpoint/declaration correction passes143 focused
+  controls. Signed published72ee00d/CI38172830775 remains in progress.
+  Earlier results are historical.
+  Owner: root/integration.
+- [ ] Integrate the outstanding media edit only after fixing the independent
+  terminal/missing-ID and public asynchronous contract findings. R5 build/healthy
+  and R7 candidate-poison execution passed within their narrow scope; earlier
+  failures remain preserved. Owner: root/native.
+- [ ] Diagnose the remaining genuine one-second localhost timeout. The optional
+  resolver discovery repair passes a fresh IPv4 call with zero errors, while
+  localhost still times out before the IPv4 listener accepts.
   Address controls must not prewarm the original client or relax its timeout.
   Owner: root/runtime.
-- [ ] Complete the read-only native Filesystem protocol trial and new-consumer
-  checks before replacing a configured wrapper. Distinct source review passed;
+- [ ] Complete genuine configured-consumer and reversible transaction checks
+  before replacing a wrapper. Six read-only and nine writable controls passed;
   shared-server reuse, other-user deployment and measured speedup remain open.
   Owner: root/acceleration.

@@ -1715,7 +1715,7 @@ failure; its corrected bounded follow-up exited0. See
 removal, Windows access, independent backup/restore and application/HIL checks
 remain untested; this audit supplies no additional deletion or unmount authority.
 
-## Current source, runtime and route findings
+## Source, runtime and route findings at the preceding cutoff
 
 Review cutoff: October 11, 2026, 19:20 UTC. Owner: Codex integration lane.
 These observations supersede pending statements above only for the named controls.
@@ -1800,3 +1800,84 @@ Super-NUC crash evidence reported on agent-bus has not been independently read:
 the bounded SFTP attempt times out during banner exchange in retained Root tool
 observations, without a separate physical result receipt. The reported Eko soak
 without a freeze is a lead, not causal attribution of this workstation's stalls.
+
+## Current validation and deployment gaps
+
+Review cutoff: October 11, 2026, 20:38 UTC. Owner: Codex integration lane.
+Earlier receipts above retain their original states; the following findings
+supersede only the named pending items.
+
+Predecessor published head `71ed3e9c5b981d58b57e526d2e8c1485c1e26c69`, CI `38168895722`,
+fails with 2,870 passes, 21 failures and 40 skips. Synthetic checkout
+`3acd84509c64bfce7c53db8e37372b70046b739d` binds that exact PR head. Three
+test consumers still expected 23 helper declarations after the reviewed
+dashboard extraction added a 24th. The repair checks the exact 24-name multiset
+and rejects same-count substitutions or duplicates. It retains parser and
+security checks. A fresh six-file run passes all 143 cases with no skips or
+container errors. This focused result does not satisfy hosted CI or its
+unchanged 85% gate; the failed published run records 13,978/21,817 commands
+(64.069304%). Evidence: `D:/pcai-relocation/current-head-ci-71ed3e9-r1/` and
+`D:/pcai-relocation/llm-declaration-endpoint-tests-r1/`.
+
+The correction is signed and published as
+`72ee00d74e1870d2623ac2ee672f58585529fd51`, with the required Codex trailers.
+Local and origin integration tips agree. Its CI `38172830775` is in progress;
+neither focused validation nor predecessor receipts establish current-head CI.
+
+The actual cold IPv4 error is now attributed to an absent optional
+`Resolve-PcaiPath` lookup recording a CommandNotFoundException. Non-recording
+command discovery fixes that specific defect while preserving actual resolver
+exceptions. Four standalone child controls and the 143-case aggregate pass.
+Eight matched lookup-only measurements reduce the median for 25 calls from
+1,100.545 ms to 325.647 ms (70.4% lower). This measures missing optional
+command discovery, not profile startup or end-to-end throughput.
+Evidence: `D:/pcai-relocation/endpoint-optional-discovery-benchmark-r2/`.
+
+A fresh repaired IPv4 client completes the exact owned response in 58 ms,
+captures zero errors and closes its original process and tracked resources.
+The separate fresh localhost client still fails with a timeout before any
+request reaches the listener. Both original parent cases close without pending
+native custody; historical failures remain failures. No relaxed timeout,
+prewarmed client or general transport acceptance is claimed. Evidence:
+`D:/pcai-relocation/http-r4-carbon-actual-r1/`.
+
+The writable native Filesystem pilot passes nine actual catalogue, Unicode
+read/write/overwrite, outside-root refusal, CLR and graceful-EOF controls.
+Source and physical-receipt review do not qualify live configured consumers.
+The first reversible transaction fails its exact ACL check; its second source
+revision passes independent 20 transaction and 14 custody/ACL controls, but
+still omits audit ACL reads. A successor must capture and verify the SACL.
+The Codex consumer source also needs detecting controls for reused tool IDs
+and unrelated authentication denial. Root additionally found its capacity
+check using a nonexistent CIM property; actual committed memory is 89%, so the
+unchanged below-85% admission must refuse rather than silently compare null.
+These are deployment blockers. No live MCP registration has changed.
+
+The media R7 poison pair reproduces the baseline noncompletion under its owned
+deadline and passes the candidate's one real Rust test with exit zero. This
+supports the narrow held-lock self-deadlock repair. Independent FFI review
+finds unconditional Failed insertion can overwrite terminal/cancelled states
+or resurrect a missing ID; public poison polling and cancellation races remain
+open. Preserve the foreign canonical media edit and require detecting fixtures
+and custody before integration. Evidence:
+`D:/pcai-relocation/media-carbon-preparation-r1/actual-r7/` and
+`.pcai/integration/media-ffi-source-review-r1/review.json`.
+
+Milly's fresh readback confirms 622,685,741,056 bytes available internally,
+35% root use, both external UAS links at 10 Gb/s and all five Btrfs device-error
+counters at zero. The native data mount retains zstd:3 compression. The separate
+SKHynix FAT drive is unchanged. Lenovo documents two M.2 2280 PCIe 4.0 x4 slots
+for the observed ThinkPad P16 Gen 2; software enumerates one internal NVMe.
+Physical second-slot vacancy and installation parts remain unverified. See
+[the storage review](milly-storage-and-expansion-review.md).
+
+The fresh bounded agent-bus read retains 500 messages covering approximately
+06:53 to 20:35 UTC; it is not an exhaustive 24-hour history. Other-agent leads
+include Super-NUC AX211/BLE freeze correlation and its later no-freeze soak.
+The requested exact crash-source transfer is pending; neither lead establishes
+causality. Repeated GitOps Unavailable messages are independently traced to
+billing and code-scanning inspections returning HTTP404 while workflow/run
+inspection remains available. Do not reinterpret zero returned upstream items
+as a successful security inspection. Evidence:
+`D:/pcai-relocation/agent-bus-current-findings-r1/messages.json` and
+`Reports/gitops/monitors-latest-David-Martel_PC-AI.json`.

@@ -453,3 +453,23 @@ SSH exit was zero. Receipt:
 `D:/pcai-relocation/milly-storage-live-readback-r5/readback.json`. This confirms
 that the external-storage layout remains in use; it supplies no new deletion,
 physical M.2 vacancy, application or independent-backup acceptance.
+
+### Latest reconnect and internal expansion readback
+
+The October 11 follow-up in
+`D:/pcai-relocation/milly-storage-current-readback-r2/` confirms both external
+storage links use UAS at 10 Gb/s. Internal free space is 622,685,741,056 bytes
+(about 580 GiB), with 35% root use. All five Btrfs device-error counters are zero;
+the native data mount retains zstd:3 compression and both ordered automounts
+remain active. The external NTFS and nested Btrfs availability values remain
+non-additive. No additional data deletion or repartitioning occurred.
+
+Live DMI identifies Lenovo 21FA002UUS, ThinkPad P16 Gen 2. One approximately
+1 TB KIOXIA KXG8AZNV1T02 internal NVMe is enumerated.
+[Lenovo's specification](https://psref.lenovo.com/WDProduct/ThinkPad/ThinkPad_P16_Gen_2)
+documents two M.2 2280 PCIe 4.0 x4 slots and tested offerings up to 4 TB per
+drive, 8 TB total. A second internal SSD is supported by the platform. Its
+physical slot vacancy, bracket and thermal parts require inspection; a single
+enumerated NVMe does not prove vacancy. The separate SKHynix FAT drive remains
+unchanged. Cold boot, removal, Windows access, backup restoration and application
+qualification remain open.

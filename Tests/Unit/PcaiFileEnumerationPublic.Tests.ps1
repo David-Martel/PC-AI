@@ -86,7 +86,9 @@ Describe 'Canonical public file enumeration on owned bytes' -Tag 'Unit', 'Accele
             'alpha.txt', 'upper.TXT', 'docs/notes.txt', 'docs/deep/last.txt', 'keep[1]/skip.txt', 'keep1/retain.txt'
         ).ForEach({ [IO.Path]::GetFullPath((Join-Path $script:EnumerationRoot $_)) })
         @($rows | Where-Object PSIsContainer).Count | Should -Be 0
-        Should -Invoke Test-PcaiNativeAvailable -ModuleName PC-AI.Acceleration -Times 1 -Exactly
+        # The native query cannot preserve this full public selection contract.
+        # Qualify the managed result without probing or initializing that backend.
+        Should -Invoke Test-PcaiNativeAvailable -ModuleName PC-AI.Acceleration -Times 0 -Exactly
     }
 
     # Protects: regex semantics and combined restrictions. Detects: glob substitution or ignored extension.

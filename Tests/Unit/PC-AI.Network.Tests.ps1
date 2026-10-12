@@ -6,26 +6,76 @@
     Tests network diagnostics, WSL connectivity, and VSock performance monitoring
 #>
 
+param([string]$NetworkModulePath, [string]$MockDataModulePath)
+
+BeforeDiscovery {
+    $script:IsAdmin = $false
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        $script:IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    }
+}
+
 if (-not (Get-Variable -Name IsAdmin -Scope Script -ErrorAction SilentlyContinue)) {
     $script:IsAdmin = $false
 }
 
 BeforeAll {
     # Import module under test
-    $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Network\PC-AI.Network.psd1'
+    $ModulePath = if ($NetworkModulePath) { $NetworkModulePath } else { Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Network\PC-AI.Network.psd1' }
     Import-Module $ModulePath -Force -ErrorAction Stop
+    # Fail closed if any WSL mock is missing; this command is invoked directly by the producer.
+    & (Get-Module PC-AI.Network) {
+        function script:wsl {
+            param([Alias('e')][string]$FixtureExecutable, [Parameter(ValueFromRemainingArguments)][object[]]$Tokens)
+            throw 'Live WSL is forbidden in portable network unit tests.'
+        }
+        function script:netsh { throw 'Live netsh is forbidden in network unit tests.' }
+        function script:Get-Item { [CmdletBinding()] param($Path,$LiteralPath) throw 'Live registry key reads are forbidden.' }
+        function script:Set-ItemProperty { [CmdletBinding()] param($Path,$LiteralPath,$Name,$Value,$Type,[switch]$Force) throw 'Live registry restore is forbidden.' }
+        function script:Remove-ItemProperty { [CmdletBinding()] param($Path,$LiteralPath,$Name) throw 'Live registry deletion is forbidden.' }
+    }
 
     # Import mock data
-    $MockDataPath = Join-Path $PSScriptRoot '..\Fixtures\MockData.psm1'
+    $MockDataPath = if ($MockDataModulePath) { $MockDataModulePath } else { Join-Path $PSScriptRoot '..\Fixtures\MockData.psm1' }
     Import-Module $MockDataPath -Force -ErrorAction Stop
 
     # Helper function to check if running as Administrator
     function Test-IsAdmin {
+        if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { return $false }
         $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
         $principal = New-Object Security.Principal.WindowsPrincipal($identity)
         return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     }
     $script:IsAdmin = Test-IsAdmin
+}
+
+Describe 'Network fixture external boundary custody' {
+BeforeAll {
+    Mock Get-NetRoute { $script:DeniedNetworkReads.Add('Get-NetRoute'); throw 'Unmocked network read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-DnsClientServerAddress { $script:DeniedNetworkReads.Add('Get-DnsClientServerAddress'); throw 'Unmocked DNS server read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-DnsClientCache { $script:DeniedNetworkReads.Add('Get-DnsClientCache'); throw 'Unmocked DNS cache read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-DnsClientGlobalSetting { $script:DeniedNetworkReads.Add('Get-DnsClientGlobalSetting'); throw 'Unmocked DNS setting read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-NetAdapter { $script:DeniedNetworkReads.Add('Get-NetAdapter'); throw 'Unmocked adapter read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-NetAdapterStatistics { $script:DeniedNetworkReads.Add('Get-NetAdapterStatistics'); throw 'Unmocked adapter statistics read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-NetIPConfiguration { $script:DeniedNetworkReads.Add('Get-NetIPConfiguration'); throw 'Unmocked IP configuration read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-NetIPAddress { $script:DeniedNetworkReads.Add('Get-NetIPAddress'); throw 'Unmocked IP address read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-VMSwitch { $script:DeniedNetworkReads.Add('Get-VMSwitch'); throw 'Unmocked switch read forbidden.' } -ModuleName PC-AI.Network
+    Mock Measure-NetworkLatency { $script:DeniedNetworkReads.Add('Measure-NetworkLatency'); throw 'Unmocked ping transport forbidden.' } -ModuleName PC-AI.Network
+    Mock Resolve-DnsName { $script:DeniedNetworkReads.Add('Resolve-DnsName'); throw 'Unmocked DNS transport forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-NetTCPConnection { $script:DeniedNetworkReads.Add('Get-NetTCPConnection'); throw 'Unmocked TCP connection read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-NetTCPSetting { $script:DeniedNetworkReads.Add('Get-NetTCPSetting'); throw 'Unmocked TCP setting read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-CimInstance { $script:DeniedNetworkReads.Add('Get-CimInstance'); throw 'Unmocked CIM read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-Service { $script:DeniedNetworkReads.Add('Get-Service'); throw 'Unmocked service read forbidden.' } -ModuleName PC-AI.Network
+    Mock Get-WSLDistributions { $script:DeniedNetworkReads.Add('Get-WSLDistributions'); throw 'Unmocked distribution enumeration forbidden.' } -ModuleName PC-AI.Network
+    Mock Test-PortConnectivity { $script:DeniedNetworkReads.Add('Test-PortConnectivity'); throw 'Unmocked TCP transport forbidden.' } -ModuleName PC-AI.Network
+    Mock wsl { $script:DeniedNetworkReads.Add('wsl'); throw 'Unmocked WSL forbidden.' } -ModuleName PC-AI.Network
+    Mock netsh { $script:DeniedNetworkReads.Add('netsh'); throw 'Unmocked netsh forbidden.' } -ModuleName PC-AI.Network
+}
+BeforeEach {
+    $script:DeniedNetworkReads = [Collections.Generic.List[string]]::new()
+}
+AfterEach {
+    if ($script:DeniedNetworkReads.Count) { throw ('Unmocked network boundaries: ' + ($script:DeniedNetworkReads -join ', ')) }
 }
 
 Describe "Get-NetworkDiagnostics" -Tag 'Unit', 'Network', 'Fast', 'Portable' {
@@ -206,6 +256,8 @@ Describe "Get-NetworkDiagnostics" -Tag 'Unit', 'Network', 'Fast', 'Portable' {
             Mock Get-NetIPAddress { @() } -ModuleName PC-AI.Network
             Mock Get-VMSwitch { @() } -ModuleName PC-AI.Network
             Mock Get-DnsClientServerAddress { @() } -ModuleName PC-AI.Network
+            Mock Get-DnsClientCache { @() } -ModuleName PC-AI.Network
+            Mock Get-DnsClientGlobalSetting { [PSCustomObject]@{ SuffixSearchList = @() } } -ModuleName PC-AI.Network
             Mock Get-NetRoute { @() } -ModuleName PC-AI.Network
         }
 
@@ -224,6 +276,10 @@ Describe "Get-NetworkDiagnostics" -Tag 'Unit', 'Network', 'Fast', 'Portable' {
 
     Context "When connectivity fails" {
         BeforeAll {
+            Mock Get-DnsClientServerAddress { [PSCustomObject]@{ InterfaceAlias = 'Ethernet'; ServerAddresses = @('192.0.2.53') } } -ModuleName PC-AI.Network
+            Mock Get-DnsClientCache { @() } -ModuleName PC-AI.Network
+            Mock Get-DnsClientGlobalSetting { [PSCustomObject]@{ SuffixSearchList = @('fixture.invalid') } } -ModuleName PC-AI.Network
+            Mock Get-NetRoute { [PSCustomObject]@{ DestinationPrefix = '0.0.0.0/0'; NextHop = '192.0.2.1'; InterfaceAlias = 'Ethernet'; RouteMetric = 10 } } -ModuleName PC-AI.Network
             Mock Get-NetAdapter {
                 @(
                     [PSCustomObject]@{
@@ -320,11 +376,20 @@ Describe "Test-WSLConnectivity" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
                 }
             } -ModuleName PC-AI.Network
 
-            # Mock wsl command execution
-            Mock -CommandName Invoke-Command -MockWith {
-                if ($ScriptBlock -match 'wsl --status') {
-                    "Default Version: 2`nDefault Distribution: Ubuntu`nKernel version: 5.10.102.1"
-                }
+            # Mock the actual direct native boundary, not the unrelated Invoke-Command cmdlet.
+            Mock -CommandName wsl -MockWith {
+                $global:LASTEXITCODE = 0
+                if ($Tokens -contains '--status') {
+                    'Default Version: 2'; 'Default Distribution: Ubuntu'; 'Kernel version: 5.10.102.1'
+                } elseif ($Tokens -contains 'ip') {
+                    'inet 172.31.208.2/20 scope global eth0'
+                } elseif ($Tokens -contains 'nslookup') {
+                    'Address: 142.250.185.46'
+                } elseif ($Tokens -contains 'hostname') {
+                    '172.31.208.2'
+                } elseif ($Tokens -contains 'curl') {
+                    '200'
+                } else { throw "Unexpected mocked WSL arguments: $Tokens" }
             } -ModuleName PC-AI.Network
         }
 
@@ -377,6 +442,7 @@ Describe "Test-WSLConnectivity" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
 
     Context "When WSL network has issues" {
         BeforeAll {
+            Mock wsl { $global:LASTEXITCODE = 0; 'Default Version: 2' } -ModuleName PC-AI.Network
             # Mock to return no distributions, which triggers "No distributions found" issue
             Mock Get-WSLDistributions {
                 @()
@@ -418,6 +484,7 @@ Describe "Test-WSLConnectivity" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
 
     Context "When WSL is not installed" {
         BeforeAll {
+            Mock wsl { throw 'Synthetic WSL command unavailable.' } -ModuleName PC-AI.Network
             Mock Get-WSLDistributions { @() } -ModuleName PC-AI.Network
         }
 
@@ -575,6 +642,7 @@ Describe "Watch-VSockPerformance" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
 
     Context "When no adapters match filter" {
         BeforeAll {
+            Mock Get-NetTCPSetting { [PSCustomObject]@{ SettingName = 'Internet'; AutoTuningLevelLocal = 'Normal'; CongestionProvider = 'CUBIC' } } -ModuleName PC-AI.Network
             Mock Get-NetAdapter { @() } -ModuleName PC-AI.Network
             Mock Get-NetTCPConnection { @() } -ModuleName PC-AI.Network
             Mock Start-Sleep {} -ModuleName PC-AI.Network
@@ -617,13 +685,29 @@ Describe "Watch-VSockPerformance" -Tag 'Unit', 'Network', 'Slow', 'Portable' {
 Describe "Optimize-VSock" -Tag 'Unit', 'Network', 'Slow', 'RequiresAdmin', 'Portable' {
     Context "When optimizing VSock configuration" {
         BeforeAll {
-            # Mock admin check to return true for tests
-            Mock -CommandName Invoke-Command -MockWith {
-                param($ScriptBlock)
-                if ($ScriptBlock -match 'IsInRole') {
-                    return $true
-                }
-            } -ModuleName PC-AI.Network
+            if (-not ('PcaiLegacyVsockFixtureKey' -as [type])) {
+                Add-Type -TypeDefinition @'
+using System;
+using Microsoft.Win32;
+public sealed class PcaiLegacyVsockFixtureKey : IDisposable {
+    private readonly int original;
+    public PcaiLegacyVsockFixtureKey(int original) { this.original = original; }
+    public string[] GetValueNames() { return new [] { "EnableAutoTuning", "Tcp1323Opts", "DefaultTTL", "EnableTCPChimney", "RssBaseCpu", "NetworkThrottlingIndex", "SystemResponsiveness", "TcpMaxDataRetransmissions", "MaxCmds" }; }
+    public object GetValue(string name, object fallback, RegistryValueOptions options) {
+        if (options != RegistryValueOptions.DoNotExpandEnvironmentNames) throw new InvalidOperationException("Expanded originals forbidden.");
+        return original;
+    }
+    public RegistryValueKind GetValueKind(string name) { return RegistryValueKind.DWord; }
+    public void Dispose() { }
+}
+'@
+            }
+            function Invoke-LegacyVsockNative {
+                $path = Join-Path $TestDrive 'legacy-vsock-native.cmd'
+                [IO.File]::WriteAllLines($path, @('@echo off','echo VSock test','exit /b 0'), [Text.UTF8Encoding]::new($false))
+                & $env:ComSpec /d /c $path
+                $global:LASTEXITCODE = $LASTEXITCODE
+            }
 
             Mock Get-RegistryValueSafe {
                 param($Path, $Name)
@@ -634,38 +718,45 @@ Describe "Optimize-VSock" -Tag 'Unit', 'Network', 'Slow', 'RequiresAdmin', 'Port
                 return $true
             } -ModuleName PC-AI.Network
 
-            Mock Test-Path { $true } -ModuleName PC-AI.Network
+            Mock Get-Item { [PcaiLegacyVsockFixtureKey]::new($script:VsockOriginalValue) } -ModuleName PC-AI.Network
+            Mock Test-Path {
+                $target = if ($LiteralPath) { $LiteralPath } else { $Path }
+                if ($target -like 'HKLM:*') { $true } else { [IO.File]::Exists($target) -or [IO.Directory]::Exists($target) }
+            } -ModuleName PC-AI.Network
 
             # Mock netsh command execution
             Mock -CommandName netsh -MockWith {
-                return "Ok."
+                Invoke-LegacyVsockNative
             } -ModuleName PC-AI.Network
-
-            Mock ConvertTo-Json { '[]' } -ModuleName PC-AI.Network
-            Mock Out-File {} -ModuleName PC-AI.Network
+            Mock wsl { Invoke-LegacyVsockNative } -ModuleName PC-AI.Network
+            Mock Start-Sleep { } -ModuleName PC-AI.Network
+        }
+        BeforeEach {
+            $script:VsockOriginalValue = 0
+            $script:VsockBackupPath = Join-Path $TestDrive ('backup-' + [guid]::NewGuid().ToString('N') + '.json')
         }
 
         It "Should accept Profile parameter (not BufferSize)" -Skip:(-not $script:IsAdmin) {
-            { Optimize-VSock -Profile Balanced -WhatIf } | Should -Not -Throw
+            { Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Balanced -WhatIf } | Should -Not -Throw
         }
 
         It "Should support Balanced profile" -Skip:(-not $script:IsAdmin) {
-            $result = Optimize-VSock -Profile Balanced -WhatIf
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Balanced -WhatIf
             $result.Profile | Should -Be "Balanced"
         }
 
         It "Should support Performance profile" -Skip:(-not $script:IsAdmin) {
-            $result = Optimize-VSock -Profile Performance -WhatIf
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Performance -WhatIf
             $result.Profile | Should -Be "Performance"
         }
 
         It "Should support Conservative profile" -Skip:(-not $script:IsAdmin) {
-            $result = Optimize-VSock -Profile Conservative -WhatIf
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Conservative -WhatIf
             $result.Profile | Should -Be "Conservative"
         }
 
         It "Should return PSCustomObject with required properties" -Skip:(-not $script:IsAdmin) {
-            $result = Optimize-VSock -Profile Balanced -WhatIf
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Balanced -WhatIf
             $result | Should -BeOfType [PSCustomObject]
             $result.PSObject.Properties.Name | Should -Contain 'Timestamp'
             $result.PSObject.Properties.Name | Should -Contain 'Profile'
@@ -677,34 +768,43 @@ Describe "Optimize-VSock" -Tag 'Unit', 'Network', 'Slow', 'RequiresAdmin', 'Port
         }
 
         It "Should support WhatIf" -Skip:(-not $script:IsAdmin) {
-            $result = Optimize-VSock -Profile Balanced -WhatIf
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Balanced -WhatIf
             $result.ChangesPending.Count | Should -BeGreaterThan 0
             $result.ChangesApplied.Count | Should -Be 0
         }
 
         It "Should create backup before changes" -Skip:(-not $script:IsAdmin) {
             Mock Get-RegistryValueSafe { return 10 } -ModuleName PC-AI.Network
-            $result = Optimize-VSock -Profile Balanced -SkipWSLRestart -Confirm:$false
+            $script:VsockOriginalValue = 10
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Balanced -SkipWSLRestart -Confirm:$false
             $result.BackupCreated | Should -Be $true
-            Should -Invoke Out-File -ModuleName PC-AI.Network
+            $backup = Get-Content -LiteralPath $script:VsockBackupPath -Raw | ConvertFrom-Json
+            @($backup).Count | Should -Be 9
+            @($backup | Where-Object { $_.Present -ne $true -or $_.Kind -ne 'DWord' -or $_.Value -ne 10 }).Count | Should -Be 0
         }
 
         It "Should apply registry settings" -Skip:(-not $script:IsAdmin) {
-            $result = Optimize-VSock -Profile Balanced -SkipWSLRestart -Confirm:$false
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Balanced -SkipWSLRestart -Confirm:$false
             Should -Invoke Set-RegistryValueSafe -ModuleName PC-AI.Network
         }
 
-        It "Should restart WSL by default" -Skip:(-not $script:IsAdmin) {
+        It "Should suppress WSL restart in an explicit skip call" -Skip:(-not $script:IsAdmin) {
             Mock Get-RegistryValueSafe { return 10 } -ModuleName PC-AI.Network
             Mock Set-RegistryValueSafe { return $true } -ModuleName PC-AI.Network
 
-            # Note: Cannot easily mock wsl.exe, so we skip actual restart test
-            $result = Optimize-VSock -Profile Balanced -SkipWSLRestart -Confirm:$false
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Balanced -SkipWSLRestart -Confirm:$false
             $result.WSLRestarted | Should -Be $false
         }
 
+        It "Should restart WSL by default through the owned native boundary" -Skip:(-not $script:IsAdmin) {
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Balanced -Confirm:$false
+            $result.WSLRestarted | Should -Be $true
+            @($result.Errors).Count | Should -Be 0
+            Should -Invoke wsl -Times 2 -Exactly -ModuleName PC-AI.Network
+        }
+
         It "Should skip WSL restart when requested" -Skip:(-not $script:IsAdmin) {
-            $result = Optimize-VSock -Profile Balanced -SkipWSLRestart -Confirm:$false
+            $result = Optimize-VSock -BackupPath $script:VsockBackupPath -Profile Balanced -SkipWSLRestart -Confirm:$false
             $result.WSLRestarted | Should -Be $false
         }
     }
@@ -779,6 +879,8 @@ Describe "Network-Helpers (Private Functions)" -Tag 'Unit', 'Network', 'Fast', '
             $module.ExportedFunctions.Keys | Should -Not -Contain 'Measure-NetworkLatency'
         }
     }
+}
+
 }
 
 AfterAll {

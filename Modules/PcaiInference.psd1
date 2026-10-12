@@ -11,7 +11,12 @@
     FunctionsToExport = @(
         'Initialize-PcaiInference'
         'Import-PcaiModel'
+        'Invoke-PcaiInference'
         'Invoke-PcaiGenerate'
+        'Invoke-PcaiGenerateAsync'
+        'Get-PcaiAsyncResult'
+        'Stop-PcaiGeneration'
+        'Stop-PcaiInference'
         'Close-PcaiInference'
         'Get-PcaiInferenceStatus'
         'Test-PcaiInference'

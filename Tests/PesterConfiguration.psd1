@@ -16,10 +16,9 @@
         Enabled = $true
         OutputFormat = 'JaCoCo'
         OutputPath = 'TestResults/coverage.xml'
-        Path = @(
-            './Modules/**/*.ps1'
-            './Modules/**/*.psm1'
-        )
+        # Pester resolves wildcards before recursion. A directory root retains
+        # every nested Public/Private script and the standalone module wrappers.
+        Path = @('./Modules')
         ExcludeTests = $true
         RecursePaths = $true
         CoveragePercentTarget = 85

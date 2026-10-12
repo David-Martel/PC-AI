@@ -33,6 +33,12 @@
 
 .OUTPUTS
     PSCustomObject[] with process information
+.NOTES
+    CPU retains its historical backend-specific value. CPUUnit identifies percent
+    for native samples and seconds for managed lifetime CPU. CPUPercent is null
+    for managed rows; TotalProcessorTimeSeconds is null for native rows. Native
+    sampling freshness is not exposed by the current ABI, and a first sample may
+    be zero. These fields do not establish an interval or throughput measurement.
 #>
 function Get-ProcessesFast {
     [CmdletBinding()]
@@ -67,8 +73,9 @@ function Get-ProcessesFast {
     if ($preferRustCli -and $pcaiPerfPath -and -not $RawOutput -and -not $Tree -and -not $Watch) {
         $rustSupportedSort = $SortBy -in @('cpu', 'mem')
         if (-not $Name -and $Top -gt 0 -and $rustSupportedSort) {
-            $rustResults = Get-ProcessesWithPcaiPerf -Top $Top -SortBy $SortBy -ToolPath $pcaiPerfPath
-            if ($null -ne $rustResults) {
+            $rustResults = @(Get-ProcessesWithPcaiPerf -Top $Top -SortBy $SortBy -ToolPath $pcaiPerfPath)
+            # Explicit null means unavailable; no rows is a successful snapshot.
+            if ($rustResults.Count -eq 0 -or $null -ne $rustResults[0]) {
                 return $rustResults
             }
         }
@@ -102,15 +109,32 @@ function Get-ProcessesWithPcaiPerf {
         [string]$ToolPath
     )
 
+    # Retained original resources must be resolved before any replacement work.
+    Assert-PcaiPerfNoPendingCustody
     try {
         $sortKey = if ($SortBy -eq 'cpu') { 'cpu' } else { 'memory' }
-        $json = & $ToolPath 'processes' '--top' $Top '--sort-by' $sortKey 2>$null
-        if (-not $json) {
-            return $null
+        if ($env:PCAI_DISABLE_PERF_WORKER -ne '1') {
+            try {
+                $rows = @(Invoke-PcaiPerfWorkerRequest -ToolPath $ToolPath -Command 'processes' -Payload @{ top=$Top; sort_by=$sortKey })
+                foreach ($row in $rows) { $row | Add-Member -NotePropertyMembers @{Transport='worker';CPUUnit='percent';CPUPercent=$row.CPU;TotalProcessorTimeSeconds=$null} -Force }
+                return $rows
+            } catch [NotSupportedException] {
+                $transportFailure = $_
+                if (Test-PcaiPerfFatalTransportException -Exception $_.Exception) { throw }
+                try { Assert-PcaiPerfNoPendingCustody }
+                catch { $PSCmdlet.ThrowTerminatingError($transportFailure) }
+                Write-Verbose 'Legacy pcai-perf worker: using bounded direct CLI.'
+            }
         }
-
-        return @(ConvertFrom-Json -InputObject $json)
+        $rows = @(Invoke-PcaiPerfCliCommand -ToolPath $ToolPath -Arguments @('processes', '--top', "$Top", '--sort-by', $sortKey))
+        foreach ($row in $rows) { $row | Add-Member -NotePropertyMembers @{Transport='direct-cli';CPUUnit='percent';CPUPercent=$row.CPU;TotalProcessorTimeSeconds=$null} -Force }
+        return $rows
     } catch {
+        $transportFailure = $_
+        if (Test-PcaiPerfFatalTransportException -Exception $_.Exception) { throw }
+        try { Assert-PcaiPerfNoPendingCustody }
+        catch { $PSCmdlet.ThrowTerminatingError($transportFailure) }
+        Write-Verbose "pcai-perf processes unavailable: $($_.Exception.Message)"
         return $null
     }
 }
@@ -184,6 +208,9 @@ function Get-ProcessesWithNative {
                             PID       = $row.Pid
                             Name      = $row.Name
                             CPU       = [Math]::Round([double]$row.CpuUsage, 2)
+                            CPUUnit   = 'percent'
+                            CPUPercent = [Math]::Round([double]$row.CpuUsage, 2)
+                            TotalProcessorTimeSeconds = $null
                             MemoryMB  = [Math]::Round([double]$row.MemoryBytes / 1MB, 2)
                             Threads   = $null
                             Handles   = $null
@@ -216,6 +243,9 @@ function Get-ProcessesWithNative {
                     PID       = $row.pid
                     Name      = $row.name
                     CPU       = [Math]::Round([double]$row.cpu_usage, 2)
+                    CPUUnit   = 'percent'
+                    CPUPercent = [Math]::Round([double]$row.cpu_usage, 2)
+                    TotalProcessorTimeSeconds = $null
                     MemoryMB  = [Math]::Round([double]$row.memory_bytes / 1MB, 2)
                     Threads   = $null
                     Handles   = $null
@@ -311,10 +341,14 @@ function Get-ProcessesParallel {
 
     if (-not $requiresOwnerLookup) {
         foreach ($proc in $processes) {
+            $totalProcessorTimeSeconds = $proc.CPU
             $results.Add([PSCustomObject]@{
                     PID       = $proc.Id
                     Name      = $proc.ProcessName
-                    CPU       = [Math]::Round($proc.CPU, 2)
+                    CPU       = [Math]::Round($totalProcessorTimeSeconds, 2)
+                    CPUUnit   = 'seconds'
+                    CPUPercent = $null
+                    TotalProcessorTimeSeconds = $totalProcessorTimeSeconds
                     MemoryMB  = [Math]::Round($proc.WorkingSet64 / 1MB, 2)
                     Threads   = $proc.Threads.Count
                     Handles   = $proc.HandleCount
@@ -342,10 +376,14 @@ function Get-ProcessesParallel {
             catch {
             }
 
+            $totalProcessorTimeSeconds = $proc.CPU
             [PSCustomObject]@{
                 PID       = $proc.Id
                 Name      = $proc.ProcessName
-                CPU       = [Math]::Round($proc.CPU, 2)
+                CPU       = [Math]::Round($totalProcessorTimeSeconds, 2)
+                CPUUnit   = 'seconds'
+                CPUPercent = $null
+                TotalProcessorTimeSeconds = $totalProcessorTimeSeconds
                 MemoryMB  = [Math]::Round($proc.WorkingSet64 / 1MB, 2)
                 Threads   = $proc.Threads.Count
                 Handles   = $proc.HandleCount

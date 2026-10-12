@@ -1,0 +1,374 @@
+{
+  "TestFiles": [
+    {
+      "Bytes": 26123,
+      "Path": "CacheProcessCaptureContracts.Tests.ps1",
+      "SHA256": "F561DD7271A4ACCB0A996B4E749AC8D1AB128DD25A15FC63BAEBB2EB7864003B"
+    },
+    {
+      "Bytes": 7582,
+      "Path": "CacheCaptureCollaborators.Tests.ps1",
+      "SHA256": "3D8D2E33983E1E06C57E3F7C4A73EC13D7EA7975B11866B1A37F1472F5702D45"
+    },
+    {
+      "Bytes": 2580,
+      "Path": "Fixtures/CacheProcessChild.ps1",
+      "SHA256": "CED4E035344645D070DE936EC4277BB52C72F22DE6ECC914F50C1D2DB4D7FD6F"
+    },
+    {
+      "Bytes": 2662,
+      "Path": "Test-ProcessCaptureSources.ps1",
+      "SHA256": "D28A74195561F23D45F22850C3A54D617EEB337683FDDC960D4F43ED9A576069"
+    },
+    {
+      "Bytes": 31241,
+      "Path": "Invoke-ProcessCaptureContracts.ps1",
+      "SHA256": "FB726E47E4D06A3A3F7023D51E8077001823161E1EB2D3D59085CCCF33B15792"
+    }
+  ],
+  "Controls": [
+    {
+      "WholeItSHA256": "91BDC43CC7FBEE97DA2CB45145EB644235562E2C67460B51F596C23D8F562785",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "keeps definition load and local memory access free of capture initialization",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "E997B3517A4B1555A5F8EEA51F117643210F92B8C5BF3955E6A4F638B3DA6CBF",
+      "BodySHA256": "8B2F6D88857F45D21BCC59F2C961F6713D32334960DD9CCE44F0DC3AB673AFC9"
+    },
+    {
+      "WholeItSHA256": "0709DF9E1568AB9F2AE96EE62BB60A7E4D94B83996C9EF76BFF980936EEA890F",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "captures complete dual-stream pressure",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "4486C0B9E933F67415197D64BEA8672DD8C1F331CB90BDB08BECD3998B01EC56",
+      "BodySHA256": "0729633AB5253EF128C004D177D24244FB5B86D95C61C49B0CED63F2E7D0A695"
+    },
+    {
+      "WholeItSHA256": "8C8D46CA5E22F53050B15CA00489F120D5E874C54F30AB9838E33B375EAF74E1",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "preserves actual23 BOM Unicode and trimmed complete streams",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "1A999E2AED99A6A36EE5F835F322911D08128D0731D7D936742D085CB81D143B",
+      "BodySHA256": "C6AC61E430E71EE1CD7E7AD3AE77D9511485F75EBA781037B55268183D00E3ED"
+    },
+    {
+      "WholeItSHA256": "26AC56F71133450EA3FDE63FE368AD26E20E827E3F140B3C45BD6CAFE9E56E3B",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "accepts successful empty complete output",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "6D7AB923514D599D0AFFBAFC914F1AE61E832DD028F762932E327B6546495B2A",
+      "BodySHA256": "C12B550CF3815CD1D982C545B72687856E63AE2E11F6C1FC2CDF804A7386F6DE"
+    },
+    {
+      "WholeItSHA256": "D3372115E554FA59990A53A2B800075A21ABE6CDD181AC14A0807C1EA303E910",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "accepts exact8MiB stdout",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "281443E99F40016055E2379E6FD53136A201AA1B0EEDEB44F052CABBB429B823",
+      "BodySHA256": "FDCF7C07B53B68FB9BA3017E5C05A40978A3C8507DB792C8C2FFE84331D60A1D"
+    },
+    {
+      "WholeItSHA256": "E484149FF664D309477A41B9CA95F5E3AB694391A0566A60D6EFD50E0ACAD020",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "accepts exact1MiB stderr",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "869830BB07AD7A74C4E307730081B57B856744F4BBB45B4AD1472D8D4E526BB7",
+      "BodySHA256": "01861BB03D800358E38EC5A3CDAA5936F3BBA631E168E07A8D1FCBC20AF1837B"
+    },
+    {
+      "WholeItSHA256": "35EA3EE201A93895090AE12C701622255D05309064D9B36F728431480A39F128",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "fails stdout overflow without prefix success",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "00B95889BF1D11D034EC5C3E3D264E584BF8E61C97C1512D15C7D952CF603C1D",
+      "BodySHA256": "047CB26BA66CCCDF2AF745D9922BD5CFA736B3000DF00E6293831A042C966B76"
+    },
+    {
+      "WholeItSHA256": "CF63FDD6A6836AB8816CE5B340920040B68E91BEDF51172D8D42F634C99BD128",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "fails stderr overflow without prefix success",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "4792520EA30A70108D3D1E32B3BC6E8FDA9033644041AAF36B892BCAF4DC7442",
+      "BodySHA256": "91D40D373100B5A3AEFD9115AFCA3E04F1F3227A32579CEC28A65D42F5FA14E4"
+    },
+    {
+      "WholeItSHA256": "E02EAFDA97C8C1E04C08F259E474095411924682EA1B1763B81593680FF87CF5",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "times out a real stalled child with exact closure",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "DF1815D1B9E656E19C54FD05AC8FAFC276B85BF71FC317C97948A4D186E1DE7A",
+      "BodySHA256": "1440CE8BF092795354069383E7BF6337A10C34310E3C50241AAE110927839F05"
+    },
+    {
+      "WholeItSHA256": "C3519A69ED69AA261B3FEBFA4F63DA1C85D6D518D8EA64FF5867DAF08C937499",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "rejects zero deadline before a child",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "99BCBAC031578ECFA476F4113153C67678D1CC2DC32F35DD9165A98AE9E0E86B",
+      "BodySHA256": "8394CECED27523D71DC1BBC5A013E010D1CB2B165F36BA3AE0EF8CB006810965"
+    },
+    {
+      "WholeItSHA256": "517B3D753306D3004C2FFCD66F741AB3ACA1595835C4DF363C646387F192FDAE",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "rejects negative deadline before a child",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "C4FD8B24810F1962B252C21EA7CEB41D34551F69486E021CF7B64BAAD8E0A75C",
+      "BodySHA256": "8018765C71650428CF4582AC4EB8DB775C5503F09689861625645FF149B8BF5C"
+    },
+    {
+      "WholeItSHA256": "131038A91BD18799C3045913F687AD1407565C51572785BDE708F01538C5CCA3",
+      "Source": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "cancels a real child through its caller token",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\canonical-shared-cache-maintained-defaults-owner-source-r2\\projection\\Tests\\ProcessCapture\\CacheProcessCaptureContracts.Tests.ps1",
+      "WholeItAndRationaleExact": false,
+      "RationaleSHA256": "E00658452FE26799E8E67AAE89E372680C392B1E124A7680C1220731F24CBD42",
+      "BodySHA256": "43E7F1C028F455013ECF33A05A6F4939DB7EF9E73FB5C731D5051D6649273258",
+      "Change": "Owned child readiness before caller cancellation; all existing closure assertions retained",
+      "RationaleHashMethod": "UTF8 contiguous indented Protects/Detects/Needs/Breadcrumb comment block, trailing whitespace trimmed"
+    },
+    {
+      "WholeItSHA256": "D3D5ACD4361B53ABC216C7EFD103065FC629916E7AD02FBCC44898F66328ECE3",
+      "Source": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "preserves literal Redis argv timeout and result fields",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheCaptureCollaborators.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "16FA2241498681F9908B1E8FDC27DEDB791E8B4092A77E3A6BDB8DF60CA34B11",
+      "BodySHA256": "7DDAE32E77915E507FCC26202B6F9D7FD5085793AA2E83F8231DC9ABC5F128B3"
+    },
+    {
+      "WholeItSHA256": "4B94CBF283014145E12A353E881DB82B2BF8D5D6893C84617EA84BB8E9D29ECD",
+      "Source": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "treats a failed capture GET as a miss without deletion",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheCaptureCollaborators.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "6540F092CFC617CB2F705C7591EB601BD297576F2841338ECC94D9F33957F280",
+      "BodySHA256": "A50E9C648D654C8CD467B6102B6DBE13B3FBA75401970ED48375054A1C280956"
+    },
+    {
+      "WholeItSHA256": "3AF1AA6BD2AB7F6D9FF0EFAB7F7C602B74BE6656BAFC86066D0498B6646358C1",
+      "Source": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "returns false for failed SET even with a partial OK payload",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheCaptureCollaborators.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "F584E16BF569ED87D3370B068C146CBD2962D3BCF651FBDB0E9B4413DD353248",
+      "BodySHA256": "4D195FA1B5E22711ED724227BAD586A44044B5F98063736EBF2BABF8C2DDE62A"
+    },
+    {
+      "WholeItSHA256": "FAA145D1EBE130FFB902E6BE6451516040507203A520247B4A4A21291F3C3952",
+      "Source": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "does not delete keys from failed SCAN output",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheCaptureCollaborators.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "B243A8FF2A26B983959FBA40EE066DCB8E84E60DA52952F308CF7FCA71105098",
+      "BodySHA256": "940B44B39C468931E5E4B5A8263B2161EF78E5C9D1FEA73618DAC582E5E7056C"
+    },
+    {
+      "WholeItSHA256": "8A835475C305D32F98188AB2951811C04EF56637EC165EFAE34DCAF3E4E0463D",
+      "Source": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "caches unavailable health without launching repeatedly",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheCaptureCollaborators.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "4FAD5BFFB56BA980A5AC652CFF40B506BD6070B906BB18E49058F0CA0E93B09C",
+      "BodySHA256": "7CCB040AFD6FEC87F327CDC1BBE51C74C0AB79C323B26425FAA37B2FFE619157"
+    },
+    {
+      "WholeItSHA256": "D5C88BABB9DB2518F53D8AF24B419988D91CA544F46ECA67593E3084B21CDD22",
+      "Source": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "Runtime": "NOT_RUN",
+      "Name": "keeps local memory cache usable with the external provider disabled",
+      "PredecessorPath": "C:\\codedev\\PC_AI\\.pcai\\integration\\shared-cache-capture-integration-source-r3\\Tests\\CacheCaptureCollaborators.Tests.ps1",
+      "WholeItAndRationaleExact": true,
+      "RationaleSHA256": "0290DFA62446BB315266804AD030287A85452FA12968F82C9460D2A30AC72B68",
+      "BodySHA256": "BFC232A9E99F1385D7D02CAE949E8C6E575722676B3957E109697004B669034E"
+    }
+  ],
+  "ModuleSupportUnchanged": [
+    "PC-AI.Common.psm1",
+    "Module-Common.ps1",
+    "Public/Get-PcaiRuntimeConfig.ps1",
+    "Public/Get-ScriptMetadata.ps1",
+    "Public/Import-PcaiAccelerationStack.ps1"
+  ],
+  "TrueZeroRead": "NOT_REPRODUCED_OPEN",
+  "Files": [
+    {
+      "Bytes": 31166,
+      "Path": "Public/Get-PcaiSharedCache.ps1",
+      "SHA256": "F2EF42EF454BBE1C3EEA62B94246B76B9E4983ACB31B8A5EB055A35DC50CC935"
+    },
+    {
+      "Bytes": 2703,
+      "Path": "Private/Initialize-PcaiProcessCapture.ps1",
+      "SHA256": "5864CFD654BB1A2EBD1C244A6D35C9FE8BA022B754CEE41DADDD6C820706555C"
+    },
+    {
+      "Bytes": 38935,
+      "Path": "Private/PcaiProcessCapture.cs",
+      "SHA256": "14A046751C3EB14A2AB58A3DE785AC6D4B330F2036BAFB9CFC9E6908BEADCCCD"
+    },
+    {
+      "Bytes": 1114,
+      "Path": "PC-AI.Common.psm1",
+      "SHA256": "7F669E4C3091C3F9FD804A934A5DE3839F1A70208DA16CD4F837963078C7F76B"
+    },
+    {
+      "Bytes": 15178,
+      "Path": "Module-Common.ps1",
+      "SHA256": "6FC898D183C6FF7EC91B1EFBB50A12CCB38377E217E4E126E8F3EFF83186EB67"
+    },
+    {
+      "Bytes": 19892,
+      "Path": "Public/Get-PcaiRuntimeConfig.ps1",
+      "SHA256": "59F6D71448233CA66B7139AB3FB3A74C1013B8684C40AB2AB9ABAE70051FBE29"
+    },
+    {
+      "Bytes": 3103,
+      "Path": "Public/Get-ScriptMetadata.ps1",
+      "SHA256": "BD1293D7A29AFA49F04EC709C3B40B4CFC8215D98E597CB6BBF9BF185F7E1421"
+    },
+    {
+      "Bytes": 7034,
+      "Path": "Public/Import-PcaiAccelerationStack.ps1",
+      "SHA256": "428D9F5C7F245F396056DE77D1596012B28CA2E0CE27751DC0D8A77118B5FDFB"
+    }
+  ],
+  "Runtime": "NOT_RUN",
+  "ProposedProductionChanges": [
+    "Public/Get-PcaiSharedCache.ps1",
+    "Private/Initialize-PcaiProcessCapture.ps1",
+    "Private/PcaiProcessCapture.cs"
+  ],
+  "PortableDeadline": "OPEN_PREDECESSOR_EXACT",
+  "State": "MAINTAINED_SOURCE_BINDING_ONLY_NOT_RUNTIME_ACCEPTANCE",
+  "PesterPayload": {
+    "OptionalMetadata": "PSGetModuleInfo.xml",
+    "OptionalMetadataRule": "Only if physically present and explicitly same-tuple pinned in selected and runtime inventories",
+    "Required": [
+      {
+        "SHA256": "94C598F75CC09B8905E2B1C9C2C72AB000D589A317770DC6D65BC4A8DF376CAE",
+        "Bytes": 28558,
+        "Path": "Pester.Format.ps1xml"
+      },
+      {
+        "SHA256": "01B03D7CA5F727DE93B65D8A2B172D1F06EF306A62915893333302AACA57BCA7",
+        "Bytes": 16695,
+        "Path": "Pester.ps1"
+      },
+      {
+        "SHA256": "C6DCE1CDD85A9236A9A628DCAAF3E6F07B0AC4173FB25F620FA466F4402EC341",
+        "Bytes": 21506,
+        "Path": "Pester.psd1"
+      },
+      {
+        "SHA256": "49E9E839447703F7B6A6A320A3C65A6DD5A17F4E33372FE02C7D32AD26A2D3CA",
+        "Bytes": 763249,
+        "Path": "Pester.psm1"
+      },
+      {
+        "SHA256": "C270400765FE97E9933F1554AC2D78A57BBA685DB0BF1884869286C88034F316",
+        "Bytes": 27364,
+        "Path": "PesterConfiguration.Format.ps1xml"
+      },
+      {
+        "SHA256": "6C5A4C127C4DC600E746B3D6EAC40AD5F28974779EFCD618E0D923113F3B971D",
+        "Bytes": 87464,
+        "Path": "bin/net452/Pester.dll"
+      },
+      {
+        "SHA256": "23912407D111BB8B1AB75244CF8BFB534F5E4A7E51320444BB492821CCDB347F",
+        "Bytes": 29136,
+        "Path": "bin/net452/Pester.pdb"
+      },
+      {
+        "SHA256": "FB994A81040741CA9D1F4E5B74CBAD563A61F65F5AF43602958BE1DBAE9C851F",
+        "Bytes": 87464,
+        "Path": "bin/netstandard2.0/Pester.dll"
+      },
+      {
+        "SHA256": "F526BB03C0F67733561408DDBA8DD390C29516BBE321AAFF4E8A0C98F1DEB149",
+        "Bytes": 35576,
+        "Path": "bin/netstandard2.0/Pester.pdb"
+      },
+      {
+        "SHA256": "5EB70B28E54B1000CBD9E49DDED8BD9C0A8FC29364C450A1B586A6F657E57B01",
+        "Bytes": 2954,
+        "Path": "en-US/about_Pester.help.txt"
+      },
+      {
+        "SHA256": "9BD878E921FECEDCDEDB0CD076463AEB7A4065F34DCF614A11A8FC0880BD43E9",
+        "Bytes": 8373,
+        "Path": "en-US/about_PesterConfiguration.help.txt"
+      },
+      {
+        "SHA256": "FACE94D4975A0E7D01B376F9FB2FBA298BE61A3CA3B108799749DF408D4BFEFC",
+        "Bytes": 2208,
+        "Path": "schemas/Cobertura/coverage-loose.dtd"
+      },
+      {
+        "SHA256": "7EFFC41FFC755DBB2F4626653753AD7D533050F1685260E219951D6E9E5A2A94",
+        "Bytes": 2912,
+        "Path": "schemas/JaCoCo/report.dtd"
+      },
+      {
+        "SHA256": "DB8A5FC7E72267F3983A3470D4FA532A0F9349DF4DAD699DF9E2527B40690B94",
+        "Bytes": 4475,
+        "Path": "schemas/JUnit4/junit_schema_4.xsd"
+      },
+      {
+        "SHA256": "19BAF3E207534C770FFB6C7D470E84F22A55271F684D29F4EC34C50308D98DB7",
+        "Bytes": 5933,
+        "Path": "schemas/NUnit25/nunit_schema_2.5.xsd"
+      },
+      {
+        "SHA256": "67E39DB6A3251BA20A1BBDEC215168B50F95C8055801652F0F760553E6120A82",
+        "Bytes": 6570,
+        "Path": "schemas/NUnit3/TestDefinitions.xsd"
+      },
+      {
+        "SHA256": "FBE91C35957F34E3BB2B815EDD0445E9CD92DFE5FD2DD734F38B13204F59175D",
+        "Bytes": 3182,
+        "Path": "schemas/NUnit3/TestFilterDefinitions.xsd"
+      },
+      {
+        "SHA256": "CE31E0CBD6BE23C01A253570CEF92C10A5689B8D184D3F3A74F2097703D3FC5B",
+        "Bytes": 8679,
+        "Path": "schemas/NUnit3/TestResult.xsd"
+      }
+    ],
+    "Version": "5.7.1",
+    "SelectedInventory": "Per-host Root input complete normalized path set; exact enumeration equality required",
+    "Provenance": {
+      "SHA256": "82AC61E13FAD963474B73BE307F71AA14540A3B20B7CBBD44C324FA3BE33399D",
+      "Bytes": 6417,
+      "Path": "D:/pcai-relocation/carbon-mcp-current-actual-r1/qualification-r1/runtime-pins.json"
+    }
+  }
+}

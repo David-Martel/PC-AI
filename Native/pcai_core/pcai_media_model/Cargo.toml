@@ -8,10 +8,10 @@ rust-version.workspace = true
 
 [dependencies]
 anyhow = "1.0"
-candle-core = { version = "0.10" }
-candle-nn = "0.10"
-candle-transformers = "0.10"
-candle-flash-attn = { version = "0.10", optional = true }
+candle-core = { version = "0.11" }
+candle-nn = "0.11"
+candle-transformers = "0.11"
+candle-flash-attn = { version = "0.11", optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
@@ -21,10 +21,9 @@ default = []
 cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
 # Enable cuDNN v9 for conv1d/conv2d ops.
 #
-# In candle-core 0.9.x `cudnn` only accelerates convolutions — NOT attention.
-# Janus-Pro's transformer uses matmul-based SDPA, so this feature does not
-# improve performance for this model.  Kept for forward compatibility with
-# future candle releases that may add cuDNN-fused attention.
+# The `cudnn` feature enables Candle's optional cuDNN backend.  Janus-Pro
+# attention uses its separate matmul/Flash Attention paths; any cuDNN
+# performance benefit must be measured on the selected workload and device.
 cudnn = ["cuda", "candle-core/cudnn"]
 flash-attn = ["dep:candle-flash-attn"]
 

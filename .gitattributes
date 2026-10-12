@@ -48,3 +48,45 @@ Reports/milly-fleet-20261002/** -text -eol
 
 # Preserve workload review evidence and the exact launch-source archive.
 Reports/process-lasso-review/** -text -eol
+
+# Preserve the exact failure-first FunctionGemma wrapper fixture bytes.
+Tests/Fixtures/FunctionGemmaDataset.Predecessor.ps1 -text -eol whitespace=cr-at-eol
+
+# Preserve exact reviewed capture source and register bytes across machines.
+Modules/PC-AI.Common/Module-Common.ps1 -text -eol whitespace=cr-at-eol
+Modules/PC-AI.Common/PC-AI.Common.psm1 -text -eol whitespace=cr-at-eol
+Modules/PC-AI.Common/Private/Initialize-PcaiProcessCapture.ps1 -text -eol whitespace=cr-at-eol
+Modules/PC-AI.Common/Private/PcaiProcessCapture.cs -text -eol whitespace=cr-at-eol
+Modules/PC-AI.Common/Public/Get-PcaiRuntimeConfig.ps1 -text -eol whitespace=cr-at-eol
+Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1 -text -eol whitespace=cr-at-eol
+Modules/PC-AI.Common/Public/Get-ScriptMetadata.ps1 -text -eol whitespace=cr-at-eol
+Modules/PC-AI.Common/Public/Import-PcaiAccelerationStack.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/capture-source-register.json -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/Invoke-ProcessCaptureContracts.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/Invoke-ProcessCaptureQualification.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/qualification-common.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/qualification-source-register.json -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/source-review.json -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/QualificationSupervisor.cs -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/Test-ProcessCaptureSources.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/Fixtures/CacheProcessChild.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/ModuleQA/module-qa-source-register.json -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/ModuleQA/qa-common.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/ModuleQA/worker.ps1 -text -eol whitespace=cr-at-eol
+Tests/ProcessCapture/ModuleQA/Fixtures/CaptureChild.ps1 -text -eol whitespace=cr-at-eol
+Tests/Unit/PcaiSharedCache.Tests.ps1 -text -eol whitespace=cr-at-eol
+
+# Preserve reviewed Evaluation consumer source and selector/hash bindings verbatim.
+Modules/PC-AI.Evaluation/Public/Test-ForRegression.ps1 -text -eol whitespace=cr-at-eol
+Tests/Unit/EvaluationPublicContracts.Tests.ps1 -text -eol whitespace=cr-at-eol
+Reports/evaluation-public-contracts-review.md -text -eol whitespace=cr-at-eol
+
+# Preserve reviewed Serena launcher and detecting fixture bytes across hosts.
+Tools/SystemScripts/SerenaLauncher/run-serena-codex.ps1 -text -eol whitespace=cr-at-eol
+Tools/SystemScripts/SerenaLauncher/run-serena-codex.js -text -eol whitespace=cr-at-eol
+Tests/Unit/SerenaManagedPostgresStartup.Tests.ps1 -text -eol whitespace=cr-at-eol
+
+# Preserve the qualified cold capability fixture bytes across machines.
+Tests/Unit/AccelerationCapabilityAutoload.Tests.ps1 -text -eol whitespace=cr-at-eol

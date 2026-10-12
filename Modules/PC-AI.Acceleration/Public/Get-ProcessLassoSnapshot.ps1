@@ -16,10 +16,13 @@ function Get-ProcessLassoSnapshot {
     function Get-ProcessLassoText {
         param([string]$Path)
 
+        $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
+        $reader = $null
         try {
-            return Get-Content -LiteralPath $Path -Raw -Encoding Unicode -ErrorAction Stop
-        } catch {
-            return Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+            $reader = [IO.StreamReader]::new($stream, [Text.Encoding]::UTF8, $true)
+            return $reader.ReadToEnd()
+        } finally {
+            if ($null -ne $reader) { $reader.Dispose() } else { $stream.Dispose() }
         }
     }
 
@@ -144,13 +147,13 @@ function Get-ProcessLassoSnapshot {
         }
 
         $defaultPriorities = @{}
-        $priorityParts = Get-CommaList (Get-IniValue -Sections $sections -Section 'ProcessDefaults' -Key 'DefaultPriorities')
+        $priorityParts = @(Get-CommaList (Get-IniValue -Sections $sections -Section 'ProcessDefaults' -Key 'DefaultPriorities'))
         for ($i = 0; $i -lt $priorityParts.Count - 1; $i += 2) {
             $defaultPriorities[$priorityParts[$i]] = $priorityParts[$i + 1]
         }
 
         $efficiencyOff = @()
-        $efficiencyParts = Get-CommaList (Get-IniValue -Sections $sections -Section 'ProcessAllowances' -Key 'EfficiencyMode')
+        $efficiencyParts = @(Get-CommaList (Get-IniValue -Sections $sections -Section 'ProcessAllowances' -Key 'EfficiencyMode'))
         for ($i = 0; $i -lt $efficiencyParts.Count; $i += 2) {
             $efficiencyOff += $efficiencyParts[$i]
         }

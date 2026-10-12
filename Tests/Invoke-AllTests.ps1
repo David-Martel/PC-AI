@@ -127,7 +127,7 @@ foreach ($path in $testPaths) {
 
 if ($testFiles.Count -eq 0) {
     Write-Warning "No test files found for suite: $Suite"
-    exit 0
+    exit 1
 }
 
 Write-Host "Found $($testFiles.Count) test file(s):" -ForegroundColor Green
@@ -141,6 +141,8 @@ $pesterConfig = New-PesterConfiguration
 
 # Set test paths
 $pesterConfig.Run.Path = $testFiles.FullName
+$pesterConfig.Run.PassThru = $true
+$pesterConfig.Run.Exit = $false
 
 # Set output options
 $pesterConfig.Output.Verbosity = 'Detailed'
@@ -199,6 +201,7 @@ if ($CodeCoverage) {
     $existingModules = $modulesToCover | Where-Object { Test-Path $_ }
     if ($existingModules.Count -gt 0) {
         $pesterConfig.CodeCoverage.Enabled = $true
+        $pesterConfig.CodeCoverage.CoveragePercentTarget = 85
         $pesterConfig.CodeCoverage.Path = $existingModules
         $pesterConfig.CodeCoverage.OutputPath = Join-Path $TestsRoot "coverage.xml"
 
@@ -208,7 +211,7 @@ if ($CodeCoverage) {
         }
         Write-Host ""
     } else {
-        Write-Warning "No modules found for code coverage analysis"
+        throw 'No modules found for requested code coverage analysis.'
     }
 }
 
@@ -217,6 +220,11 @@ Write-Host "=== Running Tests ===" -ForegroundColor Cyan
 Write-Host ""
 
 $result = Invoke-Pester -Configuration $pesterConfig
+if ($CodeCoverage) {
+    . (Join-Path $ProjectRoot 'Tools/Assert-PesterCoverageGate.ps1')
+    Assert-PesterCoverageGate -Result $result -Target $pesterConfig.CodeCoverage.CoveragePercentTarget.Value
+}
+if ($result.TotalCount -eq 0) { throw 'No tests discovered.' }
 
 # Print summary
 Write-Host ""
@@ -240,7 +248,7 @@ if ($CodeCoverage -and $result.CodeCoverage) {
 }
 
 # Exit code based on test results
-if ($result.FailedCount -gt 0) {
+if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0 -or $result.FailedBlocksCount -gt 0) {
     Write-Host ""
     Write-Host "Tests FAILED" -ForegroundColor Red
     exit 1

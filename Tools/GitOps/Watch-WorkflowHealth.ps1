@@ -105,7 +105,7 @@ $snap = [ordered]@{
     last_runs   = if ($runs.status -eq 'Available') { @($runs.value | Select-Object -First 5 | ForEach-Object { @{ wf = $_.workflowName; status = $_.status; conclusion = $_.conclusion } }) } else { @() }
     workflow_inspection_status = if ($runs.status -eq 'Available' -and $workflows.status -eq 'Available') { 'Available' } else { 'Unavailable' }
     billing     = @{ status = $billing.status; year = $billingMonth.Year; month = $billingMonth.Month; quota_status = 'Unknown' }
-    inspections = @($inspections | Select-Object operation, status, exit_code, reason)
+    inspections = @($inspections | Select-Object operation, status, exit_code, reason, reason_code, http_status)
 }
 Write-GitOpsReport -Report $snap -Directory $OutputDirectory -Name ('workflow-health-' + $Repo.Replace('/', '_') + '.json')
 if (-not $Quiet) { "workflow-health $Repo : inspection=$($snap.inspection_status) problems=$($problems.Count)" }

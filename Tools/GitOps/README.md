@@ -57,6 +57,17 @@ Actions allowance, so it cannot establish minutes exhaustion. Quantities and
 charges are validated in memory and excluded from reports and console output.
 The focused executable suite is `Tests/Unit/GitOpsMonitors.Tests.ps1`.
 
+Inspection rows also expose `reason_code` and nullable `http_status`. The latter
+contains only a single unambiguous HTTP status from 100 through 599. Recognized
+code-scanning responses use `FeatureDisabled` (still `Unsupported`) or
+`NoAnalysisFound` (still `Unavailable`). Generic provider and local launch
+failures use `RequestFailure`; missing, malformed or wrongly shaped JSON uses
+`InvalidResponse`. Successful inspections leave `reason_code` null. These fields
+contain no raw provider error text, private launcher diagnostics or billing
+quantities, and a generic 404 does not establish a permission or feature state.
+The response and report-projection cases are covered by
+`Tests/Unit/GitOpsResponseReasons.Tests.ps1` alongside the existing monitor suite.
+
 ## Roadmap (remaining)
 - [ ] **Reconcile-GitSigning.ps1** — flip an arbitrary local clone's `.git/config` to SSH signing (PC-AI done inline).
 - [ ] **Tests/GitOps/GitOps.Tests.ps1** — sign-under-redirect, billing-detect, secret-scan, onedrive-guard.

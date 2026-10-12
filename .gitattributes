@@ -82,3 +82,8 @@ Tests/Unit/PcaiSharedCache.Tests.ps1 -text -eol whitespace=cr-at-eol
 Modules/PC-AI.Evaluation/Public/Test-ForRegression.ps1 -text -eol whitespace=cr-at-eol
 Tests/Unit/EvaluationPublicContracts.Tests.ps1 -text -eol whitespace=cr-at-eol
 Reports/evaluation-public-contracts-review.md -text -eol whitespace=cr-at-eol
+
+# Preserve reviewed Serena launcher and detecting fixture bytes across hosts.
+Tools/SystemScripts/SerenaLauncher/run-serena-codex.ps1 -text -eol whitespace=cr-at-eol
+Tools/SystemScripts/SerenaLauncher/run-serena-codex.js -text -eol whitespace=cr-at-eol
+Tests/Unit/SerenaManagedPostgresStartup.Tests.ps1 -text -eol whitespace=cr-at-eol

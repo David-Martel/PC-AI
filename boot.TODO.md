@@ -1,5 +1,21 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Docker startup guard follow-up
+
+Review: October 12, 2026, 00:25 UTC. See the current CI and startup-guard section
+of [the fleet review](Reports/fleet-integration-review.md).
+
+- [x] Maintain and install the reviewed Serena default refusal before Docker
+      discovery. Preserve the installed preimage and failed first installer.
+      Seventeen focused controls and four installed inert CLI calls pass.
+- [ ] Qualify ordinary Serena backend readiness and effective Rust database
+      configuration without claiming TCP availability as authentication.
+- [ ] Reconcile VIGIL on-demand runner ownership, duplicate instances and
+      Docker-off policy before changing useful runner processes or configuration.
+- [ ] Reduce measured P1 commit pressure and run a matched responsiveness
+      comparison. No configured MCP orphan termination is justified by the
+      current client-lineage evidence; the native MCP pilot remains gated.
+
 ## Current cache and integration closeout
 
 Review: October 11, 2026, 20:38 UTC. The source-bound receipts and prior failures

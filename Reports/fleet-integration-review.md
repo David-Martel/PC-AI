@@ -2013,3 +2013,55 @@ Work access, master-vault reconciliation, optional backend/runtime qualification
 remaining PR/worktree disposition, exact-current-head CI and fleet equivalence
 remain OPEN. Root owns the next source/consumer validation and publication;
 no current clean-main, cross-machine synchronization or performance gain is claimed.
+
+## Current CI and Docker startup guard
+
+Cutoff: October 12, 2026, 00:38 UTC. Published head
+`07599c69f7558b94b4608d40245827d634c49dd0` repairs three detecting test
+inventories for the merged `Invoke-PcaiFleetToolCall` helper. The production
+helper is unchanged. The earlier combined run had four streaming timeouts;
+its successor passes all 51 focused controls with original fixture resources
+closed. The transient timeout cause remains OPEN. CI for this head records
+3,078 passes, zero failures, 41 skips and zero not-run tests in 546.2 seconds.
+Its unchanged 85% coverage gate still fails at 14,647/21,928 commands
+(66.795877%). Other applicable main jobs and NVIDIA validation succeed; Rust
+Guidelines remains pending at this update. These results bind the published
+head's synthetic PR merge `e94ec7a50cf8663f547f99b41dd8a735ae03aff3`.
+The prior head's 23 PowerShell failures and lower coverage remain preserved.
+
+The maintained [Serena launcher](../Tools/SystemScripts/SerenaLauncher/README.md)
+now refuses unavailable local PostgreSQL before Docker discovery. Managed
+PostgreSQL startup requires explicit `-AllowManagedPostgresStartup`. The previous
+installed launcher is retained on D:; the exact reviewed successor was installed
+using atomic replacement and hash readback. Seventeen focused controls and four
+installed help/dry-run invocations pass. No ordinary backend, Docker, client
+configuration or running-client restart was invoked. Native stderr sanitation,
+effective Rust database configuration and full backend readiness remain OPEN.
+The failed first installer is preserved; its null-string replacement and literal
+help binding were corrected in a separate successor.
+
+The bounded P1 profile still observed about 90% commit pressure. The MCP lineage
+audit found 262 configured matches anchored to live clients, including Warp;
+none is admitted for orphan termination. Five small PowerShell processes are
+source-associated with VIGIL runner tooling. Its Docker startup path already
+requires `-StartDocker`; the literal flag is absent from the five observed
+invocations and configured task. Abbreviated or dynamic binding, loaded source,
+runtime ownership and duplicate-instance custody require owner reconciliation;
+no default Docker-startup defect is established for these runner processes.
+Hard faults alone do not establish pagefile swapping, and no measured system
+responsiveness improvement is claimed by these source or process checks.
+
+Carbon received 86 additive metrics source files with complete byte/hash
+readback. The first additive validation stopped during preflight: its preserved
+original-object graph exceeded a 4,096-object bound. It recorded zero compiler
+or consumer sessions, zero metadata resources and no output namespace. The
+original first error is retained; the identity, readers and writers are closed,
+and Sup4/B897 are clear. Its 499.6-second duration is whole preflight/cleanup time,
+not an attributed routine benchmark. A separate source successor is required;
+compatibility and full production-project validation remain pending.
+All 39 cached package archives match their archive sidecars, and
+their metadata content hashes match the existing restore records. The earlier
+comparison mistakenly treated these distinct hash domains as interchangeable;
+that finding is superseded and preserved in the source preparation receipts.
+Fresh offline restore and package authenticity remain separate checks. The
+binary compatibility deployment hold remains in effect.

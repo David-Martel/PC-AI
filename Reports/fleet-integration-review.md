@@ -2065,3 +2065,88 @@ comparison mistakenly treated these distinct hash domains as interchangeable;
 that finding is superseded and preserved in the source preparation receipts.
 Fresh offline restore and package authenticity remain separate checks. The
 binary compatibility deployment hold remains in effect.
+
+## Integration and measured limits
+
+Root observation cutoff: 2026-10-12 01:48 UTC. Last published head `2b0253d`
+completed 3,095 PowerShell tests with zero failures, 41 skips and zero not-run
+tests, but its genuine source-bound command coverage is 14,647 / 21,928
+(66.7959%), below the unchanged 85% requirement. The 240 module source bindings
+were independently verified. Another 3,992 distinct command hits are needed;
+earlier behavioral passes cannot be counted again as coverage. Main's older
+wildcard scope and absence of an explicit coverage assertion do not establish
+equivalent coverage. All other applicable main jobs and the separate Rust
+guidelines and NVIDIA workflows passed; integration tests were skipped.
+
+Upstream USB descriptor PR #185 merged as main `7f8c250`. Root merged those five
+disjoint files through normal hooks into signed local `ebee823`, preserving the
+three existing dirty files byte-for-byte. This local merge is not yet published
+or qualified by current-head CI. Foreign media `028C` remains unstaged. Carbon
+has four linked worktrees, including dirty media work; local Candle has 32
+unpublished commits and edits. None was retired.
+
+Milly's live read-only storage check at 01:46 UTC confirms about 580 GiB internal
+free space, WDC serial `1830D0800483` at 10,000 Mb/s with UAS, and accessible
+original `av_recording` paths through the migrated Btrfs storage. All five
+Btrfs device error counters are zero. Outer NTFS free space and inner Btrfs free
+space are not additive. This is mount/access evidence, not cold-boot, restore,
+Windows-access or physical M.2-slot qualification.
+The earlier stdin transport's final machine-guidance loop failed parsing after
+the storage records were emitted; that EXIT2 receipt is preserved. A normalized,
+newline-terminated source retry returned EXIT0 with the same storage findings.
+
+Metrics actor R2 failed preflight on the complete 10,230-node snapshot because
+generic `Dictionary<string,string>` does not expose the same PowerShell
+`Contains` overload as a Hashtable. It launched zero sessions, opened no
+metadata resources and created no actual output namespace. Its two readers
+and identity closed; elapsed preflight/cleanup was 37.316817 seconds. Both
+failed owners and their original first errors remain retained. Distinctly
+reviewed source R3 fixes interface dispatch while preserving every original
+item/reference comparison and both failed-owner custody checks. Its actual
+19-stage validation completed in original Carbon session 92653 with fresh
+capacity and all 4,040 runtime pins. Twelve restore/build actors returned zero;
+the original getter and initializer each passed against baseline and repaired
+assemblies and genuinely failed against the held incompatible assembly. The
+nullable wire control passed. All 19 sessions closed without force, six paired
+metadata artifacts were inspected, and the original owner has no first error,
+secondary error or pending local work. Physical readback verified all 251 output
+pins (1,789,231 bytes); the result SHA256 is
+`26DCBC13B17409906CA4F438E5E631C5444DB5F7786B70710252291733C157A3`.
+This validates isolated compatibility controls. The full production assembly,
+its actual native boundary and publish restore graph remain unqualified;
+deployment remains HOLD. The existing 39-package cache does not contain the
+runtime/host/crossgen packages needed to establish ReadyToRun publish closure.
+
+The GitOps bus message now reports workflow metadata, workflow problems,
+billing and upstream metadata separately. Twenty-six bounded fixture tests
+passed, including realistic partial failures and privacy controls, and distinct
+review accepted the two-file change. No live billing, bus delivery or performance
+acceptance follows from those fixture tests. The first simultaneous native bus
+claim refused to open its private outbox; a sequential retry succeeded. The
+typed open cause remains unknown; no journal or lock was changed.
+
+Three cleanup PATH existence checks now use literal paths. The same detecting
+controls produced six passes and nine genuine failures on the original source,
+then 15 passes on the candidate. Fifteen selected legacy PATH tests also passed;
+11 unrelated tests were not run. Distinct review verified complete byte inverses
+and accepted the exact three substitutions. Persistent PATH was unchanged.
+The fixtures restore three tracked process variables, while TEMP/TMP changes
+are confined to disposable test processes. Existing backup/log operations
+precede ShouldProcess and are fixture-stubbed; these tests do not qualify all
+filesystem IO under WhatIf. No global CI coverage credit or speedup is claimed.
+The fresh agent-bus read retained both ambiguous monitor messages and the
+unanswered runner custody request; it supplied no new authority to stop runners.
+
+P1's memory-compression trial did not establish a performance gain. A six-sample
+30.12-second baseline was captured on D:. `Enable-MMAgent -MemoryCompression`
+returned but three legacy MMAgent readings became true. Legacy disable calls
+returned "request not supported"; disabling compression returned and restored
+that flag. Stopping SysMain restored all six saved MMAgent readings, with its
+Automatic startup mode unchanged. Initial SysMain service state was not directly
+captured, so complete original service-state equivalence is OPEN. Compression
+remains disabled, and no enabled after-window was accepted. Evidence and failed
+attempts are retained in `D:/pcai-relocation/p1-memory-compression-trial-r1`.
+
+Fresh configured Work SSH still times out; the installed Android SDK ADB command
+currently lists zero devices. Earlier successful Work or Pixel observations are
+historical and do not establish current connectivity or vault reconciliation.

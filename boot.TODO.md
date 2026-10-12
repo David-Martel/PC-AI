@@ -2156,3 +2156,24 @@ Validation cutoff: October 11, 2026, 21:45 UTC. Owner: root/integration.
 - [ ] Complete Work connectivity, phone-vault reconciliation, optional native
   backend qualification and foreign worktree/PR disposition. Do not retire WIP
   or claim clean fleet/main equivalence from this source integration.
+
+- [x] Preserve the failed P1 memory-compression isolation trial and restore all
+  six saved MMAgent readings. Compression is disabled; SysMain is stopped with
+  its Automatic startup mode unchanged. The initial SysMain service state was
+  not directly captured, so complete service-state equivalence remains OPEN.
+- [ ] Qualify memory-manager tuning with a service-state baseline and actual
+  before/after measurements. Legacy MMAgent disable requests were unsupported;
+  the trial has no accepted speedup. Retain the six-sample D: baseline, original
+  refusal and rollback receipts; do not rerun the archived WSL optimization's
+  unconditional compression-disable recommendation as a measured optimization.
+- [x] Review the GitOps bus projection and validate independent workflow,
+  billing and upstream availability: 26 fixture tests pass. Live delivery and
+  source-bound current-head CI remain separate requirements.
+- [x] Review three literal PATH existence substitutions: original detecting
+  controls six pass/nine fail, candidate 15 pass, selected legacy tests 15 pass.
+  Persistent PATH unchanged; existing backup/log-before-ShouldProcess behavior
+  remains outside the bounded fixture qualification.
+- [x] Complete isolated additive managed metrics compatibility controls on
+  Carbon: 12 restore/build actors and seven consumer controls closed without
+  force, including two genuine held-assembly failures. Full production assembly,
+  native boundary and ReadyToRun publish restore qualification remain OPEN.

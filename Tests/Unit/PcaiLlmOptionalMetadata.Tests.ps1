@@ -258,7 +258,7 @@ Describe 'Actual progress declarations-only parser guard' -Tag 'Unit', 'LLM', 'P
         $guards = @($progressAst.FindAll({
             param($node)
             $node -is [Management.Automation.Language.IfStatementAst] -and
-            $node.Extent.Text.Contains("throw 'Canonical helper must contain only its 24 approved function declarations before dot-sourcing.'", [StringComparison]::Ordinal)
+            $node.Extent.Text.Contains("throw 'Canonical helper must contain only its 25 approved function declarations before dot-sourcing.'", [StringComparison]::Ordinal)
         }, $true))
         if ($guards.Count -ne 1) { throw 'One exact maintained declarations-only guard required.' }
         $script:ActualProgressGuard = [scriptblock]::Create($guards[0].Clauses[0].Item1.Extent.Text)
@@ -271,7 +271,7 @@ Describe 'Actual progress declarations-only parser guard' -Tag 'Unit', 'LLM', 'P
         $parseErrors = $null
         $helperAst = [Management.Automation.Language.Parser]::ParseInput($script:HelperText, [ref]$tokens, [ref]$parseErrors)
         $top = @($helperAst.EndBlock.Statements)
-        @($top) | Should -HaveCount 24
+        @($top) | Should -HaveCount 25
         (& $script:ActualProgressGuard) | Should -BeFalse
     }
     It 'admits valid helper declarations when the parse error report is null' {
@@ -286,26 +286,26 @@ Describe 'Actual progress declarations-only parser guard' -Tag 'Unit', 'LLM', 'P
     # Protects the explicitly approved inventory, not just its size. Detects a
     # substituted declaration before dot-sourcing. Needs the real predicate and
     # parsed canonical source only; breadcrumb LLMProgressJobCustody BeforeAll.
-    It 'rejects an unapproved function while retaining 24 declarations' {
+    It 'rejects an unapproved function while retaining 25 declarations' {
         $tokens = $null
         $parseErrors = $null
         $text = $script:HelperText.Replace('function Get-PcaiNativeDashboardSnapshot {', 'function UnapprovedDashboardDeclaration {')
         $text | Should -Not -BeExactly $script:HelperText
         $helperAst = [Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$parseErrors)
         $top = @($helperAst.EndBlock.Statements)
-        $top | Should -HaveCount 24
+        $top | Should -HaveCount 25
         (& $script:ActualProgressGuard) | Should -BeTrue
     }
     # Protects unique approved declarations. Detects a duplicated name despite
     # unchanged count. Needs only parsed ASTs; breadcrumb real Compare-Object gate.
-    It 'rejects a duplicate approved function while retaining 24 declarations' {
+    It 'rejects a duplicate approved function while retaining 25 declarations' {
         $tokens = $null
         $parseErrors = $null
         $text = $script:HelperText.Replace('function Get-PcaiNativeDashboardSnapshot {', 'function Resolve-PcaiEndpoint {')
         $text | Should -Not -BeExactly $script:HelperText
         $helperAst = [Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$parseErrors)
         $top = @($helperAst.EndBlock.Statements)
-        $top | Should -HaveCount 24
+        $top | Should -HaveCount 25
         (& $script:ActualProgressGuard) | Should -BeTrue
     }
     It 'rejects malformed helper source using actual parser errors' {
@@ -324,13 +324,13 @@ Describe 'Actual progress declarations-only parser guard' -Tag 'Unit', 'LLM', 'P
         (& $script:ActualProgressGuard) | Should -BeTrue
     }
     # Protects the separate trap check: trap-only source retains exactly the
-    # same 24 approved declarations, so declaration count cannot reject it by itself.
-    It 'rejects a parsed top-level trap while retaining the 24 declarations' {
+    # same 25 approved declarations, so declaration count cannot reject it by itself.
+    It 'rejects a parsed top-level trap while retaining the 25 declarations' {
         $tokens = $null
         $parseErrors = $null
         $helperAst = [Management.Automation.Language.Parser]::ParseInput(($script:HelperText + "`ntrap { continue }"), [ref]$tokens, [ref]$parseErrors)
         $top = @($helperAst.EndBlock.Statements)
-        $top | Should -HaveCount 24
+        $top | Should -HaveCount 25
         @($helperAst.EndBlock.Traps) | Should -HaveCount 1
         (& $script:ActualProgressGuard) | Should -BeTrue
     }

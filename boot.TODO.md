@@ -2,14 +2,17 @@
 
 ## Current integration follow-up
 
-Review cutoff: October 12, 2026, 06:23 UTC. Owner: root/integration. See
+Review cutoff: October 12, 2026, 09:16 UTC. Owner: root/integration. See
 [the current fleet status](Reports/fleet-integration-review.md).
 
 - [x] Publish reviewed GitOps inspection reasons and verify the combined 67-case
       validation. Live analysis and billing remain unavailable.
-- [ ] Clear published head `1a51ed8` coverage: 3,201 test passes, zero failures,
+- [ ] Clear code-bearing head `77f413a` coverage: 3,214 test passes, zero failures,
       41 skips; 14,608 / 21,950 covered commands (66.551253%). Preserve the 85%
       target and qualify integration tests after the gate passes.
+      Independent exact-head review verifies 240 source bindings, all 13 named
+      acceleration passes and the genuine parent/child coverage union; another
+      4,050 distinct hits are needed. Rust Guidelines and NVIDIA both pass.
 - [x] Adopt the bounded capability observation fix: seven exact matching
       patterns avoid literal-name autoload even with `-ListImported`.
       Isolated Carbon baseline has five passes/eight failures; repair has
@@ -19,17 +22,54 @@ Review cutoff: October 12, 2026, 06:23 UTC. Owner: root/integration. See
 - [ ] Qualify other users, hosts and fresh deployed consumers of the importer;
       resolve the inherited `Modules` fallback-root gap. Current-user routing
       is a checkout junction; existing agents remain running.
+- [x] Repair public search selection and isolate legacy cache entries: original
+      suite one pass/eight failures; new and existing fd suites 17 passes, zero
+      failures/skips/not-run. Preserve direct manifest capability. Native ABI,
+      empty-cache-hit efficiency and no-fd/directory/symlink breadth remain OPEN.
+      Matched fd microbenchmark medians 57.243/60.4935 ms establish no speedup.
+- [ ] Redesign native inference ownership before claiming bounded poll/cancel:
+      generation holds the global mutex and late workers can resurrect consumed
+      entries. Audit PowerShell and C# settlement together; wrapper-only extra
+      polling is insufficient. Owner: root/integration; next: native state-machine
+      design and detecting cancel-before-start/terminal-consumption controls.
+- [ ] Qualify portable capture with concurrent bounded pipe drains, cancellation
+      propagation and original-process cleanup on Linux; preserve timeout causes.
+- [ ] Preserve C# background argument elements with a real argv-echo child and
+      distinguish process launch from service readiness before deployment.
 - [ ] Repair readiness UTF-8 capture and independent diagnostic finalization;
       retain the original forced timeout and qualify a fresh source-bound
       attempt with the existing deadline. R3 source is independently approved;
-      fresh input/caller R5 review and actual readiness remain pending.
-      Timeout-stage attribution is OPEN.
+      fresh input/caller R5 source and staging are approved. R5 prepared with
+      original handles closed but expired before Root launch; preserve it and
+      qualify a fresh synchronous handoff. Its first actual refresh failed
+      before IO/identity/actor on dictionary Count-key shadowing. Preserve that
+      failed original. The repaired map guard prepared fresh input with 469
+      readers/one writer closed and immediately launched R3. R3 naturally
+      exited 1 at informational-version validation after 146.1201 seconds;
+      strict UTF-8 succeeded and all original actor resources closed. Preserve
+      FAIL/FAIL_HANDOFF and qualify a separate custody-aware successor.
+      Source diagnosis and 92 controls establish the producer/validator format
+      mismatch; the actual rejected tuple and full compiler acceptance remain OPEN.
 - [ ] Obtain current-source public media cancellation, poison and shutdown
       qualification. Read-only review finds terminal overwrite and late-worker
       gaps; foreign media edits remain protected and unstaged.
 - [ ] Reduce P1 commit pressure with measured, owner-compatible changes. Latest
-      single reading is 91%; no new speedup or process waste is established.
-      Docker stays stopped and active camera capture remains preserved.
+      active-copy host-only interval is approximately 93.10%; no new speedup or
+      process waste is established. Observer CPU is 0.984375 seconds.
+      Docker Desktop/backend stay stopped; the retained Docker service is
+      running. Active camera capture remains preserved. Six installer downloads
+      total 12.56 GB. D: copy/hash/metadata verification completed in 568.6685
+      seconds with all original IO and evidence resources closed. Transparent
+      path cutover passed in 564.5572 seconds with original resources closed.
+- [x] Retire the six verified installer backups: retirement passed in 377.5845
+      seconds, deleting 12,558,298,272 logical C: bytes. Original IO/evidence
+      resources closed; fresh canonical links, lengths and executable prefixes
+      pass and private backups are absent. Memory and speedup remain unqualified.
+- [x] Measure the existing native MCP metadata path against fresh PowerShell:
+      four alternating pairs return matching size/type with 10--16 ms versus
+      2.381--4.468 seconds tool-call latency. Use supported native inspection;
+      D: access is refused by its configured scope. No global shared-server or
+      workstation speedup acceptance follows.
 - [ ] Finish Work access, phone-vault reconciliation, shared MCP reuse, production
       metrics and fleet equivalence; source-only review is not deployment.
 

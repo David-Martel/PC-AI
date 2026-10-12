@@ -2,16 +2,56 @@
 
 ## Current integration status
 
-Observation cutoff: October 12, 2026, 06:23 UTC. Prior signed published head
-`1a51ed8d9d7c4d2afe150c635bd169abf5a567ed` matches the feature branch's origin
-head. PR 182 remains draft. Main CI run `38201995497` passes 3,201 tests with
-zero failures and 41 skips, but merged command coverage is 14,608 / 21,950
+Observation cutoff: October 12, 2026, 09:16 UTC. Last published code-bearing head
+`77f413aa1eb5d01dccca5614b84523ee8946776c` matches the feature branch's origin
+head at the preceding fetch. Reviewed local search changes are pending publication;
+their validation below is separate from that published head. PR 182 remains draft.
+Main CI run `38212617671` passes
+3,214 tests with zero failures and 41 skips, but merged command coverage is 14,608 / 21,950
 (66.551253%), below the unchanged 85% requirement. Integration tests were
-skipped. Rust, C#, lint, security and CPU build jobs pass; the separate Rust
-Guidelines and NVIDIA workflows also pass. This does not qualify deployed
+skipped. Rust, C#, lint, security and CPU build jobs pass; the separate NVIDIA
+workflow and exact-head Rust Guidelines both pass. This does not qualify deployed
 consumers or prove that every machine uses current toolchains. Receipts:
-`D:/pcai-relocation/current-head-ci-1a51ed8-r1/report.json` and
-`D:/pcai-relocation/current-head-ci-1a51ed8-r1/guidelines-final-r1.json`.
+`D:/pcai-relocation/current-head-ci-77f413a-r1/report-initial.json` and
+`D:/pcai-relocation/current-head-ci-77f413a-r1/failed-jobs.log`.
+Independent review completed at 07:03 UTC: all 13 acceleration cases are named
+passes in the hosted log; all 240 module source bindings match the exact Git
+trees. The source-bound coverage union adds 448 distinct child hits to 14,160
+parent hits. Another 4,050 distinct hits are required. The archive matches
+GitHub's digest; it contains coverage evidence, not test-result XML. Review:
+`.pcai/integration/current-head-ci-77f413a-source-review-r1/review.json`.
+
+Public file discovery now avoids native routing that cannot preserve regex,
+pattern/extension intersection and ignore semantics. Its cache key distinguishes
+the corrected selection contract from older cached results. Existing fd and
+managed fallback bodies are unchanged; direct native manifest APIs remain
+available. The maintained nine-case detecting suite had one pass/eight failures
+against the original source; the repaired suite and eight existing fd controls
+have 17 passes, zero failures/skips/not-run. Physical fd executes against owned
+Git/hidden/nested fixtures; the native collaborator is inert, so this is public
+wrapper selection evidence rather than actual Rust ABI qualification. The finite
+Root receipt explicitly contains no saved original Pester result object or XML:
+`.pcai/integration/native-consumer-gap-peer-r1/root-finite-validation-r1.json`.
+Independent source review approves only this bounded public selection correction:
+`.pcai/integration/native-search-canonical-peer-r1/review.json`.
+Both the changed source and new test have zero analyzer findings. Empty-result
+cache-hit efficiency, no-fd managed parity, directories and symlinks remain OPEN.
+A five-pair alternating microbenchmark on the unchanged fd path preserves exact
+results: old/new medians are 57.243/60.4935 ms. This small-fixture observation does
+not establish a speedup or native-to-fd performance comparison. Receipt:
+`D:/pcai-relocation/native-search-microbenchmark-r1/report.json`.
+
+The exact-head functional review identifies gaps beyond command coverage:
+native inference holds its global mutex during generation, blocking poll/cancel;
+consumption before worker start can resurrect removed request entries. Native
+request ownership must be redesigned before advertising bounded cancellation.
+Portable process capture waits before draining both redirected pipes and does
+not prove timeout/cancellation cleanup; Linux qualification remains OPEN.
+C# background service launch can lose argument boundaries and reports launch
+success before readiness. Native process/disk consumers and prompt fallback
+autoload/telemetry still need paired runtime evidence. These are source findings,
+not measured production frequency, leaked bytes or performance improvements.
+Evidence: `.pcai/integration/coverage-functional-gap-review-r1/report.md`.
 
 GitOps inspection now distinguishes an explicit missing analysis, a disabled
 feature, a generic request failure and an invalid response without publishing
@@ -28,9 +68,45 @@ diagnostic writes. These evidence defects are established; the precise timed
 out stage remains OPEN. Review:
 `.pcai/integration/full-readiness-timeout-actual-peer-r1/review.json`.
 Readiness successor R3 has independent source approval. Its 24 controls and
-12 inert entries pass, but the actual readiness attempt is not executed.
-Fresh R3-bound input and caller R5 still require independent approval before
-another attempt; prepared input from the failed source is not reusable.
+12 inert entries pass; its subsequent actual failure is recorded below.
+Fresh R3-bound input and caller R5 have source approval and were staged with
+all 200 physical source/review files verified. R5 input preparation completed
+in 22.01 seconds with 467 original reader handles and two writer handles closed,
+source stable and no first or secondary error. Root let its input age beyond
+the unchanged 60-second admission window during follow-up verification and
+withheld the R3 launch. R5 remains prepared and preserved. A synchronous fresh
+Root handoff received source approval and all 26 staged files matched their
+physical pins. Its actual refresh failed in 160.6238 ms before identity, file
+handles, output or actor creation: dictionary `Count` keys were read as map
+cardinality. Root confirmed 51 four-field retained list maps with such payloads.
+The failure remains retained with zero resources and native custody clear;
+R5 remains prepared and unchanged. A successor preserves that failed original
+and uses the underlying dictionary properties without changing payloads.
+Thirty-four literal map controls detect the defect and pass the repair.
+Receipt: `D:/pcai-relocation/readiness-input-actual-r5/admission-freshness-hold.json`.
+Actual refresh failure:
+`D:/pcai-relocation/readiness-refresh-actual-failed-r1/original-postreturn.json`.
+
+The separately reviewed R2 refresh completed input preparation in 22.1555
+seconds with 469 original readers and one writer closed. A fresh synchronous
+handoff launched the actual R3 readiness child. It naturally exited 1 after
+146.1201 seconds at `ACTUAL_INSTALLED_PC_AI_VERSION`; no forced termination
+occurred. All 84 actor readers, five writers and original process, job, pipe,
+task and identity resources closed. Strict UTF-8 decoding succeeded for both
+captured streams. The refresh retains `FAIL_HANDOFF`; the actor retains `FAIL`
+and its original first and secondary errors. This is a fresh failure, not
+latest-toolchain or build acceptance. Original-object witness:
+`D:/pcai-relocation/full-metrics-readiness-actual-r3/original-closeout.json`.
+
+Source diagnosis proves a producer/validator mismatch: pinned CargoTools
+constructs informational versions as `$Version ($ReleaseTag)`, while both
+readiness and production validators reject spaces and parentheses. The exact
+rejected Carbon tuple was not captured, so source evidence must not be promoted
+to an observed value. Ninety-two complete old/new statement controls pass.
+A separate successor is being prepared with unchanged tuple values and length
+bounds, strict anchors, and explicit custody of both failed originals. No
+successor actor, compiler or full production build has run. Diagnosis:
+`.pcai/integration/readiness-r3-version-diagnosis-r1/report.md`.
 
 Capability observation now uses seven exact matching wildcard patterns with
 `-ListImported`. PowerShell 7.6.6 can still autoload providers for literal
@@ -48,6 +124,11 @@ stdout payloads decode equivalently. PowerShell 7.0 execution remains
 NOT_TESTED. The exact importer and fixture bytes are adopted in this change,
 with a narrow Git attribute preserving fixture bytes. Root review:
 `.pcai/integration/acceleration-capability-autoload-peer-r3/review-final.json`.
+The normal Git whitespace check caught one trailing ASCII space in the fixture
+helper. A separate complete byte inverse verifies its removal, with all eight
+test bodies unchanged. Published delivery review verifies exact raw HEAD bytes,
+signature, attributes and local tracking-ref equality:
+`.pcai/integration/acceleration-adoption-delivery-peer-r1/review.json`.
 Current-user module routing is a junction to this checkout; future fresh module
 loads use the updated importer. Existing processes, other users and other
 hosts have not been refreshed or qualified.
@@ -65,13 +146,67 @@ worker/shutdown gaps. Current-source runtime acceptance remains HOLD. Review:
 `.pcai/integration/media-ffi-wip-readonly-review-r1/review.json`.
 
 Milly's serial-matched WDC SSD is running at 10 Gb/s with UAS; internal storage
-has about 580 GiB free and the original study paths remain accessible. The
+has about 580 GiB free. The original `user_study/av_recording` path remains
+accessible through the SSD; `user_study` itself remains an internal directory. The
 outer NTFS and inner Btrfs free-space figures must not be added. Cold boot,
 restoration, Windows access and physical M.2 vacancy remain unqualified.
-P1's latest single counter reading still shows 91% commit pressure. Docker
-remains stopped; active camera capture and useful agent processes are
+Milly's five live one-second samples at 07:12 UTC show no swap-in/out and
+100% sampled CPU idle; available memory is about 51 GiB. Memory/IO pressure
+averages are zero. Its nearly full 2 GiB swap file does not establish current
+thrashing. This short quiet window is not a workload speedup benchmark.
+Receipt: `D:/pcai-relocation/milly-performance-current-r1/transport.json`.
+P1's host-only 10-second interval during installer copying shows approximately
+93.10% commit pressure, 7,544 MiB available memory and active page-ins with a
+zero sampled disk queue and 0.344 ms mean transfer latency. Its 0.984375-second
+observer CPU cost is retained separately. These global counters do not attribute
+page-ins to the copy or establish paging-file thrashing or UI responsiveness.
+Receipt: `D:/pcai-relocation/p1-offload-monitor-r1/host-only-interval.json`.
+Docker Desktop/backend remain stopped; the
+previously retained Docker service is running, without engine acceptance.
+Active camera capture and useful agent processes are
 preserved. Work connectivity, phone-vault reconciliation, shared MCP reuse,
 full production metrics and fleet/main equivalence remain OPEN.
+Four alternating metadata-call pairs returned matching file sizes/types:
+the configured Rust filesystem MCP took 10--16 ms, versus 2.381--4.468 seconds
+for fresh PowerShell calls, which used 0.688--0.813 CPU seconds each. Tool-call
+wall time includes transport and queueing. Root now uses that available native
+path for supported inspection; no global client/server change or general
+workload speedup follows. This MCP allows C:, T: and F: and refused D: before
+any write. The receipt is on T:; server scope was unchanged:
+`T:/pcai-evidence/metadata-call-microbenchmark-r1/report.json`.
+
+Six cold installer downloads totaling 12,558,298,272 bytes have verified D:
+copies, including hashes, alternate streams, ACLs and timestamps. Copy took
+568.6685 seconds; all 34 original file records and the separate evidence writer
+closed successfully in the retained process. Cutover took 564.5572 seconds;
+all 33 original file records and its separate evidence writer closed. Retirement
+then passed in 377.5845 seconds, deleting exactly 12,558,298,272 verified logical
+bytes from the six private C: backups. All 26 original retirement file records
+and its separate evidence writer closed. Fresh canonical-path checks confirm
+all six links still open as the expected executable lengths and PE prefixes,
+with backups absent. This is disk-space relief, not memory or responsiveness
+acceptance. A manually transcribed prior-receipt hash was refused
+before cutover ownership or IO; its original error is retained. The admitted
+attempt uses the exact hash retained by the original successful copy witness.
+Receipt: `D:/pcai-relocation/p1-installer-offload-source-r3/actual-copy-r3/root-postreturn.json`.
+Completion: `D:/pcai-relocation/p1-installer-offload-source-r3/actual-retire-r3/root-postreturn.json`
+and `D:/pcai-relocation/p1-installer-offload-source-r3/actual-retire-r3/fresh-canonical-paths.json`.
+
+Agent-bus reports identify failed or awaiting-feedback PC_AI Jules sessions.
+Their truncated summaries remain leads pending full findings and exact-head
+verification. No session approval, code adoption or credential claim follows.
+
+A separate 30.0984-second workload profile collected three samples during
+cutover. Median commit pressure was 93.1241%; the collector consumed 7.671875
+CPU seconds, including 0.895--1.490 seconds per collection. Thirty-seven
+processes had inaccessible properties. This observer overhead and short,
+non-atomic interval limit attribution; it is not a responsiveness comparison.
+A later single CIM snapshot classified 55 machine-MCP PowerShell wrappers at
+3,163,582,464 private bytes and 19 Context7 Node processes at 1,395,236,864
+private bytes. These are concrete optimization candidates, not proof of
+inactivity or permission to terminate active consumers. No raw command lines
+were published. Receipts: `D:/pcai-relocation/p1-cutover-workload-r1/summary.json`
+and `D:/pcai-relocation/p1-cutover-workload-r1/runtime-classification.json`.
 
 The following sections retain earlier head-specific findings and failures;
 their historical cutoffs do not replace this current status.

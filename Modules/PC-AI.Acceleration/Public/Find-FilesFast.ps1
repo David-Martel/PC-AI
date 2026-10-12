@@ -89,6 +89,7 @@ function Find-FilesFast {
         fullPath     = [bool]$FullPath
         noIgnore     = [bool]$NoIgnore
         preferNative = [bool]$preferNativeSearch
+        selectionContract = 'regex-extension-ignore-r1'
     }
 
     $cached = Get-PcaiCachedValue -Key $cacheKey -TtlSeconds 15
@@ -96,46 +97,11 @@ function Find-FilesFast {
         return @($cached)
     }
 
-    $nativeAvailable = $false
-    $supportsNativeSemantics =
-        ($Pattern -or $Extension) -and
-        -not $Hidden -and
-        -not $NoIgnore -and
-        -not ($Type -and $Type -notin @('file', 'f'))
-    $supportsNativeManifestFallback =
-        $preferNativeSearch -and
-        -not $Hidden -and
-        $NoIgnore -and
-        (($Type -and $Type -in @('directory', 'd')) -or $MaxDepth -gt 0 -or (-not $Pattern -and -not $Extension))
-
-    if ($preferNativeSearch -and ($supportsNativeSemantics -or $supportsNativeManifestFallback)) {
-        $nativeProbe = Get-Command -Name 'Test-PcaiNativeAvailable' -ErrorAction SilentlyContinue
-        if ($nativeProbe) {
-            try {
-                $nativeAvailable = Test-PcaiNativeAvailable
-            }
-            catch {
-                $nativeAvailable = $false
-            }
-        }
-    }
-
-    if ($nativeAvailable) {
-        $nativeResults = Find-WithPcaiNative @PSBoundParameters
-        if ($null -ne $nativeResults) {
-            $results = @($nativeResults)
-            return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
-        }
-
-        if ($supportsNativeManifestFallback) {
-            $manifestResults = Find-WithPcaiNativeManifest @PSBoundParameters
-            if ($null -ne $manifestResults) {
-                $results = @($manifestResults)
-                return @(Set-PcaiCachedValue -Key $cacheKey -Value $results)
-            }
-        }
-    }
-
+    # The native search ABI cannot express the public regex, combined-filter
+    # and ignore contracts. Keep public discovery on the existing fd/managed
+    # paths until a native implementation is qualified for these semantics.
+    # PreferNative remains an optimization preference, not permission to
+    # change which files the caller receives.
     $fdPath = Get-RustToolPath -ToolName 'fd'
     $useFd = $null -ne $fdPath -and (Test-Path $fdPath)
 

@@ -151,7 +151,7 @@ try {
                 $application = Get-Command agent-bus -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
                 if ($application) { $client = $application.Source }
             }
-            $message = "GitOps monitor [$Repo]: inspection=$($combined.inspection_status), workflows=$($wh.problem_count), upstream=$($ur.total). See the checkout GitOps report."
+            $message = "GitOps monitor [$Repo]: inspection=$($combined.inspection_status), workflow_metadata=$($wh.workflow_inspection_status), workflow_problems=$($wh.problem_count), billing=$($wh.billing.status), upstream_metadata=$($ur.inspection_status), upstream_items=$($ur.total). See the checkout GitOps report."
             $sender = 'gitops-monitor-{0}-{1}' -f [Environment]::MachineName.ToLowerInvariant(), $leaseKey.Substring(0, 12)
             $publication = Invoke-GitOpsProcess -FilePath $client -Arguments @('send', '--from-agent', $sender, '--to-agent', 'all', '--topic', 'status', '--body', $message, '--tag', "repo:$($Repo.Split('/')[1])", '--encoding', 'compact') -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds
             $combined.publication = @{ status = if ($publication.ExitCode -eq 0) { 'Published' } else { 'Failed' }; exit_code = $publication.ExitCode; reason = if ($publication.ExitCode -eq 0) { $null } else { 'Configured agent-bus client failed; inspect its credential/routing configuration.' } }

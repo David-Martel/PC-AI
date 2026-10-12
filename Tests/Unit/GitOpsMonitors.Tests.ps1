@@ -249,8 +249,42 @@ Describe 'Actual GitOps scripts with external requests stubbed' {
         $keyPath = if ($IsWindows) { $r.Directory.ToLowerInvariant() } else { $r.Directory }
         try { $key = [BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($keyPath))).Replace('-', '') } finally { $hasher.Dispose() }
         $sender = 'gitops-monitor-{0}-{1}' -f [Environment]::MachineName.ToLowerInvariant(), $key.Substring(0, 12)
-        ($send.arguments -join '|') | Should -Be ('send|--from-agent|' + $sender + '|--to-agent|all|--topic|status|--body|GitOps monitor [fixture/repo]: inspection=Available, workflows=1, upstream=1. See the checkout GitOps report.|--tag|repo:repo|--encoding|compact')
+        ($send.arguments -join '|') | Should -Be ('send|--from-agent|' + $sender + '|--to-agent|all|--topic|status|--body|GitOps monitor [fixture/repo]: inspection=Available, workflow_metadata=Available, workflow_problems=1, billing=Available, upstream_metadata=Available, upstream_items=1. See the checkout GitOps report.|--tag|repo:repo|--encoding|compact')
         $send.candidate_config_preserved | Should -BeTrue
+    }
+    It 'publishes available workflow findings when billing inspection fails' {
+        $scenario = $script:findings.Clone()
+        $scenario.billing = @{ ExitCode = 1; Stdout = ''; Stderr = 'HTTP 403 fixture-secret-DO-NOT-LOG C:/private/credential-file' }
+        $r = Complete-Fixture (Start-Fixture -Scenario $scenario); $c = Get-Combined $r
+        $r.ExitCode | Should -Be 2
+        $c.inspection_status | Should -Be Unavailable
+        $c.detail.workflow.problems[0] | Should -Be 'failure: fixture-ci (run 42)'
+        $c.detail.workflow.billing.quota_status | Should -Be Unknown
+        $c.publication.status | Should -Be Published
+        $send = $r.Calls | Where-Object operation -EQ send
+        $message = $send.arguments[([array]::IndexOf($send.arguments, '--body') + 1)]
+        $message | Should -BeExactly 'GitOps monitor [fixture/repo]: inspection=Unavailable, workflow_metadata=Available, workflow_problems=1, billing=Unavailable, upstream_metadata=Available, upstream_items=1. See the checkout GitOps report.'
+        ($message + ($c | ConvertTo-Json -Depth 12)) | Should -Not -Match 'fixture-secret|C:/private'
+    }
+    It 'distinguishes unavailable workflow metadata from billing-only failure' {
+        $r = Complete-Fixture (Start-Fixture -Scenario @{ runs = @{ ExitCode = 1; Stdout = ''; Stderr = 'HTTP 503 fixture-secret-DO-NOT-LOG' } }); $c = Get-Combined $r
+        $r.ExitCode | Should -Be 2
+        $c.inspection_status | Should -Be Unavailable
+        $c.publication.status | Should -Be Published
+        $send = $r.Calls | Where-Object operation -EQ send
+        $message = $send.arguments[([array]::IndexOf($send.arguments, '--body') + 1)]
+        $message | Should -BeExactly 'GitOps monitor [fixture/repo]: inspection=Unavailable, workflow_metadata=Unavailable, workflow_problems=0, billing=Available, upstream_metadata=Available, upstream_items=0. See the checkout GitOps report.'
+        ($message + ($c | ConvertTo-Json -Depth 12)) | Should -Not -Match 'fixture-secret'
+    }
+    It 'retains unknown upstream state instead of presenting zero inspected findings' {
+        $r = Complete-Fixture (Start-Fixture -Scenario @{ 'code-scanning' = @{ ExitCode = 1; Stdout = ''; Stderr = 'HTTP 404 Not Found fixture-secret-DO-NOT-LOG' } }); $c = Get-Combined $r
+        $r.ExitCode | Should -Be 2
+        $c.inspection_status | Should -Be Unavailable
+        ($c.detail.upstream.inspections | Where-Object operation -EQ code-scanning).status | Should -Be Unavailable
+        $send = $r.Calls | Where-Object operation -EQ send
+        $message = $send.arguments[([array]::IndexOf($send.arguments, '--body') + 1)]
+        $message | Should -BeExactly 'GitOps monitor [fixture/repo]: inspection=Unavailable, workflow_metadata=Available, workflow_problems=0, billing=Available, upstream_metadata=Unavailable, upstream_items=0. See the checkout GitOps report.'
+        ($message + ($c | ConvertTo-Json -Depth 12)) | Should -Not -Match 'fixture-secret'
     }
     It 'retains sanitized delivery failures for missing auth401503 and timeout' {
         foreach ($code in @(4, 401, 503, -1)) {

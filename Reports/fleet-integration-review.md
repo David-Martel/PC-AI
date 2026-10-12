@@ -1,5 +1,81 @@
 # PC-AI fleet integration review
 
+## Current integration status
+
+Observation cutoff: October 12, 2026, 06:23 UTC. Prior signed published head
+`1a51ed8d9d7c4d2afe150c635bd169abf5a567ed` matches the feature branch's origin
+head. PR 182 remains draft. Main CI run `38201995497` passes 3,201 tests with
+zero failures and 41 skips, but merged command coverage is 14,608 / 21,950
+(66.551253%), below the unchanged 85% requirement. Integration tests were
+skipped. Rust, C#, lint, security and CPU build jobs pass; the separate Rust
+Guidelines and NVIDIA workflows also pass. This does not qualify deployed
+consumers or prove that every machine uses current toolchains. Receipts:
+`D:/pcai-relocation/current-head-ci-1a51ed8-r1/report.json` and
+`D:/pcai-relocation/current-head-ci-1a51ed8-r1/guidelines-final-r1.json`.
+
+GitOps inspection now distinguishes an explicit missing analysis, a disabled
+feature, a generic request failure and an invalid response without publishing
+private error text. The detecting baseline has six passes and 35 failures;
+the repaired 41 cases pass. The combined 67-case validation passes. Live
+readback still reports unavailable analysis and billing; fixture success is
+not authentication or service acceptance.
+
+The Carbon readiness attempt failed its unchanged 180-second aggregate
+deadline. Its forced child exited 1; original process, pipe, task and file
+resources closed. The first timeout remains retained. Strict UTF-8 decoding
+of captured stdout also failed, and the sticky failure guard aborted later
+diagnostic writes. These evidence defects are established; the precise timed
+out stage remains OPEN. Review:
+`.pcai/integration/full-readiness-timeout-actual-peer-r1/review.json`.
+Readiness successor R3 has independent source approval. Its 24 controls and
+12 inert entries pass, but the actual readiness attempt is not executed.
+Fresh R3-bound input and caller R5 still require independent approval before
+another attempt; prepared input from the failed source is not reusable.
+
+Capability observation now uses seven exact matching wildcard patterns with
+`-ListImported`. PowerShell 7.6.6 can still autoload providers for literal
+names even with that flag: the flags-only candidate genuinely retains eight
+failures. The final importer passes all 13 isolated Carbon scenarios, compared
+with five passes and eight failures for the unchanged baseline. The effective
+child module path and actual loaded paths are checked; all 26 original child
+closures complete naturally. This is correctness evidence, not a startup or
+workstation responsiveness benchmark.
+
+The final fixture removes one unsupported `-DateKind String` flag from its
+decoder while preserving all eight complete original test bodies. Its narrow
+paired run has one baseline failure and one candidate pass; all 26 retained
+stdout payloads decode equivalently. PowerShell 7.0 execution remains
+NOT_TESTED. The exact importer and fixture bytes are adopted in this change,
+with a narrow Git attribute preserving fixture bytes. Root review:
+`.pcai/integration/acceleration-capability-autoload-peer-r3/review-final.json`.
+Current-user module routing is a junction to this checkout; future fresh module
+loads use the updated importer. Existing processes, other users and other
+hosts have not been refreshed or qualified.
+
+Preserve the first P1 cleanup failure, Carbon search-path isolation failure,
+flags-only repair failure and Root verifier property/count/path refusals.
+Their case durations do not establish PowerShell startup cost. The inherited
+fallback root calculation can select `Modules` when no explicit root,
+environment root or loaded resolver is available; that separate gap is OPEN.
+
+The foreign media FFI edits remain unstaged and unchanged. Read-only review
+supports the narrow poison deadlock repair but identifies terminal-state
+overwrite, public poison reporting, cancellation resurrection and detached
+worker/shutdown gaps. Current-source runtime acceptance remains HOLD. Review:
+`.pcai/integration/media-ffi-wip-readonly-review-r1/review.json`.
+
+Milly's serial-matched WDC SSD is running at 10 Gb/s with UAS; internal storage
+has about 580 GiB free and the original study paths remain accessible. The
+outer NTFS and inner Btrfs free-space figures must not be added. Cold boot,
+restoration, Windows access and physical M.2 vacancy remain unqualified.
+P1's latest single counter reading still shows 91% commit pressure. Docker
+remains stopped; active camera capture and useful agent processes are
+preserved. Work connectivity, phone-vault reconciliation, shared MCP reuse,
+full production metrics and fleet/main equivalence remain OPEN.
+
+The following sections retain earlier head-specific findings and failures;
+their historical cutoffs do not replace this current status.
+
 ## Published head and remaining validation (14:16 UTC)
 
 Signed commit `5180c160fac42b510d05de971e83d3921b035b99` is published on

@@ -1,5 +1,38 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Current integration follow-up
+
+Review cutoff: October 12, 2026, 06:23 UTC. Owner: root/integration. See
+[the current fleet status](Reports/fleet-integration-review.md).
+
+- [x] Publish reviewed GitOps inspection reasons and verify the combined 67-case
+      validation. Live analysis and billing remain unavailable.
+- [ ] Clear published head `1a51ed8` coverage: 3,201 test passes, zero failures,
+      41 skips; 14,608 / 21,950 covered commands (66.551253%). Preserve the 85%
+      target and qualify integration tests after the gate passes.
+- [x] Adopt the bounded capability observation fix: seven exact matching
+      patterns avoid literal-name autoload even with `-ListImported`.
+      Isolated Carbon baseline has five passes/eight failures; repair has
+      13 passes. Final decoder compatibility has a narrow failing/passing
+      pair and 26 equivalent physical payloads. Preserve prior fixture,
+      flags-only and verifier failures; no startup performance claim.
+- [ ] Qualify other users, hosts and fresh deployed consumers of the importer;
+      resolve the inherited `Modules` fallback-root gap. Current-user routing
+      is a checkout junction; existing agents remain running.
+- [ ] Repair readiness UTF-8 capture and independent diagnostic finalization;
+      retain the original forced timeout and qualify a fresh source-bound
+      attempt with the existing deadline. R3 source is independently approved;
+      fresh input/caller R5 review and actual readiness remain pending.
+      Timeout-stage attribution is OPEN.
+- [ ] Obtain current-source public media cancellation, poison and shutdown
+      qualification. Read-only review finds terminal overwrite and late-worker
+      gaps; foreign media edits remain protected and unstaged.
+- [ ] Reduce P1 commit pressure with measured, owner-compatible changes. Latest
+      single reading is 91%; no new speedup or process waste is established.
+      Docker stays stopped and active camera capture remains preserved.
+- [ ] Finish Work access, phone-vault reconciliation, shared MCP reuse, production
+      metrics and fleet equivalence; source-only review is not deployment.
+
 ## Docker startup guard follow-up
 
 Review: October 12, 2026, 00:25 UTC. See the current CI and startup-guard section

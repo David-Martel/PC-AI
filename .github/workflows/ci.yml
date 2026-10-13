@@ -264,6 +264,8 @@ jobs:
             'Tests/Unit',
             'Tests/Boot/WorkloadResourceProfile.Tests.ps1',
             'Tests/Boot/CloudClientGate.Tests.ps1',
+            'Tests/Boot/ArchiveSourceCustody.Tests.ps1',
+            'Tests/Boot/CloudCacheRepairIdentity.Tests.ps1',
             'Tests/Boot/MachineCapabilities.Tests.ps1',
             'Tests/Boot/MediaToolchain.Tests.ps1',
             'Tests/Boot/HardwareMeasurementContracts.Tests.ps1',

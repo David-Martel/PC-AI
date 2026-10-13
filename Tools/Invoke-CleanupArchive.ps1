@@ -1,275 +1,226 @@
-#Requires -Version 7.0
+#Requires -Version 7.3
 <#
 .SYNOPSIS
-    Archive cleanup candidates to Google Drive through rclone.
-
+    Archive held Windows file bytes and optionally delete their verified identity.
 .DESCRIPTION
-    Uploads explicit source files to a dated Drive archive folder, verifies each
-    upload by comparing rclone md5sum and rclone size against the local file,
-    records a JSONL manifest, and optionally deletes local files only after that
-    verification succeeds.
-
-    The default mode is a preview. Pass -Execute to upload. Pass
-    -DeleteAfterVerify only when verified archive evidence is sufficient for
-    local removal.
-
-    A preview performs no writes at all: it does not require rclone, does not
-    create the manifest directory, and does not append to the manifest unless
-    -RecordDryRun is given.
-
+    Preview performs no writes. Execution rejects active writers and cloud/reparse
+    sources, hashes held bytes before upload, verifies remote MD5, size and count,
+    then flushes the verified receipt before identity-bound deletion. Remote files
+    are never overwritten. SHA256 revision keys retain changed source versions.
 .PARAMETER SourcePath
-    One or more files to archive.
-
+    Explicit local source files; directories and reparse sources are rejected.
 .PARAMETER Category
-    Archive subfolder under the batch folder, such as 01-docker-vhds.
-
+    Archive category below the batch folder.
 .PARAMETER BatchId
-    Dated archive batch folder name.
-
+    Stable archive batch name; observation times remain in receipt metadata.
 .PARAMETER RemoteRoot
-    Root path inside the rclone remote.
-
+    Root inside the selected rclone remote.
 .PARAMETER RcloneRemote
-    rclone remote name, including trailing colon.
-
+    Remote name including its trailing colon.
 .PARAMETER ManifestPath
-    JSONL manifest path to append.
-
+    JSONL receipts; verified records are flushed to disk before deletion.
+.PARAMETER DriveChunkSize
+    Google Drive upload chunk size forwarded to rclone.
 .PARAMETER Execute
-    Perform uploads and verification. Without this switch, only records planned
-    actions.
-
+    Opt in to uploads and verification.
 .PARAMETER RecordDryRun
-    Append preview records to the manifest. By default a preview writes nothing.
-
+    Explicitly append preview receipts; ordinary preview performs no writes.
 .PARAMETER DeleteAfterVerify
-    Delete each local source file only after its md5 and size verification
-    succeeds AND the verified record has been durably written to the manifest.
-
+    Delete only the captured file identity after durable verification.
 .PARAMETER DryRun
-    Force preview mode even if -Execute is given. The long CLI form `--DryRun`
-    is also accepted.
-
+    Suppress all writes including RecordDryRun, even with Execute; --DryRun is also supported.
 .PARAMETER Help
-    Print script help and exit. The aliases `-h` and `--help` are also accepted.
+    Print help; -h and --help are also supported.
+.PARAMETER CliArgs
+    Compatibility spellings --help and --DryRun.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
-    [Alias('FullName')]
-    [string[]]$SourcePath,
-
+    [Alias('FullName')][string[]]$SourcePath,
     [string]$Category = '04-reports',
-    [string]$BatchId = '2026-06-26-cleanup-lane',
+    [string]$BatchId = 'cleanup-archive',
     [string]$RemoteRoot = 'Archives/Workstation Cleanup',
     [string]$RcloneRemote = 'gdrive-personal:',
-    [string]$ManifestPath = (Join-Path (Resolve-Path .) 'Reports/cleanup-archive-manifest-20260626.jsonl'),
+    [string]$ManifestPath = (Join-Path (Get-Location).Path 'Reports/cleanup-archive-manifest.jsonl'),
     [string]$DriveChunkSize = '512M',
     [switch]$Execute,
     [switch]$RecordDryRun,
     [switch]$DeleteAfterVerify,
     [switch]$DryRun,
-    [Alias('h', '?')]
-    [switch]$Help,
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$CliArgs
+    [Alias('h', '?')][switch]$Help,
+    [Parameter(ValueFromRemainingArguments = $true)][string[]]$CliArgs
 )
-
 begin {
+    $ErrorActionPreference = 'Stop'
     $CliArgs = @($CliArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    if (@($CliArgs) -contains '--help') {
-        $Help = $true
-        $CliArgs = @($CliArgs | Where-Object { $_ -ne '--help' })
-    }
-    if (@($CliArgs) -contains '--DryRun') {
-        $DryRun = $true
-        $CliArgs = @($CliArgs | Where-Object { $_ -ne '--DryRun' })
-    }
+    if ($CliArgs -contains '--help') { $Help = $true }
+    if ($CliArgs -contains '--DryRun') { $DryRun = $true }
+    $unknown = @($CliArgs | Where-Object { $_ -notin @('--help', '--DryRun') })
+    if ($unknown.Count) { throw "Unknown archive argument: $($unknown -join ', ')" }
     if ($Help) {
-        $helpMatch = [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>')
-        if ($helpMatch.Success) { $helpMatch.Groups[1].Value.Trim() } else { Get-Help -Detailed $PSCommandPath }
+        [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>').Groups[1].Value.Trim()
         $script:HelpShown = $true
         return
     }
-
-    # -DryRun wins over -Execute so a caller can force a safe preview.
     $script:IsExecuting = [bool]$Execute -and -not $DryRun
-
-    # rclone is only needed to actually transfer. Requiring it in a preview made
-    # the documented default mode fail on any machine without rclone installed,
-    # which also made the tool untestable.
-    if ($script:IsExecuting) {
-        if (-not (Get-Command rclone -ErrorAction SilentlyContinue)) {
-            throw 'rclone is required but was not found on PATH.'
+    if ($script:IsExecuting -and -not (Get-Command rclone -ErrorAction SilentlyContinue)) { throw 'rclone is required for execution.' }
+    if (-not $RcloneRemote.EndsWith(':')) { throw 'RcloneRemote must include its trailing colon.' }
+    $script:ManifestFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ManifestPath)
+    $script:ManifestDir = Split-Path $script:ManifestFile -Parent
+    $script:SeenSource = @{}
+    $script:SeenIdentity = @{}
+    $script:Records = [System.Collections.Generic.List[object]]::new()
+    function Initialize-ArchiveCustody {
+        <# .SYNOPSIS
+        Load native custody only for explicitly requested writes.
+        #>
+        if (-not ('Pcai.Storage.PcaiArchiveSource' -as [type])) {
+            Add-Type -Path (Join-Path $PSScriptRoot 'SystemScripts/Storage/PcaiArchiveSource.cs') -ErrorAction Stop
         }
     }
-
-    if (-not $RcloneRemote.EndsWith(':')) {
-        throw "RcloneRemote must include a trailing colon, for example 'gdrive-personal:'."
-    }
-
-    $script:ManifestDir = Split-Path -Path $ManifestPath -Parent
-
-    # Destination collision guard. The remote key used to be the leaf name
-    # alone, so two sources with the same file name -- from different
-    # directories, or a re-run of the same batch/category -- mapped to one
-    # remote path. The second copyto replaced the first payload, yet each source
-    # was verified against the remote straight after its own upload, so both
-    # "passed" and both were eligible for deletion. That silently destroyed the
-    # first file while the manifest claimed both were archived. The key now
-    # carries a hash of the full source path, and duplicates within a run are
-    # rejected outright.
-    $script:SeenRemote = @{}
-    $script:Records = New-Object System.Collections.Generic.List[object]
-    $script:ManifestDirReady = $false
-
-    # Directory creation is deferred until something is actually going to be
-    # written. It used to run unconditionally in begin{}, so the documented
-    # default preview mutated the filesystem -- creating directories while
-    # promising to write nothing.
-    function Write-ManifestDirectory {
-        if ($script:ManifestDirReady) { return }
-        if ($script:ManifestDir -and -not (Test-Path -LiteralPath $script:ManifestDir)) {
-            New-Item -ItemType Directory -Path $script:ManifestDir -Force | Out-Null
+    function Write-ArchiveReceipt {
+        <# .SYNOPSIS
+        Append a receipt with durable native flushing.
+        #>
+        param([Parameter(Mandatory)]$Record, $Custody)
+        if ($null -ne $Custody) {
+            $Custody.AcquireReceipt($script:ManifestFile)
+            $Record.receipt_guid_path = $Custody.ReceiptGuidPath
+            $Record.receipt_volume_serial = $Custody.ReceiptVolumeSerial
+            $Record.receipt_file_id = $Custody.ReceiptFileId
         }
-        $script:ManifestDirReady = $true
+        $json = [pscustomobject]$Record | ConvertTo-Json -Compress -Depth 8
+        if ($null -ne $Custody -and $Record.event -eq 'verified') {
+            $Custody.PersistVerifiedReceipt($script:ManifestFile, $json, $Record.remote_md5, $Record.remote_size_bytes, $Record.remote_count)
+        } elseif ($null -ne $Custody) {
+            $Custody.AppendReceipt($script:ManifestFile, $json)
+        } else {
+            [Pcai.Storage.PcaiArchiveSource]::AppendDurableReceipt($script:ManifestFile, $json)
+        }
     }
-
-    function Write-ManifestRecord {
-        param([Parameter(Mandatory)][object]$Record)
-        Write-ManifestDirectory
-        $json = [pscustomobject]$Record | ConvertTo-Json -Compress -Depth 5
-        Add-Content -LiteralPath $ManifestPath -Value $json -Encoding UTF8
+    function Invoke-ArchiveRclone {
+        <# .SYNOPSIS
+        Run rclone and fail on unsuccessful external operations.
+        #>
+        param([Parameter(Mandatory)][string[]]$ArgumentList)
+        $output = @(& rclone @ArgumentList)
+        if ($LASTEXITCODE -ne 0) { throw "rclone $($ArgumentList[0]) failed with exit $LASTEXITCODE." }
+        return $output
+    }
+    function ConvertTo-ArchiveInteger {
+        <# .SYNOPSIS
+        Require an exact nonnegative numeric scalar within Int64 limits.
+        #>
+        param([AllowNull()]$Value)
+        if ($null -eq $Value) { throw 'Remote size requires a numeric scalar.' }
+        $type = $Value.GetType()
+        if ($type -in @([byte], [sbyte], [short], [ushort], [int], [uint], [long], [ulong], [System.Numerics.BigInteger])) {
+            $integer = [System.Numerics.BigInteger]::Parse($Value.ToString([Globalization.CultureInfo]::InvariantCulture))
+        } elseif ($type -in @([double], [single])) {
+            $number = [double]$Value
+            if ([double]::IsNaN($number) -or [double]::IsInfinity($number) -or [math]::Truncate($number) -ne $number) { throw 'Remote size must be an integral numeric scalar.' }
+            $integer = [System.Numerics.BigInteger]::new($number)
+        } elseif ($type -eq [decimal]) {
+            if ([decimal]::Truncate($Value) -ne $Value) { throw 'Remote size must be an integral numeric scalar.' }
+            $integer = [System.Numerics.BigInteger]::new([decimal]$Value)
+        } else { throw 'Remote size requires a numeric scalar; coercion is forbidden.' }
+        if ($integer -lt [System.Numerics.BigInteger]::Zero -or $integer -gt [System.Numerics.BigInteger]::new([long]::MaxValue)) { throw 'Remote size is outside nonnegative Int64 bounds.' }
+        return [long]$integer
     }
 }
-
 process {
     if ($script:HelpShown) { return }
     foreach ($path in @($SourcePath)) {
-        $resolved = Resolve-Path -LiteralPath $path -ErrorAction Stop
-        $item = Get-Item -LiteralPath $resolved.ProviderPath -ErrorAction Stop
-        if ($item.PSIsContainer) {
-            throw "SourcePath must be a file, not a directory: $($item.FullName)"
-        }
-
-        # Short, stable discriminator derived from the absolute source path.
-        $sha = [System.Security.Cryptography.SHA256]::Create()
-        try {
-            $pathHash = -join ($sha.ComputeHash(
-                    [System.Text.Encoding]::UTF8.GetBytes($item.FullName.ToLowerInvariant())
-                ) | Select-Object -First 4 | ForEach-Object { $_.ToString('x2') })
-        } finally { $sha.Dispose() }
-
-        $remoteDir = "$RcloneRemote$RemoteRoot/$BatchId/$Category"
-        $remoteLeaf = '{0}__{1}{2}' -f $item.BaseName, $pathHash, $item.Extension
-        $remoteFile = "$remoteDir/$remoteLeaf"
-
-        if ($script:SeenRemote.ContainsKey($remoteFile)) {
-            throw "Duplicate archive destination '$remoteFile' for '$($item.FullName)'; already claimed by '$($script:SeenRemote[$remoteFile])'."
-        }
-        $script:SeenRemote[$remoteFile] = $item.FullName
-
-        $logPath = Join-Path $script:ManifestDir ("rclone-$($item.BaseName)-$pathHash-$(Get-Date -Format 'yyyyMMdd-HHmmss').log")
-
+        $item = Get-Item -LiteralPath (Resolve-Path -LiteralPath $path).ProviderPath -ErrorAction Stop
+        if ($item.PSIsContainer) { throw "SourcePath must be a file: $($item.FullName)" }
+        if ($script:SeenSource.ContainsKey($item.FullName)) { throw "Duplicate archive source: $($item.FullName)" }
+        $script:SeenSource[$item.FullName] = $true
         $record = [ordered]@{
-            schema              = 'pcai-cleanup-archive.v2'
-            event               = if ($script:IsExecuting) { 'attempted' } else { 'planned' }
-            batch_id            = $BatchId
-            category            = $Category
-            source_path         = $item.FullName
-            archive_remote      = $remoteFile
-            size_bytes          = $item.Length
-            created_time_utc    = $item.CreationTimeUtc.ToString('o')
-            modified_time_utc   = $item.LastWriteTimeUtc.ToString('o')
-            execute             = [bool]$script:IsExecuting
-            delete_after_verify = [bool]$DeleteAfterVerify
-            uploaded            = $false
-            verified            = $false
-            deleted             = $false
-            local_md5           = $null
-            remote_md5          = $null
-            remote_size_bytes   = $null
-            rclone_log          = $logPath
-            verified_at_utc     = $null
-            deleted_at_utc      = $null
-            error               = $null
+            schema = 'pcai-cleanup-archive.v3'; event = 'planned'; batch_id = $BatchId; category = $Category
+            observed_utc = [datetime]::UtcNow.ToString('o'); source_path = $item.FullName; source_leaf = $item.Name; size_bytes = $item.Length
+            created_time_utc = $item.CreationTimeUtc.ToString('o'); modified_time_utc = $item.LastWriteTimeUtc.ToString('o')
+            source_guid_path = $null; source_volume_serial = $null; source_file_id = $null
+            hardlink_count_before = $null; hardlink_count_before_delete = $null; allocated_bytes = $null; reclaimed_bytes_estimate = $null
+            archive_remote = $null; execute = $script:IsExecuting; delete_after_verify = [bool]$DeleteAfterVerify
+            uploaded = $false; upload_attempted = $false; copy_completed = $false; upload_outcome = 'not-attempted'
+            verified = $false; deleted = $false; local_md5 = $null; source_sha256 = $null
+            remote_md5 = $null; remote_size_bytes = $null; remote_count = $null; rclone_log = $null
+            receipt_guid_path = $null; receipt_volume_serial = $null; receipt_file_id = $null
+            verified_at_utc = $null; deleted_at_utc = $null; error = $null
         }
-
+        $custody = $null
         $performed = $false
         try {
-            if ($script:IsExecuting -and $PSCmdlet.ShouldProcess($item.FullName, "Archive to $remoteFile")) {
+            if ($script:IsExecuting -and $PSCmdlet.ShouldProcess($item.FullName, 'Archive held bytes and verify remote receipt')) {
                 $performed = $true
-
-                & rclone mkdir $remoteDir
-                if ($LASTEXITCODE -ne 0) { throw "rclone mkdir failed for $remoteDir" }
-
-                Write-ManifestDirectory
-                & rclone copyto $item.FullName $remoteFile --drive-chunk-size $DriveChunkSize --transfers 1 --checkers 4 --checksum --log-file $logPath
-                if ($LASTEXITCODE -ne 0) { throw "rclone copyto failed for $($item.FullName)" }
-                $record.uploaded = $true
-
-                $localHashLine = (& rclone md5sum $item.FullName) | Select-Object -First 1
-                if ($LASTEXITCODE -ne 0) { throw "rclone md5sum failed for $($item.FullName)" }
-
-                $remoteHashLine = (& rclone md5sum $remoteFile) | Select-Object -First 1
-                if ($LASTEXITCODE -ne 0) { throw "rclone md5sum failed for $remoteFile" }
-
-                $remoteSizeJson = (& rclone size $remoteFile --json) -join "`n"
-                if ($LASTEXITCODE -ne 0) { throw "rclone size failed for $remoteFile" }
-
-                $remoteSize = $remoteSizeJson | ConvertFrom-Json
-                $record.local_md5 = (($localHashLine -split '\s+', 2)[0]).ToLowerInvariant()
-                $record.remote_md5 = (($remoteHashLine -split '\s+', 2)[0]).ToLowerInvariant()
-                $record.remote_size_bytes = [int64]$remoteSize.bytes
-
-                if ($record.local_md5 -ne $record.remote_md5) {
-                    throw "MD5 mismatch for $($item.FullName): local=$($record.local_md5) remote=$($record.remote_md5)"
-                }
-                if ($item.Length -ne $record.remote_size_bytes) {
-                    throw "Size mismatch for $($item.FullName): local=$($item.Length) remote=$($record.remote_size_bytes)"
-                }
-
+                Initialize-ArchiveCustody
+                $custody = [Pcai.Storage.PcaiArchiveSource]::new($item.FullName)
+                $item.Refresh()
+                $record.created_time_utc = $item.CreationTimeUtc.ToString('o')
+                $record.modified_time_utc = $item.LastWriteTimeUtc.ToString('o')
+                $record.size_bytes = $custody.Length
+                $record.source_guid_path = $custody.CanonicalGuidPath
+                $record.source_volume_serial = $custody.VolumeSerialHex
+                $record.source_file_id = $custody.FileId128
+                $identityKey = "$($custody.VolumeSerialHex):$($custody.FileId128)"
+                if ($script:SeenIdentity.ContainsKey($identityKey)) { throw 'Duplicate held file identity in archive run; alias preserved.' }
+                $script:SeenIdentity[$identityKey] = $true
+                $record.hardlink_count_before = $custody.HardLinkCount
+                $record.allocated_bytes = $custody.AllocatedBytes
+                $record.local_md5 = $custody.Md5
+                $record.source_sha256 = $custody.Sha256
+                $pathHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($custody.CanonicalGuidPath.ToLowerInvariant()))).Substring(0, 16).ToLowerInvariant()
+                $remoteDir = "$RcloneRemote$RemoteRoot/$BatchId/$Category"
+                $extension = if ($item.Extension -match '^\.[a-zA-Z][a-zA-Z0-9]{0,9}$' -and $item.Extension -notmatch '\d{8}') { $item.Extension.ToLowerInvariant() } else { '.bin' }
+                $leaf = 'payload-{0}-{1}{2}' -f $pathHash, $custody.Sha256, $extension
+                $record.archive_remote = "$remoteDir/$leaf"
+                $record.rclone_log = Join-Path $script:ManifestDir "rclone-$pathHash-$($custody.Sha256).log"
+                $record.event = 'attempted'
+                Write-ArchiveReceipt -Record $record -Custody $custody
+                Invoke-ArchiveRclone -ArgumentList @('mkdir', $remoteDir) | Out-Null
+                $record.upload_attempted = $true
+                $record.uploaded = $null
+                $record.upload_outcome = 'copy-requested'
+                Invoke-ArchiveRclone -ArgumentList @('copyto', $custody.SourcePath, $record.archive_remote, '--ignore-existing', '--drive-chunk-size', $DriveChunkSize, '--transfers', '1', '--checkers', '4', '--checksum', '--log-file', $record.rclone_log) | Out-Null
+                $record.copy_completed = $true
+                $record.upload_outcome = 'copied-or-existing'
+                $hashLines = @(Invoke-ArchiveRclone -ArgumentList @('md5sum', $record.archive_remote))
+                if ($hashLines.Count -ne 1 -or $hashLines[0] -notmatch '^([a-fA-F0-9]{32})\s+.+$') { throw 'Remote MD5 must contain exactly one valid file hash.' }
+                $record.remote_md5 = $Matches[1].ToLowerInvariant()
+                $remoteSize = ConvertFrom-Json -InputObject ((Invoke-ArchiveRclone -ArgumentList @('size', $record.archive_remote, '--json')) -join "`n") -NoEnumerate -ErrorAction Stop
+                if ($null -eq $remoteSize -or $remoteSize.GetType() -ne [System.Management.Automation.PSCustomObject]) { throw 'Remote size must be exactly one JSON object.' }
+                $record.remote_size_bytes = ConvertTo-ArchiveInteger $remoteSize.bytes
+                $record.remote_count = ConvertTo-ArchiveInteger $remoteSize.count
+                if ($record.local_md5 -ne $record.remote_md5 -or $custody.Length -ne $record.remote_size_bytes -or $record.remote_count -ne 1) { throw 'Remote hash, size or count differs from held source bytes.' }
                 $record.verified = $true
-                $record.verified_at_utc = (Get-Date).ToUniversalTime().ToString('o')
-
-                # Persist the verified state BEFORE removing the source. If the
-                # process dies, or the manifest append fails because the file is
-                # locked or the disk is full, the previous ordering had already
-                # deleted the local file with no durable record that it was ever
-                # verified -- destroying both the data and its audit trail.
+                $record.verified_at_utc = [datetime]::UtcNow.ToString('o')
                 $record.event = 'verified'
-                Write-ManifestRecord $record
-
-                if ($DeleteAfterVerify -and $PSCmdlet.ShouldProcess($item.FullName, 'Delete verified local archive candidate')) {
-                    Remove-Item -LiteralPath $item.FullName -Force -ErrorAction Stop
+                Write-ArchiveReceipt -Record $record -Custody $custody
+                if ($DeleteAfterVerify -and $PSCmdlet.ShouldProcess($item.FullName, 'Delete the exact verified file identity')) {
+                    $custody.DeleteVerified()
+                    $record.hardlink_count_before_delete = $custody.HardLinkCountBeforeDeletion
+                    if ($custody.HardLinkCountBeforeDeletion -eq 1) { $record.reclaimed_bytes_estimate = $custody.AllocatedBytes }
                     $record.deleted = $true
-                    $record.deleted_at_utc = (Get-Date).ToUniversalTime().ToString('o')
+                    $record.deleted_at_utc = [datetime]::UtcNow.ToString('o')
                     $record.event = 'deleted'
-                    Write-ManifestRecord $record
+                    Write-ArchiveReceipt -Record $record -Custody $custody
                 }
+            } elseif ($RecordDryRun -and -not $DryRun -and $PSCmdlet.ShouldProcess($script:ManifestFile, 'Append planned archive receipt')) {
+                Initialize-ArchiveCustody
+                Write-ArchiveReceipt -Record $record
             }
-        }
-        catch {
+        } catch {
             $record.error = $_.Exception.Message
             $record.event = 'error'
-            Write-Error $record.error
-            if ($performed) { Write-ManifestRecord $record }
-        }
-        finally {
-            # Preview records are opt-in. Previously this keyed off -Execute
-            # rather than whether anything actually happened, so `-Execute
-            # -WhatIf` still appended to the manifest -- making -WhatIf mutate
-            # state, which is precisely what it must never do.
-            if (-not $performed -and $RecordDryRun) {
-                Write-ManifestRecord $record
+            if ($performed -and ('Pcai.Storage.PcaiArchiveSource' -as [type])) {
+                try { Write-ArchiveReceipt -Record $record -Custody $custody } catch { throw "Archive failed: $($record.error) Receipt failed: $($_.Exception.Message)" }
             }
-            $script:Records.Add([pscustomobject]$record) | Out-Null
+            throw
+        } finally {
+            if ($null -ne $custody) { $custody.Dispose() }
+            $script:Records.Add([pscustomobject]$record)
         }
     }
 }
-
-end {
-    if ($script:HelpShown) { return }
-    $script:Records
-}
-
+end { if (-not $script:HelpShown) { $script:Records } }

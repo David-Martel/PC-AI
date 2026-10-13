@@ -94,9 +94,9 @@ Describe 'Cloud cache repair identity and receipt' -Tag 'Unit', 'Boot', 'VHD' {
         Invoke-CloudCacheRepair @script:RepairArgs -DryRun | Should -Be 3
         Should -Invoke Start-ScheduledTask -Times 0
     }
-    It 'rejects missing expected image' {
+    It 'keeps an unavailable expected image association pending' {
         Mock Get-DiskImage { $null }
-        (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'InvalidIdentity'
+        (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'Pending'
     }
     It 'rejects wrong image path' {
         $script:Image.ImagePath = 'T:\vm\another.vhdx'
@@ -108,32 +108,32 @@ Describe 'Cloud cache repair identity and receipt' -Tag 'Unit', 'Boot', 'VHD' {
         Should -Invoke Get-Disk -Times 0
     }
     It 'rejects malformed disk number <Number>' -ForEach @(
-        @{ Number = $null }; @{ Number = -1 }; @{ Number = 'abc' }; @{ Number = '4.5' }; @{ Number = '4294967296' }
+        @{ Number = -1 }; @{ Number = 'abc' }; @{ Number = '4.5' }; @{ Number = '4294967296' }
     ) {
         $script:Disk.Number = $Number
         (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'InvalidIdentity'
         Should -Invoke Get-Partition -Times 0
     }
-    It 'rejects missing or ambiguous associated disk <Count>' -ForEach @(@{ Count = 0 }; @{ Count = 2 }) {
+    It 'classifies incomplete and ambiguous associated disks <Count>' -ForEach @(@{ Count = 0; ExpectedState = 'Pending' }; @{ Count = 2; ExpectedState = 'InvalidIdentity' }) {
         $script:DiskCount = $Count
         Mock Get-Disk { if ($script:DiskCount -eq 2) { @($script:Disk, $script:Disk) } }
-        (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'InvalidIdentity'
+        (Get-CacheVolumeState @script:StateArgs).State | Should -Be $ExpectedState
     }
     It 'rejects wrong partition disk association' {
         $script:PartitionFixture.DiskNumber = [uint32]9
         (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'InvalidIdentity'
     }
-    It 'rejects missing or malformed partition disk number <Number>' -ForEach @(@{ Number = $null }; @{ Number = 'bad' }) {
+    It 'classifies incomplete and malformed partition disk numbers <Number>' -ForEach @(@{ Number = $null; ExpectedState = 'Pending' }; @{ Number = 'bad'; ExpectedState = 'InvalidIdentity' }) {
         $script:PartitionFixture = [pscustomobject]@{ DriveLetter = 'F'; DiskNumber = $Number }
-        (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'InvalidIdentity'
+        (Get-CacheVolumeState @script:StateArgs).State | Should -Be $ExpectedState
     }
     It 'rejects ambiguous matching partitions' {
         Mock Get-Partition { @($script:PartitionFixture, $script:PartitionFixture) }
         (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'InvalidIdentity'
     }
-    It 'rejects absent associated volume' {
+    It 'keeps an absent associated volume pending' {
         $script:Associated = $null
-        (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'InvalidIdentity'
+        (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'Pending'
     }
     It 'rejects wrong partition drive letter' {
         $script:PartitionFixture.DriveLetter = [char]'G'
@@ -152,8 +152,66 @@ Describe 'Cloud cache repair identity and receipt' -Tag 'Unit', 'Boot', 'VHD' {
     It 'reports external Storage errors instead of accepting identity' {
         Mock Get-Disk { throw 'Access denied' }
         $state = Get-CacheVolumeState @script:StateArgs
-        $state.State | Should -Be 'InvalidIdentity'
+        $state.State | Should -Be 'Pending'
         $state.Reason | Should -Match 'Access denied'
+    }
+    It 'never accepts partially emitted healthy query output followed by an external error' {
+        Mock Get-Volume { $script:Volume; throw 'Storage enumeration failed after output' }
+        $state = Get-CacheVolumeState @script:StateArgs
+        $state.State | Should -Be 'Pending'
+        $state.Identity | Should -BeNullOrEmpty
+        $state.Reason | Should -Match 'Storage enumeration failed after output'
+    }
+    It 'does not hide definitive <Conflict> behind an incomplete labeled assignment' -ForEach @(
+        @{ Conflict = 'WrongImage' }; @{ Conflict = 'DetachedImage' }; @{ Conflict = 'OtherDisk' }
+    ) {
+        $script:Volume.DriveLetter = [char]0
+        switch ($Conflict) {
+            'WrongImage' { $script:Image.ImagePath = 'T:\vm\other.vhdx' }
+            'DetachedImage' { $script:Image.Attached = $false }
+            'OtherDisk' { $script:PartitionFixture.DiskNumber = [uint32]9 }
+        }
+        Mock Start-Sleep {}
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 3
+        Should -Invoke Start-Sleep -Times 0
+        Should -Invoke Start-ScheduledTask -Times 0
+    }
+    It 'keeps a primary <LabelKind> label nonadmitting until populated despite complete associated metadata' -ForEach @(
+        @{ LabelKind = 'Empty'; Value = '' }; @{ LabelKind = 'Null'; Value = $null }
+    ) {
+        $script:Associated = $script:Volume.PSObject.Copy()
+        $script:Volume.FileSystemLabel = $Value
+        $state = Get-CacheVolumeState @script:StateArgs
+        $state.State | Should -Be 'Pending'
+        $state.Identity | Should -BeNullOrEmpty
+        $state.Reason | Should -Match 'Primary volume label'
+        Mock Start-Sleep { $script:Volume.FileSystemLabel = 'cloud-cache-disk' }
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 0
+        Should -Invoke Start-Sleep -Times 1 -Exactly
+        Should -Invoke Start-ScheduledTask -Times 0
+    }
+    It 'fails fast on <Conflict> with a primary <LabelKind> label rather than hiding a conflict as pending' -ForEach @(
+        @{ LabelKind = 'Empty'; Value = ''; Conflict = 'WrongImage' }
+        @{ LabelKind = 'Empty'; Value = ''; Conflict = 'OtherDisk' }
+        @{ LabelKind = 'Empty'; Value = ''; Conflict = 'WrongGuid' }
+        @{ LabelKind = 'Empty'; Value = ''; Conflict = 'WrongFileSystem' }
+        @{ LabelKind = 'Null'; Value = $null; Conflict = 'WrongImage' }
+        @{ LabelKind = 'Null'; Value = $null; Conflict = 'OtherDisk' }
+        @{ LabelKind = 'Null'; Value = $null; Conflict = 'WrongGuid' }
+        @{ LabelKind = 'Null'; Value = $null; Conflict = 'WrongFileSystem' }
+    ) {
+        $script:Volume.FileSystemLabel = $Value
+        switch ($Conflict) {
+            'WrongImage' { $script:Image.ImagePath = 'T:\vm\other.vhdx' }
+            'OtherDisk' { $script:PartitionFixture.DiskNumber = [uint32]9 }
+            'WrongGuid' { $script:Associated = $script:Volume.PSObject.Copy(); $script:Associated.Path = '\\?\Volume{23e0daf0-3678-4842-8d9c-66aa3619b11a}\' }
+            'WrongFileSystem' { $script:Volume.FileSystem = 'exFAT' }
+        }
+        Mock Start-Sleep {}
+        (Get-CacheVolumeState @script:StateArgs).State | Should -Be 'InvalidIdentity'
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 3
+        Should -Invoke Start-Sleep -Times 0
+        Should -Invoke Start-ScheduledTask -Times 0
     }
     It 'leaves a healthy volume and deliberately quit clients alone' {
         Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 0
@@ -165,6 +223,188 @@ Describe 'Cloud cache repair identity and receipt' -Tag 'Unit', 'Boot', 'VHD' {
         Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 0
         Should -Invoke Start-ScheduledTask -Times 1 -Exactly -ParameterFilter { $TaskName -eq 'AutoMount_VHDX_cloud-cache-disk' }
         Should -Invoke Start-ScheduledTask -Times 1 -Exactly -ParameterFilter { $TaskName -eq 'CloudClients-AfterVHDX' }
+    }
+    It 'waits for eventual <Kind> association before validating the fresh receipt' -ForEach @(
+        @{ Kind = 'VolumeLetter' }; @{ Kind = 'VolumeFileSystem' }; @{ Kind = 'Image' }
+        @{ Kind = 'VolumeLabelEmpty' }; @{ Kind = 'VolumeLabelNull' }
+        @{ Kind = 'Disk' }; @{ Kind = 'DiskNumber' }; @{ Kind = 'Partition' }
+        @{ Kind = 'PartitionLetter' }; @{ Kind = 'PartitionDiskNumber' }; @{ Kind = 'AssociatedVolume' }
+        @{ Kind = 'AssociatedLetter' }; @{ Kind = 'AssociatedFileSystem' }; @{ Kind = 'AssociatedLabel' }
+    ) {
+        $script:Mounted = $false
+        $script:PendingKind = $Kind
+        $script:HealthyImage = $script:Image
+        $script:HealthyPartition = $script:PartitionFixture
+        Mock Start-ScheduledTask {
+            if ($TaskName -eq 'AutoMount_VHDX_cloud-cache-disk') {
+                $script:Mounted = $true
+                Write-RepairFixture
+                switch ($script:PendingKind) {
+                    'VolumeLetter' { $script:Volume.DriveLetter = [char]0 }
+                    'VolumeFileSystem' { $script:Volume.FileSystem = '' }
+                    'VolumeLabelEmpty' { $script:Volume.FileSystemLabel = '' }
+                    'VolumeLabelNull' { $script:Volume.FileSystemLabel = $null }
+                    'Image' { $script:Image = $null }
+                    'Disk' { $script:Disk = $null }
+                    'DiskNumber' { $script:Disk.Number = $null }
+                    'Partition' { $script:PartitionFixture = $null }
+                    'PartitionLetter' { $script:PartitionFixture.DriveLetter = [char]0 }
+                    'PartitionDiskNumber' { $script:PartitionFixture = [pscustomobject]@{ DriveLetter = 'F'; DiskNumber = $null } }
+                    'AssociatedVolume' { $script:Associated = $null }
+                    'AssociatedLetter' { $script:Associated = $script:Volume.PSObject.Copy(); $script:Associated.DriveLetter = '' }
+                    'AssociatedFileSystem' { $script:Associated = $script:Volume.PSObject.Copy(); $script:Associated.FileSystem = '' }
+                    'AssociatedLabel' { $script:Associated = $script:Volume.PSObject.Copy(); $script:Associated.FileSystemLabel = '' }
+                }
+            }
+        }
+        Mock Start-Sleep {
+            $script:Volume.DriveLetter = 'F'; $script:Volume.FileSystem = 'NTFS'; $script:Volume.FileSystemLabel = 'cloud-cache-disk'
+            $script:Image = $script:HealthyImage
+            $script:Disk = [pscustomobject]@{ Number = 4 }
+            $script:HealthyPartition.DriveLetter = [char]'F'
+            $script:PartitionFixture = $script:HealthyPartition
+            $script:Associated = $script:Volume
+        }
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 0
+        Should -Invoke Start-Sleep -Times 1 -Exactly
+        Should -Invoke Start-ScheduledTask -Times 1 -Exactly -ParameterFilter { $TaskName -eq 'AutoMount_VHDX_cloud-cache-disk' }
+        Should -Invoke Start-ScheduledTask -Times 1 -Exactly -ParameterFilter { $TaskName -eq 'CloudClients-AfterVHDX' }
+    }
+    It 'recovers a transient <Query> query under the repair deadline without accepting the error as healthy' -ForEach @(
+        @{ Query = 'Volume' }; @{ Query = 'Image' }; @{ Query = 'Disk' }; @{ Query = 'Partition' }; @{ Query = 'Association' }
+    ) {
+        $script:Mounted = $false
+        $script:TransientQuery = $false
+        switch ($Query) {
+            'Volume' { Mock Get-Volume { if ($script:Mounted) { if ($script:TransientQuery) { throw 'Transient volume query' }; $script:Volume } } }
+            'Image' { Mock Get-DiskImage { if ($script:TransientQuery) { throw 'Transient image query' }; $script:Image } }
+            'Disk' { Mock Get-Disk { if ($script:TransientQuery) { throw 'Transient disk query' }; $script:Disk } }
+            'Partition' { Mock Get-Partition { if ($script:TransientQuery) { throw 'Transient partition query' }; $script:PartitionFixture } }
+            'Association' { Mock Get-Volume { if ($script:TransientQuery) { throw 'Transient association query' }; $script:Associated } -ParameterFilter { $null -ne $Partition } }
+        }
+        Mock Start-ScheduledTask {
+            if ($TaskName -eq 'AutoMount_VHDX_cloud-cache-disk') { $script:Mounted = $true; $script:TransientQuery = $true; Write-RepairFixture }
+        }
+        Mock Start-Sleep { $script:TransientQuery = $false }
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 0
+        Should -Invoke Start-Sleep -Times 1 -Exactly
+        Should -Invoke Start-ScheduledTask -Times 1 -Exactly -ParameterFilter { $TaskName -eq 'AutoMount_VHDX_cloud-cache-disk' }
+        Should -Invoke Start-ScheduledTask -Times 1 -Exactly -ParameterFilter { $TaskName -eq 'CloudClients-AfterVHDX' }
+    }
+    It 'waits for both complete association and complete post-request receipt before launch' {
+        $script:Mounted = $false
+        $script:SleepCount = 0
+        $script:LaunchCount = 0
+        Mock Start-ScheduledTask {
+            if ($TaskName -eq 'AutoMount_VHDX_cloud-cache-disk') {
+                $script:Mounted = $true
+                $script:Volume.DriveLetter = [char]0
+                [IO.File]::WriteAllText((Join-Path $script:ReceiptRoot 'current.result.json'), '{"StartedAt":')
+            } elseif ($TaskName -eq 'CloudClients-AfterVHDX') { $script:LaunchCount++ }
+        }
+        Mock Start-Sleep {
+            $script:LaunchCount | Should -Be 0
+            $script:SleepCount++
+            if ($script:SleepCount -eq 1) { $script:Volume.DriveLetter = 'F' }
+            if ($script:SleepCount -eq 2) { Write-RepairFixture }
+        }
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 0
+        $script:SleepCount | Should -Be 2
+        $script:LaunchCount | Should -Be 1
+    }
+    It 'passively waits for an initial <Kind> state and leaves intentionally quit clients alone' -ForEach @(
+        @{ Kind = 'UnassignedLetter' }; @{ Kind = 'TransientQuery' }
+    ) {
+        if ($Kind -eq 'UnassignedLetter') { $script:Volume.DriveLetter = [char]0 } else {
+            $script:TransientQuery = $true
+            Mock Get-Disk { if ($script:TransientQuery) { throw 'Transient disk query' }; $script:Disk }
+        }
+        Mock Start-Sleep { $script:Volume.DriveLetter = 'F'; $script:TransientQuery = $false }
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 0
+        Should -Invoke Start-Sleep -Times 1 -Exactly
+        Should -Invoke Start-ScheduledTask -Times 0
+    }
+    It 'keeps pending initial preview <Mode> free of changes and passive sleeps' -ForEach @(
+        @{ Mode = 'DryRun' }; @{ Mode = 'LongDryRun' }; @{ Mode = 'WhatIf' }
+    ) {
+        $script:Volume.DriveLetter = [char]0
+        Mock Start-Sleep {}
+        switch ($Mode) {
+            'DryRun' { Invoke-CloudCacheRepair @script:RepairArgs -DryRun | Should -Be 0 }
+            'LongDryRun' { Invoke-CloudCacheRepair @script:RepairArgs -CliArgs '--DryRun' | Should -Be 0 }
+            'WhatIf' { Invoke-CloudCacheRepair @script:RepairArgs -WhatIf | Should -Be 0 }
+        }
+        Should -Invoke Start-Sleep -Times 0
+        Should -Invoke New-Item -Times 0
+        Should -Invoke Add-Content -Times 0
+        Should -Invoke Start-ScheduledTask -Times 0
+        Should -Invoke Mount-DiskImage -Times 0
+        Should -Invoke Start-Process -Times 0
+    }
+    It 'times out persistent <Kind> pending evidence without any client launch' -ForEach @(
+        @{ Kind = 'InitialAssociation' }; @{ Kind = 'InitialQueryError' }
+        @{ Kind = 'RequestedAssociation' }; @{ Kind = 'RequestedQueryError' }
+    ) {
+        switch ($Kind) {
+            'InitialAssociation' { $script:Volume.DriveLetter = [char]0 }
+            'InitialQueryError' { Mock Get-Disk { throw 'Persistent Storage query error' } }
+            'RequestedAssociation' {
+                $script:Mounted = $false
+                Mock Start-ScheduledTask { $script:Mounted = $true; $script:PartitionFixture = $null; Write-RepairFixture }
+            }
+            'RequestedQueryError' {
+                $script:Mounted = $false
+                Mock Get-Disk { throw 'Persistent Storage query error' }
+            }
+        }
+        $timer = [Diagnostics.Stopwatch]::StartNew()
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 1
+        $timer.Elapsed.TotalSeconds | Should -BeGreaterThan 0.8
+        $timer.Elapsed.TotalSeconds | Should -BeLessThan 3
+        Should -Invoke Start-ScheduledTask -Times 0 -ParameterFilter { $TaskName -eq 'CloudClients-AfterVHDX' }
+        if ($Kind -like 'Initial*') { Should -Invoke Start-ScheduledTask -Times 0 }
+        else { Should -Invoke Start-ScheduledTask -Times 1 -Exactly -ParameterFilter { $TaskName -eq 'AutoMount_VHDX_cloud-cache-disk' } }
+    }
+    It 'retains the original deadline when initial pending becomes missing and requests a mount' {
+        $script:Volume.DriveLetter = [char]0
+        Mock Start-Sleep { [Threading.Thread]::Sleep(700); $script:Mounted = $false }
+        Mock Start-ScheduledTask {
+            if ($TaskName -eq 'AutoMount_VHDX_cloud-cache-disk') {
+                [Threading.Thread]::Sleep(400)
+                $script:Mounted = $true; $script:Volume.DriveLetter = 'F'; Write-RepairFixture
+            }
+        }
+        $timer = [Diagnostics.Stopwatch]::StartNew()
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 1
+        $timer.Elapsed.TotalSeconds | Should -BeGreaterThan 1
+        $timer.Elapsed.TotalSeconds | Should -BeLessThan 3
+        Should -Invoke Start-Sleep -Times 1 -Exactly
+        Should -Invoke Start-ScheduledTask -Times 1 -Exactly -ParameterFilter { $TaskName -eq 'AutoMount_VHDX_cloud-cache-disk' }
+        Should -Invoke Start-ScheduledTask -Times 0 -ParameterFilter { $TaskName -eq 'CloudClients-AfterVHDX' }
+    }
+    It 'fails fast on requested definitive <Kind> conflict despite a successful receipt' -ForEach @(
+        @{ Kind = 'WrongDrive' }; @{ Kind = 'WrongFileSystem' }; @{ Kind = 'WrongGuid' }
+        @{ Kind = 'WrongImage' }; @{ Kind = 'OtherDisk' }; @{ Kind = 'MalformedDisk' }
+    ) {
+        $script:Mounted = $false
+        $script:ConflictKind = $Kind
+        Mock Start-ScheduledTask {
+            if ($TaskName -eq 'AutoMount_VHDX_cloud-cache-disk') {
+                $script:Mounted = $true; Write-RepairFixture
+                switch ($script:ConflictKind) {
+                    'WrongDrive' { $script:Volume.DriveLetter = 'G' }
+                    'WrongFileSystem' { $script:Volume.FileSystem = 'exFAT' }
+                    'WrongGuid' { $script:Associated = $script:Volume.PSObject.Copy(); $script:Associated.Path = '\\?\Volume{23e0daf0-3678-4842-8d9c-66aa3619b11a}\' }
+                    'WrongImage' { $script:Image.ImagePath = 'T:\vm\other.vhdx' }
+                    'OtherDisk' { $script:PartitionFixture.DiskNumber = [uint32]9 }
+                    'MalformedDisk' { $script:Disk.Number = 'bad' }
+                }
+            }
+        }
+        Mock Start-Sleep {}
+        Invoke-CloudCacheRepair @script:RepairArgs | Should -Be 3
+        Should -Invoke Start-Sleep -Times 0
+        Should -Invoke Start-ScheduledTask -Times 0 -ParameterFilter { $TaskName -eq 'CloudClients-AfterVHDX' }
     }
     It 'never starts clients in a headless session' {
         $script:Mounted = $false

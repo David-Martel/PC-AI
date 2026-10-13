@@ -6,7 +6,8 @@ Repair a missing cloud cache after proving its image and volume identity.
 Healthy volumes must be F:, NTFS and associated with the expected attached image.
 Repairs require live identity and a post-request successful receipt within one
 bounded deadline. Conflicting identities fail closed. Healthy runs leave clients
-and cache configuration alone.
+and cache configuration alone. Incomplete Storage associations and query errors
+wait within that same deadline; initial pending observations wait passively.
 .PARAMETER DryRun
 Report the decision without filesystem writes or task, mount or process changes.
 .PARAMETER Help
@@ -49,56 +50,109 @@ function Get-CacheVolumeIdentity {
 function Get-CacheVolumeState {
     [CmdletBinding()]
     param([string]$Label, [string]$ExpectedVhd, [string]$ExpectedDriveLetter = 'F')
-    $state = @{ State = 'InvalidIdentity'; Volume = $null; Identity = $null; Reason = ''; Backing = $ExpectedVhd }
+    $state = @{ State = 'Pending'; Volume = $null; Identity = $null; Reason = ''; Backing = $ExpectedVhd }
     try {
-        $volumes = @(Get-Volume -ErrorAction Stop)
+        $volumes = @(Get-Volume -ErrorAction Stop | Where-Object { $null -ne $_ })
+        $state.State = 'InvalidIdentity'
         $named = @($volumes | Where-Object { [string]$_.FileSystemLabel -eq $Label })
+        $atDrive = @($volumes | Where-Object { [string]$_.DriveLetter -eq $ExpectedDriveLetter })
+        if ($atDrive.Count -gt 1) { throw 'Expected drive letter resolves to multiple volumes.' }
+        if ($atDrive.Count -eq 1 -and -not [string]::IsNullOrWhiteSpace([string]$atDrive[0].FileSystemLabel) -and
+            [string]$atDrive[0].FileSystemLabel -ne $Label) {
+            throw 'Expected drive letter is occupied by a different volume.'
+        }
         if ($named.Count -eq 0) {
-            if (@($volumes | Where-Object { [string]$_.DriveLetter -eq $ExpectedDriveLetter }).Count -gt 0) {
-                $state.Reason = 'Expected drive letter is occupied by a different volume.'
-                return $state
-            }
-            $state.State = 'Missing'
-            return $state
+            if ($atDrive.Count -eq 0) { $state.State = 'Missing'; return $state }
+            # An unlabeled row at the expected drive is a provisional candidate,
+            # never a healthy identity. Continue the available conflict checks.
+            $named = @($atDrive[0])
         }
         if ($named.Count -ne 1) { throw 'The label resolves to multiple volumes.' }
-        if (@($volumes | Where-Object { [string]$_.DriveLetter -eq $ExpectedDriveLetter }).Count -ne 1) {
-            throw 'Expected drive letter does not resolve to one volume.'
-        }
         $volume = $named[0]
         $state.Volume = $volume
-        if ([string]$volume.DriveLetter -ne $ExpectedDriveLetter -or [string]$volume.FileSystem -ne 'NTFS') {
-            throw 'The labeled volume must have the expected drive letter and NTFS filesystem.'
-        }
         $identity = Get-CacheVolumeIdentity $volume
         if (-not $identity) { throw 'The volume lacks a valid nonempty GUID.' }
-        $images = @(Get-DiskImage -ImagePath $ExpectedVhd -ErrorAction Stop)
+        $letter = [string]$volume.DriveLetter
+        $letterPending = [string]::IsNullOrWhiteSpace($letter) -or $letter -eq [string][char]0
+        if (-not $letterPending -and $letter -ne $ExpectedDriveLetter) { throw 'The labeled volume has a conflicting drive letter.' }
+        $fileSystem = [string]$volume.FileSystem
+        if (-not [string]::IsNullOrWhiteSpace($fileSystem) -and $fileSystem -ne 'NTFS') { throw 'The labeled volume has a conflicting filesystem.' }
+        $volumePending = $letterPending -or [string]::IsNullOrWhiteSpace($fileSystem) -or
+            [string]::IsNullOrWhiteSpace([string]$volume.FileSystemLabel)
+        if (-not $volumePending -and $atDrive.Count -ne 1) { throw 'Expected drive letter does not resolve to one volume.' }
+        $state.State = 'Pending'
+        $images = @(Get-DiskImage -ImagePath $ExpectedVhd -ErrorAction Stop | Where-Object { $null -ne $_ })
+        $state.State = 'InvalidIdentity'
+        if ($images.Count -eq 0) { $state.State = 'Pending'; $state.Reason = 'Expected image association is not yet available.'; return $state }
         if ($images.Count -ne 1 -or $images[0].Attached -ne $true -or
-            [string]$images[0].ImagePath -ne $ExpectedVhd) { throw 'Expected image is absent, detached or mismatched.' }
+            [string]$images[0].ImagePath -ne $ExpectedVhd) { throw 'Expected image is detached, ambiguous or mismatched.' }
         # MSFT_DiskImage.Number may be null; use the actual Storage association.
-        $disks = @($images[0] | Get-Disk -ErrorAction Stop)
+        $state.State = 'Pending'
+        $disks = @($images[0] | Get-Disk -ErrorAction Stop | Where-Object { $null -ne $_ })
+        $state.State = 'InvalidIdentity'
+        if ($disks.Count -eq 0 -or ($disks.Count -eq 1 -and $null -eq $disks[0].Number)) {
+            $state.State = 'Pending'; $state.Reason = 'Expected image disk association is incomplete.'; return $state
+        }
         $number = 0
-        if ($disks.Count -ne 1 -or $null -eq $disks[0].Number -or
+        if ($disks.Count -ne 1 -or
             -not [int]::TryParse([string]$disks[0].Number, [ref]$number) -or $number -lt 0) {
             throw 'Expected image does not resolve to one valid disk number.'
         }
-        $partitions = @(Get-Partition -DiskNumber $number -ErrorAction Stop | Where-Object {
-            [string]$_.DriveLetter -eq $ExpectedDriveLetter
-        })
+        $state.State = 'Pending'
+        $diskPartitions = @(Get-Partition -DiskNumber $number -ErrorAction Stop | Where-Object { $null -ne $_ })
+        $state.State = 'InvalidIdentity'
+        if ($diskPartitions.Count -eq 0) { $state.State = 'Pending'; $state.Reason = 'Expected image partition association is not yet available.'; return $state }
+        foreach ($diskPartition in $diskPartitions) {
+            if ($null -ne $diskPartition.DiskNumber) {
+                $observedDisk = 0
+                if (-not [int]::TryParse([string]$diskPartition.DiskNumber, [ref]$observedDisk) -or $observedDisk -ne $number) {
+                    throw 'Returned partition belongs to a conflicting or malformed disk.'
+                }
+            }
+        }
+        $partitions = @($diskPartitions | Where-Object { [string]$_.DriveLetter -eq $ExpectedDriveLetter })
+        if ($partitions.Count -eq 0) {
+            $assigned = @($diskPartitions | Where-Object {
+                -not [string]::IsNullOrWhiteSpace([string]$_.DriveLetter) -and [string]$_.DriveLetter -ne [string][char]0
+            })
+            if ($assigned.Count -gt 0) { throw 'Expected image partitions have conflicting drive assignments.' }
+            $state.State = 'Pending'; $state.Reason = 'Expected image partition drive assignment is incomplete.'; return $state
+        }
+        if ($partitions.Count -eq 1 -and $null -eq $partitions[0].DiskNumber) {
+            $state.State = 'Pending'; $state.Reason = 'Matching partition disk association is incomplete.'; return $state
+        }
         $partitionDisk = 0
-        if ($partitions.Count -ne 1 -or $null -eq $partitions[0].DiskNumber -or
+        if ($partitions.Count -ne 1 -or
             -not [int]::TryParse([string]$partitions[0].DiskNumber, [ref]$partitionDisk) -or $partitionDisk -ne $number) {
             throw 'Expected image has no unique matching partition on its disk.'
         }
-        $associated = @(Get-Volume -Partition $partitions[0] -ErrorAction Stop)
-        if ($associated.Count -ne 1 -or [string]$associated[0].DriveLetter -ne $ExpectedDriveLetter -or
-            [string]$associated[0].FileSystem -ne 'NTFS' -or [string]$associated[0].FileSystemLabel -ne $Label -or
-            (Get-CacheVolumeIdentity $associated[0]) -ne $identity) {
+        $state.State = 'Pending'
+        $associated = @(Get-Volume -Partition $partitions[0] -ErrorAction Stop | Where-Object { $null -ne $_ })
+        $state.State = 'InvalidIdentity'
+        if ($associated.Count -eq 0) { $state.State = 'Pending'; $state.Reason = 'Partition volume association is not yet available.'; return $state }
+        if ($associated.Count -ne 1 -or (Get-CacheVolumeIdentity $associated[0]) -ne $identity) {
             throw 'Associated volume identity changed or does not match the expected cache.'
+        }
+        $associatedLetter = [string]$associated[0].DriveLetter
+        $associatedFs = [string]$associated[0].FileSystem
+        $associatedLabel = [string]$associated[0].FileSystemLabel
+        if ((-not [string]::IsNullOrWhiteSpace($associatedLetter) -and $associatedLetter -ne [string][char]0 -and $associatedLetter -ne $ExpectedDriveLetter) -or
+            (-not [string]::IsNullOrWhiteSpace($associatedFs) -and $associatedFs -ne 'NTFS') -or
+            (-not [string]::IsNullOrWhiteSpace($associatedLabel) -and $associatedLabel -ne $Label)) {
+            throw 'Associated volume drive, filesystem or label conflicts with the expected cache.'
+        }
+        if ([string]::IsNullOrWhiteSpace($associatedLetter) -or $associatedLetter -eq [string][char]0 -or
+            [string]::IsNullOrWhiteSpace($associatedFs) -or [string]::IsNullOrWhiteSpace($associatedLabel)) {
+            $state.State = 'Pending'; $state.Reason = 'Associated volume properties are incomplete.'; return $state
+        }
+        if ($volumePending) {
+            $state.State = 'Pending'; $state.Reason = 'Primary volume label, drive or filesystem assignment is incomplete.'; return $state
         }
         $state.State = 'Healthy'
         $state.Identity = $identity
-    } catch { $state.Reason = $_.Exception.Message }
+    } catch {
+        $state.Reason = if ($state.State -eq 'Pending') { 'Storage query is pending: ' + $_.Exception.Message } else { $_.Exception.Message }
+    }
     return $state
 }
 
@@ -180,12 +234,29 @@ function Invoke-CloudCacheRepair {
     $stateArgs = @{ Label = $Label; ExpectedVhd = $ExpectedVhd; ExpectedDriveLetter = $ExpectedDriveLetter }
     $state = Get-CacheVolumeState @stateArgs
     if ($state.State -eq 'Healthy') { Write-CacheRepairLog "Healthy volume $($state.Identity); no repair needed."; return 0 }
-    if ($state.State -ne 'Missing') { Write-CacheRepairLog "Refusing repair: $($state.Reason)"; return 3 }
+    if ($state.State -eq 'InvalidIdentity') { Write-CacheRepairLog "Refusing repair: $($state.Reason)"; return 3 }
     if (-not (Test-Path -LiteralPath $ExpectedVhd -PathType Leaf)) { Write-CacheRepairLog 'Backing image is missing.'; return 2 }
+    if ($state.State -eq 'Pending' -and $readOnly) { Write-CacheRepairLog "Dry run: would passively wait for complete mount identity: $($state.Reason)"; return 0 }
+    $timer = [System.Diagnostics.Stopwatch]::StartNew()
+    # A pre-existing asynchronous mount/query may be settling. Observe it without
+    # requesting a competing mount or restarting clients. Missing recovery uses
+    # the remainder of this same deadline for the mount request and receipt.
+    while ($state.State -eq 'Pending' -and $timer.Elapsed.TotalSeconds -lt $MountWaitSeconds) {
+        $remaining = [int][math]::Ceiling(($MountWaitSeconds - $timer.Elapsed.TotalSeconds) * 1000)
+        if ($remaining -gt 0) { Start-Sleep -Milliseconds ([math]::Min($PollMilliseconds, $remaining)) }
+        if ($timer.Elapsed.TotalSeconds -lt $MountWaitSeconds) { $state = Get-CacheVolumeState @stateArgs }
+    }
+    if ($state.State -eq 'InvalidIdentity') { Write-CacheRepairLog "Refusing repair: $($state.Reason)"; return 3 }
+    if ($timer.Elapsed.TotalSeconds -ge $MountWaitSeconds) {
+        Write-CacheRepairLog "Identity observation timed out; live state=$($state.State); reason=$($state.Reason)"
+        return 1
+    }
+    if ($state.State -eq 'Healthy') { Write-CacheRepairLog "Existing mount settled for volume $($state.Identity); no client restart requested."; return 0 }
+    if ($state.State -ne 'Missing') { Write-CacheRepairLog "Refusing unknown mount state: $($state.State)"; return 3 }
     if ($readOnly) { Write-CacheRepairLog 'Dry run: would request mount and validate its fresh receipt.'; return 0 }
     if (-not $PSCmdlet.ShouldProcess($MountTask, 'Start-ScheduledTask')) { return 0 }
+    if ($timer.Elapsed.TotalSeconds -ge $MountWaitSeconds) { Write-CacheRepairLog 'Deadline elapsed before mount request.'; return 1 }
     $requested = Get-Date
-    $timer = [System.Diagnostics.Stopwatch]::StartNew()
     try { Start-ScheduledTask -TaskName $MountTask -ErrorAction Stop }
     catch { Write-CacheRepairLog ('Mount request failed: ' + $_.Exception.Message); return 1 }
     $receiptArgs = @{ MountLogRoot = $MountLogRoot; RequestedAt = $requested; ExpectedVhd = $ExpectedVhd;

@@ -263,6 +263,7 @@ jobs:
           $config.Run.Path = @(
             'Tests/Unit',
             'Tests/Boot/WorkloadResourceProfile.Tests.ps1',
+            'Tests/Boot/CloudClientGate.Tests.ps1',
             'Tests/Boot/MachineCapabilities.Tests.ps1',
             'Tests/Boot/MediaToolchain.Tests.ps1',
             'Tests/Boot/HardwareMeasurementContracts.Tests.ps1',

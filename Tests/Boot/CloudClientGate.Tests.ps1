@@ -80,6 +80,67 @@ Describe 'Cloud client expected-image startup gate' -Tag 'Unit', 'Boot', 'VHD' {
         Mock Start-Sleep { [System.Threading.Thread]::Sleep($Milliseconds) }
     }
 
+    It 'resolves a real Limited null image Number through canonical DevicePath' {
+        $script:ImageFixture = New-CimInstance -Namespace root/Microsoft/Windows/Storage -ClassName MSFT_DiskImage -ClientOnly -Property @{
+            ImagePath = 'T:\vm\cloud-cache-disk.vhdx'; Attached = $true; Number = [uint32]4; DevicePath = '\\.\PhysicalDrive4'
+        }
+        $script:ImageFixture.CimInstanceProperties['Number'].Value = $null
+        Invoke-CloudClientGate @script:GateArgs -DryRun | Should -Be 0
+        Should -Invoke Get-Disk -Times 1 -Exactly -ParameterFilter { $Number -eq 4 }
+        Should -Invoke Get-Partition -Times 1 -Exactly -ParameterFilter { $DiskNumber -eq 4 }
+        Should -Invoke Start-Process -Times 0 -Exactly
+        Should -Invoke Add-Content -Times 0 -Exactly
+    }
+    It 'does not admit an image Number conflicting with its actual DevicePath' {
+        $script:ImageFixture = New-CimInstance -Namespace root/Microsoft/Windows/Storage -ClassName MSFT_DiskImage -ClientOnly -Property @{
+            ImagePath = 'T:\vm\cloud-cache-disk.vhdx'; Attached = $true; Number = [uint32]5; DevicePath = '\\.\PhysicalDrive4'
+        }
+        Write-TestMountReceipt
+        Invoke-CloudClientGate @script:GateArgs -RequireMountLog -DryRun | Should -Be 2
+        Should -Invoke Get-Disk -Times 0 -Exactly
+        Should -Invoke Start-Process -Times 0 -Exactly
+    }
+    It 'refuses observed <Case> association even with a fresh matching receipt' -ForEach @(
+        @{ Case = 'wrong returned disk'; Fault = 'WrongDisk' }
+        @{ Case = 'ambiguous disks'; Fault = 'MultipleDisks' }
+        @{ Case = 'wrong returned partition disk'; Fault = 'WrongPartition' }
+        @{ Case = 'wrong disk in another returned partition'; Fault = 'OtherWrongPartition' }
+        @{ Case = 'ambiguous expected partitions'; Fault = 'MultiplePartitions' }
+        @{ Case = 'ambiguous images'; Fault = 'MultipleImages' }
+    ) {
+        Write-TestMountReceipt
+        switch ($Fault) {
+            'WrongDisk' { $script:DiskFixture.Number = [uint32]9 }
+            'MultipleDisks' { Mock Get-Disk { @($script:DiskFixture, $script:DiskFixture) } }
+            'WrongPartition' { $script:PartitionFixture.DiskNumber = [uint32]9 }
+            'OtherWrongPartition' {
+                Mock Get-Partition { @($script:PartitionFixture, [pscustomobject]@{ DiskNumber = [uint32]9; DriveLetter = 'G' }) }
+            }
+            'MultiplePartitions' { Mock Get-Partition { @($script:PartitionFixture, $script:PartitionFixture) } }
+            'MultipleImages' { Mock Get-DiskImage { @($script:ImageFixture, $script:ImageFixture) } }
+        }
+        Invoke-CloudClientGate @script:GateArgs -RequireMountLog -DryRun | Should -Be 2
+        Should -Invoke Get-CimInstance -Times 0 -Exactly -ParameterFilter { $ClassName -eq 'Win32_Volume' }
+        Should -Invoke Start-Process -Times 0 -Exactly
+        Should -Invoke Start-Sleep -Times 0 -Exactly
+    }
+    It 'retains exact receipt fallback for genuinely unavailable <Stage> Storage query' -ForEach @(
+        @{ Stage = 'disk'; Fault = 'DiskDenied' }
+        @{ Stage = 'partition'; Fault = 'PartitionDenied' }
+        @{ Stage = 'empty disk result'; Fault = 'EmptyDisk' }
+        @{ Stage = 'incomplete disk number'; Fault = 'NullDisk' }
+    ) {
+        Write-TestMountReceipt
+        switch ($Fault) {
+            'DiskDenied' { Mock Get-Disk { throw 'Access denied.' } }
+            'PartitionDenied' { Mock Get-Partition { throw 'Access denied.' } }
+            'EmptyDisk' { Mock Get-Disk { @() } }
+            'NullDisk' { $script:DiskFixture.CimInstanceProperties['Number'].Value = $null }
+        }
+        Invoke-CloudClientGate @script:GateArgs -RequireMountLog -DryRun | Should -Be 0
+        Should -Invoke Get-CimInstance -Times 1 -Exactly -ParameterFilter { $ClassName -eq 'Win32_Volume' }
+        Should -Invoke Start-Process -Times 0 -Exactly
+    }
     It 'starts both clients hidden after validating the expected image and fresh receipt' {
         Write-TestMountReceipt
         Invoke-CloudClientGate @script:GateArgs -RequireMountLog | Should -Be 0

@@ -50,6 +50,30 @@ Describe 'Cloud cache repair identity and receipt' -Tag 'Unit', 'Boot', 'VHD' {
         Mock Mount-DiskImage {}
         Mock Dismount-DiskImage {}
     }
+    It 'binds the real Limited image DevicePath when Number is null' {
+        $script:Image = New-CimInstance -Namespace root/Microsoft/Windows/Storage -ClassName MSFT_DiskImage -ClientOnly -Property @{
+            ImagePath = 'T:\vm\cloud-cache-disk.vhdx'; Attached = $true; DevicePath = '\\.\PhysicalDrive4'; Number = [uint32]4
+        }
+        $script:Image.CimInstanceProperties['Number'].Value = $null
+        $script:Image.Number | Should -BeNullOrEmpty
+        $state = Get-CacheVolumeState @script:StateArgs
+        $state.State | Should -Be Healthy
+        $state.Identity | Should -Be 'c3e0daf0-3678-4842-8d9c-66aa3619b11a'
+        Should -Invoke Get-Disk -Times 1 -Exactly -ParameterFilter { $Number -eq 4 }
+        Should -Invoke Get-Partition -Times 1 -Exactly -ParameterFilter { $DiskNumber -eq 4 }
+    }
+    It 'refuses a disk returned under the wrong Number' {
+        $script:Disk.Number = 9
+        (Get-CacheVolumeState @script:StateArgs).State | Should -Be InvalidIdentity
+        Should -Invoke Get-Partition -Times 0 -Exactly
+    }
+    It 'retains incomplete image identity as Pending' {
+        $script:Image = New-CimInstance -Namespace root/Microsoft/Windows/Storage -ClassName MSFT_DiskImage -ClientOnly -Property @{
+            ImagePath = 'T:\vm\cloud-cache-disk.vhdx'; Attached = $true
+        }
+        (Get-CacheVolumeState @script:StateArgs).State | Should -Be Pending
+        Should -Invoke Get-Disk -Times 0 -Exactly
+    }
     It 'requires the real image association and canonical volume identity for healthy' {
         $state = Get-CacheVolumeState @script:StateArgs
         $state.State | Should -Be 'Healthy'

@@ -142,3 +142,63 @@ $plan = ./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -ShowTaskTemp
 $plan.Xml
 Invoke-Pester ./Tests/Unit/VigilFleetShare.Tests.ps1 -Output Detailed
 ```
+
+## Cloud mounts after the cache image
+
+`Start-PcaiCloudMount.ps1` admits an existing read-only rclone provider task in
+the same Limited interactive owner session. Configure U or V explicitly; R is
+reserved for the dtm-work share. Planning, DryRun, WhatIf and help perform no
+Storage, Scheduler, mapping or process probes and write no files.
+
+```powershell
+./Tools/SystemScripts/Networking/Start-PcaiCloudMount.ps1 -TaskName Rclone-Dropbox-Gmail-U -Drive U -DryRun
+```
+
+Runtime admission requires the expected owner SID, the SHA256 of the exact
+exported provider-task XML, provider UNC and cache directory. Inspect the task's
+read-only action and principal before deriving its pin. XML hashing uses UTF8
+bytes of the `Export-ScheduledTask` string, rather than a BOM-bearing file.
+Permanent cache/backing volume GUIDs, the actual image-to-partition association,
+backing-file ancestry/identity and free-space reserves must also match. Machine
+defaults describe this workstation; override them only with reviewed identities
+for another host. A nullable image Number is resolved from its canonical live
+PhysicalDrive path, with malformed/conflicting identities rejected.
+
+```powershell
+$xml = Export-ScheduledTask -TaskName Rclone-Dropbox-Gmail-U
+$pin = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($xml)))
+$sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+./Tools/SystemScripts/Networking/Start-PcaiCloudMount.ps1 -TaskName Rclone-Dropbox-Gmail-U -Drive U -ProviderUnc '\\dropbox-cloud\gmail-u' -CacheDirectory 'F:\RcloneCache\gmail-u' -ExpectedUserSid $sid -ExpectedTaskXmlSha256 $pin -Apply -ValidateOnly
+```
+
+ValidateOnly performs real admission but prohibits starting an absent provider.
+Ordinary Apply mode requests the existing task at most once, then qualifies its
+mapping and owner/process creation identity. Missing or delayed volumes retry
+within one monotonic deadline; wrong GUIDs, reparse backing paths, changed task
+definitions and mapping collisions are refused. Scheduler, Storage, native
+compilation and owner probes run in owned children with capped output and bounded
+termination. An uncertain Scheduler start outcome is reported as Hold/Unknown
+and is never hidden by restarting or stopping a provider.
+
+The wrapper does not register tasks, change cloud files, move Dropbox, or stop
+mounts. Deployment must preserve old source/task XML, bind the reviewed helper
+bytes, and validate the actual Limited task namespace. Keep source tests, an
+AlreadyRunning probe, first provider start, and subsequent logon/reboot/resume
+acceptance as distinct evidence. Changing a provider action requires fresh task
+review and a new XML pin.
+
+Portable controls run in `Tests/Boot/CloudMountGate.Tests.ps1`; attached-machine
+controls are explicitly in `Tests/LocalMachine/CloudMountGate.Local.ps1`. The
+existing repair/startup suites cover the shared nullable-number fix. Neither
+suite qualifies an offline dtm-work share or fleet deployment.
+
+`Invoke-PcaiCloudMountGate.ps1` is the maintained scheduled-task receipt runner.
+Apply additionally requires the reviewed wrapper/helper SHA256 values and an
+existing private local `ReceiptDirectory`. It holds read-only source leases,
+checks the Limited owner, and delegates the admission above. Per-drive
+`deployment-gate-U-latest.json` / `deployment-gate-U-previous.json` (and V)
+retain bounded success, Hold/Unknown and failure results through flushed atomic
+rotation. Foreign receipts, reparse paths and competing writers are refused;
+failed publication preserves existing receipts. Default, DryRun, WhatIf and
+help perform no runtime probes or writes. The runner does not register tasks or
+restart providers. Its controls are in `Tests/Boot/CloudMountGateRunner.Tests.ps1`.

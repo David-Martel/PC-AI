@@ -237,17 +237,50 @@ function Invoke-CloudClientGate {
             # Try the Storage image/disk association first. Some Limited-session
             # providers cannot resolve it; the exact-volume receipt fallback below
             # remains bound to this boot's successful expected-image mount.
-            $image = Get-DiskImage -ImagePath $expectedImage -ErrorAction Stop
+            $images = @(Get-DiskImage -ImagePath $expectedImage -ErrorAction Stop)
+            if ($images.Count -gt 1) {
+                Write-Log 'Expected image has ambiguous returned identities; clients NOT started.' 'ERROR'
+                return 2
+            }
+            if ($images.Count -eq 0) { throw 'Expected image metadata is unavailable.' }
+            $image = $images[0]
             if ($image.Attached -and [System.IO.Path]::GetFullPath($image.ImagePath).TrimEnd('\') -eq $expectedImage) {
-                $disk = @($image | Get-Disk -ErrorAction Stop)
-                if ($disk.Count -ne 1) { throw 'Expected image did not resolve to exactly one disk.' }
+                # Resolve the actual nullable image association through the same
+                # parser used by cache repair. The child scope preserves this
+                # launcher's parameters when dot-sourcing the declaration-only
+                # helper; it never invokes repair or another task.
+                try {
+                    $imageNumber = & {
+                        param($InputImage, $RepairSource)
+                        . $RepairSource
+                        Get-CacheImageDiskNumber $InputImage
+                    } $image (Join-Path (Split-Path $script:CloudClientGateSource -Parent) 'Repair-CloudCacheMount.ps1')
+                } catch {
+                    Write-Log "Image disk identity refused: $($_.Exception.Message); clients NOT started." 'ERROR'
+                    return 2
+                }
+                if ($null -eq $imageNumber) { throw 'Expected image disk identity is incomplete.' }
+                $disk = @(Get-Disk -Number $imageNumber -ErrorAction Stop)
+                # A query failure or empty metadata can use the privileged
+                # receipt fallback. Observed contradictory identities cannot.
+                if ($disk.Count -gt 1 -or ($disk.Count -eq 1 -and $null -ne $disk[0].Number -and $disk[0].Number -ne $imageNumber)) {
+                    Write-Log 'Expected image resolved to contradictory or ambiguous disk identities; clients NOT started.' 'ERROR'
+                    return 2
+                }
+                if ($disk.Count -eq 0 -or $null -eq $disk[0].Number) { throw 'Expected image disk metadata is unavailable or incomplete.' }
                 $partitions = @(Get-Partition -DiskNumber $disk[0].Number -ErrorAction Stop)
+                if (@($partitions | Where-Object { $null -ne $_.DiskNumber -and $_.DiskNumber -ne $disk[0].Number }).Count -gt 0) {
+                    Write-Log 'Returned partition identity contradicts the expected image disk; clients NOT started.' 'ERROR'
+                    return 2
+                }
                 $partition = @($partitions | Where-Object { [string]$_.DriveLetter -eq $ExpectedDriveLetter })
                 if ($partition.Count -eq 0) {
                     $pending = "Expected image has no partition at $($ExpectedDriveLetter):."
-                } elseif ($partition.Count -ne 1 -or $partition[0].DiskNumber -ne $disk[0].Number) {
-                    throw 'Expected drive letter is not uniquely associated with the expected image disk.'
+                } elseif ($partition.Count -ne 1) {
+                    Write-Log 'Expected drive letter has ambiguous partition identities; clients NOT started.' 'ERROR'
+                    return 2
                 } else {
+                    if ($null -eq $partition[0].DiskNumber) { throw 'Expected partition disk metadata is incomplete.' }
                     $candidate = @(Get-Volume -Partition $partition[0] -ErrorAction Stop)
                     if ($candidate.Count -ne 1 -or [string]$candidate[0].DriveLetter -ne $ExpectedDriveLetter -or
                         $candidate[0].FileSystemLabel -ne $ExpectedLabel -or $candidate[0].FileSystem -ne 'NTFS') {

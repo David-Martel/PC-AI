@@ -47,6 +47,30 @@ function Get-CacheVolumeIdentity {
     return $identity
 }
 
+function Get-CacheImageDiskNumber {
+    param($Image)
+    $numberProperty = $Image.PSObject.Properties['Number']
+    $pathProperty = $Image.PSObject.Properties['DevicePath']
+    $number = $null
+    if ($numberProperty -and $null -ne $numberProperty.Value) {
+        $parsed = 0
+        if (-not [int]::TryParse([string]$numberProperty.Value, [ref]$parsed) -or $parsed -lt 0) {
+            throw 'Image disk number is malformed or outside the supported range.'
+        }
+        $number = $parsed
+    }
+    if ($pathProperty -and -not [string]::IsNullOrWhiteSpace([string]$pathProperty.Value)) {
+        if ([string]$pathProperty.Value -notmatch '^\\\\\.\\PhysicalDrive(0|[1-9][0-9]*)$') {
+            throw 'Image device path is not a canonical physical disk association.'
+        }
+        $pathNumber = 0
+        if (-not [int]::TryParse($Matches[1], [ref]$pathNumber)) { throw 'Image device disk number is outside the supported range.' }
+        if ($null -ne $number -and $number -ne $pathNumber) { throw 'Image number conflicts with its device path.' }
+        $number = $pathNumber
+    }
+    return $number
+}
+
 function Get-CacheVolumeState {
     [CmdletBinding()]
     param([string]$Label, [string]$ExpectedVhd, [string]$ExpectedDriveLetter = 'F')
@@ -86,16 +110,23 @@ function Get-CacheVolumeState {
         if ($images.Count -eq 0) { $state.State = 'Pending'; $state.Reason = 'Expected image association is not yet available.'; return $state }
         if ($images.Count -ne 1 -or $images[0].Attached -ne $true -or
             [string]$images[0].ImagePath -ne $ExpectedVhd) { throw 'Expected image is detached, ambiguous or mismatched.' }
-        # MSFT_DiskImage.Number may be null; use the actual Storage association.
+        # The real Limited session exposes Number=null and a live DevicePath.
+        # Piping that image to Get-Disk binds null to Number and fails before
+        # any association lookup. Resolve the attached image's typed disk ID;
+        # it remains subject to the partition and GUID checks below.
+        $imageNumber = Get-CacheImageDiskNumber $images[0]
+        if ($null -eq $imageNumber) {
+            $state.State = 'Pending'; $state.Reason = 'Expected image disk identity is incomplete.'; return $state
+        }
         $state.State = 'Pending'
-        $disks = @($images[0] | Get-Disk -ErrorAction Stop | Where-Object { $null -ne $_ })
+        $disks = @(Get-Disk -Number $imageNumber -ErrorAction Stop | Where-Object { $null -ne $_ })
         $state.State = 'InvalidIdentity'
         if ($disks.Count -eq 0 -or ($disks.Count -eq 1 -and $null -eq $disks[0].Number)) {
             $state.State = 'Pending'; $state.Reason = 'Expected image disk association is incomplete.'; return $state
         }
         $number = 0
         if ($disks.Count -ne 1 -or
-            -not [int]::TryParse([string]$disks[0].Number, [ref]$number) -or $number -lt 0) {
+            -not [int]::TryParse([string]$disks[0].Number, [ref]$number) -or $number -lt 0 -or $number -ne $imageNumber) {
             throw 'Expected image does not resolve to one valid disk number.'
         }
         $state.State = 'Pending'

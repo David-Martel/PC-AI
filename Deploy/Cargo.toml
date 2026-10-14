@@ -52,7 +52,7 @@ serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.149"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-minijinja = "2"
+minijinja = "3"
 tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"] }
 hf-hub = "0.3"
 safetensors = "0.4"

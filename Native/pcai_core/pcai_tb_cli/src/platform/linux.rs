@@ -1,0 +1,263 @@
+use crate::identity::local_hostname;
+use crate::platform::{
+    is_thunderbolt_or_usb4_adapter, AdapterAddressEntry, NeighborCacheEntry, PlatformThunderboltSnapshot,
+    ThunderboltAdapterState, Usb4DeviceInfo,
+};
+use anyhow::Result;
+use std::collections::HashMap;
+use std::ffi::CStr;
+use std::fs;
+use std::net::{Ipv4Addr, Ipv6Addr};
+use std::path::Path;
+use std::process::Command;
+use std::time::Instant;
+
+fn enumerate_linux_usb4_devices() -> Vec<Usb4DeviceInfo> {
+    let mut out = Vec::new();
+    let tb_dir = Path::new("/sys/bus/thunderbolt/devices");
+    if let Ok(entries) = fs::read_dir(tb_dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let path = entry.path();
+            let dev_name = fs::read_to_string(path.join("device_name"))
+                .ok()
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| "Thunderbolt / USB4 Device".to_string());
+            let authorized = fs::read_to_string(path.join("authorized"))
+                .ok()
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| "1".to_string());
+            out.push(Usb4DeviceInfo {
+                instance_id: format!("thunderbolt/{name}"),
+                friendly_name: dev_name,
+                class_name: "Thunderbolt".to_string(),
+                status: if authorized == "0" {
+                    "Unauthorized".to_string()
+                } else {
+                    "OK".to_string()
+                },
+            });
+        }
+    }
+    out
+}
+
+fn collect_linux_neighbors_by_ifindex() -> HashMap<u32, Vec<NeighborCacheEntry>> {
+    let mut map: HashMap<u32, Vec<NeighborCacheEntry>> = HashMap::new();
+    if let Ok(output) = Command::new("ip").args(["-j", "neigh", "show"]).output() {
+        if output.status.success() {
+            if let Ok(json_val) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                if let Some(arr) = json_val.as_array() {
+                    for item in arr {
+                        let dst = item.get("dst").and_then(|v| v.as_str()).unwrap_or("");
+                        let lladdr = item.get("lladdr").and_then(|v| v.as_str()).unwrap_or("");
+                        let dev = item.get("dev").and_then(|v| v.as_str()).unwrap_or("");
+                        if dst.is_empty() || lladdr.is_empty() || dev.is_empty() {
+                            continue;
+                        }
+                        let if_idx = fs::read_to_string(format!("/sys/class/net/{dev}/ifindex"))
+                            .ok()
+                            .and_then(|s| s.trim().parse::<u32>().ok())
+                            .unwrap_or(0);
+                        if if_idx == 0 {
+                            continue;
+                        }
+                        let state = item
+                            .get("state")
+                            .and_then(|v| v.as_array())
+                            .and_then(|a| a.first())
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("REACHABLE")
+                            .to_string();
+                        let fam = if dst.contains(':') { "IPv6" } else { "IPv4" };
+                        map.entry(if_idx).or_default().push(NeighborCacheEntry {
+                            interface_index: if_idx,
+                            ip_address: dst.to_string(),
+                            address_family: fam.to_string(),
+                            link_layer_address: lladdr.replace(':', "-").to_ascii_uppercase(),
+                            state,
+                            is_router: item.get("router").is_some(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+    map
+}
+
+fn count_netmask_ones_v4(addr: Ipv4Addr) -> u8 {
+    u32::from(addr).count_ones() as u8
+}
+
+fn count_netmask_ones_v6(addr: Ipv6Addr) -> u8 {
+    u128::from(addr).count_ones() as u8
+}
+
+pub fn collect_linux_snapshot(include_disconnected: bool) -> Result<PlatformThunderboltSnapshot> {
+    let start = Instant::now();
+    let usb4_devices = enumerate_linux_usb4_devices();
+    let mut neighbor_map = collect_linux_neighbors_by_ifindex();
+    let mut addr_map: HashMap<String, Vec<AdapterAddressEntry>> = HashMap::new();
+
+    unsafe {
+        let mut ifap: *mut libc::ifaddrs = std::ptr::null_mut();
+        if libc::getifaddrs(&mut ifap) == 0 {
+            let mut curr = ifap;
+            while !curr.is_null() {
+                let ifa = &*curr;
+                if !ifa.ifa_name.is_null() && !ifa.ifa_addr.is_null() {
+                    let if_name = CStr::from_ptr(ifa.ifa_name).to_string_lossy().into_owned();
+                    let fam = i32::from((*ifa.ifa_addr).sa_family);
+                    if fam == libc::AF_INET {
+                        let sin = &*(ifa.ifa_addr.cast::<libc::sockaddr_in>());
+                        let ip = Ipv4Addr::from(u32::from_be(sin.sin_addr.s_addr));
+                        let prefix_len = if !ifa.ifa_netmask.is_null() {
+                            let mask_sin = &*(ifa.ifa_netmask.cast::<libc::sockaddr_in>());
+                            count_netmask_ones_v4(Ipv4Addr::from(u32::from_be(mask_sin.sin_addr.s_addr)))
+                        } else {
+                            24
+                        };
+                        let ip_str = ip.to_string();
+                        addr_map.entry(if_name).or_default().push(AdapterAddressEntry {
+                            is_apipa: ip_str.starts_with("169.254."),
+                            is_link_local: ip_str.starts_with("169.254."),
+                            is_ula: false,
+                            address: ip_str,
+                            address_family: "IPv4".to_string(),
+                            prefix_length: prefix_len,
+                        });
+                    } else if fam == libc::AF_INET6 {
+                        let sin6 = &*(ifa.ifa_addr.cast::<libc::sockaddr_in6>());
+                        let ip = Ipv6Addr::from(sin6.sin6_addr.s6_addr);
+                        let prefix_len = if !ifa.ifa_netmask.is_null() {
+                            let mask_sin6 = &*(ifa.ifa_netmask.cast::<libc::sockaddr_in6>());
+                            count_netmask_ones_v6(Ipv6Addr::from(mask_sin6.sin6_addr.s6_addr))
+                        } else {
+                            64
+                        };
+                        let ip_str = ip.to_string();
+                        let lower = ip_str.to_ascii_lowercase();
+                        addr_map.entry(if_name).or_default().push(AdapterAddressEntry {
+                            is_apipa: false,
+                            is_link_local: lower.starts_with("fe80:"),
+                            is_ula: lower.starts_with("fd") || lower.starts_with("fc"),
+                            address: ip_str,
+                            address_family: "IPv6".to_string(),
+                            prefix_length: prefix_len,
+                        });
+                    }
+                }
+                curr = ifa.ifa_next;
+            }
+            libc::freeifaddrs(ifap);
+        }
+    }
+
+    let mut adapters = Vec::new();
+    if let Ok(entries) = fs::read_dir("/sys/class/net") {
+        for entry in entries.flatten() {
+            let if_name = entry.file_name().to_string_lossy().into_owned();
+            let net_path = entry.path();
+            let driver_link = fs::read_link(net_path.join("device/driver"))
+                .ok()
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            let description = if driver_link.contains("thunderbolt_net")
+                || if_name.starts_with("thunderbolt")
+                || if_name.starts_with("usb4")
+            {
+                "Thunderbolt / USB4 P2P Network Adapter (thunderbolt-net)".to_string()
+            } else {
+                driver_link
+            };
+
+            if is_thunderbolt_or_usb4_adapter(&if_name, &description) {
+                let operstate = fs::read_to_string(net_path.join("operstate"))
+                    .ok()
+                    .map(|s| s.trim().to_ascii_lowercase())
+                    .unwrap_or_else(|| "down".to_string());
+                let status_str = if operstate == "up" || operstate == "unknown" {
+                    "Up"
+                } else {
+                    "Down"
+                };
+                if !include_disconnected && status_str != "Up" {
+                    continue;
+                }
+                let if_index = fs::read_to_string(net_path.join("ifindex"))
+                    .ok()
+                    .and_then(|s| s.trim().parse::<u32>().ok())
+                    .unwrap_or(0);
+                let mtu = fs::read_to_string(net_path.join("mtu"))
+                    .ok()
+                    .and_then(|s| s.trim().parse::<u32>().ok())
+                    .unwrap_or(1500);
+                let mac = fs::read_to_string(net_path.join("address"))
+                    .ok()
+                    .map(|s| s.trim().replace(':', "-").to_ascii_uppercase())
+                    .unwrap_or_default();
+                let speed = fs::read_to_string(net_path.join("speed")).ok();
+                let bps = parse_link_speed_bps(speed.as_deref());
+                let gbps = (bps as f64) / 1_000_000_000.0;
+
+                adapters.push(ThunderboltAdapterState {
+                    interface_index: if_index,
+                    interface_alias: if_name.clone(),
+                    interface_description: description,
+                    adapter_guid: format!("linux-net-{if_name}"),
+                    mac_address: mac,
+                    operational_status: status_str.to_string(),
+                    transmit_link_speed_bps: bps,
+                    receive_link_speed_bps: bps,
+                    link_speed_gbps: (gbps * 100.0).round() / 100.0,
+                    ipv4_mtu_bytes: mtu,
+                    ipv6_mtu_bytes: mtu,
+                    ipv4_metric: 5,
+                    ipv6_metric: 5,
+                    addresses: addr_map.remove(&if_name).unwrap_or_default(),
+                    neighbors: neighbor_map.remove(&if_index).unwrap_or_default(),
+                });
+            }
+        }
+    }
+
+    let elapsed_us = start.elapsed().as_micros() as u64;
+    Ok(PlatformThunderboltSnapshot {
+        computer_name: local_hostname(),
+        os_family: std::env::consts::OS.to_string(),
+        architecture: std::env::consts::ARCH.to_string(),
+        collection_latency_us: elapsed_us,
+        usb4_devices,
+        adapters,
+    })
+}
+
+// Zero is the existing Windows schema's unknown-speed sentinel, never a measurement.
+fn parse_link_speed_bps(raw: Option<&str>) -> u64 {
+    raw.and_then(|s| s.trim().parse::<u64>().ok())
+        .and_then(|mbps| mbps.checked_mul(1_000_000))
+        .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod speed_tests {
+    use super::parse_link_speed_bps;
+    #[test]
+    fn unknown_speed_never_becomes_twenty_gigabit() {
+        for raw in [
+            None,
+            Some("-1"),
+            Some(""),
+            Some("invalid"),
+            Some("0"),
+            Some("18446744073709551615"),
+        ] {
+            assert_eq!(parse_link_speed_bps(raw), 0);
+        }
+    }
+    #[test]
+    fn observed_speed_is_converted_without_invention() {
+        assert_eq!(parse_link_speed_bps(Some("10000\n")), 10_000_000_000);
+    }
+}

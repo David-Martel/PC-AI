@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "pcai_tb_cli",
     "pcai_core_lib",
     "pcai_perf_cli",
     "pcai_ollama_rs",

@@ -1,0 +1,38 @@
+{
+  "gen7": {
+    "source_host": "dtm-p1gen7",
+    "source_checkout": "C:/codedev/PC_AI",
+    "head": "c12f356719fb30b5288365970488605e04cb19a5",
+    "state": "uncommitted development source, not an accepted upstream release",
+    "files": {
+      "Cargo.toml": "27a7520209ea05f5487e353236f71c0246bd7de86685a058961d054f6baa1ace",
+      "src/benchmark.rs": "a8d972d46fcba0c3f52ccbe31ce2ce1a1c5044f6dd290021f673488d8fd01389",
+      "src/configure.rs": "b7610558b7b43013a099b27bfbf27b49d3e864593da5b7e6798147c9b39d103e",
+      "src/handshake.rs": "6fc4e6492ad456eebdbc02cdbe27328045368ad0e6d95a1d78dab5ea77290a86",
+      "src/identity.rs": "679083e12679d541d9ee7cbd10880f1503670bd3b3602f7a0a0232d3b1a86f2f",
+      "src/lib.rs": "6a225873c2840122139cb032f559ad29a4a83f7c5a256eb257b78016d2797da9",
+      "src/main.rs": "c8bb29813c5b36c13433c8d5b7e3e2b8689e2694132fc6541b3fe083415d09bf",
+      "src/platform/linux.rs": "b3c1b8d7e862cb925ca5d751b3d1fdac583afc550bd0cccc3c1861aaf74c03bb",
+      "src/platform/mod.rs": "c857d701835e1166340e9dee6d916e382f67ad0ea060759dd2ac04817cbbfc8d",
+      "src/platform/windows.rs": "9369dde205a8575f5ca48ce6a2be3c33118977f5c7e4f3a34300ee443bc97e06"
+    }
+  },
+  "gen9": {
+    "source_host": "dtm-p1gen9",
+    "source_checkout": "C:/codedev/PC_AI",
+    "head": "e1f6276d43d7485d40ce4ad0639a7e8d6902d633",
+    "state": "uncommitted development source, not an accepted upstream release",
+    "files": {
+      "Cargo.toml": "27a7520209ea05f5487e353236f71c0246bd7de86685a058961d054f6baa1ace",
+      "src/benchmark.rs": "a8d972d46fcba0c3f52ccbe31ce2ce1a1c5044f6dd290021f673488d8fd01389",
+      "src/configure.rs": "b7610558b7b43013a099b27bfbf27b49d3e864593da5b7e6798147c9b39d103e",
+      "src/handshake.rs": "6fc4e6492ad456eebdbc02cdbe27328045368ad0e6d95a1d78dab5ea77290a86",
+      "src/identity.rs": "e112c49d4c009ea5fd45dc0c336e46a9a091adecd80768595eb88d2975465295",
+      "src/lib.rs": "6a225873c2840122139cb032f559ad29a4a83f7c5a256eb257b78016d2797da9",
+      "src/main.rs": "c8bb29813c5b36c13433c8d5b7e3e2b8689e2694132fc6541b3fe083415d09bf",
+      "src/platform/linux.rs": "b3c1b8d7e862cb925ca5d751b3d1fdac583afc550bd0cccc3c1861aaf74c03bb",
+      "src/platform/mod.rs": "c857d701835e1166340e9dee6d916e382f67ad0ea060759dd2ac04817cbbfc8d",
+      "src/platform/windows.rs": "9369dde205a8575f5ca48ce6a2be3c33118977f5c7e4f3a34300ee443bc97e06"
+    }
+  }
+}

@@ -25,3 +25,38 @@ No throughput, reconnect, DHCP forwarding, bridge-loop protection, Windows compi
 Future addressing work should prioritize explicit IPv6 link-local interface scopes and an allocated fleet ULA prefix, with IPv4 fallback where needed. Do not infer a trusted peer from an unauthenticated hostname, hard-code new addresses, or bridge independent upstream networks without loop/domain admission checks.
 
 Linux QA used exact crate source in a single-member fixture to avoid unrelated workspace Git dependencies. Separate output directories are mandatory for pristine and mutated source fixtures: sharing the same Cargo target and mounted source path can reuse a stale mutated executable. Final verification used a newly created pristine target after both mutation suites, with strict clippy and all 11 unit/3 executable integration tests passing. Windows and full workspace qualification remain outstanding.
+
+## Shared Windows/Linux topology contract
+
+The [fleet control-plane proposal](https://github.com/David-Martel/vigil-spark/pull/2804)
+and [namespace observation integration](https://github.com/David-Martel/vigil-spark/pull/2805)
+define the current integration direction. These are reviewed candidates, not a
+claim that this CLI already implements their complete provisioning workflow.
+
+Windows/Linux providers must distinguish approved host identity, replaceable
+adapter instance, current interface/namespace/zone, L2 segment, L3 route and
+service/transit authorization. Link-local discovery is per-segment; it cannot
+resolve an intermediate routed hop by itself. A hub/router tree is not proof of
+an Ethernet path. Parallel SFP and USB4 paths require explicit cycle/return-route
+checks before creating any bridge or forwarding grant.
+
+Extend the same observation/plan/verify contract to available Wi-Fi AP/P2P radios,
+Bluetooth/BLE service hints and platform diagnostics. Read actual driver binding,
+firmware, interface modes, concurrency/regulatory limits and effective permissions.
+Do not claim AP readiness from USB enumeration or station bridging without
+compatible four-address support. Windows and Linux need separate native providers
+for Wi-Fi, firewall, capture drivers and privilege grants; portable contracts do
+not imply identical implementation or automatic NAT/bridge equivalence.
+
+Approved provisioning should generate minimal owned group/device/helper/firewall
+changes, retain source epoch and accounting, preserve independent management,
+verify loaded state and support explicit revocation. Capture plans bind exact
+asset/bus/namespace, lease, filter and duration/size limits; usbmon, USBPcap, Npcap,
+ETW and packet capture have distinct capability and permission states. Discovery
+never starts unrestricted payload collection or retunes an active sensor radio.
+
+The Windows owner is reconciling source against this candidate; request exact
+branch/head and test/build receipts before importing more changes. Preserve the
+read-only MS01 schema's structural scope (`network_ready: null`), fail-closed
+registry behavior and isolated per-variant build targets. New traceability IDs
+remain pending TPM admission; USB4 evidence cannot credit RDMA-specific gates.

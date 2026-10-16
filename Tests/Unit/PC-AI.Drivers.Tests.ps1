@@ -180,6 +180,10 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     }
 
     Context "Device matched by VID/PID - current" {
+        # Protects: default Current filtering and exact matched-version identity under StrictMode.
+        # Detects: leaked Current rows, suppressed classifier errors, or an always-empty classifier.
+        # Needs: private registry and same-input positive IncludeUpToDate control; no hardware or network.
+        # Breadcrumb: Modules/PC-AI.Drivers/Public/Compare-DriverVersion.ps1.
         It "Should suppress Current by default" {
             $inventory = @([PSCustomObject]@{
                 Name          = 'Realtek RTL8156'
@@ -188,8 +192,15 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
                 PnpClass      = 'Net'
                 DriverVersion = '1156.21.20.1110'
             })
-            $result = Compare-DriverVersion -Inventory $inventory -Registry $script:Registry
+            $result = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -ErrorAction Stop)
             $result.Count | Should -Be 0
+            $included = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -IncludeUpToDate -ErrorAction Stop)
+            $included.Count | Should -Be 1
+            $included[0].Status | Should -BeExactly 'Current'
+            $included[0].DeviceName | Should -BeExactly 'Realtek RTL8156'
+            $included[0].RegistryId | Should -BeExactly 'realtek-rtl8156'
+            $included[0].InstalledVersion | Should -BeExactly '1156.21.20.1110'
+            $included[0].TargetVersion | Should -BeExactly '1156.21.20.1110'
         }
 
         It "Should include Current when -IncludeUpToDate" {
@@ -265,6 +276,10 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     }
 
     Context "Unmatched device" {
+        # Protects: default Unknown filtering and exact unmatched-device identity under StrictMode.
+        # Detects: leaked Unknown rows, suppressed classifier errors, or an always-empty classifier.
+        # Needs: private registry and same-input positive IncludeUnknown control; no hardware or network.
+        # Breadcrumb: Modules/PC-AI.Drivers/Public/Compare-DriverVersion.ps1.
         It "Should suppress Unknown by default" {
             $inventory = @([PSCustomObject]@{
                 Name          = 'Unknown Widget'
@@ -273,8 +288,15 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
                 PnpClass      = 'Other'
                 DriverVersion = '1.0'
             })
-            $result = Compare-DriverVersion -Inventory $inventory -Registry $script:Registry
+            $result = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -ErrorAction Stop)
             $result.Count | Should -Be 0
+            $included = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -IncludeUnknown -ErrorAction Stop)
+            $included.Count | Should -Be 1
+            $included[0].Status | Should -BeExactly 'Unknown'
+            $included[0].DeviceName | Should -BeExactly 'Unknown Widget'
+            $included[0].InstalledVersion | Should -BeExactly '1.0'
+            $included[0].RegistryId | Should -BeNullOrEmpty
+            $included[0].TargetVersion | Should -BeNullOrEmpty
         }
 
         It "Should include Unknown when -IncludeUnknown" {
@@ -420,6 +442,156 @@ Describe "Install-DriverUpdate" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
         It "Should write error for non-existent device" {
             { Install-DriverUpdate -DeviceId 'nonexistent-device' -RegistryPath $script:TempRegistryPath -ErrorAction Stop } | Should -Throw
         }
+    }
+}
+
+Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Unit', 'Drivers', 'Portable', 'DriverDownloadContract' {
+    BeforeAll {
+        # SHA256 of the independent three-byte ASCII fixture "abc".
+        $script:DownloadContractHash = 'BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD'
+    }
+
+    BeforeEach {
+        $script:DownloadContractRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $script:DownloadContractRegistry = Join-Path $TestDrive 'download-contract-registry.json'
+        $registry = $script:MockRegistryJson | ConvertFrom-Json
+        $registry.trustedSources[0].baseUrl = 'https://drivers.example.invalid'
+        $registry.devices[0].driver.downloadUrl = 'https://drivers.example.invalid/driver.exe'
+        $registry.devices[0].driver.installerType = 'exe'
+        $registry.devices[0].driver.sha256 = $script:DownloadContractHash
+        $registry.devices[0].sharedDriverGroup = $null
+        $registry | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:DownloadContractRegistry -Encoding utf8
+        Mock Test-AdminElevation { $true } -ModuleName PC-AI.Drivers
+        Mock Invoke-WebRequest { throw 'Unmocked driver network access is forbidden.' } -ModuleName PC-AI.Drivers
+        Mock Start-Process { throw 'Actual driver installer execution is forbidden.' } -ModuleName PC-AI.Drivers
+        Mock Expand-Archive { throw 'Actual driver archive extraction is forbidden.' } -ModuleName PC-AI.Drivers
+    }
+
+    # Protects: both download and install WhatIf modes suppress all mutation, with absent or existing destinations.
+    # Detects: premature directory creation, DownloadOnly bypass, network access, cache reads, or installer dispatch.
+    # Needs: private fixture registry and bytes; all four DownloadOnly/Existing case combinations are inert.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.
+    It 'performs no write or download in WhatIf with DownloadOnly=<DownloadOnly> Existing=<Existing>' -ForEach @(
+        @{ DownloadOnly = $false; Existing = $false },
+        @{ DownloadOnly = $true; Existing = $false },
+        @{ DownloadOnly = $false; Existing = $true },
+        @{ DownloadOnly = $true; Existing = $true }
+    ) {
+        $existingPath = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'
+        if ($Existing) {
+            [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+            [IO.File]::WriteAllBytes($existingPath, [byte[]](0x78, 0x79, 0x7A))
+        }
+        $registryBefore = [IO.File]::ReadAllText($script:DownloadContractRegistry)
+        Mock New-Item { throw 'WhatIf reached directory mutation.' } -ModuleName PC-AI.Drivers
+        Mock Get-FileHash { throw 'WhatIf reached download acceptance.' } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly:$DownloadOnly -WhatIf
+        $result.Action | Should -BeExactly 'WhatIf'
+        $result.Success | Should -BeTrue
+        $result.FilePath | Should -BeNullOrEmpty
+        Should -Invoke New-Item -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Get-FileHash -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Expand-Archive -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        [IO.Directory]::Exists($script:DownloadContractRoot) | Should -Be $Existing
+        [IO.File]::ReadAllText($script:DownloadContractRegistry) | Should -BeExactly $registryBefore
+        if ($Existing) { [Convert]::ToBase64String([IO.File]::ReadAllBytes($existingPath)) | Should -BeExactly 'eHl6' }
+    }
+
+    # Protects: normal DownloadOnly still produces a verified private file without launching or extracting it.
+    # Detects: a fix that blocks useful downloads, alters forwarding, or dispatches an installer.
+    # Needs: actual public/private maintained functions, private registry, inert web-response bytes "abc".
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.
+    It 'downloads verified bytes normally without executing an installer' {
+        Mock Invoke-WebRequest { param($Uri, $OutFile) [IO.File]::WriteAllBytes($OutFile, [byte[]](0x61, 0x62, 0x63)) } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly -Confirm:$false
+        $result.Action | Should -BeExactly 'DownloadOnly'
+        $result.Success | Should -BeTrue
+        $result.FilePath | Should -BeExactly (Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe')
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($result.FilePath)) | Should -BeExactly 'YWJj'
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It -ParameterFilter { $Uri -eq 'https://drivers.example.invalid/driver.exe' }
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Expand-Archive -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: valid existing download bytes remain reusable without network or installation.
+    # Detects: a regression that refuses known-good cached data or overwrites it while validating.
+    # Needs: private literal filename containing brackets and an independent known SHA256 digest.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'accepts matching existing bytes using their literal path without network access' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer[1].exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x61, 0x62, 0x63))
+        $result = & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash } $path $script:DownloadContractHash.ToLowerInvariant()
+        $result | Should -BeExactly $path
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'YWJj'
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: a mismatched cached download is refused while the user's exact file is preserved.
+    # Detects: accepting unverified bytes, implicit redownload, or deletion of preexisting user data.
+    # Needs: private "xyz" bytes and the independent expected "abc" digest; no service or installer.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.
+    It 'refuses a mismatched existing download and preserves it without redownloading' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x78, 0x79, 0x7A))
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly -Confirm:$false -ErrorAction SilentlyContinue
+        $result.Action | Should -BeExactly 'Failed'
+        $result.Success | Should -BeFalse
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'eHl6'
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: verification failure never accepts, deletes, or replaces an existing download.
+    # Detects: swallowing a hash read error as a cache hit or falling through to a network write.
+    # Needs: private existing bytes and an inert fault at the file-hash boundary.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'refuses an existing file whose hash cannot be read while retaining its bytes' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x61, 0x62, 0x63))
+        Mock Get-FileHash { throw 'Synthetic hash read failure.' } -ModuleName PC-AI.Drivers
+        $result = & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash -ErrorAction SilentlyContinue } $path $script:DownloadContractHash
+        $result | Should -BeNullOrEmpty
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'YWJj'
+        Should -Invoke Get-FileHash -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: rejecting wrong downloaded bytes removes only the exact private download leaf.
+    # Detects: wildcard cleanup deleting an unrelated sibling while leaving the actual failed download behind.
+    # Needs: inert web-response "xyz" bytes at '[probe].exe', private 'p.exe' sentinel and independent "abc" digest.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'removes a wrong-digest downloaded bracket filename while preserving its wildcard-matching sibling' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot '[probe].exe'
+        $sibling = Join-Path $script:DownloadContractRoot 'p.exe'
+        [IO.File]::WriteAllBytes($sibling, [byte[]](0x53, 0x41, 0x46, 0x45))
+        Mock Invoke-WebRequest { param($Uri, $OutFile) [IO.File]::WriteAllBytes($OutFile, [byte[]](0x78, 0x79, 0x7A)) } -ModuleName PC-AI.Drivers
+        $result = & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash -ErrorAction SilentlyContinue } $path $script:DownloadContractHash
+        $result | Should -BeNullOrEmpty
+        [IO.File]::Exists($path) | Should -BeFalse
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($sibling)) | Should -BeExactly 'U0FGRQ=='
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: the existing optional-digest contract still permits explicitly unpinned cached files.
+    # Detects: accidental new digest requirements or redundant reads/network calls for callers without a hash.
+    # Needs: private existing bytes and explicit absence of ExpectedSha256; no service.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'reuses existing bytes when no digest was requested without claiming verification' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x78, 0x79, 0x7A))
+        Mock Get-FileHash { throw 'No digest was requested.' } -ModuleName PC-AI.Drivers
+        $result = & (Get-Module PC-AI.Drivers) { param($Path) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' } $path
+        $result | Should -BeExactly $path
+        Should -Invoke Get-FileHash -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
     }
 }
 
@@ -714,14 +886,114 @@ Describe "Find-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Portable
             Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
         }
 
-        It "Should accept ComputerNameCandidates parameter" {
+        It "Should accept ComputerNameCandidates and SshPort parameters" {
             $cmd = Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers
             $cmd.Parameters.Keys | Should -Contain 'ComputerNameCandidates'
+            $cmd.Parameters.Keys | Should -Contain 'SshPort'
         }
 
         It "Should accept TcpTimeoutMs with range validation" {
             $cmd = Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers
             $cmd.Parameters.Keys | Should -Contain 'TcpTimeoutMs'
+        }
+    }
+
+    Context "When Win32_NetworkAdapter.Index differs from TCP/IP InterfaceIndex" {
+        BeforeAll {
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                switch ($ClassName) {
+                    'Win32_NetworkAdapter' {
+                        @([PSCustomObject]@{
+                            Name           = 'USB4(TM) P2P Network Adapter #4'
+                            Description    = 'USB4(TM) P2P Network Adapter #4'
+                            NetConnectionID = 'Ethernet 18'
+                            NetEnabled     = $true
+                            MACAddress     = '34-4D-A1-C4-C4-22'
+                            Speed          = 20000000000
+                            Index          = 28
+                            InterfaceIndex = 95
+                            PNPDeviceID    = 'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0'
+                        })
+                    }
+                    'Win32_PnPEntity' {
+                        @([PSCustomObject]@{
+                            Name        = 'USB4(TM) Host Router (Microsoft)'
+                            PNPDeviceID = 'PCI\VEN_8086&DEV_7EC2\0000'
+                            Status      = 'OK'
+                        })
+                    }
+                    'MSFT_NetIPAddress' {
+                        @([PSCustomObject]@{
+                            InterfaceIndex = 95
+                            InterfaceAlias = 'Ethernet 18'
+                            AddressFamily  = 2
+                            IPAddress      = '169.254.43.202'
+                            PrefixLength   = 16
+                        })
+                    }
+                    'MSFT_NetNeighbor' {
+                        @([PSCustomObject]@{
+                            InterfaceIndex   = 95
+                            InterfaceAlias   = 'Ethernet 18'
+                            IPAddress        = '169.254.196.28'
+                            LinkLayerAddress = '08-93-C1-7B-39-51'
+                            State            = 'Reachable'
+                        })
+                    }
+                    'MSFT_NetRoute' {
+                        @(
+                            [PSCustomObject]@{
+                                InterfaceIndex    = 15
+                                DestinationPrefix = '169.254.0.0/16'
+                                RouteMetric       = 256
+                            },
+                            [PSCustomObject]@{
+                                InterfaceIndex    = 95
+                                DestinationPrefix = '169.254.0.0/16'
+                                RouteMetric       = 256
+                            }
+                        )
+                    }
+                    'MSFT_NetIPInterface' {
+                        @(
+                            [PSCustomObject]@{
+                                InterfaceIndex  = 15
+                                InterfaceAlias  = 'vEthernet (WSL)'
+                                AddressFamily   = 2
+                                InterfaceMetric = 15
+                            },
+                            [PSCustomObject]@{
+                                InterfaceIndex  = 95
+                                InterfaceAlias  = 'Ethernet 18'
+                                AddressFamily   = 2
+                                InterfaceMetric = 15
+                            }
+                        )
+                    }
+                    default { return @() }
+                }
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should use InterfaceIndex (95) instead of WMI Index (28) to match addresses and neighbors" {
+            $res = Find-ThunderboltPeer -ComputerNameCandidates @() -TcpTimeoutMs 250
+            $res.AdapterCount | Should -Be 1
+            $res.Adapters[0].ifIndex | Should -Be 95
+            $res.Adapters[0].WmiIndex | Should -Be 28
+            $res.LocalAddresses.Count | Should -Be 1
+            $res.LocalAddresses[0].IPAddress | Should -Be '169.254.43.202'
+            $res.Neighbors.Count | Should -Be 1
+            $res.Neighbors[0].IPAddress | Should -Be '169.254.196.28'
+            $res.Usb4Topology.Count | Should -Be 1
+            $res.Usb4Topology[0].Role | Should -Be 'HostRouter'
+        }
+
+        It "Should detect competing 169.254.0.0/16 APIPA route conflicts on virtual adapters with lower ifIndex" {
+            $res = Find-ThunderboltPeer -ComputerNameCandidates @() -TcpTimeoutMs 250
+            $res.ApipaRouteConflicts.Count | Should -Be 1
+            $res.ApipaRouteConflicts[0].ConflictingInterfaceAlias | Should -Be 'vEthernet (WSL)'
+            $res.ApipaRouteConflicts[0].ConflictingInterfaceIndex | Should -Be 15
         }
     }
 }
@@ -734,10 +1006,13 @@ Describe "Connect-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Porta
             Get-Command Connect-ThunderboltPeer -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
         }
 
-        It "Should accept ComputerName and Address parameters" {
+        It "Should accept ComputerName, Address, and Protocol parameters" {
             $cmd = Get-Command Connect-ThunderboltPeer -Module PC-AI.Drivers
             $cmd.Parameters.Keys | Should -Contain 'ComputerName'
             $cmd.Parameters.Keys | Should -Contain 'Address'
+            $cmd.Parameters.Keys | Should -Contain 'Protocol'
+            $cmd.Parameters.Keys | Should -Contain 'SshUser'
+            $cmd.Parameters.Keys | Should -Contain 'SshCommand'
         }
     }
 }
@@ -762,10 +1037,107 @@ Describe "Set-ThunderboltNetworkOptimization" -Tag 'Unit', 'Drivers', 'Thunderbo
     }
 }
 
+# ─── Get-ThunderboltPeerIdentity ─────────────────────────────────────────────
+
+Describe "Get-ThunderboltPeerIdentity" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast', 'Portable' {
+    It "Should resolve canonical identity and short aliases for known fleet hosts (including dtm-supernuc alias)" {
+        $carbon = Get-ThunderboltPeerIdentity -ComputerName 'dtm-carbon-two'
+        $nuc    = Get-ThunderboltPeerIdentity -ComputerName 'dtm-supernuc'
+        $carbon.ComputerName | Should -BeExactly 'dtm-carbon-two'
+        $carbon.IsKnownFleetPeer | Should -BeTrue
+        $carbon.PrimaryUla | Should -BeExactly 'fd00:7462:7032::c2'
+        $carbon.TbHostAlias | Should -BeExactly 'dtm-carbon-two-tb'
+
+        $nuc.ComputerName | Should -BeExactly 'dtm-super-nuc'
+        $nuc.IsKnownFleetPeer | Should -BeTrue
+        $nuc.PrimaryUla | Should -BeExactly 'fd00:7462:7032::50'
+        $nuc.TbHostAlias | Should -BeExactly 'dtm-super-nuc-tb'
+    }
+
+    It "Should derive deterministic non-colliding IPv6 Link-Local and ULA addresses for arbitrary unknown hosts without registry entries" {
+        $missingReg = Join-Path $TestDrive 'nonexistent-peers.json'
+        $hostA = Get-ThunderboltPeerIdentity -ComputerName 'dtm-future-blade-01' -RegistryPath $missingReg
+        $hostB = Get-ThunderboltPeerIdentity -ComputerName 'guest-thunderbolt-pc' -RegistryPath $missingReg
+
+        $hostA.IsKnownFleetPeer | Should -BeFalse
+        $hostA.DeterministicLinkLocal | Should -Match '^fe80::d700:[0-9a-f]{4}:[0-9a-f]{4}:[0-9a-f]{4}$'
+        $hostA.DeterministicUla | Should -Match '^fd00:7462:7032:d700::[0-9a-f]{4}:[0-9a-f]{4}:[0-9a-f]{4}$'
+        ([ipaddress]::Parse($hostA.DeterministicLinkLocal)).AddressFamily | Should -Be ([System.Net.Sockets.AddressFamily]::InterNetworkV6)
+        ([ipaddress]::Parse($hostA.DeterministicUla)).AddressFamily | Should -Be ([System.Net.Sockets.AddressFamily]::InterNetworkV6)
+        $hostA.DeterministicUla | Should -Not -Be $hostB.DeterministicUla
+        $hostA.DeterministicLinkLocal | Should -Not -Be $hostB.DeterministicLinkLocal
+    }
+
+    It "Should compute commutative pairwise /30 IPv4 subnets for dtm-carbon-two and dtm-super-nuc and disjoint /30 subnets when attaching a 3rd peer" {
+        $carbonToNuc = Get-ThunderboltPeerIdentity -ComputerName 'dtm-carbon-two' -PeerComputerName 'dtm-super-nuc'
+        $nucToCarbon = Get-ThunderboltPeerIdentity -ComputerName 'dtm-super-nuc' -PeerComputerName 'dtm-carbon-two'
+
+        $carbonToNuc.PairwiseIPv4.SubnetPrefix | Should -BeExactly $nucToCarbon.PairwiseIPv4.SubnetPrefix
+        $carbonToNuc.PairwiseIPv4.LocalIPv4Address | Should -BeExactly $nucToCarbon.PairwiseIPv4.PeerIPv4Address
+        $carbonToNuc.PairwiseIPv4.PeerIPv4Address | Should -BeExactly $nucToCarbon.PairwiseIPv4.LocalIPv4Address
+
+        # Attaching a 3rd machine (dtm-carbon-two) to dtm-p1gen7 while dtm-p1gen9 is also connected
+        $p1gen7ToP1gen9  = Get-ThunderboltPeerIdentity -ComputerName 'dtm-p1gen7' -PeerComputerName 'dtm-p1gen9'
+        $p1gen7ToCarbon2 = Get-ThunderboltPeerIdentity -ComputerName 'dtm-p1gen7' -PeerComputerName 'dtm-carbon-two'
+        $p1gen7ToP1gen9.PairwiseIPv4.SubnetPrefix | Should -Not -Be $p1gen7ToCarbon2.PairwiseIPv4.SubnetPrefix
+    }
+}
+
+# ─── Register-ThunderboltPeer ────────────────────────────────────────────────
+
+Describe "Register-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast', 'Portable' {
+    Context "When multiple USB4 P2P adapters are active simultaneously on one host" {
+        BeforeAll {
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias     = 'Ethernet 18'
+                        InterfaceIndex     = 95
+                        Name               = 'USB4(TM) P2P Network Adapter #4'
+                        Description        = 'USB4(TM) P2P Network Adapter #4'
+                        Role               = 'P2PNetwork'
+                        NetEnabled         = $true
+                        LinkSpeedGbps      = 20.0
+                        MacAddress         = '34-4D-A1-C4-C4-22'
+                        IPv4Addresses      = @('169.254.43.202')
+                        IPv6Addresses      = @('fe80::364d:a1ff:fec4:c422')
+                        NeighborCandidates = @()
+                        RecommendedActions = @()
+                    },
+                    [PSCustomObject]@{
+                        InterfaceAlias     = 'Ethernet 19'
+                        InterfaceIndex     = 96
+                        Name               = 'USB4(TM) P2P Network Adapter #5'
+                        Description        = 'USB4(TM) P2P Network Adapter #5'
+                        Role               = 'P2PNetwork'
+                        NetEnabled         = $true
+                        LinkSpeedGbps      = 40.0
+                        MacAddress         = '34-4D-A1-C4-C4-23'
+                        IPv4Addresses      = @('169.254.88.10')
+                        IPv6Addresses      = @('fe80::364d:a1ff:fec4:c423')
+                        NeighborCandidates = @()
+                        RecommendedActions = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should plan all active USB4 P2P adapters simultaneously without throwing a single-adapter error" {
+            $plan = Register-ThunderboltPeer -ComputerName 'dtm-p1gen7' -UpdateHostsFile -EnableSmbDirect
+            $plan.Applied | Should -BeFalse
+            $plan.AdapterCount | Should -Be 2
+            $plan.AdapterPlans.Count | Should -Be 2
+            $plan.AdapterPlans[0].InterfaceIndex | Should -Be 95
+            $plan.AdapterPlans[1].InterfaceIndex | Should -Be 96
+            ($plan.PlannedActions | Where-Object Step -eq 'BindLocalUlaIPv6').Count | Should -BeGreaterOrEqual 2
+        }
+    }
+}
+
 # ─── Module Export Completeness ──────────────────────────────────────────────
 
 Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
-    It "Should export all 11 declared functions" {
+    It "Should export all 13 declared functions" {
         $mod = Get-Module PC-AI.Drivers
         $expected = @(
             'Get-PnpDeviceInventory',
@@ -778,7 +1150,9 @@ Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portabl
             'Find-ThunderboltPeer',
             'Get-ThunderboltNetworkStatus',
             'Connect-ThunderboltPeer',
-            'Set-ThunderboltNetworkOptimization'
+            'Set-ThunderboltNetworkOptimization',
+            'Get-ThunderboltPeerIdentity',
+            'Register-ThunderboltPeer'
         )
         foreach ($fn in $expected) {
             $mod.ExportedFunctions.Keys | Should -Contain $fn
@@ -792,3 +1166,4 @@ Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portabl
         $mod.ExportedFunctions.Keys | Should -Not -Contain 'Invoke-TrustedDownload'
     }
 }
+

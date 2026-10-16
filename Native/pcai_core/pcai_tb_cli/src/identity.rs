@@ -7,6 +7,8 @@ use std::fs;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 
+// trace: PENDING-FABRIC-F09 [pending-tpm-intake]
+// trace: PENDING-FABRIC-F11 [pending-tpm-intake]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PeerRegistryFile {
@@ -17,9 +19,117 @@ pub struct PeerRegistryFile {
     pub default_mtu_bytes: Option<u32>,
     pub default_interface_metric: Option<u32>,
     #[serde(default)]
+    pub ipam_allocations: Option<IpamAllocations>,
+    #[serde(default)]
+    pub sfp_switch_topologies: Vec<SfpSwitchTopology>,
+    #[serde(default)]
+    pub topology_links: Vec<TopologyLinkSpec>,
+    #[serde(default)]
     pub peers: Option<serde_json::Value>,
     #[serde(default)]
     pub fleet_peers: Vec<PeerRegistryEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IpamAllocations {
+    pub p2p_thunderbolt_ula_prefix: String,
+    pub p2p_deterministic_ula_subnet: Option<String>,
+    pub p2p_link_local_prefix: Option<String>,
+    pub bridged_lan_canary_ula_prefix: String,
+    pub bridged_lan_policy_table: Option<u32>,
+    pub bridged_lan_policy_priority: Option<u32>,
+    #[serde(default)]
+    pub bridged_lan_canary_endpoints: Vec<BridgedLanCanaryEndpoint>,
+    #[serde(default)]
+    pub shared_switch_subnets: Vec<SharedSwitchSubnet>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SharedSwitchSubnet {
+    pub subnet: String,
+    pub gateway_host: String,
+    pub gateway_ipv4: String,
+    pub role: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopologyLinkSpec {
+    pub link_id: String,
+    pub source_host: String,
+    pub source_interface: String,
+    pub source_hub_model: Option<String>,
+    pub source_hub_id: Option<String>,
+    pub target_host: String,
+    pub target_interface: String,
+    pub target_hub_model: Option<String>,
+    pub target_hub_id: Option<String>,
+    pub link_intent: String,
+    pub bridge_domain: Option<String>,
+    #[serde(default)]
+    pub l3_subnets: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BridgedLanCanaryEndpoint {
+    pub host: String,
+    pub interface: String,
+    pub ula_address: String,
+    pub role: String,
+    pub policy_table: Option<u32>,
+    pub policy_priority: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SfpSwitchTopology {
+    pub host: String,
+    pub namespace: String,
+    pub bridge: String,
+    pub state_dir: String,
+    pub extension_state_dir: Option<String>,
+    pub observe_state_dir: Option<String>,
+    pub enrollment_path: Option<String>,
+    pub usb4_enrollment_path: Option<String>,
+    #[serde(default)]
+    pub sfp_ports: Vec<SfpPortSpec>,
+    #[serde(default)]
+    pub usb4_extensions: Vec<Usb4BridgeExtensionSpec>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SfpPortSpec {
+    pub name: String,
+    pub pci: String,
+    pub mac: String,
+    pub vendor: String,
+    pub device: String,
+    pub driver: String,
+    pub role: String,
+    pub connected_peer: Option<String>,
+    pub connected_peer_mac: Option<String>,
+    pub connected_peer_ipv4: Option<String>,
+    pub speed_gbps: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Usb4BridgeExtensionSpec {
+    pub interface: String,
+    pub root_veth: String,
+    pub bridge_veth: String,
+    pub sysfs_path: String,
+    pub peer_uuid: String,
+    pub peer_name: String,
+    pub driver: String,
+    pub control_subnet: String,
+    pub local_control_ipv4: String,
+    pub peer_control_ipv4: String,
+    pub bridged_lan_ipv4: Option<String>,
 }
 
 impl PeerRegistryFile {
@@ -91,6 +201,146 @@ pub struct ThunderboltPeerIdentity {
     pub peer_computer_name: Option<String>,
     pub pairwise_ipv4: Option<PairwiseIpv4Contract>,
     pub registry_path: Option<String>,
+}
+
+pub fn parse_ipv6_cidr(cidr: &str) -> Result<(Ipv6Addr, u8)> {
+    let (ip_str, prefix_str) = cidr
+        .split_once('/')
+        .ok_or_else(|| anyhow::anyhow!("Invalid IPv6 CIDR '{cidr}': missing '/prefix'"))?;
+    let ip: Ipv6Addr = ip_str
+        .trim()
+        .parse()
+        .with_context(|| format!("Invalid IPv6 address in CIDR '{cidr}'"))?;
+    let prefix_len: u8 = prefix_str
+        .trim()
+        .parse()
+        .with_context(|| format!("Invalid prefix length in IPv6 CIDR '{cidr}'"))?;
+    if prefix_len == 0 || prefix_len > 128 {
+        anyhow::bail!("Invalid IPv6 prefix length {prefix_len} in '{cidr}'");
+    }
+    Ok((ip, prefix_len))
+}
+
+fn ipv6_mask(prefix_len: u8) -> u128 {
+    if prefix_len == 0 {
+        0
+    } else if prefix_len >= 128 {
+        u128::MAX
+    } else {
+        u128::MAX << (128 - u32::from(prefix_len))
+    }
+}
+
+pub fn ipv6_cidr_overlaps(a: (Ipv6Addr, u8), b: (Ipv6Addr, u8)) -> bool {
+    let min_prefix = a.1.min(b.1);
+    let mask = ipv6_mask(min_prefix);
+    (u128::from(a.0) & mask) == (u128::from(b.0) & mask)
+}
+
+pub fn ipv6_in_subnet(addr: Ipv6Addr, subnet: (Ipv6Addr, u8)) -> bool {
+    let mask = ipv6_mask(subnet.1);
+    (u128::from(addr) & mask) == (u128::from(subnet.0) & mask)
+}
+
+pub fn parse_ipv4_cidr(cidr: &str) -> Result<(Ipv4Addr, u8)> {
+    let (ip_str, prefix_str) = cidr
+        .split_once('/')
+        .ok_or_else(|| anyhow::anyhow!("Invalid IPv4 CIDR '{cidr}': missing '/prefix'"))?;
+    let ip: Ipv4Addr = ip_str
+        .trim()
+        .parse()
+        .with_context(|| format!("Invalid IPv4 address in CIDR '{cidr}'"))?;
+    let prefix_len: u8 = prefix_str
+        .trim()
+        .parse()
+        .with_context(|| format!("Invalid prefix length in IPv4 CIDR '{cidr}'"))?;
+    if prefix_len == 0 || prefix_len > 32 {
+        anyhow::bail!("Invalid IPv4 prefix length {prefix_len} in '{cidr}'");
+    }
+    Ok((ip, prefix_len))
+}
+
+fn ipv4_mask(prefix_len: u8) -> u32 {
+    if prefix_len == 0 {
+        0
+    } else if prefix_len >= 32 {
+        u32::MAX
+    } else {
+        u32::MAX << (32 - u32::from(prefix_len))
+    }
+}
+
+pub fn ipv4_cidr_overlaps(a: (Ipv4Addr, u8), b: (Ipv4Addr, u8)) -> bool {
+    let min_prefix = a.1.min(b.1);
+    let mask = ipv4_mask(min_prefix);
+    (u32::from(a.0) & mask) == (u32::from(b.0) & mask)
+}
+
+// trace: PENDING-FABRIC-F09 [pending-tpm-intake]
+pub fn detect_l2_bridge_cycles(links: &[TopologyLinkSpec]) -> Result<()> {
+    let mut parent: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    fn find(parent: &mut std::collections::HashMap<String, String>, node: &str) -> String {
+        let p = parent
+            .entry(node.to_string())
+            .or_insert_with(|| node.to_string())
+            .clone();
+        if p == node {
+            return p;
+        }
+        let root = find(parent, &p);
+        parent.insert(node.to_string(), root.clone());
+        root
+    }
+
+    for link in links {
+        if link.link_intent != "transparent-bridge" {
+            continue;
+        }
+        let src_host = link.source_host.trim().to_ascii_lowercase();
+        let src_if = link.source_interface.trim();
+        let dst_host = link.target_host.trim().to_ascii_lowercase();
+        let dst_if = link.target_interface.trim();
+        if src_host.is_empty() || src_if.is_empty() || dst_host.is_empty() || dst_if.is_empty() {
+            anyhow::bail!(
+                "transparent-bridge link '{}' has empty sourceHost, sourceInterface, targetHost, or targetInterface",
+                link.link_id
+            );
+        }
+        if src_host == dst_host {
+            anyhow::bail!(
+                "transparent-bridge link '{}' cannot connect host '{}' to itself",
+                link.link_id,
+                link.source_host
+            );
+        }
+        let domain = link
+            .bridge_domain
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "transparent-bridge link '{}' must specify a non-empty bridgeDomain",
+                    link.link_id
+                )
+            })?
+            .to_ascii_lowercase();
+        let u = format!("{domain}::{src_host}");
+        let v = format!("{domain}::{dst_host}");
+        let ru = find(&mut parent, &u);
+        let rv = find(&mut parent, &v);
+        if ru == rv {
+            anyhow::bail!(
+                "L2 transparent-bridge cycle detected in topologyLinks involving link '{}' between '{}' and '{}' in bridgeDomain '{}' (parallel links must use routed-p2p)",
+                link.link_id,
+                link.source_host,
+                link.target_host,
+                domain
+            );
+        }
+        parent.insert(ru, rv);
+    }
+    Ok(())
 }
 
 pub fn validate_peer_registry(reg: &PeerRegistryFile) -> Result<()> {
@@ -245,6 +495,234 @@ pub fn validate_peer_registry(reg: &PeerRegistryFile) -> Result<()> {
         }
     }
 
+    if let Some(ref ipam) = reg.ipam_allocations {
+        let p2p_ula = parse_ipv6_cidr(&ipam.p2p_thunderbolt_ula_prefix)
+            .context("ipamAllocations.p2pThunderboltUlaPrefix invalid")?;
+        if (p2p_ula.0.segments()[0] & 0xfe00) != 0xfc00 {
+            anyhow::bail!(
+                "ipamAllocations.p2pThunderboltUlaPrefix '{}' is not in fc00::/7",
+                ipam.p2p_thunderbolt_ula_prefix
+            );
+        }
+
+        let canary_ula = parse_ipv6_cidr(&ipam.bridged_lan_canary_ula_prefix)
+            .context("ipamAllocations.bridgedLanCanaryUlaPrefix invalid")?;
+        if (canary_ula.0.segments()[0] & 0xfe00) != 0xfc00 {
+            anyhow::bail!(
+                "ipamAllocations.bridgedLanCanaryUlaPrefix '{}' is not in fc00::/7",
+                ipam.bridged_lan_canary_ula_prefix
+            );
+        }
+
+        if ipv6_cidr_overlaps(p2p_ula, canary_ula) {
+            anyhow::bail!(
+                "ipamAllocations ULA prefixes overlap: p2pThunderboltUlaPrefix '{}' overlaps with bridgedLanCanaryUlaPrefix '{}'",
+                ipam.p2p_thunderbolt_ula_prefix,
+                ipam.bridged_lan_canary_ula_prefix
+            );
+        }
+
+        if let Some(table) = ipam.bridged_lan_policy_table {
+            if table == 0 || table > 65535 || matches!(table, 253..=255) {
+                anyhow::bail!(
+                    "ipamAllocations.bridgedLanPolicyTable {table} is invalid or collides with reserved Linux routing tables (253..=255)"
+                );
+            }
+        }
+
+        let mut seen_canary_ips = HashSet::new();
+        for ep in &ipam.bridged_lan_canary_endpoints {
+            if ep.host.trim().is_empty() || ep.interface.trim().is_empty() || ep.role.trim().is_empty() {
+                anyhow::bail!("ipamAllocations.bridgedLanCanaryEndpoints entry has empty host, interface, or role");
+            }
+            let (ep_ip, ep_prefix) = parse_ipv6_cidr(&ep.ula_address).with_context(|| {
+                format!(
+                    "Invalid bridgedLanCanaryEndpoints ulaAddress '{}' on {}:{}",
+                    ep.ula_address, ep.host, ep.interface
+                )
+            })?;
+            if ep_prefix != canary_ula.1 || !ipv6_in_subnet(ep_ip, canary_ula) {
+                anyhow::bail!(
+                    "bridgedLanCanaryEndpoints ulaAddress '{}' on {}:{} does not belong to bridgedLanCanaryUlaPrefix '{}'",
+                    ep.ula_address,
+                    ep.host,
+                    ep.interface,
+                    ipam.bridged_lan_canary_ula_prefix
+                );
+            }
+            if !seen_canary_ips.insert(ep_ip) || seen_short_ula.contains(&ep_ip) {
+                anyhow::bail!(
+                    "Duplicate or colliding canary ULA address '{}' on {}:{}",
+                    ep.ula_address,
+                    ep.host,
+                    ep.interface
+                );
+            }
+            if let Some(table) = ep.policy_table {
+                if table == 0 || table > 65535 || matches!(table, 253..=255) {
+                    anyhow::bail!(
+                        "bridgedLanCanaryEndpoints policyTable {table} on {}:{} is invalid or reserved",
+                        ep.host,
+                        ep.interface
+                    );
+                }
+            }
+        }
+
+        let mut parsed_shared_subnets: Vec<(String, (Ipv4Addr, u8))> = Vec::new();
+        for sub in &ipam.shared_switch_subnets {
+            if sub.gateway_host.trim().is_empty() || sub.role.trim().is_empty() {
+                anyhow::bail!("ipamAllocations.sharedSwitchSubnets entry has empty gatewayHost or role");
+            }
+            let parsed_cidr = parse_ipv4_cidr(&sub.subnet)
+                .with_context(|| format!("Invalid sharedSwitchSubnets subnet '{}'", sub.subnet))?;
+            let _: Ipv4Addr = sub
+                .gateway_ipv4
+                .trim()
+                .parse()
+                .with_context(|| format!("Invalid sharedSwitchSubnets gatewayIpv4 '{}'", sub.gateway_ipv4))?;
+            for (prev_raw, prev_cidr) in &parsed_shared_subnets {
+                if ipv4_cidr_overlaps(*prev_cidr, parsed_cidr) {
+                    anyhow::bail!(
+                        "ipamAllocations.sharedSwitchSubnets '{}' overlaps with '{}'",
+                        sub.subnet,
+                        prev_raw
+                    );
+                }
+            }
+            parsed_shared_subnets.push((sub.subnet.clone(), parsed_cidr));
+        }
+    }
+
+    for topo in &reg.sfp_switch_topologies {
+        if topo.host.trim().is_empty()
+            || topo.namespace.trim().is_empty()
+            || topo.bridge.trim().is_empty()
+            || topo.state_dir.trim().is_empty()
+        {
+            anyhow::bail!("sfpSwitchTopologies entry has empty host, namespace, bridge, or stateDir");
+        }
+        let mut seen_port_names = HashSet::new();
+        let mut seen_port_pcis = HashSet::new();
+        let mut seen_port_macs = HashSet::new();
+        for port in &topo.sfp_ports {
+            let name = port.name.trim();
+            let pci = port.pci.trim().to_ascii_lowercase();
+            let mac = port.mac.trim().to_ascii_lowercase();
+            if name.is_empty() || pci.is_empty() || mac.is_empty() {
+                anyhow::bail!("sfpPorts entry on host '{}' has empty name, pci, or mac", topo.host);
+            }
+            if !seen_port_names.insert(name.to_string()) {
+                anyhow::bail!("Duplicate SFP+ port name '{name}' on host '{}'", topo.host);
+            }
+            if !seen_port_pcis.insert(pci.clone()) {
+                anyhow::bail!("Duplicate SFP+ port PCI '{pci}' on host '{}'", topo.host);
+            }
+            if !seen_port_macs.insert(mac.clone()) {
+                anyhow::bail!("Duplicate SFP+ port MAC '{mac}' on host '{}'", topo.host);
+            }
+            if let Some(ref peer_ip) = port.connected_peer_ipv4 {
+                let _: Ipv4Addr = peer_ip.parse().with_context(|| {
+                    format!(
+                        "Invalid connectedPeerIpv4 '{peer_ip}' on SFP+ port '{name}' ({})",
+                        topo.host
+                    )
+                })?;
+            }
+        }
+
+        let mut seen_ext_ifaces = HashSet::new();
+        for ext in &topo.usb4_extensions {
+            let iface = ext.interface.trim();
+            let root_veth = ext.root_veth.trim();
+            let bridge_veth = ext.bridge_veth.trim();
+            if iface.is_empty()
+                || root_veth.is_empty()
+                || bridge_veth.is_empty()
+                || ext.sysfs_path.trim().is_empty()
+                || ext.peer_uuid.trim().is_empty()
+            {
+                anyhow::bail!(
+                    "usb4Extensions entry on host '{}' has empty interface, veth, sysfsPath, or peerUuid",
+                    topo.host
+                );
+            }
+            if iface == root_veth || iface == bridge_veth || root_veth == bridge_veth {
+                anyhow::bail!(
+                    "usb4Extensions on host '{}' must use distinct names for interface ('{iface}'), rootVeth ('{root_veth}'), and bridgeVeth ('{bridge_veth}')",
+                    topo.host
+                );
+            }
+            for n in [iface, root_veth, bridge_veth] {
+                if !seen_ext_ifaces.insert(n.to_string()) || seen_port_names.contains(n) {
+                    anyhow::bail!(
+                        "Duplicate or colliding interface/veth name '{n}' in sfpSwitchTopologies on host '{}'",
+                        topo.host
+                    );
+                }
+            }
+            let local_ip: Ipv4Addr = ext
+                .local_control_ipv4
+                .parse()
+                .with_context(|| format!("Invalid localControlIpv4 '{}' on {iface}", ext.local_control_ipv4))?;
+            let peer_ip: Ipv4Addr = ext
+                .peer_control_ipv4
+                .parse()
+                .with_context(|| format!("Invalid peerControlIpv4 '{}' on {iface}", ext.peer_control_ipv4))?;
+            if local_ip == peer_ip {
+                anyhow::bail!("usb4Extensions '{iface}' localControlIpv4 and peerControlIpv4 cannot be identical");
+            }
+            let mask: u32 = !0u32 << 2;
+            if (u32::from(local_ip) & mask) != (u32::from(peer_ip) & mask) {
+                anyhow::bail!(
+                    "usb4Extensions '{iface}' localControlIpv4 ({local_ip}) and peerControlIpv4 ({peer_ip}) are not in the same /30 subnet"
+                );
+            }
+        }
+    }
+
+    let mut seen_link_ids = HashSet::new();
+    for link in &reg.topology_links {
+        let id = link.link_id.trim();
+        let src = link.source_host.trim();
+        let dst = link.target_host.trim();
+        let src_if = link.source_interface.trim();
+        let dst_if = link.target_interface.trim();
+        if id.is_empty() || src.is_empty() || dst.is_empty() || src_if.is_empty() || dst_if.is_empty() {
+            anyhow::bail!("topologyLinks entry has empty linkId, sourceHost, targetHost, or interface");
+        }
+        if !seen_link_ids.insert(id.to_ascii_lowercase()) {
+            anyhow::bail!("Duplicate topologyLinks linkId '{id}'");
+        }
+        if src.eq_ignore_ascii_case(dst) {
+            anyhow::bail!("topologyLinks '{id}' cannot connect host '{src}' to itself");
+        }
+        match link.link_intent.as_str() {
+            "transparent-bridge" => {
+                let dom = link.bridge_domain.as_deref().unwrap_or("").trim();
+                if dom.is_empty() {
+                    anyhow::bail!(
+                        "topologyLinks '{id}' with linkIntent 'transparent-bridge' must specify a non-empty bridgeDomain"
+                    );
+                }
+            }
+            "routed-p2p" | "isolated-fabric" => {
+                if link.bridge_domain.is_some() {
+                    anyhow::bail!(
+                        "topologyLinks '{id}' with linkIntent '{}' must have bridgeDomain: null (cannot join L2 bridge)",
+                        link.link_intent
+                    );
+                }
+            }
+            other => {
+                anyhow::bail!(
+                    "Unsupported topologyLinks linkIntent '{other}' on '{id}'; expected transparent-bridge, routed-p2p, or isolated-fabric"
+                );
+            }
+        }
+    }
+    detect_l2_bridge_cycles(&reg.topology_links)?;
+
     Ok(())
 }
 
@@ -273,6 +751,14 @@ pub fn default_registry_candidates(explicit_path: Option<&Path>) -> Vec<PathBuf>
     if let Some(p) = explicit_path {
         paths.push(p.to_path_buf());
     }
+    let home = env::var("USERPROFILE")
+        .or_else(|_| env::var("HOME"))
+        .unwrap_or_default();
+    if !home.is_empty() {
+        let home_path = PathBuf::from(&home);
+        paths.push(home_path.join(".machine").join("thunderbolt-peers.json"));
+        paths.push(home_path.join(".config").join("pcai").join("thunderbolt-peers.json"));
+    }
     if let Ok(exe) = env::current_exe() {
         if let Some(bin_dir) = exe.parent() {
             paths.push(bin_dir.join("thunderbolt-peers.json"));
@@ -287,14 +773,6 @@ pub fn default_registry_candidates(explicit_path: Option<&Path>) -> Vec<PathBuf>
             }
         }
     }
-    let home = env::var("USERPROFILE")
-        .or_else(|_| env::var("HOME"))
-        .unwrap_or_default();
-    if !home.is_empty() {
-        let home_path = PathBuf::from(&home);
-        paths.push(home_path.join(".machine").join("thunderbolt-peers.json"));
-        paths.push(home_path.join(".config").join("pcai").join("thunderbolt-peers.json"));
-    }
     paths.push(PathBuf::from(r"C:\codedev\PC_AI\Config\thunderbolt-peers.json"));
     paths
 }
@@ -305,7 +783,7 @@ pub fn load_peer_registry(explicit_path: Option<&Path>) -> Result<(Option<PeerRe
             let raw = fs::read_to_string(explicit)
                 .with_context(|| format!("Failed to read registry file '{}'", explicit.display()))?;
             let parsed: PeerRegistryFile = serde_json::from_str(&raw)
-                .with_context(|| format!("Failed to parse registry JSON '{}'", explicit.display()))?;
+                .with_context(|| format!("Invalid Thunderbolt peer registry JSON at {}", explicit.display()))?;
             let validated = parsed
                 .normalize_and_validate()
                 .with_context(|| format!("Registry validation failed for '{}'", explicit.display()))?;
@@ -322,7 +800,7 @@ pub fn load_peer_registry(explicit_path: Option<&Path>) -> Result<(Option<PeerRe
             let raw = fs::read_to_string(&candidate)
                 .with_context(|| format!("Failed to read registry file '{}'", candidate.display()))?;
             let parsed: PeerRegistryFile = serde_json::from_str(&raw)
-                .with_context(|| format!("Failed to parse registry JSON '{}'", candidate.display()))?;
+                .with_context(|| format!("Invalid Thunderbolt peer registry JSON at {}", candidate.display()))?;
             let validated = parsed
                 .normalize_and_validate()
                 .with_context(|| format!("Registry validation failed for '{}'", candidate.display()))?;
@@ -330,6 +808,10 @@ pub fn load_peer_registry(explicit_path: Option<&Path>) -> Result<(Option<PeerRe
         }
     }
     Ok((None, None))
+}
+
+pub fn load_peer_registry_checked(explicit_path: Option<&Path>) -> Result<(Option<PeerRegistryFile>, Option<String>)> {
+    load_peer_registry(explicit_path)
 }
 
 fn strip_domain_suffixes(raw: &str) -> String {
@@ -448,7 +930,7 @@ pub fn resolve_peer_identity(
     registry_path: Option<&Path>,
 ) -> Result<ThunderboltPeerIdentity> {
     let raw_input = computer_name.map(str::to_string).unwrap_or_else(local_hostname);
-    let (reg_opt, loaded_path) = load_peer_registry(registry_path)?;
+    let (reg_opt, loaded_path) = load_peer_registry_checked(registry_path)?;
 
     let known_peers = reg_opt.as_ref().map(|r| r.fleet_peers.as_slice()).unwrap_or(&[]);
     let ula_prefix = reg_opt
@@ -565,8 +1047,12 @@ mod tests {
 
     #[test]
     fn test_deterministic_identity_arbitrary_hosts() {
-        let a = resolve_peer_identity(Some("dtm-carbon-two"), None, None).expect("resolve carbon-two");
-        let b = resolve_peer_identity(Some("dtm-supernuc"), None, None).expect("resolve supernuc");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let reg_path = dir.path().join("empty.json");
+        fs::write(&reg_path, r#"{"schemaVersion":1,"fleetPeers":[]}"#).unwrap();
+
+        let a = resolve_peer_identity(Some("dtm-carbon-two"), None, Some(&reg_path)).expect("resolve carbon-two");
+        let b = resolve_peer_identity(Some("dtm-supernuc"), None, Some(&reg_path)).expect("resolve supernuc");
         assert_eq!(a.computer_name, "dtm-carbon-two");
         assert_eq!(b.computer_name, "dtm-super-nuc");
         assert_ne!(a.deterministic_ula, b.deterministic_ula);
@@ -574,6 +1060,8 @@ mod tests {
         assert!(a.deterministic_ula.starts_with("fd00:7462:7032:d700::"));
         assert!(a.deterministic_link_local.parse::<std::net::Ipv6Addr>().is_ok());
         assert!(a.deterministic_ula.parse::<std::net::Ipv6Addr>().is_ok());
+
+        assert!(resolve_peer_identity(Some("dtm-carbon-two"), None, Some(Path::new("/nonexistent"))).is_err());
     }
 
     #[test]
@@ -659,6 +1147,212 @@ mod tests {
         assert!(
             err.to_string().contains("overlaps with another peer profile"),
             "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_validate_peer_registry_ipam_and_sfp_topology_invariants() {
+        let overlapping_ula_json = r#"{
+            "schemaVersion": 1,
+            "ipamAllocations": {
+                "p2pThunderboltUlaPrefix": "fd00:7462:7032::/48",
+                "bridgedLanCanaryUlaPrefix": "fd00:7462:7032:50::/64",
+                "bridgedLanPolicyTable": 6150,
+                "bridgedLanCanaryEndpoints": []
+            },
+            "fleetPeers": []
+        }"#;
+        let parsed: PeerRegistryFile = serde_json::from_str(overlapping_ula_json).unwrap();
+        let err = parsed.normalize_and_validate().unwrap_err();
+        assert!(
+            err.to_string().contains("ipamAllocations ULA prefixes overlap"),
+            "unexpected error: {err}"
+        );
+
+        let reserved_table_json = r#"{
+            "schemaVersion": 1,
+            "ipamAllocations": {
+                "p2pThunderboltUlaPrefix": "fd00:7462:7032::/48",
+                "bridgedLanCanaryUlaPrefix": "fd5f:743d:6f55:50::/64",
+                "bridgedLanPolicyTable": 254,
+                "bridgedLanCanaryEndpoints": []
+            },
+            "fleetPeers": []
+        }"#;
+        let parsed_tbl: PeerRegistryFile = serde_json::from_str(reserved_table_json).unwrap();
+        let err_tbl = parsed_tbl.normalize_and_validate().unwrap_err();
+        assert!(
+            err_tbl.to_string().contains("reserved Linux routing tables"),
+            "unexpected error: {err_tbl}"
+        );
+
+        let dup_sfp_mac_json = r#"{
+            "schemaVersion": 1,
+            "sfpSwitchTopologies": [
+                {
+                    "host": "minisforum",
+                    "namespace": "ms01-switch",
+                    "bridge": "sw0",
+                    "stateDir": "/var/lib/ms01-network-switch",
+                    "sfpPorts": [
+                        {
+                            "name": "enp2s0f0np0",
+                            "pci": "0000:02:00.0",
+                            "mac": "58:47:ca:7b:6d:98",
+                            "vendor": "0x8086",
+                            "device": "0x1572",
+                            "driver": "i40e",
+                            "role": "uplink"
+                        },
+                        {
+                            "name": "enp2s0f1np1",
+                            "pci": "0000:02:00.1",
+                            "mac": "58:47:CA:7B:6D:98",
+                            "vendor": "0x8086",
+                            "device": "0x1572",
+                            "driver": "i40e",
+                            "role": "downlink"
+                        }
+                    ]
+                }
+            ],
+            "fleetPeers": []
+        }"#;
+        let parsed_sfp: PeerRegistryFile = serde_json::from_str(dup_sfp_mac_json).unwrap();
+        let err_sfp = parsed_sfp.normalize_and_validate().unwrap_err();
+        assert!(
+            err_sfp.to_string().contains("Duplicate SFP+ port MAC"),
+            "unexpected error: {err_sfp}"
+        );
+    }
+
+    // trace: PENDING-FABRIC-F09 [pending-tpm-intake]
+    #[test]
+    fn test_validate_peer_registry_rejects_l2_bridge_cycles_and_overlapping_shared_subnets() {
+        let cycle_json = r#"{
+            "schemaVersion": 1,
+            "topologyLinks": [
+                {
+                    "linkId": "ms01-gen9-sfp",
+                    "sourceHost": "minisforum",
+                    "sourceInterface": "enp2s0f1np1",
+                    "targetHost": "dtm-p1gen9",
+                    "targetInterface": "Ethernet 2",
+                    "linkIntent": "transparent-bridge",
+                    "bridgeDomain": "ms01-switch/sw0"
+                },
+                {
+                    "linkId": "ms01-gen9-usb4-loop",
+                    "sourceHost": "minisforum",
+                    "sourceInterface": "domain1/1-1",
+                    "targetHost": "dtm-p1gen9",
+                    "targetInterface": "Ethernet 4",
+                    "linkIntent": "transparent-bridge",
+                    "bridgeDomain": "ms01-switch/sw0"
+                }
+            ],
+            "fleetPeers": []
+        }"#;
+        let parsed_cycle: PeerRegistryFile = serde_json::from_str(cycle_json).unwrap();
+        let err_cycle = parsed_cycle.normalize_and_validate().unwrap_err();
+        assert!(
+            err_cycle.to_string().contains("L2 transparent-bridge cycle detected"),
+            "expected L2 bridge cycle error, got: {err_cycle}"
+        );
+        assert!(
+            !err_cycle.to_string().contains("STP is disabled"),
+            "error message should not hardcode STP state: {err_cycle}"
+        );
+
+        // Direct detect_l2_bridge_cycles negative controls: missing bridge_domain or empty interface must fail closed
+        let missing_domain = vec![TopologyLinkSpec {
+            link_id: "link-no-domain".to_string(),
+            source_host: "minisforum".to_string(),
+            source_interface: "enp2s0f1np1".to_string(),
+            source_hub_model: None,
+            source_hub_id: None,
+            target_host: "dtm-p1gen9".to_string(),
+            target_interface: "Ethernet 2".to_string(),
+            target_hub_model: None,
+            target_hub_id: None,
+            link_intent: "transparent-bridge".to_string(),
+            bridge_domain: None,
+            l3_subnets: Vec::new(),
+        }];
+        assert!(detect_l2_bridge_cycles(&missing_domain).is_err());
+
+        let empty_iface = vec![TopologyLinkSpec {
+            link_id: "link-empty-iface".to_string(),
+            source_host: "minisforum".to_string(),
+            source_interface: "   ".to_string(),
+            source_hub_model: None,
+            source_hub_id: None,
+            target_host: "dtm-p1gen9".to_string(),
+            target_interface: "Ethernet 2".to_string(),
+            target_hub_model: None,
+            target_hub_id: None,
+            link_intent: "transparent-bridge".to_string(),
+            bridge_domain: Some("ms01-switch/sw0".to_string()),
+            l3_subnets: Vec::new(),
+        }];
+        assert!(detect_l2_bridge_cycles(&empty_iface).is_err());
+
+        // Changing the second link to routed-p2p resolves the L2 loop
+        let routed_json = r#"{
+            "schemaVersion": 1,
+            "topologyLinks": [
+                {
+                    "linkId": "ms01-gen9-sfp",
+                    "sourceHost": "minisforum",
+                    "sourceInterface": "enp2s0f1np1",
+                    "targetHost": "dtm-p1gen9",
+                    "targetInterface": "Ethernet 2",
+                    "linkIntent": "transparent-bridge",
+                    "bridgeDomain": "ms01-switch/sw0"
+                },
+                {
+                    "linkId": "ms01-gen9-usb4-routed",
+                    "sourceHost": "minisforum",
+                    "sourceInterface": "domain1/1-1",
+                    "targetHost": "dtm-p1gen9",
+                    "targetInterface": "Ethernet 4",
+                    "linkIntent": "routed-p2p",
+                    "bridgeDomain": null
+                }
+            ],
+            "fleetPeers": []
+        }"#;
+        let parsed_routed: PeerRegistryFile = serde_json::from_str(routed_json).unwrap();
+        assert!(parsed_routed.normalize_and_validate().is_ok());
+
+        let overlap_shared_json = r#"{
+            "schemaVersion": 1,
+            "ipamAllocations": {
+                "p2pThunderboltUlaPrefix": "fd00:7462:7032::/48",
+                "bridgedLanCanaryUlaPrefix": "fd5f:743d:6f55:50::/64",
+                "bridgedLanCanaryEndpoints": [],
+                "sharedSwitchSubnets": [
+                    {
+                        "subnet": "10.254.253.0/30",
+                        "gatewayHost": "minisforum",
+                        "gatewayIpv4": "192.168.50.119",
+                        "role": "usb4-ctrl-a"
+                    },
+                    {
+                        "subnet": "10.254.253.0/29",
+                        "gatewayHost": "minisforum",
+                        "gatewayIpv4": "192.168.50.119",
+                        "role": "usb4-ctrl-b"
+                    }
+                ]
+            },
+            "fleetPeers": []
+        }"#;
+        let parsed_shared: PeerRegistryFile = serde_json::from_str(overlap_shared_json).unwrap();
+        let err_shared = parsed_shared.normalize_and_validate().unwrap_err();
+        assert!(
+            err_shared.to_string().contains("sharedSwitchSubnets") && err_shared.to_string().contains("overlaps"),
+            "expected sharedSwitchSubnets overlap error, got: {err_shared}"
         );
     }
 }

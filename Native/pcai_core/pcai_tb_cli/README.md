@@ -1,30 +1,57 @@
-# Portable Thunderbolt peer tooling
+# `pcai_tb_cli` (`pcai-tb`)
 
-Install: build the CLI, review its dry-run report, and use `install --apply` only after reviewing existing destination files. This candidate has not been installed as a fleet service.
+This crate imports Windows and Linux Thunderbolt/USB4 and SFP+ switch control-plane observation work for review. Its source custody, exact revisions, observed limitations and isolated Linux/Windows QA are recorded in `source-custody.json`. It is not an upstream release or a qualified automatic network provisioning service.
 
-Build: from `Native/pcai_core`, run `cargo build --locked -p pcai-tb`. Test: `cargo test --locked -p pcai-tb`; lint: `cargo clippy --locked -p pcai-tb --all-targets -- -D warnings`. Run: `pcai-tb status --compact` or `pcai-tb identity --computer fixture --registry /path/to/registry.json`. An explicitly requested registry must exist and pass schema/address validation. Installed defaults are validated when identity, discovery, registration or installation loads them.
+## Build and Test
 
-This crate imports uncommitted Windows development work for Linux review. Its source custody, exact revisions, observed limitations and isolated Linux QA are recorded in the machine's PC-AI import report. It is not an upstream release or a qualified network provisioning service.
+From the `Native/pcai_core` workspace:
+
+```bash
+cargo check -p pcai-tb --all-targets
+cargo clippy -p pcai-tb --all-targets -- -D warnings
+cargo test -p pcai-tb
+```
+
+## Subcommands
+
+```bash
+pcai-tb status --compact
+pcai-tb identity --computer minisforum --peer millylaptop1 --registry ../../../Config/thunderbolt-peers.json --compact
+pcai-tb discover --timeout-ms 220 --registry ../../../Config/thunderbolt-peers.json --compact
+pcai-tb register --peer millylaptop1 --registry ../../../Config/thunderbolt-peers.json --compact
+pcai-tb switch --registry ../../../Config/thunderbolt-peers.json --compact
+pcai-tb verify-custody --registry ../../../Config/thunderbolt-peers.json --compact
+pcai-tb observe --registry ../../../Config/thunderbolt-peers.json --compact
+pcai-tb vnv --registry ../../../Config/thunderbolt-peers.json --output vnv-evidence.json --compact
+```
+
+`status`, `switch`, `verify-custody`, `observe`, and `vnv` are strictly read-only by default. Route mutation (`--apply-routes`) additionally requires `PC_AI_ALLOW_ROUTE_MUTATION=1` and fails closed on pre-existing conflicting routes.
 
 ## Failure contracts and tests
 
 `tests/registry_cli.rs` invokes the actual CLI executable. It protects the entrypoint against malformed JSON, unknown schemas, duplicate fleet addresses and missing explicit configuration; these must fail before producing success JSON or installing files. A valid configuration is a positive control. `src/configure.rs` tests failed file copies and failed OS action reports. `src/platform/linux.rs` tests missing, negative, overflowing and malformed speed measurements. The existing integer JSON schema uses zero for unknown speed; zero is not observed throughput.
 
-Unknown link speed must not become an invented 20Gb/s measurement. Failed installation copies propagate an error. Applied registration emits its action report then exits nonzero if an action failed. Installation is not transactional: an error may leave an earlier successfully copied destination; rollback and atomic replacement remain deployment prerequisites.
+Unknown link speed must not become an invented 20Gb/s measurement. Failed installation copies propagate an error. Applied registration emits its action report then exits nonzero if an action failed.
+
+`src/switch.rs` tests fail-closed evaluation for:
+- Exact Linux custody `ifalias` equality (`ms01-switch:<owner>` and `ms01-usb4:<owner>`), rejecting prefix collisions (`ms01-switch:<owner>-extra`), wrong `phase`, missing displaced interfaces, or mismatched veth peer `ifindex`/`link_index`.
+- Shared `flock(LOCK_SH | LOCK_NB)` acquisition and root-owned non-symlink directory/file mode verification before reading `/var/lib/ms01-network-switch/current.json` and `/var/lib/ms01-network-switch/usb4-milly/current.json`.
+- Read-only invocation and validation of `/usr/local/sbin/ms01-usb4-extension check` (`schema: "vigil.ms01-usb4-check/v1"`), distinct from PC-AI's internal `PcaiLinuxUsb4Observation` (`schema: "pcai.linux-usb4-observation/v1"`).
+- Exact IPv4 route destination + netmask + gateway verification (`Active Routes:` on Windows, `ip -4 -j route show` on Linux) and exact IPv6 address token matching on Windows (`::9` does not match `::99`).
+- Fail-closed Windows interface metric hierarchy checks when `entries`/`connected` is empty or any connected `usb4-p2p`/`wired-lan`/`wifi` interface has `metric: None`.
+- Pending TPM intake gates (`PENDING-FABRIC-F09..F13`, `tpm_admission_status: "PENDING_TPM_INTAKE"`, `acceptance_credit: false`) using the closed verdict enum (`PASS`, `FAIL`, `SKIP_NOT_APPLICABLE`, `BLOCKED_MISSING_PROVIDER`, `HOLD_PENDING_TPM_INTAKE`).
 
 ## Deployment limits
 
 Linux currently reports hard-coded interface metrics; MTU configuration does not set the requested metric. Registration is temporary `ip` configuration, without NetworkManager ownership or reboot persistence. Windows metric changes likewise require review. Do not deploy automatic apply until those contracts, strict CLI argument validation, cancellation/timeouts, identity authentication, route rollback and management-path preservation are implemented and tested.
 
-No throughput, reconnect, DHCP forwarding, bridge-loop protection, Windows compilation or hardware acceptance is established by the unit tests. Discovery hints and SSH/NTLM banners are not authenticated host identity. Benchmark collection is not a link throughput benchmark.
+No throughput, reconnect, DHCP forwarding, bridge-loop protection, or hardware acceptance is established by the unit tests. Discovery hints and SSH/NTLM banners are not authenticated host identity. Benchmark collection is not a link throughput benchmark.
 
 ## Source custody and review follow-through
 
-[source-custody.json](source-custody.json) preserves baseline hashes from both Windows development variants. The gen7 variant includes later registry validation work; its handshake consumer needed adapting to the normalized schema. Files in this candidate include subsequent Linux reliability fixes and formatting, so these baseline hashes are provenance, not current-file hashes. Windows checkouts and their work in progress were preserved.
+[source-custody.json](source-custody.json) preserves baseline hashes from both Windows development variants alongside the current reconciled candidate file hashes. Files in this candidate include subsequent Linux/Windows reliability fixes and review blocker resolutions, so baseline hashes are historical provenance while `reconciled_candidate` records the current file hashes.
 
 Future addressing work should prioritize explicit IPv6 link-local interface scopes and an allocated fleet ULA prefix, with IPv4 fallback where needed. Do not infer a trusted peer from an unauthenticated hostname, hard-code new addresses, or bridge independent upstream networks without loop/domain admission checks.
-
-Linux QA used exact crate source in a single-member fixture to avoid unrelated workspace Git dependencies. Separate output directories are mandatory for pristine and mutated source fixtures: sharing the same Cargo target and mounted source path can reuse a stale mutated executable. Final verification used a newly created pristine target after both mutation suites, with strict clippy and all 11 unit/3 executable integration tests passing. Windows and full workspace qualification remain outstanding.
 
 ## Shared Windows/Linux topology contract
 
@@ -55,8 +82,7 @@ asset/bus/namespace, lease, filter and duration/size limits; usbmon, USBPcap, Np
 ETW and packet capture have distinct capability and permission states. Discovery
 never starts unrestricted payload collection or retunes an active sensor radio.
 
-The Windows owner is reconciling source against this candidate; request exact
-branch/head and test/build receipts before importing more changes. Preserve the
-read-only MS01 schema's structural scope (`network_ready: null`), fail-closed
-registry behavior and isolated per-variant build targets. New traceability IDs
-remain pending TPM admission; USB4 evidence cannot credit RDMA-specific gates.
+Preserve the read-only MS01 schema's structural scope (`network_ready: null`),
+fail-closed registry behavior and isolated per-variant build targets. New
+traceability IDs (`PENDING-FABRIC-F09..F13`) remain pending TPM admission
+(`acceptance_credit: false`); USB4 evidence cannot credit RDMA-specific gates.

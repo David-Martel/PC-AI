@@ -125,16 +125,16 @@ pub fn enumerate_usb4_pnp_devices() -> Vec<Usb4DeviceInfo> {
     out
 }
 
-fn query_interface_mtu_and_metric(if_index: u32, family: u16) -> (u32, u32) {
+pub fn query_interface_mtu_and_metric_checked(if_index: u32, family: u16) -> Option<(u32, u32)> {
     unsafe {
         let mut row: MIB_IPINTERFACE_ROW = std::mem::zeroed();
         row.Family = family;
         row.InterfaceIndex = if_index;
         let rc = GetIpInterfaceEntry(&mut row);
         if rc == NO_ERROR {
-            (row.NlMtu, row.Metric)
+            Some((row.NlMtu, row.Metric))
         } else {
-            (0, 0)
+            None
         }
     }
 }
@@ -244,8 +244,11 @@ pub fn collect_windows_snapshot(include_disconnected: bool) -> Result<PlatformTh
                     let mac_len = (adapter.PhysicalAddressLength as usize).min(adapter.PhysicalAddress.len());
                     let mac_str = format_mac_bytes(&adapter.PhysicalAddress[..mac_len]);
 
-                    let (ipv4_mtu, ipv4_metric) = query_interface_mtu_and_metric(if_index, AF_INET);
-                    let (ipv6_mtu, ipv6_metric) = query_interface_mtu_and_metric(if_index, AF_INET6);
+                    let v4_info = query_interface_mtu_and_metric_checked(if_index, AF_INET);
+                    let v6_info = query_interface_mtu_and_metric_checked(if_index, AF_INET6);
+                    let metric_known = v4_info.is_some() && v6_info.is_some();
+                    let (ipv4_mtu, ipv4_metric) = v4_info.unwrap_or((0, 0));
+                    let (ipv6_mtu, ipv6_metric) = v6_info.unwrap_or((0, 0));
 
                     let mut addresses = Vec::new();
                     let mut uni = adapter.FirstUnicastAddress;
@@ -288,7 +291,8 @@ pub fn collect_windows_snapshot(include_disconnected: bool) -> Result<PlatformTh
 
                     let tx_bps = adapter.TransmitLinkSpeed;
                     let rx_bps = adapter.ReceiveLinkSpeed;
-                    let gbps = if tx_bps != u64::MAX {
+                    let speed_known = tx_bps != u64::MAX && tx_bps > 0;
+                    let gbps = if speed_known {
                         (tx_bps as f64) / 1_000_000_000.0
                     } else {
                         0.0
@@ -301,13 +305,18 @@ pub fn collect_windows_snapshot(include_disconnected: bool) -> Result<PlatformTh
                         adapter_guid,
                         mac_address: mac_str,
                         operational_status: status_str.to_string(),
+                        speed_known,
                         transmit_link_speed_bps: if tx_bps == u64::MAX { 0 } else { tx_bps },
                         receive_link_speed_bps: if rx_bps == u64::MAX { 0 } else { rx_bps },
                         link_speed_gbps: (gbps * 100.0).round() / 100.0,
                         ipv4_mtu_bytes: if ipv4_mtu > 0 { ipv4_mtu } else { adapter.Mtu },
                         ipv6_mtu_bytes: if ipv6_mtu > 0 { ipv6_mtu } else { adapter.Mtu },
+                        metric_known,
                         ipv4_metric,
                         ipv6_metric,
+                        xdomain_peer_device_name: None,
+                        xdomain_peer_unique_id: None,
+                        external_owner: None,
                         addresses,
                         neighbors: neighbor_map.remove(&if_index).unwrap_or_default(),
                     });

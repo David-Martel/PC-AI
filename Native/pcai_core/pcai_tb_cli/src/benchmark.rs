@@ -32,7 +32,7 @@ pub struct ArchitectureBenchmarkReport {
     pub pipelines: Vec<PipelineProfileMetrics>,
 }
 
-fn compute_stats(mut samples_us: Vec<u64>) -> (u64, u64, u64, u64, u64) {
+pub fn compute_stats(mut samples_us: Vec<u64>) -> (u64, u64, u64, u64, u64) {
     if samples_us.is_empty() {
         return (0, 0, 0, 0, 0);
     }
@@ -113,13 +113,13 @@ pub async fn run_architecture_benchmarks(
 
     // 2. Pipeline B: AsyncMultiplexedHandshake (Kernel FFI + Tokio JoinSet TCP + NTLM AV_PAIR + SSH Banner)
     let mut async_samples = Vec::with_capacity(iters.min(5));
-    let mut async_items = 0usize;
+    let mut async_verified_items = 0usize;
     let async_iters = iters.min(5);
     for _ in 0..async_iters {
         let t0 = Instant::now();
         let peers = discover_thunderbolt_peers(false, timeout_ms, false, registry_path).await?;
         async_samples.push(t0.elapsed().as_micros() as u64);
-        async_items = peers.len();
+        async_verified_items = peers.iter().filter(|p| p.verified_handshake).count();
     }
     let (as_min, as_med, as_mean, as_p95, as_max) = compute_stats(async_samples);
 
@@ -165,7 +165,7 @@ pub async fn run_architecture_benchmarks(
             mean_latency_us: as_mean,
             p95_latency_us: as_p95,
             max_latency_us: as_max,
-            items_discovered: async_items,
+            items_discovered: async_verified_items,
             speedup_vs_legacy_baseline_x: async_speedup,
         },
     ];
@@ -192,4 +192,20 @@ pub async fn run_architecture_benchmarks(
         deterministic_identity_latency_us: id_latency_us,
         pipelines,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compute_stats_handles_empty_and_populated_samples() {
+        assert_eq!(compute_stats(vec![]), (0, 0, 0, 0, 0));
+        let (min_v, med_v, mean_v, p95_v, max_v) = compute_stats(vec![500, 100, 300, 200, 400]);
+        assert_eq!(min_v, 100);
+        assert_eq!(med_v, 300);
+        assert_eq!(mean_v, 300);
+        assert_eq!(p95_v, 500);
+        assert_eq!(max_v, 500);
+    }
 }

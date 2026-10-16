@@ -19,7 +19,7 @@
   },
   "gen9": {
     "source_host": "dtm-p1gen9",
-    "source_checkout": "C:/codedev/PC_AI",
+    "source_checkout": "C:/codedev/PC-AI",
     "head": "e1f6276d43d7485d40ce4ad0639a7e8d6902d633",
     "state": "uncommitted development source, not an accepted upstream release",
     "files": {
@@ -33,6 +33,29 @@
       "src/platform/linux.rs": "b3c1b8d7e862cb925ca5d751b3d1fdac583afc550bd0cccc3c1861aaf74c03bb",
       "src/platform/mod.rs": "c857d701835e1166340e9dee6d916e382f67ad0ea060759dd2ac04817cbbfc8d",
       "src/platform/windows.rs": "9369dde205a8575f5ca48ce6a2be3c33118977f5c7e4f3a34300ee443bc97e06"
+    }
+  },
+  "reconciled_candidate": {
+    "synchronized_hosts": [
+      "dtm-p1gen9",
+      "dtm-p1gen7"
+    ],
+    "state": "reconciled review candidate with all 7 review blockers resolved, pending TPM admission",
+    "thunderbolt_peers_json_sha256": "39025ef7a2d7348e8a48773b5c5e47b0fc57624e439c821a7cab0907afdb26a2",
+    "files": {
+      "Cargo.toml": "27a7520209ea05f5487e353236f71c0246bd7de86685a058961d054f6baa1ace",
+      "README.md": "76269ad250c9856b04734a4b529923a244e98f4f9db16f69632c1123ea54110d",
+      "src/benchmark.rs": "43cd405caeacb55961bc34e7949c6ac4677428af562ed695e22c043bcc7cc86f",
+      "src/configure.rs": "14f244617510040df1acffc331a64356182aec6d1fd7d262d9a596862a49f3f2",
+      "src/handshake.rs": "a101440b0bf7aa112a27ae2b2e1626cd57be0c6a903a7c0d3028dd885bc7729f",
+      "src/identity.rs": "20d6c8ad6237f17190648d1213d69bcb7b727dae71d7c37f6a386333e1caa009",
+      "src/lib.rs": "8a5c11e6104170185811ddf0efe3f772f2590ebfdd444a303f5e79e0c82cdde0",
+      "src/main.rs": "c680c37b48d8afc648a8ee77e8322128499c67ccab1d39907cced11c44110163",
+      "src/switch.rs": "7d8e2d86439511c26533c090ffbb4ff4ae9396cf43def1b1f3ca1e192036c858",
+      "src/platform/linux.rs": "409a42be7c0be41bf725658083935142efb568bbe89ac37fc010ce8a0bbc3d9b",
+      "src/platform/mod.rs": "2b3cead0c1e22b7b854690c466dcdd6feada4a0f524e5ba9f647be52f42ef80a",
+      "src/platform/windows.rs": "55604d7de5d4c78ee24e07c62ad8d35241f1e9652ca41eb3687249a792737b62",
+      "tests/registry_cli.rs": "394c1ef004314ae46727c1364854b384525392a08b27f6fc00432eea657cac79"
     }
   }
 }

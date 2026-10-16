@@ -1,6 +1,7 @@
 use crate::identity::local_hostname;
 use crate::platform::{
-    is_thunderbolt_or_usb4_adapter, AdapterAddressEntry, NeighborCacheEntry, PlatformThunderboltSnapshot,
+    discover_xdomain_peers_in_dir, is_thunderbolt_or_usb4_adapter, map_linux_operstate_with_carrier,
+    parse_link_speed_bps, AdapterAddressEntry, NeighborCacheEntry, PlatformThunderboltSnapshot,
     ThunderboltAdapterState, Usb4DeviceInfo,
 };
 use anyhow::Result;
@@ -86,6 +87,67 @@ fn collect_linux_neighbors_by_ifindex() -> HashMap<u32, Vec<NeighborCacheEntry>>
     map
 }
 
+fn query_linux_route_metric(if_name: &str, ipv6: bool) -> Option<u32> {
+    let fam_flag = if ipv6 { "-6" } else { "-4" };
+    let output = Command::new("ip")
+        .args(["-j", fam_flag, "route", "show", "dev", if_name])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let val: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
+    let arr = val.as_array()?;
+    arr.iter()
+        .filter_map(|item| item.get("metric").and_then(|m| m.as_u64()).map(|m| m as u32))
+        .min()
+}
+
+fn query_linux_external_owner(if_name: &str, ifalias: &str) -> Option<String> {
+    let trimmed_alias = ifalias.trim();
+    if trimmed_alias.starts_with("ms01-usb4:") {
+        return Some(format!("ms01-usb4-extension:{trimmed_alias}"));
+    }
+    if let Ok(output) = Command::new("nmcli")
+        .args(["-g", "GENERAL.CONNECTION", "device", "show", if_name])
+        .output()
+    {
+        if output.status.success() {
+            let conn = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !conn.is_empty() && conn != "--" {
+                return Some(format!("NetworkManager:{conn}"));
+            }
+        }
+    }
+    None
+}
+
+fn resolve_xdomain_peer_for_netdev(
+    net_path: &Path,
+    all_xdomain_peers: &[crate::platform::XdomainNetworkPeer],
+) -> (Option<String>, Option<String>) {
+    if let Ok(canon_dev) = fs::canonicalize(net_path.join("device")) {
+        if let Some(parent) = canon_dev.parent() {
+            let dev_name = fs::read_to_string(parent.join("device_name"))
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty());
+            let uid = fs::read_to_string(parent.join("unique_id"))
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty());
+            if dev_name.is_some() && uid.is_some() {
+                return (dev_name, uid);
+            }
+        }
+    }
+    if all_xdomain_peers.len() == 1 {
+        let p = &all_xdomain_peers[0];
+        return (Some(p.device_name.clone()), Some(p.unique_id.clone()));
+    }
+    (None, None)
+}
+
 fn count_netmask_ones_v4(addr: Ipv4Addr) -> u8 {
     u32::from(addr).count_ones() as u8
 }
@@ -97,6 +159,7 @@ fn count_netmask_ones_v6(addr: Ipv6Addr) -> u8 {
 pub fn collect_linux_snapshot(include_disconnected: bool) -> Result<PlatformThunderboltSnapshot> {
     let start = Instant::now();
     let usb4_devices = enumerate_linux_usb4_devices();
+    let xdomain_peers = discover_xdomain_peers_in_dir(Path::new("/sys/bus/thunderbolt/devices"));
     let mut neighbor_map = collect_linux_neighbors_by_ifindex();
     let mut addr_map: HashMap<String, Vec<AdapterAddressEntry>> = HashMap::new();
 
@@ -163,25 +226,28 @@ pub fn collect_linux_snapshot(include_disconnected: bool) -> Result<PlatformThun
                 .ok()
                 .map(|p| p.to_string_lossy().into_owned())
                 .unwrap_or_default();
-            let description = if driver_link.contains("thunderbolt_net")
+            let ifalias = fs::read_to_string(net_path.join("ifalias"))
+                .ok()
+                .map(|s| s.trim().to_string())
+                .unwrap_or_default();
+            let description = if driver_link.contains("thunderbolt-net")
+                || driver_link.contains("thunderbolt_net")
                 || if_name.starts_with("thunderbolt")
                 || if_name.starts_with("usb4")
             {
                 "Thunderbolt / USB4 P2P Network Adapter (thunderbolt-net)".to_string()
+            } else if ifalias.starts_with("ms01-usb4:") || ifalias.starts_with("pcai-usb4:") {
+                format!("Thunderbolt / USB4 Bridged Interface ({ifalias})")
             } else {
                 driver_link
             };
 
             if is_thunderbolt_or_usb4_adapter(&if_name, &description) {
-                let operstate = fs::read_to_string(net_path.join("operstate"))
+                let operstate_raw = fs::read_to_string(net_path.join("operstate"))
                     .ok()
-                    .map(|s| s.trim().to_ascii_lowercase())
                     .unwrap_or_else(|| "down".to_string());
-                let status_str = if operstate == "up" || operstate == "unknown" {
-                    "Up"
-                } else {
-                    "Down"
-                };
+                let carrier_raw = fs::read_to_string(net_path.join("carrier")).ok();
+                let status_str = map_linux_operstate_with_carrier(&operstate_raw, carrier_raw.as_deref());
                 if !include_disconnected && status_str != "Up" {
                     continue;
                 }
@@ -192,14 +258,23 @@ pub fn collect_linux_snapshot(include_disconnected: bool) -> Result<PlatformThun
                 let mtu = fs::read_to_string(net_path.join("mtu"))
                     .ok()
                     .and_then(|s| s.trim().parse::<u32>().ok())
-                    .unwrap_or(1500);
+                    .unwrap_or(0);
                 let mac = fs::read_to_string(net_path.join("address"))
                     .ok()
                     .map(|s| s.trim().replace(':', "-").to_ascii_uppercase())
                     .unwrap_or_default();
-                let speed = fs::read_to_string(net_path.join("speed")).ok();
-                let bps = parse_link_speed_bps(speed.as_deref());
+                let speed_raw = fs::read_to_string(net_path.join("speed")).ok();
+                let bps = parse_link_speed_bps(speed_raw.as_deref());
+                let speed_known = bps > 0;
                 let gbps = (bps as f64) / 1_000_000_000.0;
+
+                let v4_metric_opt = query_linux_route_metric(&if_name, false);
+                let v6_metric_opt = query_linux_route_metric(&if_name, true);
+                let metric_known = v4_metric_opt.is_some() || v6_metric_opt.is_some();
+
+                let (xdomain_peer_device_name, xdomain_peer_unique_id) =
+                    resolve_xdomain_peer_for_netdev(&net_path, &xdomain_peers);
+                let external_owner = query_linux_external_owner(&if_name, &ifalias);
 
                 adapters.push(ThunderboltAdapterState {
                     interface_index: if_index,
@@ -208,13 +283,18 @@ pub fn collect_linux_snapshot(include_disconnected: bool) -> Result<PlatformThun
                     adapter_guid: format!("linux-net-{if_name}"),
                     mac_address: mac,
                     operational_status: status_str.to_string(),
+                    speed_known,
                     transmit_link_speed_bps: bps,
                     receive_link_speed_bps: bps,
                     link_speed_gbps: (gbps * 100.0).round() / 100.0,
                     ipv4_mtu_bytes: mtu,
                     ipv6_mtu_bytes: mtu,
-                    ipv4_metric: 5,
-                    ipv6_metric: 5,
+                    metric_known,
+                    ipv4_metric: v4_metric_opt.unwrap_or(0),
+                    ipv6_metric: v6_metric_opt.unwrap_or(0),
+                    xdomain_peer_device_name,
+                    xdomain_peer_unique_id,
+                    external_owner,
                     addresses: addr_map.remove(&if_name).unwrap_or_default(),
                     neighbors: neighbor_map.remove(&if_index).unwrap_or_default(),
                 });
@@ -233,16 +313,10 @@ pub fn collect_linux_snapshot(include_disconnected: bool) -> Result<PlatformThun
     })
 }
 
-// Zero is the existing Windows schema's unknown-speed sentinel, never a measurement.
-fn parse_link_speed_bps(raw: Option<&str>) -> u64 {
-    raw.and_then(|s| s.trim().parse::<u64>().ok())
-        .and_then(|mbps| mbps.checked_mul(1_000_000))
-        .unwrap_or(0)
-}
-
 #[cfg(test)]
 mod speed_tests {
-    use super::parse_link_speed_bps;
+    use crate::platform::parse_link_speed_bps;
+
     #[test]
     fn unknown_speed_never_becomes_twenty_gigabit() {
         for raw in [
@@ -256,6 +330,7 @@ mod speed_tests {
             assert_eq!(parse_link_speed_bps(raw), 0);
         }
     }
+
     #[test]
     fn observed_speed_is_converted_without_invention() {
         assert_eq!(parse_link_speed_bps(Some("10000\n")), 10_000_000_000);

@@ -110,21 +110,62 @@ pub struct VigilMs01Usb4CheckReceipt {
 }
 
 pub fn parse_and_validate_ms01_usb4_check_receipt(raw: &str) -> Result<VigilMs01Usb4CheckReceipt> {
-    let receipt: VigilMs01Usb4CheckReceipt =
+    parse_and_validate_ms01_usb4_check_receipt_with_context(raw, None, None, Some(0))
+}
+
+pub fn parse_and_validate_ms01_usb4_check_receipt_with_context(
+    raw: &str,
+    expected_topo: Option<&SfpSwitchTopology>,
+    expected_boot_id: Option<&str>,
+    exit_code: Option<i32>,
+) -> Result<VigilMs01Usb4CheckReceipt> {
+    let raw_val: serde_json::Value =
         serde_json::from_str(raw).context("Invalid JSON in ms01-usb4-extension check receipt")?;
+    let Some(raw_obj) = raw_val.as_object() else {
+        anyhow::bail!("ms01-usb4-extension check receipt must be a JSON object");
+    };
+    let receipt: VigilMs01Usb4CheckReceipt =
+        serde_json::from_value(raw_val.clone()).context("Invalid schema fields in ms01-usb4-extension check receipt")?;
     if receipt.schema != "vigil.ms01-usb4-check/v1" {
         anyhow::bail!(
             "Unexpected schema '{}' in ms01-usb4-extension receipt (expected 'vigil.ms01-usb4-check/v1')",
             receipt.schema
         );
     }
+    if exit_code == Some(0) && (!receipt.ready || receipt.status != "CUSTODY_VERIFIED") {
+        anyhow::bail!(
+            "ms01-usb4-extension check exited 0 while ready={} status='{}'",
+            receipt.ready,
+            receipt.status
+        );
+    }
     if receipt.ready || receipt.status == "CUSTODY_VERIFIED" {
+        if exit_code != Some(0) {
+            anyhow::bail!(
+                "ms01-usb4-extension check exited with {:?} despite receipt claiming ready={}/status='{}'",
+                exit_code,
+                receipt.ready,
+                receipt.status
+            );
+        }
         if !receipt.ready || receipt.status != "CUSTODY_VERIFIED" || receipt.phase != "running" {
             anyhow::bail!(
                 "Inconsistent ready/status/phase in vigil.ms01-usb4-check/v1 receipt: ready={}, status={}, phase={}",
                 receipt.ready,
                 receipt.status,
                 receipt.phase
+            );
+        }
+        if receipt.readiness_scope.as_deref() != Some("structural_custody_only") {
+            anyhow::bail!(
+                "Verified vigil.ms01-usb4-check/v1 receipt must declare readiness_scope='structural_custody_only' (got {:?})",
+                receipt.readiness_scope
+            );
+        }
+        if !matches!(raw_obj.get("network_ready"), Some(serde_json::Value::Null)) || receipt.network_ready.is_some() {
+            anyhow::bail!(
+                "Verified vigil.ms01-usb4-check/v1 receipt must explicitly include '\"network_ready\": null' for structural custody (got {:?})",
+                raw_obj.get("network_ready")
             );
         }
         for (field_name, val_opt) in [
@@ -141,9 +182,180 @@ pub fn parse_and_validate_ms01_usb4_check_receipt(raw: &str) -> Result<VigilMs01
                 anyhow::bail!("Verified vigil.ms01-usb4-check/v1 receipt missing required field '{field_name}'");
             }
         }
+        if let Some(exp_boot) = expected_boot_id {
+            if receipt.boot.as_deref() != Some(exp_boot) {
+                anyhow::bail!(
+                    "vigil.ms01-usb4-check/v1 receipt boot '{:?}' does not match live boot_id '{}'",
+                    receipt.boot,
+                    exp_boot
+                );
+            }
+        }
+        if let Some(topo) = expected_topo {
+            if receipt.namespace.as_deref() != Some(topo.namespace.as_str()) {
+                anyhow::bail!(
+                    "vigil.ms01-usb4-check/v1 receipt namespace {:?} != expected '{}'",
+                    receipt.namespace,
+                    topo.namespace
+                );
+            }
+            if receipt.bridge.as_deref() != Some(topo.bridge.as_str()) {
+                anyhow::bail!(
+                    "vigil.ms01-usb4-check/v1 receipt bridge {:?} != expected '{}'",
+                    receipt.bridge,
+                    topo.bridge
+                );
+            }
+            if let Some(ext) = topo.usb4_extensions.first() {
+                if receipt.interface.as_deref() != Some(ext.interface.as_str()) {
+                    anyhow::bail!(
+                        "vigil.ms01-usb4-check/v1 receipt interface {:?} != expected '{}'",
+                        receipt.interface,
+                        ext.interface
+                    );
+                }
+                if receipt.control_veth.as_deref() != Some(ext.root_veth.as_str()) {
+                    anyhow::bail!(
+                        "vigil.ms01-usb4-check/v1 receipt control_veth {:?} != expected '{}'",
+                        receipt.control_veth,
+                        ext.root_veth
+                    );
+                }
+                if receipt
+                    .peer_uuid
+                    .as_deref()
+                    .map(|u| u.eq_ignore_ascii_case(&ext.peer_uuid))
+                    != Some(true)
+                {
+                    anyhow::bail!(
+                        "vigil.ms01-usb4-check/v1 receipt peer_uuid {:?} != enrolled '{}'",
+                        receipt.peer_uuid,
+                        ext.peer_uuid
+                    );
+                }
+            }
+        }
     }
     Ok(receipt)
 }
+
+pub fn validate_trusted_root_executable(path: &Path) -> Result<PathBuf> {
+    const MAX_SYMLINK_HOPS: usize = 8;
+    if !path.is_absolute() {
+        anyhow::bail!("Helper executable path '{}' must be absolute", path.display());
+    }
+    let mut pending = path.to_path_buf();
+    let mut symlink_hops = 0usize;
+
+    loop {
+        if !pending.is_absolute() {
+            anyhow::bail!(
+                "Resolved helper path '{}' must remain absolute",
+                pending.display()
+            );
+        }
+        let comps: Vec<std::path::Component<'_>> = pending.components().collect();
+        let mut cur = PathBuf::new();
+        let mut followed_symlink = false;
+
+        for (idx, comp) in comps.iter().enumerate() {
+            match comp {
+                std::path::Component::CurDir => continue,
+                std::path::Component::ParentDir => {
+                    cur.pop();
+                    continue;
+                }
+                _ => cur.push(comp.as_os_str()),
+            }
+
+            let meta = fs::symlink_metadata(&cur)
+                .with_context(|| format!("Failed to stat path component '{}'", cur.display()))?;
+
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                if meta.uid() != 0 {
+                    anyhow::bail!(
+                        "Unsafe helper path component '{}' (uid={}): must be root-owned (uid 0)",
+                        cur.display(),
+                        meta.uid()
+                    );
+                }
+            }
+
+            if meta.file_type().is_symlink() {
+                symlink_hops += 1;
+                if symlink_hops > MAX_SYMLINK_HOPS {
+                    anyhow::bail!(
+                        "Unsafe helper path '{}': exceeded maximum symlink hops ({MAX_SYMLINK_HOPS})",
+                        path.display()
+                    );
+                }
+                let link_target = fs::read_link(&cur)
+                    .with_context(|| format!("Failed to read symlink '{}'", cur.display()))?;
+                let mut next_pending = if link_target.is_absolute() {
+                    link_target
+                } else {
+                    cur.parent()
+                        .unwrap_or_else(|| Path::new("/"))
+                        .join(link_target)
+                };
+                for rem in &comps[(idx + 1)..] {
+                    next_pending.push(rem.as_os_str());
+                }
+                pending = next_pending;
+                followed_symlink = true;
+                break;
+            }
+
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                if (meta.mode() & 0o022) != 0 {
+                    anyhow::bail!(
+                        "Unsafe helper path component '{}' (mode={:o}): must not be group/world writable",
+                        cur.display(),
+                        meta.mode() & 0o777
+                    );
+                }
+            }
+
+            if idx + 1 < comps.len() && !meta.file_type().is_dir() {
+                anyhow::bail!(
+                    "Helper path parent component '{}' is not a directory",
+                    cur.display()
+                );
+            }
+        }
+
+        if followed_symlink {
+            continue;
+        }
+
+        let final_meta = fs::symlink_metadata(&cur)
+            .with_context(|| format!("Failed to stat resolved helper '{}'", cur.display()))?;
+        if !final_meta.file_type().is_file() {
+            anyhow::bail!(
+                "Resolved helper executable '{}' is not a regular file",
+                cur.display()
+            );
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            if final_meta.uid() != 0 || (final_meta.mode() & 0o022) != 0 || (final_meta.mode() & 0o111) == 0 {
+                anyhow::bail!(
+                    "Resolved helper executable '{}' (uid={}, mode={:o}) must be root-owned, executable, and not group/world writable",
+                    cur.display(),
+                    final_meta.uid(),
+                    final_meta.mode() & 0o777
+                );
+            }
+        }
+        return Ok(cur);
+    }
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -168,6 +380,7 @@ pub struct VigilHilDeviceEvidence {
     pub overall_status: String,
     pub custody_valid: bool,
     pub usb4_check_receipt: Option<VigilMs01Usb4CheckReceipt>,
+    pub usb4_check_receipt_error: Option<String>,
     pub linux_usb4_observation: Option<PcaiLinuxUsb4Observation>,
     pub requirement_gates: Vec<VnvRequirementGateRow>,
     pub local_usb4_routers: Vec<Usb4RouterNode>,
@@ -455,10 +668,7 @@ pub fn evaluate_linux_switch_custody_from_json(
     let phase = state_val.get("phase").and_then(|v| v.as_str());
     let phase_running = phase == Some("running");
     if !phase_running {
-        errors.push(format!(
-            "Switch custody phase is not 'running' (got {:?})",
-            phase
-        ));
+        errors.push(format!("Switch custody phase is not 'running' (got {:?})", phase));
     }
 
     let recorded_owner = state_val
@@ -558,7 +768,8 @@ pub fn evaluate_linux_switch_custody_from_json(
         .or_else(|| state_val.get("original"))
         .and_then(|v| v.as_object());
     let mut port_reports = Vec::new();
-    let mut all_ports_valid = !topo.sfp_ports.is_empty() && phase_running && bridge_alias_matches && recorded_owner.is_some();
+    let mut all_ports_valid =
+        !topo.sfp_ports.is_empty() && phase_running && bridge_alias_matches && recorded_owner.is_some();
 
     for spec in &topo.sfp_ports {
         let rec_port = recorded_ports.and_then(|m| m.get(&spec.name));
@@ -726,10 +937,7 @@ pub fn evaluate_linux_usb4_extension_custody_from_json(
 
     let phase = state_val.get("phase").and_then(|v| v.as_str());
     if phase != Some("running") {
-        errors.push(format!(
-            "usb4-extension phase is not 'running' (got {:?})",
-            phase
-        ));
+        errors.push(format!("usb4-extension phase is not 'running' (got {:?})", phase));
     }
 
     let rec_boot_id = state_val
@@ -855,7 +1063,10 @@ pub fn evaluate_linux_usb4_extension_custody_from_json(
 
     if let Some(orig) = state_val.get("original").and_then(|v| v.as_object()) {
         if let Some(orig_ifindex) = orig.get("ifindex").and_then(|v| v.as_u64()) {
-            let live_usb_ifindex = usb4_link.as_ref().and_then(|l| l.get("ifindex")).and_then(|v| v.as_u64());
+            let live_usb_ifindex = usb4_link
+                .as_ref()
+                .and_then(|l| l.get("ifindex"))
+                .and_then(|v| v.as_u64());
             if live_usb_ifindex != Some(orig_ifindex) {
                 errors.push(format!(
                     "USB4 interface '{}' ifindex changed: live {:?} != original {}",
@@ -864,7 +1075,10 @@ pub fn evaluate_linux_usb4_extension_custody_from_json(
             }
         }
         if let Some(orig_mac) = orig.get("address").and_then(|v| v.as_str()) {
-            let live_usb_mac = usb4_link.as_ref().and_then(|l| l.get("address")).and_then(|v| v.as_str());
+            let live_usb_mac = usb4_link
+                .as_ref()
+                .and_then(|l| l.get("address"))
+                .and_then(|v| v.as_str());
             if live_usb_mac.map(|s| s.eq_ignore_ascii_case(orig_mac)) != Some(true) {
                 errors.push(format!(
                     "USB4 interface '{}' MAC changed: live {:?} != original '{}'",
@@ -1414,87 +1628,21 @@ pub fn windows_netsh_output_has_exact_ipv6(stdout: &str, expected_ip: Ipv6Addr) 
     false
 }
 
-fn apply_ipv4_subnet_route(subnet_cidr: &str, net_ip: Ipv4Addr, prefix_len: u8, gateway_ipv4: &str) -> Result<()> {
-    if std::env::var("PC_AI_ALLOW_ROUTE_MUTATION").as_deref() != Ok("1") {
-        anyhow::bail!(
-            "Route mutation for '{subnet_cidr}' via '{gateway_ipv4}' is blocked: Slice C route apply requires explicit PC_AI_ALLOW_ROUTE_MUTATION=1 and preimage clearance"
-        );
-    }
+pub fn apply_ipv4_subnet_route(subnet_cidr: &str, net_ip: Ipv4Addr, prefix_len: u8, gateway_ipv4: &str) -> Result<()> {
     let gw_ip: Ipv4Addr = gateway_ipv4
         .trim()
         .parse()
         .with_context(|| format!("Invalid gateway IPv4 '{gateway_ipv4}'"))?;
-
-    #[cfg(target_os = "windows")]
-    {
-        let pre_out = Command::new("route")
-            .args(["print", "-4"])
-            .output()
-            .context("Failed to execute preimage 'route print -4'")?;
-        if !pre_out.status.success() {
-            anyhow::bail!("Preimage 'route print -4' failed with {:?}", pre_out.status.code());
-        }
-        let pre_stdout = String::from_utf8_lossy(&pre_out.stdout);
-        if windows_route_print_has_conflicting_destination(&pre_stdout, net_ip, prefix_len, gw_ip) {
-            anyhow::bail!(
-                "Refusing to overwrite existing foreign route for destination {} (conflicts with expected /{prefix_len} via {gw_ip})",
-                net_ip
-            );
-        }
-
-        let mask_str = prefix_len_to_netmask(prefix_len).to_string();
-        let net_str = net_ip.to_string();
-        let add_out = Command::new("route")
-            .args(["-p", "add", &net_str, "mask", &mask_str, gateway_ipv4, "metric", "15"])
-            .output()
-            .context("Failed to execute 'route -p add'")?;
-        let add_stdout = String::from_utf8_lossy(&add_out.stdout);
-        let add_stderr = String::from_utf8_lossy(&add_out.stderr);
-        if !windows_route_output_succeeded(add_out.status.success(), &add_stdout, &add_stderr) {
-            anyhow::bail!(
-                "route -p add {} mask {} {} failed: {} {}",
-                net_str,
-                mask_str,
-                gateway_ipv4,
-                add_stderr.trim(),
-                add_stdout.trim()
-            );
-        }
-        Ok(())
-    }
-    #[cfg(target_os = "linux")]
-    {
-        let pre_json = run_cmd_json("ip", &["-4", "-j", "route", "show", subnet_cidr])?;
-        if let Some(arr) = pre_json.as_array() {
-            if !arr.is_empty()
-                && !linux_ip_route_json_has_exact_route(&pre_json, subnet_cidr, net_ip, prefix_len, gw_ip)
-            {
-                anyhow::bail!(
-                    "Refusing to overwrite existing foreign Linux route for '{}': {:?}",
-                    subnet_cidr,
-                    arr
-                );
-            }
-        }
-        let out = Command::new("ip")
-            .args(["route", "add", subnet_cidr, "via", gateway_ipv4, "metric", "150"])
-            .output()
-            .context("Failed to execute 'ip route add'")?;
-        if !out.status.success() {
-            anyhow::bail!(
-                "ip route add {} via {} failed: {}",
-                subnet_cidr,
-                gateway_ipv4,
-                String::from_utf8_lossy(&out.stderr).trim()
-            );
-        }
-        Ok(())
-    }
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    {
-        let _ = (subnet_cidr, net_ip, prefix_len, gw_ip);
-        anyhow::bail!("Unsupported OS for route provisioning")
-    }
+    let _ = (
+        net_ip,
+        prefix_len,
+        gw_ip,
+        windows_route_print_has_conflicting_destination as fn(&str, Ipv4Addr, u8, Ipv4Addr) -> bool,
+        windows_route_output_succeeded as fn(bool, &str, &str) -> bool,
+    );
+    anyhow::bail!(
+        "Route mutation for '{subnet_cidr}' via '{gateway_ipv4}' is disabled: Slice C route apply requires a reviewed transaction plan, owner lease, interface/table/source binding, preimage snapshot, and rollback journal (not yet admitted)"
+    )
 }
 
 fn inspect_and_apply_shared_subnet_routes(
@@ -1825,20 +1973,229 @@ fn inspect_linux_usb4_extension_custody(topo: &SfpSwitchTopology) -> Option<Linu
     Some(status)
 }
 
-#[cfg(target_os = "linux")]
-fn run_ms01_usb4_helper_check() -> Option<VigilMs01Usb4CheckReceipt> {
-    let helper = Path::new("/usr/local/sbin/ms01-usb4-extension");
-    if !helper.exists() {
-        return None;
+pub fn run_bounded_command_with_deadline(
+    program: &Path,
+    args: &[&str],
+    timeout_ms: u64,
+    max_output_bytes: usize,
+) -> Result<(Option<i32>, String, String)> {
+    use std::io::Read;
+    use std::process::Stdio;
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+
+    let mut cmd = Command::new(program);
+    cmd.args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
     }
-    let out = Command::new(helper).arg("check").output().ok()?;
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    parse_and_validate_ms01_usb4_check_receipt(stdout.trim()).ok()
+
+    let mut child = cmd
+        .spawn()
+        .with_context(|| format!("Failed to spawn '{}'", program.display()))?;
+    let pid = child.id();
+
+    let stdout_pipe = child
+        .stdout
+        .take()
+        .ok_or_else(|| anyhow::anyhow!("Failed to capture stdout pipe for '{}'", program.display()))?;
+    let stderr_pipe = child
+        .stderr
+        .take()
+        .ok_or_else(|| anyhow::anyhow!("Failed to capture stderr pipe for '{}'", program.display()))?;
+
+    let (tx_out, rx_out) = mpsc::channel();
+    let out_limit = max_output_bytes;
+    std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let res = stdout_pipe.take((out_limit as u64) + 1).read_to_end(&mut buf);
+        let _ = tx_out.send(res.map(|_| buf));
+    });
+
+    let (tx_err, rx_err) = mpsc::channel();
+    let err_limit = max_output_bytes;
+    std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let res = stderr_pipe.take((err_limit as u64) + 1).read_to_end(&mut buf);
+        let _ = tx_err.send(res.map(|_| buf));
+    });
+
+    let kill_process_group = |child_proc: &mut std::process::Child, child_pid: u32| {
+        #[cfg(unix)]
+        {
+            if let Ok(pgid) = i32::try_from(child_pid) {
+                if pgid > 0 {
+                    unsafe {
+                        let _ = libc::kill(-pgid, libc::SIGKILL);
+                    }
+                }
+            }
+        }
+        let _ = child_pid;
+        let _ = child_proc.kill();
+    };
+
+    let deadline = Instant::now() + Duration::from_millis(timeout_ms);
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(st)) => break st,
+            Ok(None) => {
+                if Instant::now() >= deadline {
+                    kill_process_group(&mut child, pid);
+                    let _ = child.wait();
+                    anyhow::bail!(
+                        "Timed out waiting {timeout_ms}ms for '{}'",
+                        program.display()
+                    );
+                }
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            Err(e) => {
+                kill_process_group(&mut child, pid);
+                let _ = child.wait();
+                anyhow::bail!("Error waiting for '{}': {e}", program.display());
+            }
+        }
+    };
+
+    // Ensure no background descendant in the process group keeps inherited stdout/stderr pipes open
+    #[cfg(unix)]
+    {
+        if let Ok(pgid) = i32::try_from(pid) {
+            if pgid > 0 {
+                unsafe {
+                    let _ = libc::kill(-pgid, libc::SIGKILL);
+                }
+            }
+        }
+    }
+
+    let drain_wait = deadline
+        .checked_duration_since(Instant::now())
+        .unwrap_or(Duration::from_millis(100))
+        .max(Duration::from_millis(100));
+
+    let stdout_bytes = match rx_out.recv_timeout(drain_wait) {
+        Ok(Ok(b)) => b,
+        Ok(Err(e)) => {
+            kill_process_group(&mut child, pid);
+            anyhow::bail!("Failed reading stdout from '{}': {e}", program.display());
+        }
+        Err(_) => {
+            kill_process_group(&mut child, pid);
+            anyhow::bail!(
+                "Timed out draining stdout pipe from '{}' within deadline",
+                program.display()
+            );
+        }
+    };
+
+    let stderr_bytes = match rx_err.recv_timeout(drain_wait) {
+        Ok(Ok(b)) => b,
+        Ok(Err(e)) => {
+            kill_process_group(&mut child, pid);
+            anyhow::bail!("Failed reading stderr from '{}': {e}", program.display());
+        }
+        Err(_) => {
+            kill_process_group(&mut child, pid);
+            anyhow::bail!(
+                "Timed out draining stderr pipe from '{}' within deadline",
+                program.display()
+            );
+        }
+    };
+
+    if stdout_bytes.len() > max_output_bytes {
+        anyhow::bail!(
+            "Output from '{}' exceeded stdout budget of {max_output_bytes} bytes",
+            program.display()
+        );
+    }
+    if stderr_bytes.len() > max_output_bytes {
+        anyhow::bail!(
+            "Stderr from '{}' exceeded stderr budget of {max_output_bytes} bytes",
+            program.display()
+        );
+    }
+
+    let stdout = String::from_utf8_lossy(&stdout_bytes).into_owned();
+    let stderr = String::from_utf8_lossy(&stderr_bytes).into_owned();
+    Ok((status.code().or(Some(-1)), stdout, stderr))
+}
+
+#[cfg(target_os = "linux")]
+fn run_ms01_usb4_helper_check(
+    expected_topology: Option<&SfpSwitchTopology>,
+) -> (Option<VigilMs01Usb4CheckReceipt>, Option<String>) {
+    let helper = Path::new("/usr/local/sbin/ms01-usb4-extension");
+    let helper_required = expected_topology
+        .map(|t| !t.usb4_extensions.is_empty())
+        .unwrap_or(false);
+    if fs::symlink_metadata(helper).is_err() {
+        if helper_required {
+            return (
+                None,
+                Some(
+                    "Enrolled USB4 extension topology requires '/usr/local/sbin/ms01-usb4-extension', but helper is missing"
+                        .to_string(),
+                ),
+            );
+        }
+        return (None, None);
+    }
+
+    let resolved_helper = match validate_trusted_root_executable(helper) {
+        Ok(p) => p,
+        Err(e) => return (None, Some(e.to_string())),
+    };
+
+    let live_boot_id = match fs::read_to_string("/proc/sys/kernel/random/boot_id") {
+        Ok(s) => Some(s.trim().to_string()),
+        Err(e) => {
+            return (
+                None,
+                Some(format!(
+                    "Failed to read /proc/sys/kernel/random/boot_id for helper check: {e}"
+                )),
+            );
+        }
+    };
+
+    let (exit_code, stdout, stderr) = match run_bounded_command_with_deadline(&resolved_helper, &["check"], 5000, 65536) {
+        Ok(res) => res,
+        Err(e) => return (None, Some(e.to_string())),
+    };
+
+    match parse_and_validate_ms01_usb4_check_receipt_with_context(
+        stdout.trim(),
+        expected_topology,
+        live_boot_id.as_deref(),
+        exit_code,
+    ) {
+        Ok(receipt) => (Some(receipt), None),
+        Err(e) => (
+            None,
+            Some(format!("{e} (exit_code={exit_code:?}, stderr='{}')", stderr.trim())),
+        ),
+    }
 }
 
 #[cfg(not(target_os = "linux"))]
-fn run_ms01_usb4_helper_check() -> Option<VigilMs01Usb4CheckReceipt> {
-    None
+fn run_ms01_usb4_helper_check(
+    expected_topology: Option<&SfpSwitchTopology>,
+) -> (Option<VigilMs01Usb4CheckReceipt>, Option<String>) {
+    let _ = (
+        expected_topology,
+        validate_trusted_root_executable as fn(&Path) -> Result<PathBuf>,
+        run_bounded_command_with_deadline as fn(&Path, &[&str], u64, usize) -> Result<(Option<i32>, String, String)>,
+    );
+    (None, None)
 }
 
 #[cfg(target_os = "linux")]
@@ -1965,6 +2322,18 @@ fn inspect_windows_canary_endpoints(local_canon: &str, ipam: &IpamAllocations) -
     out
 }
 
+pub fn windows_netsh_interfaces_has_valid_header(netsh_stdout: &str) -> bool {
+    netsh_stdout.lines().any(|line| {
+        let cols: Vec<&str> = line.split_whitespace().collect();
+        cols.len() >= 5
+            && cols[0].eq_ignore_ascii_case("Idx")
+            && cols[1].eq_ignore_ascii_case("Met")
+            && cols[2].eq_ignore_ascii_case("MTU")
+            && cols[3].eq_ignore_ascii_case("State")
+            && cols[4].eq_ignore_ascii_case("Name")
+    })
+}
+
 #[cfg(target_os = "windows")]
 fn collect_windows_metric_hierarchy() -> Result<WindowsMetricHierarchyReport> {
     let out = Command::new("netsh")
@@ -1979,6 +2348,11 @@ fn collect_windows_metric_hierarchy() -> Result<WindowsMetricHierarchyReport> {
         );
     }
     let stdout = String::from_utf8_lossy(&out.stdout);
+    if !windows_netsh_interfaces_has_valid_header(&stdout) {
+        anyhow::bail!(
+            "Unrecognized or localized 'netsh interface ipv4 show interfaces' table header (expected 'Idx Met MTU State Name')"
+        );
+    }
 
     let addr_out = Command::new("netsh")
         .args(["interface", "ipv4", "show", "addresses"])
@@ -2220,9 +2594,7 @@ fn gate_status_from_technical_verdict(technical_verdict: &str) -> String {
     }
 }
 
-pub fn evaluate_vnv_gates_from_status(
-    status: &SwitchStatusReport,
-) -> (String, bool, Vec<VnvRequirementGateRow>) {
+pub fn evaluate_vnv_gates_from_status(status: &SwitchStatusReport) -> (String, bool, Vec<VnvRequirementGateRow>) {
     let mut gates = Vec::new();
 
     // PENDING-FABRIC-F09: Static declared cycle check + local hardware router or switch topology observation
@@ -2245,11 +2617,13 @@ pub fn evaluate_vnv_gates_from_status(
         requirement_id: "REQ-SPARK-001".to_string(),
         tpm_admission_status: "PENDING_TPM_INTAKE".to_string(),
         acceptance_credit: false,
-        description: "Declared multi-hub topology link validation & local USB4/switch router observation".to_string(),
+        description:
+            "Static declared registry topology link cycle check & local USB4/switch router observation (does not claim live STP state)"
+                .to_string(),
         status: gate_status_from_technical_verdict(f09_tech),
         technical_verdict: f09_tech.to_string(),
         details: format!(
-            "topology_links={}, local_usb4_routers={}, unauthorized_routers={}, matched_switch_topology={}",
+            "observation_scope=declared_registry_topology_plus_local_routers_no_live_stp, topology_links={}, local_usb4_routers={}, unauthorized_routers={}, matched_switch_topology={}",
             status.topology_links.len(),
             status.local_usb4_routers.len(),
             status
@@ -2329,9 +2703,11 @@ pub fn evaluate_vnv_gates_from_status(
         Some(_) => {
             if status.linux_canary_ula_status.is_empty() {
                 "SKIP_NOT_APPLICABLE"
-            } else if status.linux_canary_ula_status.iter().all(|c| {
-                c.assigned_on_interface && c.policy_rule_present.unwrap_or(true)
-            }) {
+            } else if status
+                .linux_canary_ula_status
+                .iter()
+                .all(|c| c.assigned_on_interface && c.policy_rule_present.unwrap_or(true))
+            {
                 "PASS"
             } else {
                 "FAIL"
@@ -2343,9 +2719,7 @@ pub fn evaluate_vnv_gates_from_status(
         requirement_id: "REQ-SPARK-003".to_string(),
         tpm_admission_status: "PENDING_TPM_INTAKE".to_string(),
         acceptance_credit: false,
-        description:
-            "Dual-ULA IPAM separation and live canary endpoint/policy rule verification"
-                .to_string(),
+        description: "Dual-ULA IPAM separation and live canary endpoint/policy rule verification".to_string(),
         status: gate_status_from_technical_verdict(f11_tech),
         technical_verdict: f11_tech.to_string(),
         details: format!(
@@ -2460,8 +2834,17 @@ pub fn run_vnv_verification(
             errors: ext.errors.clone(),
         });
 
-    let usb4_check_receipt = run_ms01_usb4_helper_check();
-    let (overall_status, custody_valid, gates) = evaluate_vnv_gates_from_status(&status);
+    let (usb4_check_receipt, usb4_check_receipt_error) = run_ms01_usb4_helper_check(status.matched_topology.as_ref());
+    let (mut overall_status, mut custody_valid, mut gates) = evaluate_vnv_gates_from_status(&status);
+    if let Some(ref receipt_err) = usb4_check_receipt_error {
+        custody_valid = false;
+        overall_status = "FAIL".to_string();
+        if let Some(f10) = gates.iter_mut().find(|g| g.trace_id == "PENDING-FABRIC-F10") {
+            f10.status = "FAIL".to_string();
+            f10.technical_verdict = "FAIL".to_string();
+            f10.details = format!("{}; helper_check_error={receipt_err}", f10.details);
+        }
+    }
 
     let evidence = VigilHilDeviceEvidence {
         schema: "vigil.hil-device-evidence/v1".to_string(),
@@ -2472,6 +2855,7 @@ pub fn run_vnv_verification(
         overall_status,
         custody_valid,
         usb4_check_receipt,
+        usb4_check_receipt_error,
         linux_usb4_observation,
         requirement_gates: gates,
         local_usb4_routers: status.local_usb4_routers.clone(),
@@ -2985,10 +3369,25 @@ Persistent Routes:
         let good_gw: Ipv4Addr = "192.168.50.119".parse().unwrap();
         let wrong_gw: Ipv4Addr = "192.168.50.1".parse().unwrap();
 
-        assert!(windows_route_print_has_exact_route(win_route_sample, net_ip, 30, good_gw));
+        assert!(windows_route_print_has_exact_route(
+            win_route_sample,
+            net_ip,
+            30,
+            good_gw
+        ));
         // Wrong gateway or wrong prefix length must fail closed
-        assert!(!windows_route_print_has_exact_route(win_route_sample, net_ip, 30, wrong_gw));
-        assert!(!windows_route_print_has_exact_route(win_route_sample, net_ip, 24, good_gw));
+        assert!(!windows_route_print_has_exact_route(
+            win_route_sample,
+            net_ip,
+            30,
+            wrong_gw
+        ));
+        assert!(!windows_route_print_has_exact_route(
+            win_route_sample,
+            net_ip,
+            24,
+            good_gw
+        ));
         assert!(windows_route_print_has_conflicting_destination(
             win_route_sample,
             net_ip,
@@ -3100,5 +3499,130 @@ DAD State          : Preferred
             ""
         ));
         assert!(!windows_route_output_succeeded(false, " OK!\r\n", ""));
+
+        // Route mutation must remain unconditionally disabled pending Slice C transaction admission
+        let net_ip: Ipv4Addr = "10.60.4.0".parse().unwrap();
+        assert!(apply_ipv4_subnet_route("10.60.4.0/29", net_ip, 29, "192.168.50.79").is_err());
+
+        // Windows netsh interface ipv4 show interfaces header validation
+        let valid_netsh_hdr = "\
+Idx     Met         MTU          State                Name
+---  ----------  ----------  ------------  ---------------------------
+  1          75  4294967295  connected     Loopback Pseudo-Interface 1
+ 11          10        1500  connected     Ethernet 2
+";
+        assert!(windows_netsh_interfaces_has_valid_header(valid_netsh_hdr));
+        assert!(!windows_netsh_interfaces_has_valid_header(
+            "Id.     Mét.        MTU          État                 Nom\n"
+        ));
+    }
+
+    #[test]
+    fn test_ms01_usb4_check_receipt_with_context_enforces_exit_code_boot_and_topology() {
+        let topo = SfpSwitchTopology {
+            host: "minisforum".to_string(),
+            namespace: "ms01-switch".to_string(),
+            bridge: "sw0".to_string(),
+            state_dir: "/var/lib/ms01-network-switch".to_string(),
+            extension_state_dir: Some("/var/lib/ms01-usb4-extension".to_string()),
+            observe_state_dir: Some("/var/lib/ms01-network-observe".to_string()),
+            enrollment_path: None,
+            usb4_enrollment_path: None,
+            sfp_ports: Vec::new(),
+            usb4_extensions: vec![Usb4BridgeExtensionSpec {
+                interface: "usb4-milly".to_string(),
+                root_veth: "ms01-milly".to_string(),
+                bridge_veth: "milly-host".to_string(),
+                sysfs_path: "/sys/devices/pci0000:00/0000:00:0d.2/domain0/0-0/0-1/0-1.0".to_string(),
+                peer_uuid: "bab38780-0019-a9b4-ffff-ffffffffffff".to_string(),
+                peer_name: "millylaptop1".to_string(),
+                driver: "thunderbolt-net".to_string(),
+                control_subnet: "10.254.253.0/30".to_string(),
+                local_control_ipv4: "10.254.253.1".to_string(),
+                peer_control_ipv4: "10.254.253.2".to_string(),
+                bridged_lan_ipv4: Some("192.168.50.91".to_string()),
+            }],
+        };
+
+        let valid_receipt = r#"{
+            "schema": "vigil.ms01-usb4-check/v1",
+            "phase": "running",
+            "ready": true,
+            "readiness_scope": "structural_custody_only",
+            "network_ready": null,
+            "status": "CUSTODY_VERIFIED",
+            "namespace": "ms01-switch",
+            "bridge": "sw0",
+            "control_veth": "ms01-milly",
+            "interface": "usb4-milly",
+            "peer_uuid": "bab38780-0019-a9b4-ffff-ffffffffffff",
+            "boot": "boot-123",
+            "parent_owner": "abc",
+            "owner": "def"
+        }"#;
+
+        // Happy path: exit_code == 0, matching boot_id, matching enrolled topology
+        assert!(parse_and_validate_ms01_usb4_check_receipt_with_context(
+            valid_receipt,
+            Some(&topo),
+            Some("boot-123"),
+            Some(0)
+        )
+        .is_ok());
+
+        // Non-zero exit code with ready: true must fail closed
+        assert!(parse_and_validate_ms01_usb4_check_receipt_with_context(
+            valid_receipt,
+            Some(&topo),
+            Some("boot-123"),
+            Some(1)
+        )
+        .is_err());
+
+        // Mismatched live boot_id must fail closed
+        assert!(parse_and_validate_ms01_usb4_check_receipt_with_context(
+            valid_receipt,
+            Some(&topo),
+            Some("boot-999"),
+            Some(0)
+        )
+        .is_err());
+
+        // Spoofed peer_uuid not matching enrolled usb4_extensions must fail closed
+        let wrong_peer_receipt = valid_receipt.replace(
+            "bab38780-0019-a9b4-ffff-ffffffffffff",
+            "00000000-0000-0000-0000-000000000000",
+        );
+        assert!(parse_and_validate_ms01_usb4_check_receipt_with_context(
+            &wrong_peer_receipt,
+            Some(&topo),
+            Some("boot-123"),
+            Some(0)
+        )
+        .is_err());
+
+        // network_ready != null must fail closed
+        let overclaiming_receipt = valid_receipt.replace("\"network_ready\": null", "\"network_ready\": true");
+        assert!(parse_and_validate_ms01_usb4_check_receipt_with_context(
+            &overclaiming_receipt,
+            Some(&topo),
+            Some("boot-123"),
+            Some(0)
+        )
+        .is_err());
+
+        // Omitted network_ready field must fail closed (require explicit presence + null)
+        let omitted_network_ready = valid_receipt.replace("\"network_ready\": null,", "");
+        assert!(parse_and_validate_ms01_usb4_check_receipt_with_context(
+            &omitted_network_ready,
+            Some(&topo),
+            Some("boot-123"),
+            Some(0)
+        )
+        .is_err());
+
+        // Relative helper executable path must fail closed
+        assert!(validate_trusted_root_executable(Path::new("relative/ms01-usb4-extension")).is_err());
     }
 }
+

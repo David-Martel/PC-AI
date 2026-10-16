@@ -51,7 +51,7 @@
       "src/identity.rs": "20d6c8ad6237f17190648d1213d69bcb7b727dae71d7c37f6a386333e1caa009",
       "src/lib.rs": "8a5c11e6104170185811ddf0efe3f772f2590ebfdd444a303f5e79e0c82cdde0",
       "src/main.rs": "c680c37b48d8afc648a8ee77e8322128499c67ccab1d39907cced11c44110163",
-      "src/switch.rs": "7d8e2d86439511c26533c090ffbb4ff4ae9396cf43def1b1f3ca1e192036c858",
+      "src/switch.rs": "14600912f5745167c2af634916717646777373ac7ef98f3797b146387ed5d0b3",
       "src/platform/linux.rs": "409a42be7c0be41bf725658083935142efb568bbe89ac37fc010ce8a0bbc3d9b",
       "src/platform/mod.rs": "2b3cead0c1e22b7b854690c466dcdd6feada4a0f524e5ba9f647be52f42ef80a",
       "src/platform/windows.rs": "55604d7de5d4c78ee24e07c62ad8d35241f1e9652ca41eb3687249a792737b62",

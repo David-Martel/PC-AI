@@ -1,5 +1,7 @@
 pub mod benchmark;
 pub mod configure;
+pub mod edge_observer;
+pub mod edge_policy;
 pub mod handshake;
 pub mod identity;
 pub mod lifecycle;

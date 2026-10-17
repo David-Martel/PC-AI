@@ -16,6 +16,10 @@
 
 PC-AI is a modular PowerShell framework that diagnoses hardware issues, analyzes system health, and recommends optimizations -- all powered by local LLMs running on your own machine. No cloud APIs, no data leaves your PC.
 
+For bounded Ubuntu/Windows cache and managed-build validation, see
+[portable bootstrap](docs/portable-bootstrap.md). Native backend and hardware
+qualification remain separate from managed compilation.
+
 ## Key Features
 
 Windows fleet discovery and media qualification are documented in
@@ -38,7 +42,7 @@ scoped selection, dry-run planning, staged validation, and recoverable backups.
 
 - **Hardware Diagnostics** -- Device errors, SMART disk health, USB controllers, network adapters
 - **Boot And Sync Reliability** -- VHD startup, Task Scheduler, Filter Manager, Process Lasso, and cloud-sync health tooling
-- **Native Acceleration** -- Rust + C# hybrid engine delivering 5-40x speedups over pure PowerShell
+- **Native Acceleration** -- Rust + C# backends with workload-specific benchmarks; gains require equivalent-output validation on the target platform
 - **Local LLM Analysis** -- AI-powered diagnostic interpretation via pcai-inference (llama.cpp / mistral.rs backends)
 - **Tool-Calling Router** -- FunctionGemma selects and executes the right diagnostic tool before LLM analysis
 - **Interactive TUI** -- Terminal chat interface with streaming, multi-turn, and ReAct tool-routing modes

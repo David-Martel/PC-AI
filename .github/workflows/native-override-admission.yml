@@ -6,6 +6,7 @@ on:
       - 'Modules/PC-AI.Acceleration/Private/Initialize-PcaiNative.ps1'
       - 'Tests/Portable/*native_override*'
       - 'Tests/Portable/Test-NativeOverrideAdmission.ps1'
+      - 'Tests/Portable/Test-NativeEstimatorAndStatus.ps1'
       - '.github/workflows/native-override-admission.yml'
   workflow_dispatch:
 permissions:
@@ -29,7 +30,9 @@ jobs:
           python-version: '3.12'
       - name: Initializer rejects explicit missing overrides
         shell: pwsh
-        run: ./Tests/Portable/Test-NativeOverrideAdmission.ps1
+        run: |
+          ./Tests/Portable/Test-NativeOverrideAdmission.ps1
+          ./Tests/Portable/Test-NativeEstimatorAndStatus.ps1
       - name: Build host native core
         shell: pwsh
         run: |

@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF",
+  "reviews": [
+    {
+      "selector": "required route query failure propagates",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex pcai_integration_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Four existing functional/static controls rerun PASS after empty-inventory membership repair; prior review retained in previous_reviews. No new mutation result claimed; no hardware Apply.",
+      "receipt": "usb4-route-query-review.md"
+    },
+    {
+      "selector": "optional inventory query remains best effort",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex pcai_integration_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Four existing functional/static controls rerun PASS after empty-inventory membership repair; prior review retained in previous_reviews. No new mutation result claimed; no hardware Apply.",
+      "receipt": "usb4-route-query-review.md"
+    },
+    {
+      "selector": "required query preserves valid empty and present results",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex pcai_integration_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Four existing functional/static controls rerun PASS after empty-inventory membership repair; prior review retained in previous_reviews. No new mutation result claimed; no hardware Apply.",
+      "receipt": "usb4-route-query-review.md"
+    },
+    {
+      "selector": "route postcondition uses required query",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex pcai_integration_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Four existing functional/static controls rerun PASS after empty-inventory membership repair; prior review retained in previous_reviews. No new mutation result claimed; no hardware Apply.",
+      "receipt": "usb4-route-query-review.md"
+    }
+  ],
+  "previous_reviews": [
+    {
+      "selector": "required route query failure propagates",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex pcai_integration_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Four existing functional/static controls rerun PASS after empty-inventory membership repair; prior review retained in previous_reviews. No new mutation result claimed; no hardware Apply.",
+      "receipt": "usb4-route-query-review.md"
+    },
+    {
+      "selector": "optional inventory query remains best effort",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex pcai_integration_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Four existing functional/static controls rerun PASS after empty-inventory membership repair; prior review retained in previous_reviews. No new mutation result claimed; no hardware Apply.",
+      "receipt": "usb4-route-query-review.md"
+    },
+    {
+      "selector": "required query preserves valid empty and present results",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex pcai_integration_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Four existing functional/static controls rerun PASS after empty-inventory membership repair; prior review retained in previous_reviews. No new mutation result claimed; no hardware Apply.",
+      "receipt": "usb4-route-query-review.md"
+    },
+    {
+      "selector": "route postcondition uses required query",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex pcai_integration_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Four existing functional/static controls rerun PASS after empty-inventory membership repair; prior review retained in previous_reviews. No new mutation result claimed; no hardware Apply.",
+      "receipt": "usb4-route-query-review.md"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "fallback-counts",
+      "test_path": "Tests/Portable/Test-NativeEstimatorAndStatus.ps1",
+      "test_sha256": "e14bb6aa4db0702e35ec21d88ddb1d9568dec3b774fce37c09c982058b61e9ac",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Private/Initialize-PcaiNative.ps1": "03864f1241a488de73987ee37648cf11e99cc585fa59827d1c86cdade30c9b12"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "2ec3a46eed765d2d484b0860e9967de217a61695",
+      "disposition": "keep",
+      "scope": "Port of two retained native-only selectors from fdee5ee Pester suite; seven identical fallback cases and strengthened actual-host RID/filename plus retained status field checks pass on Ubuntu. Native availability forced false; no hardware/native ABI qualification.",
+      "receipt": "native-estimator-status-review.md"
+    },
+    {
+      "selector": "status-shape",
+      "test_path": "Tests/Portable/Test-NativeEstimatorAndStatus.ps1",
+      "test_sha256": "e14bb6aa4db0702e35ec21d88ddb1d9568dec3b774fce37c09c982058b61e9ac",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Private/Initialize-PcaiNative.ps1": "03864f1241a488de73987ee37648cf11e99cc585fa59827d1c86cdade30c9b12"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "2ec3a46eed765d2d484b0860e9967de217a61695",
+      "disposition": "keep",
+      "scope": "Port of two retained native-only selectors from fdee5ee Pester suite; seven identical fallback cases and strengthened actual-host RID/filename plus retained status field checks pass on Ubuntu. Native availability forced false; no hardware/native ABI qualification.",
+      "receipt": "native-estimator-status-review.md"
+    }
+  ]
+}

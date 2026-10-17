@@ -78,7 +78,7 @@ namespace PcaiNative
         /// <summary>
         /// Gets whether the native system library is available and functional.
         /// </summary>
-        public static bool IsAvailable => _isAvailable.Value;
+        public static bool IsAvailable => PcaiCore.IsAvailable && _isAvailable.Value;
 
         // ====================================================================
         // PATH Analysis Functions

@@ -1,0 +1,11 @@
+[Unit]
+Description=Recover enrolled USB4 NetworkManager profiles after link or resume events
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=10s
+AccuracySec=1s
+Unit=pcai-usb4-nm.service
+
+[Install]
+WantedBy=timers.target

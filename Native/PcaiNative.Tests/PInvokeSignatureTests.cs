@@ -71,6 +71,22 @@ public class PInvokeSignatureTests
             $"({string.Join(", ", AllowedLibraries)}):\n  {string.Join("\n  ", violations)}");
     }
 
+    [Fact]
+    public void AllDllImportsUsePlatformNeutralLogicalNames()
+    {
+        var violations = GetDllImportMethods()
+            .Select(m => (Method: m, RawLib: m.GetCustomAttribute<DllImportAttribute>()!.Value))
+            .Where(x => x.RawLib.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+                     || x.RawLib.EndsWith(".so", StringComparison.OrdinalIgnoreCase)
+                     || x.RawLib.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase))
+            .Select(x => $"{x.Method.DeclaringType?.Name}.{x.Method.Name} → '{x.RawLib}'")
+            .ToList();
+
+        Assert.True(violations.Count == 0,
+            $"DllImport attributes must use platform-neutral logical names so NativeResolver works on Windows, Linux, and macOS:\n  " +
+            $"{string.Join("\n  ", violations)}");
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // String return-type safety
     // ──────────────────────────────────────────────────────────────────────────

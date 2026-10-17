@@ -1,0 +1,93 @@
+name: Portable bootstrap
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Modules/PC-AI.Common/**'
+      - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
+      - 'Native/PcaiNative/**'
+      - 'Native/pcai_core/**'
+      - 'Tests/Portable/**'
+      - 'Tools/Test-PcaiModuleManifests.ps1'
+      - 'lefthook.yml'
+      - 'Tests/Invoke-BenchmarkGate.ps1'
+      - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
+      - 'Config/pcai-tooling-benchmarks.json'
+      - '.github/workflows/portable-bootstrap.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Modules/PC-AI.Common/**'
+      - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
+      - 'Native/PcaiNative/**'
+      - 'Native/pcai_core/**'
+      - 'Tests/Portable/**'
+      - 'Tools/Test-PcaiModuleManifests.ps1'
+      - 'lefthook.yml'
+      - 'Tests/Invoke-BenchmarkGate.ps1'
+      - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
+      - 'Config/pcai-tooling-benchmarks.json'
+      - '.github/workflows/portable-bootstrap.yml'
+permissions:
+  contents: read
+jobs:
+  bootstrap:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          python-version: '3.12'
+          enable-cache: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Validate runtime identifier against actual host
+        shell: pwsh
+        env:
+          EXPECTED_RID: ${{ matrix.rid }}
+        run: |
+          $os = if ($IsWindows) { 'win' } elseif ($IsLinux) { 'linux' } else { throw 'Unsupported runner OS' }
+          $arch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()
+          if ("$os-$arch" -ne $env:EXPECTED_RID) { throw 'Runner and target RID differ' }
+      - name: Profile-free cache bootstrap regression
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-CacheBootstrap.ps1
+          ./Tests/Portable/Test-RustToolDiscovery.ps1
+          ./Tests/Portable/Test-ModuleManifestHook.ps1
+          ./Tools/Test-PcaiModuleManifests.ps1
+      - name: Benchmark admission regression controls
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-BenchmarkRunner.ps1
+          uv run --no-project python -m unittest discover -s Tests/Portable -p test_benchmark_admission.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build real core and verify Unicode token parity
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'pcai-parity-core'
+          cargo build --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai_core_lib --no-default-features --target-dir $target
+          if ($LASTEXITCODE -ne 0) { throw 'Native core build failed' }
+          $filename = if ($IsWindows) { 'pcai_core_lib.dll' } else { 'libpcai_core_lib.so' }
+          $env:PCAI_TOKEN_NATIVE_PATH = Join-Path $target "debug/$filename"
+          # Nested script invocation exercises closure scope under the CI wrapper.
+          ./Tests/Portable/Test-TokenBenchmarkParity.ps1
+      - name: Build managed bridge for host
+        shell: pwsh
+        env:
+          TARGET_RID: ${{ matrix.rid }}
+          DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+        run: |
+          dotnet build Native/PcaiNative/PcaiNative.csproj --configuration Release --runtime $env:TARGET_RID --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

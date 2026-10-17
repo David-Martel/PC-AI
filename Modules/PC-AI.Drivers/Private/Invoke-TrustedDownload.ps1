@@ -36,7 +36,22 @@ function Invoke-TrustedDownload {
         }
     }
 
-    if ((Test-Path $OutFile) -and (-not $ForceDownload)) {
+    # See Reports/driver-download-contract-review.md for cached-byte custody.
+    if ((Test-Path -LiteralPath $OutFile) -and (-not $ForceDownload)) {
+        if ($ExpectedSha256) {
+            try {
+                $hash = (Get-FileHash -LiteralPath $OutFile -Algorithm SHA256 -ErrorAction Stop).Hash
+            }
+            catch {
+                Write-Error "Could not verify existing download '$OutFile'; existing bytes preserved: $_"
+                return $null
+            }
+            if ($hash -ne $ExpectedSha256.ToUpperInvariant()) {
+                Write-Error "SHA256 mismatch for existing download '$OutFile'. Expected: $ExpectedSha256  Got: $hash. Existing bytes preserved; use -ForceDownload to explicitly replace them."
+                return $null
+            }
+            Write-Verbose "SHA256 verified for existing download: $hash"
+        }
         Write-Verbose "File already exists, skipping download: $OutFile"
         return $OutFile
     }
@@ -46,10 +61,10 @@ function Invoke-TrustedDownload {
         Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -ErrorAction Stop
 
         if ($ExpectedSha256) {
-            $hash = (Get-FileHash -Path $OutFile -Algorithm SHA256).Hash
+            $hash = (Get-FileHash -LiteralPath $OutFile -Algorithm SHA256).Hash
             if ($hash -ne $ExpectedSha256.ToUpper()) {
                 Write-Error "SHA256 mismatch for '$OutFile'. Expected: $ExpectedSha256  Got: $hash"
-                Remove-Item -Path $OutFile -Force -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath $OutFile -Force -ErrorAction SilentlyContinue
                 return $null
             }
             Write-Verbose "SHA256 verified: $hash"
@@ -59,8 +74,8 @@ function Invoke-TrustedDownload {
     }
     catch {
         Write-Error "Download failed for '$Url': $_"
-        if (Test-Path $OutFile) {
-            Remove-Item -Path $OutFile -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $OutFile) {
+            Remove-Item -LiteralPath $OutFile -Force -ErrorAction SilentlyContinue
         }
         return $null
     }

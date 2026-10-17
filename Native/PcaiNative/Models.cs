@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 
 namespace PcaiNative;
@@ -87,7 +87,8 @@ public struct PcaiByteBuffer
         if (!IsValid) return null;
 
         var length = checked((int)(ulong)Length);
-        if (length == 0) {
+        if (length == 0)
+        {
             return Array.Empty<byte>();
         }
 
@@ -132,6 +133,15 @@ public sealed class NativeDiagnostics
 
     [JsonPropertyName("dotNetVersion")]
     public string DotNetVersion { get; init; } = "";
+
+    [JsonPropertyName("runtimeIdentifier")]
+    public string RuntimeIdentifier { get; init; } = "";
+
+    [JsonPropertyName("resolvedLibraryPath")]
+    public string? ResolvedLibraryPath { get; init; }
+
+    [JsonPropertyName("provenanceSource")]
+    public string? ProvenanceSource { get; init; }
 }
 
 /// <summary>

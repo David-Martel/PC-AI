@@ -1,0 +1,7 @@
+# Property import only: no profile changes, network commands or SSH in udev.
+ACTION=="add|change", SUBSYSTEM=="net", ENV{VIGIL_USB4_EDGE_ID}=""
+ACTION=="add|change", SUBSYSTEM=="net", ENV{VIGIL_USB4_BACKEND}=""
+ACTION=="add|change", SUBSYSTEM=="net", IMPORT{program}="/usr/local/libexec/pcai-usb4-agent udev-properties /etc/pcai-usb4/policy.json %k"
+ENV{VIGIL_USB4_EDGE_ID}=="?*", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pcai-usb4-observer.service"
+ENV{VIGIL_USB4_EDGE_ID}=="?*", ENV{VIGIL_USB4_BACKEND}=="networkmanager", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pcai-usb4-nm.service"
+ENV{VIGIL_USB4_EDGE_ID}=="?*", ENV{VIGIL_USB4_BACKEND}=="networkd", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pcai-usb4-networkd.service"

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 LF; CRLF normalized to LF",
+  "source_hashes": {
+    "Native/pcai_core/pcai_media/src/upscale.rs": "190493eb47be17ab1757be89c874af913549fe56eb145ceb1fcf37e84ae79aca",
+    "Native/pcai_core/pcai_media/src/ffi/mod.rs": "bb804020071f8446a7b28fb59a82ce4dc3e6e95ae669478c6ea8072b2d3a362a",
+    "Native/pcai_core/pcai_media/Cargo.toml": "d9010198f9861b5c666033cfa51f71a77ccbd1e603938dd2179c0a961af12277",
+    "Native/pcai_core/Cargo.lock": "9894a7f5ad6145eaa8e9bcf126c25799cfc2e376a9bbeda7b04c5e807c6eb8ee",
+    ".github/workflows/media-upscale.yml": "bd24e9288ed4fa578cdb77281cf33fef01aeafe93c3150e6d98fec415dd991b7",
+    "docs/media-upscale-validation.md": "2ce228beefa7f042381a30ae4b5951a57a25364b88c1afde484731e862a4ea55",
+    "rustfmt.toml": "282768acf9fd4aa5650efced2bf3ddc9e2f9b944ae94f60db57ee8d6377f066d"
+  },
+  "dependency_patch_commit": "d079cdad2b56b0a430e0f766a12b287715e7d7b8",
+  "main_base": "204cff3a9aca04e31d1290cd106045ebe3bfe497",
+  "reviews": [
+    {
+      "selector": "upscale::tests::missing_model_reports_load_context_and_preserves_cause",
+      "test_path": "Native/pcai_core/pcai_media/src/upscale.rs",
+      "selector_sha256": "40b81e75cff3eab2e4c4de72dd23db5fdcff2413164b8a5fc6bfed7ac8515e1c",
+      "reviewer": "independent Codex reaper_review",
+      "reviewer_authored_test_or_fix": false,
+      "disposition": "KEEP",
+      "reviewed_utc": "2026-10-17T08:03:37.274603+00:00",
+      "protects": "Requested model path context and original typed ORT cause survive failed load",
+      "detects": "Missing outer path context, environment/session masking, or stringified native error losing its type",
+      "needs": "Linked native ORT, temporary directory; no model weights or GPU",
+      "negative_control": "Preserving context while stringifying the ORT cause fails precisely at the typed downcast assertion; candidate passes",
+      "source_scope": "API environment lifetime, canonical builder-error conversion, four owned-string FFI borrow removals, workflow and validation guide reviewed"
+    }
+  ],
+  "executed_checks": {
+    "feature_check": "PASS",
+    "upscale_tests": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    "existing_ffi_error_tests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "strict_default_ffi_and_upscale_clippy": "PASS",
+    "actionlint": "PASS",
+    "independent_typed_cause_selector": "PASS",
+    "stringification_mutant": "EXPECTED_FAIL"
+  },
+  "limitations": [
+    "Other pre-existing selectors lack fresh independent selector review",
+    "No successful model inference or image quality acceptance",
+    "No throughput/GPU performance claim",
+    "Hosted Windows/Linux workflow results pending publication"
+  ],
+  "formatting_verification": {
+    "reviewed_preformat_source": "b633660f49c4e13d109a0d49beaa76ef8ef192ee6e2d614b44ba47dd40eb5817",
+    "canonical_formatted_source": "190493eb47be17ab1757be89c874af913549fe56eb145ceb1fcf37e84ae79aca",
+    "independent_rustfmt_equivalence": "PASS",
+    "final_formatted_tests": 4,
+    "final_formatted_clippy": "PASS"
+  }
+}

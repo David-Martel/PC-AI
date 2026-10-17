@@ -2,6 +2,7 @@
 //!
 //! Wraps a RealESRGAN ONNX model for 4x super-resolution upscaling.
 //! Requires the `upscale` feature flag.
+//! Build and test scope: [validation guide](../../../../docs/media-upscale-validation.md).
 //!
 //! # Example
 //!
@@ -30,11 +31,14 @@ pub struct UpscalePipeline {
 impl UpscalePipeline {
     /// Load a RealESRGAN ONNX model from disk.
     pub fn load(model_path: &str) -> Result<Self> {
-        let session = ort::session::Session::builder()
+        let environment = ort::init().build().context("failed to create ORT environment")?;
+        let session = ort::session::Session::builder(&environment)
             .context("failed to create ORT session builder")?
             .with_optimization_level(ort::session::builder::GraphOptimizationLevel::Level3)
+            .map_err(ort::Error::<()>::from)
             .context("failed to set optimization level")?
             .with_intra_threads(4)
+            .map_err(ort::Error::<()>::from)
             .context("failed to set intra threads")?
             .commit_from_file(model_path)
             .with_context(|| format!("failed to load ONNX model: {model_path}"))?;
@@ -133,6 +137,26 @@ impl UpscalePipeline {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Protects: loading reports the requested model path and keeps the ORT cause.
+    // Detects: environment/session initialization failures masking a missing model.
+    // Needs: linked ONNX Runtime, writable temporary directory; no model or GPU.
+    // Breadcrumb: UpscalePipeline::load in this module.
+    #[test]
+    fn missing_model_reports_load_context_and_preserves_cause() {
+        let directory = tempfile::tempdir().expect("temporary directory should be available");
+        let model_path = directory.path().join("missing.onnx");
+        let model_path = model_path.to_str().expect("temporary path should be UTF-8");
+        let error = UpscalePipeline::load(model_path)
+            .err()
+            .expect("a missing model must fail to load");
+
+        assert_eq!(error.to_string(), format!("failed to load ONNX model: {model_path}"));
+        assert!(
+            error.chain().any(|cause| cause.is::<ort::Error<()>>()),
+            "the original typed ONNX Runtime error must remain available"
+        );
+    }
 
     #[test]
     fn test_scale_factor() {

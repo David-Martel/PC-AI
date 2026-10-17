@@ -1004,7 +1004,7 @@ pub extern "C" fn pcai_media_upscale_image(
         Ok(p) => p,
         Err(e) => {
             set_error(
-                &format!("failed to load upscale model: {e:#}"),
+                format!("failed to load upscale model: {e:#}"),
                 PcaiMediaErrorCode::IoError,
             );
             return PcaiMediaErrorCode::IoError as i32;
@@ -1014,7 +1014,7 @@ pub extern "C" fn pcai_media_upscale_image(
     let img = match image::open(input) {
         Ok(i) => i,
         Err(e) => {
-            set_error(&format!("failed to open input image: {e}"), PcaiMediaErrorCode::IoError);
+            set_error(format!("failed to open input image: {e}"), PcaiMediaErrorCode::IoError);
             return PcaiMediaErrorCode::IoError as i32;
         }
     };
@@ -1022,14 +1022,14 @@ pub extern "C" fn pcai_media_upscale_image(
     let upscaled = match pipeline.upscale(&img) {
         Ok(u) => u,
         Err(e) => {
-            set_error(&format!("upscale failed: {e:#}"), PcaiMediaErrorCode::GenerationError);
+            set_error(format!("upscale failed: {e:#}"), PcaiMediaErrorCode::GenerationError);
             return PcaiMediaErrorCode::GenerationError as i32;
         }
     };
 
     if let Err(e) = upscaled.save(output) {
         set_error(
-            &format!("failed to save upscaled image: {e}"),
+            format!("failed to save upscaled image: {e}"),
             PcaiMediaErrorCode::IoError,
         );
         return PcaiMediaErrorCode::IoError as i32;

@@ -8,7 +8,7 @@
     - pcai_core_lib.dll - Unified Core engine (Search, Duplicates, System)
     - PcaiNative.dll    - Managed C# bridge
 
-    These provide 5-15x speedup over PowerShell equivalents.
+    Performance depends on the operation and must be measured on the target host.
 
     IMPORTANT: Requires PowerShell 7+ (.NET 8) for the C# wrapper to load.
 #>
@@ -126,6 +126,32 @@ function Initialize-PcaiNative {
         [switch]$Force
     )
 
+    # Explicit overrides are authoritative, including when they are invalid. Validate
+    # before discovery or the loaded-state shortcut so fallback cannot replace intent.
+    $coreFileName = Get-PcaiNativeLibraryFileName -LibraryName 'pcai_core_lib'
+    $explicitCorePath = $null
+    $overrideName = $null
+    foreach ($name in @('PCAI_CORE_LIB_PATH', 'PCAI_TEST_CORE_DLL', 'PCAI_NATIVE_DIR')) {
+        $value = [System.Environment]::GetEnvironmentVariable($name)
+        if ([string]::IsNullOrWhiteSpace($value)) { continue }
+        $overrideName = $name
+        $explicitCorePath = if ($name -eq 'PCAI_NATIVE_DIR' -or
+            (Test-Path -LiteralPath $value -PathType Container)) {
+            Join-Path $value $coreFileName
+        } else { $value }
+        break
+    }
+    if ($overrideName -and -not (Test-Path -LiteralPath $explicitCorePath -PathType Leaf)) {
+        Write-Warning "PCAI Native override $overrideName does not identify an existing core library"
+        $script:PcaiNativeLoaded = $false
+        $script:PcaiNativeVersion = $null
+        $script:PcaiNativeDllPath = $null
+        $script:PcaiNativeCoreLibraryPath = $null
+        $script:PcaiNativeWrapperPath = $null
+        $script:PcaiNativeArtifactHash = $null
+        return $false
+    }
+
     if ($script:PcaiNativeLoaded -and -not $Force) {
         Write-Verbose 'PCAI Native already loaded, skipping initialization'
         return $true
@@ -202,19 +228,8 @@ function Initialize-PcaiNative {
     $wrapperPath = $null
     $coreLibPath = $null
 
-    foreach ($envVar in @('PCAI_CORE_LIB_PATH', 'PCAI_TEST_CORE_DLL')) {
-        $envVal = [System.Environment]::GetEnvironmentVariable($envVar)
-        if (-not [string]::IsNullOrWhiteSpace($envVal)) {
-            $candidate = if (Test-Path $envVal -PathType Container) {
-                Join-Path $envVal $coreFileName
-            } else {
-                $envVal
-            }
-            if (Test-Path $candidate -PathType Leaf) {
-                $coreLibPath = (Resolve-Path -Path $candidate -ErrorAction Stop).Path
-                break
-            }
-        }
+    if ($explicitCorePath) {
+        $coreLibPath = (Resolve-Path -LiteralPath $explicitCorePath -ErrorAction Stop).Path
     }
 
     foreach ($searchPath in $searchPaths) {
@@ -306,11 +321,9 @@ function Test-PcaiNativeAvailable {
     [OutputType([bool])]
     param()
 
-    if (-not $script:PcaiNativeLoaded) {
-        # Try to initialize
-        $null = Initialize-PcaiNative
-    }
-
+    # Initialization validates explicit overrides before its cached-state shortcut.
+    # Always enter it so status callers cannot bypass that validation.
+    $null = Initialize-PcaiNative
     return $script:PcaiNativeLoaded
 }
 

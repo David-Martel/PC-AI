@@ -324,12 +324,12 @@ namespace PcaiNative
 
                 // If an explicit override environment variable was provided and failed to load, fail closed.
                 if (provenance is not null && provenance.StartsWith("env:", StringComparison.Ordinal))
-                    return IntPtr.Zero;
+                    throw new DllNotFoundException($"Authoritative native override ({provenance}) could not load '{resolvedPath}'.");
             }
 
             // If an explicit override pointed to a missing path, do not fall back to system/PATH libraries.
             if (provenance is not null && provenance.EndsWith(":missing", StringComparison.Ordinal))
-                return IntPtr.Zero;
+                throw new DllNotFoundException($"Authoritative native override ({provenance}) does not exist for '{logical}'.");
 
             if (NativeLibrary.TryLoad(logical, assembly, searchPath, out var defaultHandle))
             {

@@ -1,0 +1,47 @@
+name: Native override admission
+on:
+  pull_request:
+    paths:
+      - 'Native/PcaiNative/**'
+      - 'Modules/PC-AI.Acceleration/Private/Initialize-PcaiNative.ps1'
+      - 'Tests/Portable/*native_override*'
+      - 'Tests/Portable/Test-NativeOverrideAdmission.ps1'
+      - '.github/workflows/native-override-admission.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  admission:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
+        with:
+          python-version: '3.12'
+      - name: Initializer rejects explicit missing overrides
+        shell: pwsh
+        run: ./Tests/Portable/Test-NativeOverrideAdmission.ps1
+      - name: Build host native core
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'pcai-admission-core'
+          cargo build --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai_core_lib --no-default-features --target-dir $target
+          if ($LASTEXITCODE -ne 0) { throw 'Native core build failed' }
+          $filename = if ($IsWindows) { 'pcai_core_lib.dll' } else { 'libpcai_core_lib.so' }
+          $artifact = Join-Path $target "debug/$filename"
+          if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) { throw 'Native artifact missing' }
+          "PCAI_ADMISSION_REAL_CORE_PATH=$artifact" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Production resolver in fresh processes
+        shell: pwsh
+        run: |
+          uv run --no-project python -m unittest discover -s Tests/Portable -p test_native_override_admission.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'Native override admission failed' }

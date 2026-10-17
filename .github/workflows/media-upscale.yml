@@ -1,0 +1,48 @@
+name: Media upscale contracts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Native/pcai_core/pcai_media/**'
+      - 'Native/pcai_core/pcai_media_model/**'
+      - 'Native/pcai_core/Cargo.toml'
+      - 'Native/pcai_core/Cargo.lock'
+      - '.github/workflows/media-upscale.yml'
+      - '.cargo/config.toml'
+  push:
+    branches: [main]
+    paths:
+      - 'Native/pcai_core/pcai_media/**'
+      - 'Native/pcai_core/pcai_media_model/**'
+      - 'Native/pcai_core/Cargo.toml'
+      - 'Native/pcai_core/Cargo.lock'
+      - '.github/workflows/media-upscale.yml'
+      - '.cargo/config.toml'
+
+permissions:
+  contents: read
+
+jobs:
+  upscale-contracts:
+    # Protects: the optional ORT loader and default FFI compile/lint contract.
+    # Detects: feature-hidden API drift and tensor/file-error regressions.
+    # Needs: native linker and downloadable ORT binary; no model or GPU.
+    # Scope/review: docs/media-upscale-validation.md
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check default FFI and optional CPU upscale
+        run: cargo check --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale
+      - name: Run real tensor and missing-model contracts
+        run: cargo test --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale upscale::tests
+      - name: Lint the feature-enabled library
+        run: cargo clippy --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale --lib -- -D warnings

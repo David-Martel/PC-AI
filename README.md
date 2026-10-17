@@ -324,3 +324,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and PR
 Linux USB4 discovery: [enrolled observer and service integration](docs/usb4/enrolled-observer.md).
 
 FunctionGemma runtime dependency validation: [build, HTTP contract tests and coverage limits](docs/functiongemma-runtime-validation.md).
+
+Optional ONNX upscale build/test coverage: [media validation](docs/media-upscale-validation.md).

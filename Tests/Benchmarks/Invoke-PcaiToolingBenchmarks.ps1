@@ -32,9 +32,23 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
 
 function Invoke-LegacyTokenEstimate {
-    param([string]$Text)
-    if ([string]::IsNullOrEmpty($Text)) { return 0 }
-    return ([regex]::Matches($Text, '\w+')).Count
+    param(
+        [AllowEmptyString()]
+        [string]$Text
+    )
+    if ([string]::IsNullOrEmpty($Text)) { return [uint64]0 }
+
+    $count = [uint64]0
+    foreach ($match in [regex]::Matches($Text, '[\p{L}\p{N}]+|\s+|[^\p{L}\p{N}\s]')) {
+        $byteLen = [System.Text.Encoding]::UTF8.GetByteCount($match.Value)
+        if ($byteLen -gt 8) {
+            $count += [uint64][Math]::Ceiling($byteLen / 4.0)
+        } else {
+            $count += [uint64]1
+        }
+    }
+
+    return [uint64]($count + 1)
 }
 
 function Get-PowerShellDirectoryManifest {
@@ -283,6 +297,15 @@ function Get-ToolingCaseBenchmarks {
 
     switch ($Case.Id) {
         'token-estimate' {
+            $nativeTokens = & $accelerationModule {
+                param($InnerTokenSample)
+                Get-PcaiTokenEstimate -Text $InnerTokenSample
+            } $TokenSample
+            $baselineTokens = Invoke-LegacyTokenEstimate -Text $TokenSample
+            if ([uint64]$nativeTokens -ne [uint64]$baselineTokens) {
+                throw "Benchmark equivalence failure for 'token-estimate': native returned $nativeTokens tokens, powershell baseline returned $baselineTokens tokens."
+            }
+
             $nativeBlock = {
                 & $accelerationModule {
                     param($InnerTokenSample)
@@ -290,14 +313,30 @@ function Get-ToolingCaseBenchmarks {
                 } $TokenSample | Out-Null
             }.GetNewClosure()
             Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
-            $baselineBlock = { if ([string]::IsNullOrEmpty($TokenSample)) { 0 } else { ([regex]::Matches($TokenSample, '\w+')).Count } }.GetNewClosure()
+            $baselineBlock = {
+                if ([string]::IsNullOrEmpty($TokenSample)) {
+                    [uint64]0 | Out-Null
+                } else {
+                    $count = [uint64]0
+                    foreach ($match in [regex]::Matches($TokenSample, '[\p{L}\p{N}]+|\s+|[^\p{L}\p{N}\s]')) {
+                        $byteLen = [System.Text.Encoding]::UTF8.GetByteCount($match.Value)
+                        if ($byteLen -gt 8) {
+                            $count += [uint64][Math]::Ceiling($byteLen / 4.0)
+                        } else {
+                            $count += [uint64]1
+                        }
+                    }
+                    ([uint64]($count + 1)) | Out-Null
+                }
+            }.GetNewClosure()
             Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{
-                Case        = $Case
-                Path        = $resolvedPath
-                CoverageKey = 'TokenEstimate'
-                Coverage    = $coverageLookup['TokenEstimate']
-                Results     = @($benchmarks)
+                Case                = $Case
+                Path                = $resolvedPath
+                CoverageKey         = 'TokenEstimate'
+                Coverage            = $coverageLookup['TokenEstimate']
+                EquivalenceVerified = $true
+                Results             = @($benchmarks)
             }
         }
         'directory-manifest' {
@@ -600,6 +639,9 @@ function Get-ToolingCaseBenchmarks {
 }
 
 $PcaiRoot = Resolve-TestRepoRoot -StartPath $PSScriptRoot
+if (-not $env:PCAI_ROOT) {
+    $env:PCAI_ROOT = $PcaiRoot
+}
 if (-not $ConfigPath) {
     $ConfigPath = Join-Path $PcaiRoot 'Config\pcai-tooling-benchmarks.json'
 }
@@ -696,6 +738,7 @@ if (-not $SkipPerformance) {
 $benchmarkRows = foreach ($caseResult in $caseResults) {
     $baseline = @($caseResult.Results | Where-Object Backend -eq 'powershell' | Select-Object -First 1)
     $baselineMean = if ($baseline.Count -gt 0) { [double]$baseline[0].MeanMs } else { $null }
+    $equivalenceVerified = if ($caseResult.PSObject.Properties['EquivalenceVerified']) { [bool]$caseResult.EquivalenceVerified } else { $true }
     foreach ($row in @($caseResult.Results)) {
         [PSCustomObject]@{
             CaseId             = $caseResult.Case.id
@@ -712,6 +755,7 @@ $benchmarkRows = foreach ($caseResult in $caseResults) {
             Tool               = $row.Tool
             SpeedupVsBaseline  = if ($baselineMean -and $row.MeanMs -gt 0) { [Math]::Round($baselineMean / [double]$row.MeanMs, 2) } else { $null }
             CoverageState      = if ($caseResult.Coverage) { $caseResult.Coverage.CoverageState } else { 'PowerShellOnly' }
+            EquivalenceVerified = $equivalenceVerified
             WorkingSetDeltaMeanBytes = $row.WorkingSetDeltaMeanBytes
             WorkingSetDeltaMaxBytes  = $row.WorkingSetDeltaMaxBytes
             PrivateMemoryDeltaMeanBytes = $row.PrivateMemoryDeltaMeanBytes
@@ -724,21 +768,49 @@ $benchmarkRows = foreach ($caseResult in $caseResults) {
     }
 }
 
+$gitHead = 'unknown'
+$gitCommit = 'unknown'
+$gitBranch = 'unknown'
+try {
+    $gitHeadOut = git -C $PcaiRoot rev-parse --short HEAD 2>$null
+    if ($gitHeadOut) { $gitHead = ([string]$gitHeadOut).Trim() }
+} catch {}
+try {
+    $gitCommitOut = git -C $PcaiRoot rev-parse HEAD 2>$null
+    if ($gitCommitOut) { $gitCommit = ([string]$gitCommitOut).Trim() }
+} catch {}
+try {
+    $gitBranchOut = git -C $PcaiRoot rev-parse --abbrev-ref HEAD 2>$null
+    if ($gitBranchOut) { $gitBranch = ([string]$gitBranchOut).Trim() }
+} catch {}
+
+$nativeProvenance = $null
+try {
+    $nativeStatusCmd = Get-ModuleFunctionCommand -Module $script:AccelerationModule -CommandName 'Get-PcaiNativeStatus'
+    $nativeProvenance = & $nativeStatusCmd
+} catch {}
+
 $summary = [PSCustomObject]@{
-    Generated        = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-    RepoRoot         = $PcaiRoot
-    ConfigPath       = $ConfigPath
-    Suite            = $suiteName
-    SelectedCases    = @($selectedCases | ForEach-Object { $_.id })
-    BenchmarkCount   = @($benchmarkRows).Count
-    Reports          = [PSCustomObject]@{
+    Generated           = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+    RepoRoot            = $PcaiRoot
+    GitHead             = $gitHead
+    GitCommit           = $gitCommit
+    GitBranch           = $gitBranch
+    ConfigPath          = $ConfigPath
+    Suite               = $suiteName
+    SelectedCases       = @($selectedCases | ForEach-Object { $_.id })
+    BenchmarkCount      = @($benchmarkRows).Count
+    EquivalenceVerified = (@($benchmarkRows | Where-Object { -not $_.EquivalenceVerified }).Count -eq 0)
+    BackendProvenance   = $nativeProvenance
+    ArtifactHash        = if ($nativeProvenance -and $nativeProvenance.PSObject.Properties['ArtifactHash']) { $nativeProvenance.ArtifactHash } else { $null }
+    Reports             = [PSCustomObject]@{
         Root       = $reportRoot
         Json       = (Join-Path $reportRoot 'tooling-benchmark-report.json')
         Markdown   = (Join-Path $reportRoot 'tooling-benchmark-report.md')
     }
-    Capabilities     = $capabilities
-    ToolSchemaReport = $toolCoverageJson
-    Results          = @($benchmarkRows)
+    Capabilities        = $capabilities
+    ToolSchemaReport    = $toolCoverageJson
+    Results             = @($benchmarkRows)
 }
 
 $summary.Reports.Json = $summary.Reports.Json

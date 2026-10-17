@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
@@ -310,7 +310,8 @@ public static class PcaiCore
                         return dict;
                     }
                 }
-            } catch { /* Fallback to standard serialization */ }
+            }
+            catch { /* Fallback to standard serialization */ }
         }
 
         // Handle collections
@@ -400,7 +401,8 @@ public static class PcaiCore
         var telemetry = GetSystemTelemetryJson();
         var vmm = GetVmmHealthJson();
 
-        var snapshot = new {
+        var snapshot = new
+        {
             Metrics = metrics,
             Telemetry = !string.IsNullOrEmpty(telemetry) ? JsonSerializer.Deserialize<JsonElement>(telemetry) : (object?)null,
             VmmHealth = !string.IsNullOrEmpty(vmm) ? JsonSerializer.Deserialize<JsonElement>(vmm) : (object?)null,
@@ -424,13 +426,17 @@ public static class PcaiCore
     /// </summary>
     public static NativeDiagnostics GetDiagnostics()
     {
+        var available = IsAvailable;
         return new NativeDiagnostics
         {
-            IsAvailable = IsAvailable,
+            IsAvailable = available,
             Version = Version,
             CpuCount = CpuCount,
             Platform = Environment.Is64BitProcess ? "x64" : "x86",
-            DotNetVersion = Environment.Version.ToString()
+            DotNetVersion = Environment.Version.ToString(),
+            RuntimeIdentifier = NativeResolver.GetCurrentRuntimeIdentifier(),
+            ResolvedLibraryPath = NativeResolver.GetResolvedLibraryPath(NativeCore.CoreLib),
+            ProvenanceSource = NativeResolver.GetResolvedProvenance(NativeCore.CoreLib),
         };
     }
 }

@@ -56,6 +56,16 @@ function Connect-ThunderboltPeer {
         [string]$MicrosoftAccountEmail = 'davidmartel07@gmail.com',
 
         [Parameter()]
+        [ValidateSet('Auto', 'WinRM', 'SSH')]
+        [string]$Protocol = 'Auto',
+
+        [Parameter()]
+        [string]$SshUser = 'david',
+
+        [Parameter()]
+        [string]$SshCommand = 'hostname && whoami',
+
+        [Parameter()]
         [scriptblock]$ScriptBlock = {
             [PSCustomObject]@{
                 ComputerName = $env:COMPUTERNAME
@@ -79,8 +89,22 @@ function Connect-ThunderboltPeer {
     }
 
     $target = $null
+    $peerHostname = $null
+    $localBindIp = $null
     if ($ComputerName) {
         $target = $ComputerName
+        $peerHostname = $ComputerName
+        # If ComputerName does not resolve via DNS/hosts, fall back to deterministic USB4 ULA / Link-Local
+        $dnsResolved = $false
+        try {
+            $addrs = @([System.Net.Dns]::GetHostAddresses($ComputerName))
+            if ($addrs.Count -gt 0) { $dnsResolved = $true }
+        } catch { }
+        if (-not $dnsResolved -and (Get-Command Get-ThunderboltPeerIdentity -ErrorAction SilentlyContinue)) {
+            $peerId = Get-ThunderboltPeerIdentity -ComputerName $ComputerName
+            $peerHostname = $peerId.ComputerName
+            $target = $peerId.PrimaryUla
+        }
     } elseif ($Address) {
         $target = $Address
     } else {
@@ -92,23 +116,42 @@ function Connect-ThunderboltPeer {
         if ($status.Count -eq 0 -and -not [string]::IsNullOrWhiteSpace($InterfaceAlias)) {
             $status = @(Get-ThunderboltNetworkStatus -ProbeWinRM)
         }
-        $candidate = $status |
-            ForEach-Object { @($_.NeighborCandidates) } |
-            Where-Object { $_.WsManReachable -eq $true } |
+        $annotatedCandidates = @(foreach ($adapterStatus in $status) {
+            foreach ($cand in @($adapterStatus.NeighborCandidates)) {
+                [PSCustomObject]@{
+                    Candidate      = $cand
+                    AdapterStatus  = $adapterStatus
+                }
+            }
+        })
+        $selectedEntry = $annotatedCandidates |
+            Where-Object {
+                ($Protocol -eq 'SSH' -and $_.Candidate.SshReachable -eq $true) -or
+                ($Protocol -ne 'SSH' -and ($_.Candidate.WsManReachable -eq $true -or ($Protocol -eq 'Auto' -and $_.Candidate.SshReachable -eq $true)))
+            } |
             Select-Object -First 1
 
-        if (-not $candidate) {
-            $allCandidates = @($status | ForEach-Object { @($_.NeighborCandidates) } | Select-Object -ExpandProperty IPAddress -Unique)
+        if (-not $selectedEntry) {
+            $allCandidates = @($annotatedCandidates | ForEach-Object { $_.Candidate.IPAddress } | Select-Object -Unique)
             if ($allCandidates.Count -gt 0) {
-                throw "No WinRM-reachable Thunderbolt peer was discovered on '$InterfaceAlias'. Discovered peer addresses: $($allCandidates -join ', ')"
+                throw "No reachable Thunderbolt peer was discovered on '$InterfaceAlias'. Discovered peer addresses: $($allCandidates -join ', ')"
             }
             $resolvedAlias = if ($status.Count -gt 0) { [string]$status[0].InterfaceAlias } else { [string]$InterfaceAlias }
-            throw "No Thunderbolt peer address was discovered on '$resolvedAlias'. Verify the remote Windows machine exposes a live USB4 P2P adapter."
+            throw "No Thunderbolt peer address was discovered on '$resolvedAlias'. Verify the remote machine exposes a live USB4 P2P adapter."
         }
 
+        $candidate = $selectedEntry.Candidate
+        $owningAdapter = $selectedEntry.AdapterStatus
         $target = $candidate.IPAddress
-        if ([string]::IsNullOrWhiteSpace($InterfaceAlias) -and $status.Count -gt 0) {
-            $InterfaceAlias = [string]$status[0].InterfaceAlias
+        if ($candidate.PSObject.Properties['PeerHostname']) {
+            $peerHostname = $candidate.PeerHostname
+        }
+        if ([string]::IsNullOrWhiteSpace($InterfaceAlias) -and $owningAdapter) {
+            $InterfaceAlias = [string]$owningAdapter.InterfaceAlias
+        }
+        if ($owningAdapter) {
+            $localIps = @($owningAdapter.IPv4Addresses | Where-Object { $_ -like '169.254.*' })
+            if ($localIps.Count -gt 0) { $localBindIp = [string]$localIps[0] }
         }
     }
 
@@ -118,6 +161,25 @@ function Connect-ThunderboltPeer {
             Select-Object -First 1 -ExpandProperty InterfaceIndex
         if ($scope) {
             $target = "$target%$scope"
+        }
+    }
+
+    if ($Protocol -eq 'SSH') {
+        $sshArgs = @('-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5', '-o', 'StrictHostKeyChecking=accept-new')
+        if ($localBindIp -and $target -like '169.254.*') {
+            $sshArgs += @('-o', "BindAddress=$localBindIp")
+        }
+        $sshArgs += @('-l', $SshUser, $target, $SshCommand)
+        $sshOutput = & ssh.exe @sshArgs 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Thunderbolt peer SSH connection failed for '$SshUser@$target': $($sshOutput -join ' ')"
+        }
+        return [PSCustomObject]@{
+            Target         = $target
+            PeerHostname   = $peerHostname
+            Protocol       = 'SSH'
+            Authentication = "SSHKey($SshUser)"
+            Result         = ($sshOutput -join [Environment]::NewLine).Trim()
         }
     }
 
@@ -152,6 +214,8 @@ function Connect-ThunderboltPeer {
     $result = Invoke-Command @sessionParams -ScriptBlock $ScriptBlock
     return [PSCustomObject]@{
         Target         = $target
+        PeerHostname   = $peerHostname
+        Protocol       = 'WinRM'
         Authentication = if ($Credential) { 'Negotiate+ExplicitCredential' } else { 'Negotiate+CurrentUser' }
         Result         = $result
     }

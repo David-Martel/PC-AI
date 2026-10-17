@@ -226,8 +226,8 @@ function Get-PcaiExternalCacheConfig {
         [string]$env:PCAI_REDIS_CLI_PATH,
         'C:\Program Files\Redis\redis-cli.exe',
         'T:\projects\redis-windows\redis-cli.exe',
-        (Join-Path $env:USERPROFILE 'bin\redis-cli.exe'),
-        (Join-Path $env:LOCALAPPDATA 'Programs\Redis\redis-cli.exe')
+        $(if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) { Join-Path $env:USERPROFILE 'bin\redis-cli.exe' }),
+        $(if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { Join-Path $env:LOCALAPPDATA 'Programs\Redis\redis-cli.exe' })
     ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
 
     foreach ($candidate in $cliCandidates) {

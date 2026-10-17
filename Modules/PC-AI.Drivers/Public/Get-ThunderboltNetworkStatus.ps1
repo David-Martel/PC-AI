@@ -407,40 +407,120 @@ function Get-ThunderboltNetworkStatus {
             [int]$adapter.Index
         }
 
+        $pnpAncestry = @()
+        $propAncestry = $adapter.PSObject.Properties['PnpAncestry']
+        if ($propAncestry -and $propAncestry.Value) {
+            $pnpAncestry = @($propAncestry.Value | ForEach-Object { [string]$_ })
+        } elseif (-not [string]::IsNullOrWhiteSpace([string]$adapter.PNPDeviceID)) {
+            $curId = [string]$adapter.PNPDeviceID
+            $depth = 0
+            while ($curId -and $depth -lt 10) {
+                $pnpAncestry += $curId
+                $parentVal = $null
+                try {
+                    if (Get-Command Get-PnpDeviceProperty -ErrorAction SilentlyContinue) {
+                        $propObj = Get-PnpDeviceProperty -InstanceId $curId -KeyName 'DEVPKEY_Device_Parent' -ErrorAction Stop
+                        if ($propObj -and $propObj.Data) {
+                            $parentVal = [string]$propObj.Data
+                        }
+                    }
+                } catch {
+                    $parentVal = $null
+                }
+                $curId = $parentVal
+                $depth++
+            }
+        }
+
+        $rootRouterId = $null
+        $pciHostRouterId = $null
+        $intermediateDockRouters = [System.Collections.Generic.List[string]]::new()
+        foreach ($node in @($pnpAncestry | Select-Object -Skip 1)) {
+            $uNode = $node.ToUpperInvariant()
+            if ($uNode -like 'USB4\ROOT_DEVICE_ROUTER*') {
+                if (-not $rootRouterId) { $rootRouterId = $node }
+            } elseif ($uNode -like 'USB4\VID_*') {
+                if (-not $intermediateDockRouters.Contains($node)) {
+                    $intermediateDockRouters.Add($node)
+                }
+            } elseif ($uNode -like 'PCI\VEN_*USB4*') {
+                if (-not $pciHostRouterId) { $pciHostRouterId = $node }
+            }
+        }
+
+        if ($intermediateDockRouters.Count -eq 0 -and $rootRouterId -and $rootRouterId.ToUpperInvariant().Contains('PID_5781')) {
+            try {
+                if (Get-Command Get-PnpDevice -ErrorAction SilentlyContinue) {
+                    foreach ($dockDev in @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'USB4\VID_*' })) {
+                        $dId = [string]$dockDev.InstanceId
+                        if ($dId -and -not $intermediateDockRouters.Contains($dId)) {
+                            $intermediateDockRouters.Add($dId)
+                        }
+                    }
+                }
+            } catch { }
+        }
+
+        $topologyPathClass = if ($pnpAncestry.Count -lt 2 -or [string]::IsNullOrWhiteSpace($rootRouterId)) {
+            'unknown'
+        } elseif ($rootRouterId.ToUpperInvariant().Contains('PID_E333') -and $intermediateDockRouters.Count -eq 0) {
+            'host_port_control'
+        } elseif ($intermediateDockRouters.Count -ge 2) {
+            'required_two_hub'
+        } elseif ($intermediateDockRouters.Count -eq 1 -or $rootRouterId.ToUpperInvariant().Contains('PID_5781')) {
+            'single_hub_chain'
+        } else {
+            'host_port_control'
+        }
+
+        $rawSpeedBps = if ($null -ne $adapter.Speed -and [uint64]$adapter.Speed -gt 0) {
+            [uint64]$adapter.Speed
+        } else {
+            [uint64]20000000000
+        }
+
         [PSCustomObject]@{
-            InterfaceAlias                = $adapter.NetConnectionID
-            InterfaceIndex                = $resolvedIfIndex
-            Name                          = $adapter.Name
-            Description                   = $adapter.Description
-            Role                          = $role
-            NetEnabled                    = [bool]$adapter.NetEnabled
-            NetConnectionStatus           = $adapter.NetConnectionStatus
-            LinkSpeedGbps                 = Convert-LinkSpeedToGbps -Speed $adapter.Speed
-            MacAddress                    = $adapter.MACAddress
-            PnpDeviceId                   = $adapter.PNPDeviceID
-            DriverVersion                 = if ($driver) { $driver.DriverVersion } else { $null }
-            DriverProvider                = if ($driver) { $driver.DriverProviderName } else { $null }
-            IPv4Addresses                 = @($ipv4)
-            IPv6Addresses                 = @($ipv6)
-            IPv4Metric                    = if ($ipv4Interface) { $ipv4Interface.InterfaceMetric } else { $null }
-            IPv6Metric                    = if ($ipv6Interface) { $ipv6Interface.InterfaceMetric } else { $null }
-            IPv4Mtu                       = if ($ipv4Interface) { $ipv4Interface.NlMtu } else { $null }
-            IPv6Mtu                       = if ($ipv6Interface) { $ipv6Interface.NlMtu } else { $null }
-            AutomaticMetric               = if ($ipv4Interface) { [bool]$ipv4Interface.AutomaticMetric } else { $null }
-            SelectiveSuspend              = $selectiveSuspend
-            WakeOnMagicPacket             = $wakeOnMagicPacket
-            WakeOnPattern                 = $wakeOnPattern
-            ArpOffload                    = $arpOffload
-            NSOffload                     = $nsOffload
-            AlwaysOnTransitCapable        = [bool]$alwaysOnTransitCapable
-            TransitClaimProhibitionReasons = @($transitProhibitions)
-            LifecycleState                = $lifecycleState
-            EvidenceObservedAtUtc         = $observedAtUtc.ToString('o')
-            EvidenceTtlSeconds            = $EvidenceTtlSeconds
-            EvidenceExpiresAtUtc          = $expiresAtUtc.ToString('o')
-            EvidenceExpired               = $false
-            NeighborCandidates            = @($peerCandidates)
-            RecommendedActions            = @($recommendations)
+            InterfaceAlias                   = $adapter.NetConnectionID
+            InterfaceIndex                   = $resolvedIfIndex
+            Name                             = $adapter.Name
+            Description                      = $adapter.Description
+            Role                             = $role
+            NetEnabled                       = [bool]$adapter.NetEnabled
+            NetConnectionStatus              = $adapter.NetConnectionStatus
+            LinkSpeedGbps                    = Convert-LinkSpeedToGbps -Speed $adapter.Speed
+            WindowsReportedLinkSpeedBps      = $rawSpeedBps
+            LinkSpeedIsNominalDriverDisplay  = $true
+            LinkSpeedIsHardwareMaximum       = $false
+            MacAddress                       = $adapter.MACAddress
+            PnpDeviceId                      = $adapter.PNPDeviceID
+            PnpAncestry                      = @($pnpAncestry)
+            RootRouterId                     = $rootRouterId
+            PciHostRouterId                  = $pciHostRouterId
+            IntermediateDockRouters          = @($intermediateDockRouters)
+            TopologyPathClass                = $topologyPathClass
+            DriverVersion                    = if ($driver) { $driver.DriverVersion } else { $null }
+            DriverProvider                   = if ($driver) { $driver.DriverProviderName } else { $null }
+            IPv4Addresses                    = @($ipv4)
+            IPv6Addresses                    = @($ipv6)
+            IPv4Metric                       = if ($ipv4Interface) { $ipv4Interface.InterfaceMetric } else { $null }
+            IPv6Metric                       = if ($ipv6Interface) { $ipv6Interface.InterfaceMetric } else { $null }
+            IPv4Mtu                          = if ($ipv4Interface) { $ipv4Interface.NlMtu } else { $null }
+            IPv6Mtu                          = if ($ipv6Interface) { $ipv6Interface.NlMtu } else { $null }
+            AutomaticMetric                  = if ($ipv4Interface) { [bool]$ipv4Interface.AutomaticMetric } else { $null }
+            SelectiveSuspend                 = $selectiveSuspend
+            WakeOnMagicPacket                = $wakeOnMagicPacket
+            WakeOnPattern                    = $wakeOnPattern
+            ArpOffload                       = $arpOffload
+            NSOffload                        = $nsOffload
+            AlwaysOnTransitCapable           = [bool]$alwaysOnTransitCapable
+            TransitClaimProhibitionReasons   = @($transitProhibitions)
+            LifecycleState                   = $lifecycleState
+            EvidenceObservedAtUtc            = $observedAtUtc.ToString('o')
+            EvidenceTtlSeconds               = $EvidenceTtlSeconds
+            EvidenceExpiresAtUtc             = $expiresAtUtc.ToString('o')
+            EvidenceExpired                  = $false
+            NeighborCandidates               = @($peerCandidates)
+            RecommendedActions               = @($recommendations)
         }
     }
 

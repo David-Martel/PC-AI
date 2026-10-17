@@ -29,22 +29,36 @@ impl Usb4LifecycleState {
     }
 }
 
+fn default_route_ttl_seconds() -> u64 {
+    90
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Usb4LifecyclePolicy {
     #[serde(default)]
     pub states: Vec<Usb4LifecycleState>,
+    #[serde(alias = "default_evidence_ttl_seconds")]
     pub default_evidence_ttl_seconds: u64,
+    #[serde(default = "default_route_ttl_seconds", alias = "route_ttl_seconds")]
+    pub route_ttl_seconds: u64,
+    #[serde(alias = "bounded_resume_reprobe_max_attempts")]
     pub bounded_resume_reprobe_max_attempts: u32,
+    #[serde(alias = "bounded_resume_reprobe_timeout_ms")]
     pub bounded_resume_reprobe_timeout_ms: u64,
+    #[serde(alias = "bounded_resume_total_budget_ms")]
     pub bounded_resume_total_budget_ms: u64,
+    #[serde(alias = "withdraw_owned_stale_routes_on_expire_or_disconnect")]
     pub withdraw_owned_stale_routes_on_expire_or_disconnect: bool,
+    #[serde(alias = "require_identity_bound_canary")]
     pub require_identity_bound_canary: bool,
+    #[serde(alias = "allow_always_on_transit_claim_when_selective_suspend")]
     pub allow_always_on_transit_claim_when_selective_suspend: bool,
+    #[serde(default, alias = "ms01_uplink_cap_mbps")]
     pub ms01_uplink_cap_mbps: Option<u32>,
-    #[serde(default)]
+    #[serde(default, alias = "preserved_active_pairs")]
     pub preserved_active_pairs: Vec<String>,
-    #[serde(default)]
+    #[serde(default, alias = "preserved_bridges")]
     pub preserved_bridges: Vec<String>,
 }
 
@@ -58,6 +72,7 @@ impl Default for Usb4LifecyclePolicy {
                 Usb4LifecycleState::Ready,
             ],
             default_evidence_ttl_seconds: 300,
+            route_ttl_seconds: 90,
             bounded_resume_reprobe_max_attempts: 3,
             bounded_resume_reprobe_timeout_ms: 250,
             bounded_resume_total_budget_ms: 1500,
@@ -82,6 +97,8 @@ pub struct PeerRegistryFile {
     pub default_interface_metric: Option<u32>,
     #[serde(default)]
     pub usb4_lifecycle_policy: Option<Usb4LifecyclePolicy>,
+    #[serde(default, alias = "lifecycle_policy")]
+    pub lifecycle_policy: Option<Usb4LifecyclePolicy>,
     #[serde(default)]
     pub ipam_allocations: Option<IpamAllocations>,
     #[serde(default)]
@@ -118,6 +135,131 @@ pub struct SharedSwitchSubnet {
     pub role: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TopologyPathClass {
+    HostPortControl,
+    RequiredTwoHub,
+    SingleHubChain,
+    TransparentBridge,
+    UnclassifiedPrefixOnly,
+    Unknown,
+}
+
+impl TopologyPathClass {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::HostPortControl => "host_port_control",
+            Self::RequiredTwoHub => "required_two_hub",
+            Self::SingleHubChain => "single_hub_chain",
+            Self::TransparentBridge => "transparent_bridge",
+            Self::UnclassifiedPrefixOnly => "unclassified_prefix_only",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct Usb4PnpAncestryClassification {
+    pub adapter_instance_id: String,
+    pub pnp_ancestry: Vec<String>,
+    pub root_router_id: Option<String>,
+    pub pci_host_router_id: Option<String>,
+    pub intermediate_dock_routers: Vec<String>,
+    pub classified_by_full_ancestry: bool,
+    pub topology_path_class: TopologyPathClass,
+}
+
+/// Classifies a Windows USB4 `PROT_USB4NET` adapter strictly by walking its full
+/// `DEVPKEY_Device_Parent` PnP ancestry up to `USB4\ROOT_DEVICE_ROUTER` and `PCI\VEN_`.
+/// Refuses to classify router topology from an `InstanceId` prefix alone (`pnp_ancestry.len() < 2`),
+/// because `USB4\VEN_1D6B&DEV_00000004&PROT_USB4NET\...` and `USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\...`
+/// prefixes do not uniquely identify whether the adapter sits under `PID_5781` (TB5 dock root router)
+/// or `PID_E333` (direct host port root router).
+pub fn classify_usb4_pnp_ancestry(
+    pnp_ancestry: &[String],
+    dock_routers_on_host: &[String],
+) -> Result<Usb4PnpAncestryClassification> {
+    if pnp_ancestry.len() < 2 {
+        let inst = pnp_ancestry.first().cloned().unwrap_or_default();
+        anyhow::bail!(
+            "Refusing to classify USB4 router topology from InstanceId prefix alone ('{inst}', pnp_ancestry len={}); full DEVPKEY_Device_Parent chain up to USB4\\ROOT_DEVICE_ROUTER and PCI\\VEN_ is required",
+            pnp_ancestry.len()
+        );
+    }
+
+    let adapter_instance_id = pnp_ancestry[0].clone();
+    let mut root_router_id: Option<String> = None;
+    let mut pci_host_router_id: Option<String> = None;
+    let mut intermediate_dock_routers: Vec<String> = Vec::new();
+
+    for ancestor in &pnp_ancestry[1..] {
+        let upper = ancestor.trim().to_ascii_uppercase();
+        if upper.starts_with("USB4\\ROOT_DEVICE_ROUTER") {
+            if root_router_id.is_none() {
+                root_router_id = Some(ancestor.trim().to_string());
+            }
+        } else if upper.starts_with("USB4\\VID_") {
+            intermediate_dock_routers.push(ancestor.trim().to_string());
+        } else if upper.starts_with("PCI\\VEN_") && pci_host_router_id.is_none() {
+            pci_host_router_id = Some(ancestor.trim().to_string());
+        }
+    }
+
+    let (Some(root_router), Some(pci_router)) = (root_router_id.clone(), pci_host_router_id.clone()) else {
+        anyhow::bail!(
+            "Incomplete USB4 PnP ancestry for '{}': missing USB4\\ROOT_DEVICE_ROUTER or PCI\\VEN_ host router ancestor in {:?}",
+            adapter_instance_id,
+            pnp_ancestry
+        );
+    };
+
+    // On Windows USB4_MS_CM, a PROT_USB4NET PDO (e.g. USB4\...\8&36E6FB2D&0&3) and its
+    // sibling dock router (e.g. USB4\VID_8087&PID_5786\8&36E6FB2D&0&1) share the same
+    // parent root router and bus instance prefix (e.g. "8&36E6FB2D&0&").
+    let adapter_bus_prefix = adapter_instance_id
+        .rsplit_once('\\')
+        .and_then(|(_, tail)| tail.rsplit_once('&').map(|(prefix, _)| prefix.to_ascii_uppercase()));
+
+    for dock_router in dock_routers_on_host {
+        let dock_trimmed = dock_router.trim();
+        let dock_upper = dock_trimmed.to_ascii_uppercase();
+        if !dock_upper.starts_with("USB4\\VID_") {
+            continue;
+        }
+        let dock_bus_prefix = dock_trimmed
+            .rsplit_once('\\')
+            .and_then(|(_, tail)| tail.rsplit_once('&').map(|(prefix, _)| prefix.to_ascii_uppercase()));
+        if adapter_bus_prefix.is_some()
+            && adapter_bus_prefix == dock_bus_prefix
+            && !intermediate_dock_routers
+                .iter()
+                .any(|d| d.eq_ignore_ascii_case(dock_trimmed))
+        {
+            intermediate_dock_routers.push(dock_trimmed.to_string());
+        }
+    }
+
+    let topology_path_class = if intermediate_dock_routers.is_empty() {
+        TopologyPathClass::HostPortControl
+    } else if intermediate_dock_routers.len() >= 2 {
+        TopologyPathClass::RequiredTwoHub
+    } else {
+        TopologyPathClass::SingleHubChain
+    };
+
+    Ok(Usb4PnpAncestryClassification {
+        adapter_instance_id,
+        pnp_ancestry: pnp_ancestry.to_vec(),
+        root_router_id: Some(root_router),
+        pci_host_router_id: Some(pci_router),
+        intermediate_dock_routers,
+        classified_by_full_ancestry: true,
+        topology_path_class,
+    })
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TopologyLinkSpec {
@@ -144,8 +286,60 @@ pub struct TopologyLinkSpec {
     pub preserve_bridge_custody: Option<bool>,
     #[serde(default)]
     pub downstream_link_status: Option<String>,
-    #[serde(default)]
+    #[serde(default, alias = "windowsXDomainPresent")]
     pub windows_xdomain_present: Option<bool>,
+    #[serde(default)]
+    pub required_topology_class: Option<TopologyPathClass>,
+    #[serde(default)]
+    pub observed_topology_class: Option<TopologyPathClass>,
+    #[serde(default)]
+    pub qualification_scope: Option<String>,
+    #[serde(default)]
+    pub required_topology_qualified: Option<bool>,
+    #[serde(default)]
+    pub expected_local_root_router_id: Option<String>,
+    #[serde(default)]
+    pub expected_local_dock_router_id: Option<String>,
+    #[serde(default, alias = "local_root_router_fw")]
+    pub local_root_router_fw: Option<String>,
+    #[serde(default, alias = "dock_model")]
+    pub dock_model: Option<String>,
+    #[serde(default, alias = "dock_serial")]
+    pub dock_serial: Option<String>,
+    #[serde(default, alias = "dock_status")]
+    pub dock_status: Option<String>,
+    #[serde(default, alias = "dock_fw_package")]
+    pub dock_fw_package: Option<String>,
+    #[serde(default, alias = "dock_fw_target")]
+    pub dock_fw_target: Option<String>,
+    #[serde(default, alias = "dock_pd_fw")]
+    pub dock_pd_fw: Option<String>,
+    #[serde(default, alias = "dock_pd_fw_target")]
+    pub dock_pd_fw_target: Option<String>,
+    #[serde(default, alias = "dock_tbt5_nvm")]
+    pub dock_tbt5_nvm: Option<String>,
+    #[serde(default, alias = "dock_tbt5_nvm_target")]
+    pub dock_tbt5_nvm_target: Option<String>,
+    #[serde(default, alias = "dock_dmc_fw")]
+    pub dock_dmc_fw: Option<String>,
+    #[serde(default, alias = "dock_dmc_fw_target")]
+    pub dock_dmc_fw_target: Option<String>,
+    #[serde(default, alias = "dock_dp_fw")]
+    pub dock_dp_fw: Option<String>,
+    #[serde(default, alias = "dock_dp_fw_target")]
+    pub dock_dp_fw_target: Option<String>,
+    #[serde(default, alias = "dock_usb3_fw")]
+    pub dock_usb3_fw: Option<String>,
+    #[serde(default, alias = "dock_usb3_fw_target")]
+    pub dock_usb3_fw_target: Option<String>,
+    #[serde(default)]
+    pub windows_reported_link_speed_bps: Option<u64>,
+    #[serde(default)]
+    pub link_speed_is_nominal_driver_display: Option<bool>,
+    #[serde(default)]
+    pub link_speed_is_hardware_maximum: Option<bool>,
+    #[serde(default)]
+    pub measured_payload_gbps_samples: Vec<f64>,
     #[serde(default)]
     pub expected_peer_macs: std::collections::BTreeMap<String, String>,
     #[serde(default)]
@@ -220,6 +414,11 @@ impl PeerRegistryFile {
                     .context("Failed to parse legacy 'peers' array into PeerRegistryEntry list")?;
                 self.fleet_peers = parsed;
             }
+        }
+        if self.usb4_lifecycle_policy.is_none() && self.lifecycle_policy.is_some() {
+            self.usb4_lifecycle_policy = self.lifecycle_policy.clone();
+        } else if self.lifecycle_policy.is_none() && self.usb4_lifecycle_policy.is_some() {
+            self.lifecycle_policy = self.usb4_lifecycle_policy.clone();
         }
         validate_peer_registry(&self)?;
         Ok(self)
@@ -761,11 +960,17 @@ pub fn validate_peer_registry(reg: &PeerRegistryFile) -> Result<()> {
         }
     }
 
-    if let Some(ref policy) = reg.usb4_lifecycle_policy {
+    if let Some(policy) = reg.usb4_lifecycle_policy.as_ref().or(reg.lifecycle_policy.as_ref()) {
         if policy.default_evidence_ttl_seconds == 0 || policy.default_evidence_ttl_seconds > 86_400 {
             anyhow::bail!(
                 "usb4LifecyclePolicy.defaultEvidenceTtlSeconds must be between 1 and 86400 (got {})",
                 policy.default_evidence_ttl_seconds
+            );
+        }
+        if policy.route_ttl_seconds == 0 || policy.route_ttl_seconds > 86_400 {
+            anyhow::bail!(
+                "usb4LifecyclePolicy.route_ttl_seconds must be between 1 and 86400 (got {})",
+                policy.route_ttl_seconds
             );
         }
         if policy.bounded_resume_reprobe_max_attempts == 0 || policy.bounded_resume_reprobe_max_attempts > 10 {
@@ -849,6 +1054,28 @@ pub fn validate_peer_registry(reg: &PeerRegistryFile) -> Result<()> {
                     link.windows_xdomain_present
                 );
             }
+            if link.required_topology_qualified == Some(true) {
+                anyhow::bail!(
+                    "topologyLinks '{id}' cannot claim requiredTopologyQualified=true when downstreamLinkStatus={:?} or windowsXDomainPresent={:?} (no observed XDomain = no link admission)",
+                    link.downstream_link_status,
+                    link.windows_xdomain_present
+                );
+            }
+        }
+        if link.required_topology_class == Some(TopologyPathClass::RequiredTwoHub)
+            && link.observed_topology_class == Some(TopologyPathClass::HostPortControl)
+            && link.required_topology_qualified == Some(true)
+        {
+            anyhow::bail!(
+                "topologyLinks '{id}' cannot claim requiredTopologyQualified=true when requiredTopologyClass='required_two_hub' but observedTopologyClass='host_port_control' (host-port control only qualifies cable/port, not two-hub inter-dock path)"
+            );
+        }
+        if link.windows_reported_link_speed_bps == Some(20_000_000_000)
+            && link.link_speed_is_hardware_maximum == Some(true)
+        {
+            anyhow::bail!(
+                "topologyLinks '{id}' cannot claim linkSpeedIsHardwareMaximum=true for Windows nominal 20 Gbps (20000000000 bps) usb4net.sys driver display"
+            );
         }
     }
     detect_l2_bridge_cycles(&reg.topology_links)?;
@@ -892,15 +1119,14 @@ pub fn default_registry_candidates(explicit_path: Option<&Path>) -> Vec<PathBuf>
     if let Ok(exe) = env::current_exe() {
         if let Some(bin_dir) = exe.parent() {
             paths.push(bin_dir.join("thunderbolt-peers.json"));
-            if let Some(parent) = bin_dir.parent() {
-                paths.push(parent.join("Config").join("thunderbolt-peers.json"));
-                if let Some(grand) = parent.parent() {
-                    paths.push(grand.join("Config").join("thunderbolt-peers.json"));
-                    if let Some(root) = grand.parent() {
-                        paths.push(root.join("Config").join("thunderbolt-peers.json"));
-                    }
-                }
+            for anc in bin_dir.ancestors().take(6) {
+                paths.push(anc.join("Config").join("thunderbolt-peers.json"));
             }
+        }
+    }
+    if let Ok(cwd) = env::current_dir() {
+        for anc in cwd.ancestors().take(6) {
+            paths.push(anc.join("Config").join("thunderbolt-peers.json"));
         }
     }
     paths.push(PathBuf::from(r"C:\codedev\PC_AI\Config\thunderbolt-peers.json"));
@@ -1501,7 +1727,9 @@ mod tests {
         let parsed_false_ready: PeerRegistryFile = serde_json::from_str(false_ready_json).unwrap();
         let err_ready = parsed_false_ready.normalize_and_validate().unwrap_err();
         assert!(
-            err_ready.to_string().contains("cannot claim lifecycleStateHint='ready'"),
+            err_ready
+                .to_string()
+                .contains("cannot claim lifecycleStateHint='ready'"),
             "expected false ready rejection, got: {err_ready}"
         );
 
@@ -1526,6 +1754,108 @@ mod tests {
                 .to_string()
                 .contains("allowAlwaysOnTransitClaimWhenSelectiveSuspend must be false"),
             "expected false always-on transit policy rejection, got: {err_transit}"
+        );
+
+        let false_hostport_qual_json = r#"{
+            "schemaVersion": 1,
+            "topologyLinks": [
+                {
+                    "linkId": "ms01-plugable-gen9-hostport-control",
+                    "sourceHost": "minisforum",
+                    "sourceInterface": "usb4-win",
+                    "targetHost": "dtm-p1gen9",
+                    "targetInterface": "Ethernet 5",
+                    "linkIntent": "routed-p2p",
+                    "bridgeDomain": null,
+                    "requiredTopologyClass": "required_two_hub",
+                    "observedTopologyClass": "host_port_control",
+                    "requiredTopologyQualified": true
+                }
+            ],
+            "fleetPeers": []
+        }"#;
+        let parsed_hp: PeerRegistryFile = serde_json::from_str(false_hostport_qual_json).unwrap();
+        let err_hp = parsed_hp.normalize_and_validate().unwrap_err();
+        assert!(
+            err_hp
+                .to_string()
+                .contains("cannot claim requiredTopologyQualified=true when requiredTopologyClass='required_two_hub' but observedTopologyClass='host_port_control'"),
+            "expected host_port_control false qualification rejection, got: {err_hp}"
+        );
+
+        let false_hw_max_json = r#"{
+            "schemaVersion": 1,
+            "topologyLinks": [
+                {
+                    "linkId": "gen7-gen9-usb4-hub-chain",
+                    "sourceHost": "dtm-p1gen7",
+                    "sourceInterface": "Ethernet 18",
+                    "targetHost": "dtm-p1gen9",
+                    "targetInterface": "Ethernet 4",
+                    "linkIntent": "routed-p2p",
+                    "bridgeDomain": null,
+                    "windowsReportedLinkSpeedBps": 20000000000,
+                    "linkSpeedIsHardwareMaximum": true
+                }
+            ],
+            "fleetPeers": []
+        }"#;
+        let parsed_hw: PeerRegistryFile = serde_json::from_str(false_hw_max_json).unwrap();
+        let err_hw = parsed_hw.normalize_and_validate().unwrap_err();
+        assert!(
+            err_hw
+                .to_string()
+                .contains("cannot claim linkSpeedIsHardwareMaximum=true for Windows nominal 20 Gbps"),
+            "expected nominal 20Gb hardware max rejection, got: {err_hw}"
+        );
+    }
+
+    #[test]
+    fn test_classify_usb4_pnp_ancestry_rejects_prefix_only_and_distinguishes_root_routers() {
+        // 1. Prefix-only (single InstanceId without parent chain) MUST be rejected
+        let prefix_only = vec![r"USB4\VEN_1D6B&DEV_00000004&PROT_USB4NET\5&19C8806A&0&1".to_string()];
+        let err = classify_usb4_pnp_ancestry(&prefix_only, &[]).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Refusing to classify USB4 router topology from InstanceId prefix alone"),
+            "expected prefix-only rejection, got: {err}"
+        );
+
+        // 2. Host port control (Ethernet 5 under PID_E333) vs Dock chain (under PID_5781 with Lenovo 40BA dock router)
+        // Both adapters can share the exact same USB4\VEN_1D6B&DEV_00000004&PROT_USB4NET\ prefix!
+        let dock_routers = vec![r"USB4\VID_8087&PID_5786\8&36E6FB2D&0&1".to_string()];
+        let host_port_ancestry = vec![
+            r"USB4\VEN_1D6B&DEV_00000004&PROT_USB4NET\5&19C8806A&0&1".to_string(),
+            r"USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_E333\4&e448b37&0&0".to_string(),
+            r"PCI\VEN_8086&DEV_E333&SUBSYS_235C17AA&REV_00&USB4_MS_CM\3&11583659&0&6A".to_string(),
+            r"ACPI\PNP0A08\0".to_string(),
+        ];
+        let dock_chain_ancestry = vec![
+            r"USB4\VEN_1D6B&DEV_00000004&PROT_USB4NET\8&36E6FB2D&0&3".to_string(),
+            r"USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_5781\7&290e0051&0&0".to_string(),
+            r"PCI\VEN_8086&DEV_5781&SUBSYS_00008086&REV_84&USB4_MS_CM\F109A9000000178700".to_string(),
+            r"PCI\VEN_8086&DEV_5780&SUBSYS_11112222&REV_84\F109A9000000178700".to_string(),
+        ];
+
+        let hp_class = classify_usb4_pnp_ancestry(&host_port_ancestry, &dock_routers).unwrap();
+        assert!(hp_class.classified_by_full_ancestry);
+        assert_eq!(hp_class.topology_path_class, TopologyPathClass::HostPortControl);
+        assert!(hp_class.intermediate_dock_routers.is_empty());
+        assert_eq!(
+            hp_class.root_router_id.as_deref(),
+            Some(r"USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_E333\4&e448b37&0&0")
+        );
+
+        let dock_class = classify_usb4_pnp_ancestry(&dock_chain_ancestry, &dock_routers).unwrap();
+        assert!(dock_class.classified_by_full_ancestry);
+        assert_eq!(dock_class.topology_path_class, TopologyPathClass::SingleHubChain);
+        assert_eq!(
+            dock_class.intermediate_dock_routers,
+            vec![r"USB4\VID_8087&PID_5786\8&36E6FB2D&0&1".to_string()]
+        );
+        assert_eq!(
+            dock_class.root_router_id.as_deref(),
+            Some(r"USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_5781\7&290e0051&0&0")
         );
     }
 }

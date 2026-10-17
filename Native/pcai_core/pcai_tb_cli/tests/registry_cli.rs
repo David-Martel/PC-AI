@@ -318,7 +318,9 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
     assert_eq!(hold_ev["tpm_admission_status"], "PENDING_TPM_INTAKE");
     assert!(hold_ev["usb4_check_receipt"].is_null());
 
-    let gates = hold_ev["requirement_gates"].as_array().expect("requirement_gates array");
+    let gates = hold_ev["requirement_gates"]
+        .as_array()
+        .expect("requirement_gates array");
     assert_eq!(gates.len(), 5);
     for expected_trace in [
         "PENDING-FABRIC-F09",
@@ -368,16 +370,16 @@ fn cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_tra
     assert_eq!(json["Schema"], "pcai.usb4-lifecycle/v1");
     assert_eq!(json["ComputerName"], "dtm-p1gen9");
     assert_eq!(json["OverallValid"], true);
-    assert_eq!(
-        json["Policy"]["allowAlwaysOnTransitClaimWhenSelectiveSuspend"],
-        false
-    );
+    assert_eq!(json["DefaultRoutesPreserved"], true);
+    assert_eq!(json["Policy"]["allowAlwaysOnTransitClaimWhenSelectiveSuspend"], false);
     let link_states = json["PeerLinkStates"].as_array().expect("PeerLinkStates array");
     assert!(!link_states.is_empty(), "expected non-empty PeerLinkStates");
     assert!(
         link_states.iter().all(|l| l["AlwaysOnTransitCapable"] == false),
         "no USB4 link may claim AlwaysOnTransitCapable=true under SelectiveSuspend/Unsupported wake"
     );
+
+    // Case 2 + Lenovo 40BA dock firmware inventory on ms01-plugable-dock-usb4-routed
     let plugable = link_states
         .iter()
         .find(|l| l["LinkId"] == "ms01-plugable-dock-usb4-routed")
@@ -385,11 +387,45 @@ fn cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_tra
     assert_eq!(plugable["LifecycleState"], "disconnected");
     assert_eq!(plugable["DownstreamLinkStatus"], "none");
     assert_eq!(plugable["WindowsXdomainPresent"], false);
+    assert_eq!(plugable["LinkAdmitted"], false);
+    assert_eq!(plugable["AdmissionReason"], "no_observed_xdomain");
+    assert_eq!(plugable["RequiredTopologyClass"], "required_two_hub");
+    assert_eq!(plugable["RequiredTopologyQualified"], false);
+    assert_eq!(plugable["LocalRootRouterFw"], "67.67");
+    assert_eq!(plugable["DockModel"], "40BA");
+    assert_eq!(plugable["DockSerial"], "1S40BAYJ0019GD");
+    assert_eq!(plugable["DockFwPackage"], "1.0.07");
+    assert_eq!(plugable["DockFwTarget"], "1.2.99");
+    assert_eq!(plugable["DockPdFw"], "0.0.47");
+    assert_eq!(plugable["DockTbt5Nvm"], "62.62");
+    assert_eq!(plugable["DockDmcFw"], "0.6.5");
+    assert_eq!(plugable["WindowsReportedLinkSpeedBps"], 20_000_000_000u64);
+    assert_eq!(plugable["LinkSpeedIsNominalDriverDisplay"], true);
+    assert_eq!(plugable["LinkSpeedIsHardwareMaximum"], false);
 
+    // Case 3 + Case 5: ms01-plugable-gen9-hostport-control (PID_E333 FW 11.7)
+    let hostport = link_states
+        .iter()
+        .find(|l| l["LinkId"] == "ms01-plugable-gen9-hostport-control")
+        .expect("ms01-plugable-gen9-hostport-control entry");
+    assert_eq!(hostport["RequiredTopologyClass"], "required_two_hub");
+    assert_eq!(hostport["ObservedTopologyClass"], "host_port_control");
+    assert_eq!(hostport["QualificationScope"], "host_port_control_only");
+    assert_eq!(hostport["RequiredTopologyQualified"], false);
+    assert_eq!(hostport["LocalRootRouterFw"], "11.7");
+    assert_eq!(hostport["WindowsReportedLinkSpeedBps"], 20_000_000_000u64);
+    assert_eq!(hostport["LinkSpeedIsNominalDriverDisplay"], true);
+    assert_eq!(hostport["LinkSpeedIsHardwareMaximum"], false);
+    assert_eq!(
+        hostport["MeasuredPayloadGbpsSamples"],
+        serde_json::json!([7.86, 12.90, 14.12])
+    );
+
+    // Case 4: Preserve Milly bridge custody
     let milly = link_states
         .iter()
         .find(|l| l["LinkId"] == "ms01-milly-usb4-bridge")
         .expect("ms01-milly-usb4-bridge entry");
     assert_eq!(milly["PreserveBridgeCustody"], true);
+    assert_eq!(milly["LinkAdmitted"], true);
 }
-

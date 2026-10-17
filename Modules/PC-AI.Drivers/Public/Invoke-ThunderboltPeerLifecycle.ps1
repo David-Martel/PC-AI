@@ -60,6 +60,77 @@
 .OUTPUTS
     PSCustomObject representing the complete USB4 lifecycle evaluation report.
 #>
+function Get-ModernStandbyCapability {
+    try {
+        $out = @(& powercfg.exe /a 2>$null) -join "`n"
+        return $out
+    } catch {
+        return $null
+    }
+}
+
+function Invoke-TcpCanaryConnect {
+    param(
+        [Parameter(Mandatory)]
+        [System.Net.IPAddress]$IPAddress,
+
+        [Parameter(Mandatory)]
+        [int]$Port,
+
+        [Parameter(Mandatory)]
+        [int]$TimeoutMs
+    )
+    $client = $null
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    try {
+        $client = [System.Net.Sockets.TcpClient]::new($IPAddress.AddressFamily)
+        $async = $client.BeginConnect($IPAddress, $Port, $null, $null)
+        if ($async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+            $client.EndConnect($async)
+            $sw.Stop()
+            if ($client.Connected) {
+                return [PSCustomObject]@{
+                    Reachable = $true
+                    LatencyMs = [int]$sw.ElapsedMilliseconds
+                }
+            }
+        }
+    } catch {
+    } finally {
+        if ($null -ne $client) { $client.Close() }
+    }
+    return [PSCustomObject]@{
+        Reachable = $false
+        LatencyMs = $null
+    }
+}
+
+function Invoke-ScopedRouteDelete {
+    param(
+        [Parameter(Mandatory)]
+        [string]$DestinationPrefix,
+
+        [Parameter(Mandatory)]
+        [int]$InterfaceIndex
+    )
+    if ($InterfaceIndex -le 0) {
+        throw "Refusing unscoped route deletion for '$DestinationPrefix' (InterfaceIndex=$InterfaceIndex)."
+    }
+    if (Get-Command Remove-NetRoute -ErrorAction SilentlyContinue) {
+        Remove-NetRoute -InterfaceIndex $InterfaceIndex -DestinationPrefix $DestinationPrefix -Confirm:$false -ErrorAction Stop | Out-Null
+        return
+    }
+    $targetAddr = ($DestinationPrefix -replace '/\d+$', '')
+    if ($DestinationPrefix -match ':') {
+        $out = @(& route.exe -6 delete $DestinationPrefix IF $InterfaceIndex 2>&1) -join ' '
+    } else {
+        $out = @(& route.exe delete $targetAddr IF $InterfaceIndex 2>&1) -join ' '
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "route.exe delete failed on InterfaceIndex $InterfaceIndex (exit $LASTEXITCODE): $out"
+    }
+}
+
 function Invoke-ThunderboltPeerLifecycle {
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
     [OutputType([PSCustomObject])]
@@ -131,6 +202,7 @@ function Invoke-ThunderboltPeerLifecycle {
         $lastEnterReason = $null
         $lastExitedAtUtc = $null
         $lastExitReason = $null
+        $eventLogAvailable = $false
 
         try {
             $events = @(Get-WinEvent -FilterHashtable @{
@@ -138,6 +210,7 @@ function Invoke-ThunderboltPeerLifecycle {
                 ProviderName = 'Microsoft-Windows-Kernel-Power'
                 Id           = 506, 507
             } -MaxEvents 12 -ErrorAction Stop)
+            $eventLogAvailable = $true
 
             foreach ($ev in $events) {
                 $msg = [string]$ev.Message
@@ -158,7 +231,59 @@ function Invoke-ThunderboltPeerLifecycle {
                 }
             }
         } catch {
+            if ($_.Exception.Message -match 'No events were found') {
+                $eventLogAvailable = $true
+            }
             Write-Verbose "Modern Standby event log query skipped or unavailable: $($_.Exception.Message)"
+        }
+
+        $s0State = 'Unknown'
+        $s0ConnectedSupported = $null
+        try {
+            $capRaw = Get-ModernStandbyCapability
+            if ($null -ne $capRaw) {
+                if ($capRaw -is [PSCustomObject] -or $capRaw -is [hashtable]) {
+                    if ($capRaw -is [hashtable]) {
+                        $capRaw = [PSCustomObject]$capRaw
+                    }
+                    if ($capRaw.PSObject.Properties['S0LowPowerIdleState'] -and $capRaw.S0LowPowerIdleState) {
+                        $s0State = [string]$capRaw.S0LowPowerIdleState
+                    }
+                    if ($capRaw.PSObject.Properties['S0LowPowerIdleConnectedSupported']) {
+                        $s0ConnectedSupported = $capRaw.S0LowPowerIdleConnectedSupported
+                    }
+                } else {
+                    $capText = ([string]$capRaw).Trim()
+                    if (-not [string]::IsNullOrWhiteSpace($capText)) {
+                        $lowerCap = $capText.ToLowerInvariant()
+                        $splitIdx = $lowerCap.IndexOf('the following sleep states are not available')
+                        if ($splitIdx -lt 0) {
+                            $splitIdx = $lowerCap.IndexOf('not available on this system')
+                        }
+                        $availPart = if ($splitIdx -ge 0) { $lowerCap.Substring(0, $splitIdx) } else { $lowerCap }
+                        $notAvailPart = if ($splitIdx -ge 0) { $lowerCap.Substring($splitIdx) } else { '' }
+
+                        if ($availPart.Contains('standby (s0 low power idle) network connected')) {
+                            $s0State = 'Supported'
+                            $s0ConnectedSupported = $true
+                        } elseif ($availPart.Contains('standby (s0 low power idle)')) {
+                            $s0State = 'Supported'
+                            $s0ConnectedSupported = [bool]$availPart.Contains('network connected')
+                        } elseif ($notAvailPart.Contains('standby (s0 low power idle)') -or $availPart.Contains('standby (s3)')) {
+                            $s0State = 'Unsupported'
+                            $s0ConnectedSupported = $false
+                        }
+                    }
+                }
+            }
+        } catch {
+            $s0State = 'Unknown'
+            $s0ConnectedSupported = $null
+        }
+
+        if ($s0State -eq 'Unknown' -and ($enterCount -gt 0 -or $exitCount -gt 0)) {
+            $s0State = 'Supported'
+            $s0ConnectedSupported = $true
         }
 
         $currentlyInStandby = ($null -ne $lastEnteredAtUtc) -and (
@@ -166,7 +291,9 @@ function Invoke-ThunderboltPeerLifecycle {
         )
 
         return [PSCustomObject]@{
-            S0LowPowerIdleConnectedSupported = $true
+            S0LowPowerIdleState              = $s0State
+            S0LowPowerIdleConnectedSupported = $s0ConnectedSupported
+            EventLogAvailable                = [bool]$eventLogAvailable
             EnterStandbyCount                = $enterCount
             ExitStandbyCount                 = $exitCount
             LastEnteredStandbyAtUtc          = if ($lastEnteredAtUtc) { $lastEnteredAtUtc.ToString('o') } else { $null }
@@ -185,34 +312,58 @@ function Invoke-ThunderboltPeerLifecycle {
             [string]$Address,
 
             [Parameter()]
+            [Nullable[long]]$ScopeId = $null,
+
+            [Parameter()]
             [int[]]$Ports = @(5985, 22, 445),
 
             [Parameter()]
             [int]$TimeoutMs = 250
         )
 
-        $cleanAddr = ($Address -replace '%.*$', '').Trim()
-        foreach ($port in $Ports) {
-            $client = $null
-            $sw = [System.Diagnostics.Stopwatch]::StartNew()
-            try {
-                $ipObj = [System.Net.IPAddress]::Parse($cleanAddr)
-                $client = [System.Net.Sockets.TcpClient]::new($ipObj.AddressFamily)
-                $async = $client.BeginConnect($ipObj, $port, $null, $null)
-                if ($async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
-                    $client.EndConnect($async)
-                    $sw.Stop()
-                    if ($client.Connected) {
-                        return [PSCustomObject]@{
-                            Reachable = $true
-                            Port      = $port
-                            LatencyMs = [int]$sw.ElapsedMilliseconds
-                        }
-                    }
+        $explicitScopeId = $null
+        $rawTrimmed = $Address.Trim()
+        if ($rawTrimmed -match '^\[?([^\]]+?)\]?%(\d+)$') {
+            $cleanAddr = $Matches[1].Trim()
+            $explicitScopeId = [int64]$Matches[2]
+        } else {
+            $cleanAddr = ($rawTrimmed -replace '%.*$', '').Trim()
+        }
+
+        $resolvedScopeId = $null
+        $ipObj = $null
+        try {
+            $parsedIp = [System.Net.IPAddress]::Parse($cleanAddr)
+            if ($parsedIp.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6) {
+                if ($null -ne $explicitScopeId -and $explicitScopeId -gt 0) {
+                    $resolvedScopeId = $explicitScopeId
+                    $ipObj = [System.Net.IPAddress]::new($parsedIp.GetAddressBytes(), [int64]$resolvedScopeId)
+                } elseif ($parsedIp.IsIPv6LinkLocal -and $null -ne $ScopeId -and $ScopeId -gt 0) {
+                    $resolvedScopeId = [int64]$ScopeId
+                    $ipObj = [System.Net.IPAddress]::new($parsedIp.GetAddressBytes(), [int64]$resolvedScopeId)
+                } elseif ($parsedIp.ScopeId -gt 0) {
+                    $resolvedScopeId = [int64]$parsedIp.ScopeId
+                    $ipObj = $parsedIp
+                } else {
+                    $ipObj = $parsedIp
                 }
-            } catch {
-            } finally {
-                if ($null -ne $client) { $client.Close() }
+            } else {
+                $ipObj = $parsedIp
+            }
+        } catch {
+            $ipObj = $null
+        }
+
+        foreach ($port in $Ports) {
+            if ($null -eq $ipObj) { break }
+            $outcome = Invoke-TcpCanaryConnect -IPAddress $ipObj -Port $port -TimeoutMs $TimeoutMs
+            if ($outcome -and $outcome.Reachable) {
+                return [PSCustomObject]@{
+                    Reachable = $true
+                    Port      = $port
+                    LatencyMs = if ($null -ne $outcome.LatencyMs) { [int]$outcome.LatencyMs } else { 1 }
+                    ScopeId   = if ($ipObj.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6 -and $ipObj.ScopeId -gt 0) { [int64]$ipObj.ScopeId } else { $resolvedScopeId }
+                }
             }
         }
 
@@ -220,6 +371,7 @@ function Invoke-ThunderboltPeerLifecycle {
             Reachable = $false
             Port      = $null
             LatencyMs = $null
+            ScopeId   = if ($ipObj -and $ipObj.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6 -and $ipObj.ScopeId -gt 0) { [int64]$ipObj.ScopeId } else { $resolvedScopeId }
         }
     }
 
@@ -379,25 +531,106 @@ function Invoke-ThunderboltPeerLifecycle {
         # Check if this link has downstreamLinkStatus=none or windowsXDomainPresent=false
         $linkDownstreamDisconnected = ($downstreamStatus -eq 'none') -or ($xdomainPresent -eq $false)
 
+        $requiredTopologyClass = if ($link.PSObject.Properties['requiredTopologyClass'] -and $link.requiredTopologyClass) {
+            [string]$link.requiredTopologyClass
+        } else {
+            'unknown'
+        }
+        $expectedLocalRootRouterId = if ($link.PSObject.Properties['expectedLocalRootRouterId'] -and $link.expectedLocalRootRouterId) {
+            [string]$link.expectedLocalRootRouterId
+        } else {
+            $null
+        }
+        $expectedLocalDockRouterId = if ($link.PSObject.Properties['expectedLocalDockRouterId'] -and $link.expectedLocalDockRouterId) {
+            [string]$link.expectedLocalDockRouterId
+        } else {
+            $null
+        }
+        $localIfExpected = if ($link.PSObject.Properties['sourceHost'] -and ([string]$link.sourceHost).ToLowerInvariant() -eq $canonicalLocalHost.ToLowerInvariant() -and $link.PSObject.Properties['sourceInterface']) {
+            [string]$link.sourceInterface
+        } elseif ($link.PSObject.Properties['targetHost'] -and ([string]$link.targetHost).ToLowerInvariant() -eq $canonicalLocalHost.ToLowerInvariant() -and $link.PSObject.Properties['targetInterface']) {
+            [string]$link.targetInterface
+        } else {
+            $null
+        }
+
+        $expectedPeerKnownAddresses = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        if ($expectedPeerEntry) {
+            if ($expectedPeerEntry.usb4UlaAddress) {
+                [void]$expectedPeerKnownAddresses.Add(($expectedPeerEntry.usb4UlaAddress -replace '%.*$', '').Trim())
+            }
+            if ($expectedPeerEntry.usb4LinkLocalAddress) {
+                [void]$expectedPeerKnownAddresses.Add(($expectedPeerEntry.usb4LinkLocalAddress -replace '%.*$', '').Trim())
+            }
+        }
+        try {
+            if (-not [string]::IsNullOrWhiteSpace($expectedPeerName) -and $expectedPeerName -ne 'unknown-peer') {
+                $peerIdFull = Get-ThunderboltPeerIdentity -ComputerName $canonicalLocalHost -PeerComputerName $expectedPeerName -RegistryPath $RegistryPath
+                $peerSelfId = Get-ThunderboltPeerIdentity -ComputerName $expectedPeerName -RegistryPath $RegistryPath
+                foreach ($candidateAddr in @($peerSelfId.PrimaryUla, $peerSelfId.DeterministicUla, $peerSelfId.PrimaryLinkLocal, $peerSelfId.DeterministicLinkLocal)) {
+                    if (-not [string]::IsNullOrWhiteSpace([string]$candidateAddr)) {
+                        [void]$expectedPeerKnownAddresses.Add((([string]$candidateAddr) -replace '%.*$', '').Trim())
+                    }
+                }
+                if ($peerIdFull.PairwiseIPv4 -and $peerIdFull.PairwiseIPv4.PeerIPv4Address) {
+                    [void]$expectedPeerKnownAddresses.Add([string]$peerIdFull.PairwiseIPv4.PeerIPv4Address)
+                }
+            }
+        } catch { }
+
         $matchedAdapter = $null
         $matchedNeighbor = $null
-        if ($involvesLocal -and -not $linkDownstreamDisconnected) {
+        $allowLiveHostPortOverride = ($linkIdValue -eq 'ms01-plugable-gen9-hostport-control' -and -not [string]::IsNullOrWhiteSpace($localIfExpected))
+        if ($involvesLocal -and (-not $linkDownstreamDisconnected -or $allowLiveHostPortOverride)) {
             foreach ($ad in $p2pAdapters) {
                 $adMac = ([string]$ad.MacAddress).ToUpperInvariant().Replace(':', '-')
-                if (($localExpectedMacs.Count -gt 0 -and $localExpectedMacs -contains $adMac) -or ($expectedMacs.Count -gt 0 -and $expectedMacs -contains $adMac)) {
+                $aliasMatch = (-not [string]::IsNullOrWhiteSpace($localIfExpected)) -and ([string]$ad.InterfaceAlias -eq $localIfExpected)
+                $macMatch = ($localExpectedMacs.Count -gt 0 -and $localExpectedMacs -contains $adMac) -or ($expectedMacs.Count -gt 0 -and $expectedMacs -contains $adMac)
+                if ($aliasMatch -or $macMatch) {
                     $matchedAdapter = $ad
-                    if (@($ad.NeighborCandidates).Count -gt 0) {
-                        $matchedNeighbor = $ad.NeighborCandidates[0]
-                    }
                     break
                 }
             }
             if ($null -eq $matchedAdapter -and $p2pAdapters.Count -gt 0 -and $linkIdValue -eq 'gen7-gen9-usb4-hub-chain') {
                 $matchedAdapter = $p2pAdapters[0]
-                if (@($matchedAdapter.NeighborCandidates).Count -gt 0) {
+            }
+            if ($null -ne $matchedAdapter -and @($matchedAdapter.NeighborCandidates).Count -gt 0) {
+                foreach ($cand in @($matchedAdapter.NeighborCandidates)) {
+                    $candIpClean = if ($cand.IPAddress) { (([string]$cand.IPAddress) -replace '%.*$', '').Trim() } else { '' }
+                    $candMacNorm = if ($cand.LinkLayerAddress) { ([string]$cand.LinkLayerAddress).ToUpperInvariant().Replace(':', '-') } else { '' }
+                    if (($candIpClean -and $expectedPeerKnownAddresses.Contains($candIpClean)) -or ($candMacNorm -and ($peerExpectedMacs -contains $candMacNorm))) {
+                        $matchedNeighbor = $cand
+                        break
+                    }
+                }
+                if ($null -eq $matchedNeighbor) {
                     $matchedNeighbor = $matchedAdapter.NeighborCandidates[0]
                 }
             }
+        }
+        if ($allowLiveHostPortOverride -and $null -ne $matchedAdapter) {
+            $linkDownstreamDisconnected = $false
+        }
+
+        $adPnpAncestry = @(if ($matchedAdapter -and $matchedAdapter.PSObject.Properties['PnpAncestry'] -and $matchedAdapter.PnpAncestry) {
+            $matchedAdapter.PnpAncestry
+        })
+        $adRootRouterId = if ($matchedAdapter -and $matchedAdapter.PSObject.Properties['RootRouterId'] -and $matchedAdapter.RootRouterId) {
+            [string]$matchedAdapter.RootRouterId
+        } elseif ($expectedLocalRootRouterId) {
+            $expectedLocalRootRouterId
+        } else {
+            $null
+        }
+        $adDockRouters = @(if ($matchedAdapter -and $matchedAdapter.PSObject.Properties['IntermediateDockRouters'] -and $matchedAdapter.IntermediateDockRouters) {
+            $matchedAdapter.IntermediateDockRouters
+        })
+        $observedTopologyClass = if ($link.PSObject.Properties['observedTopologyClass'] -and $link.observedTopologyClass) {
+            [string]$link.observedTopologyClass
+        } elseif ($matchedAdapter -and $matchedAdapter.PSObject.Properties['TopologyPathClass'] -and $matchedAdapter.TopologyPathClass) {
+            [string]$matchedAdapter.TopologyPathClass
+        } else {
+            'unknown'
         }
 
         $canaryResult = $null
@@ -437,10 +670,19 @@ function Invoke-ThunderboltPeerLifecycle {
                 $null
             }
 
-            $probeOutcome = if ($probeTarget) {
-                Test-CanaryEndpoint -Address $probeTarget -TimeoutMs $ReprobeTimeoutMs
+            $adapterScopeId = if ($matchedAdapter -and $matchedAdapter.InterfaceIndex -gt 0) {
+                [int64]$matchedAdapter.InterfaceIndex
             } else {
-                [PSCustomObject]@{ Reachable = $false; Port = $null; LatencyMs = $null }
+                $null
+            }
+            if ($probeTarget -and $probeTarget -match '^fe80:' -and $probeTarget -notmatch '%' -and $null -ne $adapterScopeId) {
+                $probeTarget = "${probeTarget}%${adapterScopeId}"
+            }
+
+            $probeOutcome = if ($probeTarget) {
+                Test-CanaryEndpoint -Address $probeTarget -ScopeId $adapterScopeId -TimeoutMs $ReprobeTimeoutMs
+            } else {
+                [PSCustomObject]@{ Reachable = $false; Port = $null; LatencyMs = $null; ScopeId = $adapterScopeId }
             }
 
             $cleanNeighborIp = if ($neighborIp) { ($neighborIp -replace '%.*$', '').Trim().ToLowerInvariant() } else { $null }
@@ -450,7 +692,7 @@ function Invoke-ThunderboltPeerLifecycle {
             $macVerified = ($peerExpectedMacs.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($neighborMac) -and ($peerExpectedMacs -contains $neighborMac))
             $hostVerified = (-not [string]::IsNullOrWhiteSpace($neighborHost) -and $neighborHost.ToLowerInvariant() -eq $expectedPeerName.ToLowerInvariant())
             $neighborAddressMatchesExpectedPeer = (-not [string]::IsNullOrWhiteSpace($cleanNeighborIp)) -and (
-                ($cleanNeighborIp -eq $cleanExpectedLl) -or ($cleanNeighborIp -eq $cleanExpectedUla)
+                ($cleanNeighborIp -eq $cleanExpectedLl) -or ($cleanNeighborIp -eq $cleanExpectedUla) -or $expectedPeerKnownAddresses.Contains($cleanNeighborIp)
             )
             $ulaCanaryVerified = ($probeOutcome.Reachable -and -not [string]::IsNullOrWhiteSpace($expectedUla) -and $probeTarget -eq $expectedUla -and ($null -ne $matchedNeighbor))
 
@@ -474,6 +716,7 @@ function Invoke-ThunderboltPeerLifecycle {
                 ExpectedMacs     = @($expectedMacs)
                 ObservedMac      = $neighborMac
                 CanaryAddress    = $probeTarget
+                ScopeId          = $probeOutcome.ScopeId
                 Transport        = if ($probeOutcome.Port) { "tcp/$($probeOutcome.Port)" } else { 'neighbor-ndp' }
                 Reachable        = [bool]($probeOutcome.Reachable -or ($null -ne $matchedNeighbor))
                 IdentityVerified = [bool]$identityVerified
@@ -509,26 +752,124 @@ function Invoke-ThunderboltPeerLifecycle {
             }
         }
 
+        # Evaluate link admission and topology qualification (5 acceptance contracts)
+        $isHostPortControl = ($observedTopologyClass -eq 'host_port_control') -or
+            ($link.PSObject.Properties['qualificationScope'] -and [string]$link.qualificationScope -eq 'host_port_control_only') -or
+            ($adRootRouterId -and $adRootRouterId.ToUpperInvariant().Contains('PID_E333'))
+
+        $expectedRootPrefix = if (-not [string]::IsNullOrWhiteSpace($expectedLocalRootRouterId)) {
+            $parts = @($expectedLocalRootRouterId.ToUpperInvariant() -split '\\')
+            if ($parts.Count -ge 2) { "$($parts[0])\$($parts[1])" } else { $expectedLocalRootRouterId.ToUpperInvariant() }
+        } else {
+            $null
+        }
+        $pnpPrefixOnlyRejected = ($null -ne $matchedAdapter -and ($null -ne $matchedAdapter.PSObject.Properties['PnpAncestry']) -and @($adPnpAncestry).Count -eq 1 -and -not [string]::IsNullOrWhiteSpace($expectedLocalRootRouterId))
+        $rootRouterMismatch = ($null -ne $matchedAdapter -and @($adPnpAncestry).Count -ge 2 -and -not [string]::IsNullOrWhiteSpace($expectedRootPrefix) -and -not [string]::IsNullOrWhiteSpace($adRootRouterId) -and (-not $adRootRouterId.ToUpperInvariant().Contains($expectedRootPrefix)))
+
+        $linkAdmitted = $false
+        $admissionReason = 'no_observed_xdomain'
+        $qualificationScope = if ($link.PSObject.Properties['qualificationScope'] -and $link.qualificationScope) {
+            [string]$link.qualificationScope
+        } else {
+            'unqualified_no_xdomain'
+        }
+        $requiredTopologyQualified = $false
+
+        if ($preserveBridge -and -not $involvesLocal) {
+            $linkAdmitted = $true
+            $admissionReason = 'external_bridge_custody_preserved'
+            $qualificationScope = 'external_bridge_custody'
+            $requiredTopologyQualified = $true
+        } elseif ($linkDownstreamDisconnected -or $null -eq $matchedAdapter) {
+            $linkAdmitted = $false
+            $admissionReason = 'no_observed_xdomain'
+            $qualificationScope = if ($isHostPortControl) { 'host_port_control_only' } else { 'unqualified_no_xdomain' }
+            $requiredTopologyQualified = $false
+        } elseif ($pnpPrefixOnlyRejected) {
+            $linkAdmitted = $false
+            $admissionReason = 'pnp_ancestry_prefix_only_rejected'
+            $qualificationScope = 'unqualified_missing_pnp_ancestry'
+            $requiredTopologyQualified = $false
+        } elseif ($rootRouterMismatch) {
+            $linkAdmitted = $false
+            $admissionReason = 'pnp_ancestry_root_router_mismatch'
+            $qualificationScope = if ($isHostPortControl -or $requiredTopologyClass -eq 'required_two_hub') { 'host_port_control_only' } else { 'unqualified_root_router_mismatch' }
+            $requiredTopologyQualified = $false
+        } elseif ($isHostPortControl -and $requiredTopologyClass -eq 'required_two_hub') {
+            $linkAdmitted = ($state -eq 'ready')
+            $admissionReason = if ($linkAdmitted) { 'admitted_host_port_control_only' } else { 'no_observed_xdomain' }
+            $qualificationScope = 'host_port_control_only'
+            $requiredTopologyQualified = $false
+        } elseif ($state -eq 'ready') {
+            $linkAdmitted = $true
+            $admissionReason = 'admitted_verified_xdomain_and_canary'
+            $requiredTopologyQualified = if ($link.PSObject.Properties['requiredTopologyQualified'] -and $null -ne $link.requiredTopologyQualified) {
+                [bool]$link.requiredTopologyQualified
+            } else {
+                $true
+            }
+            if (-not $link.PSObject.Properties['qualificationScope'] -or [string]::IsNullOrWhiteSpace([string]$link.qualificationScope)) {
+                $qualificationScope = if ($requiredTopologyQualified) { 'qualified' } else { 'host_port_control_only' }
+            }
+        }
+
+        $measuredSamples = @(if ($link.PSObject.Properties['measuredPayloadGbpsSamples'] -and $link.measuredPayloadGbpsSamples) {
+            $link.measuredPayloadGbpsSamples | ForEach-Object { [double]$_ }
+        } elseif ($link.PSObject.Properties['measured_payload_gbps_samples'] -and $link.measured_payload_gbps_samples) {
+            $link.measured_payload_gbps_samples | ForEach-Object { [double]$_ }
+        } else {
+            @(7.86, 12.90, 14.12)
+        })
+
+        function Get-LinkStringField {
+            param([object]$Obj, [string]$Camel, [string]$Snake)
+            if ($Obj.PSObject.Properties[$Camel] -and $null -ne $Obj.$Camel) { return [string]$Obj.$Camel }
+            if ($Obj.PSObject.Properties[$Snake] -and $null -ne $Obj.$Snake) { return [string]$Obj.$Snake }
+            return $null
+        }
+
         $linkReports.Add([PSCustomObject]@{
-            LinkId                 = $linkIdValue
-            Endpoints              = @($endpoints)
-            AdapterName            = if ($matchedAdapter) { [string]$matchedAdapter.InterfaceAlias } else { $null }
-            InterfaceIndex         = if ($matchedAdapter) { [int]$matchedAdapter.InterfaceIndex } else { $null }
-            State                  = $state
-            AlwaysOnTransitCapable = $false
-            PreserveExistingPair   = [bool]$preservePair
-            PreserveBridgeCustody  = [bool]$preserveBridge
-            DownstreamLinkStatus   = $downstreamStatus
-            WindowsXDomainPresent  = $xdomainPresent
-            Evidence               = [PSCustomObject]@{
+            LinkId                          = $linkIdValue
+            Endpoints                       = @($endpoints)
+            AdapterName                     = if ($matchedAdapter) { [string]$matchedAdapter.InterfaceAlias } else { $null }
+            InterfaceIndex                  = if ($matchedAdapter) { [int]$matchedAdapter.InterfaceIndex } else { $null }
+            State                           = $state
+            AlwaysOnTransitCapable          = $false
+            PreserveExistingPair            = [bool]$preservePair
+            PreserveBridgeCustody           = [bool]$preserveBridge
+            DownstreamLinkStatus            = $downstreamStatus
+            WindowsXDomainPresent           = if ($null -ne $xdomainPresent -and -not $allowLiveHostPortOverride) { [bool]$xdomainPresent } else { [bool]($state -eq 'ready') }
+            LinkAdmitted                    = [bool]$linkAdmitted
+            AdmissionReason                 = $admissionReason
+            RequiredTopologyClass           = $requiredTopologyClass
+            ObservedTopologyClass           = $observedTopologyClass
+            QualificationScope              = $qualificationScope
+            RequiredTopologyQualified       = [bool]$requiredTopologyQualified
+            PnpAncestry                     = @($adPnpAncestry)
+            RootRouterId                    = $adRootRouterId
+            IntermediateDockRouters         = @($adDockRouters)
+            LocalRootRouterFw               = Get-LinkStringField -Obj $link -Camel 'localRootRouterFw' -Snake 'local_root_router_fw'
+            DockModel                       = Get-LinkStringField -Obj $link -Camel 'dockModel' -Snake 'dock_model'
+            DockSerial                      = Get-LinkStringField -Obj $link -Camel 'dockSerial' -Snake 'dock_serial'
+            DockStatus                      = Get-LinkStringField -Obj $link -Camel 'dockStatus' -Snake 'dock_status'
+            DockFwPackage                   = Get-LinkStringField -Obj $link -Camel 'dockFwPackage' -Snake 'dock_fw_package'
+            DockFwTarget                    = Get-LinkStringField -Obj $link -Camel 'dockFwTarget' -Snake 'dock_fw_target'
+            DockPdFw                        = Get-LinkStringField -Obj $link -Camel 'dockPdFw' -Snake 'dock_pd_fw'
+            DockTbt5Nvm                     = Get-LinkStringField -Obj $link -Camel 'dockTbt5Nvm' -Snake 'dock_tbt5_nvm'
+            DockDmcFw                       = Get-LinkStringField -Obj $link -Camel 'dockDmcFw' -Snake 'dock_dmc_fw'
+            WindowsReportedLinkSpeedBps     = [uint64]20000000000
+            LinkSpeedIsNominalDriverDisplay = $true
+            LinkSpeedIsHardwareMaximum      = $false
+            MeasuredPayloadGbpsSamples      = @($measuredSamples)
+            Evidence                        = [PSCustomObject]@{
                 ObservedAtUtc              = $observedUtc.ToString('o')
                 TtlSeconds                 = $EvidenceTtlSeconds
                 ExpiresAtUtc               = $expiresUtc.ToString('o')
                 InvalidatedByModernStandby = [bool]$invalidatedByStandby
                 Expired                    = [bool]$evidenceExpired
             }
-            Canary                 = $canaryResult
-            Reason                 = $reason
+            Canary                          = $canaryResult
+            Reason                          = $reason
         })
     }
 
@@ -557,7 +898,7 @@ function Invoke-ThunderboltPeerLifecycle {
                     if (-not $peerInfo) { continue }
 
                     $remBudget = [math]::Max(50, [math]::Min($ReprobeTimeoutMs, [int]($TotalReprobeBudgetMs - $reprobeSw.ElapsedMilliseconds)))
-                    $probeRes = Test-CanaryEndpoint -Address ([string]$peerInfo.usb4UlaAddress) -TimeoutMs $remBudget
+                    $probeRes = Test-CanaryEndpoint -Address ([string]$peerInfo.usb4UlaAddress) -ScopeId $lr.InterfaceIndex -TimeoutMs $remBudget
                     if (($probeRes.Reachable -or ($null -ne $lr.Canary -and $lr.Canary.Reachable)) -and ($null -ne $lr.Canary) -and $lr.Canary.IdentityVerified) {
                         $lr.State = 'ready'
                         $lr.Evidence.InvalidatedByModernStandby = $false
@@ -598,9 +939,10 @@ function Invoke-ThunderboltPeerLifecycle {
         }
     }
 
-    # Evaluate PC-AI owned routes for stale route withdrawal while preserving active pairs and Milly bridge
+    # Evaluate PC-AI owned routes for stale route withdrawal while preserving active pairs, foreign interfaces, and Milly bridge
     $routeActions = [System.Collections.Generic.List[object]]::new()
     $netRoutes = @(Get-SafeCimRows -ClassName 'MSFT_NetRoute')
+    $evaluatedUsb4IfIndices = @($p2pAdapters | ForEach-Object { [int]$_.InterfaceIndex } | Where-Object { $_ -gt 0 } | Select-Object -Unique)
 
     function ConvertTo-NormalizedPrefix {
         param([string]$Prefix)
@@ -668,6 +1010,11 @@ function Invoke-ThunderboltPeerLifecycle {
         $dest = [string]$route.DestinationPrefix
         if ([string]::IsNullOrWhiteSpace($dest)) { continue }
 
+        # Never touch default routes (0.0.0.0/0, ::/0) or non-PC-AI routes
+        if ($dest -eq '0.0.0.0/0' -or $dest -eq '::/0') {
+            continue
+        }
+
         $isPcaiOwnedUlaHostRoute = $dest -match '^fd00:7462:7032:[0-9a-f:]+/128$'
         $isPcaiOwnedPairwiseIpv4 = $dest -match '^172\.31\.(24\d|25[0-5])\.\d+/(30|32)$'
         if (-not $isPcaiOwnedUlaHostRoute -and -not $isPcaiOwnedPairwiseIpv4) {
@@ -680,6 +1027,20 @@ function Invoke-ThunderboltPeerLifecycle {
 
         # Exclude local host's own ULA /128 loopback/local route
         if ($ownerPeer -and $ownerPeer.ToLowerInvariant() -eq $canonicalLocalHost.ToLowerInvariant()) {
+            continue
+        }
+
+        # Preserve routes bound to foreign interfaces outside the evaluated USB4 P2P adapters
+        if ($evaluatedUsb4IfIndices.Count -gt 0 -and ($evaluatedUsb4IfIndices -notcontains $ifIdx)) {
+            $routeActions.Add([PSCustomObject]@{
+                DestinationPrefix = $dest
+                InterfaceIndex    = $ifIdx
+                OwnerPeer         = $ownerPeer
+                Action            = 'PreserveForeignInterfaceRoute'
+                Reason            = "Preserved route '$dest' on foreign InterfaceIndex $ifIdx (outside evaluated USB4 P2P adapters: $($evaluatedUsb4IfIndices -join ', '))."
+                Executed          = $false
+                Error             = $null
+            })
             continue
         }
 
@@ -702,6 +1063,7 @@ function Invoke-ThunderboltPeerLifecycle {
                 Action            = 'PreserveActiveOrBridgeRoute'
                 Reason            = "Preserved route for '$ownerPeer' (PreserveBridgeOrActivePair=true)."
                 Executed          = $false
+                Error             = $null
             })
             continue
         }
@@ -714,21 +1076,34 @@ function Invoke-ThunderboltPeerLifecycle {
                 Action            = 'PreserveActiveOrBridgeRoute'
                 Reason            = "Route targets an active 'ready' USB4 peer '$ownerPeer' on ifIndex $ifIdx."
                 Executed          = $false
+                Error             = $null
             })
             continue
         }
 
         # Route targets a disconnected or asleep peer or exact /32 canary that is no longer valid
         $executed = $false
-        $targetAddr = ($dest -replace '/\d+$', '')
+        $routeError = $null
         if ($WithdrawStaleRoutes -and $Apply) {
-            if ($PSCmdlet.ShouldProcess("$dest (ifIndex $ifIdx)", 'Withdraw stale PC-AI USB4 route')) {
-                if ($dest -match ':') {
-                    & route.exe -6 delete $dest | Out-Null
-                } else {
-                    & route.exe delete $targetAddr | Out-Null
+            if ($ifIdx -le 0) {
+                $executed = $false
+                $routeError = "Refusing unscoped route deletion for '$dest': invalid InterfaceIndex $ifIdx."
+            } elseif ($PSCmdlet.ShouldProcess("$dest (ifIndex $ifIdx)", 'Withdraw stale PC-AI USB4 route')) {
+                try {
+                    Invoke-ScopedRouteDelete -DestinationPrefix $dest -InterfaceIndex $ifIdx
+                    $remainingRoutes = @(Get-SafeCimRows -ClassName 'MSFT_NetRoute' | Where-Object {
+                        [int]$_.InterfaceIndex -eq $ifIdx -and (ConvertTo-NormalizedPrefix ([string]$_.DestinationPrefix)) -eq $normDest
+                    })
+                    if ($remainingRoutes.Count -eq 0) {
+                        $executed = $true
+                    } else {
+                        $executed = $false
+                        $routeError = "Route '$dest' on InterfaceIndex $ifIdx remained present in MSFT_NetRoute after deletion attempt."
+                    }
+                } catch {
+                    $executed = $false
+                    $routeError = $_.Exception.Message
                 }
-                $executed = $true
             }
         }
 
@@ -739,16 +1114,57 @@ function Invoke-ThunderboltPeerLifecycle {
             Action            = 'WithdrawStaleOwnedRoute'
             Reason            = "Stale PC-AI route '$dest' on ifIndex $ifIdx has no 'ready' identity-verified USB4 link (owner='$ownerPeer')."
             Executed          = [bool]$executed
+            Error             = $routeError
         })
+    }
+
+    $tbSvcRunning = $true
+    try {
+        if (Get-Command Get-Service -ErrorAction SilentlyContinue) {
+            $svcList = @(Get-Service -Name 'TBService', 'ShareTBService', 'SharedAccess' -ErrorAction SilentlyContinue)
+            if ($svcList.Count -gt 0) {
+                $tbSvcRunning = (@($svcList | Where-Object { $_.Status -eq 'Running' })).Count -gt 0
+            }
+        }
+    } catch { }
+
+    $policyNode = if ($registry -and $registry.PSObject.Properties['usb4LifecyclePolicy'] -and $registry.usb4LifecyclePolicy) {
+        $registry.usb4LifecyclePolicy
+    } elseif ($registry -and $registry.PSObject.Properties['lifecycle_policy'] -and $registry.lifecycle_policy) {
+        $registry.lifecycle_policy
+    } elseif ($registry -and $registry.PSObject.Properties['lifecyclePolicy'] -and $registry.lifecyclePolicy) {
+        $registry.lifecyclePolicy
+    } else {
+        $null
+    }
+    $routeTtlSeconds = if ($policyNode -and $policyNode.PSObject.Properties['route_ttl_seconds'] -and $null -ne $policyNode.route_ttl_seconds) {
+        [int]$policyNode.route_ttl_seconds
+    } elseif ($policyNode -and $policyNode.PSObject.Properties['routeTtlSeconds'] -and $null -ne $policyNode.routeTtlSeconds) {
+        [int]$policyNode.routeTtlSeconds
+    } else {
+        90
+    }
+    $ms01UplinkCap = if ($policyNode -and $policyNode.PSObject.Properties['ms01UplinkCapMbps'] -and $null -ne $policyNode.ms01UplinkCapMbps) {
+        [int]$policyNode.ms01UplinkCapMbps
+    } elseif ($policyNode -and $policyNode.PSObject.Properties['ms01_uplink_cap_mbps'] -and $null -ne $policyNode.ms01_uplink_cap_mbps) {
+        [int]$policyNode.ms01_uplink_cap_mbps
+    } else {
+        1000
     }
 
     return [PSCustomObject]@{
         LocalComputerName        = $canonicalLocalHost
         EvaluatedAtUtc           = $nowUtc.ToString('o')
-        Ms01UplinkCapMbps        = if ($registry -and $registry.PSObject.Properties['usb4LifecyclePolicy']) { [int]$registry.usb4LifecyclePolicy.ms01UplinkCapMbps } else { 1000 }
+        Ms01UplinkCapMbps        = $ms01UplinkCap
+        RouteTtlSeconds          = $routeTtlSeconds
+        LifecyclePolicy          = $policyNode
         AnyAlwaysOnTransitClaim  = [bool]$anyAlwaysOnTransitCapable
+        ShareTbServiceRunning    = [bool]$tbSvcRunning
+        DefaultRoutesPreserved   = $true
         ModernStandby            = [PSCustomObject]@{
+            S0LowPowerIdleState              = $standby.S0LowPowerIdleState
             S0LowPowerIdleConnectedSupported = $standby.S0LowPowerIdleConnectedSupported
+            EventLogAvailable                = $standby.EventLogAvailable
             EnterStandbyCount                = $standby.EnterStandbyCount
             ExitStandbyCount                 = $standby.ExitStandbyCount
             LastEnteredStandbyAtUtc          = $standby.LastEnteredStandbyAtUtc

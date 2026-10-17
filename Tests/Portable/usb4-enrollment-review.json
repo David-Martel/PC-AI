@@ -96,10 +96,12 @@
       "test_sha256": "39fd6886a599049942872ff36a327befd16e28a80d0909d38631680a4eff06c7",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/edge_observer.rs",
       "source_sha256": "39fd6886a599049942872ff36a327befd16e28a80d0909d38631680a4eff06c7",
-      "disposition": "unreviewed",
-      "reviewer": null,
+      "disposition": "keep",
+      "reviewer": "Codex benchmark_fix_review independent observer review",
       "validation": "Linux56library+10CLI pass; strictClippy pass. Policy collision mutant detects removed rejection. Windows and service interruption qualification pending.",
-      "receipt": "../../docs/usb4/enrolled-observer.md"
+      "receipt": "../../docs/usb4/enrolled-observer.md",
+      "reviewed_utc": "2026-10-17",
+      "review_scope": "Linux observation only; two independently executed fixture tests pass. No Windows, Apply or failover qualification."
     },
     {
       "selector": "missing_inventory_is_error_not_empty_success",
@@ -107,10 +109,12 @@
       "test_sha256": "39fd6886a599049942872ff36a327befd16e28a80d0909d38631680a4eff06c7",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/edge_observer.rs",
       "source_sha256": "39fd6886a599049942872ff36a327befd16e28a80d0909d38631680a4eff06c7",
-      "disposition": "unreviewed",
-      "reviewer": null,
+      "disposition": "keep",
+      "reviewer": "Codex benchmark_fix_review independent observer review",
       "validation": "Linux56library+10CLI pass; strictClippy pass. Policy collision mutant detects removed rejection. Windows and service interruption qualification pending.",
-      "receipt": "../../docs/usb4/enrolled-observer.md"
+      "receipt": "../../docs/usb4/enrolled-observer.md",
+      "reviewed_utc": "2026-10-17",
+      "review_scope": "Linux observation only; two independently executed fixture tests pass. No Windows, Apply or failover qualification."
     }
   ]
 }

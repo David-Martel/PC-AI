@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'Native/PcaiNative/**'
+      - 'Native/PcaiNative.Tests/**'
+      - 'Tests/Portable/test_native_library_lifetime.py'
       - 'Modules/PC-AI.Acceleration/Private/Initialize-PcaiNative.ps1'
       - 'Tests/Portable/*native_override*'
       - 'Tests/Portable/Test-NativeOverrideAdmission.ps1'
@@ -48,3 +50,21 @@ jobs:
         run: |
           uv run --no-project python -m unittest discover -s Tests/Portable -p test_native_override_admission.py -v
           if ($LASTEXITCODE -ne 0) { throw 'Native override admission failed' }
+      - name: Temporary native handle ownership
+        shell: pwsh
+        run: |
+          uv run --no-project python -m unittest discover -s Tests/Portable -p test_native_library_lifetime.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'Native lifetime regression failed' }
+      - name: Full managed suite with real native core and no skips
+        shell: pwsh
+        run: |
+          $env:PCAI_CORE_LIB_PATH = $env:PCAI_ADMISSION_REAL_CORE_PATH
+          $env:PCAI_TEST_CORE_DLL = $env:PCAI_ADMISSION_REAL_CORE_PATH
+          $results = Join-Path $env:RUNNER_TEMP 'pcai-managed-results'
+          dotnet test Native/PcaiNative.Tests/PcaiNative.Tests.csproj -c Release --logger 'trx;LogFileName=native-suite.trx' --results-directory $results
+          if ($LASTEXITCODE -ne 0) { throw 'Managed native suite failed' }
+          [xml]$report = Get-Content -LiteralPath (Join-Path $results 'native-suite.trx') -Raw
+          $counts = $report.TestRun.ResultSummary.Counters
+          if ([int]$counts.total -lt 49 -or [int]$counts.failed -ne 0 -or [int]$counts.notExecuted -ne 0 -or [int]$counts.passed -ne [int]$counts.total -or [int]$counts.executed -ne [int]$counts.total) {
+            throw "Incomplete native qualification: $($counts.OuterXml)"
+          }

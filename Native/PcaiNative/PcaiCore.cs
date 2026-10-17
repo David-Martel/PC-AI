@@ -140,7 +140,15 @@ public static class PcaiCore
             return false;
         }
 
-        return VerifyRequiredExports(handle, out missingExports);
+        try
+        {
+            return VerifyRequiredExports(handle, out missingExports);
+        }
+        finally
+        {
+            // This admission load owns one reference, independent of P/Invoke's binding.
+            NativeLibrary.Free(handle);
+        }
     }
 
     // Thread-safe lazy initialization for availability check
@@ -163,8 +171,15 @@ public static class PcaiCore
             }
             else if (NativeLibrary.TryLoad(NativeCore.CoreLib, typeof(NativeCore).Assembly, null, out var defaultHandle))
             {
-                if (!VerifyRequiredExports(defaultHandle, out _))
-                    return false;
+                try
+                {
+                    if (!VerifyRequiredExports(defaultHandle, out _))
+                        return false;
+                }
+                finally
+                {
+                    NativeLibrary.Free(defaultHandle);
+                }
             }
             else
             {

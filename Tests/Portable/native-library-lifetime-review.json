@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF",
+  "reviews": [
+    {
+      "selector": "NativeLibraryLifetimeTests.test_rejected_partial_library_is_unloaded_before_child_exit",
+      "test_path": "Tests/Portable/test_native_library_lifetime.py",
+      "test_sha256": "805e57853cd0b0e855d97363baef1a6fd26b6c4f0536e94823142ed9eb656890",
+      "source_path": "Native/PcaiNative/PcaiCore.cs",
+      "source_sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774",
+      "base_commit": "54b5af0c93e5ff8cbd6f8320f1311a4b68bff114",
+      "disposition": "keep",
+      "reviewer": "Codex benchmark_fix_review; root integration review",
+      "reviewer_type": "independent agent and integrating reviewer",
+      "scope": "Independent current production bridge 2 PASS, zero skips on Ubuntu/private .NET8; original HEAD unload negative FAIL loadedAfter=true. Actual Unicode fixture reviewed. Windows CI pending; defaultHandle branch not directly exercised; no performance claim.",
+      "receipt": "native-library-lifetime-review.md",
+      "reviewed_utc": "2026-10-17"
+    },
+    {
+      "selector": "NativeLibraryLifetimeTests.test_real_core_operations_survive_temporary_admission_release",
+      "test_path": "Tests/Portable/test_native_library_lifetime.py",
+      "test_sha256": "805e57853cd0b0e855d97363baef1a6fd26b6c4f0536e94823142ed9eb656890",
+      "source_path": "Native/PcaiNative/PcaiCore.cs",
+      "source_sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774",
+      "base_commit": "54b5af0c93e5ff8cbd6f8320f1311a4b68bff114",
+      "disposition": "keep",
+      "reviewer": "Codex benchmark_fix_review; root integration review",
+      "reviewer_type": "independent agent and integrating reviewer",
+      "scope": "Independent current production bridge 2 PASS, zero skips on Ubuntu/private .NET8; original HEAD unload negative FAIL loadedAfter=true. Actual Unicode fixture reviewed. Windows CI pending; defaultHandle branch not directly exercised; no performance claim.",
+      "receipt": "native-library-lifetime-review.md",
+      "reviewed_utc": "2026-10-17"
+    }
+  ]
+}

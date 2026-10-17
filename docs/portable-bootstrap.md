@@ -39,3 +39,6 @@ uses the host PATH separator and executable suffix, skips absent search folders,
 and resolves applications without depending on Windows where.exe.
 [Its regression selectors](../Tests/Portable/Test-RustToolDiscovery.ps1) check
 exact PATH fixture selection and honest missing-tool reporting without execution.
+
+[Benchmark admission](benchmark-admission.md) documents the fresh-evidence gate,
+functional failure controls and remaining performance qualification limits.

@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "AdmissionTests.test_fresh_compatible_evidence_passes_and_regression_fails",
+      "test_path": "Tests/Portable/test_benchmark_admission.py",
+      "test_sha256": "d4cb5f2ad70671951bfef621dfa53cdb212ae065f81d183b5adc5673c706ce87",
+      "source_sha256": {
+        "Tests/Invoke-BenchmarkGate.ps1": "40d14f762c2df9a9e3274e03a515bf53b2d4c4804e00fd136746ab0f86fd3ede"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "4948f35ea3d518ed3249dd42e9fc8b87942961f7",
+      "disposition": "keep",
+      "scope": "Real gate child process with synthetic runner; actual runner AST blocks with null/partial/failed-child controls; current pass/original helper fails. No parity or performance qualification.",
+      "receipt": "benchmark-admission-review.md"
+    },
+    {
+      "selector": "AdmissionTests.test_incomplete_or_incompatible_evidence_is_rejected",
+      "test_path": "Tests/Portable/test_benchmark_admission.py",
+      "test_sha256": "d4cb5f2ad70671951bfef621dfa53cdb212ae065f81d183b5adc5673c706ce87",
+      "source_sha256": {
+        "Tests/Invoke-BenchmarkGate.ps1": "40d14f762c2df9a9e3274e03a515bf53b2d4c4804e00fd136746ab0f86fd3ede"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "4948f35ea3d518ed3249dd42e9fc8b87942961f7",
+      "disposition": "keep",
+      "scope": "Real gate child process with synthetic runner; actual runner AST blocks with null/partial/failed-child controls; current pass/original helper fails. No parity or performance qualification.",
+      "receipt": "benchmark-admission-review.md"
+    },
+    {
+      "selector": "AdmissionTests.test_missing_baseline_fails",
+      "test_path": "Tests/Portable/test_benchmark_admission.py",
+      "test_sha256": "d4cb5f2ad70671951bfef621dfa53cdb212ae065f81d183b5adc5673c706ce87",
+      "source_sha256": {
+        "Tests/Invoke-BenchmarkGate.ps1": "40d14f762c2df9a9e3274e03a515bf53b2d4c4804e00fd136746ab0f86fd3ede"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "4948f35ea3d518ed3249dd42e9fc8b87942961f7",
+      "disposition": "keep",
+      "scope": "Real gate child process with synthetic runner; actual runner AST blocks with null/partial/failed-child controls; current pass/original helper fails. No parity or performance qualification.",
+      "receipt": "benchmark-admission-review.md"
+    },
+    {
+      "selector": "runner rejects absent/partial measurements and accepts complete measurements",
+      "test_path": "Tests/Portable/Test-BenchmarkRunner.ps1",
+      "test_sha256": "acb967f7c434d2b8bf7b2abe111fb0b357f51bdeea59912011bdc78848778bf9",
+      "source_sha256": {
+        "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1": "52c45a0f9d2eab974dd9ff435c1c9e975cab6567aa7aa89d489559c73ffe2895"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "4948f35ea3d518ed3249dd42e9fc8b87942961f7",
+      "disposition": "keep",
+      "scope": "Real gate child process with synthetic runner; actual runner AST blocks with null/partial/failed-child controls; current pass/original helper fails. No parity or performance qualification.",
+      "receipt": "benchmark-admission-review.md"
+    },
+    {
+      "selector": "all three real runner child blocks reject failing child processes",
+      "test_path": "Tests/Portable/Test-BenchmarkRunner.ps1",
+      "test_sha256": "acb967f7c434d2b8bf7b2abe111fb0b357f51bdeea59912011bdc78848778bf9",
+      "source_sha256": {
+        "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1": "52c45a0f9d2eab974dd9ff435c1c9e975cab6567aa7aa89d489559c73ffe2895"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "4948f35ea3d518ed3249dd42e9fc8b87942961f7",
+      "disposition": "keep",
+      "scope": "Real gate child process with synthetic runner; actual runner AST blocks with null/partial/failed-child controls; current pass/original helper fails. No parity or performance qualification.",
+      "receipt": "benchmark-admission-review.md"
+    }
+  ]
+}

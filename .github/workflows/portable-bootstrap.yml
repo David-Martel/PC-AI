@@ -7,6 +7,9 @@ on:
       - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
       - 'Native/PcaiNative/**'
       - 'Tests/Portable/**'
+      - 'Tests/Invoke-BenchmarkGate.ps1'
+      - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
+      - 'Config/pcai-tooling-benchmarks.json'
       - '.github/workflows/portable-bootstrap.yml'
   push:
     branches: [main]
@@ -15,6 +18,9 @@ on:
       - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
       - 'Native/PcaiNative/**'
       - 'Tests/Portable/**'
+      - 'Tests/Invoke-BenchmarkGate.ps1'
+      - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
+      - 'Config/pcai-tooling-benchmarks.json'
       - '.github/workflows/portable-bootstrap.yml'
 permissions:
   contents: read
@@ -32,6 +38,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          python-version: '3.12'
+          enable-cache: false
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -48,6 +58,12 @@ jobs:
         run: |
           ./Tests/Portable/Test-CacheBootstrap.ps1
           ./Tests/Portable/Test-RustToolDiscovery.ps1
+      - name: Benchmark admission regression controls
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-BenchmarkRunner.ps1
+          uv run --no-project python -m unittest discover -s Tests/Portable -p test_benchmark_admission.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build managed bridge for host
         shell: pwsh
         env:

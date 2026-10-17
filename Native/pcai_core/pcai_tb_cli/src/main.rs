@@ -3,6 +3,7 @@ use pcai_tb::benchmark::run_architecture_benchmarks;
 use pcai_tb::configure::{check_applied_actions, install_framework, register_local_thunderbolt_fabric};
 use pcai_tb::handshake::discover_thunderbolt_peers;
 use pcai_tb::identity::{load_peer_registry, resolve_peer_identity};
+use pcai_tb::lifecycle::run_usb4_lifecycle_evaluation;
 use pcai_tb::platform::collect_platform_snapshot;
 use pcai_tb::switch::{
     collect_switch_status, collect_switch_status_with_options, run_switch_observe, run_vnv_verification,
@@ -23,6 +24,7 @@ SUBCOMMANDS:
   identity        Compute deterministic SHA-256 IPv6 LLA, ULA, and commutative pairwise /30 IPv4
   discover        Run async multiplexed peer discovery (NTLM Type-2 AV_PAIR + SSH banner + NDP/ARP)
   register        Configure local deterministic LLA/ULA, MTU=62000, and per-port /128 ULA host routes
+  lifecycle       Evaluate USB4 lifecycle states (asleep/disconnected/probing/ready), TTL, standby 506/507, and stale route withdrawal
   switch          Inspect SFP+ switch custody, USB4 router trees, shared 10.* routes (--apply provisions routes)
   verify-custody  Enforce SFP+ switch, USB4 veth symmetry, and metric hierarchy invariants (exits non-zero on violation)
   observe         Capture non-payload switch/bridge/FDB/VLAN telemetry (--apply writes latest.json)
@@ -216,8 +218,8 @@ async fn main() -> Result<()> {
     let parsed = parse_cli_args(&args)?;
 
     match parsed.subcommand.as_str() {
-        "status" | "identity" | "discover" | "register" | "switch" | "verify-custody" | "observe" | "vnv"
-        | "benchmark" | "install" => {
+        "status" | "identity" | "discover" | "register" | "lifecycle" | "switch" | "verify-custody" | "observe"
+        | "vnv" | "benchmark" | "install" => {
             load_peer_registry(parsed.registry.as_deref())?;
         }
         other => {
@@ -261,6 +263,14 @@ async fn main() -> Result<()> {
             emit_json(&report, parsed.compact)?;
             if parsed.apply {
                 check_applied_actions(&report.actions)?;
+            }
+        }
+        "lifecycle" => {
+            let report =
+                run_usb4_lifecycle_evaluation(parsed.apply, parsed.timeout_ms, parsed.registry.as_deref()).await?;
+            emit_json(&report, parsed.compact)?;
+            if !report.overall_valid {
+                anyhow::bail!("pcai-tb lifecycle failed validation checks");
             }
         }
         "switch" => {

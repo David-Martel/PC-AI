@@ -340,3 +340,56 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
 
     let _ = fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_transit() {
+    let reg = repo_registry_path();
+    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+        .env("COMPUTERNAME", "dtm-p1gen9")
+        .args([
+            "lifecycle",
+            "--registry",
+            reg.to_str().expect("utf8 path"),
+            "--timeout-ms",
+            "150",
+            "--compact",
+        ])
+        .output()
+        .expect("run pcai-tb lifecycle");
+
+    assert!(
+        output.status.success(),
+        "expected lifecycle subcommand to succeed, stdout={}, stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).expect("valid lifecycle json");
+    assert_eq!(json["Schema"], "pcai.usb4-lifecycle/v1");
+    assert_eq!(json["ComputerName"], "dtm-p1gen9");
+    assert_eq!(json["OverallValid"], true);
+    assert_eq!(
+        json["Policy"]["allowAlwaysOnTransitClaimWhenSelectiveSuspend"],
+        false
+    );
+    let link_states = json["PeerLinkStates"].as_array().expect("PeerLinkStates array");
+    assert!(!link_states.is_empty(), "expected non-empty PeerLinkStates");
+    assert!(
+        link_states.iter().all(|l| l["AlwaysOnTransitCapable"] == false),
+        "no USB4 link may claim AlwaysOnTransitCapable=true under SelectiveSuspend/Unsupported wake"
+    );
+    let plugable = link_states
+        .iter()
+        .find(|l| l["LinkId"] == "ms01-plugable-dock-usb4-routed")
+        .expect("ms01-plugable-dock-usb4-routed entry");
+    assert_eq!(plugable["LifecycleState"], "disconnected");
+    assert_eq!(plugable["DownstreamLinkStatus"], "none");
+    assert_eq!(plugable["WindowsXdomainPresent"], false);
+
+    let milly = link_states
+        .iter()
+        .find(|l| l["LinkId"] == "ms01-milly-usb4-bridge")
+        .expect("ms01-milly-usb4-bridge entry");
+    assert_eq!(milly["PreserveBridgeCustody"], true);
+}
+

@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Downloads and installs a driver update for a registry-tracked device.
@@ -113,7 +113,7 @@ function Install-DriverUpdate {
 
     # --- Step 3: Validate entry ---
     if (-not $entry) {
-        Write-Error "Install-DriverUpdate: device ID '$DeviceId' not found in registry."
+        Write-Error "Install-DriverUpdate: device ID '$DeviceId' not found in registry." -ErrorAction $(if ($PSBoundParameters.ContainsKey('ErrorAction')) { $PSBoundParameters['ErrorAction'] } else { $ErrorActionPreference })
         return $null
     }
 

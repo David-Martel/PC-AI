@@ -63,5 +63,6 @@ Export-ModuleMember -Function @(
     'Connect-ThunderboltPeer',
     'Set-ThunderboltNetworkOptimization',
     'Get-ThunderboltPeerIdentity',
-    'Register-ThunderboltPeer'
+    'Register-ThunderboltPeer',
+    'Invoke-ThunderboltPeerLifecycle'
 )

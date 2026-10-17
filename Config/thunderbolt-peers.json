@@ -5,6 +5,17 @@
   "pairwiseIpv4Pool": "172.31.240.0/20",
   "defaultMtuBytes": 62000,
   "defaultInterfaceMetric": 5,
+  "usb4LifecyclePolicy": {
+    "states": ["asleep", "disconnected", "probing", "ready"],
+    "defaultEvidenceTtlSeconds": 300,
+    "boundedResumeReprobeMaxAttempts": 3,
+    "boundedResumeReprobeTimeoutMs": 250,
+    "boundedResumeTotalBudgetMs": 1500,
+    "withdrawOwnedStaleRoutesOnExpireOrDisconnect": true,
+    "requireIdentityBoundCanary": true,
+    "allowAlwaysOnTransitClaimWhenSelectiveSuspend": false,
+    "ms01UplinkCapMbps": 1000
+  },
   "ipamAllocations": {
     "p2pThunderboltUlaPrefix": "fd00:7462:7032::/48",
     "p2pDeterministicUlaSubnet": "fd00:7462:7032:d700::/64",
@@ -120,7 +131,14 @@
       "targetHubId": "USB4\\VID_8087&PID_5786\\8&36E6FB2D&0&1",
       "linkIntent": "routed-p2p",
       "bridgeDomain": null,
-      "l3Subnets": ["172.31.252.132/30", "fd00:7462:7032::/64"]
+      "l3Subnets": ["172.31.252.132/30", "fd00:7462:7032::/64"],
+      "lifecycleStateHint": "ready",
+      "alwaysOnTransitCapable": false,
+      "preserveExistingPair": true,
+      "expectedPeerMacs": {
+        "dtm-p1gen9": "08-93-C1-7B-39-51"
+      },
+      "notes": "Windows S0 networkconnected supported, but USB4 Ethernet 4 has SelectiveSuspend=Enabled and WakeOnMagicPacket/Pattern/ARP/NS=Unsupported under ModernStandby 506/507; never claim always-on transit."
     },
     {
       "linkId": "ms01-gen9-sfp-dock-bridge",
@@ -134,7 +152,9 @@
       "targetHubId": "PCI\\VEN_8086&DEV_5503&SUBSYS_234E17AA&REV_04\\10E18EFFFF5A264300",
       "linkIntent": "transparent-bridge",
       "bridgeDomain": "ms01-switch/sw0",
-      "l3Subnets": ["192.168.50.0/24", "fd5f:743d:6f55:50::/64"]
+      "l3Subnets": ["192.168.50.0/24", "fd5f:743d:6f55:50::/64"],
+      "lifecycleStateHint": "ready",
+      "alwaysOnTransitCapable": true
     },
     {
       "linkId": "ms01-milly-usb4-bridge",
@@ -148,7 +168,10 @@
       "targetHubId": "bab38780-0019-a9b4-ffff-ffffffffffff",
       "linkIntent": "transparent-bridge",
       "bridgeDomain": "ms01-switch/sw0",
-      "l3Subnets": ["10.254.253.0/30", "192.168.50.0/24", "fd5f:743d:6f55:50::/64"]
+      "l3Subnets": ["10.254.253.0/30", "192.168.50.0/24", "fd5f:743d:6f55:50::/64"],
+      "lifecycleStateHint": "ready",
+      "alwaysOnTransitCapable": false,
+      "preserveBridgeCustody": true
     },
     {
       "linkId": "ms01-plugable-dock-usb4-routed",
@@ -157,12 +180,17 @@
       "sourceHubModel": "Plugable TBT4-UDX1 Thunderbolt 4/USB4 Dock",
       "sourceHubId": "8c5e8780-00d7-986c-ffff-ffffffffffff",
       "targetHost": "dtm-p1gen9",
-      "targetInterface": "USB4-Hub-Downstream",
+      "targetInterface": "Ethernet 4",
       "targetHubModel": "Lenovo ThinkPad Thunderbolt 5 Smart Dock 7500",
       "targetHubId": "USB4\\VID_8087&PID_5786\\8&36E6FB2D&0&1",
       "linkIntent": "routed-p2p",
       "bridgeDomain": null,
-      "l3Subnets": ["172.31.240.0/20", "fd00:7462:7032::/48"]
+      "l3Subnets": ["172.31.240.0/20", "fd00:7462:7032::/48"],
+      "lifecycleStateHint": "disconnected",
+      "alwaysOnTransitCapable": false,
+      "downstreamLinkStatus": "none",
+      "windowsXDomainPresent": false,
+      "notes": "Reseat leaves MS01 Plugable downstream link=none and no Windows XDomain; never claim ready or always-on transit."
     }
   ],
   "peers": {

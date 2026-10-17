@@ -1152,7 +1152,8 @@ Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portabl
             'Connect-ThunderboltPeer',
             'Set-ThunderboltNetworkOptimization',
             'Get-ThunderboltPeerIdentity',
-            'Register-ThunderboltPeer'
+            'Register-ThunderboltPeer',
+            'Invoke-ThunderboltPeerLifecycle'
         )
         foreach ($fn in $expected) {
             $mod.ExportedFunctions.Keys | Should -Contain $fn
@@ -1167,3 +1168,270 @@ Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portabl
     }
 }
 
+
+# ─── Invoke-ThunderboltPeerLifecycle ─────────────────────────────────────────
+
+Describe "Invoke-ThunderboltPeerLifecycle" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast', 'Portable' {
+    Context "Additive power capabilities and lifecycle state on Get-ThunderboltNetworkStatus" {
+        BeforeAll {
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                switch ($ClassName) {
+                    'Win32_NetworkAdapter' {
+                        @([PSCustomObject]@{
+                            Name                = 'USB4(TM) P2P Network Adapter #2'
+                            Description         = 'USB4(TM) P2P Network Adapter #2'
+                            NetConnectionID     = 'Ethernet 4'
+                            NetEnabled          = $true
+                            NetConnectionStatus = 2
+                            Speed               = 20000000000
+                            MACAddress          = '08-93-C1-7B-39-51'
+                            PNPDeviceID         = 'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0'
+                            Index               = 15
+                            InterfaceIndex      = 22
+                        })
+                    }
+                    'Win32_NetworkAdapterConfiguration' {
+                        @([PSCustomObject]@{
+                            Index     = 15
+                            IPAddress = @('169.254.196.28', 'fe80::d700:9', 'fd00:7462:7032::9')
+                        })
+                    }
+                    'MSFT_NetIPInterface' {
+                        @(
+                            [PSCustomObject]@{
+                                InterfaceAlias  = 'Ethernet 4'
+                                AddressFamily   = 2
+                                InterfaceMetric = 5
+                                NlMtu           = 62000
+                                AutomaticMetric = $false
+                            }
+                        )
+                    }
+                    'MSFT_NetNeighbor' {
+                        @([PSCustomObject]@{
+                            InterfaceAlias   = 'Ethernet 4'
+                            IPAddress        = 'fe80::d700:7'
+                            LinkLayerAddress = '34-4D-A1-C4-C4-22'
+                            State            = 'Reachable'
+                        })
+                    }
+                    'MSFT_NetAdapterPowerManagementSettingData' {
+                        @([PSCustomObject]@{
+                            Name              = 'Ethernet 4'
+                            SelectiveSuspend  = 2
+                            WakeOnMagicPacket = 0
+                            WakeOnPattern     = 0
+                            ArpOffload        = 0
+                            NSOffload         = 0
+                        })
+                    }
+                    default { return @() }
+                }
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should report SelectiveSuspend=Enabled, Wake/Offload=Unsupported, AlwaysOnTransitCapable=false, and expiring evidence" {
+            $status = @(Get-ThunderboltNetworkStatus -EvidenceTtlSeconds 300)
+            $status.Count | Should -Be 1
+            $status[0].SelectiveSuspend | Should -Be 'Enabled'
+            $status[0].WakeOnMagicPacket | Should -Be 'Unsupported'
+            $status[0].WakeOnPattern | Should -Be 'Unsupported'
+            $status[0].ArpOffload | Should -Be 'Unsupported'
+            $status[0].NSOffload | Should -Be 'Unsupported'
+            $status[0].AlwaysOnTransitCapable | Should -BeFalse
+            $status[0].TransitClaimProhibitionReasons.Count | Should -BeGreaterOrEqual 3
+            $status[0].LifecycleState | Should -Be 'ready'
+            $status[0].EvidenceTtlSeconds | Should -Be 300
+            $status[0].EvidenceExpired | Should -BeFalse
+        }
+    }
+
+    Context "When evaluating topology links, stale routes, and Modern Standby invalidation" {
+        BeforeAll {
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias                 = 'Ethernet 4'
+                        InterfaceIndex                 = 22
+                        Name                           = 'USB4(TM) P2P Network Adapter #2'
+                        Description                    = 'USB4(TM) P2P Network Adapter #2'
+                        Role                           = 'P2PNetwork'
+                        NetEnabled                     = $true
+                        NetConnectionStatus            = 2
+                        LinkSpeedGbps                  = 20.0
+                        MacAddress                     = '08-93-C1-7B-39-51'
+                        IPv4Addresses                  = @('169.254.196.28')
+                        IPv6Addresses                  = @('fe80::d700:9', 'fd00:7462:7032::9')
+                        SelectiveSuspend               = 'Enabled'
+                        WakeOnMagicPacket              = 'Unsupported'
+                        WakeOnPattern                  = 'Unsupported'
+                        ArpOffload                     = 'Unsupported'
+                        NSOffload                      = 'Unsupported'
+                        AlwaysOnTransitCapable         = $false
+                        TransitClaimProhibitionReasons = @('SelectiveSuspend=Enabled')
+                        LifecycleState                 = 'ready'
+                        NeighborCandidates             = @(
+                            [PSCustomObject]@{
+                                IPAddress        = 'fe80::d700:7'
+                                LinkLayerAddress = '34-4D-A1-C4-C4-22'
+                                State            = 'Reachable'
+                                PeerHostname     = 'dtm-p1gen7'
+                            }
+                        )
+                        RecommendedActions             = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                if ($ClassName -eq 'MSFT_NetRoute') {
+                    return @(
+                        [PSCustomObject]@{
+                            InterfaceIndex    = 22
+                            DestinationPrefix = 'fd00:7462:7032::7/128'
+                            RouteMetric       = 5
+                        },
+                        [PSCustomObject]@{
+                            InterfaceIndex    = 22
+                            DestinationPrefix = 'fd00:7462:7032::1/128'
+                            RouteMetric       = 5
+                        },
+                        [PSCustomObject]@{
+                            InterfaceIndex    = 22
+                            DestinationPrefix = 'fd00:7462:7032::21/128'
+                            RouteMetric       = 5
+                        },
+                        [PSCustomObject]@{
+                            InterfaceIndex    = 22
+                            DestinationPrefix = '172.31.251.14/32'
+                            RouteMetric       = 5
+                        }
+                    )
+                }
+                return @()
+            } -ModuleName PC-AI.Drivers
+
+            Mock Get-WinEvent {
+                $now = [datetime]::UtcNow
+                @(
+                    [PSCustomObject]@{
+                        Id          = 507
+                        TimeCreated = $now.AddSeconds(-30)
+                        Message     = "The system is exiting connected standby `r`n`r`nReason: Input Touchpad."
+                    },
+                    [PSCustomObject]@{
+                        Id          = 506
+                        TimeCreated = $now.AddSeconds(-120)
+                        Message     = "The system is entering connected standby `r`n`r`nReason: Idle Timeout."
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should mark gen7-gen9 ready, ms01-plugable disconnected, preserve Milly bridge, withdraw stale ms01/canary routes, and never claim always-on transit" {
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -EvidenceObservedAtUtc ([datetime]::UtcNow)
+            $report.AnyAlwaysOnTransitClaim | Should -BeFalse
+            $report.Ms01UplinkCapMbps | Should -Be 1000
+            $report.ModernStandby.LastEnterReason | Should -Be 'Idle Timeout.'
+            $report.ModernStandby.LastExitReason | Should -Be 'Input Touchpad.'
+
+            $gen7Link = $report.Links | Where-Object LinkId -eq 'gen7-gen9-usb4-hub-chain'
+            $gen7Link.State | Should -Be 'ready'
+            $gen7Link.AlwaysOnTransitCapable | Should -BeFalse
+            $gen7Link.PreserveExistingPair | Should -BeTrue
+            $gen7Link.Canary.IdentityVerified | Should -BeTrue
+
+            $plugableLink = $report.Links | Where-Object LinkId -eq 'ms01-plugable-dock-usb4-routed'
+            $plugableLink.State | Should -Be 'disconnected'
+            $plugableLink.DownstreamLinkStatus | Should -Be 'none'
+            $plugableLink.WindowsXDomainPresent | Should -BeFalse
+
+            $millyLink = $report.Links | Where-Object LinkId -eq 'ms01-milly-usb4-bridge'
+            $millyLink.PreserveBridgeCustody | Should -BeTrue
+            $millyLink.State | Should -Be 'ready'
+
+            $gen7Route = $report.RouteActions | Where-Object DestinationPrefix -eq 'fd00:7462:7032::7/128'
+            $gen7Route.Action | Should -Be 'PreserveActiveOrBridgeRoute'
+
+            $millyRoute = $report.RouteActions | Where-Object DestinationPrefix -eq 'fd00:7462:7032::21/128'
+            $millyRoute.Action | Should -Be 'PreserveActiveOrBridgeRoute'
+
+            $ms01Route = $report.RouteActions | Where-Object DestinationPrefix -eq 'fd00:7462:7032::1/128'
+            $ms01Route.Action | Should -Be 'WithdrawStaleOwnedRoute'
+
+            $staleCanaryRoute = $report.RouteActions | Where-Object DestinationPrefix -eq '172.31.251.14/32'
+            $staleCanaryRoute.Action | Should -Be 'WithdrawStaleOwnedRoute'
+        }
+
+        It "Should invalidate stale pre-standby evidence when Event 506 occurred after EvidenceObservedAtUtc and downgrade ready to asleep" {
+            $preStandbyTime = [datetime]::UtcNow.AddMinutes(-10)
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -EvidenceObservedAtUtc $preStandbyTime
+            $gen7Link = $report.Links | Where-Object LinkId -eq 'gen7-gen9-usb4-hub-chain'
+            $gen7Link.Evidence.InvalidatedByModernStandby | Should -BeTrue
+            $gen7Link.Evidence.Expired | Should -BeTrue
+            $gen7Link.State | Should -Be 'asleep'
+        }
+
+        It "Should enforce bounded resume reprobe budget when ReprobeOnResume is requested" {
+            $preStandbyTime = [datetime]::UtcNow.AddMinutes(-10)
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -EvidenceObservedAtUtc $preStandbyTime -ReprobeOnResume -MaxReprobeAttempts 2 -ReprobeTimeoutMs 100 -TotalReprobeBudgetMs 500
+            $report.ResumeReprobe | Should -Not -BeNullOrEmpty
+            $report.ResumeReprobe.MaxAttempts | Should -Be 2
+            $report.ResumeReprobe.PerAttemptTimeoutMs | Should -Be 100
+            $report.ResumeReprobe.TotalBudgetMs | Should -Be 500
+            $report.ResumeReprobe.AttemptsExecuted | Should -BeLessOrEqual 2
+        }
+    }
+
+    Context "Negative test: identity-bound canary rejects spoofing/unexpected neighbor MAC" {
+        BeforeAll {
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias                 = 'Ethernet 4'
+                        InterfaceIndex                 = 22
+                        Name                           = 'USB4(TM) P2P Network Adapter #2'
+                        Description                    = 'USB4(TM) P2P Network Adapter #2'
+                        Role                           = 'P2PNetwork'
+                        NetEnabled                     = $true
+                        NetConnectionStatus            = 2
+                        LinkSpeedGbps                  = 20.0
+                        MacAddress                     = '08-93-C1-7B-39-51'
+                        IPv4Addresses                  = @('169.254.196.28')
+                        IPv6Addresses                  = @('fe80::d700:9')
+                        SelectiveSuspend               = 'Enabled'
+                        WakeOnMagicPacket              = 'Unsupported'
+                        WakeOnPattern                  = 'Unsupported'
+                        ArpOffload                     = 'Unsupported'
+                        NSOffload                      = 'Unsupported'
+                        AlwaysOnTransitCapable         = $false
+                        TransitClaimProhibitionReasons = @('SelectiveSuspend=Enabled')
+                        LifecycleState                 = 'probing'
+                        NeighborCandidates             = @(
+                            [PSCustomObject]@{
+                                IPAddress        = 'fe80::d700:7'
+                                LinkLayerAddress = 'DE-AD-BE-EF-00-01'
+                                State            = 'Reachable'
+                                PeerHostname     = 'unknown-rogue-host'
+                            }
+                        )
+                        RecommendedActions             = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+
+            Mock Get-WinEvent { return @() } -ModuleName PC-AI.Drivers
+            Mock Get-CimInstance { return @() } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should keep link in 'probing' and refuse 'ready' when neighbor identity/MAC does not match expected peer" {
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -ReprobeTimeoutMs 50
+            $gen7Link = $report.Links | Where-Object LinkId -eq 'gen7-gen9-usb4-hub-chain'
+            $gen7Link.Canary.Reachable | Should -BeTrue
+            $gen7Link.Canary.IdentityVerified | Should -BeFalse
+            $gen7Link.State | Should -Be 'probing'
+        }
+    }
+}

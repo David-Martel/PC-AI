@@ -9,6 +9,68 @@ use std::path::{Path, PathBuf};
 
 // trace: PENDING-FABRIC-F09 [pending-tpm-intake]
 // trace: PENDING-FABRIC-F11 [pending-tpm-intake]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Usb4LifecycleState {
+    Asleep,
+    Disconnected,
+    Probing,
+    Ready,
+}
+
+impl Usb4LifecycleState {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Asleep => "asleep",
+            Self::Disconnected => "disconnected",
+            Self::Probing => "probing",
+            Self::Ready => "ready",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Usb4LifecyclePolicy {
+    #[serde(default)]
+    pub states: Vec<Usb4LifecycleState>,
+    pub default_evidence_ttl_seconds: u64,
+    pub bounded_resume_reprobe_max_attempts: u32,
+    pub bounded_resume_reprobe_timeout_ms: u64,
+    pub bounded_resume_total_budget_ms: u64,
+    pub withdraw_owned_stale_routes_on_expire_or_disconnect: bool,
+    pub require_identity_bound_canary: bool,
+    pub allow_always_on_transit_claim_when_selective_suspend: bool,
+    pub ms01_uplink_cap_mbps: Option<u32>,
+    #[serde(default)]
+    pub preserved_active_pairs: Vec<String>,
+    #[serde(default)]
+    pub preserved_bridges: Vec<String>,
+}
+
+impl Default for Usb4LifecyclePolicy {
+    fn default() -> Self {
+        Self {
+            states: vec![
+                Usb4LifecycleState::Asleep,
+                Usb4LifecycleState::Disconnected,
+                Usb4LifecycleState::Probing,
+                Usb4LifecycleState::Ready,
+            ],
+            default_evidence_ttl_seconds: 300,
+            bounded_resume_reprobe_max_attempts: 3,
+            bounded_resume_reprobe_timeout_ms: 250,
+            bounded_resume_total_budget_ms: 1500,
+            withdraw_owned_stale_routes_on_expire_or_disconnect: true,
+            require_identity_bound_canary: true,
+            allow_always_on_transit_claim_when_selective_suspend: false,
+            ms01_uplink_cap_mbps: Some(1000),
+            preserved_active_pairs: vec!["dtm-p1gen7<->dtm-p1gen9".to_string()],
+            preserved_bridges: vec!["ms01-milly-usb4-bridge".to_string()],
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PeerRegistryFile {
@@ -18,6 +80,8 @@ pub struct PeerRegistryFile {
     pub pairwise_ipv4_pool: Option<String>,
     pub default_mtu_bytes: Option<u32>,
     pub default_interface_metric: Option<u32>,
+    #[serde(default)]
+    pub usb4_lifecycle_policy: Option<Usb4LifecyclePolicy>,
     #[serde(default)]
     pub ipam_allocations: Option<IpamAllocations>,
     #[serde(default)]
@@ -54,7 +118,7 @@ pub struct SharedSwitchSubnet {
     pub role: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TopologyLinkSpec {
     pub link_id: String,
@@ -70,6 +134,22 @@ pub struct TopologyLinkSpec {
     pub bridge_domain: Option<String>,
     #[serde(default)]
     pub l3_subnets: Vec<String>,
+    #[serde(default)]
+    pub lifecycle_state_hint: Option<Usb4LifecycleState>,
+    #[serde(default)]
+    pub always_on_transit_capable: Option<bool>,
+    #[serde(default)]
+    pub preserve_existing_pair: Option<bool>,
+    #[serde(default)]
+    pub preserve_bridge_custody: Option<bool>,
+    #[serde(default)]
+    pub downstream_link_status: Option<String>,
+    #[serde(default)]
+    pub windows_xdomain_present: Option<bool>,
+    #[serde(default)]
+    pub expected_peer_macs: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    pub notes: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -681,6 +761,35 @@ pub fn validate_peer_registry(reg: &PeerRegistryFile) -> Result<()> {
         }
     }
 
+    if let Some(ref policy) = reg.usb4_lifecycle_policy {
+        if policy.default_evidence_ttl_seconds == 0 || policy.default_evidence_ttl_seconds > 86_400 {
+            anyhow::bail!(
+                "usb4LifecyclePolicy.defaultEvidenceTtlSeconds must be between 1 and 86400 (got {})",
+                policy.default_evidence_ttl_seconds
+            );
+        }
+        if policy.bounded_resume_reprobe_max_attempts == 0 || policy.bounded_resume_reprobe_max_attempts > 10 {
+            anyhow::bail!(
+                "usb4LifecyclePolicy.boundedResumeReprobeMaxAttempts must be between 1 and 10 (got {})",
+                policy.bounded_resume_reprobe_max_attempts
+            );
+        }
+        if policy.bounded_resume_reprobe_timeout_ms == 0
+            || policy.bounded_resume_total_budget_ms < policy.bounded_resume_reprobe_timeout_ms
+        {
+            anyhow::bail!(
+                "usb4LifecyclePolicy boundedResumeReprobeTimeoutMs ({}) / boundedResumeTotalBudgetMs ({}) invalid",
+                policy.bounded_resume_reprobe_timeout_ms,
+                policy.bounded_resume_total_budget_ms
+            );
+        }
+        if policy.allow_always_on_transit_claim_when_selective_suspend {
+            anyhow::bail!(
+                "usb4LifecyclePolicy.allowAlwaysOnTransitClaimWhenSelectiveSuspend must be false (SelectiveSuspend/Unsupported wake prohibits always-on transit claim)"
+            );
+        }
+    }
+
     let mut seen_link_ids = HashSet::new();
     for link in &reg.topology_links {
         let id = link.link_id.trim();
@@ -717,6 +826,27 @@ pub fn validate_peer_registry(reg: &PeerRegistryFile) -> Result<()> {
             other => {
                 anyhow::bail!(
                     "Unsupported topologyLinks linkIntent '{other}' on '{id}'; expected transparent-bridge, routed-p2p, or isolated-fabric"
+                );
+            }
+        }
+        let link_none = link
+            .downstream_link_status
+            .as_deref()
+            .is_some_and(|s| s.trim().eq_ignore_ascii_case("none") || s.trim().eq_ignore_ascii_case("down"));
+        let xdomain_absent = link.windows_xdomain_present == Some(false);
+        if link_none || xdomain_absent {
+            if link.lifecycle_state_hint == Some(Usb4LifecycleState::Ready) {
+                anyhow::bail!(
+                    "topologyLinks '{id}' cannot claim lifecycleStateHint='ready' when downstreamLinkStatus={:?} or windowsXDomainPresent={:?}",
+                    link.downstream_link_status,
+                    link.windows_xdomain_present
+                );
+            }
+            if link.always_on_transit_capable == Some(true) {
+                anyhow::bail!(
+                    "topologyLinks '{id}' cannot claim alwaysOnTransitCapable=true when downstreamLinkStatus={:?} or windowsXDomainPresent={:?}",
+                    link.downstream_link_status,
+                    link.windows_xdomain_present
                 );
             }
         }
@@ -1269,15 +1399,11 @@ mod tests {
             link_id: "link-no-domain".to_string(),
             source_host: "minisforum".to_string(),
             source_interface: "enp2s0f1np1".to_string(),
-            source_hub_model: None,
-            source_hub_id: None,
             target_host: "dtm-p1gen9".to_string(),
             target_interface: "Ethernet 2".to_string(),
-            target_hub_model: None,
-            target_hub_id: None,
             link_intent: "transparent-bridge".to_string(),
             bridge_domain: None,
-            l3_subnets: Vec::new(),
+            ..Default::default()
         }];
         assert!(detect_l2_bridge_cycles(&missing_domain).is_err());
 
@@ -1285,15 +1411,11 @@ mod tests {
             link_id: "link-empty-iface".to_string(),
             source_host: "minisforum".to_string(),
             source_interface: "   ".to_string(),
-            source_hub_model: None,
-            source_hub_id: None,
             target_host: "dtm-p1gen9".to_string(),
             target_interface: "Ethernet 2".to_string(),
-            target_hub_model: None,
-            target_hub_id: None,
             link_intent: "transparent-bridge".to_string(),
             bridge_domain: Some("ms01-switch/sw0".to_string()),
-            l3_subnets: Vec::new(),
+            ..Default::default()
         }];
         assert!(detect_l2_bridge_cycles(&empty_iface).is_err());
 
@@ -1353,6 +1475,57 @@ mod tests {
         assert!(
             err_shared.to_string().contains("sharedSwitchSubnets") && err_shared.to_string().contains("overlaps"),
             "expected sharedSwitchSubnets overlap error, got: {err_shared}"
+        );
+    }
+
+    #[test]
+    fn test_validate_peer_registry_enforces_usb4_lifecycle_and_link_none_constraints() {
+        let false_ready_json = r#"{
+            "schemaVersion": 1,
+            "topologyLinks": [
+                {
+                    "linkId": "ms01-plugable-dock-usb4-routed",
+                    "sourceHost": "minisforum",
+                    "sourceInterface": "domain1/1-1",
+                    "targetHost": "dtm-p1gen9",
+                    "targetInterface": "Ethernet 4",
+                    "linkIntent": "routed-p2p",
+                    "bridgeDomain": null,
+                    "lifecycleStateHint": "ready",
+                    "downstreamLinkStatus": "none",
+                    "windowsXDomainPresent": false
+                }
+            ],
+            "fleetPeers": []
+        }"#;
+        let parsed_false_ready: PeerRegistryFile = serde_json::from_str(false_ready_json).unwrap();
+        let err_ready = parsed_false_ready.normalize_and_validate().unwrap_err();
+        assert!(
+            err_ready.to_string().contains("cannot claim lifecycleStateHint='ready'"),
+            "expected false ready rejection, got: {err_ready}"
+        );
+
+        let false_transit_json = r#"{
+            "schemaVersion": 1,
+            "usb4LifecyclePolicy": {
+                "states": ["asleep", "disconnected", "probing", "ready"],
+                "defaultEvidenceTtlSeconds": 300,
+                "boundedResumeReprobeMaxAttempts": 3,
+                "boundedResumeReprobeTimeoutMs": 250,
+                "boundedResumeTotalBudgetMs": 1500,
+                "withdrawOwnedStaleRoutesOnExpireOrDisconnect": true,
+                "requireIdentityBoundCanary": true,
+                "allowAlwaysOnTransitClaimWhenSelectiveSuspend": true
+            },
+            "fleetPeers": []
+        }"#;
+        let parsed_false_transit: PeerRegistryFile = serde_json::from_str(false_transit_json).unwrap();
+        let err_transit = parsed_false_transit.normalize_and_validate().unwrap_err();
+        assert!(
+            err_transit
+                .to_string()
+                .contains("allowAlwaysOnTransitClaimWhenSelectiveSuspend must be false"),
+            "expected false always-on transit policy rejection, got: {err_transit}"
         );
     }
 }

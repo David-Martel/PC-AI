@@ -1033,8 +1033,9 @@ function Invoke-ThunderboltPeerLifecycle {
             continue
         }
 
-        # Preserve routes bound to foreign interfaces outside the evaluated USB4 P2P adapters
-        if ($evaluatedUsb4IfIndices.Count -gt 0 -and ($evaluatedUsb4IfIndices -notcontains $ifIdx)) {
+        # Preserve every route without positive evaluated-adapter membership, including
+        # when no USB4 adapter is present or inventory is unavailable.
+        if ($evaluatedUsb4IfIndices -notcontains $ifIdx) {
             $routeActions.Add([PSCustomObject]@{
                 DestinationPrefix = $dest
                 InterfaceIndex    = $ifIdx

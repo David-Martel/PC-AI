@@ -16,3 +16,7 @@ The call-site check is structural rather than end-to-end deletion coverage. Full
 - Route verification test: `a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9`
 
 No production numeric limits, timeouts, routes or deployment configuration changed in this diff. The new switch is backward compatible unless explicitly requested. Root owns subsequent CI/documentation/register additions and Windows test receipts.
+
+## Membership follow-up re-review
+
+On 2026-10-17, an independent current-source rerun passed all four existing query controls after the empty-adapter membership repair. The current register now binds that source and retains earlier rows under previous_reviews. This rerun does not repeat or expand the earlier required-rethrow mutation experiment. Route ownership controls live in the [separate review](usb4-route-ownership-review.md); no physical deletion or rollback qualification is added.

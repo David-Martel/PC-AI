@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 bytes with CRLF converted to LF",
+  "reviews": [
+    {
+      "selector": "CapturesExactLargeOutputOnBothPipesWithoutDeadlock",
+      "test_path": "Native/PcaiNative.Tests/BoundedTestProcessTests.cs",
+      "test_sha256": "dd72f1b698e0a1c74bbe68437923e3c83e5755b23a31901bc1b21f94fe1b48aa",
+      "source_path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+      "source_sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3",
+      "base_commit": "db9ef414ec7b4e1e640e90bf6424e545b051457b",
+      "disposition": "keep",
+      "reviewer": "Codex benchmark_fix_review and root integration review",
+      "reviewer_type": "independent agent and integrating reviewer",
+      "scope": "Actual real-process controls; parent termination only, no arbitrary orphan containment or hardware/performance qualification.",
+      "receipt": "../../docs/native-process-validation.md",
+      "reviewed_utc": "2026-10-17",
+      "validation": "Independent actual process probe passes exact dual streams/nonzero/timeout-PID-exit; root full52PASS0skip with real core. Historical sequential-drain mutation hangs under external18s supervisor. Windows current-head execution pending."
+    },
+    {
+      "selector": "PreservesNonzeroExitAndBothDiagnosticStreams",
+      "test_path": "Native/PcaiNative.Tests/BoundedTestProcessTests.cs",
+      "test_sha256": "dd72f1b698e0a1c74bbe68437923e3c83e5755b23a31901bc1b21f94fe1b48aa",
+      "source_path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+      "source_sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3",
+      "base_commit": "db9ef414ec7b4e1e640e90bf6424e545b051457b",
+      "disposition": "keep",
+      "reviewer": "Codex benchmark_fix_review and root integration review",
+      "reviewer_type": "independent agent and integrating reviewer",
+      "scope": "Actual real-process controls; parent termination only, no arbitrary orphan containment or hardware/performance qualification.",
+      "receipt": "../../docs/native-process-validation.md",
+      "reviewed_utc": "2026-10-17",
+      "validation": "Independent actual process probe passes exact dual streams/nonzero/timeout-PID-exit; root full52PASS0skip with real core. Historical sequential-drain mutation hangs under external18s supervisor. Windows current-head execution pending."
+    },
+    {
+      "selector": "HangingChildTimesOutAndKnownProcessHasExited",
+      "test_path": "Native/PcaiNative.Tests/BoundedTestProcessTests.cs",
+      "test_sha256": "dd72f1b698e0a1c74bbe68437923e3c83e5755b23a31901bc1b21f94fe1b48aa",
+      "source_path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+      "source_sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3",
+      "base_commit": "db9ef414ec7b4e1e640e90bf6424e545b051457b",
+      "disposition": "keep",
+      "reviewer": "Codex benchmark_fix_review and root integration review",
+      "reviewer_type": "independent agent and integrating reviewer",
+      "scope": "Actual real-process controls; parent termination only, no arbitrary orphan containment or hardware/performance qualification.",
+      "receipt": "../../docs/native-process-validation.md",
+      "reviewed_utc": "2026-10-17",
+      "validation": "Independent actual process probe passes exact dual streams/nonzero/timeout-PID-exit; root full52PASS0skip with real core. Historical sequential-drain mutation hangs under external18s supervisor. Windows current-head execution pending."
+    },
+    {
+      "selector": "MagicOnlyNativeLibraryIsRejectedByRequiredExportAdmission",
+      "test_path": "Native/PcaiNative.Tests/NativeResolverTests.cs",
+      "test_sha256": "4637490bf8a021c6258a4f69be81cd75efd08781711ddf5d3f694f8dd96ed879",
+      "source_path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+      "source_sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3",
+      "base_commit": "db9ef414ec7b4e1e640e90bf6424e545b051457b",
+      "disposition": "keep",
+      "reviewer": "Codex benchmark_fix_review and root integration review",
+      "reviewer_type": "independent agent and integrating reviewer",
+      "scope": "Actual real-process controls; parent termination only, no arbitrary orphan containment or hardware/performance qualification.",
+      "receipt": "../../docs/native-process-validation.md",
+      "reviewed_utc": "2026-10-17",
+      "validation": "Independent actual process probe passes exact dual streams/nonzero/timeout-PID-exit; root full52PASS0skip with real core. Historical sequential-drain mutation hangs under external18s supervisor. Windows current-head execution pending."
+    }
+  ]
+}

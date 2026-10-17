@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -151,8 +152,11 @@ public sealed class NativeResolverTests
         Assert.Equal(PcaiCore.RequiredExports.Count, nullMissing.Count);
     }
 
+    // Protects required-export admission in a fresh process; detects magic-only acceptance.
+    // Needs rustc and pwsh; optional real-core path exercises its full export inventory.
+    // Breadcrumb: PcaiCore.VerifyLibraryExports/IsAvailable and BoundedTestProcess.RunAsync.
     [Fact]
-    public void MagicOnlyNativeLibraryIsRejectedByRequiredExportAdmission()
+    public async Task MagicOnlyNativeLibraryIsRejectedByRequiredExportAdmission()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "pcai-magic-only-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -192,14 +196,9 @@ public sealed class NativeResolverTests
             rustc.ArgumentList.Add("-o");
             rustc.ArgumentList.Add(magicLibPath);
 
-            using (var compileProc = Process.Start(rustc))
-            {
-                Assert.NotNull(compileProc);
-                var compileOut = compileProc!.StandardOutput.ReadToEnd();
-                var compileErr = compileProc.StandardError.ReadToEnd();
-                Assert.True(compileProc.WaitForExit(60000), "rustc timed out compiling magic-only stub.");
-                Assert.True(compileProc.ExitCode == 0, $"rustc failed ({compileProc.ExitCode}): {compileErr}\n{compileOut}");
-            }
+            var compilation = await BoundedTestProcess.RunAsync(rustc, TimeSpan.FromSeconds(60));
+            Assert.True(compilation.ExitCode == 0,
+                $"rustc failed ({compilation.ExitCode}): {compilation.StandardError}\n{compilation.StandardOutput}");
 
             Assert.True(File.Exists(magicLibPath));
 
@@ -267,11 +266,9 @@ $diag = [PcaiNative.PcaiCore]::GetDiagnostics()
 }} | ConvertTo-Json -Compress
 ");
 
-            using var child = Process.Start(psi);
-            Assert.NotNull(child);
-            var stdout = child!.StandardOutput.ReadToEnd();
-            var stderr = child.StandardError.ReadToEnd();
-            Assert.True(child.WaitForExit(30000), "Child pwsh process timed out.");
+            var child = await BoundedTestProcess.RunAsync(psi, TimeSpan.FromSeconds(30));
+            var stdout = child.StandardOutput;
+            var stderr = child.StandardError;
             Assert.True(child.ExitCode == 0, $"Child pwsh failed ({child.ExitCode}): {stderr}\n{stdout}");
 
             var jsonLine = stdout

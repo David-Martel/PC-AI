@@ -65,6 +65,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Managed native suite failed' }
           [xml]$report = Get-Content -LiteralPath (Join-Path $results 'native-suite.trx') -Raw
           $counts = $report.TestRun.ResultSummary.Counters
-          if ([int]$counts.total -lt 49 -or [int]$counts.failed -ne 0 -or [int]$counts.notExecuted -ne 0 -or [int]$counts.passed -ne [int]$counts.total -or [int]$counts.executed -ne [int]$counts.total) {
+          if ([int]$counts.total -lt 52 -or [int]$counts.failed -ne 0 -or [int]$counts.notExecuted -ne 0 -or [int]$counts.passed -ne [int]$counts.total -or [int]$counts.executed -ne [int]$counts.total) {
             throw "Incomplete native qualification: $($counts.OuterXml)"
           }

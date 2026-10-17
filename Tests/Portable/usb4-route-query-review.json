@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF",
+  "reviews": [
+    {
+      "selector": "required route query failure propagates",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "87b490962d4c73874e45c53706b650bb271c263662b5dcf76652a5ccf0b1a918",
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "4d7827f0e8db9f559638d69a60a8aef2a227d802",
+      "disposition": "keep",
+      "scope": "Actual helper fault/valid-result contract and AST call-site wiring. Required-rethrow removal mutant fails. No live mutation or full Apply E2E.",
+      "receipt": "usb4-route-query-review.md"
+    },
+    {
+      "selector": "optional inventory query remains best effort",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "87b490962d4c73874e45c53706b650bb271c263662b5dcf76652a5ccf0b1a918",
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "4d7827f0e8db9f559638d69a60a8aef2a227d802",
+      "disposition": "keep",
+      "scope": "Actual helper fault/valid-result contract and AST call-site wiring. Required-rethrow removal mutant fails. No live mutation or full Apply E2E.",
+      "receipt": "usb4-route-query-review.md"
+    },
+    {
+      "selector": "required query preserves valid empty and present results",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "87b490962d4c73874e45c53706b650bb271c263662b5dcf76652a5ccf0b1a918",
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "4d7827f0e8db9f559638d69a60a8aef2a227d802",
+      "disposition": "keep",
+      "scope": "Actual helper fault/valid-result contract and AST call-site wiring. Required-rethrow removal mutant fails. No live mutation or full Apply E2E.",
+      "receipt": "usb4-route-query-review.md"
+    },
+    {
+      "selector": "route postcondition uses required query",
+      "test_path": "Tests/Portable/Test-Usb4RouteVerification.ps1",
+      "test_sha256": "a470a40c7de89cc6efd01cb685936a771f96ee5f1344fee10eeea7f47247f0a9",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "87b490962d4c73874e45c53706b650bb271c263662b5dcf76652a5ccf0b1a918",
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "4d7827f0e8db9f559638d69a60a8aef2a227d802",
+      "disposition": "keep",
+      "scope": "Actual helper fault/valid-result contract and AST call-site wiring. Required-rethrow removal mutant fails. No live mutation or full Apply E2E.",
+      "receipt": "usb4-route-query-review.md"
+    }
+  ]
+}

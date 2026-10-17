@@ -185,11 +185,14 @@ function Invoke-ThunderboltPeerLifecycle {
             [string]$ClassName,
 
             [Parameter()]
-            [string]$Namespace = 'root/StandardCimv2'
+            [string]$Namespace = 'root/StandardCimv2',
+
+            [switch]$Required
         )
         try {
             return @(Get-CimInstance -Namespace $Namespace -ClassName $ClassName -ErrorAction Stop)
         } catch {
+            if ($Required) { throw }
             Write-Verbose "CIM lookup failed for ${Namespace}:${ClassName}: $($_.Exception.Message)"
             return @()
         }
@@ -1091,7 +1094,7 @@ function Invoke-ThunderboltPeerLifecycle {
             } elseif ($PSCmdlet.ShouldProcess("$dest (ifIndex $ifIdx)", 'Withdraw stale PC-AI USB4 route')) {
                 try {
                     Invoke-ScopedRouteDelete -DestinationPrefix $dest -InterfaceIndex $ifIdx
-                    $remainingRoutes = @(Get-SafeCimRows -ClassName 'MSFT_NetRoute' | Where-Object {
+                    $remainingRoutes = @(Get-SafeCimRows -ClassName 'MSFT_NetRoute' -Required | Where-Object {
                         [int]$_.InterfaceIndex -eq $ifIdx -and (ConvertTo-NormalizedPrefix ([string]$_.DestinationPrefix)) -eq $normDest
                     })
                     if ($remainingRoutes.Count -eq 0) {

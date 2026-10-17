@@ -6,7 +6,7 @@
       "test_path": "Tests/Portable/Test-CacheBootstrap.ps1",
       "test_sha256": "6d7df4989c144cca3aed8a88b88278d7e51e5901440a2c340d6a08bfb60271ff",
       "source_path": "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1",
-      "source_sha256": "4f209a91c07c27a736cd83a909e5e707f55b418fcb74becd359b5c7ebedc78a1",
+      "source_sha256": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7",
       "reviewer": "Codex portable_fix_review",
       "reviewer_type": "independent agent",
       "reviewed_utc": "2026-10-17",
@@ -20,7 +20,7 @@
       "test_path": "Tests/Portable/Test-CacheBootstrap.ps1",
       "test_sha256": "6d7df4989c144cca3aed8a88b88278d7e51e5901440a2c340d6a08bfb60271ff",
       "source_path": "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1",
-      "source_sha256": "4f209a91c07c27a736cd83a909e5e707f55b418fcb74becd359b5c7ebedc78a1",
+      "source_sha256": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7",
       "reviewer": "Codex portable_fix_review",
       "reviewer_type": "independent agent",
       "reviewed_utc": "2026-10-17",
@@ -34,7 +34,7 @@
       "test_path": "Tests/Portable/Test-CacheBootstrap.ps1",
       "test_sha256": "6d7df4989c144cca3aed8a88b88278d7e51e5901440a2c340d6a08bfb60271ff",
       "source_path": "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1",
-      "source_sha256": "4f209a91c07c27a736cd83a909e5e707f55b418fcb74becd359b5c7ebedc78a1",
+      "source_sha256": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7",
       "reviewer": "Codex portable_fix_review",
       "reviewer_type": "independent agent",
       "reviewed_utc": "2026-10-17",
@@ -48,7 +48,7 @@
       "test_path": "Tests/Portable/Test-RustToolDiscovery.ps1",
       "test_sha256": "8792011a1195825b6c80bbb067ad50abca4013daf2ea4cf64c7a4837e751dff8",
       "source_path": "Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1",
-      "source_sha256": "a4b782173343188f5cda19b0d6630291830181a4d469b45f9ff434484fa50c0c",
+      "source_sha256": "6fc1676bce8e89c4fc64e57aaa5521ffef8ba4959c9705ac9cbe61214bc634d3",
       "reviewer": "Codex portable_fix_review",
       "reviewer_type": "independent agent",
       "reviewed_utc": "2026-10-17",
@@ -62,7 +62,7 @@
       "test_path": "Tests/Portable/Test-RustToolDiscovery.ps1",
       "test_sha256": "8792011a1195825b6c80bbb067ad50abca4013daf2ea4cf64c7a4837e751dff8",
       "source_path": "Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1",
-      "source_sha256": "a4b782173343188f5cda19b0d6630291830181a4d469b45f9ff434484fa50c0c",
+      "source_sha256": "6fc1676bce8e89c4fc64e57aaa5521ffef8ba4959c9705ac9cbe61214bc634d3",
       "reviewer": "Codex portable_fix_review",
       "reviewer_type": "independent agent",
       "reviewed_utc": "2026-10-17",
@@ -71,5 +71,6 @@
       "scope": "Actual helper calls; current five selectors pass on Ubuntu and gen7 pwsh7.6.6. Original helpers fail first selector on each platform; subsequent cases not individually proven against originals. No performance/execution qualification.",
       "receipt": "cache-bootstrap-review.md"
     }
-  ]
+  ],
+  "hash_normalization": "UTF-8 file bytes with CRLF converted to LF; avoids Git checkout EOL differences"
 }

@@ -1,4 +1,5 @@
-﻿using System.IO;
+using System.IO;
+using Xunit;
 
 namespace PcaiNative.Tests;
 
@@ -6,6 +7,7 @@ namespace PcaiNative.Tests;
 /// Exercises the managed PcaiCore P/Invoke boundary through the production <see cref="NativeResolver"/>
 /// against an explicitly selected native library (<c>PCAI_TEST_CORE_DLL</c> or <c>PCAI_CORE_LIB_PATH</c>).
 /// </summary>
+[Collection("NativeEnvironment")]
 public class JsonNativeIntegrationTests
 {
     private static string RequireExplicitCorePath()
@@ -71,6 +73,10 @@ public class JsonNativeIntegrationTests
     [InlineData("This is a test.", 9UL)]
     [InlineData("\u4f60\u597d\u4e16\u754c", 4UL)]
     [InlineData("internationalization", 6UL)]
+    [InlineData("\ud83d\ude00", 2UL)]
+    [InlineData("\ud83d\ude00\ud83d\ude80", 3UL)]
+    [InlineData("\ud801\udc37\ud801\udc37", 2UL)]
+    [InlineData("\ud801\udc37\ud801\udc37\ud801\udc37", 4UL)]
     public void EstimateTokensMatchesNativeSpecification(string input, ulong expected)
     {
         _ = RequireExplicitCorePath();

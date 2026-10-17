@@ -53,5 +53,9 @@ mod tests {
         assert_eq!(estimate_tokens("internationalization"), 6);
         assert_eq!(estimate_tokens("abcdefghijklm"), 5);
         assert_eq!(estimate_tokens("a,b;c!"), 7);
+        assert_eq!(estimate_tokens("\u{1F600}"), 2);
+        assert_eq!(estimate_tokens("\u{1F600}\u{1F680}"), 3);
+        assert_eq!(estimate_tokens("\u{10437}\u{10437}"), 2);
+        assert_eq!(estimate_tokens("\u{10437}\u{10437}\u{10437}"), 4);
     }
 }

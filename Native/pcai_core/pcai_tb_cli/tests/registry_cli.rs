@@ -278,8 +278,8 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
     assert_eq!(fail_ev["acceptance_credit"], false);
     assert_eq!(fail_ev["tpm_admission_status"], "PENDING_TPM_INTAKE");
 
-    // 2. Positive technical control: when sharedSwitchSubnets are locally hosted by COMPUTERNAME, technical checks
-    // succeed and overall_status is HOLD_PENDING_TPM_INTAKE (never claiming acceptance credit before TPM intake).
+    // 2. Local gateway control: route presence is not hardware-provider readiness.
+    // Missing providers must remain FAIL; healthy observations remain pending TPM intake.
     reg_json["ipamAllocations"]["bridgedLanCanaryEndpoints"] = serde_json::json!([]);
     reg_json["ipamAllocations"]["sharedSwitchSubnets"] = serde_json::json!([
         {
@@ -304,16 +304,79 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
         .output()
         .expect("run pcai-tb vnv hold control");
 
-    assert!(
-        hold_output.status.success(),
-        "expected vnv hold control to succeed, stdout={}, stderr={}",
-        String::from_utf8_lossy(&hold_output.stdout),
-        String::from_utf8_lossy(&hold_output.stderr)
-    );
     let hold_ev: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&hold_out_file).unwrap()).expect("valid hold vnv json");
     assert_eq!(hold_ev["schema"], "vigil.hil-device-evidence/v1");
-    assert_eq!(hold_ev["overall_status"], "HOLD_PENDING_TPM_INTAKE");
+    // Hosted runners may have no USB4 provider. An on-host local-gateway fixture
+    // does not invent that hardware; derive expected readiness from raw observation.
+    let observed = &hold_ev["switch_status"];
+    let missing_router =
+        observed["LocalUsb4Routers"].as_array().unwrap().is_empty() && observed["MatchedTopology"].is_null();
+    let windows = hold_ev["os_family"] == "windows";
+    let metrics = &observed["WindowsMetricHierarchy"];
+    let metrics_ready = !metrics.is_null()
+        && metrics["HierarchyValid"] == true
+        && metrics["Interfaces"].as_array().is_some_and(|a| !a.is_empty());
+    let unauthorized_router = observed["LocalUsb4Routers"].as_array().unwrap().iter().any(|r| {
+        r["Status"]
+            .as_str()
+            .is_some_and(|v| v.eq_ignore_ascii_case("unauthorized"))
+    });
+    let expected_failure = missing_router || unauthorized_router || (windows && !metrics_ready);
+    assert_eq!(hold_output.status.success(), !expected_failure);
+    assert_eq!(
+        hold_ev["overall_status"],
+        if expected_failure {
+            "FAIL"
+        } else {
+            "HOLD_PENDING_TPM_INTAKE"
+        }
+    );
+    let f09 = hold_ev["requirement_gates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["traceId"] == "PENDING-FABRIC-F09")
+        .unwrap();
+    assert_eq!(
+        f09["technicalVerdict"],
+        if unauthorized_router {
+            "FAIL"
+        } else if missing_router {
+            "BLOCKED_MISSING_PROVIDER"
+        } else {
+            "PASS"
+        }
+    );
+    let f12 = hold_ev["requirement_gates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["traceId"] == "PENDING-FABRIC-F12")
+        .unwrap();
+    let metric_verdict = if !windows {
+        "SKIP_NOT_APPLICABLE"
+    } else if metrics.is_null() {
+        "BLOCKED_MISSING_PROVIDER"
+    } else if metrics_ready {
+        "PASS"
+    } else {
+        "FAIL"
+    };
+    assert_eq!(f12["technicalVerdict"], metric_verdict);
+    for (id, verdict) in [
+        ("PENDING-FABRIC-F10", "SKIP_NOT_APPLICABLE"),
+        ("PENDING-FABRIC-F11", "SKIP_NOT_APPLICABLE"),
+        ("PENDING-FABRIC-F13", "PASS"),
+    ] {
+        let gate = hold_ev["requirement_gates"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|g| g["traceId"] == id)
+            .unwrap();
+        assert_eq!(gate["technicalVerdict"], verdict, "unexpected fixture gate {id}");
+    }
     assert_eq!(hold_ev["acceptance_credit"], false);
     assert_eq!(hold_ev["tpm_admission_status"], "PENDING_TPM_INTAKE");
     assert!(hold_ev["usb4_check_receipt"].is_null());
@@ -334,7 +397,12 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
                 g["traceId"] == expected_trace
                     && g["acceptanceCredit"] == false
                     && g["tpmAdmissionStatus"] == "PENDING_TPM_INTAKE"
-                    && (g["status"] == "HOLD_PENDING_TPM_INTAKE" || g["status"] == "SKIP_NOT_APPLICABLE")
+                    && g["status"]
+                        == if g["technicalVerdict"] == "PASS" {
+                            serde_json::json!("HOLD_PENDING_TPM_INTAKE")
+                        } else {
+                            g["technicalVerdict"].clone()
+                        }
             }),
             "missing or unexpected gate {expected_trace} in {gates:?}"
         );

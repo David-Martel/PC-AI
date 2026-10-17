@@ -22,3 +22,5 @@ The existing V&V CLI test exposed a separate installed-host dependency: the loca
 - Test add/remove/reconnect, namespace move, adapter rename/index reuse, host sleep, expired proof, missing permissions, route races and an unavailable preferred edge. Exercise real kernel convergence in a disposable topology before bounded live fault acceptance.
 
 The existing [namespace design](design/usb4-sfp-namespace-vnv-design.md) and [CLI contract](../Native/pcai_core/pcai_tb_cli/README.md) describe broader context. Platform-wide procedure/traceability design remains in vigil-ai-tpm; engineering observations do not create accepted V&V credit.
+
+The first hosted native-contract run exposed a V&V fixture that assumed USB4 hardware on the runner. Its corrected oracle checks raw provider observations, requires blocked/failing verdicts and nonzero exit when providers are missing or invalid, and preserves all five gate IDs, exact technical verdicts and acceptance-false status. The same compiled CLI test passes against the real provider and an empty provider view in a private mount namespace. No production validation was relaxed.

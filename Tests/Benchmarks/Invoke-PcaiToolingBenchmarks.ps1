@@ -34,10 +34,45 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot '..\Helpers\Resolve-TestRepoRoot.ps1')
 
-function Invoke-LegacyTokenEstimate {
-    param([string]$Text)
-    if ([string]::IsNullOrEmpty($Text)) { return 0 }
-    return ([regex]::Matches($Text, '\w+')).Count
+function Get-ReferenceTokenEstimate {
+    param([AllowEmptyString()][string]$Text)
+    if ([string]::IsNullOrEmpty($Text)) { return [uint64]0 }
+    # Rust regex operates on Unicode scalars, not UTF-16 code units. Match its
+    # L/N runs, whitespace runs and individual other scalars before byte sizing.
+    $count = [uint64]1 # BOS for nonempty input
+    $pieceBytes = 0
+    $previousKind = -1
+    foreach ($rune in $Text.EnumerateRunes()) {
+        $kind = if ([System.Text.Rune]::IsLetter($rune) -or [System.Text.Rune]::IsNumber($rune)) {
+            0
+        } elseif ([System.Text.Rune]::IsWhiteSpace($rune)) { 1 } else { 2 }
+        if ($pieceBytes -gt 0 -and ($kind -ne $previousKind -or $kind -eq 2)) {
+            $count += if ($pieceBytes -gt 8) { [uint64][Math]::Ceiling($pieceBytes / 4.0) } else { [uint64]1 }
+            $pieceBytes = 0
+        }
+        $pieceBytes += $rune.Utf8SequenceLength
+        $previousKind = $kind
+    }
+    if ($pieceBytes -gt 0) {
+        $count += if ($pieceBytes -gt 8) { [uint64][Math]::Ceiling($pieceBytes / 4.0) } else { [uint64]1 }
+    }
+    return $count
+}
+
+function Assert-TokenEstimateParity {
+    param([AllowEmptyString()][string]$Text, [AllowNull()][object]$NativeTokens)
+    $parsed = [uint64]0
+    if ($null -eq $NativeTokens -or -not [uint64]::TryParse([string]$NativeTokens, [ref]$parsed)) {
+        throw 'Token benchmark returned no scalar unsigned token count'
+    }
+    $reference = Get-ReferenceTokenEstimate -Text $Text
+    if ($parsed -ne $reference) { throw "Token output mismatch: native=$parsed reference=$reference" }
+}
+
+function Test-BenchmarkCaseEquivalence {
+    param([psobject]$CaseResult)
+    $property = $CaseResult.PSObject.Properties['EquivalenceVerified']
+    return ($null -ne $property -and $property.Value -is [bool] -and $property.Value)
 }
 
 function Get-PowerShellDirectoryManifest {
@@ -286,6 +321,11 @@ function Get-ToolingCaseBenchmarks {
 
     switch ($Case.Id) {
         'token-estimate' {
+            $nativeTokens = & $accelerationModule {
+                param($InnerTokenSample)
+                Get-PcaiTokenEstimate -Text $InnerTokenSample
+            } $TokenSample
+            Assert-TokenEstimateParity -Text $TokenSample -NativeTokens $nativeTokens
             $nativeBlock = {
                 & $accelerationModule {
                     param($InnerTokenSample)
@@ -293,12 +333,13 @@ function Get-ToolingCaseBenchmarks {
                 } $TokenSample | Out-Null
             }.GetNewClosure()
             Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
-            $baselineBlock = { if ([string]::IsNullOrEmpty($TokenSample)) { 0 } else { ([regex]::Matches($TokenSample, '\w+')).Count } }.GetNewClosure()
+            $baselineBlock = { Get-ReferenceTokenEstimate -Text $TokenSample | Out-Null }.GetNewClosure()
             Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{
                 Case        = $Case
                 Path        = $resolvedPath
                 CoverageKey = 'TokenEstimate'
+                EquivalenceVerified = $true
                 Coverage    = $coverageLookup['TokenEstimate']
                 Results     = @($benchmarks)
             }
@@ -719,6 +760,7 @@ $benchmarkRows = foreach ($caseResult in $caseResults) {
             Tool               = $row.Tool
             # Timing alone does not establish equivalent output across backends.
             SpeedupVsBaseline  = $null
+            EquivalenceVerified = (Test-BenchmarkCaseEquivalence -CaseResult $caseResult)
             CoverageState      = if ($caseResult.Coverage) { $caseResult.Coverage.CoverageState } else { 'PowerShellOnly' }
             WorkingSetDeltaMeanBytes = $row.WorkingSetDeltaMeanBytes
             WorkingSetDeltaMaxBytes  = $row.WorkingSetDeltaMaxBytes
@@ -748,7 +790,7 @@ $summary = [PSCustomObject]@{
     HostOS           = [Runtime.InteropServices.RuntimeInformation]::OSDescription
     Architecture     = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()
     MeasurementsComplete = (-not $SkipPerformance)
-    OutputEquivalenceValidated = $false
+    OutputEquivalenceValidated = (@($benchmarkRows).Count -gt 0 -and @($benchmarkRows | Where-Object { -not $_.EquivalenceVerified }).Count -eq 0)
     Generated        = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
     RepoRoot         = $PcaiRoot
     ConfigPath       = $ConfigPath

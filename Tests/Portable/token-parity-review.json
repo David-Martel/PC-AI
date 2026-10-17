@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "unicode-empty/ascii/symbol/astral-letter/astral-number/number-category/combining/long-whitespace/CJK/whitespace/ZWJ",
+      "test_path": "Tests/Portable/Test-TokenBenchmarkParity.ps1",
+      "test_sha256": "7bab85d6136f57d5e054985c9db32177b81d9f9981186526e0f7c29e6e18ce6b",
+      "source_sha256": {
+        "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1": "75fa1e51be58544b2fb53481572b4ab87be25d61a69c1ec549c26e6cd0c60c3d"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "7051326e6ef11b05408c908bd3599461ff0d92f8",
+      "disposition": "keep",
+      "scope": "Actual runner functions, case/timer wiring and report AST. Fifteen reference and real Rust FFI Unicode cases pass; parity-call removal and IsNumber-removal mutants fail. No speedup or native-backend-attestation claim.",
+      "receipt": "token-parity-review.md"
+    },
+    {
+      "selector": "mismatch-refusal",
+      "test_path": "Tests/Portable/Test-TokenBenchmarkParity.ps1",
+      "test_sha256": "7bab85d6136f57d5e054985c9db32177b81d9f9981186526e0f7c29e6e18ce6b",
+      "source_sha256": {
+        "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1": "75fa1e51be58544b2fb53481572b4ab87be25d61a69c1ec549c26e6cd0c60c3d"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "7051326e6ef11b05408c908bd3599461ff0d92f8",
+      "disposition": "keep",
+      "scope": "Actual runner functions, case/timer wiring and report AST. Fifteen reference and real Rust FFI Unicode cases pass; parity-call removal and IsNumber-removal mutants fail. No speedup or native-backend-attestation claim.",
+      "receipt": "token-parity-review.md"
+    },
+    {
+      "selector": "unknown-proof",
+      "test_path": "Tests/Portable/Test-TokenBenchmarkParity.ps1",
+      "test_sha256": "7bab85d6136f57d5e054985c9db32177b81d9f9981186526e0f7c29e6e18ce6b",
+      "source_sha256": {
+        "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1": "75fa1e51be58544b2fb53481572b4ab87be25d61a69c1ec549c26e6cd0c60c3d"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "7051326e6ef11b05408c908bd3599461ff0d92f8",
+      "disposition": "keep",
+      "scope": "Actual runner functions, case/timer wiring and report AST. Fifteen reference and real Rust FFI Unicode cases pass; parity-call removal and IsNumber-removal mutants fail. No speedup or native-backend-attestation claim.",
+      "receipt": "token-parity-review.md"
+    },
+    {
+      "selector": "actual-case-preflight",
+      "test_path": "Tests/Portable/Test-TokenBenchmarkParity.ps1",
+      "test_sha256": "7bab85d6136f57d5e054985c9db32177b81d9f9981186526e0f7c29e6e18ce6b",
+      "source_sha256": {
+        "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1": "75fa1e51be58544b2fb53481572b4ab87be25d61a69c1ec549c26e6cd0c60c3d"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "7051326e6ef11b05408c908bd3599461ff0d92f8",
+      "disposition": "keep",
+      "scope": "Actual runner functions, case/timer wiring and report AST. Fifteen reference and real Rust FFI Unicode cases pass; parity-call removal and IsNumber-removal mutants fail. No speedup or native-backend-attestation claim.",
+      "receipt": "token-parity-review.md"
+    },
+    {
+      "selector": "report-proof",
+      "test_path": "Tests/Portable/Test-TokenBenchmarkParity.ps1",
+      "test_sha256": "7bab85d6136f57d5e054985c9db32177b81d9f9981186526e0f7c29e6e18ce6b",
+      "source_sha256": {
+        "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1": "75fa1e51be58544b2fb53481572b4ab87be25d61a69c1ec549c26e6cd0c60c3d"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "7051326e6ef11b05408c908bd3599461ff0d92f8",
+      "disposition": "keep",
+      "scope": "Actual runner functions, case/timer wiring and report AST. Fifteen reference and real Rust FFI Unicode cases pass; parity-call removal and IsNumber-removal mutants fail. No speedup or native-backend-attestation claim.",
+      "receipt": "token-parity-review.md"
+    }
+  ]
+}

@@ -42,10 +42,11 @@ Primary entrypoints:
 
 - `Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1`
 - `Config/pcai-tooling-benchmarks.json`
-- `Reports/tooling-benchmarks/<timestamp>/`
+- `Reports/tooling-benchmarks/<run-id>/`
 - `Reports/TOOL_BACKEND_COVERAGE.md`
 
-Current benchmark guidance from the repo:
+Current benchmark guidance from the repo (historical measurements, not current
+cross-platform acceleration qualification; see [admission boundaries](docs/benchmark-admission.md)):
 
 - native `directory-manifest` is a clear win and should be preferred
 - native `token-estimate` is also a meaningful improvement

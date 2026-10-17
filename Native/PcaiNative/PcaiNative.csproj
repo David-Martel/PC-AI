@@ -12,8 +12,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <!-- Platform Configuration -->
-    <PlatformTarget>x64</PlatformTarget>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget Condition="'$(PlatformTarget)' == ''">x64</PlatformTarget>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">win-x64</RuntimeIdentifier>
 
     <!-- Optimization Settings -->
     <Optimize>true</Optimize>
@@ -48,9 +48,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Ensure Rust DLLs are copied to output directory -->
+    <!-- Ensure Rust native libraries are copied to output directory when present -->
     <None Include="pcai_core_lib.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('pcai_core_lib.dll')" />
+    <None Include="libpcai_core_lib.so" CopyToOutputDirectory="PreserveNewest" Condition="Exists('libpcai_core_lib.so')" />
+    <None Include="libpcai_core_lib.dylib" CopyToOutputDirectory="PreserveNewest" Condition="Exists('libpcai_core_lib.dylib')" />
     <None Include="pcai_inference.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('pcai_inference.dll')" />
+    <None Include="libpcai_inference.so" CopyToOutputDirectory="PreserveNewest" Condition="Exists('libpcai_inference.so')" />
+    <None Include="libpcai_inference.dylib" CopyToOutputDirectory="PreserveNewest" Condition="Exists('libpcai_inference.dylib')" />
     <None Include="rust_functiongemma_runtime.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('rust_functiongemma_runtime.dll')" />
   </ItemGroup>
 

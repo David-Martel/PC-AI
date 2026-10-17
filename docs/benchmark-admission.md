@@ -80,5 +80,8 @@ The token controls also run as a nested child script: hosted CI exposed a
 function-lookup failure hidden by direct -File/global scope. The timed closure
 now captures the actual estimator function body explicitly.
 
+[Fixture succession](benchmark-fixture-succession.md) maps retired schema1 gate
+selectors and preserves the two independent native fallback/status controls.
+
 [Developer hook validation](developer-hook-validation.md) covers portable
 manifest checks and the refreshed runner review bindings.

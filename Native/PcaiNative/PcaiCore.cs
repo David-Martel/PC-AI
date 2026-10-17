@@ -1,7 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Collections.Generic;
 
 namespace PcaiNative;
 
@@ -14,19 +16,187 @@ public static class PcaiCore
     // Value 0x50434149 spells "PCAI" in ASCII hex
     private const uint ExpectedMagicNumber = 0x5043_4149;
 
+    /// <summary>
+    /// Unconditional C ABI exports required for a <c>pcai_core_lib</c> artifact to be admitted
+    /// as functional by <see cref="IsAvailable"/>. A partial or magic-only stub that omits any
+    /// required entry point is rejected before P/Invoke operations execute.
+    /// </summary>
+    public static readonly IReadOnlyList<string> RequiredExports = new[]
+    {
+        "pcai_core_version",
+        "pcai_core_test",
+        "pcai_free_string",
+        "pcai_free_string_buffer",
+        "pcai_free_byte_buffer",
+        "pcai_cpu_count",
+        "pcai_status_description",
+        "pcai_string_copy",
+        "pcai_extract_json",
+        "pcai_is_valid_json",
+        "pcai_estimate_tokens",
+        "pcai_find_files",
+        "pcai_find_files_stats",
+        "pcai_find_files_compact",
+        "pcai_collect_directory_manifest",
+        "pcai_collect_directory_manifest_stats",
+        "pcai_search_content",
+        "pcai_search_content_stats",
+        "pcai_search_content_compact",
+        "pcai_find_duplicates",
+        "pcai_find_duplicates_stats",
+        "pcai_query_system_info",
+        "pcai_query_hardware_metrics",
+        "pcai_check_resource_safety",
+        "pcai_get_system_telemetry_json",
+        "pcai_get_vmm_health_json",
+        "pcai_query_full_context_json",
+        "pcai_get_usb_deep_diagnostics_json",
+        "pcai_get_pnp_devices_json",
+        "pcai_get_pnp_problem_info",
+        "pcai_get_disk_health_json",
+        "pcai_sample_hardware_events_json",
+        "pcai_get_network_throughput_json",
+        "pcai_get_process_history_json",
+        "pcai_get_process_lasso_snapshot_json",
+        "pcai_get_usb_problem_info",
+        "pcai_analyze_path",
+        "pcai_analyze_path_json",
+        "pcai_search_logs",
+        "pcai_search_logs_json",
+        "pcai_get_disk_usage",
+        "pcai_get_disk_usage_json",
+        "pcai_get_disk_usage_compact",
+        "pcai_get_process_stats",
+        "pcai_get_top_processes_json",
+        "pcai_get_top_processes_compact",
+        "pcai_get_memory_stats",
+        "pcai_get_memory_stats_json",
+        "pcai_fs_version",
+        "pcai_replace_in_file",
+        "pcai_replace_in_files",
+        "pcai_delete_fs_item",
+        "pcai_analyze_memory_pressure",
+        "pcai_get_memory_pressure_json",
+        "pcai_get_process_categories_json",
+        "pcai_get_optimization_recommendations_json",
+        "pcai_query_prompt_assembly",
+    };
+
+    /// <summary>
+    /// Optional feature-gated C ABI exports declared in <see cref="NativeCore"/>
+    /// (for example, <c>functiongemma</c>).
+    /// </summary>
+    public static readonly IReadOnlyList<string> OptionalFeatureExports = new[]
+    {
+        "pcai_build_router_dataset_jsonl",
+    };
+
+    /// <summary>
+    /// Verifies that every symbol in <see cref="RequiredExports"/> is exported by <paramref name="libraryHandle"/>.
+    /// </summary>
+    public static bool VerifyRequiredExports(IntPtr libraryHandle, out IReadOnlyList<string> missingExports)
+    {
+        if (libraryHandle == IntPtr.Zero)
+        {
+            missingExports = RequiredExports;
+            return false;
+        }
+
+        List<string>? missing = null;
+        foreach (var exportName in RequiredExports)
+        {
+            if (!NativeLibrary.TryGetExport(libraryHandle, exportName, out var symbolAddress) ||
+                symbolAddress == IntPtr.Zero)
+            {
+                missing ??= new List<string>();
+                missing.Add(exportName);
+            }
+        }
+
+        if (missing is { Count: > 0 })
+        {
+            missingExports = missing;
+            return false;
+        }
+
+        missingExports = Array.Empty<string>();
+        return true;
+    }
+
+    /// <summary>
+    /// Loads <paramref name="libraryPath"/> and verifies that it exports all <see cref="RequiredExports"/>.
+    /// </summary>
+    public static bool VerifyLibraryExports(string libraryPath, out IReadOnlyList<string> missingExports)
+    {
+        if (string.IsNullOrWhiteSpace(libraryPath) || !File.Exists(libraryPath))
+        {
+            missingExports = RequiredExports;
+            return false;
+        }
+
+        if (!NativeLibrary.TryLoad(libraryPath, out var handle))
+        {
+            missingExports = RequiredExports;
+            return false;
+        }
+
+        try
+        {
+            return VerifyRequiredExports(handle, out missingExports);
+        }
+        finally
+        {
+            // This admission load owns one reference, independent of P/Invoke's binding.
+            NativeLibrary.Free(handle);
+        }
+    }
+
     // Thread-safe lazy initialization for availability check
-    private static readonly Lazy<bool> _isAvailable = new(() =>
+    private static readonly Lazy<bool> _isAvailable = new(EvaluateAvailabilityCore);
+
+    private static bool EvaluateAvailabilityCore()
     {
         try
         {
-            var result = NativeCore.pcai_core_test();
-            return result == ExpectedMagicNumber;
+            NativeResolver.EnsureRegistered(typeof(NativeCore).Assembly);
+
+            if (NativeResolver.TryResolveLibraryPath(NativeCore.CoreLib, out var resolvedPath, out var provenance, typeof(NativeCore).Assembly))
+            {
+                if (string.IsNullOrEmpty(resolvedPath) || !VerifyLibraryExports(resolvedPath, out _))
+                    return false;
+            }
+            else if (provenance is not null && provenance.StartsWith("env:", StringComparison.Ordinal))
+            {
+                return false;
+            }
+            else if (NativeLibrary.TryLoad(NativeCore.CoreLib, typeof(NativeCore).Assembly, null, out var defaultHandle))
+            {
+                try
+                {
+                    if (!VerifyRequiredExports(defaultHandle, out _))
+                        return false;
+                }
+                finally
+                {
+                    NativeLibrary.Free(defaultHandle);
+                }
+            }
+            else
+            {
+                return false;
+            }
+
+            if (NativeCore.pcai_core_test() != ExpectedMagicNumber)
+                return false;
+
+            using var probe = NativeCore.pcai_string_copy("pcai");
+            return !probe.IsInvalid && string.Equals(probe.ToString(), "pcai", StringComparison.Ordinal);
         }
         catch
         {
             return false;
         }
-    });
+    }
 
     // Thread-safe lazy initialization for version string
     private static readonly Lazy<string> _version = new(() =>
@@ -43,14 +213,33 @@ public static class PcaiCore
     });
 
     /// <summary>
-    /// Gets whether the native library is available and functional.
+    /// Gets whether the native library is available, exports all required C ABI symbols, and passes magic/probe checks.
+    /// Fails closed if an explicit environment variable override points to a missing or incomplete library.
     /// </summary>
-    public static bool IsAvailable => _isAvailable.Value;
+    public static bool IsAvailable
+    {
+        get
+        {
+            if (!NativeResolver.TryResolveLibraryPath(NativeCore.CoreLib, out var resolvedPath, out var provenance, typeof(NativeCore).Assembly))
+            {
+                if (provenance is not null && provenance.StartsWith("env:", StringComparison.Ordinal))
+                    return false;
+            }
+            else if (provenance is not null &&
+                     provenance.StartsWith("env:", StringComparison.Ordinal) &&
+                     (string.IsNullOrEmpty(resolvedPath) || !VerifyLibraryExports(resolvedPath, out _)))
+            {
+                return false;
+            }
+
+            return _isAvailable.Value;
+        }
+    }
 
     /// <summary>
-    /// Gets the native library version.
+    /// Gets the native library version, or <c>"unavailable"</c> when <see cref="IsAvailable"/> is <c>false</c>.
     /// </summary>
-    public static string Version => _version.Value;
+    public static string Version => IsAvailable ? _version.Value : "unavailable";
 
     /// <summary>
     /// Gets the number of logical CPU cores reported by the native library.
@@ -310,7 +499,8 @@ public static class PcaiCore
                         return dict;
                     }
                 }
-            } catch { /* Fallback to standard serialization */ }
+            }
+            catch { /* Fallback to standard serialization */ }
         }
 
         // Handle collections
@@ -400,7 +590,8 @@ public static class PcaiCore
         var telemetry = GetSystemTelemetryJson();
         var vmm = GetVmmHealthJson();
 
-        var snapshot = new {
+        var snapshot = new
+        {
             Metrics = metrics,
             Telemetry = !string.IsNullOrEmpty(telemetry) ? JsonSerializer.Deserialize<JsonElement>(telemetry) : (object?)null,
             VmmHealth = !string.IsNullOrEmpty(vmm) ? JsonSerializer.Deserialize<JsonElement>(vmm) : (object?)null,
@@ -424,13 +615,17 @@ public static class PcaiCore
     /// </summary>
     public static NativeDiagnostics GetDiagnostics()
     {
+        var available = IsAvailable;
         return new NativeDiagnostics
         {
-            IsAvailable = IsAvailable,
+            IsAvailable = available,
             Version = Version,
             CpuCount = CpuCount,
             Platform = Environment.Is64BitProcess ? "x64" : "x86",
-            DotNetVersion = Environment.Version.ToString()
+            DotNetVersion = Environment.Version.ToString(),
+            RuntimeIdentifier = NativeResolver.GetCurrentRuntimeIdentifier(),
+            ResolvedLibraryPath = available ? NativeResolver.GetResolvedLibraryPath(NativeCore.CoreLib) : null,
+            ProvenanceSource = available ? NativeResolver.GetResolvedProvenance(NativeCore.CoreLib) : null,
         };
     }
 }

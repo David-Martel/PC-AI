@@ -13,6 +13,11 @@
 
     Administrator rights are required for actual installation. -DownloadOnly bypasses
     this requirement and leaves the installer file in $DownloadDir for manual use.
+    -WhatIf suppresses directory creation, download and execution in both modes.
+    Existing downloads with an expected SHA256 must match before they are reused;
+    a mismatch is reported and the existing bytes are preserved.
+
+    Contract evidence: Reports/driver-download-contract-review.md.
 
 .PARAMETER DeviceId
     The registry entry id (e.g. 'realtek-rtl8156'). Must match exactly.
@@ -151,13 +156,7 @@ function Install-DriverUpdate {
     }
     Write-Verbose "Trusted hosts: $($trustedHosts -join ', ')"
 
-    # --- Step 6: Ensure download directory exists ---
-    if (-not (Test-Path -LiteralPath $DownloadDir)) {
-        New-Item -ItemType Directory -Path $DownloadDir -Force | Out-Null
-        Write-Verbose "Created download directory: $DownloadDir"
-    }
-
-    # --- Step 7: Determine output filename ---
+    # --- Step 6: Determine output filename without writing anything ---
     # Use the shared driver group name (if present) to avoid downloading the same
     # package multiple times for sibling devices (e.g. RTL8156 and RTL8157).
     $fileBaseName = if ($sharedGroup) { $sharedGroup } else { $DeviceId }
@@ -177,10 +176,17 @@ function Install-DriverUpdate {
             -FilePath $null -ExitCode $null -Success $false -Message $msg
     }
 
-    # --- Step 8: WhatIf guard (before download, so -WhatIf makes no changes) ---
-    if (-not $DownloadOnly -and -not $PSCmdlet.ShouldProcess($deviceName, "Download and install driver from $downloadUrl")) {
+    # --- Step 7: Approve either mode before directory creation or download ---
+    $downloadAction = if ($DownloadOnly) { "Download driver from $downloadUrl" } else { "Download and install driver from $downloadUrl" }
+    if (-not $PSCmdlet.ShouldProcess($deviceName, $downloadAction)) {
         return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'WhatIf' `
             -FilePath $null -ExitCode $null -Success $true -Message 'WhatIf: no changes made.'
+    }
+
+    # --- Step 8: Create the download directory only after approval ---
+    if (-not (Test-Path -LiteralPath $DownloadDir)) {
+        New-Item -ItemType Directory -Path $DownloadDir -Force | Out-Null
+        Write-Verbose "Created download directory: $DownloadDir"
     }
 
     # --- Step 9: Download ---

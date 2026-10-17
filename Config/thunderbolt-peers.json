@@ -1,5 +1,170 @@
 {
   "schemaVersion": 1,
+  "ulaPrefix": "fd00:7462:7032",
+  "deterministicUlaSubnet": "fd00:7462:7032:d700::/64",
+  "pairwiseIpv4Pool": "172.31.240.0/20",
+  "defaultMtuBytes": 62000,
+  "defaultInterfaceMetric": 5,
+  "ipamAllocations": {
+    "p2pThunderboltUlaPrefix": "fd00:7462:7032::/48",
+    "p2pDeterministicUlaSubnet": "fd00:7462:7032:d700::/64",
+    "p2pLinkLocalPrefix": "fe80::d700:0/112",
+    "bridgedLanCanaryUlaPrefix": "fd5f:743d:6f55:50::/64",
+    "bridgedLanPolicyTable": 6150,
+    "bridgedLanPolicyPriority": 16150,
+    "bridgedLanCanaryEndpoints": [
+      {
+        "host": "minisforum",
+        "interface": "enp87s0",
+        "ulaAddress": "fd5f:743d:6f55:50::1/64",
+        "role": "switch-host-wired"
+      },
+      {
+        "host": "millylaptop1",
+        "interface": "thunderbolt0",
+        "ulaAddress": "fd5f:743d:6f55:50::2/64",
+        "role": "bridged-usb4-endpoint"
+      },
+      {
+        "host": "millylaptop1",
+        "interface": "wlp0s20f3",
+        "ulaAddress": "fd5f:743d:6f55:50::3/64",
+        "role": "wifi-recovery-endpoint",
+        "policyTable": 6150,
+        "policyPriority": 16150
+      },
+      {
+        "host": "dtm-p1gen9",
+        "interface": "Ethernet 2",
+        "ulaAddress": "fd5f:743d:6f55:50::9/64",
+        "role": "bridged-tb5-dock-endpoint"
+      }
+    ],
+    "sharedSwitchSubnets": [
+      {
+        "subnet": "10.254.253.0/30",
+        "gatewayHost": "minisforum",
+        "gatewayIpv4": "192.168.50.119",
+        "role": "ms01-milly-usb4-control"
+      },
+      {
+        "subnet": "10.60.4.0/29",
+        "gatewayHost": "asuspro13",
+        "gatewayIpv4": "192.168.50.79",
+        "role": "spark-usb-10gbe-fabric"
+      }
+    ]
+  },
+  "sfpSwitchTopologies": [
+    {
+      "host": "minisforum",
+      "namespace": "ms01-switch",
+      "bridge": "sw0",
+      "stateDir": "/var/lib/ms01-network-switch",
+      "extensionStateDir": "/var/lib/ms01-usb4-extension",
+      "observeStateDir": "/var/lib/ms01-network-observe",
+      "enrollmentPath": "/etc/ms01-network-switch/enrollment.json",
+      "usb4EnrollmentPath": "/etc/ms01-network-switch/usb4-enrollment.json",
+      "sfpPorts": [
+        {
+          "name": "enp2s0f0np0",
+          "pci": "0000:02:00.0",
+          "mac": "58:47:ca:7b:6d:98",
+          "vendor": "0x8086",
+          "device": "0x1572",
+          "driver": "i40e",
+          "role": "uplink-lab-switch",
+          "speedGbps": 10
+        },
+        {
+          "name": "enp2s0f1np1",
+          "pci": "0000:02:00.1",
+          "mac": "58:47:ca:7b:6d:99",
+          "vendor": "0x8086",
+          "device": "0x1572",
+          "driver": "i40e",
+          "role": "downlink-dtm-p1gen9",
+          "connectedPeer": "dtm-p1gen9",
+          "connectedPeerMac": "10:e1:8e:5a:26:43",
+          "connectedPeerIpv4": "192.168.50.90",
+          "speedGbps": 10
+        }
+      ],
+      "usb4Extensions": [
+        {
+          "interface": "usb4-milly",
+          "rootVeth": "ms01-milly",
+          "bridgeVeth": "milly-host",
+          "sysfsPath": "/sys/devices/pci0000:00/0000:00:0d.2/domain0/0-0/0-1/0-1.0",
+          "peerUuid": "bab38780-0019-a9b4-ffff-ffffffffffff",
+          "peerName": "millylaptop1",
+          "driver": "thunderbolt-net",
+          "controlSubnet": "10.254.253.0/30",
+          "localControlIpv4": "10.254.253.1",
+          "peerControlIpv4": "10.254.253.2",
+          "bridgedLanIpv4": "192.168.50.91"
+        }
+      ]
+    }
+  ],
+  "topologyLinks": [
+    {
+      "linkId": "gen7-gen9-usb4-hub-chain",
+      "sourceHost": "dtm-p1gen7",
+      "sourceInterface": "Ethernet 18",
+      "sourceHubModel": "CalDigit Element 5 Hub",
+      "sourceHubId": "USB4\\VID_8087&PID_5786\\5&2D101DC1&3&3",
+      "targetHost": "dtm-p1gen9",
+      "targetInterface": "Ethernet 4",
+      "targetHubModel": "Lenovo ThinkPad Thunderbolt 5 Smart Dock 7500",
+      "targetHubId": "USB4\\VID_8087&PID_5786\\8&36E6FB2D&0&1",
+      "linkIntent": "routed-p2p",
+      "bridgeDomain": null,
+      "l3Subnets": ["172.31.252.132/30", "fd00:7462:7032::/64"]
+    },
+    {
+      "linkId": "ms01-gen9-sfp-dock-bridge",
+      "sourceHost": "minisforum",
+      "sourceInterface": "enp2s0f1np1",
+      "sourceHubModel": "Intel X710 SFP+ (ms01-switch/sw0)",
+      "sourceHubId": "0000:02:00.1",
+      "targetHost": "dtm-p1gen9",
+      "targetInterface": "Ethernet 2",
+      "targetHubModel": "Lenovo ThinkPad Thunderbolt 5 Smart Dock 7500 (I226-LMvP)",
+      "targetHubId": "PCI\\VEN_8086&DEV_5503&SUBSYS_234E17AA&REV_04\\10E18EFFFF5A264300",
+      "linkIntent": "transparent-bridge",
+      "bridgeDomain": "ms01-switch/sw0",
+      "l3Subnets": ["192.168.50.0/24", "fd5f:743d:6f55:50::/64"]
+    },
+    {
+      "linkId": "ms01-milly-usb4-bridge",
+      "sourceHost": "minisforum",
+      "sourceInterface": "usb4-milly",
+      "sourceHubModel": "Intel Maple Ridge / Gen12 USB4 Host Router",
+      "sourceHubId": "3d418780-d0e1-c1c7-ffff-ffffffffffff",
+      "targetHost": "millylaptop1",
+      "targetInterface": "thunderbolt0",
+      "targetHubModel": "Lenovo P16 Gen 2 USB4 Host Router",
+      "targetHubId": "bab38780-0019-a9b4-ffff-ffffffffffff",
+      "linkIntent": "transparent-bridge",
+      "bridgeDomain": "ms01-switch/sw0",
+      "l3Subnets": ["10.254.253.0/30", "192.168.50.0/24", "fd5f:743d:6f55:50::/64"]
+    },
+    {
+      "linkId": "ms01-plugable-dock-usb4-routed",
+      "sourceHost": "minisforum",
+      "sourceInterface": "domain1/1-1",
+      "sourceHubModel": "Plugable TBT4-UDX1 Thunderbolt 4/USB4 Dock",
+      "sourceHubId": "8c5e8780-00d7-986c-ffff-ffffffffffff",
+      "targetHost": "dtm-p1gen9",
+      "targetInterface": "USB4-Hub-Downstream",
+      "targetHubModel": "Lenovo ThinkPad Thunderbolt 5 Smart Dock 7500",
+      "targetHubId": "USB4\\VID_8087&PID_5786\\8&36E6FB2D&0&1",
+      "linkIntent": "routed-p2p",
+      "bridgeDomain": null,
+      "l3Subnets": ["172.31.240.0/20", "fd00:7462:7032::/48"]
+    }
+  ],
   "peers": {
     "millylaptop1": {
       "sshAlias": "millylaptop1",
@@ -19,5 +184,161 @@
       "mtuBytes": 1500,
       "notes": "Future peer; verify physical link, hostname and non-overlapping routes before applying."
     }
-  }
+  },
+  "fleetPeers": [
+    {
+      "name": "dtm-p1gen7",
+      "aliases": ["p1gen7", "dtm-p1gen7.local"],
+      "osFamily": "windows",
+      "nodeIdHex": "7",
+      "shortLinkLocal": "fe80::d700:7",
+      "shortUla": "fd00:7462:7032::7",
+      "tbHostAlias": "dtm-p1gen7-tb",
+      "sshPort": 22,
+      "sshUser": "david",
+      "winRmPort": 5985,
+      "lanAddresses": ["192.168.50.42", "100.64.0.1"],
+      "defaultShares": ["C$", "T$", "D$"]
+    },
+    {
+      "name": "dtm-p1gen9",
+      "aliases": ["p1gen9", "dtm-p1gen9.local"],
+      "osFamily": "windows",
+      "nodeIdHex": "9",
+      "shortLinkLocal": "fe80::d700:9",
+      "shortUla": "fd00:7462:7032::9",
+      "tbHostAlias": "dtm-p1gen9-tb",
+      "sshPort": 22,
+      "sshUser": "david",
+      "winRmPort": 5985,
+      "lanAddresses": ["192.168.50.90", "192.168.50.49"],
+      "defaultShares": ["C$"]
+    },
+    {
+      "name": "dtm-carbon-two",
+      "aliases": ["carbon-two", "dtm-carbon-two.local"],
+      "osFamily": "windows",
+      "nodeIdHex": "c2",
+      "shortLinkLocal": "fe80::d700:c2",
+      "shortUla": "fd00:7462:7032::c2",
+      "tbHostAlias": "dtm-carbon-two-tb",
+      "sshPort": 22,
+      "sshUser": "david",
+      "winRmPort": 5985,
+      "lanAddresses": ["192.168.1.52"],
+      "defaultShares": ["C$"]
+    },
+    {
+      "name": "dtm-super-nuc",
+      "aliases": ["dtm-supernuc", "super-nuc", "supernuc", "dtm-super-nuc.local"],
+      "osFamily": "windows",
+      "nodeIdHex": "50",
+      "shortLinkLocal": "fe80::d700:50",
+      "shortUla": "fd00:7462:7032::50",
+      "tbHostAlias": "dtm-super-nuc-tb",
+      "sshPort": 22,
+      "sshUser": "david",
+      "winRmPort": 5985,
+      "lanAddresses": ["10.10.15.38", "10.200.200.20"],
+      "defaultShares": ["C$"]
+    },
+    {
+      "name": "dtm-work",
+      "aliases": ["dtm-work.radius.dtmventures.com", "dtm-work.local"],
+      "osFamily": "windows",
+      "nodeIdHex": "10",
+      "shortLinkLocal": "fe80::d700:10",
+      "shortUla": "fd00:7462:7032::10",
+      "tbHostAlias": "dtm-work-tb",
+      "sshPort": 31415,
+      "sshUser": "david",
+      "winRmPort": 5985,
+      "lanAddresses": ["10.10.15.215", "100.64.0.2"],
+      "defaultShares": ["C$"]
+    },
+    {
+      "name": "dtm-work-mobo",
+      "aliases": ["dtm-work-mobo.local"],
+      "osFamily": "windows",
+      "nodeIdHex": "11",
+      "shortLinkLocal": "fe80::d700:11",
+      "shortUla": "fd00:7462:7032::11",
+      "tbHostAlias": "dtm-work-mobo-tb",
+      "sshPort": 22,
+      "sshUser": "david",
+      "winRmPort": 5985,
+      "lanAddresses": [],
+      "defaultShares": ["C$"]
+    },
+    {
+      "name": "minisforum",
+      "aliases": ["minisforum-ms01", "ms01", "minisforum.local"],
+      "osFamily": "linux",
+      "nodeIdHex": "19",
+      "shortLinkLocal": "fe80::d700:19",
+      "shortUla": "fd00:7462:7032::19",
+      "tbHostAlias": "minisforum-tb",
+      "sshPort": 22,
+      "sshUser": "damartel",
+      "winRmPort": 5985,
+      "lanAddresses": ["192.168.50.119", "192.168.50.152", "100.64.0.8"],
+      "defaultShares": []
+    },
+    {
+      "name": "asuspro13",
+      "aliases": ["asuspro13.local"],
+      "osFamily": "linux",
+      "nodeIdHex": "13",
+      "shortLinkLocal": "fe80::d700:13",
+      "shortUla": "fd00:7462:7032::13",
+      "tbHostAlias": "asuspro13-tb",
+      "sshPort": 22,
+      "sshUser": "damartel",
+      "winRmPort": 5985,
+      "lanAddresses": ["192.168.50.79", "10.60.4.1", "100.64.0.3"],
+      "defaultShares": []
+    },
+    {
+      "name": "millylaptop1",
+      "aliases": ["millylaptop1.local", "millylaptop1-usb4", "p16-gen2"],
+      "osFamily": "linux",
+      "nodeIdHex": "21",
+      "shortLinkLocal": "fe80::d700:21",
+      "shortUla": "fd00:7462:7032::21",
+      "tbHostAlias": "millylaptop1-tb",
+      "sshPort": 22,
+      "sshUser": "cog",
+      "winRmPort": 5985,
+      "lanAddresses": ["192.168.50.91", "192.168.50.192", "192.168.50.43"],
+      "defaultShares": []
+    },
+    {
+      "name": "spark-0060",
+      "aliases": ["spark-0060.local", "dgx-spark-0060"],
+      "osFamily": "linux",
+      "nodeIdHex": "60",
+      "shortLinkLocal": "fe80::d700:60",
+      "shortUla": "fd00:7462:7032::60",
+      "tbHostAlias": "spark-0060-tb",
+      "sshPort": 22,
+      "sshUser": "damartel",
+      "winRmPort": 5985,
+      "lanAddresses": ["192.168.50.60"],
+      "defaultShares": []
+    },
+    {
+      "name": "spark-3066",
+      "aliases": ["spark-3066.local", "dgx-spark-3066"],
+      "osFamily": "linux",
+      "nodeIdHex": "66",
+      "shortLinkLocal": "fe80::d700:66",
+      "shortUla": "fd00:7462:7032::66",
+      "tbHostAlias": "spark-3066-tb",
+      "sshPort": 22,
+      "sshUser": "damartel",
+      "winRmPort": 5985,
+      "lanAddresses": ["192.168.50.66"],
+      "defaultShares": []
+    }
+  ]
 }

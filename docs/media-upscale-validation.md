@@ -47,7 +47,7 @@ image fixtures, with expected output dimensions and finite pixel checks. The
 loader's Rust example shows the intended [pipeline API](../Native/pcai_core/pcai_media/src/upscale.rs).
 
 The [optional-feature workflow](../.github/workflows/media-upscale.yml) runs the
-three commands above on Ubuntu and Windows with stable Rust. It triggers on media,
+three commands above on Ubuntu and Windows with stable Rust. It triggers on Cargo config, media,
 media-model, workspace manifest/lockfile and workflow changes. Each matrix job is
 bounded to 30 minutes and two compiler jobs; a missing native binary, download
 failure or linker error fails the job. Default-feature core/bootstrap checks do
@@ -57,3 +57,20 @@ local Linux execution does not establish Windows qualification.
 Independent selector/source review is recorded in
 [the review register](../Tests/Portable/media-upscale-review.json). Existing
 unreviewed tests elsewhere remain outside that disposition.
+
+## Windows C++ runtime policy
+
+The [root Cargo configuration](../.cargo/config.toml) supplies target-specific
+`CXXFLAGS_x86_64_pc_windows_msvc=/MD` unless the caller already sets that variable.
+The locked esaxx-rs dependency requests a static CRT unconditionally; downloaded
+ORT and the default Rust MSVC target use the dynamic CRT. cc-rs applies environment
+flags after dependency defaults, so the resulting C++ objects use the matching
+dynamic runtime. This changes compilation, rather than suppressing linker mismatch
+diagnostics. Linux compilers do not consume this Windows-target variable.
+
+Invoke the documented commands from the repository root so Cargo discovers this
+configuration. Callers overriding the target variable must preserve compatible
+runtime flags; deliberately static-CRT builds need separately compatible native
+dependencies and are not qualified by this CPU matrix. The initial Windows gate
+failed with LNK2038 (esaxx MT versus ORT MD); keep that failed run as evidence and
+require the corrected exact-head linked tests, not only `cargo check`.

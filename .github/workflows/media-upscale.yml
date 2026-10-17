@@ -9,6 +9,7 @@ on:
       - 'Native/pcai_core/Cargo.toml'
       - 'Native/pcai_core/Cargo.lock'
       - '.github/workflows/media-upscale.yml'
+      - '.cargo/config.toml'
   push:
     branches: [main]
     paths:
@@ -17,6 +18,7 @@ on:
       - 'Native/pcai_core/Cargo.toml'
       - 'Native/pcai_core/Cargo.lock'
       - '.github/workflows/media-upscale.yml'
+      - '.cargo/config.toml'
 
 permissions:
   contents: read

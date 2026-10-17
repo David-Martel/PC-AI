@@ -12,3 +12,9 @@ protocol = "sparse"
 pcai-check = "check --workspace --all-targets"
 pcai-clippy = "clippy --workspace --all-targets -- -D warnings"
 pcai-fmt-check = "fmt --all -- --check"
+
+# esaxx-rs forces /MT, while downloaded ORT and Rust MSVC use the dynamic CRT.
+# cc-rs applies target-specific user flags last; preserve explicit caller overrides.
+# Applies only to x64 MSVC C++ compilation, including ordinary local Cargo builds.
+[env]
+CXXFLAGS_x86_64_pc_windows_msvc = { value = "/MD", force = false }

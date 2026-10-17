@@ -6,9 +6,10 @@
     "Native/pcai_core/pcai_media/src/ffi/mod.rs": "bb804020071f8446a7b28fb59a82ce4dc3e6e95ae669478c6ea8072b2d3a362a",
     "Native/pcai_core/pcai_media/Cargo.toml": "d9010198f9861b5c666033cfa51f71a77ccbd1e603938dd2179c0a961af12277",
     "Native/pcai_core/Cargo.lock": "9894a7f5ad6145eaa8e9bcf126c25799cfc2e376a9bbeda7b04c5e807c6eb8ee",
-    ".github/workflows/media-upscale.yml": "bd24e9288ed4fa578cdb77281cf33fef01aeafe93c3150e6d98fec415dd991b7",
-    "docs/media-upscale-validation.md": "2ce228beefa7f042381a30ae4b5951a57a25364b88c1afde484731e862a4ea55",
-    "rustfmt.toml": "282768acf9fd4aa5650efced2bf3ddc9e2f9b944ae94f60db57ee8d6377f066d"
+    ".github/workflows/media-upscale.yml": "7403a7cd8b3eb671e35caae066b279daa47a698d2d5478ed1ce4890f062aa494",
+    "docs/media-upscale-validation.md": "71c8588e152320900e493b0c26b00a77bfbd3bff7bf7e5aa5490f58695ecf1f5",
+    "rustfmt.toml": "282768acf9fd4aa5650efced2bf3ddc9e2f9b944ae94f60db57ee8d6377f066d",
+    ".cargo/config.toml": "4d2e703e4e75972451d064a8fcc6b8e0fe51d369526a84f900746be90a8fc03b"
   },
   "dependency_patch_commit": "d079cdad2b56b0a430e0f766a12b287715e7d7b8",
   "main_base": "204cff3a9aca04e31d1290cd106045ebe3bfe497",
@@ -48,7 +49,7 @@
     "Other pre-existing selectors lack fresh independent selector review",
     "No successful model inference or image quality acceptance",
     "No throughput/GPU performance claim",
-    "Hosted Windows/Linux workflow results pending publication"
+    "Initial hosted Windows linked test failed (job117348664777); corrected exact-head Windows results remain pending. Prior CPU Linux check/test/Clippy results do not qualify the Windows CRT fix."
   ],
   "formatting_verification": {
     "reviewed_preformat_source": "b633660f49c4e13d109a0d49beaa76ef8ef192ee6e2d614b44ba47dd40eb5817",
@@ -56,5 +57,29 @@
     "independent_rustfmt_equivalence": "PASS",
     "final_formatted_tests": 4,
     "final_formatted_clippy": "PASS"
-  }
+  },
+  "configuration_reviews": [
+    {
+      "source": ".cargo/config.toml::env.CXXFLAGS_x86_64_pc_windows_msvc",
+      "reviewer": "independent Codex reaper_review",
+      "reviewer_authored_test_or_fix": false,
+      "disposition": "KEEP",
+      "reviewed_utc": "2026-10-17T08:15:14.989823+00:00",
+      "source_sha256": "4d2e703e4e75972451d064a8fcc6b8e0fe51d369526a84f900746be90a8fc03b",
+      "protects": "Consistent dynamic CRT across x64 MSVC C++ dependencies, default Rust target and downloaded ORT.",
+      "detects_or_resolves": "The real linked Windows upscale test failed with LNK2038: esaxx MT_StaticRelease versus ORT MD_DynamicRelease. The configuration changes compiler runtime selection; linker mismatch checks remain enabled.",
+      "evidence": {
+        "failing_windows_job": "117348664777",
+        "failing_log": "fleet-unification/pcai-pr204/repair/windows-upscale-job.log",
+        "locked_dependency_source": "esaxx-rs 0.1.10 build.rs explicitly calls static_crt(true); locked cc 1.2.54 src/lib.rs appends environment flags after default CRT flags.",
+        "verified_policy": "Only CXXFLAGS_x86_64_pc_windows_msvc is supplied, /MD, force=false; explicit callers retain override authority. Ubuntu target compilation does not consume this target-specific variable. Both workflow event path filters include .cargo/config.toml."
+      },
+      "validation_status": "Source-level review complete; corrected exact-head hosted Windows linked tests PENDING. Prior Linux pass does not establish this MSVC repair.",
+      "rollback": "Revert the target-specific Cargo environment entry; linker regression then remains visible in the unchanged Windows test gate.",
+      "monitoring": "Require exact-head Windows check, linked upscale tests and strict Clippy; inspect failed step/linker diagnostics and matrix duration.",
+      "dependencies": "Existing caller target-specific CXXFLAGS can override this default; explicitly static CRT or other MSVC architectures require separately compatible native dependencies.",
+      "historical_context": "Initial real Windows matrix exposed the previously feature-hidden esaxx/ORT CRT mismatch.",
+      "scope": "Compiler policy only; no feature disabling, test skips, NODEFAULTLIB or linker error suppression. No successful inference, image quality or production load qualification."
+    }
+  ]
 }

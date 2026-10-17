@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "valid-manifest",
+      "test_path": "Tests/Portable/Test-ModuleManifestHook.ps1",
+      "test_sha256": "c8432368f42fccd6b92b3986cdffb38fb11a459b3e1cf6d7862796945eee7277",
+      "source_sha256": {
+        "Tools/Test-PcaiModuleManifests.ps1": "3d7fe3ba4291fb086e00d4afed8b20225a4c6419219073c93011ce6881159252",
+        "lefthook.yml": "ee403b36078a06a86600f05b6a0a050bbb1500438f4d9d5ad52fb08cf66eb88d"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "b0cc0fea3fe9aac989d348d111a4c4d42c108ea1",
+      "disposition": "keep",
+      "scope": "Actual helper via child pwsh -File accepts valid fixture and rejects missing RootModule specifically; exact new Bash hook entrypoint validates fourteen repository manifests. No hook bypass or production configuration mutation. Follow-up: exact GitHub-style nested invocation exits0 after both valid controls and fourteen manifests; private always-success helper triggers assertion and exit1 despite final exit0.",
+      "receipt": "module-manifest-hook-review.md"
+    },
+    {
+      "selector": "broken-manifest",
+      "test_path": "Tests/Portable/Test-ModuleManifestHook.ps1",
+      "test_sha256": "c8432368f42fccd6b92b3986cdffb38fb11a459b3e1cf6d7862796945eee7277",
+      "source_sha256": {
+        "Tools/Test-PcaiModuleManifests.ps1": "3d7fe3ba4291fb086e00d4afed8b20225a4c6419219073c93011ce6881159252",
+        "lefthook.yml": "ee403b36078a06a86600f05b6a0a050bbb1500438f4d9d5ad52fb08cf66eb88d"
+      },
+      "reviewer": "Codex benchmark_fix_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-17",
+      "base_commit": "b0cc0fea3fe9aac989d348d111a4c4d42c108ea1",
+      "disposition": "keep",
+      "scope": "Actual helper via child pwsh -File accepts valid fixture and rejects missing RootModule specifically; exact new Bash hook entrypoint validates fourteen repository manifests. No hook bypass or production configuration mutation. Follow-up: exact GitHub-style nested invocation exits0 after both valid controls and fourteen manifests; private always-success helper triggers assertion and exit1 despite final exit0.",
+      "receipt": "module-manifest-hook-review.md"
+    }
+  ],
+  "history": [
+    {
+      "reason": "Retain original review before explicit test CLI success exit correction",
+      "reviews": [
+        {
+          "selector": "valid-manifest",
+          "test_path": "Tests/Portable/Test-ModuleManifestHook.ps1",
+          "test_sha256": "459c460fd26f5aca46aa1217318f0e84094befa2a5f8a04d04d63f5958f2ad99",
+          "source_sha256": {
+            "Tools/Test-PcaiModuleManifests.ps1": "3d7fe3ba4291fb086e00d4afed8b20225a4c6419219073c93011ce6881159252",
+            "lefthook.yml": "ee403b36078a06a86600f05b6a0a050bbb1500438f4d9d5ad52fb08cf66eb88d"
+          },
+          "reviewer": "Codex benchmark_fix_review",
+          "reviewer_type": "independent agent",
+          "reviewed_utc": "2026-10-17",
+          "base_commit": "2ec3a46eed765d2d484b0860e9967de217a61695",
+          "disposition": "keep",
+          "scope": "Actual helper via child pwsh -File accepts valid fixture and rejects missing RootModule specifically; exact new Bash hook entrypoint validates fourteen repository manifests. No hook bypass or production configuration mutation.",
+          "receipt": "module-manifest-hook-review.md"
+        },
+        {
+          "selector": "broken-manifest",
+          "test_path": "Tests/Portable/Test-ModuleManifestHook.ps1",
+          "test_sha256": "459c460fd26f5aca46aa1217318f0e84094befa2a5f8a04d04d63f5958f2ad99",
+          "source_sha256": {
+            "Tools/Test-PcaiModuleManifests.ps1": "3d7fe3ba4291fb086e00d4afed8b20225a4c6419219073c93011ce6881159252",
+            "lefthook.yml": "ee403b36078a06a86600f05b6a0a050bbb1500438f4d9d5ad52fb08cf66eb88d"
+          },
+          "reviewer": "Codex benchmark_fix_review",
+          "reviewer_type": "independent agent",
+          "reviewed_utc": "2026-10-17",
+          "base_commit": "2ec3a46eed765d2d484b0860e9967de217a61695",
+          "disposition": "keep",
+          "scope": "Actual helper via child pwsh -File accepts valid fixture and rejects missing RootModule specifically; exact new Bash hook entrypoint validates fourteen repository manifests. No hook bypass or production configuration mutation.",
+          "receipt": "module-manifest-hook-review.md"
+        }
+      ]
+    }
+  ]
+}

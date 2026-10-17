@@ -192,6 +192,9 @@ pub fn parse_and_validate_ms01_usb4_check_receipt_with_context(
             }
         }
         if let Some(topo) = expected_topo {
+            if topo.usb4_extensions.len() != 1 {
+                anyhow::bail!("A scalar USB4 receipt requires exactly one enrolled extension; multi-edge custody needs per-edge receipts");
+            }
             if receipt.namespace.as_deref() != Some(topo.namespace.as_str()) {
                 anyhow::bail!(
                     "vigil.ms01-usb4-check/v1 receipt namespace {:?} != expected '{}'",
@@ -916,6 +919,11 @@ pub fn evaluate_linux_usb4_extension_custody_from_json(
     };
 
     let mut errors = Vec::new();
+    if topo.usb4_extensions.len() != 1 {
+        errors.push(
+            "Scalar custody cannot verify multiple enrolled USB4 extensions; per-edge receipts required".to_string(),
+        );
+    }
 
     if let Some(schema_num) = state_val.get("schema").and_then(|v| v.as_u64()) {
         if schema_num != 1 {
@@ -2122,6 +2130,11 @@ fn run_ms01_usb4_helper_check(
     let helper_required = expected_topology
         .map(|t| !t.usb4_extensions.is_empty())
         .unwrap_or(false);
+    // A helper installed on this machine cannot supply custody for an unrelated
+    // or extension-free topology. Do not run it or attach its receipt in that case.
+    if !helper_required {
+        return (None, None);
+    }
     if fs::symlink_metadata(helper).is_err() {
         if helper_required {
             return (
@@ -3258,6 +3271,27 @@ mod tests {
         assert!(ext_live.custody_valid, "errors: {:?}", ext_live.errors);
         assert!(ext_live.veth_symmetry_valid);
 
+        // Protects full declared coverage: a good first edge cannot qualify an absent second.
+        // Needs in-memory custody fixtures; breadcrumb: scalar extension evaluator above.
+        let mut multi_topo = topo.clone();
+        let mut absent_edge = multi_topo.usb4_extensions[0].clone();
+        absent_edge.interface = "absent-secondary".to_string();
+        multi_topo.usb4_extensions.push(absent_edge);
+        let multi = evaluate_linux_usb4_extension_custody_from_json(
+            &multi_topo,
+            "fixture-state".to_string(),
+            Some(&live_ext_journal),
+            Some(&root_links),
+            Some(&root_addrs),
+            Some(&ns_links),
+            Some(&ns_addrs),
+            Some("boot-123"),
+            Some(4026532830u64),
+        )
+        .expect("explicit unsupported multi-edge status");
+        assert!(!multi.custody_valid);
+        assert!(multi.errors.iter().any(|e| e.contains("per-edge receipts required")));
+
         // Negative control 1: owner-prefix collision (owner="de" vs live alias "ms01-usb4:def") must fail closed!
         let prefix_owner_journal: serde_json::Value = serde_json::json!({
             "schema": 1,
@@ -3555,6 +3589,17 @@ Idx     Met         MTU          State                Name
             Some(0)
         )
         .is_ok());
+
+        // A single valid receipt cannot certify a second declared extension.
+        let mut multi_topo = topo.clone();
+        multi_topo.usb4_extensions.push(topo.usb4_extensions[0].clone());
+        assert!(parse_and_validate_ms01_usb4_check_receipt_with_context(
+            valid_receipt,
+            Some(&multi_topo),
+            Some("boot-123"),
+            Some(0)
+        )
+        .is_err());
 
         // Non-zero exit code with ready: true must fail closed
         assert!(parse_and_validate_ms01_usb4_check_receipt_with_context(

@@ -11,6 +11,7 @@ use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::Path;
+#[cfg(target_os = "windows")]
 use std::process::Command;
 use std::time::Instant;
 
@@ -855,6 +856,44 @@ pub fn evaluate_link_lifecycle_state(
     }
 }
 
+fn bound_route_adapter<'a>(
+    link: &PeerLinkLifecycleStatus,
+    adapters: &'a [ThunderboltAdapterState],
+) -> Result<&'a ThunderboltAdapterState, String> {
+    let matches: Vec<_> = adapters
+        .iter()
+        .filter(|a| a.interface_alias.eq_ignore_ascii_case(&link.local_interface))
+        .collect();
+    if matches.len() != 1 {
+        return Err("Missing or ambiguous current adapter alias".to_string());
+    }
+    let adapter = matches[0];
+    if adapter.interface_index == 0
+        || adapters
+            .iter()
+            .filter(|a| a.interface_index == adapter.interface_index)
+            .count()
+            != 1
+    {
+        return Err("Missing or ambiguous current interface index".to_string());
+    }
+    if adapter.external_owner.is_some() {
+        return Err("Adapter has external owner custody".to_string());
+    }
+    if link.canary.interface_index != Some(adapter.interface_index) {
+        return Err("Historical canary interface index does not match current adapter".to_string());
+    }
+    if link
+        .canary
+        .interface_alias
+        .as_ref()
+        .is_some_and(|alias| !alias.eq_ignore_ascii_case(&adapter.interface_alias))
+    {
+        return Err("Historical canary alias does not match current adapter".to_string());
+    }
+    Ok(adapter)
+}
+
 /// Plans and optionally executes withdrawal of PC-AI-owned stale routes (`/128` ULA in `fd00:7462:7032::/48`
 /// and pairwise `/30` or `/32` in `172.31.240.0/20`) for peers whose lifecycle state is not `Ready`,
 /// while strictly preserving `millylaptop1` bridge custody, active `dtm-p1gen7<->dtm-p1gen9` pairs,
@@ -868,11 +907,13 @@ pub fn plan_and_withdraw_stale_owned_routes<R: CommandRunner>(
     apply: bool,
 ) -> Vec<StaleRouteWithdrawalAction> {
     let mut actions = Vec::new();
-    let mut active_ready_peers: HashSet<String> = HashSet::new();
+    let mut active_ready_scopes: HashSet<(String, u32)> = HashSet::new();
 
     for pl in peer_links {
         if pl.lifecycle_state == Usb4LifecycleState::Ready && pl.canary.canary_passed && !pl.evidence.expired {
-            active_ready_peers.insert(pl.peer_host.to_ascii_lowercase());
+            if let Ok(adapter) = bound_route_adapter(pl, adapters) {
+                active_ready_scopes.insert((pl.peer_host.to_ascii_lowercase(), adapter.interface_index));
+            }
         }
     }
 
@@ -899,7 +940,11 @@ pub fn plan_and_withdraw_stale_owned_routes<R: CommandRunner>(
         }
 
         // Preserve active ready pairs (e.g. dtm-p1gen7 <-> dtm-p1gen9)
-        if pl.lifecycle_state == Usb4LifecycleState::Ready && pl.canary.canary_passed && !pl.evidence.expired {
+        if pl.lifecycle_state == Usb4LifecycleState::Ready
+            && pl.canary.canary_passed
+            && !pl.evidence.expired
+            && bound_route_adapter(pl, adapters).is_ok()
+        {
             actions.push(StaleRouteWithdrawalAction {
                 link_id: pl.link_id.clone(),
                 peer_name: pl.peer_host.clone(),
@@ -917,8 +962,30 @@ pub fn plan_and_withdraw_stale_owned_routes<R: CommandRunner>(
             continue;
         }
 
-        // If this peer is already Ready on another link, do not withdraw its host routes
-        if active_ready_peers.contains(&peer_lower) {
+        // A healthy alternate edge does not own routes on this stale interface.
+        // Only preserve overlapping records for the same peer/current interface.
+        let binding = bound_route_adapter(pl, adapters);
+        let ownership_error = binding.as_ref().err().cloned();
+        let target_adapter = binding.ok();
+        let target_if_idx = target_adapter.map(|a| a.interface_index).unwrap_or(0);
+        let target_if_alias = target_adapter
+            .map(|a| a.interface_alias.clone())
+            .unwrap_or_else(|| pl.local_interface.clone());
+        if target_if_idx > 0 && active_ready_scopes.contains(&(peer_lower.clone(), target_if_idx)) {
+            actions.push(StaleRouteWithdrawalAction {
+                link_id: pl.link_id.clone(),
+                peer_name: pl.peer_host.clone(),
+                interface_index: target_if_idx,
+                interface_alias: target_if_alias,
+                route_prefix: format!("active-interface:{local_host_canon}<->{peer_lower}"),
+                address_family: "IPv6+IPv4".to_string(),
+                lifecycle_state: pl.lifecycle_state,
+                reason: "Preserve routes shared with a ready record on the same current interface".to_string(),
+                preserved: true,
+                withdrawn: false,
+                command_summary: "No-op: preserve ready peer/interface scope".to_string(),
+                error: None,
+            });
             continue;
         }
 
@@ -926,17 +993,6 @@ pub fn plan_and_withdraw_stale_owned_routes<R: CommandRunner>(
         let Ok(peer_id) = resolve_peer_identity(Some(&pl.peer_host), Some(local_host_canon), registry_path) else {
             continue;
         };
-
-        let target_if_idx = adapters
-            .iter()
-            .find(|a| a.interface_alias.eq_ignore_ascii_case(&pl.local_interface))
-            .map(|a| a.interface_index)
-            .unwrap_or(0);
-        let target_if_alias = adapters
-            .iter()
-            .find(|a| a.interface_index == target_if_idx)
-            .map(|a| a.interface_alias.clone())
-            .unwrap_or_else(|| pl.local_interface.clone());
 
         let withdrawal_reason = if let Some(ref inv) = pl.evidence.invalidation_reason {
             inv.clone()
@@ -954,7 +1010,7 @@ pub fn plan_and_withdraw_stale_owned_routes<R: CommandRunner>(
             let cmd_summary =
                 format!("Withdraw stale PC-AI ULA host route {prefix} on {target_if_alias} (ifIndex {target_if_idx})");
             let mut withdrawn = false;
-            let mut err_msg = None;
+            let mut err_msg = ownership_error.clone();
 
             if apply {
                 if target_if_idx > 0 {
@@ -983,8 +1039,9 @@ pub fn plan_and_withdraw_stale_owned_routes<R: CommandRunner>(
                     }
                 } else {
                     err_msg = Some(format!(
-                        "Interface '{}' not found in local adapters; refusing unscoped/foreign route deletion",
-                        pl.local_interface
+                        "Interface '{}' lacks bound route ownership: {}; refusing unscoped/foreign route deletion",
+                        pl.local_interface,
+                        ownership_error.as_deref().unwrap_or("unknown interface")
                     ));
                 }
             }
@@ -2295,7 +2352,12 @@ mod tests {
         );
         assert!(reasons_gen7.contains(&"SelectiveSuspend=Enabled".to_string()));
 
-        let ms01_canary = evaluate_identity_bound_canary("minisforum", Some("Ethernet 4"), &empty_macs, &[], &known);
+        let mut ms01_canary =
+            evaluate_identity_bound_canary("minisforum", Some("Ethernet 4"), &empty_macs, &[], &known);
+        // Owned stale-route fixture retains historical interface binding even though
+        // the current identity/reachability canary fails. Missing proof is tested separately.
+        ms01_canary.interface_index = Some(22);
+        ms01_canary.interface_alias = Some("Ethernet 4".to_string());
         let (state_ms01, transit_ms01, _) = evaluate_link_lifecycle_state(
             &ms01_plugable_link,
             "dtm-p1gen9",
@@ -2498,18 +2560,13 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_scoped_route_withdrawal_refuses_foreign_interface_and_reports_deletion_failure() {
-        let known = sample_known_peers();
-        let adapter_eth4 = sample_gen9_adapter(); // Ethernet 4, ifIndex 22
+    fn stale_withdrawal_fixture(interface: &str) -> PeerLinkLifecycleStatus {
         let t0 = Utc.with_ymd_and_hms(2026, 10, 16, 20, 4, 0).unwrap();
         let ev_fresh = ExpiringLifecycleEvidence::evaluate(t0, t0, 300, None, false);
-
-        // Link bound to Ethernet 99 (not present in adapters): must NOT fall back to Ethernet 4 (ifIndex 22)
-        let foreign_link = PeerLinkLifecycleStatus {
+        PeerLinkLifecycleStatus {
             link_id: "ms01-foreign-if".to_string(),
             local_host: "dtm-p1gen9".to_string(),
-            local_interface: "Ethernet 99".to_string(),
+            local_interface: interface.to_string(),
             peer_host: "minisforum".to_string(),
             peer_interface: "usb4-win".to_string(),
             link_intent: "routed-p2p".to_string(),
@@ -2548,7 +2605,7 @@ mod tests {
                 expected_peer: "minisforum".to_string(),
                 observed_peer: None,
                 interface_index: None,
-                interface_alias: Some("Ethernet 99".to_string()),
+                interface_alias: Some(interface.to_string()),
                 target_address: None,
                 scope_id: None,
                 handshake_method: None,
@@ -2557,7 +2614,16 @@ mod tests {
                 canary_passed: false,
                 failure_reason: Some("Disconnected".to_string()),
             },
-        };
+        }
+    }
+
+    #[test]
+    fn test_scoped_route_withdrawal_refuses_foreign_interface_and_reports_deletion_failure() {
+        let known = sample_known_peers();
+        let adapter_eth4 = sample_gen9_adapter(); // Ethernet 4, ifIndex 22
+
+        // Link bound to Ethernet 99 (not present in adapters): must NOT fall back to Ethernet 4 (ifIndex 22)
+        let foreign_link = stale_withdrawal_fixture("Ethernet 99");
 
         let dir = tempfile::tempdir().expect("tempdir");
         let reg_path = dir.path().join("peers.json");
@@ -2587,6 +2653,8 @@ mod tests {
         // Now test matching interface (Ethernet 4, ifIndex 22) when route deletion fails
         let mut eth4_link = foreign_link;
         eth4_link.local_interface = "Ethernet 4".to_string();
+        eth4_link.canary.interface_index = Some(22);
+        eth4_link.canary.interface_alias = Some("Ethernet 4".to_string());
         let failing_runner = FailingRunner;
         let failed_withdrawals = plan_and_withdraw_stale_owned_routes(
             &failing_runner,
@@ -2599,6 +2667,218 @@ mod tests {
         assert!(failed_withdrawals
             .iter()
             .any(|w| w.interface_index == 22 && !w.withdrawn && w.error.as_deref() == Some("Access is denied.")));
+    }
+
+    fn ready_withdrawal_fixture() -> PeerLinkLifecycleStatus {
+        let mut link = stale_withdrawal_fixture("Ethernet 4");
+        link.link_id = "ready-edge-a".to_string();
+        link.lifecycle_state = Usb4LifecycleState::Ready;
+        link.canary.canary_passed = true;
+        link.canary.interface_index = Some(22);
+        link.canary.interface_alias = Some("Ethernet 4".to_string());
+        link.canary.failure_reason = None;
+        link
+    }
+
+    fn withdrawal_registry() -> (tempfile::TempDir, std::path::PathBuf) {
+        let dir = tempfile::tempdir().expect("temp registry");
+        let path = dir.path().join("peers.json");
+        std::fs::write(
+            &path,
+            serde_json::to_vec(&serde_json::json!({
+                "schemaVersion": 1, "fleetPeers": sample_known_peers()
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        (dir, path)
+    }
+
+    // Protects alternate-edge cleanup; detects peer-wide Ready suppressing stale edge withdrawal.
+    // Needs recording CommandRunner only; breadcrumb: plan_and_withdraw_stale_owned_routes.
+    #[test]
+    fn ready_peer_on_edge_a_does_not_preserve_stale_edge_b_routes() {
+        let ready = ready_withdrawal_fixture();
+        let mut stale = stale_withdrawal_fixture("Ethernet 5");
+        stale.link_id = "stale-edge-b".to_string();
+        stale.canary.interface_index = Some(33);
+        stale.canary.interface_alias = Some("Ethernet 5".to_string());
+        let a = sample_gen9_adapter();
+        let mut b = a.clone();
+        b.interface_index = 33;
+        b.interface_alias = "Ethernet 5".to_string();
+        b.addresses.clear();
+        let (_dir, registry) = withdrawal_registry();
+        let peer = resolve_peer_identity(Some("minisforum"), Some("dtm-p1gen9"), Some(&registry)).unwrap();
+        let runner = MockRunner::new();
+        let actions = plan_and_withdraw_stale_owned_routes(
+            &runner,
+            "dtm-p1gen9",
+            &[ready, stale],
+            &[a, b],
+            Some(&registry),
+            true,
+        );
+        let calls = runner.calls.lock().unwrap();
+        assert_eq!(
+            calls.len(),
+            peer.all_ula_addresses.len(),
+            "Every stale ULA route must be removed only on edge B"
+        );
+        for (program, args) in calls.iter() {
+            #[cfg(not(target_os = "windows"))]
+            {
+                assert_eq!(program, "ip");
+                assert_eq!(&args[..3], &["-6", "route", "del"]);
+                assert_eq!(&args[4..], &["dev", "Ethernet 5"]);
+                assert!(peer.all_ula_addresses.iter().any(|ula| args[3] == format!("{ula}/128")));
+            }
+            #[cfg(target_os = "windows")]
+            {
+                assert_eq!(program, "netsh");
+                assert_eq!(&args[..4], &["interface", "ipv6", "delete", "route"]);
+                assert_eq!(&args[5..], &["33", "::"]);
+                assert!(peer.all_ula_addresses.iter().any(|ula| args[4] == format!("{ula}/128")));
+            }
+        }
+        assert!(actions.iter().any(|a| a.link_id == "ready-edge-a" && a.preserved));
+        assert!(actions
+            .iter()
+            .filter(|a| a.withdrawn)
+            .all(|a| a.interface_index == 33 && a.interface_alias == "Ethernet 5"));
+    }
+
+    // Protects a ready route shared by duplicate link records; detects deleting its current interface.
+    // Needs recording runner, no hardware; breadcrumb: active_ready_scopes membership.
+    #[test]
+    fn stale_duplicate_on_ready_peer_interface_never_deletes_routes() {
+        let ready = ready_withdrawal_fixture();
+        let mut stale = stale_withdrawal_fixture("Ethernet 4");
+        stale.canary.interface_index = Some(22);
+        let (_dir, registry) = withdrawal_registry();
+        let runner = MockRunner::new();
+        let actions = plan_and_withdraw_stale_owned_routes(
+            &runner,
+            "dtm-p1gen9",
+            &[ready, stale],
+            &[sample_gen9_adapter()],
+            Some(&registry),
+            true,
+        );
+        assert!(runner.calls.lock().unwrap().is_empty());
+        assert_eq!(actions.len(), 2);
+        assert!(actions.iter().all(|a| a.preserved && !a.withdrawn));
+    }
+
+    // Protects fail-closed interface ownership after unplug; detects unscoped/fallback deletion.
+    // Needs recording runner, no hardware; breadcrumb: target_adapter lookup and index-zero guard.
+    #[test]
+    fn stale_alternate_without_current_adapter_reports_refusal_and_no_delete() {
+        let ready = ready_withdrawal_fixture();
+        let stale = stale_withdrawal_fixture("Ethernet 99");
+        let (_dir, registry) = withdrawal_registry();
+        let runner = MockRunner::new();
+        let actions = plan_and_withdraw_stale_owned_routes(
+            &runner,
+            "dtm-p1gen9",
+            &[ready, stale],
+            &[sample_gen9_adapter()],
+            Some(&registry),
+            true,
+        );
+        assert!(runner.calls.lock().unwrap().is_empty());
+        let refused: Vec<_> = actions.iter().filter(|a| !a.preserved).collect();
+        assert!(
+            !refused.is_empty(),
+            "Unknown adapter must report explicit refusal, not peer-wide silent skip"
+        );
+        assert!(refused
+            .iter()
+            .all(|a| a.interface_index == 0 && !a.withdrawn && a.error.is_some()));
+    }
+
+    // Protects historical/current custody; detects alias reuse, absent proof, external ownership
+    // and ambiguous snapshots becoming authority. Needs recording runner only; breadcrumb:
+    // bound_route_adapter and plan_and_withdraw_stale_owned_routes.
+    #[test]
+    fn unbound_or_external_stale_interfaces_never_issue_deletion_commands() {
+        let (_dir, registry) = withdrawal_registry();
+        for scenario in [
+            "mismatched-index",
+            "missing-proof",
+            "wrong-canary-alias",
+            "external-owner",
+            "duplicate-alias",
+            "duplicate-index",
+            "zero-index",
+        ] {
+            let mut stale = stale_withdrawal_fixture("Ethernet 4");
+            stale.canary.interface_index = Some(22);
+            let mut adapters = vec![sample_gen9_adapter()];
+            match scenario {
+                "mismatched-index" => stale.canary.interface_index = Some(7),
+                "missing-proof" => stale.canary.interface_index = None,
+                "wrong-canary-alias" => stale.canary.interface_alias = Some("foreign".to_string()),
+                "external-owner" => adapters[0].external_owner = Some("ms01-usb4-extension".to_string()),
+                "duplicate-alias" => {
+                    let mut other = adapters[0].clone();
+                    other.interface_index = 33;
+                    adapters.push(other);
+                }
+                "duplicate-index" => {
+                    let mut other = adapters[0].clone();
+                    other.interface_alias = "foreign".to_string();
+                    adapters.push(other);
+                }
+                "zero-index" => {
+                    adapters[0].interface_index = 0;
+                    stale.canary.interface_index = Some(0);
+                }
+                _ => unreachable!(),
+            }
+            let runner = MockRunner::new();
+            let actions =
+                plan_and_withdraw_stale_owned_routes(&runner, "dtm-p1gen9", &[stale], &adapters, Some(&registry), true);
+            assert!(
+                runner.calls.lock().unwrap().is_empty(),
+                "Unsafe scenario issued deletion: {scenario}"
+            );
+            assert!(!actions.is_empty(), "Unsafe scenario omitted its refusal: {scenario}");
+            assert!(
+                actions
+                    .iter()
+                    .all(|a| !a.withdrawn && a.interface_index == 0 && a.error.is_some()),
+                "Unsafe scenario admitted ownership: {scenario}"
+            );
+        }
+    }
+
+    // Protects current ownership from stale ready evidence after alias/index reuse.
+    // Detects an unbound ready record preserving a different current interface.
+    // Needs recording runner only; breadcrumb: active_ready_scopes and bound_route_adapter.
+    #[test]
+    fn ready_record_with_reused_alias_cannot_preserve_a_different_current_interface() {
+        let ready = ready_withdrawal_fixture(); // historical index22
+        let mut stale = stale_withdrawal_fixture("Ethernet 4");
+        stale.canary.interface_index = Some(44);
+        let mut adapter = sample_gen9_adapter();
+        adapter.interface_index = 44;
+        adapter.addresses.clear();
+        let (_dir, registry) = withdrawal_registry();
+        let runner = MockRunner::new();
+        let actions = plan_and_withdraw_stale_owned_routes(
+            &runner,
+            "dtm-p1gen9",
+            &[ready, stale],
+            &[adapter],
+            Some(&registry),
+            true,
+        );
+        assert!(!runner.calls.lock().unwrap().is_empty());
+        assert!(actions
+            .iter()
+            .any(|a| a.interface_index == 0 && a.error.is_some() && !a.withdrawn));
+        assert!(actions.iter().filter(|a| a.withdrawn).all(|a| a.interface_index == 44));
     }
 
     #[test]

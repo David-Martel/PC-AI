@@ -1,0 +1,38 @@
+name: USB4 lifecycle contracts
+on:
+  pull_request:
+    paths:
+      - 'Native/pcai_core/pcai_tb_cli/**'
+      - 'Native/pcai_core/Cargo.toml'
+      - 'Native/pcai_core/Cargo.lock'
+      - 'Config/thunderbolt-peers.json'
+      - '.github/workflows/usb4-lifecycle.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lifecycle:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      # Protects route/identity/custody decisions on both native backends.
+      # Detects stale-edge deletion, foreign ownership mutation and CLI evidence leaks.
+      # Needs standard Rust/MSVC host tools; no attached devices or privileged Apply.
+      - name: Real Rust library and CLI contracts
+        shell: pwsh
+        run: |
+          $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'pcai-usb4-contracts'
+          cargo test --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-tb
+          if ($LASTEXITCODE -ne 0) { throw 'USB4 lifecycle contracts failed' }
+      - name: Strict Rust analysis
+        shell: pwsh
+        run: |
+          $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'pcai-usb4-contracts'
+          cargo clippy --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-tb --all-targets -- -D warnings
+          if ($LASTEXITCODE -ne 0) { throw 'USB4 lifecycle analysis failed' }

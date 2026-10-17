@@ -278,8 +278,8 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
     assert_eq!(fail_ev["acceptance_credit"], false);
     assert_eq!(fail_ev["tpm_admission_status"], "PENDING_TPM_INTAKE");
 
-    // 2. Positive technical control: when sharedSwitchSubnets are locally hosted by COMPUTERNAME, technical checks
-    // succeed and overall_status is HOLD_PENDING_TPM_INTAKE (never claiming acceptance credit before TPM intake).
+    // 2. Local gateway control: route presence is not hardware-provider readiness.
+    // Missing providers must remain FAIL; healthy observations remain pending TPM intake.
     reg_json["ipamAllocations"]["bridgedLanCanaryEndpoints"] = serde_json::json!([]);
     reg_json["ipamAllocations"]["sharedSwitchSubnets"] = serde_json::json!([
         {
@@ -304,16 +304,79 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
         .output()
         .expect("run pcai-tb vnv hold control");
 
-    assert!(
-        hold_output.status.success(),
-        "expected vnv hold control to succeed, stdout={}, stderr={}",
-        String::from_utf8_lossy(&hold_output.stdout),
-        String::from_utf8_lossy(&hold_output.stderr)
-    );
     let hold_ev: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&hold_out_file).unwrap()).expect("valid hold vnv json");
     assert_eq!(hold_ev["schema"], "vigil.hil-device-evidence/v1");
-    assert_eq!(hold_ev["overall_status"], "HOLD_PENDING_TPM_INTAKE");
+    // Hosted runners may have no USB4 provider. An on-host local-gateway fixture
+    // does not invent that hardware; derive expected readiness from raw observation.
+    let observed = &hold_ev["switch_status"];
+    let missing_router =
+        observed["LocalUsb4Routers"].as_array().unwrap().is_empty() && observed["MatchedTopology"].is_null();
+    let windows = hold_ev["os_family"] == "windows";
+    let metrics = &observed["WindowsMetricHierarchy"];
+    let metrics_ready = !metrics.is_null()
+        && metrics["HierarchyValid"] == true
+        && metrics["Interfaces"].as_array().is_some_and(|a| !a.is_empty());
+    let unauthorized_router = observed["LocalUsb4Routers"].as_array().unwrap().iter().any(|r| {
+        r["Status"]
+            .as_str()
+            .is_some_and(|v| v.eq_ignore_ascii_case("unauthorized"))
+    });
+    let expected_failure = missing_router || unauthorized_router || (windows && !metrics_ready);
+    assert_eq!(hold_output.status.success(), !expected_failure);
+    assert_eq!(
+        hold_ev["overall_status"],
+        if expected_failure {
+            "FAIL"
+        } else {
+            "HOLD_PENDING_TPM_INTAKE"
+        }
+    );
+    let f09 = hold_ev["requirement_gates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["traceId"] == "PENDING-FABRIC-F09")
+        .unwrap();
+    assert_eq!(
+        f09["technicalVerdict"],
+        if unauthorized_router {
+            "FAIL"
+        } else if missing_router {
+            "BLOCKED_MISSING_PROVIDER"
+        } else {
+            "PASS"
+        }
+    );
+    let f12 = hold_ev["requirement_gates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["traceId"] == "PENDING-FABRIC-F12")
+        .unwrap();
+    let metric_verdict = if !windows {
+        "SKIP_NOT_APPLICABLE"
+    } else if metrics.is_null() {
+        "BLOCKED_MISSING_PROVIDER"
+    } else if metrics_ready {
+        "PASS"
+    } else {
+        "FAIL"
+    };
+    assert_eq!(f12["technicalVerdict"], metric_verdict);
+    for (id, verdict) in [
+        ("PENDING-FABRIC-F10", "SKIP_NOT_APPLICABLE"),
+        ("PENDING-FABRIC-F11", "SKIP_NOT_APPLICABLE"),
+        ("PENDING-FABRIC-F13", "PASS"),
+    ] {
+        let gate = hold_ev["requirement_gates"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|g| g["traceId"] == id)
+            .unwrap();
+        assert_eq!(gate["technicalVerdict"], verdict, "unexpected fixture gate {id}");
+    }
     assert_eq!(hold_ev["acceptance_credit"], false);
     assert_eq!(hold_ev["tpm_admission_status"], "PENDING_TPM_INTAKE");
     assert!(hold_ev["usb4_check_receipt"].is_null());
@@ -334,7 +397,12 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
                 g["traceId"] == expected_trace
                     && g["acceptanceCredit"] == false
                     && g["tpmAdmissionStatus"] == "PENDING_TPM_INTAKE"
-                    && (g["status"] == "HOLD_PENDING_TPM_INTAKE" || g["status"] == "SKIP_NOT_APPLICABLE")
+                    && g["status"]
+                        == if g["technicalVerdict"] == "PASS" {
+                            serde_json::json!("HOLD_PENDING_TPM_INTAKE")
+                        } else {
+                            g["technicalVerdict"].clone()
+                        }
             }),
             "missing or unexpected gate {expected_trace} in {gates:?}"
         );
@@ -345,7 +413,17 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
 
 #[test]
 fn cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_transit() {
-    let reg = repo_registry_path();
+    // This is an absent-interface refusal control, not a claim about attached Windows hardware.
+    let fixture_dir = tempfile::tempdir().expect("private lifecycle registry");
+    let reg = fixture_dir.path().join("peers.json");
+    let mut registry: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(repo_registry_path()).expect("read registry"))
+            .expect("parse registry");
+    for (index, link) in registry["topologyLinks"].as_array_mut().unwrap().iter_mut().enumerate() {
+        link["sourceInterface"] = serde_json::json!(format!("pcai-fixture-{index}"));
+        link["targetInterface"] = serde_json::json!(format!("pcai-fixture-{index}"));
+    }
+    fs::write(&reg, serde_json::to_vec(&registry).unwrap()).expect("write private registry");
     let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
         .env("COMPUTERNAME", "dtm-p1gen9")
         .args([
@@ -360,16 +438,23 @@ fn cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_tra
         .expect("run pcai-tb lifecycle");
 
     assert!(
-        output.status.success(),
-        "expected lifecycle subcommand to succeed, stdout={}, stderr={}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+        !output.status.success(),
+        "Unowned fixture interfaces must refuse readiness"
     );
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("valid lifecycle json");
     assert_eq!(json["Schema"], "pcai.usb4-lifecycle/v1");
     assert_eq!(json["ComputerName"], "dtm-p1gen9");
-    assert_eq!(json["OverallValid"], true);
+    assert_eq!(json["OverallValid"], false);
+    assert_eq!(json["ApplyMode"], false);
+    let withdrawals = json["StaleRouteWithdrawals"].as_array().expect("withdrawal decisions");
+    let refusals: Vec<_> = withdrawals.iter().filter(|a| !a["Error"].is_null()).collect();
+    assert!(!refusals.is_empty(), "Missing adapters must produce explicit refusals");
+    assert!(refusals
+        .iter()
+        .all(|a| a["Error"] == "Missing or ambiguous current adapter alias"));
+    assert!(withdrawals.iter().all(|a| a["Withdrawn"] == false));
+    assert!(json["ResumeReprobe"]["ReapplyActions"].as_array().unwrap().is_empty());
     assert_eq!(json["DefaultRoutesPreserved"], true);
     assert_eq!(json["Policy"]["allowAlwaysOnTransitClaimWhenSelectiveSuspend"], false);
     let link_states = json["PeerLinkStates"].as_array().expect("PeerLinkStates array");
@@ -428,4 +513,35 @@ fn cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_tra
         .expect("ms01-milly-usb4-bridge entry");
     assert_eq!(milly["PreserveBridgeCustody"], true);
     assert_eq!(milly["LinkAdmitted"], true);
+}
+
+// Protects valid observation without declared edges; detects treating every dry-run as failure.
+// Needs native CLI only; breadcrumb: lifecycle overall_valid and registry topology selection.
+#[test]
+fn cli_lifecycle_empty_topology_is_valid_without_route_actions() {
+    let dir = tempfile::tempdir().expect("private registry");
+    let reg = dir.path().join("peers.json");
+    let mut registry: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(repo_registry_path()).unwrap()).unwrap();
+    registry["topologyLinks"] = serde_json::json!([]);
+    fs::write(&reg, serde_json::to_vec(&registry).unwrap()).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+        .env("COMPUTERNAME", "dtm-p1gen9")
+        .args([
+            "lifecycle",
+            "--registry",
+            reg.to_str().unwrap(),
+            "--timeout-ms",
+            "150",
+            "--compact",
+        ])
+        .output()
+        .expect("run lifecycle");
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["OverallValid"], true);
+    assert_eq!(value["ApplyMode"], false);
+    assert_eq!(value["DefaultRoutesPreserved"], true);
+    assert!(value["StaleRouteWithdrawals"].as_array().unwrap().is_empty());
+    assert!(value["PeerLinkStates"].as_array().unwrap().is_empty());
 }

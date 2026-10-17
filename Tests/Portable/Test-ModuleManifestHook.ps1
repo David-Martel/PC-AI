@@ -24,3 +24,8 @@ try{
     if($LASTEXITCODE -eq 0 -or "$output" -notmatch 'DeliberatelyMissing'){throw 'Broken manifest was not specifically rejected'}
     Write-Output 'PASS: broken fixture manifest rejected'
 }finally{Remove-Item -LiteralPath $root -Recurse -Force}
+
+# The last child intentionally fails. Report this CLI's validated success rather
+# than leaking that expected failure to GitHub's LASTEXITCODE wrapper. Any failed
+# assertion/cleanup throws before this line and remains nonzero.
+exit 0

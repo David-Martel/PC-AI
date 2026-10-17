@@ -72,3 +72,5 @@ updating only an installed umbrella, use `SourceRoot` pointing to that installed
 module's existing component tree so exports reflect those components; copying a
 new repository umbrella does not upgrade installed components. This helper
 installs nothing; `-DryRun`, `-WhatIf`, `-h` and `--help` are available.
+
+Native deployment admission: [explicit override controls](native-override-admission.md).

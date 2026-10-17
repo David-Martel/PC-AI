@@ -79,3 +79,6 @@ mutation controls and hash-bound dispositions.
 The token controls also run as a nested child script: hosted CI exposed a
 function-lookup failure hidden by direct -File/global scope. The timed closure
 now captures the actual estimator function body explicitly.
+
+[Developer hook validation](developer-hook-validation.md) covers portable
+manifest checks and the refreshed runner review bindings.

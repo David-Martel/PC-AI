@@ -124,8 +124,8 @@ pub fn parse_and_validate_ms01_usb4_check_receipt_with_context(
     let Some(raw_obj) = raw_val.as_object() else {
         anyhow::bail!("ms01-usb4-extension check receipt must be a JSON object");
     };
-    let receipt: VigilMs01Usb4CheckReceipt =
-        serde_json::from_value(raw_val.clone()).context("Invalid schema fields in ms01-usb4-extension check receipt")?;
+    let receipt: VigilMs01Usb4CheckReceipt = serde_json::from_value(raw_val.clone())
+        .context("Invalid schema fields in ms01-usb4-extension check receipt")?;
     if receipt.schema != "vigil.ms01-usb4-check/v1" {
         anyhow::bail!(
             "Unexpected schema '{}' in ms01-usb4-extension receipt (expected 'vigil.ms01-usb4-check/v1')",
@@ -249,10 +249,7 @@ pub fn validate_trusted_root_executable(path: &Path) -> Result<PathBuf> {
 
     loop {
         if !pending.is_absolute() {
-            anyhow::bail!(
-                "Resolved helper path '{}' must remain absolute",
-                pending.display()
-            );
+            anyhow::bail!("Resolved helper path '{}' must remain absolute", pending.display());
         }
         let comps: Vec<std::path::Component<'_>> = pending.components().collect();
         let mut cur = PathBuf::new();
@@ -291,14 +288,12 @@ pub fn validate_trusted_root_executable(path: &Path) -> Result<PathBuf> {
                         path.display()
                     );
                 }
-                let link_target = fs::read_link(&cur)
-                    .with_context(|| format!("Failed to read symlink '{}'", cur.display()))?;
+                let link_target =
+                    fs::read_link(&cur).with_context(|| format!("Failed to read symlink '{}'", cur.display()))?;
                 let mut next_pending = if link_target.is_absolute() {
                     link_target
                 } else {
-                    cur.parent()
-                        .unwrap_or_else(|| Path::new("/"))
-                        .join(link_target)
+                    cur.parent().unwrap_or_else(|| Path::new("/")).join(link_target)
                 };
                 for rem in &comps[(idx + 1)..] {
                     next_pending.push(rem.as_os_str());
@@ -321,10 +316,7 @@ pub fn validate_trusted_root_executable(path: &Path) -> Result<PathBuf> {
             }
 
             if idx + 1 < comps.len() && !meta.file_type().is_dir() {
-                anyhow::bail!(
-                    "Helper path parent component '{}' is not a directory",
-                    cur.display()
-                );
+                anyhow::bail!("Helper path parent component '{}' is not a directory", cur.display());
             }
         }
 
@@ -335,10 +327,7 @@ pub fn validate_trusted_root_executable(path: &Path) -> Result<PathBuf> {
         let final_meta = fs::symlink_metadata(&cur)
             .with_context(|| format!("Failed to stat resolved helper '{}'", cur.display()))?;
         if !final_meta.file_type().is_file() {
-            anyhow::bail!(
-                "Resolved helper executable '{}' is not a regular file",
-                cur.display()
-            );
+            anyhow::bail!("Resolved helper executable '{}' is not a regular file", cur.display());
         }
         #[cfg(unix)]
         {
@@ -355,7 +344,6 @@ pub fn validate_trusted_root_executable(path: &Path) -> Result<PathBuf> {
         return Ok(cur);
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2049,10 +2037,7 @@ pub fn run_bounded_command_with_deadline(
                 if Instant::now() >= deadline {
                     kill_process_group(&mut child, pid);
                     let _ = child.wait();
-                    anyhow::bail!(
-                        "Timed out waiting {timeout_ms}ms for '{}'",
-                        program.display()
-                    );
+                    anyhow::bail!("Timed out waiting {timeout_ms}ms for '{}'", program.display());
                 }
                 std::thread::sleep(Duration::from_millis(20));
             }
@@ -2167,7 +2152,8 @@ fn run_ms01_usb4_helper_check(
         }
     };
 
-    let (exit_code, stdout, stderr) = match run_bounded_command_with_deadline(&resolved_helper, &["check"], 5000, 65536) {
+    let (exit_code, stdout, stderr) = match run_bounded_command_with_deadline(&resolved_helper, &["check"], 5000, 65536)
+    {
         Ok(res) => res,
         Err(e) => return (None, Some(e.to_string())),
     };
@@ -3625,4 +3611,3 @@ Idx     Met         MTU          State                Name
         assert!(validate_trusted_root_executable(Path::new("relative/ms01-usb4-extension")).is_err());
     }
 }
-

@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh enrolled USB4 observations
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=15s
+AccuracySec=1s
+Unit=pcai-usb4-observer.service
+
+[Install]
+WantedBy=timers.target

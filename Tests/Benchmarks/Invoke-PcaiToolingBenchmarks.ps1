@@ -333,7 +333,10 @@ function Get-ToolingCaseBenchmarks {
                 } $TokenSample | Out-Null
             }.GetNewClosure()
             Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
-            $baselineBlock = { Get-ReferenceTokenEstimate -Text $TokenSample | Out-Null }.GetNewClosure()
+            # Capture the actual function body: GetNewClosure creates a module whose
+            # function lookup cannot depend on the caller's script scope.
+            $referenceTokenEstimator = ${function:Get-ReferenceTokenEstimate}
+            $baselineBlock = { $ErrorActionPreference = 'Stop'; & $referenceTokenEstimator -Text $TokenSample | Out-Null }.GetNewClosure()
             Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
             return [PSCustomObject]@{
                 Case        = $Case

@@ -75,3 +75,7 @@ and functional controls; it changes no production runtime timeout.
 
 [Token selector review](../Tests/Portable/token-parity-review.md) records the
 mutation controls and hash-bound dispositions.
+
+The token controls also run as a nested child script: hosted CI exposed a
+function-lookup failure hidden by direct -File/global scope. The timed closure
+now captures the actual estimator function body explicitly.

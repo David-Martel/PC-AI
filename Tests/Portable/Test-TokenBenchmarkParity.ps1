@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 [CmdletBinding()]
-param([string]$SourcePath=(Join-Path $PSScriptRoot '../Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'))
+param([string]$SourcePath=(Join-Path $PSScriptRoot '../Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'), [switch]$NestedChild)
 $ErrorActionPreference='Stop'
 $tokens=$null; $errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile((Resolve-Path $SourcePath).Path,[ref]$tokens,[ref]$errors)
@@ -83,7 +83,10 @@ $script:TimingCalls=0
 function Invoke-BackendBenchmark {
     param($CaseId,$Backend,$Command,$Iterations,$Warmup)
     $script:TimingCalls++
-    & $Command | Out-Null
+    $commandOutput=@(& $Command 2>&1)
+    if(@($commandOutput | Where-Object { $_ -is [Management.Automation.ErrorRecord] }).Count -gt 0){
+        throw 'Timed command produced an error record'
+    }
     return [pscustomobject]@{Backend=$Backend;MeanMs=1;Iterations=$Iterations}
 }
 $case=[pscustomobject]@{Id='token-estimate'}
@@ -117,3 +120,16 @@ if(& ([scriptblock]::Create($proofExpression))){throw 'Empty report claims equiv
 $benchmarkRows=@([pscustomobject]@{EquivalenceVerified=$true})
 if(-not (& ([scriptblock]::Create($proofExpression)))){throw 'Proven nonempty report lost proof'}
 Write-Output 'PASS: actual report suppresses unknown proof/ratios and empty-report equivalence'
+
+# Selector nested-invocation protects CI/module closure scope; detects a reference
+# function that only resolves from direct -File/global scope. Needs child pwsh.
+# Breadcrumb: token baseline GetNewClosure in Get-ToolingCaseBenchmarks.
+if(-not $NestedChild){
+    $testPath=$PSCommandPath.Replace("'","''")
+    $sourceArgument=(Resolve-Path -LiteralPath $SourcePath).Path.Replace("'","''")
+    $code="& '$testPath' -SourcePath '$sourceArgument' -NestedChild"
+    $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($code))
+    & (Get-Process -Id $PID).Path -NoLogo -NoProfile -EncodedCommand $encoded
+    if($LASTEXITCODE -ne 0){throw 'Nested token parity invocation failed'}
+    Write-Output 'PASS: nested script invocation preserves baseline closure scope'
+}

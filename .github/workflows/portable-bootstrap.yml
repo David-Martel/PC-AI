@@ -75,6 +75,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Native core build failed' }
           $filename = if ($IsWindows) { 'pcai_core_lib.dll' } else { 'libpcai_core_lib.so' }
           $env:PCAI_TOKEN_NATIVE_PATH = Join-Path $target "debug/$filename"
+          # Nested script invocation exercises closure scope under the CI wrapper.
           ./Tests/Portable/Test-TokenBenchmarkParity.ps1
       - name: Build managed bridge for host
         shell: pwsh

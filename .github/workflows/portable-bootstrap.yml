@@ -6,7 +6,11 @@ on:
       - 'Modules/PC-AI.Common/**'
       - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
       - 'Native/PcaiNative/**'
+      - 'Native/pcai_core/**'
       - 'Tests/Portable/**'
+      - 'Tests/Invoke-BenchmarkGate.ps1'
+      - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
+      - 'Config/pcai-tooling-benchmarks.json'
       - '.github/workflows/portable-bootstrap.yml'
   push:
     branches: [main]
@@ -14,7 +18,11 @@ on:
       - 'Modules/PC-AI.Common/**'
       - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
       - 'Native/PcaiNative/**'
+      - 'Native/pcai_core/**'
       - 'Tests/Portable/**'
+      - 'Tests/Invoke-BenchmarkGate.ps1'
+      - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
+      - 'Config/pcai-tooling-benchmarks.json'
       - '.github/workflows/portable-bootstrap.yml'
 permissions:
   contents: read
@@ -29,9 +37,13 @@ jobs:
           - os: windows-latest
             rid: win-x64
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          python-version: '3.12'
+          enable-cache: false
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -48,6 +60,23 @@ jobs:
         run: |
           ./Tests/Portable/Test-CacheBootstrap.ps1
           ./Tests/Portable/Test-RustToolDiscovery.ps1
+      - name: Benchmark admission regression controls
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-BenchmarkRunner.ps1
+          uv run --no-project python -m unittest discover -s Tests/Portable -p test_benchmark_admission.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build real core and verify Unicode token parity
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'pcai-parity-core'
+          cargo build --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai_core_lib --no-default-features --target-dir $target
+          if ($LASTEXITCODE -ne 0) { throw 'Native core build failed' }
+          $filename = if ($IsWindows) { 'pcai_core_lib.dll' } else { 'libpcai_core_lib.so' }
+          $env:PCAI_TOKEN_NATIVE_PATH = Join-Path $target "debug/$filename"
+          # Nested script invocation exercises closure scope under the CI wrapper.
+          ./Tests/Portable/Test-TokenBenchmarkParity.ps1
       - name: Build managed bridge for host
         shell: pwsh
         env:

@@ -1,0 +1,58 @@
+name: Portable bootstrap
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Modules/PC-AI.Common/**'
+      - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
+      - 'Native/PcaiNative/**'
+      - 'Tests/Portable/**'
+      - '.github/workflows/portable-bootstrap.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Modules/PC-AI.Common/**'
+      - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
+      - 'Native/PcaiNative/**'
+      - 'Tests/Portable/**'
+      - '.github/workflows/portable-bootstrap.yml'
+permissions:
+  contents: read
+jobs:
+  bootstrap:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Validate runtime identifier against actual host
+        shell: pwsh
+        env:
+          EXPECTED_RID: ${{ matrix.rid }}
+        run: |
+          $os = if ($IsWindows) { 'win' } elseif ($IsLinux) { 'linux' } else { throw 'Unsupported runner OS' }
+          $arch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()
+          if ("$os-$arch" -ne $env:EXPECTED_RID) { throw 'Runner and target RID differ' }
+      - name: Profile-free cache bootstrap regression
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-CacheBootstrap.ps1
+          ./Tests/Portable/Test-RustToolDiscovery.ps1
+      - name: Build managed bridge for host
+        shell: pwsh
+        env:
+          TARGET_RID: ${{ matrix.rid }}
+          DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+        run: |
+          dotnet build Native/PcaiNative/PcaiNative.csproj --configuration Release --runtime $env:TARGET_RID --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

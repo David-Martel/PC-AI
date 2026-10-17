@@ -28,17 +28,18 @@ function Find-RustTool {
 
     $dynamicSearchPaths = @(
         $(if ($env:PCAI_ROOT) { Join-Path $env:PCAI_ROOT 'bin' })
-        (Join-Path $env:USERPROFILE 'PC_AI\bin')
+        $(if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) { Join-Path $env:USERPROFILE 'PC_AI\bin' })
     ) | Where-Object { $_ }
 
-    # Split $env:PATH by ';' to get individual directory candidates.
-    # Never join 'bin\' with the raw PATH string — that produces invalid compound paths.
-    $pathDirs = ($env:PATH -split ';') | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) }
+    # Preserve host PATH semantics: colon on Unix, semicolon on Windows.
+    $pathDirs = ($env:PATH -split [regex]::Escape([string][IO.Path]::PathSeparator)) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) }
 
     $searchPaths = @($dynamicSearchPaths + $script:SearchPaths + $pathDirs + 'C:\Program Files\fd') | Select-Object -Unique
 
     foreach ($searchPath in $searchPaths) {
-        $exePath = Join-Path $searchPath "$ToolName.exe"
+        if (-not (Test-Path -LiteralPath $searchPath -PathType Container -ErrorAction SilentlyContinue)) { continue }
+        $fileName = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) { "$ToolName.exe" } else { $ToolName }
+        $exePath = Join-Path $searchPath $fileName
         if (Test-Path -LiteralPath $exePath) {
             $script:RustToolCache[$ToolName] = $exePath
             if ($script:ToolPaths.ContainsKey($ToolName)) {
@@ -49,7 +50,8 @@ function Find-RustTool {
     }
 
     try {
-        $result = & where.exe $ToolName 2>$null | Select-Object -First 1
+        $application = Get-Command $ToolName -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        $result = if ($application) { $application.Path } else { $null }
         if ($result -and (Test-Path -LiteralPath $result)) {
             $script:RustToolCache[$ToolName] = $result
             if ($script:ToolPaths.ContainsKey($ToolName)) {
@@ -58,7 +60,7 @@ function Find-RustTool {
             return $result
         }
     } catch {
-        Write-Verbose "where.exe failed to find $ToolName : $_"
+        Write-Verbose "Application lookup failed to find $ToolName : $_"
     }
 
     return $null

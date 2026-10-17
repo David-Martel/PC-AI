@@ -21,15 +21,12 @@ use crate::config::api_key;
 ///
 /// # Examples
 ///
-/// Register in an axum router:
+/// Use the public router factory, which installs this middleware:
 ///
 /// ```rust,no_run
-/// use axum::{middleware, Router, routing::get};
-/// use rust_functiongemma_runtime::auth::bearer_auth;
+/// use rust_functiongemma_runtime::build_router;
 ///
-/// let app = Router::new()
-///     .route("/v1/models", get(|| async { "ok" }))
-///     .layer(middleware::from_fn(bearer_auth));
+/// let app = build_router();
 /// ```
 pub(crate) async fn bearer_auth(req: Request<Body>, next: Next) -> Response {
     // Fast path: no key configured -> pass through unconditionally.

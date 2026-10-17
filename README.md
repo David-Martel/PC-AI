@@ -322,3 +322,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and PR
 [MIT License](LICENSE) -- Copyright (c) 2025 David Martel
 
 Linux USB4 discovery: [enrolled observer and service integration](docs/usb4/enrolled-observer.md).
+
+FunctionGemma runtime dependency validation: [build, HTTP contract tests and coverage limits](docs/functiongemma-runtime-validation.md).

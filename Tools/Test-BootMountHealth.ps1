@@ -52,11 +52,17 @@ if (@($CliArgs).Count -gt 0) {
     throw "Unknown CLI argument(s): $($CliArgs -join ', ')"
 }
 
-$expectedVhds = @(
-    [pscustomobject]@{ Name = 'cloud-cache-disk'; Path = 'T:\vm\cloud-cache-disk.vhdx'; ExpectedDriveLetter = 'F'; ExpectedState = 'mounted-volume' },
-    [pscustomobject]@{ Name = 'share-ext4'; Path = 'T:\vm\share-ext4.vhdx'; ExpectedDriveLetter = $null; ExpectedState = 'attached-disk-only' },
-    [pscustomobject]@{ Name = 'shared-dev'; Path = 'D:\vm\shared-dev.vhdx'; ExpectedDriveLetter = 'W'; ExpectedState = 'mounted-volume' }
-)
+$expectedVhds = if ((Test-Path -LiteralPath 'C:\DevDrives\RustCache.vhdx') -and -not (Test-Path -LiteralPath 'T:\vm\cloud-cache-disk.vhdx')) {
+    @(
+        [pscustomobject]@{ Name = 'RustCache'; Path = 'C:\DevDrives\RustCache.vhdx'; ExpectedDriveLetter = 'T'; ExpectedState = 'mounted-volume' }
+    )
+} else {
+    @(
+        [pscustomobject]@{ Name = 'cloud-cache-disk'; Path = 'T:\vm\cloud-cache-disk.vhdx'; ExpectedDriveLetter = 'F'; ExpectedState = 'mounted-volume' },
+        [pscustomobject]@{ Name = 'share-ext4'; Path = 'T:\vm\share-ext4.vhdx'; ExpectedDriveLetter = $null; ExpectedState = 'attached-disk-only' },
+        [pscustomobject]@{ Name = 'shared-dev'; Path = 'D:\vm\shared-dev.vhdx'; ExpectedDriveLetter = 'W'; ExpectedState = 'mounted-volume' }
+    )
+}
 
 function Add-Issue {
     param(

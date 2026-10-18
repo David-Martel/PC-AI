@@ -1,6 +1,7 @@
 use crate::handshake::{discover_thunderbolt_peers, DiscoveredThunderboltPeer};
 use crate::identity::{
-    compute_commutative_pairwise_ipv4, load_peer_registry_checked, resolve_peer_identity, ThunderboltPeerIdentity,
+    compute_commutative_pairwise_ipv4, load_peer_registry_checked, repo_registry_candidates, resolve_peer_identity,
+    ThunderboltPeerIdentity,
 };
 use crate::platform::{collect_platform_snapshot, verify_live_adapter_identity, ThunderboltAdapterState};
 use anyhow::Result;
@@ -89,6 +90,21 @@ pub fn check_applied_actions(actions: &[PlannedAction]) -> Result<()> {
         );
     }
     Ok(())
+}
+
+fn ipv6_addrs_equal(a: &str, b: &str) -> bool {
+    fn strip(s: &str) -> &str {
+        s.split('%').next().unwrap_or(s).split('/').next().unwrap_or(s).trim()
+    }
+    let sa = strip(a);
+    let sb = strip(b);
+    if sa.eq_ignore_ascii_case(sb) {
+        return true;
+    }
+    match (sa.parse::<std::net::Ipv6Addr>(), sb.parse::<std::net::Ipv6Addr>()) {
+        (Ok(ia), Ok(ib)) => ia == ib,
+        _ => false,
+    }
 }
 
 fn apply_ipv6_address_on_interface<R: CommandRunner>(
@@ -559,7 +575,7 @@ pub fn plan_and_apply_adapter_actions_with_rollback<R: CommandRunner>(
 
     // 2. Local Deterministic Link-Local Addresses (fe80::d700:...)
     for lla in &local_id.all_link_local_addresses {
-        let exists = adapter.addresses.iter().any(|a| a.address.eq_ignore_ascii_case(lla));
+        let exists = adapter.addresses.iter().any(|a| ipv6_addrs_equal(&a.address, lla));
         let mut act = PlannedAction {
             interface_index: if_idx,
             interface_alias: alias.clone(),
@@ -582,7 +598,7 @@ pub fn plan_and_apply_adapter_actions_with_rollback<R: CommandRunner>(
 
     // 3. Local Deterministic ULA Addresses (/128 host addresses for multi-port support)
     for ula in &local_id.all_ula_addresses {
-        let exists = adapter.addresses.iter().any(|a| a.address.eq_ignore_ascii_case(ula));
+        let exists = adapter.addresses.iter().any(|a| ipv6_addrs_equal(&a.address, ula));
         let mut act = PlannedAction {
             interface_index: if_idx,
             interface_alias: alias.clone(),
@@ -1026,6 +1042,23 @@ pub fn install_framework_with_paths(
     })
 }
 
+pub fn resolve_install_registry_source(explicit_registry: Option<&Path>) -> Result<Option<PathBuf>> {
+    if let Some(explicit) = explicit_registry {
+        let (_, loaded_reg_path) = load_peer_registry_checked(Some(explicit))?;
+        return Ok(loaded_reg_path.map(PathBuf::from));
+    }
+    for candidate in repo_registry_candidates() {
+        if candidate.is_file() {
+            let (_, loaded_reg_path) = load_peer_registry_checked(Some(&candidate))?;
+            if let Some(p) = loaded_reg_path {
+                return Ok(Some(PathBuf::from(p)));
+            }
+        }
+    }
+    let (_, loaded_reg_path) = load_peer_registry_checked(None)?;
+    Ok(loaded_reg_path.map(PathBuf::from))
+}
+
 pub fn install_framework(apply: bool, explicit_registry: Option<&Path>) -> Result<InstallFrameworkReport> {
     let exe_path = env::current_exe()?;
     let bin_name = if cfg!(target_os = "windows") {
@@ -1044,12 +1077,15 @@ pub fn install_framework(apply: bool, explicit_registry: Option<&Path>) -> Resul
         target_bins.push(hp.join("bin").join(bin_name));
         target_bins.push(hp.join(".local").join("bin").join(bin_name));
     }
-    if cfg!(target_os = "windows") && Path::new(r"C:\codedev\PC_AI").is_dir() {
-        target_bins.push(PathBuf::from(r"C:\codedev\PC_AI\bin").join(bin_name));
+    if cfg!(target_os = "windows") {
+        for repo_root in [r"C:\codedev\PC-AI", r"C:\codedev\PC_AI"] {
+            if Path::new(repo_root).is_dir() {
+                target_bins.push(PathBuf::from(repo_root).join("bin").join(bin_name));
+            }
+        }
     }
 
-    let (_, loaded_reg_path) = load_peer_registry_checked(explicit_registry)?;
-    let reg_src_buf = loaded_reg_path.map(PathBuf::from);
+    let reg_src_buf = resolve_install_registry_source(explicit_registry)?;
     let mut target_configs = Vec::new();
     if reg_src_buf.is_some() && !home.is_empty() {
         let hp = PathBuf::from(&home);
@@ -1262,5 +1298,33 @@ mod tests {
         assert_eq!(fs::read(&dst_bin2).unwrap(), b"pcai-tb-test-binary-payload-v2");
 
         let _ = fs::remove_dir_all(&temp_root);
+    }
+
+    #[test]
+    fn test_resolve_install_registry_source_prefers_repo_registry() {
+        let resolved = resolve_install_registry_source(None)
+            .expect("resolve_install_registry_source succeeds")
+            .expect("returns Some(PathBuf)");
+        let normalized = resolved.to_string_lossy().replace('\\', "/");
+        assert!(
+            normalized.ends_with("/Config/thunderbolt-peers.json"),
+            "Expected repository Config/thunderbolt-peers.json, got {normalized}"
+        );
+    }
+
+    #[test]
+    fn test_ipv6_addrs_equal_handles_rfc5952_single_zero_hextet_and_leading_zeros() {
+        assert!(ipv6_addrs_equal(
+            "fd00:7462:7032:d700:0:c546:83ee:7cdf",
+            "fd00:7462:7032:d700::c546:83ee:7cdf"
+        ));
+        assert!(ipv6_addrs_equal(
+            "fe80::d700:9058:d9e:d2a7%54",
+            "fe80::d700:9058:0d9e:d2a7/64"
+        ));
+        assert!(!ipv6_addrs_equal(
+            "fd00:7462:7032:d700::c546:83ee:7cdf",
+            "fd00:7462:7032::9"
+        ));
     }
 }

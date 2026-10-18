@@ -1,0 +1,6 @@
+[test-groups]
+heavy-model = { max-threads = 1 }
+
+[[profile.default.overrides]]
+filter = 'package(pcai-media-model) | test(test_find_duplicates)'
+test-group = 'heavy-model'

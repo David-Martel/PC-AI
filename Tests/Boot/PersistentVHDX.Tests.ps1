@@ -408,4 +408,20 @@ Describe 'Register-PersistentVHDXTasks planner' -Tag 'Unit', 'Boot', 'VHD' {
         $plans.Count | Should -Be 3
         Should -Invoke Register-PersistentVHDXScheduledTask -Times 0
     }
+
+    It 'generates pre-user-login SYSTEM task plan for RustCacheDevDrive profile' {
+        $plans = @(New-PersistentVHDXTaskPlan -ScriptPath $script:MountScript -LogRoot 'C:\Logs\VHDMount' -PowerShellExe 'C:\codedev\tools\PowerShell\7\pwsh.exe' -Profile RustCacheDevDrive)
+
+        $plans.Count | Should -Be 1
+        $plan = $plans[0]
+        $plan.TaskName | Should -Be 'AutoMount_VHDX_RustCache'
+        $plan.VhdPath | Should -Be 'C:\DevDrives\RustCache.vhdx'
+        $plan.ExpectedState | Should -Be 'Volume'
+        $plan.Delay | Should -Be 'PT5S'
+        $plan.Principal.UserId | Should -Be 'SYSTEM'
+        $plan.Principal.RunLevel | Should -Be 'Highest'
+        $plan.Argument | Should -Match ([regex]::Escape('-ExpectedVolumeLabel "RustCache"'))
+        $plan.Argument | Should -Match ([regex]::Escape('-ExpectedDriveLetter T'))
+        $plan.Argument | Should -Match ([regex]::Escape('-ExpectedFileSystem ReFS'))
+    }
 }

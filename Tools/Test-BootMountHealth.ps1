@@ -8,6 +8,9 @@ Validates expected VHD files, attachment state, mounted volumes, AutoMount task
 results, recent FilterManager Event ID 3 entries, and boot diagnostics
 freshness.
 
+.PARAMETER Profile
+Expected mount contract: Default, RustCacheDevDrive, or All. File absence never selects a profile.
+
 .PARAMETER OutputJson
 Optional machine-readable report path. It is not written when DryRun is set.
 
@@ -15,11 +18,18 @@ Optional machine-readable report path. It is not written when DryRun is set.
 Run checks without writing the optional report file. The long CLI form
 `--DryRun` is also accepted.
 
+.EXAMPLE
+pwsh -NoProfile -File ./Tools/Test-BootMountHealth.ps1 -Profile RustCacheDevDrive -DryRun -PassThru
+
+Use the explicitly enrolled RustCache-only contract. The default continues to require all three legacy mounts.
+
 .PARAMETER Help
 Print script help and exit. The aliases `-h` and `--help` are also accepted.
 #>
 [CmdletBinding()]
 param(
+    [ValidateSet('Default', 'RustCacheDevDrive', 'All')]
+    [string]$Profile = 'Default',
     [switch]$PassThru,
     [switch]$FailOnIssue,
     [int]$SinceMinutes = 0,
@@ -52,11 +62,19 @@ if (@($CliArgs).Count -gt 0) {
     throw "Unknown CLI argument(s): $($CliArgs -join ', ')"
 }
 
-$expectedVhds = @(
+$defaultVhds = @(
     [pscustomobject]@{ Name = 'cloud-cache-disk'; Path = 'T:\vm\cloud-cache-disk.vhdx'; ExpectedDriveLetter = 'F'; ExpectedState = 'mounted-volume' },
     [pscustomobject]@{ Name = 'share-ext4'; Path = 'T:\vm\share-ext4.vhdx'; ExpectedDriveLetter = $null; ExpectedState = 'attached-disk-only' },
     [pscustomobject]@{ Name = 'shared-dev'; Path = 'D:\vm\shared-dev.vhdx'; ExpectedDriveLetter = 'W'; ExpectedState = 'mounted-volume' }
 )
+$rustCacheVhds = @(
+    [pscustomobject]@{ Name = 'RustCache'; Path = 'C:\DevDrives\RustCache.vhdx'; ExpectedDriveLetter = 'T'; ExpectedState = 'mounted-volume' }
+)
+$expectedVhds = switch ($Profile) {
+    'RustCacheDevDrive' { $rustCacheVhds }
+    'All' { $rustCacheVhds; $defaultVhds }
+    default { $defaultVhds }
+}
 
 function Add-Issue {
     param(
@@ -185,6 +203,7 @@ if (-not $latestReport -or $latestReport.LastWriteTime -lt $lastBoot) {
 }
 
 $result = [pscustomobject]@{
+    Profile = $Profile
     Status = if ($failures.Count -eq 0) { 'Pass' } else { 'Fail' }
     DryRun = [bool]$DryRun
     GeneratedAt = (Get-Date).ToString('o')

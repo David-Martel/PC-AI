@@ -1,6 +1,7 @@
 use crate::handshake::{discover_thunderbolt_peers, DiscoveredThunderboltPeer};
 use crate::identity::{
-    compute_commutative_pairwise_ipv4, load_peer_registry_checked, resolve_peer_identity, ThunderboltPeerIdentity,
+    compute_commutative_pairwise_ipv4, default_registry_candidates, load_peer_registry_checked,
+    repo_registry_candidates, resolve_peer_identity, ThunderboltPeerIdentity,
 };
 use crate::platform::{collect_platform_snapshot, verify_live_adapter_identity, ThunderboltAdapterState};
 use anyhow::Result;
@@ -89,6 +90,21 @@ pub fn check_applied_actions(actions: &[PlannedAction]) -> Result<()> {
         );
     }
     Ok(())
+}
+
+fn ipv6_addrs_equal(a: &str, b: &str) -> bool {
+    fn strip(s: &str) -> &str {
+        s.split('%').next().unwrap_or(s).split('/').next().unwrap_or(s).trim()
+    }
+    let sa = strip(a);
+    let sb = strip(b);
+    if sa.eq_ignore_ascii_case(sb) {
+        return true;
+    }
+    match (sa.parse::<std::net::Ipv6Addr>(), sb.parse::<std::net::Ipv6Addr>()) {
+        (Ok(ia), Ok(ib)) => ia == ib,
+        _ => false,
+    }
 }
 
 fn apply_ipv6_address_on_interface<R: CommandRunner>(
@@ -559,7 +575,7 @@ pub fn plan_and_apply_adapter_actions_with_rollback<R: CommandRunner>(
 
     // 2. Local Deterministic Link-Local Addresses (fe80::d700:...)
     for lla in &local_id.all_link_local_addresses {
-        let exists = adapter.addresses.iter().any(|a| a.address.eq_ignore_ascii_case(lla));
+        let exists = adapter.addresses.iter().any(|a| ipv6_addrs_equal(&a.address, lla));
         let mut act = PlannedAction {
             interface_index: if_idx,
             interface_alias: alias.clone(),
@@ -582,7 +598,7 @@ pub fn plan_and_apply_adapter_actions_with_rollback<R: CommandRunner>(
 
     // 3. Local Deterministic ULA Addresses (/128 host addresses for multi-port support)
     for ula in &local_id.all_ula_addresses {
-        let exists = adapter.addresses.iter().any(|a| a.address.eq_ignore_ascii_case(ula));
+        let exists = adapter.addresses.iter().any(|a| ipv6_addrs_equal(&a.address, ula));
         let mut act = PlannedAction {
             interface_index: if_idx,
             interface_alias: alias.clone(),
@@ -1026,6 +1042,32 @@ pub fn install_framework_with_paths(
     })
 }
 
+pub fn resolve_install_registry_source(explicit_registry: Option<&Path>) -> Result<Option<PathBuf>> {
+    resolve_install_registry_source_from_candidates(
+        explicit_registry,
+        &repo_registry_candidates(),
+        &default_registry_candidates(None),
+    )
+}
+
+fn resolve_install_registry_source_from_candidates(
+    explicit_registry: Option<&Path>,
+    repository_candidates: &[PathBuf],
+    fallback_candidates: &[PathBuf],
+) -> Result<Option<PathBuf>> {
+    if let Some(explicit) = explicit_registry {
+        let (_, loaded_reg_path) = load_peer_registry_checked(Some(explicit))?;
+        return Ok(loaded_reg_path.map(PathBuf::from));
+    }
+    for candidate in repository_candidates.iter().chain(fallback_candidates) {
+        if candidate.is_file() {
+            let (_, loaded_reg_path) = load_peer_registry_checked(Some(candidate))?;
+            return Ok(loaded_reg_path.map(PathBuf::from));
+        }
+    }
+    Ok(None)
+}
+
 pub fn install_framework(apply: bool, explicit_registry: Option<&Path>) -> Result<InstallFrameworkReport> {
     let exe_path = env::current_exe()?;
     let bin_name = if cfg!(target_os = "windows") {
@@ -1044,12 +1086,15 @@ pub fn install_framework(apply: bool, explicit_registry: Option<&Path>) -> Resul
         target_bins.push(hp.join("bin").join(bin_name));
         target_bins.push(hp.join(".local").join("bin").join(bin_name));
     }
-    if cfg!(target_os = "windows") && Path::new(r"C:\codedev\PC_AI").is_dir() {
-        target_bins.push(PathBuf::from(r"C:\codedev\PC_AI\bin").join(bin_name));
+    if cfg!(target_os = "windows") {
+        for repo_root in [r"C:\codedev\PC-AI", r"C:\codedev\PC_AI"] {
+            if Path::new(repo_root).is_dir() {
+                target_bins.push(PathBuf::from(repo_root).join("bin").join(bin_name));
+            }
+        }
     }
 
-    let (_, loaded_reg_path) = load_peer_registry_checked(explicit_registry)?;
-    let reg_src_buf = loaded_reg_path.map(PathBuf::from);
+    let reg_src_buf = resolve_install_registry_source(explicit_registry)?;
     let mut target_configs = Vec::new();
     if reg_src_buf.is_some() && !home.is_empty() {
         let hp = PathBuf::from(&home);
@@ -1262,5 +1307,59 @@ mod tests {
         assert_eq!(fs::read(&dst_bin2).unwrap(), b"pcai-tb-test-binary-payload-v2");
 
         let _ = fs::remove_dir_all(&temp_root);
+    }
+
+    // Protects install precedence without the caller's checkout, cwd or home.
+    // Detects fallback precedence and malformed/absent explicit registry regressions.
+    // Needs private temporary files; breadcrumb: resolve_install_registry_source_from_candidates.
+    #[test]
+    fn test_resolve_install_registry_source_hermetic_precedence_and_errors() {
+        let temp = tempfile::tempdir().unwrap();
+        let repo = temp.path().join("repository.json");
+        let fallback = temp.path().join("fallback.json");
+        let explicit = temp.path().join("explicit.json");
+        let missing = temp.path().join("missing.json");
+        let fixture = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../Config/thunderbolt-peers.json"
+        ));
+        for path in [&repo, &fallback, &explicit] {
+            fs::write(path, fixture).unwrap();
+        }
+        let resolve = |path: Option<&Path>, repos: &[PathBuf], defaults: &[PathBuf]| {
+            resolve_install_registry_source_from_candidates(path, repos, defaults)
+        };
+        assert_eq!(
+            resolve(None, std::slice::from_ref(&repo), std::slice::from_ref(&fallback)).unwrap(),
+            Some(repo.clone())
+        );
+        assert_eq!(
+            resolve(None, std::slice::from_ref(&missing), std::slice::from_ref(&fallback)).unwrap(),
+            Some(fallback.clone())
+        );
+        assert_eq!(
+            resolve(Some(&explicit), std::slice::from_ref(&repo), &[fallback]).unwrap(),
+            Some(explicit)
+        );
+        assert_eq!(resolve(None, std::slice::from_ref(&missing), &[]).unwrap(), None);
+        assert!(resolve(Some(&missing), std::slice::from_ref(&repo), &[]).is_err());
+        fs::write(&repo, "invalid JSON").unwrap();
+        assert!(resolve(None, &[repo], &[]).is_err());
+    }
+
+    #[test]
+    fn test_ipv6_addrs_equal_handles_rfc5952_single_zero_hextet_and_leading_zeros() {
+        assert!(ipv6_addrs_equal(
+            "fd00:7462:7032:d700:0:c546:83ee:7cdf",
+            "fd00:7462:7032:d700::c546:83ee:7cdf"
+        ));
+        assert!(ipv6_addrs_equal(
+            "fe80::d700:9058:d9e:d2a7%54",
+            "fe80::d700:9058:0d9e:d2a7/64"
+        ));
+        assert!(!ipv6_addrs_equal(
+            "fd00:7462:7032:d700::c546:83ee:7cdf",
+            "fd00:7462:7032::9"
+        ));
     }
 }

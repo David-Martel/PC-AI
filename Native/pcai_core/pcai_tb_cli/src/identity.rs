@@ -1129,6 +1129,26 @@ pub fn default_registry_candidates(explicit_path: Option<&Path>) -> Vec<PathBuf>
             paths.push(anc.join("Config").join("thunderbolt-peers.json"));
         }
     }
+    paths.push(PathBuf::from(r"C:\codedev\PC-AI\Config\thunderbolt-peers.json"));
+    paths.push(PathBuf::from(r"C:\codedev\PC_AI\Config\thunderbolt-peers.json"));
+    paths
+}
+
+pub fn repo_registry_candidates() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(cwd) = env::current_dir() {
+        for anc in cwd.ancestors().take(6) {
+            paths.push(anc.join("Config").join("thunderbolt-peers.json"));
+        }
+    }
+    if let Ok(exe) = env::current_exe() {
+        if let Some(bin_dir) = exe.parent() {
+            for anc in bin_dir.ancestors().take(6) {
+                paths.push(anc.join("Config").join("thunderbolt-peers.json"));
+            }
+        }
+    }
+    paths.push(PathBuf::from(r"C:\codedev\PC-AI\Config\thunderbolt-peers.json"));
     paths.push(PathBuf::from(r"C:\codedev\PC_AI\Config\thunderbolt-peers.json"));
     paths
 }

@@ -1523,3 +1523,10 @@ Historical results above retain their original scope and date.
 - [ ] If hangs persist, perform offline RAM and physical adapter/cooling isolation.
 - Evidence and rollback: Reports/crash-investigation-20261011/FINDINGS.md and
   Reports/crash-investigation-20261011/Restore-InvestigationChanges.ps1.
+
+## Native and deployment lock coherence
+
+- [x] Reproduce the actual CI merge-tree lock failure and align only the missing dependency records.
+- [x] Add deployment Cargo inputs to native CI triggers; verify 81 Linux Rust tests, strict Clippy, core build, and real native Unicode parity in both processes.
+- [ ] Verify the follow-up revision on hosted Windows and Linux before merge/release deployment.
+- Evidence and limits: [native/deployment coherence review](Reports/native-deploy-lock-coherence.md).

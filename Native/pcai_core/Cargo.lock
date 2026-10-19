@@ -3537,12 +3537,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "minijinja"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13345868cfa94eadafc067112ff29271380a820d5594d9ee6ba81a8d00ea5dc2"
+
+[[package]]
 name = "minijinja-contrib"
 version = "2.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7826089e6af7bc638f69a44b100ebe7f6c64b182cfde16558d5cd38ac8adde20"
 dependencies = [
- "minijinja",
+ "minijinja 2.15.1",
  "serde",
 ]
 
@@ -3669,7 +3675,7 @@ dependencies = [
  "libc",
  "llguidance",
  "lrtable",
- "minijinja",
+ "minijinja 2.15.1",
  "minijinja-contrib",
  "mistralrs-audio",
  "mistralrs-mcp",
@@ -5352,7 +5358,7 @@ dependencies = [
  "candle-nn 0.9.2",
  "candle-transformers 0.9.2",
  "cudarc 0.19.4",
- "minijinja",
+ "minijinja 3.0.0",
  "qlora-rs",
  "safetensors 0.4.5",
  "serde",
@@ -5373,7 +5379,7 @@ dependencies = [
  "itertools 0.14.0",
  "memmap2 0.9.11",
  "mimalloc",
- "rand 0.8.6",
+ "rand 0.10.2",
  "rust-functiongemma-core",
  "serde",
  "serde_json",

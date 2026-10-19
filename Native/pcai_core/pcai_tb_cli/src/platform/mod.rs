@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 #[cfg(target_os = "windows")]
 pub mod windows;
 
+#[cfg(any(target_os = "windows", test))]
+mod windows_inventory;
+
 #[cfg(not(target_os = "windows"))]
 pub mod linux;
 

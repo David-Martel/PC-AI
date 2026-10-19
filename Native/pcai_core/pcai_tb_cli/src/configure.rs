@@ -1,7 +1,7 @@
 use crate::handshake::{discover_thunderbolt_peers, DiscoveredThunderboltPeer};
 use crate::identity::{
-    compute_commutative_pairwise_ipv4, load_peer_registry_checked, repo_registry_candidates, resolve_peer_identity,
-    ThunderboltPeerIdentity,
+    compute_commutative_pairwise_ipv4, default_registry_candidates, load_peer_registry_checked,
+    repo_registry_candidates, resolve_peer_identity, ThunderboltPeerIdentity,
 };
 use crate::platform::{collect_platform_snapshot, verify_live_adapter_identity, ThunderboltAdapterState};
 use anyhow::Result;
@@ -1043,20 +1043,29 @@ pub fn install_framework_with_paths(
 }
 
 pub fn resolve_install_registry_source(explicit_registry: Option<&Path>) -> Result<Option<PathBuf>> {
+    resolve_install_registry_source_from_candidates(
+        explicit_registry,
+        &repo_registry_candidates(),
+        &default_registry_candidates(None),
+    )
+}
+
+fn resolve_install_registry_source_from_candidates(
+    explicit_registry: Option<&Path>,
+    repository_candidates: &[PathBuf],
+    fallback_candidates: &[PathBuf],
+) -> Result<Option<PathBuf>> {
     if let Some(explicit) = explicit_registry {
         let (_, loaded_reg_path) = load_peer_registry_checked(Some(explicit))?;
         return Ok(loaded_reg_path.map(PathBuf::from));
     }
-    for candidate in repo_registry_candidates() {
+    for candidate in repository_candidates.iter().chain(fallback_candidates) {
         if candidate.is_file() {
-            let (_, loaded_reg_path) = load_peer_registry_checked(Some(&candidate))?;
-            if let Some(p) = loaded_reg_path {
-                return Ok(Some(PathBuf::from(p)));
-            }
+            let (_, loaded_reg_path) = load_peer_registry_checked(Some(candidate))?;
+            return Ok(loaded_reg_path.map(PathBuf::from));
         }
     }
-    let (_, loaded_reg_path) = load_peer_registry_checked(None)?;
-    Ok(loaded_reg_path.map(PathBuf::from))
+    Ok(None)
 }
 
 pub fn install_framework(apply: bool, explicit_registry: Option<&Path>) -> Result<InstallFrameworkReport> {
@@ -1300,16 +1309,42 @@ mod tests {
         let _ = fs::remove_dir_all(&temp_root);
     }
 
+    // Protects install precedence without the caller's checkout, cwd or home.
+    // Detects fallback precedence and malformed/absent explicit registry regressions.
+    // Needs private temporary files; breadcrumb: resolve_install_registry_source_from_candidates.
     #[test]
-    fn test_resolve_install_registry_source_prefers_repo_registry() {
-        let resolved = resolve_install_registry_source(None)
-            .expect("resolve_install_registry_source succeeds")
-            .expect("returns Some(PathBuf)");
-        let normalized = resolved.to_string_lossy().replace('\\', "/");
-        assert!(
-            normalized.ends_with("/Config/thunderbolt-peers.json"),
-            "Expected repository Config/thunderbolt-peers.json, got {normalized}"
+    fn test_resolve_install_registry_source_hermetic_precedence_and_errors() {
+        let temp = tempfile::tempdir().unwrap();
+        let repo = temp.path().join("repository.json");
+        let fallback = temp.path().join("fallback.json");
+        let explicit = temp.path().join("explicit.json");
+        let missing = temp.path().join("missing.json");
+        let fixture = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../Config/thunderbolt-peers.json"
+        ));
+        for path in [&repo, &fallback, &explicit] {
+            fs::write(path, fixture).unwrap();
+        }
+        let resolve = |path: Option<&Path>, repos: &[PathBuf], defaults: &[PathBuf]| {
+            resolve_install_registry_source_from_candidates(path, repos, defaults)
+        };
+        assert_eq!(
+            resolve(None, std::slice::from_ref(&repo), std::slice::from_ref(&fallback)).unwrap(),
+            Some(repo.clone())
         );
+        assert_eq!(
+            resolve(None, std::slice::from_ref(&missing), std::slice::from_ref(&fallback)).unwrap(),
+            Some(fallback.clone())
+        );
+        assert_eq!(
+            resolve(Some(&explicit), std::slice::from_ref(&repo), &[fallback]).unwrap(),
+            Some(explicit)
+        );
+        assert_eq!(resolve(None, std::slice::from_ref(&missing), &[]).unwrap(), None);
+        assert!(resolve(Some(&missing), std::slice::from_ref(&repo), &[]).is_err());
+        fs::write(&repo, "invalid JSON").unwrap();
+        assert!(resolve(None, &[repo], &[]).is_err());
     }
 
     #[test]

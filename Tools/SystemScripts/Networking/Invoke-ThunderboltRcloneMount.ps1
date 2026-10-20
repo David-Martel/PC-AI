@@ -50,6 +50,18 @@ function Test-ThunderboltMountPath {
     }
     return $true
 }
+function Get-ThunderboltMountTransportArguments {
+    <# .SYNOPSIS
+    Force the pinned native SFTP transport regardless of backend/environment drift.
+    #>
+    [CmdletBinding()]
+    param([string]$PeerAddress, [string]$SourceAddress, [string]$KnownHostsPath)
+    # ProcessStartInfo.ArgumentList retains the explicit empty --sftp-ssh value.
+    # External SSH would otherwise bypass rclone's native bind/key validation.
+    @('--sftp-host', $PeerAddress, '--sftp-known-hosts-file', $KnownHostsPath,
+        '--sftp-ssh', '', '--sftp-pin-host-key=false', '--bind', $SourceAddress,
+        '--contimeout', '5s', '--timeout', '30s', '--retries', '1', '--low-level-retries', '1')
+}
 if ($MyInvocation.InvocationName -eq '.') { return }
 if ($ShowHelp) { Get-Help $PSCommandPath -Detailed; return }
 try {
@@ -78,9 +90,8 @@ try {
         [pscustomobject]@{ State = 'PathEligible'; PeerAddress = $PeerAddress; SourceAddress = $SourceAddress; Mounted = $false } | ConvertTo-Json
         exit 0
     }
-    $arguments = @('mount', "${RemoteName}:$RemotePath", $MountPoint, '--config', $ConfigPath,
-        '--sftp-host', $PeerAddress, '--sftp-known-hosts-file', $KnownHostsPath, '--bind', $SourceAddress,
-        '--contimeout', '5s', '--timeout', '30s', '--retries', '1', '--low-level-retries', '1',
+    $arguments = @('mount', "${RemoteName}:$RemotePath", $MountPoint, '--config', $ConfigPath) +
+        @(Get-ThunderboltMountTransportArguments $PeerAddress $SourceAddress $KnownHostsPath) + @(
         '--vfs-cache-mode', 'writes', '--cache-dir', $CachePath, '--vfs-cache-max-size', '20G',
         '--vfs-cache-min-free-space', '50G', '--buffer-size', '16M', '--dir-cache-time', '1m',
         '--volname', 'p1gen7-d', '--log-level', 'INFO', '--log-file', $LogPath,

@@ -49,6 +49,9 @@ connection using the supplied pinned `known_hosts` file. A trusted key can be
 transferred from the already verified management identity; a new `ssh-keyscan`
 response alone is not enrollment.
 
+The launch arguments explicitly clear external SSH and disable first-use trust,
+so backend or environment changes cannot bypass the native source/key policy.
+
 Connect timeout is five seconds, idle timeout 30 seconds, and both retry counts
 are one. These bound an unavailable endpoint without imposing a runtime deadline
 on a healthy foreground mount. The existing scheduled task can reattempt after

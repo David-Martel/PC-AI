@@ -30,3 +30,16 @@ if (Test-ThunderboltMountPath $lan $addresses $route '172.31.252.134') { throw '
 $disabled = $adapter.Clone(); $disabled.AdminStatus = 2
 if (Test-ThunderboltMountPath $disabled $addresses $route '172.31.252.134') { throw 'Administratively disabled USB4 adapter admitted.' }
 Write-Output 'PASS: AbsentOrNonUsb4RefuseMount'
+# Selector: ExternalSshAndTofuAreDisabled. Protects pin/source binding if a user's
+# backend/environment later drifts; detects external SSH or first-use trust
+# bypassing the native transport. Needs fixtures only. Breadcrumb: transport args.
+if (-not (Get-Command Get-ThunderboltMountTransportArguments -ErrorAction SilentlyContinue)) { throw 'External SSH override is missing.' }
+$transport = @(Get-ThunderboltMountTransportArguments '172.31.252.133' '172.31.252.134' 'fixture-known-hosts')
+$sshIndex = [Array]::IndexOf($transport, '--sftp-ssh')
+if ($sshIndex -lt 0 -or $transport[$sshIndex + 1] -cne '' -or
+    '--sftp-pin-host-key=false' -notin $transport -or
+    $transport[[Array]::IndexOf($transport, '--bind') + 1] -ne '172.31.252.134' -or
+    $transport[[Array]::IndexOf($transport, '--sftp-known-hosts-file') + 1] -ne 'fixture-known-hosts') {
+    throw 'Native pinned/source-bound transport can be bypassed by configuration.'
+}
+Write-Output 'PASS: ExternalSshAndTofuAreDisabled'

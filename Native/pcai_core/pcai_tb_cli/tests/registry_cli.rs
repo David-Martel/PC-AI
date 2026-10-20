@@ -1,7 +1,74 @@
+use pcai_tb::platform::hidden_command;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+// Protects unattended native probes; detects a console handle in a real hidden
+// child. Needs Windows only; breadcrumb: src/platform/mod.rs::hidden_command.
+#[cfg(windows)]
+#[test]
+fn hidden_child_has_no_console_window() {
+    const MARKER: &str = "PCAI_TEST_HIDDEN_CHILD";
+    if std::env::var_os(MARKER).is_some() {
+        // SAFETY: this parameterless Win32 observer does not access Rust memory.
+        assert!(unsafe { windows_sys::Win32::System::Console::GetConsoleWindow() }.is_null());
+        return;
+    }
+    let output = hidden_command(std::env::current_exe().unwrap())
+        .args(["--exact", "hidden_child_has_no_console_window", "--nocapture"])
+        .env(MARKER, "1")
+        .output()
+        .expect("run hidden child");
+    assert!(
+        output.status.success(),
+        "{} {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+// Protects local-only registration; detects --computer selecting another host.
+// Needs fixture registry only; deliberately dry-run so a regression cannot mutate
+// real adapters. The dispatch guard is independent of --apply;
+// breadcrumb: src/main.rs register dispatch.
+#[test]
+fn register_rejects_remote_computer_override_in_dry_run() {
+    let registry = repo_registry_path();
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+        .args([
+            "register",
+            "--computer",
+            "minisforum",
+            "--registry",
+            registry.to_str().unwrap(),
+            "--compact",
+        ])
+        .output()
+        .expect("run rejected dry-run registration");
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("register targets this machine"));
+}
+
+// Protects headless Windows identity; detects unknown-host under sanitized child
+// environments. Needs Windows only, no attached devices or global env writes;
+// breadcrumb: src/identity.rs::local_hostname and operating_system_hostname.
+#[cfg(windows)]
+#[test]
+fn cli_identity_uses_windows_name_without_environment_names() {
+    let expected = pcai_tb::identity::operating_system_hostname().expect("Windows hostname");
+    let registry = repo_registry_path();
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+        .args(["identity", "--registry", registry.to_str().unwrap(), "--compact"])
+        .env_remove("COMPUTERNAME")
+        .env_remove("HOSTNAME")
+        .output()
+        .expect("run sanitized CLI");
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let identity: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(identity["InputName"].as_str(), Some(expected.as_str()));
+    assert_ne!(identity["ComputerName"], "unknown-host");
+}
 
 fn temp_dir(name: &str) -> PathBuf {
     let nanos = SystemTime::now()
@@ -22,7 +89,7 @@ fn cli_fails_when_explicit_registry_is_missing() {
     let dir = temp_dir("missing-explicit-registry");
     let missing = dir.join("missing.json");
 
-    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .args([
             "identity",
             "--computer",
@@ -55,7 +122,7 @@ fn cli_fails_when_default_registry_is_malformed() {
     fs::create_dir_all(&machine_dir).expect("create .machine");
     fs::write(machine_dir.join("thunderbolt-peers.json"), "{not-json").expect("write invalid json");
 
-    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .args(["identity", "--computer", "minisforum", "--compact"])
         .env("HOME", &dir)
         .env("USERPROFILE", &dir)
@@ -81,7 +148,7 @@ fn status_fails_when_explicit_registry_is_missing() {
     let dir = temp_dir("status-missing-explicit-registry");
     let missing = dir.join("missing.json");
 
-    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .args([
             "status",
             "--registry",
@@ -108,7 +175,7 @@ fn status_fails_when_explicit_registry_is_missing() {
 #[test]
 fn cli_rejects_unknown_flags() {
     let reg = repo_registry_path();
-    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .args([
             "identity",
             "--registry",
@@ -142,7 +209,7 @@ fn cli_rejects_missing_or_invalid_numeric_option_values() {
         vec!["discover", "--timeout-ms", "0"],
         vec!["benchmark", "--iterations", "0"],
     ] {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_pcai-tb"));
+        let mut cmd = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"));
         cmd.args(&bad_args)
             .args(["--registry", reg.to_str().expect("utf8 path")]);
         let output = cmd.output().expect("run pcai-tb");
@@ -158,7 +225,7 @@ fn cli_rejects_missing_or_invalid_numeric_option_values() {
 #[test]
 fn cli_resolves_minisforum_and_millylaptop1_pair() {
     let reg = repo_registry_path();
-    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .args([
             "identity",
             "--computer",
@@ -190,7 +257,7 @@ fn cli_resolves_minisforum_and_millylaptop1_pair() {
 #[test]
 fn cli_switch_subcommand_parses_ipam_and_sfp_topologies() {
     let reg = repo_registry_path();
-    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .args(["switch", "--registry", reg.to_str().expect("utf8 path"), "--compact"])
         .output()
         .expect("run pcai-tb switch");
@@ -254,7 +321,7 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
     ]);
     fs::write(&fail_reg_file, serde_json::to_string_pretty(&reg_json).unwrap()).expect("write fail registry");
 
-    let fail_output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let fail_output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .args([
             "vnv",
             "--registry",
@@ -291,7 +358,7 @@ fn cli_vnv_subcommand_emits_vigil_hil_device_evidence() {
     ]);
     fs::write(&hold_reg_file, serde_json::to_string_pretty(&reg_json).unwrap()).expect("write hold registry");
 
-    let hold_output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let hold_output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .env("COMPUTERNAME", "dtm-p1gen9")
         .args([
             "vnv",
@@ -424,7 +491,7 @@ fn cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_tra
         link["targetInterface"] = serde_json::json!(format!("pcai-fixture-{index}"));
     }
     fs::write(&reg, serde_json::to_vec(&registry).unwrap()).expect("write private registry");
-    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .env("COMPUTERNAME", "dtm-p1gen9")
         .args([
             "lifecycle",
@@ -525,7 +592,7 @@ fn cli_lifecycle_empty_topology_is_valid_without_route_actions() {
         serde_json::from_str(&fs::read_to_string(repo_registry_path()).unwrap()).unwrap();
     registry["topologyLinks"] = serde_json::json!([]);
     fs::write(&reg, serde_json::to_vec(&registry).unwrap()).unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_pcai-tb"))
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .env("COMPUTERNAME", "dtm-p1gen9")
         .args([
             "lifecycle",

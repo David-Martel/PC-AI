@@ -1084,23 +1084,70 @@ pub fn validate_peer_registry(reg: &PeerRegistryFile) -> Result<()> {
 }
 
 pub fn local_hostname() -> String {
-    if let Ok(name) = env::var("COMPUTERNAME") {
-        if !name.trim().is_empty() {
-            return name.trim().to_string();
-        }
+    select_hostname([
+        env::var("COMPUTERNAME").ok(),
+        env::var("HOSTNAME").ok(),
+        operating_system_hostname(),
+    ])
+}
+
+fn select_hostname(candidates: impl IntoIterator<Item = Option<String>>) -> String {
+    candidates
+        .into_iter()
+        .flatten()
+        .map(|name| name.trim().to_string())
+        .find(|name| !name.is_empty())
+        .unwrap_or_else(|| "unknown-host".to_string())
+}
+
+#[cfg(test)]
+mod hostname_tests {
+    use super::select_hostname;
+
+    // Protects headless host naming; detects whitespace taking precedence over
+    // a real name or changing environment precedence. Needs no OS/env mutation;
+    // breadcrumb: local_hostname and select_hostname.
+    #[test]
+    fn hostname_selection_skips_blanks_and_preserves_precedence() {
+        assert_eq!(
+            select_hostname([Some(" primary ".into()), Some("secondary".into()), Some("os".into())]),
+            "primary"
+        );
+        assert_eq!(
+            select_hostname([Some(" \n".into()), Some("secondary".into()), Some("os".into())]),
+            "secondary"
+        );
+        assert_eq!(select_hostname([None, Some("\t".into()), Some(" os ".into())]), "os");
+        assert_eq!(select_hostname([None, Some(" ".into()), None]), "unknown-host");
     }
-    if let Ok(name) = env::var("HOSTNAME") {
-        if !name.trim().is_empty() {
-            return name.trim().to_string();
+}
+
+/// Reads machine identity independently of process environment overrides.
+pub fn operating_system_hostname() -> Option<String> {
+    #[cfg(windows)]
+    {
+        // GetComputerNameW accepts at most MAX_COMPUTERNAME_LENGTH + 1 UTF-16
+        // units. The mutable buffer and length remain valid throughout the call.
+        let mut buffer = [0u16; 256];
+        let mut length = buffer.len() as u32;
+        // SAFETY: both pointers refer to writable, live storage; length bounds buffer.
+        let ok = unsafe {
+            windows_sys::Win32::System::WindowsProgramming::GetComputerNameW(buffer.as_mut_ptr(), &mut length)
+        };
+        if ok == 0 {
+            return None;
         }
+        String::from_utf16(buffer.get(..length as usize)?)
+            .ok()
+            .filter(|name| !name.trim().is_empty())
     }
-    if let Ok(name) = fs::read_to_string("/etc/hostname") {
-        let trimmed = name.trim();
-        if !trimmed.is_empty() {
-            return trimmed.to_string();
-        }
+    #[cfg(not(windows))]
+    {
+        fs::read_to_string("/etc/hostname")
+            .ok()
+            .map(|name| name.trim().to_string())
+            .filter(|name| !name.is_empty())
     }
-    "unknown-host".to_string()
 }
 
 pub fn default_registry_candidates(explicit_path: Option<&Path>) -> Vec<PathBuf> {

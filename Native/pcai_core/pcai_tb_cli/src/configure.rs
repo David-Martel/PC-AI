@@ -3,6 +3,7 @@ use crate::identity::{
     compute_commutative_pairwise_ipv4, default_registry_candidates, load_peer_registry_checked,
     repo_registry_candidates, resolve_peer_identity, ThunderboltPeerIdentity,
 };
+use crate::platform::hidden_command;
 use crate::platform::{collect_platform_snapshot, verify_live_adapter_identity, ThunderboltAdapterState};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -11,7 +12,6 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 pub trait CommandRunner: Send + Sync {
     fn run(&self, program: &str, args: &[&str]) -> (bool, String);
@@ -21,7 +21,7 @@ pub struct StdCommandRunner;
 
 impl CommandRunner for StdCommandRunner {
     fn run(&self, program: &str, args: &[&str]) -> (bool, String) {
-        match Command::new(program).args(args).output() {
+        match hidden_command(program).args(args).output() {
             Ok(out) => {
                 let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
                 let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
@@ -723,6 +723,48 @@ pub fn plan_and_apply_adapter_actions_with_rollback<R: CommandRunner>(
     (actions, rollback_log)
 }
 
+fn registration_preflight_actions(
+    local_id: &ThunderboltPeerIdentity,
+    adapter_count: usize,
+    apply: bool,
+    os_identity: Option<&ThunderboltPeerIdentity>,
+) -> Vec<PlannedAction> {
+    let mut actions = Vec::new();
+    if adapter_count == 0 {
+        actions.push(registration_gate(
+            "RegistrationPresenceGate",
+            &local_id.computer_name,
+            "No connected Thunderbolt/USB4 adapters; registration is unavailable".to_string(),
+        ));
+    }
+    if apply
+        && (!local_id.is_known_fleet_peer
+            || !os_identity.is_some_and(|actual| {
+                actual.is_known_fleet_peer && actual.computer_name.eq_ignore_ascii_case(&local_id.computer_name)
+            }))
+    {
+        actions.push(registration_gate(
+            "LocalIdentityGate",
+            &local_id.computer_name,
+            "Refusing Apply: local identity must match the registered OS machine identity".to_string(),
+        ));
+    }
+    actions
+}
+
+fn registration_gate(category: &str, target: &str, error: String) -> PlannedAction {
+    PlannedAction {
+        interface_index: 0,
+        interface_alias: String::new(),
+        category: category.to_string(),
+        target: target.to_string(),
+        already_in_desired_state: false,
+        applied: false,
+        command_summary: "Validate local registration prerequisites before discovery or mutation".to_string(),
+        error: Some(error),
+    }
+}
+
 pub async fn register_local_thunderbolt_fabric(
     apply: bool,
     mtu_bytes: u32,
@@ -733,7 +775,16 @@ pub async fn register_local_thunderbolt_fabric(
 ) -> Result<ThunderboltRegistrationReport> {
     let local_id = resolve_peer_identity(None, peer_hint, registry_path)?;
     let snapshot = collect_platform_snapshot(false)?;
-    let discovered = discover_thunderbolt_peers(false, 220, false, registry_path).await?;
+    let os_identity = crate::identity::operating_system_hostname()
+        .map(|hostname| resolve_peer_identity(Some(&hostname), None, registry_path))
+        .transpose()?;
+    let mut actions = registration_preflight_actions(&local_id, snapshot.adapters.len(), apply, os_identity.as_ref());
+    let preflight_ok = actions.is_empty();
+    let discovered = if preflight_ok {
+        discover_thunderbolt_peers(false, 220, false, registry_path).await?
+    } else {
+        Vec::new()
+    };
 
     let mut peer_by_if: HashMap<u32, String> = HashMap::new();
     for d in &discovered {
@@ -758,10 +809,9 @@ pub async fn register_local_thunderbolt_fabric(
     }
 
     let runner = StdCommandRunner;
-    let mut actions = Vec::new();
     let mut rollback_actions = Vec::new();
 
-    for adapter in &snapshot.adapters {
+    for adapter in snapshot.adapters.iter().filter(|_| preflight_ok) {
         let peer_opt = peer_by_if.get(&adapter.interface_index).map(String::as_str);
         let (adapter_actions, adapter_rollback) = plan_and_apply_adapter_actions_with_rollback(
             &runner,
@@ -1112,6 +1162,46 @@ mod tests {
 
     fn repo_registry_path() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../Config/thunderbolt-peers.json")
+    }
+
+    // Protects absent-device reporting; detects vacuous success and successful
+    // Apply with no present adapter. Needs fixtures only; breadcrumb: registration_preflight_actions.
+    #[test]
+    fn registration_absence_is_an_explicit_failed_action() {
+        let id = resolve_peer_identity(Some("dtm-p1gen9"), None, Some(&repo_registry_path())).unwrap();
+        for apply in [false, true] {
+            let actions = registration_preflight_actions(&id, 0, apply, Some(&id));
+            assert_eq!(actions.len(), 1);
+            assert_eq!(actions[0].category, "RegistrationPresenceGate");
+            assert!(actions[0].error.is_some());
+            assert!(!actions[0].applied);
+            assert!(check_applied_actions(&actions).is_err());
+        }
+        assert!(registration_preflight_actions(&id, 1, true, Some(&id)).is_empty());
+    }
+
+    // Protects local Apply identity; detects unregistered, absent OS identity and
+    // registered-host impersonation. Needs fixture registry; breadcrumb: registration_preflight_actions.
+    #[test]
+    fn registration_apply_requires_matching_registered_os_identity() {
+        let reg = repo_registry_path();
+        let local = resolve_peer_identity(Some("dtm-p1gen9"), None, Some(&reg)).unwrap();
+        let other = resolve_peer_identity(Some("minisforum"), None, Some(&reg)).unwrap();
+        let unknown = resolve_peer_identity(Some("unregistered-machine"), None, Some(&reg)).unwrap();
+        for (requested, os) in [
+            (&unknown, Some(&local)),
+            (&other, Some(&local)),
+            (&local, None),
+            (&local, Some(&unknown)),
+        ] {
+            let actions = registration_preflight_actions(requested, 1, true, os);
+            assert_eq!(actions.len(), 1);
+            assert_eq!(actions[0].category, "LocalIdentityGate");
+            assert!(check_applied_actions(&actions).is_err());
+            assert!(registration_preflight_actions(requested, 1, false, os).is_empty());
+        }
+        let alias = resolve_peer_identity(Some("DTM-P1GEN9"), None, Some(&reg)).unwrap();
+        assert!(registration_preflight_actions(&alias, 1, true, Some(&local)).is_empty());
     }
 
     struct MockFailingCommandRunner {

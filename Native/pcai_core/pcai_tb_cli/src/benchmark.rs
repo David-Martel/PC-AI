@@ -1,10 +1,10 @@
 use crate::handshake::discover_thunderbolt_peers;
 use crate::identity::{local_hostname, resolve_peer_identity};
 use crate::platform::collect_platform_snapshot;
+use crate::platform::hidden_command;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use std::process::Command;
 use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,7 +52,7 @@ fn run_legacy_powershell_cim_probe() -> (u64, usize) {
     let start = Instant::now();
     #[cfg(target_os = "windows")]
     {
-        let out = Command::new("pwsh")
+        let out = hidden_command("pwsh")
             .args([
                 "-NoProfile",
                 "-NonInteractive",
@@ -76,7 +76,7 @@ fn run_legacy_powershell_cim_probe() -> (u64, usize) {
     }
     #[cfg(not(target_os = "windows"))]
     {
-        let out = Command::new("sh")
+        let out = hidden_command("sh")
             .args(["-c", "ip -j addr show && ip -j neigh show"])
             .output();
         let elapsed = start.elapsed().as_micros() as u64;

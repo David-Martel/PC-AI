@@ -111,12 +111,18 @@ function Invoke-VigilBoundedProcess { param($FilePath,$Arguments,$TimeoutSeconds
 }
 $script:probeAdapter=$adapter.Clone();$script:probeAdapter.name='fixture';$script:probeAdapter.up=$true
 function Get-Usb4HostSnapshot { @{adapters=@($script:probeAdapter)} }
-$actual=Invoke-Usb4PartnerProbe $peer $script:probeAdapter 'fe80::1' 'fe80::2' $node @{} 90
-if ($actual.edge_id -ne $edge.edge_id) { throw 'Actual probe did not retain enrolled edge.' }
-$script:gateway=$true
-Assert-Refused { Invoke-Usb4PartnerProbe $peer $script:probeAdapter 'fe80::1' 'fe80::2' $node @{} 90 }
-$script:gateway=$false;$script:flatCounters=$true
-Assert-Refused { Invoke-Usb4PartnerProbe $peer $script:probeAdapter 'fe80::1' 'fe80::2' $node @{} 90 }
+$savedSystemRoot=$env:SystemRoot
+try {
+    # The process boundary is mocked: Linux needs a synthetic path root only.
+    # Production invocation remains Windows-only and uses the real SystemRoot.
+    if (-not $IsWindows) { $env:SystemRoot=[IO.Path]::GetTempPath() }
+    $actual=Invoke-Usb4PartnerProbe $peer $script:probeAdapter 'fe80::1' 'fe80::2' $node @{} 90
+    if ($actual.edge_id -ne $edge.edge_id) { throw 'Actual probe did not retain enrolled edge.' }
+    $script:gateway=$true
+    Assert-Refused { Invoke-Usb4PartnerProbe $peer $script:probeAdapter 'fe80::1' 'fe80::2' $node @{} 90 }
+    $script:gateway=$false;$script:flatCounters=$true
+    Assert-Refused { Invoke-Usb4PartnerProbe $peer $script:probeAdapter 'fe80::1' 'fe80::2' $node @{} 90 }
+} finally { $env:SystemRoot=$savedSystemRoot }
 Write-Output 'PASS: RuntimeProbeParsesSocketAndChecksRouteCounters'
 
 # Selector: RuntimePlanAndReenumeration. Protects the real reconcile control flow;

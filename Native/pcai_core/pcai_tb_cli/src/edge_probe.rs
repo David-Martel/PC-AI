@@ -1,8 +1,8 @@
 //! Qualify enrolled edges through source-bound routing and pinned SSH evidence.
-use crate::{
-    edge_observer::Observation,
-    edge_policy::{EdgePolicy, PeerPlatform},
-};
+use crate::{edge_observer::Observation, edge_policy::EdgePolicy};
+// Only the Linux probe and tests branch on peer platform; Windows builds would warn.
+#[cfg(any(target_os = "linux", test))]
+use crate::edge_policy::PeerPlatform;
 use anyhow::Result;
 #[cfg(any(target_os = "linux", test))]
 use anyhow::{ensure, Context};

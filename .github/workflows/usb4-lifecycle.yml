@@ -10,6 +10,10 @@ on:
       - 'Deploy/Cargo.lock'
       - 'Deploy/**/Cargo.toml'
       - 'Config/thunderbolt-peers.json'
+      - 'Tools/SystemScripts/Networking/Configure-ThunderboltSwitchRoutes.ps1'
+      - 'Tools/SystemScripts/Networking/Invoke-ThunderboltRcloneMount.ps1'
+      - 'Tests/Portable/Test-ThunderboltBootReadiness.ps1'
+      - 'Tests/Portable/Test-ThunderboltMountGate.ps1'
       - '.github/workflows/usb4-lifecycle.yml'
   workflow_dispatch:
 permissions:
@@ -25,6 +29,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      # Protects roaming host startup failure/absence and owned SFTP paths.
+      # Detects masked V&V exits and default-LAN fallback without attached hardware.
+      # Needs pwsh only; source: Tools/SystemScripts/Networking/*Thunderbolt*.
+      - name: Windows boot and mount policy contracts
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-ThunderboltBootReadiness.ps1
+          ./Tests/Portable/Test-ThunderboltMountGate.ps1
       # Protects route/identity/custody decisions on both native backends.
       # Detects stale-edge deletion, foreign ownership mutation and CLI evidence leaks.
       # Needs standard Rust/MSVC host tools; no attached devices or privileged Apply.

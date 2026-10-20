@@ -10,7 +10,8 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use std::ptr;
 use std::time::Instant;
 use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
-    CM_Get_Device_ID_ListW, CM_Get_Device_ID_List_SizeW, CM_GETIDLIST_FILTER_ENUMERATOR, CR_SUCCESS,
+    CM_Get_Device_ID_ListW, CM_Get_Device_ID_List_SizeW, CM_GETIDLIST_FILTER_ENUMERATOR, CM_GETIDLIST_FILTER_PRESENT,
+    CR_SUCCESS,
 };
 use windows_sys::Win32::Foundation::{ERROR_BUFFER_OVERFLOW, NO_ERROR};
 use windows_sys::Win32::NetworkManagement::IpHelper::{
@@ -76,53 +77,30 @@ fn format_mac_bytes(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02X}")).collect::<Vec<_>>().join("-")
 }
 
-pub fn enumerate_usb4_pnp_devices() -> Vec<Usb4DeviceInfo> {
-    let mut out = Vec::new();
-    let filter_usb4: [u16; 5] = [b'U' as u16, b'S' as u16, b'B' as u16, b'4' as u16, 0];
-    unsafe {
-        let mut char_len: u32 = 0;
-        let cr_size = CM_Get_Device_ID_List_SizeW(&mut char_len, filter_usb4.as_ptr(), CM_GETIDLIST_FILTER_ENUMERATOR);
-        if cr_size != CR_SUCCESS || char_len == 0 {
-            return out;
-        }
-        let mut buf = vec![0u16; (char_len as usize) + 2];
-        let cr_list = CM_Get_Device_ID_ListW(
-            filter_usb4.as_ptr(),
-            buf.as_mut_ptr(),
-            char_len,
-            CM_GETIDLIST_FILTER_ENUMERATOR,
-        );
-        if cr_list != CR_SUCCESS {
-            return out;
-        }
-        for slice in buf.split(|&ch| ch == 0) {
-            if slice.is_empty() {
-                continue;
+pub fn enumerate_usb4_pnp_devices() -> Result<Vec<Usb4DeviceInfo>> {
+    super::windows_inventory::collect_present_usb4_devices(|present_only| {
+        let filter_usb4: [u16; 5] = [b'U' as u16, b'S' as u16, b'B' as u16, b'4' as u16, 0];
+        let flags = CM_GETIDLIST_FILTER_ENUMERATOR | if present_only { CM_GETIDLIST_FILTER_PRESENT } else { 0 };
+        unsafe {
+            let mut char_len: u32 = 0;
+            let cr_size = CM_Get_Device_ID_List_SizeW(&mut char_len, filter_usb4.as_ptr(), flags);
+            anyhow::ensure!(
+                cr_size == CR_SUCCESS,
+                "USB4 device list size failed: CONFIGRET {cr_size}"
+            );
+            if char_len == 0 {
+                return Ok(Vec::new());
             }
-            let id = String::from_utf16_lossy(slice);
-            let upper = id.to_ascii_uppercase();
-            if upper.starts_with("USB4\\")
-                || upper.contains("THUNDERBOLT")
-                || upper.contains("VEN_8086&DEV_0B26")
-                || upper.contains("USB4_P2P")
-            {
-                let (friendly, class_name) = if upper.starts_with("USB4\\VIRTUAL_POWER_PDO") {
-                    ("USB4(TM) P2P Network Adapter", "Net")
-                } else if upper.contains("HOST_ROUTER") || upper.starts_with("PCI\\") {
-                    ("USB4(TM) Host Router", "USB")
-                } else {
-                    ("USB4 / Thunderbolt Device", "USB4")
-                };
-                out.push(Usb4DeviceInfo {
-                    instance_id: id,
-                    friendly_name: friendly.to_string(),
-                    class_name: class_name.to_string(),
-                    status: "OK".to_string(),
-                });
-            }
+            let mut buf = vec![0u16; (char_len as usize) + 2];
+            let cr_list = CM_Get_Device_ID_ListW(filter_usb4.as_ptr(), buf.as_mut_ptr(), char_len, flags);
+            anyhow::ensure!(cr_list == CR_SUCCESS, "USB4 device list failed: CONFIGRET {cr_list}");
+            Ok(buf
+                .split(|&ch| ch == 0)
+                .filter(|slice| !slice.is_empty())
+                .map(String::from_utf16_lossy)
+                .collect())
         }
-    }
-    out
+    })
 }
 
 pub fn query_interface_mtu_and_metric_checked(if_index: u32, family: u16) -> Option<(u32, u32)> {
@@ -201,7 +179,7 @@ fn collect_neighbors_by_if_index() -> HashMap<u32, Vec<NeighborCacheEntry>> {
 
 pub fn collect_windows_snapshot(include_disconnected: bool) -> Result<PlatformThunderboltSnapshot> {
     let start = Instant::now();
-    let usb4_devices = enumerate_usb4_pnp_devices();
+    let usb4_devices = enumerate_usb4_pnp_devices()?;
     let mut neighbor_map = collect_neighbors_by_if_index();
     let mut adapters = Vec::new();
 

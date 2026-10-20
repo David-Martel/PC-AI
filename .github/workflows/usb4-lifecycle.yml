@@ -5,6 +5,10 @@ on:
       - 'Native/pcai_core/pcai_tb_cli/**'
       - 'Native/pcai_core/Cargo.toml'
       - 'Native/pcai_core/Cargo.lock'
+      # Native resolves optional train/core path dependencies from the Deploy workspace.
+      - 'Deploy/Cargo.toml'
+      - 'Deploy/Cargo.lock'
+      - 'Deploy/**/Cargo.toml'
       - 'Config/thunderbolt-peers.json'
       - '.github/workflows/usb4-lifecycle.yml'
   workflow_dispatch:

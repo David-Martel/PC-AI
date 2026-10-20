@@ -7,6 +7,10 @@ on:
       - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
       - 'Native/PcaiNative/**'
       - 'Native/pcai_core/**'
+      # Native resolves optional train/core path dependencies from the Deploy workspace.
+      - 'Deploy/Cargo.toml'
+      - 'Deploy/Cargo.lock'
+      - 'Deploy/**/Cargo.toml'
       - 'Tests/Portable/**'
       - 'Tools/Test-PcaiModuleManifests.ps1'
       - 'lefthook.yml'
@@ -21,6 +25,10 @@ on:
       - 'Modules/PC-AI.Acceleration/Private/Initialize-RustTools.ps1'
       - 'Native/PcaiNative/**'
       - 'Native/pcai_core/**'
+      # Native resolves optional train/core path dependencies from the Deploy workspace.
+      - 'Deploy/Cargo.toml'
+      - 'Deploy/Cargo.lock'
+      - 'Deploy/**/Cargo.toml'
       - 'Tests/Portable/**'
       - 'Tools/Test-PcaiModuleManifests.ps1'
       - 'lefthook.yml'

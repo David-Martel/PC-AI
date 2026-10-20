@@ -1,5 +1,19 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## Explicit mount-health and registry selection review (2026-10-19)
+
+See [the bounded source/test receipt](Reports/pcai-tb-registry-health-review.md).
+
+- [x] Reproduce missing default mounts being hidden by unrelated RustCache presence;
+      require an explicit Default/RustCacheDevDrive/All health profile and cover all
+      four decisions with hardware-free Pester tests.
+- [x] Replace the ambient-checkout registry test with private-file precedence/error
+      cases; preserve existing install candidate order and validation behavior.
+- [ ] Obtain independent hash-bound review and normal PR admission, then explicitly
+      select the enrolled health profile in any separately reviewed live caller.
+      No mount, startup task, profile or installed binary was changed by this repair.
+
+
 ## Workload profiling and live-media policy review
 
 Reviewed 2026-10-05; evidence and experiment gates are in
@@ -1509,3 +1523,10 @@ Historical results above retain their original scope and date.
 - [ ] If hangs persist, perform offline RAM and physical adapter/cooling isolation.
 - Evidence and rollback: Reports/crash-investigation-20261011/FINDINGS.md and
   Reports/crash-investigation-20261011/Restore-InvestigationChanges.ps1.
+
+## Native and deployment lock coherence
+
+- [x] Reproduce the actual CI merge-tree lock failure and align only the missing dependency records.
+- [x] Add deployment Cargo inputs to native CI triggers; verify 81 Linux Rust tests, strict Clippy, core build, and real native Unicode parity in both processes.
+- [ ] Verify the follow-up revision on hosted Windows and Linux before merge/release deployment.
+- Evidence and limits: [native/deployment coherence review](Reports/native-deploy-lock-coherence.md).

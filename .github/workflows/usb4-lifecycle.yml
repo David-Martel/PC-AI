@@ -14,6 +14,7 @@ on:
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltRcloneMount.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltEnrolledPeer.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltStartup.ps1'
+      - 'Tools/SystemScripts/Networking/Export-ThunderboltEnrolledObserver.sh'
       - 'Tests/Portable/Test-ThunderboltBootReadiness.ps1'
       - 'Tests/Portable/Test-ThunderboltMountGate.ps1'
       - 'Tests/Portable/Test-ThunderboltEnrolledPeer.ps1'
@@ -33,6 +34,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      # Protects the fixed read-only SSH service command; detects shell syntax
+      # errors before deployment. Needs POSIX sh; source is root-owned on Linux.
+      - name: Fixed observer export syntax
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sh -n Tools/SystemScripts/Networking/Export-ThunderboltEnrolledObserver.sh
       # Protects roaming host startup failure/absence and owned SFTP paths.
       # Detects masked V&V exits and default-LAN fallback without attached hardware.
       # Needs pwsh only; source: Tools/SystemScripts/Networking/*Thunderbolt*.

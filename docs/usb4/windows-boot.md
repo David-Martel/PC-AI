@@ -114,3 +114,14 @@ The [orchestration controls](../../Tests/Portable/Test-ThunderboltStartup.ps1)
 cover component, launch and publication exceptions. Use IgnoreNew, a two-minute
 task execution limit and a one-minute fallback with a 180-second local lease;
 retain the boot/network/resume triggers and original task settings/preimage.
+
+A SYSTEM task needs its own SSH identity. Windows OpenSSH may reject a personal
+key containing that user's ACL when invoked as SYSTEM. Keep personal keys and
+the existing task principal unchanged; generate a separate SYSTEM/Administrators
+key under the protected ProgramData service directory and transfer the existing
+verified public host pin. On the enrolled Linux partner, preserve `authorized_keys`
+before adding a `restrict` entry forced to the root-owned
+[fixed observer export](../../Tools/SystemScripts/Networking/Export-ThunderboltEnrolledObserver.sh).
+That credential grants the fixed read-only frame, without shell selection,
+forwarding or PTY. Qualify the actual scheduled SYSTEM run and repeated renewal;
+a successful interactive run alone does not qualify deployment.

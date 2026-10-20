@@ -1,0 +1,320 @@
+{
+  "description": "dtm-task-run launch overhead and popup test; see docs/scheduled-tasks/LAUNCHER.md",
+  "tool": "Tools/Measure-TaskLauncherOverhead.ps1",
+  "runs": [
+    {
+      "Host": "DTM-P1GEN7",
+      "CpuLoadPercentBefore": 99.0,
+      "CpuLoadPercentAfter": 85.0,
+      "Runs": 20,
+      "WarmUp": 2,
+      "Percentile": "nearest-rank p95",
+      "Launchers": {
+        "fd": "C:\\Users\\david\\AppData\\Local\\Temp\\claude\\C--codedev\\d86a6dfe-7fbc-4ea0-a922-073fd36fda38\\scratchpad\\pub-fd\\dtm-task-run.exe",
+        "sc": "C:\\Users\\david\\AppData\\Local\\Temp\\claude\\C--codedev\\d86a6dfe-7fbc-4ea0-a922-073fd36fda38\\scratchpad\\pub-sc\\dtm-task-run.exe",
+        "aot": "C:\\Users\\david\\AppData\\Local\\Temp\\claude\\C--codedev\\d86a6dfe-7fbc-4ea0-a922-073fd36fda38\\scratchpad\\pub-aot\\dtm-task-run.exe"
+      },
+      "LauncherSizesKB": {
+        "fd": 353,
+        "sc": 75318,
+        "aot": 3358
+      },
+      "Overhead": [
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "direct",
+          "Runs": 20,
+          "MedianMs": 497.7,
+          "P95Ms": 587.0,
+          "MinMs": 459.6,
+          "MaxMs": 682.0,
+          "OverheadVsDirectMs": 0.0
+        },
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "conhost --headless",
+          "Runs": 20,
+          "MedianMs": 516.4,
+          "P95Ms": 645.7,
+          "MinMs": 468.8,
+          "MaxMs": 744.6,
+          "OverheadVsDirectMs": 18.7
+        },
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "dtm-task-run (fd)",
+          "Runs": 20,
+          "MedianMs": 771.2,
+          "P95Ms": 940.8,
+          "MinMs": 644.2,
+          "MaxMs": 1364.7,
+          "OverheadVsDirectMs": 273.5
+        },
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "dtm-task-run (sc)",
+          "Runs": 20,
+          "MedianMs": 720.0,
+          "P95Ms": 976.4,
+          "MinMs": 625.7,
+          "MaxMs": 1110.4,
+          "OverheadVsDirectMs": 222.3
+        },
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "dtm-task-run (aot)",
+          "Runs": 20,
+          "MedianMs": 566.7,
+          "P95Ms": 653.3,
+          "MinMs": 502.4,
+          "MaxMs": 767.5,
+          "OverheadVsDirectMs": 69.0
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "direct",
+          "Runs": 20,
+          "MedianMs": 96.9,
+          "P95Ms": 115.6,
+          "MinMs": 81.6,
+          "MaxMs": 165.5,
+          "OverheadVsDirectMs": 0.0
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "conhost --headless",
+          "Runs": 20,
+          "MedianMs": 120.2,
+          "P95Ms": 134.1,
+          "MinMs": 103.6,
+          "MaxMs": 141.5,
+          "OverheadVsDirectMs": 23.3
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "dtm-task-run (fd)",
+          "Runs": 20,
+          "MedianMs": 284.7,
+          "P95Ms": 339.2,
+          "MinMs": 248.4,
+          "MaxMs": 349.0,
+          "OverheadVsDirectMs": 187.8
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "dtm-task-run (sc)",
+          "Runs": 20,
+          "MedianMs": 253.9,
+          "P95Ms": 324.6,
+          "MinMs": 199.1,
+          "MaxMs": 333.2,
+          "OverheadVsDirectMs": 157.0
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "dtm-task-run (aot)",
+          "Runs": 20,
+          "MedianMs": 142.4,
+          "P95Ms": 154.8,
+          "MinMs": 116.1,
+          "MaxMs": 162.0,
+          "OverheadVsDirectMs": 45.5
+        }
+      ],
+      "Popup": [
+        {
+          "Variant": "direct",
+          "Launches": 3,
+          "WindowSightings": 3,
+          "WindowKinds": "pwsh/ConsoleWindowClass",
+          "LastTaskResult": "0x0"
+        },
+        {
+          "Variant": "conhost --headless",
+          "Launches": 3,
+          "WindowSightings": 0,
+          "WindowKinds": "",
+          "LastTaskResult": "0x0"
+        },
+        {
+          "Variant": "dtm-task-run (fd)",
+          "Launches": 3,
+          "WindowSightings": 0,
+          "WindowKinds": "",
+          "LastTaskResult": "0x0"
+        },
+        {
+          "Variant": "dtm-task-run (sc)",
+          "Launches": 3,
+          "WindowSightings": 0,
+          "WindowKinds": "",
+          "LastTaskResult": "0x0"
+        },
+        {
+          "Variant": "dtm-task-run (aot)",
+          "Launches": 3,
+          "WindowSightings": 0,
+          "WindowKinds": "",
+          "LastTaskResult": "0x0"
+        }
+      ]
+    },
+    {
+      "Host": "DTM-P1GEN7",
+      "CpuLoadPercentBefore": 100.0,
+      "CpuLoadPercentAfter": 99.0,
+      "Runs": 20,
+      "WarmUp": 2,
+      "Percentile": "nearest-rank p95",
+      "Launchers": {
+        "fd": "C:\\Users\\david\\AppData\\Local\\Temp\\claude\\C--codedev\\d86a6dfe-7fbc-4ea0-a922-073fd36fda38\\scratchpad\\pub-fd\\dtm-task-run.exe",
+        "sc": "C:\\Users\\david\\AppData\\Local\\Temp\\claude\\C--codedev\\d86a6dfe-7fbc-4ea0-a922-073fd36fda38\\scratchpad\\pub-sc\\dtm-task-run.exe",
+        "aot": "C:\\Users\\david\\AppData\\Local\\Temp\\claude\\C--codedev\\d86a6dfe-7fbc-4ea0-a922-073fd36fda38\\scratchpad\\pub-final\\dtm-task-run.exe"
+      },
+      "LauncherSizesKB": {
+        "fd": 353,
+        "sc": 75318,
+        "aot": 3358
+      },
+      "Overhead": [
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "direct",
+          "Runs": 20,
+          "MedianMs": 628.3,
+          "P95Ms": 922.8,
+          "MinMs": 574.6,
+          "MaxMs": 1230.3,
+          "OverheadVsDirectMs": 0.0
+        },
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "conhost --headless",
+          "Runs": 20,
+          "MedianMs": 694.4,
+          "P95Ms": 1244.9,
+          "MinMs": 604.1,
+          "MaxMs": 1718.4,
+          "OverheadVsDirectMs": 66.1
+        },
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "dtm-task-run (fd)",
+          "Runs": 20,
+          "MedianMs": 1046.7,
+          "P95Ms": 1671.7,
+          "MinMs": 901.8,
+          "MaxMs": 1925.1,
+          "OverheadVsDirectMs": 418.4
+        },
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "dtm-task-run (sc)",
+          "Runs": 20,
+          "MedianMs": 946.0,
+          "P95Ms": 1469.9,
+          "MinMs": 730.0,
+          "MaxMs": 2114.7,
+          "OverheadVsDirectMs": 317.7
+        },
+        {
+          "Child": "pwsh -NoProfile -Command exit 0",
+          "Variant": "dtm-task-run (aot)",
+          "Runs": 20,
+          "MedianMs": 732.6,
+          "P95Ms": 1577.5,
+          "MinMs": 615.9,
+          "MaxMs": 1589.1,
+          "OverheadVsDirectMs": 104.3
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "direct",
+          "Runs": 20,
+          "MedianMs": 132.8,
+          "P95Ms": 232.5,
+          "MinMs": 113.0,
+          "MaxMs": 469.9,
+          "OverheadVsDirectMs": 0.0
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "conhost --headless",
+          "Runs": 20,
+          "MedianMs": 156.9,
+          "P95Ms": 179.7,
+          "MinMs": 120.1,
+          "MaxMs": 196.5,
+          "OverheadVsDirectMs": 24.1
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "dtm-task-run (fd)",
+          "Runs": 20,
+          "MedianMs": 460.2,
+          "P95Ms": 1035.1,
+          "MinMs": 301.8,
+          "MaxMs": 1052.2,
+          "OverheadVsDirectMs": 327.4
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "dtm-task-run (sc)",
+          "Runs": 20,
+          "MedianMs": 422.3,
+          "P95Ms": 524.2,
+          "MinMs": 335.9,
+          "MaxMs": 865.5,
+          "OverheadVsDirectMs": 289.5
+        },
+        {
+          "Child": "cmd /c exit 0",
+          "Variant": "dtm-task-run (aot)",
+          "Runs": 20,
+          "MedianMs": 200.6,
+          "P95Ms": 292.2,
+          "MinMs": 175.0,
+          "MaxMs": 293.7,
+          "OverheadVsDirectMs": 67.8
+        }
+      ],
+      "Popup": [
+        {
+          "Variant": "direct",
+          "Launches": 3,
+          "WindowSightings": 4,
+          "WindowKinds": "pwsh/ConsoleWindowClass",
+          "LastTaskResult": "0x0"
+        },
+        {
+          "Variant": "conhost --headless",
+          "Launches": 3,
+          "WindowSightings": 0,
+          "WindowKinds": "",
+          "LastTaskResult": "0x0"
+        },
+        {
+          "Variant": "dtm-task-run (fd)",
+          "Launches": 3,
+          "WindowSightings": 0,
+          "WindowKinds": "",
+          "LastTaskResult": "0x0"
+        },
+        {
+          "Variant": "dtm-task-run (sc)",
+          "Launches": 3,
+          "WindowSightings": 0,
+          "WindowKinds": "",
+          "LastTaskResult": "0x0"
+        },
+        {
+          "Variant": "dtm-task-run (aot)",
+          "Launches": 3,
+          "WindowSightings": 0,
+          "WindowKinds": "",
+          "LastTaskResult": "0x0"
+        }
+      ]
+    }
+  ]
+}

@@ -23,6 +23,26 @@ pub struct EdgePolicy {
     pub adopt_profile_uuids: Vec<String>,
 }
 
+/// Peer operating system, which decides how qualification reads remote evidence.
+///
+/// WHY: a Windows OpenSSH peer defaults to PowerShell, so the POSIX evidence
+/// command used for Linux peers cannot run there. Unknown values are rejected
+/// at parse time rather than silently falling back to the POSIX command.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PeerPlatform {
+    #[default]
+    Linux,
+    Windows,
+}
+
+impl PeerPlatform {
+    // Skipped when serializing so policies without the field round-trip unchanged.
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EnrolledPeer {
@@ -31,6 +51,8 @@ pub struct EnrolledPeer {
     pub controller_uuids: Vec<String>,
     pub ssh_alias: Option<String>,
     pub mtu: u32,
+    #[serde(default, skip_serializing_if = "PeerPlatform::is_default")]
+    pub platform: PeerPlatform,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -297,6 +319,7 @@ mod tests {
                 controller_uuids: vec![id(20)],
                 ssh_alias: Some("peer-pinned".into()),
                 mtu: 1500,
+                platform: PeerPlatform::Linux,
             }],
             protected_interfaces: vec![],
             adopt_profile_uuids: vec![],
@@ -456,5 +479,48 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("allocation collision"));
+    }
+
+    // Protects Linux-peer compatibility; detects the new field changing parsing, derived edges or rendered profiles.
+    // Needs serde JSON only; breadcrumb: EnrolledPeer::platform/networkd_edge::render.
+    #[test]
+    fn platform_defaults_to_linux_and_leaves_linux_output_unchanged() {
+        let without = serde_json::to_value(policy()).unwrap();
+        assert!(
+            without["peers"][0].get("platform").is_none(),
+            "default is not serialized"
+        );
+        let mut explicit = without.clone();
+        explicit["peers"][0]["platform"] = "linux".into();
+        let a: EdgePolicy = serde_json::from_value(without).unwrap();
+        let b: EdgePolicy = serde_json::from_value(explicit).unwrap();
+        assert_eq!(a.peers[0].platform, PeerPlatform::Linux);
+        assert_eq!(b.peers[0].platform, PeerPlatform::Linux);
+        let ea = derive_edge_plan(&a, &[id(10), id(11)]).unwrap();
+        let eb = derive_edge_plan(&b, &[id(10), id(11)]).unwrap();
+        assert_eq!(ea, eb);
+        assert_eq!(serde_json::to_string(&ea).unwrap(), serde_json::to_string(&eb).unwrap());
+        for (x, y) in ea.iter().zip(&eb) {
+            assert_eq!(
+                crate::networkd_edge::render(x, a.epoch),
+                crate::networkd_edge::render(y, b.epoch)
+            );
+        }
+    }
+
+    // Protects the Windows opt-in; detects accepting unknown platforms or dropping the windows value.
+    // Needs serde JSON only; breadcrumb: PeerPlatform.
+    #[test]
+    fn platform_accepts_windows_and_rejects_unknown_values() {
+        let mut value = serde_json::to_value(policy()).unwrap();
+        value["peers"][0]["platform"] = "windows".into();
+        let decoded: EdgePolicy = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(decoded.peers[0].platform, PeerPlatform::Windows);
+        validate_policy(&decoded).unwrap();
+        assert_eq!(serde_json::to_value(&decoded).unwrap(), value);
+        for bad in ["Windows", "macos", "", "posix"] {
+            value["peers"][0]["platform"] = bad.into();
+            assert!(serde_json::from_value::<EdgePolicy>(value.clone()).is_err(), "{bad}");
+        }
     }
 }

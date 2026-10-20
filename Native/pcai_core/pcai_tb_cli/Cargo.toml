@@ -1,0 +1,43 @@
+[package]
+name = "pcai-tb"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Cross-platform Rust USB4 / Thunderbolt 4 / Thunderbolt 5 P2P discovery, deterministic identity, cryptographic handshake, and routing engine"
+rust-version.workspace = true
+
+[[bin]]
+name = "pcai-tb"
+path = "src/main.rs"
+
+[lib]
+name = "pcai_tb"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+hex.workspace = true
+base64.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+libc.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinSock",
+] }
+
+[dev-dependencies]
+tempfile = "3.27"
+
+[lints]
+workspace = true

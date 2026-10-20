@@ -5,14 +5,14 @@ use crate::identity::{
     local_hostname, resolve_peer_identity, PeerRegistryFile, TopologyLinkSpec, TopologyPathClass, Usb4LifecyclePolicy,
     Usb4LifecycleState,
 };
+#[cfg(target_os = "windows")]
+use crate::platform::hidden_command;
 use crate::platform::{collect_platform_snapshot, PlatformThunderboltSnapshot, ThunderboltAdapterState};
 use anyhow::Result;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::Path;
-#[cfg(target_os = "windows")]
-use std::process::Command;
 use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -1251,11 +1251,11 @@ foreach ($n in @(Get-NetAdapter -IncludeHidden | Where-Object { $_.InterfaceDesc
     Adapters = $pms
 } | ConvertTo-Json -Depth 5 -Compress
 "#;
-        let output_opt = Command::new("pwsh")
+        let output_opt = hidden_command("pwsh")
             .args(["-NoProfile", "-NonInteractive", "-Command", ps_script])
             .output()
             .or_else(|_| {
-                Command::new("powershell")
+                hidden_command("powershell")
                     .args(["-NoProfile", "-NonInteractive", "-Command", ps_script])
                     .output()
             })

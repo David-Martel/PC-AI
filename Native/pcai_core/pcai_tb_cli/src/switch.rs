@@ -8,13 +8,13 @@ use crate::identity::{
     canonicalize_peer_name, detect_l2_bridge_cycles, load_peer_registry, local_hostname, parse_ipv4_cidr,
     IpamAllocations, SfpSwitchTopology, SharedSwitchSubnet, TopologyLinkSpec,
 };
+use crate::platform::hidden_command;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
@@ -505,7 +505,7 @@ pub struct SwitchObserveSnapshot {
 }
 
 pub fn run_cmd_json(prog: &str, args: &[&str]) -> Result<serde_json::Value> {
-    let out = Command::new(prog)
+    let out = hidden_command(prog)
         .args(args)
         .output()
         .with_context(|| format!("Failed to spawn '{prog} {}'", args.join(" ")))?;
@@ -1355,7 +1355,7 @@ struct RawWinUsb4Node {
 
 #[cfg(target_os = "windows")]
 pub fn collect_local_usb4_router_tree() -> Vec<Usb4RouterNode> {
-    let Ok(out) = Command::new("reg")
+    let Ok(out) = hidden_command("reg")
         .args(["query", r"HKLM\SYSTEM\CurrentControlSet\Enum\USB4", "/s"])
         .output()
     else {
@@ -1562,7 +1562,7 @@ fn check_ipv4_route_present(
     #[cfg(target_os = "windows")]
     {
         let _ = subnet_cidr;
-        let out = Command::new("route")
+        let out = hidden_command("route")
             .args(["print", "-4"])
             .output()
             .context("Failed to execute 'route print -4'")?;
@@ -1980,7 +1980,7 @@ pub fn run_bounded_command_with_deadline(
     use std::sync::mpsc;
     use std::time::{Duration, Instant};
 
-    let mut cmd = Command::new(program);
+    let mut cmd = hidden_command(program);
     cmd.args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -2288,7 +2288,7 @@ fn inspect_windows_canary_endpoints(local_canon: &str, ipam: &IpamAllocations) -
             .parse::<Ipv6Addr>()
             .ok();
         let assigned = match expected_ip_opt {
-            Some(expected_ip) => Command::new("netsh")
+            Some(expected_ip) => hidden_command("netsh")
                 .args([
                     "interface",
                     "ipv6",
@@ -2335,7 +2335,7 @@ pub fn windows_netsh_interfaces_has_valid_header(netsh_stdout: &str) -> bool {
 
 #[cfg(target_os = "windows")]
 fn collect_windows_metric_hierarchy() -> Result<WindowsMetricHierarchyReport> {
-    let out = Command::new("netsh")
+    let out = hidden_command("netsh")
         .args(["interface", "ipv4", "show", "interfaces"])
         .output()
         .context("Failed to execute 'netsh interface ipv4 show interfaces'")?;
@@ -2353,7 +2353,7 @@ fn collect_windows_metric_hierarchy() -> Result<WindowsMetricHierarchyReport> {
         );
     }
 
-    let addr_out = Command::new("netsh")
+    let addr_out = hidden_command("netsh")
         .args(["interface", "ipv4", "show", "addresses"])
         .output()
         .context("Failed to execute 'netsh interface ipv4 show addresses'")?;

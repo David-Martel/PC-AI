@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 bytes with CRLF converted to LF",
+  "reviews": [
+    {
+      "selector": "configure::tests::registration_absence_is_an_explicit_failed_action",
+      "disposition": "KEEP",
+      "reviewer": "codex-p1gen9-network-closeout",
+      "reviewed_utc": "2026-10-20T18:16:21.7403531Z",
+      "rationale": "Absence is a failed unapplied gate for inspection and Apply; matching present identity admits registration.",
+      "source_files": [
+        {
+          "path": "src/configure.rs",
+          "sha256": "96ff2b457aebf2788c2e534af7c507972c688d7c5ec1c2daa23e51dd6010a613"
+        },
+        {
+          "path": "src/identity.rs",
+          "sha256": "ef17d80257e95b99802c5161b15ed9c80ffce2f9a00e47fa00da17f06f637dbc"
+        },
+        {
+          "path": "src/platform/mod.rs",
+          "sha256": "ad83f39758bd7b66657dcb07784062aa51a0a3e7808c41162ad007cc7642d956"
+        },
+        {
+          "path": "src/main.rs",
+          "sha256": "195074f1195c9048792660f39be0759998592ccea685c1e337435b70a38195d0"
+        },
+        {
+          "path": "tests/registry_cli.rs",
+          "sha256": "8c10c7da8d196dedf0412337cda00081296f567ea1fe86c88d5cd2b1a179463d"
+        }
+      ]
+    },
+    {
+      "selector": "configure::tests::registration_apply_requires_matching_registered_os_identity",
+      "disposition": "KEEP",
+      "reviewer": "codex-p1gen9-network-closeout",
+      "reviewed_utc": "2026-10-20T18:16:21.7427048Z",
+      "rationale": "Apply rejects unknown, missing and mismatched OS identity while canonical aliases and dry-run inspection retain intended behavior.",
+      "source_files": [
+        {
+          "path": "src/configure.rs",
+          "sha256": "96ff2b457aebf2788c2e534af7c507972c688d7c5ec1c2daa23e51dd6010a613"
+        },
+        {
+          "path": "src/identity.rs",
+          "sha256": "ef17d80257e95b99802c5161b15ed9c80ffce2f9a00e47fa00da17f06f637dbc"
+        },
+        {
+          "path": "src/platform/mod.rs",
+          "sha256": "ad83f39758bd7b66657dcb07784062aa51a0a3e7808c41162ad007cc7642d956"
+        },
+        {
+          "path": "src/main.rs",
+          "sha256": "195074f1195c9048792660f39be0759998592ccea685c1e337435b70a38195d0"
+        },
+        {
+          "path": "tests/registry_cli.rs",
+          "sha256": "8c10c7da8d196dedf0412337cda00081296f567ea1fe86c88d5cd2b1a179463d"
+        }
+      ]
+    },
+    {
+      "selector": "identity::hostname_tests::hostname_selection_skips_blanks_and_preserves_precedence",
+      "disposition": "KEEP",
+      "reviewer": "codex-p1gen9-network-closeout",
+      "reviewed_utc": "2026-10-20T18:16:21.7427218Z",
+      "rationale": "Blank inputs cannot hide a later hostname; explicit process precedence and complete-absence fallback are asserted without global environment mutation.",
+      "source_files": [
+        {
+          "path": "src/configure.rs",
+          "sha256": "96ff2b457aebf2788c2e534af7c507972c688d7c5ec1c2daa23e51dd6010a613"
+        },
+        {
+          "path": "src/identity.rs",
+          "sha256": "ef17d80257e95b99802c5161b15ed9c80ffce2f9a00e47fa00da17f06f637dbc"
+        },
+        {
+          "path": "src/platform/mod.rs",
+          "sha256": "ad83f39758bd7b66657dcb07784062aa51a0a3e7808c41162ad007cc7642d956"
+        },
+        {
+          "path": "src/main.rs",
+          "sha256": "195074f1195c9048792660f39be0759998592ccea685c1e337435b70a38195d0"
+        },
+        {
+          "path": "tests/registry_cli.rs",
+          "sha256": "8c10c7da8d196dedf0412337cda00081296f567ea1fe86c88d5cd2b1a179463d"
+        }
+      ]
+    },
+    {
+      "selector": "registry_cli::cli_identity_uses_windows_name_without_environment_names",
+      "disposition": "KEEP",
+      "reviewer": "codex-p1gen9-network-closeout",
+      "reviewed_utc": "2026-10-20T18:16:21.7427282Z",
+      "rationale": "Real sanitized Windows child resolves OS hostname and cannot report unknown-host.",
+      "source_files": [
+        {
+          "path": "src/configure.rs",
+          "sha256": "96ff2b457aebf2788c2e534af7c507972c688d7c5ec1c2daa23e51dd6010a613"
+        },
+        {
+          "path": "src/identity.rs",
+          "sha256": "ef17d80257e95b99802c5161b15ed9c80ffce2f9a00e47fa00da17f06f637dbc"
+        },
+        {
+          "path": "src/platform/mod.rs",
+          "sha256": "ad83f39758bd7b66657dcb07784062aa51a0a3e7808c41162ad007cc7642d956"
+        },
+        {
+          "path": "src/main.rs",
+          "sha256": "195074f1195c9048792660f39be0759998592ccea685c1e337435b70a38195d0"
+        },
+        {
+          "path": "tests/registry_cli.rs",
+          "sha256": "8c10c7da8d196dedf0412337cda00081296f567ea1fe86c88d5cd2b1a179463d"
+        }
+      ]
+    },
+    {
+      "selector": "registry_cli::hidden_child_has_no_console_window",
+      "disposition": "KEEP",
+      "reviewer": "codex-p1gen9-network-closeout",
+      "reviewed_utc": "2026-10-20T18:16:21.7427333Z",
+      "rationale": "Actual child verifies GetConsoleWindow is null; the complete Windows launch-site diff routes through CREATE_NO_WINDOW helper.",
+      "source_files": [
+        {
+          "path": "src/configure.rs",
+          "sha256": "96ff2b457aebf2788c2e534af7c507972c688d7c5ec1c2daa23e51dd6010a613"
+        },
+        {
+          "path": "src/identity.rs",
+          "sha256": "ef17d80257e95b99802c5161b15ed9c80ffce2f9a00e47fa00da17f06f637dbc"
+        },
+        {
+          "path": "src/platform/mod.rs",
+          "sha256": "ad83f39758bd7b66657dcb07784062aa51a0a3e7808c41162ad007cc7642d956"
+        },
+        {
+          "path": "src/main.rs",
+          "sha256": "195074f1195c9048792660f39be0759998592ccea685c1e337435b70a38195d0"
+        },
+        {
+          "path": "tests/registry_cli.rs",
+          "sha256": "8c10c7da8d196dedf0412337cda00081296f567ea1fe86c88d5cd2b1a179463d"
+        }
+      ]
+    },
+    {
+      "selector": "registry_cli::register_rejects_remote_computer_override_in_dry_run",
+      "disposition": "KEEP",
+      "reviewer": "codex-p1gen9-network-closeout",
+      "reviewed_utc": "2026-10-20T18:16:21.7427374Z",
+      "rationale": "Real CLI dry run rejects remote computer override before discovery; the control cannot mutate hardware if its guard regresses.",
+      "source_files": [
+        {
+          "path": "src/configure.rs",
+          "sha256": "96ff2b457aebf2788c2e534af7c507972c688d7c5ec1c2daa23e51dd6010a613"
+        },
+        {
+          "path": "src/identity.rs",
+          "sha256": "ef17d80257e95b99802c5161b15ed9c80ffce2f9a00e47fa00da17f06f637dbc"
+        },
+        {
+          "path": "src/platform/mod.rs",
+          "sha256": "ad83f39758bd7b66657dcb07784062aa51a0a3e7808c41162ad007cc7642d956"
+        },
+        {
+          "path": "src/main.rs",
+          "sha256": "195074f1195c9048792660f39be0759998592ccea685c1e337435b70a38195d0"
+        },
+        {
+          "path": "tests/registry_cli.rs",
+          "sha256": "8c10c7da8d196dedf0412337cda00081296f567ea1fe86c88d5cd2b1a179463d"
+        }
+      ]
+    }
+  ],
+  "source_files": [
+    {
+      "path": "src/configure.rs",
+      "sha256": "96ff2b457aebf2788c2e534af7c507972c688d7c5ec1c2daa23e51dd6010a613"
+    },
+    {
+      "path": "src/identity.rs",
+      "sha256": "ef17d80257e95b99802c5161b15ed9c80ffce2f9a00e47fa00da17f06f637dbc"
+    },
+    {
+      "path": "src/platform/mod.rs",
+      "sha256": "ad83f39758bd7b66657dcb07784062aa51a0a3e7808c41162ad007cc7642d956"
+    },
+    {
+      "path": "src/main.rs",
+      "sha256": "195074f1195c9048792660f39be0759998592ccea685c1e337435b70a38195d0"
+    },
+    {
+      "path": "tests/registry_cli.rs",
+      "sha256": "8c10c7da8d196dedf0412337cda00081296f567ea1fe86c88d5cd2b1a179463d"
+    }
+  ],
+  "selectors": [
+    "configure::tests::registration_absence_is_an_explicit_failed_action",
+    "configure::tests::registration_apply_requires_matching_registered_os_identity",
+    "identity::hostname_tests::hostname_selection_skips_blanks_and_preserves_precedence",
+    "registry_cli::cli_identity_uses_windows_name_without_environment_names",
+    "registry_cli::hidden_child_has_no_console_window",
+    "registry_cli::register_rejects_remote_computer_override_in_dry_run"
+  ],
+  "disposition": "reviewed",
+  "validation": "Independent full release nextest f563d8ab:89PASS,0skipped; after nonmutating CLI selector refinement, f4fd3c58:1PASS,88not-selected. Source and test hashes checked against LF-normalized bytes. Physical reconnect, reboot and sleep remain unqualified."
+}

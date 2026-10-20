@@ -2,7 +2,7 @@
 
 This crate imports Windows and Linux Thunderbolt/USB4 and SFP+ switch control-plane observation work for review. Its source custody, exact revisions, observed limitations and isolated Linux/Windows QA are recorded in `source-custody.json`. It is not an upstream release or a qualified automatic network provisioning service.
 
-## Build and Test
+## Install, build, test and run
 
 From the `Native/pcai_core` workspace:
 
@@ -10,6 +10,8 @@ From the `Native/pcai_core` workspace:
 cargo check -p pcai-tb --all-targets
 cargo clippy -p pcai-tb --all-targets -- -D warnings
 cargo test -p pcai-tb
+cargo install --path pcai_tb_cli --locked --bin pcai-tb
+pcai-tb status --compact
 ```
 
 ## Subcommands
@@ -32,6 +34,24 @@ pcai-tb vnv --registry ../../../Config/thunderbolt-peers.json --output vnv-evide
 `tests/registry_cli.rs` invokes the actual CLI executable. It protects the entrypoint against malformed JSON, unknown schemas, duplicate fleet addresses and missing explicit configuration; these must fail before producing success JSON or installing files. A valid configuration is a positive control. `src/configure.rs` tests failed file copies and failed OS action reports. `src/platform/linux.rs` tests missing, negative, overflowing and malformed speed measurements. The existing integer JSON schema uses zero for unknown speed; zero is not observed throughput.
 
 Unknown link speed must not become an invented 20Gb/s measurement. Failed installation copies propagate an error. Applied registration emits its action report then exits nonzero if an action failed.
+
+Headless Windows identity falls back to `GetComputerNameW` when process hostname
+variables are missing or blank. Registration with no connected USB4 adapters
+reports `OverallSuccess=false` and an unapplied `RegistrationPresenceGate` error.
+`register --apply` additionally requires the resolved local fleet identity to
+match the OS machine identity, independently of environment overrides. It rejects
+`--computer`; explicit host selection remains available for `identity` inspection.
+These gates run before peer discovery and adapter mutation. Ordinary dry-run
+inspection remains available for unknown machines.
+
+All Windows child commands in configuration, lifecycle, switch observation and
+the legacy benchmark use [the background command helper](src/platform/mod.rs),
+which sets `CREATE_NO_WINDOW`; Linux commands retain their existing behavior.
+[CLI regressions](tests/registry_cli.rs) test a real sanitized child process and
+a real child with no console window; [configuration regressions](src/configure.rs)
+cover absence, identity mismatch, unknown identity and admitted matching identity.
+The [runtime test review register](tests/runtime-review.json) records the exact
+source reviewed. These controls do not qualify physical unplug, reboot or sleep.
 
 `src/switch.rs` tests fail-closed evaluation for:
 - Exact Linux custody `ifalias` equality (`ms01-switch:<owner>` and `ms01-usb4:<owner>`), rejecting prefix collisions (`ms01-switch:<owner>-extra`), wrong `phase`, missing displaced interfaces, or mismatched veth peer `ifindex`/`link_index`.

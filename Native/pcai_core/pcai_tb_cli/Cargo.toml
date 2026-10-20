@@ -34,6 +34,8 @@ windows-sys = { workspace = true, features = [
     "Win32_NetworkManagement_IpHelper",
     "Win32_NetworkManagement_Ndis",
     "Win32_Networking_WinSock",
+    "Win32_System_WindowsProgramming",
+    "Win32_System_Console",
 ] }
 
 [dev-dependencies]

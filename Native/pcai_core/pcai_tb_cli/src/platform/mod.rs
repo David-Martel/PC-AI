@@ -1,6 +1,20 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
+/// Creates a background command without a Windows console window.
+pub fn hidden_command(program: impl AsRef<std::ffi::OsStr>) -> std::process::Command {
+    let mut command = std::process::Command::new(program);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    #[cfg(not(windows))]
+    let _ = &mut command;
+    command
+}
+
 #[cfg(target_os = "windows")]
 pub mod windows;
 

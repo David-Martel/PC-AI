@@ -251,6 +251,9 @@ async fn main() -> Result<()> {
             emit_json(&peers, parsed.compact)?;
         }
         "register" => {
+            if parsed.computer.is_some() {
+                anyhow::bail!("register targets this machine; --computer is only supported for identity inspection");
+            }
             let report = register_local_thunderbolt_fabric(
                 parsed.apply,
                 parsed.mtu_bytes,

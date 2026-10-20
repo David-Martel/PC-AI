@@ -232,6 +232,38 @@ PC-AI-1.0.0/
 └── README.md
 ```
 
+## Linux self-hosted gate
+
+`.github/workflows/linux-ci.yml` ("CI (Linux self-hosted)") runs on the persistent repo-scoped vigil1 runner
+`vigil1-pc-ai-1` (labels `self-hosted, Linux, X64, vigil1, pc-ai-local`). It exists because the main `CI` workflow is
+disabled: every job in it runs on `windows-latest` and PC-AI has no Windows runner, so it cannot run on an available
+runner. `CI` stays disabled until a Windows runner for this repo exists.
+
+| Job | What it checks | Source of the check |
+|---|---|---|
+| `portable-contracts` | actionlint on the workflow, profile-free bootstrap, Rust-tool discovery, module-manifest and benchmark-admission contracts, Python admission tests | the Linux leg of `portable-bootstrap.yml`, without its .NET steps |
+| `pester-lint` | the Pester files listed in `Tests/linux-ci-pester.txt` (Portable tag), then PSScriptAnalyzer at Error severity over `Modules/` | `Tests/Invoke-PortableTests.ps1` sections Pester and Lint |
+| `rust-linux` | `cargo fmt --check`, clippy (`-D warnings`), `cargo nextest run` and `cargo test --doc` for `Native/pcai_core` with `--no-default-features --features server,ffi` | `Tests/Invoke-PortableTests.ps1` sections RustFmt, RustClippy, Rust |
+| `ci-gate` | fails unless the three jobs above succeeded | single check name for this workflow |
+
+**What it does not cover.** The Windows-only PowerShell modules (CIM/WMI, registry, drivers, network adapters,
+Hyper-V and WSL), the `PcaiNative` C# bridge (the runner image has no .NET SDK), CUDA builds and the NVIDIA stack.
+This is a bounded Linux subset, not the PowerShell suite: the repository stays Windows-first (see CLAUDE.md, "Platform
+scope"). No test was changed to make it pass on Linux. `Tests/linux-ci-pester.txt` lists only files that already pass
+there; 22 other files fail on Linux because they call Windows APIs.
+
+**Build environment on the runner.** `CARGO_INCREMENTAL=0` is set by the runner unit and repeated in the workflow:
+`.cargo/config.toml` enables incremental builds, and an incremental unit is never cached by sccache. The image's cargo
+config supplies `rustc-wrapper = sccache` and a persistent per-runner target directory, so the workflow calls `cargo`
+directly instead of `Tests/Invoke-PortableTests.ps1`, whose Rust sections set `RUSTC_WRAPPER` to an empty string. The
+last step prints `sccache --show-stats`. Details and measurements:
+`vigil-utils/docs/rust-build-acceleration.md`, "Runner job environment".
+
+**Trust boundary.** PC-AI is public and the runner is persistent. Fork pull requests are skipped by the job `if:`, but a
+fork can edit the workflow, so the repository setting "Approval for running fork pull request workflows" must be
+`all_external_contributors`. Check it before registering the runner:
+`gh api repos/David-Martel/PC-AI/actions/permissions/fork-pr-contributor-approval`.
+
 ## Artifacts and Local Outputs
 
 - Build and evaluation outputs are stored in `.pcai/` (gitignored but `rg`-searchable).

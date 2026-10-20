@@ -440,6 +440,9 @@ PowerShell modules, tests, and diagnostics are free to depend on Windows-only cm
 only where a Docker/WSL build, test, or deploy requirement demands it — never as a
 general portability target. Do not add cross-platform gates or "fix" tests to run on
 Linux; a Linux CI job that runs the PowerShell suite is a misconfiguration, not coverage.
+The one sanctioned exception is `linux-ci.yml` (owner direction 2026-10-20): a bounded subset on the vigil1 runner that
+runs only the Pester files already passing on Linux (`Tests/linux-ci-pester.txt`), the portable contracts and the Rust
+workspace. It changes no test and claims no Windows coverage; see CI-CD-GUIDE.md, "Linux self-hosted gate".
 
 **CI/CD Workflows (`.github/workflows/`):**
 | Workflow | Trigger |

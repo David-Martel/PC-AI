@@ -12,8 +12,10 @@ on:
       - 'Config/thunderbolt-peers.json'
       - 'Tools/SystemScripts/Networking/Configure-ThunderboltSwitchRoutes.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltRcloneMount.ps1'
+      - 'Tools/SystemScripts/Networking/Invoke-ThunderboltEnrolledPeer.ps1'
       - 'Tests/Portable/Test-ThunderboltBootReadiness.ps1'
       - 'Tests/Portable/Test-ThunderboltMountGate.ps1'
+      - 'Tests/Portable/Test-ThunderboltEnrolledPeer.ps1'
       - '.github/workflows/usb4-lifecycle.yml'
   workflow_dispatch:
 permissions:
@@ -37,6 +39,7 @@ jobs:
         run: |
           ./Tests/Portable/Test-ThunderboltBootReadiness.ps1
           ./Tests/Portable/Test-ThunderboltMountGate.ps1
+          ./Tests/Portable/Test-ThunderboltEnrolledPeer.ps1
       # Protects route/identity/custody decisions on both native backends.
       # Detects stale-edge deletion, foreign ownership mutation and CLI evidence leaks.
       # Needs standard Rust/MSVC host tools; no attached devices or privileged Apply.

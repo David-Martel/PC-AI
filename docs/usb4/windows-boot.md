@@ -65,3 +65,41 @@ The options follow the official [SFTP host-key contract](https://rclone.org/sftp
 and [outgoing source-bind semantics](https://rclone.org/docs/#bind-string), checked
 against installed rclone 1.75.1. Preserve the existing mount cache and unrelated
 drive tasks during deployment.
+
+## Enrolled Windows address leases
+
+The [partner reconciler](../../Tools/SystemScripts/Networking/Invoke-ThunderboltEnrolledPeer.ps1)
+consumes a fresh Linux `observe-current` record through source-bound, pinned SSH
+on a present Windows USB4 interface. The actual SSH socket, administrative
+node identity, enrolled controller pair, policy epoch and interface inventory
+must agree. Its second authenticated connection uses the derived global address
+pair. Management/LAN access never substitutes for either connection.
+
+`-DryRun` observes and plans without writing. `-Apply` requires an administrative
+`C:/ProgramData/pcai-usb4/windows-partners.json` allowlist and writes its private
+`windows-owned-edges.json` journal. The policy pins peer node/controller identities,
+minimum epoch, existing SSH identity/known-hosts paths, allowed local PnP root
+identities and a ULA /48. Linux remains the address derivation authority.
+No Windows IPAM table, default route, DNS, MTU or firewall change is introduced.
+
+Only new ActiveStore addresses and explicitly transferred exact allocations
+receive deletion custody. A persistent derived address is refused until its
+Active/Persistent preimages have been preserved and its exact custody migrated
+to ActiveStore. A pending intent left by a crash never authorizes deletion.
+An unowned existing address may be tested but remains unowned. Every receipt
+qualifies only its current root-namespace edge, never the entire topology.
+
+Committed leases expire after the policy TTL (30–300 seconds). Refresh identifies
+the local adapter by GUID, MAC and PnP root, allowing aliases and ifIndex values
+to change. A new GUID with an address stranded on an old interface returns an
+actionable custody refusal; an absent old identity never permits blind deletion.
+An expired exact owned allocation is withdrawn only after fresh identity and
+positive address readback. Failed new-address canaries require positive rollback
+absence before custody can be forgotten. Repeated tasks must run with IgnoreNew;
+the reconciler also holds a node-specific mutation mutex.
+
+The [portable partner controls](../../Tests/Portable/Test-ThunderboltEnrolledPeer.ps1)
+exercise proof freshness, socket identity, policy replay, foreign custody,
+same-GUID reindex, different-GUID conflict, persistent-store refusal, no-write
+planning and actual controller creation/rollback using host API fixtures. They
+do not certify physical unplug, resume, reboot or a different hardware link.

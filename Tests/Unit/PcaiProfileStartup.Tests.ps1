@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.2
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
 
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', '', Justification = 'Dedicated Pester race fixture crosses the real external-script mock boundary and is removed after every test.')]

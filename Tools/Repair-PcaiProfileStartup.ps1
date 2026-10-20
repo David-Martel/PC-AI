@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.2
 <#
 .SYNOPSIS
 Repairs known profile startup anchors with guarded byte-preserving custody.

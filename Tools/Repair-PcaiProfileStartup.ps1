@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-Repairs three known profile startup anchors with guarded byte-preserving custody.
+Repairs known profile startup anchors with guarded byte-preserving custody.
 .DESCRIPTION
 Defaults to a read-only plan. Apply requires the observed profile SHA256. Each
 anchor must occur exactly once or match the already-repaired form; unknown and
@@ -25,8 +25,11 @@ Plans without filesystem, environment or registry writes.
 .PARAMETER Help
 Displays usage; -h and --help are accepted.
 .NOTES
-Minimal sessions retain existing process/user agent-bus tokens, and skip secret
-backend/config fallback. Full sessions retain their existing fallback behavior.
+Minimal sessions retain existing process/user agent-bus tokens and an existing
+config bootstrap, while skipping secret backend fallback. Full sessions retain
+their existing fallback behavior.
+Automated sessions include redirected stdin and non-user-interactive hosts;
+human terminals, including -NoExit -Command, retain argument-based dispatch.
 Backups use stable rN names and contain private original bytes; never add them to Git.
 .EXAMPLE
 .\Tools\Repair-PcaiProfileStartup.ps1 -DryRun
@@ -198,14 +201,33 @@ elseif ($originalBytes.Length -ge 2 -and $originalBytes[0] -eq 255 -and $origina
 }
 $text = $encoding.GetString($originalBytes, $offset, $originalBytes.Length - $offset)
 Assert-ProfileParses -Text $text
-foreach ($dependency in @('Get-PreferredModulesRoot', 'Set-ProfileEnvFromUser')) {
-    if ([regex]::Matches($text, "(?m)^function (?:script:)?$([regex]::Escape($dependency))\s*\{").Count -ne 1) {
+$tokens = $null; $errors = $null
+$profileAst = [Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$errors)
+$profileFunctions = @($profileAst.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] }, $true))
+foreach ($dependency in @('Get-PreferredModulesRoot', 'Set-ProfileEnvFromUser', 'Test-ProfileNonInteractiveInvocation', 'Initialize-AgentBusAuthToken')) {
+    # PowerShell resolves function names without case sensitivity. Count every
+    # scope spelling and indentation, then admit only the known scope layouts.
+    $definitions = @($profileFunctions | Where-Object { ($_.Name -split ':')[-1] -ieq $dependency })
+    if ($definitions.Count -ne 1 -or $definitions[0].Name -notin @($dependency, "script:$dependency")) {
         throw "Unknown or duplicate profile dependency: $dependency"
     }
 }
 $newline = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
 if ($text.Replace("`r`n", '').Contains("`r")) { throw 'Unsupported profile line endings.' }
 $anchors = @(
+    @{
+        Name = 'AutomatedSessionClassification'
+        Old = ('$script:CommandLineArgs = [Environment]::GetCommandLineArgs()', '$script:HasNonInteractiveArgs = Test-ProfileNonInteractiveInvocation -HostArguments $script:CommandLineArgs') -join $newline
+        New = @'
+function script:Test-ProfileAutomatedSession {
+    param([string[]]$HostArguments, [bool]$UserInteractive, [bool]$InputRedirected)
+    # Classify before accelerator import; redirected stdin is automated even with -NoExit.
+    return (-not $UserInteractive -or $InputRedirected -or (Test-ProfileNonInteractiveInvocation -HostArguments $HostArguments))
+}
+$script:CommandLineArgs = [Environment]::GetCommandLineArgs()
+$script:HasNonInteractiveArgs = Test-ProfileAutomatedSession -HostArguments $script:CommandLineArgs -UserInteractive ([Environment]::UserInteractive) -InputRedirected ([Console]::IsInputRedirected)
+'@
+    },
     @{
         Name = 'ModulePathSkip'
         Old = 'Optimize-PSModulePath -AllowNetworkPaths:$script:AllowNetworkModulePath'
@@ -218,17 +240,57 @@ $anchors = @(
     },
     @{
         Name = 'MinimalTokenFallback'
-        Old = ('function script:Initialize-AgentBusAuthToken {', '    if (Set-ProfileEnvFromUser -Name ''AGENT_BUS_AUTH_TOKEN'') {', '        return $true', '    }', '', '    $secretValue = Get-ProfileSecretFromSecretManagement -Name @(') -join $newline
-        New = ('function script:Initialize-AgentBusAuthToken {', '    if (Set-ProfileEnvFromUser -Name ''AGENT_BUS_AUTH_TOKEN'') {', '        return $true', '    }', '', '    if ($script:ProfileLevel -eq ''minimal'') {', '        return $false', '    }', '', '    $secretValue = Get-ProfileSecretFromSecretManagement -Name @(') -join $newline
+        ScopeName = 'script:Initialize-AgentBusAuthToken'
+        Old = ('    if (Set-ProfileEnvFromUser -Name ''AGENT_BUS_AUTH_TOKEN'') {', '        return $true', '    }', '', '    $secretValue = Get-ProfileSecretFromSecretManagement -Name @(') -join $newline
+        New = ('    if (Set-ProfileEnvFromUser -Name ''AGENT_BUS_AUTH_TOKEN'') {', '        return $true', '    }', '', '    if ($script:ProfileLevel -eq ''minimal'') {', '        return $false', '    }', '', '    $secretValue = Get-ProfileSecretFromSecretManagement -Name @(') -join $newline
+        KnownPrefixes = @('function script:Initialize-AgentBusAuthToken {', @'
+function script:Initialize-AgentBusAuthToken {
+    $agentBusConfig = Join-Path $env:USERPROFILE '.config\agent-bus\config.json'
+    if (Test-FileFast $agentBusConfig) {
+        try {
+            $config = Get-Content -LiteralPath $agentBusConfig -Raw | ConvertFrom-Json
+            if (-not [string]::IsNullOrWhiteSpace([string]$config.auth_token)) {
+                $env:AGENT_BUS_AUTH_TOKEN = [string]$config.auth_token
+                return $true
+            }
+        } catch {
+            # Fall through to env and SecretManagement fallback
+        }
+    }
+'@)
     }
 )
 $changes = [Collections.Generic.List[string]]::new()
 foreach ($anchor in $anchors) {
+    if ($anchor.ContainsKey('ScopeName')) {
+        $tokens = $null; $errors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$errors)
+        $functions = @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and ($node.Name -split ':')[-1] -ieq ($anchor.ScopeName -split ':')[-1] }, $true))
+        if ($functions.Count -ne 1) { throw "Unknown or duplicate profile anchor: $($anchor.Name)" }
+        $extent = $functions[0].Extent
+        $scopeText = $extent.Text
+        $start = $scopeText.IndexOf('    if (Set-ProfileEnvFromUser -Name ''AGENT_BUS_AUTH_TOKEN'') {', [StringComparison]::Ordinal)
+        if ($start -lt 0) { throw "Unknown or duplicate profile anchor: $($anchor.Name)" }
+        $prefix = $scopeText.Substring(0, $start).Replace("`r`n", "`n").TrimEnd()
+        if (@($anchor.KnownPrefixes | Where-Object { $_.Replace("`r`n", "`n").TrimEnd() -ceq $prefix }).Count -ne 1) {
+            throw "Unknown or duplicate profile anchor: $($anchor.Name)"
+        }
+        $update = Update-UniqueProfileAnchor -Text $scopeText -Old $anchor.Old -New $anchor.New -Name $anchor.Name
+        $text = $text.Substring(0, $extent.StartOffset) + $update.Text + $text.Substring($extent.EndOffset)
+        if ($update.Changed) { $changes.Add($update.Name) }
+        continue
+    }
     $update = Update-UniqueProfileAnchor -Text $text -Old $anchor.Old -New $anchor.New -Name $anchor.Name
     $text = $update.Text
     if ($update.Changed) { $changes.Add($update.Name) }
 }
 Assert-ProfileParses -Text $text
+$tokens = $null; $errors = $null
+$repairedAst = [Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$errors)
+$automatedFunctions = @($repairedAst.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and ($node.Name -split ':')[-1] -ieq 'Test-ProfileAutomatedSession' }, $true))
+if ($automatedFunctions.Count -ne 1 -or $automatedFunctions[0].Name -cne 'script:Test-ProfileAutomatedSession') {
+    throw 'Unknown or duplicate profile anchor: AutomatedSessionClassification'
+}
 $body = $encoding.GetBytes($text)
 $newBytes = [byte[]]::new($offset + $body.Length)
 if ($offset) { [Array]::Copy($originalBytes, 0, $newBytes, 0, $offset) }
@@ -236,7 +298,7 @@ if ($offset) { [Array]::Copy($originalBytes, 0, $newBytes, 0, $offset) }
 $afterHash = Get-BytesSha256 -Bytes $newBytes
 $result = [ordered]@{ ProfilePath = $ProfilePath; BackupRoot = $BackupRoot; BackupRootRequired = $custody.Required; CustodyIssue = $custody.Issue; BeforeSha256 = $beforeHash; AfterSha256 = $afterHash; Changes = @($changes); State = 'Planned'; Receipt = $null }
 if ($changes.Count -eq 0) { $result.State = 'AlreadyApplied'; [pscustomobject]$result; return }
-if (-not $Apply -or -not $PSCmdlet.ShouldProcess($ProfilePath, 'Preserve private original bytes and apply three guarded startup repairs')) {
+if (-not $Apply -or -not $PSCmdlet.ShouldProcess($ProfilePath, 'Preserve private original bytes and apply guarded startup repairs')) {
     [pscustomobject]$result; return
 }
 if ($custody.Required) { throw $custody.Issue }

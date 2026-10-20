@@ -7,12 +7,49 @@ param()
 BeforeAll {
     $script:RepairTool = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'Tools/Repair-PcaiProfileStartup.ps1'
     $script:OriginalFixture = @'
-$script:ProfileLevel = 'minimal'
+function script:Test-ProfileNonInteractiveInvocation {
+    param([string[]]$HostArguments)
+    $hasNoExit = $false
+    for ($argumentIndex = 1; $argumentIndex -lt $HostArguments.Count; $argumentIndex++) {
+        switch -Regex ($HostArguments[$argumentIndex]) {
+            '^(?i)-noexit$' { $hasNoExit = $true; continue }
+            '^(?i)-(nologo|nol|noprofile|nop|sta|mta|login)$' { continue }
+            '^(?i)-(command|c)$' { return -not $hasNoExit }
+            '^(?i)-(file|f|encodedcommand|ec|e|noninteractive|noni|inputformat|inp|outputformat|o)$' { return $true }
+            # Skip values belonging to host options; never inspect command/file payloads.
+            '^(?i)-(workingdirectory|wd|configurationname|config|settingsfile|executionpolicy|ep|ex|windowstyle|w|version|v)$' { $argumentIndex++; continue }
+            # Implicit script operands and unknown switches retain conservative minimal startup.
+            default { return $true }
+        }
+    }
+    return $false
+}
+$script:CommandLineArgs = [Environment]::GetCommandLineArgs()
+$script:HasNonInteractiveArgs = Test-ProfileNonInteractiveInvocation -HostArguments $script:CommandLineArgs
+$script:ProfileLevel = 'full'
+$script:FastStartup = $false
+# Inert sentinels use the canonical accelerator and session-dispatch predicates.
+if ($script:FastStartup -or $script:HasNonInteractiveArgs) {
+    $script:FixtureAcceleratorImported = $false
+} else {
+    $script:FixtureAcceleratorImported = $true
+}
+if ($script:HasNonInteractiveArgs) {
+    $script:ProfileLevel = 'minimal'
+}
 function script:Get-PreferredModulesRoot {
     return 'C:\fixture-local-modules'
 }
 function script:Set-ProfileEnvFromUser {
-    param($Name)
+    param([Parameter(Mandatory)][string]$Name)
+    if (-not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($Name, 'Process'))) {
+        return $true
+    }
+    $value = [Environment]::GetEnvironmentVariable($Name, 'User')
+    if (-not [string]::IsNullOrWhiteSpace($value)) {
+        [Environment]::SetEnvironmentVariable($Name, $value, 'Process')
+        return $true
+    }
     return $false
 }
 function script:Optimize-PSModulePath {
@@ -40,12 +77,49 @@ function script:Initialize-AgentBusAuthToken {
 }
 # Keep unrelated profile text exactly as written: λ and 日本語.
 '@
+    $script:ConfigTokenPrefix = @'
+function script:Initialize-AgentBusAuthToken {
+    $agentBusConfig = Join-Path $env:USERPROFILE '.config\agent-bus\config.json'
+    if (Test-FileFast $agentBusConfig) {
+        try {
+            $config = Get-Content -LiteralPath $agentBusConfig -Raw | ConvertFrom-Json
+            if (-not [string]::IsNullOrWhiteSpace([string]$config.auth_token)) {
+                $env:AGENT_BUS_AUTH_TOKEN = [string]$config.auth_token
+                return $true
+            }
+        } catch {
+            # Fall through to env and SecretManagement fallback
+        }
+    }
+'@
     function Get-TestPatchedFunction {
         param([string]$Text, [string]$Name)
         $tokens = $null; $errors = $null
         $ast = [Management.Automation.Language.Parser]::ParseInput($Text, [ref]$tokens, [ref]$errors)
         $function = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $Name }, $true)
         return [scriptblock]::Create($function.Extent.Text)
+    }
+    function Invoke-TestProfileDispatch {
+        param([string]$Text, [string[]]$HostArguments, [bool]$UserInteractive, [bool]$InputRedirected, [switch]$ProbeCredentials, [hashtable]$UserValues = @{})
+        # Substitute only host observations, then execute the actual repaired code.
+        $fixture = $Text.Replace('[Environment]::GetCommandLineArgs()', '$HostArguments').Replace('[Environment]::UserInteractive', '$UserInteractive').Replace('[Console]::IsInputRedirected', '$InputRedirected')
+        if ($ProbeCredentials) {
+            $fixture = $fixture.Replace('[Environment]::GetEnvironmentVariable($Name, ''User'')', '$UserValues[$Name]')
+            $fixture += @'
+
+function Get-ProfileSecretFromSecretManagement { param($Name) throw 'Expensive secret fallback invoked' }
+[void](Set-ProfileEnvFromUser -Name 'CONTEXT7_API_KEY')
+[void](Initialize-AgentBusAuthToken)
+'@
+        }
+        $fixture += @'
+
+$script:FixtureFullInitialized = $false
+if ($script:ProfileLevel -eq 'minimal') { return }
+$script:FixtureFullInitialized = $true
+'@
+        & ([scriptblock]::Create($fixture))
+        [pscustomobject]@{ Level = $script:ProfileLevel; AcceleratorImported = $script:FixtureAcceleratorImported; FullInitialized = $script:FixtureFullInitialized }
     }
 }
 
@@ -59,6 +133,7 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
         $script:ExpectedHash = (Get-FileHash -LiteralPath $script:FixtureProfile).Hash
         $script:SavedModulePath = $env:PSModulePath
         $script:SavedBusToken = $env:AGENT_BUS_AUTH_TOKEN
+        $script:SavedContextKey = $env:CONTEXT7_API_KEY
         $script:SavedLocalAppData = $env:LOCALAPPDATA
         $script:SavedProgramData = $env:ProgramData
         $script:Parameters = @{ ProfilePath = $script:FixtureProfile; BackupRoot = $script:FixtureBackup }
@@ -72,6 +147,7 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
     AfterEach {
         $env:PSModulePath = $script:SavedModulePath
         $env:AGENT_BUS_AUTH_TOKEN = $script:SavedBusToken
+        $env:CONTEXT7_API_KEY = $script:SavedContextKey
         $env:LOCALAPPDATA = $script:SavedLocalAppData
         $env:ProgramData = $script:SavedProgramData
         Remove-Variable -Name PcaiProfileRaceFixture -Scope Global -ErrorAction SilentlyContinue
@@ -96,6 +172,142 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
         & $script:RepairTool -ProfilePath (Join-Path $TestDrive 'absent') --help | Should -Match '^Usage:'
     }
 
+    # Protects: automated sessions stop before interactive initialization.
+    # Detects: redirected/no-user dispatch regressions and broken human terminal routing.
+    # Needs: inert profile fixture, real guarded repair and injected host observations.
+    # Breadcrumb: Tools/Repair-PcaiProfileStartup.ps1; profile-repair-before.json and profile-repair-validation.json.
+    It 'classifies repaired dispatch before accelerator initialization: <Case>' -ForEach @(
+        @{ Case = 'stdin-only'; Arguments = @('pwsh'); UserInteractive = $true; InputRedirected = $true; Expected = 'minimal' }
+        @{ Case = 'service'; Arguments = @('pwsh'); UserInteractive = $false; InputRedirected = $false; Expected = 'minimal' }
+        @{ Case = 'human-terminal'; Arguments = @('pwsh'); UserInteractive = $true; InputRedirected = $false; Expected = 'full' }
+        @{ Case = 'human-noexit-command'; Arguments = @('pwsh', '-NoExit', '-Command', 'exit'); UserInteractive = $true; InputRedirected = $false; Expected = 'full' }
+        @{ Case = 'redirected-noexit'; Arguments = @('pwsh', '-NoExit', '-Command', 'exit'); UserInteractive = $true; InputRedirected = $true; Expected = 'minimal' }
+        @{ Case = 'command'; Arguments = @('pwsh', '-Command', 'payload'); UserInteractive = $true; InputRedirected = $false; Expected = 'minimal' }
+        @{ Case = 'file'; Arguments = @('pwsh', '-File', 'payload.ps1'); UserInteractive = $true; InputRedirected = $false; Expected = 'minimal' }
+        @{ Case = 'encoded'; Arguments = @('pwsh', '-EncodedCommand', 'payload'); UserInteractive = $true; InputRedirected = $false; Expected = 'minimal' }
+        @{ Case = 'noninteractive'; Arguments = @('pwsh', '-NonInteractive'); UserInteractive = $true; InputRedirected = $false; Expected = 'minimal' }
+        @{ Case = 'command-payload-noexit'; Arguments = @('pwsh', '-Command', '-NoExit'); UserInteractive = $true; InputRedirected = $false; Expected = 'minimal' }
+    ) {
+        $result = & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 $script:ExpectedHash -Confirm:$false
+        $observed = Invoke-TestProfileDispatch -Text ([IO.File]::ReadAllText($script:FixtureProfile)) -HostArguments $Arguments -UserInteractive $UserInteractive -InputRedirected $InputRedirected
+        $observed.Level | Should -BeExactly $Expected
+        $observed.AcceleratorImported | Should -Be ($Expected -eq 'full')
+        $observed.FullInitialized | Should -Be ($Expected -eq 'full')
+        $result.Changes | Should -Contain 'AutomatedSessionClassification'
+    }
+
+    # Protects: minimal Context7 and agent-bus credential bootstrap.
+    # Detects: lost process overrides, lost User hydration or expensive secret fallback.
+    # Needs: synthetic process/User values; never writes the real User environment.
+    # Breadcrumb: Tools/Repair-PcaiProfileStartup.ps1; profile-repair-validation.json, minimal credential cases.
+    It 'preserves minimal credential bootstrap without secret fallback: <Mode>' -ForEach @(
+        @{ Mode = 'process' }, @{ Mode = 'user' }, @{ Mode = 'missing' }
+    ) {
+        # Synthetic values only; no real credentials or User environment writes.
+        $processValue = 'fixture-process-' + [guid]::NewGuid().ToString('N')
+        $userValue = 'fixture-user-' + [guid]::NewGuid().ToString('N')
+        $env:AGENT_BUS_AUTH_TOKEN = if ($Mode -eq 'process') { $processValue } else { $null }
+        $env:CONTEXT7_API_KEY = if ($Mode -eq 'process') { $processValue } else { $null }
+        $userValues = if ($Mode -eq 'missing') { @{} } else { @{ AGENT_BUS_AUTH_TOKEN = $userValue; CONTEXT7_API_KEY = $userValue } }
+        $result = & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 $script:ExpectedHash -Confirm:$false
+        $observed = Invoke-TestProfileDispatch -Text ([IO.File]::ReadAllText($script:FixtureProfile)) -HostArguments @('pwsh') -UserInteractive $true -InputRedirected $true -ProbeCredentials -UserValues $userValues
+        $expectedValue = if ($Mode -eq 'process') { $processValue } elseif ($Mode -eq 'user') { $userValue } else { $null }
+        $env:AGENT_BUS_AUTH_TOKEN | Should -BeExactly $expectedValue
+        $env:CONTEXT7_API_KEY | Should -BeExactly $expectedValue
+        $observed.Level | Should -BeExactly 'minimal'
+        $observed.AcceleratorImported | Should -BeFalse
+        $observed.FullInitialized | Should -BeFalse
+        $result.State | Should -BeExactly 'Applied'
+    }
+
+    # Protects: exact known classifier custody before any writes.
+    # Detects: missing/duplicate anchors and case, indentation or scope aliases hiding helpers.
+    # Needs: disposable profile bytes and the maintained repair tool.
+    # Breadcrumb: Tools/Repair-PcaiProfileStartup.ps1; profile-repair-review-before.json and profile-repair-validation.json.
+    It 'fails closed before writes for classifier layout <Kind>' -ForEach @(
+        @{ Kind = 'missing' }, @{ Kind = 'duplicate' }, @{ Kind = 'unknown-helper' }, @{ Kind = 'duplicate-helper' }
+        @{ Kind = 'lowercase-helper' }, @{ Kind = 'indented-helper' }, @{ Kind = 'unqualified-helper' }
+        @{ Kind = 'global-helper' }, @{ Kind = 'local-helper' }, @{ Kind = 'private-helper' }
+    ) {
+        $anchor = '$script:HasNonInteractiveArgs = Test-ProfileNonInteractiveInvocation -HostArguments $script:CommandLineArgs'
+        $body = switch ($Kind) {
+            'missing' { $script:OriginalFixture.Replace($anchor, '$script:HasNonInteractiveArgs = $false') }
+            'duplicate' { $script:OriginalFixture + "`n" + '$script:CommandLineArgs = [Environment]::GetCommandLineArgs()' + "`n$anchor" }
+            'unknown-helper' { $script:OriginalFixture + "`nfunction script:Test-ProfileAutomatedSession { return `$false }" }
+            'duplicate-helper' { $script:OriginalFixture + "`nfunction script:Test-ProfileAutomatedSession { return `$false }`nfunction script:Test-ProfileAutomatedSession { return `$true }" }
+            'lowercase-helper' { $script:OriginalFixture + "`nfunction script:test-profileautomatedsession { return `$false }" }
+            'indented-helper' { $script:OriginalFixture + "`n function script:Test-ProfileAutomatedSession { return `$false }" }
+            'unqualified-helper' { $script:OriginalFixture + "`nfunction Test-ProfileAutomatedSession { return `$false }" }
+            'global-helper' { $script:OriginalFixture + "`nfunction GLOBAL:Test-ProfileAutomatedSession { return `$false }" }
+            'local-helper' { $script:OriginalFixture + "`nfunction local:Test-ProfileAutomatedSession { return `$false }" }
+            'private-helper' { $script:OriginalFixture + "`nfunction private:Test-ProfileAutomatedSession { return `$false }" }
+        }
+        [IO.File]::WriteAllText($script:FixtureProfile, $body)
+        $hash = (Get-FileHash -LiteralPath $script:FixtureProfile).Hash
+        { & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 $hash -Confirm:$false } | Should -Throw '*profile anchor*'
+        Test-Path -LiteralPath $script:FixtureBackup | Should -BeFalse
+        (Get-FileHash -LiteralPath $script:FixtureProfile).Hash | Should -BeExactly $hash
+    }
+
+    # Protects: known credential config preamble and unrelated function bytes.
+    # Detects: broad textual matching that patches another function or breaks idempotence.
+    # Needs: exact sanitized canonical config preamble plus a matching unrelated block.
+    # Breadcrumb: Tools/Repair-PcaiProfileStartup.ps1; profile-repair-live-plan.json and profile-repair-validation.json.
+    It 'preserves the exact known config bootstrap and scopes fallback matching to its function' {
+        # An identical block in another function must remain byte-identical.
+        $unrelated = @'
+function Other-TokenInitializer {
+    if (Set-ProfileEnvFromUser -Name 'AGENT_BUS_AUTH_TOKEN') {
+        return $true
+    }
+
+    $secretValue = Get-ProfileSecretFromSecretManagement -Name @('unrelated')
+}
+'@
+        $body = $script:OriginalFixture.Replace('function script:Initialize-AgentBusAuthToken {', $script:ConfigTokenPrefix) + "`n$unrelated"
+        [IO.File]::WriteAllText($script:FixtureProfile, $body)
+        $result = & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 (Get-FileHash -LiteralPath $script:FixtureProfile).Hash -Confirm:$false
+        $patched = [IO.File]::ReadAllText($script:FixtureProfile)
+        $patched.Contains($script:ConfigTokenPrefix) | Should -BeTrue
+        $patched.Contains($unrelated) | Should -BeTrue
+        (& $script:RepairTool @script:Parameters -DryRun).State | Should -BeExactly 'AlreadyApplied'
+        $result.State | Should -BeExactly 'Applied'
+    }
+
+    # Protects: refusal of unsupported credential bootstrap layouts.
+    # Detects: silent acceptance of a modified preamble before custody writes.
+    # Needs: disposable profile with an unknown bootstrap prefix.
+    # Breadcrumb: Tools/Repair-PcaiProfileStartup.ps1; profile-repair-validation.json, unknown preamble case.
+    It 'rejects an unknown credential preamble without private backup writes' {
+        $body = $script:OriginalFixture.Replace('function script:Initialize-AgentBusAuthToken {', "function script:Initialize-AgentBusAuthToken {`n    # Unknown bootstrap")
+        [IO.File]::WriteAllText($script:FixtureProfile, $body)
+        { & $script:RepairTool @script:Parameters -DryRun } | Should -Throw '*profile anchor: MinimalTokenFallback*'
+        Test-Path -LiteralPath $script:FixtureBackup | Should -BeFalse
+    }
+
+    # Protects: unique known dependencies under PowerShell name resolution.
+    # Detects: casing, indentation and scope aliases hiding overriding functions.
+    # Needs: disposable profile bytes; no live profile or environment changes.
+    # Breadcrumb: Tools/Repair-PcaiProfileStartup.ps1; profile-repair-review-before.json and profile-repair-validation.json.
+    It 'rejects aliased dependency <Dependency> using <Layout> before writes' -ForEach @(
+        foreach ($dependency in @('Get-PreferredModulesRoot', 'Set-ProfileEnvFromUser', 'Test-ProfileNonInteractiveInvocation', 'Initialize-AgentBusAuthToken')) {
+            foreach ($layout in @('lowercase', 'indented', 'global')) {
+                @{ Dependency = $dependency; Layout = $layout }
+            }
+        }
+    ) {
+        $declaration = switch ($Layout) {
+            'lowercase' { 'function script:' + $Dependency.ToLowerInvariant() + ' { return $false }' }
+            'indented' { ' function script:' + $Dependency + ' { return $false }' }
+            'global' { 'function GLOBAL:' + $Dependency.ToLowerInvariant() + ' { return $false }' }
+        }
+        [IO.File]::WriteAllText($script:FixtureProfile, $script:OriginalFixture + "`n$declaration")
+        $hash = (Get-FileHash -LiteralPath $script:FixtureProfile).Hash
+        { & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 $hash -Confirm:$false } | Should -Throw '*profile dependency*'
+        Test-Path -LiteralPath $script:FixtureBackup | Should -BeFalse
+        (Get-FileHash -LiteralPath $script:FixtureProfile).Hash | Should -BeExactly $hash
+    }
+
     It 'requires expected hash for apply and rejects stale hash without writes' {
         { & $script:RepairTool @script:Parameters -Apply } | Should -Throw '*requires ExpectedSha256*'
         { & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 ('0' * 64) } | Should -Throw '*does not match*'
@@ -106,7 +318,7 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
         $bytes = [IO.File]::ReadAllBytes($script:FixtureProfile)
         $result = & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 $script:ExpectedHash -Confirm:$false
         $result.State | Should -Be Applied
-        $result.Changes.Count | Should -Be 3
+        $result.Changes.Count | Should -Be 4
         $receipt = Get-Content -LiteralPath $result.Receipt -Raw | ConvertFrom-Json
         [Convert]::ToHexString([IO.File]::ReadAllBytes($receipt.BackupPath)) | Should -BeExactly ([Convert]::ToHexString($bytes))
         $receipt.BeforeSha256 | Should -BeExactly $script:ExpectedHash
@@ -121,7 +333,7 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
         @(Get-ChildItem -LiteralPath (Split-Path (Split-Path $result.Receipt -Parent) -Parent) -Directory).Count | Should -Be 1
     }
 
-    It 'preserves UTF16 BOM and CRLF bytes surrounding the three repairs' {
+    It 'preserves UTF16 BOM and CRLF bytes surrounding the guarded repairs' {
         $encoding = [Text.UnicodeEncoding]::new($false, $true)
         $body = $script:OriginalFixture.Replace("`r`n", "`n").Replace("`n", "`r`n")
         [IO.File]::WriteAllText($script:FixtureProfile, $body, $encoding)
@@ -277,7 +489,7 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
         $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
         $planned.BackupRoot | Should -BeExactly (Join-Path $env:ProgramData "PC_AI/ProfileRepairs/$sid")
         $planned.BackupRootRequired | Should -BeFalse
-        $planned.Changes.Count | Should -Be 3
+        $planned.Changes.Count | Should -Be 4
         Test-Path -LiteralPath $env:ProgramData | Should -BeFalse
         Test-Path -LiteralPath $env:LOCALAPPDATA | Should -BeFalse
         @(Get-ChildItem -LiteralPath $script:FixtureRoot -File -Recurse | Select-Object -ExpandProperty FullName) | Should -Be $beforeFiles

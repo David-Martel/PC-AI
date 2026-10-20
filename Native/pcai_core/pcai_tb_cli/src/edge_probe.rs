@@ -1,5 +1,8 @@
 //! Qualify enrolled edges through source-bound routing and pinned SSH evidence.
 use crate::{edge_observer::Observation, edge_policy::EdgePolicy};
+// Only the Linux probe and tests branch on peer platform; Windows builds would warn.
+#[cfg(any(target_os = "linux", test))]
+use crate::edge_policy::PeerPlatform;
 use anyhow::Result;
 #[cfg(any(target_os = "linux", test))]
 use anyhow::{ensure, Context};
@@ -53,6 +56,39 @@ fn validate_route(output: &str, interface: &str, local: &str, peer: &str) -> Res
         "Route must be unicast"
     );
     Ok(())
+}
+
+/// Remote evidence command for the peer's login shell: node id, blank line, then
+/// `local_ula port peer_ula 22` (the `SSH_CONNECTION` layout `validate_ssh` expects).
+#[cfg(any(target_os = "linux", test))]
+fn remote_command(platform: PeerPlatform, local: &str, peer: &str) -> String {
+    match platform {
+        PeerPlatform::Linux => "cat /etc/pcai-usb4/node-id; printf '\n'; printf '%s\n' \"$SSH_CONNECTION\"".into(),
+        PeerPlatform::Windows => {
+            use base64::{engine::general_purpose::STANDARD, Engine as _};
+            // WHY: sshd on Windows hands the string to PowerShell (or cmd), so POSIX
+            // quoting and `$SSH_CONNECTION` do not work. -EncodedCommand (base64 UTF-16LE)
+            // avoids every shell quoting layer; the interpolated values are canonical
+            // IPv6 text from the derived edge, never free-form input.
+            // Windows sshd may not export SSH_CONNECTION, so fall back to the established
+            // port-22 socket whose endpoints are exactly the enrolled pair. The first match
+            // is enough: any such socket proves the peer sees this source address, and
+            // `Select-Object -First 1` keeps the query bounded.
+            let script = format!(
+                "$ErrorActionPreference='Stop';\
+                 $id=(Get-Content -Raw -LiteralPath (Join-Path $env:ProgramData 'pcai-usb4\\node-id')).Trim();\
+                 [Console]::Out.Write($id+\"`n`n\");\
+                 if($env:SSH_CONNECTION){{[Console]::Out.Write($env:SSH_CONNECTION+\"`n\")}}\
+                 else{{$c=Get-NetTCPConnection -LocalPort 22 -State Established -LocalAddress '{peer}' -RemoteAddress '{local}'|Select-Object -First 1;\
+                 if($c){{[Console]::Out.Write(('{{0}} {{1}} {{2}} {{3}}' -f $c.RemoteAddress,$c.RemotePort,$c.LocalAddress,$c.LocalPort)+\"`n\")}}}}"
+            );
+            let utf16: Vec<u8> = script.encode_utf16().flat_map(u16::to_le_bytes).collect();
+            format!(
+                "powershell -NoProfile -NonInteractive -EncodedCommand {}",
+                STANDARD.encode(utf16)
+            )
+        }
+    }
 }
 
 #[cfg(any(target_os = "linux", test))]
@@ -119,6 +155,13 @@ pub fn qualify(policy: &EdgePolicy, observation: &Observation) -> Result<Value> 
         )?;
         ensure!(status == Some(0), "Source-bound route lookup failed");
         validate_route(&route, &observation.interface, &edge.local_ula, &edge.peer_ula)?;
+        let platform = policy
+            .peers
+            .iter()
+            .find(|p| p.node_id.eq_ignore_ascii_case(&edge.peer_node_id))
+            .map(|p| p.platform)
+            .context("Enrolled peer for edge not found")?;
+        let command = remote_command(platform, &edge.local_ula, &edge.peer_ula);
         let hostname = format!("HostName={}", edge.peer_ula);
         let bind = format!("BindAddress={}", edge.local_ula);
         let (status, evidence, stderr) = run_bounded_command_with_deadline(
@@ -148,7 +191,7 @@ pub fn qualify(policy: &EdgePolicy, observation: &Observation) -> Result<Value> 
                 "-o",
                 &bind,
                 alias,
-                "cat /etc/pcai-usb4/node-id; printf '\n'; printf '%s\n' \"$SSH_CONNECTION\"",
+                &command,
             ],
             10_000,
             16_384,
@@ -223,6 +266,50 @@ mod tests {
             "",
         ] {
             assert!(validate_ssh(bad, "node", LOCAL, PEER).is_err(), "{bad}");
+        }
+    }
+
+    // Protects the Windows remote command; detects quoting regressions and drift from the Linux command.
+    // Needs no processes; breadcrumb: edge_probe::remote_command.
+    #[test]
+    fn remote_command_is_posix_for_linux_and_encoded_powershell_for_windows() {
+        assert_eq!(
+            remote_command(PeerPlatform::Linux, LOCAL, PEER),
+            "cat /etc/pcai-usb4/node-id; printf '\n'; printf '%s\n' \"$SSH_CONNECTION\""
+        );
+        let command = remote_command(PeerPlatform::Windows, LOCAL, PEER);
+        let encoded = command
+            .strip_prefix("powershell -NoProfile -NonInteractive -EncodedCommand ")
+            .unwrap();
+        assert!(encoded
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'/' | b'=')));
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
+        let units: Vec<u16> = STANDARD
+            .decode(encoded)
+            .unwrap()
+            .chunks(2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
+        let script = String::from_utf16(&units).unwrap();
+        assert!(script.contains(r"Join-Path $env:ProgramData 'pcai-usb4\node-id'"));
+        assert!(script.contains("-LocalPort 22 -State Established -LocalAddress 'fd42::2' -RemoteAddress 'fd42::1'"));
+        assert!(script.contains("Select-Object -First 1"));
+    }
+
+    // Protects Windows parity; detects accepting wrong identity/endpoints once CRLF output from PowerShell is allowed.
+    // Needs fixed stdout fixtures; positive control: the good case must pass so the rejections are meaningful.
+    #[test]
+    fn windows_evidence_is_accepted_and_wrong_node_or_endpoints_are_rejected() {
+        validate_ssh("node\r\n\r\nfd42::1 49152 fd42::2 22\r\n", "node", LOCAL, PEER).unwrap();
+        for bad in [
+            "other\r\n\r\nfd42::1 49152 fd42::2 22\r\n",
+            "node\r\n\r\nfd42::3 49152 fd42::2 22\r\n",
+            "node\r\n\r\nfd42::1 49152 fd42::3 22\r\n",
+            // No established socket matched: the script prints only the node id.
+            "node\r\n\r\n",
+        ] {
+            assert!(validate_ssh(bad, "node", LOCAL, PEER).is_err(), "{bad:?}");
         }
     }
 }

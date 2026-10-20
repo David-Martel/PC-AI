@@ -44,7 +44,7 @@ namespace PcaiNative
             catch { return false; }
         });
 
-        public static bool IsAvailable => _isAvailable.Value;
+        public static bool IsAvailable => PcaiCore.IsAvailable && _isAvailable.Value;
 
         // ====================================================================
         // Memory Pressure Analysis

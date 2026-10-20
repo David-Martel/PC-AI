@@ -1,0 +1,24 @@
+{
+  "ObservedUtc": "2026-10-02T20:17:20.8227357Z",
+  "ProcessId": 102848,
+  "ExecutablePath": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\firmware-staging\\unpacked\\CalDigit-TBT-Firmware-Updater-v7.5\\CalDigit-TBT-Firmware-Updater-v7.exe",
+  "SignatureStatus": "Valid",
+  "Signer": "CN=CalDigit INC., O=CalDigit INC., L=Placentia, S=California, C=US, SERIALNUMBER=2883198, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=California, OID.1.3.6.1.4.1.311.60.2.1.3=US",
+  "WindowTitle": "CalDigit Thunderbolt Device Firmware Updater",
+  "PageText": [
+    "Please select the CalDigit device you want to update:"
+  ],
+  "DevicesListLabels": [
+    "ACASIS"
+  ],
+  "DevicesTreeOffscreen": true,
+  "NextButtonEnabled": false,
+  "Element5Visible": false,
+  "FirmwareImagePath": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\firmware-staging\\unpacked\\CalDigit-TBT-Firmware-Updater-v7.5\\Element5-Hub\\v71.71\\CalDigit_Element5_Hub_71.71.bin",
+  "FirmwareImageSha256": "E1AE72992A6B9F6DDDD3C11D97740660815641484262560B8D691DE9184BDF1B",
+  "FlashStarted": false,
+  "HubRestartRequested": false,
+  "DriverInstallationPerformed": false,
+  "CleanupStatus": "Owned updater closed gracefully; process exit verified",
+  "ClosedUtc": "2026-10-02T20:17:38.6514703Z"
+}

@@ -1,0 +1,45 @@
+{
+  "dpkg_audit": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "reboot_required": {
+    "exit": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "root_free": {
+    "exit": 0,
+    "stdout": "1B-blocks         Used        Avail\n1006450962432 786886336512 168364285952",
+    "stderr": ""
+  },
+  "gpu": {
+    "exit": 0,
+    "stdout": "NVIDIA RTX 5000 Ada Generation Laptop GPU, 580.178.04, 16376 MiB, 39",
+    "stderr": ""
+  },
+  "mounted_remote": {
+    "exit": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "release_upgrade": {
+    "exit": 0,
+    "stdout": "Checking for a new Ubuntu release\nNew release '24.04.5 LTS' available.\nRun 'do-release-upgrade' to upgrade to it.",
+    "stderr": ""
+  },
+  "third_party_sources": [
+    "/etc/apt/sources.list.d/vscode.sources",
+    "/etc/apt/sources.list.d/oem-sutton-barrett-meta.list",
+    "/etc/apt/sources.list.d/github-cli.list",
+    "/etc/apt/sources.list.d/pcai-llvm23.list",
+    "/etc/apt/sources.list.d/obsproject-ubuntu-obs-studio-jammy.list",
+    "/etc/apt/sources.list.d/ros2.sources"
+  ],
+  "graphical_sessions": [
+    "301 1002 cog       ",
+    "326 1002 cog       ",
+    " c1  128 gdm seat0 tty1"
+  ]
+}

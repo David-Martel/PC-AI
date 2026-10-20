@@ -1,0 +1,84 @@
+{
+  "at": "2026-10-02T21:32:08.287259+00:00",
+  "hostname": "millylaptop1",
+  "role": "external-development-operator-endpoint",
+  "productionFleetMember": false,
+  "repos": {
+    "vigil-spark": {
+      "path": "/home/cog/dev/repos/vigil-spark",
+      "head": "0201a3c9ac9fdc081dd1c481e2fd11748c25fd0b",
+      "status": ""
+    },
+    "vigil-utils": {
+      "path": "/home/cog/dev/repos/vigil-utils",
+      "head": "985181208e5d6255ce8e0416cb8bc08177c884a8",
+      "status": ""
+    },
+    "clarius": {
+      "path": "/home/cog/dev/repos/clarius",
+      "head": "25b335a3ba8362dc8df766a1f408d35b014b37d9",
+      "status": ""
+    },
+    "intublade": {
+      "path": "/home/cog/dev/repos/intublade",
+      "head": "cbe9b9a0fdd89085460853c9d474a5583f249630",
+      "status": ""
+    },
+    "git-guard": {
+      "path": "/home/cog/dev/repos/git-guard",
+      "head": "be8c50b7a634a832d4bd51ea6dcc4b30a8f14a53",
+      "status": ""
+    },
+    "agent-hub": {
+      "path": "/home/cog/dev/repos/agent-hub",
+      "head": "423ea72fa88510fbbe1bf2530b4b84dc06e635a8",
+      "status": ""
+    }
+  },
+  "standalonePythonMinors": [
+    "3.12",
+    "3.13",
+    "3.14"
+  ],
+  "systemPython": "3.10.12",
+  "rosHost": "Humble-existing",
+  "rosContainers": [
+    "Jazzy/Python3.12",
+    "Lyrical/Python3.14"
+  ],
+  "vigilProjectPython": "3.13",
+  "graphics": {
+    "gpu": "RTX5000AdaLaptop16GB",
+    "nvidia": "580.178.04",
+    "qt": "6.11.2",
+    "headlessNvidiaEgl": "actualredpixelpassed",
+    "nvencNvdec": "30framechecksumsCPUmatched",
+    "headedFleetUi": false
+  },
+  "backup": {
+    "destination": "asuspro13:/srv/vigil-backups/millylaptop1/20261002",
+    "state": "initial-copy-running",
+    "releaseUpgradeStarted": false
+  },
+  "ssh": {
+    "ownKey": "/home/cog/.ssh/id_ed25519_millylaptop1",
+    "publicFingerprint": "SHA256:Q8TfWZlua6drvph63F0OKkbvOBUgcCy3Pjv4TjUMlig",
+    "githubAuthKeyId": 165206189,
+    "githubSigningKeyId": 1216825,
+    "fleetOutbound": [
+      "asuspro13",
+      "spark-0060",
+      "spark-3066"
+    ],
+    "spark3066Transport": "ProxyJumpasuspro13"
+  },
+  "vpro": {
+    "enabled": true,
+    "provisioned": false,
+    "AMT": "16.1.25.2124"
+  },
+  "thunderbolt": {
+    "physicalPeer": false,
+    "preparedOnly": true
+  }
+}

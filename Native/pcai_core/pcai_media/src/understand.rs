@@ -365,7 +365,7 @@ impl UnderstandingPipeline {
                 // No prefix: [image | after]
                 match after_embeds {
                     Some(a) => Tensor::cat(&[&image_embeds, &a], 1).context("cat [image | after] failed")?,
-                    None => image_embeds.clone(),
+                    None => image_embeds,
                 }
             } else {
                 let before_tensor = Tensor::from_slice(before_ids, (1_usize, before_ids.len()), embed_device)
@@ -557,7 +557,7 @@ fn apply_repetition_penalty(logits: &Tensor, generated_ids: &[u32], penalty: f64
     }
 
     // Transfer logits to CPU for scalar modification, then move back.
-    let device = logits.device().clone();
+    let device = logits.device();
     let mut logits_vec: Vec<f32> = logits
         .to_dtype(DType::F32)
         .context("repetition_penalty: dtype cast")?
@@ -583,7 +583,7 @@ fn apply_repetition_penalty(logits: &Tensor, generated_ids: &[u32], penalty: f64
         }
     }
 
-    Tensor::from_slice(&logits_vec, logits.dims(), &device).context("repetition_penalty: rebuild tensor")
+    Tensor::from_slice(&logits_vec, logits.dims(), device).context("repetition_penalty: rebuild tensor")
 }
 
 /// Greedy argmax: return the index of the maximum logit in the first row.
@@ -640,6 +640,36 @@ mod tests {
     use super::*;
     use candle_core::Device;
     use image::{DynamicImage, RgbImage};
+
+    #[test]
+    fn test_repetition_penalty_preserves_values_and_device() {
+        let logits = Tensor::from_slice(&[-4_f32, 4., 3.], (1, 3), &Device::Cpu).expect("test logits should construct");
+        let penalized =
+            apply_repetition_penalty(&logits, &[0, 1, 1, 99], 2.).expect("valid repetition penalty should succeed");
+        assert_eq!(penalized.dims(), &[1, 3]);
+        assert!(matches!(penalized.device(), Device::Cpu));
+        assert_eq!(
+            penalized.to_vec2::<f32>().expect("penalized logits should be readable"),
+            vec![vec![-8., 2., 3.]]
+        );
+        assert_eq!(
+            logits.to_vec2::<f32>().expect("input logits should remain readable"),
+            vec![vec![-4., 4., 3.]]
+        );
+    }
+
+    #[test]
+    fn test_repetition_penalty_noop_preserves_logits() {
+        let logits = Tensor::from_slice(&[-4_f32, 4., 3.], (1, 3), &Device::Cpu).expect("test logits should construct");
+        for (ids, penalty) in [(&[][..], 2.), (&[0, 1][..], 1.)] {
+            let unchanged =
+                apply_repetition_penalty(&logits, ids, penalty).expect("no-op repetition penalty should succeed");
+            assert_eq!(
+                unchanged.to_vec2::<f32>().expect("unchanged logits should be readable"),
+                vec![vec![-4., 4., 3.]]
+            );
+        }
+    }
 
     #[test]
     fn test_require_vision_tower_errors_when_missing() {

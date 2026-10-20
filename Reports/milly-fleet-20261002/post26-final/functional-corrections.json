@@ -1,0 +1,147 @@
+{
+  "observedUtc": "2026-10-03T01:41:33.809046+00:00",
+  "scope": "Corrections to harness module path/container shell quoting/duplicate -M; original failures retained",
+  "checks": [
+    {
+      "name": "vigil-source-widget",
+      "argv": [
+        "/home/cog/.local/share/vigil-endpoint/ui-py313/bin/python",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/widget/validate-widget.py"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"schema_version\": \"1.0\",\n  \"timestamp_utc\": \"2026-10-03T01:41:31.808880+00:00\",\n  \"host\": \"millylaptop1\",\n  \"python\": \"3.13.16\",\n  \"pyside6\": \"6.11.2\",\n  \"platform\": \"offscreen\",\n  \"source_commit\": \"0201a3c9ac9fdc081dd1c481e2fd11748c25fd0b\",\n  \"source_hashes\": {\n    \"src/display/display/cardiac_capture_status.py\": \"310dd0969e449d947940e9f964c3869a56dc22bcba24067c9a3985b62824cf46\",\n    \"src/display/display/display_surfaces.py\": \"67091863d6ec37c5c8b8211cf8ced80c896b82df3cb124b3299146c660418f2b\",\n    \"src/display/display/vigil_widgets/CardiacCaptureStatusWidget.py\": \"918da3bf891ed77c59f288ab252cc5b7ad410d033ca3b7b793bc70eb8219c046\",\n    \"src/display/display/vigil_widgets/VigilWidget.py\": \"244531b5da8740972b0076db05b63557386d727f109d74dfd3dc5ca6ed1b915c\"\n  },\n  \"render_assertions\": 10,\n  \"render_states\": [\n    {\n      \"progress\": 50,\n      \"state\": \"capturing\",\n      \"fill_pixel\": \"#3478dc\",\n      \"marker_column\": 299,\n      \"image\": \"capture-capturing.png\",\n      \"image_sha256\": \"a67da32b855c831a55936bd203c066e67a9088fd90eafc93c307a8f85276052e\"\n    },\n    {\n      \"progress\": 80,\n      \"state\": \"ok\",\n      \"fill_pixel\": \"#2ea043\",\n      \"marker_column\": 299,\n      \"image\": \"capture-ok.png\",\n      \"image_sha256\": \"d204452477bd7e5b0c1bdc99642b8624199ae968da641d6f49b54e8a5e21c915\"\n    },\n    {\n      \"progress\": 100,\n      \"state\": \"complete\",\n      \"fill_pixel\": \"#46c85a\",\n      \"marker_column\": 299,\n      \"image\": \"capture-complete.png\",\n      \"image_sha256\": \"129681aaee3e0f99f283a2a5e572f70e24ae5f5e801b5d1ca93befab2c6eb323\"\n    }\n  ],\n  \"sunshine_tcp\": [\n    {\n      \"host\": \"192.168.50.2\",\n      \"port\": 47984,\n      \"tcp\": \"unreachable\",\n      \"error\": \"timed out\"\n    },\n    {\n      \"host\": \"192.168.50.2\",\n      \"port\": 47989,\n      \"tcp\": \"unreachable\",\n      \"error\": \"timed out\"\n    },\n    {\n      \"host\": \"192.168.50.2\",\n      \"port\": 48010,\n      \"tcp\": \"unreachable\",\n      \"error\": \"timed out\"\n    }\n  ],\n  \"ros_domain_id\": 231,\n  \"ros_localhost_only\": true,\n  \"rclpy_imported\": false,\n  \"scope\": \"Actual VIGIL source-controlled Qt progress widget only; offscreen synthetic states.\",\n  \"not_validated\": [\n    \"complete ROS operator UI\",\n    \"paired remote stream\",\n    \"physical GUI output\",\n    \"input or reconnect\",\n    \"procedure/projector continuity\",\n    \"HIL\"\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "jazzy-container-isolated",
+      "argv": [
+        "podman",
+        "run",
+        "--rm",
+        "--pull=never",
+        "--network=none",
+        "-e",
+        "ROS_DOMAIN_ID=231",
+        "docker.io/library/ros@sha256:066420e07f60aa18262f2479981def87ebcfcec42eefb0c0c57c4a46098348ca",
+        "bash",
+        "-c",
+        "source /opt/ros/jazzy/setup.bash; exec python3 -c 'import sys,rclpy; rclpy.init(); n=rclpy.create_node(\"isolated_milly_qa\"); n.destroy_node(); rclpy.shutdown(); print(sys.version.split()[0])'"
+      ],
+      "exit": 0,
+      "stdout": "3.12.3\n",
+      "stderr": "time=\"2026-10-02T21:41:31-04:00\" level=warning msg=\"The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.\"\n"
+    },
+    {
+      "name": "lyrical-container-isolated",
+      "argv": [
+        "podman",
+        "run",
+        "--rm",
+        "--pull=never",
+        "--network=none",
+        "-e",
+        "ROS_DOMAIN_ID=231",
+        "docker.io/library/ros@sha256:f79cd486fa218596747c45d00ca42101b0303fc6d94ed5adb72145cd6f54b86c",
+        "bash",
+        "-c",
+        "source /opt/ros/lyrical/setup.bash; exec python3 -c 'import sys,rclpy; rclpy.init(); n=rclpy.create_node(\"isolated_milly_qa\"); n.destroy_node(); rclpy.shutdown(); print(sys.version.split()[0])'"
+      ],
+      "exit": 0,
+      "stdout": "3.14.4\n",
+      "stderr": "time=\"2026-10-02T21:41:32-04:00\" level=warning msg=\"The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.\"\n"
+    },
+    {
+      "name": "ssh-master-start",
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        "ForwardAgent=no",
+        "-o",
+        "Compression=no",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master-corrected",
+        "-o",
+        "ControlMaster=yes",
+        "-o",
+        "ControlPersist=20",
+        "-Nf",
+        "asuspro13"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "ssh-master-check",
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        "ForwardAgent=no",
+        "-o",
+        "Compression=no",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master-corrected",
+        "-O",
+        "check",
+        "asuspro13"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Master running (pid=11356)\n"
+    },
+    {
+      "name": "ssh-reused-hostname",
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        "ForwardAgent=no",
+        "-o",
+        "Compression=no",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master-corrected",
+        "-vv",
+        "asuspro13",
+        "hostname"
+      ],
+      "exit": 0,
+      "stdout": "asuspro13\n",
+      "stderr": "debug1: OpenSSH_10.2p1 Ubuntu-2ubuntu3.6, OpenSSL 3.5.5 27 Jan 2026\ndebug1: Reading configuration data /home/cog/.ssh/config\ndebug1: Reading configuration data /home/cog/.ssh/vigil-transport.conf\ndebug1: /home/cog/.ssh/vigil-transport.conf line 3: Applying options for asuspro13\ndebug1: Reading configuration data /home/cog/.ssh/vigil-fleet.conf\ndebug1: /home/cog/.ssh/vigil-fleet.conf line 1: Applying options for asuspro13\ndebug1: /home/cog/.ssh/vigil-fleet.conf line 14: Applying options for asuspro13\ndebug1: Reading configuration data /etc/ssh/ssh_config\ndebug1: Reading configuration data /etc/ssh/ssh_config.d/20-systemd-ssh-proxy.conf\ndebug1: /etc/ssh/ssh_config line 21: Applying options for *\ndebug2: resolve_canonicalize: hostname 192.168.50.2 is address\ndebug1: auto-mux: Trying existing master at '/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master-corrected'\ndebug2: fd 3 setting O_NONBLOCK\ndebug2: mux_client_hello_exchange: master version 4\ndebug1: mux_client_request_session: master session id: 2\ndebug2: Received exit status from master 0\n"
+    },
+    {
+      "name": "ssh-owned-master-exit",
+      "argv": [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        "ForwardAgent=no",
+        "-o",
+        "Compression=no",
+        "-S",
+        "/home/cog/.cache/pcai/fleet-backup/maintenance/final-validation/ssh-master-corrected",
+        "-O",
+        "exit",
+        "asuspro13"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Exit request sent.\n"
+    }
+  ],
+  "actualReuseVerified": true,
+  "allExitZero": true
+}

@@ -1,0 +1,417 @@
+{
+  "host": "millylaptop1",
+  "observed_utc": "2026-10-02T20:59:25.162794+00:00",
+  "installation_root": "/home/cog/.local/opt/vigil-tools",
+  "versions": {
+    "uv": {
+      "path": "/home/cog/.local/bin/uv",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/uv/0.12.22/uv",
+      "binary_sha256": "2536e6332d029bfc7b3d971fe40d0daab841a0b066e2ee482fee6ce3e035b037",
+      "version_output": "uv 0.12.22 (x86_64-unknown-linux-musl)"
+    },
+    "uvx": {
+      "path": "/home/cog/.local/bin/uvx",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/uv/0.12.22/uvx",
+      "binary_sha256": "3c9fcfd26e8db73cfebaf4ba8e73f31ed332906e0d31e479f2ed637b34ac4dfa",
+      "version_output": "uvx 0.12.22 (x86_64-unknown-linux-musl)"
+    },
+    "gh": {
+      "path": "/usr/bin/gh",
+      "resolved_path": "/usr/bin/gh",
+      "binary_sha256": "7469124f706944133d6a169691dd1c6c3511b12e85878d255e044e2948df4c9b",
+      "version_output": "gh version 2.102.0 (2026-09-30)\nhttps://github.com/cli/cli/releases/tag/v2.102.0"
+    },
+    "ninja": {
+      "path": "/home/cog/.local/bin/ninja",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/ninja/1.13.2/ninja",
+      "binary_sha256": "607e668f90dd6cd82e1a42ae572647ad1b1fd43063964295b9547836d8c15d99",
+      "version_output": "1.13.2"
+    },
+    "sccache": {
+      "path": "/home/cog/.local/bin/sccache",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/sccache/0.18.0/sccache",
+      "binary_sha256": "973cb15f6a986d84ca334bbed3bbe2eb8f1ee8fd81bf9e115b8539a293bf8d59",
+      "version_output": "sccache 0.18.0"
+    },
+    "cargo-nextest": {
+      "path": "/home/cog/.local/bin/cargo-nextest",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/cargo-nextest/0.9.146/cargo-nextest",
+      "binary_sha256": "c38a2df61834a9d19e95c6a39e084b482f0dce555829a19b8348f64360586ecc",
+      "version_output": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: x86_64-unknown-linux-musl"
+    },
+    "just": {
+      "path": "/home/cog/.local/bin/just",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/just/1.58.0/just",
+      "binary_sha256": "3ad66571feae522db2cad31b9613bf21035b8a06d2738d6fc8fe6089856f2042",
+      "version_output": "just 1.58.0"
+    },
+    "ruff": {
+      "path": "/home/cog/.local/bin/ruff",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/uv-tools/ruff/bin/ruff",
+      "binary_sha256": "14704de5ea0d07038512de127bd52d6a169fb70bd70ddfa25bf39e21fed6b2b6",
+      "version_output": "ruff 0.16.10"
+    },
+    "ty": {
+      "path": "/home/cog/.local/bin/ty",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/uv-tools/ty/bin/ty",
+      "binary_sha256": "16f565f7578d58c017bf00caf2f41db3e6cc5e7469e5fe439a5fc322b159d69a",
+      "version_output": "ty 0.0.84"
+    },
+    "basedpyright": {
+      "path": "/home/cog/.local/bin/basedpyright",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/uv-tools/basedpyright/bin/basedpyright",
+      "binary_sha256": "735987054936cc2dfd6072c0e34d1964b8ae9a96fb3aa667b5c04ddd42b3bb37",
+      "version_output": "basedpyright 1.40.1\nbased on pyright 1.1.414"
+    },
+    "pytest": {
+      "path": "/home/cog/.local/bin/pytest",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/uv-tools/pytest/bin/pytest",
+      "binary_sha256": "3dd518b5110bfecfdbf8ed19ea5517733a9d4ed1a18997207d7b2a0195f79bc5",
+      "version_output": "pytest 9.1.1"
+    },
+    "cmake": {
+      "path": "/home/cog/.local/bin/cmake",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/uv-tools/cmake/bin/cmake",
+      "binary_sha256": "2b37373aab8695d95d43b53648dd644b371ab9e559c55d08383dbbf40b2b478d",
+      "version_output": "cmake version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake)."
+    },
+    "cpack": {
+      "path": "/home/cog/.local/bin/cpack",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/uv-tools/cmake/bin/cpack",
+      "binary_sha256": "db62d9a7170e4ad30947d34c88364504ee1e2004df56d8acd08071d712756d5f",
+      "version_output": "cpack version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake)."
+    },
+    "ctest": {
+      "path": "/home/cog/.local/bin/ctest",
+      "resolved_path": "/home/cog/.local/opt/vigil-tools/uv-tools/cmake/bin/ctest",
+      "binary_sha256": "99a5ae79d79cebc7673679dbcbfe6327272d8d75cc58470470c4ab9727ee5d14",
+      "version_output": "ctest version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake)."
+    }
+  },
+  "native": [
+    {
+      "name": "uv",
+      "version": "0.12.22",
+      "upstream": "https://github.com/astral-sh/uv/releases/download/0.12.22/uv-x86_64-unknown-linux-musl.tar.gz",
+      "archive_sha256": "a50fd68c653b0cfb1c85e0a7db62cb78cf5c22b6f3dcf3ae173e5f222d084470",
+      "binary_sha256": "2536e6332d029bfc7b3d971fe40d0daab841a0b066e2ee482fee6ce3e035b037",
+      "path": "/home/cog/.local/opt/vigil-tools/uv/0.12.22/uv",
+      "link": "/home/cog/.local/bin/uv",
+      "reused_from_asus": false,
+      "version_output": "uv 0.12.22 (x86_64-unknown-linux-musl)",
+      "help_exit_code": 0
+    },
+    {
+      "name": "uvx",
+      "version": "0.12.22",
+      "upstream": "https://github.com/astral-sh/uv/releases/download/0.12.22/uv-x86_64-unknown-linux-musl.tar.gz",
+      "archive_sha256": "a50fd68c653b0cfb1c85e0a7db62cb78cf5c22b6f3dcf3ae173e5f222d084470",
+      "binary_sha256": "3c9fcfd26e8db73cfebaf4ba8e73f31ed332906e0d31e479f2ed637b34ac4dfa",
+      "path": "/home/cog/.local/opt/vigil-tools/uv/0.12.22/uvx",
+      "link": "/home/cog/.local/bin/uvx",
+      "reused_from_asus": false,
+      "version_output": "uvx 0.12.22 (x86_64-unknown-linux-musl)",
+      "help_exit_code": 0
+    },
+    {
+      "name": "ninja",
+      "version": "1.13.2",
+      "upstream": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-linux.zip",
+      "archive_sha256": "5749cbc4e668273514150a80e387a957f933c6ed3f5f11e03fb30955e2bbead6",
+      "binary_sha256": "607e668f90dd6cd82e1a42ae572647ad1b1fd43063964295b9547836d8c15d99",
+      "path": "/home/cog/.local/opt/vigil-tools/ninja/1.13.2/ninja",
+      "link": "/home/cog/.local/bin/ninja",
+      "reused_from_asus": true,
+      "version_output": "1.13.2",
+      "help_exit_code": 1
+    },
+    {
+      "name": "sccache",
+      "version": "0.18.0",
+      "upstream": "https://github.com/mozilla/sccache/releases/download/v0.18.0/sccache-v0.18.0-x86_64-unknown-linux-musl.tar.gz",
+      "archive_sha256": "45f1447fbe231e3037bde351ef70677dd212216c8d62ae7ca409fecc4d6acc89",
+      "binary_sha256": "973cb15f6a986d84ca334bbed3bbe2eb8f1ee8fd81bf9e115b8539a293bf8d59",
+      "path": "/home/cog/.local/opt/vigil-tools/sccache/0.18.0/sccache",
+      "link": "/home/cog/.local/bin/sccache",
+      "reused_from_asus": true,
+      "version_output": "sccache 0.18.0",
+      "help_exit_code": 0
+    },
+    {
+      "name": "cargo-nextest",
+      "version": "0.9.146",
+      "upstream": "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.146/cargo-nextest-0.9.146-x86_64-unknown-linux-musl.tar.gz",
+      "archive_sha256": "b64617e8640624e8f9ba99819e37d7971154e97836d7ae4774fed4715501a6aa",
+      "binary_sha256": "c38a2df61834a9d19e95c6a39e084b482f0dce555829a19b8348f64360586ecc",
+      "path": "/home/cog/.local/opt/vigil-tools/cargo-nextest/0.9.146/cargo-nextest",
+      "link": "/home/cog/.local/bin/cargo-nextest",
+      "reused_from_asus": false,
+      "version_output": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: x86_64-unknown-linux-musl",
+      "help_exit_code": 0
+    },
+    {
+      "name": "just",
+      "version": "1.58.0",
+      "upstream": "https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-x86_64-unknown-linux-musl.tar.gz",
+      "archive_sha256": "4a5cc2f53e6f0f8c59092a6cc38291eb729d46a7dd95d3ae582008881b84931d",
+      "binary_sha256": "3ad66571feae522db2cad31b9613bf21035b8a06d2738d6fc8fe6089856f2042",
+      "path": "/home/cog/.local/opt/vigil-tools/just/1.58.0/just",
+      "link": "/home/cog/.local/bin/just",
+      "reused_from_asus": false,
+      "version_output": "just 1.58.0",
+      "help_exit_code": 0
+    },
+    {
+      "name": "gh",
+      "path": "/usr/bin/gh",
+      "binary_sha256": "7469124f706944133d6a169691dd1c6c3511b12e85878d255e044e2948df4c9b",
+      "version_output": "gh version 2.102.0 (2026-09-30)\nhttps://github.com/cli/cli/releases/tag/v2.102.0",
+      "preserved_system_binary": true
+    }
+  ],
+  "python": [
+    {
+      "version": "3.12.15",
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.12.15-linux-x86_64-gnu/bin/python3.12",
+      "binary_sha256": "9b6fd06e487935c92477cb47cabbda8d814cda44823a5159eddf791178afe7d0",
+      "upstream": "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.12.15%2B20261001-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "archive_sha256": "7bb1659e3235077b7f63d5b6eb6ce653c6fcd6c5041e9d5f73b42ce10421464d",
+      "archive_and_binary_verified": true
+    },
+    {
+      "version": "3.13.16",
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.13.16-linux-x86_64-gnu/bin/python3.13",
+      "binary_sha256": "f8188f8dec8f4ae9865dc6789323327c50bb275a5a301373d675464fdbbf933f",
+      "upstream": "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.13.16%2B20261001-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "archive_sha256": "ffcb50e716789d1a6e1db5e745d4d194ac8ed9b015ccf5eabcaccb179a25e4a8",
+      "archive_and_binary_verified": true
+    },
+    {
+      "version": "3.14.8",
+      "path": "/home/cog/.local/opt/vigil-tools/python/cpython-3.14.8-linux-x86_64-gnu/bin/python3.14",
+      "binary_sha256": "4b67d7e58e4e3f58339106f9192dbd66421608dc2fcc6a705b20115ba588232b",
+      "upstream": "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.14.8%2B20261001-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "archive_sha256": "b373a4a4e4e70fc05f368c9b53d7738bf37637682b650d96c742805d2da26c32",
+      "archive_and_binary_verified": true
+    }
+  ],
+  "python315": "Skipped: python.org labels 3.15 prerelease; no experimental install",
+  "python_metadata_upstream": "https://raw.githubusercontent.com/astral-sh/uv/0.12.22/crates/uv-python/download-metadata.json",
+  "packages": [
+    {
+      "tool_environment": "ruff",
+      "name": "ruff",
+      "version": "0.16.10",
+      "record_sha256": "d8660128b63166b44c8cad0d812097dfc0b6c487851b1956e7ad2616b504b6fb",
+      "hashed_installed_files_verified": 10,
+      "upstream_matching_wheels": [
+        {
+          "filename": "ruff-0.16.10-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+          "url": "https://files.pythonhosted.org/packages/e4/03/17234145f302a645a123e8c3bb2411ecf4669fbc350de3b0d803230a1729/ruff-0.16.10-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+          "sha256": "f33f43a864a8483eebd160e713336c8bab02c934feaff0a33cf5ccb41546d09a"
+        }
+      ]
+    },
+    {
+      "tool_environment": "ty",
+      "name": "ty",
+      "version": "0.0.84",
+      "record_sha256": "0a97a01833fc5287d73f91b2d5c42ce0070b126a0464c813812214a7c628409d",
+      "hashed_installed_files_verified": 11,
+      "upstream_matching_wheels": [
+        {
+          "filename": "ty-0.0.84-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+          "url": "https://files.pythonhosted.org/packages/60/d5/32cd67aedb271f006e716ad093806c96c5d7e2af86be8255469dbd3d76c8/ty-0.0.84-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+          "sha256": "af17eb391ae3027fed9be1780bea555c2b8a25ba68e184c627b4981b2c9eaab7"
+        }
+      ]
+    },
+    {
+      "tool_environment": "basedpyright",
+      "name": "basedpyright",
+      "version": "1.40.1",
+      "record_sha256": "127564376b8b85934de410b2f6bd15b3ce6acf46fb199fc93ebb5a04d9897b9c",
+      "hashed_installed_files_verified": 5430,
+      "upstream_matching_wheels": [
+        {
+          "filename": "basedpyright-1.40.1-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/b2/84/c1e1e845d0453253a98d1ba188d68597f0ba7e552eeabea514d9395d418a/basedpyright-1.40.1-py3-none-any.whl",
+          "sha256": "222dc0382caf9816eb23a27cb7059fa96356ddc500b3b7b306072848fd650244"
+        }
+      ]
+    },
+    {
+      "tool_environment": "basedpyright",
+      "name": "nodejs-wheel-binaries",
+      "version": "24.19.0",
+      "record_sha256": "5b9983078a15e58a45d88a1229452d0c5b88af928dddef11fa5576322ff32a88",
+      "hashed_installed_files_verified": 4717,
+      "upstream_matching_wheels": [
+        {
+          "filename": "nodejs_wheel_binaries-24.19.0-py2.py3-none-manylinux_2_28_x86_64.whl",
+          "url": "https://files.pythonhosted.org/packages/f4/89/6631d0982353da1bb7bc00bb1988f702822c62b42634f57999ee53b5c337/nodejs_wheel_binaries-24.19.0-py2.py3-none-manylinux_2_28_x86_64.whl",
+          "sha256": "4196a947bcc883f2003ab101762d729f3e99b5e86b75bd09151563403e2eceb8"
+        }
+      ]
+    },
+    {
+      "tool_environment": "pytest",
+      "name": "pytest",
+      "version": "9.1.1",
+      "record_sha256": "79c2a30b241d52110b9a1b501461951dc0e79e491605b12ab5aff177943f0a7a",
+      "hashed_installed_files_verified": 92,
+      "upstream_matching_wheels": [
+        {
+          "filename": "pytest-9.1.1-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl",
+          "sha256": "37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c"
+        }
+      ]
+    },
+    {
+      "tool_environment": "pytest",
+      "name": "pluggy",
+      "version": "1.6.0",
+      "record_sha256": "a42a63bcba12ddb7e7db19158c8d05d8fc41d51f48686b411ad3a0213fbd7721",
+      "hashed_installed_files_verified": 15,
+      "upstream_matching_wheels": [
+        {
+          "filename": "pluggy-1.6.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl",
+          "sha256": "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"
+        }
+      ]
+    },
+    {
+      "tool_environment": "pytest",
+      "name": "iniconfig",
+      "version": "2.3.0",
+      "record_sha256": "4b560f65489a4dc0f32d8403da676d2e6338c371fe844160934b3fe469785185",
+      "hashed_installed_files_verified": 11,
+      "upstream_matching_wheels": [
+        {
+          "filename": "iniconfig-2.3.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl",
+          "sha256": "f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12"
+        }
+      ]
+    },
+    {
+      "tool_environment": "pytest",
+      "name": "Pygments",
+      "version": "2.21.0",
+      "record_sha256": "41fbc7844ed1292155c4076eb45abd9b3b15f4819604d1a8d548505debbaead3",
+      "hashed_installed_files_verified": 351,
+      "upstream_matching_wheels": [
+        {
+          "filename": "pygments-2.21.0-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl",
+          "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9"
+        }
+      ]
+    },
+    {
+      "tool_environment": "pytest",
+      "name": "packaging",
+      "version": "26.3",
+      "record_sha256": "1b8655965b0d83e9a067fd7f84b977bd1e117e0fb9f2874b2572781bdc9e2147",
+      "hashed_installed_files_verified": 30,
+      "upstream_matching_wheels": [
+        {
+          "filename": "packaging-26.3-py3-none-any.whl",
+          "url": "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl",
+          "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+        }
+      ]
+    },
+    {
+      "tool_environment": "cmake",
+      "name": "cmake",
+      "version": "4.4.3",
+      "record_sha256": "23f2883539974d14111d34170bb96d78244e4197b992f8ed59ddf83ca959f0ae",
+      "hashed_installed_files_verified": 4173,
+      "upstream_matching_wheels": [
+        {
+          "filename": "cmake-4.4.3-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+          "url": "https://files.pythonhosted.org/packages/0b/d0/18fe62f0bddc8b9bb71ba55762ee48a224f8344101c34350d969f6e0d327/cmake-4.4.3-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+          "sha256": "bae3c4954623ec4d62e62c70443f0da7988b733111c2871fcc6a31ead5137e20"
+        }
+      ]
+    }
+  ],
+  "validation_command_count": 20,
+  "sccache_cleanup": {
+    "results": [
+      {
+        "command": [
+          "sccache",
+          "--start-server"
+        ],
+        "exit_code": 0,
+        "stdout": "sccache: Starting the server...\nsccache: Listening on address /home/cog/.cache/pcai/fleet-tooling-provenance/sccache-validation.sock\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "sccache",
+          "/usr/bin/g++",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-c",
+          "main.cpp",
+          "-o",
+          "cached-main.o"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "sccache",
+          "/usr/bin/g++",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-c",
+          "main.cpp",
+          "-o",
+          "cached-main.o"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "sccache",
+          "--show-stats",
+          "--stats-format",
+          "json"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"stats\":{\"compile_requests\":2,\"requests_unsupported_compiler\":0,\"requests_not_compile\":0,\"requests_not_cacheable\":0,\"requests_executed\":2,\"cache_errors\":{\"counts\":{},\"adv_counts\":{}},\"cache_hits\":{\"counts\":{\"C/C++\":2},\"adv_counts\":{\"c++ [gcc]\":2}},\"cache_misses\":{\"counts\":{},\"adv_counts\":{}},\"cache_timeouts\":0,\"cache_read_errors\":0,\"non_cacheable_compilations\":0,\"forced_recaches\":0,\"cache_write_errors\":0,\"cache_writes\":0,\"cache_write_duration\":{\"secs\":0,\"nanos\":0},\"cache_read_hit_duration\":{\"secs\":0,\"nanos\":592706},\"compilations\":0,\"compiler_write_duration\":{\"secs\":0,\"nanos\":0},\"compile_fails\":0,\"not_cached\":{},\"dist_compiles\":{},\"dist_errors\":0,\"multi_level\":null},\"cache_location\":\"Local disk: \\\"/home/cog/.cache/pcai/fleet-tooling-provenance/sccache-validation-cache\\\"\",\"cache_size\":29534,\"max_cache_size\":10737418240,\"use_preprocessor_cache_mode\":true,\"version\":\"0.18.0\",\"basedirs\":[]}",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "sccache",
+          "--stop-server"
+        ],
+        "exit_code": 0,
+        "stdout": "Stopping sccache server...\nCompile requests                       2\nCompile requests executed              2\nCache hits                             2\nCache hits (C/C++)                     2\nCache misses                           0\nCache hits rate                   100.00 %\nCache hits rate (C/C++)           100.00 %\nCache timeouts                         0\nCache read errors                      0\nForced recaches                        0\nCache write errors                     0\nCache errors                           0\nCompilations                           0\nCompilation failures                   0\nNon-cacheable compilations             0\nNon-cacheable calls                    0\nNon-compilation calls                  0\nUnsupported compiler calls             0\nAverage cache write                0.000 s\nAverage compiler                   0.000 s\nAverage cache read hit             0.000 s\nFailed distributed compilations        0\nCache location                  Local disk: \"/home/cog/.cache/pcai/fleet-tooling-provenance/sccache-validation-cache\"\nBase directories                (none)\nUse direct/preprocessor mode?   yes\nVersion (client)                0.18.0\nCache size                            29 KiB\nMax cache size                        10 GiB\n",
+        "stderr": ""
+      }
+    ],
+    "owned_pids": [
+      25151
+    ],
+    "owned_pids_absent": true,
+    "stale_socket_removed": true,
+    "owned_socket_absent": true
+  },
+  "scope": "User-level isolated tooling only; system gh retained; no APT/profile/Cargo/Git/credential/repository changes",
+  "install_warning": "UV tool-bin absent from PATH during initial isolated install; resolved by explicitly scoped absent-only ~/.local/bin links",
+  "validation_warnings": 0
+}

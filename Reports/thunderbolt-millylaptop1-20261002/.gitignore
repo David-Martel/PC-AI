@@ -1,0 +1,9 @@
+# Vendor downloads and raw capture artifacts are retained locally; their hashes
+# and decoded summaries are recorded in the report.
+firmware-staging/
+raw-originals/
+**/*.etl
+**/*.xml
+**/report.xsl
+**/debug-before.txt
+**/debug-after.txt

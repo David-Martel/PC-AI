@@ -4,8 +4,110 @@ This is the active high-level backlog for `PC_AI`. Completed historical work
 should be recorded in the relevant report, context snapshot, or specialized
 ledger instead of left here as active work.
 
-Last reconciled: 2026-09-07, after a CI/tooling repair pass. The previous
-reconciliation was 2026-04-30.
+Last reconciled: 2026-10-11, after Windows fleet source integration and Git
+custody cleanup. Earlier CI/tooling evidence remains dated 2026-09-07.
+
+## 2026-10-11 Windows fleet and VIGIL closeout
+
+Current evidence and disposition: [Windows fleet closeout](docs/windows-fleet-closeout.md).
+The [VIGIL-Eko integration plan](docs/vigil-eko-integration.md) records camera,
+pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
+
+- [x] Reconcile current upstream into the Windows fleet branch without losing
+  historical profile WIP; qualify native nullable measurements, read-only fleet
+  discovery, media checks and staged module deployment.
+- [x] Review the public profile workaround and bounded crash collector for
+  publication, including isolated profile probes and missing-provider values.
+- [x] Merge the Windows fleet/profile work after all 12 final-head checks pass;
+  fast-forward local main and retire owned merged branches and backed-up stash.
+- [x] Review PR182's canonical LLM-helper test admission repair. Its owner
+  concurrently published the approved-name fix; preserve the tested alternate
+  proposal and retire its owned temporary worktree.
+- [ ] Resolve PR182's nine integration conflicts and qualify its final head.
+  At `fac1d1a`, tests pass but the explicit coverage gate fails at 66.9936%
+  against 85%. Audit coverage selection/enforcement separately: successful
+  fleet CI reports 51.83%, unchanged by PR183; neither result meets the target.
+- [ ] Integrate Candle dependency upgrades together with media/CUDA coverage,
+  and validate mistral.rs upgrades with that backend enabled. CPU-only green CI
+  does not establish optional backend compatibility.
+- [ ] Finish shared native ABI/schema versioning, cancellation/progress/error
+  contracts and benchmark-backed acceleration import/search improvements.
+- [ ] Validate the full staged PowerShell release in its intended deployment;
+  rebuild compiled clients affected by nullable managed measurement signatures.
+- [ ] Obtain Claude's Eko source-ownership acknowledgment; retain the active
+  locked worktree and close the reviewed transport/UI reliability findings.
+- [x] Merge Eko duplicate/integrity and camera lifecycle/freshness fixes with
+  Windows WinRT/session and Windows/Linux pose-sidecar CI (Eko PR4 and PR5).
+- [ ] Implement a Linux BlueZ backend and Linux UVC capture; qualify Dell
+  UVC/pose and multi-site acquisition through recorded physical HIL.
+- [ ] Complete physical power-path comparison and hang evidence collection on
+  the NUC. Software changes do not establish a hardware freeze cure.
+
+## 2026-10-03 Fleet and repository closeout
+
+The Milly maintenance evidence is in `Reports/milly-fleet-20261002/README.md`.
+Local OS, firmware, rendering/toolchain and Cog desktop checks are qualified
+component results; they do not establish fleet or physical acceptance.
+
+- [x] Recover Ubuntu 26.04.1, update firmware and the recommended NVIDIA driver,
+  install rendering/development tools, and validate isolated ROS/build/GPU/SSH paths.
+- [x] Preserve the private ASUS backup and unrelated worktree/untracked data.
+- [x] Independently review the six signed maintenance commits against current main.
+- [x] Repair native-process deadlines for blocked stdin and inherited output pipes,
+  and validate owned-process cleanup and portable native documentation controls.
+- [x] Merge PC-AI PR163 after the final exact reviewed head passes refreshed CI.
+- [x] Finish safe PC-AI dependency/source PR integration; PR116, PR120, PR147,
+  PR160, PR161, PR164, PR165, PR166 and PR167 are merged.
+  Retain qualified CUDA/dependency
+  blockers and owner-held worktrees. Refresh current branch/PR dispositions in the
+  repository closeout receipt rather than treating cached refs as custody proof.
+- [x] Merge VIGIL optional endpoint PR2462 after routed-SSH/process-lifetime repair,
+  independent source review,89 real tests and exact-head CI. PR2456 is also merged.
+  Remove the owned endpoint worktree while preserving verified private QA custody.
+- [x] Remove obsolete duplicate cloud-init logrotate and stale Postfix rsyslog
+  configuration from active scans, preserve hashed private rollback copies, and
+  validate logrotate execution and rsyslog restart. Reclaim about 6.6 GiB of
+  downloaded APT archives; current package audit and available-upgrade checks pass.
+- [x] Validate all nine Firefox profile databases structurally, including WAL-aware
+  private copies for original users, and establish preservation of Cog's empty
+  address book against its backup. Original-user acceptance remains pending.
+- [x] Refresh six held dependency PRs and coordinate proposed Candle consolidation
+  with the source owner; preserve feature/build blockers and the foreign worktree.
+- [x] Reapply existing Windows Process Lasso tuning after reviewed preview and
+  hashed rollback backup; its six current-state checks now pass without restart.
+- [x] Restore expected W: through its existing mount task after exact identity and
+  no-use preflight; task and fresh boot mount validator return 0. Future-boot
+  ordering and the stale diagnostic-report warning remain pending.
+- [ ] Resolve the inherited apport-autoreport vendor upload failure through an
+  appropriate supported path; preserve crash reports and existing telemetry policy.
+- [ ] Retire the deregistered CargoTools junction remnants and Python bytecode cache
+  once automatic approval review permits the exact guarded filesystem deletions.
+- [ ] Reconcile the default Windows media-server CRT profile at the native build
+  configuration layer; static-profile CPU passes do not close the MD/MT link failure.
+- [ ] Obtain the existing Sunshine provider reference and affected seat/firewall
+  scope from its owner, then validate authenticated video/input/reconnect and the
+  full VIGIL UI with matching production ROS message packages.
+- [ ] Identify a Thunderbolt peer and measure its actual throughput; no peer NIC
+  is observed through the current CalDigit topology.
+- [ ] Validate eduroam/MWireless using usable supported credentials, provision
+  AMT with its own management credentials/network, and qualify physical HIL paths.
+- [ ] Validate original-user/browser behavior and remaining Cog revision provenance
+  before deleting the retained ASUS backup.
+- [ ] Obtain Claude's corrected F2 tooling matrix. Codex TPM has acknowledged
+  ownership of the next fixture-only derived-Needs proposal using existing CSV
+  and requirements_dag/sync_docs, preserving IDs and publication boundaries.
+- [ ] Implement and validate the proposed read-only synthetic rendering adapter
+  after source-owner schema/auth/TLS selection. Core.js currently requires local
+  Qt WebChannel; Foxglove WebSocket is not a guidance HTTP/SSE listener. Record
+  stale/reconnect and no-command controls in the existing closeout receipt.
+
+- [ ] Review Claude's exact optional CI-runner profile PR and Podman/Docker choice;
+  preserve rendering responsiveness with opt-in resource limits, enforce live policy
+  during existing-container restart, and validate storage
+  and stop/drain behavior before changing Milly's installed container engine or role.
+
+These remaining acceptance items keep their existing HOLD/Pending boundaries.
+No production compute placement, release quorum or static DDS membership changed.
 
 ## 2026-09-07 Reconciliation
 
@@ -19,7 +121,7 @@ re-executed on 2026-09-07:
 | Boot/session Pester (`Tests\Boot\*`) | 28 passed, 0 failed, 1 skipped (85s) |
 | CargoTools `Test-BuildEnvironment -Detailed` | pass; one advisory — no Defender exclusions on `T:\RustCache` |
 | C# bridge `dotnet build PcaiNative.csproj` | succeeds, 1 warning (unresolved XML cref `pcai_media_free_string`) |
-| Rust MSRV | now declared: `rust-version = "1.85"` in `[workspace.package]`, verified by `cargo +1.85 check` |
+| Rust MSRV | September baseline: 1.85. Superseded 2026-10-11 in Native/pcai_core by 1.95 for locked sysinfo, with matching workspace Clippy metadata. Deploy has a separate baseline. |
 | LLM evaluation | not run — needs a local GGUF model, not available unattended |
 
 **Evidence freshness under `Reports\`** — the items in section 1 below name
@@ -108,9 +210,10 @@ not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
 
 ### 1. OneDrive, Boot, And UI Responsiveness
 
-- [ ] Monitor OneDrive after installer repair and reset until at least one clean
+- [x] Monitor OneDrive after installer repair and reset until at least one clean
   60 minute `Tools\Test-SyncProviderHealth.ps1 -SinceMinutes 60 -PassThru` run
-  shows no new OneDrive/FileSyncHelper WER events.
+  shows no new OneDrive/FileSyncHelper WER events. Refreshed 2026-10-03: exit 0,
+  no WER events, failures or warnings; sync-progress trends remain separate.
 - [ ] Validate registry rollback after a clean reboot using
   `Tools\Collect-DrivePerformanceSyncRisk.ps1`, `Tools\Test-BootMountHealth.ps1`,
   `Tools\Test-SyncProviderHealth.ps1`, and
@@ -204,9 +307,15 @@ suspicion.
   - `PowerShell Tests >> Run Tests with Coverage` sets `Run.Exit = $true` and
     `CoveragePercentTarget = 85`, so it fails on the pre-existing PS7
     test-contract failures already tracked above.
-  Every completed `ci.yml` run in the repo's history is a failure, across
-  unrelated branches (dependabot, `feat/import-nukenul`), which is consistent
-  with this being long-standing rather than branch-specific.
+  This describes the historical August/September observations. By 2026-10-11,
+  main runs 37844013709, 37843335547 and 37842855172 passed. Main and PR183 both
+  report 51.83% against the 85% PowerShell target; that deficit did not fail the
+  main job. PR182's repaired head `fac1d1a` now has refreshed checks: 2,897
+  passes, zero failures and 40 skips, but its explicit source-bound gate fails
+  at 66.9936% (14,616/21,817) against 85%. This verified gate failure and nine
+  conflicts with merged main block acceptance. Audit main's separate coverage
+  selection/enforcement gap without treating its target-only report as the
+  same contract or carrying forward the historical admission failures.
 - [ ] git-guard's commit-time Rust gate can never PASS in this repo, only
   block. `qa_check_rust` in `git-guard/hooks/common/qa_gate.sh` runs
   `cd "$REPO_ROOT" && cargo fmt --all --check` (and the same for clippy), but
@@ -512,6 +621,11 @@ still listed although upstream removed it in favour of `implicit_clone`.
 
 ### 3. Acceleration And Startup Cost
 
+- [x] Resolve the acceleration probe's repository from the module checkout,
+  retaining a PC_AI marker check before selecting native binaries. Regression
+  tests reproduce three failures before repair and pass afterward; measured
+  results and remaining workstation pressure are recorded in
+  `Reports/tooling-maintenance-20261003.md`.
 - [ ] Update status/reporting and agent-facing tooling to use
   `Get-PcaiAccelerationProbe`, `Get-PcaiDirectCoreProbe`, or
   `Get-PcaiDirectTokenEstimate` when they only need scalar/status data.

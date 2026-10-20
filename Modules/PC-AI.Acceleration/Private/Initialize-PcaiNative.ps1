@@ -8,7 +8,7 @@
     - pcai_core_lib.dll - Unified Core engine (Search, Duplicates, System)
     - PcaiNative.dll    - Managed C# bridge
 
-    These provide 5-15x speedup over PowerShell equivalents.
+    Performance depends on the operation and must be measured on the target host.
 
     IMPORTANT: Requires PowerShell 7+ (.NET 8) for the C# wrapper to load.
 #>
@@ -17,6 +17,56 @@
 $script:PcaiNativeLoaded = $false
 $script:PcaiNativeVersion = $null
 $script:PcaiNativeDllPath = $null
+$script:PcaiNativeCoreLibraryPath = $null
+$script:PcaiNativeWrapperPath = $null
+$script:PcaiNativeArtifactHash = $null
+$script:PcaiNativeRid = $null
+
+function Get-PcaiNativeRuntimeIdentifier {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+
+    $osPart = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)) {
+        'win'
+    } elseif ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::OSX)) {
+        'osx'
+    } else {
+        'linux'
+    }
+
+    $archPart = switch ([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) {
+        'X64'   { 'x64' }
+        'Arm64' { 'arm64' }
+        'X86'   { 'x86' }
+        'Arm'   { 'arm' }
+        default { $_.ToString().ToLowerInvariant() }
+    }
+
+    return "$osPart-$archPart"
+}
+
+function Get-PcaiNativeLibraryFileName {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter()]
+        [string]$LibraryName = 'pcai_core_lib'
+    )
+
+    $stem = [System.IO.Path]::GetFileNameWithoutExtension($LibraryName.Trim())
+    if ($stem.StartsWith('libpcai_', [System.StringComparison]::OrdinalIgnoreCase)) {
+        $stem = $stem.Substring(3)
+    }
+
+    if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)) {
+        return "$stem.dll"
+    }
+    if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::OSX)) {
+        return "lib$stem.dylib"
+    }
+    return "lib$stem.so"
+}
 
 function Get-PcaiNativeCandidatePaths {
     [CmdletBinding()]
@@ -25,6 +75,8 @@ function Get-PcaiNativeCandidatePaths {
         [string[]]$BasePaths
     )
 
+    $coreFileName = Get-PcaiNativeLibraryFileName -LibraryName 'pcai_core_lib'
+    $rid = Get-PcaiNativeRuntimeIdentifier
     $candidates = [System.Collections.Generic.List[string]]::new()
 
     foreach ($basePath in $BasePaths | Where-Object { $_ } | Select-Object -Unique) {
@@ -34,8 +86,9 @@ function Get-PcaiNativeCandidatePaths {
         }
 
         $resolvedPath = $resolved.Path
-        if ((Test-Path (Join-Path $resolvedPath 'pcai_core_lib.dll')) -and
-            (Test-Path (Join-Path $resolvedPath 'PcaiNative.dll'))) {
+        if ((Test-Path (Join-Path $resolvedPath $coreFileName)) -or
+            (Test-Path (Join-Path $resolvedPath 'PcaiNative.dll')) -or
+            (Test-Path (Join-Path $resolvedPath "runtimes/$rid/native/$coreFileName"))) {
             $candidates.Add($resolvedPath)
         }
 
@@ -54,7 +107,7 @@ function Get-PcaiNativeCandidatePaths {
                 Sort-Object -Property LastWriteTime -Descending |
                 ForEach-Object {
                     $bundlePath = $_.FullName
-                    if ((Test-Path (Join-Path $bundlePath 'pcai_core_lib.dll')) -and
+                    if ((Test-Path (Join-Path $bundlePath $coreFileName)) -or
                         (Test-Path (Join-Path $bundlePath 'PcaiNative.dll'))) {
                         $candidates.Add($bundlePath)
                     }
@@ -73,6 +126,32 @@ function Initialize-PcaiNative {
         [switch]$Force
     )
 
+    # Explicit overrides are authoritative, including when they are invalid. Validate
+    # before discovery or the loaded-state shortcut so fallback cannot replace intent.
+    $coreFileName = Get-PcaiNativeLibraryFileName -LibraryName 'pcai_core_lib'
+    $explicitCorePath = $null
+    $overrideName = $null
+    foreach ($name in @('PCAI_CORE_LIB_PATH', 'PCAI_TEST_CORE_DLL', 'PCAI_NATIVE_DIR')) {
+        $value = [System.Environment]::GetEnvironmentVariable($name)
+        if ([string]::IsNullOrWhiteSpace($value)) { continue }
+        $overrideName = $name
+        $explicitCorePath = if ($name -eq 'PCAI_NATIVE_DIR' -or
+            (Test-Path -LiteralPath $value -PathType Container)) {
+            Join-Path $value $coreFileName
+        } else { $value }
+        break
+    }
+    if ($overrideName -and -not (Test-Path -LiteralPath $explicitCorePath -PathType Leaf)) {
+        Write-Warning "PCAI Native override $overrideName does not identify an existing core library"
+        $script:PcaiNativeLoaded = $false
+        $script:PcaiNativeVersion = $null
+        $script:PcaiNativeDllPath = $null
+        $script:PcaiNativeCoreLibraryPath = $null
+        $script:PcaiNativeWrapperPath = $null
+        $script:PcaiNativeArtifactHash = $null
+        return $false
+    }
+
     if ($script:PcaiNativeLoaded -and -not $Force) {
         Write-Verbose 'PCAI Native already loaded, skipping initialization'
         return $true
@@ -86,6 +165,9 @@ function Initialize-PcaiNative {
     }
 
     Write-Verbose 'Initializing PCAI Native tools...'
+    $rid = Get-PcaiNativeRuntimeIdentifier
+    $coreFileName = Get-PcaiNativeLibraryFileName -LibraryName 'pcai_core_lib'
+    $script:PcaiNativeRid = $rid
 
     # Resolve the repo root first so moved checkouts do not depend on ~/PC_AI.
     $repoRoot = $null
@@ -124,48 +206,79 @@ function Initialize-PcaiNative {
         $bridgeBin = Join-Path $bridgeModuleRoot 'bin'
     }
 
+    $userHome = if ($HOME) { $HOME } else { $env:USERPROFILE }
     $baseSearchPaths = @(
         $(if ($repoRoot) { Join-Path $repoRoot 'bin' })                                  # Repo bin
-        $(if ($repoRoot) { Join-Path $repoRoot 'Native\PcaiNative\bin\Release\net8.0\win-x64' })
-        $(if ($repoRoot) { Join-Path $repoRoot '.pcai\build\artifacts\pcai-native' })
-        $(if ($repoRoot) { Join-Path $repoRoot 'Native\pcai_core\target\release' })      # Native workspace target
+        $(if ($repoRoot) { Join-Path $repoRoot "Native/PcaiNative/bin/Release/net8.0/$rid" })
+        $(if ($repoRoot) { Join-Path $repoRoot 'Native/PcaiNative/bin/Release/net8.0' })
+        $(if ($repoRoot) { Join-Path $repoRoot "Native/PcaiNative/bin/Debug/net8.0/$rid" })
+        $(if ($repoRoot) { Join-Path $repoRoot 'Native/PcaiNative/bin/Debug/net8.0' })
+        $(if ($repoRoot) { Join-Path $repoRoot '.pcai/build/artifacts/pcai-native' })
+        $(if ($repoRoot) { Join-Path $repoRoot 'Native/pcai_core/target/release' })      # Native workspace release
+        $(if ($repoRoot) { Join-Path $repoRoot 'target/release' })
+        $(if ($repoRoot) { Join-Path $repoRoot 'Native/pcai_core/target/debug' })        # Native workspace debug
+        $(if ($repoRoot) { Join-Path $repoRoot 'target/debug' })
         $bridgeBin                                                                         # Installed bridge bin
-        (Join-Path $env:USERPROFILE 'PC_AI\bin')                                          # Legacy compatibility path
+        $(if ($userHome) { Join-Path $userHome '.local/bin' })
+        $(if ($userHome) { Join-Path $userHome 'PC_AI/bin' })                              # Legacy compatibility path
     ) | Select-Object -Unique | Where-Object { $_ }
 
     $searchPaths = Get-PcaiNativeCandidatePaths -BasePaths $baseSearchPaths
 
-    $dllPath = $null
-    foreach ($searchPath in $searchPaths) {
-        $coreDll = Join-Path $searchPath 'pcai_core_lib.dll'
-        $wrapperDll = Join-Path $searchPath 'PcaiNative.dll'
+    $wrapperPath = $null
+    $coreLibPath = $null
 
-        if ((Test-Path $coreDll) -and (Test-Path $wrapperDll)) {
-            $dllPath = $searchPath
+    if ($explicitCorePath) {
+        $coreLibPath = (Resolve-Path -LiteralPath $explicitCorePath -ErrorAction Stop).Path
+    }
+
+    foreach ($searchPath in $searchPaths) {
+        $candidateCore = Join-Path $searchPath $coreFileName
+        $candidateRuntimeCore = Join-Path $searchPath "runtimes/$rid/native/$coreFileName"
+        $candidateWrapper = Join-Path $searchPath 'PcaiNative.dll'
+
+        if ((Test-Path $candidateWrapper -PathType Leaf) -and (Test-Path $candidateCore -PathType Leaf)) {
+            $wrapperPath = $candidateWrapper
+            if (-not $coreLibPath) { $coreLibPath = $candidateCore }
             break
+        }
+        if (-not $wrapperPath -and (Test-Path $candidateWrapper -PathType Leaf)) {
+            $wrapperPath = $candidateWrapper
+        }
+        if (-not $coreLibPath) {
+            if (Test-Path $candidateCore -PathType Leaf) {
+                $coreLibPath = $candidateCore
+            } elseif (Test-Path $candidateRuntimeCore -PathType Leaf) {
+                $coreLibPath = $candidateRuntimeCore
+            }
         }
     }
 
-    if (-not $dllPath) {
-        Write-Verbose 'PCAI Native DLLs (Core or Wrapper) not found in search paths'
+    if (-not $wrapperPath -or -not $coreLibPath) {
+        Write-Verbose "PCAI Native artifacts not found in search paths (Wrapper=$wrapperPath, CoreLib=$coreLibPath, Expected=$coreFileName)"
         $script:PcaiNativeLoaded = $false
         return $false
     }
 
-    Write-Verbose "Found PCAI Native DLLs at: $dllPath"
+    $dllPath = Split-Path -Parent $coreLibPath
+    Write-Verbose "Found PCAI Native wrapper at '$wrapperPath' and core library at '$coreLibPath'"
     $script:PcaiNativeDllPath = $dllPath
+    $script:PcaiNativeCoreLibraryPath = $coreLibPath
+    $script:PcaiNativeWrapperPath = $wrapperPath
+    $script:PcaiNativeArtifactHash = (Get-FileHash -LiteralPath $coreLibPath -Algorithm SHA256).Hash
 
     try {
-        # CRITICAL: Add the DLL directory to the process PATH so native DLLs can be found
-        # This allows the C# wrapper to locate specialized Rust DLLs
+        # Ensure C# NativeResolver sees the exact resolved core library path
+        [System.Environment]::SetEnvironmentVariable('PCAI_CORE_LIB_PATH', $coreLibPath, 'Process')
+
+        # Prepend the native library directory to PATH using the OS path separator
+        $pathSep = [System.IO.Path]::PathSeparator
         $currentPath = [System.Environment]::GetEnvironmentVariable('PATH', 'Process')
-        if ($currentPath -notlike "*$dllPath*") {
-            [System.Environment]::SetEnvironmentVariable('PATH', "$dllPath;$currentPath", 'Process')
+        $pathEntries = @($currentPath -split [regex]::Escape([string]$pathSep) | Where-Object { $_ })
+        if ($pathEntries -notcontains $dllPath) {
+            [System.Environment]::SetEnvironmentVariable('PATH', "$dllPath$pathSep$currentPath", 'Process')
             Write-Verbose "Added $dllPath to process PATH"
         }
-
-        # Load the C# wrapper assembly
-        $wrapperPath = Join-Path $dllPath 'PcaiNative.dll'
 
         # Check if already loaded
         $loadedAssembly = [System.AppDomain]::CurrentDomain.GetAssemblies() |
@@ -188,7 +301,7 @@ function Initialize-PcaiNative {
             $script:PcaiNativeLoaded = $true
             return $true
         } else {
-            Write-Warning 'PCAI Core DLL loaded but not functional'
+            Write-Warning 'PCAI Core library loaded but not functional'
             $script:PcaiNativeLoaded = $false
             return $false
         }
@@ -208,11 +321,9 @@ function Test-PcaiNativeAvailable {
     [OutputType([bool])]
     param()
 
-    if (-not $script:PcaiNativeLoaded) {
-        # Try to initialize
-        $null = Initialize-PcaiNative
-    }
-
+    # Initialization validates explicit overrides before its cached-state shortcut.
+    # Always enter it so status callers cannot bypass that validation.
+    $null = Initialize-PcaiNative
     return $script:PcaiNativeLoaded
 }
 
@@ -228,6 +339,8 @@ function Get-PcaiNativeStatus {
     # Ensure initialized
     $available = Test-PcaiNativeAvailable
     $dllPath = $script:PcaiNativeDllPath
+    $coreFileName = Get-PcaiNativeLibraryFileName -LibraryName 'pcai_core_lib'
+    $inferenceFileName = Get-PcaiNativeLibraryFileName -LibraryName 'pcai_inference'
 
     $coreAvailable = $false
     $searchAvailable = $false
@@ -252,19 +365,24 @@ function Get-PcaiNativeStatus {
     $dlls = $null
     if ($dllPath) {
         $dlls = [PSCustomObject]@{
-            PcaiNative = (Test-Path (Join-Path $dllPath 'PcaiNative.dll'))
-            CoreLib    = (Test-Path (Join-Path $dllPath 'pcai_core_lib.dll'))
-            Inference  = (Test-Path (Join-Path $dllPath 'pcai_inference.dll'))
+            PcaiNative = [bool]($script:PcaiNativeWrapperPath -and (Test-Path $script:PcaiNativeWrapperPath))
+            CoreLib    = [bool]($script:PcaiNativeCoreLibraryPath -and (Test-Path $script:PcaiNativeCoreLibraryPath))
+            Inference  = (Test-Path (Join-Path $dllPath $inferenceFileName))
         }
     }
 
     [PSCustomObject]@{
-        Available     = $available
-        Version       = $script:PcaiNativeVersion
-        DllPath       = $dllPath
-        CoreAvailable = $coreAvailable
-        CpuCount      = if ($coreAvailable) { [PcaiNative.PcaiCore]::CpuCount } else { [uint32][Environment]::ProcessorCount }
-        Modules       = if ($available) {
+        Available         = $available
+        Version           = $script:PcaiNativeVersion
+        RuntimeIdentifier = if ($script:PcaiNativeRid) { $script:PcaiNativeRid } else { Get-PcaiNativeRuntimeIdentifier }
+        DllPath           = $dllPath
+        CoreLibraryPath   = $script:PcaiNativeCoreLibraryPath
+        WrapperPath       = $script:PcaiNativeWrapperPath
+        ArtifactHash      = $script:PcaiNativeArtifactHash
+        CoreLibraryName   = $coreFileName
+        CoreAvailable     = $coreAvailable
+        CpuCount          = if ($coreAvailable) { [PcaiNative.PcaiCore]::CpuCount } else { [uint32][Environment]::ProcessorCount }
+        Modules           = if ($available) {
             [PSCustomObject]@{
                 Core        = $coreAvailable
                 Search      = $searchAvailable
@@ -273,7 +391,7 @@ function Get-PcaiNativeStatus {
                 Fs          = $fsAvailable
             }
         } else { $null }
-        Dlls          = $dlls
+        Dlls              = $dlls
     }
 }
 
@@ -510,7 +628,20 @@ function Invoke-PcaiNativeEstimateTokens {
     )
 
     if (-not (Test-PcaiNativeAvailable)) {
-        return [uint64](($Text.Split(' ') | Where-Object { $_ }).Count * 1.2 + 1)
+        if ([string]::IsNullOrEmpty($Text)) {
+            return [uint64]0
+        }
+
+        $count = [uint64]0
+        foreach ($match in [regex]::Matches($Text, '[\p{L}\p{N}]+|\s+|[^\p{L}\p{N}\s]')) {
+            $byteLen = [System.Text.Encoding]::UTF8.GetByteCount($match.Value)
+            if ($byteLen -gt 8) {
+                $count += [uint64][Math]::Ceiling($byteLen / 4.0)
+            } else {
+                $count += [uint64]1
+            }
+        }
+        return [uint64]($count + 1)
     }
 
     return [PcaiNative.PcaiCore]::EstimateTokens($Text)

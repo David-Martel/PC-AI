@@ -247,6 +247,8 @@ MODELS.md
 Reports/detailed-process-data.json
 Reports/system-performance-data.json
 Reports/LITHO_EXTRACT.json
+# Detailed workload capture streams and machine-local process telemetry.
+Reports/workload-profiles/
 
 # Tooling benchmark runs (generated artifacts, accumulate rapidly)
 Reports/tooling-benchmarks/

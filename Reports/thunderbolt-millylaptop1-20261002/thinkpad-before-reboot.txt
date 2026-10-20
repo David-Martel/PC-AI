@@ -1,0 +1,36 @@
+[
+  {
+    "Name": "Embedded Controller",
+    "DeviceId": "1edffe0587b79f7ddc892dc28fe93f88d17613d5",
+    "Version": "0.1.1",
+    "UpdateState": 2,
+    "UpdateError": null,
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "supported",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  {
+    "Name": "System Firmware",
+    "DeviceId": "e6d3b0871e8e4a4a79aa608e778219790bd93efb",
+    "Version": "0.1.3",
+    "UpdateState": 4,
+    "UpdateError": null,
+    "Flags": [
+      "internal",
+      "require-ac",
+      "supported",
+      "needs-reboot",
+      "usable-during-update",
+      "updatable-hidden"
+    ]
+  }
+]
+Wired connection 1
+100 (connected)
+35.3.41.148 192.168.50.43
+1

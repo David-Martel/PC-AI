@@ -12,7 +12,7 @@
 //! # Examples
 //!
 //! ```
-//! use pcai_core_lib::gpu::roofline::{GpuSpecs, analyze_roofline};
+//! use pcai_core_lib::gpu::roofline::{GpuSpecs, Bottleneck, analyze_roofline};
 //!
 //! let specs = GpuSpecs::from_compute_capability("12.0", "RTX 5060 Ti")
 //!     .expect("known GPU");

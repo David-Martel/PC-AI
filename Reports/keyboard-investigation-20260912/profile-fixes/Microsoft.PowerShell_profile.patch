@@ -1,0 +1,224 @@
+--- a/Microsoft.PowerShell_profile.ps1
++++ b/Microsoft.PowerShell_profile.ps1
+@@ -31,11 +31,19 @@
+     return
+ }
+ 
+-if ($global:__MicrosoftPowerShellProfileLoaded) {
++if ($global:__MicrosoftPowerShellProfileLoaded -or $global:__MicrosoftPowerShellProfileLoading) {
+     return
+ }
+-$global:__MicrosoftPowerShellProfileLoaded = $true
++$global:__MicrosoftPowerShellProfileLoading = $true
+ $global:__PrimaryProfilePipelineLoaded = $true
++$script:ProfileInitializationSucceeded = $false
++
++try {
++# A terminating prior attempt may have opened the history writer before failing.
++if ($script:ProfileHistoryWriterOwned) {
++    Close-JsonlAccelerator
++    $script:ProfileHistoryWriterOwned = $false
++}
+ 
+ $script:ProfileStartTime = Get-Date
+ $script:ProfileCache = @{}
+@@ -70,8 +78,25 @@
+ # ── Profile Level (session-aware, env var overrides still respected) ──
+ # ProfileLevel: 'full' (human-interactive), 'core' (IDE), 'minimal' (automated)
+ # PS_FAST_STARTUP=1 forces minimal, PS_SKIP_ENV=1 skips .env only
+-$script:CommandLine = [Environment]::CommandLine
+-$script:HasNonInteractiveArgs = $script:CommandLine -match '(?i)(?:^| )-(?:command|c|file|f|encodedcommand|ec|inputformat|outputformat|noninteractive)\b'
++function script:Test-ProfileNonInteractiveInvocation {
++    param([string[]]$HostArguments)
++    $hasNoExit = $false
++    for ($argumentIndex = 1; $argumentIndex -lt $HostArguments.Count; $argumentIndex++) {
++        switch -Regex ($HostArguments[$argumentIndex]) {
++            '^(?i)-noexit$' { $hasNoExit = $true; continue }
++            '^(?i)-(nologo|nol|noprofile|nop|sta|mta|login)$' { continue }
++            '^(?i)-(command|c)$' { return -not $hasNoExit }
++            '^(?i)-(file|f|encodedcommand|ec|e|noninteractive|noni|inputformat|inp|outputformat|o)$' { return $true }
++            # Skip values belonging to host options; never inspect command/file payloads.
++            '^(?i)-(workingdirectory|wd|configurationname|config|settingsfile|executionpolicy|ep|ex|windowstyle|w|version|v)$' { $argumentIndex++; continue }
++            # Implicit script operands and unknown switches retain conservative minimal startup.
++            default { return $true }
++        }
++    }
++    return $false
++}
++$script:CommandLineArgs = [Environment]::GetCommandLineArgs()
++$script:HasNonInteractiveArgs = Test-ProfileNonInteractiveInvocation -HostArguments $script:CommandLineArgs
+ $script:ProfileLevel = 'full'   # default, overridden by session detection after accelerator import
+ $script:FastStartup = ($env:PS_FAST_STARTUP -eq '1')
+ $script:SkipEnv = $script:FastStartup -or ($env:PS_SKIP_ENV -eq '1')
+@@ -248,7 +273,7 @@
+         break
+     }
+ }
+-if ($script:AcceleratorPsd1) {
++if ($script:AcceleratorPsd1 -and $env:PS_SKIP_PROFILE_ACCELERATOR -ne '1') {
+     try {
+         Import-Module $script:AcceleratorPsd1 -ErrorAction Stop
+         $script:UseProfileAccelerator = (Test-AcceleratorAvailable)
+@@ -926,6 +951,7 @@
+     $script:InitializedComponents.Core = $true
+     $script:InitializedComponents.MinimalProfile = $true
+     Trace-Section "Profile complete ($([int]$script:ProfileLoadTime.TotalMilliseconds)ms) [minimal]"
++    $script:ProfileInitializationSucceeded = $true
+     return
+ }
+ 
+@@ -1546,6 +1572,37 @@
+ }
+ 
+ function Import-Profile {
++    <#
++    .SYNOPSIS
++    Reloads the profile in the caller's scope: . Import-Profile
++    .DESCRIPTION
++    Dot invocation preserves profile functions and variables after reload. Existing
++    shells keep their loaded definitions until this command is explicitly invoked.
++    #>
++    if ($MyInvocation.InvocationName -ne '.') {
++        throw 'Reload in the caller scope with: . Import-Profile'
++    }
++    if ($global:__MicrosoftPowerShellProfileLoading) {
++        throw 'Profile initialization is already in progress.'
++    }
++    if (-not (Test-Path -LiteralPath $PROFILE -PathType Leaf)) {
++        throw 'The current host profile file is unavailable.'
++    }
++    if ($script:ProfileHistoryWriterOwned) {
++        Close-JsonlAccelerator
++        $script:ProfileHistoryWriterOwned = $false
++    }
++    if ($script:ProfileExitSubscriptionId) {
++        Unregister-Event -SubscriptionId $script:ProfileExitSubscriptionId -ErrorAction SilentlyContinue
++        $script:ProfileExitSubscriptionId = $null
++    }
++    if ($script:ProfileExitJob) {
++        Remove-Job -Job $script:ProfileExitJob -Force -ErrorAction SilentlyContinue
++        $script:ProfileExitJob = $null
++    }
++    $global:__MicrosoftPowerShellProfileLoaded = $false
++    $global:__PrimaryProfilePipelineLoaded = $false
++    $global:__ProfileSystemBootstrapLoaded = $false
+     Write-Host "Reloading PowerShell profile..." -ForegroundColor Yellow
+     . $PROFILE
+ }
+@@ -1658,16 +1715,11 @@
+ # PSReadLine initialization - ONLY for truly interactive sessions
+ # Warp / other terminals may launch ConsoleHost with -Command + -NoExit; treat that as interactive.
+ # Session intelligence: minimal profile level skips PSReadLine entirely.
+-$script:CommandLineArgs = [Environment]::GetCommandLineArgs()
+-$script:HasNoExit = $script:CommandLineArgs -contains '-NoExit'
+-$script:HasCommand = ($script:CommandLineArgs -contains '-Command') -or ($script:CommandLineArgs -contains '-c')
+-$script:HasNonInteractive = $script:CommandLineArgs -contains '-NonInteractive'
+ 
+ $script:IsInteractiveSession = $script:ProfileLevel -ne 'minimal' -and
+     $Host.Name -like '*ConsoleHost*' -and
+     -not [Console]::IsInputRedirected -and
+-    -not $script:HasNonInteractive -and
+-    (-not $script:HasCommand -or $script:HasNoExit)
++    -not $script:HasNonInteractiveArgs
+ 
+ Trace-Section 'Core setup complete'
+ 
+@@ -1777,6 +1829,7 @@
+         if ($script:UseProfileAccelerator) {
+             try {
+                 Initialize-JsonlAccelerator -Path $script:ReadLineHistorySpoolPath
++                $script:ProfileHistoryWriterOwned = $true
+             } catch {
+                 $script:UseProfileAccelerator = $false
+             }
+@@ -2554,31 +2607,63 @@
+ 
+ # Register cleanup to flush log buffer on exit
+ # Only import ProfileLogger if there are buffered messages
+-Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+-    if ($script:LogBuffer -and $script:LogBuffer.Count -gt 0) {
+-        # Import ProfileLogger to flush buffered messages
+-        Import-ProfileLoggerOnce
+-    }
+-    if (Test-CommandAvailableFast -Name 'Flush-LogBuffer') {
+-        Flush-LogBuffer
+-    }
+-    if ($script:ReadLineHistorySpoolPath) {
++# Replace only this profile's subscription, including after a partial initialization retry.
++if ($script:ProfileExitSubscriptionId) {
++    Unregister-Event -SubscriptionId $script:ProfileExitSubscriptionId -ErrorAction SilentlyContinue
++}
++if ($script:ProfileExitJob) {
++    Remove-Job -Job $script:ProfileExitJob -Force -ErrorAction SilentlyContinue
++}
++# Event actions have their own script scope: carry explicit state and bound commands.
++$profileExitContext = [pscustomobject]@{
++    LogBuffer = $script:LogBuffer
++    ImportLogger = Get-Command Import-ProfileLoggerOnce -ListImported -ErrorAction SilentlyContinue
++    WriterOwned = [bool]$script:ProfileHistoryWriterOwned
++    CloseWriter = Get-Command Close-JsonlAccelerator -ListImported -ErrorAction SilentlyContinue
++    MergeSpool = Get-Command Merge-JsonlSpoolFile -ListImported -ErrorAction SilentlyContinue
++    SpoolPath = $script:ReadLineHistorySpoolPath
++    SpoolDirectory = $script:ReadLineHistorySpoolDir
++    SharedPath = $script:ReadLineHistoryJsonlPath
++}
++$script:ProfileExitJob = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
++    $exitContext = $profileExitContext
++    if ($exitContext.LogBuffer -and $exitContext.LogBuffer.Count -gt 0 -and $exitContext.ImportLogger) {
++        & $exitContext.ImportLogger
++    }
++    $flushCommand = Get-Command Flush-LogBuffer -ListImported -ErrorAction Ignore
++    if ($flushCommand) {
++        & $flushCommand
++    }
++    if ($exitContext.SpoolPath) {
+         try {
+-            if ($script:UseProfileAccelerator -and (Test-CommandAvailableFast -Name 'Close-JsonlAccelerator')) {
+-                Close-JsonlAccelerator
++            if ($exitContext.WriterOwned -and $exitContext.CloseWriter) {
++                & $exitContext.CloseWriter
+             }
+         } catch { Write-Verbose $_.Exception.Message }
+         try {
+-            Merge-JsonlSpoolFile -SpoolDirectory $script:ReadLineHistorySpoolDir -SharedPath $script:ReadLineHistoryJsonlPath -CurrentSpoolPath $script:ReadLineHistorySpoolPath -IncludeCurrent
++            if ($exitContext.MergeSpool) {
++                & $exitContext.MergeSpool -SpoolDirectory $exitContext.SpoolDirectory -SharedPath $exitContext.SharedPath -CurrentSpoolPath $exitContext.SpoolPath -IncludeCurrent
++            }
+         } catch { Write-Verbose $_.Exception.Message }
+     }
+-} -SupportEvent | Out-Null
++}.GetNewClosure()
++$script:ProfileExitSubscriptionId = Get-EventSubscriber -SourceIdentifier PowerShell.Exiting |
++    Where-Object { $_.Action -and $_.Action.Id -eq $script:ProfileExitJob.Id } |
++    Select-Object -ExpandProperty SubscriptionId -First 1
+ if (($env:PS_ENABLE_PROFILESYSTEM -eq '1') -and -not $global:__ProfileSystemBootstrapLoaded) {
+-    $global:__ProfileSystemBootstrapLoaded = $true
+     $profileSystemBootstrap = Join-Path -Path $PSScriptRoot -ChildPath "ProfileSystem\Bootstrap.ps1"
+     if (Test-FileFast $profileSystemBootstrap) {
+-        $global:__ProfileSystemBootstrapContext = 'extension'
+-        . $profileSystemBootstrap
++        $previousBootstrapContext = $global:__ProfileSystemBootstrapContext
++        $previousBootstrapErrorPreference = $ErrorActionPreference
++        try {
++            $ErrorActionPreference = 'Stop'
++            $global:__ProfileSystemBootstrapContext = 'extension'
++            . $profileSystemBootstrap
++            $global:__ProfileSystemBootstrapLoaded = $true
++        } finally {
++            $global:__ProfileSystemBootstrapContext = $previousBootstrapContext
++            $ErrorActionPreference = $previousBootstrapErrorPreference
++        }
+     }
+ }
+ 
+@@ -2653,3 +2738,10 @@
+     & rg -uu @globArgs @args
+ }
+ Set-Alias -Name rg-all -Value rgi -Scope Global -Force
++
++$script:ProfileInitializationSucceeded = $true
++} finally {
++    $global:__MicrosoftPowerShellProfileLoaded = [bool]$script:ProfileInitializationSucceeded
++    $global:__PrimaryProfilePipelineLoaded = [bool]$script:ProfileInitializationSucceeded
++    $global:__MicrosoftPowerShellProfileLoading = $false
++}

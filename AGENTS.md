@@ -20,6 +20,19 @@ just feature addition.
 
 ## Current priorities
 
+Windows fleet diagnostics use `Tools/Get-PcaiMachineCapabilities.ps1`,
+`Tools/Test-PcaiMediaToolchain.ps1`, and `Config/machine-profiles/`.
+Keep expected hardware separate from present devices and runtime qualification.
+Missing temperature, input-power, CPU sampling or SMART data must remain unknown;
+see `docs/windows-native-measurements.md`. A SMART capability probe is not disk
+health. The native workspace requires Rust 1.95 or newer for locked sysinfo 0.39.6.
+Use profile-free, bounded discovery before optional workload tests. Respect each
+machine's power path and build cap; the NUC profile temporarily limits builds to
+two jobs while adapter adequacy is unverified. Do not propagate its settings to
+other Windows hosts. Keep OpenCV wheel variants mutually exclusive in each venv
+and preserve VIGIL application lockfiles. Publishing modules must stage, validate,
+preserve configuration and retain backups before live replacement.
+
 ### 1. Benchmark-first optimization of the PC-AI toolchain
 
 The repo now has a real tooling benchmark path and agents should use it when
@@ -29,10 +42,11 @@ Primary entrypoints:
 
 - `Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1`
 - `Config/pcai-tooling-benchmarks.json`
-- `Reports/tooling-benchmarks/<timestamp>/`
+- `Reports/tooling-benchmarks/<run-id>/`
 - `Reports/TOOL_BACKEND_COVERAGE.md`
 
-Current benchmark guidance from the repo:
+Current benchmark guidance from the repo (historical measurements, not current
+cross-platform acceleration qualification; see [admission boundaries](docs/benchmark-admission.md)):
 
 - native `directory-manifest` is a clear win and should be preferred
 - native `token-estimate` is also a meaningful improvement
@@ -102,12 +116,15 @@ Primary entrypoints:
 - `Tools\Test-SyncProviderHealth.ps1`
 - `Tools\Test-ProcessLassoBootSafety.ps1`
 - `Tools\Apply-ProcessLassoUiSyncTuning.ps1`
+- `Tools\Collect-WorkloadResourceProfile.ps1`
 - `Tools\Collect-DrivePerformanceSyncRisk.ps1`
 - `Tools\Repair-OneDriveSync.ps1`
 - `Tools\Migrate-SystemScriptsIntoRepo.ps1`
 - `Tools\SystemScripts\README.md`
 - `Tests\Boot\PersistentVHDX.Tests.ps1`
 - `Tests\Boot\BootValidationTools.Tests.ps1`
+- `Tests\Boot\WorkloadResourceProfile.Tests.ps1`
+- `Reports\process-lasso-review\README.md`
 - `Reports\boot-diagnostics\`
 - `Reports\drive-performance-sync-risk\`
 - `Reports\onedrive-repair-20260430.md`
@@ -131,6 +148,12 @@ Operational rules:
   rollback artifacts, and before/after metrics.
 - Treat Process Lasso as a prioritization aid around user-mode contention. It
   cannot directly reprioritize kernel HID/I2C interrupt handling.
+- Use the bounded workload profiler for interval CPU, memory and throughput
+  evidence before changing media or useful agent/build priorities. Its default
+  report names use a non-date artifact identity; timestamps belong in metadata.
+  Measure observer overhead and label actual calls separately from app uptime.
+  Global GPU counters are optional and require a focused overhead check. Never
+  infer resource waste from a process name, count or resident-memory snapshot.
 
 ## Architecture quick map
 

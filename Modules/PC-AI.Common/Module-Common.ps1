@@ -127,8 +127,10 @@ function Get-PcaiAccelerationProbe {
     $repoRoot = $null
 
     if ($moduleRoot) {
-        $candidateRepoRoot = Split-Path -Parent $moduleRoot
-        if (Test-Path -LiteralPath (Join-Path $candidateRepoRoot 'PC-AI.ps1')) {
+        $candidateRepoRoot = Resolve-PcaiRepoRoot -StartPath $moduleRoot
+        # The shared resolver also recognizes unrelated AGENTS/.git roots.
+        # A native probe must bind to a PC_AI checkout before using its bin directory.
+        if ($candidateRepoRoot -and (Test-Path -LiteralPath (Join-Path $candidateRepoRoot 'PC-AI.ps1') -PathType Leaf)) {
             $repoRoot = $candidateRepoRoot
         }
     }
@@ -214,13 +216,13 @@ function Get-PcaiAccelerationProbe {
             ManifestPath = $manifestPath
             Available    = [bool]$manifestPath
         }
-        Native = [PSCustomObject]@{
+        Native             = [PSCustomObject]@{
             Root          = $nativeRoot
             PcaiNativeDll = [bool]($nativeRoot -and (Test-Path -LiteralPath (Join-Path $nativeRoot 'PcaiNative.dll')))
             CoreLibDll    = [bool]($nativeRoot -and (Test-Path -LiteralPath (Join-Path $nativeRoot 'pcai_core_lib.dll')))
             InferenceDll  = [bool]($nativeRoot -and (Test-Path -LiteralPath (Join-Path $nativeRoot 'pcai_inference.dll')))
         }
-        Tools = @($tools)
+        Tools              = @($tools)
     }
 }
 
@@ -283,14 +285,14 @@ function Get-PcaiDirectCoreProbe {
 
     if (-not $coreDllPath -or -not (Test-Path -LiteralPath $coreDllPath)) {
         return [PSCustomObject]@{
-            Timestamp      = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-            Available      = $false
-            DllPath        = $coreDllPath
-            CoreAvailable  = $false
-            CpuCount       = $null
-            TokenEstimate  = $null
-            Error          = 'pcai_core_lib.dll not found'
-            DirectToRust   = $false
+            Timestamp     = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+            Available     = $false
+            DllPath       = $coreDllPath
+            CoreAvailable = $false
+            CpuCount      = $null
+            TokenEstimate = $null
+            Error         = 'pcai_core_lib.dll not found'
+            DirectToRust  = $false
         }
     }
 
@@ -301,26 +303,26 @@ function Get-PcaiDirectCoreProbe {
         $tokenEstimate = [uint64]($interopType::pcai_estimate_tokens($SampleText).ToUInt64())
 
         [PSCustomObject]@{
-            Timestamp      = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-            Available      = $true
-            DllPath        = $coreDllPath
-            CoreAvailable  = ($magic -eq 0x50434149)
-            CpuCount       = $cpuCount
-            TokenEstimate  = $tokenEstimate
-            Error          = $null
-            DirectToRust   = $true
+            Timestamp     = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+            Available     = $true
+            DllPath       = $coreDllPath
+            CoreAvailable = ($magic -eq 0x50434149)
+            CpuCount      = $cpuCount
+            TokenEstimate = $tokenEstimate
+            Error         = $null
+            DirectToRust  = $true
         }
     }
     catch {
         [PSCustomObject]@{
-            Timestamp      = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-            Available      = $false
-            DllPath        = $coreDllPath
-            CoreAvailable  = $false
-            CpuCount       = $null
-            TokenEstimate  = $null
-            Error          = $_.Exception.Message
-            DirectToRust   = $true
+            Timestamp     = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+            Available     = $false
+            DllPath       = $coreDllPath
+            CoreAvailable = $false
+            CpuCount      = $null
+            TokenEstimate = $null
+            Error         = $_.Exception.Message
+            DirectToRust  = $true
         }
     }
 }

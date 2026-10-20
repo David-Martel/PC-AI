@@ -414,12 +414,12 @@ public static class PcaiSearch
     /// <summary>
     /// Gets whether the native search library is available and functional.
     /// </summary>
-    public static bool IsAvailable => _isAvailable.Value;
+    public static bool IsAvailable => PcaiCore.IsAvailable && _isAvailable.Value;
 
     /// <summary>
     /// Gets the native search library version.
     /// </summary>
-    public static string Version => _version.Value;
+    public static string Version => IsAvailable ? _version.Value : "unavailable";
 
     private static bool TryReadStruct<T>(ReadOnlySpan<byte> buffer, ref int offset, out T value) where T : unmanaged
     {

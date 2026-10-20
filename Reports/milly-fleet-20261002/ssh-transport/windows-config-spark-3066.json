@@ -1,0 +1,24 @@
+{
+  "host": "spark-3066",
+  "effective": [
+    "user damartel",
+    "hostname 10.60.4.3",
+    "port 22",
+    "batchmode no",
+    "compression no",
+    "controlmaster false",
+    "identitiesonly yes",
+    "stricthostkeychecking true",
+    "tcpkeepalive yes",
+    "connectionattempts 2",
+    "serveralivecountmax 3",
+    "serveraliveinterval 30",
+    "ciphers chacha20-poly1305@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com",
+    "hostkeyalias spark-3066",
+    "identityagent none",
+    "identityfile ~/.ssh/id_ed25519_spark",
+    "forwardagent no",
+    "connecttimeout 12",
+    "controlpersist no"
+  ]
+}

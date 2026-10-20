@@ -1,0 +1,69 @@
+{
+  "observedUtc": "2026-10-03T00:40:57.587427+00:00",
+  "tools": [
+    {
+      "name": "cpack",
+      "path": "/home/cog/.local/bin/cpack",
+      "exists": true,
+      "exit": 0,
+      "stdout": "cpack version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+      "stderr": "",
+      "sha256": "db62d9a7170e4ad30947d34c88364504ee1e2004df56d8acd08071d712756d5f"
+    },
+    {
+      "name": "ctest",
+      "path": "/home/cog/.local/bin/ctest",
+      "exists": true,
+      "exit": 0,
+      "stdout": "ctest version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+      "stderr": "",
+      "sha256": "99a5ae79d79cebc7673679dbcbfe6327272d8d75cc58470470c4ab9727ee5d14"
+    },
+    {
+      "name": "rustfmt",
+      "path": "/home/cog/.cargo/bin/rustfmt",
+      "exists": true,
+      "exit": 0,
+      "stdout": "rustfmt 1.10.0-stable (b940084d7e 2026-09-28)",
+      "stderr": "",
+      "sha256": "dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71"
+    },
+    {
+      "name": "cargo-clippy",
+      "path": "/home/cog/.cargo/bin/cargo-clippy",
+      "exists": true,
+      "exit": 0,
+      "stdout": "clippy 0.1.99 (b940084d7e 2026-09-28)",
+      "stderr": "",
+      "sha256": "dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71"
+    }
+  ],
+  "uiEnv": {
+    "path": "/home/cog/.local/share/vigil-endpoint/ui-py313",
+    "exists": true,
+    "metadata": [
+      {
+        "name": "PySide6",
+        "version": "6.11.2"
+      },
+      {
+        "name": "shiboken6",
+        "version": "6.11.2"
+      },
+      {
+        "name": "PySide6_Addons",
+        "version": "6.11.2"
+      },
+      {
+        "name": "numpy",
+        "version": "2.5.3"
+      },
+      {
+        "name": "PySide6_Essentials",
+        "version": "6.11.2"
+      }
+    ],
+    "cfg": "home = /home/cog/.local/share/uv/python/cpython-3.13-linux-x86_64-gnu/bin\nimplementation = CPython\nuv = 0.12.22\nversion_info = 3.13\ninclude-system-site-packages = false\n"
+  },
+  "os": "PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n"
+}

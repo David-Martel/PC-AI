@@ -31,6 +31,8 @@ pwsh -File .\Tools\Register-PersistentVHDXTasks.ps1 -Register
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [switch]$Register,
+    [ValidateSet('Default', 'RustCacheDevDrive', 'All')]
+    [string]$Profile = 'Default',
     [string]$ScriptPath = (Join-Path $PSScriptRoot 'Mount-PersistentVHDX.ps1'),
     [string]$LogRoot = (Join-Path $PSScriptRoot '..\Logs\VHDMount'),
     [string]$TaskPath = '\',
@@ -68,7 +70,12 @@ $script:PersistentVHDXEventSource = 'PC-AI-VHDMount'
 $script:PersistentVHDXEventLogName = 'Application'
 
 function Get-PersistentVHDXTaskConfig {
-    @(
+    param(
+        [ValidateSet('Default', 'RustCacheDevDrive', 'All')]
+        [string]$Profile = 'Default'
+    )
+
+    $defaultConfigs = @(
         [pscustomobject]@{
             TaskName = 'AutoMount_VHDX_cloud-cache-disk'
             VhdPath = 'T:\vm\cloud-cache-disk.vhdx'
@@ -105,6 +112,26 @@ function Get-PersistentVHDXTaskConfig {
             Description = 'Mount share-ext4.vhdx as an attached ext4/WSL disk without requiring a Windows volume.'
         }
     )
+
+    $rustCacheConfig = @(
+        [pscustomobject]@{
+            TaskName = 'AutoMount_VHDX_RustCache'
+            VhdPath = 'C:\DevDrives\RustCache.vhdx'
+            ExpectedVolumeLabel = 'RustCache'
+            ExpectedDriveLetter = 'T'
+            ExpectedFileSystem = 'ReFS'
+            ExpectedDiskUniqueId = $null
+            ExpectedState = 'Volume'
+            StartupDelaySeconds = 5
+            Description = 'Mount and validate the 500 GB ReFS Dev Drive RustCache.vhdx at T: pre-user-login through Tools\Mount-PersistentVHDX.ps1.'
+        }
+    )
+
+    switch ($Profile) {
+        'RustCacheDevDrive' { return $rustCacheConfig }
+        'All' { return @($rustCacheConfig + $defaultConfigs) }
+        default { return $defaultConfigs }
+    }
 }
 
 function ConvertTo-Iso8601DurationSeconds {
@@ -187,10 +214,12 @@ function New-PersistentVHDXTaskPlan {
         [string]$ScriptPath,
         [string]$LogRoot,
         [string]$TaskPath = '\',
-        [string]$PowerShellExe = 'pwsh.exe'
+        [string]$PowerShellExe = 'pwsh.exe',
+        [ValidateSet('Default', 'RustCacheDevDrive', 'All')]
+        [string]$Profile = 'Default'
     )
 
-    foreach ($config in Get-PersistentVHDXTaskConfig) {
+    foreach ($config in (Get-PersistentVHDXTaskConfig -Profile $Profile)) {
         $argument = New-PersistentVHDXTaskArgument -Config $config -ScriptPath $ScriptPath -LogRoot $LogRoot
         $trigger = New-ScheduledTaskTrigger -AtStartup
         $trigger.Delay = ConvertTo-Iso8601DurationSeconds -Seconds $config.StartupDelaySeconds
@@ -253,6 +282,8 @@ function Invoke-PersistentVHDXTaskRegistration {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [switch]$Register,
+        [ValidateSet('Default', 'RustCacheDevDrive', 'All')]
+        [string]$Profile = 'Default',
         [string]$ScriptPath,
         [string]$LogRoot,
         [string]$TaskPath = '\',
@@ -265,7 +296,7 @@ function Invoke-PersistentVHDXTaskRegistration {
         throw "Mount wrapper script not found: $ScriptPath"
     }
 
-    $plans = @(New-PersistentVHDXTaskPlan -ScriptPath $ScriptPath -LogRoot $LogRoot -TaskPath $TaskPath -PowerShellExe $PowerShellExe)
+    $plans = @(New-PersistentVHDXTaskPlan -ScriptPath $ScriptPath -LogRoot $LogRoot -TaskPath $TaskPath -PowerShellExe $PowerShellExe -Profile $Profile)
 
     if ($Register -and -not $DryRun) {
         Register-PersistentVHDXTaskEventSource -Skip:$SkipEventSourceRegistration

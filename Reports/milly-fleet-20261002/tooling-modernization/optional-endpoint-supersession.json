@@ -1,0 +1,53 @@
+{
+  "schema": "vigil.optional-endpoint-review-supersession.v1",
+  "reviewer": "codex/milly_optional_review",
+  "oldCommit": "3537b2f6c5c9005de174c1bc2103844426944745",
+  "newCommit": "2ec3fbcaa62e3331b439bb902f14ef3fc190a296",
+  "unchangedTree": "5f0e0b9d4e38aead712ebac9ea8f3a839b5b2f3b",
+  "verifiedOn": "asuspro13:/home/damartel/dev/repos/vigil-spark",
+  "access": "Read-only Git objects, cryptographic signature verification, ls-remote; no fetch, checkout, config, service, PR or Milly writes.",
+  "checks": {
+    "remoteBranch": "refs/heads/codex/milly-optional-endpoint-20261002 equals exact newCommit",
+    "gitSignatureStatus": "G",
+    "verifyCommitExit": 0,
+    "signer": "davidmartel07@gmail.com",
+    "fingerprint": "SHA256:ydu3h/B/QejeoDQVwgwgj89q6SKvfjiytfMI7DrZ1Us",
+    "actualTrailers": [
+      "Co-authored-by: Codex <codex@users.noreply.github.com>",
+      "Agent: codex"
+    ],
+    "treeOldEqualsNew": true,
+    "diffOldToNewExit": 0,
+    "diffCheckBaseToNewExit": 0
+  },
+  "sourceHashes": {
+    "config/fleet-links.json": "b29b60589a77928aec20453c36c060171dfcebe7ada81b3062d587ac15f2da01",
+    "scripts/fleet_netcheck.py": "440e84ad83fa8ea7926339f03db4e8a22080c095544cfc85aa65dfb621e0a08b",
+    "tests/test_fleet_links.py": "ab78e5026516ad69b3d4abb6505548f41e027aa2716e5818e2abfd35224a25c6",
+    "tests/test_fleet_netcheck.py": "1a79ba9f478b25f712df17c42076d5c7c15961d1cb995099904fb483699d0f09"
+  },
+  "qaCustody": {
+    "originalReview": "/home/cog/.cache/pcai/milly-optional-review/README.md",
+    "originalReviewSha256": "d454f7d98299929914cdfc6c563a5843446104b1641202ba51974ee971d9f5ff",
+    "evidenceBindings": "Original regression/source hashes remain bound to identical full tree and independently checked exact file hashes. No redundant tests rerun.",
+    "testsPassed": 79,
+    "baseNegativeControls": "17 expected failures,62 passes",
+    "additionalBoundaryControlsPassed": 17,
+    "ruff": "lint and three changed Python files format pass",
+    "mypy": "Supplemental strict mypy has one identical pre-existing no-untyped-call on old base/head; not a typing pass."
+  },
+  "disposition": {
+    "attributionFinding": "Resolved on exact new signed commit",
+    "runtimeReview": "No new runtime/config regression; full source tree unchanged",
+    "rolloutLimits": [
+      "Optional display/input registration only",
+      "Three production members unchanged; Milly has no placement/release/static DDS eligibility",
+      "No Milly installer or full ROS UI supplied by this branch",
+      "No live pairing/stream/input/firewall/seat test; wait active ASUS Clarius 0546 resource release",
+      "No clinical, fleet acceptance, throughput or production-load evidence implied"
+    ],
+    "publication": "Prior PR creation automatic approval rejection persists; reviewer made no publication attempt."
+  },
+  "rawVerification": "2ec3fbcaa62e3331b439bb902f14ef3fc190a296\n5f0e0b9d4e38aead712ebac9ea8f3a839b5b2f3b\nG\nSHA256:ydu3h/B/QejeoDQVwgwgj89q6SKvfjiytfMI7DrZ1Us\ndavidmartel07@gmail.com\nfeat(fleet): register Milly as an optional display endpoint\n\nCo-authored-by: Codex <codex@users.noreply.github.com>\nAgent: codex\n\nGood \"git\" signature for davidmartel07@gmail.com with ED25519 key SHA256:ydu3h/B/QejeoDQVwgwgj89q6SKvfjiytfMI7DrZ1Us\n2ec3fbcaa62e3331b439bb902f14ef3fc190a296\trefs/heads/codex/milly-optional-endpoint-20261002\n5f0e0b9d4e38aead712ebac9ea8f3a839b5b2f3b\ncodex\n\nCodex <codex@users.noreply.github.com>\n\n",
+  "rawSourceHashVerification": "config/fleet-links.json b29b60589a77928aec20453c36c060171dfcebe7ada81b3062d587ac15f2da01  -\nscripts/fleet_netcheck.py 440e84ad83fa8ea7926339f03db4e8a22080c095544cfc85aa65dfb621e0a08b  -\ntests/test_fleet_links.py ab78e5026516ad69b3d4abb6505548f41e027aa2716e5818e2abfd35224a25c6  -\ntests/test_fleet_netcheck.py 1a79ba9f478b25f712df17c42076d5c7c15961d1cb995099904fb483699d0f09  -\n"
+}

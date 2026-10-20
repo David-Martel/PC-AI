@@ -1,37 +1,25 @@
 #Requires -Version 7.0
-# Per-device Shift/letter ORDERING metric. For every letter DOWN that the user shifted
-# (a shift key was down within +/-250ms), compute delta = letterDown - shiftDown (ms).
-# Negative = letter registered BEFORE shift (the late-shift failure signature).
+<#
+.SYNOPSIS
+    Returns conservative Shift aggregates for an existing capture.
+.DESCRIPTION
+    Compatibility entrypoint for the former nearest-Shift timing heuristic.
+    Temporal proximity cannot establish intended capitalization or application
+    failure, so this command now uses the shared device-and-side state analyzer.
+    It emits no typed text, per-letter timeline, failure rate, or causal verdict.
+.PARAMETER Path
+    Existing shift-source-live JSONL file. Defaults to the latest local capture.
+.PARAMETER PassThru
+    Return structured aggregates instead of JSON.
+#>
 [CmdletBinding()]
-param([string]$Path)
-if (-not $Path) {
-    $Path = (Get-ChildItem 'C:\codedev\PC_AI\Logs\input-diagnostics\shift-source-live-*.jsonl' |
-             Sort-Object LastWriteTime | Select-Object -Last 1).FullName
-}
-$ev = @(Get-Content $Path | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json })
-"File: $([System.IO.Path]::GetFileName($Path))   events=$($ev.Count)"
-$t = {param($s) [datetime]::ParseExact($s,'HH:mm:ss.fff',$null)}
+param(
+    [string]$Path,
+    [switch]$PassThru
+)
 
-foreach ($cls in @('INTERNAL','USB/HID')) {
-    $d = @($ev | Where-Object cls -eq $cls)
-    if (-not $d.Count) { "`n[$cls] no events"; continue }
-    $shDowns = @($d | Where-Object { $_.name -in 'LSHIFT','RSHIFT' -and $_.dir -eq 'DOWN' })
-    $letters = @($d | Where-Object { $_.dir -eq 'DOWN' -and $_.vk -ge 65 -and $_.vk -le 90 })
-    "`n========== [$cls] ($($d.Count) events; $($shDowns.Count) shift-downs, $($letters.Count) letters) =========="
-    $fails = 0; $caps = 0
-    foreach ($L in $letters) {
-        $lt = & $t $L.t
-        # nearest shift-down within 300ms either side
-        $near = $shDowns | ForEach-Object { [pscustomobject]@{ s=$_; d=([int]((& $t $_.t)-$lt).TotalMilliseconds) } } |
-                Where-Object { [Math]::Abs($_.d) -le 300 } | Sort-Object { [Math]::Abs($_.d) } | Select-Object -First 1
-        if ($near) {
-            $caps++
-            # delta = letterDown - shiftDown ; positive means shift was earlier (good)
-            $delta = -1 * $near.d
-            $flag = if ($delta -lt 0) { 'FAIL (letter before shift)' } else { 'ok' }
-            if ($delta -lt 0) { $fails++ }
-            "  {0}  letter '{1}'  shift{2:+0;-0}ms  {3}" -f $L.t, [char][int]$L.vk, $delta, $flag
-        }
-    }
-    "  --> shifted letters=$caps  late-shift FAILURES=$fails"
-}
+$arguments = @{ PassThru = $true }
+if ($Path) { $arguments.Path = $Path }
+$summary = & (Join-Path $PSScriptRoot 'Analyze-ShiftTrace.ps1') @arguments
+if ($PassThru) { $summary }
+else { $summary | ConvertTo-Json -Depth 8 }

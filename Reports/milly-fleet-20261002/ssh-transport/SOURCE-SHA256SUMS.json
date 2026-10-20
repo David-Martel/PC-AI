@@ -1,0 +1,154 @@
+{
+  "observedUtc": "2026-10-03T00:09:46.6763718Z",
+  "windowsSettingsApplied": true,
+  "millyCogLinuxSettingsApplied": true,
+  "privateBeforeDirectoriesExcluded": true,
+  "root": "C:\\Users\\david\\AppData\\Local\\Temp\\ssh-transport-review-20261002",
+  "artifacts": [
+    {
+      "name": "asus-effective-config.txt",
+      "bytes": 1214,
+      "sha256": "e0f40b6e817a65e50c47b1a6d455920bb608fe91cecdcbbcceba57f9c44bc6ea"
+    },
+    {
+      "name": "asus-spark-hardening.proposed.conf",
+      "bytes": 348,
+      "sha256": "220657958cc29b42710162c2774b0039fc6eb307d6def42e876d385693f0a8ed"
+    },
+    {
+      "name": "implementation-after-effective.json",
+      "bytes": 4296,
+      "sha256": "e7bd89e23673888c4edac0cf975a1a8118ecc9c0a1f998a79ce4a72d06ab33ce"
+    },
+    {
+      "name": "implementation-before-full-effective.json",
+      "bytes": 4294,
+      "sha256": "566e66da8534a320bd97d9d78c7a61914a48fd1e2698bdfeeb449ee89aeeef71"
+    },
+    {
+      "name": "implementation-effective-diff.json",
+      "bytes": 2256,
+      "sha256": "7e7137e42b4b88a11de66f7a4b8c47d074db129029c1f7f1132c9e531a77b727"
+    },
+    {
+      "name": "linux-proposal-parser.txt",
+      "bytes": 231,
+      "sha256": "0af2792057482ce4efcab842e3a2e5046a99874d6d5ff6e2a0cc6980cbb49f2a"
+    },
+    {
+      "name": "linux-transport.proposed.conf",
+      "bytes": 670,
+      "sha256": "d9314623c8984ae8ae165cbb09381fc74d12817d4605cba85c8fcdaf58c0e0ff"
+    },
+    {
+      "name": "milly-apply-source.sh",
+      "bytes": 4644,
+      "sha256": "6a0dc70a83860e5219c1b9f51d1ff3116264b99f2593d6ee8f040085d9bf17c0"
+    },
+    {
+      "name": "milly-banner-timeout-source.sh",
+      "bytes": 2370,
+      "sha256": "f8410c119fb81844372d0556661cd02b0bc52a8f05b3f2df2638e6bfcc42227a"
+    },
+    {
+      "name": "milly-banner-timeout-validation.json",
+      "bytes": 1091,
+      "sha256": "f1f0a6d26e72272fba1a022b787fca73b960439a6f0736a8be2ad05fde2257b3"
+    },
+    {
+      "name": "milly-implementation-receipt.json",
+      "bytes": 6663,
+      "sha256": "46c9d25441153f8926f772d64831f6efec07fe496707a5f095338c96522c60f2"
+    },
+    {
+      "name": "milly-mux-harness-failure.json",
+      "bytes": 570,
+      "sha256": "b5d8ccd93e0e70f0058c60c14c3a9f9c4a840e738447813ba2267c4401dc6b15"
+    },
+    {
+      "name": "milly-mux-validation-source.sh",
+      "bytes": 6452,
+      "sha256": "6adeb0f88c1226c46edb01ac162acb98ad58ff557a9171b2721b80feeea5f98d"
+    },
+    {
+      "name": "milly-mux-validation.json",
+      "bytes": 3231,
+      "sha256": "91ff9c754ae1713266ddd4bcd56eba7a4c51d36bea37ede13d2305ee535d847b"
+    },
+    {
+      "name": "mux.c",
+      "bytes": 64333,
+      "sha256": "36f8793430ca8a6904f624d5f6be792217195c7f6e884aa9b3f1573b8cd55d8b"
+    },
+    {
+      "name": "native-capability.json",
+      "bytes": 496,
+      "sha256": "50c0e884f904fe7e852a2a29321731c186c4535c8815b60d179223de63644665"
+    },
+    {
+      "name": "PROPOSAL.md",
+      "bytes": 14899,
+      "sha256": "58958f447c028070c910413fc62d3a391c304befc838e753870790176ed9d2bb"
+    },
+    {
+      "name": "readconf.c",
+      "bytes": 105135,
+      "sha256": "26b304201aa83b22e28ff5cbf65c0242a85f812dd285420a123c1c818a9a2a2e"
+    },
+    {
+      "name": "ssh.c",
+      "bytes": 73137,
+      "sha256": "4070b34fbeb382f7b4915cb8f8ee1cb97c63eab69aa8e7b93158e768cdd96c5a"
+    },
+    {
+      "name": "timing-summary.json",
+      "bytes": 588,
+      "sha256": "37e6dbd3275fbfa231c96b354692d4d4910486d89d1594616fe77f1b7d152365"
+    },
+    {
+      "name": "windows-cold-handshake.json",
+      "bytes": 1398,
+      "sha256": "04211adec38ea4904df17ede1420d6d8471401113a1956e402ad165c45d20a15"
+    },
+    {
+      "name": "windows-config-asuspro13.json",
+      "bytes": 663,
+      "sha256": "91a1aa674d7460a3dcb9453d25c8ed1c9be58d2fbbc5e90b6a81eb6763c137d3"
+    },
+    {
+      "name": "windows-config-millylaptop1.json",
+      "bytes": 707,
+      "sha256": "3babb6df7c9bed3b8022409b0b377ba351cc8700d508f27889f5261dd976cd00"
+    },
+    {
+      "name": "windows-config-spark-0060.json",
+      "bytes": 672,
+      "sha256": "2141ee3e4d04fd5f631a0bb10e7d6f111dff96ddc092768def6c32822b496afb"
+    },
+    {
+      "name": "windows-config-spark-3066.json",
+      "bytes": 672,
+      "sha256": "1b839ef2ad75d4774dbde9d816d306548d3d359b2e1bc8052a20e158a848a4cf"
+    },
+    {
+      "name": "windows-implementation-receipt.json",
+      "bytes": 2582,
+      "sha256": "e90a82319dbef67e9e50719f1dcbbeac09fd425e7fcff4405125a92ad27ea56d"
+    },
+    {
+      "name": "windows-milly-postmaintenance-check.json",
+      "bytes": 387,
+      "sha256": "af741ce08aa684fe8ac7c478549d6835e4be65bd13d8830e3a7a368fd7de1b21"
+    },
+    {
+      "name": "windows-transport.applied.conf",
+      "bytes": 437,
+      "sha256": "8f470b92a31e2e2a12f34c646a0dec3d80db5a55e60e953df2f7a1e77fe4d423"
+    },
+    {
+      "name": "windows-transport.proposed.conf",
+      "bytes": 498,
+      "sha256": "107a60f7844c63a4bb512bb9dd7639414779cf076906fd04aa6e8a2f95ff40be"
+    }
+  ]
+}

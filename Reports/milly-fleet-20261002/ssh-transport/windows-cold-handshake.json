@@ -1,0 +1,86 @@
+[
+  {
+    "host": "millylaptop1",
+    "sample": 1,
+    "elapsed_ms": 383.44,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "millylaptop1",
+    "sample": 2,
+    "elapsed_ms": 337.32,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "millylaptop1",
+    "sample": 3,
+    "elapsed_ms": 357.54,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "asuspro13",
+    "sample": 1,
+    "elapsed_ms": 311.1,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "asuspro13",
+    "sample": 2,
+    "elapsed_ms": 307.29,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "asuspro13",
+    "sample": 3,
+    "elapsed_ms": 279.65,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "spark-0060",
+    "sample": 1,
+    "elapsed_ms": 402.77,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "spark-0060",
+    "sample": 2,
+    "elapsed_ms": 395.53,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "spark-0060",
+    "sample": 3,
+    "elapsed_ms": 498.85,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "spark-3066",
+    "sample": 1,
+    "elapsed_ms": 432.1,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "spark-3066",
+    "sample": 2,
+    "elapsed_ms": 399.13,
+    "exit": 0,
+    "error": ""
+  },
+  {
+    "host": "spark-3066",
+    "sample": 3,
+    "elapsed_ms": 440.34,
+    "exit": 0,
+    "error": ""
+  }
+]

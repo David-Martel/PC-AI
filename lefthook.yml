@@ -22,7 +22,7 @@ pre-commit:
     # --- PowerShell: Module manifest validation ---
     ps-manifest-check:
       glob: "Modules/*/*.psd1"
-      run: pwsh -NoProfile -Command "Get-ChildItem -Path Modules -Recurse -Filter *.psd1 | ForEach-Object { Test-ModuleManifest $_.FullName -ErrorAction Stop }"
+      run: pwsh -NoProfile -File Tools/Test-PcaiModuleManifests.ps1
       fail_text: "PowerShell module manifest validation failed."
 
     # --- No TODO expects in Rust ---

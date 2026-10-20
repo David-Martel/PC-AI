@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "timestamp_utc": "2026-10-03T01:41:31.808880+00:00",
+  "host": "millylaptop1",
+  "python": "3.13.16",
+  "pyside6": "6.11.2",
+  "platform": "offscreen",
+  "source_commit": "0201a3c9ac9fdc081dd1c481e2fd11748c25fd0b",
+  "source_hashes": {
+    "src/display/display/cardiac_capture_status.py": "310dd0969e449d947940e9f964c3869a56dc22bcba24067c9a3985b62824cf46",
+    "src/display/display/display_surfaces.py": "67091863d6ec37c5c8b8211cf8ced80c896b82df3cb124b3299146c660418f2b",
+    "src/display/display/vigil_widgets/CardiacCaptureStatusWidget.py": "918da3bf891ed77c59f288ab252cc5b7ad410d033ca3b7b793bc70eb8219c046",
+    "src/display/display/vigil_widgets/VigilWidget.py": "244531b5da8740972b0076db05b63557386d727f109d74dfd3dc5ca6ed1b915c"
+  },
+  "render_assertions": 10,
+  "render_states": [
+    {
+      "progress": 50,
+      "state": "capturing",
+      "fill_pixel": "#3478dc",
+      "marker_column": 299,
+      "image": "capture-capturing.png",
+      "image_sha256": "a67da32b855c831a55936bd203c066e67a9088fd90eafc93c307a8f85276052e"
+    },
+    {
+      "progress": 80,
+      "state": "ok",
+      "fill_pixel": "#2ea043",
+      "marker_column": 299,
+      "image": "capture-ok.png",
+      "image_sha256": "d204452477bd7e5b0c1bdc99642b8624199ae968da641d6f49b54e8a5e21c915"
+    },
+    {
+      "progress": 100,
+      "state": "complete",
+      "fill_pixel": "#46c85a",
+      "marker_column": 299,
+      "image": "capture-complete.png",
+      "image_sha256": "129681aaee3e0f99f283a2a5e572f70e24ae5f5e801b5d1ca93befab2c6eb323"
+    }
+  ],
+  "sunshine_tcp": [
+    {
+      "host": "192.168.50.2",
+      "port": 47984,
+      "tcp": "unreachable",
+      "error": "timed out"
+    },
+    {
+      "host": "192.168.50.2",
+      "port": 47989,
+      "tcp": "unreachable",
+      "error": "timed out"
+    },
+    {
+      "host": "192.168.50.2",
+      "port": 48010,
+      "tcp": "unreachable",
+      "error": "timed out"
+    }
+  ],
+  "ros_domain_id": 231,
+  "ros_localhost_only": true,
+  "rclpy_imported": false,
+  "scope": "Actual VIGIL source-controlled Qt progress widget only; offscreen synthetic states.",
+  "not_validated": [
+    "complete ROS operator UI",
+    "paired remote stream",
+    "physical GUI output",
+    "input or reconnect",
+    "procedure/projector continuity",
+    "HIL"
+  ]
+}

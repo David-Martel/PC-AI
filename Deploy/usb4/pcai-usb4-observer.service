@@ -1,0 +1,28 @@
+[Unit]
+Description=PC-AI enrolled USB4 observation (no network mutation)
+After=network.target
+ConditionPathExists=/etc/pcai-usb4/policy.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/pcai-usb4-agent observe /etc/pcai-usb4/policy.json
+TimeoutStartSec=15s
+User=root
+UMask=0077
+Environment=LC_ALL=C PCAI_USB4_WRITE_STATUS=1
+RuntimeDirectory=pcai-usb4-status
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,158 @@
+{
+  "recorded_utc": "2026-10-02T21:36:52.810605+00:00",
+  "state": "Staged and SHA256 verified; NOT installed or scheduled for flash",
+  "current_device": {
+    "DeviceId": "773b12207d433c4004f0f0bbfe05f9291cf489a2",
+    "Name": "Intel Management Engine",
+    "Version": "1.25.2124",
+    "Guid": [
+      "d72bd93d-099b-4d2b-8b71-0e5d49f72976"
+    ],
+    "Plugin": "uefi_capsule",
+    "Flags": [
+      "internal",
+      "updatable",
+      "require-ac",
+      "supported",
+      "needs-reboot",
+      "usable-during-update"
+    ]
+  },
+  "target_release": {
+    "AppstreamId": "com.lenovo.ThinkPadN3TRM.firmware",
+    "ReleaseId": "142176",
+    "RemoteId": "lvfs",
+    "Name": "ThinkPad P16 Gen 2",
+    "Summary": "Lenovo ThinkPad P16 Gen 2 ME Firmware",
+    "Description": "<p>Intel Platform Update 2026.3 Product Version Maintenance Release Version 16.1.42.2872 (LVFS: 1.42.2872) Problem Fixes Mitigated the following security vulnerabilities under issues.Please see fixed issues for details.</p>",
+    "Version": "1.42.2872",
+    "Filename": "Lenovo-ThinkPad-P16Gen2-CorporateMEFirmware-16.1.42.2872.cab",
+    "Protocol": "org.uefi.capsule",
+    "Categories": [
+      "X-CorporateManagementEngine",
+      "X-ManagementEngine"
+    ],
+    "Issues": [
+      "CVE-2026-20734",
+      "CVE-2026-20715",
+      "CVE-2026-20708"
+    ],
+    "Checksum": [
+      "074dc3f05976e3618cbd655a2cc9658e03d22160",
+      "96f455975e7568fa92cc4b493eacc33d6ed05a678b153e395d803c5822176ce6"
+    ],
+    "License": "LicenseRef-proprietary",
+    "Size": 9566232,
+    "Created": 1779321600,
+    "Locations": [
+      "https://fwupd.org/downloads/96f455975e7568fa92cc4b493eacc33d6ed05a678b153e395d803c5822176ce6-Lenovo-ThinkPad-P16Gen2-CorporateMEFirmware-16.1.42.2872.cab"
+    ],
+    "Homepage": "http://www.lenovo.com/",
+    "DetailsUrl": "https://pcsupport.lenovo.com/de/en/search?query=N3TRK08W",
+    "Vendor": "Lenovo",
+    "Flags": [
+      "trusted-metadata",
+      "is-upgrade",
+      "trusted-report"
+    ],
+    "Reports": [
+      {
+        "DeviceName": "LENOVO ThinkPad P16 Gen 2",
+        "DistroId": "ubuntu-core",
+        "DistroVersion": "24",
+        "VersionOld": "1.40.2765",
+        "Vendor": "Lenovo",
+        "RemoteId": "lvfs",
+        "VendorId": 84,
+        "Flags": [
+          "from-oem",
+          "is-upgrade"
+        ],
+        "RuntimeVersion(org.freedesktop.fwupd)": "2.0.18"
+      }
+    ]
+  },
+  "download_url": "https://fwupd.org/downloads/96f455975e7568fa92cc4b493eacc33d6ed05a678b153e395d803c5822176ce6-Lenovo-ThinkPad-P16Gen2-CorporateMEFirmware-16.1.42.2872.cab",
+  "artifact": "/home/cog/.cache/pcai/vpro-audit/me-firmware-staging/96f455975e7568fa92cc4b493eacc33d6ed05a678b153e395d803c5822176ce6-Lenovo-ThinkPad-P16Gen2-CorporateMEFirmware-16.1.42.2872.cab",
+  "artifact_bytes": 9592834,
+  "expected_sha256": "96f455975e7568fa92cc4b493eacc33d6ed05a678b153e395d803c5822176ce6",
+  "observed_sha256": "96f455975e7568fa92cc4b493eacc33d6ed05a678b153e395d803c5822176ce6",
+  "get_details_exit": 0,
+  "get_details": {
+    "Devices": [
+      {
+        "Name": "Intel Management Engine",
+        "DeviceId": "773b12207d433c4004f0f0bbfe05f9291cf489a2",
+        "Guid": [
+          "d72bd93d-099b-4d2b-8b71-0e5d49f72976"
+        ],
+        "Summary": "UEFI System Resource Table device (updated via NVRAM)",
+        "Plugin": "uefi_capsule",
+        "Protocols": [
+          "org.uefi.capsule"
+        ],
+        "Flags": [
+          "internal",
+          "updatable",
+          "require-ac",
+          "supported",
+          "needs-reboot",
+          "usable-during-update"
+        ],
+        "RequestFlags": [
+          "allow-generic-message"
+        ],
+        "Vendor": "Lenovo",
+        "VendorIds": [
+          "DMI:LENOVO"
+        ],
+        "Version": "1.25.2124",
+        "VersionFormat": "triplet",
+        "VersionRaw": 18417740,
+        "Created": 1790971667,
+        "UpdateState": 2,
+        "Releases": [
+          {
+            "AppstreamId": "com.lenovo.ThinkPadN3TRM.firmware",
+            "Name": "ThinkPad P16 Gen 2",
+            "Summary": "Lenovo ThinkPad P16 Gen 2 ME Firmware",
+            "Description": "<p>Intel Platform Update 2026.3 Product Version Maintenance Release Version 16.1.42.2872 (LVFS: 1.42.2872) Problem Fixes Mitigated the following security vulnerabilities under issues.Please see fixed issues for details.</p>",
+            "Version": "1.42.2872",
+            "Protocol": "org.uefi.capsule",
+            "Categories": [
+              "X-CorporateManagementEngine",
+              "X-ManagementEngine"
+            ],
+            "Issues": [
+              "CVE-2026-20734",
+              "CVE-2026-20715",
+              "CVE-2026-20708"
+            ],
+            "Checksum": [
+              "074dc3f05976e3618cbd655a2cc9658e03d22160",
+              "96f455975e7568fa92cc4b493eacc33d6ed05a678b153e395d803c5822176ce6"
+            ],
+            "License": "LicenseRef-proprietary",
+            "Size": 9566232,
+            "Homepage": "http://www.lenovo.com/",
+            "DetailsUrl": "https://pcsupport.lenovo.com/de/en/search?query=N3TRK08W",
+            "Vendor": "Lenovo",
+            "Flags": [
+              "trusted-payload",
+              "trusted-metadata"
+            ],
+            "UpdateMessage": "Do not turn off your computer or remove the AC adapter while the update is in progress."
+          },
+          {
+            "RemoteId": "lvfs",
+            "Checksum": [
+              "96f455975e7568fa92cc4b493eacc33d6ed05a678b153e395d803c5822176ce6",
+              "074dc3f05976e3618cbd655a2cc9658e03d22160"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "restrictions": "No install, update, reboot, module, network, power, or BIOS change while backup is running"
+}

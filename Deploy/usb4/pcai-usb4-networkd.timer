@@ -1,0 +1,11 @@
+[Unit]
+Description=Recover enrolled networkd USB4 profiles after driver or link events
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=10s
+AccuracySec=1s
+Unit=pcai-usb4-networkd.service
+
+[Install]
+WantedBy=timers.target

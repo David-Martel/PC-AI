@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF",
+  "reviews": [
+    {
+      "selector": "empty USB4 inventory preserves foreign routes",
+      "test_path": "Tests/Portable/Test-Usb4RouteOwnership.ps1",
+      "test_sha256": "d4a11dd7005cac8cf085cf3951117b38bd71aebe4a6c777a86ea04115b4e11b3",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex root independent test review",
+      "reviewer_type": "human-style code review and actual selector execution",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Root independently read actual AST fixtures, reran all six PASS plus original d5 first selector FAIL. Exact owned prefix/interface, mutation counts, WhatIf and prefix exclusions verified. No hardware mutation or HIL qualification.",
+      "receipt": "usb4-route-ownership-review.md"
+    },
+    {
+      "selector": "nonmember interface preserves foreign routes",
+      "test_path": "Tests/Portable/Test-Usb4RouteOwnership.ps1",
+      "test_sha256": "d4a11dd7005cac8cf085cf3951117b38bd71aebe4a6c777a86ea04115b4e11b3",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex root independent test review",
+      "reviewer_type": "human-style code review and actual selector execution",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Root independently read actual AST fixtures, reran all six PASS plus original d5 first selector FAIL. Exact owned prefix/interface, mutation counts, WhatIf and prefix exclusions verified. No hardware mutation or HIL qualification.",
+      "receipt": "usb4-route-ownership-review.md"
+    },
+    {
+      "selector": "positively inventoried interface permits scoped withdrawal",
+      "test_path": "Tests/Portable/Test-Usb4RouteOwnership.ps1",
+      "test_sha256": "d4a11dd7005cac8cf085cf3951117b38bd71aebe4a6c777a86ea04115b4e11b3",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex root independent test review",
+      "reviewer_type": "human-style code review and actual selector execution",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Root independently read actual AST fixtures, reran all six PASS plus original d5 first selector FAIL. Exact owned prefix/interface, mutation counts, WhatIf and prefix exclusions verified. No hardware mutation or HIL qualification.",
+      "receipt": "usb4-route-ownership-review.md"
+    },
+    {
+      "selector": "WhatIf preserves an owned route",
+      "test_path": "Tests/Portable/Test-Usb4RouteOwnership.ps1",
+      "test_sha256": "d4a11dd7005cac8cf085cf3951117b38bd71aebe4a6c777a86ea04115b4e11b3",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex root independent test review",
+      "reviewer_type": "human-style code review and actual selector execution",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Root independently read actual AST fixtures, reran all six PASS plus original d5 first selector FAIL. Exact owned prefix/interface, mutation counts, WhatIf and prefix exclusions verified. No hardware mutation or HIL qualification.",
+      "receipt": "usb4-route-ownership-review.md"
+    },
+    {
+      "selector": "default route remains excluded",
+      "test_path": "Tests/Portable/Test-Usb4RouteOwnership.ps1",
+      "test_sha256": "d4a11dd7005cac8cf085cf3951117b38bd71aebe4a6c777a86ea04115b4e11b3",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex root independent test review",
+      "reviewer_type": "human-style code review and actual selector execution",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Root independently read actual AST fixtures, reran all six PASS plus original d5 first selector FAIL. Exact owned prefix/interface, mutation counts, WhatIf and prefix exclusions verified. No hardware mutation or HIL qualification.",
+      "receipt": "usb4-route-ownership-review.md"
+    },
+    {
+      "selector": "non-PC-AI route remains excluded",
+      "test_path": "Tests/Portable/Test-Usb4RouteOwnership.ps1",
+      "test_sha256": "d4a11dd7005cac8cf085cf3951117b38bd71aebe4a6c777a86ea04115b4e11b3",
+      "source_path": "Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1",
+      "source_sha256": "db4d6fd4d28b597193724be7da3a28a8d77b4b42b07adb86f779af8748749e67",
+      "reviewer": "Codex root independent test review",
+      "reviewer_type": "human-style code review and actual selector execution",
+      "base_commit": "d5b5edad6d90c89a4ec9b0aa0fc66baca5341c0d",
+      "disposition": "keep",
+      "scope": "Root independently read actual AST fixtures, reran all six PASS plus original d5 first selector FAIL. Exact owned prefix/interface, mutation counts, WhatIf and prefix exclusions verified. No hardware mutation or HIL qualification.",
+      "receipt": "usb4-route-ownership-review.md"
+    }
+  ]
+}

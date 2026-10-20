@@ -180,6 +180,10 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     }
 
     Context "Device matched by VID/PID - current" {
+        # Protects: default Current filtering and exact matched-version identity under StrictMode.
+        # Detects: leaked Current rows, suppressed classifier errors, or an always-empty classifier.
+        # Needs: private registry and same-input positive IncludeUpToDate control; no hardware or network.
+        # Breadcrumb: Modules/PC-AI.Drivers/Public/Compare-DriverVersion.ps1.
         It "Should suppress Current by default" {
             $inventory = @([PSCustomObject]@{
                 Name          = 'Realtek RTL8156'
@@ -188,8 +192,15 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
                 PnpClass      = 'Net'
                 DriverVersion = '1156.21.20.1110'
             })
-            $result = Compare-DriverVersion -Inventory $inventory -Registry $script:Registry
+            $result = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -ErrorAction Stop)
             $result.Count | Should -Be 0
+            $included = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -IncludeUpToDate -ErrorAction Stop)
+            $included.Count | Should -Be 1
+            $included[0].Status | Should -BeExactly 'Current'
+            $included[0].DeviceName | Should -BeExactly 'Realtek RTL8156'
+            $included[0].RegistryId | Should -BeExactly 'realtek-rtl8156'
+            $included[0].InstalledVersion | Should -BeExactly '1156.21.20.1110'
+            $included[0].TargetVersion | Should -BeExactly '1156.21.20.1110'
         }
 
         It "Should include Current when -IncludeUpToDate" {
@@ -265,6 +276,10 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
     }
 
     Context "Unmatched device" {
+        # Protects: default Unknown filtering and exact unmatched-device identity under StrictMode.
+        # Detects: leaked Unknown rows, suppressed classifier errors, or an always-empty classifier.
+        # Needs: private registry and same-input positive IncludeUnknown control; no hardware or network.
+        # Breadcrumb: Modules/PC-AI.Drivers/Public/Compare-DriverVersion.ps1.
         It "Should suppress Unknown by default" {
             $inventory = @([PSCustomObject]@{
                 Name          = 'Unknown Widget'
@@ -273,8 +288,15 @@ Describe "Compare-DriverVersion" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
                 PnpClass      = 'Other'
                 DriverVersion = '1.0'
             })
-            $result = Compare-DriverVersion -Inventory $inventory -Registry $script:Registry
+            $result = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -ErrorAction Stop)
             $result.Count | Should -Be 0
+            $included = @(Compare-DriverVersion -Inventory $inventory -Registry $script:Registry -IncludeUnknown -ErrorAction Stop)
+            $included.Count | Should -Be 1
+            $included[0].Status | Should -BeExactly 'Unknown'
+            $included[0].DeviceName | Should -BeExactly 'Unknown Widget'
+            $included[0].InstalledVersion | Should -BeExactly '1.0'
+            $included[0].RegistryId | Should -BeNullOrEmpty
+            $included[0].TargetVersion | Should -BeNullOrEmpty
         }
 
         It "Should include Unknown when -IncludeUnknown" {
@@ -420,6 +442,156 @@ Describe "Install-DriverUpdate" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
         It "Should write error for non-existent device" {
             { Install-DriverUpdate -DeviceId 'nonexistent-device' -RegistryPath $script:TempRegistryPath -ErrorAction Stop } | Should -Throw
         }
+    }
+}
+
+Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Unit', 'Drivers', 'Portable', 'DriverDownloadContract' {
+    BeforeAll {
+        # SHA256 of the independent three-byte ASCII fixture "abc".
+        $script:DownloadContractHash = 'BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD'
+    }
+
+    BeforeEach {
+        $script:DownloadContractRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $script:DownloadContractRegistry = Join-Path $TestDrive 'download-contract-registry.json'
+        $registry = $script:MockRegistryJson | ConvertFrom-Json
+        $registry.trustedSources[0].baseUrl = 'https://drivers.example.invalid'
+        $registry.devices[0].driver.downloadUrl = 'https://drivers.example.invalid/driver.exe'
+        $registry.devices[0].driver.installerType = 'exe'
+        $registry.devices[0].driver.sha256 = $script:DownloadContractHash
+        $registry.devices[0].sharedDriverGroup = $null
+        $registry | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:DownloadContractRegistry -Encoding utf8
+        Mock Test-AdminElevation { $true } -ModuleName PC-AI.Drivers
+        Mock Invoke-WebRequest { throw 'Unmocked driver network access is forbidden.' } -ModuleName PC-AI.Drivers
+        Mock Start-Process { throw 'Actual driver installer execution is forbidden.' } -ModuleName PC-AI.Drivers
+        Mock Expand-Archive { throw 'Actual driver archive extraction is forbidden.' } -ModuleName PC-AI.Drivers
+    }
+
+    # Protects: both download and install WhatIf modes suppress all mutation, with absent or existing destinations.
+    # Detects: premature directory creation, DownloadOnly bypass, network access, cache reads, or installer dispatch.
+    # Needs: private fixture registry and bytes; all four DownloadOnly/Existing case combinations are inert.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.
+    It 'performs no write or download in WhatIf with DownloadOnly=<DownloadOnly> Existing=<Existing>' -ForEach @(
+        @{ DownloadOnly = $false; Existing = $false },
+        @{ DownloadOnly = $true; Existing = $false },
+        @{ DownloadOnly = $false; Existing = $true },
+        @{ DownloadOnly = $true; Existing = $true }
+    ) {
+        $existingPath = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'
+        if ($Existing) {
+            [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+            [IO.File]::WriteAllBytes($existingPath, [byte[]](0x78, 0x79, 0x7A))
+        }
+        $registryBefore = [IO.File]::ReadAllText($script:DownloadContractRegistry)
+        Mock New-Item { throw 'WhatIf reached directory mutation.' } -ModuleName PC-AI.Drivers
+        Mock Get-FileHash { throw 'WhatIf reached download acceptance.' } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly:$DownloadOnly -WhatIf
+        $result.Action | Should -BeExactly 'WhatIf'
+        $result.Success | Should -BeTrue
+        $result.FilePath | Should -BeNullOrEmpty
+        Should -Invoke New-Item -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Get-FileHash -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Expand-Archive -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        [IO.Directory]::Exists($script:DownloadContractRoot) | Should -Be $Existing
+        [IO.File]::ReadAllText($script:DownloadContractRegistry) | Should -BeExactly $registryBefore
+        if ($Existing) { [Convert]::ToBase64String([IO.File]::ReadAllBytes($existingPath)) | Should -BeExactly 'eHl6' }
+    }
+
+    # Protects: normal DownloadOnly still produces a verified private file without launching or extracting it.
+    # Detects: a fix that blocks useful downloads, alters forwarding, or dispatches an installer.
+    # Needs: actual public/private maintained functions, private registry, inert web-response bytes "abc".
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.
+    It 'downloads verified bytes normally without executing an installer' {
+        Mock Invoke-WebRequest { param($Uri, $OutFile) [IO.File]::WriteAllBytes($OutFile, [byte[]](0x61, 0x62, 0x63)) } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly -Confirm:$false
+        $result.Action | Should -BeExactly 'DownloadOnly'
+        $result.Success | Should -BeTrue
+        $result.FilePath | Should -BeExactly (Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe')
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($result.FilePath)) | Should -BeExactly 'YWJj'
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It -ParameterFilter { $Uri -eq 'https://drivers.example.invalid/driver.exe' }
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Expand-Archive -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: valid existing download bytes remain reusable without network or installation.
+    # Detects: a regression that refuses known-good cached data or overwrites it while validating.
+    # Needs: private literal filename containing brackets and an independent known SHA256 digest.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'accepts matching existing bytes using their literal path without network access' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer[1].exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x61, 0x62, 0x63))
+        $result = & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash } $path $script:DownloadContractHash.ToLowerInvariant()
+        $result | Should -BeExactly $path
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'YWJj'
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: a mismatched cached download is refused while the user's exact file is preserved.
+    # Detects: accepting unverified bytes, implicit redownload, or deletion of preexisting user data.
+    # Needs: private "xyz" bytes and the independent expected "abc" digest; no service or installer.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.
+    It 'refuses a mismatched existing download and preserves it without redownloading' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x78, 0x79, 0x7A))
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly -Confirm:$false -ErrorAction SilentlyContinue
+        $result.Action | Should -BeExactly 'Failed'
+        $result.Success | Should -BeFalse
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'eHl6'
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: verification failure never accepts, deletes, or replaces an existing download.
+    # Detects: swallowing a hash read error as a cache hit or falling through to a network write.
+    # Needs: private existing bytes and an inert fault at the file-hash boundary.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'refuses an existing file whose hash cannot be read while retaining its bytes' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x61, 0x62, 0x63))
+        Mock Get-FileHash { throw 'Synthetic hash read failure.' } -ModuleName PC-AI.Drivers
+        $result = & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash -ErrorAction SilentlyContinue } $path $script:DownloadContractHash
+        $result | Should -BeNullOrEmpty
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'YWJj'
+        Should -Invoke Get-FileHash -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: rejecting wrong downloaded bytes removes only the exact private download leaf.
+    # Detects: wildcard cleanup deleting an unrelated sibling while leaving the actual failed download behind.
+    # Needs: inert web-response "xyz" bytes at '[probe].exe', private 'p.exe' sentinel and independent "abc" digest.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'removes a wrong-digest downloaded bracket filename while preserving its wildcard-matching sibling' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot '[probe].exe'
+        $sibling = Join-Path $script:DownloadContractRoot 'p.exe'
+        [IO.File]::WriteAllBytes($sibling, [byte[]](0x53, 0x41, 0x46, 0x45))
+        Mock Invoke-WebRequest { param($Uri, $OutFile) [IO.File]::WriteAllBytes($OutFile, [byte[]](0x78, 0x79, 0x7A)) } -ModuleName PC-AI.Drivers
+        $result = & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash -ErrorAction SilentlyContinue } $path $script:DownloadContractHash
+        $result | Should -BeNullOrEmpty
+        [IO.File]::Exists($path) | Should -BeFalse
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($sibling)) | Should -BeExactly 'U0FGRQ=='
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: the existing optional-digest contract still permits explicitly unpinned cached files.
+    # Detects: accidental new digest requirements or redundant reads/network calls for callers without a hash.
+    # Needs: private existing bytes and explicit absence of ExpectedSha256; no service.
+    # Breadcrumb: Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1.
+    It 'reuses existing bytes when no digest was requested without claiming verification' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x78, 0x79, 0x7A))
+        Mock Get-FileHash { throw 'No digest was requested.' } -ModuleName PC-AI.Drivers
+        $result = & (Get-Module PC-AI.Drivers) { param($Path) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' } $path
+        $result | Should -BeExactly $path
+        Should -Invoke Get-FileHash -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
     }
 }
 
@@ -714,14 +886,114 @@ Describe "Find-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Portable
             Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
         }
 
-        It "Should accept ComputerNameCandidates parameter" {
+        It "Should accept ComputerNameCandidates and SshPort parameters" {
             $cmd = Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers
             $cmd.Parameters.Keys | Should -Contain 'ComputerNameCandidates'
+            $cmd.Parameters.Keys | Should -Contain 'SshPort'
         }
 
         It "Should accept TcpTimeoutMs with range validation" {
             $cmd = Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers
             $cmd.Parameters.Keys | Should -Contain 'TcpTimeoutMs'
+        }
+    }
+
+    Context "When Win32_NetworkAdapter.Index differs from TCP/IP InterfaceIndex" {
+        BeforeAll {
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                switch ($ClassName) {
+                    'Win32_NetworkAdapter' {
+                        @([PSCustomObject]@{
+                            Name           = 'USB4(TM) P2P Network Adapter #4'
+                            Description    = 'USB4(TM) P2P Network Adapter #4'
+                            NetConnectionID = 'Ethernet 18'
+                            NetEnabled     = $true
+                            MACAddress     = '34-4D-A1-C4-C4-22'
+                            Speed          = 20000000000
+                            Index          = 28
+                            InterfaceIndex = 95
+                            PNPDeviceID    = 'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0'
+                        })
+                    }
+                    'Win32_PnPEntity' {
+                        @([PSCustomObject]@{
+                            Name        = 'USB4(TM) Host Router (Microsoft)'
+                            PNPDeviceID = 'PCI\VEN_8086&DEV_7EC2\0000'
+                            Status      = 'OK'
+                        })
+                    }
+                    'MSFT_NetIPAddress' {
+                        @([PSCustomObject]@{
+                            InterfaceIndex = 95
+                            InterfaceAlias = 'Ethernet 18'
+                            AddressFamily  = 2
+                            IPAddress      = '169.254.43.202'
+                            PrefixLength   = 16
+                        })
+                    }
+                    'MSFT_NetNeighbor' {
+                        @([PSCustomObject]@{
+                            InterfaceIndex   = 95
+                            InterfaceAlias   = 'Ethernet 18'
+                            IPAddress        = '169.254.196.28'
+                            LinkLayerAddress = '08-93-C1-7B-39-51'
+                            State            = 'Reachable'
+                        })
+                    }
+                    'MSFT_NetRoute' {
+                        @(
+                            [PSCustomObject]@{
+                                InterfaceIndex    = 15
+                                DestinationPrefix = '169.254.0.0/16'
+                                RouteMetric       = 256
+                            },
+                            [PSCustomObject]@{
+                                InterfaceIndex    = 95
+                                DestinationPrefix = '169.254.0.0/16'
+                                RouteMetric       = 256
+                            }
+                        )
+                    }
+                    'MSFT_NetIPInterface' {
+                        @(
+                            [PSCustomObject]@{
+                                InterfaceIndex  = 15
+                                InterfaceAlias  = 'vEthernet (WSL)'
+                                AddressFamily   = 2
+                                InterfaceMetric = 15
+                            },
+                            [PSCustomObject]@{
+                                InterfaceIndex  = 95
+                                InterfaceAlias  = 'Ethernet 18'
+                                AddressFamily   = 2
+                                InterfaceMetric = 15
+                            }
+                        )
+                    }
+                    default { return @() }
+                }
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should use InterfaceIndex (95) instead of WMI Index (28) to match addresses and neighbors" {
+            $res = Find-ThunderboltPeer -ComputerNameCandidates @() -TcpTimeoutMs 250
+            $res.AdapterCount | Should -Be 1
+            $res.Adapters[0].ifIndex | Should -Be 95
+            $res.Adapters[0].WmiIndex | Should -Be 28
+            $res.LocalAddresses.Count | Should -Be 1
+            $res.LocalAddresses[0].IPAddress | Should -Be '169.254.43.202'
+            $res.Neighbors.Count | Should -Be 1
+            $res.Neighbors[0].IPAddress | Should -Be '169.254.196.28'
+            $res.Usb4Topology.Count | Should -Be 1
+            $res.Usb4Topology[0].Role | Should -Be 'HostRouter'
+        }
+
+        It "Should detect competing 169.254.0.0/16 APIPA route conflicts on virtual adapters with lower ifIndex" {
+            $res = Find-ThunderboltPeer -ComputerNameCandidates @() -TcpTimeoutMs 250
+            $res.ApipaRouteConflicts.Count | Should -Be 1
+            $res.ApipaRouteConflicts[0].ConflictingInterfaceAlias | Should -Be 'vEthernet (WSL)'
+            $res.ApipaRouteConflicts[0].ConflictingInterfaceIndex | Should -Be 15
         }
     }
 }
@@ -734,10 +1006,13 @@ Describe "Connect-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Porta
             Get-Command Connect-ThunderboltPeer -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
         }
 
-        It "Should accept ComputerName and Address parameters" {
+        It "Should accept ComputerName, Address, and Protocol parameters" {
             $cmd = Get-Command Connect-ThunderboltPeer -Module PC-AI.Drivers
             $cmd.Parameters.Keys | Should -Contain 'ComputerName'
             $cmd.Parameters.Keys | Should -Contain 'Address'
+            $cmd.Parameters.Keys | Should -Contain 'Protocol'
+            $cmd.Parameters.Keys | Should -Contain 'SshUser'
+            $cmd.Parameters.Keys | Should -Contain 'SshCommand'
         }
     }
 }
@@ -762,10 +1037,107 @@ Describe "Set-ThunderboltNetworkOptimization" -Tag 'Unit', 'Drivers', 'Thunderbo
     }
 }
 
+# ─── Get-ThunderboltPeerIdentity ─────────────────────────────────────────────
+
+Describe "Get-ThunderboltPeerIdentity" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast', 'Portable' {
+    It "Should resolve canonical identity and short aliases for known fleet hosts (including dtm-supernuc alias)" {
+        $carbon = Get-ThunderboltPeerIdentity -ComputerName 'dtm-carbon-two'
+        $nuc    = Get-ThunderboltPeerIdentity -ComputerName 'dtm-supernuc'
+        $carbon.ComputerName | Should -BeExactly 'dtm-carbon-two'
+        $carbon.IsKnownFleetPeer | Should -BeTrue
+        $carbon.PrimaryUla | Should -BeExactly 'fd00:7462:7032::c2'
+        $carbon.TbHostAlias | Should -BeExactly 'dtm-carbon-two-tb'
+
+        $nuc.ComputerName | Should -BeExactly 'dtm-super-nuc'
+        $nuc.IsKnownFleetPeer | Should -BeTrue
+        $nuc.PrimaryUla | Should -BeExactly 'fd00:7462:7032::50'
+        $nuc.TbHostAlias | Should -BeExactly 'dtm-super-nuc-tb'
+    }
+
+    It "Should derive deterministic non-colliding IPv6 Link-Local and ULA addresses for arbitrary unknown hosts without registry entries" {
+        $missingReg = Join-Path $TestDrive 'nonexistent-peers.json'
+        $hostA = Get-ThunderboltPeerIdentity -ComputerName 'dtm-future-blade-01' -RegistryPath $missingReg
+        $hostB = Get-ThunderboltPeerIdentity -ComputerName 'guest-thunderbolt-pc' -RegistryPath $missingReg
+
+        $hostA.IsKnownFleetPeer | Should -BeFalse
+        $hostA.DeterministicLinkLocal | Should -Match '^fe80::d700:[0-9a-f]{4}:[0-9a-f]{4}:[0-9a-f]{4}$'
+        $hostA.DeterministicUla | Should -Match '^fd00:7462:7032:d700::[0-9a-f]{4}:[0-9a-f]{4}:[0-9a-f]{4}$'
+        ([ipaddress]::Parse($hostA.DeterministicLinkLocal)).AddressFamily | Should -Be ([System.Net.Sockets.AddressFamily]::InterNetworkV6)
+        ([ipaddress]::Parse($hostA.DeterministicUla)).AddressFamily | Should -Be ([System.Net.Sockets.AddressFamily]::InterNetworkV6)
+        $hostA.DeterministicUla | Should -Not -Be $hostB.DeterministicUla
+        $hostA.DeterministicLinkLocal | Should -Not -Be $hostB.DeterministicLinkLocal
+    }
+
+    It "Should compute commutative pairwise /30 IPv4 subnets for dtm-carbon-two and dtm-super-nuc and disjoint /30 subnets when attaching a 3rd peer" {
+        $carbonToNuc = Get-ThunderboltPeerIdentity -ComputerName 'dtm-carbon-two' -PeerComputerName 'dtm-super-nuc'
+        $nucToCarbon = Get-ThunderboltPeerIdentity -ComputerName 'dtm-super-nuc' -PeerComputerName 'dtm-carbon-two'
+
+        $carbonToNuc.PairwiseIPv4.SubnetPrefix | Should -BeExactly $nucToCarbon.PairwiseIPv4.SubnetPrefix
+        $carbonToNuc.PairwiseIPv4.LocalIPv4Address | Should -BeExactly $nucToCarbon.PairwiseIPv4.PeerIPv4Address
+        $carbonToNuc.PairwiseIPv4.PeerIPv4Address | Should -BeExactly $nucToCarbon.PairwiseIPv4.LocalIPv4Address
+
+        # Attaching a 3rd machine (dtm-carbon-two) to dtm-p1gen7 while dtm-p1gen9 is also connected
+        $p1gen7ToP1gen9  = Get-ThunderboltPeerIdentity -ComputerName 'dtm-p1gen7' -PeerComputerName 'dtm-p1gen9'
+        $p1gen7ToCarbon2 = Get-ThunderboltPeerIdentity -ComputerName 'dtm-p1gen7' -PeerComputerName 'dtm-carbon-two'
+        $p1gen7ToP1gen9.PairwiseIPv4.SubnetPrefix | Should -Not -Be $p1gen7ToCarbon2.PairwiseIPv4.SubnetPrefix
+    }
+}
+
+# ─── Register-ThunderboltPeer ────────────────────────────────────────────────
+
+Describe "Register-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast', 'Portable' {
+    Context "When multiple USB4 P2P adapters are active simultaneously on one host" {
+        BeforeAll {
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias     = 'Ethernet 18'
+                        InterfaceIndex     = 95
+                        Name               = 'USB4(TM) P2P Network Adapter #4'
+                        Description        = 'USB4(TM) P2P Network Adapter #4'
+                        Role               = 'P2PNetwork'
+                        NetEnabled         = $true
+                        LinkSpeedGbps      = 20.0
+                        MacAddress         = '34-4D-A1-C4-C4-22'
+                        IPv4Addresses      = @('169.254.43.202')
+                        IPv6Addresses      = @('fe80::364d:a1ff:fec4:c422')
+                        NeighborCandidates = @()
+                        RecommendedActions = @()
+                    },
+                    [PSCustomObject]@{
+                        InterfaceAlias     = 'Ethernet 19'
+                        InterfaceIndex     = 96
+                        Name               = 'USB4(TM) P2P Network Adapter #5'
+                        Description        = 'USB4(TM) P2P Network Adapter #5'
+                        Role               = 'P2PNetwork'
+                        NetEnabled         = $true
+                        LinkSpeedGbps      = 40.0
+                        MacAddress         = '34-4D-A1-C4-C4-23'
+                        IPv4Addresses      = @('169.254.88.10')
+                        IPv6Addresses      = @('fe80::364d:a1ff:fec4:c423')
+                        NeighborCandidates = @()
+                        RecommendedActions = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should plan all active USB4 P2P adapters simultaneously without throwing a single-adapter error" {
+            $plan = Register-ThunderboltPeer -ComputerName 'dtm-p1gen7' -UpdateHostsFile -EnableSmbDirect
+            $plan.Applied | Should -BeFalse
+            $plan.AdapterCount | Should -Be 2
+            $plan.AdapterPlans.Count | Should -Be 2
+            $plan.AdapterPlans[0].InterfaceIndex | Should -Be 95
+            $plan.AdapterPlans[1].InterfaceIndex | Should -Be 96
+            ($plan.PlannedActions | Where-Object Step -eq 'BindLocalUlaIPv6').Count | Should -BeGreaterOrEqual 2
+        }
+    }
+}
+
 # ─── Module Export Completeness ──────────────────────────────────────────────
 
 Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
-    It "Should export all 11 declared functions" {
+    It "Should export all 13 declared functions" {
         $mod = Get-Module PC-AI.Drivers
         $expected = @(
             'Get-PnpDeviceInventory',
@@ -778,7 +1150,10 @@ Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portabl
             'Find-ThunderboltPeer',
             'Get-ThunderboltNetworkStatus',
             'Connect-ThunderboltPeer',
-            'Set-ThunderboltNetworkOptimization'
+            'Set-ThunderboltNetworkOptimization',
+            'Get-ThunderboltPeerIdentity',
+            'Register-ThunderboltPeer',
+            'Invoke-ThunderboltPeerLifecycle'
         )
         foreach ($fn in $expected) {
             $mod.ExportedFunctions.Keys | Should -Contain $fn
@@ -792,3 +1167,731 @@ Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portabl
         $mod.ExportedFunctions.Keys | Should -Not -Contain 'Invoke-TrustedDownload'
     }
 }
+
+
+# ─── Invoke-ThunderboltPeerLifecycle ─────────────────────────────────────────
+
+Describe "Invoke-ThunderboltPeerLifecycle" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast', 'Portable' {
+    Context "Additive power capabilities and lifecycle state on Get-ThunderboltNetworkStatus" {
+        BeforeAll {
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                switch ($ClassName) {
+                    'Win32_NetworkAdapter' {
+                        @([PSCustomObject]@{
+                            Name                = 'USB4(TM) P2P Network Adapter #2'
+                            Description         = 'USB4(TM) P2P Network Adapter #2'
+                            NetConnectionID     = 'Ethernet 4'
+                            NetEnabled          = $true
+                            NetConnectionStatus = 2
+                            Speed               = 20000000000
+                            MACAddress          = '08-93-C1-7B-39-51'
+                            PNPDeviceID         = 'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0'
+                            Index               = 15
+                            InterfaceIndex      = 22
+                        })
+                    }
+                    'Win32_NetworkAdapterConfiguration' {
+                        @([PSCustomObject]@{
+                            Index     = 15
+                            IPAddress = @('169.254.196.28', 'fe80::d700:9', 'fd00:7462:7032::9')
+                        })
+                    }
+                    'MSFT_NetIPInterface' {
+                        @(
+                            [PSCustomObject]@{
+                                InterfaceAlias  = 'Ethernet 4'
+                                AddressFamily   = 2
+                                InterfaceMetric = 5
+                                NlMtu           = 62000
+                                AutomaticMetric = $false
+                            }
+                        )
+                    }
+                    'MSFT_NetNeighbor' {
+                        @([PSCustomObject]@{
+                            InterfaceAlias   = 'Ethernet 4'
+                            IPAddress        = 'fe80::d700:7'
+                            LinkLayerAddress = '34-4D-A1-C4-C4-22'
+                            State            = 'Reachable'
+                        })
+                    }
+                    'MSFT_NetAdapterPowerManagementSettingData' {
+                        @([PSCustomObject]@{
+                            Name              = 'Ethernet 4'
+                            SelectiveSuspend  = 2
+                            WakeOnMagicPacket = 0
+                            WakeOnPattern     = 0
+                            ArpOffload        = 0
+                            NSOffload         = 0
+                        })
+                    }
+                    default { return @() }
+                }
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should report SelectiveSuspend=Enabled, Wake/Offload=Unsupported, AlwaysOnTransitCapable=false, and expiring evidence" {
+            $status = @(Get-ThunderboltNetworkStatus -EvidenceTtlSeconds 300)
+            $status.Count | Should -Be 1
+            $status[0].SelectiveSuspend | Should -Be 'Enabled'
+            $status[0].WakeOnMagicPacket | Should -Be 'Unsupported'
+            $status[0].WakeOnPattern | Should -Be 'Unsupported'
+            $status[0].ArpOffload | Should -Be 'Unsupported'
+            $status[0].NSOffload | Should -Be 'Unsupported'
+            $status[0].AlwaysOnTransitCapable | Should -BeFalse
+            $status[0].TransitClaimProhibitionReasons.Count | Should -BeGreaterOrEqual 3
+            $status[0].LifecycleState | Should -Be 'ready'
+            $status[0].EvidenceTtlSeconds | Should -Be 300
+            $status[0].EvidenceExpired | Should -BeFalse
+        }
+    }
+
+    Context "When evaluating topology links, stale routes, and Modern Standby invalidation" {
+        BeforeAll {
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias                 = 'Ethernet 4'
+                        InterfaceIndex                 = 22
+                        Name                           = 'USB4(TM) P2P Network Adapter #2'
+                        Description                    = 'USB4(TM) P2P Network Adapter #2'
+                        Role                           = 'P2PNetwork'
+                        NetEnabled                     = $true
+                        NetConnectionStatus            = 2
+                        LinkSpeedGbps                  = 20.0
+                        MacAddress                     = '08-93-C1-7B-39-51'
+                        IPv4Addresses                  = @('169.254.196.28')
+                        IPv6Addresses                  = @('fe80::d700:9', 'fd00:7462:7032::9')
+                        SelectiveSuspend               = 'Enabled'
+                        WakeOnMagicPacket              = 'Unsupported'
+                        WakeOnPattern                  = 'Unsupported'
+                        ArpOffload                     = 'Unsupported'
+                        NSOffload                      = 'Unsupported'
+                        AlwaysOnTransitCapable         = $false
+                        TransitClaimProhibitionReasons = @('SelectiveSuspend=Enabled')
+                        LifecycleState                 = 'ready'
+                        NeighborCandidates             = @(
+                            [PSCustomObject]@{
+                                IPAddress        = 'fe80::d700:7'
+                                LinkLayerAddress = '34-4D-A1-C4-C4-22'
+                                State            = 'Reachable'
+                                PeerHostname     = 'dtm-p1gen7'
+                            }
+                        )
+                        RecommendedActions             = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                if ($ClassName -eq 'MSFT_NetRoute') {
+                    return @(
+                        [PSCustomObject]@{
+                            InterfaceIndex    = 22
+                            DestinationPrefix = 'fd00:7462:7032::7/128'
+                            RouteMetric       = 5
+                        },
+                        [PSCustomObject]@{
+                            InterfaceIndex    = 22
+                            DestinationPrefix = 'fd00:7462:7032::1/128'
+                            RouteMetric       = 5
+                        },
+                        [PSCustomObject]@{
+                            InterfaceIndex    = 22
+                            DestinationPrefix = 'fd00:7462:7032::21/128'
+                            RouteMetric       = 5
+                        },
+                        [PSCustomObject]@{
+                            InterfaceIndex    = 22
+                            DestinationPrefix = '172.31.251.14/32'
+                            RouteMetric       = 5
+                        }
+                    )
+                }
+                return @()
+            } -ModuleName PC-AI.Drivers
+
+            Mock Get-WinEvent {
+                $now = [datetime]::UtcNow
+                @(
+                    [PSCustomObject]@{
+                        Id          = 507
+                        TimeCreated = $now.AddSeconds(-30)
+                        Message     = "The system is exiting connected standby `r`n`r`nReason: Input Touchpad."
+                    },
+                    [PSCustomObject]@{
+                        Id          = 506
+                        TimeCreated = $now.AddSeconds(-120)
+                        Message     = "The system is entering connected standby `r`n`r`nReason: Idle Timeout."
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should mark gen7-gen9 ready, ms01-plugable disconnected, preserve Milly bridge, withdraw stale ms01/canary routes, and never claim always-on transit" {
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -EvidenceObservedAtUtc ([datetime]::UtcNow)
+            $report.AnyAlwaysOnTransitClaim | Should -BeFalse
+            $report.Ms01UplinkCapMbps | Should -Be 1000
+            $report.ModernStandby.LastEnterReason | Should -Be 'Idle Timeout.'
+            $report.ModernStandby.LastExitReason | Should -Be 'Input Touchpad.'
+
+            $gen7Link = $report.Links | Where-Object LinkId -eq 'gen7-gen9-usb4-hub-chain'
+            $gen7Link.State | Should -Be 'ready'
+            $gen7Link.AlwaysOnTransitCapable | Should -BeFalse
+            $gen7Link.PreserveExistingPair | Should -BeTrue
+            $gen7Link.Canary.IdentityVerified | Should -BeTrue
+
+            $plugableLink = $report.Links | Where-Object LinkId -eq 'ms01-plugable-dock-usb4-routed'
+            $plugableLink.State | Should -Be 'disconnected'
+            $plugableLink.DownstreamLinkStatus | Should -Be 'none'
+            $plugableLink.WindowsXDomainPresent | Should -BeFalse
+
+            $millyLink = $report.Links | Where-Object LinkId -eq 'ms01-milly-usb4-bridge'
+            $millyLink.PreserveBridgeCustody | Should -BeTrue
+            $millyLink.State | Should -Be 'ready'
+
+            $gen7Route = $report.RouteActions | Where-Object DestinationPrefix -eq 'fd00:7462:7032::7/128'
+            $gen7Route.Action | Should -Be 'PreserveActiveOrBridgeRoute'
+
+            $millyRoute = $report.RouteActions | Where-Object DestinationPrefix -eq 'fd00:7462:7032::21/128'
+            $millyRoute.Action | Should -Be 'PreserveActiveOrBridgeRoute'
+
+            $ms01Route = $report.RouteActions | Where-Object DestinationPrefix -eq 'fd00:7462:7032::1/128'
+            $ms01Route.Action | Should -Be 'WithdrawStaleOwnedRoute'
+
+            $staleCanaryRoute = $report.RouteActions | Where-Object DestinationPrefix -eq '172.31.251.14/32'
+            $staleCanaryRoute.Action | Should -Be 'WithdrawStaleOwnedRoute'
+        }
+
+        It "Should invalidate stale pre-standby evidence when Event 506 occurred after EvidenceObservedAtUtc and downgrade ready to asleep" {
+            $preStandbyTime = [datetime]::UtcNow.AddMinutes(-10)
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -EvidenceObservedAtUtc $preStandbyTime
+            $gen7Link = $report.Links | Where-Object LinkId -eq 'gen7-gen9-usb4-hub-chain'
+            $gen7Link.Evidence.InvalidatedByModernStandby | Should -BeTrue
+            $gen7Link.Evidence.Expired | Should -BeTrue
+            $gen7Link.State | Should -Be 'asleep'
+        }
+
+        It "Should enforce bounded resume reprobe budget when ReprobeOnResume is requested" {
+            $preStandbyTime = [datetime]::UtcNow.AddMinutes(-10)
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -EvidenceObservedAtUtc $preStandbyTime -ReprobeOnResume -MaxReprobeAttempts 2 -ReprobeTimeoutMs 100 -TotalReprobeBudgetMs 500
+            $report.ResumeReprobe | Should -Not -BeNullOrEmpty
+            $report.ResumeReprobe.MaxAttempts | Should -Be 2
+            $report.ResumeReprobe.PerAttemptTimeoutMs | Should -Be 100
+            $report.ResumeReprobe.TotalBudgetMs | Should -Be 500
+            $report.ResumeReprobe.AttemptsExecuted | Should -BeLessOrEqual 2
+        }
+    }
+
+    Context "Negative test: identity-bound canary rejects spoofing/unexpected neighbor MAC" {
+        BeforeAll {
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias                 = 'Ethernet 4'
+                        InterfaceIndex                 = 22
+                        Name                           = 'USB4(TM) P2P Network Adapter #2'
+                        Description                    = 'USB4(TM) P2P Network Adapter #2'
+                        Role                           = 'P2PNetwork'
+                        NetEnabled                     = $true
+                        NetConnectionStatus            = 2
+                        LinkSpeedGbps                  = 20.0
+                        MacAddress                     = '08-93-C1-7B-39-51'
+                        IPv4Addresses                  = @('169.254.196.28')
+                        IPv6Addresses                  = @('fe80::d700:9')
+                        SelectiveSuspend               = 'Enabled'
+                        WakeOnMagicPacket              = 'Unsupported'
+                        WakeOnPattern                  = 'Unsupported'
+                        ArpOffload                     = 'Unsupported'
+                        NSOffload                      = 'Unsupported'
+                        AlwaysOnTransitCapable         = $false
+                        TransitClaimProhibitionReasons = @('SelectiveSuspend=Enabled')
+                        LifecycleState                 = 'probing'
+                        NeighborCandidates             = @(
+                            [PSCustomObject]@{
+                                IPAddress        = 'fe80::d700:7'
+                                LinkLayerAddress = 'DE-AD-BE-EF-00-01'
+                                State            = 'Reachable'
+                                PeerHostname     = 'unknown-rogue-host'
+                            }
+                        )
+                        RecommendedActions             = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+
+            Mock Get-WinEvent { return @() } -ModuleName PC-AI.Drivers
+            Mock Get-CimInstance { return @() } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should keep link in 'probing' and refuse 'ready' when neighbor identity/MAC does not match expected peer" {
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -ReprobeTimeoutMs 50
+            $gen7Link = $report.Links | Where-Object LinkId -eq 'gen7-gen9-usb4-hub-chain'
+            $gen7Link.Canary.Reachable | Should -BeTrue
+            $gen7Link.Canary.IdentityVerified | Should -BeFalse
+            $gen7Link.State | Should -Be 'probing'
+        }
+    }
+
+    Context "5 USB4 Acceptance Cases and Lenovo 40BA Dock Firmware Inventory" {
+        BeforeAll {
+            Mock Get-WinEvent { return @() } -ModuleName PC-AI.Drivers
+            Mock Get-CimInstance { return @() } -ModuleName PC-AI.Drivers
+        }
+
+        It "Case 1: Rejects InstanceId prefix-only classification when DEVPKEY_Device_Parent ancestry is missing" {
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias                 = 'Ethernet 4'
+                        InterfaceIndex                 = 22
+                        Name                           = 'USB4(TM) P2P Network Adapter #2'
+                        Description                    = 'USB4(TM) P2P Network Adapter #2'
+                        Role                           = 'P2PNetwork'
+                        NetEnabled                     = $true
+                        NetConnectionStatus            = 2
+                        LinkSpeedGbps                  = 20.0
+                        MacAddress                     = '08-93-C1-7B-39-51'
+                        PnpDeviceId                    = 'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0'
+                        PnpAncestry                    = @('USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0')
+                        RootRouterId                   = $null
+                        IntermediateDockRouters        = @()
+                        TopologyPathClass              = 'unknown'
+                        IPv4Addresses                  = @('169.254.196.28')
+                        IPv6Addresses                  = @('fe80::d700:9')
+                        SelectiveSuspend               = 'Enabled'
+                        WakeOnMagicPacket              = 'Unsupported'
+                        WakeOnPattern                  = 'Unsupported'
+                        ArpOffload                     = 'Unsupported'
+                        NSOffload                      = 'Unsupported'
+                        AlwaysOnTransitCapable         = $false
+                        TransitClaimProhibitionReasons = @('SelectiveSuspend=Enabled')
+                        LifecycleState                 = 'ready'
+                        NeighborCandidates             = @(
+                            [PSCustomObject]@{
+                                IPAddress        = 'fe80::d700:7'
+                                LinkLayerAddress = '34-4D-A1-C4-C4-22'
+                                State            = 'Reachable'
+                                PeerHostname     = 'dtm-p1gen7'
+                            }
+                        )
+                        RecommendedActions             = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -ReprobeTimeoutMs 50
+            $gen7Link = $report.Links | Where-Object LinkId -eq 'gen7-gen9-usb4-hub-chain'
+            $gen7Link.LinkAdmitted | Should -BeFalse
+            $gen7Link.AdmissionReason | Should -Be 'pnp_ancestry_prefix_only_rejected'
+            $gen7Link.RequiredTopologyQualified | Should -BeFalse
+        }
+
+        It "Case 2 & 3 & 4 & 5: Enforces no_observed_xdomain, distinguishes host_port_control vs required_two_hub, preserves ShareTBService/default routes, and codifies 20.0 Gbps nominal display + Lenovo 40BA dock firmware" {
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias                 = 'Ethernet 4'
+                        InterfaceIndex                 = 22
+                        Name                           = 'USB4(TM) P2P Network Adapter #2'
+                        Description                    = 'USB4(TM) P2P Network Adapter #2'
+                        Role                           = 'P2PNetwork'
+                        NetEnabled                     = $true
+                        NetConnectionStatus            = 2
+                        LinkSpeedGbps                  = 20.0
+                        WindowsReportedLinkSpeedBps    = [uint64]20000000000
+                        LinkSpeedIsNominalDriverDisplay = $true
+                        LinkSpeedIsHardwareMaximum     = $false
+                        MacAddress                     = '08-93-C1-7B-39-51'
+                        PnpDeviceId                    = 'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0'
+                        PnpAncestry                    = @(
+                            'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0',
+                            'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_5781\0000',
+                            'PCI\VEN_8086&DEV_5781&SUBSYS_234117AA&REV_01\4&36A9B02E&0&00E0'
+                        )
+                        RootRouterId                   = 'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_5781\0000'
+                        IntermediateDockRouters        = @('USB4\VID_17EF&PID_312D\0000')
+                        TopologyPathClass              = 'single_hub_chain'
+                        IPv4Addresses                  = @('169.254.196.28')
+                        IPv6Addresses                  = @('fe80::d700:9')
+                        SelectiveSuspend               = 'Enabled'
+                        WakeOnMagicPacket              = 'Unsupported'
+                        WakeOnPattern                  = 'Unsupported'
+                        ArpOffload                     = 'Unsupported'
+                        NSOffload                      = 'Unsupported'
+                        AlwaysOnTransitCapable         = $false
+                        TransitClaimProhibitionReasons = @('SelectiveSuspend=Enabled')
+                        LifecycleState                 = 'ready'
+                        NeighborCandidates             = @(
+                            [PSCustomObject]@{
+                                IPAddress        = 'fe80::d700:7'
+                                LinkLayerAddress = '34-4D-A1-C4-C4-22'
+                                State            = 'Reachable'
+                                PeerHostname     = 'dtm-p1gen7'
+                            }
+                        )
+                        RecommendedActions             = @()
+                    },
+                    [PSCustomObject]@{
+                        InterfaceAlias                 = 'Ethernet 5'
+                        InterfaceIndex                 = 62
+                        Name                           = 'USB4(TM) P2P Network Adapter'
+                        Description                    = 'USB4(TM) P2P Network Adapter'
+                        Role                           = 'P2PNetwork'
+                        NetEnabled                     = $true
+                        NetConnectionStatus            = 2
+                        LinkSpeedGbps                  = 20.0
+                        WindowsReportedLinkSpeedBps    = [uint64]20000000000
+                        LinkSpeedIsNominalDriverDisplay = $true
+                        LinkSpeedIsHardwareMaximum     = $false
+                        MacAddress                     = 'BA-B3-23-70-0F-A5'
+                        PnpDeviceId                    = 'USB4\VEN_1D6B&DEV_0001&SUBVEN_0000&SUBDEV_0000&PROT_USB4NET\4&3A9F4D01&0&1'
+                        PnpAncestry                    = @(
+                            'USB4\VEN_1D6B&DEV_0001&SUBVEN_0000&SUBDEV_0000&PROT_USB4NET\4&3A9F4D01&0&1',
+                            'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_E333\0000',
+                            'PCI\VEN_8086&DEV_E333&SUBSYS_234117AA&REV_00\3&11583659&0&3B'
+                        )
+                        RootRouterId                   = 'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_E333\0000'
+                        IntermediateDockRouters        = @()
+                        TopologyPathClass              = 'host_port_control'
+                        IPv4Addresses                  = @('169.254.99.212')
+                        IPv6Addresses                  = @('fe80::2d23:a515:9d68:5710')
+                        SelectiveSuspend               = 'Enabled'
+                        WakeOnMagicPacket              = 'Unsupported'
+                        WakeOnPattern                  = 'Unsupported'
+                        ArpOffload                     = 'Unsupported'
+                        NSOffload                      = 'Unsupported'
+                        AlwaysOnTransitCapable         = $false
+                        TransitClaimProhibitionReasons = @('SelectiveSuspend=Enabled')
+                        LifecycleState                 = 'ready'
+                        NeighborCandidates             = @(
+                            [PSCustomObject]@{
+                                IPAddress        = 'fe80::90d7:68ff:fe33:c6c4'
+                                LinkLayerAddress = '92-D7-68-33-C6-C4'
+                                State            = 'Reachable'
+                                PeerHostname     = 'ms01'
+                            }
+                        )
+                        RecommendedActions             = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -ReprobeTimeoutMs 50
+
+            # Case 4: Preserve ShareTBService and default routes
+            $report.ShareTbServiceRunning | Should -BeTrue
+            $report.DefaultRoutesPreserved | Should -BeTrue
+
+            # Case 1 & 5 + Dock Inventory on gen7-gen9-usb4-hub-chain
+            $gen7Link = $report.Links | Where-Object LinkId -eq 'gen7-gen9-usb4-hub-chain'
+            $gen7Link.LinkAdmitted | Should -BeTrue
+            $gen7Link.AdmissionReason | Should -Be 'admitted_verified_xdomain_and_canary'
+            $gen7Link.RequiredTopologyQualified | Should -BeTrue
+            $gen7Link.RootRouterId | Should -Be 'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_5781\0000'
+            $gen7Link.LocalRootRouterFw | Should -Be '67.67'
+            $gen7Link.DockModel | Should -Be '40BA'
+            $gen7Link.DockSerial | Should -Be '1S40BAYJ0019GD'
+            $gen7Link.DockStatus | Should -Be 'Factory (0x0)'
+            $gen7Link.DockFwPackage | Should -Be '1.0.07'
+            $gen7Link.DockFwTarget | Should -Be '1.2.99'
+            $gen7Link.DockPdFw | Should -Be '0.0.47'
+            $gen7Link.DockTbt5Nvm | Should -Be '62.62'
+            $gen7Link.DockDmcFw | Should -Be '0.6.5'
+            $gen7Link.WindowsReportedLinkSpeedBps | Should -Be 20000000000
+            $gen7Link.LinkSpeedIsNominalDriverDisplay | Should -BeTrue
+            $gen7Link.LinkSpeedIsHardwareMaximum | Should -BeFalse
+            $gen7Link.MeasuredPayloadGbpsSamples | Should -Be @(7.86, 12.90, 14.12)
+
+            # Case 2: No observed XDomain on ms01-plugable-dock-usb4-routed -> no link admission
+            $plugableTwoHub = $report.Links | Where-Object LinkId -eq 'ms01-plugable-dock-usb4-routed'
+            $plugableTwoHub.WindowsXDomainPresent | Should -BeFalse
+            $plugableTwoHub.LinkAdmitted | Should -BeFalse
+            $plugableTwoHub.AdmissionReason | Should -Be 'no_observed_xdomain'
+            $plugableTwoHub.RequiredTopologyQualified | Should -BeFalse
+
+            # Case 3: host_port_control on Ethernet 5 (ifIndex=62, PID_E333 FW 11.7) cannot satisfy required_two_hub
+            $hostPortControl = $report.Links | Where-Object LinkId -eq 'ms01-plugable-gen9-hostport-control'
+            $hostPortControl.InterfaceIndex | Should -Be 62
+            $hostPortControl.RootRouterId | Should -Be 'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_E333\0000'
+            $hostPortControl.LocalRootRouterFw | Should -Be '11.7'
+            $hostPortControl.RequiredTopologyClass | Should -Be 'required_two_hub'
+            $hostPortControl.ObservedTopologyClass | Should -Be 'host_port_control'
+            $hostPortControl.QualificationScope | Should -Be 'host_port_control_only'
+            $hostPortControl.RequiredTopologyQualified | Should -BeFalse
+        }
+    }
+
+    Context "Review Fix 1: Scoped route deletion preserves duplicate foreign-interface routes and verifies post-delete removal" {
+        BeforeAll {
+            Mock Get-WinEvent { return @() } -ModuleName PC-AI.Drivers
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias                 = 'Ethernet 4'
+                        InterfaceIndex                 = 22
+                        Name                           = 'USB4(TM) P2P Network Adapter #2'
+                        Description                    = 'USB4(TM) P2P Network Adapter #2'
+                        Role                           = 'P2PNetwork'
+                        NetEnabled                     = $true
+                        NetConnectionStatus            = 2
+                        LinkSpeedGbps                  = 20.0
+                        MacAddress                     = '08-93-C1-7B-39-51'
+                        PnpDeviceId                    = 'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0'
+                        PnpAncestry                    = @(
+                            'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0',
+                            'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_5781\0000'
+                        )
+                        RootRouterId                   = 'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_5781\0000'
+                        IntermediateDockRouters        = @('USB4\VID_17EF&PID_312D\0000')
+                        TopologyPathClass              = 'single_hub_chain'
+                        IPv4Addresses                  = @('169.254.196.28')
+                        IPv6Addresses                  = @('fe80::d700:9')
+                        SelectiveSuspend               = 'Enabled'
+                        WakeOnMagicPacket              = 'Unsupported'
+                        WakeOnPattern                  = 'Unsupported'
+                        ArpOffload                     = 'Unsupported'
+                        NSOffload                      = 'Unsupported'
+                        AlwaysOnTransitCapable         = $false
+                        TransitClaimProhibitionReasons = @('SelectiveSuspend=Enabled')
+                        LifecycleState                 = 'ready'
+                        NeighborCandidates             = @()
+                        RecommendedActions             = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should scope route deletion strictly to evaluated USB4 InterfaceIndex (22), preserve duplicate route on foreign InterfaceIndex (99), and verify removal" {
+            $script:deletedCalls = [System.Collections.Generic.List[string]]::new()
+            $script:routeQueryCount = 0
+
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                if ($ClassName -eq 'MSFT_NetRoute') {
+                    $script:routeQueryCount++
+                    if ($script:routeQueryCount -eq 1) {
+                        return @(
+                            [PSCustomObject]@{
+                                InterfaceIndex    = 22
+                                DestinationPrefix = 'fd00:7462:7032::1/128'
+                                RouteMetric       = 5
+                            },
+                            [PSCustomObject]@{
+                                InterfaceIndex    = 99
+                                DestinationPrefix = 'fd00:7462:7032::1/128'
+                                RouteMetric       = 25
+                            }
+                        )
+                    } else {
+                        # After scoped deletion on InterfaceIndex 22, only foreign InterfaceIndex 99 remains
+                        return @(
+                            [PSCustomObject]@{
+                                InterfaceIndex    = 99
+                                DestinationPrefix = 'fd00:7462:7032::1/128'
+                                RouteMetric       = 25
+                            }
+                        )
+                    }
+                }
+                return @()
+            } -ModuleName PC-AI.Drivers
+
+            Mock Invoke-ScopedRouteDelete {
+                param($DestinationPrefix, $InterfaceIndex)
+                $script:deletedCalls.Add("${DestinationPrefix}@${InterfaceIndex}")
+            } -ModuleName PC-AI.Drivers
+
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -WithdrawStaleRoutes -Apply -Confirm:$false -ReprobeTimeoutMs 50
+            $script:deletedCalls.Count | Should -Be 1
+            $script:deletedCalls[0] | Should -Be 'fd00:7462:7032::1/128@22'
+
+            $usb4Action = $report.RouteActions | Where-Object { $_.DestinationPrefix -eq 'fd00:7462:7032::1/128' -and $_.InterfaceIndex -eq 22 }
+            $usb4Action.Action | Should -Be 'WithdrawStaleOwnedRoute'
+            $usb4Action.Executed | Should -BeTrue
+            $usb4Action.Error | Should -BeNullOrEmpty
+
+            $foreignAction = $report.RouteActions | Where-Object { $_.DestinationPrefix -eq 'fd00:7462:7032::1/128' -and $_.InterfaceIndex -eq 99 }
+            $foreignAction.Action | Should -Be 'PreserveForeignInterfaceRoute'
+            $foreignAction.Executed | Should -BeFalse
+        }
+
+        It "Should set Executed=false and record Error when route deletion fails or route remains present in MSFT_NetRoute" {
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                if ($ClassName -eq 'MSFT_NetRoute') {
+                    return @(
+                        [PSCustomObject]@{
+                            InterfaceIndex    = 22
+                            DestinationPrefix = '172.31.251.14/32'
+                            RouteMetric       = 5
+                        }
+                    )
+                }
+                return @()
+            } -ModuleName PC-AI.Drivers
+
+            Mock Invoke-ScopedRouteDelete {
+                param($DestinationPrefix, $InterfaceIndex)
+                throw "Access is denied deleting $DestinationPrefix on ifIndex $InterfaceIndex"
+            } -ModuleName PC-AI.Drivers
+
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -WithdrawStaleRoutes -Apply -Confirm:$false -ReprobeTimeoutMs 50
+            $failedAction = $report.RouteActions | Where-Object { $_.DestinationPrefix -eq '172.31.251.14/32' -and $_.InterfaceIndex -eq 22 }
+            $failedAction.Action | Should -Be 'WithdrawStaleOwnedRoute'
+            $failedAction.Executed | Should -BeFalse
+            $failedAction.Error | Should -Match 'Access is denied'
+        }
+    }
+
+    Context "Review Fix 2: Scoped IPv6 Link-Local ScopeId preservation in TCP canary across multiple interfaces" {
+        BeforeAll {
+            Mock Get-WinEvent { return @() } -ModuleName PC-AI.Drivers
+            Mock Get-CimInstance { return @() } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should preserve IPv6 ScopeId (%62 vs %22) when connecting to link-local neighbor addresses and expose ScopeId on Canary result" {
+            $script:observedScopeIds = [System.Collections.Generic.List[long]]::new()
+
+            Mock Invoke-TcpCanaryConnect {
+                param([System.Net.IPAddress]$IPAddress, [int]$Port, [int]$TimeoutMs)
+                if ($IPAddress.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6) {
+                    $script:observedScopeIds.Add($IPAddress.ScopeId)
+                    if ($IPAddress.ScopeId -eq 62 -and $Port -eq 22) {
+                        return [PSCustomObject]@{ Reachable = $true; LatencyMs = 2 }
+                    }
+                }
+                return [PSCustomObject]@{ Reachable = $false; LatencyMs = $null }
+            } -ModuleName PC-AI.Drivers
+
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias                 = 'Ethernet 5'
+                        InterfaceIndex                 = 62
+                        Name                           = 'USB4(TM) P2P Network Adapter'
+                        Description                    = 'USB4(TM) P2P Network Adapter'
+                        Role                           = 'P2PNetwork'
+                        NetEnabled                     = $true
+                        NetConnectionStatus            = 2
+                        LinkSpeedGbps                  = 20.0
+                        MacAddress                     = 'BA-B3-23-70-0F-A5'
+                        PnpDeviceId                    = 'USB4\VEN_1D6B&DEV_0001&SUBVEN_0000&SUBDEV_0000&PROT_USB4NET\4&3A9F4D01&0&1'
+                        PnpAncestry                    = @(
+                            'USB4\VEN_1D6B&DEV_0001&SUBVEN_0000&SUBDEV_0000&PROT_USB4NET\4&3A9F4D01&0&1',
+                            'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_E333\0000'
+                        )
+                        RootRouterId                   = 'USB4\ROOT_DEVICE_ROUTER&VID_8086&PID_E333\0000'
+                        IntermediateDockRouters        = @()
+                        TopologyPathClass              = 'host_port_control'
+                        IPv4Addresses                  = @('169.254.99.212')
+                        IPv6Addresses                  = @('fe80::2d23:a515:9d68:5710')
+                        SelectiveSuspend               = 'Enabled'
+                        WakeOnMagicPacket              = 'Unsupported'
+                        WakeOnPattern                  = 'Unsupported'
+                        ArpOffload                     = 'Unsupported'
+                        NSOffload                      = 'Unsupported'
+                        AlwaysOnTransitCapable         = $false
+                        TransitClaimProhibitionReasons = @('SelectiveSuspend=Enabled')
+                        LifecycleState                 = 'ready'
+                        NeighborCandidates             = @(
+                            [PSCustomObject]@{
+                                IPAddress        = 'fe80::90d7:68ff:fe33:c6c4%62'
+                                LinkLayerAddress = '92-D7-68-33-C6-C4'
+                                State            = 'Reachable'
+                                PeerHostname     = 'ms01'
+                            }
+                        )
+                        RecommendedActions             = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+
+            # Create a minimal registry where ms01 has no ULA so the canary probes the link-local neighbor fe80::90d7:68ff:fe33:c6c4%62
+            $scopedRegPath = Join-Path $TestDrive 'scoped-ll-peers.json'
+            @{
+                schemaVersion = '1.2.0'
+                fleetPeers    = @(
+                    @{ name = 'dtm-p1gen9'; shortUla = 'fd00:7462:7032::9'; shortLinkLocal = 'fe80::d700:9' },
+                    @{ name = 'ms01'; shortLinkLocal = 'fe80::90d7:68ff:fe33:c6c4' }
+                )
+                topologyLinks = @(
+                    @{
+                        id                    = 'ms01-plugable-gen9-hostport-control'
+                        sourceHost            = 'ms01'
+                        targetHost            = 'dtm-p1gen9'
+                        targetInterface       = 'Ethernet 5'
+                        requiredTopologyClass = 'required_two_hub'
+                        observedTopologyClass = 'host_port_control'
+                        qualificationScope    = 'host_port_control_only'
+                        expectedPeerMacs      = @{ 'dtm-p1gen9' = 'BA-B3-23-70-0F-A5'; 'ms01' = '92-D7-68-33-C6-C4' }
+                    }
+                )
+            } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $scopedRegPath -Encoding UTF8
+
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -RegistryPath $scopedRegPath -ReprobeTimeoutMs 50
+            $link = $report.Links | Where-Object LinkId -eq 'ms01-plugable-gen9-hostport-control'
+            $link.Canary.ScopeId | Should -Be 62
+            $link.Canary.Transport | Should -Be 'tcp/22'
+            $link.Canary.Reachable | Should -BeTrue
+            $script:observedScopeIds | Should -Contain 62
+        }
+    }
+
+    Context "Review Fix 3: Observed S0 Low Power Idle capability query (Supported, Unsupported, Unknown)" {
+        BeforeAll {
+            Mock Get-ThunderboltNetworkStatus { return @() } -ModuleName PC-AI.Drivers
+            Mock Get-CimInstance { return @() } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should report S0LowPowerIdleState=Supported and S0LowPowerIdleConnectedSupported=true when powercfg reports S0 Network Connected" {
+            Mock Get-WinEvent { return @() } -ModuleName PC-AI.Drivers
+            Mock Get-ModernStandbyCapability {
+                return @"
+The following sleep states are available on this system:
+    Standby (S0 Low Power Idle) Network Connected
+    Hibernate
+
+The following sleep states are not available on this system:
+    Standby (S3)
+"@
+            } -ModuleName PC-AI.Drivers
+
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9'
+            $report.ModernStandby.S0LowPowerIdleState | Should -Be 'Supported'
+            $report.ModernStandby.S0LowPowerIdleConnectedSupported | Should -BeTrue
+        }
+
+        It "Should report S0LowPowerIdleState=Unsupported and S0LowPowerIdleConnectedSupported=false on S3 desktop hardware" {
+            Mock Get-WinEvent { return @() } -ModuleName PC-AI.Drivers
+            Mock Get-ModernStandbyCapability {
+                return @"
+The following sleep states are available on this system:
+    Standby (S3)
+    Hibernate
+
+The following sleep states are not available on this system:
+    Standby (S0 Low Power Idle)
+        The system firmware does not support this standby state.
+"@
+            } -ModuleName PC-AI.Drivers
+
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9'
+            $report.ModernStandby.S0LowPowerIdleState | Should -Be 'Unsupported'
+            $report.ModernStandby.S0LowPowerIdleConnectedSupported | Should -BeFalse
+        }
+
+        It "Should report S0LowPowerIdleState=Unknown, S0LowPowerIdleConnectedSupported=null, and EventLogAvailable=false when queries are unavailable" {
+            Mock Get-WinEvent { throw "Access denied reading System event log" } -ModuleName PC-AI.Drivers
+            Mock Get-ModernStandbyCapability { return $null } -ModuleName PC-AI.Drivers
+
+            $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9'
+            $report.ModernStandby.S0LowPowerIdleState | Should -Be 'Unknown'
+            $report.ModernStandby.S0LowPowerIdleConnectedSupported | Should -BeNullOrEmpty
+            $report.ModernStandby.EventLogAvailable | Should -BeFalse
+        }
+    }
+}
+

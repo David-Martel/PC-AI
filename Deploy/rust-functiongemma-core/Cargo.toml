@@ -9,7 +9,7 @@ thiserror = "2"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.149"
 safetensors = "0.4"
-minijinja = "2"
+minijinja = "3"
 candle-core = { version = "0.9.2" }
 candle-nn = { version = "0.9.2" }
 candle-transformers = { version = "0.9.2" }
@@ -32,5 +32,5 @@ flash-attn = ["candle-flash-attn"]
 nvml = ["dep:nvml-wrapper"]
 
 [dev-dependencies]
-rand = "0.8.5"
+rand = "0.10.2"
 

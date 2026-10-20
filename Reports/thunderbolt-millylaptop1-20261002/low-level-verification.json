@@ -1,0 +1,42 @@
+{
+  "Utc": "2026-10-02T20:18:20.3900506Z",
+  "CapturePowerShell": {
+    "TotalCount": 21,
+    "PassedCount": 21,
+    "FailedCount": 0,
+    "SkippedCount": 0
+  },
+  "ProfilePowerShell": {
+    "TotalCount": 34,
+    "PassedCount": 34,
+    "FailedCount": 0,
+    "SkippedCount": 0
+  },
+  "ExistingThunderbolt": {
+    "TotalCount": 48,
+    "PassedCount": 20,
+    "FailedCount": 0,
+    "SkippedCount": 0
+  },
+  "CapturePython": {
+    "Total": 7,
+    "Command": "uv run python -m unittest discover -s Tests/Unit -p test_thunderbolt_peer_trace.py -v",
+    "Ruff": "All checks passed; two files formatted unchanged",
+    "Passed": 7,
+    "IndependentReview": "P2 reproduced, fixed and re-reviewed; no remaining findings",
+    "Failed": 0
+  },
+  "TotalSelectedPassed": 82,
+  "PhysicalThunderbolt": "No peer on either rear ThinkPad port; no Configure activation or TB throughput",
+  "LiveCaptures": {
+    "Windows60Seconds": "Captured; six native steps exit0; owned collector deleted",
+    "LinuxRebind20Seconds": "Captured; 264 debug selectors restored; instance removed; global tracing unchanged; no errors"
+  },
+  "Firmware": {
+    "EC": "DMI1.1 unchanged; ISO2.00/EC1.58 staged only",
+    "CalDigit": "61.1 unchanged; updater did not enumerate Element5",
+    "VTd": "Enabled verified postboot",
+    "BIOS": "1.03 to2.00 verified after reboot",
+    "VT": "Enabled verified postboot"
+  }
+}

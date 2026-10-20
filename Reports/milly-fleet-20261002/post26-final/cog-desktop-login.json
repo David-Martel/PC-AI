@@ -1,0 +1,7 @@
+{
+  "observedUtc": "2026-10-03T01:43:04.987648+00:00",
+  "localSessionProperties": "Name=cog\nSeat=seat0\nRemote=no\nType=wayland\nClass=user\n",
+  "method": "Temporary GDM autologin after checking no existing local-user session",
+  "restoreAfter": true,
+  "physicalVisibilityAndUserInputNotValidated": true
+}

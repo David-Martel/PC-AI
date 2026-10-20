@@ -1,0 +1,33 @@
+name: USB4 route verification
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1'
+      - 'Tests/Portable/Test-Usb4RouteVerification.ps1'
+      - 'Tests/Portable/Test-Usb4RouteOwnership.ps1'
+      - '.github/workflows/usb4-route-verification.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Modules/PC-AI.Drivers/Public/Invoke-ThunderboltPeerLifecycle.ps1'
+      - 'Tests/Portable/Test-Usb4RouteVerification.ps1'
+      - 'Tests/Portable/Test-Usb4RouteOwnership.ps1'
+      - '.github/workflows/usb4-route-verification.yml'
+permissions:
+  contents: read
+jobs:
+  route-postcondition:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify query failures cannot certify route absence
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-Usb4RouteVerification.ps1
+          ./Tests/Portable/Test-Usb4RouteOwnership.ps1

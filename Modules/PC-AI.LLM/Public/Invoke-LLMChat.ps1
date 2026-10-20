@@ -246,7 +246,11 @@ function Invoke-LLMChat {
                             $toolResult = 'Error: Tool failed'
                             try {
                                 # Use standardized Invoke-ToolByName helper
-                                $toolResult = Invoke-ToolByName -Name $toolName -Args $toolArgs -ModuleRoot $ModuleRoot
+                                if ($toolName -in @('pcai_get_machine_capabilities', 'pcai_test_media_toolchain')) {
+                                    $toolResult = Invoke-PcaiFleetToolCall -Name $toolName -ArgumentJson $toolArgs -ProjectRoot $script:ModuleConfig.ProjectRoot -ToolsPath $script:ModuleConfig.ToolsPath
+                                } else {
+                                    $toolResult = Invoke-ToolByName -Name $toolName -Args $toolArgs -ModuleRoot $ModuleRoot
+                                }
 
                                 # Truncate if exceeds limit
                                 if ($ResultLimit -gt 0 -and $toolResult -is [string] -and $toolResult.Length -gt $ResultLimit) {

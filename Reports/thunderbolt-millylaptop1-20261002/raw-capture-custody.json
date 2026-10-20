@@ -1,0 +1,72 @@
+[
+  {
+    "File": "windows-reboot-discovery\\pcai-usb4-2132a99857914383919ed77ac40ac617_000001.etl",
+    "SizeBytes": 40960,
+    "Sha256": "99c5eebd280fd12676067b7ee8c3613ed7c91ac41cb02133f664d96d5a68659b"
+  },
+  {
+    "File": "windows-reboot-discovery\\pcai-usb4-2132a99857914383919ed77ac40ac617.xml",
+    "SizeBytes": 122399,
+    "Sha256": "d8cb5078910958270f68b6b28ef37d0db9ed7ad206501650db3abef8e6a2f7a2"
+  },
+  {
+    "File": "windows-reboot-discovery\\pcai-usb4-2132a99857914383919ed77ac40ac617.report.xml",
+    "SizeBytes": 29016,
+    "Sha256": "b35398b8984597588c2190a5b2710e08ba1d7c3b93eec89dda03c91cd597be95"
+  },
+  {
+    "File": "reboot-ssh-discovery.xml",
+    "SizeBytes": 3187,
+    "Sha256": "5d513d0dae2658331992d80e7c0ba4e6cb4c8c482db7f2c383c7b06fe42afc74"
+  },
+  {
+    "File": "reboot-lan-discovery.xml",
+    "SizeBytes": 3495,
+    "Sha256": "370ebccdb7312e3e80ff3397485488a56c6cda82120e9fd88d72bf3c7610b00a"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-trace1\\debug-before.txt",
+    "SizeBytes": 634526,
+    "Sha256": "943cc11c40937e7fc8c31003e0c52be83d9660ed1e60199cec9084d1ad904c6e"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-trace1\\debug-after.txt",
+    "SizeBytes": 634526,
+    "Sha256": "943cc11c40937e7fc8c31003e0c52be83d9660ed1e60199cec9084d1ad904c6e"
+  },
+  {
+    "File": "windows-discovery\\initial-usb4.xml",
+    "SizeBytes": 122582,
+    "Sha256": "eec6504c6f298e3011fb06d8d0c0b02e6a095c0fdb7393a975c57bfef2ce0841"
+  },
+  {
+    "File": "windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.report.xml",
+    "SizeBytes": 29008,
+    "Sha256": "d674215a68e615f4d07a2ebaf45321a891c17a3fb7cc86189cd9e5827e22680d"
+  },
+  {
+    "File": "windows-discovery\\pcai-usb4-b6deb53d49a84ef29273c40396d659e8_000001.etl",
+    "SizeBytes": 40960,
+    "Sha256": "d35335203c3b33f45f019810ad6883b1a48bd32e2ae1f4d0205f95be43d94bf4"
+  },
+  {
+    "File": "windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820_000001.etl",
+    "SizeBytes": 49152,
+    "Sha256": "8895ac1a013a05a4d4542035004c1b0e0ed2559a22eaf5424c6ba5fb5c828164"
+  },
+  {
+    "File": "windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.xml",
+    "SizeBytes": 122461,
+    "Sha256": "1965ec0e0d8e9d4cf9a75a188b0d9617e1074ebc977bec9cbe2a62d42a8f038e"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-rebind\\debug-before.txt",
+    "SizeBytes": 637455,
+    "Sha256": "0acf8a5e6397e6e4427eb8a79101fc764538981f8e3b957db79f4c980b417908"
+  },
+  {
+    "File": "thunderbolt-diag-20261002-rebind\\debug-after.txt",
+    "SizeBytes": 637455,
+    "Sha256": "0acf8a5e6397e6e4427eb8a79101fc764538981f8e3b957db79f4c980b417908"
+  }
+]

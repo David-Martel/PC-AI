@@ -1,0 +1,159 @@
+{
+  "observedUtc": "2026-10-03T01:10:55.421083+00:00",
+  "host": "millylaptop1",
+  "stage": "Ubuntu26 post-reboot recovery; before native ROS/tool additions and rendering checks",
+  "checks": [
+    {
+      "argv": [
+        "cat",
+        "/etc/os-release"
+      ],
+      "exit": 0,
+      "stdout": "PRETTY_NAME=\"Ubuntu 26.04.1 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"26.04\"\nVERSION=\"26.04.1 LTS (Resolute Raccoon)\"\nVERSION_CODENAME=resolute\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=resolute\nLOGO=ubuntu-logo\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uname",
+        "-r"
+      ],
+      "exit": 0,
+      "stdout": "7.0.0-38-generic\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "Python 3.14.4\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "ssh",
+        "-V"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "OpenSSH_10.2p1 Ubuntu-2ubuntu3.6, OpenSSL 3.5.5 27 Jan 2026\n"
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "dpkg",
+        "--audit"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "apt-get",
+        "check"
+      ],
+      "exit": 0,
+      "stdout": "Reading package lists...\nBuilding dependency tree...\nReading state information...\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "systemctl",
+        "is-active",
+        "ssh",
+        "gdm3",
+        "NetworkManager"
+      ],
+      "exit": 0,
+      "stdout": "active\nactive\nactive\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "id",
+        "-u"
+      ],
+      "exit": 0,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=name,driver_version,memory.total,temperature.gpu",
+        "--format=csv,noheader"
+      ],
+      "exit": 0,
+      "stdout": "NVIDIA RTX 5000 Ada Generation Laptop GPU, 580.178.04, 16376 MiB, 41\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "ip",
+        "-brief",
+        "address"
+      ],
+      "exit": 0,
+      "stdout": "lo               UNKNOWN        127.0.0.1/8 ::1/128 \nenx002427892147  UP             192.168.50.43/24 fe80::1eb8:c702:f7ab:45b1/64 \nwlp0s20f3        UP             192.168.50.192/24 fe80::f63b:d8ff:fef7:67ff/64 \n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "nmcli",
+        "-t",
+        "-f",
+        "NAME,TYPE,DEVICE",
+        "connection",
+        "show",
+        "--active"
+      ],
+      "exit": 0,
+      "stdout": "Wired connection 1:802-3-ethernet:enx002427892147\nVIGIL-COGROB_ASUS_5G-2:802-11-wireless:wlp0s20f3\nlo:loopback:lo\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "loginctl",
+        "list-sessions",
+        "--no-legend"
+      ],
+      "exit": 0,
+      "stdout": " 1 60578 gdm-greeter -     2683 manager-early -    no -\n 4  1002 cog         -     5619 user          -    no -\n 5  1002 cog         -     5624 manager       -    no -\nc1 60578 gdm-greeter seat0 2579 greeter       tty1 no -\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "sshd",
+        "-t"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "dkms",
+        "status"
+      ],
+      "exit": 0,
+      "stdout": "nvidia/580.178.04, 6.8.0-134-generic, x86_64: installed\nnvidia/580.178.04, 6.8.0-138-generic, x86_64: installed\nnvidia/580.178.04, 6.8.0-146-generic, x86_64: installed\nnvidia/580.178.04, 7.0.0-38-generic, x86_64: installed\n",
+      "stderr": ""
+    }
+  ],
+  "allCommandsExitZero": true,
+  "packageAuditEmpty": true,
+  "physicalDesktopOrStreamValidated": false
+}

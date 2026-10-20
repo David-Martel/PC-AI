@@ -1,0 +1,73 @@
+{
+  "schema": "pcai.milly-post26-qualified-result.v1",
+  "observedUtc": "2026-10-03T02:05:26.7726735Z",
+  "host": "millylaptop1",
+  "status": "Local OS, firmware, tools and Cog desktop recovered and component-validated; external acceptance remains pending",
+  "installed": {
+    "ubuntu": "26.04.1 LTS",
+    "kernel": "7.0.0-38-generic",
+    "systemPython": "3.14.4",
+    "managedStablePython": [
+      "3.12.15",
+      "3.13.16",
+      "3.14.8"
+    ],
+    "isolatedPreviewPython": "3.15.0rc2",
+    "nativeRos": "Lyrical desktop, developer tooling and CycloneDDS",
+    "vigilAbi": "Jazzy/Python3.12 retained separately; VIGIL source requires >=3.12,<3.14",
+    "nvidia": "595.91.07 open",
+    "ssdFirmware": "5108APLA",
+    "uefiDbx": "20260707",
+    "obs": "32.2.0",
+    "nsightSystems": "2026.3.2.476",
+    "containerToolkit": "1.20.1",
+    "clangdLldb": "21",
+    "fio": "3.41"
+  },
+  "validation": {
+    "cogLocalSession": "seat0 Wayland user session; autologin restored to disabled",
+    "cppTests": 1,
+    "pythonTests": 6,
+    "rustNextestTests": 1,
+    "qtPixelAssertions": 2,
+    "vigilWidgetPixelAssertions": 10,
+    "codecDecodedFrames": 30,
+    "codecCpuNvdecExactMatch": true,
+    "nativeRosNamespace": "private network namespace, domain231, CycloneDDS, three exact messages",
+    "pinnedContainers": "Jazzy and Lyrical init/shutdown with network=none",
+    "gpuCdiContainer": true,
+    "actualPostOsSshReuse": true,
+    "dbxSignedPayloadEntriesPresent": 291,
+    "dbxSignedPayloadEntriesMissing": 0,
+    "dbxParserControls": 4,
+    "dbxRecognitionOnlyFix": "Exact upstream2.1.8 mapping; unchanged EFI SHA256; historic error retained",
+    "sshAccess": "ASUS to Milly and Milly to ASUS/both Sparks, plus Windows to fleet",
+    "vigilnetJson": "inventory --json parses; installed CLI hash matches e543 fix",
+    "vigilnetInventorySha256": "a59fe7c06c2416b5b276f24c1237785e8c5ab6afd135ccf52c4c6fd5b7ab2836",
+    "vigilnetInstalledCliSha256": "2f5f79c691d7f1aeab599a67b49f8572303cd099cb6efcb537b8c097999b3a53"
+  },
+  "qualification": [
+    "Original Ubuntu26 upgrader exited1 at unused Postfix; scoped removal repaired it; no failed evidence cleared",
+    "Initial functional harness path/quoting/duplicate-M failures retained and corrected",
+    "System discovery expectedExit2 for firmware-pending is an annotation error; actual JSON0/empty Devices is valid",
+    "OBS first startup opened default audio inputs transiently; second test scene disables them and asserts no input started; no stream/file-record command used",
+    "OBS optional absent-device and Xvfb warnings, EGL diagnostics and legacy Podman BoltDB warning retained",
+    "Old desktop crash and failed crash-uploader evidence preserved; current desktop/audio services running",
+    "Python3.15rc2 is installed catalog preview, not latest upstream rc3 or production ABI"
+  ],
+  "pending": [
+    "Thunderbolt peer/topology discovery and high-throughput measurement",
+    "Sunshine existing credential provider, affected-owner seat/firewall scope, pairing and live video/input/reconnect validation",
+    "Full native VIGIL operator UI and matching production ROS message packages",
+    "MWireless/eduroam association with usable supported credentials",
+    "Physical audio/accessibility/camera DMA-buffer and projector/HIL acceptance",
+    "Original-user/browser/data validation and one Cog desktop-database semantic migration qualification"
+  ],
+  "backupMustRemain": true,
+  "fleetAcceptance": false,
+  "productionComputePlacementChanged": false,
+  "quorumChanged": false,
+  "staticDdsChanged": false,
+  "automaticPolicyBoundary": "Windows private WLAN export deletion blocked by automatic review; private ACLs retained, no alternate deletion route",
+  "producerCaptureCorrections": "Frozen producer outputs and source captures are preserved; this result qualifies scope and harness annotations."
+}

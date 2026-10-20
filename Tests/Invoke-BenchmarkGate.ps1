@@ -1,178 +1,95 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    CI benchmark regression detector. Compares the quick benchmark suite against
-    a saved baseline and exits 1 when regressions exceed the threshold.
-
-.EXAMPLE
-    pwsh Tests\Invoke-BenchmarkGate.ps1 -SaveBaseline
-    pwsh Tests\Invoke-BenchmarkGate.ps1 -FailOnRegression -Format Markdown
+Runs fresh, commit-labelled benchmarks and rejects missing or incompatible evidence.
 #>
 [CmdletBinding()]
 param(
     [switch]$SaveBaseline,
-    [int]$Threshold = 15,
-    [ValidateSet('Table', 'Json', 'Markdown')][string]$Format = 'Table',
+    [ValidateRange(0,1000)][int]$Threshold = 15,
+    [ValidateSet('Table','Json','Markdown')][string]$Format = 'Table',
     [string]$BaselinePath = '.pcai/benchmarks/baseline.json',
     [string]$Suite = 'quick',
     [switch]$FailOnRegression
 )
-
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
-
-function Get-RepoRoot {
-    $here = $PSScriptRoot
-    while ($here -and -not (Test-Path (Join-Path $here '.git'))) {
-        $here = Split-Path $here -Parent
-    }
-    if (-not $here) { throw 'Cannot locate repository root (.git not found).' }
-    $here
-}
-
-function Get-GitMeta {
-    [hashtable]$m = @{ Hash = 'unknown'; Branch = 'unknown' }
-    try { $m.Hash = (git rev-parse --short HEAD 2>$null).Trim() } catch {}
-    try { $m.Branch = (git rev-parse --abbrev-ref HEAD 2>$null).Trim() } catch {}
-    $m
-}
-
-function Invoke-BenchmarkRunner ([string]$RepoRoot, [string]$Suite) {
-    $runner = Join-Path $RepoRoot 'Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1'
-    if (-not (Test-Path $runner)) {
-        Write-Warning "Benchmark runner not found at '$runner' — using latest existing report."
-        return
-    }
-    try   { & pwsh -NoProfile -File $runner -Suite $Suite }
-    catch { Write-Warning "Benchmark runner failed: $_ — using latest existing report." }
-}
-
-function Read-LatestReport ([string]$RepoRoot) {
-    $root = Join-Path $RepoRoot 'Reports\tooling-benchmarks'
-    if (-not (Test-Path $root)) { return $null }
-    $f = Get-ChildItem -LiteralPath $root -Filter 'tooling-benchmark-report.json' `
-        -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1
-    if (-not $f) { return $null }
-    Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
-}
-
-# Extract best (native-preferred) MeanMs per CaseId → hashtable
-function ConvertTo-CaseMap ([object]$Report) {
-    [hashtable]$map = @{}
-    foreach ($row in $Report.Results) {
-        $id = $row.CaseId
-        if (-not $map.ContainsKey($id) -or $row.Backend -eq 'native') {
-            $map[$id] = @{ mean_ms = [double]$row.MeanMs; median_ms = [double]$row.MedianMs; iterations = [int]$row.Iterations }
+function ConvertTo-CaseMap($Report) {
+    $map = @{}
+    foreach ($row in @($Report.Results)) {
+        if ([string]::IsNullOrWhiteSpace($row.CaseId) -or [string]::IsNullOrWhiteSpace($row.Backend)) { throw 'Missing case/backend identity' }
+        $key = "$($row.CaseId)/$($row.Backend)"
+        if ($map.ContainsKey($key)) { throw "Duplicate measurement: $key" }
+        foreach ($metric in @('MeanMs','MedianMs')) {
+            $value = [double]$row.$metric
+            if ([double]::IsNaN($value) -or [double]::IsInfinity($value) -or $value -le 0) { throw "Invalid $metric for $key" }
         }
+        if ([int]$row.Iterations -le 0) { throw "No successful iterations for $key" }
+        $map[$key] = @{ mean_ms=[double]$row.MeanMs; median_ms=[double]$row.MedianMs; iterations=[int]$row.Iterations }
     }
-    $map
+    if ($map.Count -eq 0) { throw 'No benchmark measurements' }
+    return $map
 }
 
-# ── Main ─────────────────────────────────────────────────────────────────────
-
-$repoRoot = Get-RepoRoot
-$absBaseline = if ([IO.Path]::IsPathRooted($BaselinePath)) { $BaselinePath } `
-               else { Join-Path $repoRoot $BaselinePath }
-
-# ── Save-baseline mode ───────────────────────────────────────────────────────
+$repoRoot = Split-Path $PSScriptRoot -Parent
+if (-not (Test-Path (Join-Path $repoRoot '.git'))) { throw 'Cannot locate repository root' }
+$head = (& git -C $repoRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw 'Cannot identify source commit' }
+$absBaseline = if ([IO.Path]::IsPathRooted($BaselinePath)) { $BaselinePath } else { Join-Path $repoRoot $BaselinePath }
+$baseline = $null
+if (-not $SaveBaseline) {
+    if (-not (Test-Path -LiteralPath $absBaseline -PathType Leaf)) { throw 'No baseline; explicitly create and review one with -SaveBaseline' }
+    $baseline = Get-Content -LiteralPath $absBaseline -Raw | ConvertFrom-Json -AsHashtable
+    if ($baseline.schema_version -ne 2) { throw 'Legacy baseline lacks evidence identity; regenerate explicitly' }
+}
+$config = Get-Content (Join-Path $repoRoot 'Config/pcai-tooling-benchmarks.json') -Raw | ConvertFrom-Json -AsHashtable
+if (-not $config.suites.ContainsKey($Suite)) { throw "Unknown suite: $Suite" }
+$required = @($config.suites[$Suite] | Sort-Object -Unique)
+if ($required.Count -eq 0) { throw 'Empty required case inventory' }
+$runId = [guid]::NewGuid().ToString('N')
+$outputRoot = Join-Path $repoRoot 'Reports/benchmark-admission'
+$runner = Join-Path $repoRoot 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
+if (-not (Test-Path -LiteralPath $runner -PathType Leaf)) { throw 'Benchmark runner missing' }
+& pwsh -NoLogo -NoProfile -File $runner -Suite $Suite -OutputRoot $outputRoot -RunId $runId | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "Benchmark runner failed with exit $LASTEXITCODE" }
+$reportPath = Join-Path (Join-Path $outputRoot $runId) 'tooling-benchmark-report.json'
+if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) { throw 'This run produced no report' }
+$report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+$configHash = (Get-FileHash -LiteralPath (Join-Path $repoRoot 'Config/pcai-tooling-benchmarks.json') -Algorithm SHA256).Hash
+if ($report.ConfigSha256 -cne $configHash -or $report.RunnerSha256 -cne (Get-FileHash -LiteralPath $runner -Algorithm SHA256).Hash) { throw 'Report input fingerprint mismatch' }
+if ($report.SchemaVersion -ne 2 -or $report.RunId -cne $runId -or $report.GitHead -cne $head -or $report.Suite -cne $Suite) { throw 'Report source/run/suite identity mismatch' }
+if ($report.MeasurementsComplete -isnot [bool] -or -not $report.MeasurementsComplete) { throw 'Incomplete measurement report' }
+if ($report.Machine -cne [Environment]::MachineName -or $report.Architecture -cne [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString() -or $report.HostOS -cne [Runtime.InteropServices.RuntimeInformation]::OSDescription) { throw 'Report host identity mismatch' }
+$selected = @($report.SelectedCases | Sort-Object -Unique)
+$actual = @($report.Results | ForEach-Object { $_.CaseId } | Sort-Object -Unique)
+if (($selected -join '|') -cne ($required -join '|') -or ($actual -join '|') -cne ($required -join '|')) { throw 'Required benchmark case inventory changed or is missing' }
+$current = ConvertTo-CaseMap $report
+$hostIdentity = @{ machine=$report.Machine; os=$report.HostOS; architecture=$report.Architecture }
 if ($SaveBaseline) {
-    Invoke-BenchmarkRunner -RepoRoot $repoRoot -Suite $Suite
-    $report = Read-LatestReport -RepoRoot $repoRoot
-    if (-not $report) { Write-Error 'No benchmark report found.'; exit 1 }
-
-    $meta = Get-GitMeta
-    $dir  = Split-Path $absBaseline -Parent
-    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-
-    [ordered]@{
-        created_at = (Get-Date -Format 'o')
-        git_hash   = $meta.Hash
-        git_branch = $meta.Branch
-        suite      = $Suite
-        cases      = ConvertTo-CaseMap $report
-    } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $absBaseline -Encoding UTF8
-
-    $count = (ConvertTo-CaseMap $report).Count
-    Write-Host "Baseline saved: $absBaseline  ($count cases, git $($meta.Hash))"
+    $parent = Split-Path $absBaseline -Parent
+    if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
+    @{ schema_version=2; git_hash=$head; run_id=$runId; suite=$Suite; config_sha256=$configHash; host_identity=$hostIdentity; cases=$current } |
+        ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $absBaseline -Encoding utf8
+    Write-Output "Baseline saved from verified run $runId"
     exit 0
 }
-
-# ── Comparison mode ──────────────────────────────────────────────────────────
-if (-not (Test-Path $absBaseline)) {
-    Write-Warning "No baseline at '$absBaseline'. Run with -SaveBaseline first. Skipping gate."
-    exit 0
+if ($baseline.suite -cne $Suite -or $baseline.config_sha256 -cne $configHash) { throw 'Baseline suite or configuration differs' }
+foreach ($key in @('machine','os','architecture')) {
+    if ($baseline.host_identity[$key] -cne $hostIdentity[$key]) { throw "Baseline host differs: $key" }
 }
-
-$baselineData = Get-Content -LiteralPath $absBaseline -Raw | ConvertFrom-Json -AsHashtable
-Invoke-BenchmarkRunner -RepoRoot $repoRoot -Suite $Suite
-$report = Read-LatestReport -RepoRoot $repoRoot
-if (-not $report) { Write-Warning 'No report after run. Skipping gate.'; exit 0 }
-
-$currentMap   = ConvertTo-CaseMap $report
-$bCases       = $baselineData['cases']
-$baselineHash = $baselineData['git_hash']
-
-[Collections.Generic.List[hashtable]]$rows = @()
-
-foreach ($id in $bCases.Keys) {
-    if ($currentMap.ContainsKey($id)) {
-        $delta  = (($currentMap[$id].mean_ms - $bCases[$id].mean_ms) / $bCases[$id].mean_ms) * 100.0
-        $status = if ($delta -gt $Threshold) { 'regressed' } elseif ($delta -lt -5.0) { 'improved' } else { 'unchanged' }
-        $rows.Add(@{ CaseId = $id; BaselineMs = $bCases[$id].mean_ms; CurrentMs = $currentMap[$id].mean_ms; DeltaPct = $delta; Status = $status })
-    } else {
-        $rows.Add(@{ CaseId = $id; BaselineMs = $bCases[$id].mean_ms; CurrentMs = $null; DeltaPct = $null; Status = 'missing' })
-    }
+if (($baseline.cases.Keys | Sort-Object) -join '|' -cne (($current.Keys | Sort-Object) -join '|')) { throw 'Baseline case/backend inventory differs; no fallback comparison permitted' }
+$rows = foreach ($key in $baseline.cases.Keys) {
+    $before = [double]$baseline.cases[$key].mean_ms
+    if ([double]::IsNaN($before) -or [double]::IsInfinity($before) -or $before -le 0) { throw "Invalid baseline: $key" }
+    $delta = (($current[$key].mean_ms - $before) / $before) * 100
+    [pscustomobject]@{ Case=$key; BaselineMs=$before; CurrentMs=$current[$key].mean_ms; DeltaPct=$delta; Regressed=($delta -gt $Threshold) }
 }
-foreach ($id in $currentMap.Keys) {
-    if (-not $bCases.ContainsKey($id)) {
-        $rows.Add(@{ CaseId = $id; BaselineMs = $null; CurrentMs = $currentMap[$id].mean_ms; DeltaPct = $null; Status = 'new' })
-    }
-}
-
-$regressionCount = @($rows | Where-Object { $_.Status -eq 'regressed' }).Count
-
-# ── Output ───────────────────────────────────────────────────────────────────
-switch ($Format) {
-    'Json' {
-        [ordered]@{ baseline_hash = $baselineHash; suite = $Suite; threshold_pct = $Threshold
-                    regression_count = $regressionCount; cases = $rows } | ConvertTo-Json -Depth 5
-    }
-    'Markdown' {
-        "## Benchmark Gate: ``$Suite`` vs baseline (``$baselineHash``)"
-        ''
-        '| Case | Baseline | Current | Delta | Status |'
-        '|------|----------|---------|-------|--------|'
-        foreach ($r in $rows | Sort-Object CaseId) {
-            $s = switch ($r.Status) { 'regressed' { ':red_circle: **REGRESSED**' } 'improved' { ':green_circle: improved' }
-                                      'new' { ':blue_circle: new' } 'missing' { ':warning: MISSING' } default { 'unchanged' } }
-            $b = if ($r.BaselineMs) { '{0:F1}ms' -f $r.BaselineMs } else { 'n/a' }
-            $c = if ($r.CurrentMs)  { '{0:F1}ms' -f $r.CurrentMs }  else { 'n/a' }
-            $d = if ($null -ne $r.DeltaPct) { '{0:+0.0;-0.0}%' -f $r.DeltaPct } else { 'n/a' }
-            "| ``$($r.CaseId)`` | $b | $c | $d | $s |"
-        }
-        ''
-        "> **Overall:** $regressionCount regression(s) | threshold: $Threshold%"
-    }
-    default {
-        $header = "Benchmark Gate: $Suite suite vs baseline ($baselineHash)"
-        Write-Output $header
-        Write-Output ('-' * $header.Length)
-        Write-Output ('{0,-28} {1,10} {2,10} {3,9}  {4}' -f 'Case', 'Baseline', 'Current', 'Delta', 'Status')
-        Write-Output ('-' * ($header.Length + 4))
-        foreach ($r in $rows | Sort-Object CaseId) {
-            $s = switch ($r.Status) { 'regressed' { 'REGRESSED' } 'improved' { 'improved' }
-                                      'new' { 'new' } 'missing' { 'MISSING' } default { 'unchanged' } }
-            $b = if ($r.BaselineMs) { '{0:F1}ms' -f $r.BaselineMs } else { 'n/a' }
-            $c = if ($r.CurrentMs)  { '{0:F1}ms' -f $r.CurrentMs }  else { 'n/a' }
-            $d = if ($null -ne $r.DeltaPct) { '{0:+0.0;-0.0}%' -f $r.DeltaPct } else { 'n/a' }
-            Write-Output ('{0,-28} {1,10} {2,10} {3,9}  {4}' -f $r.CaseId, $b, $c, $d, $s)
-        }
-        Write-Output ''
-        Write-Output "Overall: $regressionCount regression(s) (threshold: $Threshold%)"
-    }
-}
-
-if ($FailOnRegression -and $regressionCount -gt 0) { exit 1 }
+$regressions = @($rows | Where-Object Regressed).Count
+if ($Format -eq 'Json') { @{run_id=$runId; git_hash=$head; regression_count=$regressions; cases=@($rows)} | ConvertTo-Json -Depth 6 }
+elseif ($Format -eq 'Markdown') {
+    '| Case/backend | Baseline ms | Current ms | Delta % |'; '|---|---:|---:|---:|'
+    foreach ($row in $rows) { "| $($row.Case) | $($row.BaselineMs) | $($row.CurrentMs) | $($row.DeltaPct) |" }
+} else { $rows | Format-Table | Out-Host }
+if ($FailOnRegression -and $regressions -gt 0) { exit 1 }
 exit 0

@@ -1,0 +1,43 @@
+import contextlib
+import io
+import struct
+import unittest
+import uuid
+
+with contextlib.redirect_stdout(io.StringIO()):
+    import compare_dbx as target
+
+
+class DbxParserChecks(unittest.TestCase):
+    def test_known_signature_type_owner_and_data(self):
+        kind = uuid.UUID('c1c41626-504c-4092-aca9-41f936934328')
+        owner = uuid.UUID(target.MS_OWNER)
+        data = bytes(range(32))
+        blob = kind.bytes_le + struct.pack('<III', 76, 0, 48) + owner.bytes_le + data
+        entries, lists = target.parse_esl(blob, 0)
+        self.assertEqual(entries, [(str(kind), str(owner), data.hex())])
+        self.assertEqual(lists[0]['count'], 1)
+
+    def test_truncated_real_variable_is_rejected(self):
+        raw = (target.ROOT / 'current-dbx.efivar').read_bytes()
+        with self.assertRaisesRegex(ValueError, 'Invalid list dimensions'):
+            target.parse_esl(raw[:-1], 4)
+
+    def test_missing_real_entry_is_detected(self):
+        payload, _ = target.load('cab-extracted/DBXUpdate-20260707.x64.bin', True)
+        result = target.compare(payload, payload[1:])
+        self.assertEqual(result['exactOwnerTypeDataMissingCount'], 1)
+        self.assertEqual(result['typeDataMissingCount'], 1)
+        self.assertEqual(result['missingEntries'], [payload[0]])
+
+    def test_changed_owner_does_not_pass_exact_comparison(self):
+        payload, _ = target.load('cab-extracted/DBXUpdate-20260707.x64.bin', True)
+        kind, owner, data = payload[0]
+        changed = [(kind, '00000000-0000-0000-0000-000000000000', data)] + payload[1:]
+        result = target.compare(payload, changed)
+        self.assertEqual(result['exactOwnerTypeDataMissingCount'], 1)
+        self.assertEqual(result['typeDataMissingCount'], 0)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

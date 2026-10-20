@@ -16,11 +16,33 @@
 
 PC-AI is a modular PowerShell framework that diagnoses hardware issues, analyzes system health, and recommends optimizations -- all powered by local LLMs running on your own machine. No cloud APIs, no data leaves your PC.
 
+For bounded Ubuntu/Windows cache and managed-build validation, see
+[portable bootstrap](docs/portable-bootstrap.md). Native backend and hardware
+qualification remain separate from managed compilation.
+
 ## Key Features
+
+Windows fleet discovery and media qualification are documented in
+[fleet capabilities](docs/windows-fleet-capabilities.md),
+[media tooling](docs/windows-media-toolchain.md), and
+[native measurement contracts](docs/windows-native-measurements.md).
+Machine profiles describe expectations separately from current hardware.
+Run the following from a profile-free PowerShell 7 shell; default discovery
+does not start capture, GPU workloads, installers, or an inference server:
+
+```powershell
+pwsh -NoProfile -File .\Tools\Get-PcaiMachineCapabilities.ps1
+pwsh -NoProfile -File .\Tools\Test-PcaiMediaToolchain.ps1
+```
+
+Use `Config/media-toolchain-requirements.txt` in an isolated qualification venv.
+VIGIL application repositories retain their own dependency lockfiles. For
+development module publication, `Tools/Install-PcaiDevModules.ps1` supports
+scoped selection, dry-run planning, staged validation, and recoverable backups.
 
 - **Hardware Diagnostics** -- Device errors, SMART disk health, USB controllers, network adapters
 - **Boot And Sync Reliability** -- VHD startup, Task Scheduler, Filter Manager, Process Lasso, and cloud-sync health tooling
-- **Native Acceleration** -- Rust + C# hybrid engine delivering 5-40x speedups over pure PowerShell
+- **Native Acceleration** -- Rust + C# backends with workload-specific benchmarks; gains require equivalent-output validation on the target platform
 - **Local LLM Analysis** -- AI-powered diagnostic interpretation via pcai-inference (llama.cpp / mistral.rs backends)
 - **Tool-Calling Router** -- FunctionGemma selects and executes the right diagnostic tool before LLM analysis
 - **Interactive TUI** -- Terminal chat interface with streaming, multi-turn, and ReAct tool-routing modes
@@ -298,3 +320,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and PR
 ## License
 
 [MIT License](LICENSE) -- Copyright (c) 2025 David Martel
+
+Linux USB4 discovery: [enrolled observer and service integration](docs/usb4/enrolled-observer.md).
+
+FunctionGemma runtime dependency validation: [build, HTTP contract tests and coverage limits](docs/functiongemma-runtime-validation.md).
+
+Optional ONNX upscale build/test coverage: [media validation](docs/media-upscale-validation.md).

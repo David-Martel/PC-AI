@@ -1,0 +1,41 @@
+{
+  "observedUtc": "2026-10-02T22:20:46.524165+00:00",
+  "hostname": "millylaptop1",
+  "metaUrl": "https://changelogs.ubuntu.com/meta-release-lts",
+  "metaSha256": "cae6a7742c82da9836798a9ce209ef457af46ef9d26bc9fbe3a9944e50f014f8",
+  "nobleEntry": {
+    "Dist": "noble",
+    "Name": "Noble Numbat",
+    "Version": "24.04.5 LTS",
+    "Date": "Thu, 25 April 2024 00:24:04 UTC",
+    "Supported": "1",
+    "Description": "This is the 24.04.5 LTS release",
+    "Release-File": "http://archive.ubuntu.com/ubuntu/dists/noble-updates/Release",
+    "ReleaseNotes": "http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/dist-upgrader-all/current/ReleaseAnnouncement",
+    "ReleaseNotesHtml": "http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/dist-upgrader-all/current/ReleaseAnnouncement.html",
+    "UpgradeTool": "http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/dist-upgrader-all/current/noble.tar.gz",
+    "UpgradeToolSignature": "http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/dist-upgrader-all/current/noble.tar.gz.gpg"
+  },
+  "artifacts": [
+    {
+      "name": "noble.tar.gz",
+      "manifestUrl": "http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/dist-upgrader-all/current/noble.tar.gz",
+      "fetchedUrl": "https://archive.ubuntu.com/ubuntu/dists/noble-updates/main/dist-upgrader-all/current/noble.tar.gz",
+      "bytes": 1275049,
+      "sha256": "3d35fc61e651f1d9b3cceb6af496fa1af703a7d3e694d504077a048c189081fe"
+    },
+    {
+      "name": "noble.tar.gz.gpg",
+      "manifestUrl": "http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/dist-upgrader-all/current/noble.tar.gz.gpg",
+      "fetchedUrl": "https://archive.ubuntu.com/ubuntu/dists/noble-updates/main/dist-upgrader-all/current/noble.tar.gz.gpg",
+      "bytes": 833,
+      "sha256": "884910caee509b4b09f097d8bb8843c1c77e88e1785a24fec194d5326c9252db"
+    }
+  ],
+  "gpgvExit": 0,
+  "gpgvStatus": "[GNUPG:] NEWSIG\n[GNUPG:] KEY_CONSIDERED F6ECB3762474EDA9D21B7022871920D1991BC93C 0\n[GNUPG:] SIG_ID eM5V4Fr5hzSVtMdtJj7OR0o6QJ4 2026-09-07 1788802171\n[GNUPG:] GOODSIG 871920D1991BC93C Ubuntu Archive Automatic Signing Key (2018) <ftpmaster@ubuntu.com>\n[GNUPG:] VALIDSIG F6ECB3762474EDA9D21B7022871920D1991BC93C 2026-09-07 1788802171 0 4 0 1 10 00 F6ECB3762474EDA9D21B7022871920D1991BC93C\n[GNUPG:] VERIFICATION_COMPLIANCE_MODE 23\n",
+  "sourceFilesExtracted": 42,
+  "upgraderExecuted": false,
+  "packageSourcesChanged": false,
+  "scope": "/home/cog/.cache/pcai/os-upgrade-staging"
+}

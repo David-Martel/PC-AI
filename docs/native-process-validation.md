@@ -1,0 +1,9 @@
+# Native validation process deadlines
+
+[Native resolver tests](../Native/PcaiNative.Tests/NativeResolverTests.cs) compile a real partial Rust library and invoke the actual bridge in fresh PowerShell processes. Their previous sequential stdout/stderr reads preceded the timed wait; a full pipe or hung child could prevent reaching the timeout.
+
+[BoundedTestProcess](../Native/PcaiNative.Tests/BoundedTestProcess.cs) drains both streams concurrently and applies one deadline to parent exit plus both EOFs. Failure requests process-tree termination while the parent is alive, waits a bounded cleanup interval, cancels stream reads, and reports cleanup failures. It returns actual exit code and separate streams; native assertions remain unchanged.
+
+[Three real-process controls](../Native/PcaiNative.Tests/BoundedTestProcessTests.cs) assert exact concurrent 262144-character stdout/stderr, exit23 with both diagnostic sentinels, and a sleeping parent's timeout followed by checking its published PID has exited. The [review register](../Tests/Portable/bounded-process-review.json) binds selectors and source hashes. The normal native [workflow](../.github/workflows/native-override-admission.yml) requires a real host-built native library and at least52 managed tests, all passing with none skipped. This inventory floor does not establish complete ABI coverage.
+
+Cleanup requests are best effort for descendants. An already-exited parent cannot identify reparented descendants; these controls establish known-parent termination, not arbitrary descendant containment. A separately supervised historical sequential-drain mutation hangs on the pipe fixture; the supervisor terminates only that private test process group. These are disposable validation deadlines, not production network settings, and no acceleration or hardware-network qualification is implied.

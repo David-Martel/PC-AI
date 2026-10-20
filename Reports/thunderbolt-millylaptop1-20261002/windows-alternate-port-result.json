@@ -1,0 +1,87 @@
+{
+  "Applied": true,
+  "State": "Captured",
+  "CollectorName": "pcai-usb4-10e25fcd361f483d8ffddfb760500820",
+  "DurationSeconds": 5,
+  "MaxMegabytes": 64,
+  "ReportDirectory": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port",
+  "Paths": {
+    "Etl": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820_000001.etl",
+    "Xml": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.xml",
+    "Providers": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.providers.txt",
+    "NativeLog": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.native.jsonl",
+    "Summary": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.summary.txt",
+    "Report": "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.report.xml"
+  },
+  "Providers": [
+    "{575BA31F-2B45-58C2-64FD-F5DC757B6137} 0xffffffffffffffff 5",
+    "{AE795D36-2B11-5EFB-C7E0-5D552BC55D6C} 0xffffffffffffffff 5"
+  ],
+  "Commands": {
+    "Create": {
+      "FilePath": "logman.exe",
+      "Arguments": [
+        "create",
+        "trace",
+        "pcai-usb4-10e25fcd361f483d8ffddfb760500820",
+        "-o",
+        "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.etl",
+        "-f",
+        "bincirc",
+        "-max",
+        "64",
+        "-rf",
+        "00:00:15",
+        "-p",
+        "{575BA31F-2B45-58C2-64FD-F5DC757B6137}",
+        "0xffffffffffffffff",
+        "5"
+      ]
+    },
+    "Update": {
+      "FilePath": "logman.exe",
+      "Arguments": [
+        "update",
+        "trace",
+        "pcai-usb4-10e25fcd361f483d8ffddfb760500820",
+        "-pf",
+        "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.providers.txt"
+      ]
+    },
+    "Start": {
+      "FilePath": "logman.exe",
+      "Arguments": [
+        "start",
+        "pcai-usb4-10e25fcd361f483d8ffddfb760500820"
+      ]
+    },
+    "Stop": {
+      "FilePath": "logman.exe",
+      "Arguments": [
+        "stop",
+        "pcai-usb4-10e25fcd361f483d8ffddfb760500820"
+      ]
+    },
+    "Delete": {
+      "FilePath": "logman.exe",
+      "Arguments": [
+        "delete",
+        "pcai-usb4-10e25fcd361f483d8ffddfb760500820"
+      ]
+    },
+    "Decode": {
+      "FilePath": "tracerpt.exe",
+      "Arguments": [
+        "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820_000001.etl",
+        "-o",
+        "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.xml",
+        "-of",
+        "XML",
+        "-summary",
+        "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.summary.txt",
+        "-report",
+        "C:\\codedev\\PC_AI\\Reports\\thunderbolt-millylaptop1-20261002\\windows-alternate-port\\pcai-usb4-10e25fcd361f483d8ffddfb760500820.report.xml"
+      ]
+    }
+  }
+}

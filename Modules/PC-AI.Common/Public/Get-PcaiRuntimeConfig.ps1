@@ -1,7 +1,7 @@
 #Requires -PSEdition Core
 
 $sharedCacheHelper = Join-Path $PSScriptRoot 'Get-PcaiSharedCache.ps1'
-if ((-not (Get-Command Get-PcaiSharedCacheEntry -ErrorAction SilentlyContinue)) -and (Test-Path $sharedCacheHelper)) {
+if ((-not (Get-Command Get-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue)) -and (Test-Path $sharedCacheHelper)) {
     . $sharedCacheHelper
 }
 
@@ -32,6 +32,7 @@ namespace Pcai.Common {
 
             while (!string.IsNullOrWhiteSpace(cursor)) {
                 if (File.Exists(Path.Combine(cursor, "PC-AI.ps1")) ||
+                    (File.Exists(Path.Combine(cursor, "PC-AI.psd1")) && Directory.Exists(Path.Combine(cursor, "Config"))) ||
                     File.Exists(Path.Combine(cursor, "AGENTS.md")) ||
                     Directory.Exists(Path.Combine(cursor, ".git"))) {
                     return cursor;
@@ -176,8 +177,24 @@ function Resolve-PcaiRepoRoot {
         $searchRoot
     }
 
+    # An older generated bridge type may already exist in this process. Resolve
+    # a packaged root before consulting that type or a stale checkout-root cache.
+    $packageCursor = [System.IO.Path]::GetFullPath($resolvedSearchRoot)
+    while ($packageCursor) {
+        if ([System.IO.File]::Exists([System.IO.Path]::Combine($packageCursor, 'PC-AI.psd1')) -and
+            [System.IO.Directory]::Exists([System.IO.Path]::Combine($packageCursor, 'Config'))) {
+            return $packageCursor
+        }
+        if ([System.IO.File]::Exists([System.IO.Path]::Combine($packageCursor, 'PC-AI.ps1')) -or
+            [System.IO.File]::Exists([System.IO.Path]::Combine($packageCursor, 'AGENTS.md')) -or
+            [System.IO.Directory]::Exists([System.IO.Path]::Combine($packageCursor, '.git'))) { break }
+        $packageParent = [System.IO.Path]::GetDirectoryName($packageCursor)
+        if ($packageParent -eq $packageCursor) { break }
+        $packageCursor = $packageParent
+    }
+
     $cacheKey = $resolvedSearchRoot
-    if (Get-Command Get-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+    if (Get-Command Get-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
         $cachedRoot = Get-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -TtlSeconds 300
         if ($cachedRoot) {
             return [string]$cachedRoot
@@ -186,7 +203,7 @@ function Resolve-PcaiRepoRoot {
 
     $resolvedRoot = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($resolvedSearchRoot)
     if (-not [string]::IsNullOrWhiteSpace($resolvedRoot)) {
-        if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+        if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
             Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedRoot -TtlSeconds 300 | Out-Null
         }
         return $resolvedRoot
@@ -204,7 +221,7 @@ function Resolve-PcaiRepoRoot {
 
         $resolvedCandidate = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($candidate)
         if (-not [string]::IsNullOrWhiteSpace($resolvedCandidate)) {
-            if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+            if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
                 Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedCandidate -TtlSeconds 300 | Out-Null
             }
             return $resolvedCandidate
@@ -213,12 +230,12 @@ function Resolve-PcaiRepoRoot {
 
     try {
         $fallbackRoot = (Resolve-Path -Path $resolvedSearchRoot -ErrorAction Stop).Path
-        if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+        if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
             Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $fallbackRoot -TtlSeconds 300 | Out-Null
         }
         return $fallbackRoot
     } catch {
-        if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+        if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
             Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedSearchRoot -TtlSeconds 300 | Out-Null
         }
         return $resolvedSearchRoot
@@ -253,12 +270,12 @@ function Get-PcaiRuntimeConfig {
     }
 
     $runtimeCacheKey = '{0}|{1}|{2}' -f $resolvedRoot, $resolvedConfigPath, $resolvedToolsPath
-    $runtimeConfigStamp = if (Get-Command Get-PcaiDependencyStamp -ErrorAction SilentlyContinue) {
+    $runtimeConfigStamp = if (Get-Command Get-PcaiDependencyStamp -ListImported -ErrorAction SilentlyContinue) {
         Get-PcaiDependencyStamp -InputObject @($resolvedConfigPath)
     } else {
         $null
     }
-    if (Get-Command Get-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+    if (Get-Command Get-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
         $cachedRuntime = Get-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "runtime-config::$runtimeCacheKey" -DependencyStamp $runtimeConfigStamp
         if ($cachedRuntime) {
             return [PSCustomObject]$cachedRuntime
@@ -413,7 +430,7 @@ function Get-PcaiRuntimeConfig {
         )
     }
 
-    if (Get-Command Set-PcaiSharedCacheEntry -ErrorAction SilentlyContinue) {
+    if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
         Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "runtime-config::$runtimeCacheKey" -Value $runtime -DependencyStamp $runtimeConfigStamp -TtlSeconds 300 | Out-Null
     }
 

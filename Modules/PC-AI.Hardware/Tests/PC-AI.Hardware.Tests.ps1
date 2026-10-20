@@ -18,7 +18,7 @@ Describe 'PC-AI.Hardware Native Integration' {
 	Context 'Get-DiskHealth' {
 		It 'Should return disk health details from native module when available' {
 			# Mock the native internal helper
-			Mock Get-HardwareDiskHealthNative -MockWith { return '[{"device_id":"\\\\\\\\.\\\\\\\\PhysicalDrive0","model":"Mock SSD","serial_number":"MOCK123","status":"OK","smart_capable":true,"smart_status_ok":true,"severity":"OK"}]' } -ModuleName 'PC-AI.Hardware'
+			Mock Get-HardwareDiskHealthNative -MockWith { return '[{"device_id":"\\\\\\\\.\\\\\\\\PhysicalDrive0","model":"Mock SSD","serial_number":"MOCK123","status":"OK","smart_capable":true,"smart_status_ok":true,"health_data_available":true,"health_source":"Measured SMART test fixture","severity":"OK"}]' } -ModuleName 'PC-AI.Hardware'
 
 			$result = Get-DiskHealth
 			$result | Should -Not -BeNullOrEmpty
@@ -34,6 +34,8 @@ Describe 'PC-AI.Hardware Native Integration' {
 			$result | Should -Not -BeNullOrEmpty
 			# Check for standard disk property
 			$result[0].Model | Should -Not -BeNullOrEmpty
+			$result[0].HealthDataAvailable | Should -BeFalse
+			$result[0].IsSmartOK | Should -BeNullOrEmpty
 		}
 	}
 

@@ -352,7 +352,7 @@ function Get-EnrichedSystemPrompt {
                     $snapshotObj = $snapshot | ConvertFrom-Json -ErrorAction Stop
                     $metrics = $snapshotObj.Metrics
                     if ($metrics) {
-                        $cpu = $metrics.cpu_usage_perc
+                        $cpu = if ($metrics.PSObject.Properties['avg_load']) { $metrics.avg_load } elseif ($metrics.PSObject.Properties['cpu_usage_perc']) { $metrics.cpu_usage_perc } else { $null }
                         if ($null -eq $cpu -and $metrics.PSObject.Properties['CpuUsage']) { $cpu = $metrics.CpuUsage }
                         $memUsed = $metrics.memory_usage_bytes
                         if ($null -eq $memUsed -and $metrics.PSObject.Properties['MemoryUsage']) { $memUsed = $metrics.MemoryUsage }
@@ -386,11 +386,17 @@ function Get-EnrichedSystemPrompt {
         try {
             if (Get-Command Get-PcaiResourceMetrics -ErrorAction SilentlyContinue) {
                 $metrics = Get-PcaiResourceMetrics
+                $cpuText = if ($null -ne $metrics.CpuUsage) { "$($metrics.CpuUsage)%" } else { 'n/a' }
+                $memoryText = if ($null -ne $metrics.MemoryUsage -and $null -ne $metrics.TotalMemory -and $metrics.TotalMemory -gt 0) {
+                    "$([math]::Round($metrics.MemoryUsage / 1GB, 2)) GB / $([math]::Round($metrics.TotalMemory / 1GB, 2)) GB"
+                } else { 'n/a' }
+                $gpuText = if ($null -ne $metrics.GpuUsage) { "$($metrics.GpuUsage)%" } else { 'n/a' }
+                $uptimeText = if ($null -ne $metrics.Uptime) { [TimeSpan]::FromSeconds($metrics.Uptime).ToString("dd'd 'hh'h 'mm'm'") } else { 'n/a' }
                 $telemetryBlock = @"
-CPU Usage: $($metrics.CpuUsage)%
-Memory Usage: $([math]::Round($metrics.MemoryUsage / 1GB, 2)) GB / $([math]::Round($metrics.TotalMemory / 1GB, 2)) GB
-GPU Usage: $($metrics.GpuUsage)%
-System Uptime: $([TimeSpan]::FromSeconds($metrics.Uptime).ToString("dd'd 'hh'h 'mm'm'"))
+CPU Usage: $cpuText
+Memory Usage: $memoryText
+GPU Usage: $gpuText
+System Uptime: $uptimeText
 "@
             } else {
                 # Basic telemetry fallback using built-in commands
@@ -410,6 +416,25 @@ System Uptime: $([TimeSpan]::FromSeconds($metrics.Uptime).ToString("dd'd 'hh'h '
     }
 
     return $prompt
+}
+
+function Invoke-PcaiFleetToolCall {
+    <# .SYNOPSIS Execute a configured read-only fleet call from legacy chat. #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][ValidateSet('pcai_get_machine_capabilities', 'pcai_test_media_toolchain')][string]$Name,
+        [string]$ArgumentJson,
+        [Parameter(Mandatory)][string]$ProjectRoot,
+        [Parameter(Mandatory)][string]$ToolsPath
+    )
+    $arguments = if ([string]::IsNullOrWhiteSpace($ArgumentJson)) { @{} } else {
+        Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject $ArgumentJson -AsHashtable -ErrorAction Stop
+    }
+    if ($arguments -isnot [System.Collections.IDictionary] -or $arguments.Count -gt 0) {
+        throw 'Fleet tools require an empty JSON argument object.'
+    }
+    $definitions = Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject ([System.IO.File]::ReadAllText($ToolsPath)) -ErrorAction Stop
+    Invoke-ToolByName -Name $Name -Args $arguments -Tools @($definitions.tools) -ModuleRoot $ProjectRoot
 }
 
 function Invoke-ToolByName {
@@ -455,6 +480,58 @@ function Invoke-ToolByName {
     }
 
     $mapping = $toolDef.pcai_mapping
+
+    # These two diagnostics are scripts rather than imported module commands.
+    # Keep the name/path association fixed, and accept no caller/config arguments.
+    $fleetScripts = @{
+        pcai_get_machine_capabilities = 'Tools/Get-PcaiMachineCapabilities.ps1'
+        pcai_test_media_toolchain = 'Tools/Test-PcaiMediaToolchain.ps1'
+    }
+    $mappingKeys = if ($mapping -is [System.Collections.IDictionary]) { @($mapping.Keys) } else { @($mapping.PSObject.Properties.Name) }
+    if ($fleetScripts.ContainsKey($Name) -or 'script' -in $mappingKeys) {
+        try {
+            if (-not $fleetScripts.ContainsKey($Name)) { throw 'Script tool name is not allowlisted.' }
+            if (@($toolDef).Count -ne 1) { throw 'Script tool mapping must be unique.' }
+            if (@($mappingKeys | Where-Object { $_ -notin @('script', 'params') }).Count -gt 0) {
+                throw 'Script mappings accept only a fixed script path and empty params.'
+            }
+            $relativeScript = if ($mapping -is [System.Collections.IDictionary]) { $mapping['script'] } else { $mapping.script }
+            if ($relativeScript -isnot [string] -or $relativeScript -cne $fleetScripts[$Name]) {
+                throw 'Script path does not match the fixed read-only allowlist.'
+            }
+            if ($argTable.Count -gt 0 -or ($null -ne $Args -and $Args -isnot [System.Collections.IDictionary] -and $Args -isnot [pscustomobject])) {
+                throw 'Fleet script tools accept no arguments.'
+            }
+            if ('params' -in $mappingKeys) {
+                $configuredParams = if ($mapping -is [System.Collections.IDictionary]) { $mapping['params'] } else { $mapping.params }
+                if ($null -ne $configuredParams) {
+                    if ($configuredParams -is [System.Collections.IDictionary]) { $parameterCount = $configuredParams.Count }
+                    elseif ($configuredParams -is [pscustomobject]) { $parameterCount = @($configuredParams.PSObject.Properties).Count }
+                    else { throw 'Script params must be an empty object.' }
+                    if ($parameterCount -ne 0) { throw 'Fleet script tools accept no configured parameters.' }
+                }
+            }
+            $repoRoot = [System.IO.Path]::GetFullPath($ModuleRoot).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+            $scriptPath = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($repoRoot, $relativeScript))
+            if (-not $scriptPath.StartsWith($repoRoot + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw 'Script resolution escaped the repository root.'
+            }
+            if (-not [System.IO.File]::Exists($scriptPath)) { throw 'Allowlisted diagnostic script is unavailable in this repository.' }
+            foreach ($path in @([System.IO.Path]::GetDirectoryName($scriptPath), $scriptPath)) {
+                if (([System.IO.File]::GetAttributes($path) -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    throw 'Allowlisted diagnostic paths must not be redirected through reparse points.'
+                }
+            }
+            $scriptResult = & {
+                # Profile defaults must not turn this read-only route into an
+                # output write, device capture or synthetic encode request.
+                $PSDefaultParameterValues = @{}
+                & $scriptPath
+            }
+            return (Microsoft.PowerShell.Utility\ConvertTo-Json -InputObject $scriptResult -Depth 12)
+        }
+        catch { return "Error executing tool $Name (read-only script): $($_.Exception.Message)" }
+    }
 
     # Dynamic Module Loading
     if ($mapping.module) {

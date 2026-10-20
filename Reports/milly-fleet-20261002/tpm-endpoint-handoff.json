@@ -1,0 +1,756 @@
+{
+  "schemaVersion": 1,
+  "collectedUtc": "2026-10-02T21:49:50.0058857Z",
+  "role": "optional external rendering/control endpoint candidate",
+  "hostname": "millylaptop1",
+  "recipient": "codex-dtm-p1gen7",
+  "threadId": "milly-display-surface-20261002",
+  "intakeStatus": "handoff sent; awaiting fresh TPM owner acknowledgement",
+  "tpmDiscovery": {
+    "repo": "C:/codedev/vigil_ai",
+    "head": "d19f77f8f5d0114173d87574f2bce858e7f4e451",
+    "branch": "codex/repo-closeout-20261002",
+    "dirtyFiles": [
+      ".claude/AGENT_CURRENT_STATE.md",
+      ".claude/context/LATEST_CONTEXT.md",
+      "FINISHED.md",
+      "TODO.md",
+      "docs/audits/crossrepo-pr-review-2026-10-02.md",
+      "uv.lock"
+    ],
+    "foreignWorktreesPreserved": 8,
+    "writesPerformed": false
+  },
+  "messageReceipts": [
+    {
+      "id": "01a0fe95-428a-7288-907b-a7b93acd3fd5",
+      "streamId": "1790977589898-0",
+      "to": "codex-dtm-p1gen7",
+      "utc": "2026-10-02T21:46:29.898671Z",
+      "requestAck": true
+    },
+    {
+      "id": "01a0fe96-d692-718c-aacd-0a8b100b7c2e",
+      "streamId": "1790977693330-0",
+      "to": "codex-asus",
+      "utc": "2026-10-02T21:48:13.330603Z"
+    },
+    {
+      "utc": "2026-10-02T21:50:36.783008Z",
+      "scope": "Historical initial14binding delivery superseded by reproducible codec packet",
+      "streamId": "1790977836783-0",
+      "to": "codex-dtm-p1gen7",
+      "id": "01a0fe99-06ee-733b-aaa6-160de55354cc"
+    }
+  ],
+  "existingOwnerResponse": {
+    "id": "01a0fe81-634e-7661-8773-a3463172eeb0",
+    "utc": "2026-10-02T21:24:47.566934Z",
+    "from": "codex-dtm-p1gen7",
+    "to": "codex-asus",
+    "scope": "Existing requirement anchors, supporting candidate mappings only; no acceptance. Optional absence must not be a required-rig failure. Latency thresholds remain TBD where already TBD."
+  },
+  "canonicalPaths": {
+    "requirements": "C:/codedev/vigil_ai/vigil_ai_tpm/templates/requirements.csv",
+    "sources": "C:/codedev/vigil_ai/vigil_ai_tpm/templates/source_registry.csv",
+    "supportingSignals": "C:/codedev/vigil_ai/vigil_ai_tpm/templates/tracker_source_signals.csv",
+    "intake": "C:/codedev/vigil_ai/docs/FLEET_EVIDENCE_INTAKE.md",
+    "closedLoop": "C:/codedev/vigil_ai/docs/TRACEABILITY_CLOSED_LOOP_CONTRACT.md"
+  },
+  "candidateMappings": [
+    {
+      "req_id": "REQ-P1-023",
+      "requirement_text": "Project body-aligned guidance onto the patient for the cardiac case, adapting to body surface and movement.",
+      "foundational_criterion": "projector guidance projects body-aligned cues that re-track the surface under patient movement (demonstrated May-18)",
+      "aspirational_criterion": "alignment error < TBD<PI> mm/px under motion",
+      "verification_method": "projection re-alignment replay test on tracked-surface bag",
+      "wi_ids": "WI-043;WI-044;WI-053;WI-078;WI-081;WI-082;WI-105"
+    },
+    {
+      "req_id": "REQ-P1-005",
+      "requirement_text": "Systematically deploy updated UX/UI guidelines prior to formal user studies/testing.",
+      "foundational_criterion": "each UI state in {idle,listening,thinking,error,abstain,fallback,stale,missing} has one defined visual, deployed before the formal study",
+      "aspirational_criterion": "screenshot/golden-image diff test per state in CI",
+      "verification_method": "per-state screenshot diff test",
+      "wi_ids": "WI-076;WI-077;WI-078;WI-079"
+    },
+    {
+      "req_id": "REQ-P1-022",
+      "requirement_text": "Determine which interface/visualization to render across available CDP devices (projector, screen, tablet, speaker, headphone).",
+      "foundational_criterion": "each CDP device (projector/screen/tablet/speaker/headphone) receives its routed stream (display backend demonstrated)",
+      "aspirational_criterion": "frame-age < TBD<PI> ms per device",
+      "verification_method": ".testrunner display round-trip per device",
+      "wi_ids": "WI-076;WI-077;WI-078;WI-079"
+    },
+    {
+      "req_id": "REQ-P1-054",
+      "requirement_text": "Track the patient chair/table surface (via markers) and align projector guidance to adapt to different perspectives.",
+      "foundational_criterion": "Patient chair/table surface marker-tracking + projector alignment conform to the named Design Guide clause for projected-guidance surface registration -- design-review conformance checklist 100%. Falsifiable design-conformance gate (verified by design review, not a rosbag).",
+      "aspirational_criterion": "",
+      "verification_method": "design-guideline conformance review",
+      "wi_ids": "WI-078"
+    },
+    {
+      "req_id": "REQ-P1-045",
+      "requirement_text": "Run a pre-procedure POST-like self-test confirming all required hardware (RealSense, GoPro, projector, Clarius) is attached and functional.",
+      "foundational_criterion": "pre-procedure POST self-test exits non-zero on any missing device (RealSense/GoPro/projector/Clarius) and blocks start",
+      "aspirational_criterion": "per-device health detail + auto-remediation hints",
+      "verification_method": "vigil doctor --profile per-device probe; assert non-zero on missing",
+      "wi_ids": "WI-020"
+    }
+  ],
+  "observations": {
+    "qt": "Saved PySide6 6.11.2 xcb Xvfb receipt: two pixel assertions; no actual Cog graphical session claim",
+    "egl": "NVIDIA EGL1.5 GL4.6 renderer RTX5000AdaLaptop driver580.178.04 red pixel255,0,0 error0; two DRI2 warnings preserved",
+    "codec": {
+      "commands": [
+        {
+          "command": [
+            "ffmpeg",
+            "-nostdin",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "warning",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=640x360:rate=30",
+            "-t",
+            "1",
+            "-c:v",
+            "h264_nvenc",
+            "-preset",
+            "p4",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/synthetic-nvenc.h264"
+          ],
+          "start_utc": "2026-10-02T17:54:10.20934-04:00",
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "ffmpeg",
+            "-nostdin",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-threads",
+            "2",
+            "-i",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/synthetic-nvenc.h264",
+            "-pix_fmt",
+            "yuv420p",
+            "-f",
+            "framemd5",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/cpu.framemd5"
+          ],
+          "start_utc": "2026-10-02T17:54:12.589098-04:00",
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "ffmpeg",
+            "-nostdin",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-threads",
+            "2",
+            "-hwaccel",
+            "cuda",
+            "-hwaccel_output_format",
+            "cuda",
+            "-i",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/synthetic-nvenc.h264",
+            "-vf",
+            "hwdownload,format=nv12,format=yuv420p",
+            "-f",
+            "framemd5",
+            "/home/cog/.cache/pcai/ui-validation/reproducible-codec/nvdec.framemd5"
+          ],
+          "start_utc": "2026-10-02T17:54:12.665482-04:00",
+          "exit": 0,
+          "stdout": "",
+          "stderr": ""
+        }
+      ],
+      "input": "Synthetic testsrc2 640x360 30fps 1second; no fleet/camera data",
+      "allFrameRowsIdentical": true,
+      "encodedBitstreamCustody": "Resolved: validation/synthetic-nvenc.h264 hash matches owner receipt",
+      "receipt": "validation/receipt.json",
+      "nvdecFrames": 30,
+      "initialFailurePreserved": "validation/nvdec-default-threads-failed.txt: CUDA_ERROR_INVALID_VALUE at33 decode surfaces with default16 threads",
+      "runtime": {
+        "kernel": "6.8.0-138-generic",
+        "hostname": "millylaptop1",
+        "gpu": "NVIDIA RTX 5000 Ada Generation Laptop GPU, 580.178.04"
+      },
+      "successCommandAndExitCustody": "Resolved: exact3 argv arrays and start times bound; all exit0 and empty stdout/stderr",
+      "cpuFrames": 30
+    },
+    "display": "Owner metadata eDP3840x2400; EDID hash preserved; no actual physical screen witness",
+    "os": "Owner snapshot Ubuntu22.04.5, systemPython3.10.12; separate Python3.12/3.13/3.14; existing Humble versus isolated ROS environments must be kept distinct",
+    "maintenance": "Qualified recovery backup verified: three homes and EFI zero checksum differences; all nonvolatile system data and metadata match, seven classified live exceptions. ME firmware applied and reboot recovered. Noble package installation is underway; normal SSH22 refused and recovery1022 reset during library/package replacement. User attached local tmux and reports setting-up progress. No reboot requested; post-upgrade validation remains pending. Normal SSH recovered at00:17UTC; an authenticated administrative session is held and the1022listener was restarted and key-tested at00:19UTC. Upgrade continues; no final OS acceptance.",
+    "wifi": "COGROB connected; original MWireless preserved. Windows cached MWireless authenticated. Supported Credential Manager API does not expose protected domain password. Three bounded Ubuntu attempts across two identities and two candidate sources have not connected; validity unresolved, secrets cleared, retries disabled.",
+    "actualVigilWidget": "Current-source CaptureProgressBar: 10 pixel assertions in isolated offscreen Qt, explicit ROS domain231, no ROS imports or fleet graph. display-readiness/RECEIPT.json",
+    "sharedAsusDisplay": "Latest owner reservation covers Clarius0545 non-imaging radios; 0546 fault preserved. No RESOURCE_DONE or Sunshine provider response observed. Existing pinned authentication probe401 retained; no pairing, reset, stream or input."
+  },
+  "requiredFutureChecks": [
+    "Owner selects exact source/release/configuration/profile and OS/ROS/Python ABI; record installed/loaded identities separately from source pins",
+    "Join, leave, reconnect and missing optional endpoint preserve required local operator UX and required-device POST; wrong-host and wrong-device controls",
+    "Per-state golden images for idle/listening/thinking/error/abstain/fallback/stale/missing; stale-session refusal and authoritative command acknowledgement/readback",
+    "Headed source-to-presentation/decode-to-paint and input-to-applied-state measurements with timestamps/clock uncertainty, drops/queue bounds and CPU/GPU load; thresholds remain pending owner disposition",
+    "Ethernet and Wi-Fi are distinct profiles; unavailable Thunderbolt peer cannot count as tested transport",
+    "Before/during/after physical local UI and actual Nebula3 projector continuity witnesses; EDID/remote screenshot is insufficient",
+    "Independent TPM review before adding source/signal records or accepting a result; use existing IDs and registries"
+  ],
+  "exclusions": [
+    "No fleet runtime member, placement eligibility, required release target or permanent DDS peer enrollment",
+    "No actual headed fleet UI streaming, input/control session, browser HTTP/SSE adapter or projector test",
+    "No HIL, procedure, clinical, requirement, transition or release acceptance",
+    "AMT present but unprovisioned; no out-of-band management readiness",
+    "Thunderbolt peer absent; no USB4NET claim",
+    "No source result transferred across hosts/ABIs/OS maintenance"
+  ],
+  "receiptContract": "Exact repository/commit; selected config blob/hash/release/TPM pin/profile/native step; host/role/OS/ROS/Python ABI; installed/device/model identities; assertion/test/scenario/oracle/run/command; raw verdict/value/skip; times; immutable refs/hashes; positive/negative controls; witness/reviewer/disposition. Unknowns remain unknown.",
+  "evidence": [
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2235,
+      "relativePath": "endpoint-before-os-upgrade.json",
+      "sha256": "120948239f7b093db691ffd876541d1d7ee48de53e9e0498d5b5c2e63361e876"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 192,
+      "relativePath": "qt-render.json",
+      "sha256": "35d4b8603d8948f50cc3d0858cc99e1622f7d5d7def7f7e4592f92f29e628cbd"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 232,
+      "relativePath": "egl-result-groups.txt",
+      "sha256": "a27184675e744beec00445259253b82f95f6c99b08a3393fea9c07ef64f6e87e"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 98,
+      "relativePath": "display-edid.sha256",
+      "sha256": "3437502db9e736c749e1f0c8906e729c77ded9c2feee721d7ec6992e76f1cbad"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 8676,
+      "relativePath": "functional-validation.json",
+      "sha256": "06602e573fe8b5e8e08c2d267945fa7cd274e8302aa87bde77224252f7af13e7"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 20940,
+      "relativePath": "fleet-tooling-provenance.json",
+      "sha256": "8556d0fa00bf81e2b8837d2d7bb2145c9cb03d63a23776a0f00be780284863fa"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2615,
+      "relativePath": "validation/nvdec.framemd5",
+      "sha256": "1eb034c00596b22991e7acb6c5d6ab0a61590759f56cfc156dd979c4f73f74c2"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 686,
+      "relativePath": "validation/nvdec-default-threads-failed.txt",
+      "sha256": "686db15952430e5b35f1ecbca057e5864849e5f47630d9959b9dc940d5853c6e"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2928,
+      "relativePath": "validation/egl_device_probe.c",
+      "sha256": "37327dba07aefcb57892055577dabc7a02cbd57dd83005d96b58244e50215035"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 0,
+      "relativePath": "validation/egl-build.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 0,
+      "relativePath": "validation/nvenc.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 0,
+      "relativePath": "validation/nvdec.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 262,
+      "relativePath": "validation/qt-render.png",
+      "sha256": "9fa562cb99a190823489ecb0f2a45f029fab1a0a39a1f8298ccf225630e512a3"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2539,
+      "relativePath": "validation/receipt.json",
+      "sha256": "d0cc6ff4a8ced5d914b8b17fa2758832611b63ffcecd1efbe6c0372e2e9b553e"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 267584,
+      "relativePath": "validation/synthetic-nvenc.h264",
+      "sha256": "41009bfaa2daadb9d1f4802a758abdb71064b3a89f14d51ac94eb87b606be37a"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 2615,
+      "relativePath": "validation/cpu.framemd5",
+      "sha256": "1eb034c00596b22991e7acb6c5d6ab0a61590759f56cfc156dd979c4f73f74c2"
+    },
+    {
+      "origin": "Copied owner-produced component evidence; this lane rehashed locally",
+      "bytes": 3569,
+      "relativePath": "wifi-import-receipt.json",
+      "sha256": "7afa1b5fa6f47aa88d9074f43c615733eaab34abb44718b0d36927a89c30ac97"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 1180,
+      "relativePath": "display-readiness/AUTH-PROBE.json",
+      "sha256": "c256b4a102761eb6c44fcba100905786a03eb678d80cddc38b2f485a509b739b"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 236,
+      "relativePath": "display-readiness/capture-capturing.png",
+      "sha256": "a67da32b855c831a55936bd203c066e67a9088fd90eafc93c307a8f85276052e"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 227,
+      "relativePath": "display-readiness/capture-complete.png",
+      "sha256": "129681aaee3e0f99f283a2a5e572f70e24ae5f5e801b5d1ca93befab2c6eb323"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 240,
+      "relativePath": "display-readiness/capture-ok.png",
+      "sha256": "d204452477bd7e5b0c1bdc99642b8624199ae968da641d6f49b54e8a5e21c915"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 913,
+      "relativePath": "display-readiness/LOCAL-SHA256SUMS",
+      "sha256": "4852640315428b53ce1134daace460f3d4eb40be51b91283d11c7aeed6c95577"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 613,
+      "relativePath": "display-readiness/OWNER-HOLD.json",
+      "sha256": "1dad8338c5ffee1a2cafa92906047abca269e1723436f5adb87282751087aea6"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 2308,
+      "relativePath": "display-readiness/RECEIPT.json",
+      "sha256": "9ba0e1f06e43c0afc601eb878fa1acac90e2981cb5654b72a12ee06002e6513e"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 575,
+      "relativePath": "display-readiness/SHA256SUMS",
+      "sha256": "389aea804b2494b412c553072d7235adda38f49f82051567a91a4c2d2d84b1ed"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 0,
+      "relativePath": "display-readiness/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 2308,
+      "relativePath": "display-readiness/stdout.json",
+      "sha256": "9ba0e1f06e43c0afc601eb878fa1acac90e2981cb5654b72a12ee06002e6513e"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 498,
+      "relativePath": "display-readiness/UFW-DRY-RUN.txt",
+      "sha256": "15c6ad3ac391fb5bf7984ff94786ff20c8431d99a5e75049f0cc1622dd207276"
+    },
+    {
+      "origin": "Copied readiness lane evidence; primary rehashed after transfer",
+      "bytes": 3557,
+      "relativePath": "display-readiness/validate-widget.py.txt",
+      "sha256": "09078e0fc6a9828f69f19da52b6b7728b3ca7107040115611f7800fae81d256a"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 7566,
+      "relativePath": "backup-validation.json",
+      "sha256": "6a658c81e2c282a7719baec068ee4136636cf6cb7d5b4241d0396025ac1acccc"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 509,
+      "relativePath": "me-firmware-applied.json",
+      "sha256": "677ebe52c8e8c931c51853c6dea7d6d92b4f6eda20d8e4d4f50cae8a55c2e1a8"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 15139,
+      "relativePath": "ssh-transport/PROPOSAL.md",
+      "sha256": "b42c3c29a59e49b817bd670a26a2453776e33d336fef77c3207a4eba38da415f"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 3231,
+      "relativePath": "ssh-transport/milly-mux-validation.json",
+      "sha256": "91ff9c754ae1713266ddd4bcd56eba7a4c51d36bea37ede13d2305ee535d847b"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 1091,
+      "relativePath": "ssh-transport/milly-banner-timeout-validation.json",
+      "sha256": "f1f0a6d26e72272fba1a022b787fca73b960439a6f0736a8be2ad05fde2257b3"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 2582,
+      "relativePath": "ssh-transport/windows-implementation-receipt.json",
+      "sha256": "e90a82319dbef67e9e50719f1dcbbeac09fd425e7fcff4405125a92ad27ea56d"
+    },
+    {
+      "origin": "Primary live maintenance or hash-verified scoped agent receipt; pending OS revalidation",
+      "bytes": 980,
+      "relativePath": "tooling-modernization/windows-docs-validation/implementation-receipt.json",
+      "sha256": "4ab3ceea9af6b38fec73889c1e97b9f421516add8d381155e9da9f8c5d8a67c4"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 12557,
+      "relativePath": "README.md",
+      "sha256": "4682eb497193cb90e1f488136ffddbfca274c8b90575142050a9de6f723936c7"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 7590,
+      "relativePath": "maintenance-recovery-validation.json",
+      "sha256": "018e7bb195039d3b8f859b4f34fe2ff4c1aee9010df4c31c2b37236933fabbe7"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 1745,
+      "relativePath": "noble-installation-complete.json",
+      "sha256": "1cd1479d513867fb1c51e81b60b8536f3d7a1fb291046f0034b35008b26c2708"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 3061,
+      "relativePath": "resolute-installation-pre-reboot.json",
+      "sha256": "defd7c36060d975db3682e489c4efde3c9a95de64bdf647ca906d845944bf6f1"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 4069,
+      "relativePath": "resolute-postboot-recovery.json",
+      "sha256": "666a76de5e444417e46febc7c0a5f4b5d2c55010cf9e2fe72e6025cb4a2f9b8a"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 2076,
+      "relativePath": "resolute-upgrade-in-progress.json",
+      "sha256": "7c810222c8834bc9692d5ae7cedf4e5204c4c3bba395a18d0cd1054c3c2c187e"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 9461,
+      "relativePath": "endpoint-architecture-readonly/receipt.json",
+      "sha256": "bb334e01156221c9e9145bfd60c7e61e678228b8a675f967f8058ab1eaa802bb"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 674,
+      "relativePath": "endpoint-architecture-readonly/copy-custody.json",
+      "sha256": "fb8d0f5a1a27da43d8664c14b1aef7b5dd3fa30390ce6cd58f51d1159543f85b"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 3162,
+      "relativePath": "post-noble-readonly/baseline-tool-comparison.json",
+      "sha256": "6c8dcbb61c5e7da4e04e3aadb5504ceba2e3ec9abdb798d19bb8535402284ea6"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 4980,
+      "relativePath": "post-noble-readonly/containers-and-perf.json",
+      "sha256": "a66b1c97dd959a6cddcf5988f84469457da6ef76e08e891bc61c7beea7e45671"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 973,
+      "relativePath": "post-noble-readonly/COPY-CUSTODY.json",
+      "sha256": "6a473139b6a86d1d4c956cf0e1246c228884e0be9325f4b4d617187f39867c7b"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 11472,
+      "relativePath": "post-noble-readonly/packages.json",
+      "sha256": "efd9303825be4b96b1537c2184d0fc22c94b9cb6ae1a2fd2cf8631d8737c97ce"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 8099,
+      "relativePath": "post-noble-readonly/receipt.json",
+      "sha256": "424260d6b02155d7db4aa5c37763f8f28fc27f9f2e8e2a04f1c98c427bdb986c"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 21258,
+      "relativePath": "post-noble-readonly/tools-and-render.json",
+      "sha256": "58061a6c6d0885e66da569868d5b2ed9584f13a80e5e9fdec983a169a3bb7e16"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 2453,
+      "relativePath": "post-noble-readonly/ui-and-extra-tools.json",
+      "sha256": "66a2c6675d806ca5c07d95d8616b7408f7bcec9111041bf509a610625a1b9738"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 310,
+      "relativePath": "post26-final/cog-desktop-login.json",
+      "sha256": "0e7217cb051b2c2a26d40e41ec0a85d5bea87423d0e9d0abaa9da03bd446a77e"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 4261,
+      "relativePath": "post26-final/dbx-entry-comparison.json",
+      "sha256": "ff318e3c102abffdb1ec3c625b38166de3f62f4a286d21b01122f9196523eda1"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 17412,
+      "relativePath": "post26-final/dbx-entry-review.json",
+      "sha256": "125ac2bae178a9f2d325dc87de746914148c30fc56a13a60cf3c608023a7ca0e"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 4692,
+      "relativePath": "post26-final/dbx-parser-source.py.txt",
+      "sha256": "84020d80ec9c2b18752597d8d9eb93b8d3f845c4a55dad5d036a98be926b8602"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 1787,
+      "relativePath": "post26-final/dbx-parser-tests.py.txt",
+      "sha256": "3a4fbc668cb956904a7e289a3791e42040b1c72d1efa526bb2e495ee0b116dac"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 8520,
+      "relativePath": "post26-final/desktop-stability-review.json",
+      "sha256": "db6d6ea6f81d5caf115a6f78286d22a01d66c03da4c25b1d7feddc94689c15b3"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 2538,
+      "relativePath": "post26-final/final-followup-source.py.txt",
+      "sha256": "99064ef5cea9a18041fa55f2c3a7d7f9eee73b4cd8517626d492fc846d6fb219"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 16117,
+      "relativePath": "post26-final/final-followup.json",
+      "sha256": "1933e2e333e0b5474ab49813fa068e2a42e896abab4be7bbde9a4944d3128d7b"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 2279,
+      "relativePath": "post26-final/functional-corrections-source.py.txt",
+      "sha256": "f93d0be82cc923cec224871deac928b3117649432ecd1d52ba665f4552617fdc"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 8155,
+      "relativePath": "post26-final/functional-corrections.json",
+      "sha256": "a11cba8b23cf04bd312d78551ea154d4ec4af9179e5c618401b16320ea6d5c13"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 19948,
+      "relativePath": "post26-final/functional-first-attempt.json",
+      "sha256": "a74b58abe2f7feeb5dd6745cd833ff46b59397bbe6d6b72df5d3438ef834c695"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 5035,
+      "relativePath": "post26-final/functional-source.py.txt",
+      "sha256": "ea3ce6ca18c5f7295a77c8d6e136cf21826a9df39f632b57e6dc083fa8c6fd7e"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 202,
+      "relativePath": "post26-final/fwupd-20260707.quirk.txt",
+      "sha256": "c7fa848012febafe8ab79ec0b72893a8f2cf29a7182e49fb183213eb0581c9ae"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 48153,
+      "relativePath": "post26-final/fwupd-after-recognition-data.json.txt",
+      "sha256": "06297c69b3fe829230cabf4b5e42bfd7f24d809dfbe80ecc70c594f100a89c96"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 1603,
+      "relativePath": "post26-final/obs-recheck-source.py.txt",
+      "sha256": "66d7d7749226c3e0c18bd3f83df704748bdb332638dd0b5014f3118318ab2ee4"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 9015,
+      "relativePath": "post26-final/obs-startup-first-attempt.json",
+      "sha256": "05691367a255349bb69d6d569ed586b5385de4b8a1ed58507edee0e365f08e7c"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 6828,
+      "relativePath": "post26-final/obs-startup-second-attempt.json",
+      "sha256": "533a88ef83f63f582f9bf1c3ea0022a99f636a2f7b0b14781c09e6daa374a74c"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 1383,
+      "relativePath": "post26-final/obs-startup-source.py.txt",
+      "sha256": "f1a3c2744e09272cc957b46cc339ef126c3cdd2a1bc46ca319a36961afa3f249"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 13867,
+      "relativePath": "post26-final/post-os-home-review.json",
+      "sha256": "f44cf1a1036efd78b2b7c518c5960725c7c407ee2c75815a42e5ef44c90385fe"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 3948,
+      "relativePath": "post26-final/qualified-result.json",
+      "sha256": "37a6d2f0e17539819b6c38fb229969417032ef95e8af0dbcc3d0cb5130a2733f"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 920,
+      "relativePath": "post26-final/ros-test-source.py.txt",
+      "sha256": "f4234956b4b0eebd885905ee3097e5dd562e3f42c4fe3969589f1b749fde3e95"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 4466,
+      "relativePath": "post26-final/SHA256-CUSTODY.json",
+      "sha256": "dd3210346b6f3dd7b1440624737016228974b1255ddc3156c43b9450560a95bd"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 3118,
+      "relativePath": "post26-final/system-source.py.txt",
+      "sha256": "34f2f7b380dfbf2191e4e9b4589ad17bd94d67bbb8cea651d707a325f910f865"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 152581,
+      "relativePath": "post26-final/system.json",
+      "sha256": "9a22d1feee3f3453fcb17aba3791cda47ea69090f21093f4dd250a9e3535d0a7"
+    },
+    {
+      "origin": "Authenticated source capture or exact private independent review copy; qualified point-in-time observations, not acceptance",
+      "bytes": 2308,
+      "relativePath": "post26-final/vigil-widget.json",
+      "sha256": "a81e292e37d8299c5013f816308384bed5d37a1c82471a0a9a45e47f80c341b3"
+    }
+  ],
+  "sharedTpmEditsAuthorized": false,
+  "updatedUtc": "2026-10-03T02:05:26.8438024Z",
+  "latestMaintenance": {
+    "schema": "pcai.milly-post26-qualified-result.v1",
+    "observedUtc": "2026-10-03T02:05:26.7726735Z",
+    "host": "millylaptop1",
+    "status": "Local OS, firmware, tools and Cog desktop recovered and component-validated; external acceptance remains pending",
+    "installed": {
+      "ubuntu": "26.04.1 LTS",
+      "kernel": "7.0.0-38-generic",
+      "systemPython": "3.14.4",
+      "managedStablePython": [
+        "3.12.15",
+        "3.13.16",
+        "3.14.8"
+      ],
+      "isolatedPreviewPython": "3.15.0rc2",
+      "nativeRos": "Lyrical desktop, developer tooling and CycloneDDS",
+      "vigilAbi": "Jazzy/Python3.12 retained separately; VIGIL source requires >=3.12,<3.14",
+      "nvidia": "595.91.07 open",
+      "ssdFirmware": "5108APLA",
+      "uefiDbx": "20260707",
+      "obs": "32.2.0",
+      "nsightSystems": "2026.3.2.476",
+      "containerToolkit": "1.20.1",
+      "clangdLldb": "21",
+      "fio": "3.41"
+    },
+    "validation": {
+      "cogLocalSession": "seat0 Wayland user session; autologin restored to disabled",
+      "cppTests": 1,
+      "pythonTests": 6,
+      "rustNextestTests": 1,
+      "qtPixelAssertions": 2,
+      "vigilWidgetPixelAssertions": 10,
+      "codecDecodedFrames": 30,
+      "codecCpuNvdecExactMatch": true,
+      "nativeRosNamespace": "private network namespace, domain231, CycloneDDS, three exact messages",
+      "pinnedContainers": "Jazzy and Lyrical init/shutdown with network=none",
+      "gpuCdiContainer": true,
+      "actualPostOsSshReuse": true,
+      "dbxSignedPayloadEntriesPresent": 291,
+      "dbxSignedPayloadEntriesMissing": 0,
+      "dbxParserControls": 4,
+      "dbxRecognitionOnlyFix": "Exact upstream2.1.8 mapping; unchanged EFI SHA256; historic error retained",
+      "sshAccess": "ASUS to Milly and Milly to ASUS/both Sparks, plus Windows to fleet",
+      "vigilnetJson": "inventory --json parses; installed CLI hash matches e543 fix",
+      "vigilnetInventorySha256": "a59fe7c06c2416b5b276f24c1237785e8c5ab6afd135ccf52c4c6fd5b7ab2836",
+      "vigilnetInstalledCliSha256": "2f5f79c691d7f1aeab599a67b49f8572303cd099cb6efcb537b8c097999b3a53"
+    },
+    "qualification": [
+      "Original Ubuntu26 upgrader exited1 at unused Postfix; scoped removal repaired it; no failed evidence cleared",
+      "Initial functional harness path/quoting/duplicate-M failures retained and corrected",
+      "System discovery expectedExit2 for firmware-pending is an annotation error; actual JSON0/empty Devices is valid",
+      "OBS first startup opened default audio inputs transiently; second test scene disables them and asserts no input started; no stream/file-record command used",
+      "OBS optional absent-device and Xvfb warnings, EGL diagnostics and legacy Podman BoltDB warning retained",
+      "Old desktop crash and failed crash-uploader evidence preserved; current desktop/audio services running",
+      "Python3.15rc2 is installed catalog preview, not latest upstream rc3 or production ABI"
+    ],
+    "pending": [
+      "Thunderbolt peer/topology discovery and high-throughput measurement",
+      "Sunshine existing credential provider, affected-owner seat/firewall scope, pairing and live video/input/reconnect validation",
+      "Full native VIGIL operator UI and matching production ROS message packages",
+      "MWireless/eduroam association with usable supported credentials",
+      "Physical audio/accessibility/camera DMA-buffer and projector/HIL acceptance",
+      "Original-user/browser/data validation and one Cog desktop-database semantic migration qualification"
+    ],
+    "backupMustRemain": true,
+    "fleetAcceptance": false,
+    "productionComputePlacementChanged": false,
+    "quorumChanged": false,
+    "staticDdsChanged": false,
+    "automaticPolicyBoundary": "Windows private WLAN export deletion blocked by automatic review; private ACLs retained, no alternate deletion route",
+    "producerCaptureCorrections": "Frozen producer outputs and source captures are preserved; this result qualifies scope and harness annotations."
+  },
+  "latestReadOnlyTpmHead": "3393c23eb1ffdd1a9ca90a1858aace7a3a650d44; branch codex/acceptance-criteria-20261003; foreign WIP preserved; no TPM edits"
+}

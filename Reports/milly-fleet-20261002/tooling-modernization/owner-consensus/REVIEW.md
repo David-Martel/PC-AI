@@ -1,0 +1,16 @@
+Reviewed proposal: toolchain-research-20261002.md, SHA256 2d0d766a50ab729b2e427f962db29801b7795bcb2f5137a85a8ed046d0dd8a4b, 43346 bytes. Related F1 source: vigil-utils PR334 head d2781cd4f376cc94acf68916fb33ea7395e0ef2e. The proposal evidence file has no represented Git head.
+
+TPM owner, ASUS owner and Windows maintenance owner agree to a bounded additive documentation pilot using existing canonical CSV/schema/closed-loop records and maintained installers. Sphinx-Needs may render a derived view; StrictDoc migration and labgrid deployment are deferred. Claude's source-owner ACK, corrected matrix and exact broader Windows automation/path scope are pending. Full consensus and readiness to apply remain false.
+
+Recommended first changes:
+
+1. PC_AI: fail closed on requested dotnet/cargo documentation failures; reject stale output; preserve native Build.ps1/CargoTools/platyPS/CSharp XML/rustdoc. Limit default roots to this repository; external nukenul/nuker_core requires explicit opt-in. Validate actual failing children and stale/wrong-target artifacts. Current findings are static source analysis, not executed failure tests.
+2. TPM: isolated Needs publishing pilot over existing requirements CSV/DAG blocks and IDs. Test exact text/status/link parity, missing/duplicate targets, HOLD/Pending preservation, strict warnings, idempotent generation and source/tool receipts. Extend existing DOC-TOOL-008/009/010 and005Vale; do not invent replacement IDs or tool mandates.
+3. F1 PR334: correct probe-process-error false-success, empty normalized host selection success, and system-Python metadata wrongly attributed to PATH colcon. Exact published review includes two isolated executable counterexamples with controls and one source finding. Keep adoption report-only until reviewed fixes/negative controls.
+4. F2: correct Cargo target rustflags/linker config, ccache configuration, colcon mixin syntax and cargo-llvm-cov ecosystem. Remove unsupported measured speedups/classification/EOL claims. Extend existing checksum-pinned Ansible release management; isolated cache/linker tests must prove cold/warm/null-cache correctness and invalidation/rollback. No global manager, Redis, GPU runtime or floor changes during backup/HIL.
+
+Source review: https://github.com/David-Martel/vigil-utils/pull/334#issuecomment-5962755739 (authenticated GitHub API verified; anonymous web404). The exact JSON comment and owner-thread are copied here. Independent applicability evidence is in independent-docs-tooling-review/receipt.json.
+
+ASUS shadow repair is owned by orchestrator codex-asus and implementation owner codex-oto-context, not Windows Milly maintenance. Branch codex/shadow-cwd-20261002, external owner worktree /home/damartel/dev/worktrees/vigil-spark-shadow-cwd-20261002, base285354ca8. Owner reported20pass from8fail/12pass baseline; final plugin smoke and immutable new source head pending. No foreign worktree cleanup authorized.
+
+Main must attach this receipt to the existing PC_AI Milly report and current TPM backlog/decision documentation. No additional canonical tracker. Owner coordination IDs and outstanding requests are bound in owner-thread.json and consensus-review.json. Preserve newest native0546 hold until its owner publishes fresh RESOURCE_DONE; no display/input/streaming changes in this lane.

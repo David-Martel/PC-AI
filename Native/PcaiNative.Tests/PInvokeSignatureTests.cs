@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -71,6 +71,22 @@ public class PInvokeSignatureTests
             $"({string.Join(", ", AllowedLibraries)}):\n  {string.Join("\n  ", violations)}");
     }
 
+    [Fact]
+    public void AllDllImportsUsePlatformNeutralLogicalNames()
+    {
+        var violations = GetDllImportMethods()
+            .Select(m => (Method: m, RawLib: m.GetCustomAttribute<DllImportAttribute>()!.Value))
+            .Where(x => x.RawLib.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+                     || x.RawLib.EndsWith(".so", StringComparison.OrdinalIgnoreCase)
+                     || x.RawLib.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase))
+            .Select(x => $"{x.Method.DeclaringType?.Name}.{x.Method.Name} → '{x.RawLib}'")
+            .ToList();
+
+        Assert.True(violations.Count == 0,
+            $"DllImport attributes must use platform-neutral logical names so NativeResolver works on Windows, Linux, and macOS:\n  " +
+            $"{string.Join("\n  ", violations)}");
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // String return-type safety
     // ──────────────────────────────────────────────────────────────────────────
@@ -140,6 +156,29 @@ public class PInvokeSignatureTests
         Assert.True(unused.Count == 0,
             $"These entries in AllowedLibraries are not referenced by any DllImport — " +
             $"remove them or add the missing declarations:\n  {string.Join("\n  ", unused)}");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Boolean ABI
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void RustBooleanReturnsAndParametersUseOneByteMarshaling()
+    {
+        var methods = GetDllImportMethods();
+        var boolParameters = methods
+            .SelectMany(m => m.GetParameters().Append(m.ReturnParameter))
+            .Where(p => p.ParameterType == typeof(bool))
+            .ToArray();
+
+        Assert.NotEmpty(boolParameters);
+        foreach (var parameter in boolParameters)
+        {
+            var marshal = parameter.GetCustomAttribute<MarshalAsAttribute>();
+            Assert.True(marshal?.Value is UnmanagedType.I1 or UnmanagedType.U1,
+                $"{parameter.Member.DeclaringType?.Name}.{parameter.Member.Name} " +
+                $"{parameter.Name ?? "return"} must marshal the Rust bool as one byte.");
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────

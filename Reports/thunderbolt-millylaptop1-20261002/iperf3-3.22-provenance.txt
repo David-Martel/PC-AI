@@ -1,0 +1,27 @@
+2026-10-02T20:33:46Z
+source=https://downloads.es.net/pub/iperf/iperf-3.22.tar.gz
+release_notes=https://software.es.net/iperf/news.html
+published_sha256=1c0d0fb02c52626111d6e132db80edfbf27bbaff8bd9245df2a371dcb0b35a92
+1c0d0fb02c52626111d6e132db80edfbf27bbaff8bd9245df2a371dcb0b35a92  /home/cog/.cache/pcai/iperf3-3.22.tar.gz
+3afa5115fb801951b076759abc5eef799bbabad8c630d8eacb6476c020c8e7ab  /opt/pcai/iperf3/3.22/bin/iperf3
+2c54c89b4d9016b9fe59ba83518348477fb290fdb6fc7ae12cb6773ecb9b1910  /usr/bin/iperf3
+configure=./configure --prefix=/opt/pcai/iperf3/3.22 --disable-shared
+build=make -j 8
+check=make check
+install=sudo -n make install
+dependency_installation=none; existing gcc make headers/libraries used
+gcc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+GNU Make 4.3
+/usr/local/bin/iperf3
+/opt/pcai/iperf3/3.22/bin/iperf3
+service_state:
+LoadState=not-found
+ActiveState=inactive
+UnitFileState=
+listeners_after_tests:
+physical_throughput_measured=false
+upstream_tests=5 passed, 0 failed, 0 skipped
+warning_matches=/home/cog/.cache/pcai/iperf3-3.22-configure.txt:0
+/home/cog/.cache/pcai/iperf3-3.22-build.txt:0
+/home/cog/.cache/pcai/iperf3-3.22-check.txt:0
+/home/cog/.cache/pcai/iperf3-3.22-install.txt:0

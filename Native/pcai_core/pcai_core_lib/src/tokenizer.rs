@@ -47,7 +47,15 @@ mod tests {
     #[test]
     fn test_estimate_tokens() {
         assert_eq!(estimate_tokens(""), 0);
-        assert!(estimate_tokens("Hello world") >= 2);
-        assert!(estimate_tokens("This is a test.") >= 5);
+        assert_eq!(estimate_tokens("Hello world"), 4);
+        assert_eq!(estimate_tokens("This is a test."), 9);
+        assert_eq!(estimate_tokens("你好世界"), 4);
+        assert_eq!(estimate_tokens("internationalization"), 6);
+        assert_eq!(estimate_tokens("abcdefghijklm"), 5);
+        assert_eq!(estimate_tokens("a,b;c!"), 7);
+        assert_eq!(estimate_tokens("\u{1F600}"), 2);
+        assert_eq!(estimate_tokens("\u{1F600}\u{1F680}"), 3);
+        assert_eq!(estimate_tokens("\u{10437}\u{10437}"), 2);
+        assert_eq!(estimate_tokens("\u{10437}\u{10437}\u{10437}"), 4);
     }
 }

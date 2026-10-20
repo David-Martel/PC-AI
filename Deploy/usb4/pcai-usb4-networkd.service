@@ -1,0 +1,29 @@
+[Unit]
+Description=Reconcile an exact owned enrolled USB4 networkd profile
+After=systemd-networkd.service NetworkManager.service
+ConditionPathExists=/etc/pcai-usb4/policy.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/pcai-usb4-agent reconcile-networkd /etc/pcai-usb4/policy.json
+TimeoutStartSec=45s
+User=root
+UMask=0077
+Environment=LC_ALL=C PCAI_USB4_WRITE_STATUS=1
+RuntimeDirectory=pcai-usb4-status
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ReadWritePaths=/sys/devices
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+CapabilityBoundingSet=
+StandardOutput=journal
+StandardError=journal

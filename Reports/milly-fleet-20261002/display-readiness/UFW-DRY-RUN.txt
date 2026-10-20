@@ -1,0 +1,7 @@
+UFW_DRY_RUN_VERIFIED_FILES_UNCHANGED
+e75eceb6c7226c2d2795cfee29e0fd73240d508d16cf52191907319c93f0c434  /etc/ufw/user.rules
+29ee1e448031a61848ab22608e23320899acf613db1840c1467db231c8c7d69a  /etc/ufw/user6.rules
+-A ufw-user-input -i enp43s0 -p tcp -m multiport --dports 47984,47989,48010 -d 192.168.50.2 -s 192.168.50.43 -j ACCEPT
+-A ufw-user-input -i enp43s0 -p udp -m multiport --dports 47998,47999,48000,48002,48010 -d 192.168.50.2 -s 192.168.50.43 -j ACCEPT
+CURRENT_MILLY_SUNSHINE_RULE_COUNT=0
+

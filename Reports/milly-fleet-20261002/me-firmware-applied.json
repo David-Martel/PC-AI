@@ -1,0 +1,16 @@
+{
+  "observedUtc": "2026-10-02T23:58:09.072805+00:00",
+  "host": "millylaptop1",
+  "deviceId": "773b12207d433c4004f0f0bbfe05f9291cf489a2",
+  "currentVersion": "1.42.2872",
+  "updateState": 2,
+  "updateError": null,
+  "historyState": 2,
+  "historyRelease": "1.42.2872",
+  "ACOnline": "1",
+  "nvidia": "NVIDIA RTX 5000 Ada Generation Laptop GPU, 580.178.04, 42",
+  "packageAudit": "",
+  "kernel": "6.8.0-138-generic",
+  "desktopAutoLoginEnabled": false,
+  "desktopLoginDeferredUntilDeploymentValidated": true
+}

@@ -252,11 +252,13 @@ fn estimate_prompt_tokens(text: &str) -> u32 {
 ///
 /// # Returns
 /// * 0 on success
-/// * -1 on error (check pcai_last_error)
+/// * A negative [`PcaiErrorCode`] on error (check `pcai_last_error`)
 ///
 /// # Safety
-/// * `backend_name` must be a valid null-terminated C string
-/// * Must be called before any other functions except pcai_last_error
+/// * A non-null `backend_name` must point to a readable, null-terminated C
+///   string that remains alive throughout the call.
+/// * A null `backend_name` is accepted and returns [`PcaiErrorCode::InvalidInput`]
+///   without dereferencing the pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
     clear_last_error();
@@ -331,13 +333,19 @@ pub unsafe extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
 /// * `model_path` - Path to the model file (GGUF or SafeTensors)
 /// * `gpu_layers` - Number of layers to offload to GPU (-1 = all, 0 = CPU only)
 ///
+/// The backend must be initialized for loading to succeed. With a valid
+/// `model_path` argument, an uninitialized backend returns
+/// [`PcaiErrorCode::NotInitialized`].
+///
 /// # Returns
 /// * 0 on success
-/// * -1 on error (check pcai_last_error)
+/// * A negative [`PcaiErrorCode`] on error (check `pcai_last_error`)
 ///
 /// # Safety
-/// * `model_path` must be a valid null-terminated C string
-/// * Must call pcai_init first
+/// * A non-null `model_path` must point to a readable, null-terminated C string
+///   that remains alive throughout the call.
+/// * A null `model_path` is accepted and returns [`PcaiErrorCode::InvalidInput`]
+///   without dereferencing the pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) -> i32 {
     clear_last_error();
@@ -438,14 +446,20 @@ pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: 
 /// * `max_tokens` - Maximum tokens to generate (0 = default 512)
 /// * `temperature` - Sampling temperature (0.0 = greedy, 1.0 = creative)
 ///
+/// A model must be loaded for generation to succeed. A missing backend or
+/// model returns null and sets `pcai_last_error`.
+///
 /// # Returns
 /// * Pointer to generated text (caller must free with pcai_free_string)
 /// * null on error (check pcai_last_error)
 ///
 /// # Safety
-/// * `prompt` must be a valid null-terminated C string
-/// * Caller must free the returned string with pcai_free_string
-/// * Must call pcai_load_model first
+/// * A non-null `prompt` must point to a readable, null-terminated C string that
+///   remains alive throughout the call.
+/// * A null `prompt` is accepted and returns null with
+///   [`PcaiErrorCode::InvalidInput`] without dereferencing the pointer.
+/// * The caller must free each non-null returned string exactly once using
+///   `pcai_free_string`, after all reads of that string are complete.
 #[no_mangle]
 pub unsafe extern "C" fn pcai_generate(prompt: *const c_char, max_tokens: u32, temperature: f32) -> *mut c_char {
     clear_last_error();

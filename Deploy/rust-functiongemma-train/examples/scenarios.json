@@ -2,6 +2,18 @@
   "scenarios": [
     {
       "mode": "diagnose",
+      "user_content": "Check this Windows machine's current GPU presence, driver candidates and sensor provider capabilities before choosing a workload.",
+      "tool_name": "pcai_get_machine_capabilities",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
+      "user_content": "List installed Windows media backends without opening capture devices or encoding a workload.",
+      "tool_name": "pcai_test_media_toolchain",
+      "tool_arguments": {}
+    },
+    {
+      "mode": "diagnose",
       "user_content": "Run a WSL network diagnosis and summarize any failures.",
       "tool_name": "pcai_run_wsl_network_tool",
       "tool_arguments": {"mode": "diagnose"}

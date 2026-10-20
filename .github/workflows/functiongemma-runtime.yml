@@ -1,0 +1,40 @@
+name: FunctionGemma runtime
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Deploy/rust-functiongemma-runtime/**'
+      - 'Deploy/Cargo.toml'
+      - 'Deploy/Cargo.lock'
+      - '.github/workflows/functiongemma-runtime.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Deploy/rust-functiongemma-runtime/**'
+      - 'Deploy/Cargo.toml'
+      - 'Deploy/Cargo.lock'
+      - '.github/workflows/functiongemma-runtime.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-tests:
+    # Protects: the default runtime JSON/HTTP contracts and public Rust examples.
+    # Detects: locked dependency, router response and doctest compilation regressions.
+    # Needs: Rust stable and loopback sockets; no model weights or GPU.
+    # Breadcrumb: Deploy/rust-functiongemma-runtime/{src,tests}/
+    # Scope and limitations: docs/functiongemma-runtime-validation.md
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    # Bounds a cold CPU-only build/test job; timeout is failure, never a pass.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test locked default runtime and documentation examples
+        run: cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime

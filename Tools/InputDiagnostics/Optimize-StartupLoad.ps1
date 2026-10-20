@@ -8,26 +8,29 @@
 .DESCRIPTION
     Modern Windows tracks startup-app ENABLED/DISABLED state in three StartupApproved
     registry keys in addition to the classic Run/RunOnce/StartupFolder sources.  The first
-    byte of each binary value controls state:
-        0x02  = enabled   (first byte)
-        0x03  = disabled  (first byte)
-    The remaining 7 bytes are a FILETIME timestamp that Windows writes when the user
-    toggles the state in Task Manager — always preserve the full 8-byte value.
+    byte of legacy binary values identifies state:
+        0x02  = enabled   (legacy first byte)
+        0x03  = disabled  (legacy first byte)
+    Apply accepts only 12-byte values with the legacy enabled state. Other state
+    bytes and lengths are reported and left unchanged. All remaining bytes are
+    preserved exactly; the script does not infer or rewrite their meaning.
 
     DEFAULT BEHAVIOUR (no switches): enumerates all three sources and categorises each
     entry as ESSENTIAL or DEFERRABLE, then prints a table.  NO registry writes occur.
 
     -Apply: disables the curated DEFERRABLE list (HKCU only, no admin required) by
-    writing the 'disabled' byte (0x03) into StartupApproved.  Before any write the
+    writing the 'disabled' byte (0x03) into supported StartupApproved values. Before any write the
     current bytes are saved to a timestamped JSON backup under .\backups\.  Idempotent:
     already-disabled entries are skipped.  Requires user confirmation (ConfirmImpact=High)
-    unless -Confirm:$false is added.
+    unless -Confirm:$false is added. -WhatIf creates no backup directories/files
+    and performs no registry writes. A backup is created only after the existing
+    per-entry confirmation approves the first supported change.
 
     -Revert: restores the exact original byte arrays from the most recent backup (or the
     backup specified by -BackupFile).  Also HKCU only; no admin required.
 
     HKLM StartupApproved\Run is read for the report but NEVER written, even with -Apply.
-    The script does not enumerate or touch HKLM.
+    HKLM values are never changed.
 
     IMPORTANT: disabling these TRAY APPLICATIONS does not stop the ASIO/USB-audio
     DRIVERS (RME, Focusrite, Topping, miniDSP, PreSonus, EPOS) from loading — those
@@ -107,15 +110,16 @@ $ErrorActionPreference = 'Stop'
 # ---------------------------------------------------------------------------
 # Registry key paths
 # ---------------------------------------------------------------------------
-$HkcuApprovedRun     = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
-$HkcuApprovedFolder  = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder'
-$HklmApprovedRun     = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
+$HkcuApprovedRun = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
+$HkcuApprovedFolder = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder'
+$HklmApprovedRun = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
 
 # ---------------------------------------------------------------------------
-# Byte-state constants (first byte of the 8-byte binary value)
+# Legacy byte-state constants; only complete 12-byte values are accepted for Apply.
 # ---------------------------------------------------------------------------
-$BYTE_ENABLED  = [byte]0x02
+$BYTE_ENABLED = [byte]0x02
 $BYTE_DISABLED = [byte]0x03
+$APPROVED_VALUE_LENGTH = 12
 
 # ---------------------------------------------------------------------------
 # Curated lists
@@ -174,7 +178,8 @@ function Get-StartupApprovedBytes {
 function Get-ApprovedState {
     param([byte[]]$Bytes)
     if ($null -eq $Bytes -or $Bytes.Count -eq 0) { return 'Unknown' }
-    if ($Bytes[0] -eq $BYTE_ENABLED)  { return 'Enabled'  }
+    if ($Bytes.Count -ne $APPROVED_VALUE_LENGTH) { return "Unknown(length=$($Bytes.Count))" }
+    if ($Bytes[0] -eq $BYTE_ENABLED) { return 'Enabled' }
     if ($Bytes[0] -eq $BYTE_DISABLED) { return 'Disabled' }
     return ("Unknown(0x{0:X2})" -f $Bytes[0])
 }
@@ -212,7 +217,7 @@ if ($Revert) {
         $keyPath = if ($section -eq 'HkcuRun') { $HkcuApprovedRun } else { $HkcuApprovedFolder }
         if (-not $backup.$section) { continue }
         foreach ($entry in $backup.$section.PSObject.Properties) {
-            $name  = $entry.Name
+            $name = $entry.Name
             $bytes = [byte[]]($entry.Value)
             if ($PSCmdlet.ShouldProcess("$keyPath\$name", "restore $($bytes.Count) bytes")) {
                 if (Test-Path $keyPath) {
@@ -237,11 +242,11 @@ $startupCommands = Get-CimInstance Win32_StartupCommand -ErrorAction SilentlyCon
     Sort-Object Location, Name
 
 # Read the binary state from StartupApproved keys
-$hkcuRunBytes    = Get-StartupApprovedBytes -KeyPath $HkcuApprovedRun
+$hkcuRunBytes = Get-StartupApprovedBytes -KeyPath $HkcuApprovedRun
 $hkcuFolderBytes = Get-StartupApprovedBytes -KeyPath $HkcuApprovedFolder
 
 # Read HKLM for reporting only (no admin check — silently empty if access denied)
-$hklmRunBytes    = Get-StartupApprovedBytes -KeyPath $HklmApprovedRun
+$hklmRunBytes = Get-StartupApprovedBytes -KeyPath $HklmApprovedRun
 
 # Build unified report combining both sources
 $entries = [System.Collections.Generic.List[pscustomobject]]::new()
@@ -253,52 +258,54 @@ foreach ($cmd in $startupCommands) {
     if ($hkcuRunBytes.ContainsKey($cmd.Name)) {
         $bytes = $hkcuRunBytes[$cmd.Name]
         $approvedKey = 'HKCU\Run'
-    } elseif ($hkcuFolderBytes.ContainsKey($cmd.Name)) {
+    }
+    elseif ($hkcuFolderBytes.ContainsKey($cmd.Name)) {
         $bytes = $hkcuFolderBytes[$cmd.Name]
         $approvedKey = 'HKCU\StartupFolder'
-    } elseif ($hklmRunBytes.ContainsKey($cmd.Name)) {
+    }
+    elseif ($hklmRunBytes.ContainsKey($cmd.Name)) {
         $bytes = $hklmRunBytes[$cmd.Name]
         $approvedKey = 'HKLM\Run (read-only)'
     }
 
-    $state    = Get-ApprovedState -Bytes $bytes
+    $state = Get-ApprovedState -Bytes $bytes
     $category = Get-EntryCategory -Name $cmd.Name -Command $cmd.Command
 
     $entries.Add([pscustomobject]@{
-        Category    = $category
-        State       = $state
-        Name        = $cmd.Name
-        Location    = $cmd.Location
-        ApprovedKey = $approvedKey
-        Command     = $cmd.Command
-    })
+            Category    = $category
+            State       = $state
+            Name        = $cmd.Name
+            Location    = $cmd.Location
+            ApprovedKey = $approvedKey
+            Command     = $cmd.Command
+        })
 }
 
 # Also capture any StartupApproved entries NOT present in Win32_StartupCommand
 # (orphaned entries that WMI misses but Task Manager still sees)
 $allApprovedNames = ($hkcuRunBytes.Keys + $hkcuFolderBytes.Keys) | Select-Object -Unique
 foreach ($name in $allApprovedNames) {
-    if ($entries.Name -contains $name) { continue }
+    if ($entries.Count -gt 0 -and $entries.Name -contains $name) { continue }
     $bytes = if ($hkcuRunBytes.ContainsKey($name)) { $hkcuRunBytes[$name] } else { $hkcuFolderBytes[$name] }
     $approvedKey = if ($hkcuRunBytes.ContainsKey($name)) { 'HKCU\Run' } else { 'HKCU\StartupFolder' }
-    $state    = Get-ApprovedState -Bytes $bytes
+    $state = Get-ApprovedState -Bytes $bytes
     $category = Get-EntryCategory -Name $name -Command ''
     $entries.Add([pscustomobject]@{
-        Category    = $category
-        State       = $state
-        Name        = $name
-        Location    = '(StartupApproved only)'
-        ApprovedKey = $approvedKey
-        Command     = ''
-    })
+            Category    = $category
+            State       = $state
+            Name        = $name
+            Location    = '(StartupApproved only)'
+            ApprovedKey = $approvedKey
+            Command     = ''
+        })
 }
 
 # ---------------------------------------------------------------------------
 # REPORT
 # ---------------------------------------------------------------------------
-$essential  = $entries | Where-Object { $_.Category -eq 'ESSENTIAL' }
-$deferrable = $entries | Where-Object { $_.Category -eq 'DEFERRABLE' }
-$review     = $entries | Where-Object { $_.Category -eq 'REVIEW' }
+$essential = @($entries | Where-Object { $_.Category -eq 'ESSENTIAL' })
+$deferrable = @($entries | Where-Object { $_.Category -eq 'DEFERRABLE' })
+$review = @($entries | Where-Object { $_.Category -eq 'REVIEW' })
 
 Write-Host ""
 Write-Host "===== STARTUP LOAD REPORT — DTM-P1GEN7 =====" -ForegroundColor Cyan
@@ -334,33 +341,30 @@ if (-not $Apply) {
     return
 }
 
-# --- Backup first ---
-New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
-$stamp      = (Get-Date).ToString('yyyyMMdd-HHmmss')
+# --- Prepare the backup in memory; write only after a change is approved. ---
+$stamp = (Get-Date).ToString('yyyyMMdd-HHmmss')
 $backupPath = if ($BackupFile) { $BackupFile } else { Join-Path $BackupDir "startup-approved-$stamp.json" }
 
 # Capture current bytes for all HKCU entries (before any change)
-$hkcuRunSnapshot    = @{}
+$hkcuRunSnapshot = @{}
 $hkcuFolderSnapshot = @{}
-foreach ($k in $hkcuRunBytes.Keys)    { $hkcuRunSnapshot[$k]    = [int[]]$hkcuRunBytes[$k] }
+foreach ($k in $hkcuRunBytes.Keys) { $hkcuRunSnapshot[$k] = [int[]]$hkcuRunBytes[$k] }
 foreach ($k in $hkcuFolderBytes.Keys) { $hkcuFolderSnapshot[$k] = [int[]]$hkcuFolderBytes[$k] }
 
 $backupObj = [ordered]@{
-    Timestamp   = (Get-Date).ToString('o')
-    Machine     = $env:COMPUTERNAME
-    HkcuRun     = $hkcuRunSnapshot
-    HkcuFolder  = $hkcuFolderSnapshot
+    Timestamp  = (Get-Date).ToString('o')
+    Machine    = $env:COMPUTERNAME
+    HkcuRun    = $hkcuRunSnapshot
+    HkcuFolder = $hkcuFolderSnapshot
 }
-$backupObj | ConvertTo-Json -Depth 5 | Set-Content -Path $backupPath -Encoding utf8
-Write-Host "Backup written: $backupPath" -ForegroundColor Cyan
-Write-Host ""
+$backupWritten = $false
 
 # --- Disable curated deferrable entries ---
 # Track GoogleDriveFS occurrences to keep the first instance enabled.
 $googleDriveFsCount = 0
 
-$totalDisabled  = 0
-$totalSkipped   = 0
+$totalDisabled = 0
+$totalSkipped = 0
 
 foreach ($entry in $entries) {
     if ($entry.Category -ne 'DEFERRABLE') { continue }
@@ -385,14 +389,16 @@ foreach ($entry in $entries) {
 
     # Determine which HKCU sub-key contains this entry
     $keyPath = $null
-    $bytes   = $null
+    $bytes = $null
     if ($hkcuRunBytes.ContainsKey($name)) {
         $keyPath = $HkcuApprovedRun
-        $bytes   = $hkcuRunBytes[$name]
-    } elseif ($hkcuFolderBytes.ContainsKey($name)) {
+        $bytes = $hkcuRunBytes[$name]
+    }
+    elseif ($hkcuFolderBytes.ContainsKey($name)) {
         $keyPath = $HkcuApprovedFolder
-        $bytes   = $hkcuFolderBytes[$name]
-    } else {
+        $bytes = $hkcuFolderBytes[$name]
+    }
+    else {
         # Entry appears in HKLM only — skip (never write HKLM)
         Write-Host ("  [SKIP-HKLM] {0,-40} (HKLM entry — not modified; admin required)" -f $name) -ForegroundColor DarkGray
         $totalSkipped++
@@ -400,22 +406,33 @@ foreach ($entry in $entries) {
     }
 
     # Idempotency: already disabled?
-    if ($bytes.Count -gt 0 -and $bytes[0] -eq $BYTE_DISABLED) {
+    if ((Get-ApprovedState -Bytes $bytes) -eq 'Disabled') {
         Write-Host ("  [ALREADY-OFF] {0,-40}" -f $name) -ForegroundColor DarkGray
         $totalSkipped++
         continue
     }
 
-    # Write the change: set first byte to 0x03, preserve the rest
-    $newBytes = [byte[]]($bytes)
-    if ($newBytes.Count -lt 8) {
-        # Pad to minimum 8 bytes (disabled FILETIME = all zeros is acceptable)
-        $newBytes = [byte[]](New-Object byte[] 8)
+    # Fail closed: unfamiliar states/layouts must not be converted or padded.
+    if ($null -eq $bytes -or $bytes.Count -ne $APPROVED_VALUE_LENGTH -or $bytes[0] -ne $BYTE_ENABLED) {
+        Write-Host ("  [SKIP-UNSUPPORTED] {0,-40} ({1}; no change)" -f $name, (Get-ApprovedState $bytes)) -ForegroundColor DarkGray
+        $totalSkipped++
+        continue
     }
+
+    # Clone the full array: a cast alone can alias the original registry snapshot.
+    $newBytes = [byte[]]$bytes.Clone()
     $newBytes[0] = $BYTE_DISABLED
 
     if ($PSCmdlet.ShouldProcess("$keyPath : $name", "disable (first byte 0x02 -> 0x03)")) {
-        Set-ItemProperty -Path $keyPath -Name $name -Value $newBytes -Type Binary
+        if (-not $backupWritten) {
+            # Reuse this entry's approval, without a separate backup confirmation.
+            # Any backup error terminates execution before the registry write.
+            New-Item -ItemType Directory -Path $BackupDir -Force -Confirm:$false | Out-Null
+            $backupObj | ConvertTo-Json -Depth 5 | Set-Content -Path $backupPath -Encoding utf8 -Confirm:$false
+            $backupWritten = $true
+            Write-Host "Backup written: $backupPath" -ForegroundColor Cyan
+        }
+        Set-ItemProperty -Path $keyPath -Name $name -Value $newBytes -Type Binary -Confirm:$false
         Write-Host ("  [DISABLED] {0,-40} in {1}" -f $name, $keyPath) -ForegroundColor Yellow
         $totalDisabled++
     }

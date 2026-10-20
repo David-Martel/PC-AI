@@ -1,0 +1,296 @@
+{
+  "schema": "milly.post26-home-rsync-independent-review.v1",
+  "scope": "Read-only original-user and Cog home rsync qualification. Exact frozen checksum/dry-run logs plus narrow live manifests against ASUS backup. No remote/repository/config edits, synchronization, deletion, ROS or display/input operations. Only own private Windows audit folder written.",
+  "backupMustRemain": true,
+  "backupRetentionReason": "Retain preupgrade ASUS backup through final driver/firmware reboot checks, user-data/browser/profile validation and qualification of Cog desktop-state migration. This review authorizes no cleanup.",
+  "backupRoot": "asuspro13:/srv/vigil-backups/millylaptop1/20261002/root/home",
+  "authoritativeScript": "/home/cog/.cache/pcai/fleet-backup/maintenance/post-os-home-verify.sh",
+  "authoritativeFlags": [
+    "-aHAXx",
+    "--numeric-ids",
+    "--dry-run",
+    "--checksum",
+    "--delete",
+    "--itemize-changes",
+    "--out-format=PC_AI_DIFF:%i|%n",
+    "--rsync-path=sudo -n rsync"
+  ],
+  "exclusions": "Only Cog operational /.cache/pcai/fleet-backup/***; original users have no exclusions. -x excludes traversal onto separate filesystem mounts.",
+  "dryRunDeleteMeaning": "*deleting entries describe what checksum dry-run would delete from backup if actually synchronized. No deletion performed by authoritative dry-run or reviewer.",
+  "logHashes": {
+    "results.tsv": "1e68cdb02aa29433d17a757f0a3436ef3b2f568c5cbf927dfb3fde61dcd57627",
+    "yayuanli.txt": "5d95388cc34baffdfdb31c077ce9aee0d11182aae8e9d40b99672a61de77164e",
+    "millyptg.txt": "b907dd822f32b8856dfc7d264ef5af12de7fe37ddfef2cc2fc3073ad5a1f5d56",
+    "cog.txt": "b0ce52bcdad3b95fafaab2b5adf4c807581de4b501fd1254125a29a02043b74b"
+  },
+  "originalUsers": {
+    "yayuanli": {
+      "exit": 0,
+      "entries": 57,
+      "old7355DeletionPlanEntries": 28,
+      "new8995Entries": 28,
+      "firefoxParentDirectoryMtime": 1,
+      "unexpectedPaths": 0,
+      "intervalUtc": [
+        "2026-10-03T00:45:40Z",
+        "2026-10-03T01:03:01Z"
+      ],
+      "relativeFirefoxEntriesCompared": 27
+    },
+    "millyptg": {
+      "exit": 0,
+      "entries": 59,
+      "old7355DeletionPlanEntries": 29,
+      "new8995Entries": 29,
+      "firefoxParentDirectoryMtime": 1,
+      "unexpectedPaths": 0,
+      "intervalUtc": [
+        "2026-10-03T01:03:01Z",
+        "2026-10-03T01:06:17Z"
+      ],
+      "relativeFirefoxEntriesCompared": 28
+    }
+  },
+  "firefoxQualification": {
+    "soleChangedOriginalUserPathSet": "Exactly snap/firefox/7355/** removal plan, snap/firefox/8995/** addition plan, and snap/firefox/ directorymtime. No original-user documents/source/key/contact/profile-common file differences in checksum scan.",
+    "millyptg": "All28 relative old7355/new8995 structure/file/link records identical.",
+    "yayuanliAndCog": "Same relative structure; four support differences: generated fontconfig reference, .last_revision marker, .themes and .local/share/themes symlinks. All remaining relative entries equal.",
+    "normalizedFontContent": "Replacing only /snap/firefox/<numericrevision> yields SHA256 c807efc084570292d76cbf412f4721d94670576dd55055a9f3d0f9bb543959b5 for all3 current/backup accounts.",
+    "liveSnapState": {
+      "7355": false,
+      "7477": true,
+      "8995": true,
+      "current": "8995"
+    },
+    "themeReferences": "yayuanli/Cog generated support now references installed7477 while current active snap is8995; both theme symlinks resolve. Millyptg7298 reference is unchanged from backup, but both theme symlinks currently unresolved. This is inherited browser support state needing user/browser validation, not newly changed personal content.",
+    "revisionMarkerLimit": ".last_revision contents intentionally not printed; changed marker is not claimed byte-identical. Browser/profile validation remains required.",
+    "oldAndNewComparisons": {
+      "yayuanli": {
+        "relativeEntryCount": 27,
+        "mismatchCount": 4,
+        "mismatchPaths": [
+          ".config/fontconfig/fonts.conf",
+          ".last_revision",
+          ".local/share/themes",
+          ".themes"
+        ]
+      },
+      "millyptg": {
+        "relativeEntryCount": 28,
+        "mismatchCount": 0,
+        "mismatchPaths": []
+      },
+      "cog": {
+        "relativeEntryCount": 28,
+        "mismatchCount": 4,
+        "mismatchPaths": [
+          ".config/fontconfig/fonts.conf",
+          ".last_revision",
+          ".local/share/themes",
+          ".themes"
+        ]
+      }
+    }
+  },
+  "cog": {
+    "exit": 0,
+    "entries": 863,
+    "intervalUtc": [
+      "2026-10-03T01:06:17Z",
+      "2026-10-03T01:07:42Z"
+    ],
+    "classificationCounts": {
+      "private-shell-history": 1,
+      "parent-directory-mtime": 6,
+      "enumerated-runtime-cache": 395,
+      "transport-maintenance-evidence": 4,
+      "enumerated-desktop-settings": 24,
+      "enumerated-desktop-local-state": 33,
+      "owner-authorized-ssh-transport": 3,
+      "verified-source-directory-mtime": 1,
+      "obsolete-firefox-revision": 29,
+      "verified-autofs-mountpoint-mtime": 1,
+      "firefox-parent-metadata": 1,
+      "replacement-firefox-revision": 29,
+      "enumerated-snap-app-state": 336
+    },
+    "classificationStreamSha256": "47149c3f47c461f7722e542857aef2296fc6b4f04fde3a62b2ebc93036caaaa0",
+    "unknownPaths": [],
+    "initialUnknownPathsResolved": [
+      {
+        "path": "dev/repos/vigil-spark/.git/",
+        "itemCode": ".d..t......",
+        "resolution": "Directorymtime only; checksum scan shows no source/git content changes; current HEAD/status verified."
+      },
+      {
+        "path": "mnt/vigil-share/",
+        "itemCode": ".d..t......",
+        "resolution": "Directorymtime only; findmnt confirms autofs mountpoint, -x scope does not validate remote NFS contents."
+      }
+    ],
+    "cacheAndSettingsLimit": "Classifications bind exact enumerated runtime-cache, desktop-settings, snap-app and local-state prefixes. Expected location is not proof of every internal semantic value; no private state contents printed.",
+    "privateShellHistory": {
+      "baselineBytes": 418,
+      "currentBytes": 1093,
+      "appendOnlyPreserved": true,
+      "baselineSha256": "1218145bd48c86ee1ea28b95dd8fa4e988914242b42e47af9b9974390c12cb18",
+      "currentSha256": "20e2020ecdc7cf8ad535100644cfabac61a7dcd85996b511689d217ff5ecd26a"
+    },
+    "ssh": {
+      "scope": "All regular/symlink .ssh content except reviewed config,vigil-transport.conf and cm directory",
+      "currentCount": 5,
+      "backupCount": 5,
+      "currentAggregateSha256": "c97cba500ea32d3b29abcc3544d98f4febdde1b975166909e69eccb6a1811677",
+      "backupAggregateSha256": "c97cba500ea32d3b29abcc3544d98f4febdde1b975166909e69eccb6a1811677",
+      "equal": true,
+      "transport": "Main early Include/new transport file/cm directory match owner-authorized maintenance path changes; no key-material change.",
+      "currentConfig": {
+        "configSha256": "bac85f2e0c50b73b2b00c9313432db27b1f6a81c0ebe444cc2ac95bac0a4bd93",
+        "nonIncludeConfigSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "lineCount": 2,
+        "transportConfigSha256": "17a91d6916a8c22fc62e515e1945f8308c52b899903469be8fcac7bfc445138d",
+        "cmExists": true
+      },
+      "oldConfig": {
+        "configSha256": "d9c0e337050aa6eb085b84ac0bac41f966f11935c51e6bab4e59ca343dc16c4c",
+        "nonIncludeConfigSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "lineCount": 1
+      }
+    },
+    "gpg": {
+      "scope": "Every regular/symlink file in .gnupg; runtime sockets ignored by file kind",
+      "currentCount": 2,
+      "backupCount": 2,
+      "currentAggregateSha256": "ff7ec2758ef646f9b5851fee655097266e175941af52b39cfec764f6453f627f",
+      "backupAggregateSha256": "ff7ec2758ef646f9b5851fee655097266e175941af52b39cfec764f6453f627f",
+      "equal": true,
+      "limit": "Does not assert additional secret GPG keys exist or exercise signing."
+    },
+    "sources": [
+      {
+        "name": "vigil-spark",
+        "head": "0201a3c9ac9fdc081dd1c481e2fd11748c25fd0b",
+        "headExit": 0,
+        "statusEmpty": true,
+        "statusExit": 0
+      },
+      {
+        "name": "vigil-utils",
+        "head": "985181208e5d6255ce8e0416cb8bc08177c884a8",
+        "headExit": 0,
+        "statusEmpty": true,
+        "statusExit": 0
+      },
+      {
+        "name": "clarius",
+        "head": "25b335a3ba8362dc8df766a1f408d35b014b37d9",
+        "headExit": 0,
+        "statusEmpty": true,
+        "statusExit": 0
+      },
+      {
+        "name": "intublade",
+        "head": "cbe9b9a0fdd89085460853c9d474a5583f249630",
+        "headExit": 0,
+        "statusEmpty": true,
+        "statusExit": 0
+      },
+      {
+        "name": "git-guard",
+        "head": "be8c50b7a634a832d4bd51ea6dcc4b30a8f14a53",
+        "headExit": 0,
+        "statusEmpty": true,
+        "statusExit": 0
+      },
+      {
+        "name": "agent-hub",
+        "head": "423ea72fa88510fbbe1bf2530b4b84dc06e635a8",
+        "headExit": 0,
+        "statusEmpty": true,
+        "statusExit": 0
+      }
+    ],
+    "privateLocalState": {
+      "relativePath": ".local/share/evolution/addressbook/system/contacts.db",
+      "classification": "Private address-book SQLite schema/state migration; file is not byte-identical.",
+      "currentFileSha256": "9eb231a24c64914cf4750aeb8e6ab61db21519a80344905b8d3e0581ecf6a408",
+      "backupFileSha256": "955b43617d4bae60e60fdd43495f3d72534fd0fada5d101c3e8818c9d7130485",
+      "currentBytes": 94208,
+      "backupBytes": 86016,
+      "schemaChanged": true,
+      "currentTables": [
+        {
+          "tableNameSha256": "a6216ea03e578f212dd604ec5d675c5274a86891bac4e87f80bea10ef511f533",
+          "rowCount": 0,
+          "logicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "tableNameSha256": "a2b005a3dc12a8dd095b98e06c179346168dd5a06eb70219c438e1f579c58e79",
+          "rowCount": 0,
+          "logicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "tableNameSha256": "f750ddb4ffa0adb754be8739cc5f204c8d0daed4fc5934f460e153a3ec272900",
+          "rowCount": 0,
+          "logicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "tableNameSha256": "f8683b3546037ba2817ec6d9337b8a1d7bdca65654d3a9d1794d67932a6dc5e6",
+          "rowCount": 0,
+          "logicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "tableNameSha256": "63b8533061410c19b6a9b7c7bf81a935f1845164e860440ca1197002e3c81cb9",
+          "rowCount": 1,
+          "logicalSha256": "a721015a2f187d9411f6ff9ae7d84f922342ad0022cd5a18aefdbd6fc4e2788e"
+        },
+        {
+          "tableNameSha256": "48a53f0774c8ceff574a1fdcb0d470dbd382b3db273cff4344b6d39d5379c923",
+          "rowCount": 2,
+          "logicalSha256": "12c9df344578e725e5ddaba975a15dcdc7a23f4a8488af2748ff86737e4e4ed1"
+        }
+      ],
+      "backupTables": [
+        {
+          "tableNameSha256": "a2b005a3dc12a8dd095b98e06c179346168dd5a06eb70219c438e1f579c58e79",
+          "rowCount": 0,
+          "logicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "tableNameSha256": "f750ddb4ffa0adb754be8739cc5f204c8d0daed4fc5934f460e153a3ec272900",
+          "rowCount": 0,
+          "logicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "tableNameSha256": "f8683b3546037ba2817ec6d9337b8a1d7bdca65654d3a9d1794d67932a6dc5e6",
+          "rowCount": 0,
+          "logicalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "tableNameSha256": "63b8533061410c19b6a9b7c7bf81a935f1845164e860440ca1197002e3c81cb9",
+          "rowCount": 1,
+          "logicalSha256": "0ef8c4b70654ab67f50d549e6db419f2f333f5bf0d7f766e3cc353784aeb3d9a"
+        },
+        {
+          "tableNameSha256": "48a53f0774c8ceff574a1fdcb0d470dbd382b3db273cff4344b6d39d5379c923",
+          "rowCount": 2,
+          "logicalSha256": "ffa7f76d26cd2712bd0f499876ac1a0531866d1e8fa3c8e15a6aab877d328557"
+        }
+      ],
+      "sidecarsCurrent": [],
+      "sidecarsBackup": [],
+      "finding": "One additional empty table; shared tables retain identical row counts (three empty, one1-row, one2-row). The two nonempty internal tables have changed logical hashes; exact semantic migration fields remain unqualified. No private record values emitted.",
+      "qualification": "Schema/row-count evidence supports migration and detects no dropped row counts, but does not prove every private field preserved. Retain backup and user validation.",
+      "readMethod": "SQLite URI mode=ro&immutable=1; no journal/WAL/SHM sidecars present. Only aggregate hashes/counts returned."
+    },
+    "otherDeletionPlan": "One obsolete gvfs root-session log besides29 old Firefox revision entries. Backup contents retained.",
+    "privateKeyring": "Directorymtime only in rsync log; no keyring-file content change observed."
+  },
+  "temporalLimit": "Full home checksum logs predate final595 firmware reboot. Subsequent checks are narrow/current. Active future session changes require fresh validation; no broad post-reboot home checksum rerun claimed.",
+  "localPrivacy": "Own directory ACL protected; only david, SYSTEM and Administrators FullControl. No shared Reports edits.",
+  "artifacts": [
+    "classification-readonly.sh",
+    "cog-classification.json"
+  ],
+  "reviewVerdict": "No unknown changed original-user paths; Cog protected SSH/GPG and6 clean source heads preserved. All863 Cog paths accounted for, with private schema migration semantic qualification and inherited Firefox support issues explicitly retained. Backup must remain."
+}

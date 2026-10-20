@@ -1,0 +1,2 @@
+# Blank context lines in this preserved unified diff require a leading space.
+Microsoft.PowerShell_profile.patch -whitespace

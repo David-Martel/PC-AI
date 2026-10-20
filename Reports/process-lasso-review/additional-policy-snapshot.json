@@ -1,0 +1,20 @@
+{
+  "CapturedUtc": "2026-10-05T18:09:00.6832014Z",
+  "RegistryPerfOptions": [],
+  "Battery": [
+    {
+      "BatteryStatus": 2,
+      "EstimatedChargeRemaining": 95,
+      "EstimatedRunTime": 71582788
+    }
+  ],
+  "RouteInterfaces": [
+    {
+      "InterfaceAlias": "Ethernet 8",
+      "RouteMetric": 10,
+      "InterfaceMetric": 10,
+      "State": 0
+    }
+  ],
+  "Note": "No next-hop addresses retained. Default route does not establish application call routing."
+}

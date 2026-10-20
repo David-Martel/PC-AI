@@ -103,3 +103,14 @@ exercise proof freshness, socket identity, policy replay, foreign custody,
 same-GUID reindex, different-GUID conflict, persistent-store refusal, no-write
 planning and actual controller creation/rollback using host API fixtures. They
 do not certify physical unplug, resume, reboot or a different hardware link.
+
+The tracked [startup coordinator](../../Tools/SystemScripts/Networking/Invoke-ThunderboltStartup.ps1)
+is the deployment recipe for the existing scheduled task: a thin machine launcher
+supplies explicit policy, journal, executable, registry and evidence paths. It
+runs the hidden controller and observer with separate 45-second deadlines,
+records both outcomes in `enrolled-last-attempt.json`, and attempts observation
+even when controller launch fails. A publication failure also returns nonzero.
+The [orchestration controls](../../Tests/Portable/Test-ThunderboltStartup.ps1)
+cover component, launch and publication exceptions. Use IgnoreNew, a two-minute
+task execution limit and a one-minute fallback with a 180-second local lease;
+retain the boot/network/resume triggers and original task settings/preimage.

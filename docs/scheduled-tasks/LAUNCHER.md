@@ -264,7 +264,18 @@ Tasks still behind `conhost --headless` are counted in the summary (`ConhostWrap
 * Child output is decoded as UTF-8; only the stderr tail is in the status file, all output is in the log.
 * A launcher killed in the first 1.5 s of a run leaves the previous run's status in place. The health check
   catches this through the Task Scheduler last-run comparison.
-* The bus post can take up to 5 s, during which the task still shows as running.
+* The bus post can take up to 5 s, during which the task still shows as running. The 5 s cap is tight on a loaded
+  host: a cold `agent-bus.exe` took 3.2-3.5 s here at 100% CPU, and the `VigilLocalRunners-OnDemand` log shows one
+  send killed at the cap (`bus notify Failed`, 5.4 s after the end line). If the hub accepted the message just
+  before the CLI was killed, the 10-minute failure backoff allows one duplicate. The cap is a tuning knob
+  (`BusNotifier.Timeout`), not a correctness issue: the exit code and status file are already final.
+* A task someone stops on purpose (`Stop-ScheduledTask`, the runners that `VigilLocalRunners-OnDemand` stops) kills
+  the launcher mid-run, so its status file stays `running` and the health check reports it as Failed ("launcher was
+  killed mid-run"). That is correct for a hang and noisy for a deliberate stop; list such a task in `-Expected` if
+  it matters.
+* Some exit codes are soft by their script's own contract. `Invoke-LocalRunnerOnDemand.ps1` returns 4 for "GitHub
+  query failed, nothing started", which happens whenever GitHub times out. The health check and the bus now report
+  it (the bus at most hourly). Either the script should return 0 for that case or the owner can accept the noise.
 * The event-log source needs one elevated `--install-eventlog-source`; the `Highest` tasks also register it on first
   use.
 * The watchdog task `PC-AI Scheduled Task Health` runs the checkout copy of the health script; until this change is

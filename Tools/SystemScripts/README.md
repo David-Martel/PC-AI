@@ -66,6 +66,12 @@ encrypted exports until their recovery procedure has been validated separately.
 
 ## Safety Rules
 
+The [Windows USB4 startup policy](../../docs/usb4/windows-boot.md) is an observer.
+It preserves native V&V failures and refuses discovery-driven route mutation.
+The [entrypoint](Networking/Configure-ThunderboltSwitchRoutes.ps1) distinguishes
+undocked/degraded, collection failure and pending acceptance; dry-run writes no
+receipts. It does not grant authenticated data-edge readiness.
+
 - Treat migrated scripts as production workstation automation, not scratch
   snippets.
 - Prefer `-DryRun` and evidence capture before enabling or registering any

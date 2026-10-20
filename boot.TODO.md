@@ -1530,3 +1530,12 @@ Historical results above retain their original scope and date.
 - [x] Add deployment Cargo inputs to native CI triggers; verify 81 Linux Rust tests, strict Clippy, core build, and real native Unicode parity in both processes.
 - [ ] Verify the follow-up revision on hosted Windows and Linux before merge/release deployment.
 - Evidence and limits: [native/deployment coherence review](Reports/native-deploy-lock-coherence.md).
+## USB4 startup failure handling
+
+The [reviewable Windows startup observer](docs/usb4/windows-boot.md) replaces
+discovery-driven automatic enrollment and preserves native V&V failures.
+[Portable controls](Tests/Portable/Test-ThunderboltBootReadiness.ps1) cover
+absence, down links, failure and intake states. Physical reconnect, sleep/resume,
+authenticated edge qualification and route reconciliation remain hardware gates;
+an observer returning Configured does not claim NetworkReady.
+

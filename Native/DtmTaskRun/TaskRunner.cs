@@ -124,12 +124,15 @@ internal sealed class TaskRunner
             LogPath = logPath,
         };
 
-        log.WriteLine($"dtm-task-run: start task={o.Name} pid={status.Pid} timeout={(o.TimeoutSeconds > 0 ? o.TimeoutSeconds + "s" : "none")} cmd={cmdline}");
-        _ = StatusFile.TryWrite(statusPath, status);
+        using var rec = new RunRecorder(
+            log,
+            $"dtm-task-run: start task={o.Name} pid={status.Pid} timeout={(o.TimeoutSeconds > 0 ? o.TimeoutSeconds + "s" : "none")} cmd={cmdline}",
+            () => _ = StatusFile.TryWrite(statusPath, status));
 
         var watch = Stopwatch.StartNew();
         var tail = new TailBuffer(TailLines);
         var timedOut = false;
+        long spawnMs = 0;
         int code;
 
         Process? child = null;
@@ -145,9 +148,11 @@ internal sealed class TaskRunner
             job = JobObject.TryCreate();
             _ = job?.TryAssign(child);
             child.StandardInput.Close();
+            spawnMs = watch.ElapsedMilliseconds;
 
-            var outPump = StartPump(child.StandardOutput, "out", log, null);
-            var errPump = StartPump(child.StandardError, "err", log, tail);
+            rec.Arm();
+            var outPump = StartPump(child.StandardOutput, "out", rec, null);
+            var errPump = StartPump(child.StandardError, "err", rec, tail);
 
             if (o.TimeoutSeconds > 0)
             {
@@ -177,7 +182,7 @@ internal sealed class TaskRunner
 
             if (outPump.IsAlive || errPump.IsAlive)
             {
-                log.WriteLine("dtm-task-run: output streams still open after exit (detached descendant holds the pipe); continuing");
+                rec.Write("dtm-task-run: output streams still open after exit (detached descendant holds the pipe); continuing");
             }
 
             code = timedOut ? TimeoutExitCode : child.ExitCode;
@@ -192,8 +197,8 @@ internal sealed class TaskRunner
             // Could not even start the child (missing exe, bad image, access denied).
             code = ex.NativeErrorCode != 0 ? ex.NativeErrorCode : 1;
             tail.Add($"launcher could not start '{o.Exe}': {ex.Message}");
-            log.WriteLine($"dtm-task-run: spawn failed code={code} reason={Redactor.RedactText(ex.Message)}");
-            Finish(o, stem, status, statusPath, logPath, log, start, watch, code, false, tail, EventLogSink.IdSpawnFailed);
+            rec.Write($"dtm-task-run: spawn failed code={code} reason={Redactor.RedactText(ex.Message)}");
+            Finish(o, stem, status, statusPath, logPath, log, rec, watch, spawnMs, code, false, tail, EventLogSink.IdSpawnFailed);
             return code;
         }
         finally
@@ -202,7 +207,7 @@ internal sealed class TaskRunner
             child?.Dispose();
         }
 
-        Finish(o, stem, status, statusPath, logPath, log, start, watch, code, timedOut, tail, timedOut ? EventLogSink.IdTimedOut : EventLogSink.IdFailed);
+        Finish(o, stem, status, statusPath, logPath, log, rec, watch, spawnMs, code, timedOut, tail, timedOut ? EventLogSink.IdTimedOut : EventLogSink.IdFailed);
         return code;
     }
 
@@ -240,13 +245,15 @@ internal sealed class TaskRunner
         string statusPath,
         string logPath,
         RollingLog log,
-        DateTimeOffset start,
+        RunRecorder rec,
         Stopwatch watch,
+        long spawnMs,
         int code,
         bool timedOut,
         TailBuffer tail,
         int eventId)
     {
+        rec.Disarm();
         var end = _ctx.UtcNow();
         status.State = "completed";
         status.EndUtc = Iso(end);
@@ -257,7 +264,7 @@ internal sealed class TaskRunner
         status.StderrTail = tail.ToArray();
         _ = StatusFile.TryWrite(statusPath, status);
 
-        log.WriteLine($"dtm-task-run: end task={o.Name} exit={code} ({status.ExitCodeHex}) durationMs={status.DurationMs} timedOut={(timedOut ? "true" : "false")}");
+        rec.WriteFinal($"dtm-task-run: end task={o.Name} exit={code} ({status.ExitCodeHex}) durationMs={status.DurationMs} spawnMs={spawnMs} timedOut={(timedOut ? "true" : "false")}");
 
         if (code == 0)
         {
@@ -283,7 +290,7 @@ internal sealed class TaskRunner
         }
     }
 
-    private static Thread StartPump(StreamReader reader, string tag, RollingLog log, TailBuffer? tail)
+    private static Thread StartPump(StreamReader reader, string tag, RunRecorder log, TailBuffer? tail)
     {
         var t = new Thread(() =>
         {
@@ -293,7 +300,7 @@ internal sealed class TaskRunner
                 while ((line = reader.ReadLine()) is not null)
                 {
                     var safe = Redactor.RedactText(line);
-                    log.WriteLine($"[{tag}] {safe}");
+                    log.Write($"[{tag}] {safe}");
                     tail?.Add(safe);
                 }
             }

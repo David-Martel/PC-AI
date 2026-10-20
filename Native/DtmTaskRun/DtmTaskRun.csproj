@@ -26,6 +26,9 @@
     <AutoreleasePoolSupport>false</AutoreleasePoolSupport>
     <PublishReadyToRun>true</PublishReadyToRun>
 
+    <!-- Always run the trim/AOT analyzers so the NativeAOT publish (the shipped build) cannot regress.
+         PublishAot itself is passed on the publish command line, not set here, so `dotnet test` stays JIT. -->
+    <IsAotCompatible>true</IsAotCompatible>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

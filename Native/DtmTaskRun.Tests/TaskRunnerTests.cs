@@ -192,6 +192,43 @@ public sealed class TaskRunnerTests : IDisposable
     }
 
     [Fact]
+    public void Log_starts_with_the_start_line_even_when_output_arrives_first()
+    {
+        // Why: start records are deferred for speed; a child that prints immediately must not reorder them.
+        Runner().Run(Cmd("order", "echo first-line & exit 0"));
+
+        var lines = File.ReadAllLines(Path.Combine(_dir.Path, "logs", "order.log"));
+        Assert.Contains("dtm-task-run: start task=order", lines[0], StringComparison.Ordinal);
+        Assert.Contains("[out] first-line", lines[1], StringComparison.Ordinal);
+        Assert.Contains("dtm-task-run: end task=order exit=0", lines[^1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_still_running_child_is_visible_as_running_in_the_status_file()
+    {
+        // Why: a launcher killed mid-run (Task Scheduler stop, logoff) must leave a "running" marker the health check can spot.
+        var run = Task.Run(() => Runner().Run(Cmd("longrun", "ping -n 5 127.0.0.1 >nul")));
+        var statusPath = Path.Combine(_dir.Path, "status", "longrun.json");
+        JsonElement? seen = null;
+        var deadline = DateTime.UtcNow.AddSeconds(4);
+        while (DateTime.UtcNow < deadline && seen is null)
+        {
+            await Task.Delay(100);
+            if (File.Exists(statusPath))
+            {
+                seen = JsonDocument.Parse(File.ReadAllText(statusPath)).RootElement.Clone();
+            }
+        }
+
+        Assert.NotNull(seen);
+        Assert.Equal("running", seen!.Value.GetProperty("state").GetString());
+        Assert.Equal(Environment.ProcessId, seen.Value.GetProperty("pid").GetInt32());
+        Assert.Equal(JsonValueKind.Null, seen.Value.GetProperty("exitCode").ValueKind);
+        await run;
+        Assert.Equal("completed", Status("longrun").GetProperty("state").GetString());
+    }
+
+    [Fact]
     public void Start_info_hides_the_window_and_redirects_everything()
     {
         // Why: this is the "no visible window" guarantee; CreateNoWindow + UseShellExecute=false is what suppresses the console.

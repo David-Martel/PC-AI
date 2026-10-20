@@ -161,7 +161,9 @@ fn read_text_file(path: &str) -> Result<String> {
     let bytes = fs::read(path)?;
     if bytes.starts_with(&[0xFF, 0xFE]) {
         let utf16: Vec<u16> = bytes[2..]
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
             .collect();
         return Ok(String::from_utf16_lossy(&utf16));
@@ -169,7 +171,9 @@ fn read_text_file(path: &str) -> Result<String> {
 
     if bytes.starts_with(&[0xFE, 0xFF]) {
         let utf16: Vec<u16> = bytes[2..]
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]))
             .collect();
         return Ok(String::from_utf16_lossy(&utf16));

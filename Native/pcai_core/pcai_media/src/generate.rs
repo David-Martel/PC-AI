@@ -97,8 +97,8 @@ fn required_generation_metadata(config: &JanusConfig, quantized_llama: bool) -> 
         "hidden size and attention head counts must be positive for metadata preflight"
     );
     anyhow::ensure!(
-        config.hidden_size % config.num_attention_heads == 0
-            && config.num_attention_heads % config.num_key_value_heads == 0,
+        config.hidden_size.is_multiple_of(config.num_attention_heads)
+            && config.num_attention_heads.is_multiple_of(config.num_key_value_heads),
         "attention dimensions are incompatible for metadata preflight"
     );
     let shapes = Arc::new(Mutex::new(BTreeMap::new()));

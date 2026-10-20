@@ -19,7 +19,7 @@ edition = "2021"
 # floor Cargo.lock v4 (>=1.78) and `[workspace.lints]` (>=1.74) already imply,
 # and it matches the fleet-wide clippy MSRV. The maintenance workflow reads
 # this key rather than hard-coding a version, so the gate cannot drift again.
-rust-version = "1.85"
+rust-version = "1.95"
 license = "MIT"
 repository = "https://github.com/David-Martel/PC-AI"
 

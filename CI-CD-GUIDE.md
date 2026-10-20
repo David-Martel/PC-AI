@@ -259,6 +259,10 @@ directly instead of `Tests/Invoke-PortableTests.ps1`, whose Rust sections set `R
 last step prints `sccache --show-stats`. Details and measurements:
 `vigil-utils/docs/rust-build-acceleration.md`, "Runner job environment".
 
+**Switch.** Every job is skipped until the repository variable `PCAI_LINUX_RUNNER_ENABLED` is `true`. Set it after
+the runner is registered: `gh variable set PCAI_LINUX_RUNNER_ENABLED --body true -R David-Martel/PC-AI`. Without the
+switch each pull request would queue jobs for a label that no runner carries.
+
 **Trust boundary.** PC-AI is public and the runner is persistent. Fork pull requests are skipped by the job `if:`, but a
 fork can edit the workflow, so the repository setting "Approval for running fork pull request workflows" must be
 `all_external_contributors`. Check it before registering the runner:

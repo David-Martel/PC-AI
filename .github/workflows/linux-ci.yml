@@ -11,6 +11,10 @@ name: CI (Linux self-hosted)
 # runner image has no dotnet SDK), CUDA builds and the NVIDIA stack. The `ci-gate` job reports only what ran; it is not
 # a statement about those surfaces.
 #
+# Switch: every job is skipped until the repository variable PCAI_LINUX_RUNNER_ENABLED is `true`. Set it only after the
+# runner is registered (`gh variable set PCAI_LINUX_RUNNER_ENABLED --body true -R David-Martel/PC-AI`); without it, each
+# pull request would queue jobs for a label that no runner carries.
+#
 # Trust boundary: PC-AI is a PUBLIC repository and this runner is persistent. Fork pull requests never reach it (the
 # `if:` on every job), and the repository must keep "Approval for running fork pull request workflows" at
 # `all_external_contributors` (it was `first_time_contributors` on 2026-10-20) before the runner is registered, because
@@ -46,7 +50,7 @@ jobs:
   # that need the .NET SDK, plus the Python admission tests.
   # ---------------------------------------------------------------------------
   portable-contracts:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
     timeout-minutes: 20
     steps:
@@ -82,7 +86,7 @@ jobs:
   # PSScriptAnalyzer at Error severity over Modules/.
   # ---------------------------------------------------------------------------
   pester-lint:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
     timeout-minutes: 25
     steps:
@@ -144,7 +148,7 @@ jobs:
   # Rust sections, which would switch sccache off on this runner.
   # ---------------------------------------------------------------------------
   rust-linux:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
     timeout-minutes: 45
     defaults:
@@ -184,7 +188,7 @@ jobs:
   # skipped, instead of reporting "skipped", which GitHub treats as passing.
   # ---------------------------------------------------------------------------
   ci-gate:
-    if: always()
+    if: always() && vars.PCAI_LINUX_RUNNER_ENABLED == 'true'
     needs: [portable-contracts, pester-lint, rust-linux]
     runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
     timeout-minutes: 5

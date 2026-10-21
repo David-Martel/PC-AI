@@ -1,0 +1,208 @@
+name: CI (Linux self-hosted)
+
+# Why this exists: the main `CI` workflow is disabled because every job in it runs on `windows-latest`, and PC-AI has
+# no Windows runner. That left pull requests with only the path-filtered contract workflows. This workflow runs, on the
+# persistent repo-scoped vigil1 runner `vigil1-pc-ai-1` (labels self-hosted, Linux, X64, vigil1, pc-ai-local), every
+# check that is meaningful on Linux: workflow lint, the PowerShell and Python portable contracts, the Pester files that
+# pass on Linux, PSScriptAnalyzer errors, and rustfmt, clippy and nextest for Native/pcai_core.
+#
+# What it deliberately does not cover (needs Windows or a GPU, see CI-CD-GUIDE.md "Linux self-hosted gate"):
+# the Windows-only PowerShell modules (CIM/WMI, registry, drivers, network, Hyper-V), the PcaiNative C# bridge (the
+# runner image has no dotnet SDK), CUDA builds and the NVIDIA stack. The `ci-gate` job reports only what ran; it is not
+# a statement about those surfaces.
+#
+# Switch: every job is skipped until the repository variable PCAI_LINUX_RUNNER_ENABLED is `true`. Set it only after the
+# runner is registered (`gh variable set PCAI_LINUX_RUNNER_ENABLED --body true -R David-Martel/PC-AI`); without it, each
+# pull request would queue jobs for a label that no runner carries.
+#
+# Trust boundary: PC-AI is a PUBLIC repository and this runner is persistent. Fork pull requests never reach it (the
+# `if:` on every job), and the repository must keep "Approval for running fork pull request workflows" at
+# `all_external_contributors` (it was `first_time_contributors` on 2026-10-20) before the runner is registered, because
+# a fork can edit this very file. The token below is read-only and no secret is used.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# One runner serves one job at a time, so a superseded run would hold it and delay the run that matters.
+concurrency:
+  group: linux-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # The runner already exports CARGO_INCREMENTAL=0, but Native/pcai_core inherits `build.incremental = true` from the
+  # repo-level .cargo/config.toml, and an incremental unit is never cached by sccache. Say it here too so the workflow
+  # is correct on any runner.
+  CARGO_INCREMENTAL: "0"
+  CARGO_TERM_COLOR: never
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  POWERSHELL_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Workflow lint and the profile-free portable contracts: the Linux leg of portable-bootstrap.yml, minus the steps
+  # that need the .NET SDK, plus the Python admission tests.
+  # ---------------------------------------------------------------------------
+  portable-contracts:
+    if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Tool versions
+        run: |
+          pwsh --version
+          uv --version
+          actionlint -version
+
+      - name: Lint this workflow
+        run: actionlint .github/workflows/linux-ci.yml
+
+      - name: Profile-free bootstrap and manifest contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./Tests/Portable/Test-CacheBootstrap.ps1
+          ./Tests/Portable/Test-RustToolDiscovery.ps1
+          ./Tests/Portable/Test-ModuleManifestHook.ps1
+          ./Tools/Test-PcaiModuleManifests.ps1
+          ./Tests/Portable/Test-BenchmarkRunner.ps1
+
+      - name: Python admission tests
+        run: uv run --no-project python -m unittest discover -s Tests/Portable -p "test_*.py" -v
+
+  # ---------------------------------------------------------------------------
+  # Pester files that pass on Linux (the list and the reason for it are in Tests/linux-ci-pester.txt), then
+  # PSScriptAnalyzer at Error severity over Modules/.
+  # ---------------------------------------------------------------------------
+  pester-lint:
+    if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install Pester and PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Pester (Linux-passing files, Portable tag)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -MinimumVersion 5.6.1
+          $files = Get-Content Tests/linux-ci-pester.txt |
+            Where-Object { $_.Trim() -and -not $_.TrimStart().StartsWith('#') } |
+            ForEach-Object { Join-Path 'Tests/Unit' $_.Trim() }
+          $missing = @($files | Where-Object { -not (Test-Path $_) })
+          if ($missing) { throw "Tests/linux-ci-pester.txt names files that do not exist: $($missing -join ', ')" }
+          $config = New-PesterConfiguration
+          $config.Run.Path = $files
+          $config.Filter.Tag = @('Portable')
+          $config.Output.Verbosity = 'Minimal'
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputFormat = 'NUnit3'
+          $config.TestResult.OutputPath = Join-Path $env:RUNNER_TEMP 'pester-linux.xml'
+          $config.Run.Exit = $true
+          Invoke-Pester -Configuration $config
+
+      - name: PSScriptAnalyzer (errors fail the job)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module PSScriptAnalyzer
+          $findings = @(Invoke-ScriptAnalyzer -Path Modules -Recurse -Severity Error -Settings ./PSScriptAnalyzerSettings.psd1)
+          $findings | ForEach-Object { "$($_.ScriptName):$($_.Line) [$($_.RuleName)] $($_.Message)" }
+          "errors=$($findings.Count)"
+          if ($findings.Count -gt 0) { exit 1 }
+
+      - name: Upload Pester results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pester-linux
+          path: ${{ runner.temp }}/pester-linux.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Native/pcai_core on Linux with the server and ffi features, the set Tests/Invoke-PortableTests.ps1 uses. cargo is
+  # called directly instead of through that script because the script sets RUSTC_WRAPPER to an empty string for its
+  # Rust sections, which would switch sccache off on this runner.
+  # ---------------------------------------------------------------------------
+  rust-linux:
+    if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: Native/pcai_core
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Tool versions
+        run: |
+          rustc --version
+          cargo --version
+          cargo nextest --version
+          sccache --version
+
+      - name: rustfmt
+        run: cargo fmt --all --check
+
+      - name: Clippy (warnings are errors)
+        run: cargo clippy --workspace --all-targets --no-deps --locked -- -D warnings -A clippy::type_complexity
+
+      - name: Tests (nextest)
+        run: cargo nextest run --profile linux-ci --workspace --no-default-features --features server,ffi --locked --no-fail-fast
+
+      - name: Doctests (nextest does not run them)
+        run: cargo test --doc --workspace --no-default-features --features server,ffi --locked
+
+      - name: sccache statistics
+        if: always()
+        run: sccache --show-stats
+
+  # ---------------------------------------------------------------------------
+  # Single check name for this workflow. `always()` makes it run and fail when a needed job failed, was cancelled or was
+  # skipped, instead of reporting "skipped", which GitHub treats as passing.
+  # ---------------------------------------------------------------------------
+  ci-gate:
+    if: always() && vars.PCAI_LINUX_RUNNER_ENABLED == 'true'
+    needs: [portable-contracts, pester-lint, rust-linux]
+    runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
+    timeout-minutes: 5
+    steps:
+      - name: Require every job to have succeeded
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          printf '%s\n' "$RESULTS"
+          python3 - <<'PY'
+          import json, os, sys
+          needs = json.loads(os.environ["RESULTS"])
+          bad = {name: job["result"] for name, job in needs.items() if job["result"] != "success"}
+          if bad:
+              sys.exit(f"required jobs did not succeed: {bad}")
+          print("all required jobs succeeded")
+          PY

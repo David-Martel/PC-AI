@@ -1,0 +1,8 @@
+# actionlint configuration, read automatically from .github/actionlint.yaml.
+# Why: linux-ci.yml runs on the persistent vigil1 repo runner, whose custom labels (`vigil1`, `pc-ai-local`) are not
+# built into actionlint, so every `runs-on` would be reported as an unknown label and the "Lint this workflow" step
+# would fail on a correct file. Keep this list equal to the labels in vigil-utils ci-runners/vigil1/runners/pc-ai-1.env.
+self-hosted-runner:
+  labels:
+    - vigil1
+    - pc-ai-local

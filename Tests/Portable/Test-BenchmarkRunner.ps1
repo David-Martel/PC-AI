@@ -44,3 +44,7 @@ try {
     }
     Write-Output 'PASS: all three real runner child blocks reject failing child processes'
 } finally {Remove-Item -LiteralPath $dir -Recurse}
+
+# Expected child failures above are validated by assertions, not this script's exit status.
+# Assertion or cleanup failures throw before this line and still fail the caller.
+exit 0

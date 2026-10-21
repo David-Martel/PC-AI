@@ -82,6 +82,8 @@ Native/PcaiServiceHost/bin/
 # that ci.yml's dotnet-build job compiles and tests all five.
 Native/PcaiChatTui.Tests/bin/
 Native/PcaiNative.Tests/bin/
+Native/DtmTaskRun/bin/
+Native/DtmTaskRun.Tests/bin/
 Native/PcaiChatTui/obj/
 Native/PcaiNative/obj/
 Native/PcaiServiceHost/obj/

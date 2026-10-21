@@ -9,7 +9,7 @@ stop running entirely, and nothing surfaces it -- on this machine AgentHubRunner
 sat terminated for five weeks and DTMVHeadscalePullMonitor accumulated over
 twenty thousand missed runs, both undetected.
 
-This script classifies every non-Microsoft task on two independent axes:
+This script classifies every non-Microsoft task on three independent axes:
 
   Result    the action's last exit code, split into success, the documented
             SCHED_S_* informational codes, and everything else (a failure).
@@ -17,8 +17,15 @@ This script classifies every non-Microsoft task on two independent axes:
             should have. A boot- or logon-triggered task that has not run since
             the last boot is stalled even if its last recorded result was 0 --
             this is the axis that catches a task which quietly stopped firing.
+  Launcher  for tasks started through dtm-task-run.exe, the status JSON the
+            launcher writes (docs/scheduled-tasks/LAUNCHER.md): a nonzero or
+            timed-out last run, a run that was interrupted, and a status file
+            that is stale against the task's cadence are all reported.
 
-Both matter. A task can be green on result and still be dead.
+Both Result and Staleness matter. A task can be green on result and still be
+dead. Tasks wrapped in `conhost.exe --headless` are counted and named in the
+summary: that wrapper hides the window but also hides the exit code, so their
+Result is always 0 and means nothing.
 
 .PARAMETER IncludeMicrosoft
 Also report tasks under \Microsoft\. Off by default -- the OS ships hundreds of
@@ -43,6 +50,15 @@ missed run or a laptop that was asleep without crying wolf.
 Task names that are deliberately disabled or dormant. These are reported as
 'Ignored' and never affect the exit code. Supply your own list to override the
 built-in defaults.
+
+.PARAMETER StatusDir
+Directory (or directories) holding the dtm-task-run status files (<task id>.json). With no
+value, the current user's %LOCALAPPDATA%\dtm-tasks\status plus every
+<SystemDrive>\Users\*\AppData\Local\dtm-tasks\status that exists, so the SYSTEM watchdog
+(whose own %LOCALAPPDATA% is the SYSTEM profile) still finds the owner's files; the newest
+file for a task wins. Separate several directories with ';' when running through `pwsh -File`
+(which binds only the first value of an array parameter). Only tasks whose action is dtm-task-run.exe are checked against it; a
+direct task is never flagged for lacking a status file.
 
 .PARAMETER PassThru
 Emit the per-task result objects to the pipeline.
@@ -79,6 +95,7 @@ param(
     [ValidateRange(1, 100)]
     [int]$StaleFactor = 3,
     [string[]]$Expected,
+    [string[]]$StatusDir,
     [switch]$PassThru,
     [switch]$FailOnIssue,
     [string]$OutputJson,
@@ -165,6 +182,7 @@ $LocalActionRoots = @(
     "$env:USERPROFILE\bin"
     "$env:USERPROFILE\.local\bin"
     "$env:USERPROFILE\.claude"
+    "$env:USERPROFILE\.local\share\pc-ai\deployed"
     'T:\projects'
 )
 
@@ -265,6 +283,97 @@ function Get-TriggerExpectation {
     if ($sawOnDemandOnly) { return @{ Kind = 'OnDemand'; Interval = $null } }
     return @{ Kind = 'Unknown'; Interval = $null }
 }
+
+function Get-LauncherInfo {
+    <#
+    Classify how a task is started: 'dtm-task-run' (exit code preserved, status JSON written),
+    'conhost' (`conhost.exe --headless`: window hidden but exit code masked, LastTaskResult is
+    always 0x0) or 'direct'. For dtm-task-run also returns the task id from `--name`; only the
+    part before the first bare `--` is searched, so a child's own --name is never mistaken for it.
+    #>
+    param($Task)
+
+    foreach ($action in @($Task.Actions)) {
+        if ($null -eq $action) { continue }
+        $names = $action.PSObject.Properties.Name
+        if ($names -notcontains 'Execute' -or [string]::IsNullOrWhiteSpace($action.Execute)) { continue }
+        $leaf = [IO.Path]::GetFileName(([string]$action.Execute).Trim('"'))
+        $argText = if ($names -contains 'Arguments' -and $action.Arguments) { [string]$action.Arguments } else { '' }
+        if ($leaf -ieq 'dtm-task-run.exe') {
+            $head = ($argText -split '\s--(?:\s|$)', 2)[0]
+            $id = $null
+            if ($head -match '(?i)--name\s+(?:"(?<q>[^"]+)"|(?<b>\S+))') {
+                $id = if ($Matches['q']) { $Matches['q'] } else { $Matches['b'] }
+            }
+            return @{ Kind = 'dtm-task-run'; TaskId = $id }
+        }
+        if ($leaf -ieq 'conhost.exe' -and $argText -match '(?i)^\s*--headless\b') {
+            return @{ Kind = 'conhost'; TaskId = $null }
+        }
+    }
+    return @{ Kind = 'direct'; TaskId = $null }
+}
+
+function ConvertTo-LauncherStem {
+    <# The launcher's own rule (TaskNames.ToFileStem): invalid file-name characters and spaces become '_'. #>
+    param([string]$Name)
+    $invalid = [IO.Path]::GetInvalidFileNameChars()
+    $chars = $Name.Trim().ToCharArray()
+    for ($i = 0; $i -lt $chars.Length; $i++) {
+        if ($chars[$i] -eq ' ' -or $invalid -contains $chars[$i]) { $chars[$i] = '_' }
+    }
+    $stem = (-join $chars).Trim('.')
+    if ($stem.Length -eq 0) { '_' } else { $stem }
+}
+
+function Get-DefaultStatusDirs {
+    <#
+    The current user's status directory plus every other profile's that exists. The SYSTEM watchdog
+    runs with its own %LOCALAPPDATA%, but the tasks (and so their status files) belong to the owner.
+    #>
+    $dirs = [System.Collections.Generic.List[string]]::new()
+    if ($env:LOCALAPPDATA) { $dirs.Add((Join-Path $env:LOCALAPPDATA 'dtm-tasks\status')) }
+    $usersRoot = Join-Path $(if ($env:SystemDrive) { $env:SystemDrive } else { 'C:' }) 'Users'
+    if (Test-Path -LiteralPath $usersRoot) {
+        foreach ($profileDir in Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue) {
+            $candidate = Join-Path $profileDir.FullName 'AppData\Local\dtm-tasks\status'
+            if ((Test-Path -LiteralPath $candidate -PathType Container) -and $dirs -notcontains $candidate) { $dirs.Add($candidate) }
+        }
+    }
+    @($dirs)
+}
+
+function Read-LauncherStatus {
+    <# Reads <Dir>\<stem>.json from the first/newest of Dir. State is 'missing', 'unreadable' or 'ok'. #>
+    param([string[]]$Dir, [string]$TaskId)
+    $leaf = (ConvertTo-LauncherStem $TaskId) + '.json'
+    $found = @($Dir | Where-Object { $_ } | ForEach-Object { Join-Path $_ $leaf } |
+            Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+            Sort-Object { (Get-Item -LiteralPath $_).LastWriteTimeUtc } -Descending)
+    if ($found.Count -eq 0) { return @{ State = 'missing'; Path = (Join-Path @($Dir)[0] $leaf); Data = $null } }
+    $path = $found[0]
+    try {
+        $data = Get-Content -LiteralPath $path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        foreach ($required in 'state', 'startUtc') {
+            if ($null -eq $data -or $data.PSObject.Properties.Name -notcontains $required) { throw "missing '$required'" }
+        }
+        return @{ State = 'ok'; Path = $path; Data = $data }
+    }
+    catch {
+        return @{ State = 'unreadable'; Path = $path; Data = $null; Error = $_.Exception.Message }
+    }
+}
+
+function ConvertFrom-IsoUtc {
+    param($Value)
+    if ($null -eq $Value -or [string]::IsNullOrWhiteSpace([string]$Value)) { return $null }
+    if ($Value -is [datetime]) { return $Value.ToUniversalTime() }
+    [datetime]::Parse([string]$Value, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
+}
+
+if (-not $PSBoundParameters.ContainsKey('StatusDir')) { $StatusDir = Get-DefaultStatusDirs }
+# `pwsh -File` binds only the first value of an array parameter, so also accept ';'-separated paths.
+$StatusDir = @($StatusDir | ForEach-Object { $_ -split ';' } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 
 $bootTime = $null
 try {
@@ -426,6 +535,86 @@ $results = foreach ($task in $tasks) {
         }
     }
 
+    # --- Axis 3: what the launcher itself recorded ---------------------------
+    # Only for tasks started through dtm-task-run.exe; a direct task is never flagged for
+    # lacking a status file. 'missing' is informational: a freshly migrated task has not
+    # run through the launcher yet.
+    $launcher = Get-LauncherInfo -Task $task
+    $statusState = 'n/a'
+    $statusExit = $null
+    $statusEnd = $null
+    if ($launcher.Kind -eq 'dtm-task-run' -and $task.State -ne 'Disabled' -and $inspectionStatus -eq 'Available') {
+        if ([string]::IsNullOrWhiteSpace($launcher.TaskId) -or @($StatusDir).Count -eq 0) {
+            $statusState = 'not evaluated (no task id or status directory)'
+        }
+        else {
+            $read = Read-LauncherStatus -Dir $StatusDir -TaskId $launcher.TaskId
+            switch ($read.State) {
+                'missing' { $statusState = 'missing' }
+                'unreadable' {
+                    $statusState = 'unreadable'
+                    $status = 'Failed'
+                    $reasons.Add("Launcher status file is unreadable ($($read.Error)): $($read.Path)")
+                }
+                'ok' {
+                    $s = $read.Data
+                    $statusState = [string]$s.state
+                    $startUtc = ConvertFrom-IsoUtc $s.startUtc
+                    $nowUtc = $now.ToUniversalTime()
+                    if ($statusState -eq 'running') {
+                        $alive = ($task.State -eq 'Running')
+                        if (-not $alive -and $s.PSObject.Properties.Name -contains 'pid' -and $s.pid) {
+                            $p = Get-Process -Id ([int]$s.pid) -ErrorAction SilentlyContinue
+                            $alive = ($null -ne $p -and $p.ProcessName -like 'dtm-task-run*')
+                        }
+                        if (-not $alive) {
+                            $status = 'Failed'
+                            $reasons.Add(("Launcher status is still 'running' (started {0:yyyy-MM-dd HH:mm} UTC) but the task is not: the launcher was killed mid-run" -f $startUtc))
+                        }
+                    }
+                    elseif ($statusState -eq 'completed') {
+                        $endUtc = ConvertFrom-IsoUtc $s.endUtc
+                        $statusEnd = $endUtc
+                        $statusExit = [string]$s.exitCodeHex
+                        if ($s.timedOut) {
+                            $status = 'Failed'
+                            $reasons.Add(("Launcher killed the task on timeout ({0}) at {1:yyyy-MM-dd HH:mm} UTC; log: {2}" -f $statusExit, $endUtc, $s.logPath))
+                        }
+                        elseif ([int64]$s.exitCode -ne 0) {
+                            $status = 'Failed'
+                            $reasons.Add(("Launcher recorded exit {0} at {1:yyyy-MM-dd HH:mm} UTC; log: {2}" -f $statusExit, $endUtc, $s.logPath))
+                        }
+                        if ($task.State -ne 'Running') {
+                            # A status file that is older than the task's own cadence means the launcher
+                            # has not recorded a run recently, whatever Task Scheduler remembers.
+                            if ($expectation.Kind -eq 'Interval' -and $null -ne $endUtc) {
+                                $age = $nowUtc - $endUtc
+                                if ($age -gt ($expectation.Interval * $StaleFactor)) {
+                                    if ($status -eq 'Healthy') { $status = 'Stalled' }
+                                    $reasons.Add(("Launcher status is {0:N1} h old but the cadence is {1:N1} h (allowed {2}x)" -f $age.TotalHours, $expectation.Interval.TotalHours, $StaleFactor))
+                                }
+                            }
+                            elseif ($expectation.Kind -eq 'BootOrLogon' -and $null -ne $bootTime -and $null -ne $endUtc -and $endUtc.ToLocalTime() -lt $bootTime) {
+                                if ($status -eq 'Healthy') { $status = 'Stalled' }
+                                $reasons.Add(("Launcher status predates the current boot ({0:yyyy-MM-dd HH:mm} UTC)" -f $endUtc))
+                            }
+                            # Task Scheduler ran it more recently than the launcher recorded: the launcher
+                            # died before it could write (or the status directory is not writable).
+                            if ($null -ne $lastRun -and $null -ne $startUtc -and ($lastRun.ToUniversalTime() - $startUtc) -gt [TimeSpan]::FromMinutes(5)) {
+                                if ($status -eq 'Healthy') { $status = 'Stalled' }
+                                $reasons.Add(("Task Scheduler last ran it {0:yyyy-MM-dd HH:mm} UTC but the launcher's latest record started {1:yyyy-MM-dd HH:mm} UTC" -f $lastRun.ToUniversalTime(), $startUtc))
+                            }
+                        }
+                    }
+                    else {
+                        $status = 'Failed'
+                        $reasons.Add("Launcher status has unknown state '$statusState'")
+                    }
+                }
+            }
+        }
+    }
+
     if ($missed -gt 0) { $reasons.Add("$missed missed run(s) recorded") }
 
     if ($task.State -eq 'Disabled') { $status = 'Disabled' }
@@ -444,6 +633,10 @@ $results = foreach ($task in $tasks) {
         ResultText       = $resultText
         Cadence          = $expectation.Kind
         Staleness        = $staleness
+        Launcher         = $launcher.Kind
+        LauncherStatus   = $statusState
+        LauncherExit     = $statusExit
+        LauncherEndUtc   = if ($null -ne $statusEnd) { $statusEnd.ToString('o') } else { $null }
         MissedRuns       = $missed
         Reasons          = @($reasons)
     }
@@ -458,6 +651,9 @@ if ($LocalOnly) {
 $failed = @($results | Where-Object { $_.Status -eq 'Failed' })
 $stalled = @($results | Where-Object { $_.Status -eq 'Stalled' })
 $issues = @($failed) + @($stalled)
+# conhost --headless hides the window AND the exit code, so these tasks always show Success.
+# Not counted as a failure (they are not known to be broken), but never let them look verified.
+$conhostWrapped = @($results | Where-Object { $_.Launcher -eq 'conhost' -and $_.Status -notin 'Disabled', 'Ignored' })
 
 $summary = [pscustomobject]@{
     GeneratedAt      = $now.ToString('o')
@@ -472,6 +668,7 @@ $summary = [pscustomobject]@{
     Stalled          = $stalled.Count
     Disabled         = @($results | Where-Object { $_.Status -eq 'Disabled' }).Count
     Ignored          = @($results | Where-Object { $_.Status -eq 'Ignored' }).Count
+    ConhostWrapped   = $conhostWrapped.Count
     Tasks            = $results
 }
 
@@ -488,9 +685,16 @@ else {
     Write-Host "All $($results.Count) task(s) healthy." -ForegroundColor Green
 }
 
+if ($conhostWrapped.Count -gt 0) {
+    Write-Host ''
+    Write-Host ("{0} task(s) still run behind 'conhost --headless', which masks their exit code (always 0x0), so their Result above is unverified:" -f $conhostWrapped.Count) -ForegroundColor DarkYellow
+    foreach ($r in ($conhostWrapped | Sort-Object TaskName)) { Write-Host ("  {0}{1}" -f $r.TaskPath, $r.TaskName) }
+    Write-Host '  Convert them with Tools/Convert-TaskToLauncher.ps1 (see docs/scheduled-tasks/LAUNCHER.md).'
+}
+
 Write-Host ''
-Write-Host ("Total {0} | healthy {1} | failed {2} | stalled {3} | disabled {4} | ignored {5}" -f `
-        $summary.TotalTasks, $summary.Healthy, $summary.Failed, $summary.Stalled, $summary.Disabled, $summary.Ignored)
+Write-Host ("Total {0} | healthy {1} | failed {2} | stalled {3} | disabled {4} | ignored {5} | conhost-wrapped {6}" -f `
+        $summary.TotalTasks, $summary.Healthy, $summary.Failed, $summary.Stalled, $summary.Disabled, $summary.Ignored, $summary.ConhostWrapped)
 
 if (-not [string]::IsNullOrWhiteSpace($OutputJson) -and -not $DryRun) {
     $jsonDir = Split-Path -Parent $OutputJson

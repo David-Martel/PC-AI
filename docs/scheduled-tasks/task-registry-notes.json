@@ -1,0 +1,1680 @@
+[
+  {
+    "path": "\\",
+    "name": "AgentBusHubWatchdog",
+    "purpose": "Every 10 min verifies the configured agent-bus hub is reachable and is the real fleet hub (not a same-port local impostor); alerts via Event Log, flag file and msg.exe. May start the vigil1 ssh tunnel (agent-bus-tunnel.ps1, port 18480) when on the UMich network.",
+    "owner": "none (loose deployed copy in ~/bin; a differing source copy exists in repo agent-bus at C:\\codedev\\agent-bus\\scripts\\agent-bus-watchdog.ps1)",
+    "script": "C:\\Users\\david\\bin\\agent-bus-watchdog.ps1",
+    "expectedRuntimeHint": "seconds, one-shot every 10 min (task limit PT2M; tunnel step bounded by -TimeoutSeconds 30)",
+    "failureSignal": "Windows Application Event Log source AgentBusWatchdog; ~/.config/agent-bus/watchdog-last-alert.json and watchdog-last-ok.json. Exit 0 healthy, 1 error/unreachable/impostor/unconfigured, 2 DEGRADED_ONSITE_AUTHORITY_UNAVAILABLE.",
+    "needsOnDp1gen9": "yes - generic fleet agent-bus client health check (island fingerprint constants name DTM-P1GEN7, so markers would need review)",
+    "confidence": "read",
+    "checked": [
+      "C:\\Users\\david\\bin\\agent-bus-watchdog.ps1 (head + tail)",
+      "file hash compare vs C:\\codedev\\agent-bus\\scripts\\agent-bus-watchdog.ps1 (different)"
+    ],
+    "notifyBusReason": "No: circular, it reports through the bus it is checking; it already alerts through the Application log, a flag file and msg.exe.",
+    "knownIssue": "Research pass: ~/bin/agent-bus-watchdog.ps1 differs by hash from the agent-bus repo copy (drift)."
+  },
+  {
+    "path": "\\",
+    "name": "AgentHub Windows Runner",
+    "purpose": "GitHub Actions self-hosted runner (Runner.Listener run, manual startuptype) for David-Martel/agent-hub, agent name dtm-p1gen7-agenthub-windows-x64; started on demand, no trigger of its own.",
+    "owner": "none (GitHub Actions runner install in C:\\actions-runner\\agent-hub, not a git repo; serves repo David-Martel/agent-hub)",
+    "script": "C:\\actions-runner\\agent-hub\\bin\\Runner.Listener.exe",
+    "expectedRuntimeHint": "daemon, runs until stopped (no time limit); started/stopped by VigilLocalRunners-OnDemand",
+    "failureSignal": "Runner _diag logs in its install dir (standard layout, not inspected); last TaskResult 267014 = terminated, expected after on-demand stop; GitHub runner online/offline status.",
+    "needsOnDp1gen9": "no - runner registration identity is host-specific (dtm-p1gen7-...); p1gen9 would need its own registration",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\actions-runner\\agent-hub\\.runner (agentName, gitHubUrl only)",
+      "C:\\codedev\\vigil_ai\\scripts\\runners\\Invoke-LocalRunnerOnDemand.ps1 header (names agent-hub native runner)"
+    ],
+    "launcherNote": "NOT migrated (outside the agreed scope). Stopping it via Task Scheduler already terminates the tree, so wrapping it would not change how VigilLocalRunners-OnDemand controls it."
+  },
+  {
+    "path": "\\",
+    "name": "AutoMount_VHDX_cloud-cache-disk",
+    "purpose": "At boot mounts and validates T:\\vm\\cloud-cache-disk.vhdx, expects volume cloud-cache-disk on F: NTFS via the maintained wrapper Mount-PersistentVHDX.ps1.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1",
+    "expectedRuntimeHint": "bounded one-shot at boot (task limit PT10M, 90 s startup delay + 15 s VHD wait)",
+    "failureSignal": "Transcript + JSON result + Windows event log under C:\\codedev\\PC_AI\\Logs\\VHDMount\\AutoMount_VHDX_cloud-cache-disk. Exit codes: 0 success, 40 degraded, 50 invalid input, 51 missing VHD, 52 missing Hyper-V, 53 mount timeout, 54 verification failed, 99 unhandled.",
+    "needsOnDp1gen9": "no - tied to p1gen7 VHDX files, drive letters and T:/D: layout",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1 (help block, exit-code table)"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "AutoMount_VHDX_share-ext4",
+    "purpose": "At boot mounts and validates T:\\vm\\share-ext4.vhdx as an attached disk only (ext4/WSL, no Windows volume) via the maintained wrapper Mount-PersistentVHDX.ps1.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1",
+    "expectedRuntimeHint": "bounded one-shot at boot (task limit PT10M, 90 s startup delay)",
+    "failureSignal": "Transcript + JSON result + Windows event log under C:\\codedev\\PC_AI\\Logs\\VHDMount\\AutoMount_VHDX_share-ext4. Exit codes: 0 success, 40 degraded, 50 invalid input, 51 missing VHD, 52 missing Hyper-V, 53 mount timeout, 54 verification failed, 99 unhandled.",
+    "needsOnDp1gen9": "no - tied to p1gen7 VHDX files, drive letters and T:/D: layout",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1 (help block, exit-code table)"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "AutoMount_VHDX_shared-dev",
+    "purpose": "At boot mounts and validates D:\\vm\\shared-dev.vhdx, expects volume WSL-Shared-Dev on W: NTFS via the maintained wrapper Mount-PersistentVHDX.ps1.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1",
+    "expectedRuntimeHint": "bounded one-shot at boot (task limit PT10M, 60 s startup delay + 15 s VHD wait)",
+    "failureSignal": "Transcript + JSON result + Windows event log under C:\\codedev\\PC_AI\\Logs\\VHDMount\\AutoMount_VHDX_shared-dev. Exit codes: 0 success, 40 degraded, 50 invalid input, 51 missing VHD, 52 missing Hyper-V, 53 mount timeout, 54 verification failed, 99 unhandled.",
+    "needsOnDp1gen9": "no - tied to p1gen7 VHDX files, drive letters and T:/D: layout",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1 (help block, exit-code table)"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Bitwarden-Archive-Refresh",
+    "purpose": "At logon and daily, runs bw sync + export to refresh the rolling Bitwarden vault archive in ~/.bwdata (bitwarden_archive_*), keeping 30 days; leaves manual bitwarden_export_* alone. Default Format is plain json (ACL-restricted dir).",
+    "owner": "PC_AI (real script SystemScripts\\Machine\\Update-BwArchive.ps1); the task runs a loose compatibility wrapper in ~/.machine",
+    "script": "C:\\Users\\david\\.machine\\Update-BwArchive.ps1 -> C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Update-BwArchive.ps1",
+    "expectedRuntimeHint": "tens of seconds, bounded by -TimeoutSeconds 120 (task limit PT10M)",
+    "failureSignal": "%LOCALAPPDATA%\\dtm-tasks\\logs\\bitwarden-archive-refresh.log (256 KB roll-over; file is ABSENT although last run exit 1). Wrapper exits 1 if the PC_AI script is missing or throws; otherwise passes the archive script exit code.",
+    "needsOnDp1gen9": "unknown - generic vault hygiene, but needs the ~/.machine Bitwarden backend and credentials provisioned on p1gen9",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\Users\\david\\.machine\\Update-BwArchive.ps1 (whole)",
+      "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Update-BwArchive.ps1 (head)"
+    ],
+    "notifyBusReason": "Secrets: this is the rolling vault backup; a silent failure leaves the archive stale and nobody knows.",
+    "knownIssue": "Last result 0x1 dates from the 15:05 logon before the scheduler hygiene changes (stale until the next logon, per claude-sched). The task also writes a plain-JSON vault export by design."
+  },
+  {
+    "path": "\\",
+    "name": "BraveSoftwareUpdateTaskMachineCore{5562EDD6-A61A-40A2-A6BD-2A38E5712D2D}",
+    "purpose": "Brave browser updater (vendor)",
+    "owner": "vendor:Brave",
+    "script": "\"C:\\Program Files (x86)\\BraveSoftware\\Update\\BraveUpdate.exe\" /c",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "BraveSoftwareUpdateTaskMachineUA{E74F84C6-E50A-4E11-B382-CFFCACA9E2A2}",
+    "purpose": "Brave browser updater (vendor)",
+    "owner": "vendor:Brave",
+    "script": "\"C:\\Program Files (x86)\\BraveSoftware\\Update\\BraveUpdate.exe\" /ua /installsource scheduler",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "BW-Auto-Unlock",
+    "purpose": "At logon establishes a validated Bitwarden CLI session via the machine backend (Credential Manager) and persists BW_SESSION as a User environment variable (-PersistSession); no sync or export.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Unlock-BwVault.ps1",
+    "expectedRuntimeHint": "seconds (log shows ~24 s manual run; task limit PT5M), one-shot at logon",
+    "failureSignal": "%LOCALAPPDATA%\\dtm-tasks\\logs\\bw-auto-unlock.log (fixed strings: start/done exit=N). Script exits 0 or a computed exitCode. Last scheduled run returned 1 at logon with no log line from that run.",
+    "needsOnDp1gen9": "unknown - generic, but depends on per-host Credential Manager entries and ~/.machine backend",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Unlock-BwVault.ps1 (head, exit lines)",
+      "bw-auto-unlock.log tail"
+    ],
+    "knownIssue": "Last result 0x1 from the same 15:05 logon (stale until the next logon, per claude-sched)."
+  },
+  {
+    "path": "\\",
+    "name": "CloudCache-MountWatchdog",
+    "purpose": "Every 15 min re-mounts the F: cloud-cache-disk VHDX if missing (after proving image and volume identity), restarting cloud clients only if it actually repaired it; healthy runs change nothing.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\Repair-CloudCacheMount.ps1",
+    "expectedRuntimeHint": "seconds when healthy; repair bounded by -MountWaitSeconds 180 (task limit PT10M)",
+    "failureSignal": "Logs under C:\\codedev\\PC_AI\\Logs\\CloudCacheRepair; also reads AutoMount receipts in Logs\\VHDMount. Exit code = Invoke-CloudCacheRepair result (values not enumerated in header).",
+    "needsOnDp1gen9": "no - tied to the p1gen7 F: cloud-cache VHDX",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\Repair-CloudCacheMount.ps1 (help block, params)"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "CloudClients-AfterVHDX",
+    "purpose": "At logon starts Dropbox and Google Drive only after the F: cloud-cache-disk VHDX is mounted and validated; if the volume never appears, clients are deliberately not started (prevents sync root relocating to C:).",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\Start-CloudClientsAfterVHDX.ps1",
+    "expectedRuntimeHint": "bounded wait for volume (task limit PT15M), one-shot at logon",
+    "failureSignal": "C:\\codedev\\PC_AI\\Logs\\CloudClientStart\\current.log; exits nonzero when the volume never appears or validation fails.",
+    "needsOnDp1gen9": "no - tied to the p1gen7 F: cache VHDX and local cloud clients",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\Start-CloudClientsAfterVHDX.ps1 (help block, exit line)"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Codedev-Workspace-Index-Reconcile",
+    "purpose": "Every 10 min runs the monorepo-index refresh worker with -Reconcile to rebuild the C:\\codedev workspace catalog (INDEX.md) and recover missed post-commit refresh requests.",
+    "owner": "monorepo-index",
+    "script": "C:\\codedev\\monorepo-index\\scripts\\request-refresh.ps1 (config C:\\codedev\\.codex\\state\\indexer-deployment\\config.json)",
+    "expectedRuntimeHint": "bounded by -TimeoutSeconds (default/max 300 s); task limit PT6M; 267009 means it was mid-run at snapshot",
+    "failureSignal": "C:\\codedev\\.workspace-index-state\\health.json (last success), last-error.txt, queue\\ and worker.lock; throws on failure so task result is nonzero.",
+    "needsOnDp1gen9": "unknown - tied to C:\\codedev workspace layout; p1gen9 only if it hosts the same workspace",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\monorepo-index\\scripts\\request-refresh.ps1 (whole)",
+      "C:\\codedev\\monorepo-index\\README.md head",
+      "deployment config.json root/outputPath"
+    ],
+    "launcherNote": "NOT migrated: owned by the monorepo-index lane (codex); coordinate first. Its script already bounds itself with -TimeoutSeconds and writes its own state."
+  },
+  {
+    "path": "\\",
+    "name": "Codedev-Worktree-Discovery",
+    "purpose": "Runs the worktree inventory scanner in discover mode (every 6 h) to refresh worktree evidence and the review queue; never removes or commits worktrees.",
+    "owner": "monorepo-index",
+    "script": "C:\\codedev\\monorepo-index\\scripts\\refresh-worktree-inventory.ps1 (config config\\worktree-inventory.json)",
+    "expectedRuntimeHint": "bounded by -TimeoutSeconds 900 (task limit PT16M)",
+    "failureSignal": "Outputs C:\\codedev\\.workspace-index-state\\worktrees.json and worktrees.md; on failure writes worktrees.json.last-error.txt and throws (nonzero result); lock file worktrees.json.refresh.lock prevents overlap.",
+    "needsOnDp1gen9": "unknown - tied to the C:\\codedev workspace layout",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\monorepo-index\\scripts\\refresh-worktree-inventory.ps1 (head)",
+      "config\\worktree-inventory.json state block"
+    ],
+    "launcherNote": "NOT migrated: owned by the monorepo-index lane (codex); coordinate first. Its script already bounds itself with -TimeoutSeconds 900."
+  },
+  {
+    "path": "\\",
+    "name": "Codedev-Worktree-Inventory",
+    "purpose": "Runs the worktree inventory scanner in fast mode (every 30 min) to refresh worktree evidence and the review queue; never removes or commits worktrees.",
+    "owner": "monorepo-index",
+    "script": "C:\\codedev\\monorepo-index\\scripts\\refresh-worktree-inventory.ps1 (config config\\worktree-inventory.json)",
+    "expectedRuntimeHint": "bounded by -TimeoutSeconds 900 (task limit PT16M)",
+    "failureSignal": "Outputs C:\\codedev\\.workspace-index-state\\worktrees.json and worktrees.md; on failure writes worktrees.json.last-error.txt and throws (nonzero result); lock file worktrees.json.refresh.lock prevents overlap.",
+    "needsOnDp1gen9": "unknown - tied to the C:\\codedev workspace layout",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\monorepo-index\\scripts\\refresh-worktree-inventory.ps1 (head)",
+      "config\\worktree-inventory.json state block"
+    ],
+    "launcherNote": "NOT migrated: owned by the monorepo-index lane (codex); it was running during the migration. Its script already bounds itself with -TimeoutSeconds 900."
+  },
+  {
+    "path": "\\",
+    "name": "DevEnvironmentStartup",
+    "purpose": "DISABLED. At logon would start Docker Engine, the WSL VSock bridge (port 5000) and warm up WSL Ubuntu. Last ran 2026-01-25; Test-ScheduledTaskHealth lists it as superseded.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\TaskScheduler\\PowerShellScripts\\Start-DevEnvironment.ps1",
+    "expectedRuntimeHint": "seconds to minutes, one-shot at logon (no time limit) - currently disabled",
+    "failureSignal": "Documents\\PowerShell\\Logs\\DevStartup.log; script has no exit codes (errors logged and continue). Helper scripts Start-DockerEngine.ps1 and Start-WslBridge.ps1 exist.",
+    "needsOnDp1gen9": "no - superseded and disabled on p1gen7",
+    "confidence": "read",
+    "checked": [
+      "task XML + state",
+      "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\TaskScheduler\\PowerShellScripts\\Start-DevEnvironment.ps1 (whole)",
+      "Test-ScheduledTaskHealth.ps1 Expected list comment"
+    ],
+    "knownIssue": "Disabled and superseded; the health check lists it as expected-dormant."
+  },
+  {
+    "path": "\\",
+    "name": "dtm-linklocal-guard",
+    "purpose": "Every 3 min (and at boot) keeps 169.254.0.0/16 off the Npcap Loopback adapter, adds a /24 route on the USB4 P2P adapter, and pings stale neighbours to keep the p1gen7<->peer USB4 link warm.",
+    "owner": "none (loose script in C:\\ProgramData\\dtm-netfix, not a repo)",
+    "script": "C:\\ProgramData\\dtm-netfix\\linklocal-guard.ps1",
+    "expectedRuntimeHint": "seconds, one-shot every 3 min (task limit PT5M); runs under Windows PowerShell 5.1",
+    "failureSignal": "C:\\ProgramData\\dtm-netfix\\linklocal-guard.log (256 KB roll-over, de-duplicated); errors are caught and logged, exit is effectively always 0.",
+    "needsOnDp1gen9": "unknown - the peer end of the USB4 link may need the same guard if it also has Npcap; hardware-specific",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\ProgramData\\dtm-netfix\\linklocal-guard.ps1 (head + tail)"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "ETW Host Service Updater v16",
+    "purpose": "JetBrains ETW Host service updater (vendor)",
+    "owner": "vendor:JetBrains",
+    "script": "\"C:\\Program Files\\JetBrains\\ETW Host\\16\\Updater\\EtwHostServiceUpdater.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Git Maintenance (daily)",
+    "purpose": "git maintenance run on repos registered in maintenance.repo (hourly/daily/weekly schedule created by git maintenance start)",
+    "owner": "vendor:Git",
+    "script": "\"C:/Program Files/Git/mingw64/libexec/git-core\\headless-git.exe\" --exec-path=\"C:/Program Files/Git/mingw64/libexec/git-core\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Git Maintenance (hourly)",
+    "purpose": "git maintenance run on repos registered in maintenance.repo (hourly/daily/weekly schedule created by git maintenance start)",
+    "owner": "vendor:Git",
+    "script": "\"C:/Program Files/Git/mingw64/libexec/git-core\\headless-git.exe\" --exec-path=\"C:/Program Files/Git/mingw64/libexec/git-core\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Git Maintenance (weekly)",
+    "purpose": "git maintenance run on repos registered in maintenance.repo (hourly/daily/weekly schedule created by git maintenance start)",
+    "owner": "vendor:Git",
+    "script": "\"C:/Program Files/Git/mingw64/libexec/git-core\\headless-git.exe\" --exec-path=\"C:/Program Files/Git/mingw64/libexec/git-core\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Google-Workspace-Auth-Watch",
+    "purpose": "At logon and daily keepalive + failure detection for the Google Workspace OAuth grant (personal profile); never launches consent, writes an action-required marker and desktop alert on lapse.",
+    "owner": "google-access",
+    "script": "C:\\codedev\\google-access\\scripts\\Watch-GoogleWorkspaceAuth.ps1",
+    "expectedRuntimeHint": "seconds, one-shot (task limit PT10M)",
+    "failureSignal": "~/.google\\ACTION-REQUIRED-google-auth.txt marker + state files in ~/.google. Exit 0 healthy, 1 needs attention, 2 report script (Update-GoogleWorkspaceAuth.ps1) not found.",
+    "needsOnDp1gen9": "unknown - generic per-user credential watcher, needs the same google-access setup on p1gen9",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\google-access\\scripts\\Watch-GoogleWorkspaceAuth.ps1 (help block, exit/marker greps)"
+    ],
+    "notifyBusReason": "Auth: its whole job is to catch an expiring OAuth grant, so a failing watcher must not fail quietly."
+  },
+  {
+    "path": "\\",
+    "name": "headscale-db-offbox-pull",
+    "purpose": "Daily pulls a WAL-safe Headscale DB + keys + config backup off the UDM Pro SE (ssh udmpro) into ~/headscale-backups, keeping 14 (off-box DR copy).",
+    "owner": "vigil-utils",
+    "script": "C:\\codedev\\vigil-utils\\scripts\\fleet\\vigil-net.ps1 backup -Keep 14",
+    "expectedRuntimeHint": "seconds to a minute, one-shot daily (task limit PT10M)",
+    "failureSignal": "~/.machine\\logs\\vigil-net.log; backups hs-backup-*.tgz in ~/headscale-backups; backup verb is designed to exit 0 even on failure so task result does not show errors.",
+    "needsOnDp1gen9": "unknown - one off-box copy is probably enough; a second host would add redundancy but needs ssh access to the UDM",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\vigil-utils\\scripts\\fleet\\vigil-net.ps1 (help block, Invoke-Backup, exit comment)"
+    ],
+    "notifyBusReason": "Backup: off-box copy of the headscale DB and keys; recovery depends on it.",
+    "knownIssue": "VERIFIED: ssh to udmpro times out. Last good backup is hs-backup-20261006-071323.tgz. vigil-net.ps1 backup logs \"[ERROR] integrity check did not pass\" but exits 0 by design, so Task Scheduler shows 0x0 every day. Reported on agent-bus thread machine-hygiene; fix belongs in vigil-utils (return a failure bool, exit nonzero)."
+  },
+  {
+    "path": "\\",
+    "name": "iSCSIAgentAutoStartup",
+    "purpose": "QNAP Qfinder iSCSI agent autostart at logon (vendor)",
+    "owner": "vendor:QNAP",
+    "script": "\"C:\\Program Files (x86)\\QNAP\\Qfinder\\iSCSIAgent.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "LspmuxServer",
+    "purpose": "At logon starts the lspmux LSP multiplexer server (loopback port 27631) with rust-analyzer memory-saving env vars, delegating to CargoTools Start-LspmuxServer when installed.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\LocalBin\\Start-LspmuxServer.ps1",
+    "expectedRuntimeHint": "script returns after ~1 s; it spawns lspmux server as a long-lived hidden process (task limit none)",
+    "failureSignal": "No log file; console output only; verifies TCP 27631 and warns if not accepting. Errors if lspmux.exe not found.",
+    "needsOnDp1gen9": "yes - generic dev-env service for Rust work (uses T:\\RustCache CARGO_HOME, so path may need adapting)",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\LocalBin\\Start-LspmuxServer.ps1 (whole)"
+    ],
+    "notifyBusReason": "No: developer convenience (rust-analyzer multiplexer); a failure shows up as soon as an editor starts.",
+    "launcherNote": "No launcher timeout: the task limit is unlimited by design and the script only spawns a detached daemon, which the launcher deliberately leaves running after it exits."
+  },
+  {
+    "path": "\\",
+    "name": "LvfCleanup",
+    "purpose": "Lenovo View (LVF) install-service removal or cleanup task (vendor) - task Description: Deletes LVF cleanup tasks after LvfInstallService removal",
+    "owner": "vendor:Lenovo",
+    "script": "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Comm",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "LvfDriverRemoval",
+    "purpose": "Lenovo View (LVF) install-service removal or cleanup task (vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\lnvvsndmft.inf_amd64_f6d79d78edcb4315\\LvfInstallService.exe -removedriver",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "LvfGuiRemoval",
+    "purpose": "Lenovo View (LVF) install-service removal or cleanup task (vendor) - task Description: Checks daily if Lenovo View app is installed",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\lnvvsndmft.inf_amd64_f6d79d78edcb4315\\LvfInstallService.exe -lv",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "MATLAB R2024b Startup Accelerator",
+    "purpose": "MATLAB startup accelerator (disabled; vendor install under C:\\codedev\\matlab) - task Description: Startup Accelerator for faster MATLAB startup",
+    "owner": "vendor:MathWorks",
+    "script": "C:\\codedev\\matlab\\R2024b\\bin\\win64\\MATLABStartupAccelerator.exe",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "MATLAB R2025b Startup Accelerator",
+    "purpose": "MATLAB startup accelerator (disabled; vendor install under C:\\codedev\\matlab) - task Description: Startup Accelerator for faster MATLAB startup",
+    "owner": "vendor:MathWorks",
+    "script": "C:\\codedev\\matlab\\R2025b\\bin\\win64\\MATLABStartupAccelerator.exe",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "MATLAB R2026a Startup Accelerator",
+    "purpose": "MATLAB startup accelerator (disabled; vendor install under C:\\codedev\\matlab) - task Description: Startup Accelerator for faster MATLAB startup",
+    "owner": "vendor:MathWorks",
+    "script": "C:\\codedev\\matlab\\R2026a\\bin\\win64\\MATLABStartupAccelerator.exe",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "MicrosoftEdgeUpdateTaskMachineCore",
+    "purpose": "Microsoft Edge updater (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files (x86)\\Microsoft\\EdgeUpdate\\MicrosoftEdgeUpdate.exe /c",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "MicrosoftEdgeUpdateTaskMachineUA",
+    "purpose": "Microsoft Edge updater (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files (x86)\\Microsoft\\EdgeUpdate\\MicrosoftEdgeUpdate.exe /ua /installsource scheduler",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "npcapwatchdog",
+    "purpose": "Npcap CheckStatus watchdog (disabled; vendor)",
+    "owner": "vendor:Npcap",
+    "script": "\"C:\\Program Files\\Npcap\\CheckStatus.bat\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
+    "purpose": "NVIDIA App self-update (vendor)",
+    "owner": "vendor:NVIDIA",
+    "script": "\"C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA App.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Okta Verify Activation Task",
+    "purpose": "Okta Verify background activation task (vendor)",
+    "owner": "vendor:Okta",
+    "script": "\"C:\\Program Files\\Okta\\Okta Verify\\OktaVerify.exe\" --background",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "OneDrive Per-Machine Standalone Update Task",
+    "purpose": "OneDrive startup / reporting / standalone update task (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files\\Microsoft OneDrive\\OneDriveStandaloneUpdater.exe",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1001",
+    "purpose": "OneDrive startup / reporting / standalone update task (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files\\Microsoft OneDrive\\OneDriveStandaloneUpdater.exe /reporting",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1003",
+    "purpose": "OneDrive startup / reporting / standalone update task (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files\\Microsoft OneDrive\\OneDriveStandaloneUpdater.exe /reporting",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1007",
+    "purpose": "OneDrive startup / reporting / standalone update task (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files\\Microsoft OneDrive\\OneDriveStandaloneUpdater.exe /reporting",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "OneDrive Reporting Task-S-1-5-21-357761096-1057752491-2136275046-1009",
+    "purpose": "OneDrive startup / reporting / standalone update task (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files\\Microsoft OneDrive\\OneDriveStandaloneUpdater.exe /reporting",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1001",
+    "purpose": "OneDrive startup / reporting / standalone update task (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files\\Microsoft OneDrive\\26.183.0920.0005\\OneDriveLauncher.exe /startInstances",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1003",
+    "purpose": "OneDrive startup / reporting / standalone update task (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files\\Microsoft OneDrive\\26.183.0920.0005\\OneDriveLauncher.exe /startInstances",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1007",
+    "purpose": "OneDrive startup / reporting / standalone update task (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files\\Microsoft OneDrive\\26.183.0920.0005\\OneDriveLauncher.exe /startInstances",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "OneDrive Startup Task-S-1-5-21-357761096-1057752491-2136275046-1009",
+    "purpose": "OneDrive startup / reporting / standalone update task (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Program Files\\Microsoft OneDrive\\26.183.0920.0005\\OneDriveLauncher.exe /startInstances",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "PC-AI Process Lasso Governor Watchdog",
+    "purpose": "At logon and every 15 min ensures Process Lasso ProcessGovernor.exe is running, restarting it if missing and logging remediation to Event Log and a JSON report.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\Ensure-ProcessLassoGovernor.ps1",
+    "expectedRuntimeHint": "seconds, one-shot (task limit PT5M)",
+    "failureSignal": "JSON report D:\\pcai-relocation\\responsiveness\\processlasso-governor-watchdog.json; Event Log source PC-AI-ProcessLasso; exit 1 on failure.",
+    "needsOnDp1gen9": "no - tied to Process Lasso on p1gen7",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\Ensure-ProcessLassoGovernor.ps1 (head, exit lines)"
+    ],
+    "notifyBusReason": "No: local responsiveness tool that already writes its own Application events (source PC-AI-ProcessLasso); retried every 15 minutes."
+  },
+  {
+    "path": "\\",
+    "name": "PC-AI Scheduled Task Health",
+    "purpose": "Every 30 min read-only snapshot of local-owned scheduled tasks (failed/stalled/disabled) written to JSON; exits 1 when any task is failed or stalled (no remediation).",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\Test-ScheduledTaskHealth.ps1",
+    "expectedRuntimeHint": "seconds (task limit PT3M)",
+    "failureSignal": "JSON C:\\ProgramData\\PC_AI\\TaskHealth\\scheduled-task-health.json (reports 6 failed at 17:03). With -FailOnIssue the task result is 1 whenever anything is broken, so its own result 1 is a signal, not a script fault.",
+    "needsOnDp1gen9": "yes - generic fleet task-health check (local-owned paths list would need review)",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\Test-ScheduledTaskHealth.ps1 (help block, exit lines)",
+      "scheduled-task-health.json summary"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "PC-AI-ThunderboltPeerAgent",
+    "purpose": "At logon runs Register-ThunderboltPeer -Apply -UpdateHostsFile -EnableSmbDirect from the deployed PC-AI.Drivers module: configures USB4/Thunderbolt P2P adapters (IPv6 link-local/ULA, MTU 62000, metric 5), discovers peers, adds hosts entries and SMB Direct.",
+    "owner": "PC_AI (runs a deployed copy under ~/.local/share/pc-ai/deployed, MANIFEST sourceRepo C:\\codedev\\PC_AI)",
+    "script": "C:\\Users\\david\\.local\\share\\pc-ai\\deployed\\Modules\\PC-AI.Drivers\\Public\\Register-ThunderboltPeer.ps1",
+    "expectedRuntimeHint": "seconds to a minute, one-shot at logon (task limit PT10M)",
+    "failureSignal": "No log path found in the header; returns a PSCustomObject; task result 0 at last run. Config falls back to ~/.machine/thunderbolt-peers.json.",
+    "needsOnDp1gen9": "yes - designed for dtm-p1gen7 <-> dtm-p1gen9 USB4 peering; p1gen9 needs the other end",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "deployed\\MANIFEST.json",
+      "Register-ThunderboltPeer.ps1 (help block + params)"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Pcai-CloudMount-U-AfterVHDX",
+    "purpose": "Limited, delayed logon gate: after hash-pinned admission checks (task XML/wrapper/helper SHA256, F: cache volume and VHDX identity) starts the existing read-only provider task Rclone-Dropbox-Gmail-U so Gmail Dropbox mounts on U: (\\\\dropbox-cloud\\gmail-u). Never creates or changes provider tasks.",
+    "owner": "PC_AI (runs deployed copy under ~/.local/share/pc-ai/deployed, MANIFEST sourceRepo C:\\codedev\\PC_AI)",
+    "script": "C:\\Users\\david\\.local\\share\\pc-ai\\deployed\\Tools\\SystemScripts\\Networking\\Invoke-PcaiCloudMountGate.ps1 -> Start-PcaiCloudMount.ps1",
+    "expectedRuntimeHint": "bounded by -TimeoutSeconds 180 (task limit PT5M), one-shot at logon",
+    "failureSignal": "Receipts in C:\\codedev\\evidence\\dropbox-storage-review\\r5 (atomic JSON); refuses on hash/identity mismatch (stays pending until timeout). Editing the provider task XML or deployed scripts breaks the pinned hashes by design.",
+    "needsOnDp1gen9": "no - pinned to p1gen7 F: cache volume GUIDs, SID and rclone provider tasks",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "Invoke-PcaiCloudMountGate.ps1 (help + params)",
+      "Start-PcaiCloudMount.ps1 (help + params)",
+      "deployed\\MANIFEST.json"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Pcai-CloudMount-V-AfterVHDX",
+    "purpose": "Limited, delayed logon gate: after hash-pinned admission checks (task XML/wrapper/helper SHA256, F: cache volume and VHDX identity) starts the existing read-only provider task Rclone-VIGIL-Team so VIGIL team Dropbox mounts on V: (\\\\dropbox-cloud\\vigil-umich). Never creates or changes provider tasks.",
+    "owner": "PC_AI (runs deployed copy under ~/.local/share/pc-ai/deployed, MANIFEST sourceRepo C:\\codedev\\PC_AI)",
+    "script": "C:\\Users\\david\\.local\\share\\pc-ai\\deployed\\Tools\\SystemScripts\\Networking\\Invoke-PcaiCloudMountGate.ps1 -> Start-PcaiCloudMount.ps1",
+    "expectedRuntimeHint": "bounded by -TimeoutSeconds 180 (task limit PT5M), one-shot at logon",
+    "failureSignal": "Receipts in C:\\codedev\\evidence\\dropbox-storage-review\\r5 (atomic JSON); refuses on hash/identity mismatch (stays pending until timeout). Editing the provider task XML or deployed scripts breaks the pinned hashes by design.",
+    "needsOnDp1gen9": "no - pinned to p1gen7 F: cache volume GUIDs, SID and rclone provider tasks",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "Invoke-PcaiCloudMountGate.ps1 (help + params)",
+      "Start-PcaiCloudMount.ps1 (help + params)",
+      "deployed\\MANIFEST.json"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Process Lasso Core Engine Only",
+    "purpose": "Process Lasso core engine (processgovernor.exe) autostart (vendor)",
+    "owner": "vendor:Bitsum",
+    "script": "\"C:\\Program Files\\Process Lasso\\processgovernor.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Process Lasso Management Console (GUI)",
+    "purpose": "Process Lasso management console GUI autostart (vendor)",
+    "owner": "vendor:Bitsum",
+    "script": "\"C:\\Program Files\\Process Lasso\\processlasso.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Rclone-Dropbox-Gmail-U",
+    "purpose": "Provider task: rclone mounts Dropbox remote dropbox-gmail: read-only on U: (network mode, vfs cache on F:\\RcloneCache\\gmail-u, 20G cap). Description says manual start until cache admission is installed; started by Pcai-CloudMount-U-AfterVHDX.",
+    "owner": "none (task definition only; rclone.exe in ~/bin; gate scripts live in PC_AI)",
+    "script": "C:\\Users\\david\\bin\\rclone.exe mount dropbox-gmail: U:",
+    "expectedRuntimeHint": "daemon, runs while mounted (no time limit); currently Running",
+    "failureSignal": "Log C:\\codedev\\evidence\\dropbox-storage-review\\r4\\netdrive-gmail-u-mount.log (INFO level). No script exit codes.",
+    "needsOnDp1gen9": "no - uses p1gen7 F: cache disk; R drive is reserved for dtm-work",
+    "confidence": "read",
+    "checked": [
+      "task XML (args)",
+      "PC_AI gate scripts referencing the task name (grep)"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Rclone-VIGIL-Team",
+    "purpose": "Provider task: rclone mounts Dropbox remote dropbox-vigil: read-only on V: (\\\\dropbox-cloud\\vigil-umich, vfs cache F:\\RcloneCache\\vigil-umich). Manual start only after the F: disk is verified; started by Pcai-CloudMount-V-AfterVHDX.",
+    "owner": "none (task definition only; rclone.exe in ~/bin; gate scripts live in PC_AI)",
+    "script": "C:\\Users\\david\\bin\\rclone.exe mount dropbox-vigil: V:",
+    "expectedRuntimeHint": "daemon while mounted (no time limit); currently Ready, last result 0",
+    "failureSignal": "Log C:\\codedev\\evidence\\dropbox-storage-review\\r1\\vigil-rclone-mount.log. No script exit codes.",
+    "needsOnDp1gen9": "no - uses p1gen7 F: cache disk",
+    "confidence": "read",
+    "checked": [
+      "task XML (args + description)",
+      "PC_AI gate scripts referencing the task name (grep)"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "RmeRunner",
+    "purpose": "GitHub Actions self-hosted runner for David-Martel/rme (agent dtm-p1gen7-rme-windows-x64): runs run.cmd under conhost --headless; the task has NO triggers (manual or started by another controller).",
+    "owner": "none (GitHub Actions runner install in C:\\actions-runner\\rme, not a git repo)",
+    "script": "C:\\actions-runner\\rme\\run.cmd",
+    "expectedRuntimeHint": "daemon, runs until stopped (no time limit); last started 10/5/2026",
+    "failureSignal": "Runner _diag logs in its install dir (standard layout, not inspected). Last TaskResult 267014 = terminated (not currently running).",
+    "needsOnDp1gen9": "no - runner registration is host-specific",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\actions-runner\\rme\\run.cmd (standard runner loop)",
+      "C:\\actions-runner\\rme\\.runner (agentName, gitHubUrl)"
+    ],
+    "launcherNote": "NOT migrated (outside the agreed scope); same command as Sam3TestbedRunner would apply.",
+    "knownIssue": "Research pass: no triggers although its description says it starts at logon. Not re-verified."
+  },
+  {
+    "path": "\\",
+    "name": "RtkAudUService64_BG",
+    "purpose": "Realtek audio service background helper (vendor)",
+    "owner": "vendor:Realtek",
+    "script": "\"\"C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\realtekservice.inf_amd64_da20c535c8dde220\\RtkAudUService64.exe\"\" -background",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "Sam3TestbedRunner",
+    "purpose": "GitHub Actions self-hosted runner for David-Martel/sam3_testbed (agent sam3-testbed-local): runs run.cmd under conhost --headless; the task has NO triggers (manual or started by another controller).",
+    "owner": "none (GitHub Actions runner install in C:\\actions-runner\\sam3_testbed, not a git repo)",
+    "script": "C:\\actions-runner\\sam3_testbed\\run.cmd",
+    "expectedRuntimeHint": "daemon, runs until stopped (no time limit); last started 8/4/2026",
+    "failureSignal": "Runner _diag logs in its install dir (standard layout, not inspected). Last TaskResult 267014 = terminated (not currently running).",
+    "needsOnDp1gen9": "no - runner registration is host-specific",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\actions-runner\\sam3_testbed\\run.cmd (standard runner loop)",
+      "C:\\actions-runner\\sam3_testbed\\.runner (agentName, gitHubUrl)"
+    ],
+    "notifyBusReason": "Runners: the sam3_testbed Actions runner process; a nonzero exit means that repo has no runner.",
+    "launcherNote": "No launcher timeout: a runner is a daemon with no time limit."
+  },
+  {
+    "path": "\\",
+    "name": "Session agent for Process Lasso",
+    "purpose": "Process Lasso session agent (vendor)",
+    "owner": "vendor:Bitsum",
+    "script": "\"C:\\Program Files\\Process Lasso\\bitsumsessionagent.exe\" ------------------------------------------------------------",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "UDP Socket Monitor",
+    "purpose": "Every 5 min counts UDP endpoints; above 5000 logs the top offenders and force-kills a dllhost process holding more than 10000 sockets, then flushes DNS (workaround for a UDP socket leak that broke DNS).",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Monitor-UDPSockets.ps1",
+    "expectedRuntimeHint": "seconds, one-shot every 5 min (task limit PT3M)",
+    "failureSignal": "~/.machine\\logs\\udp-monitor.log (hourly OK line, ALERT / AUTO-KILL lines); script always exits 0. Note it auto-kills processes by design.",
+    "needsOnDp1gen9": "unknown - generic leak guard, only useful if p1gen9 shows the same dllhost leak",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Monitor-UDPSockets.ps1 (whole head)"
+    ],
+    "notifyBusReason": "No: local housekeeping, retried every 5 minutes.",
+    "knownIssue": "Intentional but sensitive: force-kills dllhost."
+  },
+  {
+    "path": "\\",
+    "name": "VIGIL-DashboardRefresh",
+    "purpose": "Every 15 min runs dashboard_delivery.py refresh: syncs the validated CI tracker dashboard artifact (David-Martel/vigil-ai-tpm workflow tracker-dashboard) into output\\tracker_publish and refreshes evidence-availability metadata via mitll_evidence source-availability.",
+    "owner": "vigil_ai",
+    "script": "C:\\codedev\\vigil_ai\\.venv\\Scripts\\pythonw.exe C:\\codedev\\vigil_ai\\scripts\\tracker_tools\\dashboard_delivery.py refresh",
+    "expectedRuntimeHint": "bounded: metadata subprocess timeout 120 s, task limit PT5M, one-shot every 15 min",
+    "failureSignal": "C:\\codedev\\vigil_ai\\output\\tracker_publish\\dashboard_refresh.json receipt (checked_at, dashboard, metadata, failures); exit 1 if any failure. Currently BROKEN: last result 1, receipt says dashboard artifact unavailable and metadata refresh failed.",
+    "needsOnDp1gen9": "no - tied to the local vigil_ai checkout and venv serving the local dashboard",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "dashboard_delivery.py (refresh() lines 440-510, argparse)",
+      "output\\tracker_publish\\dashboard_refresh.json"
+    ],
+    "knownIssue": "Research pass: last run returned 1 (dashboard artifact unavailable / metadata refresh failed). Not re-verified."
+  },
+  {
+    "path": "\\",
+    "name": "VIGIL-Public-ASUS-NFS",
+    "purpose": "At logon and on network events mounts the public ASUS fleet NFS share (/srv/vigil-share, drive N: default) only when its approved LAN is reachable, via Mount-VigilFleetShare.ps1 -Action Mount -Apply.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Networking\\Mount-VigilFleetShare.ps1",
+    "expectedRuntimeHint": "seconds (native calls bounded at 8 s each; task limit PT3M)",
+    "failureSignal": "%LOCALAPPDATA%\\dtm-tasks\\logs\\vigil-public-asus-nfs.log; throws on NFS mount failure. Last result 267014 (terminated) at 15:06 logon, i.e. likely killed by the 3-minute limit; cause not confirmed.",
+    "needsOnDp1gen9": "yes - generic fleet NFS share mount (needs the approved-LAN source addresses to be updated for p1gen9)",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Networking\\Mount-VigilFleetShare.ps1 (help block, log path, exit paths)"
+    ],
+    "knownIssue": "Research pass: last result 267014 (terminated), probably the 3-minute limit. Not re-verified."
+  },
+  {
+    "path": "\\",
+    "name": "VIGIL-TPM-Evidence-Availability",
+    "purpose": "Every 6 h read-only collection of selected cloud/fleet metadata (Drive folder, ssh stat of repos and evidence files on asuspro13-lan, spark-0060, spark-3066, vigil1) into a local PI availability sidecar; no downloads or remote writes; availability does not imply acceptance.",
+    "owner": "vigil_ai",
+    "script": "C:\\codedev\\vigil_ai\\.venv\\Scripts\\pythonw.exe -m scripts.mitll_evidence source-availability ...",
+    "expectedRuntimeHint": "bounded: --timeout 30 --budget 240 s (task limit PT10M); currently Running",
+    "failureSignal": "Writes the availability sidecar via --write (default path in mitll_evidence, not confirmed); nonzero exit on failure; README at scripts\\mitll_evidence\\README.md.",
+    "needsOnDp1gen9": "no - ssh jump config and local PI sidecar are specific to this operator machine",
+    "confidence": "read",
+    "checked": [
+      "task XML (description + args)",
+      "C:\\codedev\\vigil_ai\\scripts\\mitll_evidence\\README.md head",
+      "_availability.py greps"
+    ]
+  },
+  {
+    "path": "\\",
+    "name": "VigilLocalRunners-OnDemand",
+    "purpose": "Every 5 min starts local CI runners (Docker vigil-ai-tpm, usability_2026 last resort; native Windows rme and agent-hub) only when queued GitHub jobs need them and stops them when idle or on battery (owner policy 2026-10-05).",
+    "owner": "vigil_ai",
+    "script": "C:\\codedev\\vigil_ai\\scripts\\runners\\Invoke-LocalRunnerOnDemand.ps1",
+    "expectedRuntimeHint": "seconds per tick (task limit PT4M); a tick may start/stop runner containers",
+    "failureSignal": "%LOCALAPPDATA%\\VigilLocalRunners\\ondemand.log (last line: done (exit 4), GitHub runner inventory query timed out after 20 s); task result 0 despite script exit 4.",
+    "needsOnDp1gen9": "no - policy is to keep CI on asuspro13 and run laptop runners only on demand on p1gen7",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\vigil_ai\\scripts\\runners\\Invoke-LocalRunnerOnDemand.ps1 (help block)",
+      "ondemand.log tail"
+    ],
+    "notifyBusReason": "Runners: starts and stops the GitHub Actions runners on demand; exits 1-4 mean CI has no runner or the queue is unknown.",
+    "knownIssue": "VERIFIED on the 18:03 run: exit 4 (every GitHub REST runner-inventory query timed out after 20 s, so nothing was started). Invisible behind conhost; later ticks return 0 when GitHub answers. Exit 4 is now Failed in the health check and posted to the bus at most hourly."
+  },
+  {
+    "path": "\\",
+    "name": "VigilNet-Watchdog",
+    "purpose": "At logon and every 15 min vigil-net monitor: checks the Tailscale/Headscale node is Running, confirms twice, then heals (reset only after 2 consecutive down ticks) and alerts.",
+    "owner": "vigil-utils",
+    "script": "C:\\codedev\\vigil-utils\\scripts\\fleet\\vigil-net.ps1 monitor -Quiet",
+    "expectedRuntimeHint": "seconds normally, up to ~20 s recheck plus heal (task limit PT10M)",
+    "failureSignal": "~/.machine\\logs\\vigil-net.log and vigil-net.monitor.state (consecutive-failure streak); alerts via Send-VigilNetAlert; monitor verb intentionally exits 0.",
+    "needsOnDp1gen9": "yes - generic fleet tailnet node watchdog (designed for dtm-* machines)",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\vigil-utils\\scripts\\fleet\\vigil-net.ps1 (help block, Invoke-Monitor, exit comment)"
+    ],
+    "notifyBusReason": "Fleet network: self-heals the tailnet node; a crash leaves the node unmonitored (the script exits 0 on a normal run, so nonzero means it broke)."
+  },
+  {
+    "path": "\\",
+    "name": "ZoomUpdateTaskUser-S-1-5-21-357761096-1057752491-2136275046-1001",
+    "purpose": "Zoom client update check (vendor)",
+    "owner": "vendor:Zoom",
+    "script": "\"C:\\Users\\david\\AppData\\Roaming\\Zoom\\bin\\Zoom.exe\" --action=UpdateSchedule",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Bitwarden\\",
+    "name": "Initialize-MachineSecrets",
+    "purpose": "At logon loads the BWS access token, syncs Bitwarden Secrets Manager secrets (cache if offline) and sets them (API keys etc.) as persistent User environment variables, then broadcasts the env change.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Initialize-SecretsAtBoot.ps1",
+    "expectedRuntimeHint": "seconds, one-shot at logon (task limit PT5M)",
+    "failureSignal": "~/.machine\\logs\\boot-init.log (500 KB cap); designed never to fail catastrophically, exits with computed exitCode.",
+    "needsOnDp1gen9": "unknown - generic secrets bootstrap, depends on per-host DPAPI token and ~/.machine",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Initialize-SecretsAtBoot.ps1 (head)"
+    ],
+    "knownIssue": "Intentional but sensitive: writes API keys into persistent User environment variables."
+  },
+  {
+    "path": "\\DropboxSystem\\DropboxUpdater\\",
+    "name": "DropboxUpdaterTaskSystem136.0.7068.224{899E71FE-1753-48E2-978B-18ACC6E8BB92}",
+    "purpose": "Dropbox Updater system wake task (vendor) - task Description: DropboxUpdater Task System 136.0.7068.224",
+    "owner": "vendor:Dropbox",
+    "script": "\"C:\\Program Files\\Dropbox\\DropboxUpdater\\136.0.7068.224\\updater.exe\" --wake --system",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Google\\",
+    "name": "Quick Share Relaunch",
+    "purpose": "Google Quick Share (Nearby Share) relaunch if crashed (vendor)",
+    "owner": "vendor:Google",
+    "script": "C:\\Program Files\\Google\\NearbyShare\\nearby_share_launcher.exe --relaunch_if_crashed",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\GoogleSystem\\GoogleUpdater\\",
+    "name": "GoogleUpdaterTaskSystem157.0.8089.0{2DDB1CDD-444F-41FB-BBD9-1C3C79DDB11F}",
+    "purpose": "Google Updater system wake task (vendor) - task Description: GoogleUpdater Task System 157.0.8089.0",
+    "owner": "vendor:Google",
+    "script": "\"C:\\Program Files (x86)\\Google\\GoogleUpdater\\157.0.8089.0\\updater.exe\" --wake --system",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\GoogleUserPEH\\",
+    "name": "RunPlatformExperienceHelper_Daily",
+    "purpose": "Chrome Platform Experience Helper run (daily / on unlock / metrics upload; vendor) - task Description: Runs platform experience helper daily",
+    "owner": "vendor:Google",
+    "script": "\"C:\\Program Files\\Google\\Chrome\\Application\\PlatformExperienceHelper\\platform_experience_helper.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\GoogleUserPEH\\",
+    "name": "RunPlatformExperienceHelper_Metrics",
+    "purpose": "Chrome Platform Experience Helper run (daily / on unlock / metrics upload; vendor) - task Description: Runs platform experience helper once in the future",
+    "owner": "vendor:Google",
+    "script": "\"C:\\Program Files\\Google\\Chrome\\Application\\PlatformExperienceHelper\\platform_experience_helper.exe\" --chrome-upload-metrics",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\GoogleUserPEH\\",
+    "name": "RunPlatformExperienceHelperOnUnlock",
+    "purpose": "Chrome Platform Experience Helper run (daily / on unlock / metrics upload; vendor) - task Description: Runs platform experience helper when screen is unlocked",
+    "owner": "vendor:Google",
+    "script": "\"C:\\Program Files\\Google\\Chrome\\Application\\PlatformExperienceHelper\\platform_experience_helper.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\HP\\HP Print Scan Doctor\\",
+    "name": "Printer Health Monitor",
+    "purpose": "HP Print Scan Doctor printer health monitor (vendor) - task Description: HP Printer Health Monitor.",
+    "owner": "vendor:HP",
+    "script": "C:\\Program Files\\HPPrintScanDoctor\\HPPrinterHealthMonitor.exe",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\HP\\HP Print Scan Doctor\\",
+    "name": "Printer Health Monitor Logon",
+    "purpose": "HP Print Scan Doctor printer health monitor (vendor) - task Description: HP Printer Health Monitor Logon Task.",
+    "owner": "vendor:HP",
+    "script": "C:\\Program Files\\HPPrintScanDoctor\\HPPrinterHealthMonitor.exe",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\",
+    "name": "Lenovo Professional Ultraslim Wireless Combo Gen2 OSD task",
+    "purpose": "Lenovo accessory OSD task (vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "\"C:\\Program Files\\Lenovo\\Lenovo Professional Wireless Rechargeable Combo\\UltraslimOSD.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\ImController\\",
+    "name": "Lenovo iM Controller Monitor",
+    "purpose": "Lenovo iM Controller service maintenance or time-based event trigger (vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "\"%windir%\\system32\\ImController.InfInstaller.exe\" -checkremoval",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\ImController\\",
+    "name": "Lenovo iM Controller Scheduled Maintenance",
+    "purpose": "Lenovo iM Controller service maintenance or time-based event trigger (vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "\"%windir%\\system32\\sc.exe\" START ImControllerService",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\ImController\\TimeBasedEvents\\",
+    "name": "644eb4a6-b3ff-4ec3-b1fe-fff4947862b2",
+    "purpose": "Lenovo iM Controller service maintenance or time-based event trigger (vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "\"C:\\WINDOWS\\Lenovo\\ImController\\Service\\Lenovo.Modern.ImController.exe\" /timebasedeventtrigger 644eb4a6-b3ff-4ec3-b1fe-fff4947862b2",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\ImController\\TimeBasedEvents\\",
+    "name": "7d276d76-0052-43fa-925a-fe57ef309ffe",
+    "purpose": "Lenovo iM Controller service maintenance or time-based event trigger (vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "\"C:\\WINDOWS\\Lenovo\\ImController\\Service\\Lenovo.Modern.ImController.exe\" /timebasedeventtrigger 7d276d76-0052-43fa-925a-fe57ef309ffe",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\ITS\\",
+    "name": "Lenovo ITS ADM Task",
+    "purpose": "Lenovo Intelligent Thermal Solution (LITSSvc) task (vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Windows\\System32\\DriverStore\\FileRepository\\litsdrv.inf_amd64_560d28789341653e\\LITSSvc.exe -ADM",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\ITS\\",
+    "name": "Lenovo ITS WM Task",
+    "purpose": "Lenovo Intelligent Thermal Solution (LITSSvc) task (vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Windows\\System32\\DriverStore\\FileRepository\\litsdrv.inf_amd64_3e01da4fafa095e3\\LITSSvc.exe -WM",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Lenovo Display Control Center\\",
+    "name": "lenovo_accessories_and_display_manager_v1_0_6_05_setup.exe",
+    "purpose": "Lenovo Accessories and Display Manager task helper (vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files\\Lenovo\\Lenovo Accessories and Display Manager\\TaskStartHelper.exe QzpcUHJvZ3JhbURhdGFcTGVub3ZvXExlbm92b0FjY2Vzc29yaWVzQW5kRGlz",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Lenovo Service Bridge\\",
+    "name": "S-1-5-21-357761096-1057752491-2136275046-1001",
+    "purpose": "Lenovo Service Bridge updater so Lenovo support site can detect the serial number (vendor) - task Description: This program enables Lenovo's support website to automatically detect your computer's serial number and model.",
+    "owner": "vendor:Lenovo",
+    "script": "\"C:\\Users\\david\\AppData\\Local\\Programs\\Lenovo\\Lenovo Service Bridge\\LSBUpdater.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Power Manager\\",
+    "name": "Background monitor",
+    "purpose": "Lenovo Power Manager background monitor / uninstall check (vendor) - task Description: Learn your computer power status and battery health information. Configure power settings to get the most out of your battery.",
+    "owner": "vendor:Lenovo",
+    "script": "\"C:\\WINDOWS\\SysWOW64\\Lenovo\\PowerMgr\\PowerMgr.exe\"",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Power Manager\\",
+    "name": "Uninstall task",
+    "purpose": "Lenovo Power Manager background monitor / uninstall check (vendor) - task Description: Check if Power Manager is being uninstalled and then complete the uninstall tasks.",
+    "owner": "vendor:Lenovo",
+    "script": "%windir%\\SysWOW64\\PowerMgrInst.exe -checkremoval",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\SmartStandby\\",
+    "name": "Daily analysis",
+    "purpose": "Lenovo Smart Standby daily usage analysis / uninstall monitor (vendor) - task Description: Perform daily analysis for the PC usage.",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\smartstandbycomponent.inf_amd64_3d585c065d8f0236\\AutonomicMgr.exe dailyAnalysis",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\SmartStandby\\",
+    "name": "Uninstall Monitor",
+    "purpose": "Lenovo Smart Standby daily usage analysis / uninstall monitor (vendor) - task Description: Check if Smart Standby is being uninstalled and then complete the uninstall tasks.",
+    "owner": "vendor:Lenovo",
+    "script": "%windir%\\system32\\SmartStandbyInst.exe -checkremoval",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\TrackPointQuickMenu\\Schedule\\",
+    "name": "ActivationDailyScheduleTask",
+    "purpose": "Lenovo TrackPoint Quick Menu daily activation task (vendor) - task Description: The activation of TrackPointQuickMenu to increase users' engagement",
+    "owner": "vendor:Lenovo",
+    "script": "%ProgramData%\\Lenovo\\TPQM\\Assistant\\TPQMAssistant.exe lenovo-trackpointmenu:0x300Z",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\UDC\\",
+    "name": "Lenovo UDC Diagnostic Scan",
+    "purpose": "Lenovo Universal Device Client service task (diagnostic scan, deployment, maintenance or removal monitor; vendor) - task Description: This task runs diagnostic scans.",
+    "owner": "vendor:Lenovo",
+    "script": "%windir%\\system32\\sc.exe control udcservice 210",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\UDC\\",
+    "name": "Lenovo UDC Lazy Deployment",
+    "purpose": "Lenovo Universal Device Client service task (diagnostic scan, deployment, maintenance or removal monitor; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "%windir%\\system32\\sc.exe control udcservice 221",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\UDC\\",
+    "name": "Lenovo UDC Maintainance Task",
+    "purpose": "Lenovo Universal Device Client service task (diagnostic scan, deployment, maintenance or removal monitor; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "%windir%\\system32\\sc.exe control udcservice 220",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\UDC\\",
+    "name": "Lenovo UDC Monitor",
+    "purpose": "Lenovo Universal Device Client service task (diagnostic scan, deployment, maintenance or removal monitor; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "\"%windir%\\system32\\drivers\\lenovo\\udc\\data\\InfBackup\\UdcInfInstaller.exe\" -checkremoval",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\",
+    "name": "Lenovo.Vantage.ServiceMaintainance",
+    "purpose": "Lenovo Vantage service maintenance (starts LenovoVantageService; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "%systemroot%\\system32\\sc.exe start LenovoVantageService",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "CommercialAddinDailyScheduleTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe CommercialAddinDailyScheduleTask",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "ConsumerAddinDailyScheduleTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe ConsumerAddinDailyScheduleTask",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "DailyTelemetryTransmission",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe DailyTelemetryTransmission",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "GenericMessagingAddin",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe GenericMessagingAddin",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "GenericMessagingAddin_Pulsation",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe GenericMessagingAddin_Pulsation",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "HeartbeatAddinDailyScheduleTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe HeartbeatAddinDailyScheduleTask",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "Lenovo.Vantage.SmartPerformance.MonthlyReport",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe Lenovo.Vantage.SmartPerformance.MonthlyReport",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "Lenovo.Vantage.SmartPerformance.SScan",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe Lenovo.Vantage.SmartPerformance.SScan",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "LenovoCompanionAppAddinDailyScheduleTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe LenovoCompanionAppAddinDailyScheduleTask",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "LenovoSupportContextEngineDaily",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe LenovoSupportContextEngineDaily",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "LenovoSupportHealthReportSchedule",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe LenovoSupportHealthReportSchedule",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "LenovoSystemUpdateAddin_WeeklyTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe LenovoSystemUpdateAddin_WeeklyTask",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "LiveWallpaperDailyScheduleTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe LiveWallpaperDailyScheduleTask",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "LiveWallpaperScheduleTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe LiveWallpaperScheduleTask",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "SmartPerformance.ExpireReminder",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe SmartPerformance.ExpireReminder",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "VantageCoreAddinDailyScheduleTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe VantageCoreAddinDailyScheduleTask",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "VantageCoreAddinIdleScheduleTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\ProgramData\\Lenovo\\Vantage\\Addins\\VantageCoreAddin\\1.1.0.51\\x86\\IdleScheduleEventAction.exe",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\Lenovo\\Vantage\\Schedule\\",
+    "name": "VantageCoreAddinWeekScheduleTask",
+    "purpose": "Lenovo Vantage scheduled add-in action via ScheduleEventAction.exe (telemetry, messaging, wallpaper, support or update helpers; vendor)",
+    "owner": "vendor:Lenovo",
+    "script": "C:\\Program Files (x86)\\Lenovo\\VantageService\\5.1.2609.9\\ScheduleEventAction.exe VantageCoreAddinWeekScheduleTask",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\PowerShell\\",
+    "name": "ProfileLogSync",
+    "purpose": "Every 15 min syncs local JSONL PowerShell profile logs (~/.machine/logs) to OneDrive\\Documents\\PowerShell\\ProfileLogs with conflict handling.",
+    "owner": "PC_AI",
+    "script": "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Sync-ProfileLogs.ps1",
+    "expectedRuntimeHint": "seconds, one-shot every 15 min (task limit PT5M)",
+    "failureSignal": "Script prints/returns a result object; exit 1 on sync failure (line 596).",
+    "needsOnDp1gen9": "yes - generic multi-machine log sync (designed for several machines writing to the same OneDrive folder)",
+    "confidence": "read",
+    "checked": [
+      "task XML",
+      "C:\\codedev\\PC_AI\\Tools\\SystemScripts\\Machine\\Sync-ProfileLogs.ps1 (help block)"
+    ],
+    "notifyBusReason": "No: syncs shell profile logs to OneDrive; low value and retried every 15 minutes."
+  },
+  {
+    "path": "\\PowerToys\\",
+    "name": "Autorun for david",
+    "purpose": "PowerToys autorun at logon for user david (vendor)",
+    "owner": "vendor:Microsoft",
+    "script": "C:\\Users\\david\\AppData\\Local\\PowerToys\\PowerToys.exe",
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\SoftLanding\\S-1-5-21-357761096-1057752491-2136275046-1001\\",
+    "name": "SoftLandingCreativeManagementTask",
+    "purpose": "Windows SoftLanding content/expiration task (COM handler action; vendor)",
+    "owner": "vendor:Microsoft",
+    "script": null,
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  },
+  {
+    "path": "\\SoftLanding\\S-1-5-21-357761096-1057752491-2136275046-1001\\",
+    "name": "SoftLandingRefreshForExpirationTask-{7104eea1-4d95-4ebf-84c6-35d1844d24ec}",
+    "purpose": "Windows SoftLanding content/expiration task (COM handler action; vendor)",
+    "owner": "vendor:Microsoft",
+    "script": null,
+    "expectedRuntimeHint": "vendor-managed",
+    "failureSignal": "vendor-managed; not assessed",
+    "needsOnDp1gen9": "unknown - vendor/hardware-specific, installed per machine",
+    "confidence": "vendor",
+    "checked": [
+      "task Description and action Execute from Get-ScheduledTask"
+    ]
+  }
+]

@@ -42,12 +42,20 @@ function script:Save-DiagnosisReport {
         [Parameter(Mandatory)]
         [bool]$ShouldSave,
 
-        [Parameter(Mandatory)]
+        [Parameter()]
         [string]$OutputPath
     )
 
     if (-not $ShouldSave) {
         return $null
+    }
+
+    if ([string]::IsNullOrEmpty($OutputPath)) {
+        $desktop = [Environment]::GetFolderPath('Desktop')
+        if ([string]::IsNullOrWhiteSpace($desktop)) {
+            throw 'No Desktop folder is available; specify -OutputPath when using -SaveReport.'
+        }
+        $OutputPath = Join-Path -Path $desktop -ChildPath 'PC-Diagnosis-Analysis.txt'
     }
 
     Set-Content -Path $OutputPath -Value $Content -Encoding utf8
@@ -84,7 +92,8 @@ function Invoke-PCDiagnosis {
         Save the analysis report to a file
 
     .PARAMETER OutputPath
-        Path to save the analysis report (default: Desktop\PC-Diagnosis-Analysis.txt)
+        Path to save the analysis report (default: Desktop\PC-Diagnosis-Analysis.txt).
+        Required with -SaveReport when the host has no Desktop folder.
 
     .PARAMETER TimeoutSeconds
         Request timeout in seconds (30-1800). Default: 300
@@ -143,7 +152,7 @@ function Invoke-PCDiagnosis {
         [switch]$SaveReport,
 
         [Parameter()]
-        [string]$OutputPath = (Join-Path -Path ([Environment]::GetFolderPath('Desktop')) -ChildPath 'PC-Diagnosis-Analysis.txt'),
+        [string]$OutputPath,
 
         [Parameter()]
         [ValidateRange(30, 1800)]

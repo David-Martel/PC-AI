@@ -1,0 +1,39 @@
+# Pester files that run in the Linux self-hosted CI (.github/workflows/linux-ci.yml, job pester-lint).
+#
+# Why a list and not "every file tagged Portable": run on Linux 2026-10-20, 26 of the 57 files under Tests/Unit pass
+# every Portable-tagged test when the whole directory is run file by file (322 tests), 21 fail (265 failing tests) and
+# 10 have no Portable test. PC-AI.InferenceFallback.Tests.ps1 is one of the 26 but is left out: it fails 5 tests when
+# it runs first in a fresh session, so it depends on module state that earlier files leave behind. The failing files
+# exercise Windows-only surfaces (CIM/WMI, the registry, driver and network adapters, Hyper-V/WSL, a `C:` drive), so
+# the Portable tag over-promises on a non-Windows host. Running the passing subset gives a gate that can fail for
+# a real regression instead of one that is red from day one.
+#
+# Add a file here only after it passes on Linux in isolation:
+#   pwsh -c "Invoke-Pester -Path Tests/Unit/<file> -Tag Portable"
+# The workflow runs the listed files in ONE Invoke-Pester call, so a file must also pass when run before or after the others.
+# Remove a file when it becomes Windows-dependent. One file name per line, relative to Tests/Unit. '#' starts a comment.
+CargoTools.Tests.ps1
+Compare-ProcessListPerformance.Tests.ps1
+FunctionGemmaConfig.Tests.ps1
+Get-JulesPRStatus.Tests.ps1
+Initialize-CudaEnvironment.Tests.ps1
+Invoke-JulesOrchestrator.Tests.ps1
+Invoke-JulesSession.Tests.ps1
+Invoke-LLMChatRouted.Tests.ps1
+Invoke-RustBuild.Tests.ps1
+LLM-ErrorHandling.Tests.ps1
+LLM-Fallback.Tests.ps1
+LLM-Logging.Tests.ps1
+New-PcaiPowerShellRelease.Tests.ps1
+PC-AI.Acceleration.Tests.ps1
+PC-AI.ApiSignature.Tests.ps1
+PC-AI.LLM.ReAct.Tests.ps1
+PC-AI.LLM.Tests.ps1
+PC-AI.Robustness.Tests.ps1
+PC-AI.Router.Tests.ps1
+ProviderHealthCache.Tests.ps1
+Resolve-PcaiPath.Tests.ps1
+RustGuidelines.Compliance.Tests.ps1
+Set-LLMProviderOrder.Tests.ps1
+ToolingBenchmarks.Tests.ps1
+Validate-ToolParameters.Tests.ps1

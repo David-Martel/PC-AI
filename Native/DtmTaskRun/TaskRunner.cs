@@ -24,6 +24,12 @@ internal sealed class RunnerContext
     public required IBusNotifier Bus { get; init; }
 
     /// <summary>
+    /// Creates the kill-on-close job for one run. Returning null (the OS refused) means the child is not run:
+    /// the launcher does not start work it cannot contain. Tests replace it to prove that.
+    /// </summary>
+    public Func<JobObject?> CreateJob { get; init; } = JobObject.TryCreate;
+
+    /// <summary>
     /// Production wiring. <c>DTM_TASKS_DIR</c> and <c>DTM_AGENT_BUS_EXE</c> override the defaults
     /// (<c>%LOCALAPPDATA%\dtm-tasks</c> and <c>%USERPROFILE%\bin\agent-bus.exe</c>); tests and dry runs use them.
     /// </summary>
@@ -77,31 +83,9 @@ internal sealed class TaskRunner
     /// <summary>Creates a runner.</summary>
     public TaskRunner(RunnerContext ctx) => _ctx = ctx;
 
-    /// <summary>
-    /// The start info for the child: no window, no shell, all three std streams redirected. Exposed
-    /// so a test can assert the hidden-launch flags without spawning anything.
-    /// </summary>
-    internal static ProcessStartInfo BuildStartInfo(RunOptions o)
-    {
-        var psi = new ProcessStartInfo
-        {
-            FileName = o.Exe,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
-        };
-        foreach (var a in o.Args)
-        {
-            psi.ArgumentList.Add(a);
-        }
-
-        psi.Environment["DTM_TASK_NAME"] = o.Name;
-        return psi;
-    }
+    /// <summary>Variables added to the child's environment.</summary>
+    internal static IReadOnlyDictionary<string, string> ChildEnvironment(RunOptions o)
+        => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["DTM_TASK_NAME"] = o.Name };
 
     /// <summary>Runs the child and returns the exit code the launcher should exit with.</summary>
     public int Run(RunOptions o)
@@ -135,19 +119,15 @@ internal sealed class TaskRunner
         long spawnMs = 0;
         int code;
 
-        Process? child = null;
+        ChildProcess? child = null;
         JobObject? job = null;
         try
         {
-            child = Process.Start(BuildStartInfo(o));
-            if (child is null)
-            {
-                throw new InvalidOperationException("Process.Start returned no process");
-            }
-
-            job = JobObject.TryCreate();
-            _ = job?.TryAssign(child);
-            child.StandardInput.Close();
+            // The job exists before the child does, and ChildProcess assigns the child while it is still
+            // suspended, so nothing the child starts can escape the job (or run when it cannot be contained).
+            job = _ctx.CreateJob() ?? throw new ContainmentException("could not create a job object; the child was not started");
+            child = ChildProcess.Start(o.EffectiveCommandLine, ChildEnvironment(o), job);
+            child.CloseStandardInput();
             spawnMs = watch.ElapsedMilliseconds;
 
             rec.Arm();
@@ -159,8 +139,8 @@ internal sealed class TaskRunner
                 if (!child.WaitForExit(checked(o.TimeoutSeconds * 1000)))
                 {
                     timedOut = true;
-                    job?.Terminate(TimeoutExitCode);
-                    TryKillTree(child);
+                    job.Terminate(TimeoutExitCode);
+                    child.TryKillTree();
                     _ = child.WaitForExit(5000);
                 }
             }
@@ -189,8 +169,16 @@ internal sealed class TaskRunner
             if (!timedOut)
             {
                 // Normal exit: let any deliberately detached daemon outlive the launcher.
-                job?.ReleaseSurvivors();
+                job.ReleaseSurvivors();
             }
+        }
+        catch (ContainmentException ex)
+        {
+            code = InternalErrorExitCode;
+            tail.Add($"launcher did not start '{o.Exe}': {ex.Message}");
+            rec.Write($"dtm-task-run: not started code={code} reason={Redactor.RedactText(ex.Message)}");
+            Finish(o, stem, status, statusPath, logPath, log, rec, watch, spawnMs, code, false, tail, EventLogSink.IdSpawnFailed);
+            return code;
         }
         catch (Win32Exception ex)
         {
@@ -315,18 +303,6 @@ internal sealed class TaskRunner
         };
         t.Start();
         return t;
-    }
-
-    private static void TryKillTree(Process p)
-    {
-        try
-        {
-            p.Kill(entireProcessTree: true);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or NotSupportedException)
-        {
-            // Already gone.
-        }
     }
 
     private static string Iso(DateTimeOffset t) => t.UtcDateTime.ToString("o", CultureInfo.InvariantCulture);

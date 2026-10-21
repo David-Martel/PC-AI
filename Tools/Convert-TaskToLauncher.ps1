@@ -9,14 +9,16 @@ Moves scheduled tasks from `conhost.exe --headless <cmd>` to `dtm-task-run.exe -
 docs/scheduled-tasks/LAUNCHER.md). This script rewrites the single Exec action of each named task:
 
     conhost.exe --headless <child command line>
- -> dtm-task-run.exe --name <TaskName> [--timeout N] [--notify-bus] -- <child command line>
+ -> dtm-task-run.exe --name <TaskId> [--timeout N] [--notify-bus] -- <child command line>
 
-The child command line is copied into the new action's arguments character for character. Note that
-dtm-task-run then splits it into separate arguments and quotes each one again for the child
-(ProcessStartInfo.ArgumentList), whereas conhost passed the line through unchanged: ordinary quoting
-survives, but a command whose meaning depends on unusual quoting (nested `cmd /c ""..." "...""`) should
-be run once after conversion and its log checked. Triggers, principal, settings and run history are
-untouched (Set-ScheduledTask updates in place). Before any
+<TaskId> is the task's leaf name for a task in the root folder and `Folder\Name` otherwise, so tasks with
+the same name in different folders get different status files, logs and bus suppression state. A
+conversion whose id maps to the same file stem as a task already behind dtm-task-run is refused.
+
+The child command line is copied into the new action's arguments character for character, and
+dtm-task-run hands that text to the child unchanged (CreateProcessW with the raw line, as conhost did),
+so quoting is preserved. Triggers, principal, settings and run history are untouched (Set-ScheduledTask
+updates in place). Before any
 change the task XML is exported to <BackupDir>\pre-launcher__<task>.xml, and afterwards to
 after-launcher__<task>.xml.
 
@@ -108,6 +110,37 @@ function Get-TaskBackupName {
     (($Path.Trim('\') + '\' + $Name).Trim('\')) -replace '[\\ ]', '_'
 }
 
+function Get-LauncherTaskId {
+    <# The --name for a task: its leaf name in the root folder, else the folder path plus the name. #>
+    param([Parameter(Mandatory)][string]$TaskPath, [Parameter(Mandatory)][string]$TaskName)
+    $folder = $TaskPath.Trim('\')
+    if ($folder) { "$folder\$TaskName" } else { $TaskName }
+}
+
+function ConvertTo-LauncherStem {
+    <#
+    The launcher's file-name rule (Native/DtmTaskRun/Options.cs TaskNames.ToFileStem): characters invalid in a
+    Windows file name, and spaces, become '_'. Two ids with the same stem share a status file and a log.
+    #>
+    param([Parameter(Mandatory)][string]$Name)
+    $invalid = [char[]]@([char[]]'<>:"/\|?*' + [char[]](0..31))
+    $chars = $Name.Trim().ToCharArray()
+    for ($i = 0; $i -lt $chars.Length; $i++) {
+        if ($chars[$i] -eq ' ' -or $invalid -contains $chars[$i]) { $chars[$i] = '_' }
+    }
+    $stem = (-join $chars).Trim('.')
+    if ($stem) { $stem } else { '_' }
+}
+
+function Get-LauncherIdFromArguments {
+    <# The --name value of a dtm-task-run action, read only before the first bare '--'. #>
+    param([AllowEmptyString()][string]$Arguments)
+    $head = ($Arguments -split '(?:^|\s)--(?:\s|$)', 2)[0]
+    if ($head -match '(?i)--name\s+(?:"(?<q>[^"]+)"|(?<b>\S+))') {
+        if ($Matches['q']) { $Matches['q'] } else { $Matches['b'] }
+    }
+}
+
 function ConvertTo-LauncherArguments {
     <#
     Builds the dtm-task-run argument string from a conhost action's argument string.
@@ -171,6 +204,21 @@ function Invoke-Conversion {
     }
     New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
 
+    # Ids already in use by tasks behind dtm-task-run (read-only inventory), for the collision check.
+    $wrapped = @(
+        foreach ($t in @(Get-ScheduledTask -ErrorAction SilentlyContinue)) {
+            foreach ($a in @($t.Actions)) {
+                if ($a.Execute -match '(?i)dtm-task-run(\.exe)?"?$') {
+                    $id = Get-LauncherIdFromArguments ([string]$a.Arguments)
+                    if ($id) {
+                        $tp = if ($t.TaskPath) { $t.TaskPath } else { '\' }
+                        [pscustomobject]@{ Full = ($tp.TrimEnd('\') + '\' + $t.TaskName); Stem = (ConvertTo-LauncherStem $id) }
+                    }
+                }
+            }
+        }
+    )
+
     foreach ($full in $TaskName) {
         $path = (Split-Path $full -Parent).Replace('/', '\')
         if (-not $path.EndsWith('\')) { $path += '\' }
@@ -204,9 +252,19 @@ function Invoke-Conversion {
         if ($timeout -lt 0 -or $timeout -gt $script:MaxLauncherTimeoutSeconds) {
             throw "-TimeoutSeconds for $full is $timeout; dtm-task-run accepts 0..$($script:MaxLauncherTimeoutSeconds)"
         }
-        $newArgs = ConvertTo-LauncherArguments -Execute $actions[0].Execute -Arguments $actions[0].Arguments -Name $task.TaskName `
+        $taskId = Get-LauncherTaskId -TaskPath $task.TaskPath -TaskName $task.TaskName
+        $newArgs = ConvertTo-LauncherArguments -Execute $actions[0].Execute -Arguments $actions[0].Arguments -Name $taskId `
             -TimeoutSeconds $timeout -NotifyBus:($NotifyBus -contains $full)
         if ($null -eq $newArgs) { Write-Warning "$full is not a conhost --headless wrapper; skipped"; continue }
+
+        # Two tasks whose ids share a file stem would overwrite each other's status and log and share
+        # notification suppression, so refuse the conversion rather than create that collision.
+        $stem = ConvertTo-LauncherStem $taskId
+        $clash = @($wrapped | Where-Object { $_.Full -ne $full -and $_.Stem -eq $stem })
+        if ($clash.Count -gt 0) {
+            Write-Warning "$full would share the launcher id stem '$stem' with $($clash[0].Full); skipped"
+            continue
+        }
 
         $row = [pscustomobject]@{
             Task = $full; BeforeResult = ('0x{0:X}' -f [uint32]$info.LastTaskResult); TimeoutSeconds = $timeout

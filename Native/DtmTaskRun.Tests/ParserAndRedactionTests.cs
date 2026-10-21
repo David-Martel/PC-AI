@@ -71,6 +71,43 @@ public class OptionsParserTests
     }
 }
 
+public class RawCommandLineTests
+{
+    [Theory]
+    [InlineData(@"""C:\x y\dtm-task-run.exe"" --name ""T"" -- cmd.exe /c """"C:\a b\job.cmd"" ""x y""""", new[] { "--name", "T", "--" }, @"cmd.exe /c """"C:\a b\job.cmd"" ""x y""""")]
+    [InlineData(@"dtm-task-run.exe --name T --timeout 590 --notify-bus --   pwsh.exe -File ""C:\a b\x.ps1""  ", new[] { "--name", "T", "--timeout", "590", "--notify-bus", "--" }, @"pwsh.exe -File ""C:\a b\x.ps1""")]
+    [InlineData(@"r.exe --name ""a\""b"" -- x.exe --", new[] { "--name", @"a""b", "--" }, "x.exe --")]
+    public void Child_part_is_the_text_after_the_first_bare_separator(string raw, string[] parsedPrefix, string expected)
+    {
+        // Why: the child must get the scheduled task's own text, not argv re-quoted (see RawCommandLine).
+        // Only the launcher's own tokens up to the separator are cross-checked against argv.
+        var parsed = new List<string>(parsedPrefix) { "child-token-not-compared" };
+        Assert.Equal(expected, RawCommandLine.ChildPart(raw, parsed));
+    }
+
+    [Theory]
+    [InlineData("r.exe --name T x.exe")]    // no separator
+    [InlineData("r.exe --name T --")]       // nothing after it
+    [InlineData("r.exe --name U -- x.exe")] // tokens disagree with argv: fall back rather than guess
+    [InlineData("")]
+    public void Child_part_is_null_when_it_cannot_be_recovered(string raw)
+    {
+        // Why: a null makes the runner rebuild the line from argv, which is never worse than before.
+        Assert.Null(RawCommandLine.ChildPart(raw, ["--name", "T", "--", "x.exe"]));
+    }
+
+    [Theory]
+    [InlineData("pwsh.exe", new[] { "-File", @"C:\a b\x.ps1" }, @"pwsh.exe -File ""C:\a b\x.ps1""")]
+    [InlineData(@"C:\Program Files\x.exe", new[] { "a" }, @"""C:\Program Files\x.exe"" a")]
+    [InlineData("x.exe", new[] { @"say ""hi""", @"C:\dir\", "" }, @"x.exe ""say \""hi\"""" C:\dir\ """"")]
+    [InlineData("x.exe", new[] { @"C:\a b\" }, @"x.exe ""C:\a b\\""")]
+    public void Build_quotes_arguments_so_argv_parsing_reverses_it(string exe, string[] args, string expected)
+    {
+        // Why: the fallback path (no raw text) must still give the child exactly these argv elements.
+        Assert.Equal(expected, RawCommandLine.Build(exe, args));
+    }
+}
+
 public class RedactorTests
 {
     [Theory]

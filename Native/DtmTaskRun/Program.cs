@@ -21,6 +21,11 @@ internal static class Program
     private static int Main(string[] args)
     {
         var parsed = OptionsParser.Parse(args);
+        if (parsed.Run is not null)
+        {
+            // Hand the child the text that followed '--', not argv re-quoted (RawCommandLine explains why).
+            parsed = parsed with { Run = parsed.Run with { CommandLine = RawCommandLine.ChildPart(RawCommandLine.Current(), args) } };
+        }
 
         switch (parsed.Verb)
         {

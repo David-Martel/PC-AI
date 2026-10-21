@@ -13,7 +13,7 @@ Related: [TASK_REGISTRY.md](TASK_REGISTRY.md) (what every task is for and how it
 ## Install, build, test, run
 
 ```powershell
-# Build and test (xUnit, 62 tests; CI runs the same through the dotnet-build job)
+# Build and test (xUnit, 77 tests; CI runs the same through the dotnet-build job)
 dotnet test Native\DtmTaskRun.Tests\DtmTaskRun.Tests.csproj -c Release
 
 # Publish the shipped build (NativeAOT, 3.3 MB, no .NET runtime needed)
@@ -37,8 +37,12 @@ dtm-task-run.exe --name <TaskId> [--timeout <sec>] [--notify-bus] -- <exe> [args
 dtm-task-run.exe --install-eventlog-source | --version | --help
 ```
 
-Everything after the first bare `--` belongs to the child and is passed through
-`ProcessStartInfo.ArgumentList`, so quoting and child flags such as `--timeout` are never reinterpreted.
+Everything after the first bare `--` belongs to the child, so child flags such as `--timeout` are never read as
+launcher flags. The child gets that text **unchanged**: the launcher recovers it from its own raw command line
+(`GetCommandLineW`) and passes it to `CreateProcessW` as is, exactly what `conhost --headless` did. Re-quoting the
+split arguments (`ProcessStartInfo.ArgumentList`, the first implementation) changed the meaning of commands that parse
+their own command line, such as `cmd.exe /c ""C:\a b\job.cmd" "x y""`; a test runs that case. If the raw text cannot be
+matched to the parsed arguments, the launcher falls back to quoting them by the C runtime's argv rules.
 
 | Exit code | Meaning |
 |---|---|
@@ -110,11 +114,15 @@ URLs. This is best effort, which is why the bus message leaves stderr out entire
 ## Design
 
 * **No window, ever.** The project is a `WinExe` (Windows GUI subsystem, verified by a test that reads the PE
-  header), so the OS never allocates a console for the launcher. The child starts with `CreateNoWindow = true`,
-  `UseShellExecute = false` and all three standard streams redirected (so a console child gets a hidden console).
+  header), so the OS never allocates a console for the launcher. The child is created with `CREATE_NO_WINDOW`
+  and all three standard streams redirected to pipes (so a console child gets a hidden console).
 * **The exit code is the child's.** The launcher returns what the child returned; only a timeout (1460) or its own
   start-up failures use other values.
-* **Job Object with kill-on-close.** The child is assigned to a job. If Task Scheduler kills the launcher (time
+* **Job Object with kill-on-close.** The child is created suspended, assigned to the job, and only then resumed, so
+  the child and everything it starts are in the job from its first instruction (assigning after `Process.Start`
+  left a window in which a grandchild could escape). If no job can be created or the job refuses the child, the
+  child is terminated before it runs and the launcher exits 1359 with a status file, log line and event: it does
+  not run work it cannot contain. If Task Scheduler kills the launcher (time
   limit, `Stop-ScheduledTask`, logoff) the whole tree dies with it, instead of being orphaned and then duplicated by
   the next trigger (`MultipleInstancesPolicy = IgnoreNew` stops protecting you once the launcher is gone). The timeout
   also terminates the job. On a **normal** exit the kill-on-close flag is cleared first, because tasks such as
@@ -137,6 +145,11 @@ URLs. This is best effort, which is why the bus message leaves stderr out entire
   NativeAOT. `IsAotCompatible` keeps the trim/AOT analyzers on in every normal build.
 
 ## Benchmark
+
+`-DryRun` (or `--DryRun`) prints the plan without starting a process or registering a task, and `-h` / `--help`
+print the script's help; `Tests/Unit/Measure-TaskLauncherOverhead.Tests.ps1` proves both. The numbers below were
+measured before the child moved from `Process.Start` to `CreateProcessW` (suspended, then assigned to the job); rerun
+the benchmark before quoting them for the current build.
 
 Method: [`Tools/Measure-TaskLauncherOverhead.ps1`](../../Tools/Measure-TaskLauncherOverhead.ps1). Wall time from
 `Process.Start` to exit, 20 measured runs per variant after 2 discarded warm-up runs, variants interleaved
@@ -212,8 +225,11 @@ Daemon survival, run with the deployed binary and a script that starts a hidden 
 ## Migrating a task
 
 [`Tools/Convert-TaskToLauncher.ps1`](../../Tools/Convert-TaskToLauncher.ps1) rewrites `conhost.exe --headless <cmd>`
-to `dtm-task-run.exe --name <TaskName> [--timeout N] [--notify-bus] -- <cmd>`. The child command line is copied
-into the action verbatim; triggers, principal, settings and history are untouched (`Set-ScheduledTask` updates in
+to `dtm-task-run.exe --name <TaskId> [--timeout N] [--notify-bus] -- <cmd>`. `<TaskId>` is the leaf name for a task in
+the root folder and `Folder\Name` otherwise, so same-named tasks in different folders get separate status files, logs
+and bus suppression; a conversion whose id would share a file stem with a task already behind the launcher is refused.
+(`PowerShell\ProfileLogSync` was migrated before this rule and keeps `--name ProfileLogSync`; it has no namesake.)
+The child command line is copied into the action verbatim; triggers, principal, settings and history are untouched (`Set-ScheduledTask` updates in
 place). It exports the task XML to `~\.local\state\task-backups\pre-launcher__<task>.xml` before and
 `after-launcher__<task>.xml` after, and `-Revert` restores the action (command, arguments and working directory) from
 the backup. `-DryRun` (or `--DryRun`, `-WhatIf`) prints each new action and changes nothing: no task, no backup
@@ -224,10 +240,8 @@ tested against a mocked Task Scheduler in `Tests/Unit/Convert-TaskToLauncher.Tes
 .\Tools\Convert-TaskToLauncher.ps1 -TaskName '\LspmuxServer','\Bitwarden-Archive-Refresh' -NotifyBus '\Bitwarden-Archive-Refresh' -DryRun
 ```
 
-Quoting: the launcher splits the copied line into arguments and quotes each one again for the child
-(`ArgumentList`), while `conhost --headless` passed the line through unchanged. Ordinary quoted paths survive (all the
-tasks below were checked), but a command that depends on unusual quoting, such as nested `cmd /c ""..." "...""`,
-should be started once after conversion and its log read.
+Quoting: the child receives the copied text unchanged (see "Command line" above), so a converted task's child sees
+the same command line it saw behind `conhost --headless`, nested `cmd /c ""..." "...""` quoting included.
 
 `--timeout` defaults to the task's own ExecutionTimeLimit minus 10 s, so a hang is reported by the launcher as 1460
 with a status file and event instead of Task Scheduler killing it silently (`0x41306`). Tasks with no limit (daemons,

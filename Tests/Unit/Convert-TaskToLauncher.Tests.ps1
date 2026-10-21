@@ -87,6 +87,34 @@ Describe 'Get-TaskBackupName' {
     }
 }
 
+Describe 'Launcher task ids' {
+    # Why: the --name decides the status file, the log and the bus suppression state. A leaf-only name made
+    # \A\Backup and \B\Backup overwrite each other (codex review on #223). Detects: the folder dropped from
+    # the id, a stem rule that drifts from the launcher's (Native/DtmTaskRun/Options.cs ToFileStem).
+    It 'is the leaf in the root folder and Folder\Name elsewhere (<Path><Name>)' -ForEach @(
+        @{ Path = '\'; Name = 'UDP Socket Monitor'; Expected = 'UDP Socket Monitor' }
+        @{ Path = '\A\'; Name = 'Backup'; Expected = 'A\Backup' }
+        @{ Path = '\A\B\'; Name = 'Backup'; Expected = 'A\B\Backup' }
+    ) {
+        Get-LauncherTaskId -TaskPath $Path -TaskName $Name | Should -Be $Expected
+    }
+
+    It 'maps an id to the launcher file stem (<Id>)' -ForEach @(
+        @{ Id = 'PC-AI Process Lasso Governor Watchdog'; Expected = 'PC-AI_Process_Lasso_Governor_Watchdog' }
+        @{ Id = 'A\Backup'; Expected = 'A_Backup' }
+        @{ Id = 'B\Backup'; Expected = 'B_Backup' }
+        @{ Id = ' .x:y. '; Expected = 'x_y' }
+    ) {
+        ConvertTo-LauncherStem $Id | Should -Be $Expected
+    }
+
+    It 'reads --name only before the bare separator' {
+        Get-LauncherIdFromArguments '--name "X Y" --timeout 5 -- tool.exe --name Z' | Should -Be 'X Y'
+        Get-LauncherIdFromArguments '--name Plain -- tool.exe' | Should -Be 'Plain'
+        Get-LauncherIdFromArguments '-- tool.exe --name Z' | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Get-DefaultTimeoutSeconds launcher bound' {
     # Why: dtm-task-run rejects --timeout above 86400 s with exit 87 and never starts the child
     # (LEARNED_RULES 85). Task Scheduler's default limit is PT72H, so without this bound the converter
@@ -200,6 +228,30 @@ Describe 'Invoke-Conversion against a mocked Task Scheduler' {
         Should -Invoke Set-ScheduledTask -Times 0 -Exactly
     }
 
+    It 'names a task in a folder by its folder path' {
+        $TaskName = @('\A\Backup')
+        Mock Get-ScheduledTask { $t = & $script:FakeTask; $t.TaskPath = '\A\'; $t.TaskName = 'Backup'; $t }
+        $row = @(Invoke-Conversion -WhatIf)[0]
+        $row.NewArguments | Should -BeLike '--name "A\Backup" *'
+    }
+
+    It 'refuses a conversion whose id stem is already used by a launcher-wrapped task' {
+        # The root task 'A_Backup' already runs as --name A_Backup; '\A\Backup' would map to the same stem.
+        $TaskName = @('\A\Backup')
+        Mock Get-ScheduledTask { $t = & $script:FakeTask; $t.TaskPath = '\A\'; $t.TaskName = 'Backup'; $t } -ParameterFilter { $PesterBoundParameters.ContainsKey('TaskName') }
+        Mock Get-ScheduledTask {
+            [pscustomobject]@{
+                TaskPath = '\'; TaskName = 'A_Backup'
+                Actions  = @([pscustomobject]@{ Execute = 'C:\x\dtm-task-run.exe'; Arguments = '--name A_Backup -- a.exe'; WorkingDirectory = '' })
+                Settings = [pscustomobject]@{ ExecutionTimeLimit = 'PT10M' }
+            }
+        } -ParameterFilter { -not $PesterBoundParameters.ContainsKey('TaskName') }
+        $rows = @(Invoke-Conversion 3>&1)
+        @($rows | Where-Object { $_ -is [System.Management.Automation.WarningRecord] -and "$_" -match "A_Backup" }).Count | Should -Be 1
+        Should -Invoke Set-ScheduledTask -Times 0 -Exactly
+        Test-Path -LiteralPath (Join-Path $BackupDir 'pre-launcher__A_Backup.xml') | Should -BeFalse
+    }
+
     It 'restores command, arguments and working directory on -Revert' {
         $Revert = $true
         New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
@@ -256,7 +308,7 @@ Describe 'Convert-TaskToLauncher CLI contract' {
     ) {
         $rows = @(& ([scriptblock]::Create("& '$($script:Tool)' -TaskName '\Fake Task' -LauncherPath '$($script:Launcher)' -BackupDir '$($script:Backups)' $Flag")))
         $rows.Count | Should -Be 1
-        Should -Invoke Get-ScheduledTask -Times 1 -Exactly
+        Should -Invoke Get-ScheduledTask -Times 1 -Exactly -ParameterFilter { $PesterBoundParameters.ContainsKey('TaskName') }
         Should -Invoke Set-ScheduledTask -Times 0 -Exactly
         Should -Invoke Export-ScheduledTask -Times 0 -Exactly
         Test-Path -LiteralPath $script:Backups | Should -BeFalse

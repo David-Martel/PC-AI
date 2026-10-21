@@ -40,13 +40,20 @@ internal sealed class JobObject : IDisposable
     {
         try
         {
-            return _handle != IntPtr.Zero && AssignProcessToJobObject(_handle, process.Handle);
+            return TryAssign(process.Handle);
         }
         catch (InvalidOperationException)
         {
             return false; // the child already exited
         }
     }
+
+    /// <summary>
+    /// Puts the process behind <paramref name="processHandle"/> in the job. <see cref="ChildProcess"/> calls
+    /// this while the child is still suspended, so the child and everything it starts are in the job from
+    /// its first instruction. On failure, <c>Marshal.GetLastWin32Error</c> holds the reason.
+    /// </summary>
+    public bool TryAssign(IntPtr processHandle) => _handle != IntPtr.Zero && AssignProcessToJobObject(_handle, processHandle);
 
     /// <summary>Kills every process in the job.</summary>
     public void Terminate(uint exitCode)

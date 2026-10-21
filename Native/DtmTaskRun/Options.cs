@@ -21,8 +21,17 @@ internal enum Verb
 /// <param name="TimeoutSeconds">0 means "no launcher timeout" (Task Scheduler's own limit still applies).</param>
 /// <param name="NotifyBus">Post a finding to the agent bus on a nonzero exit.</param>
 /// <param name="Exe">Child executable.</param>
-/// <param name="Args">Child arguments, already split; re-quoted by ProcessStartInfo.ArgumentList.</param>
-internal sealed record RunOptions(string Name, int TimeoutSeconds, bool NotifyBus, string Exe, IReadOnlyList<string> Args);
+/// <param name="Args">Child arguments, already split; used for display and as the fallback command line.</param>
+/// <param name="CommandLine">
+/// The child's command line exactly as written after the bare <c>--</c> (see <see cref="RawCommandLine.ChildPart"/>),
+/// passed to CreateProcess unchanged. Null when it could not be recovered; then <see cref="RawCommandLine.Build"/>
+/// rebuilds one from <paramref name="Exe"/> and <paramref name="Args"/>.
+/// </param>
+internal sealed record RunOptions(string Name, int TimeoutSeconds, bool NotifyBus, string Exe, IReadOnlyList<string> Args, string? CommandLine = null)
+{
+    /// <summary>The command line the child is created with.</summary>
+    public string EffectiveCommandLine => CommandLine ?? RawCommandLine.Build(Exe, Args);
+}
 
 /// <summary>Outcome of parsing the command line.</summary>
 internal sealed record ParseResult(Verb Verb, RunOptions? Run, string? Error);

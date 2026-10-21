@@ -229,18 +229,81 @@ public sealed class TaskRunnerTests : IDisposable
     }
 
     [Fact]
-    public void Start_info_hides_the_window_and_redirects_everything()
+    public void Child_is_created_hidden_and_suspended()
     {
-        // Why: this is the "no visible window" guarantee; CreateNoWindow + UseShellExecute=false is what suppresses the console.
-        var psi = TaskRunner.BuildStartInfo(new RunOptions("n", 0, false, "pwsh.exe", ["-File", @"C:\a b\x.ps1"]));
+        // Why: CREATE_NO_WINDOW is the "no visible window" guarantee, and CREATE_SUSPENDED is what lets the
+        // job take the child before its first instruction. Losing either flag silently regresses the launcher.
+        Assert.Equal(0x08000000u, ChildProcess.CreationFlags & 0x08000000u); // CREATE_NO_WINDOW
+        Assert.Equal(0x00000004u, ChildProcess.CreationFlags & 0x00000004u); // CREATE_SUSPENDED
+        Assert.Equal(0x00000400u, ChildProcess.CreationFlags & 0x00000400u); // CREATE_UNICODE_ENVIRONMENT
+    }
 
-        Assert.True(psi.CreateNoWindow);
-        Assert.False(psi.UseShellExecute);
-        Assert.True(psi.RedirectStandardInput);
-        Assert.True(psi.RedirectStandardOutput);
-        Assert.True(psi.RedirectStandardError);
-        Assert.Equal(["-File", @"C:\a b\x.ps1"], psi.ArgumentList);
-        Assert.Equal("n", psi.Environment["DTM_TASK_NAME"]);
+    [Fact]
+    public void Child_sees_its_task_name_in_the_environment()
+    {
+        // Why: child scripts read DTM_TASK_NAME; the environment block is now built by hand for CreateProcess.
+        var block = ChildProcess.BuildEnvironmentBlock(TaskRunner.ChildEnvironment(new RunOptions("n", 0, false, "x.exe", [])));
+        Assert.Contains("\0DTM_TASK_NAME=n\0", "\0" + block, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith("\0\0", block, StringComparison.Ordinal);
+
+        Assert.Equal(0, Runner().Run(Cmd("env-name", "echo task=%DTM_TASK_NAME%")));
+        Assert.Contains("[out] task=env-name", File.ReadAllText(Path.Combine(_dir.Path, "logs", "env-name.log")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Nested_cmd_quoting_reaches_the_child_unchanged()
+    {
+        // Why: conhost --headless passed the child's command line through verbatim. Re-quoting split argv
+        // (ProcessStartInfo.ArgumentList) changes what cmd.exe /c ""a b\job.cmd" "x y"" means. The raw text
+        // must reach the child, so the batch file must see its one quoted argument intact.
+        var spaced = Path.Combine(_dir.Path, "a b");
+        Directory.CreateDirectory(spaced);
+        var job = Path.Combine(spaced, "job.cmd");
+        File.WriteAllText(job, "@echo arg1=[%~1]\r\n");
+        var raw = $"cmd.exe /c \"\"{job}\" \"x y\"\"";
+
+        var code = Runner().Run(new RunOptions("quoting", 0, false, "cmd.exe", [], raw));
+
+        Assert.Equal(0, code);
+        Assert.Contains("[out] arg1=[x y]", File.ReadAllText(Path.Combine(_dir.Path, "logs", "quoting.log")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Refuses_to_run_a_child_it_cannot_put_in_a_job()
+    {
+        // Why: a child started outside the job (or before joining it) can leave descendants that survive the
+        // launcher and duplicate on the next trigger. With no job the child must not run at all, and the
+        // failure must be visible. Positive control: the same command does create the marker with a job.
+        var marker = Path.Combine(_dir.Path, "ran.txt");
+        var noJob = new TaskRunner(new RunnerContext { BaseDir = _dir.Path, Host = "testhost", Events = _events, Bus = _bus, CreateJob = () => null });
+
+        // Raw command lines, as a scheduled task supplies them: cmd.exe does not read argv-style \" escapes.
+        RunOptions MarkerRun(string name) => new(name, 0, false, "cmd.exe", [], $"cmd.exe /c echo x>\"{marker}\"");
+        var code = noJob.Run(MarkerRun("no-job"));
+
+        Assert.Equal(TaskRunner.InternalErrorExitCode, code);
+        Assert.False(File.Exists(marker), "the child ran although it could not be contained");
+        Assert.Contains("not started", File.ReadAllText(Path.Combine(_dir.Path, "logs", "no-job.log")), StringComparison.Ordinal);
+        Assert.Equal(TaskRunner.InternalErrorExitCode, Status("no-job").GetProperty("exitCode").GetInt32());
+
+        Assert.Equal(0, Runner().Run(MarkerRun("with-job")));
+        Assert.True(File.Exists(marker), "positive control: the child should run when it can be contained");
+    }
+
+    [Fact]
+    public void A_child_the_job_refuses_is_terminated_before_it_runs()
+    {
+        // Why: the job is assigned while the child is suspended; if assignment fails the child must die unrun.
+        // A disposed job has no handle, so assignment fails exactly as a refused one would.
+        var marker = Path.Combine(_dir.Path, "refused.txt");
+        var dead = JobObject.TryCreate();
+        Assert.NotNull(dead);
+        dead.Dispose();
+
+        Assert.Throws<ContainmentException>(() =>
+            ChildProcess.Start($"cmd.exe /c echo x>\"{marker}\"", new Dictionary<string, string>(), dead).Dispose());
+        Thread.Sleep(500);
+        Assert.False(File.Exists(marker), "the refused child ran");
     }
 
     [Fact]

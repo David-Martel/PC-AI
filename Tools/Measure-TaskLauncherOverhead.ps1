@@ -37,20 +37,54 @@ Task Scheduler launches per variant for the popup test (default 4). 0 skips the 
 .PARAMETER OutputJson
 Where to write the JSON results.
 
+.PARAMETER DryRun
+Non-mutating preview: validate the launcher paths and print the plan (variants, run counts, how many
+throwaway tasks the popup test would register) without starting any process, registering any task, or
+writing the temporary directory or -OutputJson. The long CLI form `--DryRun` is also accepted.
+
+.PARAMETER Help
+Print this help and exit. The aliases `-h` and `--help` are also accepted.
+
+.EXAMPLE
+./Measure-TaskLauncherOverhead.ps1 -LauncherExe fd=C:\tmp\fd\dtm-task-run.exe -DryRun
 .EXAMPLE
 ./Measure-TaskLauncherOverhead.ps1 -LauncherExe fd=C:\tmp\fd\dtm-task-run.exe,sc=C:\tmp\sc\dtm-task-run.exe -OutputJson docs\scheduled-tasks\benchmark-results.json
 #>
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
-    [Parameter(Mandatory)][string[]]$LauncherExe,
+    [string[]]$LauncherExe = @(),
     [ValidateRange(3, 200)][int]$Runs = 20,
     [ValidateRange(0, 10)][int]$WarmUp = 2,
     [ValidateRange(0, 20)][int]$PopupRuns = 4,
-    [string]$OutputJson
+    [string]$OutputJson,
+    [switch]$DryRun,
+    [Alias('h', '?')]
+    [switch]$Help,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$CliArgs
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# CLI contract (AGENTS.md): -h/--help and -DryRun/--DryRun are handled before any process starts or any
+# task is registered. PositionalBinding is off so the long forms reach $CliArgs instead of -LauncherExe.
+$CliArgs = @($CliArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if (@($CliArgs) -contains '--help') {
+    $Help = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--help' })
+}
+if (@($CliArgs) -contains '--DryRun') {
+    $DryRun = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--DryRun' })
+}
+if (@($CliArgs).Count -gt 0) { throw "Unknown arguments: $($CliArgs -join ' ')" }
+if ($Help) {
+    $helpMatch = [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>')
+    if ($helpMatch.Success) { $helpMatch.Groups[1].Value.Trim() } else { Get-Help -Detailed $PSCommandPath }
+    return
+}
+if (@($LauncherExe).Count -eq 0) { throw '-LauncherExe is required (see -h)' }
 
 $pwsh = (Get-Command pwsh.exe -ErrorAction Stop).Source
 $conhost = Join-Path $env:SystemRoot 'System32\conhost.exe'
@@ -61,6 +95,21 @@ foreach ($pair in @($LauncherExe | ForEach-Object { $_ -split ',(?=[A-Za-z0-9_-]
     $label, $path = $pair -split '=', 2
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Launcher not found: $path" }
     $launchers[$label] = (Resolve-Path -LiteralPath $path).Path
+}
+
+if ($DryRun) {
+    # Everything below starts processes, registers tasks or writes files; stop before any of it.
+    $variantCount = 2 + $launchers.Count
+    [pscustomobject]@{
+        DryRun            = $true
+        Launchers         = [pscustomobject]$launchers
+        Children          = @('pwsh -NoProfile -Command exit 0', 'cmd /c exit 0')
+        OverheadProcesses = 2 * $variantCount * ($Runs + $WarmUp)
+        PopupTasks        = if ($PopupRuns -gt 0) { $variantCount } else { 0 }
+        PopupLaunches     = if ($PopupRuns -gt 0) { $variantCount * $PopupRuns } else { 0 }
+        OutputJson        = $OutputJson
+    }
+    return
 }
 
 $benchDir = Join-Path ([IO.Path]::GetTempPath()) ("dtm-launcher-bench-" + [guid]::NewGuid().ToString('N'))

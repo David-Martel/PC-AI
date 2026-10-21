@@ -5,7 +5,22 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Optimize>true</Optimize>
+    <BuildInParallel>true</BuildInParallel>
+    <UseSharedCompilation>true</UseSharedCompilation>
+    <TieredCompilation Condition="'$(Configuration)' == 'Release'">true</TieredCompilation>
+    <TieredPGO Condition="'$(Configuration)' == 'Release'">true</TieredPGO>
+    <ServerGarbageCollection Condition="'$(Configuration)' == 'Release'">true</ServerGarbageCollection>
+    <Deterministic>true</Deterministic>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Prefer32Bit>false</Prefer32Bit>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Release'">true</PublishReadyToRun>
+    <ReadyToRunUseCrossgen2 Condition="'$(Configuration)' == 'Release'">true</ReadyToRunUseCrossgen2>
   </PropertyGroup>
 
   <ItemGroup>

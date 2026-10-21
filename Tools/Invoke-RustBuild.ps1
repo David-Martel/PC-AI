@@ -19,6 +19,9 @@
 .PARAMETER DisableCache
   Disable cache helpers (sccache/ccache) for this invocation.
 
+.PARAMETER NativeOptimize
+  Enable host-tuned Rust code generation for this machine.
+
 .PARAMETER LlmDebug
   Enable CargoTools LLM debug defaults (RUST_BACKTRACE, verbose traces).
 
@@ -46,6 +49,7 @@ param(
     [switch]$UseLld,
     [switch]$NoLld,
     [switch]$DisableCache,
+    [switch]$NativeOptimize,
     [switch]$LlmDebug,
     [switch]$RaPreflight,
     [switch]$Preflight,
@@ -130,9 +134,13 @@ if (Test-Path $cudaHelper) {
 $cmakeHelper = Join-Path $PSScriptRoot 'Initialize-CmakeEnvironment.ps1'
 if (Test-Path $cmakeHelper) {
     . $cmakeHelper
-    $cmakeInfo = Initialize-CmakeEnvironment -Quiet
-    if ($cmakeInfo.Found -and $cmakeInfo.CmakeRoot) {
-        Write-Verbose "CMake environment configured: $($cmakeInfo.CmakeRoot)"
+    try {
+        $cmakeInfo = Initialize-CmakeEnvironment -Quiet
+        if ($cmakeInfo.Found -and $cmakeInfo.CmakeRoot) {
+            Write-Verbose "CMake environment configured: $($cmakeInfo.CmakeRoot)"
+        }
+    } catch {
+        Write-Warning "CMake environment initialization failed; continuing without overrides. $($_.Exception.Message)"
     }
 } else {
     Write-Verbose "CMake helper not found at $cmakeHelper"
@@ -165,6 +173,18 @@ if ($RaPreflight) {
 
 if ($PreflightBlocking) {
     $env:CARGO_PREFLIGHT_BLOCKING = '1'
+}
+
+if ($NativeOptimize) {
+    if (-not $env:CARGO_PROFILE_RELEASE_CODEGEN_UNITS -or $env:CARGO_PROFILE_RELEASE_CODEGEN_UNITS -ne '1') {
+        $env:CARGO_PROFILE_RELEASE_CODEGEN_UNITS = '1'
+    }
+
+    if (-not $env:RUSTFLAGS -or $env:RUSTFLAGS -notmatch 'target-cpu=') {
+        $env:RUSTFLAGS = (($env:RUSTFLAGS, '-C target-cpu=native' | Where-Object { $_ }) -join ' ').Trim()
+    }
+
+    Write-Verbose "Native optimization enabled (RUSTFLAGS=$($env:RUSTFLAGS); CARGO_PROFILE_RELEASE_CODEGEN_UNITS=$($env:CARGO_PROFILE_RELEASE_CODEGEN_UNITS))"
 }
 
 $wrapperArgs = @()

@@ -231,6 +231,102 @@ function Get-ModuleFunctionCommand {
     return $resolved
 }
 
+function New-BenchmarkHashDataset {
+    param(
+        [Parameter(Mandatory)]
+        [string]$RepoRoot,
+        [int]$FileCount = 12,
+        [int]$LineCount = 64
+    )
+
+    $datasetRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pcai-hash-bench-" + [guid]::NewGuid().ToString('N'))
+    $null = New-Item -ItemType Directory -Path $datasetRoot -Force
+
+    $paths = [System.Collections.Generic.List[string]]::new()
+    for ($index = 0; $index -lt $FileCount; $index++) {
+        $folder = Join-Path $datasetRoot ("set{0:D2}" -f ($index % 3))
+        $null = New-Item -ItemType Directory -Path $folder -Force
+
+        $content = @(
+            "# pcai benchmark dataset $index"
+            "repo=$RepoRoot"
+            "marker=$([guid]::NewGuid().ToString('N'))"
+        )
+
+        for ($lineIndex = 0; $lineIndex -lt $LineCount; $lineIndex++) {
+            $content += "line-$index-$lineIndex-" + ('x' * 64)
+        }
+
+        $path = Join-Path $folder ("sample{0:D2}.txt" -f $index)
+        [System.IO.File]::WriteAllLines($path, $content, [System.Text.Encoding]::UTF8)
+        $paths.Add($path)
+    }
+
+    [PSCustomObject]@{
+        Root  = $datasetRoot
+        Paths = @($paths)
+    }
+}
+
+function Resolve-BenchmarkCommandSpec {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
+        [Parameter(Mandatory)]
+        [string[]]$ExecutableCandidates,
+        [string[]]$DllCandidates = @()
+    )
+
+    foreach ($candidate in @($ExecutableCandidates | Where-Object { $_ })) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return [PSCustomObject]@{
+                Name       = $Name
+                Command    = $candidate
+                BaseArgs   = @()
+                Invocation = 'executable'
+            }
+        }
+    }
+
+    foreach ($candidate in @($DllCandidates | Where-Object { $_ })) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return [PSCustomObject]@{
+                Name       = $Name
+                Command    = 'dotnet'
+                BaseArgs   = @($candidate)
+                Invocation = 'dotnet'
+            }
+        }
+    }
+
+    return $null
+}
+
+function Resolve-BenchmarkPcaiPerfPath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$RepoRoot
+    )
+
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    $candidates.Add((Join-Path $RepoRoot 'Native\pcai_core\target\release\pcai-perf.exe'))
+
+    $tmpRoot = Join-Path $RepoRoot '.pcai\tmp'
+    if (Test-Path -LiteralPath $tmpRoot) {
+        foreach ($match in Get-ChildItem -LiteralPath $tmpRoot -Filter 'pcai-perf.exe' -Recurse -ErrorAction SilentlyContinue) {
+            $candidates.Add($match.FullName)
+        }
+    }
+
+    foreach ($candidate in $candidates | Select-Object -Unique) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
 function Get-ToolingCaseBenchmarks {
     param(
         [Parameter(Mandatory)]
@@ -539,6 +635,147 @@ function Get-ToolingCaseBenchmarks {
                 Results     = @($benchmarks)
             }
         }
+        'process-snapshot' {
+            $nativeBlock = {
+                & $accelerationModule {
+                    $previous = [System.Environment]::GetEnvironmentVariable('PCAI_PREFER_RUST_CLI', 'Process')
+                    try {
+                        [System.Environment]::SetEnvironmentVariable('PCAI_PREFER_RUST_CLI', '0', 'Process')
+                        Get-ProcessesFast -Top 15 -SortBy cpu | Out-Null
+                    }
+                    finally {
+                        [System.Environment]::SetEnvironmentVariable('PCAI_PREFER_RUST_CLI', $previous, 'Process')
+                    }
+                }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup
+            )
+
+            $acceleratedBlock = {
+                & $accelerationModule {
+                    $previous = [System.Environment]::GetEnvironmentVariable('PCAI_PREFER_RUST_CLI', 'Process')
+                    try {
+                        [System.Environment]::SetEnvironmentVariable('PCAI_PREFER_RUST_CLI', '1', 'Process')
+                        Get-ProcessesFast -Top 15 -SortBy cpu | Out-Null
+                    }
+                    finally {
+                        [System.Environment]::SetEnvironmentVariable('PCAI_PREFER_RUST_CLI', $previous, 'Process')
+                    }
+                }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'accelerated' -Command $acceleratedBlock -Iterations $iterations -Warmup $warmup
+            )
+
+            $baselineBlock = {
+                & $accelerationModule { Get-ProcessesParallel -Top 15 -SortBy cpu | Out-Null }
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup
+            )
+
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
+        'perf-worker-hash-list' {
+            $perfToolPath = Invoke-AccelerationModuleCommand -ScriptBlock { Get-PcaiPerfToolPath }
+            if (-not $perfToolPath) {
+                $perfToolPath = Resolve-BenchmarkPcaiPerfPath -RepoRoot $RepoRoot
+            }
+            if (-not $perfToolPath) {
+                return [PSCustomObject]@{
+                    Case        = $Case
+                    Path        = $resolvedPath
+                    CoverageKey = $null
+                    Coverage    = $null
+                    Results     = @()
+                }
+            }
+
+            $hashDataset = New-BenchmarkHashDataset -RepoRoot $RepoRoot
+            try {
+                $workerSupported = $true
+                try {
+                    Invoke-AccelerationModuleCommand -ScriptBlock {
+                        param($InnerToolPath, $InnerPaths)
+                        Stop-PcaiPerfWorker
+                        Invoke-PcaiPerfWorkerRequest -ToolPath $InnerToolPath -Command 'hash-list' -Payload @{
+                            algorithm = 'sha256'
+                            paths     = $InnerPaths
+                        } | Out-Null
+                    } -ArgumentList @($perfToolPath, $hashDataset.Paths)
+                }
+                catch {
+                    $workerSupported = $false
+                    Write-Warning "pcai-perf worker transport unavailable for benchmark case '$($Case.Id)': $($_.Exception.Message)"
+                }
+
+                if ($workerSupported) {
+                    $workerWarmBlock = {
+                        & $accelerationModule {
+                            param($InnerToolPath, $InnerPaths)
+                            Invoke-PcaiPerfWorkerRequest -ToolPath $InnerToolPath -Command 'hash-list' -Payload @{
+                                algorithm = 'sha256'
+                                paths     = $InnerPaths
+                            } | Out-Null
+                        } $perfToolPath $hashDataset.Paths
+                    }.GetNewClosure()
+                    Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                        Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'worker-warm' -Command $workerWarmBlock -Iterations $iterations -Warmup $warmup
+                    )
+
+                    $workerColdBlock = {
+                        & $accelerationModule {
+                            param($InnerToolPath, $InnerPaths)
+                            Stop-PcaiPerfWorker
+                            Invoke-PcaiPerfWorkerRequest -ToolPath $InnerToolPath -Command 'hash-list' -Payload @{
+                                algorithm = 'sha256'
+                                paths     = $InnerPaths
+                            } | Out-Null
+                        } $perfToolPath $hashDataset.Paths
+                    }.GetNewClosure()
+                    Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                        Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'worker-cold' -Command $workerColdBlock -Iterations $iterations -Warmup 0
+                    )
+                }
+
+                $directCliBlock = {
+                    & $perfToolPath 'hash-list' '--algorithm' 'sha256' @($hashDataset.Paths) | Out-Null
+                }.GetNewClosure()
+                Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                    Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'direct-cli' -Command $directCliBlock -Iterations $iterations -Warmup $warmup
+                )
+
+                $baselineBlock = {
+                    foreach ($path in $hashDataset.Paths) {
+                        Get-FileHash -LiteralPath $path -Algorithm SHA256 | Out-Null
+                    }
+                }.GetNewClosure()
+                Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                    Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup
+                )
+            }
+            finally {
+                Invoke-AccelerationModuleCommand -ScriptBlock { Stop-PcaiPerfWorker }
+                if ($hashDataset -and $hashDataset.Root -and (Test-Path -LiteralPath $hashDataset.Root)) {
+                    Remove-Item -LiteralPath $hashDataset.Root -Recurse -Force -ErrorAction SilentlyContinue
+                }
+            }
+
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
         'acceleration-import' {
             $modulePath = Join-Path $RepoRoot 'Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1'
             $importBlock = {
@@ -547,6 +784,76 @@ function Get-ToolingCaseBenchmarks {
             Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
                 Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $importBlock -Iterations $iterations -Warmup $warmup
             )
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
+        'chat-tui-startup' {
+            $commandSpec = Resolve-BenchmarkCommandSpec -Name 'PcaiChatTui' -ExecutableCandidates @(
+                (Join-Path $RepoRoot 'Native\PcaiChatTui\bin\Release\net8.0\win-x64\publish\PcaiChatTui.exe'),
+                (Join-Path $RepoRoot 'Native\PcaiChatTui\bin\Release\net8.0\win-x64\PcaiChatTui.exe'),
+                (Join-Path $RepoRoot '.pcai\build\artifacts\pcai-chattui\PcaiChatTui.exe')
+            ) -DllCandidates @(
+                (Join-Path $RepoRoot 'Native\PcaiChatTui\bin\Release\net8.0\win-x64\PcaiChatTui.dll'),
+                (Join-Path $RepoRoot 'Native\PcaiChatTui\bin\Release\net8.0\PcaiChatTui.dll'),
+                (Join-Path $RepoRoot '.pcai\build\artifacts\pcai-chattui\PcaiChatTui.dll')
+            )
+            if (-not $commandSpec) {
+                return [PSCustomObject]@{
+                    Case        = $Case
+                    Path        = $resolvedPath
+                    CoverageKey = $null
+                    Coverage    = $null
+                    Results     = @()
+                }
+            }
+
+            $scriptBlock = {
+                & $commandSpec.Command @($commandSpec.BaseArgs + @('--help')) | Out-Null
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'dotnet' -Command $scriptBlock -Iterations $iterations -Warmup $warmup
+            )
+
+            return [PSCustomObject]@{
+                Case        = $Case
+                Path        = $resolvedPath
+                CoverageKey = $null
+                Coverage    = $null
+                Results     = @($benchmarks)
+            }
+        }
+        'service-host-provider-show' {
+            $commandSpec = Resolve-BenchmarkCommandSpec -Name 'PcaiServiceHost' -ExecutableCandidates @(
+                (Join-Path $RepoRoot 'Native\PcaiServiceHost\bin\Release\net8.0\win-x64\publish\PcaiServiceHost.exe'),
+                (Join-Path $RepoRoot 'Native\PcaiServiceHost\bin\Release\net8.0\win-x64\PcaiServiceHost.exe'),
+                (Join-Path $RepoRoot '.pcai\build\artifacts\pcai-servicehost\PcaiServiceHost.exe')
+            ) -DllCandidates @(
+                (Join-Path $RepoRoot 'Native\PcaiServiceHost\bin\Release\net8.0\win-x64\PcaiServiceHost.dll'),
+                (Join-Path $RepoRoot 'Native\PcaiServiceHost\bin\Release\net8.0\PcaiServiceHost.dll'),
+                (Join-Path $RepoRoot '.pcai\build\artifacts\pcai-servicehost\PcaiServiceHost.dll')
+            )
+            if (-not $commandSpec) {
+                return [PSCustomObject]@{
+                    Case        = $Case
+                    Path        = $resolvedPath
+                    CoverageKey = $null
+                    Coverage    = $null
+                    Results     = @()
+                }
+            }
+
+            $scriptBlock = {
+                & $commandSpec.Command @($commandSpec.BaseArgs + @('provider', 'show')) | Out-Null
+            }.GetNewClosure()
+            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (
+                Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'dotnet' -Command $scriptBlock -Iterations $iterations -Warmup $warmup
+            )
+
             return [PSCustomObject]@{
                 Case        = $Case
                 Path        = $resolvedPath

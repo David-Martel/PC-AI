@@ -60,7 +60,7 @@ function Get-DiskUsageFast {
     # Parse MinSize
     $minBytes = Convert-SizeToBytes -Size $MinSize
 
-    $preferRustCli = $env:PCAI_PREFER_RUST_CLI -eq '1'
+    $preferRustCli = $env:PCAI_PREFER_RUST_CLI -ne '0'
     $pcaiPerfPath = Get-PcaiPerfToolPath
     $dustPath = Get-RustToolPath -ToolName 'dust'
     $useDust = $null -ne $dustPath -and (Test-Path $dustPath)
@@ -135,6 +135,18 @@ function Get-DiskUsageWithPcaiPerf {
     )
 
     try {
+        $preferWorker = $env:PCAI_PREFER_PERF_WORKER_DISK -eq '1'
+
+        if ($preferWorker -and (Get-Command Invoke-PcaiPerfWorkerRequest -ErrorAction SilentlyContinue)) {
+            $workerResult = Invoke-PcaiPerfWorkerRequest -ToolPath $ToolPath -Command 'disk' -Payload @{
+                path = $Path
+                top  = $Top
+            }
+            if ($workerResult) {
+                return @($workerResult)
+            }
+        }
+
         $json = & $ToolPath 'disk' '--path' $Path '--top' $Top 2>$null
         if (-not $json) {
             return $null
@@ -142,6 +154,7 @@ function Get-DiskUsageWithPcaiPerf {
 
         return @(ConvertFrom-Json -InputObject $json)
     } catch {
+        Write-Verbose "pcai-perf disk failed: $_"
         return $null
     }
 }
@@ -184,7 +197,7 @@ function Get-DiskUsageWithNative {
     )
 
     try {
-        $preferCompact = $env:PCAI_PREFER_COMPACT_TRANSPORT -eq '1'
+        $preferCompact = $env:PCAI_PREFER_COMPACT_TRANSPORT -ne '0'
         $performanceType = ([System.Management.Automation.PSTypeName]'PcaiNative.PerformanceModule').Type
         $typedMethod = if ($performanceType) {
             $performanceType.GetMethod('GetDiskUsageReport', [System.Reflection.BindingFlags]'Public,Static', $null, [Type[]]@([string], [uint32]), $null)

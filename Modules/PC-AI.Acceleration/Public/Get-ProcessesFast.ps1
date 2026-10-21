@@ -58,7 +58,7 @@ function Get-ProcessesFast {
         [switch]$RawOutput
     )
 
-    $preferRustCli = $env:PCAI_PREFER_RUST_CLI -eq '1'
+    $preferRustCli = $env:PCAI_PREFER_RUST_CLI -ne '0'
     $pcaiPerfPath = Get-PcaiPerfToolPath
     $procsPath = Get-RustToolPath -ToolName 'procs'
     $useProcs = $null -ne $procsPath -and (Test-Path $procsPath)
@@ -104,6 +104,18 @@ function Get-ProcessesWithPcaiPerf {
 
     try {
         $sortKey = if ($SortBy -eq 'cpu') { 'cpu' } else { 'memory' }
+        $preferWorker = $env:PCAI_DISABLE_PERF_WORKER -ne '1'
+
+        if ($preferWorker -and (Get-Command Invoke-PcaiPerfWorkerRequest -ErrorAction SilentlyContinue)) {
+            $workerResult = Invoke-PcaiPerfWorkerRequest -ToolPath $ToolPath -Command 'processes' -Payload @{
+                top     = $Top
+                sort_by = $sortKey
+            }
+            if ($workerResult) {
+                return @($workerResult)
+            }
+        }
+
         $json = & $ToolPath 'processes' '--top' $Top '--sort-by' $sortKey 2>$null
         if (-not $json) {
             return $null
@@ -111,6 +123,7 @@ function Get-ProcessesWithPcaiPerf {
 
         return @(ConvertFrom-Json -InputObject $json)
     } catch {
+        Write-Verbose "pcai-perf processes failed: $_"
         return $null
     }
 }

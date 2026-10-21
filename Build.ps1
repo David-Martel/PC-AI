@@ -79,6 +79,12 @@
     Persist CargoTools default Cargo/rustfmt/clippy settings to user config files.
     Disabled by default to avoid mutating developer workstation state implicitly.
 
+.PARAMETER NativeOptimize
+    Enable host-tuned release optimizations for this machine.
+
+.PARAMETER DisableCache
+    Disable Rust/C/C++ compiler cache helpers for this build.
+
 .PARAMETER FunctionGemmaArgs
     Optional passthrough arguments for FunctionGemma operation components:
     functiongemma-router-data, functiongemma-token-cache, functiongemma-train, functiongemma-eval.
@@ -184,6 +190,8 @@ param(
     [ValidateSet('check', 'clippy', 'fmt', 'all')]
     [string]$CargoPreflightMode = 'check',
     [switch]$SyncCargoDefaults,
+    [switch]$NativeOptimize,
+    [switch]$DisableCache,
     [string[]]$FunctionGemmaArgs = @(),
     [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality')]
     [string]$LintProfile = 'all',
@@ -369,7 +377,17 @@ function Set-ReleaseBuildFlags {
         } elseif (-not $existingFlags) {
             $env:RUSTFLAGS = '-D warnings'
         }
+        if ($NativeOptimize) {
+            if ($env:RUSTFLAGS -notmatch 'target-cpu=') {
+                $env:RUSTFLAGS = "$($env:RUSTFLAGS) -C target-cpu=native".Trim()
+            }
+            $env:CARGO_PROFILE_RELEASE_CODEGEN_UNITS = '1'
+        }
+
         Write-BuildStep "RUSTFLAGS (release): $($env:RUSTFLAGS)" 'success'
+        if ($NativeOptimize) {
+            Write-BuildStep "Native optimize: CARGO_PROFILE_RELEASE_CODEGEN_UNITS=$($env:CARGO_PROFILE_RELEASE_CODEGEN_UNITS)" 'success'
+        }
     }
 
     if ($CudaComputeCaps) {
@@ -548,6 +566,11 @@ function Get-DotnetPublishDefaults {
         '-p:BuildInParallel=true',
         '-p:UseSharedCompilation=true'
     )
+
+    $nugetConfigPath = Join-Path $script:ProjectRoot 'NuGet.config'
+    if (Test-Path -LiteralPath $nugetConfigPath) {
+        $args += @('--configfile', $nugetConfigPath)
+    }
 
     if ($Configuration -eq 'Release') {
         $args += @(
@@ -834,8 +857,11 @@ function Invoke-RustBuildCommand {
         if ($env:CARGO_USE_LLD -eq '1') {
             $wrapperArgs += '-UseLld'
         }
-        if ($env:PCAI_DISABLE_CACHE -eq '1') {
+        if ($DisableCache -or $env:PCAI_DISABLE_CACHE -eq '1') {
             $wrapperArgs += '-DisableCache'
+        }
+        if ($NativeOptimize) {
+            $wrapperArgs += '-NativeOptimize'
         }
         if ($CargoPreflight) {
             $wrapperArgs += @('-Preflight', '-PreflightMode', $CargoPreflightMode, '-PreflightBlocking')
@@ -3161,6 +3187,8 @@ Write-Host "  Deploy:        $(if ($Deploy) { 'Yes' } else { 'No' })" -Foregroun
 Write-Host "  CargoTools:    $CargoTools" -ForegroundColor White
 Write-Host "  Preflight:     $(if ($CargoPreflight) { $CargoPreflightMode } else { 'Disabled' })" -ForegroundColor White
 Write-Host "  SyncDefaults:  $(if ($SyncCargoDefaults) { 'Yes' } else { 'No' })" -ForegroundColor White
+Write-Host "  NativeOpt:     $(if ($NativeOptimize) { 'Yes' } else { 'No' })" -ForegroundColor White
+Write-Host "  DisableCache:  $(if ($DisableCache) { 'Yes' } else { 'No' })" -ForegroundColor White
 Write-Host "  LintProfile:   $LintProfile" -ForegroundColor White
 Write-Host "  DepStrategy:   $DependencyStrategy" -ForegroundColor White
 Write-Host "  AutoFix:       $(if ($AutoFix) { 'Yes' } else { 'No' })" -ForegroundColor White

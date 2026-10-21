@@ -21,7 +21,9 @@ List DirectShow device names using FFmpeg's dummy input; never open a real devic
 .PARAMETER OutputPath
 Optional absolute JSON report path. Existing reports are never overwritten.
 .PARAMETER TimeoutSeconds
-Timeout for each external command, default 15 seconds.
+Timeout for metadata and other external commands, default 15 seconds.
+.PARAMETER GStreamerScanTimeoutSeconds
+Timeout for the first GStreamer registry scan, default 120 seconds.
 .PARAMETER DryRun
 Show intended operations without provider queries, subprocesses or writes.
 .PARAMETER Help
@@ -39,6 +41,7 @@ param(
     [switch]$ListCaptureDevices,
     [string]$OutputPath,
     [ValidateRange(1, 120)] [int]$TimeoutSeconds = 15,
+    [ValidateRange(1, 120)] [int]$GStreamerScanTimeoutSeconds = 120,
     [switch]$DryRun,
     [Alias('h', '-help')] [switch]$Help
 )
@@ -160,7 +163,8 @@ function Get-MediaToolchainReport {
     Separates installed/compiled capabilities from optional bounded runtime tests.
     #>
     param([string]$PythonPath, [string]$GStreamerPath, [switch]$ValidateIntelQsv,
-        [switch]$ListCaptureDevices, [int]$TimeoutSeconds = 15, [switch]$DryRun)
+        [switch]$ListCaptureDevices, [int]$TimeoutSeconds = 15,
+        [ValidateRange(1, 120)] [int]$GStreamerScanTimeoutSeconds = 120, [switch]$DryRun)
     if ($DryRun) {
         return [pscustomobject]@{ status = 'DryRun'; writesPerformed = $false; processesStarted = $false
             inventoryQueried = $false; intelSyntheticFrames = $(if ($ValidateIntelQsv) { 16 } else { 0 })
@@ -230,7 +234,9 @@ function Get-MediaToolchainReport {
     if ($gst) {
         $gstProbes = [System.Collections.Generic.List[object]]::new()
         foreach ($element in @('--version', 'qsvh264enc', 'd3d11h264dec', 'nvh264enc', 'wasapi2src')) {
-            $gstProbes.Add((Invoke-MediaProcess $gst @($element) $TimeoutSeconds))
+            # First invocation may build a cold or stale plugin registry.
+            $probeTimeout = if ($element -eq '--version') { $GStreamerScanTimeoutSeconds } else { $TimeoutSeconds }
+            $gstProbes.Add((Invoke-MediaProcess $gst @($element) $probeTimeout))
         }
         $report.gstreamer.probes = $gstProbes.ToArray()
         $report.gstreamer.status = if ($gstProbes[0].status -eq 'Succeeded') { 'Enumerated' } else { 'Failed' }
@@ -307,7 +313,8 @@ print(json.dumps(result))
 if ($Help) { Microsoft.PowerShell.Core\Get-Help -Name $PSCommandPath -Detailed; return }
 $validatedReportPath = if ($OutputPath) { Resolve-MediaReportPath $OutputPath } else { $null }
 $report = Get-MediaToolchainReport -PythonPath $PythonPath -GStreamerPath $GStreamerPath -ValidateIntelQsv:$ValidateIntelQsv `
-    -ListCaptureDevices:$ListCaptureDevices -TimeoutSeconds $TimeoutSeconds -DryRun:$DryRun
+    -ListCaptureDevices:$ListCaptureDevices -TimeoutSeconds $TimeoutSeconds `
+    -GStreamerScanTimeoutSeconds $GStreamerScanTimeoutSeconds -DryRun:$DryRun
 if ($validatedReportPath -and -not $DryRun) {
     $json = Microsoft.PowerShell.Utility\ConvertTo-Json -InputObject $report -Depth 12
     $stream = [System.IO.FileStream]::new($validatedReportPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write)

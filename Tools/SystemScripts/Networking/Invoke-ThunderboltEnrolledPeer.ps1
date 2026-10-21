@@ -239,7 +239,15 @@ function Get-Usb4HostSnapshot {
         }
         if (-not $root) { continue }
         $index=[int]$adapter.ifIndex
-        $neighbors=@(Get-NetNeighbor -InterfaceIndex $index -AddressFamily IPv6 -ErrorAction Stop|Where-Object {
+        try { $rawNeighbors=@(Get-NetNeighbor -InterfaceIndex $index -AddressFamily IPv6 -ErrorAction Stop) }
+        catch {
+            # CDXML reports an empty per-interface table as ObjectNotFound.
+            # Keep the present adapter identity; provider failures remain fatal.
+            if ($_.CategoryInfo.Category -ne [Management.Automation.ErrorCategory]::ObjectNotFound -or
+                $_.FullyQualifiedErrorId -ne 'CmdletizationQuery_NotFound,Get-NetNeighbor') { throw }
+            $rawNeighbors=@()
+        }
+        $neighbors=@($rawNeighbors|Where-Object {
             [Net.IPAddress]::Parse(($_.IPAddress -split '%',2)[0]).IsIPv6LinkLocal -and
             $_.LinkLayerAddress -notmatch '^(00[-:]?){6}$' -and $_.State.ToString() -in @('Reachable','Stale','Delay','Probe','Permanent')
         }|Select-Object -First 4)

@@ -4,6 +4,82 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not (Test-Path $SourcePath)) { throw 'Partner-bound Windows reconciliation is missing.' }
 . $SourcePath
+# Exercise the real inventory before later reconcile fixtures replace it.
+# These host APIs are fixtures on every platform; no adapter or address is changed.
+$script:neighborFixtureOutcome = 'Empty'
+function Get-NetIPAddress { param($AddressFamily, $PolicyStore, $ErrorAction)
+    if ($PolicyStore -eq 'ActiveStore') {
+        [pscustomobject]@{IPAddress='fe80::1';InterfaceIndex=28;AddressState='Preferred';PrefixLength=64}
+    }
+}
+function Get-NetAdapter { param([switch]$IncludeHidden, $ErrorAction)
+    foreach ($index in @(28,30)) {
+        [pscustomobject]@{InterfaceDescription='USB4 P2P Network Adapter';PnPDeviceID="USB4\DEVICE_ROUTER\fixture-$index";
+            ifIndex=$index;InterfaceGuid="77777777-7777-7777-7777-7777777777$index";MacAddress="00-00-00-00-00-$index";
+            InterfaceOperationalStatus=$(if($index -eq 28){1}else{2});AdminStatus=1;Name="fixture-$index"}
+    }
+}
+function Get-PnpDevice { param($InstanceId, [switch]$PresentOnly, $ErrorAction)
+    [pscustomobject]@{Present=$true}
+}
+function Get-PnpDeviceProperty { param($InstanceId, $KeyName, $ErrorAction)
+    [pscustomobject]@{Data="USB4\ROOT_DEVICE_ROUTER\$($InstanceId.Split('\')[-1])"}
+}
+function Get-NetNeighbor { [CmdletBinding()] param($InterfaceIndex, $AddressFamily)
+    if ($InterfaceIndex -eq 30) {
+        $id = switch ($script:neighborFixtureOutcome) {
+            'Denied' { 'CimAccessDenied' }
+            'OtherNotFound' { 'CimClassMissing' }
+            default { 'CmdletizationQuery_NotFound' }
+        }
+        $category = if ($script:neighborFixtureOutcome -eq 'Denied') {
+            [Management.Automation.ErrorCategory]::PermissionDenied
+        } else { [Management.Automation.ErrorCategory]::ObjectNotFound }
+        $record = [Management.Automation.ErrorRecord]::new(
+            [InvalidOperationException]::new('Fixture neighbor query outcome'), $id, $category, 'fixture')
+        $PSCmdlet.ThrowTerminatingError($record)
+    }
+    [pscustomobject]@{IPAddress='fe80::2';LinkLayerAddress='02-00-00-00-00-02';State='Reachable'}
+}
+try {
+    # Selector: SnapshotRetainsDisconnectedAdapterWithEmptyNeighbors. Protects
+    # multihomed inventory; detects a present disconnected adapter aborting other
+    # usable edges. Needs mocked host APIs only. Breadcrumb: Get-Usb4HostSnapshot.
+    $snapshot = Get-Usb4HostSnapshot
+    $active = @($snapshot.adapters | Where-Object interface_index -EQ 28)
+    $disconnected = @($snapshot.adapters | Where-Object interface_index -EQ 30)
+    if ($snapshot.adapters.Count -ne 2 -or $active.Count -ne 1 -or $active[0].neighbors.Count -ne 1 -or
+        $disconnected.Count -ne 1 -or $disconnected[0].neighbors.Count -ne 0 -or $disconnected[0].up -or
+        $disconnected[0].interface_guid -ne '77777777-7777-7777-7777-777777777730' -or
+        $disconnected[0].root_id -ne 'USB4\ROOT_DEVICE_ROUTER\fixture-30') {
+        throw 'Empty neighbor inventory discarded or corrupted a present adapter identity.'
+    }
+    Write-Output 'PASS: SnapshotRetainsDisconnectedAdapterWithEmptyNeighbors'
+    # Selector: SnapshotRefusesAccessDeniedNeighborQuery. Protects fail-closed
+    # provider errors; detects access denied being mistaken for an empty table.
+    # Needs mocked host APIs only. Breadcrumb: Get-Usb4HostSnapshot query catch.
+    $script:neighborFixtureOutcome = 'Denied'; $refused = $false
+    try { Get-Usb4HostSnapshot | Out-Null } catch {
+        if ($_.FullyQualifiedErrorId -ne 'CimAccessDenied,Get-NetNeighbor') { throw }
+        $refused = $true
+    }
+    if (-not $refused) { throw 'Neighbor access failure was suppressed.' }
+    Write-Output 'PASS: SnapshotRefusesAccessDeniedNeighborQuery'
+    # Selector: SnapshotRefusesUnrelatedObjectNotFoundNeighborQuery. Protects the
+    # exact empty-query boundary; detects broad ObjectNotFound suppression hiding
+    # a missing provider. Needs mocked host APIs. Breadcrumb: Get-Usb4HostSnapshot.
+    $script:neighborFixtureOutcome = 'OtherNotFound'; $refused = $false
+    try { Get-Usb4HostSnapshot | Out-Null } catch {
+        if ($_.FullyQualifiedErrorId -ne 'CimClassMissing,Get-NetNeighbor') { throw }
+        $refused = $true
+    }
+    if (-not $refused) { throw 'Unrelated ObjectNotFound failure was suppressed.' }
+    Write-Output 'PASS: SnapshotRefusesUnrelatedObjectNotFoundNeighborQuery'
+} finally {
+    foreach ($name in @('Get-NetIPAddress','Get-NetAdapter','Get-PnpDevice','Get-PnpDeviceProperty','Get-NetNeighbor')) {
+        Remove-Item -LiteralPath "Function:$name"
+    }
+}
 function Assert-Refused([scriptblock]$Operation) {
     $refused = $false
     try { & $Operation | Out-Null } catch { $refused = $true }

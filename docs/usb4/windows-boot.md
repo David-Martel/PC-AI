@@ -82,6 +82,14 @@ minimum epoch, existing SSH identity/known-hosts paths, allowed local PnP root
 identities and a ULA /48. Linux remains the address derivation authority.
 No Windows IPAM table, default route, DNS, MTU or firewall change is introduced.
 
+Present disconnected adapters remain in the identity inventory with no neighbors.
+Windows reports an empty per-interface neighbor table as `ObjectNotFound` with
+the exact `CmdletizationQuery_NotFound,Get-NetNeighbor` error ID; the reconciler
+treats only that outcome as an empty table. Access failures, missing providers
+and other query failures still refuse reconciliation. An unused adapter cannot
+prevent another USB4 edge from being observed, and retaining its GUID, MAC and
+PnP root keeps expired-address custody checks intact.
+
 Only new ActiveStore addresses and explicitly transferred exact allocations
 receive deletion custody. A persistent derived address is refused until its
 Active/Persistent preimages have been preserved and its exact custody migrated
@@ -102,6 +110,9 @@ The [portable partner controls](../../Tests/Portable/Test-ThunderboltEnrolledPee
 exercise proof freshness, socket identity, policy replay, foreign custody,
 same-GUID reindex, different-GUID conflict, persistent-store refusal, no-write
 planning and actual controller creation/rollback using host API fixtures. They
+also exercise the real host-inventory function with a usable adapter alongside
+a present disconnected adapter, and check that access failures and unrelated
+`ObjectNotFound` errors remain fatal. They
 do not certify physical unplug, resume, reboot or a different hardware link.
 
 The tracked [startup coordinator](../../Tools/SystemScripts/Networking/Invoke-ThunderboltStartup.ps1)

@@ -7,9 +7,9 @@ name: CI (Linux self-hosted)
 # pass on Linux, PSScriptAnalyzer errors, and rustfmt, clippy and nextest for Native/pcai_core.
 #
 # What it deliberately does not cover (needs Windows or a GPU, see CI-CD-GUIDE.md "Linux self-hosted gate"):
-# the Windows-only PowerShell modules (CIM/WMI, registry, drivers, network, Hyper-V), the PcaiNative C# bridge (the
-# runner image has no dotnet SDK), CUDA builds and the NVIDIA stack. The `ci-gate` job reports only what ran; it is not
-# a statement about those surfaces.
+# the Windows-only PowerShell modules (CIM/WMI, registry, drivers, network, Hyper-V), the complete PcaiNative C# test
+# suite, CUDA builds and the NVIDIA stack. The .NET 8 SDK is installed for the managed portable admission fixtures.
+# The `ci-gate` job reports only what ran; it is not a statement about those excluded surfaces.
 #
 # Switch: every job is skipped until the repository variable PCAI_LINUX_RUNNER_ENABLED is `true`. Set it only after the
 # runner is registered (`gh variable set PCAI_LINUX_RUNNER_ENABLED --body true -R David-Martel/PC-AI`); without it, each
@@ -46,8 +46,7 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Workflow lint and the profile-free portable contracts: the Linux leg of portable-bootstrap.yml, minus the steps
-  # that need the .NET SDK, plus the Python admission tests.
+  # Workflow lint, the profile-free portable contracts and Python admission tests with their .NET SDK prerequisite.
   # ---------------------------------------------------------------------------
   portable-contracts:
     if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
@@ -77,6 +76,13 @@ jobs:
           ./Tests/Portable/Test-ModuleManifestHook.ps1
           ./Tools/Test-PcaiModuleManifests.ps1
           ./Tests/Portable/Test-BenchmarkRunner.ps1
+
+      - name: Install .NET SDK for managed admission fixtures
+        uses: actions/setup-dotnet@v6
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+        with:
+          dotnet-version: '8.0.x'
 
       - name: Python admission tests
         run: uv run --no-project python -m unittest discover -s Tests/Portable -p "test_*.py" -v

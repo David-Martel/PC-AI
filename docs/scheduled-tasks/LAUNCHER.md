@@ -213,17 +213,27 @@ Daemon survival, run with the deployed binary and a script that starts a hidden 
 
 [`Tools/Convert-TaskToLauncher.ps1`](../../Tools/Convert-TaskToLauncher.ps1) rewrites `conhost.exe --headless <cmd>`
 to `dtm-task-run.exe --name <TaskName> [--timeout N] [--notify-bus] -- <cmd>`. The child command line is copied
-verbatim; triggers, principal, settings and history are untouched (`Set-ScheduledTask` updates in place). It exports the
-task XML to `~\.local\state\task-backups\pre-launcher__<task>.xml` before and `after-launcher__<task>.xml` after, and
-`-Revert` restores the action from the backup.
+into the action verbatim; triggers, principal, settings and history are untouched (`Set-ScheduledTask` updates in
+place). It exports the task XML to `~\.local\state\task-backups\pre-launcher__<task>.xml` before and
+`after-launcher__<task>.xml` after, and `-Revert` restores the action (command, arguments and working directory) from
+the backup. `-DryRun` (or `--DryRun`, `-WhatIf`) prints each new action and changes nothing: no task, no backup
+directory, no XML file. `-h` / `--help` print the script's help. The dry run, the rollback and the CLI switches are
+tested against a mocked Task Scheduler in `Tests/Unit/Convert-TaskToLauncher.Tests.ps1`.
 
 ```powershell
-.\Tools\Convert-TaskToLauncher.ps1 -TaskName '\LspmuxServer','\Bitwarden-Archive-Refresh' -NotifyBus '\Bitwarden-Archive-Refresh' -WhatIf
+.\Tools\Convert-TaskToLauncher.ps1 -TaskName '\LspmuxServer','\Bitwarden-Archive-Refresh' -NotifyBus '\Bitwarden-Archive-Refresh' -DryRun
 ```
+
+Quoting: the launcher splits the copied line into arguments and quotes each one again for the child
+(`ArgumentList`), while `conhost --headless` passed the line through unchanged. Ordinary quoted paths survive (all the
+tasks below were checked), but a command that depends on unusual quoting, such as nested `cmd /c ""..." "...""`,
+should be started once after conversion and its log read.
 
 `--timeout` defaults to the task's own ExecutionTimeLimit minus 10 s, so a hang is reported by the launcher as 1460
 with a status file and event instead of Task Scheduler killing it silently (`0x41306`). Tasks with no limit (daemons,
-runners, `LspmuxServer`) get none. The scheduler agent's delays and limits were left exactly as they were; the XML
+runners, `LspmuxServer`) get none. The launcher refuses a `--timeout` above 86400 s with exit 87 and never starts the
+child (LEARNED_RULES 85), so a task whose limit is longer than that, including Task Scheduler's default `PT72H`, also
+gets none and keeps relying on its own limit; an explicit `-TimeoutSeconds` above 86400 is refused by the converter. The scheduler agent's delays and limits were left exactly as they were; the XML
 diff of every migrated task shows only the `<Actions>` element changed.
 
 Migrated on 2026-10-20 (the reasons for each `--notify-bus` choice are in the registry's "Launcher decisions"):

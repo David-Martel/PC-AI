@@ -11,14 +11,21 @@ docs/scheduled-tasks/LAUNCHER.md). This script rewrites the single Exec action o
     conhost.exe --headless <child command line>
  -> dtm-task-run.exe --name <TaskName> [--timeout N] [--notify-bus] -- <child command line>
 
-The child command line is carried over character for character, so quoting is preserved. Triggers,
-principal, settings and run history are untouched (Set-ScheduledTask updates in place). Before any
+The child command line is copied into the new action's arguments character for character. Note that
+dtm-task-run then splits it into separate arguments and quotes each one again for the child
+(ProcessStartInfo.ArgumentList), whereas conhost passed the line through unchanged: ordinary quoting
+survives, but a command whose meaning depends on unusual quoting (nested `cmd /c ""..." "...""`) should
+be run once after conversion and its log checked. Triggers, principal, settings and run history are
+untouched (Set-ScheduledTask updates in place). Before any
 change the task XML is exported to <BackupDir>\pre-launcher__<task>.xml, and afterwards to
 after-launcher__<task>.xml.
 
 --timeout defaults to the task's own ExecutionTimeLimit minus 10 s, so the launcher reports a hang as
 exit 1460 with a status file and event-log entry instead of Task Scheduler killing it silently
-(LastTaskResult 0x41306). Tasks with no limit (daemons, runners) get no --timeout.
+(LastTaskResult 0x41306). Tasks with no limit (daemons, runners) get no --timeout. dtm-task-run refuses
+a --timeout above 86400 s with exit 87 and never starts the child (LEARNED_RULES 85), so a task whose
+limit is longer than that (Task Scheduler's default is PT72H) also gets no --timeout and keeps relying
+on its own limit; an explicit -TimeoutSeconds above 86400 is an error.
 
 .PARAMETER TaskName
 Full task names, e.g. '\Bitwarden-Archive-Refresh', '\PowerShell\ProfileLogSync'.
@@ -36,26 +43,64 @@ Path of dtm-task-run.exe. Defaults to the deployed copy.
 Where XML exports go.
 
 .PARAMETER Revert
-Restore each task's action from its pre-launcher__ XML backup instead.
+Restore each task's action (command, arguments and working directory) from its pre-launcher__ XML
+backup instead.
 
-.PARAMETER WhatIf
-Show the new action without changing anything.
+.PARAMETER DryRun
+Non-mutating preview: report each new action without changing any task and without creating the backup
+directory or writing XML files. The long CLI form `--DryRun` is also accepted. Equivalent to -WhatIf,
+exposed under the name the repo's session-script contract requires (AGENTS.md).
+
+.PARAMETER Help
+Print this help and exit. The aliases `-h` and `--help` are also accepted.
 
 .EXAMPLE
-./Convert-TaskToLauncher.ps1 -TaskName '\LspmuxServer','\Bitwarden-Archive-Refresh' -NotifyBus '\Bitwarden-Archive-Refresh' -WhatIf
+./Convert-TaskToLauncher.ps1 -TaskName '\LspmuxServer','\Bitwarden-Archive-Refresh' -NotifyBus '\Bitwarden-Archive-Refresh' -DryRun
+.EXAMPLE
+./Convert-TaskToLauncher.ps1 -TaskName '\Bitwarden-Archive-Refresh' -Revert -DryRun
 #>
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding(SupportsShouldProcess, PositionalBinding = $false)]
 param(
-    [Parameter(Mandatory)][string[]]$TaskName,
+    [string[]]$TaskName = @(),
     [string[]]$NotifyBus = @(),
     [hashtable]$TimeoutSeconds = @{},
     [string]$LauncherPath = (Join-Path $env:USERPROFILE '.local\share\pc-ai\deployed\bin\dtm-task-run.exe'),
     [string]$BackupDir = (Join-Path $env:USERPROFILE '.local\state\task-backups'),
-    [switch]$Revert
+    [switch]$Revert,
+    [switch]$DryRun,
+    [Alias('h', '?')]
+    [switch]$Help,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$CliArgs
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# The launcher's own upper bound (Native/DtmTaskRun/Options.cs MaxTimeoutSeconds). A larger --timeout makes
+# dtm-task-run exit 87 without starting the child, so the converted task would never run (LEARNED_RULES 85).
+$script:MaxLauncherTimeoutSeconds = 86400
+
+# CLI contract (AGENTS.md): -h/--help and -DryRun/--DryRun are handled before anything touches Task
+# Scheduler, so help works on a machine where the conversion could not run.
+$CliArgs = @($CliArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if (@($CliArgs) -contains '--help') {
+    $Help = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--help' })
+}
+if (@($CliArgs) -contains '--DryRun') {
+    $DryRun = $true
+    $CliArgs = @($CliArgs | Where-Object { $_ -ne '--DryRun' })
+}
+if (@($CliArgs).Count -gt 0) { throw "Unknown arguments: $($CliArgs -join ' ')" }
+if ($Help) {
+    $helpMatch = [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>')
+    if ($helpMatch.Success) { $helpMatch.Groups[1].Value.Trim() } else { Get-Help -Detailed $PSCommandPath }
+    return
+}
+# Every task change and every file write in Invoke-Conversion is ShouldProcess-guarded (New-Item honours
+# $WhatIfPreference itself), so forcing $WhatIfPreference makes -DryRun genuinely non-mutating.
+if ($DryRun) { $WhatIfPreference = $true }
 
 function Get-TaskBackupName {
     <# Matches the scheduler agent's convention: path separators and spaces become underscores. #>
@@ -87,17 +132,40 @@ function ConvertTo-LauncherArguments {
 }
 
 function Get-DefaultTimeoutSeconds {
-    <# ExecutionTimeLimit minus 10 s; 0 (no launcher timeout) when the task has no finite limit. #>
+    <#
+    ExecutionTimeLimit minus 10 s. 0 (no launcher timeout) when the task has no finite limit, and also when
+    the result would exceed the launcher's 86400 s maximum: that task keeps relying on Task Scheduler's own
+    limit rather than getting a --timeout that dtm-task-run rejects.
+    #>
     param([string]$ExecutionTimeLimit)
     if ([string]::IsNullOrWhiteSpace($ExecutionTimeLimit)) { return 0 }
     $span = [System.Xml.XmlConvert]::ToTimeSpan($ExecutionTimeLimit)
     if ($span -le [TimeSpan]::Zero) { return 0 }
-    [int][math]::Max(1, $span.TotalSeconds - 10)
+    $seconds = [math]::Max(1, $span.TotalSeconds - 10)
+    if ($seconds -gt $script:MaxLauncherTimeoutSeconds) { return 0 }
+    [int]$seconds
+}
+
+function Get-BackupExecAction {
+    <# Command, Arguments and WorkingDirectory of the single Exec action in an exported task XML file. #>
+    param([Parameter(Mandatory)][string]$Path)
+    [xml]$old = Get-Content -LiteralPath $Path -Raw
+    $ns = [System.Xml.XmlNamespaceManager]::new($old.NameTable)
+    $ns.AddNamespace('t', 'http://schemas.microsoft.com/windows/2004/02/mit/task')
+    $exec = $old.SelectSingleNode('//t:Actions/t:Exec', $ns)
+    if ($null -eq $exec) { throw "No Exec action in $Path" }
+    $values = @{}
+    foreach ($field in 'Command', 'Arguments', 'WorkingDirectory') {
+        $node = $exec.SelectSingleNode("t:$field", $ns)
+        $values[$field] = if ($node) { $node.InnerText } else { '' }
+    }
+    [pscustomobject]$values
 }
 
 function Invoke-Conversion {
     [CmdletBinding(SupportsShouldProcess)]
     param()
+    if (@($TaskName).Count -eq 0) { throw '-TaskName is required (see -h)' }
     if (-not $Revert -and -not (Test-Path -LiteralPath $LauncherPath -PathType Leaf)) {
         throw "Launcher not found: $LauncherPath (deploy it first)"
     }
@@ -109,18 +177,21 @@ function Invoke-Conversion {
         if (-not $path.StartsWith('\')) { $path = '\' + $path }
         $name = Split-Path $full -Leaf
         $task = Get-ScheduledTask -TaskPath $path -TaskName $name -ErrorAction Stop
-        $info = $task | Get-ScheduledTaskInfo
+        $info = Get-ScheduledTaskInfo -TaskPath $task.TaskPath -TaskName $task.TaskName
         $backup = Get-TaskBackupName $task.TaskPath $task.TaskName
         $preFile = Join-Path $BackupDir "pre-launcher__$backup.xml"
         $postFile = Join-Path $BackupDir "after-launcher__$backup.xml"
 
         if ($Revert) {
             if (-not (Test-Path -LiteralPath $preFile)) { throw "No backup to restore for $full ($preFile)" }
-            if ($PSCmdlet.ShouldProcess($full, "restore action from $preFile")) {
-                [xml]$old = Get-Content -LiteralPath $preFile -Raw
-                $ns = [System.Xml.XmlNamespaceManager]::new($old.NameTable); $ns.AddNamespace('t', 'http://schemas.microsoft.com/windows/2004/02/mit/task')
-                $exec = $old.SelectSingleNode('//t:Actions/t:Exec', $ns)
-                $restore = New-ScheduledTaskAction -Execute $exec.Command -Argument $exec.Arguments
+            $exec = Get-BackupExecAction -Path $preFile
+            if ($PSCmdlet.ShouldProcess($full, "restore action from $preFile ($($exec.Command) $($exec.Arguments))")) {
+                # The forward conversion keeps WorkingDirectory, so the rollback must restore it too; a task that
+                # resolves relative paths against it would otherwise come back broken.
+                $actionArgs = @{ Execute = $exec.Command }
+                if ($exec.Arguments) { $actionArgs.Argument = $exec.Arguments }
+                if ($exec.WorkingDirectory) { $actionArgs.WorkingDirectory = $exec.WorkingDirectory }
+                $restore = New-ScheduledTaskAction @actionArgs
                 Set-ScheduledTask -TaskPath $task.TaskPath -TaskName $task.TaskName -Action $restore | Out-Null
             }
             continue
@@ -130,6 +201,9 @@ function Invoke-Conversion {
         if ($actions.Count -ne 1) { Write-Warning "$full has $($actions.Count) actions; skipped"; continue }
         $limit = if ($task.Settings.ExecutionTimeLimit) { [string]$task.Settings.ExecutionTimeLimit } else { '' }
         $timeout = if ($TimeoutSeconds.ContainsKey($full)) { [int]$TimeoutSeconds[$full] } else { Get-DefaultTimeoutSeconds $limit }
+        if ($timeout -lt 0 -or $timeout -gt $script:MaxLauncherTimeoutSeconds) {
+            throw "-TimeoutSeconds for $full is $timeout; dtm-task-run accepts 0..$($script:MaxLauncherTimeoutSeconds)"
+        }
         $newArgs = ConvertTo-LauncherArguments -Execute $actions[0].Execute -Arguments $actions[0].Arguments -Name $task.TaskName `
             -TimeoutSeconds $timeout -NotifyBus:($NotifyBus -contains $full)
         if ($null -eq $newArgs) { Write-Warning "$full is not a conhost --headless wrapper; skipped"; continue }

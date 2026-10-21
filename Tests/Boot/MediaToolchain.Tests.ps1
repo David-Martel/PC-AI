@@ -19,18 +19,21 @@ Describe 'Media qualification boundaries' -Skip:(-not $IsWindows) {
             (& $script:MediaScript @parameters | Out-String) | Should -Match 'synthetic'
         }
     }
+    # Protects passive inspection with a custom scan budget; detects discovery,
+    # subprocess or report writes during DryRun. Needs mocks only.
+    # Breadcrumb: Get-MediaToolchainReport DryRun branch and script output guard.
     It 'does no process, provider, discovery or output work in DryRun' {
         Mock Invoke-MediaProcess { throw 'Process forbidden' }
         Mock Get-MediaGpuInventory { throw 'CIM forbidden' }
         Mock Find-MediaExecutable { throw 'Discovery forbidden' }
-        $result = Get-MediaToolchainReport -DryRun -ValidateIntelQsv
+        $result = Get-MediaToolchainReport -DryRun -ValidateIntelQsv -GStreamerScanTimeoutSeconds 7
         $result.status | Should -Be 'DryRun'
         $result.intelSyntheticFrames | Should -Be 16
         foreach ($name in @('Invoke-MediaProcess', 'Get-MediaGpuInventory', 'Find-MediaExecutable')) {
             Should -Invoke $name -Times 0 -Exactly
         }
         $path = Join-Path $TestDrive 'dry.json'
-        & $script:MediaScript -DryRun -OutputPath $path | Out-Null
+        & $script:MediaScript -DryRun -OutputPath $path -GStreamerScanTimeoutSeconds 7 | Out-Null
         Test-Path -LiteralPath $path | Should -BeFalse
     }
     It 'rejects reserved, relative, alternate stream, existing and missing-parent outputs' {
@@ -147,6 +150,53 @@ Describe 'Media report semantics' -Skip:(-not $IsWindows) {
     It 'preserves incomplete qualification when GStreamer is missing' {
         Mock Find-MediaExecutable { $null } -ParameterFilter { $Name -eq 'gst-inspect-1.0.exe' }
         (Get-MediaToolchainReport).status | Should -Be 'CompletedWithIssues'
+    }
+    # Protects cold registry discovery after installation; detects repeated short
+    # timeouts misclassifying usable GStreamer. Needs host/process mocks only.
+    # Breadcrumb: Get-MediaToolchainReport first gst-inspect --version probe.
+    It 'allows a cold registry scan while retaining short metadata deadlines' {
+        Mock Find-MediaExecutable { 'C:\fixture\gst-inspect-1.0.exe' } -ParameterFilter { $Name -eq 'gst-inspect-1.0.exe' }
+        Mock Invoke-MediaProcess {
+            param($FilePath, $Arguments, $TimeoutSeconds)
+            if ($Arguments[0] -eq '--version' -and $TimeoutSeconds -lt 30) {
+                New-ProbeResult -Status 'TimedOut' -ExitCode -1
+            } else { New-ProbeResult }
+        } -ParameterFilter { $FilePath -eq 'C:\fixture\gst-inspect-1.0.exe' }
+        $result = Get-MediaToolchainReport
+        $result.gstreamer.status | Should -Be 'Enumerated'
+        $result.gstreamer.probes[0].timedOut | Should -BeFalse
+        Should -Invoke Invoke-MediaProcess -Times 1 -Exactly -ParameterFilter {
+            $FilePath -eq 'C:\fixture\gst-inspect-1.0.exe' -and $Arguments[0] -eq '--version' -and $TimeoutSeconds -eq 120
+        }
+        Should -Invoke Invoke-MediaProcess -Times 4 -Exactly -ParameterFilter {
+            $FilePath -eq 'C:\fixture\gst-inspect-1.0.exe' -and $Arguments[0] -ne '--version' -and $TimeoutSeconds -eq 15
+        }
+    }
+    # Protects caller-selected bounds; detects one timeout setting silently
+    # overriding the other. Needs process mocks. Breadcrumb: both report parameters.
+    It 'keeps custom registry and metadata deadlines independent' {
+        Mock Find-MediaExecutable { 'C:\fixture\gst-inspect-1.0.exe' } -ParameterFilter { $Name -eq 'gst-inspect-1.0.exe' }
+        $result = Get-MediaToolchainReport -TimeoutSeconds 4 -GStreamerScanTimeoutSeconds 23
+        $result.gstreamer.status | Should -Be 'Enumerated'
+        Should -Invoke Invoke-MediaProcess -Times 1 -Exactly -ParameterFilter {
+            $FilePath -eq 'C:\fixture\gst-inspect-1.0.exe' -and $Arguments[0] -eq '--version' -and $TimeoutSeconds -eq 23
+        }
+        Should -Invoke Invoke-MediaProcess -Times 4 -Exactly -ParameterFilter {
+            $FilePath -eq 'C:\fixture\gst-inspect-1.0.exe' -and $Arguments[0] -ne '--version' -and $TimeoutSeconds -eq 4
+        }
+    }
+    # Protects failure evidence; detects treating an exhausted scan budget as
+    # successful enumeration. Needs process mocks. Breadcrumb: first-probe verdict.
+    It 'retains a registry scan timeout as incomplete qualification' {
+        Mock Find-MediaExecutable { 'C:\fixture\gst-inspect-1.0.exe' } -ParameterFilter { $Name -eq 'gst-inspect-1.0.exe' }
+        Mock Invoke-MediaProcess { New-ProbeResult -Status 'TimedOut' -ExitCode -1 } -ParameterFilter {
+            $FilePath -eq 'C:\fixture\gst-inspect-1.0.exe' -and $Arguments[0] -eq '--version'
+        }
+        $result = Get-MediaToolchainReport -GStreamerScanTimeoutSeconds 2
+        $result.gstreamer.status | Should -Be 'Failed'
+        $result.gstreamer.probes[0].timedOut | Should -BeTrue
+        $result.gstreamer.probes[0].exitCode | Should -Be -1
+        $result.status | Should -Be 'CompletedWithIssues'
     }
     It 'reports competing cv2 wheels as a conflict instead of an available CUDA backend' {
         $venv = Join-Path $TestDrive 'venv'

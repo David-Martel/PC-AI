@@ -59,9 +59,9 @@
       },
       {
         "host": "dtm-p1gen9",
-        "interface": "Ethernet 2",
+        "interface": "Ethernet 8",
         "ulaAddress": "fd5f:743d:6f55:50::9/64",
-        "role": "bridged-tb5-dock-endpoint"
+        "role": "wired-bench-lan-endpoint"
       }
     ],
     "sharedSwitchSubnets": [

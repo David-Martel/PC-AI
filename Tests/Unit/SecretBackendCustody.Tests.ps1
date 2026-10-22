@@ -464,6 +464,50 @@ Describe 'Pending exact custody blocks new real backend admission' {
 }
 
 Describe 'Canonical credential source and passive machine configuration' {
+    # Protects: profile-free default identity when COMPUTERNAME is absent or blank, without changing explicit selectors (<EnvironmentState>).
+    # Detects: fresh module import rejects an omitted machine name, rewrites the inherited environment, provisions cache storage, or replaces an explicit selector.
+    # Needs: real hidden NoProfile child, native Windows identity and isolated fixture profile; no provider, cloud, live cache or environment hydration.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1::param(MachineName),Resolve-CredentialPrivateStorage
+    It 'imports in a fresh host with <EnvironmentState> COMPUTERNAME while preserving explicit selectors' -TestCases @(@{EnvironmentState='Absent'},@{EnvironmentState='Blank'}) {
+        param($EnvironmentState)
+        $source=Join-Path (Split-Path -Parent $helperPath) 'SecretsTier.psm1'
+        $probe=@'
+$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+$source=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__SOURCE__'))
+if('__STATE__' -eq 'Absent'){[Environment]::SetEnvironmentVariable('COMPUTERNAME',$null,'Process')}
+else{[Environment]::SetEnvironmentVariable('COMPUTERNAME',' ','Process')}
+$before=[Environment]::GetEnvironmentVariable('COMPUTERNAME','Process')
+try{
+ $m=Import-Module $source -Force -PassThru -DisableNameChecking
+ $selected=& $m {$MachineName}
+ $cacheDirectory=& $m {$script:CacheDir}
+ $provisioned=[IO.Directory]::Exists($cacheDirectory)
+ Remove-Module $m -Force
+ $explicit=Import-Module $source -ArgumentList 'synthetic-explicit-host' -Force -PassThru -DisableNameChecking
+ $explicitName=& $explicit {$MachineName}
+ Remove-Module $explicit -Force
+ $rejected=0
+ foreach($argument in @('',' ')){
+  try{$unexpected=Import-Module $source -ArgumentList @($argument) -Force -PassThru -DisableNameChecking;if($unexpected){Remove-Module $unexpected -Force}}
+  catch{$rejected++}
+ }
+ [pscustomobject]@{ProbeSuccess=$true;FailureId=$null;Native=[Environment]::MachineName;Selected=$selected;Explicit=$explicitName;Rejected=$rejected;Provisioned=$provisioned;EnvironmentUnchanged=([Environment]::GetEnvironmentVariable('COMPUTERNAME','Process') -ceq $before)}|ConvertTo-Json -Compress
+}catch{[pscustomobject]@{ProbeSuccess=$false;FailureId=$_.FullyQualifiedErrorId}|ConvertTo-Json -Compress}
+'@
+        $probe=$probe.Replace('__SOURCE__',[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($source))).Replace('__STATE__',$EnvironmentState)
+        $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($probe))
+        $result=Invoke-SecretBackendProcess -FilePath $pwshPath -Arguments @('-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -TimeoutSeconds 20
+        $result.Success|Should -BeTrue -Because $result.StdErr
+        $result.StdErr|Should -BeNullOrEmpty
+        $observed=$result.StdOut|ConvertFrom-Json
+        $observed.ProbeSuccess|Should -BeTrue -Because $observed.FailureId
+        $observed.Native|Should -BeExactly ([Environment]::MachineName)
+        $observed.Selected|Should -BeExactly $observed.Native
+        $observed.Explicit|Should -BeExactly 'synthetic-explicit-host'
+        $observed.Rejected|Should -Be 2
+        $observed.Provisioned|Should -BeFalse
+        $observed.EnvironmentUnchanged|Should -BeTrue
+    }
     # Protects: declares exactly the reviewed two sibling managed sources.
     # Detects: Unexpected provisioning, provider access, value disclosure or fabricated readiness would violate the passive/no-change contract.
     # Needs: Windows x64 NTFS, Pester 5.7, isolated synthetic fixtures; no live provider or hardware.

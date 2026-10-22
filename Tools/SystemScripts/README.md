@@ -89,7 +89,11 @@ Import-Module ./Tools/SystemScripts/Machine/SecretsTier.psm1 -Force
 ```
 
 Imports neither authenticate nor register providers, read credentials, create
-storage or change ACLs. The default `.pcai-credential-state` root is an envelope
+storage or change ACLs. An omitted machine selector uses nonblank `COMPUTERNAME`,
+or the native Windows machine name when that environment variable is absent or
+blank. Explicit selectors retain their existing validation and override behavior;
+the module does not populate or rewrite the environment variable.
+The default `.pcai-credential-state` root is an envelope
 for bootstrap/cache children. Its trusted namespace may permit foreign
 read/traversal; it must still exclude namespace mutation and reparse ancestry.
 The selected bootstrap or machine-hashed cache leaf remains strictly private.
@@ -542,6 +546,47 @@ or recertifying the 153 historical rows at changed production pins.
 | --- | --- | --- | --- | --- | --- |
 | Isolated Windows credential custody fixtures / Synthetic cloud, backup and environment orchestration / uses validated <Scenario> cache after actual BWS <Failure> failure | `41F5F5CB5AAE125E15502197FE2DEF5C0361C5017F6E195F05CF171722F17327` | KEEP | codex-gen9-fleet-resume (/root) | independent Codex static source/test review | 2026-10-22 |
 | Isolated Windows credential custody fixtures / Synthetic cloud, backup and environment orchestration / propagates <Boundary> failure after actual BWS launch refusal | `2741D62F3CC7885C4D498F38680832FEB42388C6427A99B94A263B0B5FE9C447` | KEEP | codex-gen9-fleet-resume (/root) | independent Codex static source/test review | 2026-10-22 |
+### Default native machine identity regression
+
+Read-only Gen9 qualification after accepted source `ad23653c8faf185c242738ecac9057caa16a1892`
+found that this agent environment omits `COMPUTERNAME`. Default import refused
+an empty machine selector (`010092`), while the existing explicit native-name
+argument imported successfully and validated protected cache metadata without
+decryption, provider calls, file changes or credential-environment changes
+(`ee5487`). This is metadata qualification, not live authentication.
+
+The fresh hidden NoProfile control first reproduced absent and blank default
+identity failures (`98d81f`), then passed both cases (`4851bf`). It also retains
+explicit selectors, refuses explicit empty/whitespace inputs and confirms no
+cache provisioning or child-environment rewrite. The full Windows gate passed
+317 cases in 52.841 seconds, with no test/block/container failures or skips and
+empty stderr (`18ff68`). Whole-pair coverage is 2457/2828 commands (86.881%):
+helper 1566/1815 (86.281%), module 891/1013 (87.957%). The isolated child executes
+the native-default branches outside the parent's Pester coverage instrumentation;
+the percentages do not count those child branches as parent coverage.
+Configured analyzer Warning/Error findings: zero (`ac199d`).
+
+Current LF source/test pins:
+
+- Tools/SystemScripts/Machine/SecretBackendUtilities.ps1: `269C70104FB24B502EA7233347D5B1FFEB5F0A5C1B16C0661DDDCB904EF6E4E5` (unchanged).
+- Tools/SystemScripts/Machine/SecretsTier.psm1: `B4FDD97EB49AD7883737CD2583A0F48AA7EB057E09FDCBFB45D401BD89C38A58`.
+- Tests/Unit/SecretBackendCustody.Tests.ps1: `F9C1D476D55F0546F0AD000CE2F79D7A74616B2C4DF676EF7277F22C35753309`.
+
+All 168 existing selector bodies remain unchanged from accepted `ad23653`
+(`d8d9a9`); no fixture setup changed. Historical reviews above retain their
+actual source pins. Root reviewer `codex-gen9-fleet-resume (/root)` independently
+read the complete three-path delta and new parameterized group (`e58a36`), KEEP
+on 2026-10-22 UTC; the exact selector binding and 169-group inventory were
+independently verified in `5f0161`. Its impact assessment is limited to the
+default expression: explicit selector validation and the prior runtime code
+remain unchanged. This does not recertify all historical rows at new pins.
+An independent fresh NoProfile Windows replay (`36c920`) passed all 317 cases
+in 39.733 seconds, with no test/block/container failures or skips, empty stderr
+and no remaining newly owned fixture roots; source/test pins were unchanged.
+
+| Selector/group | Selector SHA256 | Disposition | Reviewer | Review type | Date (UTC) |
+| --- | --- | --- | --- | --- | --- |
+| Isolated Windows credential custody fixtures / Owned process custody and passive configuration / Canonical credential source and passive machine configuration / imports in a fresh host with <EnvironmentState> COMPUTERNAME while preserving explicit selectors | `AD17C8CBBADF0E63DC7CB0E94A02CE45C1599C62C45ECFF566C5A4B62C5EC9A6` | KEEP | codex-gen9-fleet-resume (/root) | independent Codex static source/test review | 2026-10-22 |
 ## Safety Rules
 
 The [Windows USB4 startup policy](../../docs/usb4/windows-boot.md) is an observer.

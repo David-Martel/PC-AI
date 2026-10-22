@@ -8,14 +8,17 @@
     - Tier 2: Local DPAPI-encrypted cache (offline)
     - Tier 3: BW Vault backup (manual recovery)
 .NOTES
-    Machine: explicit MachineName; defaults to current COMPUTERNAME
+    Machine: explicit MachineName; defaults to COMPUTERNAME or native host identity
     Created: 2025-12-28
 .LINK
     ../README.md#credential-backend-code-and-custody
 #>
 
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword','',Justification='CredentialRoot is a filesystem directory path, not a password or secret value.')]
-param([ValidateNotNullOrEmpty()][string]$MachineName = $env:COMPUTERNAME,
+param([ValidateNotNullOrEmpty()][string]$MachineName = $(
+        if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) { [Environment]::MachineName }
+        else { $env:COMPUTERNAME }
+    ),
     [string]$MachineRoot = (Join-Path $env:USERPROFILE '.machine'),
     [string]$CacheRoot,[string]$CredentialRoot = $env:PCAI_CREDENTIAL_ROOT)
 

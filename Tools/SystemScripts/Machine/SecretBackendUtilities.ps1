@@ -259,7 +259,7 @@ function ConvertTo-ProcessArgumentString {
 function Invoke-BitwardenCli {
     [CmdletBinding()]
     [OutputType([pscustomobject])]
-    param([Parameter(Mandatory)][string[]]$Arguments,[ValidateRange(1,120)][int]$TimeoutSeconds=20,[string]$StandardInput)
+    param([Parameter(Mandatory)][string[]]$Arguments,[ValidateRange(1,600)][int]$TimeoutSeconds=20,[string]$StandardInput)
     $spec=Get-BitwardenCliProcessSpec
     if(-not$spec){return [pscustomobject]@{Success=$false;TimedOut=$false;ExitCode=$null;StdOut=$null;StdErr='bw CLI is not available'}}
     if($spec.Kind-in@('home-bin-cmd','cmd-shim','command')){
@@ -2083,7 +2083,7 @@ function Read-SecretBackendOwnedOutput {
 function Wait-SecretBackendOwnedProcess {
     [CmdletBinding()][OutputType([bool])]
     param([Parameter(Mandatory)][Diagnostics.Process]$Process,
-        [Parameter(Mandatory)][ValidateRange(0,120000)][int]$Milliseconds)
+        [Parameter(Mandatory)][ValidateRange(0,600000)][int]$Milliseconds)
     return $Process.WaitForExit($Milliseconds)
 }
 
@@ -2162,7 +2162,7 @@ function Invoke-SecretBackendProcess {
     param(
         [Parameter(Mandatory)][string]$FilePath,
         [string[]]$Arguments=@(),
-        [ValidateRange(1,120)][int]$TimeoutSeconds=20,
+        [ValidateRange(1,600)][int]$TimeoutSeconds=20,
         [string]$StandardInput
     )
     # Admission is process-wide: known pending custody blocks every new backend

@@ -59,6 +59,11 @@ and verifies archive storage ACLs, then synchronizes and exports into private
 staging before publishing the timestamped and latest archives. Native failures
 and timeouts leave the previous latest archive intact.
 
+The archive deadline remains 1–600 seconds (default 120). Its Bitwarden CLI
+bridge and owned-process wait accept the same finite upper bound; ordinary
+backend calls keep their 20-second default. The separate `cmdkey` reader keeps
+its 1–120-second bound and five-second default.
+
 Run the Windows fixture suite in `Tests/LocalMachine` after changing the archive
 or installed machine credential modules. It does not access the real vault.
 Plain JSON remains the compatibility default. Do not change scheduled jobs to
@@ -106,6 +111,32 @@ deep protected cache/bootstrap transactions; .NET long-path behavior alone is
 insufficient for an unprefixed CreateFileW call.
 Owner/group/DACL custody does not establish SACL preservation or
 an atomic comparison against arbitrary writers.
+
+### Atomic local cache publication
+
+New cache writes publish one DPAPI envelope at the existing `secrets-cache.enc`
+path. One atomic publication binds ciphertext, machine selector, generation,
+timestamp, source and secret count. The authenticated plaintext repeats those
+metadata fields, so consuming the cache verifies both the public envelope and
+the decrypted payload before returning secrets. A failed publication preserves
+the previous usable cache; there is no second metadata publication to fail.
+
+Valid protected v1 cache/manifest pairs and authenticated read-only legacy pairs
+remain readable. A recognized malformed or unsupported envelope is refused
+without rolling back to legacy data. `Get-CacheStatus` checks metadata and
+ciphertext integrity without decrypting; it does not certify the DPAPI payload.
+After a verified replacement, obsolete v1 metadata is retired only when its
+previously observed identity, bytes and owner/group/DACL still match, under
+retained file custody. Changed, unqualified or ambiguous metadata is preserved
+with a sanitized warning. Cache publication does not repair ACLs or sweep
+earlier transaction artifacts.
+
+The new reader accepts legacy v1 pairs and new v2 envelopes. An already loaded
+older SecretsTier module cannot read v2. Accepted deployment must refresh or
+reimport cache-reading and cache-writing module instances on each host before
+its first v2 cache publication, using the existing module/runtime qualification.
+Copying source files alone does not establish runtime convergence. No live cache
+migration is included in this qualification.
 
 ### Cloud backup publication and compatibility
 
@@ -167,7 +198,7 @@ then reproduced same-identity/same-byte ACL changes being deleted; the repair
 preserves changed owner/group/DACL. The native directory pin also requires an
 extended-length Win32 path for deep default cache/bootstrap transactions.
 
-The final local gate passed 271 cases with no failures or skips in 25.899 seconds,
+The initial signed extraction gate passed 271 cases with no failures or skips in 25.899 seconds,
 covering 2287/2648 commands (86.367%): helper 1566/1815 (86.281%), module 721/833
 (86.555%). The current synthetic root was removed after process/handle recovery.
 The unchanged repository analyzer settings admitted zero Warning/Error findings;
@@ -183,14 +214,25 @@ all 190 `It`/setup/teardown body hashes and all 153 selector hashes were unchang
 during that rationale-only transition. Seven subsequent exact-line secret-scan
 pragmas label proven synthetic fixtures; their seven textual selector hashes
 changed while the same noncomment-token seal remained intact.
-The current full test pin below includes those reviewed comment corrections.
+The historical full test pin below includes those reviewed comment corrections.
 
-### Credential selector review register
+The subsequent atomic-cache/deadline revision passed 303 cases with no failures,
+skips, failed blocks or failed containers in 39.438 seconds. Explicit coverage
+across both complete shipped files was 2451/2819 commands (86.946%): helper
+1566/1815 (86.281%), module 885/1004 (88.147%). The unchanged configured analyzer
+reported zero Warning/Error findings. An independent Windows replay passed all
+303 cases in 25.820 seconds, with empty stderr and no remaining newly owned
+fixture roots. Its code and tests are bound separately below; the original
+153 selector bodies remain identical to signed commit `75b815231d78199d5516b1bbad12131de1c5dfe1`.
+
+### Historical signed extraction review register
 
 Each row identifies one `It` selector or its explicit parameterized group.
 Protects/Detects/Needs/source breadcrumbs sit directly above each selector.
-Hashes use UTF-8 with CRLF converted to LF. Each row inherits the complete
-source/test pins and review record below; a changed pin invalidates its review.
+Hashes use UTF-8 with CRLF converted to LF. Each row inherits the historical
+source/test pins and review record below. These records describe signed commit
+`75b815231d78199d5516b1bbad12131de1c5dfe1`; current source changes require the
+separate revision review below.
 
 Review base: `761c658a3ec7569661a3476f69477aa15d277fa8`.
 Reviewer/type/date: independent Codex reviewers listed per row / 2026-10-22 UTC.
@@ -364,6 +406,58 @@ Tests/Unit/SecretBackendCustody.Tests.ps1: `07B7FAB5EFB28D74AB9D14F8371F6403416E
 | Isolated Windows credential custody fixtures / Directory namespace admission / Trusted namespace before private credential staging / ignores InheritOnly grants that do not apply to an admitted existing directory | `1C79DE8B171A290A1DB8030D57BD7B3AC6D5443DA489F5DA31DC5759393CA628` | KEEP | /root/credential_custody_audit | independent Codex static source/test review | 2026-10-22 |
 | Isolated Windows credential custody fixtures / Directory namespace admission / Trusted namespace before private credential staging / conservatively refuses a foreign mutation allow even when a deny also exists | `BDE7F19DDD6FDE0AC3F14DB7EE80C8CA48AC1951674CA2446F1660E761066D5E` | KEEP | /root/credential_custody_audit | independent Codex static source/test review | 2026-10-22 |
 | Isolated Windows credential custody fixtures / Directory namespace admission / Trusted namespace before private credential staging / admits ancestor-only AddSubdirectory grants without granting direct parent mutation | `C1964ACF7BAA24AB81764F14D8EDBE1FD2B622B982B3A5621419FB82EB5E14A4` | KEEP | /root/credential_custody_audit | independent Codex static source/test review | 2026-10-22 |
+
+### Atomic-cache and finite-deadline revision review
+
+This revision addresses the normal PR review's cache-pair publication failure
+and archive deadline mismatch. The original 153 `It` bodies are byte-identical
+after LF normalization to signed commit `75b815231d78199d5516b1bbad12131de1c5dfe1`.
+Eleven new groups add 32 cases, and two `BeforeAll` fixture extensions supply
+isolated legacy-pair helpers and captured real process-runner entrypoints.
+
+The cache regressions first reproduced unusable fallback after a separate
+manifest failure. Further failing controls exposed a manifest-observation race
+and alternate-stream metadata being retired; the final implementation preserves
+both changed inputs. Deadline controls first reproduced rejection of 121/600
+seconds, then exposed the private wait's remaining 120000-ms cap. The qualified
+runner now uses a finite 600000-ms maximum while the cmdkey contract stays intact.
+
+Current LF SHA-256 source/test pins:
+
+- Tools/SystemScripts/Machine/SecretBackendUtilities.ps1: `269C70104FB24B502EA7233347D5B1FFEB5F0A5C1B16C0661DDDCB904EF6E4E5`.
+- Tools/SystemScripts/Machine/SecretsTier.psm1: `B6A7014269E536233BB8F1F43413282D29C2C1E7B7A253FF22328C6BC87DD3E1`.
+- Tests/Unit/SecretBackendCustody.Tests.ps1: `012D29D4C1518BBB8CDB6C875DA96E0DB55F33760976F73DD1E1CEDF9F7C5635`.
+
+Execution evidence: author `fce7e9`, independent root `dd7d38`; both pass
+303 Windows cases with no test/block/container failures or skips. Source/test
+equivalence and new-selector inventory were checked against the signed baseline
+in `eb32e1` and independently in `78ae78`. The latter review KEEP covers the
+revised production, all eleven new groups and both fixture extensions, authored
+by none of the reviewer. Its setup LF SHA-256 pins are
+`25336FC37001D332EF437DB6A6C2270ABAE6BC2EB3030B3B3B330A34404961CA`
+and `0999371F0E40E51FC646426754D8D968A061411E9F769F1CD538F6172A93BAF3`.
+Historical approvals above retain their original source pins.
+
+Status controls qualify structural/digest checks until an actual DPAPI read.
+Fast-child controls qualify deadline admission and execution at 121/600 seconds,
+rather than waiting 600 seconds. The five cleanup-mutation variants qualify
+retention; only the alternate-stream variant verifies changed stream contents,
+so they do not claim complete per-variant postmutation byte/ACL readback.
+No installed credential code, real provider, cache or vault was changed.
+
+| Selector/group | Selector SHA256 | Disposition | Reviewer | Review type | Date (UTC) |
+| --- | --- | --- | --- | --- | --- |
+| Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / keeps a coherent usable cache when a separate manifest write is unavailable | `4D7A767E13CCABC5C5673E0C02C47526E14206490D350141472192204F74F95E` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / preserves the previous readable pair exactly when canonical cache publication fails | `ABF4DD3ED57B2AE66EFEB3B2B6454D507BED8F54B756C690624D266405401F6B` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / publishes one self-contained cache file and retires only qualified old metadata | `248343C4AFB0EB87615028E59F673A40D8ABC9C7D8D678BD9D77FB0D2979E404` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / reports v2 cache metadata without decrypting or exposing values | `2333D4F02B10B0F2ABB3CA4D8D025619EF157A2D3546C590B04C28A490B2A86B` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / refuses tampered v2 cache <Field> without legacy rollback or hydration | `BC833E2215AE2CA0455518D3B2804D2F2FF8AEB315C62EF5B3F69E4378A0105C` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / refuses authenticated cache payload disagreement in <Field> | `F26843EF0A9DE956D4945927A08CD7242D797FEBD8EA4993D2116F4BF1201140` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / preserves old metadata changed immediately after legacy pair validation | `5A15814F63C4F810F2922CE77D582F344AC2D65F5B68CC326C9BC7AACF789074` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / preserves old cache metadata when cleanup sees <Mode> | `1BCFDD1A338DF51D5A2CD2F54785C7A8E34B3F93648AA9848F0DF8DACF91739E` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / keeps the old cache usable after actual partial canonical displacement | `D864CB215B9A338577123E23E92CB31C000F6065A9A1E9F7DEC5DCCF72B8B3D4` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Synthetic resource coordination and mapping boundaries / Synthetic backend discovery and credential normalization / accepts archive-compatible finite deadline <Timeout> through the real bounded runner | `204F923AA640D7FC5631249A227C602B5288299351817142B76B3969DF2B22DA` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Synthetic resource coordination and mapping boundaries / Synthetic backend discovery and credential normalization / refuses unsupported archive deadline <Timeout> before launch | `D47B1DC6A0802E56DEF382B45A670565642675626E334751FE7A1A4F652C8F86` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
 
 ## Safety Rules
 

@@ -456,26 +456,155 @@ function Sync-SecretsFromBws {
 
 #region Tier 2: Local Cache Functions
 
+function Read-SecretsCacheEnvelopeInternal {
+    param([Parameter(Mandatory)]$Read,[switch]$Decrypt)
+    $document=$null;$payloadDocument=$null;$plain=$null
+    try {
+        $prefix='#pcai-dpapi-cache-v2'+[char]10
+        if(-not $Read.Text.StartsWith($prefix,[StringComparison]::Ordinal)){throw 'Unsupported cache envelope.'}
+        $document=[Text.Json.JsonDocument]::Parse($Read.Text.Substring($prefix.Length))
+        $metadata=ConvertFrom-BwBackupElementInternal -Element $document.RootElement
+        $fields='cacheSha256,ciphertext,generation,lastUpdated,machineName,schema,secretCount,source,version'
+        if($metadata -isnot [hashtable] -or (@($metadata.Keys|Sort-Object) -join ',') -cne $fields){throw 'Invalid cache envelope fields.'}
+        if($metadata.schema -cne 'pcai-dpapi-cache-v2' -or $metadata.version -isnot [long] -or $metadata.version -ne 2 -or
+           $metadata.machineName -cne $MachineName -or $metadata.source -cne 'explicit' -or
+           $metadata.generation -isnot [string] -or $metadata.generation -cnotmatch '\A[a-f0-9]{32}\z' -or
+           $metadata.secretCount -isnot [long] -or $metadata.secretCount -lt 0 -or $metadata.secretCount -gt [int]::MaxValue -or
+           $metadata.lastUpdated -isnot [string] -or $metadata.ciphertext -isnot [string] -or
+           $metadata.cacheSha256 -isnot [string] -or $metadata.cacheSha256 -cnotmatch '\A[A-F0-9]{64}\z'){
+            throw 'Invalid cache envelope metadata.'
+        }
+        $updated=[DateTime]::ParseExact($metadata.lastUpdated,'o',[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::RoundtripKind)
+        if($updated.Kind -ne [DateTimeKind]::Utc){throw 'Cache UTC timestamp required.'}
+        $age=[DateTime]::UtcNow-$updated
+        if($age.TotalSeconds -lt -300){throw 'Invalid future cache age.'}
+        $cipherBytes=[Convert]::FromBase64String($metadata.ciphertext)
+        try{
+            if($cipherBytes.Length -eq 0 -or [Convert]::ToBase64String($cipherBytes) -cne $metadata.ciphertext -or
+               (Get-CredentialBytesHash ([Text.Encoding]::UTF8.GetBytes($metadata.ciphertext))) -cne $metadata.cacheSha256){throw 'Invalid cache ciphertext binding.'}
+        }finally{[Array]::Clear($cipherBytes,0,$cipherBytes.Length)}
+        $secrets=$null
+        if($Decrypt){
+            $plain=ConvertFrom-EncryptedString -EncryptedText $metadata.ciphertext
+            $payloadDocument=[Text.Json.JsonDocument]::Parse($plain)
+            $payload=ConvertFrom-BwBackupElementInternal -Element $payloadDocument.RootElement
+            if($payload -isnot [hashtable] -or (@($payload.Keys|Sort-Object) -join ',') -cne 'generation,lastUpdated,machineName,schema,secretCount,secrets,source,version' -or
+               $payload.schema -cne 'pcai-dpapi-cache-payload-v2' -or $payload.version -isnot [long] -or $payload.version -ne 2 -or
+               $payload.secrets -isnot [hashtable] -or $payload.secretCount -isnot [long] -or
+               $payload.secretCount -ne $payload.secrets.Count){throw 'Invalid authenticated cache payload.'}
+            foreach($field in @('generation','lastUpdated','machineName','secretCount','source')){
+                if($payload[$field] -cne $metadata[$field]){throw 'Authenticated cache metadata mismatch.'}
+            }
+            $secrets=$payload.secrets
+        }
+        Assert-CredentialPrivateReadCurrent $Read
+        return [pscustomobject]@{Age=$age;SecretCount=[int]$metadata.secretCount;LastUpdated=$updated;BoundDigest=$true;Secrets=$secrets;Source='Protected'}
+    }catch{throw [IO.InvalidDataException]::new('Selected cache envelope is invalid; private content is withheld.')}
+    finally{
+        $plain=$null
+        if($document){$document.Dispose()}
+        if($payloadDocument){$payloadDocument.Dispose()}
+    }
+}
+
+function Remove-SecretsLegacyManifestInternal {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)]$ManifestRead,[Parameter(Mandatory)]$CacheRead)
+    if(-not $PSCmdlet.ShouldProcess('Exact observed obsolete cache metadata','Retire metadata after verified single-file publication')){return}
+    $cachePin=$null;$manifestPin=$null
+    try {
+        Assert-CredentialPrivateReadCurrent $CacheRead
+        Assert-CredentialPrivateReadCurrent $ManifestRead
+        foreach($inputRead in @($CacheRead,$ManifestRead)){
+            Assert-BitwardenPrivateInput $inputRead.Path
+            $item=Get-Item -LiteralPath $inputRead.Path -Force -ErrorAction Stop
+            if($item.Attributes -band (-bnot ([IO.FileAttributes]::Archive -bor [IO.FileAttributes]::Normal))){throw 'Changed cache cleanup attributes retained.'}
+            if(@(Get-Item -LiteralPath (Get-CredentialStreamPath $inputRead.Path) -Stream * -ErrorAction Stop|Where-Object Stream -NE ':$DATA').Count){throw 'Unknown cache cleanup streams retained.'}
+        }
+        $cachePin=[IO.FileSystemAclExtensions]::Create([IO.FileInfo]::new($CacheRead.Path),[IO.FileMode]::Open,
+            [Security.AccessControl.FileSystemRights]'ReadData,ReadPermissions',[IO.FileShare]::Read,4096,[IO.FileOptions]::None,$null)
+        $manifestPin=[IO.FileSystemAclExtensions]::Create([IO.FileInfo]::new($ManifestRead.Path),[IO.FileMode]::Open,
+            [Security.AccessControl.FileSystemRights]'ReadData,ReadPermissions,Delete',[IO.FileShare]::Read,4096,[IO.FileOptions]::None,$null)
+        foreach($pair in @(@{Pin=$cachePin;Read=$CacheRead},@{Pin=$manifestPin;Read=$ManifestRead})){
+            if([Pcai.Credential.FileV1]::Links($pair.Pin.SafeFileHandle) -ne 1){throw 'Linked cache cleanup input retained.'}
+            $observed=Read-CredentialOwnedSnapshot $pair.Pin
+            if($observed.Identity -cne $pair.Read.Snapshot.Identity -or $observed.Hash -cne $pair.Read.Snapshot.Hash -or
+               (Get-CredentialDescriptorSddl $observed.Descriptor) -cne (Get-CredentialDescriptorSddl $pair.Read.Snapshot.Descriptor)){throw 'Cache cleanup custody changed.'}
+        }
+        Assert-CredentialTrustedNamespace ([IO.Path]::GetDirectoryName($ManifestRead.Path))
+        Initialize-CredentialCleanupInterop
+        [Pcai.Credential.CleanupV1]::MarkDelete($manifestPin.SafeFileHandle)
+    }finally{
+        if($manifestPin){$manifestPin.Dispose()}
+        if($cachePin){$cachePin.Dispose()}
+    }
+}
+
 function Save-SecretsToCache {
     <#
     .SYNOPSIS
-    Write protected DPAPI cache with a bound metadata digest.
+    Atomically publish one authenticated DPAPI cache envelope at the stable path.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param([Parameter(Mandatory)][hashtable]$Secrets)
-    if(-not$PSCmdlet.ShouldProcess($script:CacheDir,'Write encrypted cache and bound metadata')){return}
+    if(-not $PSCmdlet.ShouldProcess($script:CacheDir,'Write encrypted cache and bound metadata')){return}
     $null=Initialize-CredentialPrivateStorage -Selection $script:CacheSelection
-    $json=$Secrets|ConvertTo-Json -Compress -Depth 20
-    try{$encrypted=ConvertTo-EncryptedString -PlainText $json}finally{$json=$null}
-    Write-BitwardenPrivateFile -LiteralPath $script:CacheFile -Value $encrypted -Overwrite -Confirm:$false
-    $manifest=@{lastUpdated=[DateTime]::UtcNow.ToString('o');secretCount=$Secrets.Count;source='explicit';machineName=$MachineName;cacheSha256=(Get-FileHash -LiteralPath $script:CacheFile).Hash}
-    Write-BitwardenPrivateFile -LiteralPath $script:ManifestFile -Value ($manifest|ConvertTo-Json -Compress) -Overwrite -Confirm:$false
+    $oldManifest=$null;$published=$null;$unknownManifest=$false
+    try {
+        if(Test-Path -LiteralPath $script:ManifestFile){
+            try{
+                $oldManifest=Open-CredentialPrivateRead $script:ManifestFile
+                $previousPair=Get-SecretsCachePair
+                if($previousPair.Source -cne 'Protected' -or $previousPair.Layout -cne 'PairV1'){throw 'Unqualified old cache metadata.'}
+                $prior=Read-SecretsCachePair -Pair $previousPair -Decrypt
+                $prior.Secrets=$null
+                Assert-CredentialPrivateReadCurrent $oldManifest
+            }catch{
+                if($oldManifest){$oldManifest.Text=$null;$oldManifest.Stream.Dispose();$oldManifest=$null}
+                $unknownManifest=$true
+            }
+        }
+        $stamp=[DateTime]::UtcNow.ToString('o');$generation=[guid]::NewGuid().ToString('N')
+        $payload=@{schema='pcai-dpapi-cache-payload-v2';version=2;machineName=$MachineName;generation=$generation;lastUpdated=$stamp;secretCount=$Secrets.Count;source='explicit';secrets=$Secrets}
+        $json=$payload|ConvertTo-Json -Compress -Depth 20 -WarningAction Stop
+        try{$encrypted=ConvertTo-EncryptedString -PlainText $json}finally{$json=$null;$payload=$null}
+        $envelope=@{schema='pcai-dpapi-cache-v2';version=2;machineName=$MachineName;generation=$generation;lastUpdated=$stamp;secretCount=$Secrets.Count;source='explicit';ciphertext=$encrypted;cacheSha256=(Get-CredentialBytesHash ([Text.Encoding]::UTF8.GetBytes($encrypted)))}
+        $serialized='#pcai-dpapi-cache-v2'+[char]10+($envelope|ConvertTo-Json -Compress -Depth 4 -WarningAction Stop)
+        $expected=Get-CredentialBytesHash ([Text.Encoding]::UTF8.GetBytes($serialized))
+        Write-BitwardenPrivateFile -LiteralPath $script:CacheFile -Value $serialized -Overwrite -Confirm:$false
+        $published=Open-CredentialPrivateRead $script:CacheFile
+        if($published.Snapshot.Hash -cne $expected){throw 'Cache publication readback changed.'}
+        $verified=Read-SecretsCacheEnvelopeInternal -Read $published -Decrypt
+        $verified.Secrets=$null
+        if($oldManifest){
+            try{
+                Remove-SecretsLegacyManifestInternal -ManifestRead $oldManifest -CacheRead $published -Confirm:$false
+            }catch{Write-Warning 'Cache committed; obsolete metadata cleanup was not confirmed. Unqualified metadata was preserved.'}
+        }elseif($unknownManifest){
+            Write-Warning 'Cache committed; obsolete metadata cleanup was not confirmed. Unqualified metadata was preserved.'
+        }
+    }finally{
+        if($oldManifest){$oldManifest.Text=$null;$oldManifest.Stream.Dispose()}
+        if($published){$published.Text=$null;$published.Stream.Dispose()}
+        $serialized=$null;$encrypted=$null;$envelope=$null
+    }
 }
+
 
 function Get-SecretsCachePair {
     $cache=$script:CacheFile;$manifest=$script:ManifestFile;$source='Protected'
     $cacheExists=Test-Path -LiteralPath $cache
     $manifestExists=Test-Path -LiteralPath $manifest
+    if($cacheExists -and (Test-Path -LiteralPath $cache -PathType Leaf)){
+        $probe=Open-CredentialPrivateRead $cache
+        try{
+            if($probe.Text.TrimStart().StartsWith('#pcai-dpapi-cache-',[StringComparison]::OrdinalIgnoreCase)){
+                if(-not $probe.Text.StartsWith(('#pcai-dpapi-cache-v2'+[char]10),[StringComparison]::Ordinal)){throw 'Unsupported selected cache envelope; private content is withheld.'}
+                Assert-CredentialPrivateReadCurrent $probe
+                return [pscustomobject]@{Exists=$true;Cache=$cache;Manifest=$manifest;Source=$source;Layout='EnvelopeV2'}
+            }
+        }finally{$probe.Text=$null;$probe.Stream.Dispose()}
+    }
     # A partial/new invalid pair never authorizes rollback to an older cache.
     if (($cacheExists -or $manifestExists) -and -not ($cacheExists -and $manifestExists)) { throw 'Selected cache pair is incomplete; private content is withheld.' }
     if ($cacheExists -and $manifestExists -and
@@ -488,7 +617,7 @@ function Get-SecretsCachePair {
         $manifestExists=Test-Path -LiteralPath $manifest -PathType Leaf
         if (($cacheExists -or $manifestExists) -and -not ($cacheExists -and $manifestExists)) { throw 'Selected legacy pair is incomplete; private content is withheld.' }
     }
-    return [pscustomobject]@{Exists=($cacheExists -and $manifestExists);Cache=$cache;Manifest=$manifest;Source=$source}
+    return [pscustomobject]@{Exists=($cacheExists -and $manifestExists);Cache=$cache;Manifest=$manifest;Source=$source;Layout='PairV1'}
 }
 
 function Read-SecretsCachePair {
@@ -496,6 +625,9 @@ function Read-SecretsCachePair {
     $cache=$null;$manifest=$null;$json=$null
     try {
         $cache=Open-CredentialPrivateRead $Pair.Cache
+        if($Pair.Layout -ceq 'EnvelopeV2'){
+            return Read-SecretsCacheEnvelopeInternal -Read $cache -Decrypt:$Decrypt
+        }
         $manifest=Open-CredentialPrivateRead $Pair.Manifest
         $metadata=$manifest.Text|ConvertFrom-SecretBackendJson -AsHashtable -ErrorAction Stop
         if ($metadata -isnot [hashtable] -or -not $metadata.ContainsKey('lastUpdated') -or -not $metadata.ContainsKey('secretCount')) { throw 'Invalid cache metadata schema.' }

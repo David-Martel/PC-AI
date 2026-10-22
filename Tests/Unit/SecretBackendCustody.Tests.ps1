@@ -623,6 +623,229 @@ Describe 'Actual protected default cache and read-only authenticated legacy inte
     BeforeEach {
         $script:module=Import-Module (Join-Path $PSScriptRoot '../../Tools/SystemScripts/Machine/SecretsTier.psm1') -ArgumentList @('fixture-machine') -Force -PassThru -ErrorAction Stop
     }
+
+    BeforeAll {
+        function New-ConsumerProtectedLegacyPair {
+            $script:protectedCachePaths=& $script:module {
+                $null=Initialize-CredentialPrivateStorage -Selection $script:CacheSelection
+                [pscustomobject]@{Cache=$script:CacheFile;Manifest=$script:ManifestFile}
+            }
+            $plain=[Text.Encoding]::UTF8.GetBytes('{"PCAI_CONSUMER_SYNTHETIC":"previous-cache"}')
+            try{$cipher=[Convert]::ToBase64String([Security.Cryptography.ProtectedData]::Protect($plain,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser))}
+            finally{[Array]::Clear($plain,0,$plain.Length)}
+            New-ConsumerPrivateText $script:protectedCachePaths.Cache $cipher
+            New-ConsumerPrivateText $script:protectedCachePaths.Manifest (@{machineName='fixture-machine';secretCount=1;lastUpdated=[DateTime]::UtcNow.ToString('o');cacheSha256=(Get-FileHash $script:protectedCachePaths.Cache).Hash}|ConvertTo-Json -Compress)
+            $script:protectedBefore=@(foreach($path in @($script:protectedCachePaths.Cache,$script:protectedCachePaths.Manifest)){
+                $read=Open-CredentialPrivateRead $path
+                try{[pscustomobject]@{Path=$path;Hash=$read.Snapshot.Hash;Identity=$read.Snapshot.Identity;Sddl=(Get-CredentialDescriptorSddl $read.Snapshot.Descriptor)}}
+                finally{$read.Stream.Dispose()}
+            })
+        }
+        function Assert-ConsumerProtectedPairUnchanged {
+            foreach($before in $script:protectedBefore){
+                $read=Open-CredentialPrivateRead $before.Path
+                try{
+                    $read.Snapshot.Hash|Should -BeExactly $before.Hash
+                    $read.Snapshot.Identity|Should -BeExactly $before.Identity
+                    (Get-CredentialDescriptorSddl $read.Snapshot.Descriptor)|Should -BeExactly $before.Sddl
+                }finally{$read.Stream.Dispose()}
+            }
+        }
+    }
+    # Protects: a usable cache through failure of the obsolete second publication boundary.
+    # Detects: replacing ciphertext before a failing manifest write destroys the previous coherent fallback.
+    # Needs: Real protected NTFS legacy pair and DPAPI, one injected manifest failure; no providers.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1: Save-SecretsToCache,Get-SecretsFromCache
+    It 'keeps a coherent usable cache when a separate manifest write is unavailable' {
+        New-ConsumerProtectedLegacyPair
+        $script:cacheWriteImplementation=& $script:module {(Get-Command Write-BitwardenPrivateFile).ScriptBlock}
+        Mock -ModuleName SecretsTier Write-BitwardenPrivateFile {
+            param($LiteralPath,$Value,[switch]$Overwrite)
+            if($LiteralPath -eq $script:protectedCachePaths.Manifest){throw 'Synthetic second publication unavailable.'}
+            & $script:cacheWriteImplementation -LiteralPath $LiteralPath -Value $Value -Overwrite:$Overwrite -Confirm:$false
+        }
+        $failed=$false
+        try{& $script:module {Save-SecretsToCache @{PCAI_CONSUMER_SYNTHETIC='new-cache'} -Confirm:$false}}
+        catch{$failed=$true}
+        $read=& $script:module {Get-SecretsFromCache}
+        $read.PCAI_CONSUMER_SYNTHETIC|Should -BeExactly $(if($failed){'previous-cache'}else{'new-cache'})
+        (& $script:module {Get-CacheStatus}).IsValid|Should -BeTrue
+        Should -Invoke -ModuleName SecretsTier Write-BitwardenPrivateFile -Times 0 -Exactly -ParameterFilter {$LiteralPath -eq $script:protectedCachePaths.Manifest}
+    }
+    # Protects: the exact previous pair when the sole canonical cache publication fails.
+    # Detects: failed writes must preserve predecessor identities, ciphertext bytes, metadata bytes and owner/group/DACL.
+    # Needs: Actual protected NTFS pair and an injected prepublication failure; no live credentials.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1: Save-SecretsToCache
+    It 'preserves the previous readable pair exactly when canonical cache publication fails' {
+        New-ConsumerProtectedLegacyPair
+        Mock -ModuleName SecretsTier Write-BitwardenPrivateFile {throw 'Synthetic canonical publication refused.'}
+        {& $script:module {Save-SecretsToCache @{PCAI_CONSUMER_SYNTHETIC='new-cache'} -Confirm:$false}}|Should -Throw
+        Assert-ConsumerProtectedPairUnchanged
+        (& $script:module {Get-SecretsFromCache}).PCAI_CONSUMER_SYNTHETIC|Should -BeExactly 'previous-cache'
+    }
+
+
+    # Protects: one atomic cache artifact with no redundant v1 manifest after qualified migration.
+    # Detects: successful updates must not create another publication boundary or retain unused metadata copies.
+    # Needs: Real protected v1 fixture, NTFS replacement and current-user DPAPI.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1: Save-SecretsToCache,Remove-SecretsLegacyManifestInternal
+    It 'publishes one self-contained cache file and retires only qualified old metadata' {
+        New-ConsumerProtectedLegacyPair
+        & $script:module {Save-SecretsToCache @{PCAI_CONSUMER_SYNTHETIC='single-envelope'} -Confirm:$false}
+        $text=[IO.File]::ReadAllText($script:protectedCachePaths.Cache)
+        $text.StartsWith(('#pcai-dpapi-cache-v2'+[char]10),[StringComparison]::Ordinal)|Should -BeTrue
+        Test-Path -LiteralPath $script:protectedCachePaths.Manifest|Should -BeFalse
+        $text|Should -Not -Match 'single-envelope'
+        (& $script:module {Get-SecretsFromCache}).PCAI_CONSUMER_SYNTHETIC|Should -BeExactly 'single-envelope'
+    }
+    # Protects: status observation without plaintext recovery or implicit environment publication.
+    # Detects: metadata inspection must not invoke DPAPI decryption or return cached secrets.
+    # Needs: An actual saved encrypted envelope and a fail-closed decryption mock.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1: Get-CacheStatus,Read-SecretsCacheEnvelopeInternal
+    It 'reports v2 cache metadata without decrypting or exposing values' {
+        & $script:module {Save-SecretsToCache @{PCAI_CONSUMER_SYNTHETIC='status-private-sentinel'} -Confirm:$false}
+        Mock -ModuleName SecretsTier ConvertFrom-EncryptedString {throw 'Status must not decrypt.'}
+        $status=& $script:module {Get-CacheStatus}
+        $status.IsValid|Should -BeTrue;$status.Source|Should -BeExactly 'Protected';$status.SecretCount|Should -Be 1
+        ($status|ConvertTo-Json -Depth 5)|Should -Not -Match 'status-private-sentinel|ciphertext'
+        Should -Invoke -ModuleName SecretsTier ConvertFrom-EncryptedString -Times 0 -Exactly
+        $env:PCAI_CONSUMER_SYNTHETIC|Should -BeNullOrEmpty
+    }
+    # Protects: recognized new cache formats from fallback or acceptance after metadata tampering.
+    # Detects: unknown versions, malformed fields or changed public metadata must not recover secrets through the valid legacy cache.
+    # Needs: Real DPAPI envelope plus unchanged usable legacy fixture; all values are synthetic.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1: Get-SecretsCachePair,Read-SecretsCacheEnvelopeInternal
+    It 'refuses tampered v2 cache <Field> without legacy rollback or hydration' -TestCases @(
+        @{Field='Version'},@{Field='Schema'},@{Field='Machine'},@{Field='Count'},@{Field='Generation'},
+        @{Field='Timestamp'},@{Field='Source'},@{Field='Digest'},@{Field='Ciphertext'},@{Field='Duplicate'},@{Field='Prefix'}
+    ){
+        param($Field)
+        New-ConsumerLegacyPair
+        & $script:module {Save-SecretsToCache @{PCAI_CONSUMER_SYNTHETIC='new-private-sentinel'} -Confirm:$false}
+        $path=& $script:module {$script:CacheFile}
+        $text=[IO.File]::ReadAllText($path);$body=$text.Substring($text.IndexOf([char]10)+1)
+        $metadata=$body|ConvertFrom-Json -AsHashtable;$prefix='#pcai-dpapi-cache-v2'+[char]10
+        switch($Field){
+            Version {$metadata.version=3} Schema {$metadata.schema='unsupported'}
+            Machine {$metadata.machineName='different-machine'} Count {$metadata.secretCount=2}
+            Generation {$metadata.generation='f'*32}
+            Timestamp {$metadata.lastUpdated=[DateTime]::UtcNow.AddDays(1).ToString('o')}
+            Source {$metadata.source='unqualified'} Digest {$metadata.cacheSha256='0'*64}
+            Ciphertext {$metadata.ciphertext='not-base64'}
+            Duplicate {$body=$body.Substring(0,$body.Length-1)+',"version":2}'}
+            Prefix {$prefix='#pcai-dpapi-cache-v3'+[char]10}
+        }
+        if($Field -ne 'Duplicate'){$body=$metadata|ConvertTo-Json -Compress}
+        [IO.File]::WriteAllText($path,($prefix+$body),[Text.UTF8Encoding]::new($false))
+        {& $script:module {Get-SecretsFromCache}}|Should -Throw '*private content is withheld*'
+        $env:PCAI_CONSUMER_SYNTHETIC|Should -BeNullOrEmpty
+        Assert-ConsumerLegacyUnchanged
+    }
+    # Protects: agreement between authenticated DPAPI metadata and its public status envelope.
+    # Detects: a structurally valid DPAPI payload with different machine/count/time/generation/source must not be consumed.
+    # Needs: Synthetic current-user DPAPI payload mutations with recomputed ciphertext digest.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1: Read-SecretsCacheEnvelopeInternal
+    It 'refuses authenticated cache payload disagreement in <Field>' -TestCases @(
+        @{Field='machineName'},@{Field='generation'},@{Field='lastUpdated'},@{Field='secretCount'},@{Field='source'},@{Field='schema'}
+    ){
+        param($Field)
+        & $script:module {Save-SecretsToCache @{PCAI_CONSUMER_SYNTHETIC='bound-private-sentinel'} -Confirm:$false}
+        $path=& $script:module {$script:CacheFile}
+        $text=[IO.File]::ReadAllText($path);$metadata=$text.Substring($text.IndexOf([char]10)+1)|ConvertFrom-Json -AsHashtable
+        $plain=& $script:module {param($cipher) ConvertFrom-EncryptedString $cipher} $metadata.ciphertext
+        $payload=$plain|ConvertFrom-Json -AsHashtable;$plain=$null
+        if($Field -eq 'secretCount'){$payload[$Field]=2}else{$payload[$Field]='different-synthetic-metadata'}
+        $metadata.ciphertext=& $script:module {param($json) ConvertTo-EncryptedString $json} ($payload|ConvertTo-Json -Depth 20 -Compress)
+        $metadata.cacheSha256=Get-CredentialBytesHash ([Text.Encoding]::UTF8.GetBytes($metadata.ciphertext))
+        [IO.File]::WriteAllText($path,('#pcai-dpapi-cache-v2'+[char]10+($metadata|ConvertTo-Json -Compress)),[Text.UTF8Encoding]::new($false))
+        {& $script:module {Get-SecretsFromCache}}|Should -Throw '*private content is withheld*'
+        $env:PCAI_CONSUMER_SYNTHETIC|Should -BeNullOrEmpty
+    }
+    # Protects: preexisting metadata custody through qualification-to-capture races.
+    # Detects: changed metadata arriving after legacy validation must not be adopted as a safe deletion target.
+    # Needs: A real validated v1 pair with a synthetic post-read content change.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1: Save-SecretsToCache
+    It 'preserves old metadata changed immediately after legacy pair validation' {
+        New-ConsumerProtectedLegacyPair
+        $script:cacheReadImplementation=& $script:module {(Get-Command Read-SecretsCachePair).ScriptBlock}
+        Mock -ModuleName SecretsTier Read-SecretsCachePair {
+            param($Pair,[switch]$Decrypt)
+            $result=& $script:cacheReadImplementation -Pair $Pair -Decrypt:$Decrypt
+            if($Pair.Layout -eq 'PairV1'){
+                $metadata=[IO.File]::ReadAllText($Pair.Manifest)|ConvertFrom-Json -AsHashtable
+                $metadata.uniqueNote='arrived-after-qualification'
+                [IO.File]::WriteAllText($Pair.Manifest,($metadata|ConvertTo-Json -Compress),[Text.UTF8Encoding]::new($false))
+            }
+            return $result
+        }
+        $warnings=@()
+        & $script:module {Save-SecretsToCache @{PCAI_CONSUMER_SYNTHETIC='new-qualified-cache'} -Confirm:$false -WarningVariable warnings -WarningAction SilentlyContinue;[pscustomobject]@{Warnings=@($warnings)}}|ForEach-Object{$warnings=$_.Warnings}
+        @($warnings).Count|Should -Be 1
+        [IO.File]::ReadAllText($script:protectedCachePaths.Manifest)|Should -Match 'arrived-after-qualification'
+        (& $script:module {Get-SecretsFromCache}).PCAI_CONSUMER_SYNTHETIC|Should -BeExactly 'new-qualified-cache'
+    }
+    # Protects: changed or unknown old manifest data after the single-file commit.
+    # Detects: cleanup must preserve modified contents, replacement identities, ACLs, streams and unsupported attributes.
+    # Needs: Actual NTFS metadata with isolated post-publication mutation before guarded cleanup.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1: Remove-SecretsLegacyManifestInternal
+    It 'preserves old cache metadata when cleanup sees <Mode>' -TestCases @(
+        @{Mode='Text'},@{Mode='Identity'},@{Mode='Acl'},@{Mode='Stream'},@{Mode='ReadOnly'}
+    ){
+        param($Mode)
+        New-ConsumerProtectedLegacyPair
+        $script:cacheMetadataMutation=$Mode
+        $script:cacheWriteImplementation=& $script:module {(Get-Command Write-BitwardenPrivateFile).ScriptBlock}
+        Mock -ModuleName SecretsTier Write-BitwardenPrivateFile {
+            param($LiteralPath,$Value,[switch]$Overwrite)
+            & $script:cacheWriteImplementation -LiteralPath $LiteralPath -Value $Value -Overwrite:$Overwrite -Confirm:$false
+            if($LiteralPath -eq $script:protectedCachePaths.Cache){
+                $path=$script:protectedCachePaths.Manifest
+                switch($script:cacheMetadataMutation){
+                    Text {[IO.File]::AppendAllText($path,' ')}
+                    Identity {
+                        $text=[IO.File]::ReadAllText($path)
+                        [IO.File]::Move($path,(Join-Path $env:USERPROFILE 'owned-retired-manifest.json'))
+                        New-ConsumerPrivateText $path $text
+                    }
+                    Acl {
+                        $acl=Get-Acl $path
+                        $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.AccessControl.FileSystemRights]::WriteData,[Security.AccessControl.AccessControlType]::Deny))
+                        Set-Acl $path $acl
+                    }
+                    Stream {[IO.File]::WriteAllText(($path+':synthetic-extra'),'unrecognized-synthetic-stream')}
+                    ReadOnly {[IO.File]::SetAttributes($path,[IO.FileAttributes]::ReadOnly)}
+                }
+            }
+        }
+        $warnings=& $script:module {
+            $warnings=@()
+            Save-SecretsToCache @{PCAI_CONSUMER_SYNTHETIC='new-qualified-cache'} -Confirm:$false -WarningVariable warnings -WarningAction SilentlyContinue
+            ,@($warnings)
+        }
+        @($warnings).Count|Should -Be 1
+        Test-Path -LiteralPath $script:protectedCachePaths.Manifest|Should -BeTrue
+        if($Mode -eq 'Stream'){[IO.File]::ReadAllText(($script:protectedCachePaths.Manifest+':synthetic-extra'))|Should -BeExactly 'unrecognized-synthetic-stream'}
+        (& $script:module {Get-SecretsFromCache}).PCAI_CONSUMER_SYNTHETIC|Should -BeExactly 'new-qualified-cache'
+    }
+    # Protects: a coherent fallback after actual partial NTFS displacement during canonical publication.
+    # Detects: failed single-file replacement must recover the previous DPAPI cache and exact metadata bytes/DACL.
+    # Needs: Real NTFS move and existing private-file recovery; all content is synthetic.
+    # Breadcrumb: Tools/SystemScripts/Machine/{SecretsTier.psm1,SecretBackendUtilities.ps1}: Save-SecretsToCache,Write-BitwardenPrivateFile
+    It 'keeps the old cache usable after actual partial canonical displacement' {
+        New-ConsumerProtectedLegacyPair
+        Mock -ModuleName SecretsTier Invoke-CredentialFileReplace {
+            param($Stage,$Target,$Backup)
+            [IO.File]::Move($Target,$Backup)
+            throw 'Synthetic partial canonical displacement.'
+        }
+        {& $script:module {Save-SecretsToCache @{PCAI_CONSUMER_SYNTHETIC='new-cache'} -Confirm:$false}}|Should -Throw
+        foreach($before in $script:protectedBefore){
+            (Get-FileHash $before.Path).Hash|Should -BeExactly $before.Hash
+            (Get-Acl $before.Path).Sddl|Should -BeExactly $before.Sddl
+        }
+        (& $script:module {Get-SecretsFromCache}).PCAI_CONSUMER_SYNTHETIC|Should -BeExactly 'previous-cache'
+    }
+
     # Protects: import and WhatIf create no directories or provider effects.
     # Detects: Unexpected provisioning, provider access, value disclosure or fabricated readiness would violate the passive/no-change contract.
     # Needs: Windows x64 NTFS, Pester 5.7, isolated synthetic fixtures; no live provider or hardware.
@@ -1662,6 +1885,8 @@ Describe 'Synthetic resource coordination and mapping boundaries' {
         BeforeAll {
             # PowerShellGet is optional on the host. Supply only an inert test
             # boundary so a mock can verify intent without installing anything.
+            $script:archiveDeadlineRunner=(Get-Command Invoke-SecretBackendProcess).ScriptBlock
+            $script:archiveDeadlineExecutable=(Get-Process -Id $PID).Path
             function Install-Module {
                 [CmdletBinding()]
                 param([string]$Name,[string]$Repository,[string]$Scope,[switch]$Force,[switch]$AllowClobber,[switch]$AcceptLicense)
@@ -1678,6 +1903,33 @@ Describe 'Synthetic resource coordination and mapping boundaries' {
             $env:BW_CLIENTID=$null;$env:BW_CLIENTSECRET=$null;$env:BW_SESSION=$null;$env:PCAI_BW_EXECUTABLE=$null;$env:PCAI_BW_EXECUTABLE_SHA256=$null;$env:BWS_ACCESS_TOKEN=$null
         }
         AfterEach {foreach($name in $script:discoverySaved.Keys){[Environment]::SetEnvironmentVariable($name,$script:discoverySaved[$name],'Process')}}
+
+
+        # Protects: the existing archive caller's finite deadline through CLI validation and the actual process runner.
+        # Detects: supported deadlines above 120 seconds must not fail parameter binding before a fast owned child can run.
+        # Needs: A hidden profile-free PowerShell child that exits immediately; no Bitwarden executable/provider.
+        # Breadcrumb: Tools/SystemScripts/Machine/{SecretBackendUtilities.ps1,Update-BwArchive.ps1}: Invoke-BitwardenCli,Invoke-SecretBackendProcess
+        It 'accepts archive-compatible finite deadline <Timeout> through the real bounded runner' -TestCases @(@{Timeout=121},@{Timeout=600}) {
+            param($Timeout)
+            Mock Get-BitwardenCliProcessSpec {[pscustomobject]@{Kind='native-executable';FilePath=$script:archiveDeadlineExecutable;ArgumentPrefix=@('-NoLogo','-NoProfile','-NonInteractive','-Command')}}
+            Mock Invoke-SecretBackendProcess {[pscustomobject]@{Success=$true;StdOut='synthetic-cli-boundary'}}
+            $result=Invoke-BitwardenCli -Arguments @("[Console]::Out.Write('synthetic-deadline-ready')") -TimeoutSeconds $Timeout
+            $result.Success|Should -BeTrue;$result.StdOut|Should -BeExactly 'synthetic-cli-boundary'
+            Should -Invoke Invoke-SecretBackendProcess -Times 1 -Exactly -ParameterFilter {$TimeoutSeconds -eq $Timeout}
+            $native=& $script:archiveDeadlineRunner -FilePath $script:archiveDeadlineExecutable -Arguments @('-NoLogo','-NoProfile','-NonInteractive','-Command',"[Console]::Out.Write('synthetic-deadline-ready')") -TimeoutSeconds $Timeout
+            $native.Success|Should -BeTrue;$native.StdOut|Should -BeExactly 'synthetic-deadline-ready'
+        }
+        # Protects: finite supported bounds and the independent short cmdkey limit.
+        # Detects: zero or over-600 deadlines must be rejected before any child launch; cmdkey's existing 120-second limit stays unchanged.
+        # Needs: Validation-only calls and process invocation counters.
+        # Breadcrumb: Tools/SystemScripts/Machine/SecretBackendUtilities.ps1: Invoke-BitwardenCli,Invoke-SecretBackendProcess,Get-CmdKeyListOutput
+        It 'refuses unsupported archive deadline <Timeout> before launch' -TestCases @(@{Timeout=0},@{Timeout=601}) {
+            param($Timeout)
+            {Invoke-BitwardenCli -Arguments status -TimeoutSeconds $Timeout}|Should -Throw
+            {& $script:archiveDeadlineRunner -FilePath $script:archiveDeadlineExecutable -Arguments @('-NoLogo') -TimeoutSeconds $Timeout}|Should -Throw
+            {Get-CmdKeyListOutput -Target fixture -TimeoutSeconds 121}|Should -Throw
+            Should -Invoke Invoke-SecretBackendProcess -Times 0 -Exactly
+        }
 
         # Protects: attests unique package files and refuses ambiguous or stale selections (<Tool>).
         # Detects: Stale, ambiguous or unattested command selection would invoke the wrong executable or cross the refused shell boundary.

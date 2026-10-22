@@ -1814,6 +1814,56 @@ Describe 'Synthetic cloud, backup and environment orchestration' {
         Should -Invoke -ModuleName SecretsTier Save-SecretsToCache -Times 0 -Exactly
         Should -Invoke -ModuleName SecretsTier Set-SecretsAsEnvironment -Times 0 -Exactly
     }
+    # Protects: validated local fallback when fetched cloud secrets cannot be cached (<Scenario>).
+    # Detects: a publication exception escapes before cache admission, hydrates uncommitted cloud values, or leaks private error text.
+    # Needs: inert provider/cache/environment boundaries; no real credentials, storage or User-variable writes.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1::Initialize-MachineSecretsTiered
+    It 'continues through validated <Scenario> cache after cloud cache publication fails' -TestCases @(
+        @{Scenario='Valid';Expected='Local Cache'},@{Scenario='Expired';Expected='Local Cache (EXPIRED)'},@{Scenario='Missing';Expected='NONE'}
+    ) {
+        param($Scenario,$Expected)
+        $env:BWS_ACCESS_TOKEN='synthetic-token' # pragma: allowlist secret - isolated synthetic fixture; never a live credential
+        $script:initializationEvents=[Collections.Generic.List[string]]::new()
+        Mock -ModuleName SecretsTier Test-InternetConnection {$true}
+        Mock -ModuleName SecretsTier Get-BwsSecretsList {@{alpha='synthetic-cloud-value'}}
+        Mock -ModuleName SecretsTier Save-SecretsToCache {$script:initializationEvents.Add('Save');throw [IO.IOException]::new('private-publication-error-sentinel')}
+        Mock -ModuleName SecretsTier Get-CacheStatus {$script:initializationEvents.Add('Status');[pscustomobject]@{IsValid=($Scenario -eq 'Valid');Exists=($Scenario -eq 'Expired');IsExpired=($Scenario -eq 'Expired');LastUpdated=[datetime]::UtcNow;Age=[timespan]::FromDays(8)}}
+        Mock -ModuleName SecretsTier Get-SecretsFromCache {$script:initializationEvents.Add('Read');@{alpha='synthetic-cache-value'}}
+        Mock -ModuleName SecretsTier Set-InitializedSecretsEnvironment {$script:initializationEvents.Add('Hydrate')}
+        $result=& $script:providerModule {Initialize-MachineSecretsTiered -PersistentKeys alpha -Confirm:$false}
+        $result.Source|Should -BeExactly $Expected
+        $result.Success|Should -Be ($Scenario -ne 'Missing')
+        $result.SecretCount|Should -Be $(if($Scenario -eq 'Missing'){0}else{1})
+        $result.Warnings|Should -Contain 'Cloud cache publication failed; trying the validated local cache.'
+        ($result|ConvertTo-Json -Depth 5)|Should -Not -Match 'private-publication-error-sentinel|synthetic-cloud-value|synthetic-cache-value'
+        Should -Invoke -ModuleName SecretsTier Save-SecretsToCache -Times 1 -Exactly
+        Should -Invoke -ModuleName SecretsTier Get-CacheStatus -Times 1 -Exactly
+        if($Scenario -eq 'Missing'){
+            ($script:initializationEvents -join ',')|Should -BeExactly 'Save,Status'
+            Should -Invoke -ModuleName SecretsTier Get-SecretsFromCache -Times 0 -Exactly
+            Should -Invoke -ModuleName SecretsTier Set-InitializedSecretsEnvironment -Times 0 -Exactly
+        }else{
+            ($script:initializationEvents -join ',')|Should -BeExactly 'Save,Status,Read,Hydrate'
+            Should -Invoke -ModuleName SecretsTier Get-SecretsFromCache -Times 1 -Exactly -ParameterFilter {[bool]$IgnoreAge -eq ($Scenario -eq 'Expired')}
+            Should -Invoke -ModuleName SecretsTier Set-InitializedSecretsEnvironment -Times 1 -Exactly -ParameterFilter {$Secrets.Count -eq 1 -and $Secrets.alpha -eq 'synthetic-cache-value' -and $PersistentKeys.Count -eq 1 -and $PersistentKeys[0] -eq 'alpha'}
+        }
+    }
+    # Protects: unsafe selected storage remains fail-closed after a recoverable cloud cache-write failure.
+    # Detects: the new publication catch swallows cache admission errors or hydrates any unvalidated input.
+    # Needs: inert cloud/cache/environment boundaries and one synthetic invalid-storage exception.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1::Initialize-MachineSecretsTiered
+    It 'propagates selected cache admission failure after cloud cache publication fails' {
+        $env:BWS_ACCESS_TOKEN='synthetic-token' # pragma: allowlist secret - isolated synthetic fixture; never a live credential
+        Mock -ModuleName SecretsTier Test-InternetConnection {$true}
+        Mock -ModuleName SecretsTier Get-BwsSecretsList {@{alpha='synthetic-cloud-value'}}
+        Mock -ModuleName SecretsTier Save-SecretsToCache {throw [IO.IOException]::new('private-publication-error-sentinel')}
+        Mock -ModuleName SecretsTier Get-CacheStatus {throw [IO.InvalidDataException]::new('Selected synthetic cache is invalid.')}
+        Mock -ModuleName SecretsTier Get-SecretsFromCache {throw 'Unvalidated cache read forbidden.'}
+        {& $script:providerModule {Initialize-MachineSecretsTiered -Confirm:$false}}|Should -Throw '*Selected synthetic cache is invalid*'
+        Should -Invoke -ModuleName SecretsTier Get-CacheStatus -Times 1 -Exactly
+        Should -Invoke -ModuleName SecretsTier Get-SecretsFromCache -Times 0 -Exactly
+        Should -Invoke -ModuleName SecretsTier Set-InitializedSecretsEnvironment -Times 0 -Exactly
+    }
     # Protects: selects cloud, valid cache, expired cache and manual recovery deterministically (<State>).
     # Detects: Each available tier must report its actual source; the missing-data path must remain unsuccessful and perform no hydration.
     # Needs: Windows x64 NTFS, Pester 5.7, isolated synthetic fixtures; no live provider or hardware.

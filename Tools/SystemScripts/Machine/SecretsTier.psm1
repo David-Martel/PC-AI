@@ -1165,13 +1165,21 @@ function Initialize-MachineSecretsTiered {
     if ($env:BWS_ACCESS_TOKEN -and (Test-InternetConnection)) {
         $secrets = Get-BwsSecretsList
         if ($secrets -and $secrets.Count -gt 0) {
-            Save-SecretsToCache -Secrets $secrets
-            Set-InitializedSecretsEnvironment -Secrets $secrets -PersistentKeys $PersistentKeys
-            $result.Source = "BWS Cloud"
-            $result.SecretCount = $secrets.Count
-            $result.Success = $true
+            $cachePublished = $false
+            try {
+                Save-SecretsToCache -Secrets $secrets
+                $cachePublished = $true
+            } catch {
+                $result.Warnings += 'Cloud cache publication failed; trying the validated local cache.'
+            }
+            if ($cachePublished) {
+                Set-InitializedSecretsEnvironment -Secrets $secrets -PersistentKeys $PersistentKeys
+                $result.Source = "BWS Cloud"
+                $result.SecretCount = $secrets.Count
+                $result.Success = $true
 
-            return [PSCustomObject]$result
+                return [PSCustomObject]$result
+            }
         }
     }
 

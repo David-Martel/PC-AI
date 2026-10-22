@@ -138,6 +138,13 @@ its first v2 cache publication, using the existing module/runtime qualification.
 Copying source files alone does not establish runtime convergence. No live cache
 migration is included in this qualification.
 
+At profile initialization, a failed cloud cache publication adds a sanitized
+warning and continues through the existing local-cache admission path. Valid
+cache data is used normally; expired data retains the existing explicit age
+warning and IgnoreAge behavior. Missing data remains unsuccessful. Cache
+validation and environment-hydration errors remain outside the publication
+catch, so this recovery does not admit unsafe storage or unvalidated values.
+
 ### Cloud backup publication and compatibility
 
 `Export-SecretsToBwVault` binds the payload and note name to the explicitly
@@ -224,6 +231,15 @@ reported zero Warning/Error findings. An independent Windows replay passed all
 303 cases in 25.820 seconds, with empty stderr and no remaining newly owned
 fixture roots. Its code and tests are bound separately below; the original
 153 selector bodies remain identical to signed commit `75b815231d78199d5516b1bbad12131de1c5dfe1`.
+
+The subsequent profile-fallback repair passed 307 cases in 39.745 seconds,
+with no test/block/container failures or skips and empty stderr. Pair coverage
+was 2455/2823 commands (86.964%): helper 1566/1815 (86.281%), module 889/1008
+(88.194%). The unchanged analyzer configuration again reported zero
+Warning/Error findings. An independent Windows replay passed all 307 cases in
+26.611 seconds with no test/block/container failures or skips, empty stderr
+and no remaining newly owned fixture roots. Its review and pins are recorded
+separately below.
 
 ### Historical signed extraction review register
 
@@ -407,12 +423,12 @@ Tests/Unit/SecretBackendCustody.Tests.ps1: `07B7FAB5EFB28D74AB9D14F8371F6403416E
 | Isolated Windows credential custody fixtures / Directory namespace admission / Trusted namespace before private credential staging / conservatively refuses a foreign mutation allow even when a deny also exists | `BDE7F19DDD6FDE0AC3F14DB7EE80C8CA48AC1951674CA2446F1660E761066D5E` | KEEP | /root/credential_custody_audit | independent Codex static source/test review | 2026-10-22 |
 | Isolated Windows credential custody fixtures / Directory namespace admission / Trusted namespace before private credential staging / admits ancestor-only AddSubdirectory grants without granting direct parent mutation | `C1964ACF7BAA24AB81764F14D8EDBE1FD2B622B982B3A5621419FB82EB5E14A4` | KEEP | /root/credential_custody_audit | independent Codex static source/test review | 2026-10-22 |
 
-### Atomic-cache and finite-deadline revision review
+### Atomic-cache, finite-deadline and profile-fallback revision review
 
-This revision addresses the normal PR review's cache-pair publication failure
-and archive deadline mismatch. The original 153 `It` bodies are byte-identical
+These revisions address the normal PR review's cache-pair publication failure,
+archive deadline mismatch and uncaught profile cache-write failure. The original 153 `It` bodies are byte-identical
 after LF normalization to signed commit `75b815231d78199d5516b1bbad12131de1c5dfe1`.
-Eleven new groups add 32 cases, and two `BeforeAll` fixture extensions supply
+Thirteen new groups add 36 cases, and two `BeforeAll` fixture extensions supply
 isolated legacy-pair helpers and captured real process-runner entrypoints.
 
 The cache regressions first reproduced unusable fallback after a separate
@@ -422,21 +438,38 @@ both changed inputs. Deadline controls first reproduced rejection of 121/600
 seconds, then exposed the private wait's remaining 120000-ms cap. The qualified
 runner now uses a finite 600000-ms maximum while the cmdkey contract stays intact.
 
-Current LF SHA-256 source/test pins:
+Current LF SHA-256 source/test pins for the thirteen revision groups:
 
 - Tools/SystemScripts/Machine/SecretBackendUtilities.ps1: `269C70104FB24B502EA7233347D5B1FFEB5F0A5C1B16C0661DDDCB904EF6E4E5`.
-- Tools/SystemScripts/Machine/SecretsTier.psm1: `B6A7014269E536233BB8F1F43413282D29C2C1E7B7A253FF22328C6BC87DD3E1`.
-- Tests/Unit/SecretBackendCustody.Tests.ps1: `012D29D4C1518BBB8CDB6C875DA96E0DB55F33760976F73DD1E1CEDF9F7C5635`.
+- Tools/SystemScripts/Machine/SecretsTier.psm1: `C4162491245879653F27AAC76B1395FC02E1671A9C736A2A25CFAF616F3949D5`.
+- Tests/Unit/SecretBackendCustody.Tests.ps1: `7923321917C39649AA0FFB6FF020AA762F65B0D5D5B6A320D30F714D01FE15AB`.
 
 Execution evidence: author `fce7e9`, independent root `dd7d38`; both pass
 303 Windows cases with no test/block/container failures or skips. Source/test
 equivalence and new-selector inventory were checked against the signed baseline
 in `eb32e1` and independently in `78ae78`. The latter review KEEP covers the
-revised production, all eleven new groups and both fixture extensions, authored
-by none of the reviewer. Its setup LF SHA-256 pins are
+revised production, the first eleven groups and both fixture extensions; the
+reviewer authored none of that code. Those 303-case results used signed
+`238524ca83f3af8463e5b3def0a6e5923a74a877`, with module pin
+`B6A7014269E536233BB8F1F43413282D29C2C1E7B7A253FF22328C6BC87DD3E1`
+and test pin `012D29D4C1518BBB8CDB6C875DA96E0DB55F33760976F73DD1E1CEDF9F7C5635`.
+The setup LF SHA-256 pins are
 `25336FC37001D332EF437DB6A6C2270ABAE6BC2EB3030B3B3B330A34404961CA`
 and `0999371F0E40E51FC646426754D8D968A061411E9F769F1CD538F6172A93BAF3`.
 Historical approvals above retain their original source pins.
+
+The profile-publication regressions then failed all four cases against that
+signed revision (`7eeda3`). The Save-only catch passed the four focused controls
+(`689cc9`) and the full 307-case gate (`def3f0`). The independent 307-case
+Windows replay (`2888fa`) binds the current pins. Independent static review
+`62679c` KEEP covers the narrow production catch and two new groups, and rebinds
+the earlier eleven groups to the current pins: all 164 prior selector bodies,
+their cache/cleanup/deadline production and all fixture setup bodies are
+unchanged. The two added synthetic-token literals carry narrowly scoped scanner
+pragmas and were reviewed in their isolated fixture context. All thirteen rows
+below are reviewed by `/root/codex_deployment_audit`, independent Codex static
+source/test review, 2026-10-22 UTC. This does not recertify all 153 historical
+rows at changed production pins; full-suite execution is separate evidence.
 
 Status controls qualify structural/digest checks until an actual DPAPI read.
 Fast-child controls qualify deadline admission and execution at 121/600 seconds,
@@ -458,6 +491,8 @@ No installed credential code, real provider, cache or vault was changed.
 | Isolated Windows credential custody fixtures / Protected runtime consumers and authenticated legacy reads / Private credential consumer runtime contract / Actual protected default cache and read-only authenticated legacy integration / keeps the old cache usable after actual partial canonical displacement | `D864CB215B9A338577123E23E92CB31C000F6065A9A1E9F7DEC5DCCF72B8B3D4` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
 | Isolated Windows credential custody fixtures / Synthetic resource coordination and mapping boundaries / Synthetic backend discovery and credential normalization / accepts archive-compatible finite deadline <Timeout> through the real bounded runner | `204F923AA640D7FC5631249A227C602B5288299351817142B76B3969DF2B22DA` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
 | Isolated Windows credential custody fixtures / Synthetic resource coordination and mapping boundaries / Synthetic backend discovery and credential normalization / refuses unsupported archive deadline <Timeout> before launch | `D47B1DC6A0802E56DEF382B45A670565642675626E334751FE7A1A4F652C8F86` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Synthetic cloud, backup and environment orchestration / continues through validated <Scenario> cache after cloud cache publication fails | `5A41DB5983F2CB4F25672D1A2B69D84EC7DFE50AD008E283E45CE75B342F64C5` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Synthetic cloud, backup and environment orchestration / propagates selected cache admission failure after cloud cache publication fails | `C8013D686DBACE68102501511CAA8ED7C2C4ED7C2EFD17070DAB5D8163277B6F` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
 
 ## Safety Rules
 

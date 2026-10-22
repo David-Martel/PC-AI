@@ -144,6 +144,10 @@ cache data is used normally; expired data retains the existing explicit age
 warning and IgnoreAge behavior. Missing data remains unsuccessful. Cache
 validation and environment-hydration errors remain outside the publication
 catch, so this recovery does not admit unsafe storage or unvalidated values.
+Native BWS launch failures and malformed cloud responses also produce a fixed,
+sanitized retrieval warning and enter that same validated cache path. The
+retrieval catch surrounds only the fetch; cache admission and hydration still
+propagate their own errors.
 
 ### Cloud backup publication and compatibility
 
@@ -438,7 +442,8 @@ both changed inputs. Deadline controls first reproduced rejection of 121/600
 seconds, then exposed the private wait's remaining 120000-ms cap. The qualified
 runner now uses a finite 600000-ms maximum while the cmdkey contract stays intact.
 
-Current LF SHA-256 source/test pins for the thirteen revision groups:
+Reviewed LF SHA-256 source/test pins for the thirteen groups in signed revision
+`1047dbd449e442414899471f539df990fed821c3`:
 
 - Tools/SystemScripts/Machine/SecretBackendUtilities.ps1: `269C70104FB24B502EA7233347D5B1FFEB5F0A5C1B16C0661DDDCB904EF6E4E5`.
 - Tools/SystemScripts/Machine/SecretsTier.psm1: `C4162491245879653F27AAC76B1395FC02E1671A9C736A2A25CFAF616F3949D5`.
@@ -494,6 +499,49 @@ No installed credential code, real provider, cache or vault was changed.
 | Isolated Windows credential custody fixtures / Synthetic cloud, backup and environment orchestration / continues through validated <Scenario> cache after cloud cache publication fails | `5A41DB5983F2CB4F25672D1A2B69D84EC7DFE50AD008E283E45CE75B342F64C5` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
 | Isolated Windows credential custody fixtures / Synthetic cloud, backup and environment orchestration / propagates selected cache admission failure after cloud cache publication fails | `C8013D686DBACE68102501511CAA8ED7C2C4ED7C2EFD17070DAB5D8163277B6F` | KEEP | /root/codex_deployment_audit | independent Codex static source/test review | 2026-10-22 |
 
+### Cloud-fetch fallback revision review
+
+The final fetch-only repair catches native BWS launch and response-parsing
+failures, appends a fixed warning and reaches the same validated local-cache
+tiers. It initializes the fetch variable to null before trying the cloud;
+selected-cache admission and environment hydration remain outside both
+recovery catches. The real BWS parser runs in the regression fixtures, with only
+executable discovery and its native process boundary replaced by inert values.
+
+All eight new cases first failed against signed
+`1047dbd449e442414899471f539df990fed821c3` (`12118c`), then passed (`94bd4b`).
+The full Windows gate passed 315 cases in 41.207 seconds, with no
+test/block/container failures or skips and empty stderr (`aad5a0`). Explicit
+entire-pair coverage was 2457/2825 commands (86.973%): helper 1566/1815
+(86.281%), module 891/1010 (88.218%). The unchanged configured analyzer reported
+zero Warning/Error findings (`f480e2`). The freshly owned synthetic fixture
+was removed by the suite.
+
+Independent Windows replay `498422` passed all 315 cases in 26.079 seconds,
+with no test/block/container failures or skips, empty stderr and no remaining
+newly owned fixture roots. The helper, module and test pins below stayed
+unchanged during execution; expected WhatIf output concerned synthetic inputs.
+
+Current LF SHA-256 pins:
+
+- Tools/SystemScripts/Machine/SecretBackendUtilities.ps1: `269C70104FB24B502EA7233347D5B1FFEB5F0A5C1B16C0661DDDCB904EF6E4E5`.
+- Tools/SystemScripts/Machine/SecretsTier.psm1: `F2DB9CEF9D02C8ED98950334EF3F057BF991EFCE1DAD90431F7F0CFAB9B6D70C`.
+- Tests/Unit/SecretBackendCustody.Tests.ps1: `4C9EA69CC9B06EBF14E19EBD9B39C2F63B804FEE073B4119F80EC2D545E52DCF`.
+
+Root reviewer `codex-gen9-fleet-resume (/root)` independently read the complete
+fetch-only production delta and both new groups (`cf28f5`), KEEP on 2026-10-22
+UTC. The author AST check (`ec1fa7`) found all 166 prior full selector bodies
+unchanged, two new groups/eight cases, and no setup changes. The prior thirteen
+groups retain the auditor's actual C416/7923 review above; root's current
+impact assessment confirms that their exercised cache/cleanup/deadline and
+Save-only recovery code is unchanged. This supplies the current fifteen-group
+review chain without representing the busy auditor as a reviewer of F2DB,
+or recertifying the 153 historical rows at changed production pins.
+
+| Selector/group | Selector SHA256 | Disposition | Reviewer | Review type | Date (UTC) |
+| --- | --- | --- | --- | --- | --- |
+| Isolated Windows credential custody fixtures / Synthetic cloud, backup and environment orchestration / uses validated <Scenario> cache after actual BWS <Failure> failure | `41F5F5CB5AAE125E15502197FE2DEF5C0361C5017F6E195F05CF171722F17327` | KEEP | codex-gen9-fleet-resume (/root) | independent Codex static source/test review | 2026-10-22 |
+| Isolated Windows credential custody fixtures / Synthetic cloud, backup and environment orchestration / propagates <Boundary> failure after actual BWS launch refusal | `2741D62F3CC7885C4D498F38680832FEB42388C6427A99B94A263B0B5FE9C447` | KEEP | codex-gen9-fleet-resume (/root) | independent Codex static source/test review | 2026-10-22 |
 ## Safety Rules
 
 The [Windows USB4 startup policy](../../docs/usb4/windows-boot.md) is an observer.

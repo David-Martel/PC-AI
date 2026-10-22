@@ -1163,7 +1163,12 @@ function Initialize-MachineSecretsTiered {
         }
     }
     if ($env:BWS_ACCESS_TOKEN -and (Test-InternetConnection)) {
-        $secrets = Get-BwsSecretsList
+        $secrets = $null
+        try {
+            $secrets = Get-BwsSecretsList
+        } catch {
+            $result.Warnings += 'Cloud secret retrieval failed; trying the validated local cache.'
+        }
         if ($secrets -and $secrets.Count -gt 0) {
             $cachePublished = $false
             try {

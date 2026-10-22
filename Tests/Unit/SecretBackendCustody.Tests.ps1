@@ -1814,6 +1814,61 @@ Describe 'Synthetic cloud, backup and environment orchestration' {
         Should -Invoke -ModuleName SecretsTier Save-SecretsToCache -Times 0 -Exactly
         Should -Invoke -ModuleName SecretsTier Set-SecretsAsEnvironment -Times 0 -Exactly
     }
+    # Protects: validated cache fallback after actual BWS launch or parsing failure (<Failure>/<Scenario>).
+    # Detects: cloud retrieval exceptions abort initialization, leak native output, or hydrate unvalidated cloud values.
+    # Needs: actual BWS parser with inert executable discovery/native process boundary; synthetic cache/environment substitutes only.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1::Get-BwsSecretsList,Initialize-MachineSecretsTiered
+    It 'uses validated <Scenario> cache after actual BWS <Failure> failure' -TestCases @(
+        @{Failure='Launch';Scenario='Valid';Expected='Local Cache'},@{Failure='Malformed';Scenario='Valid';Expected='Local Cache'},
+        @{Failure='Launch';Scenario='Expired';Expected='Local Cache (EXPIRED)'},@{Failure='Malformed';Scenario='Expired';Expected='Local Cache (EXPIRED)'},
+        @{Failure='Launch';Scenario='Missing';Expected='NONE'},@{Failure='Malformed';Scenario='Missing';Expected='NONE'}
+    ) {
+        param($Failure,$Scenario,$Expected)
+        $env:BWS_ACCESS_TOKEN='synthetic-token' # pragma: allowlist secret - isolated synthetic fixture; never a live credential
+        Mock -ModuleName SecretsTier Test-InternetConnection {$true}
+        Mock -ModuleName SecretsTier Get-Command {[pscustomobject]@{Source='C:/synthetic/bws.exe'}} -ParameterFilter {$Name -eq 'bws.exe'}
+        Mock -ModuleName SecretsTier Invoke-SecretBackendProcess {
+            if($Failure -eq 'Launch'){throw [ComponentModel.Win32Exception]::new('private-cloud-launch-sentinel')}
+            [pscustomobject]@{Success=$true;StdOut='private-malformed-json-sentinel'}
+        }
+        Mock -ModuleName SecretsTier Get-CacheStatus {[pscustomobject]@{IsValid=($Scenario -eq 'Valid');Exists=($Scenario -eq 'Expired');IsExpired=($Scenario -eq 'Expired');LastUpdated=[datetime]::UtcNow;Age=[timespan]::FromDays(8)}}
+        Mock -ModuleName SecretsTier Get-SecretsFromCache {@{alpha='synthetic-cache-value'}}
+        Mock -ModuleName SecretsTier Set-InitializedSecretsEnvironment {}
+        $result=& $script:providerModule {Initialize-MachineSecretsTiered -PersistentKeys alpha -Confirm:$false}
+        $result.Source|Should -BeExactly $Expected
+        $result.Success|Should -Be ($Scenario -ne 'Missing')
+        $result.SecretCount|Should -Be $(if($Scenario -eq 'Missing'){0}else{1})
+        $result.Warnings|Should -Contain 'Cloud secret retrieval failed; trying the validated local cache.'
+        ($result|ConvertTo-Json -Depth 5)|Should -Not -Match 'private-cloud-launch-sentinel|private-malformed-json-sentinel|synthetic-cache-value'
+        Should -Invoke -ModuleName SecretsTier Invoke-SecretBackendProcess -Times 1 -Exactly -ParameterFilter {$FilePath -eq 'C:/synthetic/bws.exe' -and ($Arguments -join ',') -eq 'secret,list,-o,json'}
+        Should -Invoke -ModuleName SecretsTier Save-SecretsToCache -Times 0 -Exactly
+        Should -Invoke -ModuleName SecretsTier Get-CacheStatus -Times 1 -Exactly
+        if($Scenario -eq 'Missing'){
+            Should -Invoke -ModuleName SecretsTier Get-SecretsFromCache -Times 0 -Exactly
+            Should -Invoke -ModuleName SecretsTier Set-InitializedSecretsEnvironment -Times 0 -Exactly
+        }else{
+            Should -Invoke -ModuleName SecretsTier Get-SecretsFromCache -Times 1 -Exactly -ParameterFilter {[bool]$IgnoreAge -eq ($Scenario -eq 'Expired')}
+            Should -Invoke -ModuleName SecretsTier Set-InitializedSecretsEnvironment -Times 1 -Exactly -ParameterFilter {$Secrets.alpha -eq 'synthetic-cache-value' -and $PersistentKeys.Count -eq 1 -and $PersistentKeys[0] -eq 'alpha'}
+        }
+    }
+    # Protects: selected-cache admission and hydration errors remain visible after recoverable cloud retrieval failure (<Boundary>).
+    # Detects: an overly broad cloud catch swallows downstream validation or environment errors.
+    # Needs: actual BWS retrieval with inert launch refusal, synthetic cache and hydration boundaries.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1::Get-BwsSecretsList,Initialize-MachineSecretsTiered
+    It 'propagates <Boundary> failure after actual BWS launch refusal' -TestCases @(@{Boundary='Admission'},@{Boundary='Hydration'}) {
+        param($Boundary)
+        $env:BWS_ACCESS_TOKEN='synthetic-token' # pragma: allowlist secret - isolated synthetic fixture; never a live credential
+        Mock -ModuleName SecretsTier Test-InternetConnection {$true}
+        Mock -ModuleName SecretsTier Get-Command {[pscustomobject]@{Source='C:/synthetic/bws.exe'}} -ParameterFilter {$Name -eq 'bws.exe'}
+        Mock -ModuleName SecretsTier Invoke-SecretBackendProcess {throw [ComponentModel.Win32Exception]::new('private-cloud-launch-sentinel')}
+        Mock -ModuleName SecretsTier Get-CacheStatus {if($Boundary -eq 'Admission'){throw 'Synthetic admission error.'};[pscustomobject]@{IsValid=$true}}
+        Mock -ModuleName SecretsTier Get-SecretsFromCache {@{alpha='synthetic-cache-value'}}
+        Mock -ModuleName SecretsTier Set-InitializedSecretsEnvironment {throw 'Synthetic hydration error.'}
+        {& $script:providerModule {Initialize-MachineSecretsTiered -Confirm:$false}}|Should -Throw ("*Synthetic $($Boundary.ToLowerInvariant()) error*")
+        Should -Invoke -ModuleName SecretsTier Save-SecretsToCache -Times 0 -Exactly
+        Should -Invoke -ModuleName SecretsTier Get-CacheStatus -Times 1 -Exactly
+        Should -Invoke -ModuleName SecretsTier Set-InitializedSecretsEnvironment -Times $(if($Boundary -eq 'Admission'){0}else{1}) -Exactly
+    }
     # Protects: validated local fallback when fetched cloud secrets cannot be cached (<Scenario>).
     # Detects: a publication exception escapes before cache admission, hydrates uncommitted cloud values, or leaks private error text.
     # Needs: inert provider/cache/environment boundaries; no real credentials, storage or User-variable writes.

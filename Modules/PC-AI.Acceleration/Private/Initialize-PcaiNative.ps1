@@ -632,16 +632,41 @@ function Invoke-PcaiNativeEstimateTokens {
             return [uint64]0
         }
 
-        $count = [uint64]0
-        foreach ($match in [regex]::Matches($Text, '[\p{L}\p{N}]+|\s+|[^\p{L}\p{N}\s]')) {
-            $byteLen = [System.Text.Encoding]::UTF8.GetByteCount($match.Value)
-            if ($byteLen -gt 8) {
-                $count += [uint64][Math]::Ceiling($byteLen / 4.0)
-            } else {
-                $count += [uint64]1
+        # Preserve the existing BMP heuristic and avoid a per-scalar loop when
+        # there are no surrogate code units to decode.
+        if (-not [regex]::IsMatch($Text, '[\uD800-\uDFFF]')) {
+            $count = [uint64]0
+            foreach ($match in [regex]::Matches($Text, '[\p{L}\p{N}]+|\s+|[^\p{L}\p{N}\s]')) {
+                $byteLen = [System.Text.Encoding]::UTF8.GetByteCount($match.Value)
+                if ($byteLen -gt 8) {
+                    $count += [uint64][Math]::Ceiling($byteLen / 4.0)
+                } else {
+                    $count += [uint64]1
+                }
             }
+            return [uint64]($count + 1)
         }
-        return [uint64]($count + 1)
+
+        # Rust regex operates on Unicode scalars, not UTF-16 code units. Keep
+        # L/N runs, whitespace runs and individual other scalars before sizing.
+        $count = [uint64]1 # BOS for nonempty input
+        $pieceBytes = 0
+        $previousKind = -1
+        foreach ($rune in $Text.EnumerateRunes()) {
+            $kind = if ([System.Text.Rune]::IsLetter($rune) -or [System.Text.Rune]::IsNumber($rune)) {
+                0
+            } elseif ([System.Text.Rune]::IsWhiteSpace($rune)) { 1 } else { 2 }
+            if ($pieceBytes -gt 0 -and ($kind -ne $previousKind -or $kind -eq 2)) {
+                $count += if ($pieceBytes -gt 8) { [uint64][Math]::Ceiling($pieceBytes / 4.0) } else { [uint64]1 }
+                $pieceBytes = 0
+            }
+            $pieceBytes += $rune.Utf8SequenceLength
+            $previousKind = $kind
+        }
+        if ($pieceBytes -gt 0) {
+            $count += if ($pieceBytes -gt 8) { [uint64][Math]::Ceiling($pieceBytes / 4.0) } else { [uint64]1 }
+        }
+        return $count
     }
 
     return [PcaiNative.PcaiCore]::EstimateTokens($Text)

@@ -30,6 +30,7 @@ BeforeAll {
             throw 'Live WSL is forbidden in portable network unit tests.'
         }
         function script:netsh { throw 'Live netsh is forbidden in network unit tests.' }
+        function script:Get-VMSwitch { [CmdletBinding()] param() throw 'Live Hyper-V switch reads are forbidden in network unit tests.' }
         function script:Get-Item { [CmdletBinding()] param($Path,$LiteralPath) throw 'Live registry key reads are forbidden.' }
         function script:Set-ItemProperty { [CmdletBinding()] param($Path,$LiteralPath,$Name,$Value,$Type,[switch]$Force) throw 'Live registry restore is forbidden.' }
         function script:Remove-ItemProperty { [CmdletBinding()] param($Path,$LiteralPath,$Name) throw 'Live registry deletion is forbidden.' }

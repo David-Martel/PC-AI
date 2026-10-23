@@ -135,8 +135,18 @@ Describe 'Process and hash production transport fallback boundaries' {
 
     It 'keeps genuine tool unavailability eligible for a public managed process fallback' {
         $script:Failure = [IO.FileNotFoundException]::new('Selected tool disappeared before launch')
+        # The full suite may already have a genuine managed/native pair loaded.
+        # Make this case's native helper unavailable without changing that pair
+        # or the production preference for an available native implementation.
+        Mock Get-ProcessesWithNative { $null }
+        $nativeType = ([System.Management.Automation.PSTypeName]'PcaiNative.PerformanceModule').Type
+        $expectedNativeAttempts = if ($nativeType -and [PcaiNative.PcaiCore]::IsAvailable) { 1 } else { 0 }
         $rows = @(Get-ProcessesFast -Top 1 -SortBy cpu)
+        $rows.Count | Should -Be 1
         $rows[0].Backend | Should -Be 'managed-fallback'
+        Should -Invoke Get-PcaiPerfToolPath -Times 1 -Exactly
+        Should -Invoke Invoke-PcaiPerfWorkerRequest -Times 1 -Exactly
+        Should -Invoke Get-ProcessesWithNative -Times $expectedNativeAttempts -Exactly
         Should -Invoke Get-ProcessesParallel -Times 1 -Exactly
         Should -Invoke Invoke-PcaiPerfCliCommand -Times 0 -Exactly
     }

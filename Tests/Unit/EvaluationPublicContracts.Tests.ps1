@@ -372,6 +372,8 @@ Describe 'Evaluation standalone import identity' -Tag 'Unit', 'Evaluation', 'Por
         $probePath = Join-Path $TestDrive 'evaluation-import-identity.ps1'
         $runtimeRoot = Join-Path $TestDrive 'evaluation-import-runtime'
         $null = New-Item -ItemType Directory -Path $runtimeRoot -Force
+        $resultPath = Join-Path $runtimeRoot 'producer-result.json'
+        Test-Path -LiteralPath $resultPath | Should -BeFalse
         @'
 param([Parameter(Mandatory)][string]$RepositoryRoot, [Parameter(Mandatory)][string]$OwnedRuntimeRoot)
 $ErrorActionPreference = 'Stop'
@@ -381,6 +383,8 @@ $env:PCAI_ROOT = $RepositoryRoot
 $env:PCAI_ARTIFACTS_ROOT = Join-Path $OwnedRuntimeRoot 'artifacts'
 $env:LOCALAPPDATA = $OwnedRuntimeRoot
 $env:PSModulePath = (Join-Path $RepositoryRoot 'Modules') + [IO.Path]::PathSeparator + $env:PSModulePath
+$resultPath = Join-Path $OwnedRuntimeRoot 'producer-result.json'
+if (Test-Path -LiteralPath $resultPath) { throw 'The owned import result file must be fresh.' }
 $global:ForbiddenBoundaryCalls = 0
 function global:Invoke-RestMethod { $global:ForbiddenBoundaryCalls++; throw 'HTTP is forbidden in the import fixture.' }
 function global:Invoke-WebRequest { $global:ForbiddenBoundaryCalls++; throw 'HTTP is forbidden in the import fixture.' }
@@ -403,8 +407,9 @@ foreach ($name in @('New-EvaluationSuite', 'New-BaselineSnapshot', 'Invoke-Evalu
 $otherComponents = @(Get-Module -All | Where-Object { $_.Name -like 'PC-AI*' -and $_.Name -ne 'PC-AI.Evaluation' })
 if ($otherComponents.Count -ne 0) { throw 'Standalone Evaluation import unexpectedly loaded compatibility components.' }
 if ($global:ForbiddenBoundaryCalls -ne 0) { throw 'Import attempted an external transport or provider boundary.' }
+Write-Host 'Owned import diagnostic; the producer record uses its result file.'
 [pscustomobject]@{ ProducerIdentity = $true; OtherComponentCount = $otherComponents.Count; ForbiddenBoundaryCalls = $global:ForbiddenBoundaryCalls } |
-    ConvertTo-Json -Compress
+    ConvertTo-Json -Compress | Set-Content -LiteralPath $resultPath -Encoding utf8NoBOM
 '@ | Set-Content -LiteralPath $probePath -Encoding utf8NoBOM
         $start = [Diagnostics.ProcessStartInfo]::new()
         $start.FileName = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
@@ -426,9 +431,13 @@ if ($global:ForbiddenBoundaryCalls -ne 0) { throw 'Import attempted an external 
                 throw 'The owned Evaluation import probe exceeded its bounded timeout.'
             }
             $output = $stdout.GetAwaiter().GetResult()
-            $null = $stderr.GetAwaiter().GetResult()
+            $errorOutput = $stderr.GetAwaiter().GetResult()
+            Set-Content -LiteralPath (Join-Path $runtimeRoot 'child-stdout.log') -Value $output -Encoding utf8NoBOM
+            Set-Content -LiteralPath (Join-Path $runtimeRoot 'child-stderr.log') -Value $errorOutput -Encoding utf8NoBOM
             $child.ExitCode | Should -Be 0 -Because 'standalone Evaluation import must retain the actual producer'
-            $result = $output | ConvertFrom-Json
+            Test-Path -LiteralPath $resultPath -PathType Leaf | Should -BeTrue
+            $output | Should -Match 'Owned import diagnostic; the producer record uses its result file\.'
+            $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
             $result.ProducerIdentity | Should -BeTrue
             $result.OtherComponentCount | Should -Be 0
             $result.ForbiddenBoundaryCalls | Should -Be 0

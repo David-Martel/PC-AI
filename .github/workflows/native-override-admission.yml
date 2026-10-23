@@ -83,7 +83,17 @@ jobs:
       - name: Loaded identity and default-loader reuse controls
         shell: pwsh
         run: |
-          $wrapper = Join-Path $PWD 'Native/PcaiNative/bin/Release/net8.0/PcaiNative.dll'
+          $targetPaths = @(& dotnet msbuild Native/PcaiNative/PcaiNative.csproj -nologo -property:Configuration=Release -getProperty:TargetPath)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot evaluate the built managed bridge TargetPath' }
+          $targetPaths = @($targetPaths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+          if ($targetPaths.Count -ne 1 -or -not [IO.Path]::IsPathFullyQualified($targetPaths[0].Trim())) {
+            throw 'Expected one absolute managed bridge TargetPath'
+          }
+          $wrapper = [IO.Path]::GetFullPath($targetPaths[0].Trim())
+          $artifact = Get-Item -LiteralPath $wrapper -ErrorAction Stop
+          if ($artifact.PSIsContainer -or $artifact.Name -cne 'PcaiNative.dll' -or $artifact.Length -le 0) {
+            throw 'Evaluated managed bridge artifact is missing or invalid'
+          }
           $compiler = (Get-Command clang -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
           ./Tests/Portable/Test-NativeLoadedCoreSelection.ps1 -WrapperPath $wrapper -CompilerPath $compiler
           ./Tests/Portable/Test-NativeDefaultLoaderReuse.ps1 -WrapperPath $wrapper -CompilerPath $compiler

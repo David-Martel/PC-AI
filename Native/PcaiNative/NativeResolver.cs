@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Threading;
 
 #nullable enable
 
@@ -20,9 +20,13 @@ namespace PcaiNative
     /// </summary>
     public static class NativeResolver
     {
-        private static int _registered;
+        private static readonly object RegistrationGate = new();
+        private static readonly ConditionalWeakTable<Assembly, object> RegisteredAssemblies = new();
+        private static readonly object ResolutionGate = new();
 
-        private static readonly ConcurrentDictionary<string, (string Path, string ProvenanceSource)> ResolvedPaths =
+        // Successful handles remain owned for the process lifetime: cached P/Invoke
+        // stubs and other registered assemblies may continue to use them.
+        private static readonly ConcurrentDictionary<string, (string Path, string ProvenanceSource, IntPtr Handle)> ResolvedPaths =
             new(StringComparer.OrdinalIgnoreCase);
 
         private static readonly Dictionary<string, string> ConfigSections = new(StringComparer.OrdinalIgnoreCase)
@@ -48,16 +52,11 @@ namespace PcaiNative
         public static void EnsureRegistered(Assembly assembly)
         {
             ArgumentNullException.ThrowIfNull(assembly);
-            if (Interlocked.CompareExchange(ref _registered, 1, 0) == 0)
+            lock (RegistrationGate)
             {
-                try
-                {
-                    NativeLibrary.SetDllImportResolver(assembly, Resolve);
-                }
-                catch (InvalidOperationException)
-                {
-                    // A resolver was already registered for this assembly by an earlier caller.
-                }
+                if (RegisteredAssemblies.TryGetValue(assembly, out _)) return;
+                NativeLibrary.SetDllImportResolver(assembly, Resolve);
+                RegisteredAssemblies.Add(assembly, new object());
             }
         }
 
@@ -169,6 +168,30 @@ namespace PcaiNative
             return TryResolveLibraryPath(logical, out var resolvedPath, out _) ? resolvedPath : null;
         }
 
+        /// <summary>Returns only a successful recorded load, without candidate discovery.</summary>
+        /// <remarks>A default-loader record may be a logical name, not a proven filesystem path.</remarks>
+        public static bool TryGetLoadedLibraryPath(string libraryName, out string? loadedPath)
+        {
+            loadedPath = null;
+            if (!ResolvedPaths.TryGetValue(NormalizeLibraryName(libraryName), out var recorded)) return false;
+            loadedPath = recorded.Path;
+            return true;
+        }
+
+        /// <summary>Checks current selection against the already bound native library.</summary>
+        public static bool IsCurrentSelectionCompatibleWithLoadedLibrary(string libraryName)
+        {
+            if (!TryGetLoadedLibraryPath(libraryName, out var loaded)) return true;
+            try
+            {
+                if (!TryResolveLibraryPath(libraryName, out var selected, out var provenance))
+                    return provenance == null && !Path.IsPathFullyQualified(loaded!);
+                return Path.IsPathFullyQualified(loaded!) && string.Equals(loaded, selected,
+                    OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+            }
+            catch { return false; }
+        }
+
         /// <summary>
         /// Gets the provenance source label for a resolved native library.
         /// </summary>
@@ -204,6 +227,36 @@ namespace PcaiNative
             var targetAssembly = assembly ?? typeof(NativeResolver).Assembly;
             var expectedFileName = GetExpectedFileName(logical);
             var rid = GetCurrentRuntimeIdentifier();
+
+            // An explicitly paired bundle is authoritative for every native module.
+            // Conflicting core overrides must not mix one bundle's bridge with another core.
+            var explicitBundle = Environment.GetEnvironmentVariable("PCAI_NATIVE_BUNDLE_ROOT");
+            if (!string.IsNullOrWhiteSpace(explicitBundle))
+            {
+                var candidate = Path.Combine(Path.GetFullPath(explicitBundle), expectedFileName);
+                if (string.Equals(logical, "pcai_core_lib", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var envVar in new[] { "PCAI_CORE_LIB_PATH", "PCAI_TEST_CORE_DLL", "PCAI_NATIVE_DIR" })
+                    {
+                        var value = Environment.GetEnvironmentVariable(envVar);
+                        if (string.IsNullOrWhiteSpace(value)) continue;
+                        var explicitCore = envVar == "PCAI_NATIVE_DIR" || Directory.Exists(value)
+                            ? Path.Combine(value, expectedFileName) : value;
+                        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+                        if (!string.Equals(Path.GetFullPath(explicitCore), candidate, comparison))
+                            throw new DllNotFoundException($"Explicit PCAI native bundle conflicts with {envVar}.");
+                        break;
+                    }
+                }
+                provenanceSource = "env:PCAI_NATIVE_BUNDLE_ROOT";
+                if (!File.Exists(candidate))
+                {
+                    provenanceSource += ":missing";
+                    return false;
+                }
+                resolvedPath = candidate;
+                return true;
+            }
 
             // 1. Explicit environment variable file overrides (authoritative when set).
             if (string.Equals(logical, "pcai_core_lib", StringComparison.OrdinalIgnoreCase))
@@ -309,16 +362,35 @@ namespace PcaiNative
 
         private static IntPtr Resolve(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {
+            lock (ResolutionGate) return ResolveOwned(libraryName, assembly, searchPath);
+        }
+
+        private static IntPtr ResolveOwned(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
             var logical = NormalizeLibraryName(libraryName);
             if (!ConfigSections.ContainsKey(logical))
                 return IntPtr.Zero;
 
-            if (TryResolveLibraryPath(logical, out var resolvedPath, out var provenance, assembly) &&
-                !string.IsNullOrEmpty(resolvedPath))
+            var found = TryResolveLibraryPath(logical, out var resolvedPath, out var provenance, assembly);
+            if (ResolvedPaths.TryGetValue(logical, out var recorded))
+            {
+                var compatible = found
+                    ? Path.IsPathFullyQualified(recorded.Path) && string.Equals(recorded.Path, resolvedPath,
+                        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
+                    : provenance is null && !Path.IsPathFullyQualified(recorded.Path);
+                if (!compatible)
+                    throw new DllNotFoundException("A different native library is already bound; select the desired library in a fresh process.");
+
+                // Repeat imports (including another registered assembly) must use
+                // the successful handle, even when default loading revealed no path.
+                return recorded.Handle;
+            }
+
+            if (found && !string.IsNullOrEmpty(resolvedPath))
             {
                 if (NativeLibrary.TryLoad(resolvedPath, out var handle))
                 {
-                    ResolvedPaths[logical] = (resolvedPath, provenance ?? "resolved");
+                    ResolvedPaths[logical] = (resolvedPath, provenance ?? "resolved", handle);
                     return handle;
                 }
 
@@ -333,7 +405,7 @@ namespace PcaiNative
 
             if (NativeLibrary.TryLoad(logical, assembly, searchPath, out var defaultHandle))
             {
-                ResolvedPaths[logical] = (logical, "default-loader");
+                ResolvedPaths[logical] = (logical, "default-loader", defaultHandle);
                 return defaultHandle;
             }
 

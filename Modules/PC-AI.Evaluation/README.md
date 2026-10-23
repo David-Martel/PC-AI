@@ -2,6 +2,17 @@
 
 Comprehensive LLM evaluation suite for testing PC-AI inference backends, including automated metrics, LLM-as-judge patterns, regression testing, and A/B testing.
 
+Dependency discovery permits offline and documentation imports when native
+libraries are absent. The `nativeInference.dllSearchPaths` and
+`evaluation.binSearchPaths` configuration fields are optional; missing or null
+fields use default search paths. Invalid optional JSON or path entries produce
+warnings. Only literal file paths qualify as discovered DLLs, backend programs
+or modules; directories with those names do not.
+
+`Tests/Unit/EvaluationDependencyContracts.Tests.ps1` checks this behavior with
+real configuration files and inert availability markers under StrictMode.
+These checks do not load native libraries or launch inference backends.
+
 ## Quick Start
 
 ```powershell

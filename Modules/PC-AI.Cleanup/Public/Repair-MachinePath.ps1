@@ -104,7 +104,7 @@ function Repair-MachinePath {
         $errorMsg = "Administrator privileges required to modify Machine PATH. Please run as Administrator."
         Write-CleanupLog -Message $errorMsg -Level Error
         $result.Warnings += $errorMsg
-        Write-Error $errorMsg
+        Microsoft.PowerShell.Utility\Write-Error $errorMsg
         return $result
     }
 
@@ -124,7 +124,7 @@ function Repair-MachinePath {
         $errorMsg = "Failed to create backup. Use -Force to proceed without backup (not recommended)."
         Write-CleanupLog -Message $errorMsg -Level Error
         $result.Warnings += $errorMsg
-        Write-Error $errorMsg
+        Microsoft.PowerShell.Utility\Write-Error $errorMsg
         return $result
     }
 
@@ -170,7 +170,7 @@ function Repair-MachinePath {
         # Check for non-existent (if requested)
         if ($RemoveNonExistent) {
             $expandedPath = [Environment]::ExpandEnvironmentVariables($trimmedItem)
-            if (-not (Test-Path -Path $expandedPath -ErrorAction SilentlyContinue)) {
+            if (-not (Test-Path -LiteralPath $expandedPath -ErrorAction SilentlyContinue)) {
                 $result.NonExistentRemoved++
                 $result.Changes += [PSCustomObject]@{
                     Action = 'Removed'
@@ -266,7 +266,7 @@ PATH Repair Summary for $Target`:
             $errorMsg = "Failed to update PATH: $_"
             Write-CleanupLog -Message $errorMsg -Level Error
             $result.Warnings += $errorMsg
-            Write-Error $errorMsg
+            Microsoft.PowerShell.Utility\Write-Error $errorMsg
         }
     }
     else {

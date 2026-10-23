@@ -52,11 +52,15 @@ function Get-WSLStatus {
         # Get WSL version
         try {
             $versionOutput = wsl --version 2>&1
-            if ($versionOutput -match 'WSL version:\s*(.+)') {
-                $result.Version = $matches[1].Trim()
-            }
-            if ($versionOutput -match 'Kernel version:\s*(.+)') {
-                $result.KernelVersion = $matches[1].Trim()
+            # Native stdout is normally a string array. Array -match filters
+            # values and does not populate $Matches; match individual lines.
+            foreach ($versionLine in (@($versionOutput) -split '\r?\n')) {
+                if ($versionLine -match '^\s*WSL version:\s*(.+?)\s*$') {
+                    $result.Version = $matches[1].Trim()
+                }
+                if ($versionLine -match '^\s*Kernel version:\s*(.+?)\s*$') {
+                    $result.KernelVersion = $matches[1].Trim()
+                }
             }
         }
         catch {

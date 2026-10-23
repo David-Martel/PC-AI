@@ -6,9 +6,11 @@ function New-EvaluationTestCase {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
+        [ValidateScript({ -not [string]::IsNullOrWhiteSpace($_) })]
         [string]$Id,
 
         [Parameter(Mandatory)]
+        [ValidateScript({ -not [string]::IsNullOrWhiteSpace($_) })]
         [string]$Prompt,
 
         [string]$Category = "general",

@@ -129,11 +129,6 @@ function Invoke-NvidiaSilentInstall {
     $pcAiRoot         = Split-Path $modulesDir -Parent
 
     $logDir = Join-Path $pcAiRoot '.pcai\nvidia-install-logs'
-    if (-not (Test-Path -LiteralPath $logDir)) {
-        New-Item -Path $logDir -ItemType Directory -Force | Out-Null
-        Write-Verbose "Created log directory: $logDir"
-    }
-
     $timestamp = (Get-Date -Format 'yyyyMMdd-HHmmss')
     $logFile   = Join-Path $logDir "$($ComponentId)-$timestamp.log"
     $result.LogPath = $logFile
@@ -142,6 +137,11 @@ function Invoke-NvidiaSilentInstall {
     if (-not $PSCmdlet.ShouldProcess($InstallerPath, "Run silent NVIDIA installer ($extension)")) {
         Write-Verbose "WhatIf: Would run silent install for '$InstallerPath' (type: $extension)"
         return $result
+    }
+
+    if (-not (Test-Path -LiteralPath $logDir)) {
+        New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+        Write-Verbose "Created log directory: $logDir"
     }
 
     # --- Execute installer ---

@@ -119,10 +119,12 @@ function Invoke-SmartDiagnosis {
         Write-Host "`n[Phase 2] Analyzing with LLM ($Model)..." -ForegroundColor Cyan
         try {
             $promptContext = Get-LLMPromptContext -AnalysisType $AnalysisType
+            $systemPrompt = Get-SmartDiagnosisProperty -InputObject (Get-SmartDiagnosisProperty -InputObject $promptContext -Name 'Prompts') -Name 'System'
+            if (-not $systemPrompt) { $systemPrompt = Get-SmartDiagnosisProperty -InputObject $promptContext -Name 'SystemPrompt' }
             $userPrompt = "Analyze this PC diagnostic data: `n`n Path: $searchPath `n`n $diagnosticSummary"
 
             $messages = @(
-                @{ role = 'system'; content = $promptContext.SystemPrompt }
+                @{ role = 'system'; content = $systemPrompt }
                 @{ role = 'user'; content = $userPrompt }
             )
 
@@ -136,7 +138,9 @@ function Invoke-SmartDiagnosis {
             $result = [PSCustomObject]@{
                 AnalysisType        = $AnalysisType
                 Path                = $searchPath
-                NativeEngineUsed    = [PcaiNative.PcaiCore]::IsAvailable
+                NativeEngineUsed    = @($diagnosticData.Results.Values | Where-Object {
+                    (Get-SmartDiagnosisProperty -InputObject $_ -Name 'Engine') -eq 'Native/Rust'
+                }).Count -gt 0
                 CollectionTimeMs    = [math]::Round($collectionTime.TotalMilliseconds, 2)
                 TotalTimeSeconds    = [math]::Round($totalDuration, 2)
                 DiagnosticSummary   = $diagnosticSummary
@@ -169,6 +173,16 @@ function Invoke-SmartDiagnosis {
     }
 }
 
+function Get-SmartDiagnosisProperty {
+    [CmdletBinding()]
+    param([object]$InputObject, [string]$Name)
+    if ($null -eq $InputObject) { return $null }
+    if ($InputObject -is [System.Collections.IDictionary]) { return $InputObject[$Name] }
+    $property = $InputObject.PSObject.Properties[$Name]
+    if ($property) { return $property.Value }
+    return $null
+}
+
 function Build-DiagnosticSummary {
     [CmdletBinding()]
     param($DiagnosticData)
@@ -177,8 +191,9 @@ function Build-DiagnosticSummary {
     foreach ($key in $DiagnosticData.Results.Keys) {
         $result = $DiagnosticData.Results[$key]
         $null = $summary.AppendLine("### $key")
-        if ($result.Summary) { $null = $summary.AppendLine($result.Summary) }
-        $null = $summary.AppendLine("- Elapsed: $($result.ElapsedMs) ms (Engine: $($result.Engine))")
+        $resultSummary = Get-SmartDiagnosisProperty -InputObject $result -Name 'Summary'
+        if ($resultSummary) { $null = $summary.AppendLine($resultSummary) }
+        $null = $summary.AppendLine("- Elapsed: $(Get-SmartDiagnosisProperty -InputObject $result -Name 'ElapsedMs') ms (Engine: $(Get-SmartDiagnosisProperty -InputObject $result -Name 'Engine'))")
         $null = $summary.AppendLine()
     }
     return $summary.ToString()

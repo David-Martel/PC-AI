@@ -10,6 +10,9 @@ BeforeAll {
     $script:OriginalDisableNative = $env:PCAI_DISABLE_NATIVE
     $env:PCAI_DISABLE_NATIVE = '1'
 
+    # Reproduce the shared-module error proxy present during full-suite execution.
+    Import-Module (Join-Path $PSScriptRoot '../../Modules/PC-AI.Common/PC-AI.Common.psm1') -Global -Force
+
     # Import module under test
     $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Cleanup\PC-AI.Cleanup.psd1'
     Import-Module $ModulePath -Force -ErrorAction Stop
@@ -135,9 +138,17 @@ Describe "Repair-MachinePath" -Tag 'Unit', 'Cleanup', 'Slow', 'RequiresAdmin', '
         }
 
         It "Should require Administrator privileges for Machine PATH" {
-            $result = Repair-MachinePath -Target Machine -ErrorAction SilentlyContinue
+            $errors = @()
+            $result = Repair-MachinePath -Target Machine -ErrorAction SilentlyContinue -ErrorVariable errors
             $result.Success | Should -Be $false
             $result.Warnings | Should -Not -BeNullOrEmpty
+            @($errors).Count | Should -Be 1
+            Should -Invoke Backup-EnvironmentVariable -Times 0 -Exactly -ModuleName PC-AI.Cleanup -Scope It
+        }
+
+        It 'preserves the native caller error contract for Stop without modifying Machine PATH' {
+            { Repair-MachinePath -Target Machine -ErrorAction Stop } | Should -Throw '*Administrator privileges required*'
+            Should -Invoke Backup-EnvironmentVariable -Times 0 -Exactly -ModuleName PC-AI.Cleanup -Scope It
         }
     }
 }

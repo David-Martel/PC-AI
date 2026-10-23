@@ -1,10 +1,10 @@
 # API_SIGNATURE_REPORT
 
-Generated: 2026-09-07 19:12:53
+Generated: 2026-10-08 21:53:58
 
-PowerShell functions: 237
-Missing help blocks: 172
-C# DllImports: 58
+PowerShell functions: 262
+Missing help blocks: 184
+C# DllImports: 57
 Missing Rust exports: 0
 
 ## Missing help parameters
@@ -157,7 +157,10 @@ Missing Rust exports: 0
 - Send-OllamaRequest: missing NumCtx, NumThread, TopP, TopK, RepeatLastN, RepeatPenalty, TfsZ, Seed, EnableTools
 - Set-LLMProviderOrder: missing Order
 - Get-NetworkDiagnostics: missing IncludeVirtual, TestConnectivity, TestDNS, Detailed
+- Get-StableNetAdapter: missing InterfaceGuid, Name, Detailed
 - Optimize-VSock: missing Profile, BackupPath, RestoreBackup, SkipWSLRestart
+- Repair-UsbNetAdapter: missing InterfaceGuid, TestPeer, TestPort, MinAcceptableMbits, ThroughputTest, MaxCycles, SettleSeconds
+- Test-NetPathHealth: missing Peer, ControlPeer, Port, Streams, Seconds, AsymmetryFactor
 - Test-WSLConnectivity: missing Distribution, TestPorts, DNSTargets, SkipInternetTest, Detailed
 - Watch-VSockPerformance: missing RefreshInterval, Duration, InterfaceFilter, IncludeVirtual, OutputFile, Quiet
 - Get-PcaiMemoryPressure: missing Detailed, AsJson
@@ -198,4 +201,10 @@ Missing Rust exports: 0
 - Set-PCaiServiceState: missing Name, Action
 - Start-HVSockProxy: missing ConfigPath, StatePath, Force, RegisterServices
 - Stop-HVSockProxy: missing StatePath
+- Initialize-PcaiInference: missing Backend, DllPath
+- Import-PcaiModel: missing ModelPath, GpuLayers
+- Invoke-PcaiInference: missing Prompt, MaxTokens, Temperature
+- Invoke-PcaiGenerate: missing Prompt, MaxTokens, Temperature
+- Test-PcaiInference: missing Backend, ModelPath, GpuLayers
+- Test-PcaiDllVersion: missing DllPath
 

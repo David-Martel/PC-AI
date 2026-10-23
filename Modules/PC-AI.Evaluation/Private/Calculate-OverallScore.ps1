@@ -16,15 +16,15 @@ function Calculate-OverallScore {
         $normalized = switch ($metric.Name) {
             'latency' {
                 # Lower is better, normalize: 0-5000ms -> 1-0
-                [math]::Max(0, 1 - ($value / 5000))
+                [math]::Max(0.0, 1.0 - ($value / 5000))
             }
             'throughput' {
                 # Higher is better, normalize: 0-100 tps -> 0-1
-                [math]::Min(1, $value / 100)
+                [math]::Min(1.0, $value / 100)
             }
             'memory' {
                 # Lower is better, normalize: 0-1000MB -> 1-0
-                [math]::Max(0, 1 - ($value / 1000))
+                [math]::Max(0.0, 1.0 - ($value / 1000))
             }
             'toxicity' {
                 # Lower is better (inverted)
@@ -32,7 +32,7 @@ function Calculate-OverallScore {
             }
             default {
                 # Assume 0-1 range for other metrics
-                [math]::Max(0, [math]::Min(1, $value))
+                [math]::Max(0.0, [math]::Min(1.0, [double]$value))
             }
         }
 

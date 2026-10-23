@@ -5,6 +5,11 @@ physical qualification. Generated machine evidence remains local under Reports;
 it is not included in publication. Refresh GitHub state before acting on any
 dated PR disposition here.
 
+Checkout-local statements below describe the publishing owner's historical
+checkout at the PR184 cutoff. That record does not identify its host. They do
+not establish the current state of dtm-p1gen7 or another fleet machine; refresh
+that host's worktrees, branches, stashes and agent-bus before acting.
+
 ## Completed and validated source
 
 The Windows fleet branch integrates upstream main at `b92e5f6` through merge
@@ -35,7 +40,7 @@ getter signatures. Missing input-power/SMART/temperature readings remain unknown
 | Fleet plus PR182 | An actual ort merge preview at fleet head `80cec93` versus owner head `fac1d1a` reports nine conflicting paths, including CI, profile, Common configuration, Rust metadata/process parsing, installer/tests and TODO ledgers. Resolve conflicts and run mixed-suite validation before acceptance; the preview does not change either branch. |
 | Candle PR146/148/162 and coordinated draft PR156 | Choose one compatible integration path and test media/CUDA consumers; individually green default-feature CI is insufficient. PR182 already carries a coordinated update, so these must not be blindly stacked or closed before accepted integration. |
 | mistral.rs PR145 | Compile/test the enabled backend and relevant runtime/FFI paths; default CPU CI omits this optional backend. |
-| PC_AI worktrees | After PR183, local main equals origin/main, with no additional local branches, stashes or worktrees. The temporary owned PR182 test worktree was retired after preserving its tested proposal and verifying the owner's equivalent source repair upstream. No foreign worktree was removed. The subsequent documentation closeout uses a temporary owned branch. |
+| Publishing owner's PC_AI checkout (historical, host not recorded) | After PR183, that checkout's local main equaled origin/main, with no additional local branches, stashes or worktrees. Its temporary owned PR182 test worktree was retired after preserving its tested proposal and verifying the owner's equivalent source repair upstream. No foreign worktree was removed. The subsequent documentation closeout used a temporary owned branch. This does not describe dtm-p1gen7's current feature branch or preserved foreign worktree/WIP. |
 | VIGIL-Eko worktree | Claude's locked worktree belongs to a live process; ownership acknowledgment and merge are required before the owner removes it. |
 
 Only two machine-evidence case directories are excluded locally through
@@ -75,8 +80,10 @@ PR/CI and source audit takes precedence over an old checkbox or report.
 For VIGIL-Eko, the existing decoder/replay evidence is separate from Windows
 bond/notify/reconnect reliability, Linux live BLE, durable multi-site capture and
 Dell/pose placement acceptance. See [integration plan](vigil-eko-integration.md).
-Agent-bus services are unavailable on this host; a local coordination request has
-been left for Claude, with acknowledgment pending. No physical HIL acceptance,
+At the publishing owner's historical cutoff, agent-bus services were unavailable
+on its unrecorded host; a local coordination request was left for Claude, with
+acknowledgment pending. This does not imply dtm-p1gen7's working bus is unavailable.
+No physical HIL acceptance,
 patient recording or medical-model validation follows from this source review.
 
 The NUC's original-power-adapter comparison and hang/offline memory evidence are

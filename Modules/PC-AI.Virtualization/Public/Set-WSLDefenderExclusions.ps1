@@ -13,13 +13,13 @@
     Prompt for confirmation before making changes
 
 .EXAMPLE
-    Set-WSLDefenderExclusion
+    Set-WSLDefenderExclusions
     Adds all recommended exclusions
 
 .OUTPUTS
     PSCustomObject with applied exclusions
 #>
-function Set-WSLDefenderExclusion {
+function Set-WSLDefenderExclusions {
     [CmdletBinding(SupportsShouldProcess)]
     [OutputType([PSCustomObject])]
     param()

@@ -100,15 +100,18 @@ Describe 'Configuration isolation and dry-run' {
     It 'Configure dry-run does not mutate either machine or report success' {
         $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Configure -SelectedPeer millylaptop1 -ProfilePath $profilePath -EnableApply -IsDryRun
         $result.Applied | Should -BeFalse
-        $result.State | Should -Be Observed
+        $result.State | Should -Be Planned
         Should -Invoke Invoke-TbSsh -Times 0
         Should -Invoke Set-NetIPInterface -Times 0
         Should -Invoke New-NetIPAddress -Times 0
+        Should -Invoke Get-TbLinuxInventory -Times 0
+        Should -Invoke Get-NetAdapter -Times 0
     }
     It 'Prepare dry-run does not write or run remote commands' {
         $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Prepare -SelectedPeer millylaptop1 -ProfilePath $profilePath -EnableApply -IsDryRun
         $result.Applied | Should -BeFalse
         Should -Invoke Invoke-TbSsh -Times 0
+        Should -Invoke Get-TbLinuxInventory -Times 0
     }
     It 'WhatIf suppresses Configure writes even with Apply' {
         $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Configure -SelectedPeer millylaptop1 -ProfilePath $profilePath -EnableApply -WhatIf
@@ -162,7 +165,170 @@ Describe 'Configuration isolation and dry-run' {
     }
 }
 
+Describe 'Per-invocation SSH application selection' {
+    BeforeAll {
+        $selectedApplication = Join-Path $PSHOME 'pwsh.exe'
+        $selectedConfig = Join-Path $TestDrive 'selected ssh config'
+        'Host millylaptop1' | Set-Content -LiteralPath $selectedConfig
+    }
+    It 'resolves an explicit application and literal config file while disabling only the agent' {
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        $transport.FilePath | Should -Be $selectedApplication
+        $transport.Arguments.Count | Should -Be 6
+        $transport.Arguments[0] | Should -Be '-F'
+        $transport.Arguments[1] | Should -Be $selectedConfig
+        $transport.Arguments[2] | Should -Be '-o'
+        $transport.Arguments[3] | Should -Be 'IdentityAgent=none'
+        $transport.Arguments[4] | Should -Be '-o'
+        $transport.Arguments[5] | Should -Be 'IdentitiesOnly=yes'
+    }
+    It 'keeps the default config and agent intact unless explicitly overridden' {
+        $transport = Resolve-TbSshTransport -Path $selectedApplication
+        $transport.Arguments.Count | Should -Be 0
+    }
+    It 'rejects absent applications and directories or absent config files' {
+        { Resolve-TbSshTransport -Path (Join-Path $TestDrive 'absent.exe') } | Should -Throw
+        { Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $TestDrive } | Should -Throw '*filesystem file*'
+        { Resolve-TbSshTransport -Path $selectedApplication -ConfigFile (Join-Path $TestDrive 'absent-config') } | Should -Throw
+    }
+    It 'accepts configless mode only when explicitly requested' {
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile none
+        $transport.Arguments.Count | Should -Be 2
+        $transport.Arguments[1] | Should -Be none
+    }
+    It 'propagates selection and agent control to ordinary remote inventory commands' {
+        Mock Invoke-TbNative { '{"hostname":"millylaptop1"}' }
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        (Get-TbLinuxInventory -SshAlias millylaptop1 -SshTransport $transport).hostname | Should -Be millylaptop1
+        Should -Invoke Invoke-TbNative -Times 1 -ParameterFilter {
+            $FilePath -eq $selectedApplication -and $Arguments[0] -eq '-F' -and $Arguments[1] -eq $selectedConfig -and
+            $Arguments -contains 'IdentityAgent=none' -and $Arguments -contains 'StrictHostKeyChecking=yes' -and
+            $Arguments -contains 'millylaptop1' -and $TimeoutSeconds -eq 30
+        }
+    }
+    It 'uses the same selected executable and options in the actual benchmark process start information' {
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        $start = New-TbSshStartInfo -SshTransport $transport -Arguments @('-o', 'StrictHostKeyChecking=yes', 'millylaptop1', 'bash', '-s')
+        $start.FileName | Should -Be $selectedApplication
+        @($start.ArgumentList) | Should -Be @('-F', $selectedConfig, '-o', 'IdentityAgent=none', '-o', 'IdentitiesOnly=yes', '-o', 'StrictHostKeyChecking=yes', 'millylaptop1', 'bash', '-s')
+        $start.UseShellExecute | Should -BeFalse
+        $start.CreateNoWindow | Should -BeTrue
+        $start.RedirectStandardInput | Should -BeTrue
+        $start.RedirectStandardOutput | Should -BeTrue
+        $start.RedirectStandardError | Should -BeTrue
+    }
+    It 'bounds selected SSH effective-config lookup and stops before any remote connection on timeout' {
+        Mock Invoke-VigilBoundedProcess { throw 'controlled effective-config timed out' }
+        Mock Invoke-TbSsh { throw 'Must not reach remote endpoint after config timeout.' }
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
+        { Test-TbSshEndpoint -Profile $profile -RemoteInterface thunderbolt0 -SshTransport $transport } | Should -Throw '*effective-config timed out*'
+        Should -Invoke Invoke-VigilBoundedProcess -Times 1 -ParameterFilter {
+            $FilePath -eq $selectedApplication -and $TimeoutSeconds -eq 10 -and
+            $Arguments[0] -eq '-F' -and $Arguments[1] -eq $selectedConfig -and
+            $Arguments -contains 'IdentityAgent=none' -and $Arguments -contains '-G'
+        }
+        Should -Invoke Invoke-TbSsh -Times 0
+    }
+    It 'passes the selected transport through config lookup and source-bound direct endpoint verification' {
+        Mock Invoke-TbNative { "hostname 192.168.50.66`nhostkeyalias millylaptop1`n" }
+        Mock Invoke-TbSsh { '{"dev":"thunderbolt0"}' }
+        $transport = Resolve-TbSshTransport -Path $selectedApplication -ConfigFile $selectedConfig -DisableAgent
+        $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
+        $endpoint = Test-TbSshEndpoint -Profile $profile -RemoteInterface thunderbolt0 -SshTransport $transport
+        $endpoint.KnownHostIdentity | Should -Be millylaptop1
+        $endpoint.Command | Should -Match ([regex]::Escape($selectedApplication))
+        $endpoint.Command | Should -Match ([regex]::Escape($selectedConfig))
+        $endpoint.Command | Should -Match 'IdentityAgent=none'
+        Should -Invoke Invoke-TbSsh -Times 1 -ParameterFilter {
+            $SshTransport.FilePath -eq $selectedApplication -and $SshTransport.Arguments -contains 'IdentityAgent=none' -and
+            $Address -eq '172.31.240.2' -and $SourceAddress -eq '172.31.240.1' -and $KnownHostIdentity -eq 'millylaptop1'
+        }
+    }
+    It 'dry-run avoids executable resolution, SSH and adapter discovery even with unavailable explicit paths' {
+        Mock Resolve-TbSshTransport { throw 'Must not resolve in dry-run.' }
+        Mock Get-TbLinuxInventory { throw 'Must not contact a peer in dry-run.' }
+        Mock Get-NetAdapter { throw 'Must not query adapters in dry-run.' }
+        $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Configure -SelectedPeer millylaptop1 -ProfilePath $profilePath `
+            -EnableApply -IsDryRun -SshPath 'absent-client.exe' -SshConfigFile 'absent-config' -DisableSshAgent
+        $result.Applied | Should -BeFalse
+        $result.State | Should -Be Planned
+        $result.Linux | Should -BeNullOrEmpty
+        Should -Invoke Resolve-TbSshTransport -Times 0
+        Should -Invoke Get-TbLinuxInventory -Times 0
+        Should -Invoke Get-NetAdapter -Times 0
+    }
+    It 'starts the selected real benchmark process and reports its actual nonzero exit' {
+        Mock Assert-TbBenchmarkRoute {}
+        Mock Invoke-TbNative { '{"end":{"sum_received":{"bits_per_second":123}}}' }
+        $fakeClient = Join-Path $TestDrive 'benchmark-client.ps1'
+        @'
+if ($args -notcontains 'millylaptop1' -or $args -notcontains 'StrictHostKeyChecking=yes') {
+    throw 'Selected benchmark process lost its SSH arguments.'
+}
+$null = [Console]::In.ReadToEnd()
+[Console]::Out.WriteLine('PCAI_IPERF_READY')
+[Console]::Error.WriteLine('selected benchmark client sentinel')
+exit 7
+'@ | Set-Content -LiteralPath $fakeClient
+        $transport = @{ FilePath = $selectedApplication; Arguments = @('-NoProfile', '-File', $fakeClient) }
+        $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
+        { Invoke-TbBenchmark -Profile $profile -Adapter $adapter -RemoteInterface thunderbolt0 `
+            -Executable 'controlled-iperf' -Seconds 1 -ServerPort 5201 -SshTransport $transport } |
+            Should -Throw '*exited 7*selected benchmark client sentinel*'
+    }
+    It 'supports actual help aliases before invalid SSH/config paths can be resolved' {
+        $controller = Join-Path $repoRoot 'Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1'
+        foreach ($helpArgument in @('-h', '--help')) {
+            $reply = Invoke-TbNative -FilePath $selectedApplication -Arguments @('-NoProfile', '-File', $controller,
+                $helpArgument, '-SshPath', 'absent-client.exe', '-SshConfigFile', 'absent-config') -TimeoutSeconds 10
+            $reply | Should -Match 'Invoke-ThunderboltLinuxPeer'
+        }
+    }
+}
+
 Describe 'Benchmark route and native failures' {
+    BeforeAll {
+        if (-not ('VigilProcessCustodyFixture' -as [type])) {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+public static class VigilProcessCustodyFixture {
+    delegate void TryCloser(ref IntPtr handle, List<Exception> failures);
+    [DllImport("kernel32.dll", SetLastError=true)]
+    static extern bool DuplicateHandle(IntPtr sourceProcess, SafeProcessHandle source,
+        IntPtr targetProcess, out SafeProcessHandle copy, uint access, bool inherit, uint options);
+    [DllImport("kernel32.dll")]
+    static extern IntPtr GetCurrentProcess();
+    public static SafeProcessHandle Duplicate(Process process) {
+        SafeProcessHandle copy;
+        if (!DuplicateHandle(GetCurrentProcess(), process.SafeHandle, GetCurrentProcess(), out copy, 0, false, 2))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        return copy;
+    }
+    public static Tuple<long, long, int> ObserveIndependentCloses(Type owner, Process process) {
+        var close = (TryCloser)owner.GetMethod("TryClose", BindingFlags.NonPublic | BindingFlags.Static)
+            .CreateDelegate(typeof(TryCloser));
+        using (var copy = Duplicate(process)) {
+            // Handle index zero is invalid; pseudo-handles can be accepted by
+            // CloseHandle and therefore cannot establish its failure path.
+            IntPtr invalid = new IntPtr(1), valid = copy.DangerousGetHandle();
+            var failures = new List<Exception>();
+            close(ref invalid, failures);
+            close(ref valid, failures);
+            if (valid == IntPtr.Zero) copy.SetHandleAsInvalid();
+            return Tuple.Create(invalid.ToInt64(), valid.ToInt64(), failures.Count);
+        }
+    }
+}
+'@
+        }
+    }
     It 'binds direct Thunderbolt SSH to its source and disables inherited proxy routing' {
         Mock Invoke-TbNative { 'remote reply' }
         Invoke-TbSsh -SshAlias millylaptop1 -Address '172.31.240.2' -KnownHostIdentity millylaptop1 `
@@ -203,13 +369,76 @@ Describe 'Benchmark route and native failures' {
     }
     It 'terminates an actual native timeout' {
         { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', 'Start-Sleep 10') -TimeoutSeconds 1 } | Should -Throw '*timed out*'
+        @(Get-VigilPendingProcessCustody).Count | Should -Be 0
+    }
+    It 'confirms an already exited owned process without another termination request' {
+        Initialize-VigilBoundedProcessRunner
+        $info = [Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME 'pwsh.exe'))
+        $info.UseShellExecute = $false
+        $info.CreateNoWindow = $true
+        foreach ($argument in @('-NoLogo', '-NoProfile', '-Command', 'exit 0')) { $info.ArgumentList.Add($argument) }
+        $owned = [Diagnostics.Process]::Start($info)
+        try {
+            $handle = $owned.Handle
+            $owned.WaitForExit(15000) | Should -BeTrue
+            $confirm = [Vigil.BoundedProcess].GetMethod('ConfirmExit', [Reflection.BindingFlags]'NonPublic,Static')
+            { $confirm.Invoke($null, @($handle)) } | Should -Not -Throw
+        } finally {
+            if (-not $owned.HasExited) { $owned.Kill($true); $owned.WaitForExit(1000) | Out-Null }
+            $owned.Dispose()
+        }
+    }
+    It 'preserves a failed native close while independently closing a valid owned handle' {
+        Initialize-VigilBoundedProcessRunner
+        $current = [Diagnostics.Process]::GetCurrentProcess()
+        try {
+            $observation = [VigilProcessCustodyFixture]::ObserveIndependentCloses([Vigil.BoundedProcess], $current)
+            $observation.Item1 | Should -Be 1
+            $observation.Item2 | Should -Be 0
+            $observation.Item3 | Should -Be 1
+            $current.HasExited | Should -BeFalse
+        } finally { $current.Dispose() }
+    }
+    It 'retains exact handle custody through WhatIf, blocks replacement, and releases it only after confirmed exit' {
+        Initialize-VigilBoundedProcessRunner
+        $info = [Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME 'pwsh.exe'))
+        $info.UseShellExecute = $false
+        $info.CreateNoWindow = $true
+        $info.RedirectStandardInput = $true
+        foreach ($argument in @('-NoLogo', '-NoProfile', '-Command', '[Console]::In.ReadToEnd() | Out-Null')) { $info.ArgumentList.Add($argument) }
+        $owned = [Diagnostics.Process]::Start($info)
+        $identity = [guid]::NewGuid()
+        $pending = [Vigil.BoundedProcess].GetField('PendingCleanup', [Reflection.BindingFlags]'NonPublic,Static').GetValue($null)
+        # A separately owned duplicate lets retry close its exact handle while
+        # the Process object retains an independent observation/cleanup handle.
+        $retained = [VigilProcessCustodyFixture]::Duplicate($owned)
+        try {
+            $pending.Add($identity, $retained)
+            @(Get-VigilPendingProcessCustody) | Should -Contain $identity
+            Stop-VigilPendingProcessCustody -CustodyId $identity -WhatIf
+            $owned.HasExited | Should -BeFalse
+            @(Get-VigilPendingProcessCustody) | Should -Contain $identity
+            { Invoke-VigilBoundedProcess -FilePath (Join-Path $PSHOME 'pwsh.exe') } | Should -Throw '*blocks another launch*'
+            { Stop-VigilPendingProcessCustody -CustodyId ([guid]::NewGuid()) -Confirm:$false } | Should -Throw '*Unknown owned process custody*'
+            $owned.HasExited | Should -BeFalse
+            Stop-VigilPendingProcessCustody -CustodyId $identity -Confirm:$false
+            $owned.WaitForExit(1000) | Should -BeTrue
+            @(Get-VigilPendingProcessCustody) | Should -Not -Contain $identity
+        } finally {
+            if (-not $owned.HasExited) { $owned.Kill($true); $owned.WaitForExit(1000) | Out-Null }
+            $pending.Remove($identity) | Out-Null
+            $retained.Dispose()
+            $owned.Dispose()
+        }
     }
     It 'bounds a large stdin write when the actual child never reads it' {
         $pidFile = Join-Path $TestDrive 'nonreading-child.pid'
-        $child = '$PID | Set-Content -LiteralPath ''' + $pidFile.Replace("'", "''") + '''; Start-Sleep 15'
+        # Allow a cold PowerShell child to initialize under concurrent build load.
+        # A synchronous blocked stdin write would still wait the full 30 seconds.
+        $child = '$PID | Set-Content -LiteralPath ''' + $pidFile.Replace("'", "''") + '''; Start-Sleep 30'
         $timer = [Diagnostics.Stopwatch]::StartNew()
-        { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText ('x' * 1048576) -TimeoutSeconds 2 } | Should -Throw '*timed out*'
-        $timer.Elapsed.TotalSeconds | Should -BeLessThan 5
+        { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText ('x' * 1048576) -TimeoutSeconds 10 } | Should -Throw '*timed out*'
+        $timer.Elapsed.TotalSeconds | Should -BeLessThan 13
         Test-Path -LiteralPath $pidFile | Should -BeTrue
         $childId = [int](Get-Content -LiteralPath $pidFile)
         Get-Process -Id $childId -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
@@ -218,5 +447,42 @@ Describe 'Benchmark route and native failures' {
         $text = 'z' * 1048576
         $child = '[Console]::Error.WriteLine("e" * 131072); $inputText = [Console]::In.ReadToEnd(); [Console]::Out.Write($inputText.Length)'
         Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText $text -TimeoutSeconds 10 | Should -Be '1048576'
+    }
+    It 'terminates an owned descendant after its parent exits normally' {
+        $witnessPath = Join-Path $TestDrive 'owned-descendant.json'
+        $child = @'
+$info = [Diagnostics.ProcessStartInfo]::new('__SHELL__')
+$info.UseShellExecute = $false
+$info.CreateNoWindow = $true
+foreach ($argument in @('-NoLogo','-NoProfile','-Command','Start-Sleep 30')) { $info.ArgumentList.Add($argument) }
+$owned = [Diagnostics.Process]::Start($info)
+$witness = @{ Id = $owned.Id; StartTicks = $owned.StartTime.ToUniversalTime().Ticks } | ConvertTo-Json
+[IO.File]::WriteAllText('__WITNESS__', $witness)
+[Console]::Out.Write('spawned')
+exit 0
+'@
+        $child = $child.Replace('__SHELL__', (Join-Path $PSHOME 'pwsh.exe').Replace("'", "''")).Replace('__WITNESS__', $witnessPath.Replace("'", "''"))
+        $descendant = $null
+        try {
+            $result = Invoke-VigilBoundedProcess -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoLogo','-NoProfile','-Command',$child) -TimeoutSeconds 15
+            $result.ExitCode | Should -Be 0
+            $result.Stdout | Should -BeExactly 'spawned'
+            $witness = Get-Content -LiteralPath $witnessPath -Raw | ConvertFrom-Json
+            $observed = Get-Process -Id $witness.Id -ErrorAction SilentlyContinue
+            if ($observed) {
+                if ($observed.StartTime.ToUniversalTime().Ticks -ne $witness.StartTicks) {
+                    $observed.Dispose()
+                    throw 'The descendant PID was reused; no unrelated process will be terminated.'
+                }
+                $descendant = $observed
+                $descendant.WaitForExit(1000) | Should -BeTrue
+            }
+            @(Get-VigilPendingProcessCustody).Count | Should -Be 0
+        } finally {
+            if ($descendant) {
+                if (-not $descendant.HasExited) { $descendant.Kill($true); $descendant.WaitForExit(1000) | Out-Null }
+                $descendant.Dispose()
+            }
+        }
     }
 }

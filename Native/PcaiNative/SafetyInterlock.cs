@@ -34,7 +34,7 @@ public sealed class SafetyInterlock
     /// <summary>
     /// Default TUI confirmation handler that uses Console.ReadLine.
     /// </summary>
-    public static async Task<bool> ConsoleConfirmationHandler(string toolName, string description)
+    public static Task<bool> ConsoleConfirmationHandler(string toolName, string description)
     {
         Console.Beep(); // Audio alert for safety prompt
         Console.ForegroundColor = ConsoleColor.Yellow;
@@ -45,6 +45,6 @@ public sealed class SafetyInterlock
         Console.ResetColor();
 
         var input = Console.ReadLine()?.Trim().ToLowerInvariant();
-        return input == "y" || input == "yes";
+        return Task.FromResult(input == "y" || input == "yes");
     }
 }

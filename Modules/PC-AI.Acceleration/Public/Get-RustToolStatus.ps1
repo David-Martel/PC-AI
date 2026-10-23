@@ -49,7 +49,7 @@ function Get-RustToolStatus {
     foreach ($t in $toolsToCheck) {
         $info = $toolInfo[$t]
         $path = Get-RustToolPath -ToolName $t
-        $available = $null -ne $path -and (Test-Path $path)
+        $available = $null -ne $path -and (Test-Path -LiteralPath $path)
         $version = $null
 
         if ($available) {

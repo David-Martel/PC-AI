@@ -63,9 +63,13 @@ $ErrorActionPreference = 'Stop'
 # "Cannot find path '<repo>\Tests\Modules' because it does not exist".
 $TestRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $TestRoot
+$originalPSModulePath = $env:PSModulePath
 Push-Location $RepoRoot
 
 try {
+    # Resolve dependencies from this candidate before any test module autoload.
+    # Keep the binding process-local and restore the caller's exact value below.
+    $env:PSModulePath = (Join-Path $RepoRoot 'Modules') + [IO.Path]::PathSeparator + $originalPSModulePath
     # Check Pester version
     $pesterModule = Get-Module -Name Pester -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
 
@@ -118,7 +122,10 @@ try {
 
     # Configure CI mode
     if ($CI) {
-        $config.Run.Exit = $true
+        # Keep the returned result so the caller can enforce coverage as well
+        # as test failures instead of exiting early inside Pester.
+        $config.Run.Exit = $false
+        $config.Run.PassThru = $true
         $config.TestResult.Enabled = $true
         $config.Output.Verbosity = 'Normal'
         Write-Host "CI mode enabled: exit codes + XML output" -ForegroundColor Cyan
@@ -140,6 +147,11 @@ try {
     Write-Host ("=" * 80) -ForegroundColor Gray
 
     $result = Invoke-Pester -Configuration $config
+    if ($Coverage) {
+        . (Join-Path $RepoRoot 'Tools/Assert-PesterCoverageGate.ps1')
+        Assert-PesterCoverageGate -Result $result -Target $config.CodeCoverage.CoveragePercentTarget.Value
+    }
+    if ($result.TotalCount -eq 0) { throw 'No tests discovered.' }
 
     # Report results
     Write-Host "`n" -NoNewline
@@ -188,7 +200,7 @@ try {
     }
 
     # Exit with appropriate code
-    if ($result.FailedCount -gt 0) {
+    if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
         Write-Host "`nTests FAILED" -ForegroundColor Red
         if ($CI) {
             exit 1
@@ -206,5 +218,6 @@ try {
         exit 1
     }
 } finally {
+    $env:PSModulePath = $originalPSModulePath
     Pop-Location
 }

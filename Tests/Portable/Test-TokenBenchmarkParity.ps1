@@ -5,7 +5,7 @@ $ErrorActionPreference='Stop'
 $tokens=$null; $errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile((Resolve-Path $SourcePath).Path,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'Runner parse failure'}
-foreach($name in @('Get-ReferenceTokenEstimate','Assert-TokenEstimateParity','Test-BenchmarkCaseEquivalence','Get-ConfigValue','Add-BenchmarkMeasurement','Get-ToolingCaseBenchmarks')) {
+foreach($name in @('Get-ReferenceTokenEstimate','Assert-TokenEstimateParity','Test-BenchmarkCaseEquivalence','Test-PcaiBenchmarkNativeReady','Get-ConfigValue','Add-BenchmarkMeasurement','Get-ToolingCaseBenchmarks')) {
     $function=$ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$true)
     if(-not $function){throw "Missing production function $name"}
     . ([scriptblock]::Create($function.Extent.Text))
@@ -92,12 +92,12 @@ function Invoke-BackendBenchmark {
 $case=[pscustomobject]@{Id='token-estimate'}
 $defaults=[pscustomobject]@{}
 $capabilities=[pscustomobject]@{}
-$script:AccelerationModule=New-Module { function Get-PcaiTokenEstimate { return [uint64]3 } }
+$script:AccelerationModule=New-Module { function Test-PcaiNativeAvailable { $true }; function Get-PcaiNativeStatus { [pscustomobject]@{CoreAvailable=$true} }; function Get-PcaiTokenEstimate { return [uint64]3 } }
 $rejected=$false
 try { Get-ToolingCaseBenchmarks -Case $case -Defaults $defaults -RepoRoot $PSScriptRoot -Capabilities $capabilities -TokenSample $emoji | Out-Null }
 catch { if($_ -notmatch 'Token output mismatch'){throw}; $rejected=$true }
 if(-not $rejected -or $script:TimingCalls -ne 0){throw 'Mismatched work reached timer'}
-$script:AccelerationModule=New-Module { function Get-PcaiTokenEstimate { return [uint64]2 } }
+$script:AccelerationModule=New-Module { function Test-PcaiNativeAvailable { $true }; function Get-PcaiNativeStatus { [pscustomobject]@{CoreAvailable=$true} }; function Get-PcaiTokenEstimate { return [uint64]2 } }
 $result=Get-ToolingCaseBenchmarks -Case $case -Defaults $defaults -RepoRoot $PSScriptRoot -Capabilities $capabilities -TokenSample $emoji
 if($script:TimingCalls -ne 2 -or -not $result.EquivalenceVerified){throw 'Equal work did not reach both timers'}
 Write-Output 'PASS: actual token case refuses mismatches before timing and executes equal-work baseline'

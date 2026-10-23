@@ -119,6 +119,22 @@ function Test-VigilOwnedNfsMount {
     )
 }
 
+function Write-VigilFleetShareLog {
+    # Bounded task log: one rollover to .1 at 256 KB; logging never changes the outcome.
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Message)
+    try {
+        $dir = Join-Path $env:LOCALAPPDATA 'dtm-tasks\logs'
+        $null = New-Item -ItemType Directory -Path $dir -Force -ErrorAction Stop
+        $log = Join-Path $dir 'vigil-public-asus-nfs.log'
+        if ((Test-Path -LiteralPath $log) -and (Get-Item -LiteralPath $log).Length -gt 262144) {
+            Move-Item -LiteralPath $log -Destination "$log.1" -Force -ErrorAction Stop
+        }
+        Add-Content -LiteralPath $log -Value ('{0:o} {1}' -f (Get-Date), $Message) -Encoding utf8 -ErrorAction Stop
+    }
+    catch { $null = $_ }
+}
+
 function Get-VigilDriveLetter {
     [CmdletBinding()]
     param()
@@ -257,5 +273,19 @@ if ($MyInvocation.InvocationName -ne '.') {
     }
     if ($PSBoundParameters.ContainsKey('WhatIf')) { $forward.WhatIf = $PSBoundParameters.WhatIf }
     if ($PSBoundParameters.ContainsKey('Confirm')) { $forward.Confirm = $PSBoundParameters.Confirm }
-    Invoke-VigilFleetShare @forward
+    # Scheduled runs (-Apply) leave a bounded one-line trail; Status/DryRun/WhatIf write nothing.
+    $logRun = $Apply -and -not $DryRun -and -not $WhatIfPreference
+    $started = [Diagnostics.Stopwatch]::StartNew()
+    try {
+        $outcome = Invoke-VigilFleetShare @forward
+    }
+    catch {
+        if ($logRun) { Write-VigilFleetShareLog ("failed ({0}) elapsedMs={1}" -f $_.Exception.GetType().Name, $started.ElapsedMilliseconds) }
+        throw
+    }
+    if ($logRun) {
+        $note = if ($outcome.State -eq 'LanUnavailable') { 'unreachable, skipped' } else { $outcome.State }
+        Write-VigilFleetShareLog ("{0}: {1} elapsedMs={2}" -f $Action, $note, $started.ElapsedMilliseconds)
+    }
+    $outcome
 }

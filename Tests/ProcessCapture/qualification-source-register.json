@@ -1,0 +1,561 @@
+{
+  "State": "MAINTAINED_DEFAULTS_SOURCE_BINDING_ONLY_NOT_RUNTIME_ACCEPTANCE",
+  "ControllerLogicChanged": false,
+  "EighteenSourceRegisterSHA256": "6F729F604423281F8A40C3108B77F8873960DC80A37B8BACECBECAEB36084859",
+  "Files": [
+    {
+      "SHA256": "6FC898D183C6FF7EC91B1EFBB50A12CCB38377E217E4E126E8F3EFF83186EB67",
+      "Path": "Modules/PC-AI.Common/Module-Common.ps1",
+      "Bytes": 15178
+    },
+    {
+      "SHA256": "7F669E4C3091C3F9FD804A934A5DE3839F1A70208DA16CD4F837963078C7F76B",
+      "Path": "Modules/PC-AI.Common/PC-AI.Common.psm1",
+      "Bytes": 1114
+    },
+    {
+      "SHA256": "5864CFD654BB1A2EBD1C244A6D35C9FE8BA022B754CEE41DADDD6C820706555C",
+      "Path": "Modules/PC-AI.Common/Private/Initialize-PcaiProcessCapture.ps1",
+      "Bytes": 2703
+    },
+    {
+      "SHA256": "14A046751C3EB14A2AB58A3DE785AC6D4B330F2036BAFB9CFC9E6908BEADCCCD",
+      "Path": "Modules/PC-AI.Common/Private/PcaiProcessCapture.cs",
+      "Bytes": 38935
+    },
+    {
+      "SHA256": "6DA70CE6BCB318C263CD77A40EF6CC6C881BA8C71C5340BF5B4F318CFD7B7D10",
+      "Path": "Modules/PC-AI.Common/Public/Get-PcaiRuntimeConfig.ps1",
+      "Bytes": 21126
+    },
+    {
+      "SHA256": "E480CE7180F9ADAFF395B54438CE982E9D49E0701948D4C795CC093C1C40B9C7",
+      "Path": "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1",
+      "Bytes": 33264
+    },
+    {
+      "SHA256": "BD1293D7A29AFA49F04EC709C3B40B4CFC8215D98E597CB6BBF9BF185F7E1421",
+      "Path": "Modules/PC-AI.Common/Public/Get-ScriptMetadata.ps1",
+      "Bytes": 3103
+    },
+    {
+      "SHA256": "01B27351B841C29E29BA9F277248B8DC6CB11DB22648FA164B0DA693D0F57186",
+      "Path": "Modules/PC-AI.Common/Public/Import-PcaiAccelerationStack.ps1",
+      "Bytes": 7382
+    },
+    {
+      "SHA256": "3D8D2E33983E1E06C57E3F7C4A73EC13D7EA7975B11866B1A37F1472F5702D45",
+      "Path": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "Bytes": 7582
+    },
+    {
+      "SHA256": "F561DD7271A4ACCB0A996B4E749AC8D1AB128DD25A15FC63BAEBB2EB7864003B",
+      "Path": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "Bytes": 26123
+    },
+    {
+      "SHA256": "6F729F604423281F8A40C3108B77F8873960DC80A37B8BACECBECAEB36084859",
+      "Path": "Tests/ProcessCapture/capture-source-register.json",
+      "Bytes": 19717
+    },
+    {
+      "SHA256": "CED4E035344645D070DE936EC4277BB52C72F22DE6ECC914F50C1D2DB4D7FD6F",
+      "Path": "Tests/ProcessCapture/Fixtures/CacheProcessChild.ps1",
+      "Bytes": 2580
+    },
+    {
+      "SHA256": "FB726E47E4D06A3A3F7023D51E8077001823161E1EB2D3D59085CCCF33B15792",
+      "Path": "Tests/ProcessCapture/Invoke-ProcessCaptureContracts.ps1",
+      "Bytes": 31241
+    },
+    {
+      "SHA256": "C64E9D89F694BADE4FC983C2927FAFDEE466E7E0FE5FB34120BBC8B2EB0F7955",
+      "Path": "Tests/ProcessCapture/Invoke-ProcessCaptureQualification.ps1",
+      "Bytes": 15406
+    },
+    {
+      "SHA256": "8590DB14C5CEA94986C928D4FC4A5E89C7B39EE98FC114846E769238F575BBAF",
+      "Path": "Tests/ProcessCapture/ModuleQA/Fixtures/CaptureChild.ps1",
+      "Bytes": 586
+    },
+    {
+      "SHA256": "ADB77E37FB08100238EF2A077C6DA074F8416E4DA2305D1650BCA23CD315F690",
+      "Path": "Tests/ProcessCapture/ModuleQA/module-qa-source-register.json",
+      "Bytes": 18681
+    },
+    {
+      "SHA256": "D21A76F41F43E081A084563838CB3168496C1E54CA2D9CB0C8013476CAE8B571",
+      "Path": "Tests/ProcessCapture/ModuleQA/qa-common.ps1",
+      "Bytes": 19633
+    },
+    {
+      "SHA256": "3BDA5EA7BBD403E08D1FF69762EA49FB9C0C6768B5C4640A0008A49F2E3BD289",
+      "Path": "Tests/ProcessCapture/ModuleQA/worker.ps1",
+      "Bytes": 20315
+    },
+    {
+      "SHA256": "516A9E5F591A440022C8EBABE7E4C52C95E623372C290D20AAA61FA000DEBDA3",
+      "Path": "Tests/ProcessCapture/qualification-common.ps1",
+      "Bytes": 24383
+    },
+    {
+      "SHA256": "019A7A1D97239C4F5F7D3C6C90925E9D74047F8E721693D9C832C4644276E227",
+      "Path": "Tests/ProcessCapture/QualificationSupervisor.cs",
+      "Bytes": 25188
+    },
+    {
+      "SHA256": "31F245B24DE99F9A77F91D253BDB0E57BD0809FCFE716856BF308541CD685F3A",
+      "Path": "Tests/ProcessCapture/Test-ProcessCaptureSources.ps1",
+      "Bytes": 2662
+    },
+    {
+      "SHA256": "23D5129E1460B213FE653DE7731ABAB35F36757BE922B7D24742B62D331DBC74",
+      "Path": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Bytes": 23968
+    },
+    {
+      "Path": "Modules/PC-AI.Common/Private/PcaiPortableProcessCapture.cs",
+      "SHA256": "B967B8127902F1B57A77C6FFE08C161060FB8D386352ADE413035902D2EA0D73",
+      "Bytes": 13726
+    }
+  ],
+  "PesterPayload": {
+    "OptionalMetadata": "PSGetModuleInfo.xml",
+    "OptionalMetadataRule": "Only if physically present and explicitly same-tuple pinned in selected and runtime inventories",
+    "Required": [
+      {
+        "SHA256": "94C598F75CC09B8905E2B1C9C2C72AB000D589A317770DC6D65BC4A8DF376CAE",
+        "Bytes": 28558,
+        "Path": "Pester.Format.ps1xml"
+      },
+      {
+        "SHA256": "01B03D7CA5F727DE93B65D8A2B172D1F06EF306A62915893333302AACA57BCA7",
+        "Bytes": 16695,
+        "Path": "Pester.ps1"
+      },
+      {
+        "SHA256": "C6DCE1CDD85A9236A9A628DCAAF3E6F07B0AC4173FB25F620FA466F4402EC341",
+        "Bytes": 21506,
+        "Path": "Pester.psd1"
+      },
+      {
+        "SHA256": "49E9E839447703F7B6A6A320A3C65A6DD5A17F4E33372FE02C7D32AD26A2D3CA",
+        "Bytes": 763249,
+        "Path": "Pester.psm1"
+      },
+      {
+        "SHA256": "C270400765FE97E9933F1554AC2D78A57BBA685DB0BF1884869286C88034F316",
+        "Bytes": 27364,
+        "Path": "PesterConfiguration.Format.ps1xml"
+      },
+      {
+        "SHA256": "6C5A4C127C4DC600E746B3D6EAC40AD5F28974779EFCD618E0D923113F3B971D",
+        "Bytes": 87464,
+        "Path": "bin/net452/Pester.dll"
+      },
+      {
+        "SHA256": "23912407D111BB8B1AB75244CF8BFB534F5E4A7E51320444BB492821CCDB347F",
+        "Bytes": 29136,
+        "Path": "bin/net452/Pester.pdb"
+      },
+      {
+        "SHA256": "FB994A81040741CA9D1F4E5B74CBAD563A61F65F5AF43602958BE1DBAE9C851F",
+        "Bytes": 87464,
+        "Path": "bin/netstandard2.0/Pester.dll"
+      },
+      {
+        "SHA256": "F526BB03C0F67733561408DDBA8DD390C29516BBE321AAFF4E8A0C98F1DEB149",
+        "Bytes": 35576,
+        "Path": "bin/netstandard2.0/Pester.pdb"
+      },
+      {
+        "SHA256": "5EB70B28E54B1000CBD9E49DDED8BD9C0A8FC29364C450A1B586A6F657E57B01",
+        "Bytes": 2954,
+        "Path": "en-US/about_Pester.help.txt"
+      },
+      {
+        "SHA256": "9BD878E921FECEDCDEDB0CD076463AEB7A4065F34DCF614A11A8FC0880BD43E9",
+        "Bytes": 8373,
+        "Path": "en-US/about_PesterConfiguration.help.txt"
+      },
+      {
+        "SHA256": "FACE94D4975A0E7D01B376F9FB2FBA298BE61A3CA3B108799749DF408D4BFEFC",
+        "Bytes": 2208,
+        "Path": "schemas/Cobertura/coverage-loose.dtd"
+      },
+      {
+        "SHA256": "7EFFC41FFC755DBB2F4626653753AD7D533050F1685260E219951D6E9E5A2A94",
+        "Bytes": 2912,
+        "Path": "schemas/JaCoCo/report.dtd"
+      },
+      {
+        "SHA256": "DB8A5FC7E72267F3983A3470D4FA532A0F9349DF4DAD699DF9E2527B40690B94",
+        "Bytes": 4475,
+        "Path": "schemas/JUnit4/junit_schema_4.xsd"
+      },
+      {
+        "SHA256": "19BAF3E207534C770FFB6C7D470E84F22A55271F684D29F4EC34C50308D98DB7",
+        "Bytes": 5933,
+        "Path": "schemas/NUnit25/nunit_schema_2.5.xsd"
+      },
+      {
+        "SHA256": "67E39DB6A3251BA20A1BBDEC215168B50F95C8055801652F0F760553E6120A82",
+        "Bytes": 6570,
+        "Path": "schemas/NUnit3/TestDefinitions.xsd"
+      },
+      {
+        "SHA256": "FBE91C35957F34E3BB2B815EDD0445E9CD92DFE5FD2DD734F38B13204F59175D",
+        "Bytes": 3182,
+        "Path": "schemas/NUnit3/TestFilterDefinitions.xsd"
+      },
+      {
+        "SHA256": "CE31E0CBD6BE23C01A253570CEF92C10A5689B8D184D3F3A74F2097703D3FC5B",
+        "Bytes": 8679,
+        "Path": "schemas/NUnit3/TestResult.xsd"
+      }
+    ],
+    "Version": "5.7.1",
+    "SelectedInventory": "Per-host Root input complete normalized path set; exact enumeration equality required",
+    "Provenance": {
+      "SHA256": "82AC61E13FAD963474B73BE307F71AA14540A3B20B7CBBD44C324FA3BE33399D",
+      "Bytes": 6417,
+      "Path": "D:/pcai-relocation/carbon-mcp-current-actual-r1/qualification-r1/runtime-pins.json"
+    }
+  },
+  "MaintainedControls": [
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "stamps a real directory object without a Length property",
+      "ExpandedName": "stamps a real directory object without a Length property",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.stamps a real directory object without a Length property",
+      "Result": "Passed",
+      "WholeItSHA256": "A617996A65E091467D201454DB4866225710C2B6DA8AB02BC13048F7A2000CA8"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "stamps a real directory path consistently with its object",
+      "ExpandedName": "stamps a real directory path consistently with its object",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.stamps a real directory path consistently with its object",
+      "Result": "Passed",
+      "WholeItSHA256": "428888A09CB3E086F4B132E76E0E229BD201D2D32CB38CB773B67405F91DCC7F"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "changes a directory dependency stamp when its timestamp changes",
+      "ExpandedName": "changes a directory dependency stamp when its timestamp changes",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.changes a directory dependency stamp when its timestamp changes",
+      "Result": "Passed",
+      "WholeItSHA256": "7858211D93FB3AB2B65F5A1C167E93E1526A6D483A3C35DD2BA520AADA294B0D"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains file length sensitivity and object-path parity",
+      "ExpandedName": "retains file length sensitivity and object-path parity",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.retains file length sensitivity and object-path parity",
+      "Result": "Passed",
+      "WholeItSHA256": "C7FFD0684AAF5D3892E878E78511ED513D5A691075E001954056214FBE10451F"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "round-trips and isolates a <Kind> with a literal Keys entry",
+      "ExpandedName": "round-trips and isolates a hashtable with a literal Keys entry",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.round-trips and isolates a hashtable with a literal Keys entry",
+      "Result": "Passed",
+      "WholeItSHA256": "5E380616BF2FEAD0ED17D70B572C68B58B3E179F8B49999F4AC39A08118E56CB"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "round-trips and isolates a <Kind> with a literal Keys entry",
+      "ExpandedName": "round-trips and isolates a ordered dictionary with a literal Keys entry",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.round-trips and isolates a ordered dictionary with a literal Keys entry",
+      "Result": "Passed",
+      "WholeItSHA256": "5E380616BF2FEAD0ED17D70B572C68B58B3E179F8B49999F4AC39A08118E56CB"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "clears only literal local namespace prefixes containing wildcards",
+      "ExpandedName": "clears only literal local namespace prefixes containing wildcards",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.clears only literal local namespace prefixes containing wildcards",
+      "Result": "Passed",
+      "WholeItSHA256": "EC5001E12FE284140417298EFB14C11C1C20F1FA94E541547A9A8256654FF94B"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "escapes Redis glob data and deletes only exact literal prefix matches",
+      "ExpandedName": "escapes Redis glob data and deletes only exact literal prefix matches",
+      "ExpandedPath": "PcaiSharedCache literal dependency and invalidation contracts.escapes Redis glob data and deletes only exact literal prefix matches",
+      "Result": "Passed",
+      "WholeItSHA256": "6E978426C1794EB6F136CF9B8C25E0B9F6E2F460FF0470A100B69ABA2278174A"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "round-trips in-memory cache values and honors dependency stamps",
+      "ExpandedName": "round-trips in-memory cache values and honors dependency stamps",
+      "ExpandedPath": "PcaiSharedCache.round-trips in-memory cache values and honors dependency stamps",
+      "Result": "Passed",
+      "WholeItSHA256": "7203215AA2BB11CE500ED023C47F0883DA083765143C8DE3B96945051B017435"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "expires stale local entries when TTL is exceeded",
+      "ExpandedName": "expires stale local entries when TTL is exceeded",
+      "ExpandedPath": "PcaiSharedCache.expires stale local entries when TTL is exceeded",
+      "Result": "Passed",
+      "WholeItSHA256": "CFCF90C5F268C61267AEEEEBD0EFC384C31FF1F4735BAFD5CAD58936DBC4411A"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "reports memory mode when no external provider is configured",
+      "ExpandedName": "reports memory mode when no external provider is configured",
+      "ExpandedPath": "PcaiSharedCache.reports memory mode when no external provider is configured",
+      "Result": "Passed",
+      "WholeItSHA256": "74F108E4A35162EA704AEAC9E3F58E33A5BCE88A938FD409B0077D2BA7571BAA"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "hydrates a local cache miss from Redis when the provider is enabled",
+      "ExpandedName": "hydrates a local cache miss from Redis when the provider is enabled",
+      "ExpandedPath": "PcaiSharedCache.hydrates a local cache miss from Redis when the provider is enabled",
+      "Result": "Skipped",
+      "WholeItSHA256": "B54B5013675FA8055D9EB2555239D8475EF5B967EC14C89961D673829B8055F5"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains an array with <Count> members on both set and get",
+      "ExpandedName": "retains an array with 0 members on both set and get",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.retains an array with 0 members on both set and get",
+      "Result": "Passed",
+      "WholeItSHA256": "7342A06083A60A87C7044A3C2F90AD315B1588BF62E4DBE53353DDD207733BC6"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains an array with <Count> members on both set and get",
+      "ExpandedName": "retains an array with 1 members on both set and get",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.retains an array with 1 members on both set and get",
+      "Result": "Passed",
+      "WholeItSHA256": "7342A06083A60A87C7044A3C2F90AD315B1588BF62E4DBE53353DDD207733BC6"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains an array with <Count> members on both set and get",
+      "ExpandedName": "retains an array with 2 members on both set and get",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.retains an array with 2 members on both set and get",
+      "Result": "Passed",
+      "WholeItSHA256": "7342A06083A60A87C7044A3C2F90AD315B1588BF62E4DBE53353DDD207733BC6"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "preserves nested empty arrays and null slots while detaching mutable values",
+      "ExpandedName": "preserves nested empty arrays and null slots while detaching mutable values",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.preserves nested empty arrays and null slots while detaching mutable values",
+      "Result": "Passed",
+      "WholeItSHA256": "6508FEA83FFB33F9A71AEE0F1D2CA4BC9B798E240A9D9876483F643BC2CFF04C"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "honors setter expiry for <Mode> reads",
+      "ExpandedName": "honors setter expiry for default reads",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.honors setter expiry for default reads",
+      "Result": "Passed",
+      "WholeItSHA256": "490784293FE839824C3B0CAAAA5054FA16F992A949CA98143160A60EBEB821A1"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "honors setter expiry for <Mode> reads",
+      "ExpandedName": "honors setter expiry for longer reads",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.honors setter expiry for longer reads",
+      "Result": "Passed",
+      "WholeItSHA256": "490784293FE839824C3B0CAAAA5054FA16F992A949CA98143160A60EBEB821A1"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "hydrates a stamped external value when the getter omits its stamp",
+      "ExpandedName": "hydrates a stamped external value when the getter omits its stamp",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.hydrates a stamped external value when the getter omits its stamp",
+      "Result": "Passed",
+      "WholeItSHA256": "AE98004711261EA433BBD31A0F63DE11F353A9DC1FDC57151C5976CE9C64BC3B"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "rejects an explicit stamp mismatch without deleting external data",
+      "ExpandedName": "rejects an explicit stamp mismatch without deleting external data",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.rejects an explicit stamp mismatch without deleting external data",
+      "Result": "Passed",
+      "WholeItSHA256": "1B4527768FA94731A41C90B0A5561EDC3B832EE8024FA1AAC7FA5B25144EF85F"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "rejects an external record whose stored expiry has passed",
+      "ExpandedName": "rejects an external record whose stored expiry has passed",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.rejects an external record whose stored expiry has passed",
+      "Result": "Passed",
+      "WholeItSHA256": "CCE57511689D7FDE43A428F382C8EC19F0FBBFFE814EC0127A30380AAB0B1AD1"
+    },
+    {
+      "SourcePath": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "Name": "retains external expiry locally when the provider becomes unavailable",
+      "ExpandedName": "retains external expiry locally when the provider becomes unavailable",
+      "ExpandedPath": "PcaiSharedCache expiry and lossless value contracts.retains external expiry locally when the provider becomes unavailable",
+      "Result": "Passed",
+      "WholeItSHA256": "CAA971ECE400BA3E7536DAFA355E634DD99288D923746A63FEA577776C7BB05C"
+    }
+  ],
+  "ModuleQaSourceRegisterSHA256": "ADB77E37FB08100238EF2A077C6DA074F8416E4DA2305D1650BCA23CD315F690",
+  "NativeSupervisorSHA256": "019A7A1D97239C4F5F7D3C6C90925E9D74047F8E721693D9C832C4644276E227",
+  "NoCoverageClaim": true,
+  "CaptureControls": [
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "keeps definition load and local memory access free of capture initialization",
+      "RationaleSHA256": "E997B3517A4B1555A5F8EEA51F117643210F92B8C5BF3955E6A4F638B3DA6CBF",
+      "WholeItSHA256": "91BDC43CC7FBEE97DA2CB45145EB644235562E2C67460B51F596C23D8F562785",
+      "Name": "keeps definition load and local memory access free of capture initialization",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "captures complete dual-stream pressure",
+      "RationaleSHA256": "4486C0B9E933F67415197D64BEA8672DD8C1F331CB90BDB08BECD3998B01EC56",
+      "WholeItSHA256": "0709DF9E1568AB9F2AE96EE62BB60A7E4D94B83996C9EF76BFF980936EEA890F",
+      "Name": "captures complete dual-stream pressure",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "preserves actual23 BOM Unicode and trimmed complete streams",
+      "RationaleSHA256": "1A999E2AED99A6A36EE5F835F322911D08128D0731D7D936742D085CB81D143B",
+      "WholeItSHA256": "8C8D46CA5E22F53050B15CA00489F120D5E874C54F30AB9838E33B375EAF74E1",
+      "Name": "preserves actual23 BOM Unicode and trimmed complete streams",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "accepts successful empty complete output",
+      "RationaleSHA256": "6D7AB923514D599D0AFFBAFC914F1AE61E832DD028F762932E327B6546495B2A",
+      "WholeItSHA256": "26AC56F71133450EA3FDE63FE368AD26E20E827E3F140B3C45BD6CAFE9E56E3B",
+      "Name": "accepts successful empty complete output",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "accepts exact8MiB stdout",
+      "RationaleSHA256": "281443E99F40016055E2379E6FD53136A201AA1B0EEDEB44F052CABBB429B823",
+      "WholeItSHA256": "D3372115E554FA59990A53A2B800075A21ABE6CDD181AC14A0807C1EA303E910",
+      "Name": "accepts exact8MiB stdout",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "accepts exact1MiB stderr",
+      "RationaleSHA256": "869830BB07AD7A74C4E307730081B57B856744F4BBB45B4AD1472D8D4E526BB7",
+      "WholeItSHA256": "E484149FF664D309477A41B9CA95F5E3AB694391A0566A60D6EFD50E0ACAD020",
+      "Name": "accepts exact1MiB stderr",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "fails stdout overflow without prefix success",
+      "RationaleSHA256": "00B95889BF1D11D034EC5C3E3D264E584BF8E61C97C1512D15C7D952CF603C1D",
+      "WholeItSHA256": "35EA3EE201A93895090AE12C701622255D05309064D9B36F728431480A39F128",
+      "Name": "fails stdout overflow without prefix success",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "fails stderr overflow without prefix success",
+      "RationaleSHA256": "4792520EA30A70108D3D1E32B3BC6E8FDA9033644041AAF36B892BCAF4DC7442",
+      "WholeItSHA256": "CF63FDD6A6836AB8816CE5B340920040B68E91BEDF51172D8D42F634C99BD128",
+      "Name": "fails stderr overflow without prefix success",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "times out a real stalled child with exact closure",
+      "RationaleSHA256": "DF1815D1B9E656E19C54FD05AC8FAFC276B85BF71FC317C97948A4D186E1DE7A",
+      "WholeItSHA256": "E02EAFDA97C8C1E04C08F259E474095411924682EA1B1763B81593680FF87CF5",
+      "Name": "times out a real stalled child with exact closure",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "rejects zero deadline before a child",
+      "RationaleSHA256": "99BCBAC031578ECFA476F4113153C67678D1CC2DC32F35DD9165A98AE9E0E86B",
+      "WholeItSHA256": "C3519A69ED69AA261B3FEBFA4F63DA1C85D6D518D8EA64FF5867DAF08C937499",
+      "Name": "rejects zero deadline before a child",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "rejects negative deadline before a child",
+      "RationaleSHA256": "C4FD8B24810F1962B252C21EA7CEB41D34551F69486E021CF7B64BAAD8E0A75C",
+      "WholeItSHA256": "517B3D753306D3004C2FFCD66F741AB3ACA1595835C4DF363C646387F192FDAE",
+      "Name": "rejects negative deadline before a child",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheProcessCaptureContracts.Tests.ps1",
+      "ExpandedName": "cancels a real child through its caller token",
+      "RationaleSHA256": "E00658452FE26799E8E67AAE89E372680C392B1E124A7680C1220731F24CBD42",
+      "WholeItSHA256": "131038A91BD18799C3045913F687AD1407565C51572785BDE708F01538C5CCA3",
+      "Name": "cancels a real child through its caller token",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "ExpandedName": "preserves literal Redis argv timeout and result fields",
+      "RationaleSHA256": "16FA2241498681F9908B1E8FDC27DEDB791E8B4092A77E3A6BDB8DF60CA34B11",
+      "WholeItSHA256": "D3D5ACD4361B53ABC216C7EFD103065FC629916E7AD02FBCC44898F66328ECE3",
+      "Name": "preserves literal Redis argv timeout and result fields",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "ExpandedName": "treats a failed capture GET as a miss without deletion",
+      "RationaleSHA256": "6540F092CFC617CB2F705C7591EB601BD297576F2841338ECC94D9F33957F280",
+      "WholeItSHA256": "4B94CBF283014145E12A353E881DB82B2BF8D5D6893C84617EA84BB8E9D29ECD",
+      "Name": "treats a failed capture GET as a miss without deletion",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "ExpandedName": "returns false for failed SET even with a partial OK payload",
+      "RationaleSHA256": "F584E16BF569ED87D3370B068C146CBD2962D3BCF651FBDB0E9B4413DD353248",
+      "WholeItSHA256": "3AF1AA6BD2AB7F6D9FF0EFAB7F7C602B74BE6656BAFC86066D0498B6646358C1",
+      "Name": "returns false for failed SET even with a partial OK payload",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "ExpandedName": "does not delete keys from failed SCAN output",
+      "RationaleSHA256": "B243A8FF2A26B983959FBA40EE066DCB8E84E60DA52952F308CF7FCA71105098",
+      "WholeItSHA256": "FAA145D1EBE130FFB902E6BE6451516040507203A520247B4A4A21291F3C3952",
+      "Name": "does not delete keys from failed SCAN output",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "ExpandedName": "caches unavailable health without launching repeatedly",
+      "RationaleSHA256": "4FAD5BFFB56BA980A5AC652CFF40B506BD6070B906BB18E49058F0CA0E93B09C",
+      "WholeItSHA256": "8A835475C305D32F98188AB2951811C04EF56637EC165EFAE34DCAF3E4E0463D",
+      "Name": "caches unavailable health without launching repeatedly",
+      "Result": "Passed"
+    },
+    {
+      "SourcePath": "Tests/ProcessCapture/CacheCaptureCollaborators.Tests.ps1",
+      "ExpandedName": "keeps local memory cache usable with the external provider disabled",
+      "RationaleSHA256": "0290DFA62446BB315266804AD030287A85452FA12968F82C9460D2A30AC72B68",
+      "WholeItSHA256": "D5C88BABB9DB2518F53D8AF24B419988D91CA544F46ECA67593E3084B21CDD22",
+      "Name": "keeps local memory cache usable with the external provider disabled",
+      "Result": "Passed"
+    }
+  ],
+  "ReviewLineage": {
+    "Reason": "Add the explicitly admitted ninth portable C# helper leaf and rebind complete merged main/held module bytes; all prior runtime receipts remain historical.",
+    "Author": "Codex pcai_token_review",
+    "Review": "PENDING_DISTINCT_CURRENT_SOURCE_REVIEW",
+    "WindowsRuntime": "NOT_RUN_FOR_SUCCESSOR_REGISTERS",
+    "PortableRuntime": "Owned Windows portable-path controls PASS; Linux execution remains separately required",
+    "HistoricalPeerRawSHA256": "1C76B84B6DEF402A39542C7FB0FBD2859250B4F51174256B471430F4647266F5",
+    "PreviousRawSHA256": "28DABA685EEDCA9E70C438A25BA9FE464E2D9B62E27B700B2DFB1204CC3EE2A5"
+  }
+}

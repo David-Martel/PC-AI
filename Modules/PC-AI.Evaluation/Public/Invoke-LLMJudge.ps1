@@ -91,7 +91,36 @@ $(($Criteria | ForEach-Object { "  `"$_`": <1-10>" }) -join ",`n"),
         # Parse JSON response
         $jsonMatch = [regex]::Match($judgeResponse, '\{[\s\S]*\}')
         if ($jsonMatch.Success) {
+            # Preserve explanatory text, but do not strip an enclosing JSON array.
+            $arrayDepth = 0
+            $quoted = $false
+            $escaped = $false
+            foreach ($character in $judgeResponse.Substring(0, $jsonMatch.Index).ToCharArray()) {
+                if ($quoted) {
+                    if ($escaped) { $escaped = $false }
+                    elseif ($character -eq '\') { $escaped = $true }
+                    elseif ($character -eq '"') { $quoted = $false }
+                } elseif ($character -eq '"') { $quoted = $true }
+                elseif ($character -eq '[') { $arrayDepth++ }
+                elseif ($character -eq ']') { $arrayDepth = [math]::Max(0, $arrayDepth - 1) }
+            }
+            if ($arrayDepth -gt 0) {
+                throw 'Judgment must be a JSON object, not an array.'
+            }
             $judgment = $jsonMatch.Value | ConvertFrom-Json -AsHashtable
+            if ($judgment -isnot [Collections.IDictionary]) {
+                throw 'Judgment must be a JSON object.'
+            }
+            foreach ($criterion in @($Criteria) + @('overall')) {
+                $rating = $judgment[$criterion]
+                if ($rating -isnot [ValueType] -or $rating -is [bool] -or
+                    -not [double]::IsFinite([double]$rating) -or [double]$rating -lt 1 -or [double]$rating -gt 10) {
+                    throw "Judgment requires a finite numeric rating from 1 through 10 for '$criterion'."
+                }
+            }
+            if ($judgment.reasoning -isnot [string] -or [string]::IsNullOrWhiteSpace($judgment.reasoning)) {
+                throw 'Judgment requires nonempty string reasoning.'
+            }
             $judgment['raw_response'] = $judgeResponse
             return $judgment
         } else {

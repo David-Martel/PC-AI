@@ -12,7 +12,7 @@ function Get-EvaluationResults {
     )
 
     if (-not $Suite) {
-        Write-Error "No evaluation suite available. Run New-EvaluationSuite first."
+        Microsoft.PowerShell.Utility\Write-Error "No evaluation suite available. Run New-EvaluationSuite first."
         return
     }
 

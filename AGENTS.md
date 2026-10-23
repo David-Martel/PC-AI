@@ -333,6 +333,20 @@ HTTP requests and do not establish deployed consumer behavior or memory gains.
 
 Maintained fallback and dependency fixtures:
 
+- `Tests/Unit/EvaluationPublicContracts.Tests.ps1` retains real public evaluation
+  orchestration with inert HTTP boundaries. Its fresh-process import control
+  places the repo's Modules directory on PSModulePath and verifies one actual
+  Evaluation producer, without unrelated compatibility-module imports. Keep the
+  explicit sibling cache bootstrap ahead of runtime-config discovery in standalone
+  consumers; command discovery during import can otherwise reenter the aggregate.
+- `Tests/Unit/PcaiVirtualizationImportIdentity.Tests.ps1` checks standalone
+  Virtualization import and reuse of an existing Common cache in fresh processes,
+  without diagnostic, credential or device calls. Preserve cache object and
+  producer identity as well as absence of unrelated aggregate imports.
+- `Tests/Unit/Invoke-JulesSession.Tests.ps1` uses an owned byte-identical script
+  copy and credential directory, restores prior environment/functions/aliases,
+  and forbids inherited provider, CLI and HTTP calls. Missing-key tests must never
+  inspect the workstation's credential stores or repository environment files.
 - `Tests/Unit/PcaiRuntimeVariantIntegrity.Tests.ps1` exercises 25 controls
   against complete runtime resolver functions with real owned file bytes:
   digest validation, pair activation, retained rollback data, unresolved-resource

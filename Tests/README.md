@@ -187,6 +187,14 @@ Fast, isolated tests with mocked dependencies:
 - **PC-AI.Performance.Tests.ps1** - Disk space, process monitoring, resource tracking
 - **PC-AI.Cleanup.Tests.ps1** - PATH cleanup, duplicate detection, temp file removal
 - **PC-AI.LLM.Tests.ps1** - Ollama integration, LLM chat, PC diagnosis
+- **EvaluationPublicContracts.Tests.ps1** - Public persistence and numerical
+  admission through real orchestration with inert HTTP; a fresh-process regression
+  checks producer identity with the compatibility aggregate discoverable.
+- **PcaiVirtualizationImportIdentity.Tests.ps1** - Fresh-process standalone import
+  and preloaded Common cache reuse without virtualization or device operations.
+- **Invoke-JulesSession.Tests.ps1** - Owned script and credential fixtures with
+  provider/CLI/HTTP tripwires and restoration of inherited environment and commands.
+  These tests must not consult live credentials or repository environment files.
 
 ### Integration Tests
 

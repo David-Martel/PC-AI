@@ -362,3 +362,77 @@ Describe 'Evaluation public persistence and numerical admission' -Tag 'Unit', 'E
         $observedErrors[0].Exception.Message | Should -Match 'No evaluation suite available'
     }
 }
+
+
+Describe 'Evaluation standalone import identity' -Tag 'Unit', 'Evaluation', 'Portable' {
+    # Protects: standalone module state and transport mocks with the compatibility facade discoverable.
+    # Detects: recursive aggregate autoload replacing the producer during runtime-helper bootstrap.
+    # Needs: a fresh profile-free process; all external transport/provider boundaries are inert.
+    It 'retains one producer when its module directory is on PSModulePath' {
+        $probePath = Join-Path $TestDrive 'evaluation-import-identity.ps1'
+        $runtimeRoot = Join-Path $TestDrive 'evaluation-import-runtime'
+        $null = New-Item -ItemType Directory -Path $runtimeRoot -Force
+        @'
+param([Parameter(Mandatory)][string]$RepositoryRoot, [Parameter(Mandatory)][string]$OwnedRuntimeRoot)
+$ErrorActionPreference = 'Stop'
+$env:PCAI_CACHE_PROVIDER = 'memory'
+$env:PCAI_DISABLE_NATIVE = '1'
+$env:PCAI_ROOT = $RepositoryRoot
+$env:PCAI_ARTIFACTS_ROOT = Join-Path $OwnedRuntimeRoot 'artifacts'
+$env:LOCALAPPDATA = $OwnedRuntimeRoot
+$env:PSModulePath = (Join-Path $RepositoryRoot 'Modules') + [IO.Path]::PathSeparator + $env:PSModulePath
+$global:ForbiddenBoundaryCalls = 0
+function global:Invoke-RestMethod { $global:ForbiddenBoundaryCalls++; throw 'HTTP is forbidden in the import fixture.' }
+function global:Invoke-WebRequest { $global:ForbiddenBoundaryCalls++; throw 'HTTP is forbidden in the import fixture.' }
+function global:bw { $global:ForbiddenBoundaryCalls++; throw 'Credential retrieval is forbidden in the import fixture.' }
+function global:jules { $global:ForbiddenBoundaryCalls++; throw 'Jules execution is forbidden in the import fixture.' }
+$rootPath = [IO.Path]::GetFullPath((Join-Path $RepositoryRoot 'Modules/PC-AI.Evaluation/PC-AI.Evaluation.psm1'))
+$imports = @(Import-Module (Join-Path $RepositoryRoot 'Modules/PC-AI.Evaluation/PC-AI.Evaluation.psd1') -PassThru -WarningAction SilentlyContinue)
+$returned = @($imports | Where-Object { $_.Path -and [IO.Path]::GetFullPath($_.Path) -ceq $rootPath })
+$listed = @(Get-Module -Name PC-AI.Evaluation -All)
+if ($returned.Count -ne 1 -or $listed.Count -ne 1 -or -not [object]::ReferenceEquals($returned[0], $listed[0])) {
+    throw 'Standalone Evaluation import replaced its producer instance.'
+}
+foreach ($name in @('New-EvaluationSuite', 'New-BaselineSnapshot', 'Invoke-EvaluationSuite')) {
+    $command = Get-Command -Name $name -CommandType Function -ListImported -ErrorAction Stop
+    if (-not [object]::ReferenceEquals($command.Module, $returned[0]) -or
+        -not [object]::ReferenceEquals($command.ScriptBlock.Module, $returned[0])) {
+        throw 'An Evaluation public export is bound to a different producer.'
+    }
+}
+$otherComponents = @(Get-Module -All | Where-Object { $_.Name -like 'PC-AI*' -and $_.Name -ne 'PC-AI.Evaluation' })
+if ($otherComponents.Count -ne 0) { throw 'Standalone Evaluation import unexpectedly loaded compatibility components.' }
+if ($global:ForbiddenBoundaryCalls -ne 0) { throw 'Import attempted an external transport or provider boundary.' }
+[pscustomobject]@{ ProducerIdentity = $true; OtherComponentCount = $otherComponents.Count; ForbiddenBoundaryCalls = $global:ForbiddenBoundaryCalls } |
+    ConvertTo-Json -Compress
+'@ | Set-Content -LiteralPath $probePath -Encoding utf8NoBOM
+        $start = [Diagnostics.ProcessStartInfo]::new()
+        $start.FileName = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
+        $start.UseShellExecute = $false
+        $start.CreateNoWindow = $true
+        $start.RedirectStandardOutput = $true
+        $start.RedirectStandardError = $true
+        foreach ($argument in @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', $probePath, '-RepositoryRoot', $evaluationRepoRoot, '-OwnedRuntimeRoot', $runtimeRoot)) {
+            $start.ArgumentList.Add($argument)
+        }
+        $child = [Diagnostics.Process]::new()
+        $child.StartInfo = $start
+        try {
+            $child.Start() | Should -BeTrue
+            $stdout = $child.StandardOutput.ReadToEndAsync()
+            $stderr = $child.StandardError.ReadToEndAsync()
+            if (-not $child.WaitForExit(60000)) {
+                $child.Kill($true)
+                throw 'The owned Evaluation import probe exceeded its bounded timeout.'
+            }
+            $output = $stdout.GetAwaiter().GetResult()
+            $null = $stderr.GetAwaiter().GetResult()
+            $child.ExitCode | Should -Be 0 -Because 'standalone Evaluation import must retain the actual producer'
+            $result = $output | ConvertFrom-Json
+            $result.ProducerIdentity | Should -BeTrue
+            $result.OtherComponentCount | Should -Be 0
+            $result.ForbiddenBoundaryCalls | Should -Be 0
+        }
+        finally { $child.Dispose() }
+    }
+}

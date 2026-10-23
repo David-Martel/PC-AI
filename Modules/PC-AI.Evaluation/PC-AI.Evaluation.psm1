@@ -55,6 +55,13 @@ $script:EvaluationRunState = $null
 
 #endregion
 
+# Load the exact cache dependency before runtime-config command discovery can
+# autoload the compatibility aggregate and recursively import Evaluation.
+$sharedCacheHelper = Join-Path (Split-Path -Parent $PSScriptRoot) 'PC-AI.Common\Public\Get-PcaiSharedCache.ps1'
+if (Test-Path $sharedCacheHelper) {
+    . $sharedCacheHelper
+}
+
 # Shared runtime config helper (PC-AI.Common)
 $sharedRuntimeHelper = Join-Path (Split-Path -Parent $PSScriptRoot) 'PC-AI.Common\Public\Get-PcaiRuntimeConfig.ps1'
 if (Test-Path $sharedRuntimeHelper) {

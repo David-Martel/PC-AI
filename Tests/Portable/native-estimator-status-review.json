@@ -31,6 +31,51 @@
       "disposition": "keep",
       "scope": "Port of two retained native-only selectors from fdee5ee Pester suite; seven identical fallback cases and strengthened actual-host RID/filename plus retained status field checks pass on Ubuntu. Native availability forced false; no hardware/native ABI qualification.",
       "receipt": "native-estimator-status-review.md"
+    },
+    {
+      "selector": "fallback-counts",
+      "test_path": "Tests/Portable/Test-NativeEstimatorAndStatus.ps1",
+      "test_sha256": "f468e0d68b2645bdbeb26520303b44e17af32f80a12c4316ef464fa7a88a00e5",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Private/Initialize-PcaiNative.ps1": "ca24f1cc699cb1d825efbd400f824cbd00a07aff0feaae5c49a85276f3109bc3"
+      },
+      "reviewer": "Codex pcai_token_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-23",
+      "base_commit": "2c9c25da72b9f4f529a1707c800ff5ffa00013ad",
+      "disposition": "keep",
+      "scope": "Seven retained deterministic fallback cases pass independently on Windows with PowerShell 7.6.7/.NET 10.0.13. Empty/nonempty BOS and UTF8 byte thresholds preserved. Availability forced false; no native DLL, deployment, hardware or performance-win qualification.",
+      "receipt": "native-estimator-status-review.md"
+    },
+    {
+      "selector": "scalar-counts",
+      "test_path": "Tests/Portable/Test-NativeEstimatorAndStatus.ps1",
+      "test_sha256": "f468e0d68b2645bdbeb26520303b44e17af32f80a12c4316ef464fa7a88a00e5",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Private/Initialize-PcaiNative.ps1": "ca24f1cc699cb1d825efbd400f824cbd00a07aff0feaae5c49a85276f3109bc3"
+      },
+      "reviewer": "Codex pcai_token_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-23",
+      "base_commit": "2c9c25da72b9f4f529a1707c800ff5ffa00013ad",
+      "disposition": "keep",
+      "scope": "Twenty-one added scalar/BMP/malformed UTF16 cases pass independently; replay against preserved unchanged initializer fails the expected eight supplementary-scalar cases while all other cases and status checks pass. Fifteen independent malformed/category/threshold/UInt64 controls and 1000 representative reference combinations also pass. Invalid UTF16 follows EnumerateRunes replacement semantics. No native ABI, model, Unicode-version-wide Rust parity, deployment or HIL qualification.",
+      "receipt": "native-estimator-status-review.md"
+    },
+    {
+      "selector": "status-shape",
+      "test_path": "Tests/Portable/Test-NativeEstimatorAndStatus.ps1",
+      "test_sha256": "f468e0d68b2645bdbeb26520303b44e17af32f80a12c4316ef464fa7a88a00e5",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Private/Initialize-PcaiNative.ps1": "ca24f1cc699cb1d825efbd400f824cbd00a07aff0feaae5c49a85276f3109bc3"
+      },
+      "reviewer": "Codex pcai_token_review",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-23",
+      "base_commit": "2c9c25da72b9f4f529a1707c800ff5ffa00013ad",
+      "disposition": "keep",
+      "scope": "Retained actual-host RID/filename and provenance-field shape checks pass independently. Six isolated invalid-override admission controls and maintained reference/case/report/nested parity controls also pass; real native parity explicitly skipped with PCAI_TOKEN_NATIVE_PATH unset only in children. Source/status shape does not establish native execution or deployment.",
+      "receipt": "native-estimator-status-review.md"
     }
   ]
 }

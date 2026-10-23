@@ -97,6 +97,11 @@ function Test-NvidiaDownloadUrl {
     try {
         $uri = [System.Uri]::new($Url)
 
+        if (-not $uri.IsAbsoluteUri -or $uri.Scheme -ne 'https') {
+            Write-Warning 'Test-NvidiaDownloadUrl: An absolute HTTPS download URL is required.'
+            return $result
+        }
+
         foreach ($trusted in $trustedHosts) {
             if ($uri.Host -eq $trusted -or $uri.Host.EndsWith(".$trusted")) {
                 $result.IsTrusted = $true

@@ -54,7 +54,7 @@ if ($pulls.status -eq 'Available') {
 }
 $available = @($inspections | Where-Object status -EQ Unavailable).Count -eq 0
 $bySeverity = $items | Group-Object { $_.severity } | ForEach-Object { "$($_.Name)=$($_.Count)" }
-$snap = [ordered]@{ repo = $Repo; checked_utc = [datetime]::UtcNow.ToString('o'); inspection_status = if ($available) { 'Available' } else { 'Unavailable' }; total = $items.Count; by_severity = $bySeverity -join ' '; items = @($items); inspections = @($inspections | Select-Object operation, status, exit_code, reason) }
+$snap = [ordered]@{ repo = $Repo; checked_utc = [datetime]::UtcNow.ToString('o'); inspection_status = if ($available) { 'Available' } else { 'Unavailable' }; total = $items.Count; by_severity = $bySeverity -join ' '; items = @($items); inspections = @($inspections | Select-Object operation, status, exit_code, reason, reason_code, http_status) }
 Write-GitOpsReport -Report $snap -Directory $OutputDirectory -Name ('upstream-reviews-' + $Repo.Replace('/', '_') + '.json')
 if (-not $Quiet) { "upstream-reviews $Repo : inspection=$($snap.inspection_status) items=$($items.Count)" }
 $snap | ConvertTo-Json -Depth 8 -Compress

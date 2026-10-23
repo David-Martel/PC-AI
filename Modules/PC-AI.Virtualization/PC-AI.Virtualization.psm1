@@ -14,7 +14,13 @@
 $script:ModuleRoot = $PSScriptRoot
 
 # Shared runtime config helper (PC-AI.Common)
+$sharedCacheHelper = Join-Path (Split-Path -Parent $PSScriptRoot) 'PC-AI.Common\Public\Get-PcaiSharedCache.ps1'
 $sharedRuntimeHelper = Join-Path (Split-Path -Parent $PSScriptRoot) 'PC-AI.Common\Public\Get-PcaiRuntimeConfig.ps1'
+if (Test-Path $sharedCacheHelper) {
+    # Admit the sibling dependency before runtime-helper discovery can autoload
+    # the aggregate and import unrelated diagnostic producers during startup.
+    . $sharedCacheHelper
+}
 if (Test-Path $sharedRuntimeHelper) {
     . $sharedRuntimeHelper
 }

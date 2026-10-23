@@ -175,7 +175,20 @@ function Invoke-EvaluationSuite {
                 testCaseId = $testCase.Id
             }
 
-            $result = Invoke-SingleTestCase -TestCase $testCase -Backend $Backend -MaxTokens $MaxTokens -Temperature $Temperature -RequestTimeoutSec $RequestTimeoutSec -Model $Model -NumCtx $NumCtx -NumThread $NumThread -TopP $TopP -TopK $TopK -RepeatLastN $RepeatLastN -RepeatPenalty $RepeatPenalty -TfsZ $TfsZ -Seed $Seed
+            $testParameters = @{
+                TestCase = $testCase
+                Backend = $Backend
+                MaxTokens = $MaxTokens
+                Temperature = $Temperature
+                RequestTimeoutSec = $RequestTimeoutSec
+                Model = $Model
+            }
+            foreach ($option in @('NumCtx', 'NumThread', 'TopP', 'TopK', 'RepeatLastN', 'RepeatPenalty', 'TfsZ', 'Seed')) {
+                if ($PSBoundParameters.ContainsKey($option)) {
+                    $testParameters[$option] = $PSBoundParameters[$option]
+                }
+            }
+            $result = Invoke-SingleTestCase @testParameters
 
             # Calculate metrics
             foreach ($metric in $Suite.Metrics) {
@@ -189,6 +202,10 @@ function Invoke-EvaluationSuite {
                         error = $_.Exception.Message
                     } -Level 'warn'
                     $result.Metrics[$metric.Name] = $null
+                    $metricError = "Metric '$($metric.Name)' failed: $($_.Exception.Message)"
+                    $result.ErrorMessage = if ($result.ErrorMessage) {
+                        "$($result.ErrorMessage); $metricError"
+                    } else { $metricError }
                 }
             }
 

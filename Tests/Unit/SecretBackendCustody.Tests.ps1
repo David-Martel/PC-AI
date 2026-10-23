@@ -508,6 +508,86 @@ try{
         $observed.Provisioned|Should -BeFalse
         $observed.EnvironmentUnchanged|Should -BeTrue
     }
+    # Protects: native error preferences and capture when Common's diagnostic proxy is loaded.
+    # Detects: a foreign module preference must not turn a suppressed recovery/sync error into a throw.
+    # Needs: fresh profile-free child, actual Common and SecretsTier, synthetic note/sync boundaries only.
+    # Breadcrumb: Tools/SystemScripts/Machine/SecretsTier.psm1::Import-SecretsFromBwVault,Sync-MachineSecrets
+    It 'preserves native error actions and capture with the actual Common diagnostic proxy loaded' {
+        $source=Join-Path (Split-Path -Parent $helperPath) 'SecretsTier.psm1'
+        $common=Join-Path $PSScriptRoot '../../Modules/PC-AI.Common/PC-AI.Common.psm1'
+        $probe=@'
+$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+$env:PCAI_DISABLE_NATIVE='1';$env:PCAI_CACHE_PROVIDER='memory'
+$source=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__SOURCE__'))
+$commonPath=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__COMMON__'))
+$global:ExternalDiagnosticFixtureCalls=0
+function global:bw {$global:ExternalDiagnosticFixtureCalls++;throw 'External provider forbidden.'}
+function global:bws {$global:ExternalDiagnosticFixtureCalls++;throw 'External provider forbidden.'}
+function global:cmdkey {$global:ExternalDiagnosticFixtureCalls++;throw 'Native credential access forbidden.'}
+$common=Import-Module $commonPath -Force -PassThru
+$module=Import-Module $source -ArgumentList 'fixture-machine' -Force -PassThru -DisableNameChecking
+try{
+ & $module {
+  $script:DiagnosticFixtureCalls=@{Session=0;Note=0;Sync=0;Cache=0;Environment=0;External=0}
+  function script:Test-BwSession {$script:DiagnosticFixtureCalls.Session++;$true}
+  function script:Get-BwNoteTextInternal {$script:DiagnosticFixtureCalls.Note++;'{"machine":"other-machine","secrets":{"alpha":"synthetic-only"}}'}
+  function script:Sync-SecretsFromBws {$script:DiagnosticFixtureCalls.Sync++;$false}
+  function script:Save-SecretsToCache {$script:DiagnosticFixtureCalls.Cache++;throw 'Cache publication forbidden.'}
+  function script:Get-SecretsFromCache {$script:DiagnosticFixtureCalls.Cache++;throw 'Cache read forbidden.'}
+  function script:Set-SecretsAsEnvironment {$script:DiagnosticFixtureCalls.Environment++;throw 'Environment publication forbidden.'}
+  function script:Invoke-SecretBackendProcess {$script:DiagnosticFixtureCalls.External++;throw 'External process forbidden.'}
+  function script:Invoke-MachineBitwardenCommand {$script:DiagnosticFixtureCalls.External++;throw 'External provider forbidden.'}
+  function script:Invoke-BitwardenCli {$script:DiagnosticFixtureCalls.External++;throw 'External provider forbidden.'}
+ }
+ $rows=@(foreach($operation in 'Restore','Sync'){
+  foreach($action in 'SilentlyContinue','Continue','Stop'){
+   & $module {
+    param($Operation,$Action)
+    $captured=@();$records=@();$threw=$false
+    try{
+     $records=@(if($Operation -eq 'Restore'){
+      Import-SecretsFromBwVault -Confirm:$false -ErrorAction $Action -ErrorVariable captured 2>&1
+     }else{
+      Sync-MachineSecrets -Confirm:$false -ErrorAction $Action -ErrorVariable captured 2>&1
+     })
+    }catch{$threw=$true}
+    $errors=@($records|Where-Object {$_ -is [Management.Automation.ErrorRecord]})
+    [pscustomobject]@{Operation=$Operation;Action=$Action;Threw=$threw;Captured=$captured.Count;Emitted=$errors.Count;Values=@($records|Where-Object {$null -ne $_ -and $_ -isnot [Management.Automation.ErrorRecord]}).Count;Categories=@($errors|ForEach-Object {$_.CategoryInfo.Category.ToString()}|Sort-Object -Unique)}
+   } $operation $action
+  }
+ })
+ $calls=& $module {$script:DiagnosticFixtureCalls}
+ [pscustomobject]@{ProbeSuccess=$true;FailureId=$null;Rows=$rows;Calls=$calls;ExternalCalls=$global:ExternalDiagnosticFixtureCalls;DiagnosticProducer=(Get-Command Write-Error -CommandType Function).Module.Name;CommonPreference=(& $common {$ErrorActionPreference.ToString()})}|ConvertTo-Json -Depth 5 -Compress
+}catch{
+ [pscustomobject]@{ProbeSuccess=$false;FailureId=$_.FullyQualifiedErrorId;FailureLine=$_.InvocationInfo.ScriptLineNumber}|ConvertTo-Json -Compress
+}finally{Remove-Module $module -Force;Remove-Module $common -Force}
+'@
+        $probe=$probe.Replace('__SOURCE__',[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($source))).Replace('__COMMON__',[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($common)))
+        $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($probe))
+        $result=Invoke-SecretBackendProcess -FilePath $pwshPath -Arguments @('-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -TimeoutSeconds 20
+        $result.Success|Should -BeTrue -Because $result.StdErr
+        $result.StdErr|Should -BeNullOrEmpty
+        $observed=$result.StdOut|ConvertFrom-Json
+        $observed.ProbeSuccess|Should -BeTrue -Because ($observed|ConvertTo-Json -Compress)
+        $observed.DiagnosticProducer|Should -BeExactly 'PC-AI.Common'
+        $observed.CommonPreference|Should -BeExactly 'Stop'
+        $observed.Rows.Count|Should -Be 6
+        foreach($row in $observed.Rows){
+            $row.Threw|Should -Be ($row.Action -eq 'Stop')
+            $row.Captured|Should -BeGreaterThan 0
+            $row.Emitted|Should -Be $(if($row.Action -eq 'Continue'){1}else{0})
+            $row.Values|Should -Be 0
+            if($row.Action -eq 'Continue'){@($row.Categories)|Should -Be @('NotSpecified')}
+            else{@($row.Categories).Count|Should -Be 0}
+        }
+        $observed.Calls.Session|Should -Be 3
+        $observed.Calls.Note|Should -Be 3
+        $observed.Calls.Sync|Should -Be 3
+        $observed.Calls.Cache|Should -Be 0
+        $observed.Calls.Environment|Should -Be 0
+        $observed.Calls.External|Should -Be 0
+        $observed.ExternalCalls|Should -Be 0
+    }
     # Protects: declares exactly the reviewed two sibling managed sources.
     # Detects: Unexpected provisioning, provider access, value disclosure or fabricated readiness would violate the passive/no-change contract.
     # Needs: Windows x64 NTFS, Pester 5.7, isolated synthetic fixtures; no live provider or hardware.

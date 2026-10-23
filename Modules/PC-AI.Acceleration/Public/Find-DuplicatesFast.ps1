@@ -131,12 +131,13 @@ function Invoke-PowerShellDuplicateScan {
     else {
         Write-Verbose "Using Get-ChildItem for file enumeration"
         $params = @{
-            Path        = $Path
+            LiteralPath = $Path
             File        = $true
             Recurse     = $Recurse
             ErrorAction = 'SilentlyContinue'
         }
         if ($Include) { $params.Include = $Include }
+        if ($Exclude) { $params.Exclude = $Exclude }
         $files = Get-ChildItem @params
     }
 
@@ -301,16 +302,28 @@ function Find-WithFdForDuplicates {
 
     try {
         $output = & $FdPath @args 2>&1
+        $fdExitCode = $global:LASTEXITCODE
+        if ($fdExitCode -ne 0) {
+            throw "fd enumeration exited with code $fdExitCode"
+        }
         $results = @()
         foreach ($line in $output) {
-            if ($line -and (Test-Path $line -ErrorAction SilentlyContinue)) {
-                $results += Get-Item $line -ErrorAction SilentlyContinue
+            if ($line -and (Test-Path -LiteralPath $line -ErrorAction SilentlyContinue)) {
+                $results += Get-Item -LiteralPath $line -ErrorAction SilentlyContinue
             }
         }
         return $results
     }
     catch {
         Write-Warning "fd enumeration failed, falling back to Get-ChildItem"
-        return Get-ChildItem -Path $Path -File -Recurse -ErrorAction SilentlyContinue
+        $fallbackParams = @{
+            LiteralPath = $Path
+            File        = $true
+            Recurse     = $Recurse
+            ErrorAction = 'SilentlyContinue'
+        }
+        if ($Include) { $fallbackParams.Include = $Include }
+        if ($Exclude) { $fallbackParams.Exclude = $Exclude }
+        return Get-ChildItem @fallbackParams
     }
 }

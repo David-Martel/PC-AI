@@ -110,8 +110,8 @@ function Get-NvidiaSoftwareRegistry {
         return [PSCustomObject]@{
             Version        = $registry.version
             LastUpdated    = $registry.lastUpdated
-            TrustedSources = $registry.trustedSources
-            Categories     = $registry.categories
+            TrustedSources = if ($registry.PSObject.Properties['trustedSources']) { ,$registry.trustedSources } else { $null }
+            Categories     = if ($registry.PSObject.Properties['categories']) { ,$registry.categories } else { $null }
             Components     = $filtered
         }
     }

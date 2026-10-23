@@ -2,8 +2,8 @@
 //!
 //! This module mirrors [`crate::janus_llama::JanusLlama`] but loads weight
 //! matrices from a GGUF file as [`QMatMul`] tensors instead of full-precision
-//! [`candle_nn::Linear`] layers.  The expected speedup is 4–6× on CPU and
-//! 2–3× on GPU (bandwidth-bound workloads) when using Q4_K quantization.
+//! [`candle_nn::Linear`] layers. Runtime performance depends on quantization,
+//! device, checkpoint, and workload; measure it with a matching baseline.
 //!
 //! # What is quantized vs full-precision
 //!
@@ -914,23 +914,77 @@ mod tests {
         }
     }
 
-    /// Build a [`QuantizedJanusLlama`] from a GGUF byte stream synthesised
-    /// in-memory using Q8_0 quantization.
+    /// Load an explicitly supplied tiny GGUF and run a CPU decode step.
     ///
-    /// This validates the full GGUF load path (header parsing, tensor reads,
-    /// QMatMul construction, RmsNorm dequantization) without requiring a
-    /// real model file on disk.
-    ///
-    /// The test is marked `#[ignore]` because building a valid GGUF stream
-    /// in memory requires the private `ggml_file::qtensor_from_ggml` API
-    /// which is not exposed by candle-core's public interface.  The
-    /// integration test (load from a real `.gguf` file) is the authoritative
-    /// test; this unit test documents the expected contract.
+    /// Set `PCAI_TEST_GGUF_WEIGHTS` to a Llama GGUF with standard metadata.
+    /// Test-only limits bound allocations; this is loader coverage, not
+    /// trained Janus generation or output-quality acceptance.
     #[test]
-    #[ignore = "requires a real GGUF file on disk; use integration tests"]
+    #[ignore = "requires explicit tiny GGUF fixture in PCAI_TEST_GGUF_WEIGHTS"]
     fn test_from_gguf_smoke() {
-        // This test would open a GGUF file and call from_gguf().
-        // Marked ignore because no test fixture is available at unit test time.
+        let path = std::env::var_os("PCAI_TEST_GGUF_WEIGHTS")
+            .expect("set PCAI_TEST_GGUF_WEIGHTS before explicitly running this test");
+        let file = std::fs::File::open(path).expect("open explicit GGUF fixture");
+        assert!(
+            file.metadata().unwrap().len() <= 64 * 1024 * 1024,
+            "fixture exceeds 64 MiB test limit"
+        );
+        let mut reader = std::io::BufReader::new(file);
+        let content = gguf_file::Content::read(&mut reader).expect("parse GGUF fixture");
+        let dimension = |key: &str, maximum: usize| {
+            let value = usize::try_from(content.metadata.get(key).expect(key).to_u64().expect(key))
+                .expect("dimension must fit usize");
+            assert!((1..=maximum).contains(&value), "{key} exceeds tiny fixture limits");
+            value
+        };
+        let embedding = content.tensor_infos.get("token_embd.weight").expect("token embedding");
+        let (vocab_size, embedding_size) = embedding.shape.dims2().expect("embedding must be a matrix");
+        assert!((1..=512).contains(&vocab_size));
+        let cfg = Config {
+            hidden_size: dimension("llama.embedding_length", 128),
+            intermediate_size: dimension("llama.feed_forward_length", 512),
+            vocab_size,
+            num_hidden_layers: dimension("llama.block_count", 2),
+            num_attention_heads: dimension("llama.attention.head_count", 128),
+            num_key_value_heads: dimension("llama.attention.head_count_kv", 128),
+            use_flash_attn: false,
+            rms_norm_eps: f64::from(
+                content.metadata["llama.attention.layer_norm_rms_epsilon"]
+                    .to_f32()
+                    .unwrap(),
+            ),
+            rope_theta: content.metadata["llama.rope.freq_base"].to_f32().unwrap(),
+            bos_token_id: None,
+            eos_token_id: None,
+            rope_scaling: None,
+            max_position_embeddings: dimension("llama.context_length", 256),
+            tie_word_embeddings: false,
+        };
+        assert_eq!(embedding_size, cfg.hidden_size);
+        assert_eq!(cfg.hidden_size % cfg.num_attention_heads, 0);
+        assert_eq!((cfg.hidden_size / cfg.num_attention_heads) % 2, 0);
+        assert_eq!(cfg.num_attention_heads % cfg.num_key_value_heads, 0);
+        assert!(cfg.rms_norm_eps.is_finite() && cfg.rms_norm_eps > 0.0);
+        assert!(cfg.rope_theta.is_finite() && cfg.rope_theta > 0.0);
+        // Malformed headers must not request large dequantization buffers.
+        assert!(content.tensor_infos.len() <= 32);
+        assert!(content
+            .tensor_infos
+            .values()
+            .all(|tensor| tensor.shape.elem_count() <= 512 * 512));
+        let device = Device::Cpu;
+        let model = QuantizedJanusLlama::from_gguf(content, &mut reader, &cfg, &device).expect("load GGUF tensors");
+        let tokens = Tensor::new(&[[0_u32]], &device).unwrap();
+        let mut cache = KvCache::new(true, DType::F32, &cfg, &device).unwrap();
+        let logits = model.forward(&tokens, 0, &mut cache).expect("decode loaded GGUF");
+        assert_eq!(logits.dims(), &[1, cfg.vocab_size]);
+        assert!(logits
+            .flatten_all()
+            .unwrap()
+            .to_vec1::<f32>()
+            .unwrap()
+            .iter()
+            .all(|value| value.is_finite()));
     }
 
     /// Verify that the `QuantizedMlp::forward` shape contract holds with a

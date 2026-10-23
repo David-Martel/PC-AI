@@ -45,7 +45,7 @@ function ConvertFrom-LLMJson {
                 $jsonStr = $Matches['json']
             } elseif ($Content -match '(?s)\{.*\}|\[.*\]') {
                 # Attempt to find common JSON boundaries if not in markdown block
-                $jsonStr = $Content.Trim()
+                $jsonStr = $Matches[0]
             } else {
                 $jsonStr = $Content.Trim()
             }

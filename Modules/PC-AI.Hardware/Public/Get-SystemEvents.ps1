@@ -47,24 +47,61 @@ function Get-SystemEvents {
         $results = @()
         $nativeAvailable = $false
 
-        # Attempt to use Native Core if available
-        $json = Get-HardwareSystemEventsNative -Days $Days -MaxEvents $MaxEvents
-        if ($json) {
-            $nativeEvents = $json | ConvertFrom-Json
-            foreach ($ev in $nativeEvents) {
-                $results += [PSCustomObject]@{
-                    TimeCreated  = [DateTime]::Parse($ev.time_created)
-                    ProviderName = $ev.provider_name
-                    Id           = $ev.id
-                    Level        = $ev.level_display
-                    Severity     = $ev.severity
-                    Message      = $ev.message
-                    FullMessage  = $ev.full_message
+        # This two-argument native ABI samples levels 1-3. IncludeInfo uses the
+        # established PowerShell path until native supports the same contract.
+        if (-not $IncludeInfo) {
+            try {
+                $json = Get-HardwareSystemEventsNative -Days $Days -MaxEvents $MaxEvents
+                if ($null -ne $json -and -not [string]::IsNullOrWhiteSpace($json)) {
+                    if (-not $json.TrimStart().StartsWith('[')) { throw 'Native event response is not an array.' }
+                    $nativeEvents = @($json | ConvertFrom-Json -ErrorAction Stop)
+                    if ($nativeEvents.Count -gt $MaxEvents) { throw 'Native event response exceeds the requested maximum.' }
+                    foreach ($ev in $nativeEvents) {
+                        foreach ($name in @('time_created', 'provider_name', 'id', 'level', 'level_display', 'severity', 'message', 'full_message')) {
+                            if ($null -eq $ev -or $null -eq $ev.PSObject.Properties[$name]) { throw 'Native event response lacks required fields.' }
+                        }
+                        foreach ($name in @('provider_name', 'level_display', 'severity', 'message', 'full_message')) {
+                            if ($ev.$name -isnot [string]) { throw 'Native event text field has an invalid type.' }
+                        }
+                        $eventId = 0L
+                        $level = 0L
+                        $created = [DateTimeOffset]::MinValue
+                        # Newer ConvertFrom-Json versions deserialize ISO dates;
+                        # preserve their ticks instead of stringifying and truncating.
+                        $validDate = if ($ev.time_created -is [DateTime] -or $ev.time_created -is [DateTimeOffset]) {
+                            $created = [DateTimeOffset]$ev.time_created
+                            $true
+                        } elseif ($ev.time_created -is [string]) {
+                            [DateTimeOffset]::TryParse($ev.time_created, [ref]$created)
+                        } else { $false }
+                        if (-not [long]::TryParse([string]$ev.id, [ref]$eventId) -or $eventId -lt 0 -or $eventId -gt 65535 -or
+                            -not [long]::TryParse([string]$ev.level, [ref]$level) -or $level -notin @(1, 2, 3) -or
+                            -not $validDate -or
+                            [string]::IsNullOrWhiteSpace($ev.level_display) -or
+                            $ev.provider_name -notmatch 'disk|storahci|nvme|usbhub|USB|nvstor|iaStor|stornvme|partmgr|ntfs|volmgr') {
+                            throw 'Native event values do not satisfy the public contract.'
+                        }
+                        $severity = switch ($level) { 1 { 'Critical' } 2 { 'Error' } 3 { 'Warning' } }
+                        if ($ev.severity -cne $severity) { throw 'Native event severity does not match its level.' }
+                        $results += [PSCustomObject]@{
+                            TimeCreated  = $created.LocalDateTime
+                            ProviderName = $ev.provider_name
+                            Id           = [int]$eventId
+                            Level        = $ev.level_display
+                            Severity     = $ev.severity
+                            Message      = $ev.message
+                            FullMessage  = $ev.full_message
+                        }
+                    }
+                    # [] is successful empty sampling. NULL, errors, or stale
+                    # fabricated/partial shapes are unavailable, and fall back.
+                    $nativeAvailable = $true
                 }
+            } catch {
+                $results = @()
+                Write-Verbose 'Native event sampling unavailable or incompatible; using Get-WinEvent.'
             }
-            $nativeAvailable = $true
         }
-
         if (-not $nativeAvailable) {
             $startTime = (Get-Date).AddDays(-$Days)
             $levels = if ($IncludeInfo) { @(1, 2, 3, 4) } else { @(1, 2, 3) }

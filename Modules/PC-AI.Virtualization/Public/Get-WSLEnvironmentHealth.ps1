@@ -236,7 +236,7 @@ function Test-WSLHealth {
             $systemdStatus = wsl -d $Distribution -- systemctl is-system-running 2>&1
             $health.SystemdStatus = $systemdStatus.Trim()
 
-            if ($systemdStatus -notmatch 'running|degraded') {
+            if ($health.SystemdStatus -notmatch '^(running|degraded)$') {
                 $health.Issues += [PSCustomObject]@{
                     Component = 'WSL'
                     Severity  = 'Warning'

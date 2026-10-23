@@ -1,83 +1,41 @@
-#Requires -Version 5.1
-[CmdletBinding()]
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Plans settings on a Windows Thunderbolt peer using the maintained bridge.
+.DESCRIPTION
+    Run in PowerShell 7 (pwsh) on the intended Windows peer. This compatibility
+    entrypoint defaults to a plan with the legacy peer address 172.31.240.2/30.
+    It never deletes addresses, enables WinRM or changes the network category.
+    Apply delegates through Initialize-ThunderboltLink to the central optimizer
+    and its shared IPv4 identity/conflict/preservation guard. Security requests
+    require separately owned host policies and are refused on Apply. No Linux peer
+    profile or remote transport is selected automatically.
+.EXAMPLE
+    ./Bootstrap-ThunderboltPeerRemote.ps1 -InterfaceAlias 'Ethernet 11' -DryRun
+.EXAMPLE
+    ./Bootstrap-ThunderboltPeerRemote.ps1 -InterfaceAlias 'Ethernet 11' -MetricOnly -Apply -WhatIf
+#>
+[CmdletBinding(SupportsShouldProcess, PositionalBinding = $false)]
 param(
-    [Parameter()]
     [string]$InterfaceAlias,
-
-    [Parameter()]
-    [string]$IPv4Address = '172.31.240.2',
-
-    [Parameter()]
-    [ValidateRange(8, 30)]
-    [int]$PrefixLength = 30,
-
-    [Parameter()]
-    [ValidateRange(1, 9999)]
-    [int]$InterfaceMetric = 15,
-
-    [Parameter()]
-    [ValidateRange(1280, 65535)]
-    [int]$MtuBytes = 62000,
-
-    [Parameter()]
-    [switch]$SetPrivateProfile = $true,
-
-    [Parameter()]
-    [switch]$EnablePsRemoting = $true
+    [string]$IPv4Address,
+    [ValidateRange(8, 30)][int]$PrefixLength = 30,
+    [ValidateRange(1, 9999)][int]$InterfaceMetric = 15,
+    [ValidateRange(1280, 65535)][int]$MtuBytes = 62000,
+    [switch]$SetPrivateProfile,
+    [switch]$EnablePsRemoting,
+    [switch]$MetricOnly,
+    [switch]$Apply,
+    [switch]$DryRun,
+    [Alias('h', 'help')][switch]$ShowHelp,
+    [Parameter(ValueFromRemainingArguments)][string[]]$CliArgs
 )
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
-if ([string]::IsNullOrWhiteSpace($InterfaceAlias)) {
-    $adapter = Get-NetAdapter -IncludeHidden -ErrorAction SilentlyContinue |
-        Where-Object {
-            $_.Status -eq 'Up' -and (
-                $_.InterfaceDescription -match 'USB4' -or
-                $_.InterfaceDescription -match 'Thunderbolt' -or
-                $_.InterfaceDescription -match 'P2P'
-            )
-        } |
-        Sort-Object ifIndex |
-        Select-Object -First 1
-
-    if (-not $adapter) {
-        throw 'No active USB4/Thunderbolt/P2P adapter found.'
-    }
-
-    $InterfaceAlias = $adapter.Name
+# Keep explicitly bound options, including common WhatIf/Confirm controls.
+# Validation, planning and ShouldProcess decisions belong to the one bridge.
+$forwarded = @{}
+foreach ($name in $PSBoundParameters.Keys) {
+    $forwarded[$name] = $PSBoundParameters[$name]
 }
-
-$existing = @(Get-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 -ErrorAction SilentlyContinue)
-foreach ($row in $existing) {
-    if ($row.IPAddress -ne $IPv4Address) {
-        Remove-NetIPAddress -InputObject $row -Confirm:$false -ErrorAction SilentlyContinue
-    }
-}
-
-$current = @(Get-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -eq $IPv4Address })
-if ($current.Count -eq 0) {
-    New-NetIPAddress -InterfaceAlias $InterfaceAlias -IPAddress $IPv4Address -PrefixLength $PrefixLength -Type Unicast -ErrorAction Stop | Out-Null
-}
-
-if ($SetPrivateProfile) {
-    $profile = Get-NetConnectionProfile -InterfaceAlias $InterfaceAlias -ErrorAction SilentlyContinue
-    if ($profile) {
-        Set-NetConnectionProfile -InterfaceAlias $InterfaceAlias -NetworkCategory Private -ErrorAction SilentlyContinue | Out-Null
-    }
-}
-
-netsh interface ipv4 set interface "name=$InterfaceAlias" "metric=$InterfaceMetric" | Out-Null
-netsh interface ipv6 set interface $InterfaceAlias "metric=$InterfaceMetric" | Out-Null
-netsh interface ipv4 set subinterface $InterfaceAlias "mtu=$MtuBytes" store=persistent | Out-Null
-
-if ($EnablePsRemoting) {
-    Enable-PSRemoting -Force -SkipNetworkProfileCheck | Out-Null
-}
-
-Get-NetAdapter -Name $InterfaceAlias -ErrorAction Stop |
-    Select-Object Name, InterfaceDescription, Status, MacAddress, ifIndex
-Get-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-    Select-Object IPAddress, PrefixLength
-Get-NetConnectionProfile -InterfaceAlias $InterfaceAlias -ErrorAction SilentlyContinue |
-    Select-Object InterfaceAlias, NetworkCategory, IPv4Connectivity
+$forwarded.CompatibilityRole = 'WindowsPeer'
+& (Join-Path $PSScriptRoot 'Initialize-ThunderboltLink.ps1') @forwarded

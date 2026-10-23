@@ -14,7 +14,7 @@
 //!
 //! ## Thread Safety
 //!
-//! - Global state is protected by `Mutex`
+//! - Model state and short request bookkeeping use separate mutexes
 //! - The Tokio runtime is created lazily via `OnceLock` and reused
 //! - Errors are stored in thread-local storage
 //!
@@ -42,17 +42,52 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use tokio::runtime::Runtime;
 
 use crate::config::PipelineConfig;
 use crate::generate::GenerationPipeline;
 use crate::understand::UnderstandingPipeline;
+
+mod requests;
+use requests::{AdmissionError, RequestState, Requests};
+
+static REQUESTS: OnceLock<Arc<Requests<MediaRequestStatus>>> = OnceLock::new();
+#[cfg(test)]
+thread_local! { static TEST_REQUESTS: RefCell<Option<Arc<Requests<MediaRequestStatus>>>> = const { RefCell::new(None) }; }
+
+fn request_registry() -> Arc<Requests<MediaRequestStatus>> {
+    #[cfg(test)]
+    if let Some(requests) = TEST_REQUESTS.with(|slot| slot.borrow().clone()) {
+        return requests;
+    }
+    Arc::clone(REQUESTS.get_or_init(|| Arc::new(Requests::new())))
+}
+
+impl RequestState for MediaRequestStatus {
+    fn pending() -> Self {
+        Self::Pending
+    }
+    fn running() -> Self {
+        Self::Running
+    }
+    fn cancelled() -> Self {
+        Self::Cancelled
+    }
+    fn failed(message: String) -> Self {
+        Self::Failed(message)
+    }
+    fn is_pending(&self) -> bool {
+        matches!(self, Self::Pending)
+    }
+    fn is_running(&self) -> bool {
+        matches!(self, Self::Running)
+    }
+}
 
 // ============================================================================
 // Error Codes
@@ -172,6 +207,7 @@ fn report_generation_error(error: &anyhow::Error) -> i32 {
 }
 
 /// Preserve the complete diagnostic in an asynchronous terminal status.
+#[cfg(test)]
 fn generation_failure_status(error: &anyhow::Error) -> MediaRequestStatus {
     MediaRequestStatus::Failed(generation_error_message(error))
 }
@@ -227,8 +263,6 @@ struct MediaState {
     pipeline: Option<GenerationPipeline>,
     /// Device string set by `pcai_media_init`, propagated to `load_model`.
     device: String,
-    /// Async request status map (request ID → status).
-    requests: HashMap<i64, MediaRequestStatus>,
 }
 
 /// The global singleton protected by a `Mutex`.
@@ -245,7 +279,6 @@ fn get_state() -> &'static Mutex<MediaState> {
             runtime,
             pipeline: None,
             device: "cuda:0".to_string(),
-            requests: HashMap::new(),
         })
     })
 }
@@ -275,6 +308,8 @@ fn get_state() -> &'static Mutex<MediaState> {
 #[no_mangle]
 pub extern "C" fn pcai_media_init(device: *const c_char) -> i32 {
     clear_error();
+    let registry = request_registry();
+    let _lifecycle = registry.lifecycle();
 
     let device_str: String = if device.is_null() {
         "cuda:0".to_string()
@@ -299,9 +334,20 @@ pub extern "C" fn pcai_media_init(device: *const c_char) -> i32 {
     }
 
     // Ensure the global state (and its runtime) exists, then store the device.
+    registry.invalidate();
     let state = get_state();
-    if let Ok(mut guard) = state.lock() {
-        guard.device = device_str.clone();
+    match state.lock() {
+        Ok(mut guard) => {
+            guard.device = device_str.clone();
+            registry.publish(true, guard.pipeline.is_some());
+        }
+        Err(error) => {
+            set_error(
+                format!("Failed to lock state: {error}"),
+                PcaiMediaErrorCode::GenerationError,
+            );
+            return PcaiMediaErrorCode::GenerationError as i32;
+        }
     }
 
     tracing::info!(device = %device_str, "pcai_media_init");
@@ -330,12 +376,15 @@ pub extern "C" fn pcai_media_init(device: *const c_char) -> i32 {
 #[no_mangle]
 pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i32) -> i32 {
     clear_error();
+    let registry = request_registry();
+    let _lifecycle = registry.lifecycle();
 
     let path_str = match unsafe { c_str_to_str(model_path) } {
         Ok(s) => s.to_string(),
         Err(code) => return code as i32,
     };
 
+    registry.invalidate();
     let state = get_state();
     let mut guard = match state.lock() {
         Ok(g) => g,
@@ -361,10 +410,12 @@ pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i
     match GenerationPipeline::load(config) {
         Ok(pipeline) => {
             guard.pipeline = Some(pipeline);
+            registry.publish(true, true);
             tracing::info!(model = %path_str, gpu_layers, "model loaded");
             PcaiMediaErrorCode::Success as i32
         }
         Err(e) => {
+            registry.publish(true, guard.pipeline.is_some());
             let msg = format!("Failed to load model '{path_str}': {e:#}");
             let code = if e.to_string().contains("not found")
                 || e.to_string().contains("No such file")
@@ -740,117 +791,56 @@ pub extern "C" fn pcai_media_generate_image_async(
         Err(_) => return -1,
     };
 
-    // Validate that a model is loaded before allocating an ID.
-    {
-        let state = get_state();
-        let guard = match state.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                set_error(
-                    format!("Failed to lock state: {e}"),
-                    PcaiMediaErrorCode::GenerationError,
-                );
-                return -1;
-            }
-        };
-        if guard.pipeline.is_none() {
+    let registry = request_registry();
+    let ticket = match registry.ready_ticket() {
+        Ok(ticket) => ticket,
+        Err(AdmissionError::NotInitialized | AdmissionError::ModelNotLoaded) => {
             set_error(
-                "No model loaded — call pcai_media_load_model first",
+                "No model loaded; call pcai_media_load_model first",
                 PcaiMediaErrorCode::ModelNotLoaded,
             );
             return -1;
         }
-    }
+        Err(AdmissionError::Closed) => {
+            set_error(
+                "Async admission closed; initialize before submitting",
+                PcaiMediaErrorCode::GenerationError,
+            );
+            return -1;
+        }
+    };
 
-    // Allocate a unique request ID and register it as Pending.
     let id = NEXT_REQUEST_ID.fetch_add(1, AtomicOrdering::SeqCst);
-    {
-        let state = get_state();
-        if let Ok(mut g) = state.lock() {
-            g.requests.insert(id, MediaRequestStatus::Pending);
+    let worker_registry = Arc::clone(&registry);
+    if let Err(error) = registry.spawn(id, ticket, move || {
+        let result = (|| -> Result<_, String> {
+            let guard = requests::model_lock(get_state())?;
+            if !worker_registry.is_running(id) {
+                return Err("Request cancelled".to_string());
+            }
+            let pipeline = guard.pipeline.as_ref().ok_or_else(|| "Model not loaded".to_string())?;
+            let cfg = (cfg_scale > 0.0).then_some(f64::from(cfg_scale));
+            let temp = (temperature > 0.0).then_some(f64::from(temperature));
+            pipeline
+                .generate_with_overrides(&prompt_str, cfg, temp)
+                .map_err(|error| generation_error_message(&error))
+        })();
+        if !worker_registry.is_running(id) {
+            return MediaRequestStatus::Cancelled;
         }
+        // Saving is outside model/request locks. Cancellation discards the result,
+        // but cannot revoke a file save already in progress.
+        match result {
+            Ok(image) => match image.save(&out_str) {
+                Ok(()) => MediaRequestStatus::Complete(out_str),
+                Err(error) => MediaRequestStatus::Failed(format!("Save failed: {error}")),
+            },
+            Err(error) => MediaRequestStatus::Failed(error),
+        }
+    }) {
+        set_error(error, PcaiMediaErrorCode::GenerationError);
+        return -1;
     }
-
-    // Spawn a plain OS thread (not Tokio) to avoid nesting block_on.
-    let cfg_scale_val = cfg_scale;
-    let temperature_val = temperature;
-    std::thread::spawn(move || {
-        // Transition: Pending → Running (unless already cancelled).
-        {
-            let state = get_state();
-            if let Ok(mut g) = state.lock() {
-                if matches!(g.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
-                    return;
-                }
-                g.requests.insert(id, MediaRequestStatus::Running);
-            }
-        }
-
-        // Run the synchronous generation under the lock.
-        let result = {
-            let state = get_state();
-            let guard = match state.lock() {
-                Ok(g) => g,
-                Err(e) => {
-                    if let Ok(mut g2) = get_state().lock() {
-                        g2.requests
-                            .insert(id, MediaRequestStatus::Failed(format!("Lock failed: {e}")));
-                    }
-                    return;
-                }
-            };
-
-            // Check for cancellation before expensive work.
-            if matches!(guard.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
-                return;
-            }
-
-            let pipeline = match guard.pipeline.as_ref() {
-                Some(p) => p,
-                None => {
-                    drop(guard);
-                    if let Ok(mut g2) = get_state().lock() {
-                        g2.requests
-                            .insert(id, MediaRequestStatus::Failed("Model not loaded".to_string()));
-                    }
-                    return;
-                }
-            };
-
-            let override_cfg = if cfg_scale_val > 0.0 {
-                Some(cfg_scale_val as f64)
-            } else {
-                None
-            };
-            let override_temp = if temperature_val > 0.0 {
-                Some(temperature_val as f64)
-            } else {
-                None
-            };
-
-            pipeline.generate_with_overrides(&prompt_str, override_cfg, override_temp)
-        };
-
-        // Store the terminal status.
-        if let Ok(mut g) = get_state().lock() {
-            if matches!(g.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
-                return;
-            }
-            match result {
-                Ok(image) => {
-                    if let Err(e) = image.save(&out_str) {
-                        g.requests
-                            .insert(id, MediaRequestStatus::Failed(format!("Save failed: {e}")));
-                    } else {
-                        g.requests.insert(id, MediaRequestStatus::Complete(out_str));
-                    }
-                }
-                Err(e) => {
-                    g.requests.insert(id, generation_failure_status(&e));
-                }
-            }
-        }
-    });
 
     id
 }
@@ -874,18 +864,10 @@ pub extern "C" fn pcai_media_generate_image_async(
 /// * `request_id` — ID returned by [`pcai_media_generate_image_async`].
 #[no_mangle]
 pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResult {
-    let state = get_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
-        Err(_) => {
-            return PcaiMediaAsyncResult {
-                status: -1,
-                text: std::ptr::null_mut(),
-            };
-        }
-    };
+    let registry = request_registry();
+    let mut guard = registry.entries();
 
-    match guard.requests.get(&request_id) {
+    match guard.get(&request_id) {
         Some(MediaRequestStatus::Pending) => PcaiMediaAsyncResult {
             status: 0,
             text: std::ptr::null_mut(),
@@ -895,7 +877,7 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
             text: std::ptr::null_mut(),
         },
         Some(MediaRequestStatus::Complete(_)) => {
-            if let Some(MediaRequestStatus::Complete(text)) = guard.requests.remove(&request_id) {
+            if let Some(MediaRequestStatus::Complete(text)) = guard.remove(&request_id) {
                 let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
                 PcaiMediaAsyncResult {
                     status: 2,
@@ -909,7 +891,7 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
             }
         }
         Some(MediaRequestStatus::Failed(_)) => {
-            if let Some(MediaRequestStatus::Failed(text)) = guard.requests.remove(&request_id) {
+            if let Some(MediaRequestStatus::Failed(text)) = guard.remove(&request_id) {
                 let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
                 PcaiMediaAsyncResult {
                     status: 3,
@@ -923,7 +905,7 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
             }
         }
         Some(MediaRequestStatus::Cancelled) => {
-            guard.requests.remove(&request_id);
+            guard.remove(&request_id);
             PcaiMediaAsyncResult {
                 status: 4,
                 text: std::ptr::null_mut(),
@@ -951,13 +933,10 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
 /// found or the request had already finished.
 #[no_mangle]
 pub extern "C" fn pcai_media_cancel(request_id: i64) -> i32 {
-    let state = get_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
-        Err(_) => return -1,
-    };
+    let registry = request_registry();
+    let mut guard = registry.entries();
 
-    match guard.requests.get_mut(&request_id) {
+    match guard.get_mut(&request_id) {
         Some(status @ MediaRequestStatus::Pending | status @ MediaRequestStatus::Running) => {
             *status = MediaRequestStatus::Cancelled;
             0
@@ -1044,9 +1023,15 @@ pub extern "C" fn pcai_media_upscale_image(
 /// After this call [`pcai_media_generate_image`] will fail until
 /// [`pcai_media_load_model`] is called again.  Calling this function before
 /// [`pcai_media_init`] is safe and is a no-op.
+/// Closes async admission and logically cancels outstanding requests before joining
+/// every owned worker. Non-interruptible model work may delay shutdown; this does
+/// not preempt a running model kernel. Terminal results remain available to poll.
 #[no_mangle]
 pub extern "C" fn pcai_media_shutdown() {
     clear_error();
+    let registry = request_registry();
+    let _lifecycle = registry.lifecycle();
+    registry.close_and_join();
 
     // If the global state has never been initialised there is nothing to do.
     if let Some(state) = MEDIA_STATE.get() {
@@ -1506,3 +1491,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod lifecycle_tests;

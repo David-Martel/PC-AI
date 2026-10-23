@@ -967,11 +967,11 @@ function Export-SecretsToBwVault {
     [OutputType([bool])]
     param([switch]$Force)
     if (-not $PSCmdlet.ShouldProcess($script:BwSecureNoteName,'Export selected machine secrets')) { return $false }
-    if (-not (Test-BwSession)) { Write-Error 'BW vault is locked. Unlock it before exporting.'; return $false }
+    if (-not (Test-BwSession)) { Microsoft.PowerShell.Utility\Write-Error 'BW vault is locked. Unlock it before exporting.'; return $false }
     if (-not $Force -and (Get-CacheStatus).IsExpired) { throw 'Expired backup requires explicit Force acknowledgement.' }
     $secrets = Get-BwsSecretsList
     if (-not $secrets) { $secrets = Get-SecretsFromCache -IgnoreAge }
-    if (-not $secrets -or $secrets.Count -eq 0) { Write-Error 'No secrets to export'; return $false }
+    if (-not $secrets -or $secrets.Count -eq 0) { Microsoft.PowerShell.Utility\Write-Error 'No secrets to export'; return $false }
     $generation = [guid]::NewGuid().ToString('N')
     $attemptedNames = [Collections.Generic.List[string]]::new()
     $attemptedTexts = [Collections.Generic.List[string]]::new()
@@ -1024,7 +1024,7 @@ function Export-SecretsToBwVault {
                 $null = Remove-BwBackupPartsInternal -Snapshot $own -CanonicalText $previousText -Confirm:$false
             } catch { Write-Verbose 'Uncommitted backup cleanup was not confirmed; exact attempted parts are preserved.' }
         }
-        Write-Error 'Backup export failed; a coherent current generation is required. Private provider details are withheld.'
+        Microsoft.PowerShell.Utility\Write-Error 'Backup export failed; a coherent current generation is required. Private provider details are withheld.'
         return $false
     } finally {
         if ($bytes) { [Array]::Clear($bytes,0,$bytes.Length) }
@@ -1042,9 +1042,9 @@ function Import-SecretsFromBwVault {
     [CmdletBinding(SupportsShouldProcess)]
     param([switch]$SetEnvironment)
     if (-not $PSCmdlet.ShouldProcess($script:BwSecureNoteName,'Restore selected machine secrets')) { return $null }
-    if (-not (Test-BwSession)) { Write-Error 'BW vault is locked. Unlock it before restoring.'; return $null }
+    if (-not (Test-BwSession)) { Microsoft.PowerShell.Utility\Write-Error 'BW vault is locked. Unlock it before restoring.'; return $null }
     $noteText = Get-BwNoteTextInternal -Name $script:BwSecureNoteName
-    if ([string]::IsNullOrEmpty($noteText)) { Write-Error 'Selected backup was not found.'; return $null }
+    if ([string]::IsNullOrEmpty($noteText)) { Microsoft.PowerShell.Utility\Write-Error 'Selected backup was not found.'; return $null }
     # Legacy multipart has no generation integrity and cannot prove a coherent
     # snapshot. The operator explicitly selected one-time re-export instead.
     if ($noteText.StartsWith('#chunked',[StringComparison]::Ordinal)) {
@@ -1070,7 +1070,7 @@ function Import-SecretsFromBwVault {
         if ($SetEnvironment) { Set-SecretsAsEnvironment -Secrets $secrets }
         return $secrets
     } catch {
-        Write-Error 'Backup recovery failed validation or publication; private provider details are withheld.'
+        Microsoft.PowerShell.Utility\Write-Error 'Backup recovery failed validation or publication; private provider details are withheld.'
         return $null
     }
 }
@@ -1254,7 +1254,7 @@ function Sync-MachineSecrets {
         Set-SecretsAsEnvironment -Secrets $secrets -Scope Process
         Write-Verbose "Secrets synced and loaded into environment"
     } else {
-        Write-Error "Sync failed. Check internet connection and BWS token."
+        Microsoft.PowerShell.Utility\Write-Error "Sync failed. Check internet connection and BWS token."
     }
 }
 

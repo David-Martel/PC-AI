@@ -1153,6 +1153,26 @@ pub extern "C" fn pcai_cancel(request_id: i64) -> i32 {
 mod tests {
     use super::*;
 
+    struct AdmissionFixture(Arc<Requests<RequestStatus>>);
+
+    impl AdmissionFixture {
+        fn new() -> Self {
+            let registry = Arc::new(Requests::new());
+            TEST_REQUESTS.with(|slot| {
+                assert!(slot.borrow().is_none());
+                *slot.borrow_mut() = Some(Arc::clone(&registry));
+            });
+            Self(registry)
+        }
+    }
+
+    impl Drop for AdmissionFixture {
+        fn drop(&mut self) {
+            self.0.close_and_join();
+            TEST_REQUESTS.with(|slot| *slot.borrow_mut() = None);
+        }
+    }
+
     #[test]
     fn test_error_code_enum() {
         // Test enum values
@@ -1278,13 +1298,38 @@ mod tests {
 
     #[test]
     fn test_async_generate_before_init() {
-        // Reset state
-        pcai_shutdown();
+        // A fresh registry has never initialized; shutdown is a distinct closed state.
+        let _fixture = AdmissionFixture::new();
 
         let prompt = CString::new("hello").expect("test: CString::new must not fail for a simple ASCII prompt");
         let id = unsafe { pcai_generate_async(prompt.as_ptr(), 10, 0.7) };
         assert_eq!(id, -1, "Should fail when no backend is initialised");
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
+        let error = pcai_last_error();
+        assert!(!error.is_null());
+        // SAFETY: the non-null CString is library-owned thread-local storage. No
+        // error-buffer call occurs while reading it; callers must not free it.
+        assert!(unsafe { CStr::from_ptr(error) }
+            .to_string_lossy()
+            .contains("not initialized"));
+    }
+
+    #[test]
+    fn test_async_generate_after_shutdown_reports_closed_admission() {
+        let fixture = AdmissionFixture::new();
+        pcai_shutdown();
+        assert_eq!(fixture.0.ready_ticket(), Err(AdmissionError::Closed));
+
+        let prompt = CString::new("hello").expect("test: CString::new must accept an ASCII prompt");
+        assert_eq!(unsafe { pcai_generate_async(prompt.as_ptr(), 10, 0.7) }, -1);
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::BackendError as i32);
+        let error = pcai_last_error();
+        assert!(!error.is_null());
+        // SAFETY: the non-null CString is library-owned thread-local storage. No
+        // error-buffer call occurs while reading it; callers must not free it.
+        assert!(unsafe { CStr::from_ptr(error) }
+            .to_string_lossy()
+            .contains("Async admission closed"));
     }
 
     #[test]

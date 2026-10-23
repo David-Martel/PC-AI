@@ -55,6 +55,14 @@ Describe "Invoke-PcaiToolingBenchmarks" -Tag 'Unit', 'Benchmarks', 'Acceleration
             @($row.Evidence).Count|Should -Be 1
             $receipt=Get-Content @($row.Evidence)[0] -Raw|ConvertFrom-Json
             $receipt.Measurement.ExitCode|Should -Be 0
+            if ($null -eq $receipt.Measurement.ChildCpuMs) {
+                $receipt.Measurement.ChildCpuAvailability|Should -Be 'unavailable-after-exit'
+                $receipt.Measurement.ChildCpuFraction|Should -BeNullOrEmpty
+            } else {
+                $receipt.Measurement.ChildCpuAvailability|Should -Be 'measured'
+                $receipt.Measurement.ChildCpuMs|Should -BeGreaterOrEqual 0
+                $receipt.Measurement.ChildCpuFraction|Should -BeGreaterOrEqual 0
+            }
             $receipt.CommandSha256|Should -Be (Get-FileHash $pwshPath).Hash
             Get-Process -Id $receipt.Measurement.OwnedPid -ErrorAction SilentlyContinue|Should -BeNullOrEmpty
         }

@@ -126,15 +126,28 @@ function Invoke-PcaiStartupProcess {
         $process.Refresh()
         $observer.Refresh()
         if ($process.ExitCode -ne 0) { throw "Startup process failed with exit code $($process.ExitCode)." }
+        # Unix may reap the child before Process can read its CPU accounting.
+        # Keep absent telemetry unknown; it must not invalidate useful output
+        # or become a fabricated zero-CPU measurement.
+        $childCpuMs = $null
+        try {
+            $childCpu = $process.TotalProcessorTime
+            if ($null -ne $childCpu) { $childCpuMs = $childCpu.TotalMilliseconds }
+        } catch [ComponentModel.Win32Exception] {
+            $childCpuMs = $null
+        } catch [InvalidOperationException] {
+            $childCpuMs = $null
+        }
         $digests = foreach ($text in $texts) {
             $bytes = [Text.Encoding]::UTF8.GetBytes($text.ToString())
             @{Bytes=$bytes.Length;Sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))}
         }
         return [pscustomobject]@{
             OwnedPid=$ownedPid;ExitCode=$process.ExitCode;ElapsedMs=$timer.Elapsed.TotalMilliseconds
-            ChildCpuMs=$process.TotalProcessorTime.TotalMilliseconds
+            ChildCpuMs=$childCpuMs
+            ChildCpuAvailability=if($null -eq $childCpuMs){'unavailable-after-exit'}else{'measured'}
             ObserverCpuMs=($observer.TotalProcessorTime.TotalMilliseconds-$observerCpu)
-            ChildCpuFraction=($process.TotalProcessorTime.TotalMilliseconds/[Math]::Max(1,$timer.Elapsed.TotalMilliseconds)/[Environment]::ProcessorCount)
+            ChildCpuFraction=if($null -ne $childCpuMs){$childCpuMs/[Math]::Max(1,$timer.Elapsed.TotalMilliseconds)/[Environment]::ProcessorCount}else{$null}
             Stdout=$digests[0];Stderr=$digests[1]
         }
     } catch {

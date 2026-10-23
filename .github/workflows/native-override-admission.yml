@@ -9,6 +9,13 @@ on:
       - 'Tests/Portable/*native_override*'
       - 'Tests/Portable/Test-NativeOverrideAdmission.ps1'
       - 'Tests/Portable/Test-NativeEstimatorAndStatus.ps1'
+      - 'Tests/Portable/Test-NativeLoadedCoreSelection.ps1'
+      - 'Tests/Portable/Test-NativeDefaultLoaderReuse.ps1'
+      - 'Native/pcai_core/pcai_core_lib/**'
+      - 'Native/pcai_core/pcai_media/**'
+      - 'Native/pcai_core/pcai_media_model/**'
+      - 'Native/pcai_core/Cargo.toml'
+      - 'Native/pcai_core/Cargo.lock'
       - '.github/workflows/native-override-admission.yml'
   workflow_dispatch:
 permissions:
@@ -35,16 +42,21 @@ jobs:
         run: |
           ./Tests/Portable/Test-NativeOverrideAdmission.ps1
           ./Tests/Portable/Test-NativeEstimatorAndStatus.ps1
-      - name: Build host native core
+      - name: Build host native core and CPU-only media
         shell: pwsh
         run: |
           $target = Join-Path $env:RUNNER_TEMP 'pcai-admission-core'
-          cargo build --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai_core_lib --no-default-features --target-dir $target
-          if ($LASTEXITCODE -ne 0) { throw 'Native core build failed' }
+          cargo build --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai_core_lib -p pcai-media --no-default-features --features pcai-media/ffi --target-dir $target
+          if ($LASTEXITCODE -ne 0) { throw 'Native core/CPU media build failed' }
           $filename = if ($IsWindows) { 'pcai_core_lib.dll' } else { 'libpcai_core_lib.so' }
           $artifact = Join-Path $target "debug/$filename"
           if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) { throw 'Native artifact missing' }
           "PCAI_ADMISSION_REAL_CORE_PATH=$artifact" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $mediaName = if ($IsWindows) { 'pcai_media.dll' } else { 'libpcai_media.so' }
+          $media = Join-Path $target "debug/$mediaName"
+          if (-not (Test-Path -LiteralPath $media -PathType Leaf)) { throw 'CPU media artifact missing' }
+          "PCAI_TEST_MEDIA_DLL=$media" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          'PCAI_TEST_CPU_MEDIA=1' | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: Production resolver in fresh processes
         shell: pwsh
         run: |
@@ -65,6 +77,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Managed native suite failed' }
           [xml]$report = Get-Content -LiteralPath (Join-Path $results 'native-suite.trx') -Raw
           $counts = $report.TestRun.ResultSummary.Counters
-          if ([int]$counts.total -lt 52 -or [int]$counts.failed -ne 0 -or [int]$counts.notExecuted -ne 0 -or [int]$counts.passed -ne [int]$counts.total -or [int]$counts.executed -ne [int]$counts.total) {
+          if ([int]$counts.total -lt 68 -or [int]$counts.failed -ne 0 -or [int]$counts.notExecuted -ne 0 -or [int]$counts.passed -ne [int]$counts.total -or [int]$counts.executed -ne [int]$counts.total) {
             throw "Incomplete native qualification: $($counts.OuterXml)"
           }
+      - name: Loaded identity and default-loader reuse controls
+        shell: pwsh
+        run: |
+          $wrapper = Join-Path $PWD 'Native/PcaiNative/bin/Release/net8.0/PcaiNative.dll'
+          $compiler = (Get-Command clang -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+          ./Tests/Portable/Test-NativeLoadedCoreSelection.ps1 -WrapperPath $wrapper -CompilerPath $compiler
+          ./Tests/Portable/Test-NativeDefaultLoaderReuse.ps1 -WrapperPath $wrapper -CompilerPath $compiler

@@ -27,10 +27,19 @@ namespace PcaiNative {
         public static string? MemoryJson,CategoriesJson,RecommendationsJson;
         public static string? ThrowMethod;
         public static int FreeCalls;
+        public static bool CoreAvailable=true;
+        public static int CoreAvailabilityChecks,CoreProbeCalls;
         public static MemoryPressureReport MemoryReport;
     }
+    // Explicit inert collaborator required by the actual wrapper's availability
+    // contract. This transport never resolves or loads the production bridge.
+    public static class PcaiCore {
+        public static bool IsAvailable {
+            get {SyntheticOptimizerProducer.CoreAvailabilityChecks++;return SyntheticOptimizerProducer.CoreAvailable;}
+        }
+    }
     internal static class NativeCore {
-        public static uint pcai_core_test() => 0x50434149;
+        public static uint pcai_core_test() {SyntheticOptimizerProducer.CoreProbeCalls++;return 0x50434149;}
         public static MemoryPressureReport pcai_analyze_memory_pressure() {
             if(SyntheticOptimizerProducer.ThrowMethod=="summary") throw new DllNotFoundException("synthetic native summary transport unavailable");
             return SyntheticOptimizerProducer.MemoryReport;
@@ -62,6 +71,9 @@ namespace PcaiNative {
 BeforeEach {
     $script:native=$false;$script:processes=@();$script:cimProcesses=@();$script:freeKB=8192*1024;$script:totalBytes=32768MB;$script:pages=0;$script:pool=0;$script:commit=55;$script:counterStatus=0
     [PcaiNative.SyntheticOptimizerProducer]::ThrowMethod=$null;[PcaiNative.SyntheticOptimizerProducer]::FreeCalls=0
+    [PcaiNative.SyntheticOptimizerProducer]::CoreAvailable=$true
+    [PcaiNative.SyntheticOptimizerProducer]::CoreAvailabilityChecks=0
+    [PcaiNative.SyntheticOptimizerProducer]::CoreProbeCalls=0
     $report=[PcaiNative.MemoryPressureReport]::new();$report.Status=[PcaiNative.PcaiStatus]::Success;$report.PressureLevel=1;$report.AvailableMB=8192;$report.CommittedPct=0.5
     [PcaiNative.SyntheticOptimizerProducer]::MemoryReport=$report
     [PcaiNative.SyntheticOptimizerProducer]::MemoryJson='{"status":"Success","pressure_level":1,"pressure_label":"moderate","available_mb":8192,"committed_pct":0.5,"pool_nonpaged_mb":0,"pages_per_sec":0,"top_consumer_count":0,"handle_leak_count":0,"orphan_terminal_count":0,"elapsed_ms":1}'
@@ -86,6 +98,13 @@ BeforeEach {
 }
 Describe 'Synthetic typed producer controls, actual managed wrapper' {
     It 'retains native summary numeric fields through the actual C# wrapper' {
+        [PcaiNative.SyntheticOptimizerProducer]::CoreAvailable=$false
+        [PcaiNative.OptimizerModule]::IsAvailable|Should -BeFalse
+        [PcaiNative.SyntheticOptimizerProducer]::CoreProbeCalls|Should -Be 0
+        [PcaiNative.SyntheticOptimizerProducer]::CoreAvailable=$true
+        [PcaiNative.OptimizerModule]::IsAvailable|Should -BeTrue
+        [PcaiNative.SyntheticOptimizerProducer]::CoreAvailabilityChecks|Should -Be 2
+        [PcaiNative.SyntheticOptimizerProducer]::CoreProbeCalls|Should -Be 1
         $script:native=$true;$result=Get-PcaiMemoryPressure
         $result.AvailableMB|Should -Be 8192
         if ($IsWindows) { $result.CommittedPct|Should -Be 50 } else { $result.CommittedPct|Should -BeNullOrEmpty }

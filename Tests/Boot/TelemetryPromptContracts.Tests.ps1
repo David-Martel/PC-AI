@@ -4,11 +4,23 @@ BeforeAll {
     $PSModuleAutoLoadingPreference = 'None'
     . (Join-Path $script:RepoRoot 'Modules/PC-AI.LLM/Private/LLM-Helpers.ps1')
     function Get-PcaiResourceMetrics { throw 'Mock required' }
+    function Get-CimInstance { throw 'Live telemetry collection forbidden in this fixture' }
     $script:PromptRoot = Join-Path $TestDrive 'prompts'
     [IO.Directory]::CreateDirectory($script:PromptRoot) | Out-Null
     [IO.File]::WriteAllText((Join-Path $script:PromptRoot 'CHAT.md'), '[SYSTEM_RESOURCE_STATUS]')
 }
 Describe 'Telemetry prompt unknown measurements' {
+    BeforeEach {
+        # These contracts qualify fallback formatting even when another suite
+        # has loaded an available native bridge into this Pester process.
+        Mock Get-PcaiNativeDashboardSnapshot { return $null }
+        Mock Get-CimInstance { throw 'Live telemetry collection forbidden in this fixture' }
+    }
+    AfterEach {
+        Should -Invoke Get-PcaiNativeDashboardSnapshot -Times 1 -Exactly
+        Should -Invoke Get-PcaiResourceMetrics -Times 1 -Exactly
+        Should -Invoke Get-CimInstance -Times 0 -Exactly
+    }
     It 'preserves unknown CPU, memory, GPU and uptime rather than fabricated zero' {
         Mock Get-PcaiResourceMetrics { [pscustomobject]@{ CpuUsage=$null; MemoryUsage=$null; TotalMemory=$null; GpuUsage=$null; Uptime=$null } }
         $prompt = Get-EnrichedSystemPrompt -Mode chat -ProjectRoot $script:PromptRoot

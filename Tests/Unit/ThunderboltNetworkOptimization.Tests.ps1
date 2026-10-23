@@ -284,6 +284,23 @@ Describe 'Set-ThunderboltNetworkOptimization' -Tag 'Unit', 'Drivers', 'Portable'
         $script:NativeCalls.Count | Should -Be 0
     }
 
+    It 'rejects explicitly bound <Kind> IPv4 before discovery (Apply=<ApplyPlan>)' -ForEach @(
+        @{ Kind = 'empty'; Address = ''; ApplyPlan = $false },
+        @{ Kind = 'empty'; Address = ''; ApplyPlan = $true },
+        @{ Kind = 'null'; Address = $null; ApplyPlan = $false },
+        @{ Kind = 'null'; Address = $null; ApplyPlan = $true },
+        @{ Kind = 'whitespace'; Address = ' '; ApplyPlan = $false },
+        @{ Kind = 'whitespace'; Address = ' '; ApplyPlan = $true }
+    ) {
+        { Set-ThunderboltNetworkOptimization -IPv4Address $Address -Apply:$ApplyPlan -Confirm:$false } |
+            Should -Throw '*IPv4Address must be a valid IPv4*'
+        $script:NativeCalls.Count | Should -Be 0
+        Should -Invoke Get-ThunderboltNetworkStatus -Exactly -Times 0
+        Should -Invoke Get-NetAdapter -Exactly -Times 0
+        Should -Invoke Get-NetIPAddress -Exactly -Times 0
+        Should -Invoke Get-NetRoute -Exactly -Times 0
+    }
+
     It 'rejects unsupported prefixes before native I/O: <Prefix>' -ForEach @(@{ Prefix = 7 }, @{ Prefix = 31 }) {
         { Set-ThunderboltNetworkOptimization -IPv4Address '10.42.0.1' -PrefixLength $Prefix -Apply -Confirm:$false } | Should -Throw
         $script:NativeCalls.Count | Should -Be 0

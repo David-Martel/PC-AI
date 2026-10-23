@@ -350,6 +350,8 @@ Describe 'Legacy bridge <Name>' -ForEach @(
 
     It 'does not silently omit explicitly invalid static dispatcher input: <Kind>' -ForEach @(
         @{ Kind = 'emptyaddress'; Extra = @{ IPv4Address = '' }; Message = '*IPv4Address must be a valid IPv4*' }
+        @{ Kind = 'nulladdress'; Extra = @{ IPv4Address = $null }; Message = '*IPv4Address must be a valid IPv4*' }
+        @{ Kind = 'whitespaceaddress'; Extra = @{ IPv4Address = ' ' }; Message = '*IPv4Address must be a valid IPv4*' }
         @{ Kind = 'invalidprefix'; Extra = @{ IPv4Address = '10.42.0.1'; PrefixLength = 31 }; Message = '*PrefixLength*' }
         @{ Kind = 'prefixonly'; Extra = @{ PrefixLength = 24 }; Message = '*PrefixLength requires an explicitly requested IPv4Address*' }
     ) {

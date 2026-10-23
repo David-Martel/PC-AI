@@ -3,9 +3,81 @@
 
 BeforeAll {
     $script:ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $script:ScriptPath  = Join-Path $script:ProjectRoot 'Tools' 'Invoke-JulesSession.ps1'
+    # Load the complete production script from an owned copy. Even a script
+    # invocation that resets RepoRoot cannot discover the real repository .env.
+    $sourcePath = Join-Path $script:ProjectRoot 'Tools' 'Invoke-JulesSession.ps1'
+    $ownedTools = Join-Path $TestDrive 'jules-script-source/Tools'
+    $null = New-Item -ItemType Directory -Path $ownedTools -Force
+    $script:ScriptPath = Join-Path $ownedTools 'Invoke-JulesSession.ps1'
+    Copy-Item -LiteralPath $sourcePath -Destination $script:ScriptPath
+    (Get-FileHash -LiteralPath $script:ScriptPath).Hash | Should -Be (Get-FileHash -LiteralPath $sourcePath).Hash
     . $script:ScriptPath -Action '__test_load__'
 }
+
+Describe 'Jules session inert fixture' {
+    BeforeAll {
+        # Keep preexisting command state in memory only; never invoke a provider.
+        $savedBw = @($ExecutionContext.SessionState.InvokeCommand.GetCommands(
+            'global:bw', [System.Management.Automation.CommandTypes]::Function, $false
+        )) | Select-Object -First 1
+        $savedJules = @($ExecutionContext.SessionState.InvokeCommand.GetCommands(
+            'global:jules', [System.Management.Automation.CommandTypes]::Function, $false
+        )) | Select-Object -First 1
+        # FunctionInfo is mutable when a command is replaced; retain its original
+        # ScriptBlock value rather than the live command-info object.
+        $script:SavedBwFunction = if ($savedBw) { $savedBw.ScriptBlock } else { $null }
+        $script:SavedJulesFunction = if ($savedJules) { $savedJules.ScriptBlock } else { $null }
+        $script:SavedBwAlias = Get-Alias bw -Scope Global -ErrorAction SilentlyContinue
+        $script:SavedJulesAlias = Get-Alias jules -Scope Global -ErrorAction SilentlyContinue
+        if ($script:SavedBwAlias) { Remove-Alias bw -Scope Global }
+        if ($script:SavedJulesAlias) { Remove-Alias jules -Scope Global }
+        function global:bw { throw 'Inert fixture credential-provider tripwire' }
+        function global:jules { throw 'Inert fixture Jules CLI tripwire' }
+        $script:FixtureSequence = 0
+    }
+    BeforeEach {
+        $script:HadJulesKey = Test-Path Env:\JULES_API_KEY
+        $script:SavedJulesKey = $env:JULES_API_KEY
+        Remove-Item Env:\JULES_API_KEY -ErrorAction SilentlyContinue
+        $script:FixtureSequence++
+        $script:RepoRoot = Join-Path $TestDrive "owned-jules-repo-$script:FixtureSequence"
+        $null = New-Item -ItemType Directory -Path $script:RepoRoot -Force
+        $script:FixtureEnvPath = Join-Path $script:RepoRoot '.env'
+        $script:ExpectedBwCalls = 0
+
+        # Default discovery is absent; invocation remains a throwing tripwire even
+        # if an unintended path bypasses that discovery decision.
+        Mock bw { throw 'Inert fixture credential-provider tripwire' }
+        Mock jules { throw 'Inert fixture Jules CLI tripwire' }
+        Mock Get-Command { $null } -ParameterFilter { $Name -eq 'bw' }
+        Mock Invoke-RestMethod { throw 'Inert fixture Jules HTTP tripwire' }
+        Mock Invoke-WebRequest { throw 'Inert fixture Jules HTTP tripwire' }
+        Mock Test-Path {
+            if ([IO.Path]::GetFullPath($LiteralPath) -cne [IO.Path]::GetFullPath($script:FixtureEnvPath)) {
+                throw 'Credential file outside the owned fixture refused'
+            }
+            [IO.File]::Exists($LiteralPath)
+        } -ParameterFilter { $LiteralPath -and [IO.Path]::GetFileName($LiteralPath) -eq '.env' }
+    }
+    AfterEach {
+        try {
+            Should -Invoke bw -Times $script:ExpectedBwCalls -Exactly
+            Should -Invoke jules -Times 0 -Exactly
+            Should -Invoke Invoke-RestMethod -Times 0 -Exactly
+            Should -Invoke Invoke-WebRequest -Times 0 -Exactly
+        } finally {
+            if ($script:HadJulesKey) { $env:JULES_API_KEY = $script:SavedJulesKey }
+            else { Remove-Item Env:\JULES_API_KEY -ErrorAction SilentlyContinue }
+            $script:SavedJulesKey = $null
+        }
+    }
+    AfterAll {
+        Remove-Item Function:\bw, Function:\jules -ErrorAction SilentlyContinue
+        if ($script:SavedBwFunction) { Set-Item Function:\global:bw $script:SavedBwFunction }
+        if ($script:SavedJulesFunction) { Set-Item Function:\global:jules $script:SavedJulesFunction }
+        if ($script:SavedBwAlias) { Set-Alias bw $script:SavedBwAlias.Definition -Scope Global -Option $script:SavedBwAlias.Options }
+        if ($script:SavedJulesAlias) { Set-Alias jules $script:SavedJulesAlias.Definition -Scope Global -Option $script:SavedJulesAlias.Options }
+    }
 
 Describe 'Get-JulesApiUrl' -Tag 'Unit', 'Portable' {
     It 'sessions base'        { Get-JulesApiUrl -Endpoint sessions | Should -Be 'https://jules.googleapis.com/v1alpha/sessions' }
@@ -52,6 +124,20 @@ Describe 'Get-JulesApiKey' -Tag 'Unit', 'Portable' {
             Remove-Item env:JULES_API_KEY -ErrorAction SilentlyContinue
             Get-JulesApiKey | Should -BeNullOrEmpty
         } finally { if ($saved) { $env:JULES_API_KEY = $saved } }
+    }
+    It 'reads only an owned env file before considering a provider' {
+        'JULES_API_KEY=fixture-env-file-key' | Set-Content -LiteralPath $script:FixtureEnvPath
+        Get-JulesApiKey | Should -Be 'fixture-env-file-key'
+        Should -Invoke Get-Command -Times 0 -Exactly -ParameterFilter { $Name -eq 'bw' }
+    }
+    It 'refuses credential-file discovery outside the owned fixture' {
+        $script:RepoRoot = Join-Path $TestDrive 'different-owned-repo'
+        { Get-JulesApiKey } | Should -Throw '*outside the owned fixture refused*'
+    }
+    It 'contains the throwing provider tripwire without real retrieval' {
+        Mock Get-Command { [PSCustomObject]@{ Name = 'bw'; CommandType = 'Function' } } -ParameterFilter { $Name -eq 'bw' }
+        $script:ExpectedBwCalls = 1
+        Get-JulesApiKey | Should -BeNullOrEmpty
     }
 }
 
@@ -132,29 +218,24 @@ Describe 'List action JSON output' -Tag 'Unit', 'Portable' {
 # in it has ever held the key (audited 2026-09-27).
 Describe 'Get-JulesApiKey key sources' -Tag 'Unit', 'Portable' {
     BeforeEach {
-        $script:savedKey = $env:JULES_API_KEY
-        Remove-Item env:JULES_API_KEY -ErrorAction SilentlyContinue
-        $global:JulesBwCalls = [System.Collections.Generic.List[object]]::new()
-        function global:bw { $global:JulesBwCalls.Add(@($args)); $global:LASTEXITCODE = 1 }
-    }
-    AfterEach {
-        Remove-Item function:global:bw -ErrorAction SilentlyContinue
-        if ($script:savedKey) { $env:JULES_API_KEY = $script:savedKey }
+        Mock Get-Command { [PSCustomObject]@{ Name = 'bw'; CommandType = 'Function' } } -ParameterFilter { $Name -eq 'bw' }
     }
 
     It 'calls bw with --nointeraction so a locked vault fails fast' {
+        $script:ExpectedBwCalls = 1
         Get-JulesApiKey | Out-Null
-        $global:JulesBwCalls.Count | Should -Be 1
-        $global:JulesBwCalls[0] | Should -Contain '--nointeraction'
+        Should -Invoke bw -Times 1 -Exactly -ParameterFilter { $args -contains '--nointeraction' }
     }
     It 'returns the value bw prints' {
-        function global:bw { $global:LASTEXITCODE = 0; 'key-from-bw' }
-        Get-JulesApiKey | Should -Be 'key-from-bw'
+        $script:ExpectedBwCalls = 1
+        Mock bw { 'fixture-key-from-bw' }
+        Get-JulesApiKey | Should -Be 'fixture-key-from-bw'
     }
     It 'does not read ~/.machine JSON files' {
         (Get-Command Get-JulesApiKey).Definition | Should -Not -Match '\.machine'
     }
     It 'names every supported key source when the key is missing' {
+        $script:ExpectedBwCalls = 1
         { Get-RequiredApiKey -ForAction 'List' } | Should -Throw '*JULES_API_KEY*.env*Bitwarden*'
     }
 }
@@ -170,3 +251,5 @@ Describe 'Invoke-JulesBatchReview parameters' -Tag 'Unit', 'Portable' {
         $params.ContainsKey('RequirePlanApproval') | Should -BeFalse
     }
 }
+
+} # Jules session inert fixture

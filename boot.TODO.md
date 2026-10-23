@@ -37,6 +37,17 @@ Reviewed 2026-10-05; evidence and experiment gates are in
       at a time. Preserve active jobs; promote only with call-quality, throughput
       and memory/refault evidence. No optimization gain is established yet.
 
+## Machine-secret diagnostic boundary
+
+See [the source and fixture review](Reports/machine-native-diagnostics-review.md).
+
+- [x] Preserve native error-action and error-variable behavior with Common loaded;
+      qualify seven diagnostic emissions without changing registered Common bytes.
+- [x] Retain detecting old-producer failure, six selected controls and 87 maintained
+      synthetic backup controls, with zero provider/cache/environment publication.
+- [ ] Recheck the unreproduced NUC child timeout and unchanged full Windows coverage
+      gate before canonical fleet publication; no installed-secret mutation claimed.
+
 ## Bitwarden and connectivity closeout (2026-10-05)
 
 See [the qualified maintenance report](Reports/bitwarden-connectivity-20261005.md).

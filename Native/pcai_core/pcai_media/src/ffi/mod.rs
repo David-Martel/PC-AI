@@ -250,6 +250,20 @@ fn get_state() -> &'static Mutex<MediaState> {
     })
 }
 
+/// Acquire generation state or record the original lock failure.
+fn acquire_generation_state(state: &Mutex<MediaState>, id: i64) -> Option<std::sync::MutexGuard<'_, MediaState>> {
+    match state.lock() {
+        Ok(guard) => Some(guard),
+        Err(error) => {
+            let message = format!("Lock failed: {error}");
+            // PoisonError owns the held guard; reacquiring this mutex would deadlock.
+            let mut guard = error.into_inner();
+            guard.requests.insert(id, MediaRequestStatus::Failed(message));
+            None
+        }
+    }
+}
+
 // ============================================================================
 // Exported Functions
 // ============================================================================
@@ -789,15 +803,8 @@ pub extern "C" fn pcai_media_generate_image_async(
         // Run the synchronous generation under the lock.
         let result = {
             let state = get_state();
-            let guard = match state.lock() {
-                Ok(g) => g,
-                Err(e) => {
-                    if let Ok(mut g2) = get_state().lock() {
-                        g2.requests
-                            .insert(id, MediaRequestStatus::Failed(format!("Lock failed: {e}")));
-                    }
-                    return;
-                }
+            let Some(guard) = acquire_generation_state(state, id) else {
+                return;
             };
 
             // Check for cancellation before expensive work.
@@ -1152,6 +1159,73 @@ pub extern "C" fn pcai_media_free_bytes(data: *mut u8, len: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn local_worker_state() -> Mutex<MediaState> {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .expect("local fixture runtime");
+        Mutex::new(MediaState {
+            runtime,
+            pipeline: None,
+            device: "cpu".to_string(),
+            requests: HashMap::from([(7, MediaRequestStatus::Running), (8, MediaRequestStatus::Cancelled)]),
+        })
+    }
+
+    // Protects: healthy worker acquisition and caller cancellation semantics.
+    // Detects: status rewriting, extra requests, or lost cancellation during extraction.
+    // Needs: actual shared acquisition function; local state with no model or singleton.
+    // Breadcrumb: production worker calls acquire_generation_state before cancellation check.
+    #[test]
+    fn test_worker_acquisition_preserves_running_and_cancelled_states() {
+        let state = local_worker_state();
+        let guard = acquire_generation_state(&state, 7).expect("healthy state should be acquired");
+        assert!(matches!(guard.requests.get(&7), Some(MediaRequestStatus::Running)));
+        assert!(matches!(guard.requests.get(&8), Some(MediaRequestStatus::Cancelled)));
+        assert_eq!(guard.requests.len(), 2);
+        drop(guard);
+        let guard = acquire_generation_state(&state, 8).expect("cancelled request retains healthy state");
+        assert!(matches!(guard.requests.get(&8), Some(MediaRequestStatus::Cancelled)));
+    }
+
+    // Protects: poisoned worker records its original failure without reacquiring its held guard.
+    // Detects: predecessor noncompletion in an independently supervised owned child executable.
+    // Needs: exact selector run under original-process supervision; never invoke in a parent runner.
+    // Breadcrumb: same acquire_generation_state used by pcai_media_generate_image_async worker.
+    #[test]
+    #[ignore = "owned child detector; run this exact selector under bounded process supervision"]
+    fn poisoned_worker_acquisition_fixture() {
+        let state = local_worker_state();
+        let poisoned = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = state.lock().expect("fixture begins unpoisoned");
+            panic!("owned local worker poisoning fixture");
+        }));
+        assert!(poisoned.is_err(), "fixture must genuinely poison its own mutex");
+        let expected = match state.lock() {
+            Err(error) => format!("Lock failed: {error}"),
+            Ok(_) => panic!("local mutex must retain poison"),
+        };
+        eprintln!("PCAI_OWNED_POISON_ACQUISITION_ENTER");
+        assert!(
+            acquire_generation_state(&state, 7).is_none(),
+            "worker must stop after lock failure"
+        );
+        let guard = match state.lock() {
+            Err(error) => error.into_inner(),
+            Ok(_) => panic!("repair must not clear poison or resume generation"),
+        };
+        match guard.requests.get(&7) {
+            Some(MediaRequestStatus::Failed(message)) => assert_eq!(message, &expected),
+            _ => panic!("original request must reach Failed"),
+        }
+        assert!(matches!(guard.requests.get(&8), Some(MediaRequestStatus::Cancelled)));
+        assert_eq!(guard.requests.len(), 2);
+        drop(guard);
+        assert!(state
+            .try_lock()
+            .is_err_and(|error| matches!(error, std::sync::TryLockError::Poisoned(_))));
+        eprintln!("PCAI_OWNED_POISON_ACQUISITION_COMPLETE");
+    }
 
     fn chained_generation_error() -> anyhow::Error {
         anyhow::Error::new(std::io::Error::new(

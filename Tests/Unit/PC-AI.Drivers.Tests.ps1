@@ -886,14 +886,114 @@ Describe "Find-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Portable
             Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
         }
 
-        It "Should accept ComputerNameCandidates parameter" {
+        It "Should accept ComputerNameCandidates and SshPort parameters" {
             $cmd = Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers
             $cmd.Parameters.Keys | Should -Contain 'ComputerNameCandidates'
+            $cmd.Parameters.Keys | Should -Contain 'SshPort'
         }
 
         It "Should accept TcpTimeoutMs with range validation" {
             $cmd = Get-Command Find-ThunderboltPeer -Module PC-AI.Drivers
             $cmd.Parameters.Keys | Should -Contain 'TcpTimeoutMs'
+        }
+    }
+
+    Context "When Win32_NetworkAdapter.Index differs from TCP/IP InterfaceIndex" {
+        BeforeAll {
+            Mock Get-CimInstance {
+                param($Namespace, $ClassName)
+                switch ($ClassName) {
+                    'Win32_NetworkAdapter' {
+                        @([PSCustomObject]@{
+                            Name           = 'USB4(TM) P2P Network Adapter #4'
+                            Description    = 'USB4(TM) P2P Network Adapter #4'
+                            NetConnectionID = 'Ethernet 18'
+                            NetEnabled     = $true
+                            MACAddress     = '34-4D-A1-C4-C4-22'
+                            Speed          = 20000000000
+                            Index          = 28
+                            InterfaceIndex = 95
+                            PNPDeviceID    = 'USB4\VEN_045E&DEV_0000083F&PROT_USB4NET\4&6E3A7BC&2&0'
+                        })
+                    }
+                    'Win32_PnPEntity' {
+                        @([PSCustomObject]@{
+                            Name        = 'USB4(TM) Host Router (Microsoft)'
+                            PNPDeviceID = 'PCI\VEN_8086&DEV_7EC2\0000'
+                            Status      = 'OK'
+                        })
+                    }
+                    'MSFT_NetIPAddress' {
+                        @([PSCustomObject]@{
+                            InterfaceIndex = 95
+                            InterfaceAlias = 'Ethernet 18'
+                            AddressFamily  = 2
+                            IPAddress      = '169.254.43.202'
+                            PrefixLength   = 16
+                        })
+                    }
+                    'MSFT_NetNeighbor' {
+                        @([PSCustomObject]@{
+                            InterfaceIndex   = 95
+                            InterfaceAlias   = 'Ethernet 18'
+                            IPAddress        = '169.254.196.28'
+                            LinkLayerAddress = '08-93-C1-7B-39-51'
+                            State            = 'Reachable'
+                        })
+                    }
+                    'MSFT_NetRoute' {
+                        @(
+                            [PSCustomObject]@{
+                                InterfaceIndex    = 15
+                                DestinationPrefix = '169.254.0.0/16'
+                                RouteMetric       = 256
+                            },
+                            [PSCustomObject]@{
+                                InterfaceIndex    = 95
+                                DestinationPrefix = '169.254.0.0/16'
+                                RouteMetric       = 256
+                            }
+                        )
+                    }
+                    'MSFT_NetIPInterface' {
+                        @(
+                            [PSCustomObject]@{
+                                InterfaceIndex  = 15
+                                InterfaceAlias  = 'vEthernet (WSL)'
+                                AddressFamily   = 2
+                                InterfaceMetric = 15
+                            },
+                            [PSCustomObject]@{
+                                InterfaceIndex  = 95
+                                InterfaceAlias  = 'Ethernet 18'
+                                AddressFamily   = 2
+                                InterfaceMetric = 15
+                            }
+                        )
+                    }
+                    default { return @() }
+                }
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should use InterfaceIndex (95) instead of WMI Index (28) to match addresses and neighbors" {
+            $res = Find-ThunderboltPeer -ComputerNameCandidates @() -TcpTimeoutMs 250
+            $res.AdapterCount | Should -Be 1
+            $res.Adapters[0].ifIndex | Should -Be 95
+            $res.Adapters[0].WmiIndex | Should -Be 28
+            $res.LocalAddresses.Count | Should -Be 1
+            $res.LocalAddresses[0].IPAddress | Should -Be '169.254.43.202'
+            $res.Neighbors.Count | Should -Be 1
+            $res.Neighbors[0].IPAddress | Should -Be '169.254.196.28'
+            $res.Usb4Topology.Count | Should -Be 1
+            $res.Usb4Topology[0].Role | Should -Be 'HostRouter'
+        }
+
+        It "Should detect competing 169.254.0.0/16 APIPA route conflicts on virtual adapters with lower ifIndex" {
+            $res = Find-ThunderboltPeer -ComputerNameCandidates @() -TcpTimeoutMs 250
+            $res.ApipaRouteConflicts.Count | Should -Be 1
+            $res.ApipaRouteConflicts[0].ConflictingInterfaceAlias | Should -Be 'vEthernet (WSL)'
+            $res.ApipaRouteConflicts[0].ConflictingInterfaceIndex | Should -Be 15
         }
     }
 }
@@ -906,10 +1006,58 @@ Describe "Connect-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Porta
             Get-Command Connect-ThunderboltPeer -Module PC-AI.Drivers | Should -Not -BeNullOrEmpty
         }
 
-        It "Should accept ComputerName and Address parameters" {
+        It "Should accept ComputerName, Address, and Protocol parameters" {
             $cmd = Get-Command Connect-ThunderboltPeer -Module PC-AI.Drivers
             $cmd.Parameters.Keys | Should -Contain 'ComputerName'
             $cmd.Parameters.Keys | Should -Contain 'Address'
+            $cmd.Parameters.Keys | Should -Contain 'Protocol'
+            $cmd.Parameters.Keys | Should -Contain 'SshUser'
+            $cmd.Parameters.Keys | Should -Contain 'SshCommand'
+        }
+    }
+
+    Context "Protocol Auto and SSH fallback execution" {
+        It "Should dispatch directly to SSH without calling Test-WSMan when an auto-discovered peer is SSH-reachable only" {
+            Mock Get-ThunderboltNetworkStatus {
+                @([PSCustomObject]@{
+                    InterfaceAlias     = 'Ethernet 18'
+                    InterfaceIndex     = 95
+                    IPv4Addresses      = @('169.254.43.202')
+                    NeighborCandidates = @([PSCustomObject]@{
+                        IPAddress      = 'fd00:7462:7032::19'
+                        PeerHostname   = 'minisforum'
+                        WsManReachable = $false
+                        SshReachable   = $true
+                    })
+                })
+            } -ModuleName PC-AI.Drivers
+            Mock Test-WSMan { throw 'Test-WSMan must not be called for SSH-only discovered peer' } -ModuleName PC-AI.Drivers
+            Mock ssh.exe {
+                $global:LASTEXITCODE = 0
+                'minisforum'
+            } -ModuleName PC-AI.Drivers
+
+            $res = Connect-ThunderboltPeer -Protocol Auto -SshCommand 'hostname'
+            $res.Protocol | Should -BeExactly 'SSH'
+            $res.Target | Should -BeExactly 'fd00:7462:7032::19'
+            $res.PeerHostname | Should -BeExactly 'minisforum'
+            $res.Authentication | Should -BeExactly 'SSHKey(damartel)'
+            $res.Result | Should -BeExactly 'minisforum'
+            Should -Invoke Test-WSMan -Times 0 -Exactly -ModuleName PC-AI.Drivers
+        }
+
+        It "Should fall back to SSH under -Protocol Auto when Test-WSMan throws on an explicit Address" {
+            Mock Test-WSMan { throw 'WSMan connection refused' } -ModuleName PC-AI.Drivers
+            Mock ssh.exe {
+                $global:LASTEXITCODE = 0
+                'dtm-p1gen9'
+            } -ModuleName PC-AI.Drivers
+
+            $res = Connect-ThunderboltPeer -Address 'fd00:7462:7032::9' -Protocol Auto -SshUser 'david' -SshCommand 'hostname'
+            $res.Protocol | Should -BeExactly 'SSH'
+            $res.Target | Should -BeExactly 'fd00:7462:7032::9'
+            $res.Result | Should -BeExactly 'dtm-p1gen9'
+            Should -Invoke Test-WSMan -Times 1 -Exactly -ModuleName PC-AI.Drivers
         }
     }
 }
@@ -934,10 +1082,153 @@ Describe "Set-ThunderboltNetworkOptimization" -Tag 'Unit', 'Drivers', 'Thunderbo
     }
 }
 
+# ─── Get-ThunderboltPeerIdentity ─────────────────────────────────────────────
+
+Describe "Get-ThunderboltPeerIdentity" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast', 'Portable' {
+    It "Should resolve canonical identity and short aliases for known fleet hosts (including dtm-supernuc alias)" {
+        $carbon = Get-ThunderboltPeerIdentity -ComputerName 'dtm-carbon-two'
+        $nuc    = Get-ThunderboltPeerIdentity -ComputerName 'dtm-supernuc'
+        $carbon.ComputerName | Should -BeExactly 'dtm-carbon-two'
+        $carbon.IsKnownFleetPeer | Should -BeTrue
+        $carbon.PrimaryUla | Should -BeExactly 'fd00:7462:7032::c2'
+        $carbon.TbHostAlias | Should -BeExactly 'dtm-carbon-two-tb'
+
+        $nuc.ComputerName | Should -BeExactly 'dtm-super-nuc'
+        $nuc.IsKnownFleetPeer | Should -BeTrue
+        $nuc.PrimaryUla | Should -BeExactly 'fd00:7462:7032::50'
+        $nuc.TbHostAlias | Should -BeExactly 'dtm-super-nuc-tb'
+    }
+
+    It "Should derive deterministic non-colliding IPv6 Link-Local and ULA addresses for arbitrary unknown hosts without registry entries" {
+        $missingReg = Join-Path $TestDrive 'nonexistent-peers.json'
+        $hostA = Get-ThunderboltPeerIdentity -ComputerName 'dtm-future-blade-01' -RegistryPath $missingReg
+        $hostB = Get-ThunderboltPeerIdentity -ComputerName 'guest-thunderbolt-pc' -RegistryPath $missingReg
+
+        $hostA.IsKnownFleetPeer | Should -BeFalse
+        $hostA.DeterministicLinkLocal | Should -Match '^fe80::d700:[0-9a-f]{4}:[0-9a-f]{4}:[0-9a-f]{4}$'
+        $hostA.DeterministicUla | Should -Match '^fd00:7462:7032:d700::[0-9a-f]{4}:[0-9a-f]{4}:[0-9a-f]{4}$'
+        ([ipaddress]::Parse($hostA.DeterministicLinkLocal)).AddressFamily | Should -Be ([System.Net.Sockets.AddressFamily]::InterNetworkV6)
+        ([ipaddress]::Parse($hostA.DeterministicUla)).AddressFamily | Should -Be ([System.Net.Sockets.AddressFamily]::InterNetworkV6)
+        $hostA.DeterministicUla | Should -Not -Be $hostB.DeterministicUla
+        $hostA.DeterministicLinkLocal | Should -Not -Be $hostB.DeterministicLinkLocal
+    }
+
+    It "Should compute commutative pairwise /30 IPv4 subnets for dtm-carbon-two and dtm-super-nuc and disjoint /30 subnets when attaching a 3rd peer" {
+        $carbonToNuc = Get-ThunderboltPeerIdentity -ComputerName 'dtm-carbon-two' -PeerComputerName 'dtm-super-nuc'
+        $nucToCarbon = Get-ThunderboltPeerIdentity -ComputerName 'dtm-super-nuc' -PeerComputerName 'dtm-carbon-two'
+
+        $carbonToNuc.PairwiseIPv4.SubnetPrefix | Should -BeExactly $nucToCarbon.PairwiseIPv4.SubnetPrefix
+        $carbonToNuc.PairwiseIPv4.LocalIPv4Address | Should -BeExactly $nucToCarbon.PairwiseIPv4.PeerIPv4Address
+        $carbonToNuc.PairwiseIPv4.PeerIPv4Address | Should -BeExactly $nucToCarbon.PairwiseIPv4.LocalIPv4Address
+
+        # Attaching a 3rd machine (dtm-carbon-two) to dtm-p1gen7 while dtm-p1gen9 is also connected
+        $p1gen7ToP1gen9  = Get-ThunderboltPeerIdentity -ComputerName 'dtm-p1gen7' -PeerComputerName 'dtm-p1gen9'
+        $p1gen7ToCarbon2 = Get-ThunderboltPeerIdentity -ComputerName 'dtm-p1gen7' -PeerComputerName 'dtm-carbon-two'
+        $p1gen7ToP1gen9.PairwiseIPv4.SubnetPrefix | Should -Not -Be $p1gen7ToCarbon2.PairwiseIPv4.SubnetPrefix
+    }
+
+    It "Should reject a registry file with duplicate LAN/Tailscale IP or duplicate shortUla" {
+        $badRegPath = Join-Path $TestDrive 'bad-duplicate-lan.json'
+        @'
+{
+  "schemaVersion": 1,
+  "fleetPeers": [
+    { "name": "dtm-p1gen7", "shortUla": "fd00:7462:7032::7", "lanAddresses": ["100.64.0.3"] },
+    { "name": "asuspro13", "shortUla": "fd00:7462:7032::13", "lanAddresses": ["100.64.0.3"] }
+  ]
+}
+'@ | Set-Content -LiteralPath $badRegPath -Encoding UTF8
+
+        { Get-ThunderboltPeerIdentity -ComputerName 'dtm-p1gen7' -RegistryPath $badRegPath } |
+            Should -Throw '*duplicate LAN/Tailscale IP*'
+    }
+}
+
+# ─── Register-ThunderboltPeer ────────────────────────────────────────────────
+
+Describe "Register-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast', 'Portable' {
+    Context "When multiple USB4 P2P adapters are active simultaneously on one host" {
+        BeforeAll {
+            Mock Get-ThunderboltNetworkStatus {
+                @(
+                    [PSCustomObject]@{
+                        InterfaceAlias     = 'Ethernet 18'
+                        InterfaceIndex     = 95
+                        Name               = 'USB4(TM) P2P Network Adapter #4'
+                        Description        = 'USB4(TM) P2P Network Adapter #4'
+                        Role               = 'P2PNetwork'
+                        NetEnabled         = $true
+                        LinkSpeedGbps      = 20.0
+                        MacAddress         = '34-4D-A1-C4-C4-22'
+                        IPv4Metric         = 15
+                        IPv4Mtu            = 1500
+                        IPv6Metric         = 15
+                        IPv6Mtu            = 1500
+                        IPv4Addresses      = @('169.254.43.202')
+                        IPv6Addresses      = @('fe80::364d:a1ff:fec4:c422')
+                        NeighborCandidates = @()
+                        RecommendedActions = @()
+                    },
+                    [PSCustomObject]@{
+                        InterfaceAlias     = 'Ethernet 19'
+                        InterfaceIndex     = 96
+                        Name               = 'USB4(TM) P2P Network Adapter #5'
+                        Description        = 'USB4(TM) P2P Network Adapter #5'
+                        Role               = 'P2PNetwork'
+                        NetEnabled         = $true
+                        LinkSpeedGbps      = 40.0
+                        MacAddress         = '34-4D-A1-C4-C4-23'
+                        IPv4Metric         = 15
+                        IPv4Mtu            = 1500
+                        IPv6Metric         = 15
+                        IPv6Mtu            = 1500
+                        IPv4Addresses      = @('169.254.88.10')
+                        IPv6Addresses      = @('fe80::364d:a1ff:fec4:c423')
+                        NeighborCandidates = @()
+                        RecommendedActions = @()
+                    }
+                )
+            } -ModuleName PC-AI.Drivers
+        }
+
+        It "Should plan all active USB4 P2P adapters simultaneously with /128 ULA bindings" {
+            $plan = Register-ThunderboltPeer -ComputerName 'dtm-p1gen7' -UpdateHostsFile -EnableSmbDirect
+            $plan.Applied | Should -BeFalse
+            $plan.OverallSuccess | Should -BeTrue
+            $plan.AdapterCount | Should -Be 2
+            $plan.AdapterPlans.Count | Should -Be 2
+            $plan.AdapterPlans[0].InterfaceIndex | Should -Be 95
+            $plan.AdapterPlans[1].InterfaceIndex | Should -Be 96
+            $ulaActions = @($plan.PlannedActions | Where-Object Step -eq 'BindLocalUlaIPv6')
+            $ulaActions.Count | Should -BeGreaterOrEqual 2
+            foreach ($act in $ulaActions) {
+                $act.Address | Should -Match '/128$'
+            }
+        }
+
+        It "Should surface mutation failures as OverallSuccess=false and Applied=false instead of swallowing errors" {
+            Mock Get-NetIPv6Protocol { [PSCustomObject]@{ RandomizeIdentifiers = 'Disabled' } } -ModuleName PC-AI.Drivers
+            Mock Get-NetFirewallRule { [PSCustomObject]@{ Name = 'PC-AI-USB4-P2P-Allow' } } -ModuleName PC-AI.Drivers
+            Mock Get-NetConnectionProfile { [PSCustomObject]@{ NetworkCategory = 'Private' } } -ModuleName PC-AI.Drivers
+            Mock Set-NetIPInterface { throw 'Access is denied (simulated elevation failure)' } -ModuleName PC-AI.Drivers
+            Mock Get-NetIPAddress { @() } -ModuleName PC-AI.Drivers
+            Mock New-NetIPAddress { $null } -ModuleName PC-AI.Drivers
+            Mock Get-CimInstance { @() } -ModuleName PC-AI.Drivers
+            Mock ping.exe { $null } -ModuleName PC-AI.Drivers
+
+            $res = Register-ThunderboltPeer -ComputerName 'dtm-p1gen7' -PeerComputerName @() -Apply -Confirm:$false -WarningAction SilentlyContinue
+            $res.OverallSuccess | Should -BeFalse
+            $res.Applied | Should -BeFalse
+            $res.FailedActionCount | Should -BeGreaterOrEqual 1
+            $res.Errors[0] | Should -Match 'Access is denied'
+        }
+    }
+}
+
 # ─── Module Export Completeness ──────────────────────────────────────────────
 
 Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
-    It "Should export all 11 declared functions" {
+    It "Should export all 13 declared functions" {
         $mod = Get-Module PC-AI.Drivers
         $expected = @(
             'Get-PnpDeviceInventory',
@@ -950,7 +1241,9 @@ Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portabl
             'Find-ThunderboltPeer',
             'Get-ThunderboltNetworkStatus',
             'Connect-ThunderboltPeer',
-            'Set-ThunderboltNetworkOptimization'
+            'Set-ThunderboltNetworkOptimization',
+            'Get-ThunderboltPeerIdentity',
+            'Register-ThunderboltPeer'
         )
         foreach ($fn in $expected) {
             $mod.ExportedFunctions.Keys | Should -Contain $fn
@@ -964,3 +1257,4 @@ Describe "PC-AI.Drivers Module Exports" -Tag 'Unit', 'Drivers', 'Fast', 'Portabl
         $mod.ExportedFunctions.Keys | Should -Not -Contain 'Invoke-TrustedDownload'
     }
 }
+

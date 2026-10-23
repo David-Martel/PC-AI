@@ -60,6 +60,12 @@ function Set-ThunderboltNetworkOptimization {
         [int]$PrefixLength = 30,
 
         [Parameter()]
+        [string]$PeerComputerName,
+
+        [Parameter()]
+        [switch]$ConfigureDeterministicIPv6,
+
+        [Parameter()]
         [switch]$Apply
     )
 
@@ -79,7 +85,15 @@ function Set-ThunderboltNetworkOptimization {
         return ($bytes | ForEach-Object { [int]$_ }) -join '.'
     }
 
-    if ($PSBoundParameters.ContainsKey('IPv4Address')) {
+    if (-not $PSBoundParameters.ContainsKey('IPv4Address') -and -not [string]::IsNullOrWhiteSpace($PeerComputerName)) {
+        $pairIdentity = Get-ThunderboltPeerIdentity -ComputerName $env:COMPUTERNAME -PeerComputerName $PeerComputerName
+        if ($pairIdentity -and $pairIdentity.PairwiseIPv4) {
+            $IPv4Address = [string]$pairIdentity.PairwiseIPv4.LocalIPv4Address
+            $PrefixLength = [int]$pairIdentity.PairwiseIPv4.PrefixLength
+        }
+    }
+
+    if ($IPv4Address) {
         $parsedAddress = $null
         if (-not [System.Net.IPAddress]::TryParse($IPv4Address, [ref]$parsedAddress) -or
             $parsedAddress.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork) {
@@ -128,6 +142,26 @@ function Set-ThunderboltNetworkOptimization {
             Arguments   = @('interface', 'ipv4', 'set', 'subinterface', $InterfaceAlias, "mtu=$MtuBytes", 'store=persistent')
         })
 
+    if ($ConfigureDeterministicIPv6) {
+        $localId = Get-ThunderboltPeerIdentity -ComputerName $env:COMPUTERNAME
+        foreach ($lla in @($localId.AllLinkLocalAddresses)) {
+            $plan.Add([PSCustomObject]@{
+                    Step        = 'SetDeterministicLinkLocalIPv6'
+                    Description = "Assign deterministic Link-Local IPv6 $lla/64 to $InterfaceAlias"
+                    Command     = "netsh interface ipv6 add address interface=$InterfaceAlias address=$lla/64 store=persistent"
+                    Arguments   = @('interface', 'ipv6', 'add', 'address', "interface=$InterfaceAlias", "address=$lla/64", 'store=persistent')
+                })
+        }
+        foreach ($ula in @($localId.AllUlaAddresses)) {
+            $plan.Add([PSCustomObject]@{
+                    Step        = 'SetDeterministicUlaIPv6'
+                    Description = "Assign deterministic ULA IPv6 $ula/64 to $InterfaceAlias"
+                    Command     = "netsh interface ipv6 add address interface=$InterfaceAlias address=$ula/64 store=persistent"
+                    Arguments   = @('interface', 'ipv6', 'add', 'address', "interface=$InterfaceAlias", "address=$ula/64", 'store=persistent')
+                })
+        }
+    }
+
     if ($IPv4Address) {
         $mask = ConvertTo-IPv4Mask -Length $PrefixLength
         $plan.Add([PSCustomObject]@{
@@ -144,7 +178,7 @@ function Set-ThunderboltNetworkOptimization {
             CurrentStatus    = $current
             PlannedActions   = @($plan)
             RecommendedNotes = @(
-                'Prefer a dedicated /30 for SMB and WinRM on a direct USB4 peer link when both ends are under your control.',
+                'Prefer deterministic IPv6 Link-Local + ULA (via Register-ThunderboltPeer) or a commutative pairwise /30 IPv4 link when both ends are under your control.',
                 'Keep the Thunderbolt / USB4 link isolated from Internet routing. The direct peer interface does not need a default gateway.',
                 'If WinRM remains unavailable after addressing, set the remote USB4 connection profile to Private and enable PSRemoting on that machine.'
             )

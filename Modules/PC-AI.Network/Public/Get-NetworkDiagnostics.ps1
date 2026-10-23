@@ -72,7 +72,7 @@ function Get-NetworkDiagnostics {
     Write-Host "[*] Analyzing physical adapters..." -ForegroundColor Yellow
     try {
         $physicalAdapters = Get-NetAdapter | Where-Object {
-            $_.Virtual -eq $false -or $IncludeVirtual -eq $false
+            $_.Virtual -eq $false
         }
 
         foreach ($adapter in $physicalAdapters) {

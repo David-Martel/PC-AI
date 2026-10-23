@@ -375,6 +375,13 @@ invocation fixtures are synthetic; the other six controls invoke actual fd.
 See `Reports/fd-search-contract-review.md` for retained failure and validation
 boundaries. A passing contract suite does not establish a performance gain.
 
+`Tests/Unit/NetworkAdapterClassification.Tests.ps1` exercises 21 controls against
+the actual producer with inert physical/virtual adapters. Export only the
+producer from its fixture module so collaborator metadata cannot affect later
+Pester mocks. Preserve empty-output behavior under inherited strict mode. These
+controls establish unit classification, not live networking or full coverage;
+see `Reports/network-adapter-classification-review.md`.
+
 Windows CI also compiles, lints and runs `pcai_core_lib` unit tests, including the 19 inert Event Log contracts.
 The inference lint profiles alone do not qualify Core's Windows bindings.
 See [native Event Log qualification](Reports/native-event-log-repair-review.md)

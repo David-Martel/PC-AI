@@ -43,6 +43,18 @@ must not be treated as that gate or credited by adding its numerator to another
 run. Results and independent limits are recorded in
 [the fleet review](../Reports/fleet-integration-review.md).
 
+## Network adapter classification
+
+`Unit/NetworkAdapterClassification.Tests.ps1` runs 21 controls against the actual
+diagnostics producer using inert physical and virtual adapter collaborators.
+Default, explicit true and explicit false selection must preserve physical
+classification and collect virtual IP configuration only when requested. The
+fixture exports only the producer to prevent cross-file mock metadata leakage.
+Together with `Unit/PcaiNetworkContracts.Tests.ps1` and
+`Unit/PC-AI.Network.Tests.ps1`, the current narrow run passes 130 controls with
+zero failures and one skip. This is unit evidence, not live networking or full
+coverage acceptance; see [the review](../Reports/network-adapter-classification-review.md).
+
 ## Dedicated Windows process capture qualification
 
 `ProcessCapture/Invoke-ProcessCaptureQualification.ps1` runs the complete

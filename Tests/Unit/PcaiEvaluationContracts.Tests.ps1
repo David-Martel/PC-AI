@@ -20,7 +20,7 @@ $env:PCAI_CACHE_PROVIDER='memory'
 Import-Module (Join-Path $Installed 'PC-AI.Evaluation/PC-AI.Evaluation.psd1') -Force -WarningAction SilentlyContinue
 $module=Get-Module PC-AI.Evaluation
 $result=& $module {
-    [ordered]@{Root=Get-PcaiProjectRoot;Artifacts=Get-PcaiArtifactsRoot;OllamaModel=$script:EvaluationConfig.OllamaModel;OllamaUrl=$script:EvaluationConfig.OllamaBaseUrl}
+    [ordered]@{Root=Get-PcaiProjectRoot;Artifacts=Get-PcaiArtifactsRoot;OllamaModel=$script:EvaluationConfig.OllamaModel;OllamaUrl=$script:EvaluationConfig.OllamaBaseUrl;AggregateCount=@(Get-Module -Name PC-AI).Count}
 }
 'EVALUATION-ROOT:' + ($result|ConvertTo-Json -Compress)
 '@|Set-Content -LiteralPath $script:rootProbe
@@ -39,6 +39,7 @@ $result=& $module {
             $common=Join-Path $Destination 'PC-AI.Common/Public'
             $null=New-Item -ItemType Directory -Path $common -Force
             Copy-Item -LiteralPath (Join-Path $repoRoot 'Modules/PC-AI.Common/Public/Get-PcaiRuntimeConfig.ps1') -Destination $common
+            Copy-Item -LiteralPath (Join-Path $repoRoot 'Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1') -Destination $common
         }
     }
     function Invoke-EvaluationRootProbe {
@@ -49,7 +50,9 @@ $result=& $module {
         $exitCode|Should -Be 0
         $record=@($output|Where-Object{$_ -is [string] -and $_.StartsWith('EVALUATION-ROOT:')})
         $record.Count|Should -Be 1
-        return $record[0].Substring('EVALUATION-ROOT:'.Length)|ConvertFrom-Json
+        $result=$record[0].Substring('EVALUATION-ROOT:'.Length)|ConvertFrom-Json
+        $result.AggregateCount|Should -Be 0
+        return $result
     }
     function New-ContractSuite {
         param([int]$Count=1)

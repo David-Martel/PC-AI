@@ -1,7 +1,8 @@
 function Get-PcaiProjectRoot {
     [CmdletBinding()]
     param()
-    $resolver = Get-Command Resolve-PcaiRepoRoot -CommandType Function -ErrorAction SilentlyContinue
+    # Optional helpers must already be loaded; discovery must not autoload another installation.
+    $resolver = Get-Item -LiteralPath 'Function:\Resolve-PcaiRepoRoot' -ErrorAction SilentlyContinue
     if ($resolver) {
         $candidate = & $resolver -StartPath $PSScriptRoot
     } elseif ($env:PCAI_ROOT) {

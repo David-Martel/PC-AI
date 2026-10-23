@@ -26,7 +26,7 @@ if (Test-Path -LiteralPath $configPath -PathType Leaf) {
         }
     } catch {
         $config = $null
-        Write-Warning "Failed to parse dependency configuration ${configPath} as a JSON object. Using default search paths."
+        Microsoft.PowerShell.Utility\Write-Warning "Failed to parse dependency configuration ${configPath} as a JSON object. Using default search paths."
     }
 }
 
@@ -37,13 +37,13 @@ $getConfiguredPaths = {
     if ($null -eq $config -or -not $config.Contains($Section) -or $null -eq $config[$Section]) { return }
     $settings = $config[$Section]
     if ($settings -isnot [System.Collections.IDictionary]) {
-        Write-Warning "Dependency configuration section '$Section' must be an object. Using default search paths."
+        Microsoft.PowerShell.Utility\Write-Warning "Dependency configuration section '$Section' must be an object. Using default search paths."
         return
     }
     if (-not $settings.Contains($Property) -or $null -eq $settings[$Property]) { return }
     foreach ($configuredPath in @($settings[$Property])) {
         if ($configuredPath -isnot [string] -or [string]::IsNullOrWhiteSpace($configuredPath)) {
-            Write-Warning "Dependency configuration '$Section.$Property' contains an invalid path. Ignoring that entry."
+            Microsoft.PowerShell.Utility\Write-Warning "Dependency configuration '$Section.$Property' contains an invalid path. Ignoring that entry."
             continue
         }
         if ([System.IO.Path]::IsPathRooted($configuredPath)) {
@@ -91,7 +91,7 @@ if (-not $dllFound) {
 ║                                                                   ║
 ╚══════════════════════════════════════════════════════════════════╝
 "@
-    Write-Warning $buildInstructions
+    Microsoft.PowerShell.Utility\Write-Warning $buildInstructions
 
     # Don't throw - allow module to load for documentation/offline use
     # Actual usage will fail when trying to invoke native functions
@@ -120,7 +120,7 @@ foreach ($dir in $exeSearchDirs) {
 # Check for PcaiInference module
 $pcaiModulePath = Join-Path $projectRoot 'Modules\PcaiInference.psm1'
 if (-not (Test-Path -LiteralPath $pcaiModulePath -PathType Leaf)) {
-    Write-Warning "PcaiInference.psm1 not found at: $pcaiModulePath"
+    Microsoft.PowerShell.Utility\Write-Warning "PcaiInference.psm1 not found at: $pcaiModulePath"
 }
 
 # Export validation results

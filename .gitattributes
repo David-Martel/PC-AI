@@ -10,6 +10,10 @@
 *.sh text eol=lf
 *.bash text eol=lf
 
+# Keep USB4 release tooling byte-stable in Windows and Linux Git checkouts.
+Tools/SystemScripts/Networking/usb4_fleet_release.py text eol=lf
+Tests/Portable/test_usb4_fleet_release.py text eol=lf
+
 # Documentation
 *.md text eol=crlf
 *.txt text eol=crlf

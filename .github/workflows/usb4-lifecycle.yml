@@ -2,6 +2,7 @@ name: USB4 lifecycle contracts
 on:
   pull_request:
     paths:
+      - '.gitattributes'
       - 'Native/pcai_core/pcai_tb_cli/**'
       - 'Native/pcai_core/Cargo.toml'
       - 'Native/pcai_core/Cargo.lock'

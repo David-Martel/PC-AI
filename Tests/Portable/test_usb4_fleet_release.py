@@ -303,6 +303,61 @@ class ReleaseTests(unittest.TestCase):
         )
         self.assertEqual(record["sha256"], hashlib.sha256(committed).hexdigest())
 
+    def test_real_windows_autocrlf_checkout_keeps_release_sources_canonical(
+        self,
+    ) -> None:
+        checkout = self.root / "windows-checkout-fixture"
+        subprocess.run(
+            [
+                "git",
+                "clone",
+                "--quiet",
+                "--shared",
+                "--no-checkout",
+                str(ROOT),
+                str(checkout),
+            ],
+            capture_output=True,
+            check=True,
+            timeout=30,
+        )
+        # Use the actual proposed repository policy, including before it is
+        # committed. The immutable file contents still come from Git HEAD.
+        (checkout / ".gitattributes").write_bytes(
+            (ROOT / ".gitattributes").read_bytes()
+        )
+        names = [
+            "Tools/SystemScripts/Networking/usb4_fleet_release.py",
+            "Tests/Portable/test_usb4_fleet_release.py",
+        ]
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(checkout),
+                "-c",
+                "core.autocrlf=true",
+                "checkout",
+                "HEAD",
+                "--",
+                *names,
+            ],
+            capture_output=True,
+            check=True,
+            timeout=30,
+        )
+        for name in names:
+            with self.subTest(path=name):
+                committed = subprocess.run(
+                    ["git", "-C", str(checkout), "show", f"HEAD:{name}"],
+                    capture_output=True,
+                    check=True,
+                    timeout=30,
+                ).stdout
+                actual = (checkout / name).read_bytes()
+                self.assertNotIn(b"\r\n", actual)
+                self.assertEqual(actual, committed)
+
     def test_crlf_with_substantive_change_is_not_a_clean_checkout(self) -> None:
         changed = (
             self.committed[self.script_path].replace(b"\n", b"\r\n")

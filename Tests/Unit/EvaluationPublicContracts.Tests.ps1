@@ -134,10 +134,13 @@ AfterAll {
 
 Describe 'Evaluation public persistence and numerical admission' -Tag 'Unit', 'Evaluation', 'Portable' {
     BeforeEach {
+        # Reset capture sentinels before any setup operation can terminate.
+        $script:publicStateBefore = $null
+        $script:publicStateCaptured = $false
         $script:publicEnvironmentBefore = @{}
         foreach ($environmentName in @('PCAI_ROOT', 'PCAI_ARTIFACTS_ROOT')) {
             $item = Get-Item -LiteralPath "Env:$environmentName" -ErrorAction SilentlyContinue
-            $script:publicEnvironmentBefore[$environmentName] = @{ Exists = $null -ne $item; Value = $item.Value }
+            $script:publicEnvironmentBefore[$environmentName] = @{ Exists = $null -ne $item; Value = $(if ($null -ne $item) { $item.Value } else { $null }) }
         }
         $script:publicOwnedRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $script:publicBaselineRoot = Join-Path $publicOwnedRoot 'baselines'
@@ -152,6 +155,7 @@ Describe 'Evaluation public persistence and numerical admission' -Tag 'Unit', 'E
                 BaseUrl = $script:CompiledServerBaseUrl; Backend = $script:CompiledServerBackend
             }
         }
+        $script:publicStateCaptured = $true
         & $publicEvaluationModule {
             param($baselineRoot)
             $script:EvaluationConfig = @{} + $script:EvaluationConfig
@@ -169,6 +173,7 @@ Describe 'Evaluation public persistence and numerical admission' -Tag 'Unit', 'E
     AfterEach {
         $script:publicRestoreFailureOriginals = [Collections.Generic.List[object]]::new()
         try {
+            if ($publicStateCaptured) {
             & $publicEvaluationModule {
                 param($previous)
                 $script:EvaluationConfig = $previous.Config; $script:Baselines = $previous.Baselines
@@ -176,6 +181,7 @@ Describe 'Evaluation public persistence and numerical admission' -Tag 'Unit', 'E
                 $script:CompiledServerProcess = $previous.Process; $script:CompiledServerConfigPath = $previous.ConfigPath
                 $script:CompiledServerBaseUrl = $previous.BaseUrl; $script:CompiledServerBackend = $previous.Backend
             } $publicStateBefore
+            }
         }
         catch { $script:publicRestoreFailureOriginals.Add($_) }
         finally {
@@ -194,6 +200,7 @@ Describe 'Evaluation public persistence and numerical admission' -Tag 'Unit', 'E
         }
         # Every restoration is attempted before any assertion or rethrow.
         if ($publicRestoreFailureOriginals.Count -gt 0) { throw $publicRestoreFailureOriginals[0] }
+        if ($publicStateCaptured) {
         & $publicEvaluationModule {
             param($previous)
             foreach ($pair in @(
@@ -204,6 +211,7 @@ Describe 'Evaluation public persistence and numerical admission' -Tag 'Unit', 'E
                 [object]::ReferenceEquals($pair[0], $pair[1]) | Should -BeTrue
             }
         } $publicStateBefore
+        }
         foreach ($name in $publicEnvironmentBefore.Keys) {
             $previous = $publicEnvironmentBefore[$name]
             $restored = Get-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue

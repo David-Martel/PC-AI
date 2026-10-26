@@ -147,6 +147,9 @@ function Resolve-PcaiPath {
     # Wildcard expansion here can alias distinct roots in query-cache keys.
     $resolved = Resolve-Path -LiteralPath $Path -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($resolved) {
+        # External tools need the physical filesystem path, not a PSDrive or
+        # provider-qualified display path. Cache aliases share that identity.
+        if ($resolved.Provider.Name -eq 'FileSystem') { return $resolved.ProviderPath }
         return $resolved.Path
     }
 

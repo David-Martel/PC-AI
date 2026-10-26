@@ -158,6 +158,46 @@ Describe 'fd search failure and cache contracts' -Tag 'Unit', 'Acceleration' -Sk
         foreach ($row in $observed.Rows) { $row | Should -BeOfType ([IO.FileInfo]) }
         @($observed.Rows.FullName | Sort-Object) | Should -Be @(@($script:FdFirst, $script:FdNested) | Sort-Object)
     }
+    # Real fd must receive a physical root, including custom PowerShell drives.
+    # Native enumeration is not mocked; expected identities come from owned files.
+    It 'forwards a physical root to actual fd for <RootMode>' -ForEach @(
+        @{RootMode='custom-drive'}, @{RootMode='custom-drive-cwd'},
+        @{RootMode='ordinary-cwd'}, @{RootMode='literal-bracket'}
+    ) {
+        $root = $script:FdFixture
+        $expected = @($script:FdFirst, $script:FdNested)
+        if ($RootMode -eq 'literal-bracket') {
+            $root = Join-Path $script:FdFixture 'inputs[ab]'
+            [void][IO.Directory]::CreateDirectory($root)
+            $expected = @(Join-Path $root 'match-real.txt')
+            [IO.File]::WriteAllText($expected[0], 'real')
+            $decoy = Join-Path $script:FdFixture 'inputsa'
+            [void][IO.Directory]::CreateDirectory($decoy)
+            [IO.File]::WriteAllText((Join-Path $decoy 'match-wrong.txt'), 'wrong')
+        }
+        $driveCreated = $false
+        $locationPushed = $false
+        try {
+            if ($RootMode -like 'custom-drive*') {
+                New-PSDrive -Name PcaiFdReview -PSProvider FileSystem -Root $root -Scope Script | Out-Null
+                $driveCreated = $true
+                $root = 'PcaiFdReview:\'
+            }
+            if ($RootMode -like '*cwd') {
+                Push-Location -LiteralPath $root
+                $locationPushed = $true
+                $observed = Get-FdContractObservation { Find-FilesFast -Pattern '^match' -Type file -NoIgnore }
+            } else {
+                $observed = Get-FdContractObservation { Find-FilesFast -Path $root -Pattern '^match' -Type file -NoIgnore }
+            }
+            $observed.ErrorRecord | Should -BeNullOrEmpty
+            @($observed.Rows.FullName | Sort-Object) | Should -Be @($expected | Sort-Object)
+            $script:FdCacheCalls | Should -Be 1
+        } finally {
+            if ($locationPushed) { Pop-Location }
+            if ($driveCreated) { Remove-PSDrive -Name PcaiFdReview -Scope Script }
+        }
+    }
     # Protects: caller native-error preference. Detects: manual cause substitution/cache.
     # Needs: physical fd and preference true. Breadcrumb: exact NativeCommandExitException.
     It 'preserves the actual native error preference cause and avoids caching it' {

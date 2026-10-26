@@ -32,15 +32,16 @@ foreach($root in @($ordinary,$bracket)){
  [IO.File]::WriteAllText((Join-Path $root '東京/café😀.txt'),'hello',[Text.UTF8Encoding]::new($false))
 }
 $cases=[Collections.Generic.List[object]]::new()
-foreach($case in @(@('ordinary',$ordinary),@('literal-bracket',$bracket),@('bracket-with-decoy',$bracket),@('relative-dot',$ordinary))){
+foreach($case in @(@('ordinary',$ordinary),@('literal-bracket',$bracket),@('bracket-with-decoy',$bracket),@('relative-dot',$ordinary),@('custom-drive',$ordinary))){
  if($case[0]-eq'bracket-with-decoy'){[void][IO.Directory]::CreateDirectory($decoy);[IO.File]::WriteAllText((Join-Path $decoy 'wrong.txt'),'wrong')}
  $root=$case[1];$files=@([IO.Directory]::EnumerateFiles($root,'*',[IO.SearchOption]::AllDirectories));$directories=@([IO.Directory]::EnumerateDirectories($root,'*',[IO.SearchOption]::AllDirectories));$expected=@(($files+$directories)|ForEach-Object {[IO.Path]::GetRelativePath($root,$_).Replace('\','/')}|Sort-Object)
  $bytes=($files|ForEach-Object {[IO.FileInfo]::new($_).Length}|Measure-Object -Sum).Sum
  foreach($statsOnly in @($false,$true)){
   $failure=$null;$actual=$null
   try{
+   if($case[0]-eq'custom-drive'){New-PSDrive -Name PcaiNativeReview -PSProvider FileSystem -Root $root -Scope Script|Out-Null}
    Push-Location -LiteralPath $root
-   try{$path=if($case[0]-eq'relative-dot'){'.'}else{$root};$actual=& $module {param($p,$stats) Invoke-PcaiNativeDirectoryManifest -Path $p -MaxDepth 0 -MaxResults 0 -StatsOnly:$stats} $path $statsOnly}finally{Pop-Location}
+   try{$path=if($case[0]-eq'relative-dot'){'.'}elseif($case[0]-eq'custom-drive'){'PcaiNativeReview:\'}else{$root};$actual=& $module {param($p,$stats) Invoke-PcaiNativeDirectoryManifest -Path $p -MaxDepth 0 -MaxResults 0 -StatsOnly:$stats} $path $statsOnly}finally{Pop-Location;if($case[0]-eq'custom-drive'){Remove-PSDrive -Name PcaiNativeReview -Scope Script}}
    if(-not$actual.IsSuccess-or$actual.EntriesReturned-ne$expected.Count-or$actual.FileCount-ne$files.Count-or$actual.DirectoryCount-ne$directories.Count-or$actual.TotalSize-ne$bytes){throw 'Manifest status/count/byte totals differ from the independent filesystem reference.'}
    if(-not$statsOnly){$identities=@($actual.Entries|ForEach-Object {$_.RelativePath.Replace('\','/')}|Sort-Object);if($actual.Truncated-or@(Compare-Object $expected $identities).Count){throw 'Uncapped manifest entry identities differ from the independent filesystem reference.'}}
   }catch{$failure=$_.Exception.Message}

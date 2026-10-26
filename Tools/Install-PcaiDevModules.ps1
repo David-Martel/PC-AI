@@ -61,6 +61,9 @@ function Resolve-ModuleDeploymentPath {
         if ($part -match '^(?i:\$null|AUX|CON|NUL|PRN|COM[1-9]|LPT[1-9])(?:[. ]|$)') {
             throw "Reserved path component in '$Path'."
         }
+        if ($part -notin @('.', '..') -and $part -match '[. ]$') {
+            throw "Deployment path components must not end with a dot or space: '$Path'."
+        }
     }
     $resolved = [IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
     if ($resolved -eq [IO.Path]::GetPathRoot($resolved).TrimEnd('\', '/')) {

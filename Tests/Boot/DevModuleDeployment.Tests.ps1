@@ -124,6 +124,57 @@ Describe 'Scoped module publication with recovery' {
         [IO.Directory]::Exists($install) | Should -BeFalse
     }
 
+    # Protect the selected source/installation/backup identity before Windows or
+    # Join-Path can erase an ordinary component's trailing dot or space. These
+    # real-copy cases use only TestDrive payloads; no global module path is changed.
+    It 'rejects aliased <PathArgument> before any publication IO (<SuffixName>)' -ForEach @(
+        @{ PathArgument = 'RepoRoot'; Suffix = ' '; SuffixName = 'space' },
+        @{ PathArgument = 'RepoRoot'; Suffix = '.'; SuffixName = 'dot' },
+        @{ PathArgument = 'InstallRoot'; Suffix = ' '; SuffixName = 'space' },
+        @{ PathArgument = 'InstallRoot'; Suffix = '.'; SuffixName = 'dot' },
+        @{ PathArgument = 'BackupRoot'; Suffix = ' '; SuffixName = 'space' },
+        @{ PathArgument = 'BackupRoot'; Suffix = '.'; SuffixName = 'dot' },
+        @{ PathArgument = 'CargoToolsSourcePath'; Suffix = ' '; SuffixName = 'space' },
+        @{ PathArgument = 'CargoToolsSourcePath'; Suffix = '.'; SuffixName = 'dot' }
+    ) {
+        New-TestDevModule $modules Alpha | Out-Null
+        New-TestDevModule $install Alpha 'original' | Out-Null
+        $arguments = @{ RepoRoot = $repo; InstallRoot = $install; ModuleNames = @('Alpha'); UpdatePSModulePath = $false }
+        switch ($PathArgument) {
+            RepoRoot { $arguments.RepoRoot = $repo + $Suffix }
+            InstallRoot { $arguments.InstallRoot = $install + $Suffix }
+            BackupRoot {
+                $backupParent = Join-Path $caseRoot 'backups'
+                [IO.Directory]::CreateDirectory($backupParent) | Out-Null
+                $arguments.BackupRoot = ($backupParent + $Suffix) + '\saved'
+            }
+            CargoToolsSourcePath {
+                $cargo = New-TestDevModule (Join-Path $caseRoot 'external') CargoTools
+                $arguments.ModuleNames = @('CargoTools')
+                $arguments.CargoToolsSourcePath = $cargo + $Suffix
+            }
+        }
+        $before = @(Get-ChildItem -LiteralPath $caseRoot -Recurse -Force | Select-Object -ExpandProperty FullName | Sort-Object)
+        { & $installer @arguments } | Should -Throw '*must not end with a dot or space*'
+        @(Get-ChildItem -LiteralPath $caseRoot -Recurse -Force | Select-Object -ExpandProperty FullName | Sort-Object) | Should -Be $before
+        [IO.File]::ReadAllText((Join-Path $install 'Alpha\payload.txt')) | Should -Be 'original'
+        $env:PSModulePath | Should -Be $oldProcessPath
+    }
+
+    # Keep ordinary names and explicit navigation usable: only a named component
+    # ending in a dot/space is ambiguous; spaces/dots inside names and . / .. are valid.
+    It 'publishes ordinary spaced names through dot navigation without changing source or module paths' {
+        $source = New-TestDevModule $modules Alpha
+        $normalInstall = Join-Path $caseRoot 'installed modules.normal'
+        New-TestDevModule $normalInstall Alpha 'original' | Out-Null
+        $result = & $installer -RepoRoot $repo -InstallRoot ($normalInstall + '\child\..\.') -ModuleNames Alpha -UpdatePSModulePath:$false
+        $result.Status | Should -Be 'Installed'
+        [IO.File]::ReadAllText((Join-Path $normalInstall 'Alpha\payload.txt')) | Should -Be 'new'
+        [IO.File]::ReadAllText((Join-Path $result.BackupPath 'payload.txt')) | Should -Be 'original'
+        [IO.File]::ReadAllText((Join-Path $source 'payload.txt')) | Should -Be 'new'
+        $env:PSModulePath | Should -Be $oldProcessPath
+    }
+
     It 'keeps DryRun and WhatIf free of file and environment writes' {
         New-TestDevModule $modules Alpha | Out-Null
         $before = @(Get-ChildItem $caseRoot -Recurse -Force | Select-Object -ExpandProperty FullName)
